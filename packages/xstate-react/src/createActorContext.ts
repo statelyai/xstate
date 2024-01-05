@@ -1,49 +1,7 @@
 import * as React from 'react';
+import { Actor, ActorOptions, AnyActorLogic, SnapshotFrom } from 'xstate';
 import { useActorRef } from './useActorRef';
 import { useSelector as useSelectorUnbound } from './useSelector';
-import {
-  ActorRefFrom,
-  AnyStateMachine,
-  SnapshotFrom,
-  ActorOptions,
-  AreAllImplementationsAssumedToBeProvided,
-  MarkAllImplementationsAsProvided,
-  StateMachine,
-  AnyActorLogic
-} from 'xstate';
-
-type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
-  TMachine extends StateMachine<
-    infer TContext,
-    infer TEvent,
-    infer TChildren,
-    infer TActor,
-    infer TAction,
-    infer TGuard,
-    infer TDelay,
-    infer TStateValue,
-    infer TTag,
-    infer TInput,
-    infer TOutput,
-    infer TResolvedTypesMeta
-  >
-    ? StateMachine<
-        TContext,
-        TEvent,
-        TChildren,
-        TActor,
-        TAction,
-        TGuard,
-        TDelay,
-        TStateValue,
-        TTag,
-        TInput,
-        TOutput,
-        AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
-          ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
-          : TResolvedTypesMeta
-      >
-    : never;
 
 export function createActorContext<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
@@ -53,29 +11,18 @@ export function createActorContext<TLogic extends AnyActorLogic>(
     selector: (snapshot: SnapshotFrom<TLogic>) => T,
     compare?: (a: T, b: T) => boolean
   ) => T;
-  useActorRef: () => ActorRefFrom<TLogic>;
-  Provider: (
-    props: {
-      children: React.ReactNode;
-      options?: ActorOptions<TLogic>;
-      /**
-       * @deprecated Use `logic` instead.
-       */
-      machine?: never;
-    } & (TLogic extends AnyStateMachine
-      ? AreAllImplementationsAssumedToBeProvided<
-          TLogic['__TResolvedTypesMeta']
-        > extends true
-        ? {
-            logic?: TLogic;
-          }
-        : {
-            logic: ToMachinesWithProvidedImplementations<TLogic>;
-          }
-      : { logic?: TLogic })
-  ) => React.ReactElement<any, any>;
+  useActorRef: () => Actor<TLogic>;
+  Provider: (props: {
+    children: React.ReactNode;
+    options?: ActorOptions<TLogic>;
+    /**
+     * @deprecated Use `logic` instead.
+     */
+    machine?: never;
+    logic?: TLogic;
+  }) => React.ReactElement<any, any>;
 } {
-  const ReactContext = React.createContext<ActorRefFrom<TLogic> | null>(null);
+  const ReactContext = React.createContext<Actor<TLogic> | null>(null);
 
   const OriginalProvider = ReactContext.Provider;
 
@@ -99,10 +46,7 @@ export function createActorContext<TLogic extends AnyActorLogic>(
       );
     }
 
-    const actor = (useActorRef as any)(
-      providedLogic,
-      providedOptions
-    ) as ActorRefFrom<TLogic>;
+    const actor = useActorRef(providedLogic, providedOptions);
 
     return React.createElement(OriginalProvider, {
       value: actor,
@@ -113,7 +57,7 @@ export function createActorContext<TLogic extends AnyActorLogic>(
   // TODO: add properties to actor ref to make more descriptive
   Provider.displayName = `ActorProvider`;
 
-  function useContext(): ActorRefFrom<TLogic> {
+  function useContext(): Actor<TLogic> {
     const actor = React.useContext(ReactContext);
 
     if (!actor) {

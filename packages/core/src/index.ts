@@ -10,7 +10,7 @@ export * from './types.ts';
 export { waitFor } from './waitFor.ts';
 import { createMachine } from './createMachine.ts';
 export { getNextSnapshot } from './getNextSnapshot.ts';
-import { Actor, createActor, interpret, Interpreter } from './interpreter.ts';
+import { Actor, createActor, interpret, Interpreter } from './createActor.ts';
 import { StateNode } from './StateNode.ts';
 // TODO: decide from where those should be exported
 export { and, not, or, stateIn } from './guards.ts';

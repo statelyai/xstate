@@ -4,14 +4,15 @@ title: "Bug: "
 labels: [bug, triage]
 body:
   - type: markdown
+    id: intro
     attributes:
       value: |
         Report an issue with XState or XState tooling within this repo.
   - type: dropdown
     id: version
     attributes:
-      label: XState Version
-      description: Which version of XState (not the other libraries) are you using?
+      label: XState version
+      description: Which version of the core XState library are you using?
       options:
         - XState version 5
         - XState version 4
@@ -42,7 +43,7 @@ body:
     validations:
       required: true
   - type: input
-    id: version
+    id: reproduction
     attributes:
       label: Reproduction
       description: |
@@ -54,12 +55,14 @@ body:
         - [XState React Template (StackBlitz)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/react-ts)
         - [XState Vue Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vue-ts)
         - [XState Vue Template (StackBlitz)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/vue-ts)
+        - [XState Svelte Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/svelte-ts)
+        - [XState Svelte Template (StackBlitz)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/svelte-ts)
     validations:
       required: true
   - type: textarea
     id: additional
     attributes:
       label: Additional context
-      description: Add any other context about the problem here (e.g., XState version)
+      description: Add any other context about the problem here (e.g. specific XState version)
     validations:
       required: false

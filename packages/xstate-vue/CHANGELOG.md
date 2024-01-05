@@ -1,5 +1,17 @@
 # @xstate/vue
 
+## 3.0.3
+
+### Patch Changes
+
+- [#4600](https://github.com/statelyai/xstate/pull/4600) [`1f2ccb97c`](https://github.com/statelyai/xstate/commit/1f2ccb97ca00ff2d2ec1c9996f8205dbe656602b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Typegen-based types for detecting missing implementations have been removed internally.
+
+## 3.0.2
+
+### Patch Changes
+
+- [#4604](https://github.com/statelyai/xstate/pull/4604) [`3ad929eb4`](https://github.com/statelyai/xstate/commit/3ad929eb4a26eed0723aa80a7e4da68331ef9b23) Thanks [@tkofh](https://github.com/tkofh)! - The `useActor` hook now correctly types it's `send` function when passed an `ActorLogic`.
+
 ## 3.0.1
 
 ### Patch Changes

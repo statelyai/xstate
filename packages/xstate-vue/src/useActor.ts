@@ -1,10 +1,9 @@
 import isDevelopment from '#is-development';
 import { Ref } from 'vue';
 import {
+  Actor,
   ActorOptions,
-  ActorRefFrom,
   AnyActorLogic,
-  EventFrom,
   Snapshot,
   SnapshotFrom
 } from 'xstate';
@@ -16,8 +15,8 @@ export function useActor<TLogic extends AnyActorLogic>(
   options?: ActorOptions<TLogic>
 ): {
   snapshot: Ref<SnapshotFrom<TLogic>>;
-  send: (event: EventFrom<TLogic>) => void;
-  actorRef: ActorRefFrom<TLogic>;
+  send: (event: Actor<TLogic>['send']) => void;
+  actorRef: Actor<TLogic>;
 };
 export function useActor(
   actorLogic: AnyActorLogic,
