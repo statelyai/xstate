@@ -10,12 +10,26 @@ import {
   IndexByProp
 } from './types.ts';
 
+/**
+ * @internal
+ * @deprecated
+ */
 export interface TypegenDisabled {
   '@@xstate/typegen': false;
 }
+
+/**
+ * @internal
+ * @deprecated
+ */
 export interface TypegenEnabled {
   '@@xstate/typegen': true;
 }
+
+/**
+ * @internal
+ * @deprecated
+ */
 export interface TypegenMeta extends TypegenEnabled {
   /**
    * Allows you to specify all the results of state.matches
@@ -89,6 +103,10 @@ export interface TypegenMeta extends TypegenEnabled {
   eventsCausingActors: Record<string, string>;
 }
 
+/**
+ * @internal
+ * @deprecated
+ */
 export interface ResolvedTypegenMeta extends TypegenMeta {
   resolved: TypegenMeta & {
     indexedActors: Record<string, ProvidedActor>;
@@ -99,9 +117,14 @@ export interface ResolvedTypegenMeta extends TypegenMeta {
   };
 }
 
+/**
+ * @internal
+ * @deprecated
+ */
 export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
 
 /**
+ * @internal
  * @deprecated Always resolves to `true`
  */
 export type AreAllImplementationsAssumedToBeProvided<
@@ -109,6 +132,10 @@ export type AreAllImplementationsAssumedToBeProvided<
   _TMissingImplementations
 > = true;
 
+/**
+ * @internal
+ * @deprecated
+ */
 interface AllImplementationsProvided {
   missingImplementations: {
     actions: never;
@@ -177,6 +204,10 @@ type WrapIntoParameterizedObject<T extends string> = T extends any
   ? { type: T }
   : never;
 
+/**
+ * @internal
+ * @deprecated
+ */
 export interface ResolveTypegenMeta<
   TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,
