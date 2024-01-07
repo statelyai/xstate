@@ -1,5 +1,5 @@
 import React from 'react';
-import { useActor } from '@xstate/react';
+import { useSelector } from '@xstate/react';
 import { friendMachine } from './friendMachine';
 import { ActorRefFrom } from 'xstate';
 
@@ -7,24 +7,36 @@ export const Friend: React.FC<{
   friendRef: ActorRefFrom<typeof friendMachine>;
   onRemove: () => void;
 }> = ({ friendRef, onRemove }) => {
-  const [state, send] = useActor(friendRef);
-  const { name } = state.context;
+  const selection = useSelector(friendRef, (snapshot) => ({
+    context: snapshot?.context,
+    // not working:
+    // hasTag: snapshot?.hasTag,
+    // matches: snapshot?.matches,
+    value: snapshot?.value,
+    tags: snapshot?.tags
+  }));
+  const {
+    context,
+    value,
+    tags,
+  } = selection;
+
+  const { name } = context;
 
   return (
     <tr
       style={{
-        opacity: state.matches('saving') ? 0.5 : 1
+        opacity: value === 'saving' ? 0.5 : 1
       }}
     >
       <td width="100%">
         <strong>{name}</strong>
         <form
           className="friendForm"
-          hidden={!state.hasTag('form')}
+          hidden={!tags.has('form')}
           onSubmit={(event) => {
             event.preventDefault();
-
-            send({ type: 'SAVE' });
+            friendRef.send({ type: 'SAVE' });
           }}
         >
           <label className="field" htmlFor="friend.name">
@@ -32,9 +44,9 @@ export const Friend: React.FC<{
             <input
               type="text"
               id="friend.name"
-              value={state.context.name}
+              value={name}
               onChange={(event) => {
-                send({ type: 'SET_NAME', value: event.target.value });
+                friendRef.send({ type: 'SET_NAME', value: event.target.value });
               }}
             />
           </label>
@@ -42,24 +54,24 @@ export const Friend: React.FC<{
       </td>
       <td className="actionsCell">
         <div className="actions">
-          {state.hasTag('form') && (
+          {tags.has('form') && (
             <>
               <button
-                disabled={state.hasTag('saving')}
+                disabled={tags.has('saving')}
                 onClick={() => {
-                  send({ type: 'SAVE' });
+                  friendRef.send({ type: 'SAVE' });
                 }}
               >
                 Save
               </button>
-              <button onClick={() => send({ type: 'CANCEL' })} type="button">
+              <button onClick={() => friendRef.send({ type: 'CANCEL' })} type="button">
                 Cancel
               </button>
             </>
           )}
-          {state.hasTag('read') && (
+          {tags.has('read') && (
             <>
-              <button onClick={() => send({ type: 'EDIT' })}>Edit</button>
+              <button onClick={() => friendRef.send({ type: 'EDIT' })}>Edit</button>
               <button className="remove" onClick={onRemove}>
                 Remove
               </button>

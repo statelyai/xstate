@@ -3,6 +3,9 @@ import { createMachine, assign } from 'xstate';
 export const friendMachine = createMachine({
   id: 'friend',
   types: {} as {
+    input: {
+      name: string,
+    }
     context: {
       prevName: string;
       name: string;
@@ -21,7 +24,7 @@ export const friendMachine = createMachine({
       | {
           type: 'CANCEL';
         };
-    // TODO: input
+    tags: 'read' | 'form' | 'saving'
   },
   initial: 'reading',
   context: ({ input }) => ({
@@ -30,13 +33,13 @@ export const friendMachine = createMachine({
   }),
   states: {
     reading: {
-      tags: 'read',
+      tags: ['read'],
       on: {
         EDIT: 'editing'
       }
     },
     editing: {
-      tags: 'form',
+      tags: ['form'],
       on: {
         SET_NAME: {
           actions: assign({ name: ({ event }) => event.value })
