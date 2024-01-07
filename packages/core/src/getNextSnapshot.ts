@@ -1,4 +1,4 @@
-import { createActor } from './interpreter.ts';
+import { createActor } from './createActor.ts';
 import {
   ActorScope,
   AnyActorLogic,
