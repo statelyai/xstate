@@ -1045,6 +1045,9 @@ export type DelayConfig<
 > = number | DelayExpr<TContext, TExpressionEvent, TParams, TEvent>;
 
 // TODO: possibly refactor this somehow, use even a simpler type, and maybe even make `machine.options` private or something
+/**
+ * @internal
+ */
 export interface MachineImplementationsSimplified<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1889,10 +1892,16 @@ export interface Subscription {
   unsubscribe(): void;
 }
 
+/**
+ * @internal
+ */
 export interface InteropObservable<T> {
   [Symbol.observable]: () => InteropSubscribable<T>;
 }
 
+/**
+ * @internal
+ */
 export interface InteropSubscribable<T> {
   subscribe(observer: Observer<T>): Subscription;
 }
