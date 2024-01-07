@@ -1,7 +1,7 @@
 import { Ref } from 'vue';
 import {
+  Actor,
   ActorOptions,
-  ActorRefFrom,
   AnyStateMachine,
   EventFrom,
   SnapshotFrom
@@ -17,7 +17,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
 ): {
   snapshot: Ref<SnapshotFrom<TMachine>>;
   send: (event: EventFrom<TMachine>) => void;
-  actorRef: ActorRefFrom<TMachine>;
+  actorRef: Actor<TMachine>;
 } {
-  return useActor(machine as any, options) as any;
+  return useActor(machine, options);
 }
