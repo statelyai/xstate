@@ -28,7 +28,9 @@ export function createInertActorScope<T extends AnyActorLogic>(
 
 export function getInitialSnapshot<T extends AnyActorLogic>(
   actorLogic: T,
-  input: InputFrom<T>
+  ...[input]: undefined extends InputFrom<T>
+    ? [input?: InputFrom<T>]
+    : [input: InputFrom<T>]
 ): SnapshotFrom<T> {
   const actorScope = createInertActorScope(actorLogic);
   return actorLogic.getInitialSnapshot(actorScope, input);
