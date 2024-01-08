@@ -11,7 +11,6 @@ import {
 } from './types.ts';
 
 /**
- * @internal
  * @deprecated
  */
 export interface TypegenDisabled {
@@ -19,7 +18,6 @@ export interface TypegenDisabled {
 }
 
 /**
- * @internal
  * @deprecated
  */
 export interface TypegenEnabled {
@@ -27,7 +25,6 @@ export interface TypegenEnabled {
 }
 
 /**
- * @internal
  * @deprecated
  */
 export interface TypegenMeta extends TypegenEnabled {
@@ -104,7 +101,6 @@ export interface TypegenMeta extends TypegenEnabled {
 }
 
 /**
- * @internal
  * @deprecated
  */
 export interface ResolvedTypegenMeta extends TypegenMeta {
@@ -118,13 +114,11 @@ export interface ResolvedTypegenMeta extends TypegenMeta {
 }
 
 /**
- * @internal
  * @deprecated
  */
 export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
 
 /**
- * @internal
  * @deprecated Always resolves to `true`
  */
 export type AreAllImplementationsAssumedToBeProvided<
@@ -133,7 +127,6 @@ export type AreAllImplementationsAssumedToBeProvided<
 > = true;
 
 /**
- * @internal
  * @deprecated
  */
 interface AllImplementationsProvided {
@@ -205,7 +198,6 @@ type WrapIntoParameterizedObject<T extends string> = T extends any
   : never;
 
 /**
- * @internal
  * @deprecated
  */
 export interface ResolveTypegenMeta<
