@@ -722,6 +722,31 @@ describe('events', () => {
       }
     });
   });
+
+  it('should provide contextual `event` type in transition actions when the matching event has a union `.type`', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | {
+              type: 'FOO' | 'BAR';
+              value: string;
+            }
+          | {
+              type: 'OTHER';
+            };
+      },
+      on: {
+        FOO: {
+          actions: ({ event }) => {
+            event.type satisfies 'FOO' | 'BAR'; // it could be narrowed down to `FOO` but it's not worth the effort/complexity
+            event.value satisfies string;
+            // @ts-expect-error
+            event.value satisfies number;
+          }
+        }
+      }
+    });
+  });
 });
 
 describe('interpreter', () => {

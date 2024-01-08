@@ -1045,6 +1045,9 @@ export type DelayConfig<
 > = number | DelayExpr<TContext, TExpressionEvent, TParams, TEvent>;
 
 // TODO: possibly refactor this somehow, use even a simpler type, and maybe even make `machine.options` private or something
+/**
+ * @internal
+ */
 export interface MachineImplementationsSimplified<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1738,12 +1741,9 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   clock?: Clock;
   /**
-   * Specifies the logger to be used for log(...) actions. Defaults to the native console.log method.
+   * Specifies the logger to be used for `log(...)` actions. Defaults to the native `console.log(...)` method.
    */
   logger?: (...args: any[]) => void;
-  /**
-   * @internal
-   */
   parent?: ActorRef<any, any>;
   /**
    * @internal
@@ -1754,14 +1754,12 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   id?: string;
   /**
-   * If `true`, states and events will be logged to Redux DevTools.
-   *
-   * Default: `false`
+   * @deprecated Use `inspect` instead.
    */
-  devTools?: boolean | DevToolsAdapter; // TODO: add enhancer options
+  devTools?: never;
 
   /**
-   * The system ID to register this actor under
+   * The system ID to register this actor under.
    */
   systemId?: string;
   /**
@@ -1790,7 +1788,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   state?: Snapshot<unknown>;
 
   /**
-   * The source definition.
+   * The source actor logic.
    */
   src?: string | AnyActorLogic;
 
@@ -1891,10 +1889,16 @@ export interface Subscription {
   unsubscribe(): void;
 }
 
+/**
+ * @internal
+ */
 export interface InteropObservable<T> {
   [Symbol.observable]: () => InteropSubscribable<T>;
 }
 
+/**
+ * @internal
+ */
 export interface InteropSubscribable<T> {
   subscribe(observer: Observer<T>): Subscription;
 }
@@ -1908,6 +1912,11 @@ export interface Subscribable<T> extends InteropSubscribable<T> {
   ): Subscription;
 }
 
+type EventDescriptorMatches<
+  TEventType extends string,
+  TNormalizedDescriptor
+> = TEventType extends TNormalizedDescriptor ? true : false;
+
 export type ExtractEvent<
   TEvent extends EventObject,
   TDescriptor extends EventDescriptor<TEvent>
@@ -1915,7 +1924,11 @@ export type ExtractEvent<
   ? TEvent
   : NormalizeDescriptor<TDescriptor> extends infer TNormalizedDescriptor
     ? TEvent extends any
-      ? TEvent['type'] extends TNormalizedDescriptor
+      ? // true is the check type here to match both true and boolean
+        true extends EventDescriptorMatches<
+          TEvent['type'],
+          TNormalizedDescriptor
+        >
         ? TEvent
         : never
       : never
