@@ -676,9 +676,6 @@ export class Actor<TLogic extends AnyActorLogic>
     return this.logic.getPersistedSnapshot(this._snapshot, options);
   }
 
-  /**
-   * @internal
-   */
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {
     return this;
   }
