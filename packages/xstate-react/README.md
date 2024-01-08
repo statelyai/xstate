@@ -13,14 +13,6 @@ This package contains utilities for using [XState](https://github.com/statelyai/
 npm i xstate @xstate/react
 ```
 
-**Via CDN**
-
-```html
-<script src="https://cdn.jsdelivr.net/npm/@xstate/react/dist/xstate-react.umd.min.js"></script>
-```
-
-By using the global variable `XStateReact`
-
 2. Import the `useMachine` hook:
 
 ```js
