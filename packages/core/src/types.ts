@@ -1908,6 +1908,11 @@ export interface Subscribable<T> extends InteropSubscribable<T> {
   ): Subscription;
 }
 
+type EventDescriptorMatches<
+  TEventType extends string,
+  TNormalizedDescriptor
+> = TEventType extends TNormalizedDescriptor ? true : false;
+
 export type ExtractEvent<
   TEvent extends EventObject,
   TDescriptor extends EventDescriptor<TEvent>
@@ -1915,7 +1920,11 @@ export type ExtractEvent<
   ? TEvent
   : NormalizeDescriptor<TDescriptor> extends infer TNormalizedDescriptor
     ? TEvent extends any
-      ? TEvent['type'] extends TNormalizedDescriptor
+      ? // true is the check type here to match both true and boolean
+        true extends EventDescriptorMatches<
+          TEvent['type'],
+          TNormalizedDescriptor
+        >
         ? TEvent
         : never
       : never
