@@ -94,7 +94,6 @@ export class Actor<TLogic extends AnyActorLogic>
   public _processingStatus: ProcessingStatus = ProcessingStatus.NotStarted;
 
   // Actor Ref
-  /** @internal */
   public _parent?: ActorRef<any, any>;
   /** @internal */
   public _syncSnapshot?: boolean;
