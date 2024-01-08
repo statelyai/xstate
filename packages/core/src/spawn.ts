@@ -1,20 +1,18 @@
-import { createErrorActorEvent } from './eventUtils.ts';
 import { ProcessingStatus, createActor } from './createActor.ts';
 import {
   ActorRefFrom,
-  AnyActorScope,
   AnyActorLogic,
   AnyActorRef,
+  AnyActorScope,
   AnyEventObject,
   AnyMachineSnapshot,
+  ConditionalRequired,
   InputFrom,
   IsLiteralString,
-  ProvidedActor,
-  Snapshot,
-  TODO,
-  RequiredActorOptions,
   IsNotNever,
-  ConditionalRequired
+  ProvidedActor,
+  RequiredActorOptions,
+  TODO
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
 
@@ -52,13 +50,12 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
       logic: TSrc,
       ...[options = {} as any]: SpawnOptions<TActor, TSrc>
     ) => ActorRefFrom<GetConcreteLogic<TActor, TSrc>>
-  : // TODO: do not accept machines without all implementations
-    <TLogic extends AnyActorLogic | string>(
+  : <TLogic extends AnyActorLogic | string>(
       src: TLogic,
       options?: {
         id?: string;
         systemId?: string;
-        input?: unknown;
+        input?: TLogic extends string ? unknown : InputFrom<TLogic>;
         syncSnapshot?: boolean;
       }
     ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;

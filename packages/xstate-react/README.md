@@ -16,7 +16,7 @@ npm i xstate @xstate/react
 **Via CDN**
 
 ```html
-<script src="https://unpkg.com/@xstate/react/dist/xstate-react.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xstate/react/dist/xstate-react.umd.min.js"></script>
 ```
 
 By using the global variable `XStateReact`

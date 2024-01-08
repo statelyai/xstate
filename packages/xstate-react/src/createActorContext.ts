@@ -1,14 +1,7 @@
 import * as React from 'react';
+import { Actor, ActorOptions, AnyActorLogic, SnapshotFrom } from 'xstate';
 import { useActorRef } from './useActorRef';
 import { useSelector as useSelectorUnbound } from './useSelector';
-import {
-  ActorRefFrom,
-  AnyStateMachine,
-  SnapshotFrom,
-  ActorOptions,
-  StateMachine,
-  AnyActorLogic
-} from 'xstate';
 
 export function createActorContext<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
@@ -18,7 +11,7 @@ export function createActorContext<TLogic extends AnyActorLogic>(
     selector: (snapshot: SnapshotFrom<TLogic>) => T,
     compare?: (a: T, b: T) => boolean
   ) => T;
-  useActorRef: () => ActorRefFrom<TLogic>;
+  useActorRef: () => Actor<TLogic>;
   Provider: (props: {
     children: React.ReactNode;
     options?: ActorOptions<TLogic>;
@@ -29,7 +22,7 @@ export function createActorContext<TLogic extends AnyActorLogic>(
     logic?: TLogic;
   }) => React.ReactElement<any, any>;
 } {
-  const ReactContext = React.createContext<ActorRefFrom<TLogic> | null>(null);
+  const ReactContext = React.createContext<Actor<TLogic> | null>(null);
 
   const OriginalProvider = ReactContext.Provider;
 
@@ -53,10 +46,7 @@ export function createActorContext<TLogic extends AnyActorLogic>(
       );
     }
 
-    const actor = (useActorRef as any)(
-      providedLogic,
-      providedOptions
-    ) as ActorRefFrom<TLogic>;
+    const actor = useActorRef(providedLogic, providedOptions);
 
     return React.createElement(OriginalProvider, {
       value: actor,
@@ -67,7 +57,7 @@ export function createActorContext<TLogic extends AnyActorLogic>(
   // TODO: add properties to actor ref to make more descriptive
   Provider.displayName = `ActorProvider`;
 
-  function useContext(): ActorRefFrom<TLogic> {
+  function useContext(): Actor<TLogic> {
     const actor = React.useContext(ReactContext);
 
     if (!actor) {
