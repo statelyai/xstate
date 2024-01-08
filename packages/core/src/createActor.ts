@@ -134,7 +134,7 @@ export class Actor<TLogic extends AnyActorLogic>
     const resolvedOptions = {
       ...defaultOptions,
       ...options
-    } as ActorOptions<TLogic> & typeof defaultOptions;
+    };
 
     const { clock, logger, parent, syncSnapshot, id, systemId, inspect } =
       resolvedOptions;
@@ -156,7 +156,8 @@ export class Actor<TLogic extends AnyActorLogic>
     this.clock = clock;
     this._parent = parent;
     this._syncSnapshot = syncSnapshot;
-    this.options = resolvedOptions;
+    this.options = resolvedOptions as ActorOptions<TLogic> &
+      typeof defaultOptions;
     this.src = resolvedOptions.src ?? logic;
     this.ref = this;
     this._actorScope = {
