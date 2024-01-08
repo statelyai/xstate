@@ -1547,9 +1547,9 @@ function resolveActionsAndContextWorker(
 
     if ('execute' in builtinAction) {
       if (actorScope.self._processingStatus === ProcessingStatus.Running) {
-        builtinAction.execute(actorScope!, params);
+        builtinAction.execute(actorScope, params);
       } else {
-        actorScope.defer(builtinAction.execute.bind(null, actorScope!, params));
+        actorScope.defer(builtinAction.execute.bind(null, actorScope, params));
       }
     }
 
