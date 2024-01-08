@@ -2,6 +2,10 @@ import { useCallback } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import { ActorRef, SnapshotFrom } from 'xstate';
 
+type SyncExternalStoreSubscribe = Parameters<
+  typeof useSyncExternalStoreWithSelector
+>[0];
+
 function defaultCompare<T>(a: T, b: T) {
   return a === b;
 }
@@ -21,7 +25,7 @@ export function useSelector<TActor extends ActorRef<any, any> | undefined, T>(
   selector: (emitted: SnapshotFrom<TActor> | undefined) => T,
   compare: (a: T, b: T) => boolean = defaultCompare
 ): T {
-  const subscribe = useCallback(
+  const subscribe: SyncExternalStoreSubscribe = useCallback(
     (handleStoreChange) => {
       if (!actor) {
         return () => {};
