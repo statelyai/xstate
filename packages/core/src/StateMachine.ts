@@ -90,8 +90,10 @@ export class StateMachine<
 
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
+  /** @internal */
   public __xstatenode: true = true;
 
+  /** @internal */
   public idMap: Map<string, StateNode<TContext, TEvent>> = new Map();
 
   public root: StateNode<TContext, TEvent>;
@@ -525,6 +527,8 @@ export class StateMachine<
     return restoredSnapshot;
   }
 
-  /** @deprecated an internal property that was acting as a "phantom" type, it's not used by anything right now but it's kept around for compatibility reasons */
+  /**
+   * @deprecated an internal property that was acting as a "phantom" type, it's not used by anything right now but it's kept around for compatibility reasons
+   **/
   __TResolvedTypesMeta!: TResolvedTypesMeta;
 }

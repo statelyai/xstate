@@ -95,6 +95,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
   // Actor Ref
   public _parent?: ActorRef<any, any>;
+  /** @internal */
   public _syncSnapshot?: boolean;
   public ref: ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>;
   // TODO: add typings for system
@@ -132,7 +133,7 @@ export class Actor<TLogic extends AnyActorLogic>
     const resolvedOptions = {
       ...defaultOptions,
       ...options
-    } as ActorOptions<TLogic> & typeof defaultOptions;
+    };
 
     const { clock, logger, parent, syncSnapshot, id, systemId, inspect } =
       resolvedOptions;
@@ -154,7 +155,8 @@ export class Actor<TLogic extends AnyActorLogic>
     this.clock = clock;
     this._parent = parent;
     this._syncSnapshot = syncSnapshot;
-    this.options = resolvedOptions;
+    this.options = resolvedOptions as ActorOptions<TLogic> &
+      typeof defaultOptions;
     this.src = resolvedOptions.src ?? logic;
     this.ref = this;
     this._actorScope = {
