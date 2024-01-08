@@ -137,7 +137,7 @@ describe('rehydration', () => {
       }).toThrowError(/invalid/);
     });
 
-    it('should handle incompatible state value (deep)', () => {
+    it('should error on incompatible state value (deep)', () => {
       const machine = createMachine({
         initial: 'parent',
         states: {
