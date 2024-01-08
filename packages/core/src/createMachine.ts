@@ -69,6 +69,9 @@ type ToStateValue<TTestValue extends string | TestValue> =
  *
  * The state machine represents the pure logic of a state machine actor.
  * 
+ * @param config The state machine configuration.
+ * @param options DEPRECATED: use `setup({ ... })` or `machine.provide({ ... })` to provide machine implementations instead.
+ * 
  * @example
   ```ts
   import { createMachine } from 'xstate';
@@ -128,10 +131,6 @@ export function createMachine<
     TOutput,
     TTypesMeta
   >,
-  /**
-   * @internal
-   * @deprecated Use `setup({ ... })` or `machine.provide({ ... })` instead
-   */
   implementations?: InternalMachineImplementations<
     TContext,
     ResolveTypegenMeta<

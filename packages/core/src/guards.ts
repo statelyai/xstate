@@ -162,7 +162,7 @@ function checkNot(
     }
   });
   ```
- * @returns A guard action object
+ * @returns A guard 
  */
 export function not<
   TContext extends MachineContext,

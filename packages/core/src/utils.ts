@@ -75,7 +75,6 @@ export function toStateValue(
   return pathToStateValue(statePath);
 }
 
-/** @internal */
 export function pathToStateValue(statePath: string[]): StateValue {
   if (statePath.length === 1) {
     return statePath[0];
@@ -259,9 +258,6 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
   ).src;
 }
 
-/**
- * @internal
- */
 export function getAllOwnEventDescriptors(snapshot: AnyMachineSnapshot) {
   return [...new Set([...snapshot._nodes.flatMap((sn) => sn.ownEvents)])];
 }
