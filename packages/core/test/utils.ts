@@ -1,6 +1,7 @@
 import {
   AnyMachineSnapshot,
   AnyStateMachine,
+  getNextSnapshot,
   matchesState,
   StateNode,
   StateValue
@@ -26,11 +27,9 @@ export function testMultiTransition(
     if (typeof state === 'string') {
       state = resolveSerializedStateValue(machine, state);
     }
-    const nextState = machine.transition(
-      state as any,
-      { type: eventType },
-      {} as any // TODO: figure out the simulation API
-    );
+    const nextState = getNextSnapshot(machine, state, {
+      type: eventType
+    });
     return nextState;
   };
 
