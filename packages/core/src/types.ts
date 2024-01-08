@@ -1744,9 +1744,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * Specifies the logger to be used for `log(...)` actions. Defaults to the native `console.log(...)` method.
    */
   logger?: (...args: any[]) => void;
-  /**
-   * @internal
-   */
   parent?: ActorRef<any, any>;
   /**
    * @internal
