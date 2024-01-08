@@ -20,7 +20,7 @@ export function useSelector<TActor extends ActorRef<any, any>, T>(
   selector: (emitted: SnapshotFrom<TActor> | undefined) => T,
   compare?: (a: T, b: T) => boolean
 ): T;
-export function useSelector<TActor extends ActorRef<any, any> | undefined, T>(
+export function useSelector<TActor extends ActorRef<any, any>, T>(
   actor: TActor | undefined,
   selector: (emitted: SnapshotFrom<TActor> | undefined) => T,
   compare: (a: T, b: T) => boolean = defaultCompare
