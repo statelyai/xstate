@@ -12,18 +12,14 @@ export function useSelector<TActor extends ActorRef<any, any>, T>(
   selector: (emitted: SnapshotFrom<TActor>) => T,
   compare?: (a: T, b: T) => boolean
 ): T;
-export function useSelector<TActor extends ActorRef<any, any> | undefined, T>(
-  actor: TActor,
-  selector: (
-    emitted: TActor extends undefined ? undefined : SnapshotFrom<TActor>
-  ) => T,
+export function useSelector<TActor extends ActorRef<any, any>, T>(
+  actor: TActor | undefined,
+  selector: (emitted: SnapshotFrom<TActor> | undefined) => T,
   compare?: (a: T, b: T) => boolean
 ): T;
 export function useSelector<TActor extends ActorRef<any, any> | undefined, T>(
-  actor: TActor,
-  selector: (
-    emitted: TActor extends undefined ? undefined : SnapshotFrom<TActor>
-  ) => T,
+  actor: TActor | undefined,
+  selector: (emitted: SnapshotFrom<TActor> | undefined) => T,
   compare: (a: T, b: T) => boolean = defaultCompare
 ): T {
   const resolvedActor = actor ?? createEmptyActor();
