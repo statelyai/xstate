@@ -17,17 +17,15 @@ export function useSelector<TActor extends ActorRef<any, any>, T>(
 export function useSelector<TActor extends ActorRef<any, any>, T>(
   actor: (TActor | undefined) | Ref<TActor | undefined>,
   selector: (snapshot: SnapshotFrom<TActor> | undefined) => T,
-  compare?: (a: T | undefined, b: T) => boolean
-): Ref<T | undefined>;
+  compare?: (a: T, b: T) => boolean
+): Ref<T>;
 export function useSelector<TActor extends ActorRef<any, any>, T>(
   actor: (TActor | undefined) | Ref<TActor | undefined>,
   selector: (snapshot: SnapshotFrom<TActor> | undefined) => T,
-  compare: (a: T | undefined, b: T) => boolean = defaultCompare
-): Ref<T | undefined> {
+  compare: (a: T, b: T) => boolean = defaultCompare
+): Ref<T> {
   const actorRefRef = isRef(actor) ? actor : shallowRef(actor);
-  const selected = shallowRef(
-    actorRefRef.value ? selector(actorRefRef.value.getSnapshot()) : undefined
-  );
+  const selected = shallowRef(selector(actorRefRef.value?.getSnapshot()));
 
   const updateSelectedIfChanged = (nextSelected: T) => {
     if (!compare(selected.value, nextSelected)) {
@@ -38,15 +36,18 @@ export function useSelector<TActor extends ActorRef<any, any>, T>(
   watch(
     actorRefRef,
     (newActor, _, onCleanup) => {
-      selected.value = selector(newActor?.getSnapshot() ?? undefined);
-      const sub = newActor?.subscribe({
+      selected.value = selector(newActor?.getSnapshot());
+      if (!newActor) {
+        return;
+      }
+      const sub = newActor.subscribe({
         next: (emitted) => {
           updateSelectedIfChanged(selector(emitted));
         },
         error: noop,
         complete: noop
       });
-      onCleanup(() => sub?.unsubscribe());
+      onCleanup(() => sub.unsubscribe());
     },
     {
       immediate: true
