@@ -48,7 +48,7 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
 > extends true
   ? <TSrc extends TActor['src']>(
       logic: TSrc,
-      ...[options = {} as any]: SpawnOptions<TActor, TSrc>
+      ...[options]: SpawnOptions<TActor, TSrc>
     ) => ActorRefFrom<GetConcreteLogic<TActor, TSrc>>
   : <TLogic extends AnyActorLogic | string>(
       src: TLogic,
