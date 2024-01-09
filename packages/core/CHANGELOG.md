@@ -1,5 +1,40 @@
 # xstate
 
+## 5.5.0
+
+### Minor Changes
+
+- [#4596](https://github.com/statelyai/xstate/pull/4596) [`6113a590a`](https://github.com/statelyai/xstate/commit/6113a590a6e16c22f3d3e288b825975032bdfd48) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Introduce `getNextSnapshot(...)`, which determines the next snapshot for the given `actorLogic` based on the given `snapshot` and `event`.
+
+  If the `snapshot` is `undefined`, the initial snapshot of the `actorLogic` is used.
+
+  ```ts
+  import { getNextSnapshot } from 'xstate';
+  import { trafficLightMachine } from './trafficLightMachine.ts';
+
+  const nextSnapshot = getNextSnapshot(
+    trafficLightMachine, // actor logic
+    undefined, // snapshot (or initial state if undefined)
+    { type: 'TIMER' }
+  ); // event object
+
+  console.log(nextSnapshot.value);
+  // => 'yellow'
+
+  const nextSnapshot2 = getNextSnapshot(
+    trafficLightMachine, // actor logic
+    nextSnapshot, // snapshot
+    { type: 'TIMER' }
+  ); // event object
+
+  console.log(nextSnapshot2.value);
+  // =>'red'
+  ```
+
+### Patch Changes
+
+- [#4659](https://github.com/statelyai/xstate/pull/4659) [`1ae07f5bf`](https://github.com/statelyai/xstate/commit/1ae07f5bf5d5eeb26481ffad789afb4d107f70a4) Thanks [@Andarist](https://github.com/Andarist)! - Allow `event` in transitions to be narrowed down even when its `.type` is defined using a union.
+
 ## 5.4.1
 
 ### Patch Changes
