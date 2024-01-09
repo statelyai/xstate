@@ -35,11 +35,11 @@ devDependencies:
     specifier: ^17.0.25
     version: 17.0.25
   typescript:
-    specifier: ^4.9.5
-    version: 4.9.5
+    specifier: ^5.3.3
+    version: 5.3.3
   vite:
     specifier: 1.0.0-rc.13
-    version: 1.0.0-rc.13(typescript@4.9.5)
+    version: 1.0.0-rc.13(typescript@5.3.3)
   vite-plugin-react:
     specifier: ^4.0.1
     version: 4.0.1(vite@1.0.0-rc.13)
@@ -621,7 +621,7 @@ packages:
     dependencies:
       '@vue/compiler-ssr': 3.3.13
       '@vue/shared': 3.3.13
-      vue: 3.3.13(typescript@4.9.5)
+      vue: 3.3.13(typescript@5.3.3)
     dev: true
 
   /@vue/shared@3.3.13:
@@ -2173,9 +2173,9 @@ packages:
       mime-types: 2.1.35
     dev: true
 
-  /typescript@4.9.5:
-    resolution: {integrity: sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==}
-    engines: {node: '>=4.2.0'}
+  /typescript@5.3.3:
+    resolution: {integrity: sha512-pXWcraxM0uxAS+tN0AG/BF2TyqmHO014Z070UsJ+pFvYuRSq8KH8DmWpnbXe0pEPDHXZV3FcAbJkijJ5oNEnWw==}
+    engines: {node: '>=14.17'}
     hasBin: true
     dev: true
 
@@ -2237,12 +2237,12 @@ packages:
       '@babel/core': 7.23.6
       '@babel/plugin-syntax-import-meta': 7.10.4(@babel/core@7.23.6)
       react-refresh: 0.8.3
-      vite: 1.0.0-rc.13(typescript@4.9.5)
+      vite: 1.0.0-rc.13(typescript@5.3.3)
     transitivePeerDependencies:
       - supports-color
     dev: true
 
-  /vite@1.0.0-rc.13(typescript@4.9.5):
+  /vite@1.0.0-rc.13(typescript@5.3.3):
     resolution: {integrity: sha512-hLfTbhNPDhwXMCAWR6s6C79G/O8Is0MbslglgoHSQsRby+KnqHgtHChCVBHFeV2oZBV/3xhHhnfm94BDPFe8Ww==}
     engines: {node: '>=10.16.0'}
     hasBin: true
@@ -2300,7 +2300,7 @@ packages:
       selfsigned: 1.10.14
       slash: 3.0.0
       source-map: 0.7.4
-      vue: 3.3.13(typescript@4.9.5)
+      vue: 3.3.13(typescript@5.3.3)
       ws: 7.5.9
     transitivePeerDependencies:
       - bufferutil
@@ -2311,7 +2311,7 @@ packages:
       - utf-8-validate
     dev: true
 
-  /vue@3.3.13(typescript@4.9.5):
+  /vue@3.3.13(typescript@5.3.3):
     resolution: {integrity: sha512-LDnUpQvDgsfc0u/YgtAgTMXJlJQqjkxW1PVcOnJA5cshPleULDjHi7U45pl2VJYazSSvLH8UKcid/kzH8I0a0Q==}
     peerDependencies:
       typescript: '*'
@@ -2324,7 +2324,7 @@ packages:
       '@vue/runtime-dom': 3.3.13
       '@vue/server-renderer': 3.3.13(vue@3.3.13)
       '@vue/shared': 3.3.13
-      typescript: 4.9.5
+      typescript: 5.3.3
     dev: true
 
   /wcwidth@1.0.1:
