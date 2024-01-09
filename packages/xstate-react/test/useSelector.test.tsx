@@ -725,7 +725,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       const state = useSelector(props.actor, (s) => s);
 
       // @ts-expect-error
-      ((_accept: { count: number }) => {})(state.context);
+      ((_accept: { count: number }) => {})(state?.context);
       ((_accept: { count: number } | undefined) => {})(state?.context);
 
       return (

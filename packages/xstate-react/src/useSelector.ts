@@ -1,7 +1,10 @@
 import { useCallback } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import { ActorRef, SnapshotFrom } from 'xstate';
-import { createEmptyActor } from 'xstate/actors';
+
+type SyncExternalStoreSubscribe = Parameters<
+  typeof useSyncExternalStoreWithSelector
+>[0];
 
 function defaultCompare<T>(a: T, b: T) {
   return a === b;
@@ -12,34 +15,28 @@ export function useSelector<TActor extends ActorRef<any, any>, T>(
   selector: (emitted: SnapshotFrom<TActor>) => T,
   compare?: (a: T, b: T) => boolean
 ): T;
-export function useSelector<TActor extends ActorRef<any, any> | undefined, T>(
-  actor: TActor,
-  selector: (
-    emitted: TActor extends undefined ? undefined : SnapshotFrom<TActor>
-  ) => T,
+export function useSelector<TActor extends ActorRef<any, any>, T>(
+  actor: TActor | undefined,
+  selector: (emitted: SnapshotFrom<TActor> | undefined) => T,
   compare?: (a: T, b: T) => boolean
 ): T;
-export function useSelector<TActor extends ActorRef<any, any> | undefined, T>(
-  actor: TActor,
-  selector: (
-    emitted: TActor extends undefined ? undefined : SnapshotFrom<TActor>
-  ) => T,
+export function useSelector<TActor extends ActorRef<any, any>, T>(
+  actor: TActor | undefined,
+  selector: (emitted: SnapshotFrom<TActor> | undefined) => T,
   compare: (a: T, b: T) => boolean = defaultCompare
 ): T {
-  const resolvedActor = actor ?? createEmptyActor();
-  const subscribe = useCallback(
+  const subscribe: SyncExternalStoreSubscribe = useCallback(
     (handleStoreChange) => {
-      if (!actor) return () => {};
+      if (!actor) {
+        return () => {};
+      }
       const { unsubscribe } = actor.subscribe(handleStoreChange);
       return unsubscribe;
     },
     [actor]
   );
 
-  const boundGetSnapshot = useCallback(
-    () => resolvedActor.getSnapshot(),
-    [actor]
-  );
+  const boundGetSnapshot = useCallback(() => actor?.getSnapshot(), [actor]);
 
   const selectedSnapshot = useSyncExternalStoreWithSelector(
     subscribe,
