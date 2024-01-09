@@ -1,7 +1,7 @@
 import { onBeforeUnmount, onMounted } from 'vue';
 import {
+  Actor,
   ActorOptions,
-  ActorRefFrom,
   AnyActorLogic,
   Observer,
   SnapshotFrom,
@@ -16,13 +16,13 @@ export function useActorRef<TLogic extends AnyActorLogic>(
   observerOrListener?:
     | Observer<SnapshotFrom<TLogic>>
     | ((value: SnapshotFrom<TLogic>) => void)
-): ActorRefFrom<TLogic> {
-  const actorRef = createActor(actorLogic as any, options);
+): Actor<TLogic> {
+  const actorRef = createActor(actorLogic, options);
 
   let sub: Subscription;
   onMounted(() => {
     if (observerOrListener) {
-      sub = actorRef.subscribe(toObserver(observerOrListener as any));
+      sub = actorRef.subscribe(toObserver(observerOrListener));
     }
     actorRef.start();
   });
@@ -32,5 +32,5 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     sub?.unsubscribe();
   });
 
-  return actorRef as ActorRefFrom<TLogic>;
+  return actorRef;
 }
