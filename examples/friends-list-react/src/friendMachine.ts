@@ -1,4 +1,4 @@
-import { createMachine, assign } from 'xstate';
+import { createMachine, assign, fromPromise } from 'xstate';
 
 export const friendMachine = createMachine({
   id: 'friend',
@@ -21,7 +21,9 @@ export const friendMachine = createMachine({
       | {
           type: 'CANCEL';
         };
-    // TODO: input
+    input: {
+      name: string;
+    };
   },
   initial: 'reading',
   context: ({ input }) => ({
@@ -48,9 +50,13 @@ export const friendMachine = createMachine({
     },
     saving: {
       tags: ['form', 'saving'],
-      after: {
-        // Simulate network request
-        1000: {
+      invoke: {
+        src: fromPromise(async () => {
+          // Simulate network request
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          return true;
+        }),
+        onDone: {
           target: 'reading',
           actions: assign({ prevName: ({ context }) => context.name })
         }
