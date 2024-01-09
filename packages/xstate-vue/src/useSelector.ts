@@ -9,19 +9,13 @@ const noop = () => {
   /* ... */
 };
 
-export function useSelector<TActor extends ActorRef<any, any>, T>(
+export function useSelector<TActor extends ActorRef<any, any> | undefined, T>(
   actor: TActor | Ref<TActor>,
-  selector: (snapshot: SnapshotFrom<TActor>) => T,
-  compare?: (a: T, b: T) => boolean
-): Ref<T>;
-export function useSelector<TActor extends ActorRef<any, any>, T>(
-  actor: (TActor | undefined) | Ref<TActor | undefined>,
-  selector: (snapshot: SnapshotFrom<TActor> | undefined) => T,
-  compare?: (a: T, b: T) => boolean
-): Ref<T>;
-export function useSelector<TActor extends ActorRef<any, any>, T>(
-  actor: (TActor | undefined) | Ref<TActor | undefined>,
-  selector: (snapshot: SnapshotFrom<TActor> | undefined) => T,
+  selector: (
+    snapshot: TActor extends ActorRef<any, any>
+      ? SnapshotFrom<TActor>
+      : undefined
+  ) => T,
   compare: (a: T, b: T) => boolean = defaultCompare
 ): Ref<T> {
   const actorRefRef = isRef(actor) ? actor : shallowRef(actor);

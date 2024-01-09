@@ -10,19 +10,13 @@ function defaultCompare<T>(a: T, b: T) {
   return a === b;
 }
 
-export function useSelector<TActor extends ActorRef<any, any>, T>(
+export function useSelector<TActor extends ActorRef<any, any> | undefined, T>(
   actor: TActor,
-  selector: (emitted: SnapshotFrom<TActor>) => T,
-  compare?: (a: T, b: T) => boolean
-): T;
-export function useSelector<TActor extends ActorRef<any, any>, T>(
-  actor: TActor | undefined,
-  selector: (emitted: SnapshotFrom<TActor> | undefined) => T,
-  compare?: (a: T, b: T) => boolean
-): T;
-export function useSelector<TActor extends ActorRef<any, any>, T>(
-  actor: TActor | undefined,
-  selector: (emitted: SnapshotFrom<TActor> | undefined) => T,
+  selector: (
+    emitted: TActor extends ActorRef<any, any>
+      ? SnapshotFrom<TActor>
+      : undefined
+  ) => T,
   compare: (a: T, b: T) => boolean = defaultCompare
 ): T {
   const subscribe: SyncExternalStoreSubscribe = useCallback(
