@@ -1,7 +1,13 @@
 import isDevelopment from '#is-development';
 import { useCallback, useEffect } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
-import { Actor, ActorOptions, AnyActorLogic, SnapshotFrom } from 'xstate';
+import {
+  Actor,
+  ActorOptions,
+  AnyActorLogic,
+  Snapshot,
+  SnapshotFrom
+} from 'xstate';
 import { stopRootWithRehydration } from './stopRootWithRehydration.ts';
 import { useIdleActorRef } from './useActorRef.ts';
 
@@ -28,7 +34,10 @@ export function useActor<TLogic extends AnyActorLogic>(
 
   const subscribe = useCallback(
     (handleStoreChange) => {
-      const { unsubscribe } = actorRef.subscribe(handleStoreChange);
+      const { unsubscribe } = actorRef.subscribe(
+        handleStoreChange,
+        handleStoreChange
+      );
       return unsubscribe;
     },
     [actorRef]
@@ -39,6 +48,10 @@ export function useActor<TLogic extends AnyActorLogic>(
     getSnapshot,
     getSnapshot
   );
+
+  if ((actorSnapshot as Snapshot<any>).status === 'error') {
+    throw (actorSnapshot as Snapshot<any>).error;
+  }
 
   useEffect(() => {
     actorRef.start();
