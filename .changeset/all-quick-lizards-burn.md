@@ -1,7 +1,5 @@
 ---
 '@xstate/graph': minor
-'@xstate/immer': minor
-'@xstate/inspect': minor
 '@xstate/test': minor
 ---
 
