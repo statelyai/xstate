@@ -2,6 +2,10 @@
 '@xstate/graph': major
 ---
 
+pr: #4238
+author: davidkpiano
+commit: b4f12a517
+
 The steps in the paths returned from functions like `getShortestPaths(...)` and `getSimplePaths(...)` have the following changes:
 
 - The `step.event` property now represents the `event` object that resulted in the transition to the `step.state`, _not_ the event that comes before the next step.
