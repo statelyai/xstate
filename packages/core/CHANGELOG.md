@@ -1,5 +1,11 @@
 # xstate
 
+## 5.5.1
+
+### Patch Changes
+
+- [#4667](https://github.com/statelyai/xstate/pull/4667) [`64ee3959c`](https://github.com/statelyai/xstate/commit/64ee3959c47f0dc02b0a15dc0e9bafb645c17ad1) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility with older versions of integration packages.
+
 ## 5.5.0
 
 ### Minor Changes
