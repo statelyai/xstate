@@ -68,11 +68,9 @@ export function useActor2<T extends AnyActorLogic>(
   if (!actorRefRef.current) {
     actorRefRef.current = createActor(logic, options);
   }
-  // force update
-  const updater = useForceUpdate();
 
-  actorRefRef.current.logic.implementations = (
-    logic as AnyStateMachine
+  (actorRefRef.current.logic as any).implementations = (
+    logic as unknown as AnyStateMachine
   ).implementations;
 
   useEffect(() => {
@@ -81,7 +79,6 @@ export function useActor2<T extends AnyActorLogic>(
     return () => {
       actorRefRef.current!.stop();
       actorRefRef.current = createActor(logic, options);
-      // updater();
     };
   }, []);
 
@@ -92,12 +89,4 @@ export function useActor2<T extends AnyActorLogic>(
   const snapshot = useSelector(actorRefRef.current, (state) => state);
 
   return [snapshot, send, actorRefRef.current];
-}
-
-function useForceUpdate() {
-  const [, setTick] = useState(0);
-  const update = () => {
-    setTick((tick) => tick + 1);
-  };
-  return update;
 }
