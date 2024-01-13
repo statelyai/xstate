@@ -1,12 +1,12 @@
 import { assign, fromPromise, setup } from 'xstate';
 
 export const friendMachine = setup({
-  types: {} as {
-    context: {
+  types: {
+    context: {} as {
       prevName: string;
       name: string;
-    };
-    events:
+    },
+    events: {} as
       | {
           type: 'SET_NAME';
           value: string;
@@ -19,10 +19,11 @@ export const friendMachine = setup({
         }
       | {
           type: 'CANCEL';
-        };
-    input: {
+        },
+    input: {} as {
       name: string;
-    };
+    },
+    tags: {} as 'read' | 'form' | 'saving'
   },
   actors: {
     saveUser: fromPromise(async () => {
