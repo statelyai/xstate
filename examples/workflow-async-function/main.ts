@@ -1,31 +1,15 @@
-import { createMachine, fromPromise, interpret } from 'xstate';
+import { fromPromise, createActor, setup } from 'xstate';
 
 // https://github.com/serverlessworkflow/specification/tree/main/examples#async-function-invocation-example
-export const workflow = createMachine(
-  {
-    id: 'async-function-invocation',
-    initial: 'Send email',
-    context: ({ input }) => ({
-      customer: input.customer
-    }),
-    states: {
-      'Send email': {
-        invoke: {
-          src: 'sendEmail',
-          input: ({ context }) => ({
-            customer: context.customer
-          }),
-          onDone: 'Email sent'
-        }
-      },
-      'Email sent': {
-        type: 'final'
-      }
+export const workflow = setup({
+  types: {
+    input: {} as {
+      customer: string;
     }
   },
-  {
-    actors: {
-      sendEmail: fromPromise(async ({ input }) => {
+  actors: {
+    sendEmail: fromPromise(
+      async ({ input }: { input: { customer: string } }) => {
         console.log('Sending email to', input.customer);
 
         await new Promise<void>((resolve) =>
@@ -34,12 +18,32 @@ export const workflow = createMachine(
             resolve();
           }, 1000)
         );
-      })
+      }
+    )
+  }
+}).createMachine({
+  id: 'async-function-invocation',
+  initial: 'Send email',
+  context: ({ input }) => ({
+    customer: input.customer
+  }),
+  states: {
+    'Send email': {
+      invoke: {
+        src: 'sendEmail',
+        input: ({ context }) => ({
+          customer: context.customer
+        }),
+        onDone: 'Email sent'
+      }
+    },
+    'Email sent': {
+      type: 'final'
     }
   }
-);
+});
 
-const actor = interpret(workflow, {
+const actor = createActor(workflow, {
   input: {
     customer: 'david@example.com'
   }

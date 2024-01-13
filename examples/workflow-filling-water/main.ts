@@ -1,16 +1,4 @@
-import { assign, createMachine, interpret } from 'xstate';
-
-async function delay(ms: number, errorProbability: number = 0): Promise<void> {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (Math.random() < errorProbability) {
-        reject({ type: 'ServiceNotAvailable' });
-      } else {
-        resolve();
-      }
-    }, ms);
-  });
-}
+import { assign, createMachine, createActor } from 'xstate';
 
 // https://github.com/serverlessworkflow/specification/blob/main/examples/README.md#filling-a-glass-of-water
 export const workflow = createMachine({
@@ -65,7 +53,7 @@ export const workflow = createMachine({
   }
 });
 
-const actor = interpret(workflow, {
+const actor = createActor(workflow, {
   input: {
     current: 0,
     max: 10
