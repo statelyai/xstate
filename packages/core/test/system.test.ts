@@ -535,4 +535,216 @@ describe('system', () => {
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
+
+  it('should allow subscribing to system registration events', () => {
+    const aSystemId = 'a_child';
+    const bSystemId = 'b_child';
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: createMachine({}),
+            systemId: aSystemId
+          },
+          on: {
+            to_b: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            src: createMachine({}),
+            systemId: bSystemId
+          },
+          on: {
+            to_a: 'a'
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    const events: string[] = [];
+
+    actorRef.system.subscribe((event) => {
+      events.push(event.type);
+    });
+
+    actorRef.send({ type: 'to_b' });
+    expect(events).toEqual([
+      `@xstate.system.actor.unregister.${aSystemId}`,
+      `@xstate.system.actor.register.${bSystemId}`
+    ]);
+    actorRef.send({ type: 'to_a' });
+    expect(events).toEqual([
+      `@xstate.system.actor.unregister.${aSystemId}`,
+      `@xstate.system.actor.register.${bSystemId}`,
+      `@xstate.system.actor.unregister.${bSystemId}`,
+      `@xstate.system.actor.register.${aSystemId}`
+    ]);
+  });
+
+  it('should allow unsubscribing from a system registration subscription', () => {
+    const aSystemId = 'a_child';
+    const bSystemId = 'b_child';
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: createMachine({}),
+            systemId: aSystemId
+          },
+          on: {
+            to_b: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            src: createMachine({}),
+            systemId: bSystemId
+          },
+          on: {
+            to_a: 'a'
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    const events: string[] = [];
+    const unsubscribedEvents: string[] = [];
+
+    const subscription = actorRef.system.subscribe((event) => {
+      events.push(event.type);
+    });
+
+    actorRef.system.subscribe((event) => {
+      unsubscribedEvents.push(event.type);
+    });
+
+    actorRef.send({ type: 'to_b' });
+    expect(events).toEqual([
+      `@xstate.system.actor.unregister.${aSystemId}`,
+      `@xstate.system.actor.register.${bSystemId}`
+    ]);
+    expect(unsubscribedEvents).toEqual([
+      `@xstate.system.actor.unregister.${aSystemId}`,
+      `@xstate.system.actor.register.${bSystemId}`
+    ]);
+
+    subscription.unsubscribe();
+    actorRef.send({ type: 'to_a' });
+
+    expect(events).toEqual([
+      `@xstate.system.actor.unregister.${aSystemId}`,
+      `@xstate.system.actor.register.${bSystemId}`
+    ]);
+    expect(unsubscribedEvents).toEqual([
+      `@xstate.system.actor.unregister.${aSystemId}`,
+      `@xstate.system.actor.register.${bSystemId}`,
+      `@xstate.system.actor.unregister.${bSystemId}`,
+      `@xstate.system.actor.register.${aSystemId}`
+    ]);
+  });
+
+  it('should allow subscribing to system registration events of a specific sysyemId', () => {
+    const aSystemId = 'a_child';
+    const bSystemId = 'b_child';
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            systemId: aSystemId,
+            src: createMachine({})
+          },
+          on: {
+            to_b: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            src: createMachine({}),
+            systemId: bSystemId
+          },
+          on: {
+            to_a: 'a'
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    const aEvents: string[] = [];
+    const bEvents: string[] = [];
+
+    actorRef.system.subscribe(aSystemId, (event) => {
+      aEvents.push(event.type);
+    });
+
+    actorRef.system.subscribe(bSystemId, (event) => {
+      bEvents.push(event.type);
+    });
+
+    actorRef.send({ type: 'to_b' });
+    expect(aEvents).toEqual([`@xstate.system.actor.unregister.${aSystemId}`]);
+    expect(bEvents).toEqual([`@xstate.system.actor.register.${bSystemId}`]);
+    actorRef.send({ type: 'to_a' });
+    expect(aEvents).toEqual([
+      `@xstate.system.actor.unregister.${aSystemId}`,
+      `@xstate.system.actor.register.${aSystemId}`
+    ]);
+    expect(bEvents).toEqual([
+      `@xstate.system.actor.register.${bSystemId}`,
+      `@xstate.system.actor.unregister.${bSystemId}`
+    ]);
+  });
+
+  it('should allow unsubscribing from a system registration subscription of a specific systemId', () => {
+    const aSystemId = 'a_child';
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            systemId: aSystemId,
+            src: createMachine({})
+          },
+          on: {
+            to_b: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            src: createMachine({}),
+            systemId: 'b_child'
+          },
+          on: {
+            to_a: 'a'
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    const events: string[] = [];
+    const unsubscribedEvents: string[] = [];
+
+    const subscription = actorRef.system.subscribe(aSystemId, (event) => {
+      events.push(event.type);
+    });
+
+    actorRef.send({ type: 'to_b' });
+    expect(events).toEqual([`@xstate.system.actor.unregister.${aSystemId}`]);
+
+    subscription.unsubscribe();
+
+    actorRef.send({ type: 'to_a' });
+    expect(events).toEqual([`@xstate.system.actor.unregister.${aSystemId}`]);
+  });
 });
