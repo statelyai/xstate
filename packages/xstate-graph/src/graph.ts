@@ -197,15 +197,23 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
           EventFromLogic<TLogic>
         >)
       : undefined);
-  const serializeState =
+  const innerSerializeState =
     traversalOptions?.serializeState ??
     resolvedDefaultOptions?.serializeState ??
     ((state) => JSON.stringify(state));
+  const serializeState: TraversalOptions<
+    ReturnType<TLogic['transition']>,
+    EventFromLogic<TLogic>
+  >['serializeState'] = (state, event, prevState) => {
+    delete state.sessionId;
+    if (prevState) delete prevState.sessionId;
+
+    return innerSerializeState(state, event, prevState);
+  };
   const traversalConfig: TraversalConfig<
     ReturnType<TLogic['transition']>,
     EventFromLogic<TLogic>
   > = {
-    serializeState,
     serializeEvent,
     filter: () => true,
     events: [],
@@ -216,7 +224,8 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
     // since the target state has already been reached at that point
     stopCondition: traversalOptions?.toState,
     ...resolvedDefaultOptions,
-    ...traversalOptions
+    ...traversalOptions,
+    serializeState
   };
 
   return traversalConfig;

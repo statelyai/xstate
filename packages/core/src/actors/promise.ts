@@ -154,12 +154,13 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
         }
       );
     },
-    getInitialSnapshot: (_, input) => {
+    getInitialSnapshot: (actorScope, input) => {
       return {
         status: 'active',
         output: undefined,
         error: undefined,
-        input
+        input,
+        sessionId: actorScope.sessionId
       };
     },
     getPersistedSnapshot: (snapshot) => snapshot,

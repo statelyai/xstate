@@ -362,7 +362,8 @@ describe('ActorRefFrom', () => {
       getInitialSnapshot: () => ({
         status: 'active',
         output: undefined,
-        error: undefined
+        error: undefined,
+        sessionId: undefined
       }),
       getPersistedSnapshot: (s) => s
     };

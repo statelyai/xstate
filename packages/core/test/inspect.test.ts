@@ -31,7 +31,11 @@ function simplifyEvent(inspectionEvent: InspectionEvent) {
       actorId: inspectionEvent.actorRef.sessionId,
       snapshot: isMachineSnapshot(inspectionEvent.snapshot)
         ? { value: inspectionEvent.snapshot.value }
-        : inspectionEvent.snapshot,
+        : {
+            output: inspectionEvent.snapshot.output,
+            context: (inspectionEvent.snapshot as any).context,
+            status: inspectionEvent.snapshot.status
+          },
       event: inspectionEvent.event,
       status: inspectionEvent.snapshot.status
     };
@@ -286,8 +290,7 @@ describe('inspect', () => {
             "type": "xstate.init",
           },
           "snapshot": {
-            "error": undefined,
-            "input": undefined,
+            "context": undefined,
             "output": undefined,
             "status": "active",
           },
@@ -393,8 +396,7 @@ describe('inspect', () => {
             "type": "xstate.promise.resolve",
           },
           "snapshot": {
-            "error": undefined,
-            "input": undefined,
+            "context": undefined,
             "output": 42,
             "status": "done",
           },

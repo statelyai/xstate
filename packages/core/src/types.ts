@@ -2132,21 +2132,25 @@ export type Snapshot<TOutput> =
       status: 'active';
       output: undefined;
       error: undefined;
+      sessionId: string | undefined;
     }
   | {
       status: 'done';
       output: TOutput;
       error: undefined;
+      sessionId: string | undefined;
     }
   | {
       status: 'error';
       output: undefined;
       error: unknown;
+      sessionId: string | undefined;
     }
   | {
       status: 'stopped';
       output: undefined;
       error: undefined;
+      sessionId: string | undefined;
     };
 
 /**

@@ -116,7 +116,7 @@ export function fromTransition<
         )
       };
     },
-    getInitialSnapshot: (_, input) => {
+    getInitialSnapshot: (actorScope, input) => {
       return {
         status: 'active',
         output: undefined,
@@ -124,7 +124,8 @@ export function fromTransition<
         context:
           typeof initialContext === 'function'
             ? (initialContext as any)({ input })
-            : initialContext
+            : initialContext,
+        sessionId: actorScope.sessionId
       };
     },
     getPersistedSnapshot: (snapshot) => snapshot,

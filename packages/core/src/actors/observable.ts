@@ -130,14 +130,15 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
           return snapshot;
       }
     },
-    getInitialSnapshot: (_, input) => {
+    getInitialSnapshot: (actorScope, input) => {
       return {
         status: 'active',
         output: undefined,
         error: undefined,
         context: undefined,
         input,
-        _subscription: undefined
+        _subscription: undefined,
+        sessionId: actorScope.sessionId
       };
     },
     start: (state, { self, system }) => {
@@ -270,14 +271,15 @@ export function fromEventObservable<
           return state;
       }
     },
-    getInitialSnapshot: (_, input) => {
+    getInitialSnapshot: (actorScope, input) => {
       return {
         status: 'active',
         output: undefined,
         error: undefined,
         context: undefined,
         input,
-        _subscription: undefined
+        _subscription: undefined,
+        sessionId: actorScope.sessionId
       };
     },
     start: (state, { self, system }) => {

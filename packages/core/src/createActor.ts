@@ -673,7 +673,12 @@ export class Actor<TLogic extends AnyActorLogic>
    */
   public getPersistedSnapshot(): Snapshot<unknown>;
   public getPersistedSnapshot(options?: unknown): Snapshot<unknown> {
-    return this.logic.getPersistedSnapshot(this._snapshot, options);
+    const persistedSnapshot = this.logic.getPersistedSnapshot(
+      this._snapshot,
+      options
+    );
+    delete persistedSnapshot.sessionId;
+    return persistedSnapshot;
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {
