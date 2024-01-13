@@ -507,4 +507,12 @@ describe('State', () => {
       expect(snapshot.status).toBe('stopped');
     });
   });
+
+  it('includes the sessionId in the snapshot', () => {
+    const machine = createMachine({});
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().sessionId).toBeDefined();
+    expect(actor.getSnapshot().sessionId).toBe(actor.sessionId);
+  });
 });

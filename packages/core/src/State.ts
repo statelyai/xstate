@@ -183,6 +183,7 @@ interface MachineSnapshotBase<
       TOutput
     >
   ) => unknown;
+  sessionId: string | undefined;
 }
 
 interface ActiveMachineSnapshot<
@@ -385,7 +386,8 @@ export function createMachineSnapshot<
     hasTag: machineSnapshotHasTag,
     can: machineSnapshotCan,
     getMeta: machineSnapshotGetMeta,
-    toJSON: machineSnapshotToJSON
+    toJSON: machineSnapshotToJSON,
+    sessionId: config.sessionId
   };
 }
 

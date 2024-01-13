@@ -1720,6 +1720,7 @@ export interface StateConfig<
     any,
     any
   >;
+  sessionId: string | undefined;
 }
 
 export interface ActorOptions<TLogic extends AnyActorLogic> {

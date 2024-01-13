@@ -18,6 +18,7 @@ import {
   spawnChild,
   stateIn
 } from '../src/index';
+import { getInitialSnapshot } from '../src/getNextSnapshot';
 
 function noop(_x: unknown) {
   return;
@@ -202,7 +203,7 @@ describe('output', () => {
       }
     });
 
-    const state = machine.getInitialSnapshot(null as any);
+    const state = getInitialSnapshot(machine);
 
     ((_accept: number | undefined) => {})(state.output);
     // @ts-expect-error

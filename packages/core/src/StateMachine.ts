@@ -225,7 +225,8 @@ export class StateMachine<
           : config.status || 'active',
         output: config.output,
         error: config.error,
-        historyValue: config.historyValue
+        historyValue: config.historyValue,
+        sessionId: undefined
       },
       this
     ) as MachineSnapshot<
@@ -316,7 +317,8 @@ export class StateMachine<
           typeof context !== 'function' && context ? context : ({} as TContext),
         _nodes: [this.root],
         children: {},
-        status: 'active'
+        status: 'active',
+        sessionId: actorScope.sessionId
       },
       this
     );
