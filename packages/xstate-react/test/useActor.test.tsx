@@ -19,6 +19,7 @@ import {
 import { fromCallback, fromObservable, fromPromise } from 'xstate/actors';
 import { useActor, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
+import { useActor2 } from '../src/useActor.ts';
 
 afterEach(() => {
   jest.useRealTimers();
@@ -93,7 +94,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     },
     persistedState
   }) => {
-    const [current, send] = useActor(
+    const [current, send] = useActor2(
       fetchMachine.provide({
         actors: {
           fetchData: fromPromise(onFetch)
@@ -161,7 +162,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   it('should provide the service', () => {
     const Test = () => {
-      const [, , service] = useActor(fetchMachine);
+      const [, , service] = useActor2(fetchMachine);
 
       if (!(service instanceof Actor)) {
         throw new Error('service not instance of Interpreter');
@@ -190,7 +191,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     });
 
     const Test = () => {
-      const [state] = useActor(testMachine, {
+      const [state] = useActor2(testMachine, {
         input: { test: true }
       });
 
@@ -206,6 +207,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should not spawn actors until service is started', async () => {
+    suiteKey;
     const spawnMachine = createMachine({
       types: {} as { context: { ref?: ActorRef<any, any> } },
       id: 'spawn',
@@ -233,7 +235,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     });
 
     const Spawner = () => {
-      const [current] = useActor(spawnMachine);
+      const [current] = useActor2(spawnMachine);
 
       switch (current.value) {
         case 'start':
@@ -269,7 +271,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     const Component = () => {
       const [ext, setExt] = useState(1);
 
-      const [, send] = useActor(
+      const [, send] = useActor2(
         toggleMachine.provide({
           actions: {
             setLatest: assign({
@@ -332,7 +334,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     const Component = () => {
       const [ext, setExt] = useState(1);
 
-      const [, send] = useActor(
+      const [, send] = useActor2(
         toggleMachine.provide({
           actions: {
             setLatest: assign({
@@ -397,7 +399,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
         done();
       }, [ext]);
 
-      const [, send] = useActor(
+      const [, send] = useActor2(
         toggleMachine.provide({
           actions: {
             doAction
@@ -458,7 +460,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     );
 
     const App = () => {
-      useActor(m);
+      useActor2(m);
       rerenders++;
       return null;
     };
@@ -500,7 +502,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     );
 
     const App = () => {
-      const [state, send] = useActor(m);
+      const [state, send] = useActor2(m);
 
       // this effect should only fire once since `stuff` never changes
       React.useEffect(() => {
@@ -539,7 +541,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     });
 
     const App = () => {
-      useActor(machine);
+      useActor2(machine);
       return null;
     };
 
@@ -567,7 +569,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     );
 
     const App = () => {
-      const [_state, send] = useActor(machine);
+      const [_state, send] = useActor2(machine);
       React.useEffect(() => {
         send({ type: 'EV' });
       }, []);
@@ -608,7 +610,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     );
 
     const App = () => {
-      const [_state, send] = useActor(machine);
+      const [_state, send] = useActor2(machine);
       React.useEffect(() => {
         send({ type: 'EV' });
       }, []);
@@ -650,7 +652,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     );
 
     const App = () => {
-      const [_state, send] = useActor(machine);
+      const [_state, send] = useActor2(machine);
       React.useEffect(() => {
         send({ type: 'EV' });
       }, []);
@@ -692,7 +694,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     );
 
     const App = () => {
-      const [state, send] = useActor(machine);
+      const [state, send] = useActor2(machine);
       return (
         <>
           <div data-testid="result">{state.value}</div>
@@ -732,7 +734,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     });
 
     const App = ({ isAwesome }: { isAwesome: boolean }) => {
-      const [state, send] = useActor(
+      const [state, send] = useActor2(
         machine.provide({
           guards: {
             isAwesome: () => isAwesome
@@ -774,7 +776,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     });
 
     const Test = () => {
-      useActor(machine);
+      useActor2(machine);
 
       return null;
     };
@@ -811,7 +813,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     };
 
     const Test = () => {
-      const [state, send] = useActor(machine);
+      const [state, send] = useActor2(machine);
 
       return (
         <>
@@ -868,7 +870,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     );
 
     const Test = () => {
-      const [state] = useActor(machine);
+      const [state] = useActor2(machine);
       const childState = useSelector(state.children.test!, (s) => s);
 
       expect(childState.context.value).toBe(42);
@@ -912,7 +914,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     let currentState: StateFrom<typeof testMachine>;
 
     const Test = () => {
-      const [state, send] = useActor(testMachine, {
+      const [state, send] = useActor2(testMachine, {
         snapshot: JSON.parse(persistedState)
       });
 
@@ -960,7 +962,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     });
 
     const App = () => {
-      const [state] = useActor(m);
+      const [state] = useActor2(m);
       return <>{state.context.count}</>;
     };
 
@@ -985,11 +987,11 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     });
 
     const App = () => {
-      const [_state, _send, actor] = useActor(m);
+      const [_state, _send, actor] = useActor2(m);
 
       React.useEffect(() => {
-        actor.system.get('child')!.send({ type: 'PING' });
-      });
+        actor.system.get('child')?.send({ type: 'PING' });
+      }, [actor]);
 
       return null;
     };
@@ -1016,7 +1018,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     });
 
     const App = () => {
-      useActor(machine);
+      useActor2(machine);
       return null;
     };
 
@@ -1044,7 +1046,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     });
 
     const App = () => {
-      const [state] = useActor(machine);
+      const [state] = useActor2(machine);
       return <>{state.value}</>;
     };
 
@@ -1064,7 +1066,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     const events: InspectionEvent[] = [];
 
     const App = () => {
-      useActor(machine, {
+      useActor2(machine, {
         inspect: (ev) => events.push(ev)
       });
 

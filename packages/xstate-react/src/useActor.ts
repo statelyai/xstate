@@ -1,9 +1,18 @@
 import isDevelopment from '#is-development';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
-import { Actor, ActorOptions, AnyActorLogic, SnapshotFrom } from 'xstate';
+import {
+  Actor,
+  ActorOptions,
+  ActorRefFrom,
+  AnyActorLogic,
+  AnyStateMachine,
+  SnapshotFrom,
+  createActor
+} from 'xstate';
 import { stopRootWithRehydration } from './stopRootWithRehydration.ts';
 import { useIdleActorRef } from './useActorRef.ts';
+import { useSelector } from './useSelector.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
@@ -49,4 +58,46 @@ export function useActor<TLogic extends AnyActorLogic>(
   }, [actorRef]);
 
   return [actorSnapshot, actorRef.send, actorRef];
+}
+
+export function useActor2<T extends AnyActorLogic>(
+  logic: T,
+  options: ActorOptions<T> = {}
+): [SnapshotFrom<T>, Actor<T>['send'], Actor<T>] {
+  const actorRefRef = useRef<Actor<T>>();
+  if (!actorRefRef.current) {
+    actorRefRef.current = createActor(logic, options);
+  }
+  // force update
+  const updater = useForceUpdate();
+
+  actorRefRef.current.logic.implementations = (
+    logic as AnyStateMachine
+  ).implementations;
+
+  useEffect(() => {
+    actorRefRef.current!.start();
+
+    return () => {
+      actorRefRef.current!.stop();
+      actorRefRef.current = createActor(logic, options);
+      // updater();
+    };
+  }, []);
+
+  const send = useCallback((event) => {
+    actorRefRef.current!.send(event);
+  }, []);
+
+  const snapshot = useSelector(actorRefRef.current, (state) => state);
+
+  return [snapshot, send, actorRefRef.current];
+}
+
+function useForceUpdate() {
+  const [, setTick] = useState(0);
+  const update = () => {
+    setTick((tick) => tick + 1);
+  };
+  return update;
 }
