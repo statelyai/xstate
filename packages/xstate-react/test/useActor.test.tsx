@@ -8,6 +8,7 @@ import {
   ActorLogicFrom,
   ActorRef,
   DoneActorEvent,
+  InspectionEvent,
   Snapshot,
   StateFrom,
   assign,
@@ -1056,5 +1057,43 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     });
 
     expect(container.textContent).toBe('two');
+  });
+
+  it('should not ever report the current actor as stopped in strict mode', async () => {
+    const machine = createMachine({});
+    const events: InspectionEvent[] = [];
+
+    const App = () => {
+      useActor(machine, {
+        inspect: (ev) => events.push(ev)
+      });
+
+      return null;
+    };
+
+    render(<App />);
+
+    if (suiteKey === 'strict') {
+      // sessionId: x:5
+      // sessionId: x:6
+      const actorEvents = events.filter((ev) => ev.type === '@xstate.actor');
+
+      // sessionId: x:6
+      const lastActorEvent = actorEvents[actorEvents.length - 1];
+
+      const actorSnapshotEvents = events.filter(
+        (ev) =>
+          ev.actorRef === lastActorEvent.actorRef &&
+          ev.type === '@xstate.snapshot'
+      );
+      const stoppedActorSnapshotEvent = actorSnapshotEvents.find(
+        (ev) =>
+          ev.type === '@xstate.snapshot' && ev.snapshot.status === 'stopped'
+      );
+
+      // This event should not exist because the snapshot for this actor should
+      // still be active
+      expect(stoppedActorSnapshotEvent).toBeUndefined();
+    }
   });
 });
