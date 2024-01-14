@@ -185,7 +185,7 @@ export function createSystem<T extends ActorSystemInfo>(
       const systemId = reverseKeyedActors.get(actorRef);
       if (systemId !== undefined) {
         const event = {
-          type: `@xstate.system.actor.register`,
+          type: `@xstate.actor.register`,
           systemId: systemId as string,
           actorRef: actorRef as T['actors'][keyof T['actors']]
         } as const;
@@ -203,7 +203,7 @@ export function createSystem<T extends ActorSystemInfo>(
         keyedActors.delete(systemId);
         reverseKeyedActors.delete(actorRef);
         const event = {
-          type: `@xstate.system.actor.unregister`,
+          type: `@xstate.actor.unregister`,
           systemId: systemId as string,
           actorRef: actorRef as T['actors'][keyof T['actors']]
         } as const;
@@ -334,7 +334,7 @@ export interface RegisteredActorEvent<
   TActorRef extends AnyActorRef,
   TSystemId extends string = string
 > {
-  type: `@xstate.system.actor.register`;
+  type: `@xstate.actor.register`;
   systemId: TSystemId;
   actorRef: TActorRef;
 }
@@ -343,7 +343,7 @@ export interface UnregisteredActorEvent<
   TActorRef extends AnyActorRef,
   TSystemId extends string = string
 > {
-  type: `@xstate.system.actor.unregister`;
+  type: `@xstate.actor.unregister`;
   systemId: TSystemId;
   actorRef: TActorRef;
 }

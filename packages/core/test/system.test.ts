@@ -573,15 +573,15 @@ describe('system', () => {
 
     actorRef.send({ type: 'to_b' });
     expect(events).toEqual([
-      `@xstate.system.actor.unregister.${aSystemId}`,
-      `@xstate.system.actor.register.${bSystemId}`
+      `@xstate.actor.unregister.${aSystemId}`,
+      `@xstate.actor.register.${bSystemId}`
     ]);
     actorRef.send({ type: 'to_a' });
     expect(events).toEqual([
-      `@xstate.system.actor.unregister.${aSystemId}`,
-      `@xstate.system.actor.register.${bSystemId}`,
-      `@xstate.system.actor.unregister.${bSystemId}`,
-      `@xstate.system.actor.register.${aSystemId}`
+      `@xstate.actor.unregister.${aSystemId}`,
+      `@xstate.actor.register.${bSystemId}`,
+      `@xstate.actor.unregister.${bSystemId}`,
+      `@xstate.actor.register.${aSystemId}`
     ]);
   });
 
@@ -627,26 +627,26 @@ describe('system', () => {
 
     actorRef.send({ type: 'to_b' });
     expect(events).toEqual([
-      `@xstate.system.actor.unregister.${aSystemId}`,
-      `@xstate.system.actor.register.${bSystemId}`
+      `@xstate.actor.unregister.${aSystemId}`,
+      `@xstate.actor.register.${bSystemId}`
     ]);
     expect(unsubscribedEvents).toEqual([
-      `@xstate.system.actor.unregister.${aSystemId}`,
-      `@xstate.system.actor.register.${bSystemId}`
+      `@xstate.actor.unregister.${aSystemId}`,
+      `@xstate.actor.register.${bSystemId}`
     ]);
 
     subscription.unsubscribe();
     actorRef.send({ type: 'to_a' });
 
     expect(events).toEqual([
-      `@xstate.system.actor.unregister.${aSystemId}`,
-      `@xstate.system.actor.register.${bSystemId}`
+      `@xstate.actor.unregister.${aSystemId}`,
+      `@xstate.actor.register.${bSystemId}`
     ]);
     expect(unsubscribedEvents).toEqual([
-      `@xstate.system.actor.unregister.${aSystemId}`,
-      `@xstate.system.actor.register.${bSystemId}`,
-      `@xstate.system.actor.unregister.${bSystemId}`,
-      `@xstate.system.actor.register.${aSystemId}`
+      `@xstate.actor.unregister.${aSystemId}`,
+      `@xstate.actor.register.${bSystemId}`,
+      `@xstate.actor.unregister.${bSystemId}`,
+      `@xstate.actor.register.${aSystemId}`
     ]);
   });
 
@@ -691,16 +691,16 @@ describe('system', () => {
     });
 
     actorRef.send({ type: 'to_b' });
-    expect(aEvents).toEqual([`@xstate.system.actor.unregister.${aSystemId}`]);
-    expect(bEvents).toEqual([`@xstate.system.actor.register.${bSystemId}`]);
+    expect(aEvents).toEqual([`@xstate.actor.unregister.${aSystemId}`]);
+    expect(bEvents).toEqual([`@xstate.actor.register.${bSystemId}`]);
     actorRef.send({ type: 'to_a' });
     expect(aEvents).toEqual([
-      `@xstate.system.actor.unregister.${aSystemId}`,
-      `@xstate.system.actor.register.${aSystemId}`
+      `@xstate.actor.unregister.${aSystemId}`,
+      `@xstate.actor.register.${aSystemId}`
     ]);
     expect(bEvents).toEqual([
-      `@xstate.system.actor.register.${bSystemId}`,
-      `@xstate.system.actor.unregister.${bSystemId}`
+      `@xstate.actor.register.${bSystemId}`,
+      `@xstate.actor.unregister.${bSystemId}`
     ]);
   });
 
@@ -744,18 +744,18 @@ describe('system', () => {
     });
 
     actorRef.send({ type: 'to_b' });
-    expect(events).toEqual([`@xstate.system.actor.unregister.${aSystemId}`]);
+    expect(events).toEqual([`@xstate.actor.unregister.${aSystemId}`]);
     expect(unsubscribedEvents).toEqual([
-      `@xstate.system.actor.unregister.${aSystemId}`
+      `@xstate.actor.unregister.${aSystemId}`
     ]);
 
     subscription.unsubscribe();
 
     actorRef.send({ type: 'to_a' });
-    expect(events).toEqual([`@xstate.system.actor.unregister.${aSystemId}`]);
+    expect(events).toEqual([`@xstate.actor.unregister.${aSystemId}`]);
     expect(unsubscribedEvents).toEqual([
-      `@xstate.system.actor.unregister.${aSystemId}`,
-      `@xstate.system.actor.register.${aSystemId}`
+      `@xstate.actor.unregister.${aSystemId}`,
+      `@xstate.actor.register.${aSystemId}`
     ]);
   });
 });
