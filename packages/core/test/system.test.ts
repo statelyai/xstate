@@ -568,7 +568,7 @@ describe('system', () => {
     const events: string[] = [];
 
     actorRef.system.subscribe((event) => {
-      events.push(event.type);
+      events.push(`${event.type}.${event.systemId}`);
     });
 
     actorRef.send({ type: 'to_b' });
@@ -618,11 +618,11 @@ describe('system', () => {
     const unsubscribedEvents: string[] = [];
 
     const subscription = actorRef.system.subscribe((event) => {
-      events.push(event.type);
+      events.push(`${event.type}.${event.systemId}`);
     });
 
     actorRef.system.subscribe((event) => {
-      unsubscribedEvents.push(event.type);
+      unsubscribedEvents.push(`${event.type}.${event.systemId}`);
     });
 
     actorRef.send({ type: 'to_b' });
@@ -683,11 +683,11 @@ describe('system', () => {
     const bEvents: string[] = [];
 
     actorRef.system.subscribe(aSystemId, (event) => {
-      aEvents.push(event.type);
+      aEvents.push(`${event.type}.${event.systemId}`);
     });
 
     actorRef.system.subscribe(bSystemId, (event) => {
-      bEvents.push(event.type);
+      bEvents.push(`${event.type}.${event.systemId}`);
     });
 
     actorRef.send({ type: 'to_b' });
@@ -736,15 +736,26 @@ describe('system', () => {
     const unsubscribedEvents: string[] = [];
 
     const subscription = actorRef.system.subscribe(aSystemId, (event) => {
-      events.push(event.type);
+      events.push(`${event.type}.${event.systemId}`);
+    });
+
+    actorRef.system.subscribe(aSystemId, (event) => {
+      unsubscribedEvents.push(`${event.type}.${event.systemId}`);
     });
 
     actorRef.send({ type: 'to_b' });
     expect(events).toEqual([`@xstate.system.actor.unregister.${aSystemId}`]);
+    expect(unsubscribedEvents).toEqual([
+      `@xstate.system.actor.unregister.${aSystemId}`
+    ]);
 
     subscription.unsubscribe();
 
     actorRef.send({ type: 'to_a' });
     expect(events).toEqual([`@xstate.system.actor.unregister.${aSystemId}`]);
+    expect(unsubscribedEvents).toEqual([
+      `@xstate.system.actor.unregister.${aSystemId}`,
+      `@xstate.system.actor.register.${aSystemId}`
+    ]);
   });
 });

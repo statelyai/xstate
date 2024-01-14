@@ -20,7 +20,10 @@ export type {
   InspectedActorEvent,
   InspectedEventEvent,
   InspectedSnapshotEvent,
-  InspectionEvent
+  InspectionEvent,
+  RegisteredActorEvent,
+  UnregisteredActorEvent,
+  RegistrationEvent
 } from './system.ts';
 export { toPromise } from './toPromise.ts';
 export {

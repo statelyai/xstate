@@ -106,8 +106,6 @@ export interface ActorSystem<T extends ActorSystemInfo> {
 
 export type AnyActorSystem = ActorSystem<any>;
 
-const rootSubscriptionKey = '@xstate.system.root' as const;
-
 let idCounter = 0;
 export function createSystem<T extends ActorSystemInfo>(
   rootActor: AnyActorRef,
@@ -120,9 +118,8 @@ export function createSystem<T extends ActorSystemInfo>(
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
   const observers = new Set<Observer<InspectionEvent>>();
-  const systemSubscriptions = new Map<
-    keyof T['actors'] | typeof rootSubscriptionKey,
-    Set<(event: RegistrationEvent<T['actors'][keyof T['actors']]>) => void>
+  const systemSubscriptions = new Set<
+    (event: RegistrationEvent<T['actors'][keyof T['actors']]>) => void
   >();
   const timerMap: { [id: ScheduledEventId]: number } = {};
   const clock = options.clock;
@@ -188,13 +185,11 @@ export function createSystem<T extends ActorSystemInfo>(
       const systemId = reverseKeyedActors.get(actorRef);
       if (systemId !== undefined) {
         const event = {
-          type: `@xstate.system.actor.register.${systemId as string}`,
+          type: `@xstate.system.actor.register`,
+          systemId: systemId as string,
           actorRef: actorRef as T['actors'][keyof T['actors']]
         } as const;
-        systemSubscriptions.get(systemId)?.forEach((listener) => {
-          listener(event);
-        });
-        systemSubscriptions.get(rootSubscriptionKey)?.forEach((listener) => {
+        systemSubscriptions.forEach((listener) => {
           listener(event);
         });
       }
@@ -208,13 +203,11 @@ export function createSystem<T extends ActorSystemInfo>(
         keyedActors.delete(systemId);
         reverseKeyedActors.delete(actorRef);
         const event = {
-          type: `@xstate.system.actor.unregister.${systemId as string}`,
+          type: `@xstate.system.actor.unregister`,
+          systemId: systemId as string,
           actorRef: actorRef as T['actors'][keyof T['actors']]
         } as const;
-        systemSubscriptions.get(systemId)?.forEach((listener) => {
-          listener(event);
-        });
-        systemSubscriptions.get(rootSubscriptionKey)?.forEach((listener) => {
+        systemSubscriptions.forEach((listener) => {
           listener(event);
         });
       }
@@ -230,30 +223,25 @@ export function createSystem<T extends ActorSystemInfo>(
         | ((event: RegistrationEvent<T['actors'][keyof T['actors']]>) => void)
         | undefined
     ) => {
-      let listener =
-        typeof maybeSystemIdOrListener === 'function'
-          ? maybeSystemIdOrListener
-          : maybeListener!;
-      let systemId =
-        typeof maybeSystemIdOrListener === 'function'
-          ? rootSubscriptionKey
-          : maybeSystemIdOrListener;
+      let listener: (
+        event: RegistrationEvent<T['actors'][keyof T['actors']]>
+      ) => void;
 
-      let subscriptions = systemSubscriptions.get(systemId) || new Set();
-      subscriptions.add(listener);
-      systemSubscriptions.set(systemId, subscriptions);
-
+      if (typeof maybeSystemIdOrListener === 'function') {
+        listener = maybeSystemIdOrListener;
+      } else {
+        listener = (
+          event: RegistrationEvent<T['actors'][keyof T['actors']]>
+        ) => {
+          if (event.systemId === maybeSystemIdOrListener) {
+            maybeListener?.(event);
+          }
+        };
+      }
+      systemSubscriptions.add(listener);
       return {
         unsubscribe: () => {
-          const subscriptions = systemSubscriptions.get(systemId);
-          if (subscriptions) {
-            subscriptions.delete(listener);
-            if (subscriptions.size === 0) {
-              systemSubscriptions.delete(systemId);
-            } else {
-              systemSubscriptions.set(systemId, subscriptions);
-            }
-          }
+          systemSubscriptions.delete(listener);
         }
       };
     },
@@ -342,19 +330,21 @@ export type InspectionEvent =
   | InspectedEventEvent
   | InspectedActorEvent;
 
-export interface ActorRegisteredEvent<
+export interface RegisteredActorEvent<
   TActorRef extends AnyActorRef,
   TSystemId extends string = string
 > {
-  type: `@xstate.system.actor.register.${TSystemId}`;
+  type: `@xstate.system.actor.register`;
+  systemId: TSystemId;
   actorRef: TActorRef;
 }
 
-export interface ActorUnregisteredEvent<
+export interface UnregisteredActorEvent<
   TActorRef extends AnyActorRef,
   TSystemId extends string = string
 > {
-  type: `@xstate.system.actor.unregister.${TSystemId}`;
+  type: `@xstate.system.actor.unregister`;
+  systemId: TSystemId;
   actorRef: TActorRef;
 }
 
@@ -362,5 +352,5 @@ export type RegistrationEvent<
   TActorRef extends AnyActorRef = AnyActorRef,
   TSystemId extends string = string
 > =
-  | ActorRegisteredEvent<TActorRef, TSystemId>
-  | ActorUnregisteredEvent<TActorRef, TSystemId>;
+  | RegisteredActorEvent<TActorRef, TSystemId>
+  | UnregisteredActorEvent<TActorRef, TSystemId>;
