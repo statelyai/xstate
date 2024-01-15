@@ -6,7 +6,7 @@ import {
   AnyActorRef,
   Observer,
   Snapshot,
-  Subscription,
+  Subscribable,
   HomomorphicOmit,
   EventObject
 } from './types.ts';
@@ -47,7 +47,13 @@ function createScheduledEventId(
   return `${actorRef.sessionId}.${id}` as ScheduledEventId;
 }
 
-export interface ActorSystem<T extends ActorSystemInfo> {
+export interface ActorSystem<T extends ActorSystemInfo>
+  extends Subscribable<
+    RegistrationEvent<
+      T['actors'][keyof T['actors']],
+      keyof T['actors'] & string
+    >
+  > {
   /**
    * @internal
    */
@@ -65,43 +71,6 @@ export interface ActorSystem<T extends ActorSystemInfo> {
    */
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
-  subscribe: {
-    (
-      observer: Observer<
-        RegistrationEvent<
-          T['actors'][keyof T['actors']],
-          keyof T['actors'] & string
-        >
-      >
-    ): Subscription;
-    (
-      nextListener?: (
-        event: RegistrationEvent<
-          T['actors'][keyof T['actors']],
-          keyof T['actors'] & string
-        >
-      ) => void,
-      errorListener?: (error: any) => void,
-      completeListener?: () => void
-    ): Subscription;
-    (
-      nextListenerOrObserver?:
-        | ((
-            event: RegistrationEvent<
-              T['actors'][keyof T['actors']],
-              keyof T['actors'] & string
-            >
-          ) => void)
-        | Observer<
-            RegistrationEvent<
-              T['actors'][keyof T['actors']],
-              keyof T['actors'] & string
-            >
-          >,
-      errorListener?: (error: any) => void,
-      completeListener?: () => void
-    ): Subscription;
-  };
   inspect: (observer: Observer<InspectionEvent>) => void;
   /**
    * @internal
@@ -242,7 +211,7 @@ export function createSystem<T extends ActorSystemInfo>(
       return keyedActors.get(systemId) as T['actors'][any];
     },
     subscribe: (
-      nextListenerOrObserver?:
+      nextListenerOrObserver:
         | ((event: RegistrationEvent<T['actors'][keyof T['actors']]>) => void)
         | Observer<RegistrationEvent<T['actors'][keyof T['actors']]>>,
       errorListener?: (error: any) => void,
