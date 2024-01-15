@@ -1,3 +1,5 @@
+import { ProcessingStatus } from './createActor.ts';
+import { reportUnhandledError } from './reportUnhandledError.ts';
 import {
   AnyEventObject,
   ActorSystemInfo,
@@ -8,6 +10,7 @@ import {
   HomomorphicOmit,
   EventObject
 } from './types.ts';
+import { toObserver } from './utils.ts';
 
 export interface ScheduledEvent {
   id: string;
@@ -64,16 +67,39 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
   subscribe: {
     (
-      listener: (
+      observer: Observer<
+        RegistrationEvent<
+          T['actors'][keyof T['actors']],
+          keyof T['actors'] & string
+        >
+      >
+    ): Subscription;
+    (
+      nextListener?: (
         event: RegistrationEvent<
           T['actors'][keyof T['actors']],
           keyof T['actors'] & string
         >
-      ) => void
+      ) => void,
+      errorListener?: (error: any) => void,
+      completeListener?: () => void
     ): Subscription;
-    <K extends keyof T['actors']>(
-      key: K,
-      listener: (event: RegistrationEvent<T['actors'][K], K & string>) => void
+    (
+      nextListenerOrObserver?:
+        | ((
+            event: RegistrationEvent<
+              T['actors'][keyof T['actors']],
+              keyof T['actors'] & string
+            >
+          ) => void)
+        | Observer<
+            RegistrationEvent<
+              T['actors'][keyof T['actors']],
+              keyof T['actors'] & string
+            >
+          >,
+      errorListener?: (error: any) => void,
+      completeListener?: () => void
     ): Subscription;
   };
   inspect: (observer: Observer<InspectionEvent>) => void;
@@ -117,9 +143,9 @@ export function createSystem<T extends ActorSystemInfo>(
   const children = new Map<string, AnyActorRef>();
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
-  const observers = new Set<Observer<InspectionEvent>>();
-  const systemSubscriptions = new Set<
-    (event: RegistrationEvent<T['actors'][keyof T['actors']]>) => void
+  const inspectionObservers = new Set<Observer<InspectionEvent>>();
+  const registrationObservers = new Set<
+    Observer<RegistrationEvent<T['actors'][keyof T['actors']]>>
   >();
   const timerMap: { [id: ScheduledEventId]: number } = {};
   const clock = options.clock;
@@ -189,8 +215,8 @@ export function createSystem<T extends ActorSystemInfo>(
           systemId: systemId as string,
           actorRef: actorRef as T['actors'][keyof T['actors']]
         } as const;
-        systemSubscriptions.forEach((listener) => {
-          listener(event);
+        registrationObservers.forEach((listener) => {
+          listener.next?.(event);
         });
       }
       return sessionId;
@@ -207,41 +233,46 @@ export function createSystem<T extends ActorSystemInfo>(
           systemId: systemId as string,
           actorRef: actorRef as T['actors'][keyof T['actors']]
         } as const;
-        systemSubscriptions.forEach((listener) => {
-          listener(event);
+        registrationObservers.forEach((listener) => {
+          listener.next?.(event);
         });
       }
     },
     get: (systemId) => {
       return keyedActors.get(systemId) as T['actors'][any];
     },
-    subscribe: <K extends keyof T['actors']>(
-      maybeSystemIdOrListener:
-        | K
-        | ((event: RegistrationEvent<T['actors'][keyof T['actors']]>) => void),
-      maybeListener?:
+    subscribe: (
+      nextListenerOrObserver?:
         | ((event: RegistrationEvent<T['actors'][keyof T['actors']]>) => void)
-        | undefined
+        | Observer<RegistrationEvent<T['actors'][keyof T['actors']]>>,
+      errorListener?: (error: any) => void,
+      completeListener?: () => void
     ) => {
-      let listener: (
-        event: RegistrationEvent<T['actors'][keyof T['actors']]>
-      ) => void;
+      const observer = toObserver(
+        nextListenerOrObserver,
+        errorListener,
+        completeListener
+      );
 
-      if (typeof maybeSystemIdOrListener === 'function') {
-        listener = maybeSystemIdOrListener;
+      if (rootActor._processingStatus !== ProcessingStatus.Stopped) {
+        registrationObservers.add(observer);
       } else {
-        listener = (
-          event: RegistrationEvent<T['actors'][keyof T['actors']]>
-        ) => {
-          if (event.systemId === maybeSystemIdOrListener) {
-            maybeListener?.(event);
-          }
-        };
+        const snapshot = rootActor.getSnapshot();
+        switch (snapshot.status) {
+          case 'done':
+            try {
+              observer.complete?.();
+            } catch (err) {
+              reportUnhandledError(err);
+            }
+            break;
+          // can this error?
+        }
       }
-      systemSubscriptions.add(listener);
+
       return {
         unsubscribe: () => {
-          systemSubscriptions.delete(listener);
+          registrationObservers.delete(observer);
         }
       };
     },
@@ -257,14 +288,16 @@ export function createSystem<T extends ActorSystemInfo>(
       reverseKeyedActors.set(actorRef, systemId);
     },
     inspect: (observer) => {
-      observers.add(observer);
+      inspectionObservers.add(observer);
     },
     _sendInspectionEvent: (event) => {
       const resolvedInspectionEvent: InspectionEvent = {
         ...event,
         rootId: rootActor.sessionId
       };
-      observers.forEach((observer) => observer.next?.(resolvedInspectionEvent));
+      inspectionObservers.forEach(
+        (observer) => observer.next?.(resolvedInspectionEvent)
+      );
     },
     _relay: (source, target, event) => {
       system._sendInspectionEvent({
