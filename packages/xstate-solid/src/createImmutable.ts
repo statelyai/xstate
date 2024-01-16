@@ -11,7 +11,7 @@ export function createImmutable<T extends object>(
   const [store, setStore] = createStore(deepClone(init));
 
   const setImmutable = (next: T) => {
-    setStore(reconcile(next));
+    setStore(reconcile(deepClone(next)));
   };
 
   return [store, setImmutable];
