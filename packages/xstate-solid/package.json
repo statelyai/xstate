@@ -41,6 +41,9 @@
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
+  "dependencies": {
+    "@solid-primitives/immutable": "^1.0.3"
+  },
   "peerDependencies": {
     "solid-js": "^1.6.0",
     "xstate": "^5.5.1"

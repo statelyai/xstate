@@ -1,18 +1,14 @@
 import { createStore, reconcile } from 'solid-js/store';
-import { deepClone, isWrappable } from './deepClone.ts';
+import { createSignal } from 'solid-js';
+import { deepClone } from './deepClone.ts';
+// @ts-ignore
+import { createImmutable as primitiveCreateImmutable } from '@solid-primitives/immutable';
 
-/**
- * Based on Ryan Carniato's createImmutable prototype
- * Clones the initial value and diffs updates
- */
 export function createImmutable<T extends object>(
   init: T
 ): [T, (next: T) => void] {
-  const [store, setStore] = createStore(deepClone(init));
+  const [data, setData] = createSignal(init);
+  const store = primitiveCreateImmutable(data);
 
-  const setImmutable = (next: T) => {
-    setStore(reconcile(deepClone(next)));
-  };
-
-  return [store, setImmutable];
+  return [store, setData];
 }
