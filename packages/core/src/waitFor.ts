@@ -18,7 +18,7 @@ const defaultWaitForOptions: WaitForOptions = {
 /**
  * Subscribes to an actor ref and waits for its emitted value to satisfy
  * a predicate, and then resolves with that value.
- * Will throw if the desired state is not reached after a timeout
+ * Will throw if the desired state is not reached after an optional timeout.
  * (defaults to Infinity).
  *
  * @example
