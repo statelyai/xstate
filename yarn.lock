@@ -1881,23 +1881,23 @@
   dependencies:
     "@sinonjs/commons" "^3.0.0"
 
-"@solid-primitives/immutable@^1.0.3":
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/@solid-primitives/immutable/-/immutable-1.0.3.tgz#c4ca48e0fd4b38ac515d42eef7f6dbc54a850478"
-  integrity sha512-5c8Dmo/+2anFVyvoxJ24YdwoBcFFrVeyTjPsrdCwdZiGId4JA2SOCRXz2qnYfRz8fbrJGiunmIULUGv2CGdyIA==
+"@solid-primitives/immutable@^1.0.5":
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/@solid-primitives/immutable/-/immutable-1.0.5.tgz#b9111f8d6e8469218cfea5b94345983c27890e52"
+  integrity sha512-hgjct4JITpEdSf/ts8hchUei2P0ePfLOVjuAKj0VZl2+Wvlxqwyh3evTwdwk1mdyp2EYPiePPAUM23e7TvBbjw==
   dependencies:
-    "@solid-primitives/keyed" "^1.2.0"
-    "@solid-primitives/utils" "^6.2.1"
+    "@solid-primitives/keyed" "^1.2.1"
+    "@solid-primitives/utils" "^6.2.2"
 
-"@solid-primitives/keyed@^1.2.0":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@solid-primitives/keyed/-/keyed-1.2.0.tgz#bafa07605cc2d5ff9d118094e3a591e24d43f362"
-  integrity sha512-0DuTeJdxWjCTu73XnDZs24JzfXckBnpvCfQ6Mf/kTPKkMZJh7tjkBnZEk48ckrE9xmwat9stIdfrBmZctsepIw==
+"@solid-primitives/keyed@^1.2.1":
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/@solid-primitives/keyed/-/keyed-1.2.1.tgz#b6ac33ae1646b31bd7b35465b11247581f4fe66c"
+  integrity sha512-fLZ3CX41IiG2kshCWFMDBq4LeSuuHpZ91UrWqcr6EFq3lGWE5iPswHyHilSiaeLWZLpbhZ/HAwrM/wlh2S1mYQ==
 
-"@solid-primitives/utils@^6.2.1":
-  version "6.2.1"
-  resolved "https://registry.yarnpkg.com/@solid-primitives/utils/-/utils-6.2.1.tgz#320fb2180743031622b40fc43b0e63bf55686cfb"
-  integrity sha512-TsecNzxiO5bLfzqb4OOuzfUmdOROcssuGqgh5rXMMaasoFZ3GoveUgdY1wcf17frMJM7kCNGNuK34EjErneZkg==
+"@solid-primitives/utils@^6.2.2":
+  version "6.2.2"
+  resolved "https://registry.yarnpkg.com/@solid-primitives/utils/-/utils-6.2.2.tgz#01c28bab7b2842b46bd5559716497decc51ad3cd"
+  integrity sha512-11ypVbp987XxETeRqY5Y3OmmTpm8/jZqJXRvo6AyqBthzkvvjEdReuUMU2yVb+pwWGxfZpWHZ6EUCcGXUMhfwg==
 
 "@szmarczak/http-timer@^1.1.2":
   version "1.1.2"
