@@ -6,7 +6,7 @@ interface WaitForOptions {
    * How long to wait before rejecting, if no emitted
    * state satisfies the predicate.
    *
-   * @defaultValue 10_000 (10 seconds)
+   * @defaultValue Infinity
    */
   timeout: number;
 }
@@ -19,7 +19,7 @@ const defaultWaitForOptions: WaitForOptions = {
  * Subscribes to an actor ref and waits for its emitted value to satisfy
  * a predicate, and then resolves with that value.
  * Will throw if the desired state is not reached after a timeout
- * (defaults to 10 seconds).
+ * (defaults to Infinity).
  *
  * @example
  * ```js
