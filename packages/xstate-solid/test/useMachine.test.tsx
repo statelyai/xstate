@@ -1694,7 +1694,11 @@ describe('useMachine (strict mode)', () => {
         },
         Held: {
           initial: 'HeldIncrement',
-          states: { HeldIncrement: { after: { 40: 'HeldIncrement' } } },
+          states: {
+            HeldIncrement: {
+              after: { 40: 'HeldIncrement' }
+            }
+          },
           on: { releasePointer: 'NotHeld.Idle' }
         }
       }
