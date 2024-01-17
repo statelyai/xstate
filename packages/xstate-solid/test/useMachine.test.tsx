@@ -1741,6 +1741,7 @@ describe('useMachine (strict mode)', () => {
     fireEvent.click(incrementButton);
     await sleep(10);
     fireEvent.click(incrementButton);
+    await sleep(50);
 
     expect(JSON.parse(container.textContent as string)).toEqual({
       NotHeld: 'Idle'
