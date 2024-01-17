@@ -1,20 +1,109 @@
+import { StateMachine } from './StateMachine.ts';
 import {
-  MachineConfig,
-  MachineContext,
-  InternalMachineImplementations,
-  ParameterizedObject,
-  ProvidedActor,
-  NonReducibleUnknown,
-  Prop,
-  AnyEventObject
-} from './types.ts';
-import {
-  TypegenConstraint,
   ResolveTypegenMeta,
+  TypegenConstraint,
   TypegenDisabled
 } from './typegenTypes.ts';
-import { StateMachine } from './StateMachine.ts';
+import {
+  AnyActorRef,
+  AnyEventObject,
+  Cast,
+  InternalMachineImplementations,
+  IsNever,
+  MachineConfig,
+  MachineContext,
+  NonReducibleUnknown,
+  ParameterizedObject,
+  Prop,
+  ProvidedActor,
+  StateValue,
+  ToChildren
+} from './types.ts';
 
+type TestValue =
+  | string
+  | {
+      [k: string]: TestValue | undefined;
+    };
+
+type _GroupTestValues<TTestValue extends string | TestValue> =
+  TTestValue extends string
+    ? TTestValue extends `${string}.${string}`
+      ? [never, never]
+      : [TTestValue, never]
+    : [never, TTestValue];
+type GroupTestValues<TTestValue extends string | TestValue> = {
+  leafCandidates: _GroupTestValues<TTestValue>[0];
+  nonLeaf: _GroupTestValues<TTestValue>[1];
+};
+
+type FilterLeafValues<
+  TLeafCandidate extends string,
+  TNonLeaf extends { [k: string]: TestValue | undefined }
+> = IsNever<TNonLeaf> extends true
+  ? TLeafCandidate
+  : TLeafCandidate extends string
+    ? TLeafCandidate extends keyof TNonLeaf
+      ? never
+      : TLeafCandidate
+    : never;
+
+// this is not 100% accurate since we can't make parallel regions required in the result
+// `TTestValue` doesn't encode this information anyhow for us to be able to do that
+// this is fine for most practical use cases anyway though
+type ToStateValue<TTestValue extends string | TestValue> =
+  | FilterLeafValues<
+      GroupTestValues<TTestValue>['leafCandidates'],
+      GroupTestValues<TTestValue>['nonLeaf']
+    >
+  | (IsNever<GroupTestValues<TTestValue>['nonLeaf']> extends false
+      ? {
+          [K in keyof GroupTestValues<TTestValue>['nonLeaf']]: ToStateValue<
+            NonNullable<GroupTestValues<TTestValue>['nonLeaf'][K]>
+          >;
+        }
+      : never);
+
+/**
+ * Creates a state machine (statechart) with the given configuration.
+ *
+ * The state machine represents the pure logic of a state machine actor.
+ * 
+ * @param config The state machine configuration.
+ * @param options DEPRECATED: use `setup({ ... })` or `machine.provide({ ... })` to provide machine implementations instead.
+ * 
+ * @example
+  ```ts
+  import { createMachine } from 'xstate';
+
+  const lightMachine = createMachine({
+    id: 'light',
+    initial: 'green',
+    states: {
+      green: {
+        on: {
+          TIMER: { target: 'yellow' }
+        }
+      },
+      yellow: {
+        on: {
+          TIMER: { target: 'red' }
+        }
+      },
+      red: {
+        on: {
+          TIMER: { target: 'green' }
+        }
+      }
+    }
+  });
+
+  const lightActor = createActor(lightMachine);
+  lightActor.start();
+
+  lightActor.send({ type: 'TIMER' });
+  ```
+ */
 export function createMachine<
   TContext extends MachineContext,
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
@@ -57,10 +146,14 @@ export function createMachine<
 ): StateMachine<
   TContext,
   TEvent,
+  Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
   TActor,
   TAction,
   TGuard,
   TDelay,
+  'matchesStates' extends keyof TTypesMeta
+    ? ToStateValue<Cast<TTypesMeta['matchesStates'], TestValue>>
+    : StateValue,
   Prop<
     ResolveTypegenMeta<
       TTypesMeta,
@@ -78,8 +171,18 @@ export function createMachine<
   TOutput,
   ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
 > {
-  return new StateMachine<any, any, any, any, any, any, any, any, any, any>(
-    config as any,
-    implementations as any
-  );
+  return new StateMachine<
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  >(config as any, implementations as any);
 }

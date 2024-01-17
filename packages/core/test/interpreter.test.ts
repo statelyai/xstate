@@ -9,14 +9,14 @@ import {
   ActorRef,
   cancel,
   raise,
-  stop,
+  stopChild,
   log
 } from '../src/index.ts';
-import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
 import { PromiseActorLogic, fromPromise } from '../src/actors/promise';
 import { fromCallback } from '../src/actors/callback';
+import { assertEvent } from '../src/assert.ts';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -136,8 +136,8 @@ describe('interpreter', () => {
 
       actorRef.send({ type: 'TIMER' });
       called = false;
-      const persisted = actorRef.getPersistedState();
-      actorRef = createActor(machine, { state: persisted }).start();
+      const persisted = actorRef.getPersistedSnapshot();
+      actorRef = createActor(machine, { snapshot: persisted }).start();
 
       expect(called).toBe(false);
     });
@@ -161,9 +161,9 @@ describe('interpreter', () => {
       const actorRef = createActor(machine).start();
       called = false;
       expect(actorRef.getSnapshot().value).toEqual('b');
-      const persisted = actorRef.getPersistedState();
+      const persisted = actorRef.getPersistedSnapshot();
 
-      createActor(machine, { state: persisted }).start();
+      createActor(machine, { snapshot: persisted }).start();
 
       expect(called).toBe(false);
     });
@@ -247,15 +247,7 @@ describe('interpreter', () => {
               { type: 'FINISH' },
               {
                 delay: ({ context, event }) =>
-                  context.initialDelay +
-                  ('wait' in event
-                    ? (
-                        event as Extract<
-                          DelayExpMachineEvents,
-                          { type: 'ACTIVATE' }
-                        >
-                      ).wait
-                    : 0)
+                  context.initialDelay + ('wait' in event ? event.wait : 0)
               }
             ),
             on: {
@@ -328,14 +320,10 @@ describe('interpreter', () => {
             entry: raise(
               { type: 'FINISH' },
               {
-                delay: ({ context, event }) =>
-                  context.initialDelay +
-                  (
-                    event as Extract<
-                      DelayExpMachineEvents,
-                      { type: 'ACTIVATE' }
-                    >
-                  ).wait
+                delay: ({ context, event }) => {
+                  assertEvent(event, 'ACTIVATE');
+                  return context.initialDelay + event.wait;
+                }
               }
             ),
             on: {
@@ -424,7 +412,7 @@ describe('interpreter', () => {
               return context.delay + 50;
             },
             delayA: ({ context }) => context.delay,
-            delayD: ({ context, event }) => context.delay + (event as any).value
+            delayD: ({ context, event }) => context.delay + event.value
           }
         }
       );
@@ -590,11 +578,11 @@ describe('interpreter', () => {
       const actorRef = createActor(machine).start();
       actorRef.send({ type: 'TOGGLE' });
       actorRef.send({ type: 'SWITCH' });
-      const bState = actorRef.getPersistedState();
+      const bState = actorRef.getPersistedSnapshot();
       actorRef.stop();
       activityActive = false;
 
-      createActor(machine, { state: bState }).start();
+      createActor(machine, { snapshot: bState }).start();
 
       expect(activityActive).toBeTruthy();
     });
@@ -722,10 +710,11 @@ describe('interpreter', () => {
       }
     };
 
-    expect(() => {
-      createActor(createMachine(invalidMachine)).start();
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"Initial state node "create" not found on parent state node #fetchMachine"`
+    const snapshot = createActor(createMachine(invalidMachine)).getSnapshot();
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.error).toMatchInlineSnapshot(
+      `[Error: Initial state node "create" not found on parent state node #fetchMachine]`
     );
   });
 
@@ -1053,7 +1042,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: machine.resolveState({ value: 'bar' })
+        snapshot: machine.resolveState({ value: 'bar' })
       });
 
       expect(actor.getSnapshot().matches('bar')).toBeTruthy();
@@ -1070,7 +1059,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: machine.resolveState({ value: 'bar' })
+        snapshot: machine.resolveState({ value: 'bar' })
       });
 
       expect(actor.getSnapshot().matches('bar')).toBeTruthy();
@@ -1093,7 +1082,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: machine.resolveState({ value: 'foo' })
+        snapshot: machine.resolveState({ value: 'foo' })
       });
 
       expect(actor.getSnapshot().matches({ foo: 'one' })).toBeTruthy();
@@ -1323,7 +1312,7 @@ describe('interpreter', () => {
       let count: number;
       const intervalService = createActor(intervalMachine).start();
 
-      expect(isObservable(intervalService)).toBeTruthy();
+      expect(typeof intervalService.subscribe === 'function').toBeTruthy();
 
       intervalService.subscribe(
         (state) => (count = state.context.count),
@@ -1339,20 +1328,18 @@ describe('interpreter', () => {
       let count = 0;
       const intervalService = createActor(intervalMachine).start();
 
-      expect(() => {
-        const state$ = from(intervalService);
+      const state$ = from(intervalService);
 
-        state$.subscribe({
-          next: () => {
-            count += 1;
-          },
-          error: undefined,
-          complete: () => {
-            expect(count).toEqual(5);
-            done();
-          }
-        });
-      }).not.toThrow();
+      state$.subscribe({
+        next: () => {
+          count += 1;
+        },
+        error: undefined,
+        complete: () => {
+          expect(count).toEqual(5);
+          done();
+        }
+      });
     });
 
     it('should be unsubscribable', (done) => {
@@ -1710,9 +1697,9 @@ describe('interpreter', () => {
               NEXT: {
                 target: 'gone',
                 actions: [
-                  stop(({ context }) => context.machineRef),
-                  stop(({ context }) => context.promiseRef),
-                  stop(({ context }) => context.observableRef)
+                  stopChild(({ context }) => context.machineRef),
+                  stopChild(({ context }) => context.promiseRef),
+                  stopChild(({ context }) => context.observableRef)
                 ]
               }
             }
@@ -1850,4 +1837,57 @@ it('should not process events sent directly to own actor ref before initial entr
     'initial nested entry',
     'EV transition'
   ]);
+});
+
+it('should not notify the completion observer for an active logic when it gets subscribed before starting', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine({});
+  createActor(machine).subscribe({ complete: spy });
+
+  expect(spy).not.toHaveBeenCalled();
+});
+
+it('should not notify the completion observer for an errored logic when it gets subscribed after it errors', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine({
+    entry: () => {
+      throw new Error('error');
+    }
+  });
+  const actorRef = createActor(machine);
+  actorRef.subscribe({ error: () => {} });
+  actorRef.start();
+
+  actorRef.subscribe({
+    complete: spy
+  });
+
+  expect(spy).not.toHaveBeenCalled();
+});
+
+it('should notify the error observer for an errored logic when it gets subscribed after it errors', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine({
+    entry: () => {
+      throw new Error('error');
+    }
+  });
+  const actorRef = createActor(machine);
+  actorRef.subscribe({ error: () => {} });
+  actorRef.start();
+
+  actorRef.subscribe({
+    error: spy
+  });
+
+  expect(spy).toMatchMockCallsInlineSnapshot(`
+    [
+      [
+        [Error: error],
+      ],
+    ]
+  `);
 });

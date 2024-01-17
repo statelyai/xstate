@@ -27,7 +27,7 @@ export interface AssignArgs<
 
 function resolveAssign(
   actorScope: AnyActorScope,
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -38,7 +38,7 @@ function resolveAssign(
       | PropertyAssigner<any, any, any, any, any>;
   }
 ) {
-  if (!state.context) {
+  if (!snapshot.context) {
     throw new Error(
       'Cannot assign to undefined `context`. Ensure that `context` is defined in the machine config.'
     );
@@ -46,11 +46,16 @@ function resolveAssign(
   const spawnedChildren: Record<string, AnyActorRef> = {};
 
   const assignArgs: AssignArgs<any, any, any, any> = {
-    context: state.context,
+    context: snapshot.context,
     event: actionArgs.event,
-    spawn: createSpawner(actorScope, state, actionArgs.event, spawnedChildren),
-    self: actorScope?.self,
-    system: actorScope?.system
+    spawn: createSpawner(
+      actorScope,
+      snapshot,
+      actionArgs.event,
+      spawnedChildren
+    ),
+    self: actorScope.self,
+    system: actorScope.system
   };
   let partialUpdate: Record<string, unknown> = {};
   if (typeof assignment === 'function') {
@@ -65,17 +70,17 @@ function resolveAssign(
     }
   }
 
-  const updatedContext = Object.assign({}, state.context, partialUpdate);
+  const updatedContext = Object.assign({}, snapshot.context, partialUpdate);
 
   return [
-    cloneMachineSnapshot(state, {
+    cloneMachineSnapshot(snapshot, {
       context: updatedContext,
       children: Object.keys(spawnedChildren).length
         ? {
-            ...state.children,
+            ...snapshot.children,
             ...spawnedChildren
           }
-        : state.children
+        : snapshot.children
     })
   ];
 }
@@ -94,7 +99,34 @@ export interface AssignAction<
 /**
  * Updates the current context of the machine.
  *
- * @param assignment An object that represents the partial context to update.
+ * @param assignment An object that represents the partial context to update, or a
+ * function that returns an object that represents the partial context to update.
+ * 
+ * @example
+  ```ts
+  import { createMachine, assign } from 'xstate';
+
+  const countMachine = createMachine({
+    context: {
+      count: 0,
+      message: ''
+    },
+    on: {
+      inc: {
+        actions: assign({
+          count: ({ context }) => context.count + 1
+        })
+      },
+      updateMessage: {
+        actions: assign(({ context, event }) => {
+          return {
+            message: event.message.trim()
+          }
+        })
+      }
+    }
+  });
+  ```
  */
 export function assign<
   TContext extends MachineContext,

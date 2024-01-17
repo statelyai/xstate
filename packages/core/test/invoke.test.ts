@@ -1,6 +1,6 @@
 import { interval, of } from 'rxjs';
 import { map, take } from 'rxjs/operators';
-import { escalate, forwardTo, raise, sendTo } from '../src/actions.ts';
+import { forwardTo, raise, sendTo } from '../src/actions.ts';
 import {
   PromiseActorLogic,
   fromCallback,
@@ -19,14 +19,10 @@ import {
   createMachine,
   createActor,
   sendParent,
-  EventFrom,
   Snapshot,
   ActorRef
 } from '../src/index.ts';
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+import { sleep } from '@xstate-repo/jest-utils';
 
 const user = { name: 'David' };
 
@@ -1658,7 +1654,8 @@ describe('invoke', () => {
                 target: 'failed',
                 guard: ({ event }) => {
                   return (
-                    event.data instanceof Error && event.data.message === 'test'
+                    event.error instanceof Error &&
+                    event.error.message === 'test'
                   );
                 }
               }
@@ -2000,10 +1997,10 @@ describe('invoke', () => {
               onError: {
                 target: 'success',
                 guard: ({ context, event }) => {
-                  expect((event.data as any).message).toEqual('some error');
+                  expect((event.error as any).message).toEqual('some error');
                   return (
                     context.count === 4 &&
-                    (event.data as any).message === 'some error'
+                    (event.error as any).message === 'some error'
                   );
                 }
               }
@@ -2189,10 +2186,10 @@ describe('invoke', () => {
               onError: {
                 target: 'success',
                 guard: ({ context, event }) => {
-                  expect((event.data as any).message).toEqual('some error');
+                  expect((event.error as any).message).toEqual('some error');
                   return (
                     context.count === 4 &&
-                    (event.data as any).message === 'some error'
+                    (event.error as any).message === 'some error'
                   );
                 }
               }
@@ -2263,13 +2260,13 @@ describe('invoke', () => {
           }
           return state;
         },
-        getInitialState: () => ({
+        getInitialSnapshot: () => ({
           status: 'active',
           output: undefined,
           error: undefined,
           context: 0
         }),
-        getPersistedState: (s) => s
+        getPersistedSnapshot: (s) => s
       };
 
       const countMachine = createMachine({
@@ -2305,12 +2302,12 @@ describe('invoke', () => {
 
           return state;
         },
-        getInitialState: () => ({
+        getInitialSnapshot: () => ({
           status: 'active',
           output: undefined,
           error: undefined
         }),
-        getPersistedState: (s) => s
+        getPersistedSnapshot: (s) => s
       };
 
       const pingMachine = createMachine({
@@ -2848,96 +2845,6 @@ describe('invoke', () => {
     });
   });
 
-  describe('error handling', () => {
-    it('handles escalated errors', (done) => {
-      const child = createMachine({
-        initial: 'die',
-
-        states: {
-          die: {
-            entry: [escalate('oops')]
-          }
-        }
-      });
-
-      const parent = createMachine({
-        initial: 'one',
-
-        states: {
-          one: {
-            invoke: {
-              id: 'child',
-              src: child,
-              onError: {
-                target: 'two',
-                guard: ({ event }) => event.data === 'oops'
-              }
-            }
-          },
-          two: {
-            type: 'final'
-          }
-        }
-      });
-
-      const actor = createActor(parent);
-      actor.subscribe({
-        complete: () => {
-          done();
-        }
-      });
-      actor.start();
-    });
-
-    it('handles escalated errors as an expression', (done) => {
-      interface ChildContext {
-        id: number;
-      }
-
-      const child = createMachine({
-        types: {} as { context: ChildContext },
-        initial: 'die',
-        context: { id: 42 },
-        states: {
-          die: {
-            entry: escalate(({ context }) => context.id)
-          }
-        }
-      });
-
-      const parent = createMachine({
-        initial: 'one',
-
-        states: {
-          one: {
-            invoke: {
-              id: 'child',
-              src: child,
-              onError: {
-                target: 'two',
-                guard: ({ event }) => {
-                  expect(event.data).toEqual(42);
-                  return true;
-                }
-              }
-            }
-          },
-          two: {
-            type: 'final'
-          }
-        }
-      });
-
-      const actor = createActor(parent);
-      actor.subscribe({
-        complete: () => {
-          done();
-        }
-      });
-      actor.start();
-    });
-  });
-
   it('invoke `src` can be used with invoke `input`', (done) => {
     const machine = createMachine(
       {
@@ -3044,7 +2951,7 @@ describe('invoke', () => {
               onDone: {
                 guard: ({ event }) => {
                   // invoke ID should not be 'someSrc'
-                  const expectedType = 'xstate.done.actor.(machine).a[0]';
+                  const expectedType = 'xstate.done.actor.0.(machine).a';
                   expect(event.type).toEqual(expectedType);
                   return event.type === expectedType;
                 },
@@ -3111,7 +3018,7 @@ describe('invoke', () => {
       );
 
       expect(
-        createActor(machine).getSnapshot().children['machine.a[0]']
+        createActor(machine).getSnapshot().children['0.machine.a']
       ).toBeDefined();
     }
   );
@@ -3225,8 +3132,8 @@ describe('invoke', () => {
     // check within a macrotask so all promise-induced microtasks have a chance to resolve first
     setTimeout(() => {
       expect(actual).toEqual([
-        'xstate.done.actor.(machine).first.fetch[0]',
-        'xstate.done.actor.(machine).second.fetch[0]'
+        'xstate.done.actor.0.(machine).first.fetch',
+        'xstate.done.actor.0.(machine).second.fetch'
       ]);
       done();
     }, 100);
@@ -3405,7 +3312,7 @@ describe('invoke', () => {
       types: {} as {
         events: {
           type: 'PING';
-          origin: ActorRef<{ type: 'PONG' }, Snapshot<unknown>>;
+          origin: ActorRef<Snapshot<unknown>, { type: 'PONG' }>;
         };
       },
       on: {

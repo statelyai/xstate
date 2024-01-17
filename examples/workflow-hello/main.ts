@@ -1,4 +1,4 @@
-import { createMachine, interpret, waitFor } from 'xstate';
+import { createMachine, createActor } from 'xstate';
 
 // https://github.com/serverlessworkflow/specification/tree/main/examples#hello-world-example
 export const workflow = createMachine({
@@ -14,7 +14,7 @@ export const workflow = createMachine({
   }
 });
 
-const actor = interpret(workflow);
+const actor = createActor(workflow);
 
 actor.subscribe({
   complete() {

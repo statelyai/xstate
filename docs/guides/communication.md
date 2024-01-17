@@ -1,6 +1,9 @@
 # Invoking Services
 
-:::tip Check out our new docs!
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
 🆕 Our [section on actors in XState](https://stately.ai/docs/actors) has explainers and examples for promises, callbacks, observables, actions, and actors.
 :::
 

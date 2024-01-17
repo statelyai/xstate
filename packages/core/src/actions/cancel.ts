@@ -23,18 +23,20 @@ type ResolvableSendId<
 
 function resolveCancel(
   _: AnyActorScope,
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   { sendId }: { sendId: ResolvableSendId<any, any, any, any> }
 ) {
   const resolvedSendId =
     typeof sendId === 'function' ? sendId(actionArgs, actionParams) : sendId;
-  return [state, resolvedSendId];
+  return [snapshot, resolvedSendId];
 }
 
 function executeCancel(actorScope: AnyActorScope, resolvedSendId: string) {
-  (actorScope.self as AnyActor).cancel(resolvedSendId);
+  actorScope.defer(() => {
+    actorScope.system.scheduler.cancel(actorScope.self, resolvedSendId);
+  });
 }
 
 export interface CancelAction<
@@ -47,11 +49,30 @@ export interface CancelAction<
 }
 
 /**
- * Cancels an in-flight `send(...)` action. A canceled sent action will not
- * be executed, nor will its event be sent, unless it has already been sent
- * (e.g., if `cancel(...)` is called after the `send(...)` action's `delay`).
+ * Cancels a delayed `sendTo(...)` action that is waiting to be executed. The canceled `sendTo(...)` action
+ * will not send its event or execute, unless the `delay` has already elapsed before `cancel(...)` is called.
  *
- * @param sendId The `id` of the `send(...)` action to cancel.
+ * @param sendId The `id` of the `sendTo(...)` action to cancel.
+ * 
+ * @example
+  ```ts
+  import { createMachine, sendTo, cancel } from 'xstate';
+
+  const machine = createMachine({
+    // ...
+    on: {
+      sendEvent: {
+        actions: sendTo('some-actor', { type: 'someEvent' }, {
+          id: 'some-id',
+          delay: 1000
+        })
+      },
+      cancelEvent: {
+        actions: cancel('some-id')
+      }
+    }
+  });
+  ```
  */
 export function cancel<
   TContext extends MachineContext,

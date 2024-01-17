@@ -2,29 +2,29 @@ import { of } from 'rxjs';
 import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import {
   ActorRef,
-  ActorSystem,
+  ActorRefFrom,
+  AnyActorRef,
+  AnyStateMachine,
+  EventObject,
+  Snapshot,
   assign,
+  createActor,
   createMachine,
   fromEventObservable,
   fromObservable,
   fromPromise,
   fromTransition,
-  createActor,
   sendTo,
-  stop,
-  Snapshot,
-  EventObject,
-  ActorRefFrom,
-  spawn,
-  AnyActorRef,
-  AnyStateMachine
+  spawnChild,
+  stopChild
 } from '../src/index.ts';
+import { ActorSystem } from '../src/system.ts';
 
 describe('system', () => {
   it('should register an invoked actor', (done) => {
     type MySystem = ActorSystem<{
       actors: {
-        receiver: ActorRef<{ type: 'HELLO' }, Snapshot<unknown>>;
+        receiver: ActorRef<Snapshot<unknown>, { type: 'HELLO' }>;
       };
     }>;
 
@@ -66,7 +66,7 @@ describe('system', () => {
   it('should register a spawned actor', (done) => {
     type MySystem = ActorSystem<{
       actors: {
-        receiver: ActorRef<{ type: 'HELLO' }, Snapshot<unknown>>;
+        receiver: ActorRef<Snapshot<unknown>, { type: 'HELLO' }>;
       };
     }>;
 
@@ -179,7 +179,7 @@ describe('system', () => {
       }),
       on: {
         toggle: {
-          actions: stop(({ context }) => context.ref)
+          actions: stopChild(({ context }) => context.ref)
         }
       }
     });
@@ -252,10 +252,10 @@ describe('system', () => {
       }),
       on: {
         stop: {
-          actions: stop(({ context }) => context.ref)
+          actions: stopChild(({ context }) => context.ref)
         },
         start: {
-          actions: spawn(
+          actions: spawnChild(
             fromPromise(() => Promise.resolve()),
             {
               systemId: 'test'
@@ -281,7 +281,7 @@ describe('system', () => {
         systemId: 'test'
       },
       entry: ({ system }) => {
-        expect(system!.get('test')).toBeDefined();
+        expect(system.get('test')).toBeDefined();
       }
     });
 
@@ -300,7 +300,7 @@ describe('system', () => {
       {
         actions: {
           myAction: ({ system }) => {
-            expect(system!.get('test')).toBeDefined();
+            expect(system.get('test')).toBeDefined();
           }
         }
       }
@@ -319,7 +319,7 @@ describe('system', () => {
       states: {
         a: {
           entry: assign(({ system }) => {
-            expect(system!.get('test')).toBeDefined();
+            expect(system.get('test')).toBeDefined();
           })
         }
       }
@@ -339,8 +339,8 @@ describe('system', () => {
         a: {
           entry: sendTo(
             ({ system }) => {
-              expect(system!.get('test')).toBeDefined();
-              return system!.get('test');
+              expect(system.get('test')).toBeDefined();
+              return system.get('test');
             },
             { type: 'FOO' }
           )

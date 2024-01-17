@@ -88,8 +88,8 @@ export type ParsedReceiverEvent =
   | { type: 'service.event'; event: string; sessionId: string };
 
 export type InspectReceiver = ActorRef<
-  ReceiverCommand,
-  Snapshot<unknown> // TODO: this was types as `ParsedReceiverEvent` but since this is supposed to be the snapshot it doesn't look right
+  Snapshot<unknown>, // TODO: this was types as `ParsedReceiverEvent` but since this is supposed to be the snapshot it doesn't look right
+  ReceiverCommand
 >;
 
 export interface WindowReceiverOptions {

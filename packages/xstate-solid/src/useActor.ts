@@ -16,12 +16,12 @@ export function useActor<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 >(
-  actorRef: Accessor<ActorRef<TEvent, TSnapshot>> | ActorRef<TEvent, TSnapshot>
+  actorRef: Accessor<ActorRef<TSnapshot, TEvent>> | ActorRef<TSnapshot, TEvent>
 ): [Accessor<TSnapshot>, Sender<TEvent>];
 export function useActor(
   actorRef:
-    | Accessor<ActorRef<EventObject, Snapshot<unknown>>>
-    | ActorRef<EventObject, Snapshot<unknown>>
+    | Accessor<ActorRef<Snapshot<unknown>, EventObject>>
+    | ActorRef<Snapshot<unknown>, EventObject>
 ): [Accessor<unknown>, Sender<EventObject>] {
   const actorMemo = createMemo(() =>
     typeof actorRef === 'function' ? actorRef() : actorRef

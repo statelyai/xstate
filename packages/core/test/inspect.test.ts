@@ -319,7 +319,7 @@ describe('inspect', () => {
         {
           "event": {
             "data": 42,
-            "type": "$$xstate.resolve",
+            "type": "xstate.promise.resolve",
           },
           "sourceId": "x:3",
           "targetId": "x:3",
@@ -328,7 +328,7 @@ describe('inspect', () => {
         {
           "event": {
             "output": 42,
-            "type": "xstate.done.actor.(machine).loading[0]",
+            "type": "xstate.done.actor.0.(machine).loading",
           },
           "sourceId": "x:3",
           "targetId": "x:2",
@@ -378,7 +378,7 @@ describe('inspect', () => {
           "actorId": "x:2",
           "event": {
             "output": 42,
-            "type": "xstate.done.actor.(machine).loading[0]",
+            "type": "xstate.done.actor.0.(machine).loading",
           },
           "snapshot": {
             "value": "loaded",
@@ -390,7 +390,7 @@ describe('inspect', () => {
           "actorId": "x:3",
           "event": {
             "data": 42,
-            "type": "$$xstate.resolve",
+            "type": "xstate.promise.resolve",
           },
           "snapshot": {
             "error": undefined,

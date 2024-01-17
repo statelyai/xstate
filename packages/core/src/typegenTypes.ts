@@ -1,11 +1,8 @@
 import {
-  Compute,
   EventObject,
   IndexByType,
   IsNever,
   Prop,
-  Values,
-  IsAny,
   ParameterizedObject,
   ProvidedActor,
   OutputFrom,
@@ -13,12 +10,23 @@ import {
   IndexByProp
 } from './types.ts';
 
+/**
+ * @deprecated
+ */
 export interface TypegenDisabled {
   '@@xstate/typegen': false;
 }
+
+/**
+ * @deprecated
+ */
 export interface TypegenEnabled {
   '@@xstate/typegen': true;
 }
+
+/**
+ * @deprecated
+ */
 export interface TypegenMeta extends TypegenEnabled {
   /**
    * Allows you to specify all the results of state.matches
@@ -92,6 +100,9 @@ export interface TypegenMeta extends TypegenEnabled {
   eventsCausingActors: Record<string, string>;
 }
 
+/**
+ * @deprecated
+ */
 export interface ResolvedTypegenMeta extends TypegenMeta {
   resolved: TypegenMeta & {
     indexedActors: Record<string, ProvidedActor>;
@@ -102,42 +113,30 @@ export interface ResolvedTypegenMeta extends TypegenMeta {
   };
 }
 
+/**
+ * @deprecated
+ */
 export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
 
-// if combined union of all missing implementation types is never then everything has been provided
+/**
+ * @deprecated Always resolves to `true`
+ */
 export type AreAllImplementationsAssumedToBeProvided<
-  TResolvedTypesMeta,
-  TMissingImplementations = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'missingImplementations'
-  >
-> = IsAny<TResolvedTypesMeta> extends true
-  ? true
-  : TResolvedTypesMeta extends TypegenEnabled
-  ? IsNever<
-      Values<{
-        [K in keyof TMissingImplementations]: TMissingImplementations[K];
-      }>
-    > extends true
-    ? true
-    : false
-  : true;
+  _TResolvedTypesMeta,
+  _TMissingImplementations = never
+> = true;
 
+/**
+ * @deprecated Always resolves to `never`
+ */
 export type MissingImplementationsError<
-  TResolvedTypesMeta,
-  TMissingImplementations = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'missingImplementations'
-  >
-> = Compute<
-  [
-    'Some implementations missing',
-    Values<{
-      [K in keyof TMissingImplementations]: TMissingImplementations[K];
-    }>
-  ]
->;
+  _TResolvedTypesMeta,
+  _TMissingImplementations = never
+> = never;
 
+/**
+ * @deprecated
+ */
 interface AllImplementationsProvided {
   missingImplementations: {
     actions: never;
@@ -145,11 +144,6 @@ interface AllImplementationsProvided {
     delays: never;
     guards: never;
   };
-}
-
-export interface MarkAllImplementationsAsProvided<TResolvedTypesMeta> {
-  '@@xstate/typegen': Prop<TResolvedTypesMeta, '@@xstate/typegen'>;
-  resolved: Prop<TResolvedTypesMeta, 'resolved'> & AllImplementationsProvided;
 }
 
 type GenerateActorEvents<
@@ -160,21 +154,21 @@ type GenerateActorEvents<
     // using never here allows typegen to inject internal events with "hints" that the actor type is missing
     never
   : // distribute over union
-  TActor extends any
-  ? {
-      type: // 1. if the actor has an id, use that
-      TActor['id'] extends string
-        ? `xstate.done.actor.${TActor['id']}`
-        : // 2. if the ids were inferred by typegen then use those
-        // this doesn't contain *all* possible event types since we can't track spawned actors today
-        // however, those xstate.done.actor events shouldn't exactly be usable by/surface to the user anyway
-        TActor['src'] extends keyof TInvokeSrcNameMap
-        ? `xstate.done.actor.${TInvokeSrcNameMap[TActor['src']] & string}`
-        : // 3. finally use the fallback type
-          `xstate.done.actor.${string}`;
-      output: OutputFrom<TActor['logic']>;
-    }
-  : never;
+    TActor extends any
+    ? {
+        type: // 1. if the actor has an id, use that
+        TActor['id'] extends string
+          ? `xstate.done.actor.${TActor['id']}`
+          : // 2. if the ids were inferred by typegen then use those
+            // this doesn't contain *all* possible event types since we can't track spawned actors today
+            // however, those xstate.done.actor events shouldn't exactly be usable by/surface to the user anyway
+            TActor['src'] extends keyof TInvokeSrcNameMap
+            ? `xstate.done.actor.${TInvokeSrcNameMap[TActor['src']] & string}`
+            : // 3. finally use the fallback type
+              `xstate.done.actor.${string}`;
+        output: OutputFrom<TActor['logic']>;
+      }
+    : never;
 
 // we don't even have to do that much here, technically, because `T & unknown` is equivalent to `T`
 // however, this doesn't display nicely in IDE tooltips, so let's fix this
@@ -211,6 +205,9 @@ type WrapIntoParameterizedObject<T extends string> = T extends any
   ? { type: T }
   : never;
 
+/**
+ * @deprecated
+ */
 export interface ResolveTypegenMeta<
   TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,
@@ -269,6 +266,6 @@ export interface ResolveTypegenMeta<
   }[IsNever<TTypesMeta> extends true
     ? 'disabled'
     : TTypesMeta['@@xstate/typegen'] extends true
-    ? 'enabled'
-    : 'disabled'];
+      ? 'enabled'
+      : 'disabled'];
 }

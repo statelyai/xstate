@@ -8,7 +8,8 @@ import {
   AnyActorLogic,
   SnapshotFrom,
   EventFromLogic,
-  Snapshot
+  Snapshot,
+  __unsafe_getAllOwnEventDescriptors
 } from 'xstate';
 import type {
   SerializedEvent,
@@ -21,10 +22,6 @@ import type {
   TraversalConfig
 } from './types.ts';
 import { createMockActorScope } from './actorScope.ts';
-
-function flatten<T>(array: Array<T | T[]>): T[] {
-  return ([] as T[]).concat(...array);
-}
 
 /**
  * Returns all state nodes of the given `node`.
@@ -90,19 +87,15 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
     events: (state) => {
       const events =
         typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
-      return flatten(
-        state.getNextEvents().map((type) => {
-          const matchingEvents = events.filter(
-            (ev) => (ev as any).type === type
-          );
-          if (matchingEvents.length) {
-            return matchingEvents;
-          }
-          return [{ type }];
-        })
-      ) as any[];
+      return __unsafe_getAllOwnEventDescriptors(state).flatMap((type) => {
+        const matchingEvents = events.filter((ev) => (ev as any).type === type);
+        if (matchingEvents.length) {
+          return matchingEvents;
+        }
+        return [{ type }];
+      }) as any[];
     },
-    fromState: machine.getInitialState(createMockActorScope()) as ReturnType<
+    fromState: machine.getInitialSnapshot(createMockActorScope()) as ReturnType<
       TMachine['transition']
     >,
     ...otherOptions
@@ -124,8 +117,9 @@ export function toDirectedGraph(
   const stateNode =
     stateMachine instanceof StateMachine ? stateMachine.root : stateMachine; // TODO: accept only machines
 
-  const edges: DirectedGraphEdge[] = flatten(
-    [...stateNode.transitions.values()].flat().map((t, transitionIndex) => {
+  const edges: DirectedGraphEdge[] = [...stateNode.transitions.values()]
+    .flat()
+    .flatMap((t, transitionIndex) => {
       const targets = t.target ? t.target : [stateNode];
 
       return targets.map((target, targetIndex) => {
@@ -147,8 +141,7 @@ export function toDirectedGraph(
 
         return edge;
       });
-    })
-  );
+    });
 
   const graph = {
     id: stateNode.id,

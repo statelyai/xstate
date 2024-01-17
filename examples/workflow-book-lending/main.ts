@@ -1,11 +1,4 @@
-import {
-  assign,
-  createMachine,
-  forwardTo,
-  fromPromise,
-  interpret,
-  sendParent
-} from 'xstate';
+import { assign, createMachine, fromPromise, createActor } from 'xstate';
 
 async function delay(ms: number, errorProbability: number = 0): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -19,6 +12,12 @@ async function delay(ms: number, errorProbability: number = 0): Promise<void> {
   });
 }
 
+interface Lender {
+  name: string;
+  address: string;
+  phone: string;
+}
+
 // https://github.com/serverlessworkflow/specification/blob/main/examples/README.md#book-lending
 export const workflow = createMachine(
   {
@@ -29,6 +28,7 @@ export const workflow = createMachine(
           id: string;
           status: 'onloan' | 'available' | 'unknown';
         } | null;
+        lender: Lender | null;
       };
       events:
         | {
@@ -37,11 +37,7 @@ export const workflow = createMachine(
               title: string;
               id: string;
             };
-            lender: {
-              name: string;
-              address: string;
-              phone: string;
-            };
+            lender: Lender;
           }
         | {
             type: 'holdBook';
@@ -52,7 +48,8 @@ export const workflow = createMachine(
     },
     initial: 'Book Lending Request',
     context: {
-      book: null
+      book: null,
+      lender: null
     },
     states: {
       'Book Lending Request': {
@@ -104,8 +101,8 @@ export const workflow = createMachine(
         invoke: {
           src: 'Send status to lender',
           input: ({ context }) => ({
-            bookid: context.book.id,
-            message: `Book ${context.book.title} is already on loan`
+            bookid: context.book!.id,
+            message: `Book ${context.book!.title} is already on loan`
           }),
           onDone: {
             target: 'Wait for Lender response'
@@ -126,7 +123,7 @@ export const workflow = createMachine(
         invoke: {
           src: 'Request hold for lender',
           input: ({ context }) => ({
-            bookid: context.book.id,
+            bookid: context.book!.id,
             lender: context.lender
           }),
           onDone: {
@@ -138,7 +135,7 @@ export const workflow = createMachine(
         invoke: {
           src: 'Cancel hold request for lender',
           input: ({ context }) => ({
-            bookid: context.book.id,
+            bookid: context.book!.id,
             lender: context.lender
           }),
           onDone: {
@@ -160,7 +157,7 @@ export const workflow = createMachine(
             invoke: {
               src: 'Check out book with id',
               input: ({ context }) => ({
-                bookid: context.book.id
+                bookid: context.book!.id
               }),
               onDone: {
                 target: 'Notifying Lender'
@@ -171,7 +168,7 @@ export const workflow = createMachine(
             invoke: {
               src: 'Notify Lender for checkout',
               input: ({ context }) => ({
-                bookid: context.book.id,
+                bookid: context.book!.id,
                 lender: context.lender
               }),
               onDone: {
@@ -203,27 +200,62 @@ export const workflow = createMachine(
         console.log('Starting Send status to lender', input);
         await delay(1000);
       }),
-      'Request hold for lender': fromPromise(async ({ input }) => {
-        console.log('Starting Request hold for lender', input);
-        await delay(1000);
-      }),
-      'Cancel hold request for lender': fromPromise(async ({ input }) => {
-        console.log('Starting Cancel hold request for lender', input);
-        await delay(1000);
-      }),
-      'Check out book with id': fromPromise(async ({ input }) => {
-        console.log('Starting Check out book with id', input);
-        await delay(1000);
-      }),
-      'Notify Lender for checkout': fromPromise(async ({ input }) => {
-        console.log('Starting Notify Lender for checkout', input);
-        await delay(1000);
-      })
+      'Request hold for lender': fromPromise(
+        async ({
+          input
+        }: {
+          input: {
+            bookid: string;
+            lender: Lender;
+          };
+        }) => {
+          console.log('Starting Request hold for lender', input);
+          await delay(1000);
+        }
+      ),
+      'Cancel hold request for lender': fromPromise(
+        async ({
+          input
+        }: {
+          input: {
+            bookid: string;
+            lender: Lender;
+          };
+        }) => {
+          console.log('Starting Cancel hold request for lender', input);
+          await delay(1000);
+        }
+      ),
+      'Check out book with id': fromPromise(
+        async ({
+          input
+        }: {
+          input: {
+            bookid: string;
+          };
+        }) => {
+          console.log('Starting Check out book with id', input);
+          await delay(1000);
+        }
+      ),
+      'Notify Lender for checkout': fromPromise(
+        async ({
+          input
+        }: {
+          input: {
+            bookid: string;
+            lender: Lender;
+          };
+        }) => {
+          console.log('Starting Notify Lender for checkout', input);
+          await delay(1000);
+        }
+      )
     }
   }
 );
 
-const actor = interpret(workflow);
+const actor = createActor(workflow);
 
 actor.subscribe({
   next(snapshot) {

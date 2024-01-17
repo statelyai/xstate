@@ -1,0 +1,22 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "xstate": "5.5.0",
+    "@xstate/graph": "2.0.0-beta.5",
+    "@xstate/immer": "0.3.3",
+    "@xstate/inspect": "0.8.0",
+    "@xstate/react": "4.0.2",
+    "@xstate/solid": "0.1.3",
+    "@xstate/svelte": "3.0.2",
+    "@xstate/test": "1.0.0-beta.4",
+    "@xstate/vue": "3.0.3",
+    "@xstate-repo/jest-utils": "0.0.0"
+  },
+  "changesets": [
+    "all-quick-lizards-burn",
+    "graph-angry-seals-sin",
+    "graph-grumpy-planes-protect",
+    "graph-popular-clocks-melt"
+  ]
+}

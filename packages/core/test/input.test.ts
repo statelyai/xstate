@@ -1,5 +1,5 @@
 import { of } from 'rxjs';
-import { assign, createActor, spawn } from '../src';
+import { assign, createActor, spawnChild } from '../src';
 import { createMachine } from '../src/createMachine';
 import {
   fromCallback,
@@ -41,7 +41,7 @@ describe('input', () => {
     createActor(machine, { input: { greeting: 'hello' } }).start();
   });
 
-  it('should throw if input is expected but not provided', () => {
+  it('should error if input is expected but not provided', () => {
     const machine = createMachine({
       types: {} as {
         input: { greeting: string };
@@ -52,21 +52,9 @@ describe('input', () => {
       }
     });
 
-    expect(() => {
-      createActor(machine).start();
-    }).toThrowError(/Cannot read properties of undefined/);
-  });
+    const snapshot = createActor(machine).getSnapshot();
 
-  it('should not throw if input is not expected and not provided', () => {
-    const machine = createMachine({
-      context: () => {
-        return { count: 42 };
-      }
-    });
-
-    expect(() => {
-      createActor(machine).start();
-    }).not.toThrowError();
+    expect(snapshot.status).toBe('error');
   });
 
   it('should be a type error if input is not expected yet provided', () => {
@@ -285,7 +273,7 @@ describe('input', () => {
 
     const machine = createMachine(
       {
-        entry: spawn('child', {
+        entry: spawnChild('child', {
           input: ({ self }: any) => spy(self)
         })
       },

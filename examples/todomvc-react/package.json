@@ -1,23 +1,23 @@
 {
   "name": "todomvc-react",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build"
   },
   "dependencies": {
-    "@xstate/react": "beta",
-    "classnames": "^2.3.2",
+    "@xstate/react": "^4.0.2",
+    "classnames": "^2.5.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "todomvc-app-css": "^2.4.2",
+    "todomvc-app-css": "^2.4.3",
     "todomvc-common": "^1.0.5",
-    "xstate": "beta"
+    "xstate": "^5.4.1"
   },
   "devDependencies": {
-    "@types/react": "^17.0.59",
-    "@types/react-dom": "^17.0.20",
-    "typescript": "^4.9.5",
+    "@types/react": "^17.0.73",
+    "@types/react-dom": "^17.0.25",
+    "typescript": "^5.3.3",
     "vite": "1.0.0-rc.13",
     "vite-plugin-react": "^4.0.1"
   }
