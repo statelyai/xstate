@@ -3,11 +3,13 @@
   import { useMachine } from '@xstate/svelte';
   import { createBrowserInspector } from '@statelyai/inspect';
 
-  const { inspect } = createBrowserInspector();
+  const { inspect } = createBrowserInspector({
+    // Comment out the line below to start the inspector
+    autoStart: false
+  });
 
   const { snapshot, send } = useMachine(feedbackMachine, {
-    // Uncomment the line below to start the inspector
-    // inspect
+    inspect
   });
 </script>
 

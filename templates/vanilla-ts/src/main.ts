@@ -7,7 +7,10 @@ import {
 } from 'xstate';
 import { createBrowserInspector } from '@statelyai/inspect';
 
-const { inspect } = createBrowserInspector();
+const { inspect } = createBrowserInspector({
+  // Comment out the line below to start the inspector
+  autoStart: false
+});
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>
@@ -30,8 +33,7 @@ function getNextTransitions(state: AnyMachineSnapshot) {
 }
 
 const actor = createActor(feedbackMachine, {
-  // Uncomment the line below to start the inspector
-  // inspect
+  inspect
 });
 
 (window as any).feedbackActor = actor;
