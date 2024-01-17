@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@statelyai/inspect": "^0.2.0",
     "@xstate/react": "4.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

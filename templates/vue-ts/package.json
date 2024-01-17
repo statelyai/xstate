@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@statelyai/inspect": "^0.2.0",
     "@xstate/vue": "^3.0.3",
     "vue": "^3.4.7",
     "xstate": "^5.4.1"
