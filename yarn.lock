@@ -1881,10 +1881,10 @@
   dependencies:
     "@sinonjs/commons" "^3.0.0"
 
-"@solid-primitives/immutable@^1.0.5":
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/@solid-primitives/immutable/-/immutable-1.0.5.tgz#b9111f8d6e8469218cfea5b94345983c27890e52"
-  integrity sha512-hgjct4JITpEdSf/ts8hchUei2P0ePfLOVjuAKj0VZl2+Wvlxqwyh3evTwdwk1mdyp2EYPiePPAUM23e7TvBbjw==
+"@solid-primitives/immutable@^1.0.7":
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/@solid-primitives/immutable/-/immutable-1.0.7.tgz#68e8f809285a0339b99e072166d09cca2ebe0ccf"
+  integrity sha512-VDbdtNudx0XcM1CmpzOJTO3EgWKg8GdVnlGTHO0la+ibnv0FqOEdkLz1dy3rfuHExXrOErunWNivVMwTGVTB4w==
   dependencies:
     "@solid-primitives/keyed" "^1.2.1"
     "@solid-primitives/utils" "^6.2.2"
