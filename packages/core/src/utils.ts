@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { isMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
-import { STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
+import { TARGETLESS_KEY } from './constants.ts';
 import type {
   ActorLogic,
   AnyActorRef,
@@ -56,7 +56,7 @@ export function toStatePath(stateId: string | string[]): string[] {
     return stateId;
   }
 
-  return stateId.split(STATE_DELIMITER);
+  return stateId.split(/(?<!\\)\./g);
 }
 
 export function toStateValue(
