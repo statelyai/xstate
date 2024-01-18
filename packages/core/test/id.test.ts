@@ -110,7 +110,7 @@ describe('State node IDs', () => {
     });
   });
 
-  it('should work with IDs that have escaped periods', () => {
+  it('should work with keys that have escaped periods', () => {
     const machine = createMachine({
       initial: 'start',
       states: {
@@ -120,7 +120,7 @@ describe('State node IDs', () => {
             unescaped: 'foo.bar'
           }
         },
-        'foo\\.bar': {},
+        'foo.bar': {},
         foo: {
           initial: 'bar',
           states: {
@@ -135,7 +135,43 @@ describe('State node IDs', () => {
       type: 'escaped'
     });
 
-    expect(escapedState.value).toEqual('foo\\.bar');
+    expect(escapedState.value).toEqual('foo.bar');
+
+    const unescapedState = getNextSnapshot(machine, initialState, {
+      type: 'unescaped'
+    });
+    expect(unescapedState.value).toEqual({ foo: 'bar' });
+  });
+
+  it('should work with IDs that have escaped periods', () => {
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            escaped: '#foo\\.bar',
+            unescaped: '#foo.bar'
+          }
+        },
+        stateWithDot: {
+          id: 'foo.bar'
+        },
+        foo: {
+          id: 'foo',
+          initial: 'bar',
+          states: {
+            bar: {}
+          }
+        }
+      }
+    });
+
+    const initialState = getInitialSnapshot(machine);
+    const escapedState = getNextSnapshot(machine, initialState, {
+      type: 'escaped'
+    });
+
+    expect(escapedState.value).toEqual('stateWithDot');
 
     const unescapedState = getNextSnapshot(machine, initialState, {
       type: 'unescaped'

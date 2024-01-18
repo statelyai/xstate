@@ -402,9 +402,11 @@ export class StateMachine<
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
     const fullPath = toStatePath(stateId);
     const relativePath = fullPath.slice(1);
-    const resolvedStateId = isStateId(fullPath[0])
+    let resolvedStateId = isStateId(fullPath[0])
       ? fullPath[0].slice(STATE_IDENTIFIER.length)
       : fullPath[0];
+    // replace escaped periods ('\.') with periods
+    resolvedStateId = resolvedStateId.replace(/\\\./g, '.');
 
     const stateNode = this.idMap.get(resolvedStateId);
     if (!stateNode) {
