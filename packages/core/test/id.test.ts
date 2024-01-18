@@ -178,4 +178,35 @@ describe('State node IDs', () => {
     });
     expect(unescapedState.value).toEqual({ foo: 'bar' });
   });
+
+  it("should not treat escaped backslash as period's escape", () => {
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            EV: '#some\\\\.thing'
+          }
+        },
+        foo: {
+          id: 'some\\.thing'
+        },
+        bar: {
+          id: 'some\\',
+          initial: 'baz',
+          states: {
+            baz: {},
+            thing: {}
+          }
+        }
+      }
+    });
+
+    const initialState = getInitialSnapshot(machine);
+    const escapedState = getNextSnapshot(machine, initialState, {
+      type: 'EV'
+    });
+
+    expect(escapedState.value).toEqual({ baz: 'thing' });
+  });
 });
