@@ -56,6 +56,8 @@ export function toStatePath(stateId: string | string[]): string[] {
     return stateId;
   }
 
+  // Split on periods, but not if they are escaped
+  // i.e. match a period only if it is not preceded by a backslash.
   return stateId.split(/(?<!\\)\./g);
 }
 
