@@ -581,9 +581,7 @@ export function getStateNode(
       `Unable to retrieve child state '${stateKey}' from '${stateNode.id}'; no child states exist.`
     );
   }
-  // replace escaped period ('\.') with just a period
-  const resolvedStateKey = stateKey.replace(/\\\./g, '.');
-  const result = stateNode.states[resolvedStateKey];
+  const result = stateNode.states[stateKey];
   if (!result) {
     throw new Error(
       `Child state '${resolvedStateKey}' does not exist on '${stateNode.id}'`
