@@ -405,8 +405,6 @@ export class StateMachine<
     let resolvedStateId = isStateId(fullPath[0])
       ? fullPath[0].slice(STATE_IDENTIFIER.length)
       : fullPath[0];
-    // replace escaped periods ('\.') with periods
-    resolvedStateId = resolvedStateId.replace(/\\\./g, '.');
 
     const stateNode = this.idMap.get(resolvedStateId);
     if (!stateNode) {

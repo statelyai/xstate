@@ -207,6 +207,6 @@ describe('State node IDs', () => {
       type: 'EV'
     });
 
-    expect(escapedState.value).toEqual({ baz: 'thing' });
+    expect(escapedState.value).toEqual({ bar: 'thing' });
   });
 });
