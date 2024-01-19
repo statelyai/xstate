@@ -88,6 +88,8 @@ export class StateMachine<
    */
   public version?: string;
 
+  public schema: unknown;
+
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
   /** @internal */
@@ -129,6 +131,7 @@ export class StateMachine<
       guards: implementations?.guards ?? {}
     };
     this.version = this.config.version;
+    this.schema = this.config.schema;
 
     this.transition = this.transition.bind(this);
     this.getInitialSnapshot = this.getInitialSnapshot.bind(this);
