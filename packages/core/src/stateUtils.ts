@@ -581,7 +581,7 @@ export function getStateNode(
   const result = stateNode.states[stateKey];
   if (!result) {
     throw new Error(
-      `Child state '${result}' does not exist on '${stateNode.id}'`
+      `Child state '${stateKey}' does not exist on '${stateNode.id}'`
     );
   }
   return result;
