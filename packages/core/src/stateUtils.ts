@@ -216,24 +216,24 @@ export function getCandidates<TEvent extends EventObject>(
   const candidates =
     stateNode.transitions.get(receivedEventType) ||
     [...stateNode.transitions.keys()]
-      .filter((descriptor) => {
+      .filter((eventDescriptor) => {
         // check if transition is a wildcard transition,
         // which matches any non-transient events
-        if (descriptor === WILDCARD) {
+        if (eventDescriptor === WILDCARD) {
           return true;
         }
 
-        if (!descriptor.endsWith('.*')) {
+        if (!eventDescriptor.endsWith('.*')) {
           return false;
         }
 
-        if (isDevelopment && /.*\*.+/.test(descriptor)) {
+        if (isDevelopment && /.*\*.+/.test(eventDescriptor)) {
           console.warn(
-            `Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "${descriptor}" event.`
+            `Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "${eventDescriptor}" event.`
           );
         }
 
-        const partialEventTokens = descriptor.split('.');
+        const partialEventTokens = eventDescriptor.split('.');
         const eventTokens = receivedEventType.split('.');
 
         for (
@@ -249,7 +249,7 @@ export function getCandidates<TEvent extends EventObject>(
 
             if (isDevelopment && !isLastToken) {
               console.warn(
-                `Infix wildcards in transition events are not allowed. Check the "${descriptor}" transition.`
+                `Infix wildcards in transition events are not allowed. Check the "${eventDescriptor}" transition.`
               );
             }
 

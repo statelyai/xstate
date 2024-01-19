@@ -1,6 +1,5 @@
 import isDevelopment from '#is-development';
 import { assign } from './actions.ts';
-import { STATE_DELIMITER } from './constants.ts';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import { createInitEvent } from './eventUtils.ts';
 import {
@@ -49,7 +48,7 @@ import type {
   TODO,
   TransitionDefinition
 } from './types.ts';
-import { resolveReferencedActor } from './utils.ts';
+import { resolveReferencedActor, toStatePath } from './utils.ts';
 
 export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
@@ -401,7 +400,7 @@ export class StateMachine<
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
-    const fullPath = stateId.split(STATE_DELIMITER);
+    const fullPath = toStatePath(stateId);
     const relativePath = fullPath.slice(1);
     const resolvedStateId = isStateId(fullPath[0])
       ? fullPath[0].slice(STATE_IDENTIFIER.length)
