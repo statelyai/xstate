@@ -233,9 +233,6 @@ export function getCandidates<TEvent extends EventObject>(
           );
         }
 
-        // split the event descriptor from unescaped periods
-        // e.g. 'foo.bar' is ['foo','bar']
-        // e.g. 'foo\.bar' is ['foo\.bar']
         const partialEventTokens = eventDescriptor.split('.');
         const eventTokens = receivedEventType.split('.');
 
