@@ -1613,7 +1613,7 @@ export function macrostep(
     event: any,
     transitions: any[]
   ) {
-    actorScope.system._sendInspectionEvent({
+    actorScope.system._sendInspectionEvent?.({
       type: '@xstate.microstep',
       actorRef: actorScope.self,
       event,

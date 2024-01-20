@@ -66,7 +66,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   /**
    * @internal
    */
-  _sendInspectionEvent: (
+  _sendInspectionEvent?: (
     event: HomomorphicOmit<InspectionEvent, 'rootId'>
   ) => void;
   /**
@@ -103,7 +103,7 @@ export function createSystem<T extends ActorSystemInfo>(
   const children = new Map<string, AnyActorRef>();
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
-  const observers = new Set<Observer<InspectionEvent>>();
+  const inspectionObservers = new Set<Observer<InspectionEvent>>();
   const timerMap: { [id: ScheduledEventId]: number } = {};
   const clock = options.clock;
 
@@ -156,6 +156,15 @@ export function createSystem<T extends ActorSystemInfo>(
       }
     }
   };
+  const sendInspectionEvent = (event: InspectionEvent) => {
+    const resolvedInspectionEvent: InspectionEvent = {
+      ...event,
+      rootId: rootActor.sessionId
+    };
+    inspectionObservers.forEach(
+      (observer) => observer.next?.(resolvedInspectionEvent)
+    );
+  };
 
   const system: ActorSystem<T> = {
     _snapshot: {
@@ -191,17 +200,14 @@ export function createSystem<T extends ActorSystemInfo>(
       reverseKeyedActors.set(actorRef, systemId);
     },
     inspect: (observer) => {
-      observers.add(observer);
+      inspectionObservers.add(observer);
+
+      // Only send inspection events if someone is listening
+      system._sendInspectionEvent = sendInspectionEvent as any;
     },
-    _sendInspectionEvent: (event) => {
-      const resolvedInspectionEvent: InspectionEvent = {
-        ...event,
-        rootId: rootActor.sessionId
-      };
-      observers.forEach((observer) => observer.next?.(resolvedInspectionEvent));
-    },
+    _sendInspectionEvent: undefined,
     _relay: (source, target, event) => {
-      system._sendInspectionEvent({
+      system._sendInspectionEvent?.({
         type: '@xstate.event',
         sourceRef: source,
         actorRef: target,
