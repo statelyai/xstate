@@ -6,36 +6,45 @@ import {
   sendTo,
   waitFor,
   InspectionEvent,
-  isMachineSnapshot
+  isMachineSnapshot,
+  assign,
+  ContextFrom,
+  EventObject,
+  AnyTransitionDefinition,
+  raise
 } from '../src';
 
-function simplifyEvent(inspectionEvent: InspectionEvent) {
-  if (inspectionEvent.type === '@xstate.event') {
-    return {
-      type: inspectionEvent.type,
-      sourceId: inspectionEvent.sourceRef?.sessionId,
-      targetId: inspectionEvent.actorRef.sessionId,
-      event: inspectionEvent.event
-    };
-  }
-  if (inspectionEvent.type === '@xstate.actor') {
-    return {
-      type: inspectionEvent.type,
-      actorId: inspectionEvent.actorRef.sessionId
-    };
-  }
+function simplifyEvents(inspectionEvents: InspectionEvent[]) {
+  return inspectionEvents
+    .filter((ev) => ev.type !== '@xstate.microstep')
+    .map((inspectionEvent) => {
+      if (inspectionEvent.type === '@xstate.event') {
+        return {
+          type: inspectionEvent.type,
+          sourceId: inspectionEvent.sourceRef?.sessionId,
+          targetId: inspectionEvent.actorRef.sessionId,
+          event: inspectionEvent.event
+        };
+      }
+      if (inspectionEvent.type === '@xstate.actor') {
+        return {
+          type: inspectionEvent.type,
+          actorId: inspectionEvent.actorRef.sessionId
+        };
+      }
 
-  if (inspectionEvent.type === '@xstate.snapshot') {
-    return {
-      type: inspectionEvent.type,
-      actorId: inspectionEvent.actorRef.sessionId,
-      snapshot: isMachineSnapshot(inspectionEvent.snapshot)
-        ? { value: inspectionEvent.snapshot.value }
-        : inspectionEvent.snapshot,
-      event: inspectionEvent.event,
-      status: inspectionEvent.snapshot.status
-    };
-  }
+      if (inspectionEvent.type === '@xstate.snapshot') {
+        return {
+          type: inspectionEvent.type,
+          actorId: inspectionEvent.actorRef.sessionId,
+          snapshot: isMachineSnapshot(inspectionEvent.snapshot)
+            ? { value: inspectionEvent.snapshot.value }
+            : inspectionEvent.snapshot,
+          event: inspectionEvent.event,
+          status: inspectionEvent.snapshot.status
+        };
+      }
+    });
 }
 
 describe('inspect', () => {
@@ -67,7 +76,7 @@ describe('inspect', () => {
     actor.send({ type: 'NEXT' });
     actor.send({ type: 'NEXT' });
 
-    expect(events.map(simplifyEvent)).toMatchInlineSnapshot(`
+    expect(simplifyEvents(events)).toMatchInlineSnapshot(`
       [
         {
           "actorId": "x:0",
@@ -198,7 +207,7 @@ describe('inspect', () => {
 
     await waitFor(actor, (state) => state.value === 'success');
 
-    expect(events.map(simplifyEvent)).toMatchInlineSnapshot(`
+    expect(simplifyEvents(events)).toMatchInlineSnapshot(`
       [
         {
           "actorId": "x:1",
@@ -400,6 +409,193 @@ describe('inspect', () => {
           },
           "status": "done",
           "type": "@xstate.snapshot",
+        },
+      ]
+    `);
+  });
+
+  it('can inspect microsteps from always events', async () => {
+    const machine = createMachine({
+      context: { count: 0 },
+      initial: 'counting',
+      states: {
+        counting: {
+          always: [
+            { guard: ({ context }) => context.count === 3, target: 'done' },
+            { actions: assign({ count: ({ context }) => context.count + 1 }) }
+          ]
+        },
+        done: {}
+      }
+    });
+
+    const events: Array<{
+      context: ContextFrom<typeof machine>;
+      event: EventObject;
+      transitions: Array<{
+        eventType: string;
+        guard: any;
+        target: string[];
+      }>;
+    }> = [];
+
+    createActor(machine, {
+      inspect: (ev) => {
+        if (ev.type === '@xstate.microstep') {
+          events.push({
+            context: (ev.snapshot as any).context,
+            event: ev.event,
+            transitions: ev.transitions.map((t) => ({
+              eventType: t.eventType,
+              guard: t.guard,
+              target: t.target?.map((target) => target.id) ?? []
+            }))
+          });
+        }
+      }
+    }).start();
+
+    expect(events).toMatchInlineSnapshot(`
+      [
+        {
+          "context": {
+            "count": 1,
+          },
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "transitions": [
+            {
+              "eventType": "",
+              "guard": undefined,
+              "target": [],
+            },
+          ],
+        },
+        {
+          "context": {
+            "count": 2,
+          },
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "transitions": [
+            {
+              "eventType": "",
+              "guard": undefined,
+              "target": [],
+            },
+          ],
+        },
+        {
+          "context": {
+            "count": 3,
+          },
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "transitions": [
+            {
+              "eventType": "",
+              "guard": undefined,
+              "target": [],
+            },
+          ],
+        },
+        {
+          "context": {
+            "count": 3,
+          },
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "transitions": [
+            {
+              "eventType": "",
+              "guard": [Function],
+              "target": [
+                "(machine).done",
+              ],
+            },
+          ],
+        },
+      ]
+    `);
+  });
+
+  it('can inspect microsteps from raised events', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          entry: raise({ type: 'to_b' }),
+          on: { to_b: 'b' }
+        },
+        b: {
+          entry: raise({ type: 'to_c' }),
+          on: { to_c: 'c' }
+        },
+        c: {}
+      }
+    });
+
+    const events: Array<{
+      value: any;
+      event: EventObject;
+      transitions: Array<{
+        eventType: string;
+        target: string[];
+      }>;
+    }> = [];
+
+    createActor(machine, {
+      inspect: (ev) => {
+        if (ev.type === '@xstate.microstep') {
+          events.push({
+            value: (ev.snapshot as any).value,
+            event: ev.event,
+            transitions: ev.transitions.map((t) => ({
+              eventType: t.eventType,
+              target: t.target?.map((target) => target.id) ?? []
+            }))
+          });
+        }
+      }
+    }).start();
+
+    expect(events).toMatchInlineSnapshot(`
+      [
+        {
+          "event": {
+            "type": "to_b",
+          },
+          "transitions": [
+            {
+              "eventType": "to_b",
+              "target": [
+                "(machine).b",
+              ],
+            },
+          ],
+          "value": "b",
+        },
+        {
+          "event": {
+            "type": "to_c",
+          },
+          "transitions": [
+            {
+              "eventType": "to_c",
+              "target": [
+                "(machine).c",
+              ],
+            },
+          ],
+          "value": "c",
         },
       ]
     `);

@@ -1606,7 +1606,22 @@ export function macrostep(
   }
 
   let nextSnapshot = snapshot;
-  const states: AnyMachineSnapshot[] = [];
+  const microstates: AnyMachineSnapshot[] = [];
+
+  function addMicrostate(
+    microstate: AnyMachineSnapshot,
+    event: any,
+    transitions: any[]
+  ) {
+    actorScope.system._sendInspectionEvent({
+      type: '@xstate.microstep',
+      actorRef: actorScope.self,
+      event,
+      snapshot: microstate,
+      transitions
+    });
+    microstates.push(microstate);
+  }
 
   // Handle stop event
   if (event.type === XSTATE_STOP) {
@@ -1616,11 +1631,12 @@ export function macrostep(
         status: 'stopped'
       }
     );
-    states.push(nextSnapshot);
+    // states.push(nextSnapshot);
+    addMicrostate(nextSnapshot, event, []);
 
     return {
       snapshot: nextSnapshot,
-      microstates: states
+      microstates
     };
   }
 
@@ -1642,10 +1658,11 @@ export function macrostep(
         status: 'error',
         error: currentEvent.error
       });
-      states.push(nextSnapshot);
+      addMicrostate(nextSnapshot, currentEvent, []);
+      // states.push(nextSnapshot);
       return {
         snapshot: nextSnapshot,
-        microstates: states
+        microstates
       };
     }
     nextSnapshot = microstep(
@@ -1656,7 +1673,7 @@ export function macrostep(
       false, // isInitial
       internalQueue
     );
-    states.push(nextSnapshot);
+    addMicrostate(nextSnapshot, currentEvent, transitions);
   }
 
   let shouldSelectEventlessTransitions = true;
@@ -1688,7 +1705,7 @@ export function macrostep(
       internalQueue
     );
     shouldSelectEventlessTransitions = nextSnapshot !== previousState;
-    states.push(nextSnapshot);
+    addMicrostate(nextSnapshot, nextEvent, enabledTransitions);
   }
 
   if (nextSnapshot.status !== 'active') {
@@ -1697,7 +1714,7 @@ export function macrostep(
 
   return {
     snapshot: nextSnapshot,
-    microstates: states
+    microstates
   };
 }
 

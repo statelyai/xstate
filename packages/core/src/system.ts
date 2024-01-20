@@ -5,7 +5,8 @@ import {
   Observer,
   Snapshot,
   HomomorphicOmit,
-  EventObject
+  EventObject,
+  AnyTransitionDefinition
 } from './types.ts';
 
 export interface ScheduledEvent {
@@ -245,6 +246,13 @@ export interface InspectedSnapshotEvent extends BaseInspectionEventProperties {
   snapshot: Snapshot<unknown>;
 }
 
+export interface InspectedMicrostepEvent extends BaseInspectionEventProperties {
+  type: '@xstate.microstep';
+  event: AnyEventObject; // { type: string, ... }
+  snapshot: Snapshot<unknown>;
+  transitions: AnyTransitionDefinition[];
+}
+
 export interface InspectedEventEvent extends BaseInspectionEventProperties {
   type: '@xstate.event';
   // The source might not exist, e.g. when:
@@ -261,4 +269,5 @@ export interface InspectedActorEvent extends BaseInspectionEventProperties {
 export type InspectionEvent =
   | InspectedSnapshotEvent
   | InspectedEventEvent
-  | InspectedActorEvent;
+  | InspectedActorEvent
+  | InspectedMicrostepEvent;
