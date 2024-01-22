@@ -14,9 +14,12 @@ import {
   raise
 } from '../src';
 
-function simplifyEvents(inspectionEvents: InspectionEvent[]) {
+function simplifyEvents(
+  inspectionEvents: InspectionEvent[],
+  filter?: (ev: InspectionEvent) => boolean
+) {
   return inspectionEvents
-    .filter((ev) => ev.type !== '@xstate.microstep')
+    .filter(filter ?? (() => true))
     .map((inspectionEvent) => {
       if (inspectionEvent.type === '@xstate.event') {
         return {
@@ -76,7 +79,8 @@ describe('inspect', () => {
     actor.send({ type: 'NEXT' });
     actor.send({ type: 'NEXT' });
 
-    expect(simplifyEvents(events)).toMatchInlineSnapshot(`
+    expect(simplifyEvents(events, (ev) => ev.type !== '@xstate.microstep'))
+      .toMatchInlineSnapshot(`
       [
         {
           "actorId": "x:0",
@@ -207,7 +211,8 @@ describe('inspect', () => {
 
     await waitFor(actor, (state) => state.value === 'success');
 
-    expect(simplifyEvents(events)).toMatchInlineSnapshot(`
+    expect(simplifyEvents(events, (ev) => ev.type !== '@xstate.microstep'))
+      .toMatchInlineSnapshot(`
       [
         {
           "actorId": "x:1",
@@ -596,6 +601,138 @@ describe('inspect', () => {
             },
           ],
           "value": "c",
+        },
+      ]
+    `);
+  });
+
+  it('test 1', () => {
+    const events: any[] = [];
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: { on: { EV: 'b' } },
+        b: {}
+      }
+    });
+    const actorRef = createActor(machine, {
+      inspect: (ev) => events.push(ev)
+    }).start();
+    actorRef.send({ type: 'EV' });
+
+    expect(simplifyEvents(events)).toMatchInlineSnapshot(`
+      [
+        {
+          "actorId": "x:6",
+          "type": "@xstate.actor",
+        },
+        {
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "sourceId": undefined,
+          "targetId": "x:6",
+          "type": "@xstate.event",
+        },
+        {
+          "actorId": "x:6",
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "snapshot": {
+            "value": "a",
+          },
+          "status": "active",
+          "type": "@xstate.snapshot",
+        },
+        {
+          "event": {
+            "type": "EV",
+          },
+          "sourceId": undefined,
+          "targetId": "x:6",
+          "type": "@xstate.event",
+        },
+        undefined,
+        {
+          "actorId": "x:6",
+          "event": {
+            "type": "EV",
+          },
+          "snapshot": {
+            "value": "b",
+          },
+          "status": "active",
+          "type": "@xstate.snapshot",
+        },
+      ]
+    `);
+  });
+
+  it('test 2', () => {
+    const events: any[] = [];
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: { on: { EV: 'b' } },
+        b: { always: 'c' },
+        c: {}
+      }
+    });
+    const actorRef = createActor(machine, {
+      inspect: (ev) => events.push(ev)
+    }).start();
+    actorRef.send({ type: 'EV' });
+
+    expect(simplifyEvents(events)).toMatchInlineSnapshot(`
+      [
+        {
+          "actorId": "x:7",
+          "type": "@xstate.actor",
+        },
+        {
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "sourceId": undefined,
+          "targetId": "x:7",
+          "type": "@xstate.event",
+        },
+        {
+          "actorId": "x:7",
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "snapshot": {
+            "value": "a",
+          },
+          "status": "active",
+          "type": "@xstate.snapshot",
+        },
+        {
+          "event": {
+            "type": "EV",
+          },
+          "sourceId": undefined,
+          "targetId": "x:7",
+          "type": "@xstate.event",
+        },
+        undefined,
+        undefined,
+        {
+          "actorId": "x:7",
+          "event": {
+            "type": "EV",
+          },
+          "snapshot": {
+            "value": "c",
+          },
+          "status": "active",
+          "type": "@xstate.snapshot",
         },
       ]
     `);
