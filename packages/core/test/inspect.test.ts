@@ -47,6 +47,18 @@ function simplifyEvents(
           status: inspectionEvent.snapshot.status
         };
       }
+
+      if (inspectionEvent.type === '@xstate.microstep') {
+        return {
+          type: inspectionEvent.type,
+          value: (inspectionEvent.snapshot as any).value,
+          event: inspectionEvent.event,
+          transitions: inspectionEvent.transitions.map((t) => ({
+            eventType: t.eventType,
+            target: t.target?.map((target) => target.id) ?? []
+          }))
+        };
+      }
     });
 }
 
@@ -434,99 +446,208 @@ describe('inspect', () => {
       }
     });
 
-    const events: Array<{
-      context: ContextFrom<typeof machine>;
-      event: EventObject;
-      transitions: Array<{
-        eventType: string;
-        guard: any;
-        target: string[];
-      }>;
-    }> = [];
+    const events: InspectionEvent[] = [];
 
     createActor(machine, {
       inspect: (ev) => {
-        if (ev.type === '@xstate.microstep') {
-          events.push({
-            context: (ev.snapshot as any).context,
-            event: ev.event,
-            transitions: ev.transitions.map((t) => ({
-              eventType: t.eventType,
-              guard: t.guard,
-              target: t.target?.map((target) => target.id) ?? []
-            }))
-          });
-        }
+        events.push(ev);
       }
     }).start();
 
     expect(events).toMatchInlineSnapshot(`
       [
         {
-          "context": {
-            "count": 1,
+          "actorRef": {
+            "id": "x:4",
+            "xstate$$type": 1,
           },
-          "event": {
-            "input": undefined,
-            "type": "xstate.init",
-          },
-          "transitions": [
-            {
-              "eventType": "",
-              "guard": undefined,
-              "target": [],
-            },
-          ],
+          "rootId": "x:4",
+          "type": "@xstate.actor",
         },
         {
-          "context": {
-            "count": 2,
+          "actorRef": {
+            "id": "x:4",
+            "xstate$$type": 1,
           },
           "event": {
             "input": undefined,
             "type": "xstate.init",
           },
+          "rootId": "x:4",
+          "snapshot": {
+            "children": {},
+            "context": {
+              "count": 1,
+            },
+            "error": undefined,
+            "historyValue": {},
+            "output": undefined,
+            "status": "active",
+            "tags": [],
+            "value": "counting",
+          },
           "transitions": [
             {
+              "actions": [
+                [Function],
+              ],
               "eventType": "",
               "guard": undefined,
-              "target": [],
+              "reenter": false,
+              "source": "#(machine).counting",
+              "target": undefined,
+              "toJSON": [Function],
             },
           ],
+          "type": "@xstate.microstep",
         },
         {
-          "context": {
-            "count": 3,
+          "actorRef": {
+            "id": "x:4",
+            "xstate$$type": 1,
           },
           "event": {
             "input": undefined,
             "type": "xstate.init",
           },
+          "rootId": "x:4",
+          "snapshot": {
+            "children": {},
+            "context": {
+              "count": 2,
+            },
+            "error": undefined,
+            "historyValue": {},
+            "output": undefined,
+            "status": "active",
+            "tags": [],
+            "value": "counting",
+          },
           "transitions": [
             {
+              "actions": [
+                [Function],
+              ],
               "eventType": "",
               "guard": undefined,
-              "target": [],
+              "reenter": false,
+              "source": "#(machine).counting",
+              "target": undefined,
+              "toJSON": [Function],
             },
           ],
+          "type": "@xstate.microstep",
         },
         {
-          "context": {
-            "count": 3,
+          "actorRef": {
+            "id": "x:4",
+            "xstate$$type": 1,
           },
           "event": {
             "input": undefined,
             "type": "xstate.init",
           },
+          "rootId": "x:4",
+          "snapshot": {
+            "children": {},
+            "context": {
+              "count": 3,
+            },
+            "error": undefined,
+            "historyValue": {},
+            "output": undefined,
+            "status": "active",
+            "tags": [],
+            "value": "counting",
+          },
           "transitions": [
             {
+              "actions": [
+                [Function],
+              ],
+              "eventType": "",
+              "guard": undefined,
+              "reenter": false,
+              "source": "#(machine).counting",
+              "target": undefined,
+              "toJSON": [Function],
+            },
+          ],
+          "type": "@xstate.microstep",
+        },
+        {
+          "actorRef": {
+            "id": "x:4",
+            "xstate$$type": 1,
+          },
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "rootId": "x:4",
+          "snapshot": {
+            "children": {},
+            "context": {
+              "count": 3,
+            },
+            "error": undefined,
+            "historyValue": {},
+            "output": undefined,
+            "status": "active",
+            "tags": [],
+            "value": "done",
+          },
+          "transitions": [
+            {
+              "actions": [],
               "eventType": "",
               "guard": [Function],
+              "reenter": false,
+              "source": "#(machine).counting",
               "target": [
-                "(machine).done",
+                "#(machine).done",
               ],
+              "toJSON": [Function],
             },
           ],
+          "type": "@xstate.microstep",
+        },
+        {
+          "actorRef": {
+            "id": "x:4",
+            "xstate$$type": 1,
+          },
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "rootId": "x:4",
+          "sourceRef": undefined,
+          "type": "@xstate.event",
+        },
+        {
+          "actorRef": {
+            "id": "x:4",
+            "xstate$$type": 1,
+          },
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "rootId": "x:4",
+          "snapshot": {
+            "children": {},
+            "context": {
+              "count": 3,
+            },
+            "error": undefined,
+            "historyValue": {},
+            "output": undefined,
+            "status": "active",
+            "tags": [],
+            "value": "done",
+          },
+          "type": "@xstate.snapshot",
         },
       ]
     `);
@@ -548,32 +669,20 @@ describe('inspect', () => {
       }
     });
 
-    const events: Array<{
-      value: any;
-      event: EventObject;
-      transitions: Array<{
-        eventType: string;
-        target: string[];
-      }>;
-    }> = [];
+    const events: InspectionEvent[] = [];
 
     createActor(machine, {
       inspect: (ev) => {
-        if (ev.type === '@xstate.microstep') {
-          events.push({
-            value: (ev.snapshot as any).value,
-            event: ev.event,
-            transitions: ev.transitions.map((t) => ({
-              eventType: t.eventType,
-              target: t.target?.map((target) => target.id) ?? []
-            }))
-          });
-        }
+        events.push(ev);
       }
     }).start();
 
-    expect(events).toMatchInlineSnapshot(`
+    expect(simplifyEvents(events)).toMatchInlineSnapshot(`
       [
+        {
+          "actorId": "x:5",
+          "type": "@xstate.actor",
+        },
         {
           "event": {
             "type": "to_b",
@@ -586,6 +695,7 @@ describe('inspect', () => {
               ],
             },
           ],
+          "type": "@xstate.microstep",
           "value": "b",
         },
         {
@@ -600,7 +710,29 @@ describe('inspect', () => {
               ],
             },
           ],
+          "type": "@xstate.microstep",
           "value": "c",
+        },
+        {
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "sourceId": undefined,
+          "targetId": "x:5",
+          "type": "@xstate.event",
+        },
+        {
+          "actorId": "x:5",
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "snapshot": {
+            "value": "c",
+          },
+          "status": "active",
+          "type": "@xstate.snapshot",
         },
       ]
     `);
@@ -655,7 +787,21 @@ describe('inspect', () => {
           "targetId": "x:6",
           "type": "@xstate.event",
         },
-        undefined,
+        {
+          "event": {
+            "type": "EV",
+          },
+          "transitions": [
+            {
+              "eventType": "EV",
+              "target": [
+                "(machine).b",
+              ],
+            },
+          ],
+          "type": "@xstate.microstep",
+          "value": "b",
+        },
         {
           "actorId": "x:6",
           "event": {
@@ -721,8 +867,36 @@ describe('inspect', () => {
           "targetId": "x:7",
           "type": "@xstate.event",
         },
-        undefined,
-        undefined,
+        {
+          "event": {
+            "type": "EV",
+          },
+          "transitions": [
+            {
+              "eventType": "EV",
+              "target": [
+                "(machine).b",
+              ],
+            },
+          ],
+          "type": "@xstate.microstep",
+          "value": "b",
+        },
+        {
+          "event": {
+            "type": "EV",
+          },
+          "transitions": [
+            {
+              "eventType": "",
+              "target": [
+                "(machine).c",
+              ],
+            },
+          ],
+          "type": "@xstate.microstep",
+          "value": "c",
+        },
         {
           "actorId": "x:7",
           "event": {
