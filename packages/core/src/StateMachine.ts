@@ -280,8 +280,7 @@ export class StateMachine<
   ): Array<
     MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>
   > {
-    return macrostep(snapshot, event, actorScope)
-      .microstates as (typeof snapshot)[];
+    return macrostep(snapshot, event, actorScope).microstates;
   }
 
   public getTransitionData(

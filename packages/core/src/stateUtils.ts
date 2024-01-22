@@ -1610,8 +1610,8 @@ export function macrostep(
 
   function addMicrostate(
     microstate: AnyMachineSnapshot,
-    event: any,
-    transitions: any[]
+    event: AnyEventObject,
+    transitions: AnyTransitionDefinition[]
   ) {
     actorScope.system._sendInspectionEvent?.({
       type: '@xstate.microstep',
