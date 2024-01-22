@@ -1658,7 +1658,6 @@ export function macrostep(
         error: currentEvent.error
       });
       addMicrostate(nextSnapshot, currentEvent, []);
-      // states.push(nextSnapshot);
       return {
         snapshot: nextSnapshot,
         microstates
