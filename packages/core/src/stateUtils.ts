@@ -1631,7 +1631,6 @@ export function macrostep(
         status: 'stopped'
       }
     );
-    // states.push(nextSnapshot);
     addMicrostate(nextSnapshot, event, []);
 
     return {
@@ -1659,7 +1658,6 @@ export function macrostep(
         error: currentEvent.error
       });
       addMicrostate(nextSnapshot, currentEvent, []);
-      // states.push(nextSnapshot);
       return {
         snapshot: nextSnapshot,
         microstates
