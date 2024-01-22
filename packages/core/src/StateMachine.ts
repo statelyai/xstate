@@ -256,8 +256,7 @@ export class StateMachine<
     event: TEvent,
     actorScope: ActorScope<typeof snapshot, TEvent>
   ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
-    const macrostepResult = macrostep(snapshot, event, actorScope);
-    return macrostepResult.snapshot as typeof snapshot;
+    return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
   }
 
   /**
