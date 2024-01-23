@@ -511,7 +511,7 @@ describe('createActorContext', () => {
     render(<App />);
 
     expect(events.length).toBeGreaterThan(0);
-    expect(events).toContain(
+    expect(events).toContainEqual(
       expect.objectContaining({
         snapshot: expect.objectContaining({
           context: { count: 10 }
