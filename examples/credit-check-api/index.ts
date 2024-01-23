@@ -56,7 +56,7 @@ app.post("/workflows/:workflowId", async (req, res) => {
   }
 
   res
-    .status(201)
+    .status(200)
     .send(
       "Event received. Issue a GET request to see the current workflow state"
     );

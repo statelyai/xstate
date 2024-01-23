@@ -11,6 +11,8 @@ export const collections: {
 // Initialize DB Connection and Credit Check Actor
 export async function initDbConnection() {
   try {
+    //example uri
+    //const uri = "mongodb://localhost:27017/creditCheck";
     const uri = "<your mongo uri here>/creditCheck";
     const client = new mongoDB.MongoClient(uri, {
       serverApi: mongoDB.ServerApiVersion.v1,
