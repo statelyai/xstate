@@ -30,7 +30,7 @@ export function createActorContext<TLogic extends AnyActorLogic>(
     children,
     logic: providedLogic = actorLogic,
     machine,
-    options: providedOptions = actorOptions
+    options: providedOptions
   }: {
     children: React.ReactNode;
     logic: TLogic;
