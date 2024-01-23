@@ -1363,18 +1363,6 @@ export type MachineConfig<
    * The machine's own version.
    */
   version?: string;
-  types?: MachineTypes<
-    TContext,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TInput,
-    TOutput,
-    TTypesMeta
-  >;
   // TODO: make it conditionally required
   output?: Mapper<TContext, DoneStateEvent, TOutput, TEvent> | TOutput;
 }) &

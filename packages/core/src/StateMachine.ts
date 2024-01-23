@@ -88,7 +88,7 @@ export class StateMachine<
    */
   public version?: string;
 
-  public schema: unknown;
+  public schemas: unknown;
 
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
@@ -120,7 +120,9 @@ export class StateMachine<
       any,
       TOutput,
       any
-    >,
+    > & {
+      schemas?: unknown;
+    },
     implementations?: MachineImplementationsSimplified<TContext, TEvent>
   ) {
     this.id = config.id || '(machine)';
@@ -131,7 +133,7 @@ export class StateMachine<
       guards: implementations?.guards ?? {}
     };
     this.version = this.config.version;
-    this.schema = this.config.schema;
+    this.schemas = this.config.schemas;
 
     this.transition = this.transition.bind(this);
     this.getInitialSnapshot = this.getInitialSnapshot.bind(this);
