@@ -2,4 +2,4 @@
 'xstate': patch
 ---
 
-Add `AnyMachineConfig` type
+Add `UnknownMachineConfig` type
