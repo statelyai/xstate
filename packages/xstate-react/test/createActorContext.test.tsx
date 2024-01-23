@@ -1,4 +1,10 @@
-import { createMachine, assign, fromPromise, Snapshot } from 'xstate';
+import {
+  createMachine,
+  assign,
+  fromPromise,
+  Snapshot,
+  InspectionEvent
+} from 'xstate';
 import { fireEvent, screen, render, waitFor } from '@testing-library/react';
 import { useSelector, createActorContext, shallowEqual } from '../src';
 
@@ -472,7 +478,7 @@ describe('createActorContext', () => {
   });
 
   it('should merge createActorContext options with options passed to the provider', () => {
-    const events = [];
+    const events: InspectionEvent[] = [];
     const SomeContext = createActorContext(
       createMachine({
         types: {
@@ -505,5 +511,12 @@ describe('createActorContext', () => {
     render(<App />);
 
     expect(events.length).toBeGreaterThan(0);
+    expect(events).toContain(
+      expect.objectContaining({
+        snapshot: expect.objectContaining({
+          context: { count: 10 }
+        })
+      })
+    );
   });
 });
