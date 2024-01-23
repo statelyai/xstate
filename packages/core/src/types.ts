@@ -1382,7 +1382,7 @@ export type MachineConfig<
     ? { context?: InitialContext<LowInfer<TContext>, TActor, TInput, TEvent> }
     : { context: InitialContext<LowInfer<TContext>, TActor, TInput, TEvent> });
 
-export type AnyMachineConfig = MachineConfig<MachineContext, EventObject>;
+export type UnknownMachineConfig = MachineConfig<MachineContext, EventObject>;
 
 export interface ProvidedActor {
   src: string;
