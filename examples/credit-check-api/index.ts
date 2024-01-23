@@ -1,4 +1,3 @@
-import { Snapshot, createActor } from "xstate";
 import bodyParser from "body-parser";
 import {
   collections,
@@ -7,7 +6,6 @@ import {
 } from "./services/actorService";
 import express from "express";
 import { creditCheckMachine } from "./machine";
-import { get } from "http";
 
 const app = express();
 

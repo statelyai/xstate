@@ -1,6 +1,5 @@
 import * as mongoDB from "mongodb";
 import { AnyStateMachine, createActor } from "xstate";
-import { creditCheckMachine } from "../machine";
 
 // mongoDB collections
 export const collections: {
