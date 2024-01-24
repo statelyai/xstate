@@ -103,58 +103,18 @@ type ToStateValue<T extends StateSchema> = T extends {
             : never)
   : {};
 
-export function setup<
+interface SetupReturn<
   TContext extends MachineContext,
-  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TEvent extends AnyEventObject,
+  TChildrenMap extends Record<string, string>, // TODO: consider using a stricter `EventObject` here
   TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>,
   TActions extends Record<string, ParameterizedObject['params'] | undefined>,
   TGuards extends Record<string, ParameterizedObject['params'] | undefined>,
   TDelay extends string,
   TTag extends string,
   TInput,
-  TOutput extends NonReducibleUnknown,
-  TChildrenMap extends Record<string, string> = never
->({
-  schemas,
-  actors,
-  actions,
-  guards,
-  delays
-}: {
-  schemas?: unknown;
-  types?: SetupTypes<TContext, TEvent, TChildrenMap, TTag, TInput, TOutput>;
-  actors?: {
-    [K in keyof TActors]: TActors[K];
-  };
-  actions?: {
-    [K in keyof TActions]: ActionFunction<
-      TContext,
-      TEvent,
-      TEvent,
-      TActions[K],
-      ToProvidedActor<TChildrenMap, TActors>,
-      ToParameterizedObject<TActions>,
-      ToParameterizedObject<TGuards>,
-      TDelay
-    >;
-  };
-  guards?: {
-    [K in keyof TGuards]: GuardPredicate<
-      TContext,
-      TEvent,
-      TGuards[K],
-      ToParameterizedObject<TGuards>
-    >;
-  };
-  delays?: {
-    [K in TDelay]: DelayConfig<
-      TContext,
-      TEvent,
-      ToParameterizedObject<TActions>['params'],
-      TEvent
-    >;
-  };
-}): {
+  TOutput extends NonReducibleUnknown
+> {
   createMachine: <
     const TConfig extends MachineConfig<
       TContext,
@@ -203,17 +163,171 @@ export function setup<
       TTag
     >
   >;
-} {
+
+  extend: <
+    TExtContext extends MachineContext,
+    TExtEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+    TExtActors extends Record<Values<TExtChildrenMap>, UnknownActorLogic>,
+    TExtActions extends Record<
+      string,
+      ParameterizedObject['params'] | undefined
+    >,
+    TExtGuards extends Record<
+      string,
+      ParameterizedObject['params'] | undefined
+    >,
+    TExtDelay extends string,
+    TExtTag extends string,
+    TExtInput,
+    TExtOutput extends NonReducibleUnknown,
+    TExtChildrenMap extends Record<string, string> = never
+  >({
+    actors,
+    actions,
+    guards,
+    delays
+  }: {
+    types?: SetupTypes<
+      TContext & TExtContext,
+      TEvent | TExtEvent,
+      TChildrenMap & TExtChildrenMap,
+      TTag | TExtTag,
+      TInput & TExtInput,
+      TOutput & TExtOutput
+    >;
+    actors?: {
+      [K in keyof TExtActors]: TExtActors[K];
+    };
+    actions?: {
+      [K in keyof TExtActions]: ActionFunction<
+        TExtContext,
+        TExtEvent,
+        TExtEvent,
+        TExtActions[K],
+        ToProvidedActor<TExtChildrenMap, TExtActors>,
+        ToParameterizedObject<TExtActions>,
+        ToParameterizedObject<TExtGuards>,
+        TExtDelay
+      >;
+    };
+    guards?: {
+      [K in keyof TExtGuards]: GuardPredicate<
+        TExtContext,
+        TExtEvent,
+        TExtGuards[K],
+        ToParameterizedObject<TExtGuards>
+      >;
+    };
+    delays?: {
+      [K in TExtDelay]: DelayConfig<
+        TExtContext,
+        TExtEvent,
+        ToParameterizedObject<TExtActions>['params'],
+        TExtEvent
+      >;
+    };
+  }) => SetupReturn<
+    TContext & TExtContext,
+    TEvent | TExtEvent,
+    TChildrenMap & TExtChildrenMap,
+    TActors & TExtActors,
+    TActions & TExtActions,
+    TGuards & TExtGuards,
+    TDelay & TExtDelay,
+    TTag | TExtTag,
+    TInput & TExtInput,
+    TOutput & TExtOutput
+  >;
+}
+
+export function setup<
+  TContext extends MachineContext,
+  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>,
+  TActions extends Record<string, ParameterizedObject['params'] | undefined>,
+  TGuards extends Record<string, ParameterizedObject['params'] | undefined>,
+  TDelay extends string,
+  TTag extends string,
+  TInput,
+  TOutput extends NonReducibleUnknown,
+  TChildrenMap extends Record<string, string> = never
+>({
+  actors,
+  actions,
+  guards,
+  delays
+}: {
+  types?: SetupTypes<TContext, TEvent, TChildrenMap, TTag, TInput, TOutput>;
+  actors?: {
+    [K in keyof TActors]: TActors[K];
+  };
+  actions?: {
+    [K in keyof TActions]: ActionFunction<
+      TContext,
+      TEvent,
+      TEvent,
+      TActions[K],
+      ToProvidedActor<TChildrenMap, TActors>,
+      ToParameterizedObject<TActions>,
+      ToParameterizedObject<TGuards>,
+      TDelay
+    >;
+  };
+  guards?: {
+    [K in keyof TGuards]: GuardPredicate<
+      TContext,
+      TEvent,
+      TGuards[K],
+      ToParameterizedObject<TGuards>
+    >;
+  };
+  delays?: {
+    [K in TDelay]: DelayConfig<
+      TContext,
+      TEvent,
+      ToParameterizedObject<TActions>['params'],
+      TEvent
+    >;
+  };
+}): SetupReturn<
+  TContext,
+  TEvent,
+  TChildrenMap,
+  TActors,
+  TActions,
+  TGuards,
+  TDelay,
+  TTag,
+  TInput,
+  TOutput
+> {
   return {
     createMachine: (config) =>
-      (createMachine as any)(
-        { ...config, schemas },
-        {
-          actors,
-          actions,
-          guards,
-          delays
+      (createMachine as any)(config, {
+        actors,
+        actions,
+        guards,
+        delays
+      }),
+    extend: (config) =>
+      setup({
+        ...config,
+        actors: {
+          ...actors,
+          ...config.actors
+        },
+        actions: {
+          ...actions,
+          ...config.actions
+        },
+        guards: {
+          ...guards,
+          ...config.guards
+        },
+        delays: {
+          ...delays,
+          ...config.delays
         }
-      )
+      })
   };
 }

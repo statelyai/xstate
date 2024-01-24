@@ -1598,4 +1598,99 @@ describe('setup()', () => {
       green: 'green'
     });
   });
+
+  it('extends actions', () => {
+    const s1 = setup({
+      actions: {
+        foo: () => {}
+      }
+    });
+    const s2 = s1.extend({
+      actions: {
+        bar: () => {}
+      }
+    });
+
+    s2.createMachine({
+      entry: [
+        'foo',
+        'bar',
+        // @ts-expect-error
+        'unknown'
+      ]
+    });
+  });
+
+  it('extends actors', () => {
+    const s1 = setup({
+      actors: {
+        foo: fromPromise(() => Promise.resolve(42))
+      }
+    });
+    const s2 = s1.extend({
+      actors: {
+        bar: fromPromise(() => Promise.resolve(42))
+      }
+    });
+
+    s2.createMachine({
+      invoke: [
+        { src: 'foo' },
+        { src: 'bar' },
+        {
+          // @ts-expect-error
+          src: 'unknown'
+        }
+      ]
+    });
+
+    it('extends guards', () => {
+      const s1 = setup({
+        guards: {
+          foo: () => true
+        }
+      });
+      const s2 = s1.extend({
+        guards: {
+          bar: () => true
+        }
+      });
+
+      s2.createMachine({
+        on: {
+          e1: { guard: 'foo' },
+          e2: { guard: 'bar' },
+          // @ts-expect-error
+          e3: {
+            guard: 'unknown'
+          }
+        }
+      });
+
+      it.todo('extends context types');
+
+      it('extends event types', () => {
+        const s1 = setup({
+          types: {
+            events: {} as { type: 'foo' }
+          }
+        });
+
+        const s2 = s1.extend({
+          types: {
+            events: {} as { type: 'bar' }
+          }
+        });
+
+        const a = createActor(s2.createMachine({}));
+
+        a.send({ type: 'bar' });
+        a.send({ type: 'bar' });
+        a.send({
+          // @ts-expect-error
+          type: 'unknown'
+        });
+      });
+    });
+  });
 });
