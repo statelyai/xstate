@@ -1599,7 +1599,7 @@ describe('setup()', () => {
     });
   });
 
-  it('extends actions', () => {
+  it('can extend actions', () => {
     const s1 = setup({
       actions: {
         foo: () => {}
@@ -1621,7 +1621,7 @@ describe('setup()', () => {
     });
   });
 
-  it('extends actors', () => {
+  it('can extend actors', () => {
     const s1 = setup({
       actors: {
         foo: fromPromise(() => Promise.resolve(42))
@@ -1644,7 +1644,7 @@ describe('setup()', () => {
       ]
     });
 
-    it('extends guards', () => {
+    it('can extend guards', () => {
       const s1 = setup({
         guards: {
           foo: () => true
@@ -1666,30 +1666,27 @@ describe('setup()', () => {
           }
         }
       });
+    });
 
-      it.todo('extends context types');
+    it('can extend delays', () => {
+      const s1 = setup({
+        delays: {
+          now: 1
+        }
+      });
+      const s2 = s1.extend({
+        delays: {
+          never: () => 3
+        }
+      });
 
-      it('extends event types', () => {
-        const s1 = setup({
-          types: {
-            events: {} as { type: 'foo' }
-          }
-        });
-
-        const s2 = s1.extend({
-          types: {
-            events: {} as { type: 'bar' }
-          }
-        });
-
-        const a = createActor(s2.createMachine({}));
-
-        a.send({ type: 'bar' });
-        a.send({ type: 'bar' });
-        a.send({
+      s2.createMachine({
+        after: {
+          now: {},
+          never: {},
           // @ts-expect-error
-          type: 'unknown'
-        });
+          whenever: {}
+        }
       });
     });
   });

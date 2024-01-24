@@ -165,8 +165,6 @@ interface SetupReturn<
   >;
 
   extend: <
-    TExtContext extends MachineContext,
-    TExtEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
     TExtActors extends Record<Values<TExtChildrenMap>, UnknownActorLogic>,
     TExtActions extends Record<
       string,
@@ -178,8 +176,6 @@ interface SetupReturn<
     >,
     TExtDelay extends string,
     TExtTag extends string,
-    TExtInput,
-    TExtOutput extends NonReducibleUnknown,
     TExtChildrenMap extends Record<string, string> = never
   >({
     actors,
@@ -187,22 +183,14 @@ interface SetupReturn<
     guards,
     delays
   }: {
-    types?: SetupTypes<
-      TContext & TExtContext,
-      TEvent | TExtEvent,
-      TChildrenMap & TExtChildrenMap,
-      TTag | TExtTag,
-      TInput & TExtInput,
-      TOutput & TExtOutput
-    >;
     actors?: {
       [K in keyof TExtActors]: TExtActors[K];
     };
     actions?: {
       [K in keyof TExtActions]: ActionFunction<
-        TExtContext,
-        TExtEvent,
-        TExtEvent,
+        TContext,
+        TEvent,
+        TEvent,
         TExtActions[K],
         ToProvidedActor<TExtChildrenMap, TExtActors>,
         ToParameterizedObject<TExtActions>,
@@ -212,31 +200,31 @@ interface SetupReturn<
     };
     guards?: {
       [K in keyof TExtGuards]: GuardPredicate<
-        TExtContext,
-        TExtEvent,
+        TContext,
+        TEvent,
         TExtGuards[K],
         ToParameterizedObject<TExtGuards>
       >;
     };
     delays?: {
       [K in TExtDelay]: DelayConfig<
-        TExtContext,
-        TExtEvent,
+        TContext,
+        TEvent,
         ToParameterizedObject<TExtActions>['params'],
-        TExtEvent
+        TEvent
       >;
     };
   }) => SetupReturn<
-    TContext & TExtContext,
-    TEvent | TExtEvent,
+    TContext,
+    TEvent,
     TChildrenMap & TExtChildrenMap,
     TActors & TExtActors,
     TActions & TExtActions,
     TGuards & TExtGuards,
-    TDelay & TExtDelay,
+    TDelay | TExtDelay,
     TTag | TExtTag,
-    TInput & TExtInput,
-    TOutput & TExtOutput
+    TInput,
+    TOutput
   >;
 }
 
