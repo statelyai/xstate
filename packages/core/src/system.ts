@@ -175,13 +175,15 @@ export function createSystem<T extends ActorSystemInfo>(
       const systemId = reverseKeyedActors.get(actorRef);
       if (systemId !== undefined) {
         const currentSnapshot = system.getSnapshot();
-        system._updateSnapshot({
-          _scheduledEvents: { ...currentSnapshot._scheduledEvents },
-          actors: {
-            ...currentSnapshot.actors,
-            [systemId]: actorRef
-          }
-        });
+        if (currentSnapshot.actors[systemId as any] !== actorRef) {
+          system._updateSnapshot({
+            _scheduledEvents: { ...currentSnapshot._scheduledEvents },
+            actors: {
+              ...currentSnapshot.actors,
+              [systemId]: actorRef
+            }
+          });
+        }
       }
       return sessionId;
     },
@@ -236,6 +238,16 @@ export function createSystem<T extends ActorSystemInfo>(
 
       keyedActors.set(systemId, actorRef);
       reverseKeyedActors.set(actorRef, systemId);
+      const currentSnapshot = system.getSnapshot();
+      if (currentSnapshot.actors[systemId as any] !== actorRef) {
+        system._updateSnapshot({
+          _scheduledEvents: { ...system._snapshot._scheduledEvents },
+          actors: {
+            ...system._snapshot.actors,
+            [systemId]: actorRef
+          }
+        });
+      }
     },
     inspect: (observer) => {
       inspectionObservers.add(observer);

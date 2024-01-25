@@ -780,7 +780,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       states: {
         a: {
           invoke: {
-            systemId: 'a',
+            systemId: 'child_a',
+            id: 'a',
             src: createMachine({
               id: 'a',
               initial: 'initial_child_state_a',
@@ -795,7 +796,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         },
         b: {
           invoke: {
-            systemId: 'b',
+            systemId: 'child_b',
+            id: 'b',
             src: createMachine({
               id: 'b',
               initial: 'initial_child_state_b',
@@ -817,14 +819,20 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const Context = React.createContext<Actor<typeof machine> | null>(null);
     const ComponentA = () => {
       const rootRef = React.useContext(Context)!;
-      const aRef = useSelector(rootRef.system, (system) => system.actors.a);
+      const aRef = useSelector(
+        rootRef.system,
+        (system) => system.actors.child_a
+      );
       const state = useSelector(aRef, (state) => state.value);
       aId = aRef.id;
       return <>{JSON.stringify(state.value)}</>;
     };
     const ComponentB = () => {
       const rootRef = React.useContext(Context)!;
-      const bRef = useSelector(rootRef.system, (system) => system.actors.b);
+      const bRef = useSelector(
+        rootRef.system,
+        (system) => system.actors.child_b
+      );
       const state = useSelector(bRef, (state) => state.value);
       bId = bRef.id;
       return <>{JSON.stringify(state.value)}</>;
@@ -862,11 +870,11 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
     const screen = render(<App />);
 
-    expect(aId).toBe('0.machine.a');
+    expect(aId).toBe('a');
     expect(bId).toBeFalsy();
 
     fireEvent.click(screen.getByTestId('to_b'));
-    expect(bId).toBe('0.machine.b');
+    expect(bId).toBe('b');
     expect(error).toBeFalsy();
   });
 });
