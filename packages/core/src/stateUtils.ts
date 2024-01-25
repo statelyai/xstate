@@ -1461,7 +1461,7 @@ interface BuiltinAction {
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
-function resolveActionsAndContextWorker(
+function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
@@ -1518,12 +1518,30 @@ function resolveActionsAndContextWorker(
             : action.params
           : undefined;
 
+    function executeAction() {
+      actorScope.system._sendInspectionEvent?.({
+        type: '@xstate.action',
+        actorRef: actorScope.self,
+        action: {
+          type:
+            typeof action === 'string'
+              ? action
+              : typeof action === 'object'
+                ? action.type
+                : action.toString(),
+          params: actionParams
+        }
+      });
+      resolvedAction(actionArgs, actionParams);
+    }
+
     if (!('resolve' in resolvedAction)) {
       if (actorScope.self._processingStatus === ProcessingStatus.Running) {
-        resolvedAction(actionArgs, actionParams);
+        // Execute action
+        executeAction();
       } else {
         actorScope.defer(() => {
-          resolvedAction(actionArgs, actionParams);
+          executeAction();
         });
       }
       continue;
@@ -1554,7 +1572,7 @@ function resolveActionsAndContextWorker(
     }
 
     if (actions) {
-      intermediateSnapshot = resolveActionsAndContextWorker(
+      intermediateSnapshot = resolveAndExecuteActionsWithContext(
         intermediateSnapshot,
         event,
         actorScope,
@@ -1578,7 +1596,7 @@ export function resolveActionsAndContext(
 ): AnyMachineSnapshot {
   const retries: (readonly [BuiltinAction, unknown])[] | undefined =
     deferredActorIds ? [] : undefined;
-  const nextState = resolveActionsAndContextWorker(
+  const nextState = resolveAndExecuteActionsWithContext(
     currentSnapshot,
     event,
     actorScope,

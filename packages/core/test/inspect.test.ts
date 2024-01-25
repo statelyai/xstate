@@ -11,8 +11,10 @@ import {
   ContextFrom,
   EventObject,
   AnyTransitionDefinition,
-  raise
+  raise,
+  setup
 } from '../src';
+import { InspectedActionEvent } from '../src/inspection';
 
 function simplifyEvents(
   inspectionEvents: InspectionEvent[],
@@ -59,6 +61,13 @@ function simplifyEvents(
           }))
         };
       }
+
+      if (inspectionEvent.type === '@xstate.action') {
+        return {
+          type: inspectionEvent.type,
+          action: inspectionEvent.action
+        };
+      }
     });
 }
 
@@ -91,8 +100,11 @@ describe('inspect', () => {
     actor.send({ type: 'NEXT' });
     actor.send({ type: 'NEXT' });
 
-    expect(simplifyEvents(events, (ev) => ev.type !== '@xstate.microstep'))
-      .toMatchInlineSnapshot(`
+    expect(
+      simplifyEvents(events, (ev) =>
+        ['@xstate.actor', '@xstate.event', '@xstate.snapshot'].includes(ev.type)
+      )
+    ).toMatchInlineSnapshot(`
       [
         {
           "actorId": "x:0",
@@ -223,8 +235,11 @@ describe('inspect', () => {
 
     await waitFor(actor, (state) => state.value === 'success');
 
-    expect(simplifyEvents(events, (ev) => ev.type !== '@xstate.microstep'))
-      .toMatchInlineSnapshot(`
+    expect(
+      simplifyEvents(events, (ev) =>
+        ['@xstate.actor', '@xstate.event', '@xstate.snapshot'].includes(ev.type)
+      )
+    ).toMatchInlineSnapshot(`
       [
         {
           "actorId": "x:1",
@@ -738,7 +753,7 @@ describe('inspect', () => {
     `);
   });
 
-  it('test 1', () => {
+  it('should inspect microsteps for normal transitions', () => {
     const events: any[] = [];
     const machine = createMachine({
       initial: 'a',
@@ -817,7 +832,7 @@ describe('inspect', () => {
     `);
   });
 
-  it('test 2', () => {
+  it('should inspect microsteps for eventless/always transitions', () => {
     const events: any[] = [];
     const machine = createMachine({
       initial: 'a',
@@ -907,6 +922,98 @@ describe('inspect', () => {
           },
           "status": "active",
           "type": "@xstate.snapshot",
+        },
+      ]
+    `);
+  });
+
+  it('should inspect actions', () => {
+    const events: InspectedActionEvent[] = [];
+
+    const machine = setup({
+      actions: {
+        enter1: () => {},
+        exit1: () => {},
+        stringAction: () => {},
+        namedAction: () => {}
+      }
+    }).createMachine({
+      entry: 'enter1',
+      exit: 'exit1',
+      initial: 'loading',
+      states: {
+        loading: {
+          on: {
+            event: {
+              target: 'done',
+              actions: [
+                'stringAction',
+                { type: 'namedAction', params: { foo: 'bar' } },
+                () => {
+                  console.log('inline');
+                }
+              ]
+            }
+          }
+        },
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actor = createActor(machine, {
+      inspect: (ev) => {
+        if (ev.type === '@xstate.action') {
+          events.push(ev);
+        }
+      }
+    });
+
+    actor.start();
+    actor.send({ type: 'event' });
+
+    expect(simplifyEvents(events, (ev) => ev.type === '@xstate.action'))
+      .toMatchInlineSnapshot(`
+      [
+        {
+          "action": {
+            "params": undefined,
+            "type": "enter1",
+          },
+          "type": "@xstate.action",
+        },
+        {
+          "action": {
+            "params": undefined,
+            "type": "stringAction",
+          },
+          "type": "@xstate.action",
+        },
+        {
+          "action": {
+            "params": {
+              "foo": "bar",
+            },
+            "type": "namedAction",
+          },
+          "type": "@xstate.action",
+        },
+        {
+          "action": {
+            "params": undefined,
+            "type": "() => {
+                      console.log('inline');
+                    }",
+          },
+          "type": "@xstate.action",
+        },
+        {
+          "action": {
+            "params": undefined,
+            "type": "exit1",
+          },
+          "type": "@xstate.action",
         },
       ]
     `);

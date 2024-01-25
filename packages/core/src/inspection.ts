@@ -9,7 +9,8 @@ export type InspectionEvent =
   | InspectedSnapshotEvent
   | InspectedEventEvent
   | InspectedActorEvent
-  | InspectedMicrostepEvent;
+  | InspectedMicrostepEvent
+  | InspectedActionEvent;
 
 export interface BaseInspectionEventProperties {
   rootId: string; // the session ID of the root
@@ -33,6 +34,14 @@ export interface InspectedMicrostepEvent extends BaseInspectionEventProperties {
   event: AnyEventObject; // { type: string, ... }
   snapshot: Snapshot<unknown>;
   transitions: AnyTransitionDefinition[];
+}
+
+export interface InspectedActionEvent extends BaseInspectionEventProperties {
+  type: '@xstate.action';
+  action: {
+    type: string;
+    params: Record<string, unknown>;
+  };
 }
 
 export interface InspectedEventEvent extends BaseInspectionEventProperties {
