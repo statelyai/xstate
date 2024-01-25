@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@statelyai/inspect':
+    specifier: ^0.2.0
+    version: 0.2.0(ws@8.16.0)
   '@xstate/svelte':
     specifier: ^3.0.2
     version: 3.0.2(svelte@4.2.8)(xstate@5.4.1)
@@ -401,6 +404,16 @@ packages:
     dev: true
     optional: true
 
+  /@statelyai/inspect@0.2.0(ws@8.16.0):
+    resolution: {integrity: sha512-Bbmg/n81NmmWTwNdQnoJm2EIpgNU6ew8/Let108pCAw/pa3GOhZUPny85sxFbtn6qB+4OxsRZ+Avl2ze+Jt89g==, tarball: https://registry.npmjs.org/@statelyai/inspect/-/inspect-0.2.0.tgz}
+    dependencies:
+      fast-safe-stringify: 2.1.1
+      isomorphic-ws: 5.0.0(ws@8.16.0)
+      xstate: 5.1.0
+    transitivePeerDependencies:
+      - ws
+    dev: false
+
   /@sveltejs/vite-plugin-svelte-inspector@2.0.0(@sveltejs/vite-plugin-svelte@3.0.1)(svelte@4.2.8)(vite@5.0.11):
     resolution: {integrity: sha512-gjr9ZFg1BSlIpfZ4PRewigrvYmHWbDrq2uvvPB1AmTWKuM+dI1JXQSUu2pIrYLb/QncyiIGkFDFKTwJ0XqQZZg==, tarball: https://registry.npmjs.org/@sveltejs/vite-plugin-svelte-inspector/-/vite-plugin-svelte-inspector-2.0.0.tgz}
     engines: {node: ^18.0.0 || >=20}
@@ -628,6 +641,10 @@ packages:
       micromatch: 4.0.5
     dev: true
 
+  /fast-safe-stringify@2.1.1:
+    resolution: {integrity: sha512-W+KJc2dmILlPplD/H4K9l9LcAHAfPtP6BY84uVLXQ6Evcz9Lcg33Y2z1IVblT6xdY54PXYVHEv+0Wpq8Io6zkA==, tarball: https://registry.npmjs.org/fast-safe-stringify/-/fast-safe-stringify-2.1.1.tgz}
+    dev: false
+
   /fastq@1.16.0:
     resolution: {integrity: sha512-ifCoaXsDrsdkWTtiNJX5uzHDsrck5TzfKKDcuFFTIrrc/BS076qgEIfoIy1VeZqViznfKiysPYTh/QeHtnIsYA==, tarball: https://registry.npmjs.org/fastq/-/fastq-1.16.0.tgz}
     dependencies:
@@ -722,6 +739,14 @@ packages:
     resolution: {integrity: sha512-v3rht/LgVcsdZa3O2Nqs+NMowLOxeOm7Ay9+/ARQ2F+qEoANRcqrjAZKGN0v8ymUetZGgkp26LTnGT7H0Qo9Pg==, tarball: https://registry.npmjs.org/is-reference/-/is-reference-3.0.2.tgz}
     dependencies:
       '@types/estree': 1.0.5
+
+  /isomorphic-ws@5.0.0(ws@8.16.0):
+    resolution: {integrity: sha512-muId7Zzn9ywDsyXgTIafTry2sV3nySZeUDe6YedVd1Hvuuep5AsIlqK+XefWpYTyJG5e503F2xIuT2lcU6rCSw==, tarball: https://registry.npmjs.org/isomorphic-ws/-/isomorphic-ws-5.0.0.tgz}
+    peerDependencies:
+      ws: '*'
+    dependencies:
+      ws: 8.16.0
+    dev: false
 
   /kleur@4.1.5:
     resolution: {integrity: sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==, tarball: https://registry.npmjs.org/kleur/-/kleur-4.1.5.tgz}
@@ -1099,6 +1124,23 @@ packages:
   /wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==, tarball: https://registry.npmjs.org/wrappy/-/wrappy-1.0.2.tgz}
     dev: true
+
+  /ws@8.16.0:
+    resolution: {integrity: sha512-HS0c//TP7Ina87TfiPUz1rQzMhHrl/SG2guqRcTOIUYD2q8uhUdNHZYJUaQ8aTGPzCh+c6oawMKW35nFl1dxyQ==, tarball: https://registry.npmjs.org/ws/-/ws-8.16.0.tgz}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+    dev: false
+
+  /xstate@5.1.0:
+    resolution: {integrity: sha512-p7kkckyBwcjhcV782rx+jGg0zGLvu9AlNjsQ8ijmBUCUq/eyUPno3ZNwr2AjnfJ1Rx16ZnjYM0JQuQfu2yjTjw==, tarball: https://registry.npmjs.org/xstate/-/xstate-5.1.0.tgz}
+    dev: false
 
   /xstate@5.4.1:
     resolution: {integrity: sha512-1DDT047hsTCSgm3BwLyb4sXQDmTdbLutc4ni0MLACgd2yX6vij35pnNNf1F4U6kQ8njx6NxQ6wpLjlh1lqs0NQ==, tarball: https://registry.npmjs.org/xstate/-/xstate-5.4.1.tgz}

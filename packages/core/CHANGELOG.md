@@ -1,5 +1,15 @@
 # xstate
 
+## 5.5.2
+
+### Patch Changes
+
+- [#4685](https://github.com/statelyai/xstate/pull/4685) [`e43eab144`](https://github.com/statelyai/xstate/commit/e43eab14498356daf859d0f59d02820ec4e6a040) Thanks [@davidkpiano](https://github.com/davidkpiano)! - State IDs that have periods in them are now supported if those periods are escaped.
+
+  The motivation is that external tools, such as [Stately Studio](https://stately.ai/studio), may allow users to enter any text into the state ID field. This change allows those tools to escape periods in state IDs, so that they don't conflict with the internal path-based state IDs.
+
+  E.g. if a state ID of `"Loading..."` is entered into the state ID field, instead of crashing either the external tool and/or the XState state machine, it should be converted by the tool to `"Loading\\.\\.\\."`, and those periods will be ignored by XState.
+
 ## 5.5.1
 
 ### Patch Changes

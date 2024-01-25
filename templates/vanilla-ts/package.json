@@ -13,6 +13,7 @@
     "vite": "^5.0.11"
   },
   "dependencies": {
+    "@statelyai/inspect": "^0.2.0",
     "xstate": "5.4.1"
   }
 }

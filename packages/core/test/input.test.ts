@@ -52,6 +52,7 @@ describe('input', () => {
       }
     });
 
+    // @ts-expect-error
     const snapshot = createActor(machine).getSnapshot();
 
     expect(snapshot.status).toBe('error');
