@@ -261,7 +261,10 @@ export function createSystem<T extends ActorSystemInfo>(
     },
     scheduler,
     getSnapshot: () => {
-      return system._snapshot;
+      return {
+        _scheduledEvents: { ...system._snapshot._scheduledEvents },
+        actors: { ...system._snapshot.actors }
+      };
     },
     _updateSnapshot: (snapshot) => {
       system._snapshot = snapshot;
