@@ -819,7 +819,6 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       const rootRef = React.useContext(Context)!;
       const aRef = useSelector(rootRef.system, (system) => system.actors.a);
       const state = useSelector(aRef, (state) => state.value);
-      console.log('aRef', aRef);
       aId = aRef.id;
       return <>{JSON.stringify(state.value)}</>;
     };
