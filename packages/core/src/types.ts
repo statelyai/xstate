@@ -6,7 +6,12 @@ import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Spawner } from './spawn.ts';
-import { AnyActorSystem, InspectionEvent, Clock } from './system.js';
+import {
+  AnyActorSystem,
+  InspectionEvent,
+  Clock,
+  ActorSystem
+} from './system.js';
 import {
   ResolveTypegenMeta,
   TypegenConstraint,
@@ -2225,7 +2230,9 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
         ? ReturnType<R['transition']>
         : R extends ActorScope<infer TSnapshot, infer _, infer __>
           ? TSnapshot
-          : never
+          : R extends ActorSystem<infer _>
+            ? ReturnType<R['getSnapshot']>
+            : never
   : never;
 
 export type EventFromLogic<TLogic extends ActorLogic<any, any, any, any>> =

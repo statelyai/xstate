@@ -11,10 +11,12 @@ import {
   StateFrom,
   Snapshot,
   TransitionSnapshot,
-  AnyEventObject
+  AnyEventObject,
+  Actor
 } from 'xstate';
 import {
   shallowEqual,
+  useActor,
   useActorRef,
   useMachine,
   useSelector
@@ -770,4 +772,127 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
     expect(stateEl.textContent).toBe('42');
   });
+
+  it('should allow selecting from an actor system', async () => {
+    const machine = createMachine({
+      id: 'machine',
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            systemId: 'a',
+            src: createMachine({
+              id: 'a',
+              initial: 'initial_child_state_a',
+              states: {
+                initial_child_state_a: {}
+              }
+            })
+          },
+          on: {
+            to_b: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            systemId: 'b',
+            src: createMachine({
+              id: 'b',
+              initial: 'initial_child_state_b',
+              states: {
+                initial_child_state_b: {}
+              }
+            })
+          },
+          on: {
+            to_a: 'a'
+          }
+        }
+      }
+    });
+
+    let aId: string | undefined;
+    let bId: string | undefined;
+
+    const Context = React.createContext<Actor<typeof machine> | null>(null);
+    const ComponentA = () => {
+      const rootRef = React.useContext(Context)!;
+      const aRef = useSelector(rootRef.system, (system) => system.actors.a);
+      const state = useSelector(aRef, (state) => state.value);
+      console.log('aRef', aRef);
+      aId = aRef.id;
+      return <>{JSON.stringify(state.value)}</>;
+    };
+    const ComponentB = () => {
+      const rootRef = React.useContext(Context)!;
+      const bRef = useSelector(rootRef.system, (system) => system.actors.b);
+      const state = useSelector(bRef, (state) => state.value);
+      bId = bRef.id;
+      return <>{JSON.stringify(state.value)}</>;
+    };
+
+    let error: any;
+    const App = () => {
+      const [current, send, ref] = useActor(machine);
+
+      return (
+        <ErrorBoundary onError={(e) => (error = e)}>
+          <Context.Provider value={ref}>
+            <button
+              data-testid="to_b"
+              onClick={() => {
+                send({ type: 'to_b' });
+              }}
+            >
+              to_b
+            </button>
+            <button
+              data-testid="to_a"
+              onClick={() => {
+                send({ type: 'to_a' });
+              }}
+            >
+              to_a
+            </button>
+            {current.matches('a') && <ComponentA />}
+            {current.matches('b') && <ComponentB />}
+          </Context.Provider>
+        </ErrorBoundary>
+      );
+    };
+
+    const screen = render(<App />);
+
+    expect(aId).toBe('0.machine.a');
+    expect(bId).toBeFalsy();
+
+    fireEvent.click(screen.getByTestId('to_b'));
+    expect(bId).toBe('0.machine.b');
+    expect(error).toBeFalsy();
+  });
 });
+
+export class ErrorBoundary extends React.Component<
+  React.PropsWithChildren<{
+    onError?: (error: any) => void;
+  }>
+> {
+  state: { errorMessage: string | null } = { errorMessage: null };
+
+  static getDerivedStateFromError(error: any): {
+    errorMessage: string | null;
+  } {
+    return {
+      errorMessage: typeof error === 'string' ? error : error.message
+    };
+  }
+  render(): React.ReactNode | string {
+    if (this.state.errorMessage) {
+      this.props.onError?.(this.state.errorMessage);
+
+      return this.state.errorMessage;
+    }
+
+    return this.props.children;
+  }
+}

@@ -16,6 +16,7 @@ import { StateNode } from './StateNode.ts';
 export { and, not, or, stateIn } from './guards.ts';
 export { setup } from './setup.ts';
 export type {
+  AnyActorSystem,
   ActorSystem,
   SystemSnapshot,
   InspectedActorEvent,

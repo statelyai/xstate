@@ -1,14 +1,17 @@
 import { useCallback } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
-import { ActorRef, SnapshotFrom } from 'xstate';
+import { AnyActorRef, AnyActorSystem, SnapshotFrom } from 'xstate';
 
 function defaultCompare<T>(a: T, b: T) {
   return a === b;
 }
 
-export function useSelector<TActor extends ActorRef<any, any>, T>(
-  actor: TActor,
-  selector: (emitted: SnapshotFrom<TActor>) => T,
+export function useSelector<
+  TSubscribable extends AnyActorRef | AnyActorSystem,
+  T
+>(
+  actor: TSubscribable,
+  selector: (emitted: SnapshotFrom<TSubscribable>) => T,
   compare: (a: T, b: T) => boolean = defaultCompare
 ): T {
   const subscribe = useCallback(
