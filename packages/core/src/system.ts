@@ -176,7 +176,7 @@ export function createSystem<T extends ActorSystemInfo>(
       if (systemId !== undefined) {
         const currentSnapshot = system.getSnapshot();
         system._updateSnapshot({
-          ...currentSnapshot,
+          _scheduledEvents: { ...currentSnapshot._scheduledEvents },
           actors: {
             ...currentSnapshot.actors,
             [systemId]: actorRef
@@ -197,7 +197,7 @@ export function createSystem<T extends ActorSystemInfo>(
           actors: { [systemId]: _, ...actors }
         } = system.getSnapshot();
         system._updateSnapshot({
-          _scheduledEvents,
+          _scheduledEvents: { ..._scheduledEvents },
           actors
         });
       }
