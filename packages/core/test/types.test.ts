@@ -5,6 +5,7 @@ import { stopChild } from '../src/actions/stopChild';
 import { PromiseActorLogic, fromCallback, fromPromise } from '../src/actors';
 import {
   ActorRefFrom,
+  InputFrom,
   MachineContext,
   ProvidedActor,
   Spawner,
@@ -4337,5 +4338,22 @@ describe('self', () => {
         return {};
       })
     });
+  });
+});
+
+describe('createActor', () => {
+  it(`should require input to be specified when it is required`, () => {
+    const logic = fromPromise(({}: { input: number }) => Promise.resolve(100));
+
+    // @ts-expect-error
+    createActor(logic);
+  });
+
+  it(`should not require input when it's optional`, () => {
+    const logic = fromPromise(({}: { input: number | undefined }) =>
+      Promise.resolve(100)
+    );
+
+    createActor(logic);
   });
 });
