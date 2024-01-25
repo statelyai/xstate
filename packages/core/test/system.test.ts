@@ -565,23 +565,23 @@ describe('system', () => {
 
     const actorRef = createActor(machine).start();
 
-    const events: string[] = [];
+    let keysOverTime: string[][] = [
+      Object.keys(actorRef.system.getSnapshot().actors)
+    ];
 
-    actorRef.system.subscribe((event) => {
-      events.push(`${event.type}.${event.systemId}`);
+    actorRef.system.subscribe((snapshot) => {
+      keysOverTime.push(Object.keys(snapshot.actors));
     });
 
     actorRef.send({ type: 'to_b' });
-    expect(events).toEqual([
-      `@xstate.actor.unregister.${aSystemId}`,
-      `@xstate.actor.register.${bSystemId}`
-    ]);
+    expect(keysOverTime).toEqual([['a_child'], [], ['b_child']]);
     actorRef.send({ type: 'to_a' });
-    expect(events).toEqual([
-      `@xstate.actor.unregister.${aSystemId}`,
-      `@xstate.actor.register.${bSystemId}`,
-      `@xstate.actor.unregister.${bSystemId}`,
-      `@xstate.actor.register.${aSystemId}`
+    expect(keysOverTime).toEqual([
+      ['a_child'],
+      [],
+      ['b_child'],
+      [],
+      ['a_child']
     ]);
   });
 
@@ -614,39 +614,35 @@ describe('system', () => {
 
     const actorRef = createActor(machine).start();
 
-    const events: string[] = [];
-    const unsubscribedEvents: string[] = [];
+    const keysOverTime: string[][] = [
+      Object.keys(actorRef.system.getSnapshot().actors)
+    ];
+    const unsubscribedKeysOverTime: string[][] = [
+      Object.keys(actorRef.system.getSnapshot().actors)
+    ];
 
     const subscription = actorRef.system.subscribe((event) => {
-      events.push(`${event.type}.${event.systemId}`);
+      keysOverTime.push(Object.keys(event.actors));
     });
 
     actorRef.system.subscribe((event) => {
-      unsubscribedEvents.push(`${event.type}.${event.systemId}`);
+      unsubscribedKeysOverTime.push(Object.keys(event.actors));
     });
 
     actorRef.send({ type: 'to_b' });
-    expect(events).toEqual([
-      `@xstate.actor.unregister.${aSystemId}`,
-      `@xstate.actor.register.${bSystemId}`
-    ]);
-    expect(unsubscribedEvents).toEqual([
-      `@xstate.actor.unregister.${aSystemId}`,
-      `@xstate.actor.register.${bSystemId}`
-    ]);
+    expect(keysOverTime).toEqual([['a_child'], [], ['b_child']]);
+    expect(unsubscribedKeysOverTime).toEqual([['a_child'], [], ['b_child']]);
 
     subscription.unsubscribe();
     actorRef.send({ type: 'to_a' });
 
-    expect(events).toEqual([
-      `@xstate.actor.unregister.${aSystemId}`,
-      `@xstate.actor.register.${bSystemId}`
-    ]);
-    expect(unsubscribedEvents).toEqual([
-      `@xstate.actor.unregister.${aSystemId}`,
-      `@xstate.actor.register.${bSystemId}`,
-      `@xstate.actor.unregister.${bSystemId}`,
-      `@xstate.actor.register.${aSystemId}`
+    expect(keysOverTime).toEqual([['a_child'], [], ['b_child']]);
+    expect(unsubscribedKeysOverTime).toEqual([
+      ['a_child'],
+      [],
+      ['b_child'],
+      [],
+      ['a_child']
     ]);
   });
 });

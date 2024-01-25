@@ -48,12 +48,7 @@ function createScheduledEventId(
 }
 
 export interface ActorSystem<T extends ActorSystemInfo>
-  extends Subscribable<
-    RegistrationEvent<
-      T['actors'][keyof T['actors']],
-      keyof T['actors'] & string
-    >
-  > {
+  extends Subscribable<SystemSnapshot> {
   /**
    * @internal
    */
@@ -87,15 +82,15 @@ export interface ActorSystem<T extends ActorSystemInfo>
     event: AnyEventObject
   ) => void;
   scheduler: Scheduler;
-  getSnapshot: () => {
-    _scheduledEvents: Record<string, ScheduledEvent>;
-  };
+  getSnapshot: () => SystemSnapshot;
   /**
    * @internal
    */
-  _snapshot: {
-    _scheduledEvents: Record<ScheduledEventId, ScheduledEvent>;
-  };
+  _updateSnapshot: (snapshot: SystemSnapshot) => void;
+  /**
+   * @internal
+   */
+  _snapshot: SystemSnapshot;
   start: () => void;
 }
 
@@ -113,9 +108,7 @@ export function createSystem<T extends ActorSystemInfo>(
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
   const inspectionObservers = new Set<Observer<InspectionEvent>>();
-  const registrationObservers = new Set<
-    Observer<RegistrationEvent<T['actors'][keyof T['actors']]>>
-  >();
+  const systemObservers = new Set<Observer<SystemSnapshot>>();
   const timerMap: { [id: ScheduledEventId]: number } = {};
   const clock = options.clock;
 
@@ -169,23 +162,36 @@ export function createSystem<T extends ActorSystemInfo>(
     }
   };
 
+  function makeActorsFromChildren() {
+    const actors = {} as Record<keyof T['actors'], AnyActorRef>;
+    for (const [key, actorRef] of children) {
+      const systemId = reverseKeyedActors.get(actorRef);
+      if (systemId !== undefined) {
+        actors[systemId] = actorRef;
+      }
+    }
+    return actors;
+  }
+
   const system: ActorSystem<T> = {
     _snapshot: {
       _scheduledEvents:
-        (options?.snapshot && (options.snapshot as any).scheduler) ?? {}
+        (options?.snapshot && (options.snapshot as any).scheduler) ?? {},
+      actors: makeActorsFromChildren()
     },
+
     _bookId: () => `x:${idCounter++}`,
     _register: (sessionId, actorRef) => {
       children.set(sessionId, actorRef);
       const systemId = reverseKeyedActors.get(actorRef);
       if (systemId !== undefined) {
-        const event = {
-          type: `@xstate.actor.register`,
-          systemId: systemId as string,
-          actorRef: actorRef as T['actors'][keyof T['actors']]
-        } as const;
-        registrationObservers.forEach((listener) => {
-          listener.next?.(event);
+        const currentSnapshot = system.getSnapshot();
+        system._updateSnapshot({
+          ...currentSnapshot,
+          actors: {
+            ...currentSnapshot.actors,
+            [systemId]: actorRef
+          }
         });
       }
       return sessionId;
@@ -197,13 +203,13 @@ export function createSystem<T extends ActorSystemInfo>(
       if (systemId !== undefined) {
         keyedActors.delete(systemId);
         reverseKeyedActors.delete(actorRef);
-        const event = {
-          type: `@xstate.actor.unregister`,
-          systemId: systemId as string,
-          actorRef: actorRef as T['actors'][keyof T['actors']]
-        } as const;
-        registrationObservers.forEach((listener) => {
-          listener.next?.(event);
+        const {
+          _scheduledEvents,
+          actors: { [systemId]: _, ...actors }
+        } = system.getSnapshot();
+        system._updateSnapshot({
+          _scheduledEvents,
+          actors
         });
       }
     },
@@ -212,8 +218,8 @@ export function createSystem<T extends ActorSystemInfo>(
     },
     subscribe: (
       nextListenerOrObserver:
-        | ((event: RegistrationEvent<T['actors'][keyof T['actors']]>) => void)
-        | Observer<RegistrationEvent<T['actors'][keyof T['actors']]>>,
+        | ((event: SystemSnapshot) => void)
+        | Observer<SystemSnapshot>,
       errorListener?: (error: any) => void,
       completeListener?: () => void
     ) => {
@@ -223,25 +229,11 @@ export function createSystem<T extends ActorSystemInfo>(
         completeListener
       );
 
-      if (rootActor._processingStatus !== ProcessingStatus.Stopped) {
-        registrationObservers.add(observer);
-      } else {
-        const snapshot = rootActor.getSnapshot();
-        switch (snapshot.status) {
-          case 'done':
-            try {
-              observer.complete?.();
-            } catch (err) {
-              reportUnhandledError(err);
-            }
-            break;
-          // can this error?
-        }
-      }
+      systemObservers.add(observer);
 
       return {
         unsubscribe: () => {
-          registrationObservers.delete(observer);
+          systemObservers.delete(observer);
         }
       };
     },
@@ -280,9 +272,13 @@ export function createSystem<T extends ActorSystemInfo>(
     },
     scheduler,
     getSnapshot: () => {
-      return {
-        _scheduledEvents: { ...system._snapshot._scheduledEvents }
-      };
+      return system._snapshot;
+    },
+    _updateSnapshot: (snapshot) => {
+      system._snapshot = snapshot;
+      systemObservers.forEach((listener) => {
+        listener.next?.(snapshot);
+      });
     },
     start: () => {
       const scheduledEvets = system._snapshot._scheduledEvents;
@@ -332,27 +328,7 @@ export type InspectionEvent =
   | InspectedEventEvent
   | InspectedActorEvent;
 
-export interface RegisteredActorEvent<
-  TActorRef extends AnyActorRef,
-  TSystemId extends string = string
-> {
-  type: `@xstate.actor.register`;
-  systemId: TSystemId;
-  actorRef: TActorRef;
+export interface SystemSnapshot {
+  _scheduledEvents: Record<ScheduledEventId, ScheduledEvent>;
+  actors: Record<string, AnyActorRef>;
 }
-
-export interface UnregisteredActorEvent<
-  TActorRef extends AnyActorRef,
-  TSystemId extends string = string
-> {
-  type: `@xstate.actor.unregister`;
-  systemId: TSystemId;
-  actorRef: TActorRef;
-}
-
-export type RegistrationEvent<
-  TActorRef extends AnyActorRef = AnyActorRef,
-  TSystemId extends string = string
-> =
-  | RegisteredActorEvent<TActorRef, TSystemId>
-  | UnregisteredActorEvent<TActorRef, TSystemId>;

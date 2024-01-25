@@ -17,13 +17,11 @@ export { and, not, or, stateIn } from './guards.ts';
 export { setup } from './setup.ts';
 export type {
   ActorSystem,
+  SystemSnapshot,
   InspectedActorEvent,
   InspectedEventEvent,
   InspectedSnapshotEvent,
-  InspectionEvent,
-  RegisteredActorEvent,
-  UnregisteredActorEvent,
-  RegistrationEvent
+  InspectionEvent
 } from './system.ts';
 export { toPromise } from './toPromise.ts';
 export {
