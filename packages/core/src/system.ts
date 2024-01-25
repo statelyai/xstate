@@ -162,22 +162,11 @@ export function createSystem<T extends ActorSystemInfo>(
     }
   };
 
-  function makeActorsFromChildren() {
-    const actors = {} as Record<keyof T['actors'], AnyActorRef>;
-    for (const [key, actorRef] of children) {
-      const systemId = reverseKeyedActors.get(actorRef);
-      if (systemId !== undefined) {
-        actors[systemId] = actorRef;
-      }
-    }
-    return actors;
-  }
-
   const system: ActorSystem<T> = {
     _snapshot: {
       _scheduledEvents:
         (options?.snapshot && (options.snapshot as any).scheduler) ?? {},
-      actors: makeActorsFromChildren()
+      actors: {}
     },
 
     _bookId: () => `x:${idCounter++}`,
