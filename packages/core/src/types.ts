@@ -6,7 +6,8 @@ import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Spawner } from './spawn.ts';
-import { AnyActorSystem, InspectionEvent, Clock } from './system.js';
+import { AnyActorSystem, Clock } from './system.js';
+import { InspectionEvent } from './inspection.ts';
 import {
   ResolveTypegenMeta,
   TypegenConstraint,
