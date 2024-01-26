@@ -162,20 +162,7 @@ export function createMachine<
     TInput,
     TOutput,
     TTypesMeta
-  > & {
-    types?: MachineTypes<
-      TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TTag,
-      TInput,
-      TOutput,
-      TTypesMeta
-    >;
-  },
+  >,
   implementations?: InternalMachineImplementations<
     TContext,
     ResolveTypegenMeta<
