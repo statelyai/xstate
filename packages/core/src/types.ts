@@ -295,7 +295,7 @@ export type Actions<
 export type StateKey = string | AnyMachineSnapshot;
 
 export interface StateValueMap {
-  [key: string]: StateValue;
+  [key: string]: StateValue | undefined;
 }
 
 /**
