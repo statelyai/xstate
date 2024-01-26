@@ -295,7 +295,7 @@ export type Actions<
 export type StateKey = string | AnyMachineSnapshot;
 
 export interface StateValueMap {
-  [key: string]: StateValue;
+  [key: string]: StateValue | undefined;
 }
 
 /**
@@ -2352,21 +2352,19 @@ export type ToChildren<TActor extends ProvidedActor> =
       // or maybe even `TActor["logic"]` since it's possible to configure `{ src: string; logic: SomeConcreteLogic }`
       // TODO: consider adding `| undefined` here
       Record<string, AnyActorRef>
-    : Compute<
-        ToConcreteChildren<TActor> &
-          {
-            include: {
-              [id: string]: TActor extends any
-                ? ActorRefFrom<TActor['logic']> | undefined
-                : never;
-            };
-            exclude: {};
-          }[undefined extends TActor['id'] // if not all actors have literal string IDs then we need to create an index signature containing all possible actor types
+    : ToConcreteChildren<TActor> &
+        {
+          include: {
+            [id: string]: TActor extends any
+              ? ActorRefFrom<TActor['logic']> | undefined
+              : never;
+          };
+          exclude: {};
+        }[undefined extends TActor['id'] // if not all actors have literal string IDs then we need to create an index signature containing all possible actor types
+          ? 'include'
+          : string extends TActor['id']
             ? 'include'
-            : string extends TActor['id']
-              ? 'include'
-              : 'exclude']
-      >;
+            : 'exclude'];
 
 export type StateSchema = {
   states?: Record<string, StateSchema>;

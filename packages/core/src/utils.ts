@@ -47,7 +47,7 @@ export function matchesState(
       return false;
     }
 
-    return matchesState(parentStateValue[key], childStateValue[key]);
+    return matchesState(parentStateValue[key]!, childStateValue[key]!);
   });
 }
 
