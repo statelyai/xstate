@@ -127,11 +127,27 @@ export function createSystem<T extends ActorSystemInfo>(
         startedAt: Date.now()
       };
       const scheduledEventId = createScheduledEventId(source, id);
-      system._snapshot._scheduledEvents[scheduledEventId] = scheduledEvent;
+      const snapshot = system.getSnapshot();
+      system._updateSnapshot({
+        _scheduledEvents: {
+          ...snapshot._scheduledEvents,
+          [scheduledEventId]: scheduledEvent
+        },
+        actors: { ...snapshot.actors }
+      });
 
       const timeout = clock.setTimeout(() => {
         delete timerMap[scheduledEventId];
-        delete system._snapshot._scheduledEvents[scheduledEventId];
+        const {
+          _scheduledEvents: { [scheduledEventId]: _, ..._scheduledEvents },
+          actors
+        } = system.getSnapshot();
+        system._updateSnapshot({
+          _scheduledEvents: {
+            ..._scheduledEvents
+          },
+          actors: { ...snapshot.actors }
+        });
 
         system._relay(source, target, event);
       }, delay);
@@ -143,7 +159,16 @@ export function createSystem<T extends ActorSystemInfo>(
       const timeout = timerMap[scheduledEventId];
 
       delete timerMap[scheduledEventId];
-      delete system._snapshot._scheduledEvents[scheduledEventId];
+      const {
+        _scheduledEvents: { [scheduledEventId]: _, ..._scheduledEvents },
+        actors
+      } = system.getSnapshot();
+      system._updateSnapshot({
+        _scheduledEvents: {
+          ..._scheduledEvents
+        },
+        actors: { ...actors }
+      });
 
       clock.clearTimeout(timeout);
     },
@@ -283,11 +308,14 @@ export function createSystem<T extends ActorSystemInfo>(
       });
     },
     start: () => {
-      const scheduledEvets = system._snapshot._scheduledEvents;
-      system._snapshot._scheduledEvents = {};
-      for (const scheduledId in scheduledEvets) {
+      const { _scheduledEvents } = system.getSnapshot();
+      system._updateSnapshot({
+        _scheduledEvents: {},
+        actors: { ...system._snapshot.actors }
+      });
+      for (const scheduledId in _scheduledEvents) {
         const { source, target, event, delay, id } =
-          scheduledEvets[scheduledId as ScheduledEventId];
+          _scheduledEvents[scheduledId as ScheduledEventId];
         scheduler.schedule(source, target, event, delay, id);
       }
     }
