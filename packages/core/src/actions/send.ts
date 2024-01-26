@@ -92,9 +92,9 @@ function resolveSendTo(
 
   if (typeof resolvedTarget === 'string') {
     if (resolvedTarget === SpecialTargets.Parent) {
-      targetActorRef = actorScope?.self._parent;
+      targetActorRef = actorScope.self._parent;
     } else if (resolvedTarget === SpecialTargets.Internal) {
-      targetActorRef = actorScope?.self;
+      targetActorRef = actorScope.self;
     } else if (resolvedTarget.startsWith('#_')) {
       // SCXML compatibility: https://www.w3.org/TR/scxml/#SCXMLEventProcessor
       // #_invokeid. If the target is the special term '#_invokeid', where invokeid is the invokeid of an SCXML session that the sending session has created by <invoke>, the Processor must add the event to the external queue of that session.
@@ -110,7 +110,7 @@ function resolveSendTo(
       );
     }
   } else {
-    targetActorRef = resolvedTarget || actorScope?.self;
+    targetActorRef = resolvedTarget || actorScope.self;
   }
 
   return [
@@ -292,9 +292,9 @@ type Target<
     ) => string | ActorRef<any, any>);
 
 /**
- * Forwards (sends) an event to a specified service.
+ * Forwards (sends) an event to the `target` actor.
  *
- * @param target The target service to forward the event to.
+ * @param target The target actor to forward the event to.
  * @param options Options to pass into the send action creator.
  */
 export function forwardTo<

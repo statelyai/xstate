@@ -1,4 +1,4 @@
-import { createActor, createMachine, assign } from '../src/index.ts';
+import { createActor, createMachine, assign, setup } from '../src/index.ts';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -390,6 +390,18 @@ describe('machine', () => {
       actorRef.send({ type: 'INC' });
 
       expect(actorRef.getSnapshot().context.value).toEqual(43);
+    });
+  });
+
+  it('should pass through schemas', () => {
+    const machine = setup({
+      schemas: {
+        context: { count: { type: 'number' } }
+      }
+    }).createMachine({});
+
+    expect(machine.schemas).toEqual({
+      context: { count: { type: 'number' } }
     });
   });
 });

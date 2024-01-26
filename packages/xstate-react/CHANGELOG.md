@@ -1,5 +1,30 @@
 # Changelog
 
+## 4.0.3
+
+### Patch Changes
+
+- [#4695](https://github.com/statelyai/xstate/pull/4695) [`52900a084`](https://github.com/statelyai/xstate/commit/52900a084712755b00e6c38eb9aa2c3b290259b5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Options in `createActorContext` are now properly merged with provider options. Previously, provider options replaced the actor options.
+
+  ```tsx
+  const { inspect } = createBrowserInspector();
+
+  const SomeContext = createActorContext(someMachine, { inspect });
+
+  // ...
+  // Options are now merged:
+  // { inspect: inspect, input: 10 }
+  <SomeContext.Provider options={{ input: 10 }}>
+    {/* ... */}
+  </SomeContext.Provider>;
+  ```
+
+## 4.0.2
+
+### Patch Changes
+
+- [#4600](https://github.com/statelyai/xstate/pull/4600) [`1f2ccb97c`](https://github.com/statelyai/xstate/commit/1f2ccb97ca00ff2d2ec1c9996f8205dbe656602b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Typegen-based types for detecting missing implementations have been removed internally.
+
 ## 4.0.1
 
 ### Patch Changes

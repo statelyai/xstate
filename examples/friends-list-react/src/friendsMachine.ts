@@ -1,5 +1,7 @@
-import { ActorRefFrom, createMachine, assign, stop } from 'xstate';
+import { ActorRefFrom, createMachine, assign, stopChild } from 'xstate';
 import { friendMachine } from './friendMachine';
+
+const makeId = () => Math.random().toString(36).substring(7);
 
 export const friendsMachine = createMachine({
   types: {} as {
@@ -38,7 +40,7 @@ export const friendsMachine = createMachine({
         friends: ({ context, spawn }) =>
           context.friends.concat(
             spawn(friendMachine, {
-              id: `friend-${context.friends.length}`,
+              id: `friend-${makeId()}`,
               input: {
                 name: context.newFriendName
               }
@@ -50,7 +52,7 @@ export const friendsMachine = createMachine({
     'FRIEND.REMOVE': {
       actions: [
         // Stop the friend actor to unsubscribe
-        stop(({ context, event }) => context.friends[event.index]),
+        stopChild(({ context, event }) => context.friends[event.index]),
         // Remove the friend from the list by index
         assign({
           friends: ({ context, event }) =>

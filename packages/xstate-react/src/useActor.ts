@@ -1,19 +1,14 @@
 import isDevelopment from '#is-development';
 import { useCallback, useEffect } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
-import {
-  ActorRefFrom,
-  AnyActorLogic,
-  ActorOptions,
-  SnapshotFrom
-} from 'xstate';
-import { useIdleActorRef } from './useActorRef.ts';
+import { Actor, ActorOptions, AnyActorLogic, SnapshotFrom } from 'xstate';
 import { stopRootWithRehydration } from './stopRootWithRehydration.ts';
+import { useIdleActorRef } from './useActorRef.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options: ActorOptions<TLogic> = {}
-): [SnapshotFrom<TLogic>, ActorRefFrom<TLogic>['send'], ActorRefFrom<TLogic>] {
+): [SnapshotFrom<TLogic>, Actor<TLogic>['send'], Actor<TLogic>] {
   if (
     isDevelopment &&
     !!logic &&
@@ -25,7 +20,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     );
   }
 
-  const actorRef = useIdleActorRef(logic, options as any);
+  const actorRef = useIdleActorRef(logic, options);
 
   const getSnapshot = useCallback(() => {
     return actorRef.getSnapshot();
@@ -53,5 +48,5 @@ export function useActor<TLogic extends AnyActorLogic>(
     };
   }, [actorRef]);
 
-  return [actorSnapshot, actorRef.send, actorRef] as any;
+  return [actorSnapshot, actorRef.send, actorRef];
 }

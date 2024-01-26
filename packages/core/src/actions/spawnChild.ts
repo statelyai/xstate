@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
-import { ProcessingStatus, createActor } from '../interpreter.ts';
+import { ProcessingStatus, createActor } from '../createActor.ts';
 import {
   ActionArgs,
   AnyActorScope,
@@ -61,7 +61,7 @@ function resolveSpawn(
     actorRef = createActor(logic, {
       id: resolvedId,
       src,
-      parent: actorScope?.self,
+      parent: actorScope.self,
       syncSnapshot,
       systemId,
       input:
@@ -69,7 +69,7 @@ function resolveSpawn(
           ? input({
               context: snapshot.context,
               event: actionArgs.event,
-              self: actorScope?.self
+              self: actorScope.self
             })
           : input
     });

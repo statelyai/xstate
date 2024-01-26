@@ -1,4 +1,10 @@
-import { createMachine, assign, fromPromise, Snapshot } from 'xstate';
+import {
+  createMachine,
+  assign,
+  fromPromise,
+  Snapshot,
+  InspectionEvent
+} from 'xstate';
 import { fireEvent, screen, render, waitFor } from '@testing-library/react';
 import { useSelector, createActorContext, shallowEqual } from '../src';
 
@@ -469,5 +475,48 @@ describe('createActorContext', () => {
     render(<App />);
 
     expect(screen.getByTestId('value').textContent).toBe('84');
+  });
+
+  it('should merge createActorContext options with options passed to the provider', () => {
+    const events: InspectionEvent[] = [];
+    const SomeContext = createActorContext(
+      createMachine({
+        types: {
+          context: {} as { count: number },
+          input: {} as number
+        },
+        context: ({ input }) => ({ count: input })
+      }),
+      {
+        inspect: (ev) => {
+          events.push(ev);
+        }
+      }
+    );
+
+    const Component = () => {
+      const count = SomeContext.useSelector((state) => state.context.count);
+
+      return <div data-testid="value">{count}</div>;
+    };
+
+    const App = () => {
+      return (
+        <SomeContext.Provider options={{ input: 10 }}>
+          <Component />
+        </SomeContext.Provider>
+      );
+    };
+
+    render(<App />);
+
+    expect(events.length).toBeGreaterThan(0);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        snapshot: expect.objectContaining({
+          context: { count: 10 }
+        })
+      })
+    );
   });
 });

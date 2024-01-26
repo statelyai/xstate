@@ -4,12 +4,10 @@ import type { StateNode } from './StateNode.ts';
 import { AssignArgs } from './actions/assign.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
-import type { Actor, ProcessingStatus } from './interpreter.ts';
+import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Spawner } from './spawn.ts';
 import { AnyActorSystem, InspectionEvent, Clock } from './system.js';
 import {
-  AreAllImplementationsAssumedToBeProvided,
-  MarkAllImplementationsAsProvided,
   ResolveTypegenMeta,
   TypegenConstraint,
   TypegenDisabled
@@ -297,7 +295,7 @@ export type Actions<
 export type StateKey = string | AnyMachineSnapshot;
 
 export interface StateValueMap {
-  [key: string]: StateValue;
+  [key: string]: StateValue | undefined;
 }
 
 /**
@@ -1047,6 +1045,9 @@ export type DelayConfig<
 > = number | DelayExpr<TContext, TExpressionEvent, TParams, TEvent>;
 
 // TODO: possibly refactor this somehow, use even a simpler type, and maybe even make `machine.options` private or something
+/**
+ * @internal
+ */
 export interface MachineImplementationsSimplified<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1302,14 +1303,34 @@ export type MachineImplementations<
 type InitialContext<
   TContext extends MachineContext,
   TActor extends ProvidedActor,
-  TInput
-> = TContext | ContextFactory<TContext, TActor, TInput>;
+  TInput,
+  TEvent extends EventObject
+> = TContext | ContextFactory<TContext, TActor, TInput, TEvent>;
 
 export type ContextFactory<
   TContext extends MachineContext,
   TActor extends ProvidedActor,
-  TInput
-> = ({ spawn, input }: { spawn: Spawner<TActor>; input: TInput }) => TContext;
+  TInput,
+  TEvent extends EventObject = EventObject
+> = ({
+  spawn,
+  input,
+  self
+}: {
+  spawn: Spawner<TActor>;
+  input: TInput;
+  self: ActorRef<
+    MachineSnapshot<
+      TContext,
+      TEvent,
+      Record<string, AnyActorRef | undefined>, // TODO: this should be replaced with `TChildren`
+      StateValue,
+      string,
+      unknown
+    >,
+    TEvent
+  >;
+}) => TContext;
 
 export type MachineConfig<
   TContext extends MachineContext,
@@ -1346,8 +1367,8 @@ export type MachineConfig<
   output?: Mapper<TContext, DoneStateEvent, TOutput, TEvent> | TOutput;
 }) &
   (MachineContext extends TContext
-    ? { context?: InitialContext<LowInfer<TContext>, TActor, TInput> }
-    : { context: InitialContext<LowInfer<TContext>, TActor, TInput> });
+    ? { context?: InitialContext<LowInfer<TContext>, TActor, TInput, TEvent> }
+    : { context: InitialContext<LowInfer<TContext>, TActor, TInput, TEvent> });
 
 export interface ProvidedActor {
   src: string;
@@ -1712,12 +1733,9 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   clock?: Clock;
   /**
-   * Specifies the logger to be used for log(...) actions. Defaults to the native console.log method.
+   * Specifies the logger to be used for `log(...)` actions. Defaults to the native `console.log(...)` method.
    */
   logger?: (...args: any[]) => void;
-  /**
-   * @internal
-   */
   parent?: ActorRef<any, any>;
   /**
    * @internal
@@ -1728,14 +1746,12 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   id?: string;
   /**
-   * If `true`, states and events will be logged to Redux DevTools.
-   *
-   * Default: `false`
+   * @deprecated Use `inspect` instead.
    */
-  devTools?: boolean | DevToolsAdapter; // TODO: add enhancer options
+  devTools?: never;
 
   /**
-   * The system ID to register this actor under
+   * The system ID to register this actor under.
    */
   systemId?: string;
   /**
@@ -1764,7 +1780,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   state?: Snapshot<unknown>;
 
   /**
-   * The source definition.
+   * The source actor logic.
    */
   src?: string | AnyActorLogic;
 
@@ -1865,10 +1881,16 @@ export interface Subscription {
   unsubscribe(): void;
 }
 
+/**
+ * @internal
+ */
 export interface InteropObservable<T> {
   [Symbol.observable]: () => InteropSubscribable<T>;
 }
 
+/**
+ * @internal
+ */
 export interface InteropSubscribable<T> {
   subscribe(observer: Observer<T>): Subscription;
 }
@@ -1882,6 +1904,11 @@ export interface Subscribable<T> extends InteropSubscribable<T> {
   ): Subscription;
 }
 
+type EventDescriptorMatches<
+  TEventType extends string,
+  TNormalizedDescriptor
+> = TEventType extends TNormalizedDescriptor ? true : false;
+
 export type ExtractEvent<
   TEvent extends EventObject,
   TDescriptor extends EventDescriptor<TEvent>
@@ -1889,7 +1916,11 @@ export type ExtractEvent<
   ? TEvent
   : NormalizeDescriptor<TDescriptor> extends infer TNormalizedDescriptor
     ? TEvent extends any
-      ? TEvent['type'] extends TNormalizedDescriptor
+      ? // true is the check type here to match both true and boolean
+        true extends EventDescriptorMatches<
+          TEvent['type'],
+          TNormalizedDescriptor
+        >
         ? TEvent
         : never
       : never
@@ -1944,6 +1975,7 @@ export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
       any,
       any,
       any,
+      any,
       any
     >
     ? R
@@ -1965,7 +1997,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer TTag,
       infer _TInput,
       infer TOutput,
-      infer TResolvedTypesMeta
+      infer _TResolvedTypesMeta
     >
     ? ActorRef<
         MachineSnapshot<
@@ -1974,10 +2006,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
           TChildren,
           TStateValue,
           TTag,
-          TOutput,
-          AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
-            ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
-            : TResolvedTypesMeta
+          TOutput
         >,
         TEvent
       >
@@ -2012,7 +2041,7 @@ export type InterpreterFrom<
   infer TTag,
   infer TInput,
   infer TOutput,
-  infer TResolvedTypesMeta
+  infer _TResolvedTypesMeta
 >
   ? Actor<
       ActorLogic<
@@ -2022,8 +2051,7 @@ export type InterpreterFrom<
           TChildren,
           TStateValue,
           TTag,
-          TOutput,
-          TResolvedTypesMeta
+          TOutput
         >,
         TEvent,
         TInput,
@@ -2065,6 +2093,7 @@ export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
   any, // action
   any, // guard
   any, // delay
+  any, // state value
   any, // tag
   any, // input
   any, // output
@@ -2228,9 +2257,9 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
           infer _TContext,
           infer TEvent,
           infer _TChildren,
+          infer _TStateValue,
           infer _TTag,
-          infer _TOutput,
-          infer _TResolvedTypesMeta
+          infer _TOutput
         >
       ? TEvent
       : R extends ActorRef<infer _, infer TEvent>
@@ -2257,16 +2286,16 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TTag,
       infer _TInput,
       infer _TOutput,
-      infer _TTypesMeta
+      infer _TResolvedTypesMeta
     >
     ? TContext
     : R extends MachineSnapshot<
           infer TContext,
           infer _TEvent,
           infer _TChildren,
+          infer _TStateValue,
           infer _TTag,
-          infer _TOutput,
-          infer _TResolvedTypesMeta
+          infer _TOutput
         >
       ? TContext
       : R extends Actor<infer TActorLogic>
@@ -2281,7 +2310,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
             infer _TTag,
             infer _TInput,
             infer _TOutput,
-            infer _TTypesMeta
+            infer _TResolvedTypesMeta
           >
           ? TContext
           : never
@@ -2327,21 +2356,19 @@ export type ToChildren<TActor extends ProvidedActor> =
       // or maybe even `TActor["logic"]` since it's possible to configure `{ src: string; logic: SomeConcreteLogic }`
       // TODO: consider adding `| undefined` here
       Record<string, AnyActorRef>
-    : Compute<
-        ToConcreteChildren<TActor> &
-          {
-            include: {
-              [id: string]: TActor extends any
-                ? ActorRefFrom<TActor['logic']> | undefined
-                : never;
-            };
-            exclude: {};
-          }[undefined extends TActor['id'] // if not all actors have literal string IDs then we need to create an index signature containing all possible actor types
+    : ToConcreteChildren<TActor> &
+        {
+          include: {
+            [id: string]: TActor extends any
+              ? ActorRefFrom<TActor['logic']> | undefined
+              : never;
+          };
+          exclude: {};
+        }[undefined extends TActor['id'] // if not all actors have literal string IDs then we need to create an index signature containing all possible actor types
+          ? 'include'
+          : string extends TActor['id']
             ? 'include'
-            : string extends TActor['id']
-              ? 'include'
-              : 'exclude']
-      >;
+            : 'exclude'];
 
 export type StateSchema = {
   states?: Record<string, StateSchema>;

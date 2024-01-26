@@ -1,14 +1,17 @@
-import { createMachine, interpret } from 'xstate';
+import { createMachine, createActor } from 'xstate';
 
 // https://github.com/serverlessworkflow/specification/tree/main/examples#monitor-patient-vital-signs-example
 export const workflow = createMachine(
   {
     id: 'patientVitalsWorkflow',
-    types: {} as {
-      context: {
+    types: {
+      input: {} as {
         patientId: string;
-      };
-      events:
+      },
+      context: {} as {
+        patientId: string;
+      },
+      events: {} as
         | {
             type: 'org.monitor.highBodyTemp';
             source: 'monitoringSource';
@@ -32,7 +35,7 @@ export const workflow = createMachine(
             time: string;
             patientId: string;
             data: { value: string };
-          };
+          }
     },
     context: ({ input }) => ({
       patientId: input.patientId
@@ -75,16 +78,13 @@ export const workflow = createMachine(
   }
 );
 
-const actor = interpret(workflow, {
+const actor = createActor(workflow, {
   input: {
     patientId: 'patient1'
   }
 });
 
 actor.subscribe({
-  next(state) {
-    console.log('Received event', state.event);
-  },
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }

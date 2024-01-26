@@ -1,5 +1,80 @@
 # xstate
 
+## 5.5.2
+
+### Patch Changes
+
+- [#4685](https://github.com/statelyai/xstate/pull/4685) [`e43eab144`](https://github.com/statelyai/xstate/commit/e43eab14498356daf859d0f59d02820ec4e6a040) Thanks [@davidkpiano](https://github.com/davidkpiano)! - State IDs that have periods in them are now supported if those periods are escaped.
+
+  The motivation is that external tools, such as [Stately Studio](https://stately.ai/studio), may allow users to enter any text into the state ID field. This change allows those tools to escape periods in state IDs, so that they don't conflict with the internal path-based state IDs.
+
+  E.g. if a state ID of `"Loading..."` is entered into the state ID field, instead of crashing either the external tool and/or the XState state machine, it should be converted by the tool to `"Loading\\.\\.\\."`, and those periods will be ignored by XState.
+
+## 5.5.1
+
+### Patch Changes
+
+- [#4667](https://github.com/statelyai/xstate/pull/4667) [`64ee3959c`](https://github.com/statelyai/xstate/commit/64ee3959c47f0dc02b0a15dc0e9bafb645c17ad1) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility with older versions of integration packages.
+
+## 5.5.0
+
+### Minor Changes
+
+- [#4596](https://github.com/statelyai/xstate/pull/4596) [`6113a590a`](https://github.com/statelyai/xstate/commit/6113a590a6e16c22f3d3e288b825975032bdfd48) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Introduce `getNextSnapshot(...)`, which determines the next snapshot for the given `actorLogic` based on the given `snapshot` and `event`.
+
+  If the `snapshot` is `undefined`, the initial snapshot of the `actorLogic` is used.
+
+  ```ts
+  import { getNextSnapshot } from 'xstate';
+  import { trafficLightMachine } from './trafficLightMachine.ts';
+
+  const nextSnapshot = getNextSnapshot(
+    trafficLightMachine, // actor logic
+    undefined, // snapshot (or initial state if undefined)
+    { type: 'TIMER' }
+  ); // event object
+
+  console.log(nextSnapshot.value);
+  // => 'yellow'
+
+  const nextSnapshot2 = getNextSnapshot(
+    trafficLightMachine, // actor logic
+    nextSnapshot, // snapshot
+    { type: 'TIMER' }
+  ); // event object
+
+  console.log(nextSnapshot2.value);
+  // =>'red'
+  ```
+
+### Patch Changes
+
+- [#4659](https://github.com/statelyai/xstate/pull/4659) [`1ae07f5bf`](https://github.com/statelyai/xstate/commit/1ae07f5bf5d5eeb26481ffad789afb4d107f70a4) Thanks [@Andarist](https://github.com/Andarist)! - Allow `event` in transitions to be narrowed down even when its `.type` is defined using a union.
+
+## 5.4.1
+
+### Patch Changes
+
+- [#4600](https://github.com/statelyai/xstate/pull/4600) [`1f2ccb97c`](https://github.com/statelyai/xstate/commit/1f2ccb97ca00ff2d2ec1c9996f8205dbe656602b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Typegen-based types for detecting missing implementations have been removed internally.
+
+## 5.4.0
+
+### Minor Changes
+
+- [#4616](https://github.com/statelyai/xstate/pull/4616) [`e8c0b15b2`](https://github.com/statelyai/xstate/commit/e8c0b15b2ed385b233c75d79def2a7e9fe99a597) Thanks [@Andarist](https://github.com/Andarist)! - `context` factories receive `self` now so you can immediately pass that as part of the input to spawned actors.
+
+  ```ts
+  setup({
+    /* ... */
+  }).createMachine({
+    context: ({ spawn, self }) => {
+      return {
+        childRef: spawn('child', { input: { parent: self } })
+      };
+    }
+  });
+  ```
+
 ## 5.3.1
 
 ### Patch Changes

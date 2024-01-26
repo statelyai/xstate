@@ -1,5 +1,11 @@
 # @xstate/graph
 
+## 2.0.0-beta.6
+
+### Minor Changes
+
+- [`58e945f70`](https://github.com/statelyai/xstate/commit/58e945f7097fbb8a16e13527a0808ffeabaa8a60) Thanks [@Andarist](https://github.com/Andarist)! - New version compatible with XState v5.
+
 ## 2.0.0-beta.5
 
 ### Patch Changes

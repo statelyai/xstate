@@ -1,5 +1,6 @@
 import { createMachine } from '../src/index.ts';
 import { raise } from '../src/actions/raise';
+import { createInertActorScope } from '../src/getNextSnapshot.ts';
 
 describe('machine.microstep()', () => {
   it('should return an array of states from all microsteps', () => {
@@ -30,7 +31,7 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const actorScope = null as any; // TODO: figure out the simulation API
+    const actorScope = createInertActorScope(machine);
     const states = machine.microstep(
       machine.getInitialSnapshot(actorScope),
       { type: 'GO' },
@@ -56,7 +57,7 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const actorScope = null as any; // TODO: figure out the simulation API
+    const actorScope = createInertActorScope(machine);
     const states = machine.microstep(
       machine.resolveState({ value: 'first' }),
       { type: 'TRIGGER' },
@@ -87,7 +88,7 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const actorScope = null as any; // TODO: figure out the simulation API
+    const actorScope = createInertActorScope(machine);
     const states = machine.microstep(
       machine.resolveState({ value: 'first' }),
       { type: 'TRIGGER' },
@@ -110,7 +111,7 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const actorScope = null as any; // TODO: figure out the simulation API
+    const actorScope = createInertActorScope(machine);
     const states = machine.microstep(
       machine.getInitialSnapshot(actorScope),
       { type: 'TRIGGER' },
@@ -153,7 +154,7 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const actorScope = null as any; // TODO: figure out the simulation API
+    const actorScope = createInertActorScope(machine);
     const states = machine.microstep(
       machine.getInitialSnapshot(actorScope),
       { type: 'TRIGGER' },
