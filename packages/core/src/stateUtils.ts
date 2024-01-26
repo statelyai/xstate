@@ -643,7 +643,7 @@ export function getStateNodes<
       }
       const subStateNodes = getStateNodes(
         subStateNode,
-        stateValue[subStateKey]
+        stateValue[subStateKey]!
       );
 
       return allSubStateNodes.concat(subStateNodes);
@@ -684,7 +684,7 @@ export function transitionCompoundNode<
   const childStateNode = getStateNode(stateNode, subStateKeys[0]);
   const next = transitionNode(
     childStateNode,
-    stateValue[subStateKeys[0]],
+    stateValue[subStateKeys[0]]!,
     snapshot,
     event
   );
