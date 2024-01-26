@@ -536,56 +536,7 @@ describe('system', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('should allow subscribing to system registration events', () => {
-    const aSystemId = 'a_child';
-    const bSystemId = 'b_child';
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          invoke: {
-            src: createMachine({}),
-            systemId: aSystemId
-          },
-          on: {
-            to_b: 'b'
-          }
-        },
-        b: {
-          invoke: {
-            src: createMachine({}),
-            systemId: bSystemId
-          },
-          on: {
-            to_a: 'a'
-          }
-        }
-      }
-    });
-
-    const actorRef = createActor(machine).start();
-
-    let keysOverTime: string[][] = [
-      Object.keys(actorRef.system.getSnapshot().actors)
-    ];
-
-    actorRef.system.subscribe((snapshot) => {
-      keysOverTime.push(Object.keys(snapshot.actors));
-    });
-
-    actorRef.send({ type: 'to_b' });
-    expect(keysOverTime).toEqual([['a_child'], [], ['b_child']]);
-    actorRef.send({ type: 'to_a' });
-    expect(keysOverTime).toEqual([
-      ['a_child'],
-      [],
-      ['b_child'],
-      [],
-      ['a_child']
-    ]);
-  });
-
-  it('should allow unsubscribing from a system registration subscription', () => {
+  it('should allow subscriptions to a system', () => {
     const aSystemId = 'a_child';
     const bSystemId = 'b_child';
     const machine = createMachine({
