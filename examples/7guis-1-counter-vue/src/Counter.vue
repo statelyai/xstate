@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useMachine } from '@xstate/vue'
 import { counterMachine } from './counterMachine';
-import { createBrowserInspector } from '@statelyai/inspect';
 
 const { snapshot, send } = useMachine(counterMachine)
 </script>
