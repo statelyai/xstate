@@ -38,7 +38,8 @@ import {
   ActionFunction,
   AnyTransitionConfig,
   ProvidedActor,
-  AnyActorScope
+  AnyActorScope,
+  AnyActorRef
 } from './types.ts';
 import {
   resolveOutput,
@@ -658,13 +659,14 @@ export function transitionAtomicNode<
   stateNode: AnyStateNode,
   stateValue: string,
   snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any>,
-  event: TEvent
+  event: TEvent,
+  actorRef: AnyActorRef
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
-  const next = childStateNode.next(snapshot, event);
+  const next = childStateNode.next(snapshot, event, actorRef);
 
   if (!next || !next.length) {
-    return stateNode.next(snapshot, event);
+    return stateNode.next(snapshot, event, actorRef);
   }
 
   return next;
@@ -677,7 +679,8 @@ export function transitionCompoundNode<
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
   snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any>,
-  event: TEvent
+  event: TEvent,
+  actorRef: AnyActorRef
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const subStateKeys = Object.keys(stateValue);
 
@@ -686,11 +689,12 @@ export function transitionCompoundNode<
     childStateNode,
     stateValue[subStateKeys[0]]!,
     snapshot,
-    event
+    event,
+    actorRef
   );
 
   if (!next || !next.length) {
-    return stateNode.next(snapshot, event);
+    return stateNode.next(snapshot, event, actorRef);
   }
 
   return next;
@@ -703,7 +707,8 @@ export function transitionParallelNode<
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
   snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any>,
-  event: TEvent
+  event: TEvent,
+  actorRef: AnyActorRef
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
 
@@ -719,14 +724,15 @@ export function transitionParallelNode<
       subStateNode,
       subStateValue,
       snapshot,
-      event
+      event,
+      actorRef
     );
     if (innerTransitions) {
       allInnerTransitions.push(...innerTransitions);
     }
   }
   if (!allInnerTransitions.length) {
-    return stateNode.next(snapshot, event);
+    return stateNode.next(snapshot, event, actorRef);
   }
 
   return allInnerTransitions;
@@ -739,20 +745,39 @@ export function transitionNode<
   stateNode: AnyStateNode,
   stateValue: StateValue,
   snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any, any>,
-  event: TEvent
+  event: TEvent,
+  actorRef: AnyActorRef
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
   if (typeof stateValue === 'string') {
-    return transitionAtomicNode(stateNode, stateValue, snapshot, event);
+    return transitionAtomicNode(
+      stateNode,
+      stateValue,
+      snapshot,
+      event,
+      actorRef
+    );
   }
 
   // compound node
   if (Object.keys(stateValue).length === 1) {
-    return transitionCompoundNode(stateNode, stateValue, snapshot, event);
+    return transitionCompoundNode(
+      stateNode,
+      stateValue,
+      snapshot,
+      event,
+      actorRef
+    );
   }
 
   // parallel node
-  return transitionParallelNode(stateNode, stateValue, snapshot, event);
+  return transitionParallelNode(
+    stateNode,
+    stateValue,
+    snapshot,
+    event,
+    actorRef
+  );
 }
 
 function getHistoryNodes(stateNode: AnyStateNode): Array<AnyStateNode> {
@@ -1632,7 +1657,11 @@ export function macrostep(
     const currentEvent = nextEvent;
     const isErr = isErrorActorEvent(currentEvent);
 
-    const transitions = selectTransitions(currentEvent, nextSnapshot);
+    const transitions = selectTransitions(
+      currentEvent,
+      nextSnapshot,
+      actorScope.self
+    );
 
     if (isErr && !transitions.length) {
       // TODO: we should likely only allow transitions selected by very explicit descriptors
@@ -1664,7 +1693,7 @@ export function macrostep(
   while (nextSnapshot.status === 'active') {
     let enabledTransitions: AnyTransitionDefinition[] =
       shouldSelectEventlessTransitions
-        ? selectEventlessTransitions(nextSnapshot, nextEvent)
+        ? selectEventlessTransitions(nextSnapshot, nextEvent, actorScope)
         : [];
 
     // eventless transitions should always be selected after selecting *regular* transitions
@@ -1676,7 +1705,11 @@ export function macrostep(
         break;
       }
       nextEvent = internalQueue.shift()!;
-      enabledTransitions = selectTransitions(nextEvent, nextSnapshot);
+      enabledTransitions = selectTransitions(
+        nextEvent,
+        nextSnapshot,
+        actorScope.self
+      );
     }
 
     nextSnapshot = microstep(
@@ -1717,14 +1750,16 @@ function stopChildren(
 
 function selectTransitions(
   event: AnyEventObject,
-  nextState: AnyMachineSnapshot
+  nextState: AnyMachineSnapshot,
+  actorRef: AnyActorRef
 ): AnyTransitionDefinition[] {
-  return nextState.machine.getTransitionData(nextState as any, event);
+  return nextState.machine.getTransitionData(nextState as any, event, actorRef);
 }
 
 function selectEventlessTransitions(
   nextState: AnyMachineSnapshot,
-  event: AnyEventObject
+  event: AnyEventObject,
+  actorScope: AnyActorScope
 ): AnyTransitionDefinition[] {
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
   const atomicStates = nextState._nodes.filter(isAtomicStateNode);
@@ -1739,7 +1774,13 @@ function selectEventlessTransitions(
       for (const transition of s.always) {
         if (
           transition.guard === undefined ||
-          evaluateGuard(transition.guard, nextState.context, event, nextState)
+          evaluateGuard(
+            transition.guard,
+            nextState.context,
+            event,
+            nextState,
+            actorScope.self
+          )
         ) {
           enabledTransitionSet.add(transition);
           break loop;

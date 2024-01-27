@@ -298,9 +298,12 @@ export class StateMachine<
       TTag,
       TOutput
     >,
-    event: TEvent
+    event: TEvent,
+    actorRef: AnyActorRef
   ): Array<TransitionDefinition<TContext, TEvent>> {
-    return transitionNode(this.root, snapshot.value, snapshot, event) || [];
+    return (
+      transitionNode(this.root, snapshot.value, snapshot, event, actorRef) || []
+    );
   }
 
   /**

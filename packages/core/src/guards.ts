@@ -9,7 +9,10 @@ import type {
   NoInfer,
   WithDynamicParams,
   Identity,
-  Elements
+  Elements,
+  UnifiedArg,
+  AnyActorScope,
+  AnyActorRef
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
 
@@ -49,10 +52,7 @@ export type GuardPredicate<
 export interface GuardArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject
-> {
-  context: TContext;
-  event: TExpressionEvent;
-}
+> extends UnifiedArg<TContext, TExpressionEvent, any> {}
 
 export type Guard<
   TContext extends MachineContext,
@@ -85,7 +85,8 @@ interface BuiltinGuard {
   check: (
     snapshot: AnyMachineSnapshot,
     guardArgs: GuardArgs<any, any>,
-    params: unknown
+    params: unknown,
+    actorRef: AnyActorRef
   ) => boolean;
 }
 
@@ -133,9 +134,10 @@ export function stateIn<
 function checkNot(
   snapshot: AnyMachineSnapshot,
   { context, event }: GuardArgs<any, any>,
-  { guards }: { guards: readonly UnknownGuard[] }
+  { guards }: { guards: readonly UnknownGuard[] },
+  actorRef: AnyActorRef
 ) {
-  return !evaluateGuard(guards[0], context, event, snapshot);
+  return !evaluateGuard(guards[0], context, event, snapshot, actorRef);
 }
 
 /**
@@ -192,10 +194,11 @@ export function not<
 function checkAnd(
   snapshot: AnyMachineSnapshot,
   { context, event }: GuardArgs<any, any>,
-  { guards }: { guards: readonly UnknownGuard[] }
+  { guards }: { guards: readonly UnknownGuard[] },
+  actorRef: AnyActorRef
 ) {
   return guards.every((guard) =>
-    evaluateGuard(guard, context, event, snapshot)
+    evaluateGuard(guard, context, event, snapshot, actorRef)
   );
 }
 
@@ -266,9 +269,12 @@ export function and<
 function checkOr(
   snapshot: AnyMachineSnapshot,
   { context, event }: GuardArgs<any, any>,
-  { guards }: { guards: readonly UnknownGuard[] }
+  { guards }: { guards: readonly UnknownGuard[] },
+  actorRef: AnyActorRef
 ) {
-  return guards.some((guard) => evaluateGuard(guard, context, event, snapshot));
+  return guards.some((guard) =>
+    evaluateGuard(guard, context, event, snapshot, actorRef)
+  );
 }
 
 /**
@@ -343,7 +349,8 @@ export function evaluateGuard<
   guard: UnknownGuard | UnknownInlineGuard,
   context: TContext,
   event: TExpressionEvent,
-  snapshot: AnyMachineSnapshot
+  snapshot: AnyMachineSnapshot,
+  actorRef: AnyActorRef
 ): boolean {
   const { machine } = snapshot;
   const isInline = typeof guard === 'function';
@@ -363,12 +370,14 @@ export function evaluateGuard<
   }
 
   if (typeof resolved !== 'function') {
-    return evaluateGuard(resolved!, context, event, snapshot);
+    return evaluateGuard(resolved!, context, event, snapshot, actorRef);
   }
 
-  const guardArgs = {
+  const guardArgs: GuardArgs<any, any> = {
     context,
-    event
+    event,
+    self: actorRef,
+    system: actorRef.system
   };
 
   const guardParams =
@@ -392,6 +401,7 @@ export function evaluateGuard<
   return builtinGuard.check(
     snapshot,
     guardArgs,
-    resolved // this holds all params
+    resolved, // this holds all params
+    actorRef
   );
 }

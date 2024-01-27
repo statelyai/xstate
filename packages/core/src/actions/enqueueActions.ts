@@ -128,7 +128,7 @@ function resolveEnqueueActions(
     event: args.event,
     enqueue,
     check: (guard) =>
-      evaluateGuard(guard, snapshot.context, args.event, snapshot),
+      evaluateGuard(guard, snapshot.context, args.event, snapshot, args.self),
     self: actorScope.self,
     system: actorScope.system
   });
