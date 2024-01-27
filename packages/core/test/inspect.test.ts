@@ -950,7 +950,7 @@ describe('inspect', () => {
                 'stringAction',
                 { type: 'namedAction', params: { foo: 'bar' } },
                 () => {
-                  console.log('inline');
+                  /* inline */
                 }
               ]
             }
@@ -1003,7 +1003,7 @@ describe('inspect', () => {
           "action": {
             "params": undefined,
             "type": "() => {
-                      console.log('inline');
+                      /* inline */
                     }",
           },
           "type": "@xstate.action",
