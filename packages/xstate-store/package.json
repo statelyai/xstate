@@ -1,0 +1,42 @@
+{
+  "name": "@xstate/store",
+  "version": "0.0.1",
+  "description": "Simple stores",
+  "keywords": [
+    "store",
+    "state"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store#readme",
+  "license": "MIT",
+  "main": "dist/xstate-store.cjs.js",
+  "module": "dist/xstate-store.esm.js",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-store.cjs.mjs",
+        "default": "./dist/xstate-store.cjs.js"
+      },
+      "module": "./dist/xstate-store.esm.js",
+      "import": "./dist/xstate-store.cjs.mjs",
+      "default": "./dist/xstate-store.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "scripts": {},
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "xstate": "5.5.2"
+  }
+}
