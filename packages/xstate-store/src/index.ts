@@ -1,45 +1,54 @@
 import {
+  Compute,
+  InteropSubscribable,
+  Values,
   toObserver,
-  type EventObject,
   type InteropObservable,
   type Observer,
   type Subscribable
 } from 'xstate';
-
-type Sender<Ev extends EventObject> = ((ev: Ev) => void) & {
-  [K in Ev['type']]: (payload: Omit<Ev & { type: K }, 'type'>) => void;
-};
+import { symbolObservable } from '../../core/src/symbolObservable';
 
 function deepClone(val: any) {
   return JSON.parse(JSON.stringify(val));
 }
 
-interface Store<T, Ev extends EventObject>
+interface Store<T, Ev extends EventPayloadMap>
   extends Subscribable<T>,
     InteropObservable<T> {
-  send: Sender<Ev>;
+  send: (event: Compute<Foo<Ev>>) => void;
   getSnapshot: () => T;
   getInitialSnapshot: () => T;
 }
 
-export function createStore<T, Ev extends EventObject>(
+type EventPayloadMap = Record<string, {}>;
+
+type Foo<T extends EventPayloadMap> = Values<{
+  [K in keyof T & string]: T[K] & { type: K };
+}>;
+
+export function createStore<T, TEventPayloadMap extends EventPayloadMap>(
   context: T,
   transitions?: {
-    [K in Ev['type']]: (ctx: T, ev: Ev) => void;
+    [K in keyof TEventPayloadMap]: (ctx: T, ev: TEventPayloadMap[K]) => void;
   }
-): Store<T, Ev> {
+): Store<T, TEventPayloadMap> & {
+  [K in keyof TEventPayloadMap]: (
+    payload: Compute<Omit<TEventPayloadMap[K], 'type'>>
+  ) => void;
+} {
   const initialCtx = deepClone(context);
   let ctx = deepClone(context);
-  function receive(ev: Ev) {
-    const fn = transitions?.[ev.type as Ev['type']];
+  function receive(ev: Foo<TEventPayloadMap>) {
+    const fn = transitions?.[ev.type as Foo<TEventPayloadMap>['type']];
 
-    fn?.(ctx, ev);
+    fn?.(ctx, ev as any);
     const cloned = deepClone(ctx);
     observers?.forEach((o) => o.next?.(cloned));
   }
   let observers: Set<Observer<any>> | undefined;
 
-  const o: Store<T, Ev> = {
+  const o: Store<T, Foo<TEventPayloadMap>> = {
     // @ts-ignore
     send(ev: Ev) {
       receive(ev);
@@ -60,16 +69,17 @@ export function createStore<T, Ev extends EventObject>(
           return observers?.delete(observer);
         }
       };
+    },
+    [symbolObservable](): InteropSubscribable<any> {
+      return this;
     }
   };
 
   if (transitions) {
-    for (const [key, fn] of Object.entries(transitions)) {
-      // o[key] = (ev: Ev) => fn(ctx, ev);
-      // @ts-ignore
-      o.send[key] = (ev) => receive({ ...ev, type: key });
+    for (const key of Object.keys(transitions)) {
+      o[key] = (ev) => receive({ ...ev, type: key });
     }
   }
 
-  return o;
+  return o as any;
 }

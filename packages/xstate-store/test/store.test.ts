@@ -5,6 +5,7 @@ it('creates a store API', () => {
 
   expect(store).toMatchInlineSnapshot(`
     {
+      "@@observable": [Function],
       "getInitialSnapshot": [Function],
       "getSnapshot": [Function],
       "send": [Function],
@@ -27,7 +28,7 @@ it('1', () => {
 
   const initial = store.getInitialSnapshot();
 
-  store.send.inc({ by: 1 });
+  store.inc({ by: 1 });
 
   const next = store.getSnapshot();
 
@@ -41,14 +42,30 @@ it('store', () => {
       count: 0
     },
     {
-      inc: (ctx, ev: { type: 'inc'; by: number }) => {
+      inc: (ctx, ev: { by: number }) => {
         ctx.count += ev.by;
+      },
+      dec: (ctx, ev: { by: number }) => {
+        ctx.count -= ev.by;
       }
     }
   );
 
-  store.send.inc({ by: 1 });
   store.send({ type: 'inc', by: 9 });
+  store.inc({ by: 1 });
+  store.send({ type: 'inc', by: 3 });
+  store.dec({ by: 3 });
 
   expect(store.getSnapshot()).toEqual({ count: 10 });
+});
+
+it('works with any context', () => {
+  const store = createStore(0, {
+    inc: (ctx) => {
+      ctx++;
+    },
+    dec: (ctx) => {
+      ctx--;
+    }
+  });
 });
