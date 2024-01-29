@@ -1,5 +1,17 @@
 # xstate
 
+## 5.6.0
+
+### Minor Changes
+
+- [#4704](https://github.com/statelyai/xstate/pull/4704) [`78699aef6`](https://github.com/statelyai/xstate/commit/78699aef6f1a100ee06c4ea2250da15abffbace8) Thanks [@Andarist](https://github.com/Andarist)! - `createActor` will now error if the required `input` is not given to it.
+
+- [#4688](https://github.com/statelyai/xstate/pull/4688) [`14902e17a`](https://github.com/statelyai/xstate/commit/14902e17a7d1d9030e99bc1d1ca289931bf8e581) Thanks [@Andarist](https://github.com/Andarist)! - The `schemas` property in `setup(...)` is now passed through to the resulting machine. This property is meant to be used with future developer tooling, and is typed as `unknown` for now.
+
+### Patch Changes
+
+- [#4706](https://github.com/statelyai/xstate/pull/4706) [`51b844230`](https://github.com/statelyai/xstate/commit/51b844230a26962c6ff351908eb08170567b629f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility with the upcoming TypeScript 5.4
+
 ## 5.5.2
 
 ### Patch Changes
