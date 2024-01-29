@@ -1,11 +1,6 @@
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #f2f6f7;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,13 +8,8 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+* {
+  box-sizing: border-box;
 }
 
 body {
@@ -30,34 +20,6 @@ body {
   min-height: 100vh;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-.card {
-  padding: 2em;
-}
-
 #app {
   max-width: 1280px;
   margin: 0 auto;
@@ -65,15 +27,87 @@ button:focus-visible {
   text-align: center;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.case {
+  display: flex;
+  padding: 32px 24px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 20px;
+
+  border-radius: 32px;
+  border-right: 12px solid #b7c1c2;
+  border-bottom: 12px solid #b7c1c2;
+  background: #d6d8d8;
+}
+
+div {
+  position: relative;
+}
+
+input {
+  display: flex;
+  width: 186px;
+  height: 97px;
+  padding: 8px 32px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  border-radius: 24px;
+  border: none;
+
+  font-family: NovaMono, monospace;
+  font-size: 48px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+label {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  display: flex;
+  width: 54px;
+  height: 54px;
+  padding: 8px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  font-family: Roboto, sans-serif;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: normal;
+}
+
+::placeholder {
+  filter: opacity(0.4);
+}
+
+#celsius {
+  border-top: 1px solid #f3f0b7;
+  background: #faffe5;
+  color: #a6ad89;
+}
+
+#celsius + label {
+  color: #c1c5b0;
+}
+
+#fahrenheit {
+  border-top: 1px solid #a6f7cb;
+  background: #dafad9;
+  color: #85b28f;
+}
+
+#fahrenheit + label {
+  color: #b0c7b5;
+}
+
+input:focus {
+  outline: 6px dashed;
+  outline-offset: -6px;
+  filter: saturate(160%) brightness(1.06);
 }

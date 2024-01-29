@@ -6,12 +6,18 @@ const { snapshot, send } = useMachine(tempMachine);
 </script>
 
 <template>
-  <div>
-    <label for="fahrenheit">Fahrenheit</label>
-    <input @input="(event) => send({ type: 'changeF', value: (event!.target as HTMLInputElement)!.value })" type="text"
-      :value="snapshot.context.fahrenheit" id="fahrenheit" size="10" />
-    <label for="celsius">Celsius</label>
-    <input @input="(event) => send({ type: 'changeC', value: (event!.target as HTMLInputElement)!.value })"
-      :value="snapshot.context.celsius" type="text" id="celsius" size="10" />
+  <div class="case">
+    <div>
+      <input placeholder="..."
+        @input="(event) => send({ type: 'changeC', value: (event!.target as HTMLInputElement)!.value })"
+        :value="snapshot.context.celsius" type="text" id="celsius" />
+      <label for="celsius">°C</label>
+    </div>
+    <div>
+      <input placeholder="..."
+        @input="(event) => send({ type: 'changeF', value: (event!.target as HTMLInputElement)!.value })" type="text"
+        :value="snapshot.context.fahrenheit" id="fahrenheit" />
+      <label for="fahrenheit">°F</label>
+    </div>
   </div>
 </template>
