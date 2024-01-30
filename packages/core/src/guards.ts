@@ -163,10 +163,10 @@ function checkNot(
 }
 
 /**
- * Higher-order guard that evaluates to `true` if the `guard` passed to it evaluates to `false`.
- *
- * @category Guards
- * @example
+* Higher-order guard that evaluates to `true` if the `guard` passed to it evaluates to `false`.
+*
+* @category Guards
+* @example
   ```ts
   import { setup, not } from 'xstate';
 
@@ -186,8 +186,8 @@ function checkNot(
     }
   });
   ```
- * @returns A guard
- */
+* @returns A guard
+*/
 export function not<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -224,11 +224,11 @@ function checkAnd(
 }
 
 /**
- * Higher-order guard that evaluates to `true` if all `guards` passed to it
- * evaluate to `true`.
- *
- * @category Guards
- * @example
+* Higher-order guard that evaluates to `true` if all `guards` passed to it
+* evaluate to `true`.
+*
+* @category Guards
+* @example
   ```ts
   import { setup, and } from 'xstate';
 
@@ -251,8 +251,8 @@ function checkAnd(
     }
   });
   ```
- * @returns A guard action object
- */
+* @returns A guard action object
+*/
 export function and<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -296,11 +296,11 @@ function checkOr(
 }
 
 /**
- * Higher-order guard that evaluates to `true` if any of the `guards` passed to it
- * evaluate to `true`.
- *
- * @category Guards
- * @example
+* Higher-order guard that evaluates to `true` if any of the `guards` passed to it
+* evaluate to `true`.
+*
+* @category Guards
+* @example
   ```ts
   import { setup, or } from 'xstate';
 
@@ -323,8 +323,8 @@ function checkOr(
     }
   });
   ```
- * @returns A guard action object
- */
+* @returns A guard action object
+*/
 export function or<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -364,58 +364,40 @@ export function evaluateGuard<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject
 >(
-  guard: UnknownGuard | UnknownInlineGuard,
+  guard: UnknownGuard,
   context: TContext,
   event: TExpressionEvent,
   snapshot: AnyMachineSnapshot
 ): boolean {
   const { machine } = snapshot;
+
   const isInline = typeof guard === 'function';
+  const isString = typeof guard === 'string';
 
-  const resolved = isInline
-    ? guard
-    : machine.implementations.guards[
-        typeof guard === 'string' ? guard : guard.type
-      ];
-
-  if (!isInline && !resolved) {
-    throw new Error(
-      `Guard '${
-        typeof guard === 'string' ? guard : guard.type
-      }' is not implemented.`
-    );
-  }
-
-  if (typeof resolved !== 'function') {
-    return evaluateGuard(resolved!, context, event, snapshot);
-  }
+  const key = isInline ? (undefined as never) : isString ? guard : guard.type;
+  const resolved = isInline ? guard : machine.implementations.guards[key];
 
   const guardArgs = {
     context,
     event
   };
 
-  const guardParams =
-    isInline || typeof guard === 'string'
-      ? undefined
-      : 'params' in guard
-        ? typeof guard.params === 'function'
-          ? guard.params({ context, event })
-          : guard.params
-        : undefined;
-
-  if (!('check' in resolved)) {
-    // the existing type of `.guards` assumes non-nullable `TExpressionGuard`
-    // inline guards expect `TExpressionGuard` to be set to `undefined`
-    // it's fine to cast this here, our logic makes sure that we call those 2 "variants" correctly
-    return resolved(guardArgs, guardParams as never);
+  if (!resolved) {
+    throw new Error(`Guard '${key}' is not implemented.`);
+  } else if (typeof resolved === 'string') {
+    return evaluateGuard(resolved, context, event, snapshot);
+  } else if ('check' in resolved) {
+    const builtinGuard = resolved as unknown as BuiltinGuard;
+    return builtinGuard.check(snapshot, guardArgs, resolved);
+  } else {
+    const guardParams =
+      isInline || isString
+        ? undefined
+        : 'params' in guard
+          ? typeof guard.params === 'function'
+            ? guard.params({ context, event })
+            : guard.params
+          : undefined;
+    return resolved(guardArgs, guardParams);
   }
-
-  const builtinGuard = resolved as unknown as BuiltinGuard;
-
-  return builtinGuard.check(
-    snapshot,
-    guardArgs,
-    resolved // this holds all params
-  );
 }
