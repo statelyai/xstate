@@ -253,7 +253,7 @@ describe('guard conditions', () => {
       [
         [
           [Error: Unable to evaluate guard 'doesNotExist' in transition for event 'BAD_COND' in state node '(machine).foo':
-      Guard 'doesNotExist' is not implemented.'.],
+      Guard 'doesNotExist' is not implemented.],
         ],
       ]
     `);
@@ -888,7 +888,7 @@ describe('referencing guards', () => {
       [
         [
           [Error: Unable to evaluate guard 'missing-predicate' in transition for event 'EVENT' in state node 'invalid-predicate.active':
-      Guard 'missing-predicate' is not implemented.'.],
+      Guard 'missing-predicate' is not implemented.],
         ],
       ]
     `);

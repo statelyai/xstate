@@ -162,7 +162,7 @@ function checkNot(
     }
   });
   ```
- * @returns A guard 
+ * @returns A guard
  */
 export function not<
   TContext extends MachineContext,
@@ -358,7 +358,7 @@ export function evaluateGuard<
     throw new Error(
       `Guard '${
         typeof guard === 'string' ? guard : guard.type
-      }' is not implemented.'.`
+      }' is not implemented.`
     );
   }
 
