@@ -1643,51 +1643,51 @@ describe('setup()', () => {
         }
       ]
     });
+  });
 
-    it('can extend guards', () => {
-      const s1 = setup({
-        guards: {
-          foo: () => true
-        }
-      });
-      const s2 = s1.extend({
-        guards: {
-          bar: () => true
-        }
-      });
-
-      s2.createMachine({
-        on: {
-          e1: { guard: 'foo' },
-          e2: { guard: 'bar' },
-          // @ts-expect-error
-          e3: {
-            guard: 'unknown'
-          }
-        }
-      });
+  it('can extend guards', () => {
+    const s1 = setup({
+      guards: {
+        foo: () => true
+      }
+    });
+    const s2 = s1.extend({
+      guards: {
+        bar: () => true
+      }
     });
 
-    it('can extend delays', () => {
-      const s1 = setup({
-        delays: {
-          now: 1
+    s2.createMachine({
+      on: {
+        e1: { guard: 'foo' },
+        e2: { guard: 'bar' },
+        // @ts-expect-error
+        e3: {
+          guard: 'unknown'
         }
-      });
-      const s2 = s1.extend({
-        delays: {
-          never: () => 3
-        }
-      });
+      }
+    });
+  });
 
-      s2.createMachine({
-        after: {
-          now: {},
-          never: {},
-          // @ts-expect-error
-          whenever: {}
-        }
-      });
+  it('can extend delays', () => {
+    const s1 = setup({
+      delays: {
+        now: 1
+      }
+    });
+    const s2 = s1.extend({
+      delays: {
+        never: () => 3
+      }
+    });
+
+    s2.createMachine({
+      after: {
+        now: {},
+        never: {},
+        // @ts-expect-error
+        whenever: {}
+      }
     });
   });
 });
