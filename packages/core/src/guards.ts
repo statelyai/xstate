@@ -102,6 +102,30 @@ function checkStateIn(
   return snapshot.matches(stateValue);
 }
 
+/**
+* Guard that evaluates to `true` when the `stateValue` passed to it matches the current machine state.
+*
+* @category Guards
+* @example
+  ```ts
+  import { setup, stateIn } from 'xstate';
+
+  const machine = setup({}).createMachine({
+    on: {
+      someEvent: {
+        guard: stateIn('someState'),
+        actions: () => {
+          // will be executed if machine is in `someState`
+        }
+      }
+    },
+    states: {
+      someState: {}
+    }
+  });
+  ```
+* @returns A guard
+*/
 export function stateIn<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
