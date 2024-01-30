@@ -1688,7 +1688,7 @@ export interface StateConfig<
   context: TContext;
   historyValue?: HistoryValue<TContext, TEvent>;
   /**
-   * @internal
+   * @hidden
    */
   _nodes: Array<StateNode<TContext, TEvent>>;
   children: Record<string, ActorRef<any, any>>;
@@ -1877,16 +1877,10 @@ export interface Subscription {
   unsubscribe(): void;
 }
 
-/**
- * @internal
- */
 export interface InteropObservable<T> {
   [Symbol.observable]: () => InteropSubscribable<T>;
 }
 
-/**
- * @internal
- */
 export interface InteropSubscribable<T> {
   subscribe(observer: Observer<T>): Subscription;
 }
@@ -1941,7 +1935,7 @@ export interface ActorRef<
    */
   id: string;
   sessionId: string;
-  /** @internal */
+  /** @hidden */
   _send: (event: TEvent) => void;
   send: (event: TEvent) => void;
   start: () => void;
@@ -1952,7 +1946,7 @@ export interface ActorRef<
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
   system: AnyActorSystem;
-  /** @internal */
+  /** @hidden */
   _processingStatus: ProcessingStatus;
   src: string | AnyActorLogic;
 }
