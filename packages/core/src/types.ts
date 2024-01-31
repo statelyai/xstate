@@ -1688,7 +1688,7 @@ export interface StateConfig<
   context: TContext;
   historyValue?: HistoryValue<TContext, TEvent>;
   /**
-   * @hidden
+   * @internal
    */
   _nodes: Array<StateNode<TContext, TEvent>>;
   children: Record<string, ActorRef<any, any>>;
