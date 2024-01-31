@@ -36,6 +36,21 @@ type NormalizeGuardArgArray<TArg extends unknown[]> = Elements<{
   [K in keyof TArg]: NormalizeGuardArg<TArg[K]>;
 }>;
 
+type LogicGuards<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TArg extends unknown[]
+> = readonly [
+  ...{
+    [K in keyof TArg]: SingleGuardArg<
+      TContext,
+      TExpressionEvent,
+      unknown,
+      TArg[K]
+    >;
+  }
+];
+
 export type GuardPredicate<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -258,16 +273,7 @@ export function and<
   TExpressionEvent extends EventObject,
   TArg extends unknown[]
 >(
-  guards: readonly [
-    ...{
-      [K in keyof TArg]: SingleGuardArg<
-        TContext,
-        TExpressionEvent,
-        unknown,
-        TArg[K]
-      >;
-    }
-  ]
+  guards: LogicGuards<TContext, TExpressionEvent, TArg>
 ): GuardPredicate<
   TContext,
   TExpressionEvent,
@@ -330,16 +336,7 @@ export function or<
   TExpressionEvent extends EventObject,
   TArg extends unknown[]
 >(
-  guards: readonly [
-    ...{
-      [K in keyof TArg]: SingleGuardArg<
-        TContext,
-        TExpressionEvent,
-        unknown,
-        TArg[K]
-      >;
-    }
-  ]
+  guards: LogicGuards<TContext, TExpressionEvent, TArg>
 ): GuardPredicate<
   TContext,
   TExpressionEvent,
