@@ -1946,7 +1946,7 @@ export interface ActorRef<
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
   system: AnyActorSystem;
-  /** @hidden */
+  /** @internal */
   _processingStatus: ProcessingStatus;
   src: string | AnyActorLogic;
 }
