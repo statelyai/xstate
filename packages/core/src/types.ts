@@ -1046,7 +1046,7 @@ export type DelayConfig<
 
 // TODO: possibly refactor this somehow, use even a simpler type, and maybe even make `machine.options` private or something
 /**
- * @internal
+ * @hidden
  */
 export interface MachineImplementationsSimplified<
   TContext extends MachineContext,
@@ -1879,16 +1879,10 @@ export interface Subscription {
   unsubscribe(): void;
 }
 
-/**
- * @internal
- */
 export interface InteropObservable<T> {
   [Symbol.observable]: () => InteropSubscribable<T>;
 }
 
-/**
- * @internal
- */
 export interface InteropSubscribable<T> {
   subscribe(observer: Observer<T>): Subscription;
 }
