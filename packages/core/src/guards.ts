@@ -95,27 +95,57 @@ type UnknownInlineGuard = Guard<
   ParameterizedObject
 >;
 
+type BuiltinPredicate<Params extends Record<string, any>> = (
+  snapshot: AnyMachineSnapshot,
+  args: GuardArgs<any, any>,
+  params: Params
+) => boolean;
+
 interface BuiltinGuard {
   (): boolean;
-  check: (
-    snapshot: AnyMachineSnapshot,
-    guardArgs: GuardArgs<any, any>,
-    params: unknown
-  ) => boolean;
+  [BuiltinGuardKey]: {
+    check: BuiltinPredicate<any>;
+    params: Record<string, any>;
+  };
 }
 
-function checkStateIn(
-  snapshot: AnyMachineSnapshot,
-  _: GuardArgs<any, any>,
-  { stateValue }: { stateValue: StateValue }
-) {
-  if (typeof stateValue === 'string' && isStateId(stateValue)) {
-    const target = snapshot.machine.getStateNodeById(stateValue);
-    return snapshot._nodes.some((sn) => sn === target);
-  }
+type BuiltinPredicateGuard = UnknownGuard | GuardPredicate<any, any, any, any>;
 
-  return snapshot.matches(stateValue);
+type BuiltinGuardKey = typeof BuiltinGuardKey;
+const BuiltinGuardKey = Symbol();
+
+function builtinGuard<
+  TBuiltinPredicate extends BuiltinPredicate<TParams>,
+  TParams extends Record<string, any>
+>(check: TBuiltinPredicate, params: TParams) {
+  const builtinGuard: BuiltinGuard = function builtinGuard() {
+    if (isDevelopment) {
+      throw new Error(`This isn't supposed to be called`);
+    }
+    return false;
+  };
+
+  builtinGuard[BuiltinGuardKey] = {
+    check,
+    params
+  };
+
+  return builtinGuard;
 }
+
+function isBuiltinGuard(guard: any): guard is BuiltinGuard {
+  return BuiltinGuardKey in guard;
+}
+
+const checkStateIn: BuiltinPredicate<{ stateValue: StateValue }> =
+  function checkStateIn(snapshot, _, { stateValue }) {
+    if (typeof stateValue === 'string' && isStateId(stateValue)) {
+      const target = snapshot.machine.getStateNodeById(stateValue);
+      return snapshot._nodes.some((sn) => sn === target);
+    }
+
+    return snapshot.matches(stateValue);
+  };
 
 /**
 * Guard that evaluates to `true` when the `stateValue` passed to it matches the current machine state.
@@ -153,29 +183,13 @@ export function stateIn<
   TParams,
   any // TODO: recheck if we could replace this with something better here
 > {
-  function stateIn(
-    args: GuardArgs<TContext, TExpressionEvent>,
-    params: TParams
-  ) {
-    if (isDevelopment) {
-      throw new Error(`This isn't supposed to be called`);
-    }
-    return false;
-  }
-
-  stateIn.check = checkStateIn;
-  stateIn.stateValue = stateValue;
-
-  return stateIn;
+  return builtinGuard(checkStateIn, { stateValue });
 }
 
-function checkNot(
-  snapshot: AnyMachineSnapshot,
-  { context, event }: GuardArgs<any, any>,
-  { guards }: { guards: readonly UnknownGuard[] }
-) {
-  return !evaluateGuard(guards[0], context, event, snapshot);
-}
+const checkNot: BuiltinPredicate<{ guards: readonly [BuiltinPredicateGuard] }> =
+  function checkNot(snapshot, { context, event }, { guards }) {
+    return !evaluateGuard(guards[0], context, event, snapshot);
+  };
 
 /**
 * Higher-order guard that evaluates to `true` if the `guard` passed to it evaluates to `false`.
@@ -215,28 +229,15 @@ export function not<
   unknown,
   NormalizeGuardArg<NoInfer<TArg>>
 > {
-  function not(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
-    if (isDevelopment) {
-      throw new Error(`This isn't supposed to be called`);
-    }
-    return false;
-  }
-
-  not.check = checkNot;
-  not.guards = [guard];
-
-  return not;
+  return builtinGuard(checkNot, { guards: [guard] as const });
 }
 
-function checkAnd(
-  snapshot: AnyMachineSnapshot,
-  { context, event }: GuardArgs<any, any>,
-  { guards }: { guards: readonly UnknownGuard[] }
-) {
-  return guards.every((guard) =>
-    evaluateGuard(guard, context, event, snapshot)
-  );
-}
+const checkAnd: BuiltinPredicate<{ guards: readonly BuiltinPredicateGuard[] }> =
+  function checkAnd(snapshot, { context, event }, { guards }) {
+    return guards.every((guard) =>
+      evaluateGuard(guard, context, event, snapshot)
+    );
+  };
 
 /**
 * Higher-order guard that evaluates to `true` if all `guards` passed to it
@@ -280,26 +281,15 @@ export function and<
   unknown,
   NormalizeGuardArgArray<NoInfer<TArg>>
 > {
-  function and(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
-    if (isDevelopment) {
-      throw new Error(`This isn't supposed to be called`);
-    }
-    return false;
-  }
-
-  and.check = checkAnd;
-  and.guards = guards;
-
-  return and;
+  return builtinGuard(checkAnd, { guards });
 }
 
-function checkOr(
-  snapshot: AnyMachineSnapshot,
-  { context, event }: GuardArgs<any, any>,
-  { guards }: { guards: readonly UnknownGuard[] }
-) {
-  return guards.some((guard) => evaluateGuard(guard, context, event, snapshot));
-}
+const checkOr: BuiltinPredicate<{ guards: readonly BuiltinPredicateGuard[] }> =
+  function checkOr(snapshot, { context, event }, { guards }) {
+    return guards.some((guard) =>
+      evaluateGuard(guard, context, event, snapshot)
+    );
+  };
 
 /**
 * Higher-order guard that evaluates to `true` if any of the `guards` passed to it
@@ -343,17 +333,7 @@ export function or<
   unknown,
   NormalizeGuardArgArray<NoInfer<TArg>>
 > {
-  function or(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
-    if (isDevelopment) {
-      throw new Error(`This isn't supposed to be called`);
-    }
-    return false;
-  }
-
-  or.check = checkOr;
-  or.guards = guards;
-
-  return or;
+  return builtinGuard(checkOr, { guards });
 }
 
 // TODO: throw on cycles (depth check should be enough)
@@ -383,9 +363,9 @@ export function evaluateGuard<
     throw new Error(`Guard '${key}' is not implemented.`);
   } else if (typeof resolved === 'string') {
     return evaluateGuard(resolved, context, event, snapshot);
-  } else if ('check' in resolved) {
-    const builtinGuard = resolved as unknown as BuiltinGuard;
-    return builtinGuard.check(snapshot, guardArgs, resolved);
+  } else if (isBuiltinGuard(resolved)) {
+    const { check, params } = resolved[BuiltinGuardKey];
+    return check(snapshot, guardArgs, params);
   } else {
     const guardParams =
       isInline || isString
