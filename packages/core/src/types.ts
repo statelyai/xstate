@@ -1935,7 +1935,7 @@ export interface ActorRef<
    */
   id: string;
   sessionId: string;
-  /** @hidden */
+  /** @internal */
   _send: (event: TEvent) => void;
   send: (event: TEvent) => void;
   start: () => void;
