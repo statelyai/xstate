@@ -98,10 +98,12 @@ export function fromTransition<
     | TContext
     | (({
         input,
-        self
+        self,
+        spawn
       }: {
         input: TInput;
         self: TransitionActorRef<TContext, TEvent>;
+        spawn: ActorScope<any, any, any>['spawn'];
       }) => TContext) // TODO: type
 ): TransitionActorLogic<TContext, TEvent, TInput> {
   return {
@@ -116,14 +118,14 @@ export function fromTransition<
         )
       };
     },
-    getInitialSnapshot: (_, input) => {
+    getInitialSnapshot: ({ self, spawn }, input) => {
       return {
         status: 'active',
         output: undefined,
         error: undefined,
         context:
           typeof initialContext === 'function'
-            ? (initialContext as any)({ input })
+            ? (initialContext as any)({ input, self, spawn })
             : initialContext
       };
     },

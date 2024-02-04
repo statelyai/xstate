@@ -6,7 +6,8 @@ import {
   createActor,
   AnyActorLogic,
   Snapshot,
-  ActorLogic
+  ActorLogic,
+  toPromise
 } from '../src/index.ts';
 import {
   fromCallback,
@@ -17,6 +18,7 @@ import {
 } from '../src/actors/index.ts';
 import { waitFor } from '../src/waitFor.ts';
 import { raise, sendTo } from '../src/actions.ts';
+import { isActorRef } from '../src/utils.ts';
 
 describe('promise logic (fromPromise)', () => {
   it('should interpret a promise', async () => {
@@ -232,6 +234,20 @@ describe('promise logic (fromPromise)', () => {
 
     createActor(promiseLogic).start();
   });
+
+  it('can spawn an actor', () => {
+    expect.assertions(1);
+    const promiseLogic = fromPromise<AnyActorRef>(({ spawn }) => {
+      const childActor = spawn(fromPromise(() => Promise.resolve(42)));
+      return Promise.resolve(childActor);
+    });
+
+    const actor = createActor(promiseLogic).start();
+
+    toPromise(actor).then((res) => {
+      expect(isActorRef(res)).toBeTruthy();
+    });
+  });
 });
 
 describe('transition function logic (fromTransition)', () => {
@@ -313,6 +329,47 @@ describe('transition function logic (fromTransition)', () => {
     const actor = createActor(transitionLogic).start();
 
     actor.send({ type: 'a' });
+  });
+
+  it('can spawn an actor when receiving an event', () => {
+    expect.assertions(1);
+    const transitionLogic = fromTransition<
+      AnyActorRef | undefined,
+      any,
+      any,
+      any
+    >((_state, _event, { spawn }) => {
+      const childActor = spawn(fromPromise(() => Promise.resolve(42)));
+      return childActor;
+    }, undefined);
+
+    const actor = createActor(transitionLogic).start();
+    actor.send({ type: 'anyEvent' });
+
+    expect(isActorRef(actor.getSnapshot().context)).toBeTruthy();
+  });
+
+  it('can spawn an actor upon start', () => {
+    expect.assertions(1);
+    const transitionLogic = fromTransition<
+      AnyActorRef | undefined,
+      any,
+      any,
+      any
+    >(
+      (state) => {
+        return state;
+      },
+      ({ spawn }) => {
+        const childActor = spawn(fromPromise(() => Promise.resolve(42)));
+        return childActor;
+      }
+    );
+
+    const actor = createActor(transitionLogic).start();
+    actor.send({ type: 'anyEvent' });
+
+    expect(isActorRef(actor.getSnapshot().context)).toBeTruthy();
   });
 });
 
@@ -416,6 +473,17 @@ describe('observable logic (fromObservable)', () => {
 
     createActor(observableLogic).start();
   });
+
+  it('can spawn an actor', () => {
+    expect.assertions(1);
+    const observableLogic = fromObservable(({ spawn }) => {
+      const actorRef = spawn(fromPromise(() => Promise.resolve(42)));
+      expect(isActorRef(actorRef)).toBe(true);
+      return of(actorRef);
+    });
+
+    createActor(observableLogic).start();
+  });
 });
 
 describe('eventObservable logic (fromEventObservable)', () => {
@@ -434,6 +502,17 @@ describe('eventObservable logic (fromEventObservable)', () => {
     const observableLogic = fromEventObservable(({ self }) => {
       expect(self.send).toBeDefined();
       return of({ type: 'a' });
+    });
+
+    createActor(observableLogic).start();
+  });
+
+  it('can spawn an actor', () => {
+    expect.assertions(1);
+    const observableLogic = fromObservable(({ spawn }) => {
+      const actorRef = spawn(fromPromise(() => Promise.resolve(42)));
+      expect(isActorRef(actorRef)).toBe(true);
+      return of({ type: 'a', payload: actorRef });
     });
 
     createActor(observableLogic).start();
@@ -555,6 +634,16 @@ describe('callback logic (fromCallback)', () => {
 
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(13);
+  });
+
+  it('can spawn an actor', () => {
+    expect.assertions(1);
+    const callbackLogic = fromCallback(({ spawn }) => {
+      const actorRef = spawn(fromPromise(() => Promise.resolve(42)));
+      expect(isActorRef(actorRef)).toBe(true);
+    });
+
+    createActor(callbackLogic).start();
   });
 });
 

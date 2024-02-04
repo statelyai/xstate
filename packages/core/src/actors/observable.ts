@@ -3,6 +3,7 @@ import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
   ActorRefFrom,
+  ActorScope,
   EventObject,
   NonReducibleUnknown,
   Snapshot,
@@ -85,6 +86,7 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
     input: TInput;
     system: AnyActorSystem;
     self: ObservableActorRef<TContext>;
+    spawn: ActorScope<any, any>['spawn'];
   }) => Subscribable<TContext>
 ): ObservableActorLogic<TContext, TInput> {
   // TODO: add event types
@@ -140,7 +142,7 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
         _subscription: undefined
       };
     },
-    start: (state, { self, system }) => {
+    start: (state, { self, system, spawn }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
         return;
@@ -148,7 +150,8 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
       state._subscription = observableCreator({
         input: state.input!,
         system,
-        self
+        self,
+        spawn
       }).subscribe({
         next: (value) => {
           system._relay(self, self, {

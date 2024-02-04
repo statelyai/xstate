@@ -178,6 +178,13 @@ export class Actor<TLogic extends AnyActorLogic>
           );
         }
         (child as any)._stop();
+      },
+      spawn: (logic) => {
+        const actor = createActor(logic, {
+          parent: this
+        });
+
+        return actor;
       }
     };
 

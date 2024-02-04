@@ -3,6 +3,7 @@ import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
   ActorRefFrom,
+  ActorScope,
   AnyActorRef,
   AnyEventObject,
   EventObject,
@@ -49,7 +50,8 @@ export type InvokeCallback<
   system,
   self,
   sendBack,
-  receive
+  receive,
+  spawn
 }: {
   /**
    * Data that was provided to the callback actor
@@ -73,6 +75,7 @@ export type InvokeCallback<
    * the listener is then called whenever events are received by the callback actor
    */
   receive: Receiver<TEvent>;
+  spawn: ActorScope<any, any>['spawn'];
 }) => (() => void) | void;
 
 /**
@@ -165,7 +168,8 @@ export function fromCallback<
         receive: (listener) => {
           callbackState.receivers ??= new Set();
           callbackState.receivers.add(listener);
-        }
+        },
+        spawn: actorScope.spawn
       });
     },
     transition: (state, event, actorScope) => {

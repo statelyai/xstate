@@ -3,6 +3,7 @@ import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
   ActorRefFrom,
+  ActorScope,
   NonReducibleUnknown,
   Snapshot
 } from '../types.ts';
@@ -86,6 +87,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
      * The parent actor of the promise actor
      */
     self: PromiseActorRef<TOutput>;
+    spawn: ActorScope<any, any, any>['spawn'];
   }) => PromiseLike<TOutput>
 ): PromiseActorLogic<TOutput, TInput> {
   const logic: PromiseActorLogic<TOutput, TInput> = {
@@ -122,7 +124,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
           return state;
       }
     },
-    start: (state, { self, system }) => {
+    start: (state, { self, system, spawn }) => {
       // TODO: determine how to allow customizing this so that promises
       // can be restarted if necessary
       if (state.status !== 'active') {
@@ -130,7 +132,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
       }
 
       const resolvedPromise = Promise.resolve(
-        promiseCreator({ input: state.input!, system, self })
+        promiseCreator({ input: state.input!, system, self, spawn })
       );
 
       resolvedPromise.then(
