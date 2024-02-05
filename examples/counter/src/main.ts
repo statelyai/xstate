@@ -1,7 +1,7 @@
 import './style.css';
 
 import { counterMachine } from './counterMachine';
-import { interpret } from 'xstate';
+import { createActor } from 'xstate';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>
@@ -23,7 +23,7 @@ function render(count: number): void {
   outputEl.innerHTML = `Count is ${count}`;
 }
 
-const counterActor = interpret(counterMachine);
+const counterActor = createActor(counterMachine);
 
 counterActor.subscribe((state) => {
   render(state.context.count);

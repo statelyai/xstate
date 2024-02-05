@@ -12,6 +12,7 @@ import {
   IsNever,
   MachineConfig,
   MachineContext,
+  MachineTypes,
   NonReducibleUnknown,
   ParameterizedObject,
   Prop,
@@ -64,6 +65,46 @@ type ToStateValue<TTestValue extends string | TestValue> =
         }
       : never);
 
+/**
+ * Creates a state machine (statechart) with the given configuration.
+ *
+ * The state machine represents the pure logic of a state machine actor.
+ *
+ * @param config The state machine configuration.
+ * @param options DEPRECATED: use `setup({ ... })` or `machine.provide({ ... })` to provide machine implementations instead.
+ *
+ * @example
+  ```ts
+  import { createMachine } from 'xstate';
+
+  const lightMachine = createMachine({
+    id: 'light',
+    initial: 'green',
+    states: {
+      green: {
+        on: {
+          TIMER: { target: 'yellow' }
+        }
+      },
+      yellow: {
+        on: {
+          TIMER: { target: 'red' }
+        }
+      },
+      red: {
+        on: {
+          TIMER: { target: 'green' }
+        }
+      }
+    }
+  });
+
+  const lightActor = createActor(lightMachine);
+  lightActor.start();
+
+  lightActor.send({ type: 'TIMER' });
+  ```
+ */
 export function createMachine<
   TContext extends MachineContext,
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
@@ -79,7 +120,21 @@ export function createMachine<
   // we should be able to remove this when we start inferring TConfig, with it we'll always have an inference candidate
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
-  config: MachineConfig<
+  config: {
+    types?: MachineTypes<
+      TContext,
+      TEvent,
+      TActor,
+      TAction,
+      TGuard,
+      TDelay,
+      TTag,
+      TInput,
+      TOutput,
+      TTypesMeta
+    >;
+    schemas?: unknown;
+  } & MachineConfig<
     TContext,
     TEvent,
     TActor,

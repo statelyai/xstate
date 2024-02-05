@@ -10,12 +10,23 @@ import {
   IndexByProp
 } from './types.ts';
 
+/**
+ * @deprecated
+ */
 export interface TypegenDisabled {
   '@@xstate/typegen': false;
 }
+
+/**
+ * @deprecated
+ */
 export interface TypegenEnabled {
   '@@xstate/typegen': true;
 }
+
+/**
+ * @deprecated
+ */
 export interface TypegenMeta extends TypegenEnabled {
   /**
    * Allows you to specify all the results of state.matches
@@ -89,6 +100,9 @@ export interface TypegenMeta extends TypegenEnabled {
   eventsCausingActors: Record<string, string>;
 }
 
+/**
+ * @deprecated
+ */
 export interface ResolvedTypegenMeta extends TypegenMeta {
   resolved: TypegenMeta & {
     indexedActors: Record<string, ProvidedActor>;
@@ -99,6 +113,9 @@ export interface ResolvedTypegenMeta extends TypegenMeta {
   };
 }
 
+/**
+ * @deprecated
+ */
 export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
 
 /**
@@ -106,9 +123,20 @@ export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
  */
 export type AreAllImplementationsAssumedToBeProvided<
   _TResolvedTypesMeta,
-  _TMissingImplementations
+  _TMissingImplementations = never
 > = true;
 
+/**
+ * @deprecated Always resolves to `never`
+ */
+export type MissingImplementationsError<
+  _TResolvedTypesMeta,
+  _TMissingImplementations = never
+> = never;
+
+/**
+ * @deprecated
+ */
 interface AllImplementationsProvided {
   missingImplementations: {
     actions: never;
@@ -177,6 +205,9 @@ type WrapIntoParameterizedObject<T extends string> = T extends any
   ? { type: T }
   : never;
 
+/**
+ * @deprecated
+ */
 export interface ResolveTypegenMeta<
   TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,

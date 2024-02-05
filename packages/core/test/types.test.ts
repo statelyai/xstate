@@ -5,6 +5,7 @@ import { stopChild } from '../src/actions/stopChild';
 import { PromiseActorLogic, fromCallback, fromPromise } from '../src/actors';
 import {
   ActorRefFrom,
+  InputFrom,
   MachineContext,
   ProvidedActor,
   Spawner,
@@ -717,6 +718,31 @@ describe('events', () => {
         FOO: {
           actions: ({ event }) => {
             ((_accept: string) => {})(event.type);
+          }
+        }
+      }
+    });
+  });
+
+  it('should provide contextual `event` type in transition actions when the matching event has a union `.type`', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | {
+              type: 'FOO' | 'BAR';
+              value: string;
+            }
+          | {
+              type: 'OTHER';
+            };
+      },
+      on: {
+        FOO: {
+          actions: ({ event }) => {
+            event.type satisfies 'FOO' | 'BAR'; // it could be narrowed down to `FOO` but it's not worth the effort/complexity
+            event.value satisfies string;
+            // @ts-expect-error
+            event.value satisfies number;
           }
         }
       }
@@ -4312,5 +4338,22 @@ describe('self', () => {
         return {};
       })
     });
+  });
+});
+
+describe('createActor', () => {
+  it(`should require input to be specified when it is required`, () => {
+    const logic = fromPromise(({}: { input: number }) => Promise.resolve(100));
+
+    // @ts-expect-error
+    createActor(logic);
+  });
+
+  it(`should not require input when it's optional`, () => {
+    const logic = fromPromise(({}: { input: number | undefined }) =>
+      Promise.resolve(100)
+    );
+
+    createActor(logic);
   });
 });

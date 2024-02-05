@@ -1,6 +1,5 @@
 import isDevelopment from '#is-development';
 import { assign } from './actions.ts';
-import { STATE_DELIMITER } from './constants.ts';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import { createInitEvent } from './eventUtils.ts';
 import {
@@ -49,7 +48,7 @@ import type {
   TODO,
   TransitionDefinition
 } from './types.ts';
-import { resolveReferencedActor } from './utils.ts';
+import { resolveReferencedActor, toStatePath } from './utils.ts';
 
 export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
@@ -88,10 +87,14 @@ export class StateMachine<
    */
   public version?: string;
 
+  public schemas: unknown;
+
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
+  /** @internal */
   public __xstatenode: true = true;
 
+  /** @internal */
   public idMap: Map<string, StateNode<TContext, TEvent>> = new Map();
 
   public root: StateNode<TContext, TEvent>;
@@ -116,7 +119,9 @@ export class StateMachine<
       any,
       TOutput,
       any
-    >,
+    > & {
+      schemas?: unknown;
+    },
     implementations?: MachineImplementationsSimplified<TContext, TEvent>
   ) {
     this.id = config.id || '(machine)';
@@ -127,6 +132,7 @@ export class StateMachine<
       guards: implementations?.guards ?? {}
     };
     this.version = this.config.version;
+    this.schemas = this.config.schemas;
 
     this.transition = this.transition.bind(this);
     this.getInitialSnapshot = this.getInitialSnapshot.bind(this);
@@ -399,7 +405,7 @@ export class StateMachine<
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
-    const fullPath = stateId.split(STATE_DELIMITER);
+    const fullPath = toStatePath(stateId);
     const relativePath = fullPath.slice(1);
     const resolvedStateId = isStateId(fullPath[0])
       ? fullPath[0].slice(STATE_IDENTIFIER.length)
@@ -469,7 +475,7 @@ export class StateMachine<
 
       const actorRef = createActor(logic, {
         id: actorId,
-        parent: _actorScope?.self,
+        parent: _actorScope.self,
         syncSnapshot: actorData.syncSnapshot,
         snapshot: childState,
         src,
@@ -525,6 +531,8 @@ export class StateMachine<
     return restoredSnapshot;
   }
 
-  /** @deprecated an internal property that was acting as a "phantom" type, it's not used by anything right now but it's kept around for compatibility reasons */
+  /**
+   * @deprecated an internal property that was acting as a "phantom" type, it's not used by anything right now but it's kept around for compatibility reasons
+   **/
   __TResolvedTypesMeta!: TResolvedTypesMeta;
 }

@@ -115,11 +115,13 @@ export function setup<
   TOutput extends NonReducibleUnknown,
   TChildrenMap extends Record<string, string> = never
 >({
+  schemas,
   actors,
   actions,
   guards,
   delays
 }: {
+  schemas?: unknown;
   types?: SetupTypes<TContext, TEvent, TChildrenMap, TTag, TInput, TOutput>;
   actors?: {
     [K in keyof TActors]: TActors[K];
@@ -204,11 +206,14 @@ export function setup<
 } {
   return {
     createMachine: (config) =>
-      (createMachine as any)(config, {
-        actors,
-        actions,
-        guards,
-        delays
-      })
+      (createMachine as any)(
+        { ...config, schemas },
+        {
+          actors,
+          actions,
+          guards,
+          delays
+        }
+      )
   };
 }

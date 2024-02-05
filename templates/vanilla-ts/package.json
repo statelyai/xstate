@@ -10,9 +10,10 @@
   },
   "devDependencies": {
     "typescript": "^5.3.3",
-    "vite": "^4.5.1"
+    "vite": "^5.0.11"
   },
   "dependencies": {
-    "xstate": "5.0.0-beta.53"
+    "@statelyai/inspect": "^0.2.0",
+    "xstate": "5.4.1"
   }
 }

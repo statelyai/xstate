@@ -1,5 +1,68 @@
 # xstate
 
+## 5.6.0
+
+### Minor Changes
+
+- [#4704](https://github.com/statelyai/xstate/pull/4704) [`78699aef6`](https://github.com/statelyai/xstate/commit/78699aef6f1a100ee06c4ea2250da15abffbace8) Thanks [@Andarist](https://github.com/Andarist)! - `createActor` will now error if the required `input` is not given to it.
+
+- [#4688](https://github.com/statelyai/xstate/pull/4688) [`14902e17a`](https://github.com/statelyai/xstate/commit/14902e17a7d1d9030e99bc1d1ca289931bf8e581) Thanks [@Andarist](https://github.com/Andarist)! - The `schemas` property in `setup(...)` is now passed through to the resulting machine. This property is meant to be used with future developer tooling, and is typed as `unknown` for now.
+
+### Patch Changes
+
+- [#4706](https://github.com/statelyai/xstate/pull/4706) [`51b844230`](https://github.com/statelyai/xstate/commit/51b844230a26962c6ff351908eb08170567b629f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility with the upcoming TypeScript 5.4
+
+## 5.5.2
+
+### Patch Changes
+
+- [#4685](https://github.com/statelyai/xstate/pull/4685) [`e43eab144`](https://github.com/statelyai/xstate/commit/e43eab14498356daf859d0f59d02820ec4e6a040) Thanks [@davidkpiano](https://github.com/davidkpiano)! - State IDs that have periods in them are now supported if those periods are escaped.
+
+  The motivation is that external tools, such as [Stately Studio](https://stately.ai/studio), may allow users to enter any text into the state ID field. This change allows those tools to escape periods in state IDs, so that they don't conflict with the internal path-based state IDs.
+
+  E.g. if a state ID of `"Loading..."` is entered into the state ID field, instead of crashing either the external tool and/or the XState state machine, it should be converted by the tool to `"Loading\\.\\.\\."`, and those periods will be ignored by XState.
+
+## 5.5.1
+
+### Patch Changes
+
+- [#4667](https://github.com/statelyai/xstate/pull/4667) [`64ee3959c`](https://github.com/statelyai/xstate/commit/64ee3959c47f0dc02b0a15dc0e9bafb645c17ad1) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility with older versions of integration packages.
+
+## 5.5.0
+
+### Minor Changes
+
+- [#4596](https://github.com/statelyai/xstate/pull/4596) [`6113a590a`](https://github.com/statelyai/xstate/commit/6113a590a6e16c22f3d3e288b825975032bdfd48) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Introduce `getNextSnapshot(...)`, which determines the next snapshot for the given `actorLogic` based on the given `snapshot` and `event`.
+
+  If the `snapshot` is `undefined`, the initial snapshot of the `actorLogic` is used.
+
+  ```ts
+  import { getNextSnapshot } from 'xstate';
+  import { trafficLightMachine } from './trafficLightMachine.ts';
+
+  const nextSnapshot = getNextSnapshot(
+    trafficLightMachine, // actor logic
+    undefined, // snapshot (or initial state if undefined)
+    { type: 'TIMER' }
+  ); // event object
+
+  console.log(nextSnapshot.value);
+  // => 'yellow'
+
+  const nextSnapshot2 = getNextSnapshot(
+    trafficLightMachine, // actor logic
+    nextSnapshot, // snapshot
+    { type: 'TIMER' }
+  ); // event object
+
+  console.log(nextSnapshot2.value);
+  // =>'red'
+  ```
+
+### Patch Changes
+
+- [#4659](https://github.com/statelyai/xstate/pull/4659) [`1ae07f5bf`](https://github.com/statelyai/xstate/commit/1ae07f5bf5d5eeb26481ffad789afb4d107f70a4) Thanks [@Andarist](https://github.com/Andarist)! - Allow `event` in transitions to be narrowed down even when its `.type` is defined using a union.
+
 ## 5.4.1
 
 ### Patch Changes

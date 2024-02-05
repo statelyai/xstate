@@ -14,8 +14,11 @@ import { AnyActorSystem, Clock, createSystem } from './system.ts';
 import type {
   ActorScope,
   AnyActorLogic,
+  ConditionalRequired,
   DoneActorEvent,
   EventFromLogic,
+  InputFrom,
+  IsNotNever,
   Snapshot,
   SnapshotFrom
 } from './types.ts';
@@ -95,6 +98,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
   // Actor Ref
   public _parent?: ActorRef<any, any>;
+  /** @internal */
   public _syncSnapshot?: boolean;
   public ref: ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>;
   // TODO: add typings for system
@@ -132,7 +136,7 @@ export class Actor<TLogic extends AnyActorLogic>
     const resolvedOptions = {
       ...defaultOptions,
       ...options
-    } as ActorOptions<TLogic> & typeof defaultOptions;
+    };
 
     const { clock, logger, parent, syncSnapshot, id, systemId, inspect } =
       resolvedOptions;
@@ -154,7 +158,8 @@ export class Actor<TLogic extends AnyActorLogic>
     this.clock = clock;
     this._parent = parent;
     this._syncSnapshot = syncSnapshot;
-    this.options = resolvedOptions;
+    this.options = resolvedOptions as ActorOptions<TLogic> &
+      typeof defaultOptions;
     this.src = resolvedOptions.src ?? logic;
     this.ref = this;
     this._actorScope = {
@@ -702,6 +707,9 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 }
 
+type RequiredOptions<TLogic extends AnyActorLogic> =
+  undefined extends InputFrom<TLogic> ? never : 'input';
+
 /**
  * Creates a new actor instance for the given actor logic with the provided options, if any.
  *
@@ -736,7 +744,14 @@ export class Actor<TLogic extends AnyActorLogic>
  */
 export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  options?: ActorOptions<TLogic>
+  ...[options]: ConditionalRequired<
+    [
+      options?: ActorOptions<TLogic> & {
+        [K in RequiredOptions<TLogic>]: unknown;
+      }
+    ],
+    IsNotNever<RequiredOptions<TLogic>>
+  >
 ): Actor<TLogic> {
   return new Actor(logic, options);
 }

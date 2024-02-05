@@ -216,24 +216,24 @@ export function getCandidates<TEvent extends EventObject>(
   const candidates =
     stateNode.transitions.get(receivedEventType) ||
     [...stateNode.transitions.keys()]
-      .filter((descriptor) => {
+      .filter((eventDescriptor) => {
         // check if transition is a wildcard transition,
         // which matches any non-transient events
-        if (descriptor === WILDCARD) {
+        if (eventDescriptor === WILDCARD) {
           return true;
         }
 
-        if (!descriptor.endsWith('.*')) {
+        if (!eventDescriptor.endsWith('.*')) {
           return false;
         }
 
-        if (isDevelopment && /.*\*.+/.test(descriptor)) {
+        if (isDevelopment && /.*\*.+/.test(eventDescriptor)) {
           console.warn(
-            `Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "${descriptor}" event.`
+            `Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "${eventDescriptor}" event.`
           );
         }
 
-        const partialEventTokens = descriptor.split('.');
+        const partialEventTokens = eventDescriptor.split('.');
         const eventTokens = receivedEventType.split('.');
 
         for (
@@ -249,7 +249,7 @@ export function getCandidates<TEvent extends EventObject>(
 
             if (isDevelopment && !isLastToken) {
               console.warn(
-                `Infix wildcards in transition events are not allowed. Check the "${descriptor}" transition.`
+                `Infix wildcards in transition events are not allowed. Check the "${eventDescriptor}" transition.`
               );
             }
 
@@ -656,7 +656,7 @@ export function getStateNodes<
       }
       const subStateNodes = getStateNodes(
         subStateNode,
-        stateValue[subStateKey]
+        stateValue[subStateKey]!
       );
 
       return allSubStateNodes.concat(subStateNodes);
@@ -697,7 +697,7 @@ export function transitionCompoundNode<
   const childStateNode = getStateNode(stateNode, subStateKeys[0]);
   const next = transitionNode(
     childStateNode,
-    stateValue[subStateKeys[0]],
+    stateValue[subStateKeys[0]]!,
     snapshot,
     event
   );
@@ -1518,8 +1518,8 @@ function resolveActionsAndContextWorker(
     const actionArgs = {
       context: intermediateSnapshot.context,
       event,
-      self: actorScope?.self,
-      system: actorScope?.system
+      self: actorScope.self,
+      system: actorScope.system
     };
 
     const actionParams =
@@ -1532,10 +1532,10 @@ function resolveActionsAndContextWorker(
           : undefined;
 
     if (!('resolve' in resolvedAction)) {
-      if (actorScope?.self._processingStatus === ProcessingStatus.Running) {
+      if (actorScope.self._processingStatus === ProcessingStatus.Running) {
         resolvedAction(actionArgs, actionParams);
       } else {
-        actorScope?.defer(() => {
+        actorScope.defer(() => {
           resolvedAction(actionArgs, actionParams);
         });
       }
@@ -1559,12 +1559,10 @@ function resolveActionsAndContextWorker(
     }
 
     if ('execute' in builtinAction) {
-      if (actorScope?.self._processingStatus === ProcessingStatus.Running) {
-        builtinAction.execute(actorScope!, params);
+      if (actorScope.self._processingStatus === ProcessingStatus.Running) {
+        builtinAction.execute(actorScope, params);
       } else {
-        actorScope?.defer(
-          builtinAction.execute.bind(null, actorScope!, params)
-        );
+        actorScope.defer(builtinAction.execute.bind(null, actorScope, params));
       }
     }
 
@@ -1668,7 +1666,7 @@ export function macrostep(
       snapshot,
       actorScope,
       nextEvent,
-      false,
+      false, // isInitial
       internalQueue
     );
     states.push(nextSnapshot);
