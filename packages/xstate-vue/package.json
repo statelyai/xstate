@@ -54,7 +54,7 @@
   },
   "peerDependencies": {
     "vue": "^3.0.0",
-    "xstate": "^5.6.0"
+    "xstate": "^5.6.1"
   },
   "peerDependenciesMeta": {
     "xstate": {
@@ -66,6 +66,6 @@
     "@testing-library/vue": "^6.6.1",
     "@vue/compiler-sfc": "^3.0.11",
     "vue": "^3.0.11",
-    "xstate": "5.6.0"
+    "xstate": "5.6.1"
   }
 }
