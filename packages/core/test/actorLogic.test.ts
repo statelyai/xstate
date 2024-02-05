@@ -338,7 +338,7 @@ describe('transition function logic (fromTransition)', () => {
       any,
       any,
       any
-    >((_state, _event, { spawn }) => {
+    >((_state, _event, { spawnChild: spawn }) => {
       const childActor = spawn(fromPromise(() => Promise.resolve(42)));
       return childActor;
     }, undefined);

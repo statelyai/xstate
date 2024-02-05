@@ -2106,7 +2106,10 @@ export interface ActorScope<
   defer: (fn: () => void) => void;
   system: TSystem;
   stopChild: (child: AnyActorRef) => void;
-  spawn: (logic: AnyActorLogic) => AnyActorRef;
+  spawnChild: <T extends AnyActorLogic>(
+    logic: T,
+    actorOptions?: ActorOptions<T>
+  ) => ActorRefFrom<T>;
 }
 
 export type AnyActorScope = ActorScope<any, any, AnyActorSystem>;

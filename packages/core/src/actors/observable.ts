@@ -86,7 +86,7 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
     input: TInput;
     system: AnyActorSystem;
     self: ObservableActorRef<TContext>;
-    spawn: ActorScope<any, any>['spawn'];
+    spawn: ActorScope<any, any>['spawnChild'];
   }) => Subscribable<TContext>
 ): ObservableActorLogic<TContext, TInput> {
   // TODO: add event types
@@ -142,7 +142,7 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
         _subscription: undefined
       };
     },
-    start: (state, { self, system, spawn }) => {
+    start: (state, { self, system, spawnChild: spawn }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
         return;

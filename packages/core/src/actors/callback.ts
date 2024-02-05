@@ -75,7 +75,7 @@ export type InvokeCallback<
    * the listener is then called whenever events are received by the callback actor
    */
   receive: Receiver<TEvent>;
-  spawn: ActorScope<any, any>['spawn'];
+  spawn: ActorScope<any, any>['spawnChild'];
 }) => (() => void) | void;
 
 /**
@@ -169,7 +169,7 @@ export function fromCallback<
           callbackState.receivers ??= new Set();
           callbackState.receivers.add(listener);
         },
-        spawn: actorScope.spawn
+        spawn: actorScope.spawnChild
       });
     },
     transition: (state, event, actorScope) => {

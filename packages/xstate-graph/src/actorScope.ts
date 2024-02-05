@@ -9,6 +9,7 @@ export function createMockActorScope(): AnyActorScope {
     sessionId: Math.random().toString(32).slice(2),
     defer: () => {},
     system: emptyActor.system, // TODO: mock system?
-    stopChild: () => {}
+    stopChild: () => {},
+    spawnChild: () => emptyActor as any
   };
 }

@@ -20,7 +20,10 @@ export function createInertActorScope<T extends AnyActorLogic>(
     logger: () => {},
     sessionId: '',
     stopChild: () => {},
-    system: self.system
+    system: self.system,
+    spawnChild: (logic) => {
+      return createActor(logic) as any;
+    }
   };
 
   return inertActorScope;

@@ -87,7 +87,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
      * The parent actor of the promise actor
      */
     self: PromiseActorRef<TOutput>;
-    spawn: ActorScope<any, any, any>['spawn'];
+    spawn: ActorScope<any, any, any>['spawnChild'];
   }) => PromiseLike<TOutput>
 ): PromiseActorLogic<TOutput, TInput> {
   const logic: PromiseActorLogic<TOutput, TInput> = {
@@ -124,7 +124,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
           return state;
       }
     },
-    start: (state, { self, system, spawn }) => {
+    start: (state, { self, system, spawnChild: spawn }) => {
       // TODO: determine how to allow customizing this so that promises
       // can be restarted if necessary
       if (state.status !== 'active') {

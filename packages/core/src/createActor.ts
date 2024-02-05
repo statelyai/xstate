@@ -12,6 +12,7 @@ import { symbolObservable } from './symbolObservable.ts';
 import { AnyActorSystem, Clock, createSystem } from './system.ts';
 
 import type {
+  ActorRefFrom,
   ActorScope,
   AnyActorLogic,
   ConditionalRequired,
@@ -179,12 +180,16 @@ export class Actor<TLogic extends AnyActorLogic>
         }
         (child as any)._stop();
       },
-      spawn: (logic) => {
+      spawnChild: <T extends AnyActorLogic>(
+        logic: T,
+        actorOptions?: ActorOptions<T>
+      ) => {
         const actor = createActor(logic, {
-          parent: this
+          parent: this,
+          ...actorOptions
         });
 
-        return actor;
+        return actor as ActorRefFrom<T>;
       }
     };
 
