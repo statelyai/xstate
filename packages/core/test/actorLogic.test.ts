@@ -237,8 +237,8 @@ describe('promise logic (fromPromise)', () => {
 
   it('can spawn an actor', () => {
     expect.assertions(1);
-    const promiseLogic = fromPromise<AnyActorRef>(({ spawn }) => {
-      const childActor = spawn(fromPromise(() => Promise.resolve(42)));
+    const promiseLogic = fromPromise<AnyActorRef>(({ spawnChild }) => {
+      const childActor = spawnChild(fromPromise(() => Promise.resolve(42)));
       return Promise.resolve(childActor);
     });
 
@@ -338,8 +338,8 @@ describe('transition function logic (fromTransition)', () => {
       any,
       any,
       any
-    >((_state, _event, { spawnChild: spawn }) => {
-      const childActor = spawn(fromPromise(() => Promise.resolve(42)));
+    >((_state, _event, { spawnChild }) => {
+      const childActor = spawnChild(fromPromise(() => Promise.resolve(42)));
       return childActor;
     }, undefined);
 
@@ -360,8 +360,8 @@ describe('transition function logic (fromTransition)', () => {
       (state) => {
         return state;
       },
-      ({ spawn }) => {
-        const childActor = spawn(fromPromise(() => Promise.resolve(42)));
+      ({ spawnChild }) => {
+        const childActor = spawnChild(fromPromise(() => Promise.resolve(42)));
         return childActor;
       }
     );
@@ -476,8 +476,8 @@ describe('observable logic (fromObservable)', () => {
 
   it('can spawn an actor', () => {
     expect.assertions(1);
-    const observableLogic = fromObservable(({ spawn }) => {
-      const actorRef = spawn(fromPromise(() => Promise.resolve(42)));
+    const observableLogic = fromObservable(({ spawnChild }) => {
+      const actorRef = spawnChild(fromPromise(() => Promise.resolve(42)));
       expect(isActorRef(actorRef)).toBe(true);
       return of(actorRef);
     });
@@ -509,8 +509,8 @@ describe('eventObservable logic (fromEventObservable)', () => {
 
   it('can spawn an actor', () => {
     expect.assertions(1);
-    const observableLogic = fromObservable(({ spawn }) => {
-      const actorRef = spawn(fromPromise(() => Promise.resolve(42)));
+    const observableLogic = fromObservable(({ spawnChild }) => {
+      const actorRef = spawnChild(fromPromise(() => Promise.resolve(42)));
       expect(isActorRef(actorRef)).toBe(true);
       return of({ type: 'a', payload: actorRef });
     });

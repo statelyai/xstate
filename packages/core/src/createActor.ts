@@ -189,6 +189,10 @@ export class Actor<TLogic extends AnyActorLogic>
           ...actorOptions
         });
 
+        if (this._processingStatus === ProcessingStatus.Running) {
+          actor.start();
+        }
+
         return actor as ActorRefFrom<T>;
       }
     };
