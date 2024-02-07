@@ -1,10 +1,9 @@
 import {
-  createActor,
   createMachine,
   fromTransition,
-  getNextSnapshot
+  getNextSnapshot,
+  getInitialSnapshot
 } from '../src';
-import { getInitialSnapshot } from '../src/getNextSnapshot';
 
 describe('getNextSnapshot', () => {
   it('should calculate the next snapshot for transition logic', () => {
