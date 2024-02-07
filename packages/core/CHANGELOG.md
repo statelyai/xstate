@@ -1,5 +1,22 @@
 # xstate
 
+## 5.6.2
+
+### Patch Changes
+
+- [#4731](https://github.com/statelyai/xstate/pull/4731) [`960cdcbcb`](https://github.com/statelyai/xstate/commit/960cdcbcb88eb565bba2f03f3eeceff6001576d9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now import `getInitialSnapshot(…)` from `xstate` directly, which is useful for getting a mock of the initial snapshot when interacting with machines (or other actor logic) without `createActor(…)`:
+
+  ```ts
+  import { getInitialSnapshot } from 'xstate';
+  import { someMachine } from './someMachine';
+
+  // Returns the initial snapshot (state) of the machine
+  const initialSnapshot = getInitialSnapshot(
+    someMachine,
+    { name: 'Mateusz' } // optional input
+  );
+  ```
+
 ## 5.6.1
 
 ### Patch Changes
