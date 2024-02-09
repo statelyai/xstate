@@ -24,8 +24,6 @@ export function createInertActorScope<T extends AnyActorLogic>(
     spawnChild: (logic) => {
       const child = createActor(logic) as any;
 
-      child.start();
-
       return child;
     }
   };
