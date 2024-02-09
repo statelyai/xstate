@@ -486,7 +486,7 @@ describe('observable logic (fromObservable)', () => {
   it('can spawn an actor', () => {
     expect.assertions(1);
     const observableLogic = fromObservable(({ spawnChild }) => {
-      const actorRef = spawnChild(fromPromise(() => Promise.resolve(42)));
+      const actorRef = spawnChild(fromCallback(() => {}));
       expect(isActorRef(actorRef)).toBe(true);
       return of(actorRef);
     });
@@ -519,7 +519,7 @@ describe('eventObservable logic (fromEventObservable)', () => {
   it('can spawn an actor', () => {
     expect.assertions(1);
     const observableLogic = fromObservable(({ spawnChild }) => {
-      const actorRef = spawnChild(fromPromise(() => Promise.resolve(42)));
+      const actorRef = spawnChild(fromCallback(() => {}));
       expect(isActorRef(actorRef)).toBe(true);
       return of({ type: 'a', payload: actorRef });
     });
