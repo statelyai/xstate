@@ -22,7 +22,11 @@ export function createInertActorScope<T extends AnyActorLogic>(
     stopChild: () => {},
     system: self.system,
     spawnChild: (logic) => {
-      return createActor(logic) as any;
+      const child = createActor(logic) as any;
+
+      child.start();
+
+      return child;
     }
   };
 

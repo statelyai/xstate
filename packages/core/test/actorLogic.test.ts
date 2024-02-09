@@ -338,12 +338,21 @@ describe('transition function logic (fromTransition)', () => {
       any,
       any,
       any
-    >((_state, _event, { spawnChild }) => {
+    >((state, _event, { spawnChild }) => {
+      if (state) {
+        return state;
+      }
       const childActor = spawnChild(fromPromise(() => Promise.resolve(42)));
       return childActor;
     }, undefined);
 
-    const actor = createActor(transitionLogic).start();
+    const actor = createActor(transitionLogic);
+    actor.subscribe({
+      error: (err) => {
+        console.error(err);
+      }
+    });
+    actor.start();
     actor.send({ type: 'anyEvent' });
 
     expect(isActorRef(actor.getSnapshot().context)).toBeTruthy();
@@ -844,7 +853,7 @@ describe('machine logic', () => {
             id: 'child',
             src: createMachine({
               context: ({ input }) => ({
-                // this is only meant to showcase why we can't invoke this actor when it's missing in the persisted state
+                // this is meant to showcase why we can't invoke this actor when it's missing in the persisted state
                 // because we don't have access to the right input as it depends on the event that was used to enter state `b`
                 value: input.deep.prop
               })
