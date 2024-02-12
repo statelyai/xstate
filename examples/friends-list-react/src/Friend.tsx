@@ -1,5 +1,5 @@
 import React from 'react';
-import { useActor } from '@xstate/react';
+import { useSelector } from '@xstate/react';
 import { friendMachine } from './friendMachine';
 import { ActorRefFrom } from 'xstate';
 
@@ -7,7 +7,7 @@ export const Friend: React.FC<{
   friendRef: ActorRefFrom<typeof friendMachine>;
   onRemove: () => void;
 }> = ({ friendRef, onRemove }) => {
-  const [state, send] = useActor(friendRef);
+  const state = useSelector(friendRef, (s) => s);
   const { name } = state.context;
 
   return (
@@ -24,7 +24,7 @@ export const Friend: React.FC<{
           onSubmit={(event) => {
             event.preventDefault();
 
-            send({ type: 'SAVE' });
+            friendRef.send({ type: 'SAVE' });
           }}
         >
           <label className="field" htmlFor="friend.name">
@@ -34,7 +34,7 @@ export const Friend: React.FC<{
               id="friend.name"
               value={state.context.name}
               onChange={(event) => {
-                send({ type: 'SET_NAME', value: event.target.value });
+                friendRef.send({ type: 'SET_NAME', value: event.target.value });
               }}
             />
           </label>
@@ -47,19 +47,24 @@ export const Friend: React.FC<{
               <button
                 disabled={state.hasTag('saving')}
                 onClick={() => {
-                  send({ type: 'SAVE' });
+                  friendRef.send({ type: 'SAVE' });
                 }}
               >
                 Save
               </button>
-              <button onClick={() => send({ type: 'CANCEL' })} type="button">
+              <button
+                onClick={() => friendRef.send({ type: 'CANCEL' })}
+                type="button"
+              >
                 Cancel
               </button>
             </>
           )}
           {state.hasTag('read') && (
             <>
-              <button onClick={() => send({ type: 'EDIT' })}>Edit</button>
+              <button onClick={() => friendRef.send({ type: 'EDIT' })}>
+                Edit
+              </button>
               <button className="remove" onClick={onRemove}>
                 Remove
               </button>

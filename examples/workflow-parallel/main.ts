@@ -1,73 +1,70 @@
-import { createMachine, fromPromise, interpret } from 'xstate';
+import { fromPromise, createActor, setup } from 'xstate';
 
 // https://github.com/serverlessworkflow/specification/tree/main/examples#parallel-execution-example
-export const workflow = createMachine(
-  {
-    id: 'parallel-execution',
-    initial: 'ParallelExec',
-    states: {
-      ParallelExec: {
-        type: 'parallel',
-        states: {
-          ShortDelayBranch: {
-            initial: 'active',
-            states: {
-              active: {
-                invoke: {
-                  src: 'shortDelay',
-                  onDone: 'done'
-                }
-              },
-              done: {
-                type: 'final'
+export const workflow = setup({
+  actors: {
+    shortDelay: fromPromise(async () => {
+      await new Promise<void>((resolve) =>
+        setTimeout(() => {
+          console.log('Resolved shortDelay');
+          resolve();
+        }, 1000)
+      );
+    }),
+    longDelay: fromPromise(async () => {
+      await new Promise<void>((resolve) =>
+        setTimeout(() => {
+          console.log('Resolved longDelay');
+          resolve();
+        }, 3000)
+      );
+    })
+  }
+}).createMachine({
+  id: 'parallel-execution',
+  initial: 'ParallelExec',
+  states: {
+    ParallelExec: {
+      type: 'parallel',
+      states: {
+        ShortDelayBranch: {
+          initial: 'active',
+          states: {
+            active: {
+              invoke: {
+                src: 'shortDelay',
+                onDone: 'done'
               }
-            }
-          },
-          LongDelayBranch: {
-            initial: 'active',
-            states: {
-              active: {
-                invoke: {
-                  src: 'longDelay',
-                  onDone: 'done'
-                }
-              },
-              done: {
-                type: 'final'
-              }
+            },
+            done: {
+              type: 'final'
             }
           }
         },
-        onDone: 'Success'
+        LongDelayBranch: {
+          initial: 'active',
+          states: {
+            active: {
+              invoke: {
+                src: 'longDelay',
+                onDone: 'done'
+              }
+            },
+            done: {
+              type: 'final'
+            }
+          }
+        }
       },
-      Success: {
-        type: 'final'
-      }
-    }
-  },
-  {
-    actors: {
-      shortDelay: fromPromise(async () => {
-        await new Promise<void>((resolve) =>
-          setTimeout(() => {
-            console.log('Resolved shortDelay');
-            resolve();
-          }, 1000)
-        );
-      }),
-      longDelay: fromPromise(async () => {
-        await new Promise<void>((resolve) =>
-          setTimeout(() => {
-            console.log('Resolved longDelay');
-            resolve();
-          }, 3000)
-        );
-      })
+      onDone: 'Success'
+    },
+    Success: {
+      type: 'final'
     }
   }
-);
+});
 
-const actor = interpret(workflow);
+const actor = createActor(workflow);
 
 actor.subscribe({
   complete() {

@@ -295,7 +295,7 @@ export type Actions<
 export type StateKey = string | AnyMachineSnapshot;
 
 export interface StateValueMap {
-  [key: string]: StateValue;
+  [key: string]: StateValue | undefined;
 }
 
 /**
@@ -1046,7 +1046,7 @@ export type DelayConfig<
 
 // TODO: possibly refactor this somehow, use even a simpler type, and maybe even make `machine.options` private or something
 /**
- * @internal
+ * @hidden
  */
 export interface MachineImplementationsSimplified<
   TContext extends MachineContext,
@@ -1363,24 +1363,14 @@ export type MachineConfig<
    * The machine's own version.
    */
   version?: string;
-  types?: MachineTypes<
-    TContext,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TInput,
-    TOutput,
-    TTypesMeta
-  >;
   // TODO: make it conditionally required
   output?: Mapper<TContext, DoneStateEvent, TOutput, TEvent> | TOutput;
 }) &
   (MachineContext extends TContext
     ? { context?: InitialContext<LowInfer<TContext>, TActor, TInput, TEvent> }
     : { context: InitialContext<LowInfer<TContext>, TActor, TInput, TEvent> });
+
+export type UnknownMachineConfig = MachineConfig<MachineContext, EventObject>;
 
 export interface ProvidedActor {
   src: string;
@@ -1889,16 +1879,10 @@ export interface Subscription {
   unsubscribe(): void;
 }
 
-/**
- * @internal
- */
 export interface InteropObservable<T> {
   [Symbol.observable]: () => InteropSubscribable<T>;
 }
 
-/**
- * @internal
- */
 export interface InteropSubscribable<T> {
   subscribe(observer: Observer<T>): Subscription;
 }

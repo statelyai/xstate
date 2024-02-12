@@ -1,4 +1,4 @@
-import { createActor, createMachine, raise } from '../src/index.ts';
+import { InputFrom, createActor, createMachine, raise } from '../src/index.ts';
 import { and, not, or, stateIn } from '../src/guards';
 import { trackEntries } from './utils.ts';
 
@@ -93,7 +93,7 @@ describe('guard conditions', () => {
   });
 
   it('should transition if condition based on event is met', () => {
-    const actorRef = createActor(lightMachine).start();
+    const actorRef = createActor(lightMachine, { input: {} }).start();
     actorRef.send({
       type: 'EMERGENCY',
       isEmergency: true
@@ -102,7 +102,7 @@ describe('guard conditions', () => {
   });
 
   it('should not transition if condition based on event is not met', () => {
-    const actorRef = createActor(lightMachine).start();
+    const actorRef = createActor(lightMachine, { input: {} }).start();
     actorRef.send({
       type: 'EMERGENCY'
     });

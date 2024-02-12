@@ -123,8 +123,16 @@ export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
  */
 export type AreAllImplementationsAssumedToBeProvided<
   _TResolvedTypesMeta,
-  _TMissingImplementations
+  _TMissingImplementations = never
 > = true;
+
+/**
+ * @deprecated Always resolves to `never`
+ */
+export type MissingImplementationsError<
+  _TResolvedTypesMeta,
+  _TMissingImplementations = never
+> = never;
 
 /**
  * @deprecated
