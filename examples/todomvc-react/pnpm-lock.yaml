@@ -7,7 +7,7 @@ settings:
 dependencies:
   '@xstate/react':
     specifier: ^4.0.2
-    version: 4.0.2(@types/react@17.0.73)(react@17.0.2)(xstate@5.4.1)
+    version: 4.0.2(@types/react@17.0.73)(react@17.0.2)(xstate@5.5.1)
   classnames:
     specifier: ^2.5.0
     version: 2.5.0
@@ -24,8 +24,8 @@ dependencies:
     specifier: ^1.0.5
     version: 1.0.5
   xstate:
-    specifier: ^5.4.1
-    version: 5.4.1
+    specifier: ^5.5.1
+    version: 5.5.1
 
 devDependencies:
   '@types/react':
@@ -628,7 +628,7 @@ packages:
     resolution: {integrity: sha512-/zYUwiHD8j7gKx2argXEMCUXVST6q/21DFU0sTfNX0URJroCe3b1UF6vLJ3lQDfLNIiiRl2ONp7Nh5UVWS6QnA==}
     dev: true
 
-  /@xstate/react@4.0.2(@types/react@17.0.73)(react@17.0.2)(xstate@5.4.1):
+  /@xstate/react@4.0.2(@types/react@17.0.73)(react@17.0.2)(xstate@5.5.1):
     resolution: {integrity: sha512-t5Xau/H8nS9nlowV+72RneqaQ/wqkQ8C/8ij4gEvHcoCQptc2REgZkjOpV74xyTabUZnUeYwdDTsMmz5ot3S+Q==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
@@ -640,7 +640,7 @@ packages:
       react: 17.0.2
       use-isomorphic-layout-effect: 1.1.2(@types/react@17.0.73)(react@17.0.2)
       use-sync-external-store: 1.2.0(react@17.0.2)
-      xstate: 5.4.1
+      xstate: 5.5.1
     transitivePeerDependencies:
       - '@types/react'
     dev: false
@@ -2358,8 +2358,8 @@ packages:
         optional: true
     dev: true
 
-  /xstate@5.4.1:
-    resolution: {integrity: sha512-1DDT047hsTCSgm3BwLyb4sXQDmTdbLutc4ni0MLACgd2yX6vij35pnNNf1F4U6kQ8njx6NxQ6wpLjlh1lqs0NQ==}
+  /xstate@5.5.1:
+    resolution: {integrity: sha512-12Was43pPJKg3JWoelOREtTNYgFz6tRlNrMaRuqOibEe3pn8/uOWiP8ySMfOynyIjHUxd4BU7wV9O54Ma3FM6g==}
     dev: false
 
   /yallist@3.1.1:

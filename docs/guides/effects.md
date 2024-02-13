@@ -4,7 +4,7 @@
 
 XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
 
-🆕 Find more about [effects and actions in XState](https://stately.ai/docs/xstate/actions) in our new docs.
+🆕 Find more about [effects and actions in XState](https://stately.ai/docs/actions) in our new docs.
 :::
 
 In statecharts, "side-effects" can be grouped into two categories:

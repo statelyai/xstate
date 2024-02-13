@@ -1,4 +1,4 @@
-import { assign, createMachine } from 'xstate';
+import { assign, setup } from 'xstate';
 
 export interface TodoItem {
   id: string;
@@ -8,8 +8,7 @@ export interface TodoItem {
 
 export type TodosFilter = 'all' | 'active' | 'completed';
 
-export const todosMachine = createMachine({
-  id: 'todos',
+export const todosMachine = setup({
   types: {} as {
     context: {
       todo: string;
@@ -25,7 +24,9 @@ export const todosMachine = createMachine({
       | { type: 'todo.mark'; id: string; mark: 'active' | 'completed' }
       | { type: 'todo.markAll'; mark: 'active' | 'completed' }
       | { type: 'todos.clearCompleted' };
-  },
+  }
+}).createMachine({
+  id: 'todos',
   context: {
     todo: '',
     todos: [
