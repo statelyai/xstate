@@ -4339,6 +4339,24 @@ describe('self', () => {
       })
     });
   });
+
+  it('should allow actor union snap snapshot methods to be called', () => {
+    const typeOne = createMachine({
+      types: {} as { events: { type: 'one' } }
+    });
+    type TypeOneRef = ActorRefFrom<typeof typeOne>;
+
+    const typeTwo = createMachine({
+      types: {} as { events: { type: 'one' } | { type: 'two' } }
+    });
+    type TypeTwoRef = ActorRefFrom<typeof typeTwo>;
+
+    const canMethod = (ref: TypeOneRef | TypeTwoRef) => {
+      ref.getSnapshot().can({ type: 'one' });
+    };
+
+    canMethod(createActor(typeOne));
+  });
 });
 
 describe('createActor', () => {
