@@ -67,7 +67,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   /**
    * @internal
    */
-  _sendInspectionEvent?: (
+  _sendInspectionEvent: (
     event: HomomorphicOmit<InspectionEvent, 'rootId'>
   ) => void;
   /**
@@ -158,6 +158,9 @@ export function createSystem<T extends ActorSystemInfo>(
     }
   };
   const sendInspectionEvent = (event: InspectionEvent) => {
+    if (!inspectionObservers.size) {
+      return;
+    }
     const resolvedInspectionEvent: InspectionEvent = {
       ...event,
       rootId: rootActor.sessionId
@@ -202,13 +205,10 @@ export function createSystem<T extends ActorSystemInfo>(
     },
     inspect: (observer) => {
       inspectionObservers.add(observer);
-
-      // Only send inspection events if someone is listening
-      system._sendInspectionEvent = sendInspectionEvent as any;
     },
-    _sendInspectionEvent: undefined,
+    _sendInspectionEvent: sendInspectionEvent as any,
     _relay: (source, target, event) => {
-      system._sendInspectionEvent?.({
+      system._sendInspectionEvent({
         type: '@xstate.event',
         sourceRef: source,
         actorRef: target,

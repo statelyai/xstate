@@ -184,7 +184,7 @@ export class Actor<TLogic extends AnyActorLogic>
     // Ensure that the send method is bound to this Actor instance
     // if destructured
     this.send = this.send.bind(this);
-    this.system._sendInspectionEvent?.({
+    this.system._sendInspectionEvent({
       type: '@xstate.actor',
       actorRef: this
     });
@@ -288,7 +288,7 @@ export class Actor<TLogic extends AnyActorLogic>
         this._error((this._snapshot as any).error);
         break;
     }
-    this.system._sendInspectionEvent?.({
+    this.system._sendInspectionEvent({
       type: '@xstate.snapshot',
       actorRef: this,
       event,
@@ -429,7 +429,7 @@ export class Actor<TLogic extends AnyActorLogic>
     // TODO: this isn't correct when rehydrating
     const initEvent = createInitEvent(this.options.input);
 
-    this.system._sendInspectionEvent?.({
+    this.system._sendInspectionEvent({
       type: '@xstate.event',
       sourceRef: this._parent,
       actorRef: this,

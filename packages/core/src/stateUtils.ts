@@ -1519,7 +1519,7 @@ function resolveAndExecuteActionsWithContext(
           : undefined;
 
     function executeAction() {
-      actorScope.system._sendInspectionEvent?.({
+      actorScope.system._sendInspectionEvent({
         type: '@xstate.action',
         actorRef: actorScope.self,
         action: {
@@ -1631,7 +1631,7 @@ export function macrostep(
     event: AnyEventObject,
     transitions: AnyTransitionDefinition[]
   ) {
-    actorScope.system._sendInspectionEvent?.({
+    actorScope.system._sendInspectionEvent({
       type: '@xstate.microstep',
       actorRef: actorScope.self,
       event,
