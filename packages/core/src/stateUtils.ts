@@ -626,7 +626,13 @@ export function getStateNodes<
   TEvent extends EventObject
 >(stateNode: AnyStateNode, stateValue: StateValue): Array<AnyStateNode> {
   if (typeof stateValue === 'string') {
-    return [stateNode, stateNode.states[stateValue]];
+    const childStateNode = stateNode.states[stateValue];
+    if (!childStateNode) {
+      throw new Error(
+        `State '${stateValue}' does not exist on '${stateNode.id}'`
+      );
+    }
+    return [stateNode, childStateNode];
   }
 
   const childStateKeys = Object.keys(stateValue);
