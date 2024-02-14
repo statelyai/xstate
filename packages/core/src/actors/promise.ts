@@ -4,16 +4,19 @@ import {
   ActorLogic,
   ActorRefFrom,
   ActorScope,
+  AnyActorRef,
   NonReducibleUnknown,
   Snapshot
 } from '../types.ts';
 
 export type PromiseSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
   input: TInput | undefined;
+  children: Record<string, any>;
 };
 
 const XSTATE_PROMISE_RESOLVE = 'xstate.promise.resolve';
 const XSTATE_PROMISE_REJECT = 'xstate.promise.reject';
+const XSTATE_SPAWN_CHILD = 'xstate.spawn.child';
 
 export type PromiseActorLogic<TOutput, TInput = unknown> = ActorLogic<
   PromiseSnapshot<TOutput, TInput>,
@@ -120,6 +123,15 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
             status: 'stopped',
             input: undefined
           };
+        case XSTATE_SPAWN_CHILD: {
+          return {
+            ...state,
+            children: {
+              ...state.children,
+              [(event as any).child.id]: (event as any).child
+            }
+          };
+        }
         default:
           return state;
       }
@@ -131,12 +143,23 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
         return;
       }
 
+      const innerSpawnChild: typeof spawnChild<any> = (logic, actorOptions) => {
+        const child = spawnChild(logic, actorOptions) as AnyActorRef;
+
+        self.send({
+          type: 'child',
+          child
+        });
+
+        return child;
+      };
+
       const resolvedPromise = Promise.resolve(
         promiseCreator({
           input: state.input!,
           system,
           self,
-          spawnChild
+          spawnChild: innerSpawnChild as any
         })
       );
 
@@ -166,7 +189,8 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
         status: 'active',
         output: undefined,
         error: undefined,
-        input
+        input,
+        children: {}
       };
     },
     getPersistedSnapshot: (snapshot) => snapshot,

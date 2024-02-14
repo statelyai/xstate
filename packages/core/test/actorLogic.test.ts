@@ -137,6 +137,7 @@ describe('promise logic (fromPromise)', () => {
 
       expect(resolvedPersistedState).toMatchInlineSnapshot(`
         {
+          "children": {},
           "error": undefined,
           "input": undefined,
           "output": 42,
@@ -166,6 +167,7 @@ describe('promise logic (fromPromise)', () => {
     const resolvedPersistedState = actor.getPersistedSnapshot();
     expect(resolvedPersistedState).toMatchInlineSnapshot(`
       {
+        "children": {},
         "error": undefined,
         "input": undefined,
         "output": 1,
@@ -197,6 +199,7 @@ describe('promise logic (fromPromise)', () => {
     const rejectedPersistedState = actorRef.getPersistedSnapshot();
     expect(rejectedPersistedState).toMatchInlineSnapshot(`
       {
+        "children": {},
         "error": 1,
         "input": undefined,
         "output": undefined,
@@ -236,9 +239,14 @@ describe('promise logic (fromPromise)', () => {
   });
 
   it('can spawn an actor', () => {
-    expect.assertions(1);
+    expect.assertions(3);
     const promiseLogic = fromPromise<AnyActorRef>(({ spawnChild }) => {
-      const childActor = spawnChild(fromPromise(() => Promise.resolve(42)));
+      const childActor = spawnChild(
+        fromPromise(() => Promise.resolve(42)),
+        {
+          id: 'child'
+        }
+      );
       return Promise.resolve(childActor);
     });
 
@@ -246,6 +254,9 @@ describe('promise logic (fromPromise)', () => {
 
     toPromise(actor).then((res) => {
       expect(isActorRef(res)).toBeTruthy();
+      expect((res as AnyActorRef)._parent).toBe(actor);
+
+      expect(actor.getSnapshot().children.child).toBe(res);
     });
   });
 });
@@ -706,6 +717,7 @@ describe('machine logic', () => {
 
     expect((persistedState as any).children.a.snapshot).toMatchInlineSnapshot(`
       {
+        "children": {},
         "error": undefined,
         "input": undefined,
         "output": 42,
