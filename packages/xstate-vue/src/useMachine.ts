@@ -1,29 +1,23 @@
+import { Ref } from 'vue';
 import {
-  ActorRefFrom,
-  AnyStateMachine,
-  AreAllImplementationsAssumedToBeProvided,
-  EventFrom,
+  Actor,
   ActorOptions,
-  MissingImplementationsError,
+  AnyStateMachine,
+  EventFrom,
   SnapshotFrom
 } from 'xstate';
 import { useActor } from './useActor.ts';
-import { Ref } from 'vue';
 
 /**
  * @alias useActor
  */
 export function useMachine<TMachine extends AnyStateMachine>(
-  machine: AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends true
-    ? TMachine
-    : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
+  machine: TMachine,
   options: ActorOptions<TMachine> = {}
 ): {
   snapshot: Ref<SnapshotFrom<TMachine>>;
   send: (event: EventFrom<TMachine>) => void;
-  actorRef: ActorRefFrom<TMachine>;
+  actorRef: Actor<TMachine>;
 } {
-  return useActor(machine as any, options) as any;
+  return useActor(machine, options);
 }

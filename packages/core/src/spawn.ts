@@ -1,20 +1,18 @@
-import { createErrorActorEvent } from './eventUtils.ts';
-import { ProcessingStatus, createActor } from './interpreter.ts';
+import { ProcessingStatus, createActor } from './createActor.ts';
 import {
   ActorRefFrom,
-  AnyActorScope,
   AnyActorLogic,
   AnyActorRef,
+  AnyActorScope,
   AnyEventObject,
   AnyMachineSnapshot,
+  ConditionalRequired,
   InputFrom,
   IsLiteralString,
-  ProvidedActor,
-  Snapshot,
-  TODO,
-  RequiredActorOptions,
   IsNotNever,
-  ConditionalRequired
+  ProvidedActor,
+  RequiredActorOptions,
+  TODO
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
 
@@ -37,20 +35,27 @@ type SpawnOptions<
     >
   : never;
 
+// it's likely-ish that `(TActor & { src: TSrc })['logic']` would be faster
+// but it's only possible to do it since https://github.com/microsoft/TypeScript/pull/53098 (TS 5.1)
+// and we strive to support TS 5.0 whenever possible
+type GetConcreteLogic<
+  TActor extends ProvidedActor,
+  TSrc extends TActor['src']
+> = Extract<TActor, { src: TSrc }>['logic'];
+
 export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
   TActor['src']
 > extends true
   ? <TSrc extends TActor['src']>(
       logic: TSrc,
-      ...[options = {} as any]: SpawnOptions<TActor, TSrc>
-    ) => ActorRefFrom<(TActor & { src: TSrc })['logic']>
-  : // TODO: do not accept machines without all implementations
-    <TLogic extends AnyActorLogic | string>(
+      ...[options]: SpawnOptions<TActor, TSrc>
+    ) => ActorRefFrom<GetConcreteLogic<TActor, TSrc>>
+  : <TLogic extends AnyActorLogic | string>(
       src: TLogic,
       options?: {
         id?: string;
         systemId?: string;
-        input?: unknown;
+        input?: TLogic extends string ? unknown : InputFrom<TLogic>;
         syncSnapshot?: boolean;
       }
     ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;
@@ -111,12 +116,7 @@ export function createSpawner(
       if (actorRef._processingStatus === ProcessingStatus.Stopped) {
         return;
       }
-      try {
-        actorRef.start?.();
-      } catch (err) {
-        actorScope.self.send(createErrorActorEvent(actorRef.id, err));
-        return;
-      }
+      actorRef.start();
     });
     return actorRef;
   };

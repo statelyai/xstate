@@ -1,4 +1,4 @@
-import { assign, createMachine, fromPromise, interpret } from 'xstate';
+import { assign, fromPromise, createActor, setup } from 'xstate';
 
 async function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -8,66 +8,17 @@ async function delay(ms: number): Promise<void> {
   });
 }
 
+interface PatientInfo {
+  name: string;
+  pet: string;
+  reason: string;
+}
+
 // https://github.com/serverlessworkflow/specification/tree/main/examples#event-based-service-invocation
-export const workflow = createMachine(
-  {
-    id: 'VetAppointmentWorkflow',
-    types: {} as {
-      context: {
-        patientInfo: {
-          name: string;
-          pet: string;
-          reason: string;
-        } | null;
-        appointmentInfo: {
-          appointmentId: string;
-          appointmentDate: string;
-        } | null;
-      };
-      events: {
-        type: 'MakeVetAppointment';
-        patientInfo: {
-          name: string;
-          pet: string;
-          reason: string;
-        };
-      };
-    },
-    initial: 'Idle',
-    context: {
-      patientInfo: null,
-      appointmentInfo: null
-    },
-    states: {
-      Idle: {
-        on: {
-          MakeVetAppointment: {
-            target: 'MakeVetAppointmentState',
-            actions: assign({
-              patientInfo: ({ event }) => event.patientInfo
-            })
-          }
-        }
-      },
-      MakeVetAppointmentState: {
-        invoke: {
-          src: 'MakeAppointmentAction',
-          input: ({ context }) => ({
-            patientInfo: context.patientInfo
-          }),
-          onDone: {
-            target: 'Idle',
-            actions: assign({
-              appointmentInfo: ({ event }) => event.output
-            })
-          }
-        }
-      }
-    }
-  },
-  {
-    actors: {
-      MakeAppointmentAction: fromPromise(async ({ input }) => {
+export const workflow = setup({
+  actors: {
+    MakeAppointmentAction: fromPromise(
+      async ({ input }: { input: { patientInfo: PatientInfo } }) => {
         console.log('Making vet appointment for', input.patientInfo);
         await delay(2000);
 
@@ -80,12 +31,62 @@ export const workflow = createMachine(
         return {
           appointmentInfo
         };
-      })
+      }
+    )
+  }
+}).createMachine({
+  id: 'VetAppointmentWorkflow',
+  types: {} as {
+    context: {
+      patientInfo: PatientInfo | null;
+      appointmentInfo: {
+        appointmentId: string;
+        appointmentDate: string;
+      } | null;
+    };
+    events: {
+      type: 'MakeVetAppointment';
+      patientInfo: {
+        name: string;
+        pet: string;
+        reason: string;
+      };
+    };
+  },
+  initial: 'Idle',
+  context: {
+    patientInfo: null,
+    appointmentInfo: null
+  },
+  states: {
+    Idle: {
+      on: {
+        MakeVetAppointment: {
+          target: 'MakeVetAppointmentState',
+          actions: assign({
+            patientInfo: ({ event }) => event.patientInfo
+          })
+        }
+      }
+    },
+    MakeVetAppointmentState: {
+      invoke: {
+        src: 'MakeAppointmentAction',
+        input: ({ context }) => ({
+          patientInfo: context.patientInfo
+        }),
+        onDone: {
+          target: 'Idle',
+          actions: assign({
+            appointmentInfo: ({ event }) => event.output
+          })
+        }
+      }
     }
   }
-);
+});
 
-const actor = interpret(workflow, {
+const actor = createActor(workflow, {
   input: {
     person: { name: 'Jenny' }
   }

@@ -29,7 +29,8 @@ import type {
   AnyStateMachine,
   AnyStateNodeConfig,
   ProvidedActor,
-  NonReducibleUnknown
+  NonReducibleUnknown,
+  EventDescriptor
 } from './types.ts';
 import {
   createInvokeId,
@@ -224,6 +225,7 @@ export class StateNode<
     this.tags = toArray(config.tags).slice();
   }
 
+  /** @internal */
   public _initialize() {
     this.transitions = formatTransitions(this);
     if (this.config.always) {
@@ -281,6 +283,7 @@ export class StateNode<
     };
   }
 
+  /** @internal */
   public toJSON() {
     return this.definition;
   }
@@ -301,11 +304,11 @@ export class StateNode<
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invokeConfig, i) => {
         const { src, systemId } = invokeConfig;
-        const resolvedId = invokeConfig.id || createInvokeId(this.id, i);
+        const resolvedId = invokeConfig.id ?? createInvokeId(this.id, i);
         const resolvedSrc =
           typeof src === 'string'
             ? src
-            : `xstate#${createInvokeId(this.id, i)}`;
+            : `xstate.invoke.${createInvokeId(this.id, i)}`;
         return {
           ...invokeConfig,
           src: resolvedSrc,
@@ -366,8 +369,9 @@ export class StateNode<
     );
   }
 
+  /** @internal */
   public next(
-    state: MachineSnapshot<TContext, TEvent, any, any, any, any>,
+    snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any>,
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;
@@ -383,14 +387,19 @@ export class StateNode<
 
     for (const candidate of candidates) {
       const { guard } = candidate;
-      const resolvedContext = state.context;
+      const resolvedContext = snapshot.context;
 
       let guardPassed = false;
 
       try {
         guardPassed =
           !guard ||
-          evaluateGuard<TContext, TEvent>(guard, resolvedContext, event, state);
+          evaluateGuard<TContext, TEvent>(
+            guard,
+            resolvedContext,
+            event,
+            snapshot
+          );
       } catch (err: any) {
         const guardType =
           typeof guard === 'string'
@@ -420,7 +429,7 @@ export class StateNode<
   /**
    * All the event types accepted by this state node and its descendants.
    */
-  public get events(): Array<TEvent['type']> {
+  public get events(): Array<EventDescriptor<TEvent>> {
     return memo(this, 'events', () => {
       const { states } = this;
       const events = new Set(this.ownEvents);
@@ -445,7 +454,7 @@ export class StateNode<
    *
    * Excludes any inert events.
    */
-  public get ownEvents(): Array<TEvent['type']> {
+  public get ownEvents(): Array<EventDescriptor<TEvent>> {
     const events = new Set(
       [...this.transitions.keys()].filter((descriptor) => {
         return this.transitions

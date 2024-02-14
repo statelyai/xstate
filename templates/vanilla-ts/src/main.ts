@@ -1,6 +1,16 @@
 import './style.css';
 import { feedbackMachine } from './feedbackMachine';
-import { interpret } from 'xstate';
+import {
+  AnyMachineSnapshot,
+  __unsafe_getAllOwnEventDescriptors,
+  createActor
+} from 'xstate';
+import { createBrowserInspector } from '@statelyai/inspect';
+
+const { inspect } = createBrowserInspector({
+  // Comment out the line below to start the inspector
+  autoStart: false
+});
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>
@@ -18,7 +28,13 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </div>
 `;
 
-const actor = interpret(feedbackMachine).start();
+function getNextTransitions(state: AnyMachineSnapshot) {
+  return state._nodes.flatMap((node) => [...node.transitions.values()]).flat(1);
+}
+
+const actor = createActor(feedbackMachine, {
+  inspect
+});
 
 (window as any).feedbackActor = actor;
 
@@ -28,12 +44,14 @@ actor.subscribe((state) => {
   console.log('%cState:', 'background-color: #056dff', state);
   console.groupCollapsed('%cNext events:', 'background-color: #056dff');
   console.log(
-    state.nextEvents
-      .map((eventType) => {
-        return `feedbackActor.send({ type: '${eventType}' })`;
+    getNextTransitions(state)
+      .map((t) => {
+        return `feedbackActor.send({ type: '${t.eventType}' })`;
       })
       .join('\n\n')
   );
   console.groupEnd();
   console.groupEnd();
 });
+
+actor.start();

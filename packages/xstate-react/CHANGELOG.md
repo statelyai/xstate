@@ -1,5 +1,123 @@
 # Changelog
 
+## 4.1.0
+
+### Minor Changes
+
+- [#4231](https://github.com/statelyai/xstate/pull/4231) [`c2402e7bc`](https://github.com/statelyai/xstate/commit/c2402e7bc269dd1f1a9eca0d3e4484ad5a4cfadb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `actor` passed to `useSelector(actor, selector)` is now allowed to be `undefined` for an actor that may not exist yet. For actors that may be `undefined`, the `snapshot` provided to the `selector` function can also be `undefined`:
+
+  ```ts
+  const count = useSelector(maybeActor, (snapshot) => {
+    // `snapshot` may be undefined
+    return snapshot?.context.count;
+  });
+
+  count; // number | undefined
+  ```
+
+## 4.0.3
+
+### Patch Changes
+
+- [#4695](https://github.com/statelyai/xstate/pull/4695) [`52900a084`](https://github.com/statelyai/xstate/commit/52900a084712755b00e6c38eb9aa2c3b290259b5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Options in `createActorContext` are now properly merged with provider options. Previously, provider options replaced the actor options.
+
+  ```tsx
+  const { inspect } = createBrowserInspector();
+
+  const SomeContext = createActorContext(someMachine, { inspect });
+
+  // ...
+  // Options are now merged:
+  // { inspect: inspect, input: 10 }
+  <SomeContext.Provider options={{ input: 10 }}>
+    {/* ... */}
+  </SomeContext.Provider>;
+  ```
+
+## 4.0.2
+
+### Patch Changes
+
+- [#4600](https://github.com/statelyai/xstate/pull/4600) [`1f2ccb97c`](https://github.com/statelyai/xstate/commit/1f2ccb97ca00ff2d2ec1c9996f8205dbe656602b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Typegen-based types for detecting missing implementations have been removed internally.
+
+## 4.0.1
+
+### Patch Changes
+
+- [#4497](https://github.com/statelyai/xstate/pull/4497) [`d7f220225`](https://github.com/statelyai/xstate/commit/d7f220225c34808a96383099e1f9bfd3abd13962) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix an issue where `after` transitions do not work in React strict mode. Delayed events (including from `after` transitions) should now work as expected in all React modes.
+
+## 4.0.0
+
+### Major Changes
+
+- [#3947](https://github.com/statelyai/xstate/pull/3947) [`5fa3a0c74`](https://github.com/statelyai/xstate/commit/5fa3a0c74343e400871473d375f02d3d918d1f4e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Removed the ability to pass a factory function as argument to `useMachine`.
+- [#4006](https://github.com/statelyai/xstate/pull/4006) [`42df9a536`](https://github.com/statelyai/xstate/commit/42df9a5360ec776ca3ce8bcd0f90873a79125bf2) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `useActorRef` is introduced, which returns an `ActorRef` from actor logic:
+
+  ```ts
+  const actorRef = useActorRef(machine, { ... });
+  const anotherActorRef = useActorRef(fromPromise(...));
+  ```
+
+  ~~`useMachine`~~ is deprecated in favor of `useActor`, which works with machines and any other kind of logic
+
+  ```diff
+  -const [state, send] = useMachine(machine);
+  +const [state, send] = useActor(machine);
+  const [state, send] = useActor(fromTransition(...));
+  ```
+
+  ~~`useSpawn`~~ is removed in favor of `useActorRef`
+
+  ````diff
+  -const actorRef = useSpawn(machine);
+  +const actorRef = useActorRef(machine);
+
+  The previous use of `useActor(actorRef)` is now replaced with just using the `actorRef` directly, and with `useSelector`:
+
+  ```diff
+  -const [state, send] = useActor(actorRef);
+  +const state = useSelector(actorRef, s => s);
+  // actorRef.send(...)
+  ````
+
+- [#4050](https://github.com/statelyai/xstate/pull/4050) [`fc88dc8e6`](https://github.com/statelyai/xstate/commit/fc88dc8e6d3fbc4ee8a1e0bdb538bab560b7a695) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `options` prop has been added (back) to the `Context.Provider` component returned from `createActorContext`:
+
+  ```tsx
+  const SomeContext = createActorContext(someMachine);
+
+  // ...
+
+  <SomeContext.Provider options={{ input: 42 }}>
+    {/* ... */}
+  </SomeContext.Provider>;
+  ```
+
+- [#4006](https://github.com/statelyai/xstate/pull/4006) [`42df9a536`](https://github.com/statelyai/xstate/commit/42df9a5360ec776ca3ce8bcd0f90873a79125bf2) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `useActor` has been removed from the created actor context, you should be able to replace its usage with `MyCtx.useSelector` and `MyCtx.useActorRef`.
+- [#4265](https://github.com/statelyai/xstate/pull/4265) [`1153b3f9a`](https://github.com/statelyai/xstate/commit/1153b3f9a95b4d76ff5408be8bd03a66f884b9cb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - FSM-related functions have been removed.
+- [#3947](https://github.com/statelyai/xstate/pull/3947) [`5fa3a0c74`](https://github.com/statelyai/xstate/commit/5fa3a0c74343e400871473d375f02d3d918d1f4e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Implementations for machines on `useMachine` hooks should go directly on the machine via `machine.provide(...)`, and are no longer allowed to be passed in as options.
+
+  ```diff
+  -const [state, send] = useMachine(machine, {
+  -  actions: {
+  -    // ...
+  -  }
+  -});
+  +const [state, send] = useMachine(machine.provide({
+  +  actions: {
+  +    // ...
+  +  }
+  +}));
+  ```
+
+- [#3148](https://github.com/statelyai/xstate/pull/3148) [`7a68cbb61`](https://github.com/statelyai/xstate/commit/7a68cbb615afb6556c83868535dae67af366a117) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Removed `getSnapshot` parameter from hooks. It is expected that the received `actorRef` has to have a `getSnapshot` method on it that can be used internally.
+
+### Minor Changes
+
+- [#3727](https://github.com/statelyai/xstate/pull/3727) [`5fb3c683d`](https://github.com/statelyai/xstate/commit/5fb3c683d9a9bdc06637b3a13a5b575059aebadd) Thanks [@Andarist](https://github.com/Andarist)! - `exports` field has been added to the `package.json` manifest. It limits what files can be imported from a package - it's no longer possible to import from files that are not considered to be a part of the public API.
+- [#4240](https://github.com/statelyai/xstate/pull/4240) [`409552cf8`](https://github.com/statelyai/xstate/commit/409552cf8578dc517cca4e6eaeb652a33f49c06c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useMachine` function is an alias of `useActor`.
+- [#4436](https://github.com/statelyai/xstate/pull/4436) [`340aee643`](https://github.com/statelyai/xstate/commit/340aee6437767fa3dc5cef6e991cf975fe27467a) Thanks [@Andarist](https://github.com/Andarist)! - Fast refresh now works as expected for most use-cases.
+- [#4050](https://github.com/statelyai/xstate/pull/4050) [`fc88dc8e6`](https://github.com/statelyai/xstate/commit/fc88dc8e6d3fbc4ee8a1e0bdb538bab560b7a695) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `observerOrListener` argument has been removed from the 3rd argument of `createActorContext(logic, options)`.
+
 ## 4.0.0-beta.11
 
 ### Minor Changes

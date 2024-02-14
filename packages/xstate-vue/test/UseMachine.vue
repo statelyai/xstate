@@ -65,7 +65,7 @@ export default defineComponent({
         }
       }),
       {
-        state: persistedState
+        snapshot: persistedState
       }
     );
     return { snapshot, send, actorRef };

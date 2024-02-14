@@ -1,17 +1,25 @@
 # Contributing an example
 
-1. Start a [new Vite project](https://vitejs.dev/guide/#scaffolding-your-first-vite-project) from this `/examples` directory using the CLI:
+These steps assume You've forked the repo and created a branch for your PR. For more info, see the section _Making changes_ in our [CONTRIBUTING.md](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md#making-changes).
+
+1. In the CLI, navigate to the `/examples` folder. Start a [new Vite project](https://vitejs.dev/guide/#scaffolding-your-first-vite-project) using the appropiate template (e.g. `react-ts`) and adding the name of the framework at the end of your example's name:
 
 ```bash
-npm create vite@latest my-example-react --template react-ts
+pnpm create vite@latest my-example-react --template react-ts
 ```
 
-2. Install `xstate@beta` and the library-specific beta (e.g. `@xstate/react@beta`):
+2. Install `xstate` and the library-specific beta (e.g. `@xstate/react`):
 
 ```bash
-npm i xstate@beta @xstate/react@beta
+pnpm i xstate @xstate/react
 ```
 
 3. Add your XState-powered demo code ✨
 
-4. Submit a PR!
+4. Preview it:
+
+```bash
+pnpm run dev
+```
+
+5. Submit a PR!

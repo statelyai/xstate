@@ -5,21 +5,19 @@ import { stopChild } from '../src/actions/stopChild';
 import { PromiseActorLogic, fromCallback, fromPromise } from '../src/actors';
 import {
   ActorRefFrom,
+  InputFrom,
   MachineContext,
   ProvidedActor,
   Spawner,
   StateMachine,
   assign,
-  choose,
   createActor,
   createMachine,
+  enqueueActions,
   not,
-  pure,
   sendTo,
-  stateIn,
   spawnChild,
-  setup,
-  and
+  stateIn
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -205,7 +203,7 @@ describe('output', () => {
       }
     });
 
-    const state = machine.getInitialState(null as any);
+    const state = machine.getInitialSnapshot(null as any);
 
     ((_accept: number | undefined) => {})(state.output);
     // @ts-expect-error
@@ -720,6 +718,31 @@ describe('events', () => {
         FOO: {
           actions: ({ event }) => {
             ((_accept: string) => {})(event.type);
+          }
+        }
+      }
+    });
+  });
+
+  it('should provide contextual `event` type in transition actions when the matching event has a union `.type`', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | {
+              type: 'FOO' | 'BAR';
+              value: string;
+            }
+          | {
+              type: 'OTHER';
+            };
+      },
+      on: {
+        FOO: {
+          actions: ({ event }) => {
+            event.type satisfies 'FOO' | 'BAR'; // it could be narrowed down to `FOO` but it's not worth the effort/complexity
+            event.value satisfies string;
+            // @ts-expect-error
+            event.value satisfies number;
           }
         }
       }
@@ -1469,6 +1492,53 @@ describe('spawner in assign', () => {
       entry: assign(({ spawn }) => {
         spawn('child');
         return {};
+      })
+    });
+  });
+
+  it(`should return a concrete actor ref type based on the used string reference`, () => {
+    const child = createMachine({
+      types: {} as {
+        context: {
+          counter: number;
+        };
+      },
+      context: {
+        counter: 100
+      }
+    });
+
+    const otherChild = createMachine({
+      types: {} as {
+        context: {
+          title: string;
+        };
+      },
+      context: {
+        title: 'The Answer'
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        context: {
+          myChild?: ActorRefFrom<typeof child>;
+        };
+        actors:
+          | {
+              src: 'child';
+              logic: typeof child;
+            }
+          | {
+              src: 'other';
+              logic: typeof otherChild;
+            };
+      },
+      context: {},
+      entry: assign({
+        myChild: ({ spawn }) => {
+          return spawn('child');
+        }
       })
     });
   });
@@ -2659,7 +2729,7 @@ describe('actions', () => {
     });
   });
 
-  it('should allow a defined parametrized action with params', () => {
+  it('should allow a defined parameterized action with params', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
@@ -2673,7 +2743,7 @@ describe('actions', () => {
     });
   });
 
-  it('should disallow a non-defined parametrized action', () => {
+  it('should disallow a non-defined parameterized action', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
@@ -2688,7 +2758,7 @@ describe('actions', () => {
     });
   });
 
-  it('should disallow a defined parametrized action with invalid params', () => {
+  it('should disallow a defined parameterized action with invalid params', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
@@ -2703,7 +2773,7 @@ describe('actions', () => {
     });
   });
 
-  it('should disallow a defined parametrized action when it lacks required params', () => {
+  it('should disallow a defined parameterized action when it lacks required params', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
@@ -2716,7 +2786,7 @@ describe('actions', () => {
     });
   });
 
-  it("should disallow a defined parametrized action with required params when it's referenced using a string", () => {
+  it("should disallow a defined parameterized action with required params when it's referenced using a string", () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
@@ -2939,136 +3009,77 @@ describe('actions', () => {
   });
 });
 
-describe('choose', () => {
-  it('should be able to use a defined parametrized action with required params', () => {
+describe('enqueueActions', () => {
+  it('should be able to enqueue a defined parameterized action with required params', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: [
-            {
-              type: 'greet',
-              params: {
-                name: 'Anders'
-              }
-            }
-          ]
-        }
-      ])
+      entry: enqueueActions(({ enqueue }) => {
+        enqueue({
+          type: 'greet',
+          params: {
+            name: 'Anders'
+          }
+        });
+      })
     });
   });
 
-  it('should not allow to use a defined parametrized action without all of its required params', () => {
+  it('should not allow to enqueue a defined parameterized action without all of its required params', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: [
-            {
-              type: 'greet',
-              // @ts-expect-error
-              params: {}
-            }
-          ]
-        }
-      ])
-    });
-  });
-
-  it('should not be possible to use a parametrized action outside of the defined ones', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
-      },
-      entry: choose([
-        {
-          guard: () => true,
+      entry: enqueueActions(({ enqueue }) => {
+        enqueue({
+          type: 'greet',
           // @ts-expect-error
-          actions: {
-            type: 'other' as const
+          params: {}
+        });
+      })
+    });
+  });
+
+  it('should not be possible to enqueue a parameterized action outside of the defined ones', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: enqueueActions(({ enqueue }) => {
+        enqueue(
+          // @ts-expect-error
+          {
+            type: 'other'
           }
-        }
-      ])
+        );
+      })
     });
   });
 
-  it('should be possible to use a parametrized action with no required params using a string', () => {
+  it('should be possible to enqueue a parameterized action with no required params using a string', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: 'poke'
-        }
-      ])
+      entry: enqueueActions(({ enqueue }) => {
+        enqueue('poke');
+      })
     });
   });
 
-  it('should be possible to use a parametrized action with no required params using an object', () => {
+  it('should be possible to enqueue a parameterized action with no required params using an object', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: {
-            type: 'poke'
-          }
-        }
-      ])
+      entry: enqueueActions(({ enqueue }) => {
+        enqueue({ type: 'poke' });
+      })
     });
   });
 
-  it('should be possible to use multiple different defined parametrized actions', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
-      },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: [
-            {
-              type: 'greet',
-              params: {
-                name: 'Anders'
-              }
-            },
-            {
-              type: 'poke'
-            }
-          ]
-        }
-      ])
-    });
-  });
-
-  it('should be possible to use a readonly array of branches', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
-      },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: {
-            type: 'poke'
-          }
-        }
-      ] as const)
-    });
-  });
-
-  it('should be able to use an inline custom action in a branch', () => {
+  it('should be able to enqueue an inline custom action', () => {
     createMachine(
       {
         types: {
@@ -3077,17 +3088,15 @@ describe('choose', () => {
       },
       {
         actions: {
-          foo: choose([
-            {
-              actions: () => {}
-            }
-          ])
+          foo: enqueueActions(({ enqueue }) => {
+            enqueue(() => {});
+          })
         }
       }
     );
   });
 
-  it('should allow a defined parametrized guard to be used as its guard', () => {
+  it('should allow a defined simple guard to be checked', () => {
     createMachine(
       {
         types: {
@@ -3103,18 +3112,15 @@ describe('choose', () => {
       },
       {
         actions: {
-          foo: choose([
-            {
-              actions: () => {},
-              guard: 'plainGuard'
-            }
-          ])
+          foo: enqueueActions(({ check }) => {
+            check('plainGuard');
+          })
         }
       }
     );
   });
 
-  it('should not allow a guard outside of the defined ones', () => {
+  it('should allow a defined parameterized guard to be checked', () => {
     createMachine(
       {
         types: {
@@ -3130,19 +3136,47 @@ describe('choose', () => {
       },
       {
         actions: {
-          foo: choose([
-            {
-              actions: () => {},
+          foo: enqueueActions(({ check }) => {
+            check({
+              type: 'isGreaterThan',
+              params: {
+                count: 10
+              }
+            });
+          })
+        }
+      }
+    );
+  });
+
+  it('should not allow a guard outside of the defined ones to be checked', () => {
+    createMachine(
+      {
+        types: {
+          guards: {} as
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' }
+        }
+      },
+      {
+        actions: {
+          foo: enqueueActions(({ check }) => {
+            check(
               // @ts-expect-error
-              guard: 'other' as const
-            }
-          ])
+              'other'
+            );
+          })
         }
       }
     );
   });
 
-  it('should type guard params as undefined in inline custom guard when choose is used in the config', () => {
+  it('should type guard params as undefined in inline custom guard when enqueueActions is used in the config', () => {
     createMachine({
       types: {
         guards: {} as
@@ -3154,21 +3188,20 @@ describe('choose', () => {
             }
           | { type: 'plainGuard' }
       },
-      entry: choose([
-        {
-          actions: 'someAction',
-          guard: (_, params) => {
-            ((_accept: undefined) => {})(params);
-            // @ts-expect-error
-            ((_accept: 'not any') => {})(params);
-            return true;
-          }
-        }
-      ])
+      entry: enqueueActions(({ check }) => {
+        check((_, params) => {
+          params satisfies undefined;
+          undefined satisfies typeof params;
+          // @ts-expect-error
+          params satisfies 'not any';
+
+          return true;
+        });
+      })
     });
   });
 
-  it('should type guard params as undefined in inline custom guard when choose is used in the implementations', () => {
+  it('should type guard params as undefined in inline custom guard when enqueueActions is used in the implementations', () => {
     createMachine(
       {
         types: {
@@ -3184,126 +3217,22 @@ describe('choose', () => {
       },
       {
         actions: {
-          someGuard: choose([
-            {
-              actions: 'someAction',
-              guard: (_, params) => {
-                ((_accept: undefined) => {})(params);
-                // @ts-expect-error
-                ((_accept: 'not any') => {})(params);
-                return true;
-              }
-            }
-          ])
+          someGuard: enqueueActions(({ check }) => {
+            check((_, params) => {
+              params satisfies undefined;
+              undefined satisfies typeof params;
+              // @ts-expect-error
+              params satisfies 'not any';
+
+              return true;
+            });
+          })
         }
       }
     );
   });
-});
 
-describe('pure', () => {
-  it('should be able to return a defined parametrized action', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
-      },
-      entry: pure(() => {
-        return [
-          {
-            type: 'greet' as const, // contextual type isn't helping here and string widens so we need `as const`
-            params: {
-              name: 'Anders'
-            }
-          }
-        ];
-      })
-    });
-  });
-
-  it('should not be able to return a parametrized action outside of the defined ones', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
-      },
-      // @ts-expect-error
-      entry: pure(() => {
-        return {
-          type: 'other'
-        };
-      })
-    });
-  });
-
-  it('should be able to return multiple different defined parametrized actions', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
-      },
-      entry: pure(() => {
-        return [
-          {
-            type: 'greet' as const,
-            params: {
-              name: 'Anders'
-            }
-          },
-          {
-            type: 'poke' as const
-          }
-        ];
-      })
-    });
-  });
-
-  it('should be able to return a readonly array of actions', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
-      },
-      entry: pure(() => {
-        return [
-          {
-            type: 'poke'
-          }
-        ] as const;
-      })
-    });
-  });
-
-  it('should be able to return an inline custom action', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
-      },
-      entry: pure(() => {
-        return [() => {}];
-      })
-    });
-  });
-
-  it('should be able to directly return a defined action without required params', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
-      },
-      entry: pure(() => {
-        return 'poke' as const;
-      })
-    });
-  });
-
-  it('should be able to return a defined action without required params in an array using a string', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
-      },
-      entry: pure(() => {
-        return ['poke' as const];
-      })
-    });
-  });
-
-  it('should be able to return `raise` in a transition with one of the other accepted event types', () => {
+  it('should be able to enqueue `raise` using its own action creator in a transition with one of the other accepted event types', () => {
     createMachine({
       types: {} as {
         events:
@@ -3316,15 +3245,15 @@ describe('pure', () => {
       },
       on: {
         SOMETHING: {
-          actions: pure(({ context }) => {
-            return raise({ type: 'SOMETHING_ELSE' });
+          actions: enqueueActions(({ enqueue }) => {
+            enqueue(raise({ type: 'SOMETHING_ELSE' }));
           })
         }
       }
     });
   });
 
-  it('should not be able to return `raise` in a transition with an event type that is not defined', () => {
+  it('should be able to enqueue `raise` using its bound action creator in a transition with one of the other accepted event types', () => {
     createMachine({
       types: {} as {
         events:
@@ -3337,14 +3266,59 @@ describe('pure', () => {
       },
       on: {
         SOMETHING: {
-          actions: [
-            pure(({ context }) => {
-              return raise({
+          actions: enqueueActions(({ enqueue }) => {
+            enqueue.raise({ type: 'SOMETHING_ELSE' });
+          })
+        }
+      }
+    });
+  });
+
+  it('should not be able to enqueue `raise` using its own action creator in a transition with an event type that is not defined', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      on: {
+        SOMETHING: {
+          actions: enqueueActions(({ enqueue }) => {
+            enqueue(
+              raise({
                 // @ts-expect-error
                 type: 'OTHER'
-              });
-            })
-          ]
+              })
+            );
+          })
+        }
+      }
+    });
+  });
+
+  it('should not be able to enqueue `raise` using its bound action creator in a transition with an event type that is not defined', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      on: {
+        SOMETHING: {
+          actions: enqueueActions(({ enqueue }) => {
+            enqueue.raise({
+              // @ts-expect-error
+              type: 'OTHER'
+            });
+          })
         }
       }
     });
@@ -3421,7 +3395,7 @@ describe('guards', () => {
     );
   });
 
-  it('should allow a defined parametrized guard with params', () => {
+  it('should allow a defined parameterized guard with params', () => {
     createMachine({
       types: {} as {
         guards:
@@ -3446,7 +3420,7 @@ describe('guards', () => {
     });
   });
 
-  it('should disallow a non-defined parametrized guard', () => {
+  it('should disallow a non-defined parameterized guard', () => {
     createMachine({
       types: {} as {
         guards:
@@ -3472,7 +3446,7 @@ describe('guards', () => {
     });
   });
 
-  it('should disallow a defined parametrized guard with invalid params', () => {
+  it('should disallow a defined parameterized guard with invalid params', () => {
     createMachine({
       types: {} as {
         guards:
@@ -3498,7 +3472,7 @@ describe('guards', () => {
     });
   });
 
-  it('should disallow a defined parametrized guard when it lacks required params', () => {
+  it('should disallow a defined parameterized guard when it lacks required params', () => {
     createMachine({
       types: {} as {
         guards:
@@ -3522,7 +3496,7 @@ describe('guards', () => {
     });
   });
 
-  it("should disallow a defined parametrized guard with required params when it's referenced using a string", () => {
+  it("should disallow a defined parameterized guard with required params when it's referenced using a string", () => {
     createMachine({
       types: {} as {
         guards:
@@ -4075,83 +4049,35 @@ describe('delays', () => {
     });
   });
 
-  it('should accept a plain number as delay in `raise` in `choose` when delays are declared', () => {
+  it('should accept a plain number as delay in `raise` in `enqueueActions` when delays are declared', () => {
     createMachine({
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: raise({ type: 'FOO' }, { delay: 100 })
-        }
-      ])
-    });
-  });
-
-  it('should accept a defined delay in `raise` in `choose`', () => {
-    createMachine({
-      types: {} as {
-        delays: 'one second' | 'one minute';
-      },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: raise({ type: 'FOO' }, { delay: 'one minute' })
-        }
-      ])
-    });
-  });
-
-  it('should reject a delay outside of the defined ones in `raise` in `choose`', () => {
-    createMachine({
-      types: {} as {
-        delays: 'one second' | 'one minute';
-      },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: raise(
-            { type: 'FOO' },
-            {
-              // @ts-expect-error
-              delay: 'unknown delay'
-            }
-          )
-        }
-      ])
-    });
-  });
-
-  it('should accept a plain number as delay in `raise` in `pure` when delays are declared', () => {
-    createMachine({
-      types: {} as {
-        delays: 'one second' | 'one minute';
-      },
-      entry: pure(() => {
-        return raise({ type: 'FOO' }, { delay: 100 });
+      entry: enqueueActions(({ enqueue }) => {
+        enqueue.raise({ type: 'FOO' }, { delay: 100 });
       })
     });
   });
 
-  it('should accept a defined delay in `raise` in `pure`', () => {
+  it('should accept a defined delay in `raise` in `enqueueActions`', () => {
     createMachine({
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      entry: pure(() => {
-        return raise({ type: 'FOO' }, { delay: 'one minute' });
+      entry: enqueueActions(({ enqueue }) => {
+        enqueue.raise({ type: 'FOO' }, { delay: 'one minute' });
       })
     });
   });
 
-  it('should reject a delay outside of the defined ones in `raise` in `pure`', () => {
+  it('should reject a delay outside of the defined ones in `raise` in `enqueueActions`', () => {
     createMachine({
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      entry: pure(() => {
-        return raise(
+      entry: enqueueActions(({ enqueue }) => {
+        enqueue.raise(
           { type: 'FOO' },
           {
             // @ts-expect-error
@@ -4412,5 +4338,22 @@ describe('self', () => {
         return {};
       })
     });
+  });
+});
+
+describe('createActor', () => {
+  it(`should require input to be specified when it is required`, () => {
+    const logic = fromPromise(({}: { input: number }) => Promise.resolve(100));
+
+    // @ts-expect-error
+    createActor(logic);
+  });
+
+  it(`should not require input when it's optional`, () => {
+    const logic = fromPromise(({}: { input: number | undefined }) =>
+      Promise.resolve(100)
+    );
+
+    createActor(logic);
   });
 });

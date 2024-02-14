@@ -16,7 +16,7 @@ import {
 
 function resolveRaise(
   _: AnyActorScope,
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   args: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -47,7 +47,7 @@ function resolveRaise(
   },
   { internalQueue }: { internalQueue: AnyEventObject[] }
 ) {
-  const delaysMap = state.machine.implementations.delays;
+  const delaysMap = snapshot.machine.implementations.delays;
 
   if (typeof eventOrExpr === 'string') {
     throw new Error(
@@ -73,7 +73,7 @@ function resolveRaise(
   if (typeof resolvedDelay !== 'number') {
     internalQueue.push(resolvedEvent);
   }
-  return [state, { event: resolvedEvent, id, delay: resolvedDelay }];
+  return [snapshot, { event: resolvedEvent, id, delay: resolvedDelay }];
 }
 
 function executeRaise(
@@ -84,10 +84,12 @@ function executeRaise(
     delay: number | undefined;
   }
 ) {
-  if (typeof params.delay === 'number') {
-    (actorScope.self as AnyActor).delaySend(
-      params as typeof params & { delay: number }
-    );
+  const { event, delay, id } = params;
+  if (typeof delay === 'number') {
+    actorScope.defer(() => {
+      const self = actorScope.self;
+      actorScope.system.scheduler.schedule(self, self, event, delay, id);
+    });
     return;
   }
 }

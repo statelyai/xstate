@@ -1,11 +1,4 @@
-import {
-  assign,
-  createMachine,
-  forwardTo,
-  fromPromise,
-  interpret,
-  sendParent
-} from 'xstate';
+import { createMachine, fromPromise, createActor } from 'xstate';
 import { retry, handleWhen, ConstantBackoff } from 'cockatiel';
 
 const retryPolicy = retry(
@@ -130,7 +123,7 @@ export const workflow = createMachine(
   }
 );
 
-const actor = interpret(workflow);
+const actor = createActor(workflow);
 
 actor.subscribe({
   complete() {

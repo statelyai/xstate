@@ -1,55 +1,30 @@
-import { assign, createMachine, fromPromise, interpret } from 'xstate';
+import { assign, fromPromise, createActor, setup } from 'xstate';
+
+interface Order {
+  id: string;
+  item: string;
+  quantity: string;
+}
 
 // https://github.com/serverlessworkflow/specification/tree/main/examples#send-cloudevent-on-workflow-completion-example
-export const workflow = createMachine(
-  {
-    id: 'sendcloudeventonprovision',
-    types: {} as {
-      context: {
-        orders: {
-          id: string;
-          item: string;
-          quantity: string;
-        }[];
-        provisionedOrders:
-          | {
-              id: string;
-              outcome: string;
-            }[]
-          | undefined;
-      };
+export const workflow = setup({
+  types: {
+    context: {} as {
+      orders: Order[];
+      provisionedOrders:
+        | {
+            id: string;
+            outcome: string;
+          }[]
+        | undefined;
     },
-    context: ({ input }) => ({
-      orders: input.orders,
-      provisionedOrders: undefined
-    }),
-    initial: 'ProvisionOrdersState',
-    states: {
-      ProvisionOrdersState: {
-        invoke: {
-          src: 'provisionOrdersFunction',
-          input: ({ context }) => ({
-            orders: context.orders
-          }),
-          onDone: {
-            actions: assign({
-              provisionedOrders: ({ event }) => event.output
-            }),
-            target: 'End'
-          }
-        }
-      },
-      End: {
-        type: 'final',
-        output: ({ context }) => ({
-          provisionedOrders: context.provisionedOrders
-        })
-      }
+    input: {} as {
+      orders: Order[];
     }
   },
-  {
-    actors: {
-      provisionOrdersFunction: fromPromise(async ({ input }) => {
+  actors: {
+    provisionOrdersFunction: fromPromise(
+      async ({ input }: { input: { orders: Order[] } }) => {
         const data = await Promise.all(
           input.orders.map(async (order) => {
             console.log('provisioning order', order);
@@ -63,12 +38,41 @@ export const workflow = createMachine(
         );
 
         return data;
+      }
+    )
+  }
+}).createMachine({
+  id: 'sendcloudeventonprovision',
+  context: ({ input }) => ({
+    orders: input.orders,
+    provisionedOrders: undefined
+  }),
+  initial: 'ProvisionOrdersState',
+  states: {
+    ProvisionOrdersState: {
+      invoke: {
+        src: 'provisionOrdersFunction',
+        input: ({ context }) => ({
+          orders: context.orders
+        }),
+        onDone: {
+          actions: assign({
+            provisionedOrders: ({ event }) => event.output
+          }),
+          target: 'End'
+        }
+      }
+    },
+    End: {
+      type: 'final',
+      output: ({ context }) => ({
+        provisionedOrders: context.provisionedOrders
       })
     }
   }
-);
+});
 
-const actor = interpret(workflow, {
+const actor = createActor(workflow, {
   input: {
     orders: [
       {

@@ -1,4 +1,4 @@
-import { assign, createMachine, fromPromise, interpret } from 'xstate';
+import { assign, setup, fromPromise, createActor } from 'xstate';
 
 async function delay(ms: number, errorProbability: number = 0): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -13,89 +13,96 @@ async function delay(ms: number, errorProbability: number = 0): Promise<void> {
 }
 
 // https://github.com/serverlessworkflow/specification/blob/main/examples/README.md#accumulate-room-readings
-export const workflow = createMachine(
-  {
-    id: 'roomreadings',
-    types: {} as {
-      events:
-        | {
-            type: 'TemperatureEvent';
-            roomId: string;
-            temperature: number;
-          }
-        | {
-            type: 'HumidityEvent';
-            roomId: string;
-            humidity: number;
-          };
-      context: {
-        temperature: number | null;
-        humidity: number | null;
-      };
-    },
-    initial: 'ConsumeReading',
+export const workflow = setup({
+  types: {} as {
+    events:
+      | {
+          type: 'TemperatureEvent';
+          roomId: string;
+          temperature: number;
+        }
+      | {
+          type: 'HumidityEvent';
+          roomId: string;
+          humidity: number;
+        };
     context: {
-      temperature: null,
-      humidity: null
-    },
-    states: {
-      ConsumeReading: {
-        entry: assign({
-          temperature: null,
-          humidity: null
-        }),
-        on: {
-          TemperatureEvent: {
-            actions: assign({
-              temperature: ({ event }) => event.temperature
-            })
-          },
-          HumidityEvent: {
-            actions: assign({
-              humidity: ({ event }) => event.humidity
-            })
-          }
-        },
-        after: {
-          PT1H: {
-            guard: ({ context }) =>
-              context.temperature !== null && context.humidity !== null,
-            target: 'GenerateReport'
-          }
-        }
-      },
-      GenerateReport: {
-        invoke: {
-          src: 'produceReport',
-          input: ({ context }) => ({
-            temperature: context.temperature,
-            humidity: context.humidity
-          }),
-          onDone: {
-            target: 'ConsumeReading'
-          }
-        }
-      }
-    }
+      temperature: number | null;
+      humidity: number | null;
+    };
   },
-  {
-    delays: {
-      PT1H: 10_000
-    },
-    actors: {
-      produceReport: fromPromise(async ({ input }) => {
+  delays: {
+    PT1H: 10_000
+  },
+  actors: {
+    produceReport: fromPromise(
+      async ({
+        input
+      }: {
+        input: {
+          temperature: number | null;
+          humidity: number | null;
+        };
+      }) => {
         console.log('Starting ProduceReport', input);
         await delay(1_000);
         console.log('ProduceReport done');
         return;
-      })
+      }
+    )
+  }
+}).createMachine({
+  id: 'roomreadings',
+
+  initial: 'ConsumeReading',
+  context: {
+    temperature: null,
+    humidity: null
+  },
+  states: {
+    ConsumeReading: {
+      entry: assign({
+        temperature: null,
+        humidity: null
+      }),
+      on: {
+        TemperatureEvent: {
+          actions: assign({
+            temperature: ({ event }) => event.temperature
+          })
+        },
+        HumidityEvent: {
+          actions: assign({
+            humidity: ({ event }) => event.humidity
+          })
+        }
+      },
+      after: {
+        PT1H: {
+          guard: ({ context }) =>
+            context.temperature !== null && context.humidity !== null,
+          target: 'GenerateReport'
+        }
+      }
+    },
+    GenerateReport: {
+      invoke: {
+        src: 'produceReport',
+        input: ({ context }) => ({
+          temperature: context.temperature,
+          humidity: context.humidity
+        }),
+        onDone: {
+          target: 'ConsumeReading'
+        }
+      }
     }
   }
-);
+});
 
 // TODO: make this per room (not in original workflow)
 
-const actor = interpret(workflow);
+const actor = createActor(workflow);
 
 actor.subscribe({
   complete() {

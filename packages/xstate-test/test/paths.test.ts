@@ -44,7 +44,7 @@ describe('testModel.testPaths(...)', () => {
 
     const paths = testModel.getPaths((logic, options) => {
       const actorContext = { self: {} } as any; // TODO: figure out the simulation API
-      const initialState = logic.getInitialState(actorContext, undefined);
+      const initialState = logic.getInitialSnapshot(actorContext, undefined);
       const events =
         typeof options.events === 'function'
           ? options.events(initialState)

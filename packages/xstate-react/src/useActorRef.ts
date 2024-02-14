@@ -1,22 +1,21 @@
 import { useEffect, useState } from 'react';
-import {
-  AnyActorLogic,
-  AnyActor,
-  AnyStateMachine,
-  createActor,
-  ActorRefFrom,
-  ActorOptions,
-  Observer,
-  toObserver,
-  SnapshotFrom
-} from 'xstate';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
+import {
+  Actor,
+  ActorOptions,
+  AnyActorLogic,
+  AnyStateMachine,
+  Observer,
+  SnapshotFrom,
+  createActor,
+  toObserver
+} from 'xstate';
 import { stopRootWithRehydration } from './stopRootWithRehydration';
 
-export function useIdleActor(
-  logic: AnyActorLogic,
-  options: Partial<ActorOptions<AnyActorLogic>>
-): AnyActor {
+export function useIdleActorRef<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  options: Partial<ActorOptions<TLogic>>
+): Actor<TLogic> {
   let [[currentConfig, actorRef], setCurrent] = useState(() => {
     const actorRef = createActor(logic, options);
     return [logic.config, actorRef];
@@ -25,7 +24,7 @@ export function useIdleActor(
   if (logic.config !== currentConfig) {
     const newActorRef = createActor(logic, {
       ...options,
-      state: (actorRef.getPersistedState as any)({
+      snapshot: (actorRef.getPersistedSnapshot as any)({
         __unsafeAllowInlineActors: true
       })
     });
@@ -35,8 +34,8 @@ export function useIdleActor(
 
   // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
   useIsomorphicLayoutEffect(() => {
-    (actorRef.logic as AnyStateMachine).implementations = (
-      logic as AnyStateMachine
+    (actorRef.logic as any as AnyStateMachine).implementations = (
+      logic as any as AnyStateMachine
     ).implementations;
   });
 
@@ -49,8 +48,8 @@ export function useActorRef<TLogic extends AnyActorLogic>(
   observerOrListener?:
     | Observer<SnapshotFrom<TLogic>>
     | ((value: SnapshotFrom<TLogic>) => void)
-): ActorRefFrom<TLogic> {
-  const actorRef = useIdleActor(machine, options);
+): Actor<TLogic> {
+  const actorRef = useIdleActorRef(machine, options);
 
   useEffect(() => {
     if (!observerOrListener) {
@@ -70,5 +69,5 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     };
   }, [actorRef]);
 
-  return actorRef as any;
+  return actorRef;
 }

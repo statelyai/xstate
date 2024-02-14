@@ -1,10 +1,13 @@
 # States
 
-A state is an abstract representation of a system (such as an application) at a specific point in time. To learn more, read the [section on states in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#states).
+:::warning These XState v4 docs are no longer maintained
 
-:::tip Check out our new docs!
-🆕 Find more about [states in XState](https://stately.ai/docs/states) as well as a [no-code introduction to states](https://stately.ai/docs/state-machines-and-statecharts#states).
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
+🆕 Find more about [states in XState](https://stately.ai/docs/states) as well as a [no-code introduction to states](https://stately.ai/docs/editor-states-and-transitions).
 :::
+
+A state is an abstract representation of a system (such as an application) at a specific point in time. To learn more, read the [section on states in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#states).
 
 ## API
 

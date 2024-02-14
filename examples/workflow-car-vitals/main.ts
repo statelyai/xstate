@@ -1,12 +1,4 @@
-import {
-  assign,
-  createMachine,
-  forwardTo,
-  fromPromise,
-  interpret,
-  sendParent,
-  log
-} from 'xstate';
+import { assign, createMachine, fromPromise, createActor, log } from 'xstate';
 
 async function delay(ms: number, errorProbability: number = 0): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -156,7 +148,7 @@ export const workflow = createMachine(
   }
 );
 
-const actor = interpret(workflow);
+const actor = createActor(workflow);
 
 actor.subscribe({
   complete() {

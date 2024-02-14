@@ -3,7 +3,7 @@ import { PromiseActorLogic, assign, createActor, createMachine } from 'xstate';
 import UseMachineNoExtraOptions from './UseMachine-no-extra-options.vue';
 import UseMachine from './UseMachine.vue';
 
-describe('useMachine composition function', () => {
+describe('useMachine', () => {
   const context = {
     data: undefined
   };
@@ -57,7 +57,7 @@ describe('useMachine composition function', () => {
   ).start();
   actorRef.send({ type: 'FETCH' });
 
-  const persistedFetchState = actorRef.getPersistedState();
+  const persistedFetchState = actorRef.getPersistedSnapshot();
 
   it('should work with a component ', async () => {
     const { getByText, getByTestId } = render(UseMachine as any);

@@ -1,4 +1,4 @@
-import { assign, createMachine, fromPromise, interpret } from 'xstate';
+import { assign, createMachine, createActor } from 'xstate';
 
 interface Bid {
   carid: string;
@@ -59,11 +59,16 @@ export const workflow = createMachine(
   }
 );
 
-const actor = interpret(workflow);
+const actor = createActor(workflow, {
+  inspect: (inspEv) => {
+    if (inspEv.type === '@xstate.event') {
+      console.log('Received event', inspEv.event);
+    }
+  }
+});
 
 actor.subscribe({
   next(state) {
-    console.log('Received event', state.event, state.value);
     console.log(state.context);
   },
   complete() {

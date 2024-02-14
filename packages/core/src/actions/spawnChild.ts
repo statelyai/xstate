@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
-import { ProcessingStatus, createActor } from '../interpreter.ts';
+import { ProcessingStatus, createActor } from '../createActor.ts';
 import {
   ActionArgs,
   AnyActorScope,
@@ -12,7 +12,6 @@ import {
   MachineContext,
   ParameterizedObject,
   AnyActorLogic,
-  Snapshot,
   ProvidedActor,
   IsLiteralString,
   InputFrom,
@@ -33,7 +32,7 @@ type ResolvableActorId<
 
 function resolveSpawn(
   actorScope: AnyActorScope,
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   _actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -51,7 +50,9 @@ function resolveSpawn(
   }
 ) {
   const logic =
-    typeof src === 'string' ? resolveReferencedActor(state.machine, src) : src;
+    typeof src === 'string'
+      ? resolveReferencedActor(snapshot.machine, src)
+      : src;
   const resolvedId = typeof id === 'function' ? id(actionArgs) : id;
 
   let actorRef: AnyActorRef | undefined;
@@ -60,15 +61,15 @@ function resolveSpawn(
     actorRef = createActor(logic, {
       id: resolvedId,
       src,
-      parent: actorScope?.self,
+      parent: actorScope.self,
       syncSnapshot,
       systemId,
       input:
         typeof input === 'function'
           ? input({
-              context: state.context,
+              context: snapshot.context,
               event: actionArgs.event,
-              self: actorScope?.self
+              self: actorScope.self
             })
           : input
     });
@@ -80,9 +81,9 @@ function resolveSpawn(
     );
   }
   return [
-    cloneMachineSnapshot(state, {
+    cloneMachineSnapshot(snapshot, {
       children: {
-        ...state.children,
+        ...snapshot.children,
         [resolvedId]: actorRef!
       }
     }),
@@ -105,12 +106,7 @@ function executeSpawn(
     if (actorRef._processingStatus === ProcessingStatus.Stopped) {
       return;
     }
-    try {
-      actorRef.start?.();
-    } catch (err) {
-      (actorScope.self as AnyActor).send(createErrorActorEvent(id, err));
-      return;
-    }
+    actorRef.start();
   });
 }
 
@@ -199,7 +195,7 @@ export function spawnChild<
     }
   }
 
-  spawnChild.type = 'xstate.spawnChild';
+  spawnChild.type = 'snapshot.spawnChild';
   spawnChild.id = id;
   spawnChild.systemId = systemId;
   spawnChild.src = src;

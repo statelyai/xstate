@@ -83,23 +83,23 @@ type UnknownInlineGuard = Guard<
 interface BuiltinGuard {
   (): boolean;
   check: (
-    state: AnyMachineSnapshot,
+    snapshot: AnyMachineSnapshot,
     guardArgs: GuardArgs<any, any>,
     params: unknown
   ) => boolean;
 }
 
 function checkStateIn(
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   _: GuardArgs<any, any>,
   { stateValue }: { stateValue: StateValue }
 ) {
   if (typeof stateValue === 'string' && isStateId(stateValue)) {
-    const target = state.machine.getStateNodeById(stateValue);
-    return state._nodes.some((sn) => sn === target);
+    const target = snapshot.machine.getStateNodeById(stateValue);
+    return snapshot._nodes.some((sn) => sn === target);
   }
 
-  return state.matches(stateValue);
+  return snapshot.matches(stateValue);
 }
 
 export function stateIn<
@@ -131,13 +131,39 @@ export function stateIn<
 }
 
 function checkNot(
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   { context, event }: GuardArgs<any, any>,
   { guards }: { guards: readonly UnknownGuard[] }
 ) {
-  return !evaluateGuard(guards[0], context, event, state);
+  return !evaluateGuard(guards[0], context, event, snapshot);
 }
 
+/**
+ * Higher-order guard that evaluates to `true` if the `guard` passed to it evaluates to `false`.
+ *
+ * @category Guards
+ * @example
+  ```ts
+  import { setup, not } from 'xstate';
+
+  const machine = setup({
+    guards: {
+      someNamedGuard: () => false
+    }
+  }).createMachine({
+    on: {
+      someEvent: {
+        guard: not('someNamedGuard'),
+        actions: () => {
+          // will be executed if guard in `not(...)`
+          // evaluates to `false`
+        }
+      }
+    }
+  });
+  ```
+ * @returns A guard 
+ */
 export function not<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -164,13 +190,45 @@ export function not<
 }
 
 function checkAnd(
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   { context, event }: GuardArgs<any, any>,
   { guards }: { guards: readonly UnknownGuard[] }
 ) {
-  return guards.every((guard) => evaluateGuard(guard, context, event, state));
+  return guards.every((guard) =>
+    evaluateGuard(guard, context, event, snapshot)
+  );
 }
 
+/**
+ * Higher-order guard that evaluates to `true` if all `guards` passed to it
+ * evaluate to `true`.
+ *
+ * @category Guards
+ * @example
+  ```ts
+  import { setup, and } from 'xstate';
+
+  const machine = setup({
+    guards: {
+      someNamedGuard: () => true
+    }
+  }).createMachine({
+    on: {
+      someEvent: {
+        guard: and([
+          ({ context }) => context.value > 0,
+          'someNamedGuard'
+        ]),
+        actions: () => {
+          // will be executed if all guards in `and(...)`
+          // evaluate to true
+        }
+      }
+    }
+  });
+  ```
+ * @returns A guard action object
+ */
 export function and<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -206,13 +264,43 @@ export function and<
 }
 
 function checkOr(
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   { context, event }: GuardArgs<any, any>,
   { guards }: { guards: readonly UnknownGuard[] }
 ) {
-  return guards.some((guard) => evaluateGuard(guard, context, event, state));
+  return guards.some((guard) => evaluateGuard(guard, context, event, snapshot));
 }
 
+/**
+ * Higher-order guard that evaluates to `true` if any of the `guards` passed to it
+ * evaluate to `true`.
+ *
+ * @category Guards
+ * @example
+  ```ts
+  import { setup, or } from 'xstate';
+
+  const machine = setup({
+    guards: {
+      someNamedGuard: () => true
+    }
+  }).createMachine({
+    on: {
+      someEvent: {
+        guard: or([
+          ({ context }) => context.value > 0,
+          'someNamedGuard'
+        ]),
+        actions: () => {
+          // will be executed if any of the guards in `or(...)`
+          // evaluate to true
+        }
+      }
+    }
+  });
+  ```
+ * @returns A guard action object
+ */
 export function or<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -255,9 +343,9 @@ export function evaluateGuard<
   guard: UnknownGuard | UnknownInlineGuard,
   context: TContext,
   event: TExpressionEvent,
-  state: AnyMachineSnapshot
+  snapshot: AnyMachineSnapshot
 ): boolean {
-  const { machine } = state;
+  const { machine } = snapshot;
   const isInline = typeof guard === 'function';
 
   const resolved = isInline
@@ -275,7 +363,7 @@ export function evaluateGuard<
   }
 
   if (typeof resolved !== 'function') {
-    return evaluateGuard(resolved!, context, event, state);
+    return evaluateGuard(resolved!, context, event, snapshot);
   }
 
   const guardArgs = {
@@ -302,7 +390,7 @@ export function evaluateGuard<
   const builtinGuard = resolved as unknown as BuiltinGuard;
 
   return builtinGuard.check(
-    state,
+    snapshot,
     guardArgs,
     resolved // this holds all params
   );

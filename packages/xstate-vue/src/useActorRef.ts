@@ -1,32 +1,28 @@
 import { onBeforeUnmount, onMounted } from 'vue';
 import {
-  ActorRefFrom,
-  AnyActorLogic,
-  createActor,
+  Actor,
   ActorOptions,
+  AnyActorLogic,
   Observer,
   SnapshotFrom,
   Subscription,
+  createActor,
   toObserver
 } from 'xstate';
 
-export type UseActorRefRestParams<TLogic extends AnyActorLogic> = [
-  options?: ActorOptions<TLogic>,
+export function useActorRef<TLogic extends AnyActorLogic>(
+  actorLogic: TLogic,
+  options: ActorOptions<TLogic> = {},
   observerOrListener?:
     | Observer<SnapshotFrom<TLogic>>
     | ((value: SnapshotFrom<TLogic>) => void)
-];
-
-export function useActorRef<TLogic extends AnyActorLogic>(
-  actorLogic: TLogic,
-  ...[options = {}, observerOrListener]: UseActorRefRestParams<TLogic>
-): ActorRefFrom<TLogic> {
+): Actor<TLogic> {
   const actorRef = createActor(actorLogic, options);
 
   let sub: Subscription;
   onMounted(() => {
     if (observerOrListener) {
-      sub = actorRef.subscribe(toObserver(observerOrListener as any));
+      sub = actorRef.subscribe(toObserver(observerOrListener));
     }
     actorRef.start();
   });
@@ -36,5 +32,5 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     sub?.unsubscribe();
   });
 
-  return actorRef as ActorRefFrom<TLogic>;
+  return actorRef;
 }

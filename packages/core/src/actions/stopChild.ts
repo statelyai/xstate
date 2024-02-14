@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
-import { ProcessingStatus } from '../interpreter.ts';
+import { ProcessingStatus } from '../createActor.ts';
 import {
   ActionArgs,
   ActorRef,
@@ -27,7 +27,7 @@ type ResolvableActorRefs<
 
 function resolveStop(
   _: AnyActorScope,
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   args: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   { actorRefs }: { actorRefs: ResolvableActorRefs<any, any, any, any> }
@@ -39,11 +39,11 @@ function resolveStop(
   const resolvedActorRefs: Array<ActorRef<any, any> | undefined> =
     actorRefsOrStrings.map((actorRefOrString) => {
       return typeof actorRefOrString === 'string'
-        ? state.children[actorRefOrString]
+        ? snapshot.children[actorRefOrString]
         : actorRefOrString;
     });
 
-  let children = state.children;
+  let children = snapshot.children;
   for (const resolvedActorRef of resolvedActorRefs) {
     if (resolvedActorRef) {
       children = { ...children };
@@ -51,7 +51,7 @@ function resolveStop(
     }
   }
   return [
-    cloneMachineSnapshot(state, {
+    cloneMachineSnapshot(snapshot, {
       children
     }),
     resolvedActorRefs

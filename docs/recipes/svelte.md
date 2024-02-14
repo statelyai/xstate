@@ -1,5 +1,11 @@
 # Usage with Svelte
 
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5) and [check out the XState v5 docs](https://stately.ai/docs/xstate).
+
+:::
+
 This guides you through setting up XState in a Svelte project. For new Svelte or SvelteKit projects, we recommend using [Vite](https://vitejs.dev/guide/) as your build tool, and we’ve tailored this documentation to such projects. If you're working on an older project that relies on Rollup, please refer to the [Legacy Svelte projects based on Rollup section](#legacy-svelte-projects-based-on-rollup) below.
 
 ## Svelte projects based on Vite

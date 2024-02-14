@@ -18,7 +18,7 @@ type ResolvableLogValue<
 
 function resolveLog(
   _: AnyActorScope,
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -30,7 +30,7 @@ function resolveLog(
   }
 ) {
   return [
-    state,
+    snapshot,
     {
       value:
         typeof value === 'function' ? value(actionArgs, actionParams) : value,

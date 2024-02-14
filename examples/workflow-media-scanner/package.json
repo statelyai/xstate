@@ -1,0 +1,19 @@
+{
+  "name": "mediaScanner",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "@types/node": "^20.10.5",
+    "fs-extra": "^11.2.0",
+    "mv": "^2.1.1",
+    "node-ffprobe": "^3.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "winston": "^3.11.0",
+    "xstate": "^5.4.1"
+  }
+}
