@@ -13,6 +13,16 @@ import {
   TypegenDisabled
 } from './typegenTypes.ts';
 
+type Primitive = string | number | boolean | symbol | bigint | null | undefined;
+
+declare const functionBrand: unique symbol;
+type NotAFunction<T> = T & { [functionBrand]?: never };
+declare global {
+  interface Function {
+    [functionBrand]?: true;
+  }
+}
+
 export type Identity<T> = { [K in keyof T]: T[K] };
 
 export type HomomorphicPick<T, K extends keyof any> = {
@@ -672,7 +682,9 @@ export type InvokeConfig<
 
       input?:
         | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
-        | NonReducibleUnknown;
+        | Primitive
+        | NotAFunction<{ [k: PropertyKey]: unknown }>
+        | NotAFunction<object>;
       /**
        * The transition to take upon the invoked child machine reaching its final top-level state.
        */

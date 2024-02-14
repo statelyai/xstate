@@ -1,9 +1,11 @@
 import {
+  ActorRef,
   ActorRefFrom,
   and,
   assign,
   createActor,
   createMachine,
+  fromCallback,
   fromPromise,
   fromTransition,
   not,
@@ -1598,4 +1600,55 @@ describe('setup()', () => {
       green: 'green'
     });
   });
+});
+
+type MyCustomEvents = 'MY_EVENT' | 'MY_OTHER_EVENT';
+
+type ParentAcceptingSimpleEvents<Event extends string> = ActorRef<
+  any,
+  { [K in Event]: { type: K } }[Event]
+>;
+
+const registerEvent = <Event extends MyCustomEvents>(eventName: Event) => ({
+  id: `listenerFor:${eventName}` as const,
+  src: fromCallback(
+    ({
+      sendBack
+    }: {
+      sendBack: ParentAcceptingSimpleEvents<Event>['send'];
+    }) => {
+      const handler = (event: CustomEventInit) =>
+        sendBack({
+          ...(event.detail ?? {}),
+          type: eventName
+        });
+
+      document.addEventListener(eventName, handler);
+      return () => {
+        document.removeEventListener(eventName, handler);
+      };
+    }
+  ),
+  input: ({ self }: { self: ParentAcceptingSimpleEvents<Event> }) => ({
+    parent: self
+  })
+});
+
+createMachine({
+  types: {
+    events: {} as { type: 'MY_EVENT' }
+  },
+  invoke: registerEvent('MY_EVENT'),
+  on: {
+    MY_EVENT: {
+      actions: 'myAction'
+    }
+  }
+});
+
+createMachine({
+  types: {
+    events: {} as { type: 'DIFFERENT_EVENT' }
+  },
+  invoke: registerEvent('MY_EVENT')
 });
