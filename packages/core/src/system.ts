@@ -224,11 +224,11 @@ export function createSystem<T extends ActorSystemInfo>(
       };
     },
     start: () => {
-      const scheduledEvets = system._snapshot._scheduledEvents;
+      const scheduledEvents = system._snapshot._scheduledEvents;
       system._snapshot._scheduledEvents = {};
-      for (const scheduledId in scheduledEvets) {
+      for (const scheduledId in scheduledEvents) {
         const { source, target, event, delay, id } =
-          scheduledEvets[scheduledId as ScheduledEventId];
+          scheduledEvents[scheduledId as ScheduledEventId];
         scheduler.schedule(source, target, event, delay, id);
       }
     }

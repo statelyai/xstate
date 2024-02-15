@@ -55,7 +55,7 @@ function simplifyEvents(
           type: inspectionEvent.type,
           value: (inspectionEvent.snapshot as any).value,
           event: inspectionEvent.event,
-          transitions: inspectionEvent.transitions.map((t) => ({
+          transitions: inspectionEvent._transitions.map((t) => ({
             eventType: t.eventType,
             target: t.target?.map((target) => target.id) ?? []
           }))

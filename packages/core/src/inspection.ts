@@ -33,7 +33,7 @@ export interface InspectedMicrostepEvent extends BaseInspectionEventProperties {
   type: '@xstate.microstep';
   event: AnyEventObject; // { type: string, ... }
   snapshot: Snapshot<unknown>;
-  transitions: AnyTransitionDefinition[];
+  _transitions: AnyTransitionDefinition[];
 }
 
 export interface InspectedActionEvent extends BaseInspectionEventProperties {

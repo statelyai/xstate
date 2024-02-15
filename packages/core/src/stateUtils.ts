@@ -1636,7 +1636,7 @@ export function macrostep(
       actorRef: actorScope.self,
       event,
       snapshot: microstate,
-      transitions
+      _transitions: transitions
     });
     microstates.push(microstate);
   }
