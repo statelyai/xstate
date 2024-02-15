@@ -74,12 +74,12 @@ export async function getDurableActor({
           workflowId,
           persistedState,
         },
-        { upsert: true }
+        { upsert: true },
       );
 
       if (!result?.acknowledged) {
         throw new Error(
-          "Error persisting actor state. Verify db connection is configured correctly."
+          "Error persisting actor state. Verify db connection is configured correctly.",
         );
       }
     },
