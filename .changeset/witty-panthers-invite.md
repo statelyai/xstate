@@ -33,9 +33,6 @@ const actor = createActor(machine, {
       console.log(inspEvent.event);
       // logs:
       // { type: 'event', … }
-
-      console.log(inspEvent.transitions);
-      // logs an array of transition definitions that were taken
     } else if (inspEvent.type === '@xstate.action') {
       console.log(inspEvent.action);
       // logs:
