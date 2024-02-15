@@ -1002,9 +1002,7 @@ describe('inspect', () => {
         {
           "action": {
             "params": undefined,
-            "type": "() => {
-                      /* inline */
-                    }",
+            "type": "(anonymous)",
           },
           "type": "@xstate.action",
         },
