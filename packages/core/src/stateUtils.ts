@@ -1528,7 +1528,7 @@ function resolveAndExecuteActionsWithContext(
               ? action
               : typeof action === 'object'
                 ? action.type
-                : action.toString(),
+                : action.name || '(anonymous)',
           params: actionParams
         }
       });
