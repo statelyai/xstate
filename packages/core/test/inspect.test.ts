@@ -480,6 +480,19 @@ describe('inspect', () => {
           "type": "@xstate.actor",
         },
         {
+          "_transitions": [
+            {
+              "actions": [
+                [Function],
+              ],
+              "eventType": "",
+              "guard": undefined,
+              "reenter": false,
+              "source": "#(machine).counting",
+              "target": undefined,
+              "toJSON": [Function],
+            },
+          ],
           "actorRef": {
             "id": "x:4",
             "xstate$$type": 1,
@@ -501,7 +514,10 @@ describe('inspect', () => {
             "tags": [],
             "value": "counting",
           },
-          "transitions": [
+          "type": "@xstate.microstep",
+        },
+        {
+          "_transitions": [
             {
               "actions": [
                 [Function],
@@ -514,9 +530,6 @@ describe('inspect', () => {
               "toJSON": [Function],
             },
           ],
-          "type": "@xstate.microstep",
-        },
-        {
           "actorRef": {
             "id": "x:4",
             "xstate$$type": 1,
@@ -538,7 +551,10 @@ describe('inspect', () => {
             "tags": [],
             "value": "counting",
           },
-          "transitions": [
+          "type": "@xstate.microstep",
+        },
+        {
+          "_transitions": [
             {
               "actions": [
                 [Function],
@@ -551,9 +567,6 @@ describe('inspect', () => {
               "toJSON": [Function],
             },
           ],
-          "type": "@xstate.microstep",
-        },
-        {
           "actorRef": {
             "id": "x:4",
             "xstate$$type": 1,
@@ -575,22 +588,22 @@ describe('inspect', () => {
             "tags": [],
             "value": "counting",
           },
-          "transitions": [
-            {
-              "actions": [
-                [Function],
-              ],
-              "eventType": "",
-              "guard": undefined,
-              "reenter": false,
-              "source": "#(machine).counting",
-              "target": undefined,
-              "toJSON": [Function],
-            },
-          ],
           "type": "@xstate.microstep",
         },
         {
+          "_transitions": [
+            {
+              "actions": [],
+              "eventType": "",
+              "guard": [Function],
+              "reenter": false,
+              "source": "#(machine).counting",
+              "target": [
+                "#(machine).done",
+              ],
+              "toJSON": [Function],
+            },
+          ],
           "actorRef": {
             "id": "x:4",
             "xstate$$type": 1,
@@ -612,19 +625,6 @@ describe('inspect', () => {
             "tags": [],
             "value": "done",
           },
-          "transitions": [
-            {
-              "actions": [],
-              "eventType": "",
-              "guard": [Function],
-              "reenter": false,
-              "source": "#(machine).counting",
-              "target": [
-                "#(machine).done",
-              ],
-              "toJSON": [Function],
-            },
-          ],
           "type": "@xstate.microstep",
         },
         {
