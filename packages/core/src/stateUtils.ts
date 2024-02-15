@@ -1528,7 +1528,7 @@ function resolveAndExecuteActionsWithContext(
               ? action
               : typeof action === 'object'
                 ? action.type
-                : action.toString(),
+                : action.name || '(anonymous)',
           params: actionParams
         }
       });
@@ -1537,7 +1537,6 @@ function resolveAndExecuteActionsWithContext(
 
     if (!('resolve' in resolvedAction)) {
       if (actorScope.self._processingStatus === ProcessingStatus.Running) {
-        // Execute action
         executeAction();
       } else {
         actorScope.defer(() => {
