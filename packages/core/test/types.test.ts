@@ -17,7 +17,8 @@ import {
   not,
   sendTo,
   spawnChild,
-  stateIn
+  stateIn,
+  setup
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -4339,24 +4340,6 @@ describe('self', () => {
       })
     });
   });
-
-  it('should allow actor union snap snapshot methods to be called', () => {
-    const typeOne = createMachine({
-      types: {} as { events: { type: 'one' } }
-    });
-    type TypeOneRef = ActorRefFrom<typeof typeOne>;
-
-    const typeTwo = createMachine({
-      types: {} as { events: { type: 'one' } | { type: 'two' } }
-    });
-    type TypeTwoRef = ActorRefFrom<typeof typeTwo>;
-
-    const canMethod = (ref: TypeOneRef | TypeTwoRef) => {
-      ref.getSnapshot().can({ type: 'one' });
-    };
-
-    canMethod(createActor(typeOne));
-  });
 });
 
 describe('createActor', () => {
@@ -4373,5 +4356,51 @@ describe('createActor', () => {
     );
 
     createActor(logic);
+  });
+});
+
+describe('snapshot methods', () => {
+  it('should type infer actor union snapshot methods', () => {
+    const typeOne = setup({
+      types: {} as {
+        events: { type: 'one' };
+        tags: 'one';
+      }
+    }).createMachine({
+      initial: 'one',
+      states: {
+        one: {}
+      }
+    });
+    type TypeOneRef = ActorRefFrom<typeof typeOne>;
+
+    const typeTwo = setup({
+      types: {} as {
+        events: { type: 'one' } | { type: 'two' };
+        tags: 'one' | 'two';
+      }
+    }).createMachine({
+      initial: 'one',
+      states: {
+        one: {},
+        two: {}
+      }
+    });
+    type TypeTwoRef = ActorRefFrom<typeof typeTwo>;
+
+    const ref = createActor(typeTwo) as TypeOneRef | TypeTwoRef;
+    const snapshot = ref.getSnapshot();
+
+    snapshot.can({ type: 'one' });
+    // @ts-expect-error
+    snapshot.can({ type: 'three' });
+    snapshot.hasTag('one');
+    // @ts-expect-error
+    snapshot.hasTag('three');
+    snapshot.getMeta();
+    snapshot.toJSON();
+    snapshot.matches('one');
+    // @ts-expect-error
+    snapshot.matches('three');
   });
 });
