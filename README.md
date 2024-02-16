@@ -153,7 +153,7 @@ toggleActor.send({ type: 'TOGGLE' });
 // => logs 'active', { count: 1 }
 
 toggleActor.send({ type: 'TOGGLE' });
-// => logs 'inactive', { count: 1 }
+// => logs 'inactive', { count: 2 }
 ```
 
 ## [Stately Studio](https://stately.ai)
