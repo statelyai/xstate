@@ -4392,15 +4392,24 @@ describe('snapshot methods', () => {
     const snapshot = ref.getSnapshot();
 
     snapshot.can({ type: 'one' });
-    // @ts-expect-error
+    // @ts-expect-error should error both snapshots don't match
+    snapshot.can({ type: 'two' });
+    // @ts-expect-error should error if no snapshot matches
     snapshot.can({ type: 'three' });
+
     snapshot.hasTag('one');
-    // @ts-expect-error
+    // @ts-expect-error should error both snapshots don't match
+    snapshot.hasTag('two');
+    // @ts-expect-error should error if no snapshot matches
     snapshot.hasTag('three');
+
+    snapshot.matches('one');
+    // @ts-expect-error should error both snapshots don't match
+    snapshot.matches('two');
+    // @ts-expect-error should error if no snapshot matches
+    snapshot.matches('three');
+
     snapshot.getMeta();
     snapshot.toJSON();
-    snapshot.matches('one');
-    // @ts-expect-error
-    snapshot.matches('three');
   });
 });
