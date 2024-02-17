@@ -2,4 +2,4 @@
 'xstate': patch
 ---
 
-Removed `this` from actor snapshot methods to resolve [#4734](https://github.com/statelyai/xstate/issues/4734)
+Removed `this` from machine snapshot methods to fix issues with accessing those methods from union of actors and their snapshots.
