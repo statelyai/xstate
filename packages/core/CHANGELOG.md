@@ -1,5 +1,11 @@
 # xstate
 
+## 5.7.1
+
+### Patch Changes
+
+- [#4739](https://github.com/statelyai/xstate/pull/4739) [`15b7dd1f0`](https://github.com/statelyai/xstate/commit/15b7dd1f009036e4ab265c8702d9b9bd124aaadc) Thanks [@devanfarrell](https://github.com/devanfarrell)! - Removed `this` from machine snapshot methods to fix issues with accessing those methods from union of actors and their snapshots.
+
 ## 5.7.0
 
 ### Minor Changes
