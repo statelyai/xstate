@@ -14,6 +14,7 @@ import { AnyActorSystem, Clock, createSystem } from './system.ts';
 import type {
   ActorScope,
   AnyActorLogic,
+  AnyEventObject,
   ConditionalRequired,
   DoneActorEvent,
   EventFromLogic,
@@ -44,6 +45,7 @@ export type EventListener<TEvent extends EventObject = EventObject> = (
 
 export type Listener = () => void;
 export type ErrorListener = (error: any) => void;
+export type EmittedEventHandler = (event: AnyEventObject) => void;
 
 // those values are currently used by @xstate/react directly so it's important to keep the assigned values in sync
 export enum ProcessingStatus {
@@ -91,6 +93,7 @@ export class Actor<TLogic extends AnyActorLogic>
   );
 
   private observers: Set<Observer<SnapshotFrom<TLogic>>> = new Set();
+  private eventListeners: Map<string, Set<EmittedEventHandler>> = new Map();
   private logger: (...args: any[]) => void;
 
   /** @internal */
@@ -178,6 +181,12 @@ export class Actor<TLogic extends AnyActorLogic>
           );
         }
         (child as any)._stop();
+      },
+      emit: (emittedEvent) => {
+        for (const handler of this.eventListeners.get(emittedEvent.type) ??
+          []) {
+          handler(emittedEvent);
+        }
       }
     };
 
@@ -393,6 +402,22 @@ export class Actor<TLogic extends AnyActorLogic>
     return {
       unsubscribe: () => {
         this.observers.delete(observer);
+      }
+    };
+  }
+
+  public on(
+    emittedEventType: string,
+    handler: EmittedEventHandler
+  ): Subscription {
+    const set = this.eventListeners.get(emittedEventType) ?? new Set();
+    set.add(handler);
+    this.eventListeners.set(emittedEventType, set);
+
+    return {
+      unsubscribe: () => {
+        const set = this.eventListeners.get(emittedEventType)!;
+        set?.delete(handler);
       }
     };
   }

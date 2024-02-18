@@ -1952,6 +1952,10 @@ export interface ActorRef<
   /** @internal */
   _processingStatus: ProcessingStatus;
   src: string | AnyActorLogic;
+  on: (
+    emittedEventType: string,
+    handler: (emittedEvent: AnyEventObject) => void
+  ) => Subscription;
 }
 
 export type AnyActorRef = ActorRef<any, any>;
@@ -2105,6 +2109,7 @@ export interface ActorScope<
   sessionId: string;
   logger: (...args: any[]) => void;
   defer: (fn: () => void) => void;
+  emit: (event: AnyEventObject) => void;
   system: TSystem;
   stopChild: (child: AnyActorRef) => void;
 }
