@@ -36,7 +36,7 @@ PRs are reviewed promptly and merged in within a day or two (or even within an h
 
 Our [examples](https://github.com/statelyai/xstate/tree/main/examples) are self-contained apps that show how to solve a common problem, integrate another framework (like Vue or Svelte) or build something fun with XState.
 
-To contribute an example, please read the `[readme](https://github.com/statelyai/xstate/blob/main/examples/readme.md)` in the `/examples` folder.
+To contribute an example, please read the [`readme`](https://github.com/statelyai/xstate/blob/main/examples/readme.md) in the `/examples` folder.
 
 ## Submit an issue
 

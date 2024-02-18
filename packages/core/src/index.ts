@@ -9,19 +9,19 @@ export * from './typegenTypes.ts';
 export * from './types.ts';
 export { waitFor } from './waitFor.ts';
 import { createMachine } from './createMachine.ts';
-export { getNextSnapshot } from './getNextSnapshot.ts';
+export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
 import { Actor, createActor, interpret, Interpreter } from './createActor.ts';
 import { StateNode } from './StateNode.ts';
 // TODO: decide from where those should be exported
 export { and, not, or, stateIn } from './guards.ts';
 export { setup } from './setup.ts';
+export type { ActorSystem } from './system.ts';
 export type {
-  ActorSystem,
   InspectedActorEvent,
   InspectedEventEvent,
   InspectedSnapshotEvent,
   InspectionEvent
-} from './system.ts';
+} from './inspection.ts';
 export { toPromise } from './toPromise.ts';
 export {
   getAllOwnEventDescriptors as __unsafe_getAllOwnEventDescriptors,

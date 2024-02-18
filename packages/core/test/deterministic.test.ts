@@ -1,6 +1,10 @@
-import { fromCallback, createActor, getNextSnapshot } from '../src/index.ts';
-import { createMachine } from '../src/createMachine.ts';
-import { getInitialSnapshot } from '../src/getNextSnapshot.ts';
+import {
+  fromCallback,
+  createActor,
+  getNextSnapshot,
+  createMachine,
+  getInitialSnapshot
+} from '../src/index.ts';
 
 describe('deterministic machine', () => {
   const lightMachine = createMachine({
