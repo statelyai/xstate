@@ -10,6 +10,7 @@ import {
   ConditionalRequired,
   DelayConfig,
   Invert,
+  InvokeConfig,
   IsNever,
   MachineConfig,
   MachineContext,
@@ -27,12 +28,14 @@ type ToParameterizedObject<
     string,
     ParameterizedObject['params'] | undefined
   >
-> = Values<{
-  [K in keyof TParameterizedMap & string]: {
-    type: K;
-    params: TParameterizedMap[K];
-  };
-}>;
+> = IsNever<TParameterizedMap> extends true
+  ? never
+  : Values<{
+      [K in keyof TParameterizedMap & string]: {
+        type: K;
+        params: TParameterizedMap[K];
+      };
+    }>;
 
 type DefaultToUnknownActorLogic<
   TActors extends Record<string, UnknownActorLogic>
@@ -103,17 +106,33 @@ type ToStateValue<T extends StateSchema> = T extends {
             : never)
   : {};
 
+declare const constraintBrand: unique symbol;
+type Constraint<T> = T & { [constraintBrand]: true };
+
+type ConstraintToNever<T> = typeof constraintBrand extends keyof T ? never : T;
+
 export function setup<
   TContext extends MachineContext,
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>,
-  TActions extends Record<string, ParameterizedObject['params'] | undefined>,
-  TGuards extends Record<string, ParameterizedObject['params'] | undefined>,
-  TDelay extends string,
-  TTag extends string,
-  TInput,
-  TOutput extends NonReducibleUnknown,
-  TChildrenMap extends Record<string, string> = never
+  // TChildrenMap extends Record<string, string> = Constraint<
+  //   Record<string, string>
+  // >,
+  TChildrenMap extends Record<string, string> = never,
+  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic> = Constraint<
+    Record<Values<TChildrenMap>, UnknownActorLogic>
+  >,
+  TActions extends Record<
+    string,
+    ParameterizedObject['params'] | undefined
+  > = Constraint<Record<string, ParameterizedObject['params'] | undefined>>,
+  TGuards extends Record<
+    string,
+    ParameterizedObject['params'] | undefined
+  > = Constraint<Record<string, ParameterizedObject['params'] | undefined>>,
+  TDelay extends string = Constraint<string>,
+  TTag extends string = string,
+  TInput = NonReducibleUnknown,
+  TOutput extends NonReducibleUnknown = NonReducibleUnknown
 >({
   schemas,
   actors,
@@ -160,9 +179,9 @@ export function setup<
       TContext,
       TEvent,
       ToProvidedActor<TChildrenMap, TActors>,
-      ToParameterizedObject<TActions>,
-      ToParameterizedObject<TGuards>,
-      TDelay,
+      ToParameterizedObject<ConstraintToNever<TActions>>,
+      ToParameterizedObject<ConstraintToNever<TGuards>>,
+      ConstraintToNever<TDelay>,
       TTag,
       TInput,
       TOutput,
@@ -203,6 +222,15 @@ export function setup<
       TTag
     >
   >;
+} & {
+  doStuff?: InvokeConfig<
+    TContext,
+    TEvent,
+    ToProvidedActor<TChildrenMap, TActors>,
+    ToParameterizedObject<TActions>,
+    ToParameterizedObject<TGuards>,
+    TDelay
+  >;
 } {
   return {
     createMachine: (config) =>
@@ -217,3 +245,5 @@ export function setup<
       )
   };
 }
+
+type A = ToProvidedActor<>;

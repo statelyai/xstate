@@ -11,7 +11,8 @@
     "jsx": "react-jsx",
     "lib": ["es2019", "dom"],
     "strict": true,
-    "stripInternal": true
+    "stripInternal": true,
+    "noErrorTruncation": true
   },
   "exclude": ["examples", "templates"]
 }

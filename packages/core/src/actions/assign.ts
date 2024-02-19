@@ -101,7 +101,7 @@ export interface AssignAction<
  *
  * @param assignment An object that represents the partial context to update, or a
  * function that returns an object that represents the partial context to update.
- * 
+ *
  * @example
   ```ts
   import { createMachine, assign } from 'xstate';
@@ -135,7 +135,7 @@ export function assign<
     | ParameterizedObject['params']
     | undefined,
   TEvent extends EventObject = EventObject,
-  TActor extends ProvidedActor = ProvidedActor
+  TActor extends ProvidedActor = never
 >(
   assignment:
     | Assigner<LowInfer<TContext>, TExpressionEvent, TParams, TEvent, TActor>
