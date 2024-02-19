@@ -10,7 +10,6 @@ import {
   ConditionalRequired,
   DelayConfig,
   Invert,
-  InvokeConfig,
   IsNever,
   MachineConfig,
   MachineContext,
