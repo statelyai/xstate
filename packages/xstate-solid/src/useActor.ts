@@ -1,54 +1,30 @@
-import type { ActorRef, SnapshotFrom, EventObject, Snapshot } from 'xstate';
-import type { Accessor } from 'solid-js';
-import { createEffect, createMemo, onCleanup } from 'solid-js';
+import { onCleanup, onMount } from 'solid-js';
+import {
+  EventFromLogic,
+  type ActorOptions,
+  type ActorRefFrom,
+  type AnyActorLogic,
+  type AnyActorRef,
+  type SnapshotFrom
+} from 'xstate';
 import { createImmutable } from './createImmutable.ts';
+import { useActorRef } from './useActorRef.ts';
 
-const noop = () => {
-  /* ... */
-};
+export function useActor<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  options?: ActorOptions<TLogic>
+): [
+  SnapshotFrom<TLogic>,
+  (event: EventFromLogic<TLogic>) => void,
+  ActorRefFrom<TLogic>
+] {
+  const actorRef = useActorRef(logic, options) as AnyActorRef;
+  const [snapshot, setSnapshot] = createImmutable(actorRef.getSnapshot());
 
-type Sender<TEvent> = (event: TEvent) => void;
-
-export function useActor<TActor extends ActorRef<any, any>>(
-  actorRef: Accessor<TActor> | TActor
-): [Accessor<SnapshotFrom<TActor>>, TActor['send']];
-export function useActor<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
->(
-  actorRef: Accessor<ActorRef<TSnapshot, TEvent>> | ActorRef<TSnapshot, TEvent>
-): [Accessor<TSnapshot>, Sender<TEvent>];
-export function useActor(
-  actorRef:
-    | Accessor<ActorRef<Snapshot<unknown>, EventObject>>
-    | ActorRef<Snapshot<unknown>, EventObject>
-): [Accessor<unknown>, Sender<EventObject>] {
-  const actorMemo = createMemo(() =>
-    typeof actorRef === 'function' ? actorRef() : actorRef
-  );
-
-  const [state, setState] = createImmutable({
-    snapshot: actorMemo().getSnapshot?.()
+  onMount(() => {
+    const { unsubscribe } = actorRef.subscribe(setSnapshot);
+    onCleanup(unsubscribe);
   });
 
-  createEffect<boolean>((isInitialActor) => {
-    const currentActor = actorMemo();
-
-    if (!isInitialActor) {
-      setState({ snapshot: currentActor.getSnapshot?.() });
-    }
-
-    const { unsubscribe } = currentActor.subscribe({
-      next: (nextState) => setState({ snapshot: nextState }),
-      error: noop,
-      complete: noop
-    });
-    onCleanup(unsubscribe);
-
-    return false;
-  }, true);
-
-  const send = (event: EventObject) => actorMemo().send(event);
-
-  return [() => state.snapshot, send];
+  return [snapshot, actorRef.send, actorRef as any];
 }

@@ -13,7 +13,8 @@ import {
   SnapshotFrom,
   MachineSnapshot,
   __unsafe_getAllOwnEventDescriptors,
-  AnyActorRef
+  AnyActorRef,
+  EventFromLogic
 } from 'xstate';
 import { TestModel } from './TestModel.ts';
 import {
@@ -136,9 +137,9 @@ function serializeMachineTransition(
 export function createTestModel<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: Partial<
-    TestModelOptions<SnapshotFrom<TMachine>, EventFrom<TMachine>>
+    TestModelOptions<SnapshotFrom<TMachine>, EventFromLogic<TMachine>>
   >
-): TestModel<SnapshotFrom<TMachine>, EventFrom<TMachine>, unknown> {
+): TestModel<SnapshotFrom<TMachine>, EventFromLogic<TMachine>, unknown> {
   validateMachine(machine);
 
   const serializeEvent = (options?.serializeEvent ?? simpleStringify) as (
@@ -150,7 +151,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
 
   const testModel = new TestModel<
     SnapshotFrom<TMachine>,
-    EventFrom<TMachine>,
+    EventFromLogic<TMachine>,
     unknown
   >(machine as any, {
     serializeState: (state, event, prevState) => {
