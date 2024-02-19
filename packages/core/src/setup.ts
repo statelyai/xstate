@@ -212,15 +212,6 @@ export function setup<
       TTag
     >
   >;
-} & {
-  doStuff?: InvokeConfig<
-    TContext,
-    TEvent,
-    ToProvidedActor<TChildrenMap, TActors>,
-    ToParameterizedObject<TActions>,
-    ToParameterizedObject<TGuards>,
-    TDelay
-  >;
 } {
   return {
     createMachine: (config) =>
