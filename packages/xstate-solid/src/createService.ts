@@ -1,5 +1,4 @@
-import { onCleanup } from 'solid-js';
-import { isServer } from 'solid-js/web';
+import { onCleanup, onMount } from 'solid-js';
 import type { Actor, ActorOptions, AnyStateMachine } from 'xstate';
 import { createActor } from 'xstate';
 
@@ -9,10 +8,10 @@ export function createService<TMachine extends AnyStateMachine>(
 ): Actor<TMachine> {
   const actorRef = createActor(machine, options);
 
-  if (!isServer) {
+  onMount(() => {
     actorRef.start();
     onCleanup(() => actorRef.stop());
-  }
+  });
 
   return actorRef;
 }
