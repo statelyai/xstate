@@ -1597,21 +1597,28 @@ describe('useActor', () => {
       }
     });
 
-    const machine = createMachine({
-      types: {} as {
-        actors: { src: 'child'; logic: typeof childMachine; id: 'test' };
-      },
-      initial: 'active',
-      states: {
-        active: {
-          invoke: {
-            id: 'test',
-            src: 'child',
-            input: { value: 42 }
+    const machine = createMachine(
+      {
+        types: {} as {
+          actors: { src: 'child'; logic: typeof childMachine; id: 'test' };
+        },
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              id: 'test',
+              src: 'child',
+              input: { value: 42 }
+            }
           }
         }
+      },
+      {
+        actors: {
+          child: childMachine
+        }
       }
-    });
+    );
 
     const Test = () => {
       const [snapshot] = useActor(machine);

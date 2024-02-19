@@ -177,14 +177,15 @@ describe('usage of selectors with reactive service state', () => {
 
     const App = () => {
       const [state] = useMachine(parentMachine);
-      const [actorState, actorSend] = useActor(state.context.childActor!);
+      const childActor = state.context.childActor!;
+      const childSnapshot = () => childActor.getSnapshot();
 
       return (
         <div>
-          <div data-testid="count">{selector(actorState())}</div>
+          <div data-testid="count">{selector(childSnapshot())}</div>
 
           <button
-            onclick={() => actorSend({ type: 'UPDATE_COUNT' })}
+            onclick={() => childActor.send({ type: 'UPDATE_COUNT' })}
             data-testid="button"
           />
         </div>
@@ -340,13 +341,16 @@ describe('usage of selectors with reactive service state', () => {
     const [prop, setProp] = createSignal('first');
 
     const App = () => {
-      const [state] = useMachine(parentMachine);
-      const [actorState, actorSend] = useActor(state.context.childActor!);
-      const value = createMemo(() => `${prop()} ${actorState().context.count}`);
+      const [snapshot] = useMachine(parentMachine);
+      const childActor = () => snapshot.context.childActor!;
+      const childSnapshot = () => childActor().getSnapshot();
+      const value = createMemo(
+        () => `${prop()} ${childSnapshot().context.count}`
+      );
       return (
         <div>
           <div data-testid="value">{value()}</div>
-          <button onclick={() => actorSend({ type: 'INC' })} />
+          <button onclick={() => childActor().send({ type: 'INC' })} />
         </div>
       );
     };
