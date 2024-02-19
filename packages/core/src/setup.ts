@@ -28,14 +28,12 @@ type ToParameterizedObject<
     string,
     ParameterizedObject['params'] | undefined
   >
-> = IsNever<TParameterizedMap> extends true
-  ? never
-  : Values<{
-      [K in keyof TParameterizedMap & string]: {
-        type: K;
-        params: TParameterizedMap[K];
-      };
-    }>;
+> = Values<{
+  [K in keyof TParameterizedMap & string]: {
+    type: K;
+    params: TParameterizedMap[K];
+  };
+}>;
 
 type DefaultToUnknownActorLogic<
   TActors extends Record<string, UnknownActorLogic>
