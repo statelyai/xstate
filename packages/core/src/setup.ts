@@ -112,7 +112,7 @@ type Constraint<T> = T & { [constraintBrand]?: true };
 export function setup<
   TContext extends MachineContext,
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TChildrenMap extends Record<string, string> = never,
+  TChildrenMap extends Record<string, string> = {},
   TActors extends Record<Values<TChildrenMap>, UnknownActorLogic> = Constraint<
     Record<Values<TChildrenMap>, UnknownActorLogic>
   >,
