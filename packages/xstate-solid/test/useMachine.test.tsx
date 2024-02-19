@@ -23,6 +23,10 @@ import {
 import { fromCallback, fromPromise } from 'xstate/actors';
 import { useActor, useMachine } from '../src';
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 afterEach(() => {
   jest.useRealTimers();
 });
@@ -1668,5 +1672,79 @@ describe('useMachine (strict mode)', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it('should work with an after transition scheduled after scheduling and cancelling a delayed transition', async () => {
+    const machine = createMachine({
+      initial: 'NotHeld',
+      states: {
+        NotHeld: {
+          initial: 'Idle',
+          states: {
+            Idle: { on: { increment: { target: 'RecentlyClicked' } } },
+            RecentlyClicked: {
+              on: { increment: { target: 'TripleClicked' } },
+              after: { 40: 'Idle' }
+            },
+            TripleClicked: {
+              on: { increment: { target: 'TripleClicked', reenter: true } },
+              after: { 40: 'Idle' }
+            }
+          },
+          on: { holdIncrement: 'Held.HeldIncrement' }
+        },
+        Held: {
+          initial: 'HeldIncrement',
+          states: { HeldIncrement: { after: { 40: 'HeldIncrement' } } },
+          on: { releasePointer: 'NotHeld.Idle' }
+        }
+      }
+    });
+
+    const Test = () => {
+      const [snapshot, send] = useMachine(machine);
+
+      return (
+        <>
+          <button
+            onclick={() => send({ type: 'increment' })}
+            data-testid="inc_button"
+          />
+          <button
+            onclick={() => send({ type: 'holdIncrement', y: 0 })}
+            data-testid="hold_inc_button"
+          />
+          <button
+            onclick={() => send({ type: 'releasePointer' })}
+            data-testid="release_button"
+          />
+          {JSON.stringify(snapshot.value)}
+        </>
+      );
+    };
+
+    const { container } = render(() => <Test />);
+
+    const incrementButton = screen.getByTestId('inc_button');
+    const holdIncrementButton = screen.getByTestId('hold_inc_button');
+    const releasePointerButton = screen.getByTestId('release_button');
+
+    await sleep(100);
+    fireEvent.click(incrementButton);
+    await sleep(10);
+    fireEvent.click(incrementButton);
+    await sleep(10);
+    fireEvent.click(holdIncrementButton);
+    await sleep(10);
+    fireEvent.click(releasePointerButton);
+    await sleep(10);
+    fireEvent.click(incrementButton);
+    await sleep(10);
+    fireEvent.click(incrementButton);
+    await sleep(50);
+
+    expect(JSON.parse(container.textContent as string)).toEqual({
+      NotHeld: 'Idle'
+    });
   });
 });
