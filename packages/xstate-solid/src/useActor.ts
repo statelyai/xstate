@@ -1,4 +1,3 @@
-import { onCleanup, onMount } from 'solid-js';
 import {
   EventFromLogic,
   type ActorOptions,
@@ -7,7 +6,7 @@ import {
   type AnyActorRef,
   type SnapshotFrom
 } from 'xstate';
-import { createImmutable } from './createImmutable.ts';
+import { fromActorRef } from './fromActorRef.ts';
 import { useActorRef } from './useActorRef.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
@@ -19,12 +18,5 @@ export function useActor<TLogic extends AnyActorLogic>(
   ActorRefFrom<TLogic>
 ] {
   const actorRef = useActorRef(logic, options) as AnyActorRef;
-  const [snapshot, setSnapshot] = createImmutable(actorRef.getSnapshot());
-
-  onMount(() => {
-    const { unsubscribe } = actorRef.subscribe(setSnapshot);
-    onCleanup(unsubscribe);
-  });
-
-  return [snapshot, actorRef.send, actorRef as any];
+  return [fromActorRef(actorRef)(), actorRef.send, actorRef as any];
 }

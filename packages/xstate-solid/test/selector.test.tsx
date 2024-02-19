@@ -1,4 +1,6 @@
 /* @jsxImportSource solid-js */
+import { createMemo, createSignal, from } from 'solid-js';
+import { fireEvent, render, screen } from 'solid-testing-library';
 import {
   ActorRefFrom,
   AnyMachineSnapshot,
@@ -6,10 +8,7 @@ import {
   assign,
   createMachine
 } from 'xstate';
-import { render, fireEvent, screen } from 'solid-testing-library';
-import { useActor, useActorRef, useMachine } from '../src/index.ts';
-import { createMemo, createSignal, from } from 'solid-js';
-
+import { useActorRef, useMachine, fromActorRef } from '../src/index.ts';
 describe('usage of selectors with reactive service state', () => {
   // TODO: rewrite this test to not use `from()`
   it.skip('only rerenders for selected values', () => {
@@ -178,7 +177,7 @@ describe('usage of selectors with reactive service state', () => {
     const App = () => {
       const [state] = useMachine(parentMachine);
       const childActor = state.context.childActor!;
-      const childSnapshot = () => childActor.getSnapshot();
+      const childSnapshot = fromActorRef(childActor);
 
       return (
         <div>
@@ -343,7 +342,7 @@ describe('usage of selectors with reactive service state', () => {
     const App = () => {
       const [snapshot] = useMachine(parentMachine);
       const childActor = () => snapshot.context.childActor!;
-      const childSnapshot = () => childActor().getSnapshot();
+      const childSnapshot = fromActorRef(childActor);
       const value = createMemo(
         () => `${prop()} ${childSnapshot().context.count}`
       );
