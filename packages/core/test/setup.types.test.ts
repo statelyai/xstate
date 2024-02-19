@@ -412,7 +412,7 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept a string reference to an unknown action in the machine', () => {
+  it('should not accept a string reference to an unknown action in the machine when actions were configured', () => {
     setup({
       actions: {
         doStuff: () => {}
@@ -423,7 +423,14 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept an object reference to an unknown action in the machine', () => {
+  it('should not accept a string reference to an unknown action in the machine when actions were not configured', () => {
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: 'unknown'
+    });
+  });
+
+  it('should not accept an object reference to an unknown action in the machine when actions were configured', () => {
     setup({
       actions: {
         doStuff: () => {}
@@ -431,6 +438,15 @@ describe('setup()', () => {
     }).createMachine({
       // @ts-expect-error
       entry: {
+        type: 'unknown'
+      }
+    });
+  });
+
+  it('should not accept an object reference to an unknown action in the machine when actions were not configured', () => {
+    setup({}).createMachine({
+      entry: {
+        // @ts-expect-error
         type: 'unknown'
       }
     });
