@@ -13,7 +13,8 @@ import type {
   MachineContext,
   ParameterizedObject,
   PropertyAssigner,
-  ProvidedActor
+  ProvidedActor,
+  ActionFunction
 } from '../types.ts';
 
 export interface AssignArgs<
@@ -135,7 +136,7 @@ export function assign<
     | ParameterizedObject['params']
     | undefined,
   TEvent extends EventObject = EventObject,
-  TActor extends ProvidedActor = never
+  TActor extends ProvidedActor = ProvidedActor
 >(
   assignment:
     | Assigner<LowInfer<TContext>, TExpressionEvent, TParams, TEvent, TActor>
@@ -146,7 +147,16 @@ export function assign<
         TEvent,
         TActor
       >
-): AssignAction<TContext, TExpressionEvent, TParams, TEvent, TActor> {
+): ActionFunction<
+  TContext,
+  TExpressionEvent,
+  TEvent,
+  TParams,
+  TActor,
+  never,
+  never,
+  never
+> {
   function assign(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams
