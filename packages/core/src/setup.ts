@@ -109,14 +109,9 @@ type ToStateValue<T extends StateSchema> = T extends {
 declare const constraintBrand: unique symbol;
 type Constraint<T> = T & { [constraintBrand]?: true };
 
-type ConstraintToNever<T> = typeof constraintBrand extends keyof T ? never : T;
-
 export function setup<
   TContext extends MachineContext,
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  // TChildrenMap extends Record<string, string> = Constraint<
-  //   Record<string, string>
-  // >,
   TChildrenMap extends Record<string, string> = never,
   TActors extends Record<Values<TChildrenMap>, UnknownActorLogic> = Constraint<
     Record<Values<TChildrenMap>, UnknownActorLogic>
@@ -124,12 +119,12 @@ export function setup<
   TActions extends Record<
     string,
     ParameterizedObject['params'] | undefined
-  > = Constraint<Record<string, ParameterizedObject['params'] | undefined>>,
+  > = {},
   TGuards extends Record<
     string,
     ParameterizedObject['params'] | undefined
-  > = Constraint<Record<string, ParameterizedObject['params'] | undefined>>,
-  TDelay extends string = Constraint<string>,
+  > = {},
+  TDelay extends string = string,
   TTag extends string = string,
   TInput = NonReducibleUnknown,
   TOutput extends NonReducibleUnknown = NonReducibleUnknown
@@ -181,9 +176,9 @@ export function setup<
       TContext,
       TEvent,
       ToProvidedActor<TChildrenMap, TActors>,
-      ToParameterizedObject<ConstraintToNever<TActions>>,
-      ToParameterizedObject<ConstraintToNever<TGuards>>,
-      ConstraintToNever<TDelay>,
+      ToParameterizedObject<TActions>,
+      ToParameterizedObject<TGuards>,
+      TDelay,
       TTag,
       TInput,
       TOutput,
