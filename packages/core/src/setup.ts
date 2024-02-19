@@ -107,7 +107,7 @@ type ToStateValue<T extends StateSchema> = T extends {
   : {};
 
 declare const constraintBrand: unique symbol;
-type Constraint<T> = T & { [constraintBrand]: true };
+type Constraint<T> = T & { [constraintBrand]?: true };
 
 type ConstraintToNever<T> = typeof constraintBrand extends keyof T ? never : T;
 
