@@ -1674,7 +1674,7 @@ describe('useMachine (strict mode)', () => {
     }
   });
 
-  it('TODO: write a good test title here', async () => {
+  it('should work with an after transition scheduled after scheduling and cancelling a delayed transition', async () => {
     const machine = createMachine({
       initial: 'NotHeld',
       states: {
