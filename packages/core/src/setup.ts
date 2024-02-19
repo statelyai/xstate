@@ -151,7 +151,9 @@ export function setup<
       TEvent,
       TEvent,
       TActions[K],
-      ToProvidedActor<TChildrenMap, TActors>,
+      typeof constraintBrand extends keyof TActors
+        ? never
+        : ToProvidedActor<TChildrenMap, TActors>,
       ToParameterizedObject<TActions>,
       ToParameterizedObject<TGuards>,
       TDelay
@@ -245,5 +247,3 @@ export function setup<
       )
   };
 }
-
-type A = ToProvidedActor<>;
