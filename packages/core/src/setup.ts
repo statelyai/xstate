@@ -106,16 +106,11 @@ type ToStateValue<T extends StateSchema> = T extends {
             : never)
   : {};
 
-declare const constraintBrand: unique symbol;
-type Constraint<T> = T & { [constraintBrand]?: true };
-
 export function setup<
   TContext extends MachineContext,
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>,
   TChildrenMap extends Record<string, string> = {},
-  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic> = Constraint<
-    Record<Values<TChildrenMap>, UnknownActorLogic>
-  >,
   TActions extends Record<
     string,
     ParameterizedObject['params'] | undefined
@@ -146,9 +141,7 @@ export function setup<
       TEvent,
       TEvent,
       TActions[K],
-      typeof constraintBrand extends keyof TActors
-        ? never
-        : ToProvidedActor<TChildrenMap, TActors>,
+      ToProvidedActor<TChildrenMap, TActors>,
       ToParameterizedObject<TActions>,
       ToParameterizedObject<TGuards>,
       TDelay
