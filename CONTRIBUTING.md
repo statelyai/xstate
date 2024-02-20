@@ -32,6 +32,12 @@ Pull requests are encouraged. If you want to add a feature or fix a bug:
 
 PRs are reviewed promptly and merged in within a day or two (or even within an hour) if everything looks good.
 
+## Contributing an example
+
+Our [examples](https://github.com/statelyai/xstate/tree/main/examples) are self-contained apps that show how to solve a common problem, integrate another framework (like Vue or Svelte) or build something fun with XState.
+
+To contribute an example, please read the [`readme`](https://github.com/statelyai/xstate/blob/main/examples/readme.md) in the `/examples` folder.
+
 ## Submit an issue
 
 Issues and bug reports are also encouraged. If you want to submit an issue:

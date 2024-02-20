@@ -1,6 +1,10 @@
 import { testAll } from './utils';
-import { createMachine, createActor } from '../src/index.ts';
-import { getInitialSnapshot, getNextSnapshot } from '../src/getNextSnapshot.ts';
+import {
+  createMachine,
+  createActor,
+  getNextSnapshot,
+  getInitialSnapshot
+} from '../src/index.ts';
 
 const idMachine = createMachine({
   initial: 'A',

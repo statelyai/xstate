@@ -6,7 +6,8 @@ import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Spawner } from './spawn.ts';
-import { AnyActorSystem, InspectionEvent, Clock } from './system.js';
+import { AnyActorSystem, Clock } from './system.js';
+import { InspectionEvent } from './inspection.ts';
 import {
   ResolveTypegenMeta,
   TypegenConstraint,
@@ -295,7 +296,7 @@ export type Actions<
 export type StateKey = string | AnyMachineSnapshot;
 
 export interface StateValueMap {
-  [key: string]: StateValue;
+  [key: string]: StateValue | undefined;
 }
 
 /**
@@ -1046,7 +1047,7 @@ export type DelayConfig<
 
 // TODO: possibly refactor this somehow, use even a simpler type, and maybe even make `machine.options` private or something
 /**
- * @internal
+ * @hidden
  */
 export interface MachineImplementationsSimplified<
   TContext extends MachineContext,
@@ -1369,6 +1370,8 @@ export type MachineConfig<
   (MachineContext extends TContext
     ? { context?: InitialContext<LowInfer<TContext>, TActor, TInput, TEvent> }
     : { context: InitialContext<LowInfer<TContext>, TActor, TInput, TEvent> });
+
+export type UnknownMachineConfig = MachineConfig<MachineContext, EventObject>;
 
 export interface ProvidedActor {
   src: string;
@@ -1877,16 +1880,10 @@ export interface Subscription {
   unsubscribe(): void;
 }
 
-/**
- * @internal
- */
 export interface InteropObservable<T> {
   [Symbol.observable]: () => InteropSubscribable<T>;
 }
 
-/**
- * @internal
- */
 export interface InteropSubscribable<T> {
   subscribe(observer: Observer<T>): Subscription;
 }

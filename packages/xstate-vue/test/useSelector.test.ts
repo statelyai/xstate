@@ -3,6 +3,7 @@ import UseSelector from './UseSelector.vue';
 import useSelectorActorChange from './UseSelectorActorChange.vue';
 import useSelectorCustomFn from './UseSelectorCustomFn.vue';
 import UseSelectorWithTransitionLogic from './UseSelectorWithTransitionLogic.vue';
+import useSelectorMaybe from './UseSelectorMaybe.vue';
 
 describe('useSelector', () => {
   it('actor should provide snapshot value immediately', () => {
@@ -62,5 +63,14 @@ describe('useSelector', () => {
     await fireEvent.click(getByTestId('changeActor'));
 
     expect(container.textContent).toEqual('bar');
+  });
+
+  it('should work with an optional actor', async () => {
+    const { getByTestId, container } = render(useSelectorMaybe);
+    expect(container.textContent).toEqual('nothing');
+
+    await fireEvent.click(getByTestId('changeActor'));
+
+    expect(container.textContent).toEqual('foo');
   });
 });

@@ -1,5 +1,100 @@
 # xstate
 
+## 5.7.1
+
+### Patch Changes
+
+- [#4739](https://github.com/statelyai/xstate/pull/4739) [`15b7dd1f0`](https://github.com/statelyai/xstate/commit/15b7dd1f009036e4ab265c8702d9b9bd124aaadc) Thanks [@devanfarrell](https://github.com/devanfarrell)! - Removed `this` from machine snapshot methods to fix issues with accessing those methods from union of actors and their snapshots.
+
+## 5.7.0
+
+### Minor Changes
+
+- [#4290](https://github.com/statelyai/xstate/pull/4290) [`7a8796f80`](https://github.com/statelyai/xstate/commit/7a8796f809bc8fa81927761474dbbce9ab4b30d3) Thanks [@davidkpiano](https://github.com/davidkpiano)! - An error will now be thrown if an incompatible state value is passed to `machine.resolveState({ value })`.
+
+- [#4693](https://github.com/statelyai/xstate/pull/4693) [`11b6a1ae1`](https://github.com/statelyai/xstate/commit/11b6a1ae1397e5da2544f0bc233584f0aeb4d38b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now inspect microsteps (`@xstate.microstep`) and actions (`@xstate.action`):
+
+  ```ts
+  const machine = createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        on: {
+          event: 'b'
+        }
+      },
+      b: {
+        entry: 'someAction',
+        always: 'c'
+      },
+      c: {}
+    }
+  });
+
+  const actor = createActor(machine, {
+    inspect: (inspEvent) => {
+      if (inspEvent.type === '@xstate.microstep') {
+        console.log(inspEvent.snapshot);
+        // logs:
+        // { value: 'a', … }
+        // { value: 'b', … }
+        // { value: 'c', … }
+
+        console.log(inspEvent.event);
+        // logs:
+        // { type: 'event', … }
+      } else if (inspEvent.type === '@xstate.action') {
+        console.log(inspEvent.action);
+        // logs:
+        // { type: 'someAction', … }
+      }
+    }
+  });
+
+  actor.start();
+
+  actor.send({ type: 'event' });
+  ```
+
+## 5.6.2
+
+### Patch Changes
+
+- [#4731](https://github.com/statelyai/xstate/pull/4731) [`960cdcbcb`](https://github.com/statelyai/xstate/commit/960cdcbcb88eb565bba2f03f3eeceff6001576d9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now import `getInitialSnapshot(…)` from `xstate` directly, which is useful for getting a mock of the initial snapshot when interacting with machines (or other actor logic) without `createActor(…)`:
+
+  ```ts
+  import { getInitialSnapshot } from 'xstate';
+  import { someMachine } from './someMachine';
+
+  // Returns the initial snapshot (state) of the machine
+  const initialSnapshot = getInitialSnapshot(
+    someMachine,
+    { name: 'Mateusz' } // optional input
+  );
+  ```
+
+## 5.6.1
+
+### Patch Changes
+
+- [#4728](https://github.com/statelyai/xstate/pull/4728) [`659efd5c1`](https://github.com/statelyai/xstate/commit/659efd5c14b69038b0c234255494c2fe5418fdea) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility issue of the internal type definitions with TypeScript 5.0
+
+- [#4712](https://github.com/statelyai/xstate/pull/4712) [`2f1d36a9d`](https://github.com/statelyai/xstate/commit/2f1d36a9d949119bb93295362523de59acc039a0) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Ensure that `InteropObservable` and `InteropSubscribable` are present in the type definition file.
+
+- [#4694](https://github.com/statelyai/xstate/pull/4694) [`0b6dff210`](https://github.com/statelyai/xstate/commit/0b6dff21069bb168b46c943653e445ff3daa5d63) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `UnknownMachineConfig` type
+
+## 5.6.0
+
+### Minor Changes
+
+- [#4704](https://github.com/statelyai/xstate/pull/4704) [`78699aef6`](https://github.com/statelyai/xstate/commit/78699aef6f1a100ee06c4ea2250da15abffbace8) Thanks [@Andarist](https://github.com/Andarist)! - `createActor` will now error if the required `input` is not given to it.
+
+- [#4688](https://github.com/statelyai/xstate/pull/4688) [`14902e17a`](https://github.com/statelyai/xstate/commit/14902e17a7d1d9030e99bc1d1ca289931bf8e581) Thanks [@Andarist](https://github.com/Andarist)! - The `schemas` property in `setup(...)` is now passed through to the resulting machine. This property is meant to be used with future developer tooling, and is typed as `unknown` for now.
+
+### Patch Changes
+
+- [#4706](https://github.com/statelyai/xstate/pull/4706) [`51b844230`](https://github.com/statelyai/xstate/commit/51b844230a26962c6ff351908eb08170567b629f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility with the upcoming TypeScript 5.4
+
 ## 5.5.2
 
 ### Patch Changes
