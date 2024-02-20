@@ -52,7 +52,14 @@ interface ActionEnqueuer<
   ) => void;
   raise: (
     ...args: Parameters<
-      typeof raise<TContext, TExpressionEvent, TEvent, undefined, TDelay>
+      typeof raise<
+        TContext,
+        TExpressionEvent,
+        TEvent,
+        undefined,
+        TDelay,
+        TDelay
+      >
     >
   ) => void;
   sendTo: <TTargetActor extends AnyActorRef>(
@@ -111,7 +118,8 @@ function resolveEnqueueActions(
     actions.push(cancel(...args));
   };
   enqueue.raise = (...args) => {
-    actions.push(raise(...args));
+    // TODO: investigate why this doesn't typecheck
+    actions.push((raise as any)(...args));
   };
   enqueue.sendTo = (...args) => {
     actions.push(sendTo(...args));
@@ -202,7 +210,7 @@ type CollectActions<
 
 /**
  * Creates an action object that will execute actions that are queued by the `enqueue(action)` function.
- * 
+ *
  * @example
   ```ts
   import { createMachine, enqueueActions } from 'xstate';

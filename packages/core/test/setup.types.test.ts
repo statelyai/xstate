@@ -646,12 +646,12 @@ describe('setup()', () => {
             };
       },
       actions: {
-        // @ts-expect-error
         raiseFoo: raise(
           {
             type: 'FOO'
           },
           {
+            // @ts-expect-error
             delay: 'hundred'
           }
         )
