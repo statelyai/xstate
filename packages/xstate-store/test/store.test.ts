@@ -1,3 +1,4 @@
+import { produce } from 'immer';
 import { createStore } from '../src/index.ts';
 
 it('creates a store API', () => {
@@ -18,7 +19,7 @@ it('creates a store API', () => {
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
   const store = createStore(context, {
-    inc: (c, ev: { type: 'inc'; by: number }) => {
+    inc: (c, ev: { by: number }) => {
       c.count += ev.by;
     }
   });
@@ -86,4 +87,53 @@ it('selects values from context', () => {
   const firstPet = store.select((s) => s.users[0]?.pets[0]?.name);
 
   expect(firstPet).toBe('Maki');
+});
+
+it('works with a custom API', () => {
+  const store = createStore(
+    {
+      count: 0
+    },
+    {
+      inc: (ctx) => {
+        ctx.count++;
+      }
+    },
+    {
+      get: (ctx, selector) => {
+        return selector?.(ctx) ?? ctx;
+      },
+      set: (ctx, recipe) => {
+        const cloned = { ...ctx };
+        recipe(cloned);
+        return cloned;
+      }
+    }
+  );
+
+  store.send({ type: 'inc' });
+
+  expect(store.getSnapshot()).toEqual({ count: 1 });
+  expect(store.getInitialSnapshot()).toEqual({ count: 0 });
+});
+
+it('works with immer', () => {
+  const store = createStore(
+    {
+      count: 0
+    },
+    {
+      inc: (ctx) => {
+        ctx.count++;
+      }
+    },
+    {
+      get: (a, b) => (b ? b(a) : a),
+      set: produce
+    }
+  );
+
+  store.send({ type: 'inc' });
+
+  expect(store.getSnapshot()).toEqual({ count: 1 });
 });

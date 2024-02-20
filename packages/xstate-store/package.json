@@ -35,8 +35,22 @@
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
-  "dependencies": {},
+  "dependencies": {
+    "use-sync-external-store": "^1.2.0"
+  },
   "devDependencies": {
     "xstate": "5.5.2"
+  },
+  "peerDependencies": {
+    "immer": "^10.0.3",
+    "react": "^18.2.0"
+  },
+  "peerDependenciesMeta": {
+    "immer": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
   }
 }

@@ -1,3 +1,4 @@
+import { produce } from 'immer';
 import type {
   EventObject,
   InteropSubscribable,
@@ -7,7 +8,10 @@ import type {
   Observer,
   Subscribable
 } from 'xstate';
-import { symbolObservable } from '../../core/src/symbolObservable';
+
+const symbolObservable: typeof Symbol.observable = (() =>
+  (typeof Symbol === 'function' && Symbol.observable) ||
+  '@@observable')() as any;
 
 function deepClone(val: any) {
   return JSON.parse(JSON.stringify(val));
@@ -30,7 +34,7 @@ export function toObserver<T>(
   };
 }
 
-interface Store<T, Ev extends EventObject>
+export interface Store<T, Ev extends EventObject>
   extends Subscribable<T>,
     InteropObservable<T> {
   send: (event: Ev) => void;
@@ -45,6 +49,24 @@ type ExtractEventsFromPayloadMap<T extends EventPayloadMap> = Values<{
   [K in keyof T & string]: T[K] & { type: K };
 }>;
 
+type Setter<T> = (context: T, recipe: (state: T) => void) => T;
+
+type Foo<T> = {
+  get: (context: T, selector?: (state: T) => any) => any;
+  set: Setter<T>;
+};
+
+const defaultApi: Foo<any> = {
+  get: (ctx, selector) => {
+    const selected = selector?.(ctx) ?? ctx;
+    return deepClone(selected);
+  },
+  set: (ctx, recipe) => {
+    recipe(ctx);
+    return ctx;
+  }
+};
+
 export function createStore<
   TContext extends MachineContext,
   TEventPayloadMap extends EventPayloadMap
@@ -55,18 +77,25 @@ export function createStore<
       ctx: TContext,
       ev: TEventPayloadMap[K]
     ) => void;
-  }
+  },
+  api: Foo<TContext> | Setter<TContext> = defaultApi
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
-  const initialCtx = deepClone(context);
-  let ctx = deepClone(context);
+  const get = typeof api === 'function' ? defaultApi.get : api.get;
+  const set = typeof api === 'function' ? api : api.set;
+
+  const initialCtx = get(context);
+  let ctx = get(context);
   function receive(ev: ExtractEventsFromPayloadMap<TEventPayloadMap>) {
     const fn =
       transitions?.[
         ev.type as ExtractEventsFromPayloadMap<TEventPayloadMap>['type']
       ];
 
-    fn?.(ctx, ev as any);
-    const cloned = deepClone(ctx);
+    ctx = set(ctx, (d) => void fn?.(d, ev as any));
+
+    // fn?.(ctx, ev as any);
+    // const cloned = deepClone(ctx);
+    const cloned = get(ctx);
     observers?.forEach((o) => o.next?.(cloned));
   }
   let observers: Set<Observer<any>> | undefined;
@@ -79,11 +108,10 @@ export function createStore<
       receive(ev as unknown as ExtractEventsFromPayloadMap<TEventPayloadMap>);
     },
     select<TSelected>(selector: (ctx: TContext) => TSelected) {
-      const selected = selector(ctx);
-      return deepClone(selected);
+      return get(ctx, selector);
     },
     getSnapshot() {
-      return deepClone(ctx);
+      return get(ctx);
     },
     getInitialSnapshot() {
       return initialCtx;
