@@ -27,12 +27,15 @@ type ToParameterizedObject<
     string,
     ParameterizedObject['params'] | undefined
   >
-> = Values<{
-  [K in keyof TParameterizedMap & string]: {
-    type: K;
-    params: TParameterizedMap[K];
-  };
-}>;
+> = // `silentNeverType` to `never` conversion (explained in `ToProvidedActor`)
+  IsNever<TParameterizedMap> extends true
+    ? never
+    : Values<{
+        [K in keyof TParameterizedMap & string]: {
+          type: K;
+          params: TParameterizedMap[K];
+        };
+      }>;
 
 // at the moment we allow extra actors - ones that are not specified by `children`
 // this could be reconsidered in the future

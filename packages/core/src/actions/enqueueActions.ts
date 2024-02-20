@@ -240,7 +240,7 @@ export function enqueueActions<
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string
+  TDelay extends string = never
 >(
   collect: CollectActions<
     TContext,

@@ -1876,4 +1876,102 @@ describe('setup()', () => {
       }
     });
   });
+
+  it("should accept `enqueueActions` that doesn't use any other defined actions", () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      actions: {
+        doStuff: enqueueActions(({ enqueue }) => {
+          enqueue.raise({ type: 'SOMETHING_ELSE' });
+        })
+      }
+    });
+  });
+
+  it('should accept `enqueueActions` that uses a known guard', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      actions: {
+        doStuff: enqueueActions(({ enqueue, check }) => {
+          if (check('checkStuff')) {
+            enqueue.raise({ type: 'SOMETHING_ELSE' });
+          }
+        })
+      },
+      guards: {
+        checkStuff: () => true
+      }
+    });
+  });
+
+  it('should not allow `enqueueActions` to use an unknown guard (when guards are configured)', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      actions: {
+        doStuff: enqueueActions(({ enqueue, check }) => {
+          if (
+            check(
+              // @ts-expect-error
+              'unknown'
+            )
+          ) {
+            enqueue.raise({ type: 'SOMETHING_ELSE' });
+          }
+        })
+      },
+      guards: {
+        checkStuff: () => true
+      }
+    });
+  });
+
+  it('should not allow `enqueueActions` to use an unknown guard (when guards are not configured)', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      actions: {
+        doStuff: enqueueActions(({ enqueue, check }) => {
+          if (
+            check(
+              // @ts-expect-error
+              'unknown'
+            )
+          ) {
+            enqueue.raise({ type: 'SOMETHING_ELSE' });
+          }
+        })
+      }
+    });
+  });
 });
