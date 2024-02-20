@@ -4,6 +4,7 @@ import {
   assign,
   createActor,
   createMachine,
+  enqueueActions,
   fromPromise,
   fromTransition,
   not,
@@ -1850,6 +1851,28 @@ describe('setup()', () => {
           }
         },
         b: {}
+      }
+    });
+  });
+
+  it('should accept `enqueueActions` within the config when actions are not configured', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      }
+    }).createMachine({
+      on: {
+        SOMETHING: {
+          actions: enqueueActions(({ enqueue }) => {
+            enqueue.raise({ type: 'SOMETHING_ELSE' });
+          })
+        }
       }
     });
   });

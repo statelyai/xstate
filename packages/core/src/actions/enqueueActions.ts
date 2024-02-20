@@ -3,6 +3,7 @@ import { Guard, evaluateGuard } from '../guards.ts';
 import {
   Action,
   ActionArgs,
+  ActionFunction,
   AnyActorRef,
   AnyActorScope,
   AnyMachineSnapshot,
@@ -250,10 +251,11 @@ export function enqueueActions<
     TGuard,
     TDelay
   >
-): EnqueueActionsAction<
+): ActionFunction<
   TContext,
   TExpressionEvent,
   TEvent,
+  unknown,
   TActor,
   TAction,
   TGuard,
