@@ -39,7 +39,7 @@ interface Store<T, Ev extends EventObject>
   select: <TSelected>(selector: (ctx: T) => TSelected) => TSelected;
 }
 
-type EventPayloadMap = Record<string, {}>;
+type EventPayloadMap = Record<string, {} | null | undefined>;
 
 type ExtractEventsFromPayloadMap<T extends EventPayloadMap> = Values<{
   [K in keyof T & string]: T[K] & { type: K };
@@ -50,18 +50,13 @@ export function createStore<
   TEventPayloadMap extends EventPayloadMap
 >(
   context: TContext,
-  transitions?: {
+  transitions: {
     [K in keyof TEventPayloadMap]: (
       ctx: TContext,
       ev: TEventPayloadMap[K]
     ) => void;
   }
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
-  // & {
-  //   [K in keyof TEventPayloadMap]: (
-  //     payload: Compute<Omit<TEventPayloadMap[K], 'type'>>
-  //   ) => void;
-  // }
   const initialCtx = deepClone(context);
   let ctx = deepClone(context);
   function receive(ev: ExtractEventsFromPayloadMap<TEventPayloadMap>) {
@@ -108,12 +103,6 @@ export function createStore<
       return this;
     }
   };
-
-  // if (transitions) {
-  //   for (const key of Object.keys(transitions)) {
-  //     o[key] = (ev) => receive({ ...ev, type: key });
-  //   }
-  // }
 
   return store;
 }

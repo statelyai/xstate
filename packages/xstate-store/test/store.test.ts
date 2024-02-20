@@ -1,7 +1,7 @@
 import { createStore } from '../src/index.ts';
 
 it('creates a store API', () => {
-  const store = createStore({});
+  const store = createStore({}, {});
 
   expect(store).toMatchInlineSnapshot(`
     {
@@ -45,6 +45,9 @@ it('updates state from sent events', () => {
       },
       dec: (ctx, ev: { by: number }) => {
         ctx.count -= ev.by;
+      },
+      clear: (ctx) => {
+        ctx.count = 0;
       }
     }
   );
@@ -53,26 +56,32 @@ it('updates state from sent events', () => {
   store.send({ type: 'dec', by: 3 });
 
   expect(store.getSnapshot()).toEqual({ count: 6 });
+  store.send({ type: 'clear' });
+
+  expect(store.getSnapshot()).toEqual({ count: 0 });
 });
 
 it('selects values from context', () => {
-  const store = createStore({
-    users: [
-      {
-        name: 'David',
-        pets: [
-          {
-            type: 'dog',
-            name: 'Maki'
-          },
-          {
-            type: 'dog',
-            name: 'Ato'
-          }
-        ]
-      }
-    ]
-  });
+  const store = createStore(
+    {
+      users: [
+        {
+          name: 'David',
+          pets: [
+            {
+              type: 'dog',
+              name: 'Maki'
+            },
+            {
+              type: 'dog',
+              name: 'Ato'
+            }
+          ]
+        }
+      ]
+    },
+    {}
+  );
 
   const firstPet = store.select((s) => s.users[0]?.pets[0]?.name);
 
