@@ -2,16 +2,19 @@ import {
   ActorRefFrom,
   and,
   assign,
+  cancel,
   createActor,
   createMachine,
   enqueueActions,
   fromPromise,
   fromTransition,
+  log,
   not,
   raise,
   sendTo,
   setup,
-  spawnChild
+  spawnChild,
+  stopChild
 } from '../src';
 
 describe('setup()', () => {
@@ -1990,6 +1993,30 @@ describe('setup()', () => {
             enqueue.raise({ type: 'SOMETHING_ELSE' });
           }
         })
+      }
+    });
+  });
+
+  it('should allow `cancel` action to be configured', () => {
+    setup({
+      actions: {
+        writeDown: log('foo')
+      }
+    });
+  });
+
+  it('should allow `cancel` action to be configured', () => {
+    setup({
+      actions: {
+        revert: cancel('foo')
+      }
+    });
+  });
+
+  it('should allow `stopChild` action to be configured', () => {
+    setup({
+      actions: {
+        releaseFromDuty: stopChild('foo')
       }
     });
   });
