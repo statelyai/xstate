@@ -127,10 +127,7 @@ it('works with immer', () => {
         ctx.count++;
       }
     },
-    {
-      get: (a, b) => (b ? b(a) : a),
-      set: produce
-    }
+    produce
   );
 
   store.send({ type: 'inc' });
