@@ -115,7 +115,7 @@ export interface RaiseAction<
 export function raise<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent,
+  TEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined =
     | ParameterizedObject['params']
     | undefined,
