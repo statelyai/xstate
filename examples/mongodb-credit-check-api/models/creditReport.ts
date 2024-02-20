@@ -5,6 +5,6 @@ export default class CreditReport {
     public ssn: string,
     public bureauName: string,
     public creditScore: number,
-    public _id?: ObjectId
+    public _id?: ObjectId,
   ) {}
 }

@@ -59,7 +59,7 @@ export class TestModel<
       // For non-state-machine test models, we cannot identify
       // separate transitions, so just use event type
       serializeTransition: (state, event) =>
-        `${simpleStringify(state)}|${event?.type ?? ''}`,
+        `${simpleStringify(state)}|${event?.type}`,
       events: [],
       stateMatcher: (_, stateKey) => stateKey === '*',
       logger: {

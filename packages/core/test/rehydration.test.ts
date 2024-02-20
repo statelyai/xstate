@@ -123,6 +123,37 @@ describe('rehydration', () => {
 
       expect(actual).toEqual([]);
     });
+
+    it('should error on incompatible state value (shallow)', () => {
+      const machine = createMachine({
+        initial: 'valid',
+        states: {
+          valid: {}
+        }
+      });
+
+      expect(() => {
+        machine.resolveState({ value: 'invalid' });
+      }).toThrowError(/invalid/);
+    });
+
+    it('should error on incompatible state value (deep)', () => {
+      const machine = createMachine({
+        initial: 'parent',
+        states: {
+          parent: {
+            initial: 'valid',
+            states: {
+              valid: {}
+            }
+          }
+        }
+      });
+
+      expect(() => {
+        machine.resolveState({ value: { parent: 'invalid' } });
+      }).toThrowError(/invalid/);
+    });
   });
 
   it('should not replay actions when starting from a persisted state', () => {

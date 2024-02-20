@@ -99,7 +99,7 @@ export async function saveCreditReport(report: CreditReport) {
         bureauName: report.bureauName,
       },
       report,
-      { upsert: true }
+      { upsert: true },
     );
   } catch (err) {
     console.log("Error saving credit report", err);
@@ -114,7 +114,7 @@ export async function saveCreditProfile(profile: CreditProfile) {
         ssn: profile.SSN,
       },
       profile,
-      { upsert: true }
+      { upsert: true },
     );
   } catch (err) {
     console.log("Error saving credit profile", err);
