@@ -528,19 +528,30 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept a `spawnChild` action that tries to spawn an unknown actor', () => {
+  it('should not accept a `spawnChild` action that tries to spawn an unknown actor when actors are configured', () => {
     setup({
       actors: {
         fetchUser: fromPromise(async () => ({ name: 'Andarist' }))
       },
       actions: {
-        spawnFetcher:
+        spawnFetcher: spawnChild(
           // @ts-expect-error
-          spawnChild('unknown')
+          'unknown'
+        )
       }
     });
   });
 
+  it('should not accept a `spawnChild` action that tries to spawn an unknown actor when actors are not configured', () => {
+    setup({
+      actions: {
+        spawnFetcher: spawnChild(
+          // @ts-expect-error
+          'unknown'
+        )
+      }
+    });
+  });
   it('should accept a `raise` action that raises a known event', () => {
     setup({
       types: {} as {
