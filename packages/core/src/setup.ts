@@ -120,7 +120,7 @@ export function setup<
     string,
     ParameterizedObject['params'] | undefined
   > = {},
-  TDelay extends string = string,
+  TDelay extends string = never,
   TTag extends string = string,
   TInput = NonReducibleUnknown,
   TOutput extends NonReducibleUnknown = NonReducibleUnknown

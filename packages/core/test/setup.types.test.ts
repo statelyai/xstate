@@ -559,7 +559,7 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept a `raise` action that raises a unknown event', () => {
+  it('should not accept a `raise` action that raises an unknown event', () => {
     setup({
       types: {} as {
         events:
@@ -606,7 +606,7 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept a `raise` action that references a unknown delay', () => {
+  it('should not accept a `raise` action that references an unknown delay when delays are configured', () => {
     setup({
       types: {} as {
         events:
@@ -630,6 +630,31 @@ describe('setup()', () => {
       },
       delays: {
         thousand: 1000
+      }
+    });
+  });
+
+  it('should not accept a `raise` action that references an unknown delay when delays are not configured', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        // @ts-expect-error
+        raiseFoo: raise(
+          {
+            type: 'FOO'
+          },
+          {
+            delay: 'hundred'
+          }
+        )
       }
     });
   });
@@ -662,7 +687,7 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept a `sendTo` action that references a unknown delay', () => {
+  it('should not accept a `sendTo` action that references an unknown delay when delays are configured', () => {
     setup({
       types: {} as {
         events:
@@ -687,6 +712,32 @@ describe('setup()', () => {
       },
       delays: {
         thousand: 1000
+      }
+    });
+  });
+
+  it('should not accept a `sendTo` action that references an unknown delay when delays are not configured', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        // @ts-expect-error
+        sendFoo: sendTo(
+          ({ self }) => self,
+          {
+            type: 'FOO'
+          },
+          {
+            delay: 'hundred'
+          }
+        )
       }
     });
   });
