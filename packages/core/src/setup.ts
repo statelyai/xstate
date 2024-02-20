@@ -34,37 +34,33 @@ type ToParameterizedObject<
   };
 }>;
 
-type DefaultToUnknownActorLogic<
-  TActors extends Record<string, UnknownActorLogic>
-> =
-  // if `keyof TActors` is `never` then it means that both `children` and `actors` were not supplied
-  // `never` comes from the default type of the `TChildrenMap` type parameter
-  // in such a case we "replace" `TActors` with a more traditional~ constraint
-  // one that doesn't depend on `Values<TChildrenMap>`
-  IsNever<keyof TActors> extends true
-    ? Record<string, UnknownActorLogic>
-    : TActors;
-
 // at the moment we allow extra actors - ones that are not specified by `children`
 // this could be reconsidered in the future
 type ToProvidedActor<
   TChildrenMap extends Record<string, string>,
-  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>,
-  TResolvedActors extends Record<
-    string,
-    UnknownActorLogic
-  > = DefaultToUnknownActorLogic<TActors>
-> = Values<{
-  [K in keyof TResolvedActors & string]: {
-    src: K;
-    logic: TResolvedActors[K];
-    id: IsNever<TChildrenMap> extends true
-      ? string | undefined
-      : K extends keyof Invert<TChildrenMap>
-        ? Invert<TChildrenMap>[K] & string
-        : string | undefined;
-  };
-}>;
+  TActors extends Record<string, UnknownActorLogic>
+> =
+  // this essentially is meant to convert a leaked `silentNeverType` to the true `never` type
+  // it shouldn't be observable but here we are
+  // we don't want to lock inner inferences for our actions with types containing this type
+  // it's used in inner inference contexts when the outer one context doesn't have inference candidates for a type parameter
+  // because it leaks here, without this condition it manages to create an inferrable type that contains it
+  // the `silentNeverType` is non-inferrable itself and that usually means that a containing object is non-inferrable too
+  // that doesn't happen here though. However, we actually want to infer a true `never` here so our actions can't use unknown actors
+  // for that reason it's important to do the conversion here because we want to map it to something that is actually inferrable
+  IsNever<TActors> extends true
+    ? never
+    : Values<{
+        [K in keyof TActors & string]: {
+          src: K;
+          logic: TActors[K];
+          id: IsNever<TChildrenMap> extends true
+            ? string | undefined
+            : K extends keyof Invert<TChildrenMap>
+              ? Invert<TChildrenMap>[K] & string
+              : string | undefined;
+        };
+      }>;
 
 type _GroupStateKeys<
   T extends StateSchema,
