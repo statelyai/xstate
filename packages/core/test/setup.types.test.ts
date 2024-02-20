@@ -467,7 +467,7 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept an `assign` with a spawner that tries to spawn an unknown actor', () => {
+  it('should not accept an `assign` with a spawner that tries to spawn an unknown actor when actors are configured', () => {
     setup({
       actors: {
         fetchUser: fromPromise(async () => ({ name: 'Andarist' }))
@@ -480,6 +480,38 @@ describe('setup()', () => {
               spawn('unknown')
           };
         })
+      }
+    });
+  });
+
+  it('should not accept an `assign` with a spawner that tries to spawn an unknown actor when actors are not configured', () => {
+    setup({
+      actions: {
+        spawnFetcher: assign(({ spawn }) => {
+          return {
+            child:
+              // @ts-expect-error
+              spawn('unknown')
+          };
+        })
+      }
+    });
+  });
+
+  it('should not accept an invoke that tries to invoke an unknown actor when actors are not configured', () => {
+    setup({}).createMachine({
+      invoke: {
+        // @ts-expect-error
+        src: 'unknown'
+      }
+    });
+  });
+
+  it('should not accept a non-logic actor when children were not configured', () => {
+    setup({
+      actors: {
+        // @ts-expect-error
+        increment: 'bazinga'
       }
     });
   });

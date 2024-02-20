@@ -34,30 +34,15 @@ type ToParameterizedObject<
   };
 }>;
 
-type DefaultToUnknownActorLogic<
-  TActors extends Record<string, UnknownActorLogic>
-> =
-  // if `keyof TActors` is `never` then it means that both `children` and `actors` were not supplied
-  // `never` comes from the default type of the `TChildrenMap` type parameter
-  // in such a case we "replace" `TActors` with a more traditional~ constraint
-  // one that doesn't depend on `Values<TChildrenMap>`
-  IsNever<keyof TActors> extends true
-    ? Record<string, UnknownActorLogic>
-    : TActors;
-
 // at the moment we allow extra actors - ones that are not specified by `children`
 // this could be reconsidered in the future
 type ToProvidedActor<
   TChildrenMap extends Record<string, string>,
-  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>,
-  TResolvedActors extends Record<
-    string,
-    UnknownActorLogic
-  > = DefaultToUnknownActorLogic<TActors>
+  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>
 > = Values<{
-  [K in keyof TResolvedActors & string]: {
+  [K in keyof TActors & string]: {
     src: K;
-    logic: TResolvedActors[K];
+    logic: TActors[K];
     id: IsNever<TChildrenMap> extends true
       ? string | undefined
       : K extends keyof Invert<TChildrenMap>
@@ -106,7 +91,11 @@ type ToStateValue<T extends StateSchema> = T extends {
 export function setup<
   TContext extends MachineContext,
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>,
+  TActors extends Record<
+    // prevent from `{}` becoming the constraint here since `Record<never, T>` is `{}`
+    IsNever<Values<TChildrenMap>> extends true ? string : Values<TChildrenMap>,
+    UnknownActorLogic
+  >,
   TChildrenMap extends Record<string, string> = {},
   TActions extends Record<
     string,
