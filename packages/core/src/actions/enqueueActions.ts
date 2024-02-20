@@ -70,6 +70,7 @@ interface ActionEnqueuer<
         undefined,
         TTargetActor,
         TEvent,
+        TDelay,
         TDelay
       >
     >
@@ -118,11 +119,14 @@ function resolveEnqueueActions(
     actions.push(cancel(...args));
   };
   enqueue.raise = (...args) => {
-    // TODO: investigate why this doesn't typecheck
-    actions.push((raise as any)(...args));
+    // for some reason it fails to infer `TDelay` from `...args` here and infers `picks` its default (`never`)
+    // then it fails to typecheck that because `...args` use `string` in place of `TDelay`
+    actions.push((raise as typeof enqueue.raise)(...args));
   };
   enqueue.sendTo = (...args) => {
-    actions.push(sendTo(...args));
+    // for some reason it fails to infer `TDelay` from `...args` here and infers `picks` its default (`never`)
+    // then it fails to typecheck that because `...args` use `string` in place of `TDelay
+    actions.push((sendTo as typeof enqueue.sendTo)(...args));
   };
   enqueue.spawnChild = (...args) => {
     actions.push(spawnChild(...args));

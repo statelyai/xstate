@@ -728,16 +728,35 @@ describe('setup()', () => {
             };
       },
       actions: {
-        // @ts-expect-error
         sendFoo: sendTo(
           ({ self }) => self,
           {
             type: 'FOO'
           },
           {
+            // @ts-expect-error
             delay: 'hundred'
           }
         )
+      }
+    });
+  });
+
+  it('should accept a `sendTo` action that send an event to `self` when delays are not configured', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        sendFoo: sendTo(({ self }) => self, {
+          type: 'FOO'
+        })
       }
     });
   });

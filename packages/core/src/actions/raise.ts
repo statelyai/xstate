@@ -116,11 +116,9 @@ export function raise<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined =
-    | ParameterizedObject['params']
-    | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TDelay extends string = never,
-  const TUsedDelay extends TDelay = never
+  TUsedDelay extends TDelay = never
 >(
   eventOrExpr:
     | NoInfer<TEvent>
