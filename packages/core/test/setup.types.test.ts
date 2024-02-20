@@ -1730,4 +1730,56 @@ describe('setup()', () => {
       green: 'green'
     });
   });
+
+  it('should accept an after transition that references a known delay', () => {
+    setup({
+      delays: {
+        hundred: 100
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          after: {
+            hundred: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+  });
+
+  it('should not accept an after transition that references an unknown delay when delays are configured', () => {
+    setup({
+      delays: {
+        thousand: 1000
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          after: {
+            // @x-ts-expect-error https://github.com/microsoft/TypeScript/issues/55709
+            unknown: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+  });
+
+  it('should not accept an after transition that references an unknown delay when delays are not configured', () => {
+    setup({}).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          after: {
+            // @x-ts-expect-error https://github.com/microsoft/TypeScript/issues/55709
+            unknown: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+  });
 });
