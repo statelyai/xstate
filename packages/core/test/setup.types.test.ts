@@ -803,6 +803,20 @@ describe('setup()', () => {
     });
   });
 
+  it('should require actors to be defined when children are configured', () => {
+    setup(
+      // @ts-expect-error
+      {
+        types: {} as {
+          children: {
+            first: 'foo';
+            second: 'bar';
+          };
+        }
+      }
+    );
+  });
+
   it('should allow more actors to be defined than the ones required by children', () => {
     setup({
       types: {} as {

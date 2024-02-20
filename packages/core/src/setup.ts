@@ -34,15 +34,30 @@ type ToParameterizedObject<
   };
 }>;
 
+type DefaultToUnknownActorLogic<
+  TActors extends Record<string, UnknownActorLogic>
+> =
+  // if `keyof TActors` is `never` then it means that both `children` and `actors` were not supplied
+  // `never` comes from the default type of the `TChildrenMap` type parameter
+  // in such a case we "replace" `TActors` with a more traditional~ constraint
+  // one that doesn't depend on `Values<TChildrenMap>`
+  IsNever<keyof TActors> extends true
+    ? Record<string, UnknownActorLogic>
+    : TActors;
+
 // at the moment we allow extra actors - ones that are not specified by `children`
 // this could be reconsidered in the future
 type ToProvidedActor<
   TChildrenMap extends Record<string, string>,
-  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>
+  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>,
+  TResolvedActors extends Record<
+    string,
+    UnknownActorLogic
+  > = DefaultToUnknownActorLogic<TActors>
 > = Values<{
-  [K in keyof TActors & string]: {
+  [K in keyof TResolvedActors & string]: {
     src: K;
-    logic: TActors[K];
+    logic: TResolvedActors[K];
     id: IsNever<TChildrenMap> extends true
       ? string | undefined
       : K extends keyof Invert<TChildrenMap>
@@ -88,14 +103,14 @@ type ToStateValue<T extends StateSchema> = T extends {
             : never)
   : {};
 
+type RequiredSetupKeys<TChildrenMap> = IsNever<keyof TChildrenMap> extends true
+  ? never
+  : 'actors';
+
 export function setup<
   TContext extends MachineContext,
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TActors extends Record<
-    // prevent from `{}` becoming the constraint here since `Record<never, T>` is `{}`
-    IsNever<Values<TChildrenMap>> extends true ? string : Values<TChildrenMap>,
-    UnknownActorLogic
-  >,
+  TActors extends Record<string, UnknownActorLogic> = {},
   TChildrenMap extends Record<string, string> = {},
   TActions extends Record<
     string,
@@ -119,7 +134,11 @@ export function setup<
   schemas?: unknown;
   types?: SetupTypes<TContext, TEvent, TChildrenMap, TTag, TInput, TOutput>;
   actors?: {
-    [K in keyof TActors]: TActors[K];
+    // union here enforces that all configured children have to be provided in actors
+    // it makes those values required here
+    [K in keyof TActors | Values<TChildrenMap>]: K extends keyof TActors
+      ? TActors[K]
+      : never;
   };
   actions?: {
     [K in keyof TActions]: ActionFunction<
@@ -149,6 +168,8 @@ export function setup<
       TEvent
     >;
   };
+} & {
+  [K in RequiredSetupKeys<TChildrenMap>]: unknown;
 }): {
   createMachine: <
     const TConfig extends MachineConfig<
