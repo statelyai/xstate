@@ -1888,6 +1888,14 @@ describe('setup()', () => {
     });
   });
 
+  it('should accept `enqueueActions` within the config when empty delays are configured', () => {
+    setup({
+      delays: {}
+    }).createMachine({
+      entry: enqueueActions(() => {})
+    });
+  });
+
   it("should accept `enqueueActions` that doesn't use any other defined actions", () => {
     setup({
       types: {} as {
