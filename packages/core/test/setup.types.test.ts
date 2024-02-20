@@ -1782,4 +1782,75 @@ describe('setup()', () => {
       }
     });
   });
+
+  it('should accept a guarded transition that references a known guard', () => {
+    setup({
+      types: {} as {
+        events: { type: 'NEXT' };
+      },
+      guards: {
+        checkStuff: () => true
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: {
+              guard: 'checkStuff',
+              target: 'b'
+            }
+          }
+        },
+        b: {}
+      }
+    });
+  });
+
+  it('should not accept a guarded transition that references an unknown guard when guards are configured', () => {
+    setup({
+      types: {} as {
+        events: { type: 'NEXT' };
+      },
+      guards: {
+        checkStuff: () => true
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            // @ts-expect-error
+            NEXT: {
+              guard: 'unknown',
+              target: 'b'
+            }
+          }
+        },
+        b: {}
+      }
+    });
+  });
+
+  it('should not accept a guarded transition that references an unknown guard when guards are not configured', () => {
+    setup({
+      types: {} as {
+        events: { type: 'NEXT' };
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            // @ts-expect-error
+            NEXT: {
+              guard: 'checkStuff',
+              target: 'b'
+            }
+          }
+        },
+        b: {}
+      }
+    });
+  });
 });
