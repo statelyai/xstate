@@ -1,5 +1,5 @@
 import { produce } from 'immer';
-import { createStore } from '../src/index.ts';
+import { createStore, createStoreWithProducer } from '../src/index.ts';
 
 it('creates a store API', () => {
   const store = createStore({}, {});
@@ -9,7 +9,6 @@ it('creates a store API', () => {
       "@@observable": [Function],
       "getInitialSnapshot": [Function],
       "getSnapshot": [Function],
-      "select": [Function],
       "send": [Function],
       "subscribe": [Function],
     }
@@ -19,8 +18,10 @@ it('creates a store API', () => {
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
   const store = createStore(context, {
-    inc: (c, ev: { by: number }) => {
-      c.count += ev.by;
+    inc: (context, event: { by: number }) => {
+      return {
+        count: context.count + event.by
+      };
     }
   });
 
@@ -42,13 +43,16 @@ it('updates state from sent events', () => {
     },
     {
       inc: (ctx, ev: { by: number }) => {
-        ctx.count += ev.by;
+        return { ...ctx, count: ctx.count + ev.by };
       },
       dec: (ctx, ev: { by: number }) => {
-        ctx.count -= ev.by;
+        return { ...ctx, count: ctx.count - ev.by };
       },
       clear: (ctx) => {
-        ctx.count = 0;
+        return {
+          ...ctx,
+          count: 0
+        };
       }
     }
   );
@@ -62,33 +66,6 @@ it('updates state from sent events', () => {
   expect(store.getSnapshot()).toEqual({ count: 0 });
 });
 
-it('selects values from context', () => {
-  const store = createStore(
-    {
-      users: [
-        {
-          name: 'David',
-          pets: [
-            {
-              type: 'dog',
-              name: 'Maki'
-            },
-            {
-              type: 'dog',
-              name: 'Ato'
-            }
-          ]
-        }
-      ]
-    },
-    {}
-  );
-
-  const firstPet = store.select((s) => s.users[0]?.pets[0]?.name);
-
-  expect(firstPet).toBe('Maki');
-});
-
 it('works with a custom API', () => {
   const store = createStore(
     {
@@ -96,18 +73,12 @@ it('works with a custom API', () => {
     },
     {
       inc: (ctx) => {
-        ctx.count++;
+        return { count: ctx.count + 1 };
       }
     },
-    {
-      get: (ctx, selector) => {
-        return selector?.(ctx) ?? ctx;
-      },
-      set: (ctx, recipe) => {
-        const cloned = { ...ctx };
-        recipe(cloned);
-        return cloned;
-      }
+    (ctx, recipe) => {
+      const cloned = { ...ctx };
+      return recipe(cloned);
     }
   );
 
@@ -118,7 +89,8 @@ it('works with a custom API', () => {
 });
 
 it('works with immer', () => {
-  const store = createStore(
+  const store = createStoreWithProducer(
+    produce,
     {
       count: 0
     },
@@ -126,11 +98,11 @@ it('works with immer', () => {
       inc: (ctx) => {
         ctx.count++;
       }
-    },
-    produce
+    }
   );
 
   store.send({ type: 'inc' });
 
   expect(store.getSnapshot()).toEqual({ count: 1 });
+  expect(store.getInitialSnapshot()).toEqual({ count: 0 });
 });

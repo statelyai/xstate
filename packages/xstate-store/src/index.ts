@@ -49,23 +49,30 @@ type ExtractEventsFromPayloadMap<T extends EventPayloadMap> = Values<{
   [K in keyof T & string]: T[K] & { type: K };
 }>;
 
-type Setter<T> = (context: T, recipe: (state: T) => void) => T;
+type Recipe<T, TReturn> = (state: T) => TReturn;
 
-type Foo<T> = {
-  get: (context: T, selector?: (state: T) => any) => any;
-  set: Setter<T>;
-};
+function defaultSetter<T>(ctx: T, recipe: Recipe<T, T>): T {
+  return recipe(ctx);
+}
 
-const defaultApi: Foo<any> = {
-  get: (ctx, selector) => {
-    const selected = selector?.(ctx) ?? ctx;
-    return deepClone(selected);
-  },
-  set: (ctx, recipe) => {
-    recipe(ctx);
-    return ctx;
+export function createStoreWithProducer<
+  TProducer,
+  TContext extends MachineContext,
+  TEventPayloadMap extends EventPayloadMap
+>(
+  producer: TProducer,
+  context: TContext,
+  transitions: {
+    [K in keyof TEventPayloadMap]: (
+      ctx: NoInfer<TContext>,
+      ev: TEventPayloadMap[K]
+    ) => void;
   }
-};
+) {
+  return createStore(context, transitions, (ctx, recipe) =>
+    produce(ctx, recipe)
+  );
+}
 
 export function createStore<
   TContext extends MachineContext,
@@ -74,28 +81,29 @@ export function createStore<
   context: TContext,
   transitions: {
     [K in keyof TEventPayloadMap]: (
-      ctx: TContext,
+      ctx: NoInfer<TContext>,
       ev: TEventPayloadMap[K]
-    ) => void;
+    ) => NoInfer<TContext>;
   },
-  api: Foo<TContext> | Setter<TContext> = defaultApi
+  updater?: (
+    ctx: NoInfer<TContext>,
+    recipe: (ctx: NoInfer<TContext>) => NoInfer<TContext>
+  ) => NoInfer<TContext>
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
-  const get = typeof api === 'function' ? defaultApi.get : api.get;
-  const set = typeof api === 'function' ? api : api.set;
-
-  const initialCtx = get(context);
-  let ctx = get(context);
+  const setter = updater ?? defaultSetter;
+  const initialCtx = context;
+  let ctx = context;
   function receive(ev: ExtractEventsFromPayloadMap<TEventPayloadMap>) {
     const fn =
       transitions?.[
         ev.type as ExtractEventsFromPayloadMap<TEventPayloadMap>['type']
       ];
 
-    ctx = set(ctx, (d) => void fn?.(d, ev as any));
+    ctx = setter(ctx, (d) => fn?.(d, ev as any));
 
     // fn?.(ctx, ev as any);
     // const cloned = deepClone(ctx);
-    const cloned = get(ctx);
+    const cloned = ctx;
     observers?.forEach((o) => o.next?.(cloned));
   }
   let observers: Set<Observer<any>> | undefined;
@@ -107,11 +115,8 @@ export function createStore<
     send(ev) {
       receive(ev as unknown as ExtractEventsFromPayloadMap<TEventPayloadMap>);
     },
-    select<TSelected>(selector: (ctx: TContext) => TSelected) {
-      return get(ctx, selector);
-    },
     getSnapshot() {
-      return get(ctx);
+      return ctx;
     },
     getInitialSnapshot() {
       return initialCtx;
