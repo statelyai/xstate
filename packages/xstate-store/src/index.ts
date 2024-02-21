@@ -13,10 +13,6 @@ const symbolObservable: typeof Symbol.observable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) ||
   '@@observable')() as any;
 
-function deepClone(val: any) {
-  return JSON.parse(JSON.stringify(val));
-}
-
 export function toObserver<T>(
   nextHandler?: Observer<T> | ((value: T) => void),
   errorHandler?: (error: any) => void,
@@ -56,7 +52,10 @@ function defaultSetter<T>(ctx: T, recipe: Recipe<T, T>): T {
 }
 
 export function createStoreWithProducer<
-  TProducer,
+  TProducer extends (
+    ctx: NoInfer<TContext>,
+    recipe: (ctx: NoInfer<TContext>) => void
+  ) => NoInfer<TContext>,
   TContext extends MachineContext,
   TEventPayloadMap extends EventPayloadMap
 >(
@@ -69,8 +68,8 @@ export function createStoreWithProducer<
     ) => void;
   }
 ) {
-  return createStore(context, transitions, (ctx, recipe) =>
-    produce(ctx, recipe)
+  return createStore(context, transitions as any, (ctx, recipe) =>
+    producer(ctx, recipe)
   );
 }
 
