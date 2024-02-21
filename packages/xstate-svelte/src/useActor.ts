@@ -3,7 +3,7 @@ import {
   Actor,
   ActorOptions,
   AnyActorLogic,
-  EventFrom,
+  EventFromLogic,
   SnapshotFrom
 } from 'xstate';
 import { useActorRef } from './useActorRef';
@@ -13,7 +13,7 @@ export function useActor<TLogic extends AnyActorLogic>(
   options?: ActorOptions<TLogic>
 ): {
   snapshot: Readable<SnapshotFrom<TLogic>>;
-  send: (event: EventFrom<TLogic>) => void;
+  send: (event: EventFromLogic<TLogic>) => void;
   actorRef: Actor<TLogic>;
 } {
   const actorRef = useActorRef(logic, options);
