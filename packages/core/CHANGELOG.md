@@ -1,5 +1,11 @@
 # xstate
 
+## 5.8.0
+
+### Minor Changes
+
+- [#4750](https://github.com/statelyai/xstate/pull/4750) [`a9e3c086f`](https://github.com/statelyai/xstate/commit/a9e3c086f3922eed3d82a3fdf6e1db85a3de5260) Thanks [@Andarist](https://github.com/Andarist)! - Revamped `setup` and actions types to disallow usage of non-configured implementations
+
 ## 5.7.1
 
 ### Patch Changes
