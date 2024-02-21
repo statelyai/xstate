@@ -43,14 +43,17 @@ it('updates state from sent events', () => {
     },
     {
       inc: (ctx, ev: { by: number }) => {
-        return { ...ctx, count: ctx.count + ev.by };
+        return {
+          count: ctx.count + ev.by
+        };
       },
       dec: (ctx, ev: { by: number }) => {
-        return { ...ctx, count: ctx.count - ev.by };
-      },
-      clear: (ctx) => {
         return {
-          ...ctx,
+          count: ctx.count - ev.by
+        };
+      },
+      clear: () => {
+        return {
           count: 0
         };
       }

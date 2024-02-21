@@ -73,16 +73,20 @@ export function createStoreWithProducer<
   );
 }
 
+type Assigner<TC, TE extends EventObject> = (ctx: TC, ev: TE) => Partial<TC>;
+type PropertyAssigner<TC, TE extends EventObject> = {
+  [K in keyof TC]: (ctx: TC, ev: TE) => Partial<TC>[K];
+};
+
 export function createStore<
   TContext extends MachineContext,
   TEventPayloadMap extends EventPayloadMap
 >(
   context: TContext,
   transitions: {
-    [K in keyof TEventPayloadMap]: (
-      ctx: NoInfer<TContext>,
-      ev: TEventPayloadMap[K]
-    ) => NoInfer<TContext>;
+    [K in keyof TEventPayloadMap & string]:
+      | Assigner<NoInfer<TContext>, { type: K } & TEventPayloadMap[K]>
+      | PropertyAssigner<NoInfer<TContext>, { type: K } & TEventPayloadMap[K]>;
   },
   updater?: (
     ctx: NoInfer<TContext>,
@@ -90,19 +94,32 @@ export function createStore<
   ) => NoInfer<TContext>
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
   const setter = updater ?? defaultSetter;
-  const initialCtx = context;
-  let ctx = context;
+  let currentContext = context;
   function receive(ev: ExtractEventsFromPayloadMap<TEventPayloadMap>) {
     const fn =
       transitions?.[
         ev.type as ExtractEventsFromPayloadMap<TEventPayloadMap>['type']
       ];
 
-    ctx = setter(ctx, (d) => fn?.(d, ev as any));
+    if (typeof fn === 'function') {
+      currentContext = updater
+        ? updater(currentContext, (d) => fn?.(d, ev as any))
+        : setter(currentContext, (d) =>
+            Object.assign({}, currentContext, fn?.(d, ev as any))
+          );
+    } else {
+      const partialUpdate: Record<string, unknown> = {};
+      for (const key of Object.keys(fn)) {
+        const propAssignment = fn[key];
+        partialUpdate[key] =
+          typeof propAssignment === 'function'
+            ? propAssignment(currentContext, ev as any)
+            : propAssignment;
+        return Object.assign({}, currentContext, partialUpdate);
+      }
+    }
 
-    // fn?.(ctx, ev as any);
-    // const cloned = deepClone(ctx);
-    const cloned = ctx;
+    const cloned = currentContext;
     observers?.forEach((o) => o.next?.(cloned));
   }
   let observers: Set<Observer<any>> | undefined;
@@ -115,10 +132,10 @@ export function createStore<
       receive(ev as unknown as ExtractEventsFromPayloadMap<TEventPayloadMap>);
     },
     getSnapshot() {
-      return ctx;
+      return currentContext;
     },
     getInitialSnapshot() {
-      return initialCtx;
+      return context;
     },
     subscribe(observerOrFn) {
       const observer = toObserver(observerOrFn);
