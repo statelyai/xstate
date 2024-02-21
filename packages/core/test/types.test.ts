@@ -436,7 +436,7 @@ describe('events', () => {
           type: 'FOO';
         }
       },
-      entry: raise<any, any, any>({ type: 'FOO' })
+      entry: raise<any, any, any, any, any, any>({ type: 'FOO' })
     });
 
     const service = createActor(machine).start();
