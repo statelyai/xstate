@@ -1,6 +1,6 @@
 <template>
   <button data-testid="count" @click="send({ type: 'INC' })">
-    {{ count }}
+    {{ snapshot.context }}
   </button>
 </template>
 
@@ -21,9 +21,8 @@ const logic = fromTransition(reducer, 0);
 export default defineComponent({
   setup() {
     const { snapshot, send } = useActor(logic);
-    const count = snapshot.value.context
 
-    return { count, send };
+    return { snapshot, send };
   }
 });
 </script>
