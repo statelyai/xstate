@@ -1,10 +1,10 @@
 /* @jsxImportSource solid-js */
 import { createMachine } from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
-import { createService } from '../src/index.ts';
+import { useActorRef } from '../src/index.ts';
 import { createEffect } from 'solid-js';
 
-describe('createService', () => {
+describe('useActorRef', () => {
   it('observer should be called with next state', (done) => {
     const machine = createMachine({
       initial: 'inactive',
@@ -19,7 +19,7 @@ describe('createService', () => {
     });
 
     const App = () => {
-      const service = createService(machine);
+      const service = useActorRef(machine);
 
       createEffect(() => {
         service.subscribe((state) => {
@@ -59,7 +59,7 @@ describe('createService', () => {
     });
 
     const App = () => {
-      const service = createService(machine);
+      const service = useActorRef(machine);
 
       createEffect(() => {
         service.subscribe((state) => {

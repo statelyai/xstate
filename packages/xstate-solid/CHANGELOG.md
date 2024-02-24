@@ -1,5 +1,19 @@
 # @xstate/solid
 
+## 0.2.0
+
+### Minor Changes
+
+- [#3727](https://github.com/statelyai/xstate/pull/3727) [`5fb3c68`](https://github.com/statelyai/xstate/commit/5fb3c68) Thanks [@Andarist](https://github.com/Andarist)! - `exports` field has been added to the `package.json` manifest. It limits what files can be imported from a package - it's no longer possible to import from files that are not considered to be a part of the public API.
+
+- [#4265](https://github.com/statelyai/xstate/pull/4265) [`1153b3f`](https://github.com/statelyai/xstate/commit/1153b3f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - FSM-related functions have been removed.
+
+- [#4748](https://github.com/statelyai/xstate/pull/4748) [`d73ac8e48`](https://github.com/statelyai/xstate/commit/d73ac8e48af82d4d3bde648206e633eb93193353) Thanks [@Andarist](https://github.com/Andarist)! - The `createService(machine)` hook has been removed; use the `useActorRef(logic)` hook instead.
+
+- [#4748](https://github.com/statelyai/xstate/pull/4748) [`d73ac8e48`](https://github.com/statelyai/xstate/commit/d73ac8e48af82d4d3bde648206e633eb93193353) Thanks [@Andarist](https://github.com/Andarist)! - The `fromActorRef(actorRef)` has been added. You can use it to get an accessor for reactive snapshot of any existing `actorRef`.
+
+- [#4748](https://github.com/statelyai/xstate/pull/4748) [`d73ac8e48`](https://github.com/statelyai/xstate/commit/d73ac8e48af82d4d3bde648206e633eb93193353) Thanks [@Andarist](https://github.com/Andarist)! - The `useActor` hook accepts an actor `logic` now and not an existing `actorRef`. It's used to creating a new instance of an actor and it works just like `useMachine` used to work (`useMachine` is now just an alias of `useActor`).
+
 ## 0.1.3
 
 ### Patch Changes

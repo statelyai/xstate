@@ -1,5 +1,67 @@
 # xstate
 
+## 5.8.0
+
+### Minor Changes
+
+- [#4750](https://github.com/statelyai/xstate/pull/4750) [`a9e3c086f`](https://github.com/statelyai/xstate/commit/a9e3c086f3922eed3d82a3fdf6e1db85a3de5260) Thanks [@Andarist](https://github.com/Andarist)! - Revamped `setup` and actions types to disallow usage of non-configured implementations
+
+## 5.7.1
+
+### Patch Changes
+
+- [#4739](https://github.com/statelyai/xstate/pull/4739) [`15b7dd1f0`](https://github.com/statelyai/xstate/commit/15b7dd1f009036e4ab265c8702d9b9bd124aaadc) Thanks [@devanfarrell](https://github.com/devanfarrell)! - Removed `this` from machine snapshot methods to fix issues with accessing those methods from union of actors and their snapshots.
+
+## 5.7.0
+
+### Minor Changes
+
+- [#4290](https://github.com/statelyai/xstate/pull/4290) [`7a8796f80`](https://github.com/statelyai/xstate/commit/7a8796f809bc8fa81927761474dbbce9ab4b30d3) Thanks [@davidkpiano](https://github.com/davidkpiano)! - An error will now be thrown if an incompatible state value is passed to `machine.resolveState({ value })`.
+
+- [#4693](https://github.com/statelyai/xstate/pull/4693) [`11b6a1ae1`](https://github.com/statelyai/xstate/commit/11b6a1ae1397e5da2544f0bc233584f0aeb4d38b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now inspect microsteps (`@xstate.microstep`) and actions (`@xstate.action`):
+
+  ```ts
+  const machine = createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        on: {
+          event: 'b'
+        }
+      },
+      b: {
+        entry: 'someAction',
+        always: 'c'
+      },
+      c: {}
+    }
+  });
+
+  const actor = createActor(machine, {
+    inspect: (inspEvent) => {
+      if (inspEvent.type === '@xstate.microstep') {
+        console.log(inspEvent.snapshot);
+        // logs:
+        // { value: 'a', … }
+        // { value: 'b', … }
+        // { value: 'c', … }
+
+        console.log(inspEvent.event);
+        // logs:
+        // { type: 'event', … }
+      } else if (inspEvent.type === '@xstate.action') {
+        console.log(inspEvent.action);
+        // logs:
+        // { type: 'someAction', … }
+      }
+    }
+  });
+
+  actor.start();
+
+  actor.send({ type: 'event' });
+  ```
+
 ## 5.6.2
 
 ### Patch Changes

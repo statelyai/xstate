@@ -3,6 +3,7 @@ import { XSTATE_ERROR } from '../constants.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
 import {
   ActionArgs,
+  ActionFunction,
   ActorRef,
   AnyActorRef,
   AnyActorScope,
@@ -195,7 +196,8 @@ export function sendTo<
   TParams extends ParameterizedObject['params'] | undefined,
   TTargetActor extends AnyActorRef,
   TEvent extends EventObject,
-  TDelay extends string
+  TDelay extends string = never,
+  TUsedDelay extends TDelay = never
 >(
   to:
     | TTargetActor
@@ -218,9 +220,18 @@ export function sendTo<
     TExpressionEvent,
     TParams,
     NoInfer<TEvent>,
-    NoInfer<TDelay>
+    TUsedDelay
   >
-): SendToAction<TContext, TExpressionEvent, TParams, TEvent, TDelay> {
+): ActionFunction<
+  TContext,
+  TExpressionEvent,
+  TEvent,
+  TParams,
+  never,
+  never,
+  never,
+  TDelay
+> {
   function sendTo(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams
@@ -334,6 +345,7 @@ export function forwardTo<
     TParams,
     AnyActorRef,
     TEvent,
+    TDelay,
     TDelay
   >(target, ({ event }: any) => event, options);
 }

@@ -1,17 +1,17 @@
 import isDevelopment from '#is-development';
 import {
   ActionArgs,
+  ActionFunction,
   AnyActorScope,
-  AnyActor,
+  AnyEventObject,
   AnyMachineSnapshot,
   DelayExpr,
   EventObject,
   MachineContext,
   NoInfer,
-  RaiseActionOptions,
-  SendExpr,
   ParameterizedObject,
-  AnyEventObject
+  RaiseActionOptions,
+  SendExpr
 } from '../types.ts';
 
 function resolveRaise(
@@ -115,11 +115,10 @@ export interface RaiseAction<
 export function raise<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent,
-  TParams extends ParameterizedObject['params'] | undefined =
-    | ParameterizedObject['params']
-    | undefined,
-  TDelay extends string = string
+  TEvent extends EventObject,
+  TParams extends ParameterizedObject['params'] | undefined,
+  TDelay extends string = never,
+  TUsedDelay extends TDelay = never
 >(
   eventOrExpr:
     | NoInfer<TEvent>
@@ -129,9 +128,18 @@ export function raise<
     TExpressionEvent,
     TParams,
     NoInfer<TEvent>,
-    NoInfer<TDelay>
+    TUsedDelay
   >
-): RaiseAction<TContext, TExpressionEvent, TParams, TEvent, TDelay> {
+): ActionFunction<
+  TContext,
+  TExpressionEvent,
+  TEvent,
+  TParams,
+  never,
+  never,
+  never,
+  TDelay
+> {
   function raise(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams
