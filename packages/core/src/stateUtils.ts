@@ -626,7 +626,13 @@ export function getStateNodes<
   TEvent extends EventObject
 >(stateNode: AnyStateNode, stateValue: StateValue): Array<AnyStateNode> {
   if (typeof stateValue === 'string') {
-    return [stateNode, stateNode.states[stateValue]];
+    const childStateNode = stateNode.states[stateValue];
+    if (!childStateNode) {
+      throw new Error(
+        `State '${stateValue}' does not exist on '${stateNode.id}'`
+      );
+    }
+    return [stateNode, childStateNode];
   }
 
   const childStateKeys = Object.keys(stateValue);
@@ -1461,7 +1467,7 @@ interface BuiltinAction {
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
-function resolveActionsAndContextWorker(
+function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
@@ -1518,12 +1524,29 @@ function resolveActionsAndContextWorker(
             : action.params
           : undefined;
 
+    function executeAction() {
+      actorScope.system._sendInspectionEvent({
+        type: '@xstate.action',
+        actorRef: actorScope.self,
+        action: {
+          type:
+            typeof action === 'string'
+              ? action
+              : typeof action === 'object'
+                ? action.type
+                : action.name || '(anonymous)',
+          params: actionParams
+        }
+      });
+      resolvedAction(actionArgs, actionParams);
+    }
+
     if (!('resolve' in resolvedAction)) {
       if (actorScope.self._processingStatus === ProcessingStatus.Running) {
-        resolvedAction(actionArgs, actionParams);
+        executeAction();
       } else {
         actorScope.defer(() => {
-          resolvedAction(actionArgs, actionParams);
+          executeAction();
         });
       }
       continue;
@@ -1554,7 +1577,7 @@ function resolveActionsAndContextWorker(
     }
 
     if (actions) {
-      intermediateSnapshot = resolveActionsAndContextWorker(
+      intermediateSnapshot = resolveAndExecuteActionsWithContext(
         intermediateSnapshot,
         event,
         actorScope,
@@ -1578,7 +1601,7 @@ export function resolveActionsAndContext(
 ): AnyMachineSnapshot {
   const retries: (readonly [BuiltinAction, unknown])[] | undefined =
     deferredActorIds ? [] : undefined;
-  const nextState = resolveActionsAndContextWorker(
+  const nextState = resolveAndExecuteActionsWithContext(
     currentSnapshot,
     event,
     actorScope,
@@ -1606,7 +1629,22 @@ export function macrostep(
   }
 
   let nextSnapshot = snapshot;
-  const states: AnyMachineSnapshot[] = [];
+  const microstates: AnyMachineSnapshot[] = [];
+
+  function addMicrostate(
+    microstate: AnyMachineSnapshot,
+    event: AnyEventObject,
+    transitions: AnyTransitionDefinition[]
+  ) {
+    actorScope.system._sendInspectionEvent({
+      type: '@xstate.microstep',
+      actorRef: actorScope.self,
+      event,
+      snapshot: microstate,
+      _transitions: transitions
+    });
+    microstates.push(microstate);
+  }
 
   // Handle stop event
   if (event.type === XSTATE_STOP) {
@@ -1616,11 +1654,11 @@ export function macrostep(
         status: 'stopped'
       }
     );
-    states.push(nextSnapshot);
+    addMicrostate(nextSnapshot, event, []);
 
     return {
       snapshot: nextSnapshot,
-      microstates: states
+      microstates
     };
   }
 
@@ -1642,10 +1680,10 @@ export function macrostep(
         status: 'error',
         error: currentEvent.error
       });
-      states.push(nextSnapshot);
+      addMicrostate(nextSnapshot, currentEvent, []);
       return {
         snapshot: nextSnapshot,
-        microstates: states
+        microstates
       };
     }
     nextSnapshot = microstep(
@@ -1656,7 +1694,7 @@ export function macrostep(
       false, // isInitial
       internalQueue
     );
-    states.push(nextSnapshot);
+    addMicrostate(nextSnapshot, currentEvent, transitions);
   }
 
   let shouldSelectEventlessTransitions = true;
@@ -1688,7 +1726,7 @@ export function macrostep(
       internalQueue
     );
     shouldSelectEventlessTransitions = nextSnapshot !== previousState;
-    states.push(nextSnapshot);
+    addMicrostate(nextSnapshot, nextEvent, enabledTransitions);
   }
 
   if (nextSnapshot.status !== 'active') {
@@ -1697,7 +1735,7 @@ export function macrostep(
 
   return {
     snapshot: nextSnapshot,
-    microstates: states
+    microstates
   };
 }
 
