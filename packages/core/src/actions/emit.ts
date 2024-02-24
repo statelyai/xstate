@@ -2,9 +2,7 @@ import isDevelopment from '#is-development';
 import {
   ActionArgs,
   AnyActorScope,
-  AnyActor,
   AnyMachineSnapshot,
-  DelayExpr,
   EventObject,
   MachineContext,
   NoInfer,
@@ -20,9 +18,7 @@ function resolveEmit(
   args: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
-    event: eventOrExpr,
-    id,
-    delay
+    event: eventOrExpr
   }: {
     event:
       | EventObject
@@ -33,22 +29,8 @@ function resolveEmit(
           EventObject,
           EventObject
         >;
-    id: string | undefined;
-    delay:
-      | string
-      | number
-      | DelayExpr<
-          MachineContext,
-          EventObject,
-          ParameterizedObject['params'] | undefined,
-          EventObject
-        >
-      | undefined;
-  },
-  { internalQueue }: { internalQueue: AnyEventObject[] }
+  }
 ) {
-  const delaysMap = snapshot.machine.implementations.delays;
-
   if (typeof eventOrExpr === 'string') {
     throw new Error(
       `Only event objects may be used with emit; use emit({ type: "${eventOrExpr}" }) instead`
@@ -58,22 +40,7 @@ function resolveEmit(
     typeof eventOrExpr === 'function'
       ? eventOrExpr(args, actionParams)
       : eventOrExpr;
-
-  let resolvedDelay: number | undefined;
-  if (typeof delay === 'string') {
-    const configDelay = delaysMap && delaysMap[delay];
-    resolvedDelay =
-      typeof configDelay === 'function'
-        ? configDelay(args, actionParams)
-        : configDelay;
-  } else {
-    resolvedDelay =
-      typeof delay === 'function' ? delay(args, actionParams) : delay;
-  }
-  if (typeof resolvedDelay !== 'number') {
-    internalQueue.push(resolvedEvent);
-  }
-  return [snapshot, { event: resolvedEvent, id, delay: resolvedDelay }];
+  return [snapshot, { event: resolvedEvent }];
 }
 
 function executeEmit(
@@ -93,7 +60,7 @@ function executeEmit(
   // }
 }
 
-export interface RaiseAction<
+export interface EmitAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
@@ -106,10 +73,9 @@ export interface RaiseAction<
 }
 
 /**
- * Raises an event. This places the event in the internal event queue, so that
- * the event is immediately consumed by the machine in the current step.
+ * Emits an event.
  *
- * @param eventType The event to raise.
+ * @param eventType The event to emit.
  */
 export function emit<
   TContext extends MachineContext,
@@ -122,15 +88,8 @@ export function emit<
 >(
   eventOrExpr:
     | AnyEventObject
-    | SendExpr<TContext, TExpressionEvent, TParams, AnyEventObject, TEvent>,
-  options?: RaiseActionOptions<
-    TContext,
-    TExpressionEvent,
-    TParams,
-    NoInfer<TEvent>,
-    NoInfer<TDelay>
-  >
-): RaiseAction<TContext, TExpressionEvent, TParams, TEvent, TDelay> {
+    | SendExpr<TContext, TExpressionEvent, TParams, AnyEventObject, TEvent>
+): EmitAction<TContext, TExpressionEvent, TParams, TEvent, TDelay> {
   function emit(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams
@@ -142,8 +101,6 @@ export function emit<
 
   emit.type = 'xstate.emit';
   emit.event = eventOrExpr;
-  emit.id = options?.id;
-  emit.delay = options?.delay;
 
   emit.resolve = resolveEmit;
   emit.execute = executeEmit;
