@@ -1,0 +1,113 @@
+:root {
+  color-scheme: light dark;
+  background-color: #f2f6f7;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.case {
+  display: flex;
+  padding: 32px 24px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 20px;
+
+  border-radius: 32px;
+  border-right: 12px solid #b7c1c2;
+  border-bottom: 12px solid #b7c1c2;
+  background: #d6d8d8;
+}
+
+div {
+  position: relative;
+}
+
+input {
+  display: flex;
+  width: 186px;
+  height: 97px;
+  padding: 8px 32px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  border-radius: 24px;
+  border: none;
+
+  font-family: NovaMono, monospace;
+  font-size: 48px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+label {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  display: flex;
+  width: 54px;
+  height: 54px;
+  padding: 8px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  font-family: Roboto, sans-serif;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: normal;
+}
+
+::placeholder {
+  filter: opacity(0.4);
+}
+
+#celsius {
+  border-top: 1px solid #f3f0b7;
+  background: #faffe5;
+  color: #a6ad89;
+}
+
+#celsius + label {
+  color: #c1c5b0;
+}
+
+#fahrenheit {
+  border-top: 1px solid #a6f7cb;
+  background: #dafad9;
+  color: #85b28f;
+}
+
+#fahrenheit + label {
+  color: #b0c7b5;
+}
+
+input:focus {
+  outline: 6px dashed;
+  outline-offset: -6px;
+  filter: saturate(160%) brightness(1.06);
+}
