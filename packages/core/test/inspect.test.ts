@@ -327,6 +327,7 @@ describe('inspect', () => {
             "type": "xstate.init",
           },
           "snapshot": {
+            "children": {},
             "error": undefined,
             "input": undefined,
             "output": undefined,
@@ -434,6 +435,7 @@ describe('inspect', () => {
             "type": "xstate.promise.resolve",
           },
           "snapshot": {
+            "children": {},
             "error": undefined,
             "input": undefined,
             "output": 42,

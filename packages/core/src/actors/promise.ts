@@ -147,7 +147,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
         const child = spawnChild(logic, actorOptions) as AnyActorRef;
 
         self.send({
-          type: 'child',
+          type: XSTATE_SPAWN_CHILD,
           child
         });
 
