@@ -230,7 +230,8 @@ export function sendTo<
   never,
   never,
   never,
-  TDelay
+  TDelay,
+  never
 > {
   function sendTo(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,

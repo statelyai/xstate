@@ -1,9 +1,44 @@
-import { AnyEventObject, createActor, createMachine } from '../src';
+import { AnyEventObject, createActor, createMachine, setup } from '../src';
 import { emit } from '../src/actions/emit';
 
 describe('event emitter', () => {
+  it('only emits expected events if specified in setup', () => {
+    setup({
+      types: {
+        emitted: {} as { type: 'greet'; message: string }
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: emit({ type: 'nonsense' }),
+      // @ts-expect-error
+      exit: emit({ type: 'greet', message: 1234 }),
+
+      on: {
+        someEvent: {
+          actions: emit({ type: 'greet', message: 'hello' })
+        }
+      }
+    });
+  });
+
+  it('emits any events if not specified in setup (unsafe)', () => {
+    createMachine({
+      entry: emit({ type: 'nonsense' }),
+      exit: emit({ type: 'greet', message: 1234 }),
+      on: {
+        someEvent: {
+          actions: emit({ type: 'greet', message: 'hello' })
+        }
+      }
+    });
+  });
+
   it('emits events that can be listened to on actorRef.on(…)', async () => {
-    const machine = createMachine({
+    const machine = setup({
+      types: {
+        emitted: {} as { type: 'emitted'; foo: string }
+      }
+    }).createMachine({
       on: {
         someEvent: {
           actions: emit({ type: 'emitted', foo: 'bar' })

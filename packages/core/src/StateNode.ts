@@ -159,12 +159,13 @@ export class StateNode<
     public config: StateNodeConfig<
       TContext,
       TEvent,
-      TODO, // actions
       TODO, // actors
-      TODO, // output
+      TODO, // actions
       TODO, // guards
       TODO, // delays
-      TODO // tags
+      TODO, // tags
+      TODO, // output
+      TODO // emitted
     >,
     options: StateNodeOptions<TContext, TEvent>
   ) {

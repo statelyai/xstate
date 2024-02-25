@@ -9,6 +9,7 @@ import {
   Cast,
   ConditionalRequired,
   DelayConfig,
+  EventObject,
   Invert,
   IsNever,
   MachineConfig,
@@ -122,7 +123,8 @@ export function setup<
   TDelay extends string = never,
   TTag extends string = string,
   TInput = NonReducibleUnknown,
-  TOutput extends NonReducibleUnknown = NonReducibleUnknown
+  TOutput extends NonReducibleUnknown = NonReducibleUnknown,
+  TEmitted extends EventObject = AnyEventObject
 >({
   schemas,
   actors,
@@ -131,7 +133,15 @@ export function setup<
   delays
 }: {
   schemas?: unknown;
-  types?: SetupTypes<TContext, TEvent, TChildrenMap, TTag, TInput, TOutput>;
+  types?: SetupTypes<
+    TContext,
+    TEvent,
+    TChildrenMap,
+    TTag,
+    TInput,
+    TOutput,
+    TEmitted
+  >;
   actors?: {
     // union here enforces that all configured children have to be provided in actors
     // it makes those values required here
@@ -148,7 +158,8 @@ export function setup<
       ToProvidedActor<TChildrenMap, TActors>,
       ToParameterizedObject<TActions>,
       ToParameterizedObject<TGuards>,
-      TDelay
+      TDelay,
+      TEmitted
     >;
   };
   guards?: {
@@ -181,6 +192,7 @@ export function setup<
       TTag,
       TInput,
       TOutput,
+      TEmitted,
       ResolveTypegenMeta<
         TypegenDisabled,
         TEvent,
@@ -208,6 +220,7 @@ export function setup<
     TTag,
     TInput,
     TOutput,
+    // TEmitted,
     ResolveTypegenMeta<
       TypegenDisabled,
       TEvent,

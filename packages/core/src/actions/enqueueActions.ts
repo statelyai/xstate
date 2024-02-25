@@ -27,7 +27,8 @@ interface ActionEnqueuer<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
+  TDelay extends string,
+  TEmitted extends EventObject
 > {
   (
     action: Action<
@@ -38,7 +39,8 @@ interface ActionEnqueuer<
       TActor,
       TAction,
       TGuard,
-      TDelay
+      TDelay,
+      TEmitted
     >
   ): void;
   assign: (
@@ -103,7 +105,8 @@ function resolveEnqueueActions(
       ProvidedActor,
       ParameterizedObject,
       ParameterizedObject,
-      string
+      string,
+      EventObject
     >;
   }
 ) {
@@ -173,7 +176,8 @@ interface CollectActionsArg<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
+  TDelay extends string,
+  TEmitted extends EventObject
 > extends UnifiedArg<TContext, TExpressionEvent, TEvent> {
   check: (
     guard: Guard<TContext, TExpressionEvent, undefined, TGuard>
@@ -185,7 +189,8 @@ interface CollectActionsArg<
     TActor,
     TAction,
     TGuard,
-    TDelay
+    TDelay,
+    TEmitted
   >;
 }
 
@@ -196,7 +201,8 @@ type CollectActions<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
+  TDelay extends string,
+  TEmitted extends EventObject
 > = ({
   context,
   event,
@@ -210,7 +216,8 @@ type CollectActions<
   TActor,
   TAction,
   TGuard,
-  TDelay
+  TDelay,
+  TEmitted
 >) => void;
 
 /**
@@ -240,7 +247,8 @@ export function enqueueActions<
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = never
+  TDelay extends string = never,
+  TEmitted extends EventObject = EventObject
 >(
   collect: CollectActions<
     TContext,
@@ -249,7 +257,8 @@ export function enqueueActions<
     TActor,
     TAction,
     TGuard,
-    TDelay
+    TDelay,
+    TEmitted
   >
 ): ActionFunction<
   TContext,
@@ -259,7 +268,8 @@ export function enqueueActions<
   TActor,
   TAction,
   TGuard,
-  TDelay
+  TDelay,
+  TEmitted
 > {
   function enqueueActions(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,

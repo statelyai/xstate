@@ -5,11 +5,8 @@ import {
   AnyMachineSnapshot,
   EventObject,
   MachineContext,
-  NoInfer,
-  RaiseActionOptions,
   SendExpr,
-  ParameterizedObject,
-  AnyEventObject
+  ParameterizedObject
 } from '../types.ts';
 
 function resolveEmit(
@@ -65,11 +62,11 @@ export interface EmitAction<
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
-  TDelay extends string
+  TEmitted extends EventObject
 > {
   (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TEvent?: TEvent;
-  _out_TDelay?: TDelay;
+  _out_TEmitted?: TEmitted;
 }
 
 /**
@@ -84,12 +81,12 @@ export function emit<
   TParams extends ParameterizedObject['params'] | undefined =
     | ParameterizedObject['params']
     | undefined,
-  TDelay extends string = string
+  TEmitted extends EventObject = EventObject
 >(
   eventOrExpr:
-    | AnyEventObject
-    | SendExpr<TContext, TExpressionEvent, TParams, AnyEventObject, TEvent>
-): EmitAction<TContext, TExpressionEvent, TParams, TEvent, TDelay> {
+    | TEmitted
+    | SendExpr<TContext, TExpressionEvent, TParams, TEmitted, TEvent>
+): EmitAction<TContext, TExpressionEvent, TParams, TEvent, TEmitted> {
   function emit(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams
