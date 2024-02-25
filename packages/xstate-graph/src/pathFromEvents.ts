@@ -49,7 +49,6 @@ export function getPathsFromEvents<
   const actorScope = createMockActorScope() as ActorScope<
     TSnapshot,
     TEvent,
-    any,
     TSystem
   >;
   const fromState =

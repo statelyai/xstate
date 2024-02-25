@@ -30,7 +30,6 @@ export function getAdjacencyMap<
   const actorScope = createMockActorScope() as ActorScope<
     TSnapshot,
     TEvent,
-    any,
     TSystem
   >;
   const fromState =

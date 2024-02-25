@@ -2171,8 +2171,8 @@ export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
 export interface ActorScope<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TEmitted extends EventObject,
-  TSystem extends AnyActorSystem = AnyActorSystem
+  TSystem extends AnyActorSystem = AnyActorSystem,
+  TEmitted extends EventObject = EventObject
 > {
   self: ActorRef<TSnapshot, TEvent>;
   id: string;
@@ -2184,7 +2184,12 @@ export interface ActorScope<
   stopChild: (child: AnyActorRef) => void;
 }
 
-export type AnyActorScope = ActorScope<any, any, any, AnyActorSystem>;
+export type AnyActorScope = ActorScope<
+  any, // TSnapshot
+  any, // TEvent
+  AnyActorSystem,
+  any // TEmitted
+>;
 
 export type Snapshot<TOutput> =
   | {
@@ -2236,7 +2241,7 @@ export interface ActorLogic<
   transition: (
     snapshot: TSnapshot,
     message: TEvent,
-    actorScope: ActorScope<TSnapshot, TEvent, TEmitted, TSystem>
+    actorScope: ActorScope<TSnapshot, TEvent, TSystem, TEmitted>
   ) => TSnapshot;
   /**
    * Called to provide the initial state of the actor.
@@ -2245,7 +2250,7 @@ export interface ActorLogic<
    * @returns The initial state.
    */
   getInitialSnapshot: (
-    actorScope: ActorScope<TSnapshot, TEvent, TEmitted, TSystem>,
+    actorScope: ActorScope<TSnapshot, TEvent, TSystem, TEmitted>,
     input: TInput
   ) => TSnapshot;
   /**
@@ -2257,7 +2262,7 @@ export interface ActorLogic<
    */
   restoreSnapshot?: (
     persistedState: Snapshot<unknown>,
-    actorScope: ActorScope<TSnapshot, TEvent, TEmitted>
+    actorScope: ActorScope<TSnapshot, TEvent, AnyActorSystem, any>
   ) => TSnapshot;
   /**
    * Called when the actor is started.
@@ -2266,7 +2271,7 @@ export interface ActorLogic<
    */
   start?: (
     snapshot: TSnapshot,
-    actorScope: ActorScope<TSnapshot, TEvent, TEmitted>
+    actorScope: ActorScope<TSnapshot, TEvent, AnyActorSystem, any>
   ) => void;
   /**
    * Obtains the internal state of the actor in a representation which can be be persisted.

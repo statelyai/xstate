@@ -113,8 +113,8 @@ export class Actor<TLogic extends AnyActorLogic>
   private _actorScope: ActorScope<
     SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
-    EmittedFrom<TLogic>,
-    any
+    AnyActorSystem,
+    EmittedFrom<TLogic>
   >;
 
   private _systemId: string | undefined;

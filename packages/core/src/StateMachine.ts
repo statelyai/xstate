@@ -262,7 +262,7 @@ export class StateMachine<
       TOutput
     >,
     event: TEvent,
-    actorScope: ActorScope<typeof snapshot, TEvent, TEmitted, AnyActorSystem>
+    actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
   ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
     return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
   }
@@ -349,6 +349,7 @@ export class StateMachine<
     actorScope: ActorScope<
       MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>,
       TEvent,
+      AnyActorSystem,
       TEmitted
     >,
     input?: TInput
@@ -450,6 +451,7 @@ export class StateMachine<
     _actorScope: ActorScope<
       MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>,
       TEvent,
+      AnyActorSystem,
       TEmitted
     >
   ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {

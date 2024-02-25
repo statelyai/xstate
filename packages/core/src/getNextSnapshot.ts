@@ -17,8 +17,8 @@ export function createInertActorScope<T extends AnyActorLogic>(
   const inertActorScope: ActorScope<
     SnapshotFrom<T>,
     EventFromLogic<T>,
-    EmittedFrom<T>,
-    any
+    any,
+    EmittedFrom<T>
   > = {
     self,
     defer: () => {},
