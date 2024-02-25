@@ -36,6 +36,48 @@ it('updates a store with an event without mutating original context', () => {
   expect(context.count).toEqual(0);
 });
 
+it('can update context with a property assigner', () => {
+  const store = createStore(
+    { count: 0, greeting: 'hello' },
+    {
+      inc: {
+        count: (ctx) => ctx.count + 1
+      },
+      updateBoth: {
+        count: () => 42,
+        greeting: 'hi'
+      }
+    }
+  );
+
+  store.send({
+    type: 'inc'
+  });
+  expect(store.getSnapshot()).toEqual({ count: 1, greeting: 'hello' });
+
+  store.send({
+    type: 'updateBoth'
+  });
+  expect(store.getSnapshot()).toEqual({ count: 42, greeting: 'hi' });
+});
+
+it('handles unknown events (does not do anything)', () => {
+  const store = createStore(
+    { count: 0 },
+    {
+      inc: {
+        count: (ctx) => ctx.count + 1
+      }
+    }
+  );
+
+  store.send({
+    // @ts-expect-error
+    type: 'unknown'
+  });
+  expect(store.getSnapshot()).toEqual({ count: 0 });
+});
+
 it('updates state from sent events', () => {
   const store = createStore(
     {
@@ -98,14 +140,18 @@ it('works with immer', () => {
       count: 0
     },
     {
-      inc: (ctx) => {
-        ctx.count++;
+      inc: (ctx, ev: { by: number }) => {
+        ctx.count += ev.by;
       }
     }
   );
 
-  store.send({ type: 'inc' });
+  store.send({ type: 'inc', by: 3 });
+  store.send({
+    // @ts-expect-error
+    type: 'whatever'
+  });
 
-  expect(store.getSnapshot()).toEqual({ count: 1 });
+  expect(store.getSnapshot()).toEqual({ count: 3 });
   expect(store.getInitialSnapshot()).toEqual({ count: 0 });
 });

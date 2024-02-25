@@ -36,7 +36,6 @@ export interface Store<T, Ev extends EventObject>
   send: (event: Ev) => void;
   getSnapshot: () => T;
   getInitialSnapshot: () => T;
-  select: <TSelected>(selector: (ctx: T) => TSelected) => TSelected;
 }
 
 type EventPayloadMap = Record<string, {} | null | undefined>;
@@ -52,22 +51,19 @@ function defaultSetter<T>(ctx: T, recipe: Recipe<T, T>): T {
 }
 
 export function createStoreWithProducer<
-  TProducer extends (
-    ctx: NoInfer<TContext>,
-    recipe: (ctx: NoInfer<TContext>) => void
-  ) => NoInfer<TContext>,
+  TProducer extends <T>(ctx: T, recipe: (ctx: T) => void) => T,
   TContext extends MachineContext,
   TEventPayloadMap extends EventPayloadMap
 >(
   producer: TProducer,
   context: TContext,
   transitions: {
-    [K in keyof TEventPayloadMap]: (
+    [K in keyof TEventPayloadMap & string]: (
       ctx: NoInfer<TContext>,
-      ev: TEventPayloadMap[K]
+      ev: { type: K } & TEventPayloadMap[K]
     ) => void;
   }
-) {
+): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
   return createStore(context, transitions as any, (ctx, recipe) =>
     producer(ctx, recipe)
   );
@@ -75,7 +71,7 @@ export function createStoreWithProducer<
 
 type Assigner<TC, TE extends EventObject> = (ctx: TC, ev: TE) => Partial<TC>;
 type PropertyAssigner<TC, TE extends EventObject> = {
-  [K in keyof TC]: (ctx: TC, ev: TE) => Partial<TC>[K];
+  [K in keyof TC]?: TC[K] | ((ctx: TC, ev: TE) => Partial<TC>[K]);
 };
 
 export function createStore<
@@ -101,6 +97,10 @@ export function createStore<
         ev.type as ExtractEventsFromPayloadMap<TEventPayloadMap>['type']
       ];
 
+    if (!fn) {
+      return;
+    }
+
     if (typeof fn === 'function') {
       currentContext = updater
         ? updater(currentContext, (d) => fn?.(d, ev as any))
@@ -115,12 +115,11 @@ export function createStore<
           typeof propAssignment === 'function'
             ? propAssignment(currentContext, ev as any)
             : propAssignment;
-        return Object.assign({}, currentContext, partialUpdate);
       }
+      currentContext = Object.assign({}, currentContext, partialUpdate);
     }
 
-    const cloned = currentContext;
-    observers?.forEach((o) => o.next?.(cloned));
+    observers?.forEach((o) => o.next?.(currentContext));
   }
   let observers: Set<Observer<any>> | undefined;
 
