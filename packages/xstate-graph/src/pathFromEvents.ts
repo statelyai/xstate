@@ -32,7 +32,7 @@ export function getPathsFromEvents<
   TInput,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
-  logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
+  logic: ActorLogic<TSnapshot, TEvent, TInput, any, TSystem>,
   events: TEvent[],
   options?: TraversalOptions<TSnapshot, TEvent>
 ): Array<StatePath<TSnapshot, TEvent>> {
@@ -49,6 +49,7 @@ export function getPathsFromEvents<
   const actorScope = createMockActorScope() as ActorScope<
     TSnapshot,
     TEvent,
+    any,
     TSystem
   >;
   const fromState =

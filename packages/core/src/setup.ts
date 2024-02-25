@@ -220,7 +220,7 @@ export function setup<
     TTag,
     TInput,
     TOutput,
-    // TEmitted,
+    TEmitted,
     ResolveTypegenMeta<
       TypegenDisabled,
       TEvent,

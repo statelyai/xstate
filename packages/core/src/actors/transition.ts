@@ -16,7 +16,13 @@ export type TransitionActorLogic<
   TContext,
   TEvent extends EventObject,
   TInput extends NonReducibleUnknown
-> = ActorLogic<TransitionSnapshot<TContext>, TEvent, TInput, AnyActorSystem>;
+> = ActorLogic<
+  TransitionSnapshot<TContext>,
+  TEvent,
+  TInput,
+  any, // TEmitted
+  AnyActorSystem
+>;
 
 export type TransitionActorRef<
   TContext,
@@ -92,7 +98,7 @@ export function fromTransition<
   transition: (
     snapshot: TContext,
     event: TEvent,
-    actorScope: ActorScope<TransitionSnapshot<TContext>, TEvent, TSystem>
+    actorScope: ActorScope<TransitionSnapshot<TContext>, TEvent, any, TSystem>
   ) => TContext,
   initialContext:
     | TContext

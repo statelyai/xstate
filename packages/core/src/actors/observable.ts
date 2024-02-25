@@ -30,6 +30,7 @@ export type ObservableActorLogic<
   ObservableSnapshot<TContext, TInput>,
   { type: string; [k: string]: unknown },
   TInput,
+  any, // TEmitted
   AnyActorSystem
 >;
 

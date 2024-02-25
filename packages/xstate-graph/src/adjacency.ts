@@ -15,7 +15,7 @@ export function getAdjacencyMap<
   TInput,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
-  logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
+  logic: ActorLogic<TSnapshot, TEvent, TInput, any, TSystem>,
   options: TraversalOptions<TSnapshot, TEvent>
 ): AdjacencyMap<TSnapshot, TEvent> {
   const { transition } = logic;
@@ -30,6 +30,7 @@ export function getAdjacencyMap<
   const actorScope = createMockActorScope() as ActorScope<
     TSnapshot,
     TEvent,
+    any,
     TSystem
   >;
   const fromState =

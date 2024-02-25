@@ -197,7 +197,7 @@ export function resolveOutput<
   return mapper;
 }
 
-export function isActorLogic(value: any): value is ActorLogic<any, any> {
+export function isActorLogic(value: any): value is ActorLogic<any, any, any> {
   return (
     value !== null &&
     typeof value === 'object' &&

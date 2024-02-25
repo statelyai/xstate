@@ -18,6 +18,7 @@ export type PromiseActorLogic<TOutput, TInput = unknown> = ActorLogic<
   PromiseSnapshot<TOutput, TInput>,
   { type: string; [k: string]: unknown },
   TInput, // input
+  any, // TEmitted
   AnyActorSystem
 >;
 

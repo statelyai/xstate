@@ -17,6 +17,7 @@ import type {
   AnyEventObject,
   ConditionalRequired,
   DoneActorEvent,
+  EmittedFrom,
   EventFromLogic,
   InputFrom,
   IsNotNever,
@@ -71,7 +72,8 @@ const defaultOptions = {
  * An Actor is a running process that can receive events, send events and change its behavior based on the events it receives, which can cause effects outside of the actor. When you run a state machine, it becomes an actor.
  */
 export class Actor<TLogic extends AnyActorLogic>
-  implements ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>
+  implements
+    ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>, EmittedFrom<TLogic>>
 {
   /**
    * The current internal state of the actor.
@@ -93,7 +95,10 @@ export class Actor<TLogic extends AnyActorLogic>
   );
 
   private observers: Set<Observer<SnapshotFrom<TLogic>>> = new Set();
-  private eventListeners: Map<string, Set<EmittedEventHandler>> = new Map();
+  private eventListeners: Map<
+    string,
+    Set<(emittedEvent: EmittedFrom<TLogic>) => void>
+  > = new Map();
   private logger: (...args: any[]) => void;
 
   /** @internal */
@@ -108,6 +113,7 @@ export class Actor<TLogic extends AnyActorLogic>
   private _actorScope: ActorScope<
     SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
+    EmittedFrom<TLogic>,
     any
   >;
 
@@ -406,9 +412,11 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
-  public on(
-    emittedEventType: string,
-    handler: EmittedEventHandler
+  public on<TEmittedType extends EmittedFrom<TLogic>['type']>(
+    emittedEventType: TEmittedType,
+    handler: (
+      emittedEvent: EmittedFrom<TLogic> & { type: TEmittedType }
+    ) => void
   ): Subscription {
     const set = this.eventListeners.get(emittedEventType) ?? new Set();
     set.add(handler);
@@ -770,11 +778,13 @@ type RequiredOptions<TLogic extends AnyActorLogic> =
 export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: ConditionalRequired<
+    // Require this...
     [
       options?: ActorOptions<TLogic> & {
         [K in RequiredOptions<TLogic>]: unknown;
       }
     ],
+    // ...if this is true
     IsNotNever<RequiredOptions<TLogic>>
   >
 ): Actor<TLogic> {

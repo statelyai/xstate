@@ -2383,7 +2383,7 @@ describe('invoke', () => {
       const countReducer = (
         count: number,
         event: CountEvents,
-        { self }: ActorScope<any, CountEvents>
+        { self }: ActorScope<any, CountEvents, any>
       ): number => {
         if (event.type === 'INC') {
           self.send({ type: 'DOUBLE' });
