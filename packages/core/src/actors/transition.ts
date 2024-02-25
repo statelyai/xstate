@@ -20,8 +20,8 @@ export type TransitionActorLogic<
   TransitionSnapshot<TContext>,
   TEvent,
   TInput,
-  any, // TEmitted
-  AnyActorSystem
+  AnyActorSystem,
+  any // TEmitted
 >;
 
 export type TransitionActorRef<

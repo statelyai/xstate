@@ -32,7 +32,7 @@ export function getPathsFromEvents<
   TInput,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
-  logic: ActorLogic<TSnapshot, TEvent, TInput, any, TSystem>,
+  logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
   events: TEvent[],
   options?: TraversalOptions<TSnapshot, TEvent>
 ): Array<StatePath<TSnapshot, TEvent>> {

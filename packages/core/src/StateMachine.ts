@@ -80,8 +80,8 @@ export class StateMachine<
       MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>,
       TEvent,
       TInput,
-      TEmitted,
-      AnyActorSystem
+      AnyActorSystem,
+      TEmitted
     >
 {
   /**

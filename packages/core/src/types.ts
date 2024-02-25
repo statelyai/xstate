@@ -146,8 +146,8 @@ export type InputFrom<T> = T extends StateMachine<
         infer _TSnapshot,
         infer _TEvent,
         infer TInput,
-        infer _TEmitted,
-        infer _TSystem
+        infer _TSystem,
+        infer _TEmitted
       >
     ? TInput
     : never;
@@ -156,8 +156,8 @@ export type OutputFrom<T> = T extends ActorLogic<
   infer TSnapshot,
   infer _TEvent,
   infer _TInput,
-  infer _TEmitted,
-  infer _TSystem
+  infer _TSystem,
+  infer _TEmitted
 >
   ? (TSnapshot & { status: 'done' })['output']
   : T extends ActorRef<infer TSnapshot, infer _TEvent>
@@ -2077,8 +2077,8 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
             infer TSnapshot,
             infer TEvent,
             infer _TInput,
-            infer _TEmitted,
-            infer _TSystem
+            infer _TSystem,
+            infer _TEmitted
           >
         ? ActorRef<TSnapshot, TEvent>
         : never
@@ -2118,8 +2118,8 @@ export type InterpreterFrom<
         >,
         TEvent,
         TInput,
-        TEmitted,
-        AnyActorSystem
+        AnyActorSystem,
+        TEmitted
       >
     >
   : never;
@@ -2220,8 +2220,8 @@ export interface ActorLogic<
   in out TSnapshot extends Snapshot<unknown>, // it's invariant because it's also part of `ActorScope["self"]["getSnapshot"]`
   in out TEvent extends EventObject, // it's invariant because it's also part of `ActorScope["self"]["send"]`
   in TInput = NonReducibleUnknown,
-  TEmitted extends EventObject = EventObject,
-  TSystem extends AnyActorSystem = AnyActorSystem
+  TSystem extends AnyActorSystem = AnyActorSystem,
+  TEmitted extends EventObject = EventObject
 > {
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
@@ -2284,16 +2284,16 @@ export type AnyActorLogic = ActorLogic<
   any, // snapshot
   any, // event
   any, // input
-  any, // emitted
-  any // system
+  any, // system
+  any // emitted
 >;
 
 export type UnknownActorLogic = ActorLogic<
   any, // snapshot
   any, // event
   never, // input
-  any, // emitted
-  AnyActorSystem
+  AnyActorSystem,
+  any // emitted
 >;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
@@ -2319,7 +2319,7 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
           : never
   : never;
 
-export type EventFromLogic<TLogic extends ActorLogic<any, any, any, any, any>> =
+export type EventFromLogic<TLogic extends AnyActorLogic> =
   TLogic extends ActorLogic<
     infer _TSnapshot,
     infer TEvent,
@@ -2330,13 +2330,13 @@ export type EventFromLogic<TLogic extends ActorLogic<any, any, any, any, any>> =
     ? TEvent
     : never;
 
-export type EmittedFrom<TLogic extends ActorLogic<any, any, any, any, any>> =
+export type EmittedFrom<TLogic extends AnyActorLogic> =
   TLogic extends ActorLogic<
     infer _TSnapshot,
     infer _TEvent,
     infer _TInput,
-    infer TEmitted,
-    infer _TSystem
+    infer _TSystem,
+    infer TEmitted
   >
     ? TEmitted
     : never;

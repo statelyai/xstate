@@ -31,8 +31,8 @@ export type CallbackActorLogic<
   CallbackSnapshot<TInput>,
   TEvent,
   TInput,
-  any, // TEmitted
-  AnyActorSystem
+  AnyActorSystem,
+  any // TEmitted
 >;
 
 export type CallbackActorRef<
