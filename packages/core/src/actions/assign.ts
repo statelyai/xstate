@@ -13,7 +13,8 @@ import type {
   MachineContext,
   ParameterizedObject,
   PropertyAssigner,
-  ProvidedActor
+  ProvidedActor,
+  ActionFunction
 } from '../types.ts';
 
 export interface AssignArgs<
@@ -101,7 +102,7 @@ export interface AssignAction<
  *
  * @param assignment An object that represents the partial context to update, or a
  * function that returns an object that represents the partial context to update.
- * 
+ *
  * @example
   ```ts
   import { createMachine, assign } from 'xstate';
@@ -130,12 +131,10 @@ export interface AssignAction<
  */
 export function assign<
   TContext extends MachineContext,
-  TExpressionEvent extends AnyEventObject = AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TParams extends ParameterizedObject['params'] | undefined =
-    | ParameterizedObject['params']
-    | undefined,
-  TEvent extends EventObject = EventObject,
-  TActor extends ProvidedActor = ProvidedActor
+  TExpressionEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TParams extends ParameterizedObject['params'] | undefined,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor
 >(
   assignment:
     | Assigner<LowInfer<TContext>, TExpressionEvent, TParams, TEvent, TActor>
@@ -146,7 +145,16 @@ export function assign<
         TEvent,
         TActor
       >
-): AssignAction<TContext, TExpressionEvent, TParams, TEvent, TActor> {
+): ActionFunction<
+  TContext,
+  TExpressionEvent,
+  TEvent,
+  TParams,
+  TActor,
+  never,
+  never,
+  never
+> {
   function assign(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams

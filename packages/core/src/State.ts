@@ -114,33 +114,13 @@ interface MachineSnapshotBase<
    * Whether the current state value is a subset of the given partial state value.
    * @param partialStateValue
    */
-  matches: (
-    this: MachineSnapshot<
-      TContext,
-      TEvent,
-      TChildren,
-      TStateValue,
-      TTag,
-      TOutput
-    >,
-    partialStateValue: ToTestStateValue<TStateValue>
-  ) => boolean;
+  matches: (partialStateValue: ToTestStateValue<TStateValue>) => boolean;
 
   /**
    * Whether the current state nodes has a state node with the specified `tag`.
    * @param tag
    */
-  hasTag: (
-    this: MachineSnapshot<
-      TContext,
-      TEvent,
-      TChildren,
-      TStateValue,
-      TTag,
-      TOutput
-    >,
-    tag: TTag
-  ) => boolean;
+  hasTag: (tag: TTag) => boolean;
 
   /**
    * Determines whether sending the `event` will cause a non-forbidden transition
@@ -150,39 +130,11 @@ interface MachineSnapshotBase<
    * @param event The event to test
    * @returns Whether the event will cause a transition
    */
-  can: (
-    this: MachineSnapshot<
-      TContext,
-      TEvent,
-      TChildren,
-      TStateValue,
-      TTag,
-      TOutput
-    >,
-    event: TEvent
-  ) => boolean;
+  can: (event: TEvent) => boolean;
 
-  getMeta: (
-    this: MachineSnapshot<
-      TContext,
-      TEvent,
-      TChildren,
-      TStateValue,
-      TTag,
-      TOutput
-    >
-  ) => Record<string, any>;
+  getMeta: () => Record<string, any>;
 
-  toJSON: (
-    this: MachineSnapshot<
-      TContext,
-      TEvent,
-      TChildren,
-      TStateValue,
-      TTag,
-      TOutput
-    >
-  ) => unknown;
+  toJSON: () => unknown;
 }
 
 interface ActiveMachineSnapshot<

@@ -1,25 +1,24 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
-import { createErrorActorEvent } from '../eventUtils.ts';
 import { ProcessingStatus, createActor } from '../createActor.ts';
 import {
   ActionArgs,
-  AnyActorScope,
-  AnyActorRef,
-  AnyActor,
-  AnyMachineSnapshot,
-  EventObject,
-  MachineContext,
-  ParameterizedObject,
+  ActionFunction,
   AnyActorLogic,
-  ProvidedActor,
-  IsLiteralString,
-  InputFrom,
-  UnifiedArg,
-  Mapper,
-  RequiredActorOptions,
+  AnyActorRef,
+  AnyActorScope,
+  AnyMachineSnapshot,
   ConditionalRequired,
-  IsNotNever
+  EventObject,
+  InputFrom,
+  IsLiteralString,
+  IsNotNever,
+  MachineContext,
+  Mapper,
+  ParameterizedObject,
+  ProvidedActor,
+  RequiredActorOptions,
+  UnifiedArg
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
@@ -185,7 +184,16 @@ export function spawnChild<
     src,
     { id, systemId, input, syncSnapshot = false } = {} as any
   ]: SpawnArguments<TContext, TExpressionEvent, TEvent, TActor>
-): SpawnAction<TContext, TExpressionEvent, TParams, TEvent, TActor> {
+): ActionFunction<
+  TContext,
+  TExpressionEvent,
+  TEvent,
+  TParams,
+  TActor,
+  never,
+  never,
+  never
+> {
   function spawnChild(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams

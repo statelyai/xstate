@@ -3,6 +3,7 @@ import { Guard, evaluateGuard } from '../guards.ts';
 import {
   Action,
   ActionArgs,
+  ActionFunction,
   AnyActorRef,
   AnyActorScope,
   AnyMachineSnapshot,
@@ -52,7 +53,14 @@ interface ActionEnqueuer<
   ) => void;
   raise: (
     ...args: Parameters<
-      typeof raise<TContext, TExpressionEvent, TEvent, undefined, TDelay>
+      typeof raise<
+        TContext,
+        TExpressionEvent,
+        TEvent,
+        undefined,
+        TDelay,
+        TDelay
+      >
     >
   ) => void;
   sendTo: <TTargetActor extends AnyActorRef>(
@@ -63,6 +71,7 @@ interface ActionEnqueuer<
         undefined,
         TTargetActor,
         TEvent,
+        TDelay,
         TDelay
       >
     >
@@ -111,10 +120,14 @@ function resolveEnqueueActions(
     actions.push(cancel(...args));
   };
   enqueue.raise = (...args) => {
-    actions.push(raise(...args));
+    // for some reason it fails to infer `TDelay` from `...args` here and infers `picks` its default (`never`)
+    // then it fails to typecheck that because `...args` use `string` in place of `TDelay`
+    actions.push((raise as typeof enqueue.raise)(...args));
   };
   enqueue.sendTo = (...args) => {
-    actions.push(sendTo(...args));
+    // for some reason it fails to infer `TDelay` from `...args` here and infers `picks` its default (`never`)
+    // then it fails to typecheck that because `...args` use `string` in place of `TDelay
+    actions.push((sendTo as typeof enqueue.sendTo)(...args));
   };
   enqueue.spawnChild = (...args) => {
     actions.push(spawnChild(...args));
@@ -202,7 +215,7 @@ type CollectActions<
 
 /**
  * Creates an action object that will execute actions that are queued by the `enqueue(action)` function.
- * 
+ *
  * @example
   ```ts
   import { createMachine, enqueueActions } from 'xstate';
@@ -227,7 +240,7 @@ export function enqueueActions<
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string
+  TDelay extends string = never
 >(
   collect: CollectActions<
     TContext,
@@ -238,10 +251,11 @@ export function enqueueActions<
     TGuard,
     TDelay
   >
-): EnqueueActionsAction<
+): ActionFunction<
   TContext,
   TExpressionEvent,
   TEvent,
+  unknown,
   TActor,
   TAction,
   TGuard,
