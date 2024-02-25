@@ -95,13 +95,20 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
 ): PromiseActorLogic<TOutput, TInput> {
   const logic: PromiseActorLogic<TOutput, TInput> = {
     config: promiseCreator,
-    transition: (state, event) => {
+    transition: (state, event, actorScope) => {
       if (state.status !== 'active') {
         return state;
       }
 
+      const stopChildren = () => {
+        for (const child of Object.values(state.children)) {
+          actorScope.stopChild(child);
+        }
+      };
+
       switch (event.type) {
         case XSTATE_PROMISE_RESOLVE: {
+          stopChildren();
           const resolvedValue = (event as any).data;
           return {
             ...state,
@@ -111,6 +118,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
           };
         }
         case XSTATE_PROMISE_REJECT:
+          stopChildren();
           return {
             ...state,
             status: 'error',
@@ -118,6 +126,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
             input: undefined
           };
         case XSTATE_STOP:
+          stopChildren();
           return {
             ...state,
             status: 'stopped',

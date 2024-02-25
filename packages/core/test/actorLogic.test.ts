@@ -259,6 +259,103 @@ describe('promise logic (fromPromise)', () => {
       expect(actor.getSnapshot().children.child).toBe(res);
     });
   });
+
+  it('stops spawned actors when it is stopped', async () => {
+    const promiseLogic = fromPromise<void>(async ({ spawnChild }) => {
+      spawnChild(
+        fromPromise(
+          () =>
+            new Promise((_res, _rej) => {
+              // ...
+            })
+        ),
+        {
+          id: 'child'
+        }
+      );
+      await new Promise((_res, _rej) => {
+        // ...
+      });
+    });
+
+    const actor = createActor(promiseLogic).start();
+
+    const snapshot = await waitFor(
+      actor,
+      (s) => Object.keys(s.children).length > 0
+    );
+
+    const child = snapshot.children.child;
+
+    expect(isActorRef(child)).toBeTruthy();
+    expect((child as AnyActorRef)._parent).toBe(actor);
+
+    expect(actor.getSnapshot().children.child).toBe(child);
+
+    expect(child.getSnapshot().status).toEqual('active');
+
+    actor.stop();
+
+    expect(child.getSnapshot().status).toEqual('stopped');
+  });
+
+  it('stops spawned actors when it is done', async () => {
+    const promiseLogic = fromPromise<number>(async ({ spawnChild }) => {
+      spawnChild(
+        fromPromise(
+          () =>
+            new Promise((_res, _rej) => {
+              // ...
+            })
+        ),
+        {
+          id: 'child'
+        }
+      );
+      return 42;
+    });
+
+    const actor = createActor(promiseLogic).start();
+
+    await toPromise(actor);
+
+    const snapshot = actor.getSnapshot();
+    const child = snapshot.children.child;
+
+    expect(isActorRef(child)).toBeTruthy();
+    expect((child as AnyActorRef)._parent).toBe(actor);
+    expect(actor.getSnapshot().children.child).toBe(child);
+    expect(child.getSnapshot().status).toEqual('stopped');
+  });
+
+  it('stops spawned actors when it errors', async () => {
+    const promiseLogic = fromPromise<void>(async ({ spawnChild }) => {
+      spawnChild(
+        fromPromise(
+          () =>
+            new Promise((_res, _rej) => {
+              // ...
+            })
+        ),
+        {
+          id: 'child'
+        }
+      );
+      await Promise.reject('uh oh');
+    });
+
+    const actor = createActor(promiseLogic).start();
+
+    try {
+      await toPromise(actor);
+    } catch {
+      const snapshot = actor.getSnapshot();
+      const child = snapshot.children.child;
+
+      expect(isActorRef(child)).toBeTruthy();
+      expect(child.getSnapshot().status).toEqual('stopped');
+    }
+  });
 });
 
 describe('transition function logic (fromTransition)', () => {
