@@ -23,4 +23,33 @@ describe('event emitter', () => {
 
     expect(event.foo).toBe('bar');
   });
+
+  it('dynamically emits events that can be listened to on actorRef.on(…)', async () => {
+    const machine = createMachine({
+      context: { count: 10 },
+      on: {
+        someEvent: {
+          actions: emit(({ context }) => ({
+            type: 'emitted',
+            count: context.count
+          }))
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    setTimeout(() => {
+      actor.send({
+        type: 'someEvent'
+      });
+    });
+    const event = await new Promise<AnyEventObject>((res) => {
+      actor.on('emitted', res);
+    });
+
+    expect(event).toEqual({
+      type: 'emitted',
+      count: 10
+    });
+  });
 });
