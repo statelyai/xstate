@@ -155,3 +155,34 @@ it('works with immer', () => {
   expect(store.getSnapshot()).toEqual({ count: 3 });
   expect(store.getInitialSnapshot()).toEqual({ count: 0 });
 });
+
+it('can be observed', () => {
+  const store = createStore(
+    {
+      count: 0
+    },
+    {
+      inc: {
+        count: (ctx) => ctx.count + 1
+      }
+    }
+  );
+
+  const counts: number[] = [];
+
+  const sub = store.subscribe((s) => counts.push(s.count));
+
+  store.send({ type: 'inc' }); // 1
+  store.send({ type: 'inc' }); // 2
+  store.send({ type: 'inc' }); // 3
+
+  expect(counts).toEqual([1, 2, 3]);
+
+  sub.unsubscribe();
+
+  store.send({ type: 'inc' }); // 4
+  store.send({ type: 'inc' }); // 5
+  store.send({ type: 'inc' }); // 6
+
+  expect(counts).toEqual([1, 2, 3]);
+});

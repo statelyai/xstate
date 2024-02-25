@@ -30,6 +30,12 @@ export function toObserver<T>(
   };
 }
 
+/**
+ * An actor-like object that:
+ * - has its own state
+ * - can receive events
+ * - is observable
+ */
 export interface Store<T, Ev extends EventObject>
   extends Subscribable<T>,
     InteropObservable<T> {
@@ -50,30 +56,36 @@ function defaultSetter<T>(ctx: T, recipe: Recipe<T, T>): T {
   return recipe(ctx);
 }
 
-export function createStoreWithProducer<
-  TProducer extends <T>(ctx: T, recipe: (ctx: T) => void) => T,
-  TContext extends MachineContext,
-  TEventPayloadMap extends EventPayloadMap
->(
-  producer: TProducer,
-  context: TContext,
-  transitions: {
-    [K in keyof TEventPayloadMap & string]: (
-      ctx: NoInfer<TContext>,
-      ev: { type: K } & TEventPayloadMap[K]
-    ) => void;
-  }
-): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
-  return createStore(context, transitions as any, (ctx, recipe) =>
-    producer(ctx, recipe)
-  );
-}
-
 type Assigner<TC, TE extends EventObject> = (ctx: TC, ev: TE) => Partial<TC>;
 type PropertyAssigner<TC, TE extends EventObject> = {
   [K in keyof TC]?: TC[K] | ((ctx: TC, ev: TE) => Partial<TC>[K]);
 };
 
+/**
+ * Creates a `Store` that has its own internal state and can receive events.
+ * 
+ * @example
+  ```ts
+  const store = createStore({
+    // initial context
+    { count: 0 },
+    // transitions 
+    {
+      on: {
+        inc: (context, event: { by: number }) => {
+          return {
+            count: context.count + event.by
+          }
+        }
+      }
+    }
+  });
+
+  store.getSnapshot(); // { count: 0 }
+  store.send({ type: 'inc', by: 5 });
+  store.getSnapshot(); // { count: 5 }
+  ```
+ */
 export function createStore<
   TContext extends MachineContext,
   TEventPayloadMap extends EventPayloadMap
@@ -153,4 +165,23 @@ export function createStore<
   };
 
   return store;
+}
+
+export function createStoreWithProducer<
+  TProducer extends <T>(ctx: T, recipe: (ctx: T) => void) => T,
+  TContext extends MachineContext,
+  TEventPayloadMap extends EventPayloadMap
+>(
+  producer: TProducer,
+  context: TContext,
+  transitions: {
+    [K in keyof TEventPayloadMap & string]: (
+      ctx: NoInfer<TContext>,
+      ev: { type: K } & TEventPayloadMap[K]
+    ) => void;
+  }
+): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
+  return createStore(context, transitions as any, (ctx, recipe) =>
+    producer(ctx, recipe)
+  );
 }
