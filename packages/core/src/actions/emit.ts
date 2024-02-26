@@ -75,11 +75,9 @@ export interface EmitAction<
 export function emit<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent,
-  TParams extends ParameterizedObject['params'] | undefined =
-    | ParameterizedObject['params']
-    | undefined,
-  TEmitted extends EventObject = EventObject
+  TEvent extends EventObject,
+  TParams extends ParameterizedObject['params'] | undefined,
+  TEmitted extends EventObject
 >(
   eventOrExpr:
     | TEmitted
