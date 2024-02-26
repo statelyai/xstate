@@ -419,7 +419,10 @@ export class Actor<TLogic extends AnyActorLogic>
     ) => void
   ): Subscription {
     const set = this.eventListeners.get(emittedEventType) ?? new Set();
-    set.add(handler);
+    const wrappedHandler = (event: EmittedFrom<TLogic>) => {
+      handler(event);
+    };
+    set.add(wrappedHandler);
     this.eventListeners.set(emittedEventType, set);
 
     return {
