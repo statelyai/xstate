@@ -52,7 +52,6 @@ function executeEmit(
     actorScope.emit(event);
   });
   return;
-  // }
 }
 
 export interface EmitAction<
