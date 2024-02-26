@@ -44,8 +44,6 @@ function executeEmit(
   actorScope: AnyActorScope,
   params: {
     event: EventObject;
-    id: string | undefined;
-    delay: number | undefined;
   }
 ) {
   const { event, delay, id } = params;
