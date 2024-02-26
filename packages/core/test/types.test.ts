@@ -307,7 +307,7 @@ describe('output', () => {
 });
 
 describe('emitted', () => {
-  it('emitted tpe should be represented in actor.on(…)', () => {
+  it('emitted type should be represented in actor.on(…)', () => {
     const m = setup({
       types: {
         emitted: {} as
