@@ -46,7 +46,7 @@ function executeEmit(
     event: EventObject;
   }
 ) {
-  const { event, delay, id } = params;
+  const { event } = params;
   // if (typeof delay === 'number') {
   actorScope.defer(() => {
     actorScope.emit(event);
