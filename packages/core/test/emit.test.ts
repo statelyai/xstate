@@ -98,6 +98,38 @@ describe('event emitter', () => {
     expect(event.foo).toBe('bar');
   });
 
+  it('handles errors', async () => {
+    const machine = setup({
+      types: {
+        emitted: {} as { type: 'emitted'; foo: string }
+      }
+    }).createMachine({
+      on: {
+        someEvent: {
+          actions: emit({ type: 'emitted', foo: 'bar' })
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.on('emitted', () => {
+      throw new Error('oops');
+    });
+    setTimeout(() => {
+      actor.send({
+        type: 'someEvent'
+      });
+    });
+    const err = await new Promise((res) =>
+      actor.subscribe({
+        error: res
+      })
+    );
+
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toEqual('oops');
+  });
+
   it('dynamically emits events that can be listened to on actorRef.on(…)', async () => {
     const machine = createMachine({
       context: { count: 10 },
