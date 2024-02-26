@@ -65,7 +65,7 @@ export class StateMachine<
   TTag extends string,
   TInput,
   TOutput,
-  TEmitted extends EventObject,
+  TEmitted extends EventObject = EventObject, // TODO: remove default
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
     NoInfer<TEvent>,
