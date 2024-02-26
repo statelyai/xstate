@@ -6,6 +6,7 @@ import {
 } from './typegenTypes.ts';
 import {
   AnyActorRef,
+  EventObject,
   AnyEventObject,
   Cast,
   InternalMachineImplementations,
