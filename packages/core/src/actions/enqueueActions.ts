@@ -15,6 +15,7 @@ import {
 } from '../types.ts';
 import { assign } from './assign.ts';
 import { cancel } from './cancel.ts';
+import { emit } from './emit.ts';
 import { raise } from './raise.ts';
 import { sendTo } from './send.ts';
 import { spawnChild } from './spawnChild.ts';
@@ -88,6 +89,11 @@ interface ActionEnqueuer<
       typeof stopChild<TContext, TExpressionEvent, undefined, TEvent>
     >
   ) => void;
+  emit: (
+    ...args: Parameters<
+      typeof emit<TContext, TExpressionEvent, TEvent, undefined, TEmitted>
+    >
+  ) => void;
 }
 
 function resolveEnqueueActions(
@@ -137,6 +143,9 @@ function resolveEnqueueActions(
   };
   enqueue.stopChild = (...args) => {
     actions.push(stopChild(...args));
+  };
+  enqueue.emit = (...args) => {
+    actions.push(emit(...args));
   };
 
   collect({

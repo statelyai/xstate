@@ -1,4 +1,10 @@
-import { AnyEventObject, createActor, createMachine, setup } from '../src';
+import {
+  AnyEventObject,
+  createActor,
+  createMachine,
+  enqueueActions,
+  setup
+} from '../src';
 import { emit } from '../src/actions/emit';
 
 describe('event emitter', () => {
@@ -42,6 +48,39 @@ describe('event emitter', () => {
       on: {
         someEvent: {
           actions: emit({ type: 'emitted', foo: 'bar' })
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    setTimeout(() => {
+      actor.send({
+        type: 'someEvent'
+      });
+    });
+    const event = await new Promise<AnyEventObject>((res) => {
+      actor.on('emitted', res);
+    });
+
+    expect(event.foo).toBe('bar');
+  });
+
+  it('enqueue.emit(…) emits events that can be listened to on actorRef.on(…)', async () => {
+    const machine = setup({
+      types: {
+        emitted: {} as { type: 'emitted'; foo: string }
+      }
+    }).createMachine({
+      on: {
+        someEvent: {
+          actions: enqueueActions(({ enqueue }) => {
+            enqueue.emit({ type: 'emitted', foo: 'bar' });
+
+            enqueue.emit({
+              // @ts-expect-error
+              type: 'unknown'
+            });
+          })
         }
       }
     });
