@@ -69,7 +69,7 @@ interface MachineSnapshotBase<
     TTag,
     unknown,
     TOutput,
-    any // TEmitted
+    EventObject // TEmitted
   >;
   /**
    * The tags of the active state nodes that represent the current state value.
