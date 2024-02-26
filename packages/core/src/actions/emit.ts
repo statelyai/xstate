@@ -47,7 +47,6 @@ function executeEmit(
   }
 ) {
   const { event } = params;
-  // if (typeof delay === 'number') {
   actorScope.defer(() => {
     actorScope.emit(event);
   });
