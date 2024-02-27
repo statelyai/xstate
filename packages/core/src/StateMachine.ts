@@ -152,9 +152,9 @@ export class StateMachine<
 
     if (
       isDevelopment &&
-      !this.root.output &&
+      !('output' in this.root) &&
       Object.values(this.states).some(
-        (state) => state.type === 'final' && !!state.output
+        (state) => state.type === 'final' && 'output' in state
       )
     ) {
       console.warn(
