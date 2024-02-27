@@ -1,5 +1,11 @@
 # xstate
 
+## 5.8.1
+
+### Patch Changes
+
+- [#4768](https://github.com/statelyai/xstate/pull/4768) [`4a29f8aab`](https://github.com/statelyai/xstate/commit/4a29f8aabc1d17f941d06a3def7739c2853091fc) Thanks [@Andarist](https://github.com/Andarist)! - Correctly use falsy outputs (instead of accidentally converting them to `undefined`).
+
 ## 5.8.0
 
 ### Minor Changes
