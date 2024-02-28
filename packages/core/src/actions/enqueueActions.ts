@@ -120,12 +120,12 @@ function resolveEnqueueActions(
     actions.push(cancel(...args));
   };
   enqueue.raise = (...args) => {
-    // for some reason it fails to infer `TDelay` from `...args` here and infers `picks` its default (`never`)
+    // for some reason it fails to infer `TDelay` from `...args` here and picks its default (`never`)
     // then it fails to typecheck that because `...args` use `string` in place of `TDelay`
     actions.push((raise as typeof enqueue.raise)(...args));
   };
   enqueue.sendTo = (...args) => {
-    // for some reason it fails to infer `TDelay` from `...args` here and infers `picks` its default (`never`)
+    // for some reason it fails to infer `TDelay` from `...args` here and picks its default (`never`)
     // then it fails to typecheck that because `...args` use `string` in place of `TDelay
     actions.push((sendTo as typeof enqueue.sendTo)(...args));
   };
