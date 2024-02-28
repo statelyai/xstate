@@ -5,6 +5,9 @@ const { constants } = require('jest-config');
  */
 module.exports = {
   setupFilesAfterEnv: ['@xstate-repo/jest-utils/setup'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(@open-wc|lit-html|lit-element|lit|@lit)/)'
+  ],
   transform: {
     [constants.DEFAULT_JS_PATTERN]: 'babel-jest',
     '^.+\\.vue$': '@vue/vue3-jest',
