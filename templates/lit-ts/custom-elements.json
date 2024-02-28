@@ -1,0 +1,155 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "src/LitTs.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "LitTs",
+          "members": [
+            {
+              "kind": "field",
+              "name": "feedbackController",
+              "type": {
+                "text": "UseMachine<typeof feedbackMachine>"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#getMatches",
+              "parameters": [
+                {
+                  "name": "match",
+                  "type": {
+                    "text": "'prompt' | 'thanks' | 'form' | 'closed'"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "_feedbackTpl",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "_closeFeedbackTpl",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "_promptTpl",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "_thanksTpl",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "_formTpl",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "_closedTpl",
+              "readonly": true
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "tagName": "lit-ts",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "LitTs",
+          "declaration": {
+            "name": "LitTs",
+            "module": "src/LitTs.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/feedbackMachine.ts",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "feedbackMachine"
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "feedbackMachine",
+          "declaration": {
+            "name": "feedbackMachine",
+            "module": "src/feedbackMachine.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/index.ts",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "LitTs",
+          "declaration": {
+            "name": "LitTs",
+            "module": "./LitTs.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/styles/lit-ts-styles.css.ts",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "styles",
+          "default": "css`\n  :host {\n    --color-primary: #056dff;\n    display: block;\n    box-sizing: border-box;\n    background: #eaeaea;\n    display: flex;\n    place-content: center;\n    padding: 2rem;\n  }\n\n  :host([hidden]),\n  [hidden] {\n    display: none !important;\n  }\n\n  *,\n  *::before,\n  *::after {\n    box-sizing: inherit;\n  }\n\n  em {\n    display: block;\n    margin-bottom: 1rem;\n    text-align: center;\n  }\n\n  .step {\n    padding: 2rem;\n    background: white;\n    border-radius: 1rem;\n    box-shadow: 0 0.5rem 1rem #0001;\n    width: 75vw;\n    max-width: 40rem;\n  }\n\n  .feedback {\n    position: relative;\n  }\n\n  .close-feedback {\n    position: absolute;\n    top: 0;\n    right: 0;\n  }\n\n  .close-button {\n    appearance: none;\n    background: transparent;\n    font: inherit;\n    cursor: pointer;\n    border: none;\n    padding: 1rem;\n  }\n\n  .button {\n    appearance: none;\n    color: white;\n    border: none;\n    padding: 1rem 1.5rem;\n    border-radius: 0.25rem;\n    font: inherit;\n    font-weight: bold;\n    cursor: pointer;\n    display: inline-block;\n    margin-right: 1rem;\n    background-color: var(--color-primary);\n  }\n\n  .button:disabled {\n    cursor: not-allowed;\n    opacity: 0.5;\n  }\n\n  textarea {\n    display: block;\n    border: 2px solid #eaeaea;\n    border-radius: 0.25rem;\n    margin-bottom: 1rem;\n    width: 100%;\n    padding: 0.5rem;\n  }\n`"
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "styles",
+          "declaration": {
+            "name": "styles",
+            "module": "src/styles/lit-ts-styles.css.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "define/lit-ts.ts",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "lit-ts",
+          "declaration": {
+            "name": "LitTs",
+            "module": "/src/LitTs.js"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "name": "@xstate/lit",
+  "version": "1.0.0",
+  "description": "XState tools for Lit",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "state",
+    "graph",
+    "store",
+    "lit",
+    "reactive controller",
+    "web components"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-lit#readme",
+  "license": "MIT",
+  "main": "dist/xstate-lit.cjs.js",
+  "module": "dist/xstate-lit.esm.js",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-lit.cjs.mjs",
+        "default": "./dist/xstate-lit.cjs.js"
+      },
+      "module": "./dist/xstate-lit.esm.js",
+      "import": "./dist/xstate-lit.cjs.mjs",
+      "default": "./dist/xstate-lit.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "peerDependencies": {
+    "lit": "^3.1.2",
+    "xstate": "^5.8.2"
+  },
+  "peerDependenciesMeta": {
+    "xstate": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@open-wc/testing-helpers": "^3.0.0",
+    "@testing-library/dom": "^9.3.4",
+    "@types/jest": "^29.5.10",
+    "lit": "^3.1.2",
+    "xstate": "5.8.2"
+  }
+}
