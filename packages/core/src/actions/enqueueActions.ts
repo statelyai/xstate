@@ -92,13 +92,14 @@ function resolveEnqueueActions(
   actorScope: AnyActorScope,
   snapshot: AnyMachineSnapshot,
   args: ActionArgs<any, any, any>,
-  _actionParams: ParameterizedObject['params'] | undefined,
+  actionParams: ParameterizedObject['params'] | undefined,
   {
     collect
   }: {
     collect: CollectActions<
       MachineContext,
       EventObject,
+      ParameterizedObject['params'] | undefined,
       EventObject,
       ProvidedActor,
       ParameterizedObject,
@@ -136,15 +137,18 @@ function resolveEnqueueActions(
     actions.push(stopChild(...args));
   };
 
-  collect({
-    context: args.context,
-    event: args.event,
-    enqueue,
-    check: (guard) =>
-      evaluateGuard(guard, snapshot.context, args.event, snapshot),
-    self: actorScope.self,
-    system: actorScope.system
-  });
+  collect(
+    {
+      context: args.context,
+      event: args.event,
+      enqueue,
+      check: (guard) =>
+        evaluateGuard(guard, snapshot.context, args.event, snapshot),
+      self: actorScope.self,
+      system: actorScope.system
+    },
+    actionParams
+  );
 
   return [snapshot, undefined, actions];
 }
@@ -152,13 +156,14 @@ function resolveEnqueueActions(
 export interface EnqueueActionsAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
 > {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: unknown): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TEvent?: TEvent;
   _out_TActor?: TActor;
   _out_TAction?: TAction;
@@ -192,26 +197,30 @@ interface CollectActionsArg<
 type CollectActions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
-> = ({
-  context,
-  event,
-  check,
-  enqueue,
-  self
-}: CollectActionsArg<
-  TContext,
-  TExpressionEvent,
-  TEvent,
-  TActor,
-  TAction,
-  TGuard,
-  TDelay
->) => void;
+> = (
+  {
+    context,
+    event,
+    check,
+    enqueue,
+    self
+  }: CollectActionsArg<
+    TContext,
+    TExpressionEvent,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay
+  >,
+  params: TParams
+) => void;
 
 /**
  * Creates an action object that will execute actions that are queued by the `enqueue(action)` function.
@@ -236,6 +245,7 @@ type CollectActions<
 export function enqueueActions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject = TExpressionEvent,
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
@@ -245,6 +255,7 @@ export function enqueueActions<
   collect: CollectActions<
     TContext,
     TExpressionEvent,
+    TParams,
     TEvent,
     TActor,
     TAction,
@@ -255,7 +266,7 @@ export function enqueueActions<
   TContext,
   TExpressionEvent,
   TEvent,
-  unknown,
+  TParams,
   TActor,
   TAction,
   TGuard,
