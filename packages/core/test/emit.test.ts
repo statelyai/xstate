@@ -158,4 +158,30 @@ describe('event emitter', () => {
       count: 10
     });
   });
+
+  it('emits an event after a state machine actor has transitioned', () => {
+    expect.assertions(1);
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            ev: {
+              actions: emit({ type: 'someEvent' }),
+              target: 'b'
+            }
+          }
+        },
+        b: {}
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.on('someEvent', () => {
+      expect(actor.getSnapshot().value).toEqual('b');
+    });
+
+    actor.start();
+    actor.send({ type: 'ev' });
+  });
 });
