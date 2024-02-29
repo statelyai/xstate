@@ -13,10 +13,12 @@ import {
   ActorRef,
   ActorRefFrom,
   EventObject,
+  Snapshot,
   assign,
   createActor,
   createMachine,
-  forwardTo
+  forwardTo,
+  setup
 } from '../src/index.ts';
 import { trackEntries } from './utils.ts';
 
@@ -2807,6 +2809,7 @@ describe('enqueueActions', () => {
       ]
     `);
   });
+
   it('should provide self', () => {
     expect.assertions(1);
     const machine = createMachine({
@@ -2816,6 +2819,66 @@ describe('enqueueActions', () => {
     });
 
     createActor(machine).start();
+  });
+
+  it('should be able to communicate with the parent using params', () => {
+    type ParentEvent = { type: 'FOO' };
+
+    const childMachine = setup({
+      types: {} as {
+        input: {
+          parent?: ActorRef<Snapshot<unknown>, ParentEvent>;
+        };
+        context: {
+          parent?: ActorRef<Snapshot<unknown>, ParentEvent>;
+        };
+      },
+      actions: {
+        mySendParent: enqueueActions(
+          ({ context, enqueue }, event: ParentEvent) => {
+            if (!context.parent) {
+              // it's here just for illustration purposes
+              console.log(
+                'WARN: an attempt to send an event to a non-existent parent'
+              );
+              return;
+            }
+            enqueue.sendTo(context.parent, event);
+          }
+        )
+      }
+    }).createMachine({
+      context: ({ input }) => ({ parent: input.parent }),
+      entry: {
+        type: 'mySendParent',
+        params: {
+          type: 'FOO'
+        }
+      }
+    });
+
+    const spy = jest.fn();
+
+    const parentMachine = setup({
+      types: {} as { events: ParentEvent },
+      actors: {
+        child: childMachine
+      }
+    }).createMachine({
+      on: {
+        FOO: {
+          actions: spy
+        }
+      },
+      invoke: {
+        src: 'child',
+        input: ({ self }) => ({ parent: self })
+      }
+    });
+
+    const actorRef = createActor(parentMachine).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });
 
