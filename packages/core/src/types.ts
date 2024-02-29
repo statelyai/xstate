@@ -1162,7 +1162,7 @@ type MachineImplementationsActions<
       Prop<TIndexedDelays, keyof TIndexedDelays>,
       ParameterizedObject
     >['type'],
-    any // TODO
+    AnyEventObject // TODO
   >;
 };
 
