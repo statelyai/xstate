@@ -418,16 +418,14 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
-  public on<TEmittedType extends EmittedFrom<TLogic>['type']>(
-    emittedEventType: TEmittedType,
-    handler: (
-      emittedEvent: EmittedFrom<TLogic> & { type: TEmittedType }
-    ) => void
+  public on<TType extends EmittedFrom<TLogic>['type']>(
+    type: TType,
+    handler: (emitted: EmittedFrom<TLogic> & { type: TType }) => void
   ): Subscription {
-    let listeners = this.eventListeners.get(emittedEventType);
+    let listeners = this.eventListeners.get(type);
     if (!listeners) {
       listeners = new Set();
-      this.eventListeners.set(emittedEventType, listeners);
+      this.eventListeners.set(type, listeners);
     }
     const wrappedHandler = handler.bind(undefined);
     listeners.add(wrappedHandler);
