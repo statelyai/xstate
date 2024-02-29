@@ -1241,4 +1241,49 @@ describe('final states', () => {
     // if `xstate.done.actor.*` would be delivered first the value would be `completed`
     expect(actorRef.getSnapshot().value).toBe('canceled');
   });
+
+  it('should be possible to complete with a null output (directly on root)', () => {
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            NEXT: 'end'
+          }
+        },
+        end: {
+          type: 'final'
+        }
+      },
+      output: null
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+
+    expect(actorRef.getSnapshot().output).toBe(null);
+  });
+
+  it("should be possible to complete with a null output (resolving with final state's output)", () => {
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            NEXT: 'end'
+          }
+        },
+        end: {
+          type: 'final',
+          output: null
+        }
+      },
+      output: ({ event }) => event.output
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+
+    expect(actorRef.getSnapshot().output).toBe(null);
+  });
 });

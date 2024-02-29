@@ -11,6 +11,7 @@ import {
   log,
   not,
   raise,
+  sendParent,
   sendTo,
   setup,
   spawnChild,
@@ -770,6 +771,25 @@ describe('setup()', () => {
       },
       actions: {
         sendFoo: sendTo(({ self }) => self, {
+          type: 'FOO'
+        })
+      }
+    });
+  });
+
+  it('should accept a `sendParent` action when delays are not configured', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        sendFoo: sendParent({
           type: 'FOO'
         })
       }
@@ -1993,6 +2013,70 @@ describe('setup()', () => {
             enqueue.raise({ type: 'SOMETHING_ELSE' });
           }
         })
+      }
+    });
+  });
+
+  it('should be able to use a parameterized `enqueueActions` action with its required params in the machine', () => {
+    setup({
+      actions: {
+        doStuff: enqueueActions((_, params: number) => {})
+      }
+    }).createMachine({
+      entry: {
+        type: 'doStuff',
+        params: 0
+      }
+    });
+  });
+
+  it('should not accept a string reference to parameterized `enqueueActions` without its required params in the machine', () => {
+    setup({
+      actions: {
+        doStuff: enqueueActions((_, params: number) => {})
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: 'doStuff'
+    });
+  });
+
+  it('should not accept an object reference to parameterized `enqueueActions` without its required params in the machine', () => {
+    setup({
+      actions: {
+        doStuff: enqueueActions((_, params: number) => {})
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: {
+        type: 'doStuff'
+      }
+    });
+  });
+
+  it('should not accept an object reference to parameterized `enqueueActions` without its required params in the machine', () => {
+    setup({
+      actions: {
+        doStuff: enqueueActions((_, params: number) => {})
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: {
+        type: 'doStuff'
+      }
+    });
+  });
+
+  it('should not accept a reference to parameterized `enqueueActions` with wrong params in the machine', () => {
+    setup({
+      actions: {
+        doStuff: enqueueActions((_, params: number) => {})
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: {
+        type: 'doStuff',
+        params: 'foo'
       }
     });
   });
