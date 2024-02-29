@@ -184,30 +184,6 @@ export type ActionFunction<
   _out_TEmitted?: TEmitted;
 };
 
-export interface ChooseBranch<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent,
-  TActor extends ProvidedActor = ProvidedActor,
-  TAction extends ParameterizedObject = ParameterizedObject,
-  TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string,
-  TEmitted extends EventObject = EventObject
-> {
-  guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
-  actions: Actions<
-    TContext,
-    TExpressionEvent,
-    TEvent,
-    undefined,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TEmitted
-  >;
-}
-
 export type NoRequiredParams<T extends ParameterizedObject> = T extends any
   ? undefined extends T['params']
     ? T['type']
