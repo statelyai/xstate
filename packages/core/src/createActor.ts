@@ -192,8 +192,11 @@ export class Actor<TLogic extends AnyActorLogic>
         (child as any)._stop();
       },
       emit: (emittedEvent) => {
-        for (const handler of this.eventListeners.get(emittedEvent.type) ??
-          []) {
+        const listeners = this.eventListeners.get(emittedEvent.type);
+        if (!listeners) {
+          return;
+        }
+        for (const handler of Array.from(listeners)) {
           handler(emittedEvent);
         }
       }
@@ -421,17 +424,17 @@ export class Actor<TLogic extends AnyActorLogic>
       emittedEvent: EmittedFrom<TLogic> & { type: TEmittedType }
     ) => void
   ): Subscription {
-    const set = this.eventListeners.get(emittedEventType) ?? new Set();
-    const wrappedHandler = (event: EmittedFrom<TLogic>) => {
-      handler(event);
-    };
-    set.add(wrappedHandler);
-    this.eventListeners.set(emittedEventType, set);
+    let listeners = this.eventListeners.get(emittedEventType);
+    if (!listeners) {
+      listeners = new Set();
+      this.eventListeners.set(emittedEventType, listeners);
+    }
+    const wrappedHandler = handler.bind(undefined);
+    listeners.add(wrappedHandler);
 
     return {
       unsubscribe: () => {
-        const set = this.eventListeners.get(emittedEventType)!;
-        set?.delete(handler);
+        listeners!.delete(wrappedHandler);
       }
     };
   }
@@ -784,13 +787,11 @@ type RequiredOptions<TLogic extends AnyActorLogic> =
 export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: ConditionalRequired<
-    // Require this...
     [
       options?: ActorOptions<TLogic> & {
         [K in RequiredOptions<TLogic>]: unknown;
       }
     ],
-    // ...if this is true
     IsNotNever<RequiredOptions<TLogic>>
   >
 ): Actor<TLogic> {
