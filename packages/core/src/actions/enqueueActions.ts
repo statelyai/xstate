@@ -91,7 +91,7 @@ interface ActionEnqueuer<
   ) => void;
   emit: (
     ...args: Parameters<
-      typeof emit<TContext, TExpressionEvent, TEvent, undefined, TEmitted>
+      typeof emit<TContext, TExpressionEvent, undefined, TEvent, TEmitted>
     >
   ) => void;
 }
