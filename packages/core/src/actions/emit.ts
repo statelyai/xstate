@@ -6,7 +6,8 @@ import {
   EventObject,
   MachineContext,
   SendExpr,
-  ParameterizedObject
+  ParameterizedObject,
+  ActionFunction
 } from '../types.ts';
 
 function resolveEmit(
@@ -42,15 +43,15 @@ function resolveEmit(
 
 function executeEmit(
   actorScope: AnyActorScope,
-  params: {
+  {
+    event
+  }: {
     event: EventObject;
   }
 ) {
-  const { event } = params;
   actorScope.defer(() => {
     actorScope.emit(event);
   });
-  return;
 }
 
 export interface EmitAction<
@@ -73,14 +74,24 @@ export interface EmitAction<
 export function emit<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
+  TEvent extends EventObject,
   TEmitted extends EventObject
 >(
   eventOrExpr:
     | TEmitted
     | SendExpr<TContext, TExpressionEvent, TParams, TEmitted, TEvent>
-): EmitAction<TContext, TExpressionEvent, TParams, TEvent, TEmitted> {
+): ActionFunction<
+  TContext,
+  TExpressionEvent,
+  TEvent,
+  TParams,
+  never,
+  never,
+  never,
+  never,
+  TEmitted
+> {
   function emit(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams
