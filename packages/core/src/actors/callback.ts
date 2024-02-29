@@ -32,7 +32,7 @@ export type CallbackActorLogic<
   TEvent,
   TInput,
   AnyActorSystem,
-  any // TEmitted
+  EventObject // TEmitted
 >;
 
 export type CallbackActorRef<

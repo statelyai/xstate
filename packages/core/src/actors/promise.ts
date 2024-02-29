@@ -3,6 +3,7 @@ import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
   ActorRefFrom,
+  EventObject,
   NonReducibleUnknown,
   Snapshot
 } from '../types.ts';
@@ -19,7 +20,7 @@ export type PromiseActorLogic<TOutput, TInput = unknown> = ActorLogic<
   { type: string; [k: string]: unknown },
   TInput, // input
   AnyActorSystem,
-  any // TEmitted
+  EventObject // TEmitted
 >;
 
 export type PromiseActorRef<TOutput> = ActorRefFrom<

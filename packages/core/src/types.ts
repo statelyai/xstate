@@ -1756,7 +1756,7 @@ export interface StateConfig<
    * @internal
    */
   _nodes: Array<StateNode<TContext, TEvent>>;
-  children: Record<string, ActorRef<any, any>>;
+  children: Record<string, AnyActorRef>;
   status: 'active' | 'done' | 'error' | 'stopped';
   output?: any;
   error?: unknown;
@@ -1798,7 +1798,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * Specifies the logger to be used for `log(...)` actions. Defaults to the native `console.log(...)` method.
    */
   logger?: (...args: any[]) => void;
-  parent?: ActorRef<any, any>;
+  parent?: AnyActorRef;
   /**
    * @internal
    */
@@ -2011,18 +2011,18 @@ export interface ActorRef<
   stop: () => void;
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
-  _parent?: ActorRef<any, any>;
+  _parent?: AnyActorRef;
   system: AnyActorSystem;
   /** @internal */
   _processingStatus: ProcessingStatus;
   src: string | AnyActorLogic;
-  on: (
-    emittedEventType: TEmitted['type'],
-    handler: (emittedEvent: TEmitted) => void
+  on: <TType extends TEmitted['type']>(
+    type: TType,
+    handler: (emitted: TEmitted & { type: TType }) => void
   ) => Subscription;
 }
 
-export type AnyActorRef = ActorRef<any, any>;
+export type AnyActorRef = ActorRef<any, any, any>;
 
 export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
@@ -2058,6 +2058,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer TTag,
       infer _TInput,
       infer TOutput,
+      infer TEmitted,
       infer _TResolvedTypesMeta
     >
     ? ActorRef<
@@ -2069,7 +2070,8 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
           TTag,
           TOutput
         >,
-        TEvent
+        TEvent,
+        TEmitted
       >
     : R extends Promise<infer U>
       ? ActorRefFrom<PromiseActorLogic<U>>
@@ -2078,9 +2080,9 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
             infer TEvent,
             infer _TInput,
             infer _TSystem,
-            infer _TEmitted
+            infer TEmitted
           >
-        ? ActorRef<TSnapshot, TEvent>
+        ? ActorRef<TSnapshot, TEvent, TEmitted>
         : never
   : never;
 
@@ -2174,7 +2176,7 @@ export interface ActorScope<
   TSystem extends AnyActorSystem = AnyActorSystem,
   TEmitted extends EventObject = EventObject
 > {
-  self: ActorRef<TSnapshot, TEvent>;
+  self: ActorRef<TSnapshot, TEvent, TEmitted>;
   id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
@@ -2226,7 +2228,7 @@ export interface ActorLogic<
   in out TEvent extends EventObject, // it's invariant because it's also part of `ActorScope["self"]["send"]`
   in TInput = NonReducibleUnknown,
   TSystem extends AnyActorSystem = AnyActorSystem,
-  TEmitted extends EventObject = EventObject
+  in out TEmitted extends EventObject = EventObject // it's invariant because it's also aprt of `ActorScope["self"]["on"]`
 > {
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
@@ -2262,7 +2264,7 @@ export interface ActorLogic<
    */
   restoreSnapshot?: (
     persistedState: Snapshot<unknown>,
-    actorScope: ActorScope<TSnapshot, TEvent, AnyActorSystem, any>
+    actorScope: ActorScope<TSnapshot, TEvent, AnyActorSystem, TEmitted>
   ) => TSnapshot;
   /**
    * Called when the actor is started.
@@ -2271,7 +2273,7 @@ export interface ActorLogic<
    */
   start?: (
     snapshot: TSnapshot,
-    actorScope: ActorScope<TSnapshot, TEvent, AnyActorSystem, any>
+    actorScope: ActorScope<TSnapshot, TEvent, AnyActorSystem, TEmitted>
   ) => void;
   /**
    * Obtains the internal state of the actor in a representation which can be be persisted.
