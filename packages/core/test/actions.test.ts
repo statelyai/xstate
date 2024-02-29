@@ -2848,6 +2848,7 @@ describe('enqueueActions', () => {
         )
       }
     }).createMachine({
+      context: ({ input }) => ({ parent: input.parent }),
       entry: {
         type: 'mySendParent',
         params: {
