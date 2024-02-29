@@ -3,16 +3,20 @@ import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
   ActorRefFrom,
+  ActorScope,
+  AnyActorRef,
   NonReducibleUnknown,
   Snapshot
 } from '../types.ts';
 
 export type PromiseSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
   input: TInput | undefined;
+  children: Record<string, any>;
 };
 
 const XSTATE_PROMISE_RESOLVE = 'xstate.promise.resolve';
 const XSTATE_PROMISE_REJECT = 'xstate.promise.reject';
+const XSTATE_SPAWN_CHILD = 'xstate.spawn.child';
 
 export type PromiseActorLogic<TOutput, TInput = unknown> = ActorLogic<
   PromiseSnapshot<TOutput, TInput>,
@@ -86,17 +90,25 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
      * The parent actor of the promise actor
      */
     self: PromiseActorRef<TOutput>;
+    spawnChild: ActorScope<any, any, any>['spawnChild'];
   }) => PromiseLike<TOutput>
 ): PromiseActorLogic<TOutput, TInput> {
   const logic: PromiseActorLogic<TOutput, TInput> = {
     config: promiseCreator,
-    transition: (state, event) => {
+    transition: (state, event, actorScope) => {
       if (state.status !== 'active') {
         return state;
       }
 
+      const stopChildren = () => {
+        for (const child of Object.values(state.children)) {
+          actorScope.stopChild(child);
+        }
+      };
+
       switch (event.type) {
         case XSTATE_PROMISE_RESOLVE: {
+          stopChildren();
           const resolvedValue = (event as any).data;
           return {
             ...state,
@@ -106,6 +118,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
           };
         }
         case XSTATE_PROMISE_REJECT:
+          stopChildren();
           return {
             ...state,
             status: 'error',
@@ -113,24 +126,50 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
             input: undefined
           };
         case XSTATE_STOP:
+          stopChildren();
           return {
             ...state,
             status: 'stopped',
             input: undefined
           };
+        case XSTATE_SPAWN_CHILD: {
+          return {
+            ...state,
+            children: {
+              ...state.children,
+              [(event as any).child.id]: (event as any).child
+            }
+          };
+        }
         default:
           return state;
       }
     },
-    start: (state, { self, system }) => {
+    start: (state, { self, system, spawnChild }) => {
       // TODO: determine how to allow customizing this so that promises
       // can be restarted if necessary
       if (state.status !== 'active') {
         return;
       }
 
+      const innerSpawnChild: typeof spawnChild<any> = (logic, actorOptions) => {
+        const child = spawnChild(logic, actorOptions) as AnyActorRef;
+
+        self.send({
+          type: XSTATE_SPAWN_CHILD,
+          child
+        });
+
+        return child;
+      };
+
       const resolvedPromise = Promise.resolve(
-        promiseCreator({ input: state.input!, system, self })
+        promiseCreator({
+          input: state.input!,
+          system,
+          self,
+          spawnChild: innerSpawnChild as any
+        })
       );
 
       resolvedPromise.then(
@@ -159,7 +198,8 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
         status: 'active',
         output: undefined,
         error: undefined,
-        input
+        input,
+        children: {}
       };
     },
     getPersistedSnapshot: (snapshot) => snapshot,

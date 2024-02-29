@@ -2107,6 +2107,10 @@ export interface ActorScope<
   defer: (fn: () => void) => void;
   system: TSystem;
   stopChild: (child: AnyActorRef) => void;
+  spawnChild: <T extends AnyActorLogic>(
+    logic: T,
+    actorOptions?: ActorOptions<T>
+  ) => ActorRefFrom<T>;
 }
 
 export type AnyActorScope = ActorScope<any, any, AnyActorSystem>;
@@ -2150,16 +2154,16 @@ export interface ActorLogic<
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
   /**
-   * Transition function that processes the current state and an incoming message
+   * Transition function that processes the current state and an incoming event
    * to produce a new state.
    * @param snapshot - The current state.
-   * @param message - The incoming message.
+   * @param event - The incoming event.
    * @param actorScope - The actor scope.
    * @returns The new state.
    */
   transition: (
     snapshot: TSnapshot,
-    message: TEvent,
+    event: TEvent,
     actorScope: ActorScope<TSnapshot, TEvent, TSystem>
   ) => TSnapshot;
   /**
