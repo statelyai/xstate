@@ -267,7 +267,8 @@ export function sendParent<
   TParams extends ParameterizedObject['params'] | undefined,
   TSentEvent extends EventObject = AnyEventObject,
   TEvent extends EventObject = AnyEventObject,
-  TDelay extends string = string
+  TDelay extends string = never,
+  TUsedDelay extends TDelay = never
 >(
   event:
     | TSentEvent
@@ -277,7 +278,7 @@ export function sendParent<
     TExpressionEvent,
     TParams,
     TEvent,
-    TDelay
+    TUsedDelay
   >
 ) {
   return sendTo<
@@ -286,7 +287,8 @@ export function sendParent<
     TParams,
     AnyActorRef,
     TEvent,
-    TDelay
+    TDelay,
+    TUsedDelay
   >(SpecialTargets.Parent, event, options as any);
 }
 
@@ -314,7 +316,8 @@ export function forwardTo<
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
-  TDelay extends string
+  TDelay extends string = never,
+  TUsedDelay extends TDelay = never
 >(
   target: Target<TContext, TExpressionEvent, TParams, TEvent>,
   options?: SendToActionOptions<
@@ -322,7 +325,7 @@ export function forwardTo<
     TExpressionEvent,
     TParams,
     TEvent,
-    TDelay
+    TUsedDelay
   >
 ) {
   if (isDevelopment && (!target || typeof target === 'function')) {
@@ -347,6 +350,6 @@ export function forwardTo<
     AnyActorRef,
     TEvent,
     TDelay,
-    TDelay
+    TUsedDelay
   >(target, ({ event }: any) => event, options);
 }
