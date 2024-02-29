@@ -200,7 +200,8 @@ export function setup<
         ToParameterizedObject<TActions>,
         ToParameterizedObject<TGuards>,
         TDelay,
-        TTag
+        TTag,
+        TEmitted
       >
     >
   >(
@@ -228,7 +229,8 @@ export function setup<
       ToParameterizedObject<TActions>,
       ToParameterizedObject<TGuards>,
       TDelay,
-      TTag
+      TTag,
+      TEmitted
     >
   >;
 } {

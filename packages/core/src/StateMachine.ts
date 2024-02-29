@@ -73,7 +73,8 @@ export class StateMachine<
     TAction,
     TGuard,
     TDelay,
-    TTag
+    TTag,
+    TEmitted
   >
 > implements
     ActorLogic<

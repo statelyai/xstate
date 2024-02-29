@@ -1124,7 +1124,8 @@ type MachineImplementationsActions<
     'indexedActions'
   >,
   TIndexedGuards = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedGuards'>,
-  TIndexedDelays = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedDelays'>
+  TIndexedDelays = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedDelays'>,
+  TEmitted = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'emitted'>
 > = {
   [K in keyof TIndexedActions]?: ActionFunction<
     TContext,
@@ -1138,7 +1139,7 @@ type MachineImplementationsActions<
       Prop<TIndexedDelays, keyof TIndexedDelays>,
       ParameterizedObject
     >['type'],
-    AnyEventObject // TODO
+    Cast<TEmitted, EventObject>
   >;
 };
 

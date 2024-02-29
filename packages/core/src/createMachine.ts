@@ -159,7 +159,8 @@ export function createMachine<
       TAction,
       TGuard,
       TDelay,
-      TTag
+      TTag,
+      TEmitted
     >
   >
 ): StateMachine<
@@ -181,7 +182,8 @@ export function createMachine<
       TAction,
       TGuard,
       TDelay,
-      TTag
+      TTag,
+      TEmitted
     >['resolved'],
     'tags'
   > &
@@ -189,7 +191,16 @@ export function createMachine<
   TInput,
   TOutput,
   TEmitted,
-  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
+  ResolveTypegenMeta<
+    TTypesMeta,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TTag,
+    TEmitted
+  >
 > {
   return new StateMachine<
     any,
