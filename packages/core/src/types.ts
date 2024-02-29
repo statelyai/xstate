@@ -712,7 +712,7 @@ export type InvokeConfig<
         | SingleOrArray<
             TransitionConfigOrTarget<
               TContext,
-              SnapshotEvent,
+              SnapshotEvent<any>,
               TEvent,
               TActor,
               TAction,
@@ -1376,7 +1376,7 @@ export type UnknownMachineConfig = MachineConfig<MachineContext, EventObject>;
 export interface ProvidedActor {
   src: string;
   logic: UnknownActorLogic;
-  id?: string;
+  id: string | undefined;
 }
 
 export interface SetupTypes<
@@ -1398,7 +1398,11 @@ export interface SetupTypes<
 export interface MachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TActor extends {
+    src: string;
+    logic: UnknownActorLogic;
+    id?: string | undefined;
+  },
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,

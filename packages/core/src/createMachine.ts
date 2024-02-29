@@ -14,12 +14,25 @@ import {
   MachineContext,
   MachineTypes,
   NonReducibleUnknown,
+  OutputFrom,
   ParameterizedObject,
   Prop,
-  ProvidedActor,
   StateValue,
-  ToChildren
+  ToChildren,
+  UnknownActorLogic
 } from './types.ts';
+
+type ToProvidedActor<
+  TActor extends {
+    src: string;
+    logic: UnknownActorLogic;
+    id?: string | undefined;
+  }
+> = {
+  src: TActor['src'];
+  logic: TActor['logic'];
+  id: 'id' extends keyof TActor ? TActor['id'] : string | undefined;
+};
 
 type TestValue =
   | string
@@ -108,7 +121,11 @@ type ToStateValue<TTestValue extends string | TestValue> =
 export function createMachine<
   TContext extends MachineContext,
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TActor extends ProvidedActor,
+  TActor extends {
+    src: string;
+    logic: UnknownActorLogic;
+    id?: string | undefined;
+  },
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
@@ -137,7 +154,7 @@ export function createMachine<
   } & MachineConfig<
     TContext,
     TEvent,
-    TActor,
+    ToProvidedActor<TActor>,
     TAction,
     TGuard,
     TDelay,
@@ -151,7 +168,7 @@ export function createMachine<
     ResolveTypegenMeta<
       TTypesMeta,
       TEvent,
-      TActor,
+      ToProvidedActor<TActor>,
       TAction,
       TGuard,
       TDelay,
@@ -161,8 +178,11 @@ export function createMachine<
 ): StateMachine<
   TContext,
   TEvent,
-  Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
-  TActor,
+  Cast<
+    ToChildren<ToProvidedActor<TActor>>,
+    Record<string, AnyActorRef | undefined>
+  >,
+  ToProvidedActor<TActor>,
   TAction,
   TGuard,
   TDelay,
@@ -173,7 +193,7 @@ export function createMachine<
     ResolveTypegenMeta<
       TTypesMeta,
       TEvent,
-      TActor,
+      ToProvidedActor<TActor>,
       TAction,
       TGuard,
       TDelay,
@@ -184,7 +204,15 @@ export function createMachine<
     string,
   TInput,
   TOutput,
-  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
+  ResolveTypegenMeta<
+    TTypesMeta,
+    TEvent,
+    ToProvidedActor<TActor>,
+    TAction,
+    TGuard,
+    TDelay,
+    TTag
+  >
 > {
   return new StateMachine<
     any,
