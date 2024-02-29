@@ -45,11 +45,11 @@ const toggleMachine = createMachine({
   }
 });
 
-const { snapshot, send } = useMachine(toggleMachine);
+const { snapshot: state, send } = useMachine(toggleMachine);
 </script>
 
 <template>
-  <button @click="send({ type: 'TOGGLE' })">
+  <button @click="send({ type: 'TOGGLE'})">
     {{
       snapshot.value === 'inactive'
         ? 'Click to activate'
