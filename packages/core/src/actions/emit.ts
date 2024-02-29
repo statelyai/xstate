@@ -49,9 +49,7 @@ function executeEmit(
     event: EventObject;
   }
 ) {
-  actorScope.defer(() => {
-    actorScope.emit(event);
-  });
+  actorScope.emit(event);
 }
 
 export interface EmitAction<
