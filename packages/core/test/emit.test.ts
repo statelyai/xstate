@@ -159,8 +159,9 @@ describe('event emitter', () => {
     });
   });
 
-  it('emits an event after a state machine actor has transitioned', () => {
-    expect.assertions(1);
+  it('listener should be able to read the updated snapshot of the emitting actor', () => {
+    const spy = jest.fn();
+
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -178,10 +179,13 @@ describe('event emitter', () => {
 
     const actor = createActor(machine);
     actor.on('someEvent', () => {
-      expect(actor.getSnapshot().value).toEqual('b');
+      spy(actor.getSnapshot().value);
     });
 
     actor.start();
     actor.send({ type: 'ev' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith('b');
   });
 });
