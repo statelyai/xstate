@@ -19,6 +19,7 @@
   "license": "MIT",
   "main": "dist/xstate-lit.cjs.js",
   "module": "dist/xstate-lit.esm.js",
+  "type": "module",
   "exports": {
     ".": {
       "types": {
@@ -45,11 +46,6 @@
   "peerDependencies": {
     "lit": "^3.1.2",
     "xstate": "^5.8.2"
-  },
-  "peerDependenciesMeta": {
-    "xstate": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@open-wc/testing-helpers": "^3.0.0",
