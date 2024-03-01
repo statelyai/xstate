@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { ActorRef, SnapshotFrom, Subscription } from './types.ts';
+import { ActorRef, AnyActorRef, SnapshotFrom, Subscription } from './types.ts';
 
 interface WaitForOptions {
   /**
@@ -36,7 +36,7 @@ const defaultWaitForOptions: WaitForOptions = {
  * @returns A promise that eventually resolves to the emitted value
  * that matches the condition
  */
-export function waitFor<TActorRef extends ActorRef<any, any>>(
+export function waitFor<TActorRef extends AnyActorRef>(
   actorRef: TActorRef,
   predicate: (emitted: SnapshotFrom<TActorRef>) => boolean,
   options?: Partial<WaitForOptions>

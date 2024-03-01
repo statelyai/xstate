@@ -3,7 +3,7 @@ import { isMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import { TARGETLESS_KEY } from './constants.ts';
 import type {
-  ActorLogic,
+  AnyActorLogic,
   AnyActorRef,
   AnyEventObject,
   AnyMachineSnapshot,
@@ -197,7 +197,7 @@ export function resolveOutput<
   return mapper;
 }
 
-export function isActorLogic(value: any): value is ActorLogic<any, any> {
+export function isActorLogic(value: any): value is AnyActorLogic {
   return (
     value !== null &&
     typeof value === 'object' &&
@@ -278,7 +278,7 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
   return (
     Array.isArray(invokeConfig)
       ? invokeConfig[indexStr as any]
-      : (invokeConfig as InvokeConfig<any, any, any, any, any, any>)
+      : (invokeConfig as InvokeConfig<any, any, any, any, any, any, any>)
   ).src;
 }
 

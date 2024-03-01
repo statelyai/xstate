@@ -138,7 +138,8 @@ export function raise<
   never,
   never,
   never,
-  TDelay
+  TDelay,
+  never
 > {
   function raise(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,

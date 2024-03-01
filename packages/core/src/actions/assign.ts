@@ -153,6 +153,7 @@ export function assign<
   TActor,
   never,
   never,
+  never,
   never
 > {
   function assign(

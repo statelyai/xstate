@@ -1499,7 +1499,8 @@ function resolveAndExecuteActionsWithContext(
               ProvidedActor,
               ParameterizedObject,
               ParameterizedObject,
-              string
+              string,
+              EventObject
             >
           >
         )[typeof action === 'string' ? action : action.type];

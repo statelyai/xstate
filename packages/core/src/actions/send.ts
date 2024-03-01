@@ -230,7 +230,8 @@ export function sendTo<
   never,
   never,
   never,
-  TDelay
+  TDelay,
+  never
 > {
   function sendTo(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
@@ -298,11 +299,11 @@ type Target<
   TEvent extends EventObject
 > =
   | string
-  | ActorRef<any, any>
+  | AnyActorRef
   | ((
       args: ActionArgs<TContext, TExpressionEvent, TEvent>,
       params: TParams
-    ) => string | ActorRef<any, any>);
+    ) => string | AnyActorRef);
 
 /**
  * Forwards (sends) an event to the `target` actor.

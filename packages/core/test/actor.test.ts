@@ -34,7 +34,7 @@ import { sleep } from '@xstate-repo/jest-utils';
 
 describe('spawning machines', () => {
   const context = {
-    todoRefs: {} as Record<string, ActorRef<any, any>>
+    todoRefs: {} as Record<string, AnyActorRef>
   };
 
   type TodoEvent =
@@ -191,7 +191,7 @@ describe('spawning machines', () => {
     const parentMachine = createMachine(
       {
         context: {
-          ref: null! as ActorRef<any, any>
+          ref: null! as AnyActorRef
         },
         initial: 'waiting',
         states: {
@@ -472,7 +472,7 @@ describe('spawning observables', () => {
         id: 'observable',
         initial: 'idle',
         context: {
-          observableRef: undefined! as ActorRef<any, any>
+          observableRef: undefined! as AnyActorRef
         },
         states: {
           idle: {
@@ -719,7 +719,7 @@ describe('spawning event observables', () => {
         id: 'observable',
         initial: 'idle',
         context: {
-          observableRef: undefined! as ActorRef<any, any>
+          observableRef: undefined! as AnyActorRef
         },
         states: {
           idle: {
