@@ -91,7 +91,7 @@ export class ToggleComponent extends LitElement {
 
 ## API
 
-### `new UseMachine(host, {machine, options?, subscriptionProperty?)`
+### `new UseMachine(host, {machine, options?, subscriptionProperty?})`
 
 A class that creates an actor from the given machine and starts a service that runs for the lifetime of the component.
 
@@ -114,11 +114,11 @@ A class that creates an actor from the given machine and starts a service that r
 When using [hierarchical](https://xstate.js.org/docs/guides/hierarchical.html) and [parallel](https://xstate.js.org/docs/guides/parallel.html) machines, the state values will be objects, not strings. In this case, it is best to use [`state.matches(...)`](https://xstate.js.org/docs/guides/states.html#state-methods-and-properties).
 
 ```js
-${this.myXsateController.snapshot.matches('idle')}
+${this.myXStateController.snapshot.matches('idle')}
 //
-${this.myXsateController.snapshot.matches({ loading: 'user' })}
+${this.myXStateController.snapshot.matches({ loading: 'user' })}
 //
-${this.myXsateController.snapshot.matches({ loading: 'friends' })}
+${this.myXStateController.snapshot.matches({ loading: 'friends' })}
 ```
 
 ## Persisted and Rehydrated State
