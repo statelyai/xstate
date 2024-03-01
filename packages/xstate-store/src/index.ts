@@ -1,13 +1,15 @@
-import { produce } from 'immer';
 import type {
   EventObject,
   InteropSubscribable,
   MachineContext,
-  Values,
-  InteropObservable,
-  Observer,
-  Subscribable
+  Observer
 } from 'xstate';
+import {
+  Recipe,
+  EventPayloadMap,
+  Store,
+  ExtractEventsFromPayloadMap
+} from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) ||
@@ -29,28 +31,6 @@ export function toObserver<T>(
     )
   };
 }
-
-/**
- * An actor-like object that:
- * - has its own state
- * - can receive events
- * - is observable
- */
-export interface Store<T, Ev extends EventObject>
-  extends Subscribable<T>,
-    InteropObservable<T> {
-  send: (event: Ev) => void;
-  getSnapshot: () => T;
-  getInitialSnapshot: () => T;
-}
-
-type EventPayloadMap = Record<string, {} | null | undefined>;
-
-type ExtractEventsFromPayloadMap<T extends EventPayloadMap> = Values<{
-  [K in keyof T & string]: T[K] & { type: K };
-}>;
-
-type Recipe<T, TReturn> = (state: T) => TReturn;
 
 function defaultSetter<T>(ctx: T, recipe: Recipe<T, T>): T {
   return recipe(ctx);
@@ -161,6 +141,13 @@ export function createStore<
     },
     [symbolObservable](): InteropSubscribable<any> {
       return this;
+    },
+    withTransitions(newTransitions) {
+      return createStore(
+        context,
+        { ...transitions, ...newTransitions },
+        updater
+      ) as any;
     }
   };
 

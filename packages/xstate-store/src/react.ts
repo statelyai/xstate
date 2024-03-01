@@ -1,30 +1,44 @@
-import { Store } from '.';
-import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import { useCallback } from 'react';
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
+import { Store, ContextFromStore } from './types';
 
 type SyncExternalStoreSubscribe = Parameters<
   typeof useSyncExternalStoreWithSelector
 >[0];
 
-export function useStore<TStore extends Store<any, any>, TSelected>(
-  store: TStore,
-  selector?: (state: TStore) => TSelected
-) {
+function defaultCompare<T>(a: T, b: T) {
+  return a === b;
+}
+
+export function useSelector<TStore extends Store<any, any> | undefined, T>(
+  actor: TStore,
+  selector: (
+    emitted: TStore extends Store<any, any>
+      ? ContextFromStore<TStore>
+      : undefined
+  ) => T,
+  compare: (a: T, b: T) => boolean = defaultCompare
+): T {
   const subscribe: SyncExternalStoreSubscribe = useCallback(
     (handleStoreChange) => {
-      const { unsubscribe } = store.subscribe(handleStoreChange);
+      if (!actor) {
+        return () => {};
+      }
+      const { unsubscribe } = actor.subscribe(handleStoreChange);
       return unsubscribe;
     },
-    [store]
+    [actor]
   );
 
-  const selected = useSyncExternalStoreWithSelector(
+  const boundGetSnapshot = useCallback(() => actor?.getSnapshot(), [actor]);
+
+  const selectedSnapshot = useSyncExternalStoreWithSelector(
     subscribe,
-    store.getSnapshot,
-    store.getSnapshot,
-    selector ?? ((s) => s)
-    // TODO: equality fn
+    boundGetSnapshot,
+    boundGetSnapshot,
+    selector,
+    compare
   );
 
-  return selected;
+  return selectedSnapshot;
 }

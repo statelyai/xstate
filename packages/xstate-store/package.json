@@ -36,10 +36,11 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "dependencies": {
+    "@testing-library/react": "^14.2.1",
     "use-sync-external-store": "^1.2.0"
   },
   "devDependencies": {
-    "xstate": "5.5.2"
+    "xstate": "^5.8.2"
   },
   "peerDependencies": {
     "immer": "^10.0.3",

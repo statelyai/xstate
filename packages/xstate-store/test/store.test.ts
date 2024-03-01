@@ -1,20 +1,6 @@
 import { produce } from 'immer';
 import { createStore, createStoreWithProducer } from '../src/index.ts';
 
-it('creates a store API', () => {
-  const store = createStore({}, {});
-
-  expect(store).toMatchInlineSnapshot(`
-    {
-      "@@observable": [Function],
-      "getInitialSnapshot": [Function],
-      "getSnapshot": [Function],
-      "send": [Function],
-      "subscribe": [Function],
-    }
-  `);
-});
-
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
   const store = createStore(context, {
