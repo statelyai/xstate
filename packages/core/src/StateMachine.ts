@@ -66,7 +66,6 @@ export class StateMachine<
   TInput,
   TOutput,
   TEmitted extends EventObject = EventObject, // TODO: remove default
-  TMeta extends MetaObject = MetaObject,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
     DoNotInfer<TEvent>,
@@ -204,7 +203,6 @@ export class StateMachine<
     TInput,
     TOutput,
     TEmitted,
-    TMeta, // TMeta
     TResolvedTypesMeta
   > {
     const { actions, guards, actors, delays } = this.implementations;
@@ -285,15 +283,7 @@ export class StateMachine<
     >,
     event: TEvent,
     actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
-  ): MachineSnapshot<
-    TContext,
-    TEvent,
-    TChildren,
-    TStateValue,
-    TTag,
-    TOutput,
-    TMeta
-  > {
+  ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
     return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
   }
 
@@ -395,15 +385,7 @@ export class StateMachine<
    */
   public getInitialSnapshot(
     actorScope: ActorScope<
-      MachineSnapshot<
-        TContext,
-        TEvent,
-        TChildren,
-        TStateValue,
-        TTag,
-        TOutput,
-        TMeta
-      >,
+      MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>,
       TEvent,
       AnyActorSystem,
       TEmitted
@@ -515,15 +497,7 @@ export class StateMachine<
   public restoreSnapshot(
     snapshot: Snapshot<unknown>,
     _actorScope: ActorScope<
-      MachineSnapshot<
-        TContext,
-        TEvent,
-        TChildren,
-        TStateValue,
-        TTag,
-        TOutput,
-        TMeta
-      >,
+      MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>,
       TEvent,
       AnyActorSystem,
       TEmitted

@@ -10,15 +10,10 @@ function defaultCompare<T>(a: T, b: T) {
   return a === b;
 }
 
-export function useSelector<
-  TActor extends Pick<AnyActorRef, 'subscribe' | 'getSnapshot'> | undefined,
-  T
->(
+export function useSelector<TActor extends AnyActorRef | undefined, T>(
   actor: TActor,
   selector: (
-    snapshot: TActor extends { getSnapshot(): infer TSnapshot }
-      ? TSnapshot
-      : undefined
+    emitted: TActor extends AnyActorRef ? SnapshotFrom<TActor> : undefined
   ) => T,
   compare: (a: T, b: T) => boolean = defaultCompare
 ): T {

@@ -1,5 +1,4 @@
 import isDevelopment from '#is-development';
-import { executingCustomAction } from '../stateUtils.ts';
 import {
   ActionArgs,
   AnyActorScope,
@@ -122,12 +121,6 @@ export function emit<
   never,
   TEmitted
 > {
-  if (isDevelopment && executingCustomAction) {
-    console.warn(
-      'Custom actions should not call `emit()` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.'
-    );
-  }
-
   function emit(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams

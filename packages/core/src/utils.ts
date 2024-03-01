@@ -278,16 +278,7 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
   return (
     Array.isArray(invokeConfig)
       ? invokeConfig[indexStr as any]
-      : (invokeConfig as InvokeConfig<
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any, // TEmitted
-          any // TMeta
-        >)
+      : (invokeConfig as InvokeConfig<any, any, any, any, any, any, any>)
   ).src;
 }
 

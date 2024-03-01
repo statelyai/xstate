@@ -194,15 +194,10 @@ export class Actor<TLogic extends AnyActorLogic>
       },
       emit: (emittedEvent) => {
         const listeners = this.eventListeners.get(emittedEvent.type);
-        const wildcardListener = this.eventListeners.get('*');
-        if (!listeners && !wildcardListener) {
+        if (!listeners) {
           return;
         }
-        const allListeners = new Set([
-          ...(listeners ? listeners.values() : []),
-          ...(wildcardListener ? wildcardListener.values() : [])
-        ]);
-        for (const handler of Array.from(allListeners)) {
+        for (const handler of Array.from(listeners)) {
           handler(emittedEvent);
         }
       }
@@ -424,11 +419,9 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
-  public on<TType extends EmittedFrom<TLogic>['type'] | '*'>(
+  public on<TType extends EmittedFrom<TLogic>['type']>(
     type: TType,
-    handler: (
-      emitted: EmittedFrom<TLogic> & (TType extends '*' ? {} : { type: TType })
-    ) => void
+    handler: (emitted: EmittedFrom<TLogic> & { type: TType }) => void
   ): Subscription {
     let listeners = this.eventListeners.get(type);
     if (!listeners) {

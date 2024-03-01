@@ -398,7 +398,6 @@ it('should work with generic context', () => {
     any,
     any,
     any,
-    any, // TMeta
     any
   > {
     return createMachine({ context });
@@ -541,7 +540,6 @@ describe('events', () => {
         any,
         any,
         any,
-        any, // TMeta
         any
       >
     ) {}

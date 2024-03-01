@@ -26,14 +26,13 @@ export type CallbackSnapshot<TInput> = Snapshot<undefined> & {
 
 export type CallbackActorLogic<
   TEvent extends EventObject,
-  TInput = NonReducibleUnknown,
-  TEmitted extends EventObject = EventObject
+  TInput = NonReducibleUnknown
 > = ActorLogic<
   CallbackSnapshot<TInput>,
   TEvent,
   TInput,
   AnyActorSystem,
-  TEmitted
+  EventObject // TEmitted
 >;
 
 export type CallbackActorRef<

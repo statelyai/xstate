@@ -216,7 +216,8 @@ type CollectActions<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
+  TDelay extends string,
+  TEmitted extends EventObject
 > = (
   {
     context,
@@ -231,7 +232,8 @@ type CollectActions<
     TActor,
     TAction,
     TGuard,
-    TDelay
+    TDelay,
+    TEmitted
   >,
   params: TParams
 ) => void;
