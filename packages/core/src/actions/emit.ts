@@ -60,7 +60,6 @@ export interface EmitAction<
   TEmitted extends EventObject
 > {
   (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
-  _out_TEvent?: TEvent;
   _out_TEmitted?: TEmitted;
 }
 
