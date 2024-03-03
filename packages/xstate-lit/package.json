@@ -45,13 +45,13 @@
   },
   "peerDependencies": {
     "lit": "^3.1.2",
-    "xstate": "^5.8.2"
+    "xstate": "^5.9.1"
   },
   "devDependencies": {
     "@open-wc/testing-helpers": "^3.0.0",
     "@testing-library/dom": "^9.3.4",
     "@types/jest": "^29.5.10",
     "lit": "^3.1.2",
-    "xstate": "5.8.2"
+    "xstate": "5.9.1"
   }
 }
