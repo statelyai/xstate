@@ -12,20 +12,23 @@ export class LitTsCounter extends LitElement {
   #inspectEventsHandler: (inspEvent: InspectionEvent) => void =
     this.#inspectEvents.bind(this);
 
+  #callbackHandler: (snapshot: SnapshotFrom<any>) => void =
+    this.#callbackCounterController.bind(this);
+
   counterController: UseMachine<typeof counterMachine> = new UseMachine(this, {
     machine: counterMachine,
     options: {
       inspect: this.#inspectEventsHandler
     },
-    subscriptionProperty: '_xstate'
+    callback: this.#callbackHandler
   });
 
   @state()
-  _xstate: { [k: string]: unknown } = {};
+  _xstate: typeof this.counterController.snapshot =
+    {} as unknown as typeof this.counterController.snapshot;
 
   override updated(props: Map<string, unknown>) {
     super.updated && super.updated(props);
-
     if (props.has('_xstate')) {
       const { context, value } = this._xstate;
       const detail = { ...(context || {}), value };
@@ -37,12 +40,16 @@ export class LitTsCounter extends LitElement {
     }
   }
 
+  #callbackCounterController(snapshot: typeof this.counterController.snapshot) {
+    this._xstate = snapshot;
+  }
+
   #inspectEvents(inspEvent: InspectionEvent) {
     if (
       inspEvent.type === '@xstate.snapshot' &&
       inspEvent.event.type === 'xstate.stop'
     ) {
-      this._xstate = {};
+      this._xstate = {} as unknown as typeof this.counterController.snapshot;
     }
   }
 
