@@ -25,7 +25,7 @@ npm i xstate @xstate/lit
 
 ```js
 import { html, LitElement } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { customElement } from 'lit/decorators.js';
 import { createBrowserInspector } from '@statelyai/inspect';
 import { createMachine } from 'xstate';
 import { UseMachine } from '@xstate/lit';
@@ -52,27 +52,12 @@ const toggleMachine = createMachine({
 export class ToggleComponent extends LitElement {
   toggleController: UseMachine<typeof toggleMachine>;
 
-  @state()
-  protected _xstate: { [k: string]: unknown } = {};
-
-  constructor() {
+constructor() {
     super();
     this.toggleController = new UseMachine(this, {
       machine: toggleMachine,
-      options: { inspect },
-      subscriptionProperty: '_xstate',
+      options: { inspect }
     });
-  }
-
-  override updated(props: Map<string, unknown>) {
-    super.updated && super.updated(props);
-    if (props.has('_xstate')) {
-      const { value } = this._xstate;
-      const toggleEvent = new CustomEvent('togglechange', {
-        detail: value,
-      });
-      this.dispatchEvent(toggleEvent);
-    }
   }
 
   private get _turn() {
@@ -100,7 +85,7 @@ A class that creates an actor from the given machine and starts a service that r
 `host`: ReactiveControllerHost: The Lit component host.
 `machine`: AnyStateMachine: The XState machine to manage.
 `options?`: ActorOptions<TMachine>: Optional options for the actor.
-`subscriptionProperty?`: string: Optional property on the host to update with the state snapshot.
+`callback?`: (snapshot: SnapshotFrom<TMachine>) => void: An optional subscription callback that listens to snapshot updates.
 
 #### Return Methods:
 
