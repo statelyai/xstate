@@ -9,7 +9,7 @@ import {
   SnapshotFrom
 } from './types.ts';
 
-/** @internal */
+/** @@hidden */
 export function createInertActorScope<T extends AnyActorLogic>(
   actorLogic: T
 ): AnyActorScope {

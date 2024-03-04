@@ -47,31 +47,31 @@ function createScheduledEventId(
 
 export interface ActorSystem<T extends ActorSystemInfo> {
   /**
-   * @internal
+   * @hidden
    */
   _bookId: () => string;
   /**
-   * @internal
+   * @hidden
    */
   _register: (sessionId: string, actorRef: AnyActorRef) => string;
   /**
-   * @internal
+   * @hidden
    */
   _unregister: (actorRef: AnyActorRef) => void;
   /**
-   * @internal
+   * @hidden
    */
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
   inspect: (observer: Observer<InspectionEvent>) => void;
   /**
-   * @internal
+   * @hidden
    */
   _sendInspectionEvent: (
     event: HomomorphicOmit<InspectionEvent, 'rootId'>
   ) => void;
   /**
-   * @internal
+   * @hidden
    */
   _relay: (
     source: AnyActorRef | undefined,
@@ -83,7 +83,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
     _scheduledEvents: Record<string, ScheduledEvent>;
   };
   /**
-   * @internal
+   * @hidden
    */
   _snapshot: {
     _scheduledEvents: Record<ScheduledEventId, ScheduledEvent>;

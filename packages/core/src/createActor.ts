@@ -100,12 +100,12 @@ export class Actor<TLogic extends AnyActorLogic>
   > = new Map();
   private logger: (...args: any[]) => void;
 
-  /** @internal */
+  /** @hidden */
   public _processingStatus: ProcessingStatus = ProcessingStatus.NotStarted;
 
   // Actor Ref
   public _parent?: AnyActorRef;
-  /** @internal */
+  /** @hidden */
   public _syncSnapshot?: boolean;
   public ref: ActorRef<
     SnapshotFrom<TLogic>,
@@ -654,7 +654,7 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 
   /**
-   * @internal
+   * @hidden
    */
   public _send(event: EventFromLogic<TLogic>) {
     if (this._processingStatus === ProcessingStatus.Stopped) {

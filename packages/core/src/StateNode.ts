@@ -227,7 +227,7 @@ export class StateNode<
     this.tags = toArray(config.tags).slice();
   }
 
-  /** @internal */
+  /** @hidden */
   public _initialize() {
     this.transitions = formatTransitions(this);
     if (this.config.always) {
@@ -285,7 +285,7 @@ export class StateNode<
     };
   }
 
-  /** @internal */
+  /** @hidden */
   public toJSON() {
     return this.definition;
   }
@@ -371,7 +371,7 @@ export class StateNode<
     );
   }
 
-  /** @internal */
+  /** @hidden */
   public next(
     snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any>,
     event: TEvent

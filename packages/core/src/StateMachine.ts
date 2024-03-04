@@ -94,10 +94,10 @@ export class StateMachine<
 
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
-  /** @internal */
+  /** @hidden */
   public __xstatenode: true = true;
 
-  /** @internal */
+  /** @hidden */
   public idMap: Map<string, StateNode<TContext, TEvent>> = new Map();
 
   public root: StateNode<TContext, TEvent>;
