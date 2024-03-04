@@ -95,9 +95,6 @@ export class StateMachine<
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
   /** @hidden */
-  public __xstatenode: true = true;
-
-  /** @hidden */
   public idMap: Map<string, StateNode<TContext, TEvent>> = new Map();
 
   public root: StateNode<TContext, TEvent>;
