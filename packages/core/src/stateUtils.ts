@@ -1063,12 +1063,12 @@ function getMachineOutput(
   rootNode: AnyStateNode,
   rootCompletionNode: AnyStateNode
 ) {
-  if (!rootNode.output) {
+  if (rootNode.output === undefined) {
     return;
   }
   const doneStateEvent = createDoneStateEvent(
     rootCompletionNode.id,
-    rootCompletionNode.output && rootCompletionNode.parent
+    rootCompletionNode.output !== undefined && rootCompletionNode.parent
       ? resolveOutput(
           rootCompletionNode.output,
           snapshot.context,
@@ -1158,7 +1158,7 @@ function enterStates(
         internalQueue.push(
           createDoneStateEvent(
             parent!.id,
-            stateNodeToEnter.output
+            stateNodeToEnter.output !== undefined
               ? resolveOutput(
                   stateNodeToEnter.output,
                   nextSnapshot.context,
@@ -1499,7 +1499,8 @@ function resolveAndExecuteActionsWithContext(
               ProvidedActor,
               ParameterizedObject,
               ParameterizedObject,
-              string
+              string,
+              EventObject
             >
           >
         )[typeof action === 'string' ? action : action.type];

@@ -1,5 +1,11 @@
 # @xstate/vue
 
+## 3.1.1
+
+### Patch Changes
+
+- [#4759](https://github.com/statelyai/xstate/pull/4759) [`f112081b9`](https://github.com/statelyai/xstate/commit/f112081b9235cb79e5ca2eb16aeceed7cc07b564) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `send(…)` type for `useActor(…)`
+
 ## 3.1.0
 
 ### Minor Changes

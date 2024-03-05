@@ -1,5 +1,67 @@
 # xstate
 
+## 5.9.1
+
+### Patch Changes
+
+- [#4780](https://github.com/statelyai/xstate/pull/4780) [`567267ed2`](https://github.com/statelyai/xstate/commit/567267ed2db596375032aaf075fb682524423541) Thanks [@Andarist](https://github.com/Andarist)! - Add missing `emit` export
+
+## 5.9.0
+
+### Minor Changes
+
+- [#4746](https://github.com/statelyai/xstate/pull/4746) [`b570ba20d`](https://github.com/statelyai/xstate/commit/b570ba20d7350819cbaf6740ff00a2bad5ffedfe) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The new `emit(…)` action creator emits events that can be received by listeners. Actors are now event emitters.
+
+  ```ts
+  import { emit } from 'xstate';
+
+  const machine = createMachine({
+    // ...
+    on: {
+      something: {
+        actions: emit({
+          type: 'emitted',
+          some: 'data'
+        })
+      }
+    }
+    // ...
+  });
+
+  const actor = createActor(machine).start();
+
+  actor.on('emitted', (event) => {
+    console.log(event);
+  });
+
+  actor.send({ type: 'something' });
+  // logs:
+  // {
+  //   type: 'emitted',
+  //   some: 'data'
+  // }
+  ```
+
+- [#4777](https://github.com/statelyai/xstate/pull/4777) [`4abeed9df`](https://github.com/statelyai/xstate/commit/4abeed9dfbaa01d2c1f8f7278aa600086a8a8386) Thanks [@Andarist](https://github.com/Andarist)! - Added support for `params` to `enqueueActions`
+
+## 5.8.2
+
+### Patch Changes
+
+- [#4772](https://github.com/statelyai/xstate/pull/4772) [`9a0120901`](https://github.com/statelyai/xstate/commit/9a01209015525ecfe15c672f51888ceff906a2c2) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a type issue that prevent `sendParent` to be accepted by `setup` when `delays` stayed not configured.
+
+## 5.8.1
+
+### Patch Changes
+
+- [#4768](https://github.com/statelyai/xstate/pull/4768) [`4a29f8aab`](https://github.com/statelyai/xstate/commit/4a29f8aabc1d17f941d06a3def7739c2853091fc) Thanks [@Andarist](https://github.com/Andarist)! - Correctly use falsy outputs (instead of accidentally converting them to `undefined`).
+
+## 5.8.0
+
+### Minor Changes
+
+- [#4750](https://github.com/statelyai/xstate/pull/4750) [`a9e3c086f`](https://github.com/statelyai/xstate/commit/a9e3c086f3922eed3d82a3fdf6e1db85a3de5260) Thanks [@Andarist](https://github.com/Andarist)! - Revamped `setup` and actions types to disallow usage of non-configured implementations
+
 ## 5.7.1
 
 ### Patch Changes

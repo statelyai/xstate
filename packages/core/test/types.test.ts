@@ -306,6 +306,32 @@ describe('output', () => {
   });
 });
 
+describe('emitted', () => {
+  it('emitted type should be represented in actor.on(…)', () => {
+    const m = setup({
+      types: {
+        emitted: {} as
+          | { type: 'onClick'; x: number; y: number }
+          | { type: 'onChange' }
+      }
+    }).createMachine({});
+
+    const actor = createActor(m);
+
+    actor.on('onClick', (ev) => {
+      ev.x satisfies number;
+
+      // @ts-expect-error
+      ev.x satisfies string;
+    });
+
+    actor.on('onChange', () => {});
+
+    // @ts-expect-error
+    actor.on('unknown', () => {});
+  });
+});
+
 it('should infer context type from `config.context` when there is no `schema.context`', () => {
   createMachine(
     {
@@ -353,7 +379,20 @@ it('should not use actions as possible inference sites', () => {
 it('should work with generic context', () => {
   function createMachineWithExtras<TContext extends MachineContext>(
     context: TContext
-  ): StateMachine<TContext, any, any, any, any, any, any, any, any, any, any> {
+  ): StateMachine<
+    TContext,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  > {
     return createMachine({ context });
   }
 
@@ -436,7 +475,7 @@ describe('events', () => {
           type: 'FOO';
         }
       },
-      entry: raise<any, any, any>({ type: 'FOO' })
+      entry: raise<any, any, any, any, any, any>({ type: 'FOO' })
     });
 
     const service = createActor(machine).start();
@@ -485,6 +524,7 @@ describe('events', () => {
       _machine: StateMachine<
         TContext,
         TEvent,
+        any,
         any,
         any,
         any,

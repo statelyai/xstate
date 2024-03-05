@@ -74,13 +74,16 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: TraversalOptions<
     ReturnType<TMachine['transition']>,
-    EventFrom<TMachine>
+    EventFromLogic<TMachine>
   >
-): TraversalOptions<ReturnType<TMachine['transition']>, EventFrom<TMachine>> {
+): TraversalOptions<
+  ReturnType<TMachine['transition']>,
+  EventFromLogic<TMachine>
+> {
   const { events: getEvents, ...otherOptions } = options ?? {};
   const traversalOptions: TraversalOptions<
     ReturnType<TMachine['transition']>,
-    EventFrom<TMachine>
+    EventFromLogic<TMachine>
   > = {
     serializeState: serializeMachineState,
     serializeEvent,

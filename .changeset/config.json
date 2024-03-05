@@ -9,7 +9,6 @@
     "@xstate/immer",
     "@xstate/graph",
     "@xstate/inspect",
-    "@xstate/solid",
     "@xstate/test"
   ],
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {

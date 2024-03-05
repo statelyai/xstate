@@ -3,6 +3,7 @@ import { XSTATE_ERROR } from '../constants.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
 import {
   ActionArgs,
+  ActionFunction,
   ActorRef,
   AnyActorRef,
   AnyActorScope,
@@ -195,7 +196,8 @@ export function sendTo<
   TParams extends ParameterizedObject['params'] | undefined,
   TTargetActor extends AnyActorRef,
   TEvent extends EventObject,
-  TDelay extends string
+  TDelay extends string = never,
+  TUsedDelay extends TDelay = never
 >(
   to:
     | TTargetActor
@@ -218,9 +220,19 @@ export function sendTo<
     TExpressionEvent,
     TParams,
     NoInfer<TEvent>,
-    NoInfer<TDelay>
+    TUsedDelay
   >
-): SendToAction<TContext, TExpressionEvent, TParams, TEvent, TDelay> {
+): ActionFunction<
+  TContext,
+  TExpressionEvent,
+  TEvent,
+  TParams,
+  never,
+  never,
+  never,
+  TDelay,
+  never
+> {
   function sendTo(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams
@@ -255,7 +267,8 @@ export function sendParent<
   TParams extends ParameterizedObject['params'] | undefined,
   TSentEvent extends EventObject = AnyEventObject,
   TEvent extends EventObject = AnyEventObject,
-  TDelay extends string = string
+  TDelay extends string = never,
+  TUsedDelay extends TDelay = never
 >(
   event:
     | TSentEvent
@@ -265,7 +278,7 @@ export function sendParent<
     TExpressionEvent,
     TParams,
     TEvent,
-    TDelay
+    TUsedDelay
   >
 ) {
   return sendTo<
@@ -274,7 +287,8 @@ export function sendParent<
     TParams,
     AnyActorRef,
     TEvent,
-    TDelay
+    TDelay,
+    TUsedDelay
   >(SpecialTargets.Parent, event, options as any);
 }
 
@@ -285,11 +299,11 @@ type Target<
   TEvent extends EventObject
 > =
   | string
-  | ActorRef<any, any>
+  | AnyActorRef
   | ((
       args: ActionArgs<TContext, TExpressionEvent, TEvent>,
       params: TParams
-    ) => string | ActorRef<any, any>);
+    ) => string | AnyActorRef);
 
 /**
  * Forwards (sends) an event to the `target` actor.
@@ -302,7 +316,8 @@ export function forwardTo<
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
-  TDelay extends string
+  TDelay extends string = never,
+  TUsedDelay extends TDelay = never
 >(
   target: Target<TContext, TExpressionEvent, TParams, TEvent>,
   options?: SendToActionOptions<
@@ -310,7 +325,7 @@ export function forwardTo<
     TExpressionEvent,
     TParams,
     TEvent,
-    TDelay
+    TUsedDelay
   >
 ) {
   if (isDevelopment && (!target || typeof target === 'function')) {
@@ -334,6 +349,7 @@ export function forwardTo<
     TParams,
     AnyActorRef,
     TEvent,
-    TDelay
+    TDelay,
+    TUsedDelay
   >(target, ({ event }: any) => event, options);
 }
