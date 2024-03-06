@@ -3,11 +3,11 @@ import {
   Actor,
   AnyStateMachine,
   ActorOptions,
-  Subscription,
+  createActor,
   EventFrom,
-  SnapshotFrom
+  SnapshotFrom,
+  Subscription
 } from 'xstate';
-import { useActorRef } from './useActorRef.ts';
 
 export class UseMachine<TMachine extends AnyStateMachine>
   implements ReactiveController
@@ -66,7 +66,7 @@ export class UseMachine<TMachine extends AnyStateMachine>
   }
 
   private startService() {
-    this.actorRef = useActorRef(this.machine, this.options);
+    this.actorRef = createActor(this.machine, this.options);
     this.subs = this.actorRef?.subscribe(this.onNext);
     this.actorRef?.start();
   }
