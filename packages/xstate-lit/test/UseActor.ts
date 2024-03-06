@@ -1,5 +1,5 @@
 import { html, LitElement } from 'lit';
-import type { AnyMachineSnapshot } from 'xstate';
+import type { Snapshot } from 'xstate';
 import { fromPromise } from 'xstate/actors';
 import { fetchMachine } from './fetchMachine.ts';
 import { UseMachine } from '../src/index.ts';
@@ -16,24 +16,15 @@ const fMachine = fetchMachine.provide({
 });
 
 export class UseActor extends LitElement {
-  fetchController: UseMachine<typeof fetchMachine> = {} as UseMachine<
-    typeof fetchMachine
-  >;
-  persistedState: AnyMachineSnapshot | undefined = undefined;
+  fetchController: UseMachine<typeof fetchMachine> = new UseMachine(this, {
+    machine: fMachine,
+    options: {
+      snapshot: this.persistedState
+    }
+  });
 
-  static properties = {
-    persistedState: { attribute: false }
-  };
-
-  override connectedCallback() {
-    super.connectedCallback && super.connectedCallback();
-
-    this.fetchController = new UseMachine(this, {
-      machine: fMachine,
-      options: {
-        snapshot: this.persistedState
-      }
-    });
+  get persistedState(): Snapshot<any> | undefined {
+    return undefined;
   }
 
   override createRenderRoot() {
