@@ -20,6 +20,14 @@
   "main": "dist/xstate-lit.cjs.js",
   "module": "dist/xstate-lit.esm.js",
   "type": "module",
+  "preconstruct": {
+    "exports": true,
+    "___experimentalFlags_WILL_CHANGE_IN_PATCH": {
+      "typeModule": true,
+      "distInRoot": true,
+      "importsConditions": true
+    }
+  },
   "exports": {
     ".": {
       "types": {
