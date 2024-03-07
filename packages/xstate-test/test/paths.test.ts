@@ -1,3 +1,4 @@
+import { getInitialSnapshot, getNextSnapshot } from 'xstate';
 import { createTestModel } from '../src/index.ts';
 import { createTestMachine } from '../src/machine';
 import { testUtils } from './testUtils';
@@ -43,14 +44,13 @@ describe('testModel.testPaths(...)', () => {
     );
 
     const paths = testModel.getPaths((logic, options) => {
-      const actorContext = { self: {} } as any; // TODO: figure out the simulation API
-      const initialState = logic.getInitialSnapshot(actorContext, undefined);
+      const initialState = getInitialSnapshot(logic);
       const events =
         typeof options.events === 'function'
           ? options.events(initialState)
           : options.events ?? [];
 
-      const nextState = logic.transition(initialState, events[0], actorContext);
+      const nextState = getNextSnapshot(logic, initialState, events[0]);
       return [
         {
           state: nextState,

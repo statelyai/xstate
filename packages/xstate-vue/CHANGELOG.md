@@ -1,5 +1,26 @@
 # @xstate/vue
 
+## 3.1.1
+
+### Patch Changes
+
+- [#4759](https://github.com/statelyai/xstate/pull/4759) [`f112081b9`](https://github.com/statelyai/xstate/commit/f112081b9235cb79e5ca2eb16aeceed7cc07b564) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `send(…)` type for `useActor(…)`
+
+## 3.1.0
+
+### Minor Changes
+
+- [#4231](https://github.com/statelyai/xstate/pull/4231) [`c2402e7bc`](https://github.com/statelyai/xstate/commit/c2402e7bc269dd1f1a9eca0d3e4484ad5a4cfadb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `actor` passed to `useSelector(actor, selector)` is now allowed to be `undefined` for an actor that may not exist yet. For actors that may be `undefined`, the `snapshot` provided to the `selector` function can also be `undefined`:
+
+  ```ts
+  const count = useSelector(maybeActor, (snapshot) => {
+    // `snapshot` may be undefined
+    return snapshot?.context.count;
+  });
+
+  count; // number | undefined
+  ```
+
 ## 3.0.3
 
 ### Patch Changes

@@ -1,5 +1,150 @@
 # xstate
 
+## 5.9.1
+
+### Patch Changes
+
+- [#4780](https://github.com/statelyai/xstate/pull/4780) [`567267ed2`](https://github.com/statelyai/xstate/commit/567267ed2db596375032aaf075fb682524423541) Thanks [@Andarist](https://github.com/Andarist)! - Add missing `emit` export
+
+## 5.9.0
+
+### Minor Changes
+
+- [#4746](https://github.com/statelyai/xstate/pull/4746) [`b570ba20d`](https://github.com/statelyai/xstate/commit/b570ba20d7350819cbaf6740ff00a2bad5ffedfe) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The new `emit(…)` action creator emits events that can be received by listeners. Actors are now event emitters.
+
+  ```ts
+  import { emit } from 'xstate';
+
+  const machine = createMachine({
+    // ...
+    on: {
+      something: {
+        actions: emit({
+          type: 'emitted',
+          some: 'data'
+        })
+      }
+    }
+    // ...
+  });
+
+  const actor = createActor(machine).start();
+
+  actor.on('emitted', (event) => {
+    console.log(event);
+  });
+
+  actor.send({ type: 'something' });
+  // logs:
+  // {
+  //   type: 'emitted',
+  //   some: 'data'
+  // }
+  ```
+
+- [#4777](https://github.com/statelyai/xstate/pull/4777) [`4abeed9df`](https://github.com/statelyai/xstate/commit/4abeed9dfbaa01d2c1f8f7278aa600086a8a8386) Thanks [@Andarist](https://github.com/Andarist)! - Added support for `params` to `enqueueActions`
+
+## 5.8.2
+
+### Patch Changes
+
+- [#4772](https://github.com/statelyai/xstate/pull/4772) [`9a0120901`](https://github.com/statelyai/xstate/commit/9a01209015525ecfe15c672f51888ceff906a2c2) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a type issue that prevent `sendParent` to be accepted by `setup` when `delays` stayed not configured.
+
+## 5.8.1
+
+### Patch Changes
+
+- [#4768](https://github.com/statelyai/xstate/pull/4768) [`4a29f8aab`](https://github.com/statelyai/xstate/commit/4a29f8aabc1d17f941d06a3def7739c2853091fc) Thanks [@Andarist](https://github.com/Andarist)! - Correctly use falsy outputs (instead of accidentally converting them to `undefined`).
+
+## 5.8.0
+
+### Minor Changes
+
+- [#4750](https://github.com/statelyai/xstate/pull/4750) [`a9e3c086f`](https://github.com/statelyai/xstate/commit/a9e3c086f3922eed3d82a3fdf6e1db85a3de5260) Thanks [@Andarist](https://github.com/Andarist)! - Revamped `setup` and actions types to disallow usage of non-configured implementations
+
+## 5.7.1
+
+### Patch Changes
+
+- [#4739](https://github.com/statelyai/xstate/pull/4739) [`15b7dd1f0`](https://github.com/statelyai/xstate/commit/15b7dd1f009036e4ab265c8702d9b9bd124aaadc) Thanks [@devanfarrell](https://github.com/devanfarrell)! - Removed `this` from machine snapshot methods to fix issues with accessing those methods from union of actors and their snapshots.
+
+## 5.7.0
+
+### Minor Changes
+
+- [#4290](https://github.com/statelyai/xstate/pull/4290) [`7a8796f80`](https://github.com/statelyai/xstate/commit/7a8796f809bc8fa81927761474dbbce9ab4b30d3) Thanks [@davidkpiano](https://github.com/davidkpiano)! - An error will now be thrown if an incompatible state value is passed to `machine.resolveState({ value })`.
+
+- [#4693](https://github.com/statelyai/xstate/pull/4693) [`11b6a1ae1`](https://github.com/statelyai/xstate/commit/11b6a1ae1397e5da2544f0bc233584f0aeb4d38b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now inspect microsteps (`@xstate.microstep`) and actions (`@xstate.action`):
+
+  ```ts
+  const machine = createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        on: {
+          event: 'b'
+        }
+      },
+      b: {
+        entry: 'someAction',
+        always: 'c'
+      },
+      c: {}
+    }
+  });
+
+  const actor = createActor(machine, {
+    inspect: (inspEvent) => {
+      if (inspEvent.type === '@xstate.microstep') {
+        console.log(inspEvent.snapshot);
+        // logs:
+        // { value: 'a', … }
+        // { value: 'b', … }
+        // { value: 'c', … }
+
+        console.log(inspEvent.event);
+        // logs:
+        // { type: 'event', … }
+      } else if (inspEvent.type === '@xstate.action') {
+        console.log(inspEvent.action);
+        // logs:
+        // { type: 'someAction', … }
+      }
+    }
+  });
+
+  actor.start();
+
+  actor.send({ type: 'event' });
+  ```
+
+## 5.6.2
+
+### Patch Changes
+
+- [#4731](https://github.com/statelyai/xstate/pull/4731) [`960cdcbcb`](https://github.com/statelyai/xstate/commit/960cdcbcb88eb565bba2f03f3eeceff6001576d9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now import `getInitialSnapshot(…)` from `xstate` directly, which is useful for getting a mock of the initial snapshot when interacting with machines (or other actor logic) without `createActor(…)`:
+
+  ```ts
+  import { getInitialSnapshot } from 'xstate';
+  import { someMachine } from './someMachine';
+
+  // Returns the initial snapshot (state) of the machine
+  const initialSnapshot = getInitialSnapshot(
+    someMachine,
+    { name: 'Mateusz' } // optional input
+  );
+  ```
+
+## 5.6.1
+
+### Patch Changes
+
+- [#4728](https://github.com/statelyai/xstate/pull/4728) [`659efd5c1`](https://github.com/statelyai/xstate/commit/659efd5c14b69038b0c234255494c2fe5418fdea) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility issue of the internal type definitions with TypeScript 5.0
+
+- [#4712](https://github.com/statelyai/xstate/pull/4712) [`2f1d36a9d`](https://github.com/statelyai/xstate/commit/2f1d36a9d949119bb93295362523de59acc039a0) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Ensure that `InteropObservable` and `InteropSubscribable` are present in the type definition file.
+
+- [#4694](https://github.com/statelyai/xstate/pull/4694) [`0b6dff210`](https://github.com/statelyai/xstate/commit/0b6dff21069bb168b46c943653e445ff3daa5d63) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `UnknownMachineConfig` type
+
 ## 5.6.0
 
 ### Minor Changes

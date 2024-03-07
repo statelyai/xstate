@@ -17,7 +17,8 @@ import {
   not,
   sendTo,
   spawnChild,
-  stateIn
+  stateIn,
+  setup
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -305,6 +306,32 @@ describe('output', () => {
   });
 });
 
+describe('emitted', () => {
+  it('emitted type should be represented in actor.on(…)', () => {
+    const m = setup({
+      types: {
+        emitted: {} as
+          | { type: 'onClick'; x: number; y: number }
+          | { type: 'onChange' }
+      }
+    }).createMachine({});
+
+    const actor = createActor(m);
+
+    actor.on('onClick', (ev) => {
+      ev.x satisfies number;
+
+      // @ts-expect-error
+      ev.x satisfies string;
+    });
+
+    actor.on('onChange', () => {});
+
+    // @ts-expect-error
+    actor.on('unknown', () => {});
+  });
+});
+
 it('should infer context type from `config.context` when there is no `schema.context`', () => {
   createMachine(
     {
@@ -352,7 +379,20 @@ it('should not use actions as possible inference sites', () => {
 it('should work with generic context', () => {
   function createMachineWithExtras<TContext extends MachineContext>(
     context: TContext
-  ): StateMachine<TContext, any, any, any, any, any, any, any, any, any, any> {
+  ): StateMachine<
+    TContext,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  > {
     return createMachine({ context });
   }
 
@@ -435,7 +475,7 @@ describe('events', () => {
           type: 'FOO';
         }
       },
-      entry: raise<any, any, any>({ type: 'FOO' })
+      entry: raise<any, any, any, any, any, any>({ type: 'FOO' })
     });
 
     const service = createActor(machine).start();
@@ -484,6 +524,7 @@ describe('events', () => {
       _machine: StateMachine<
         TContext,
         TEvent,
+        any,
         any,
         any,
         any,
@@ -4355,5 +4396,60 @@ describe('createActor', () => {
     );
 
     createActor(logic);
+  });
+});
+
+describe('snapshot methods', () => {
+  it('should type infer actor union snapshot methods', () => {
+    const typeOne = setup({
+      types: {} as {
+        events: { type: 'one' };
+        tags: 'one';
+      }
+    }).createMachine({
+      initial: 'one',
+      states: {
+        one: {}
+      }
+    });
+    type TypeOneRef = ActorRefFrom<typeof typeOne>;
+
+    const typeTwo = setup({
+      types: {} as {
+        events: { type: 'one' } | { type: 'two' };
+        tags: 'one' | 'two';
+      }
+    }).createMachine({
+      initial: 'one',
+      states: {
+        one: {},
+        two: {}
+      }
+    });
+    type TypeTwoRef = ActorRefFrom<typeof typeTwo>;
+
+    const ref = createActor(typeTwo) as TypeOneRef | TypeTwoRef;
+    const snapshot = ref.getSnapshot();
+
+    snapshot.can({ type: 'one' });
+    // @ts-expect-error
+    snapshot.can({ type: 'two' });
+    // @ts-expect-error
+    snapshot.can({ type: 'three' });
+
+    snapshot.hasTag('one');
+    // @ts-expect-error
+    snapshot.hasTag('two');
+    // @ts-expect-error
+    snapshot.hasTag('three');
+
+    snapshot.matches('one');
+    // @ts-expect-error
+    snapshot.matches('two');
+    // @ts-expect-error
+    snapshot.matches('three');
+
+    snapshot.getMeta();
+    snapshot.toJSON();
   });
 });

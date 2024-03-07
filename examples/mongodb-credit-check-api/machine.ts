@@ -25,28 +25,28 @@ export const creditCheckMachine = setup({
   actors: {
     checkBureau: fromPromise(
       async ({ input }: { input: { ssn: string; bureauName: string } }) =>
-        await checkBureauService(input)
+        await checkBureauService(input),
     ),
     checkReportsTable: fromPromise(
       async ({ input }: { input: { ssn: string; bureauName: string } }) =>
-        await checkReportsTable(input)
+        await checkReportsTable(input),
     ),
     verifyCredentials: fromPromise(
       async ({ input }: { input: userCredential }) =>
-        await verifyCredentials(input)
+        await verifyCredentials(input),
     ),
     determineMiddleScore: fromPromise(
       async ({ input }: { input: number[] }) =>
-        await determineMiddleScore(input)
+        await determineMiddleScore(input),
     ),
     generateInterestRates: fromPromise(
-      async ({ input }: { input: number }) => await generateInterestRate(input)
+      async ({ input }: { input: number }) => await generateInterestRate(input),
     ),
   },
   actions: {
     saveReport: (
       { context }: { context: CreditProfile },
-      params: { bureauName: string }
+      params: { bureauName: string },
     ) => {
       console.log("saving report to the database...");
       saveCreditReport({
@@ -58,7 +58,7 @@ export const creditCheckMachine = setup({
     emailUser: function ({ context }) {
       console.log(
         "emailing user with their interest rate options: ",
-        context.InterestRateOptions
+        context.InterestRateOptions,
       );
     },
     saveCreditProfile: async function ({ context }) {
@@ -71,7 +71,7 @@ export const creditCheckMachine = setup({
         context.FirstName,
         context.LastName,
         context.InterestRateOptions,
-        context.MiddleScore
+        context.MiddleScore,
       );
     },
   },

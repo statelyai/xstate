@@ -1,5 +1,20 @@
 # Changelog
 
+## 4.1.0
+
+### Minor Changes
+
+- [#4231](https://github.com/statelyai/xstate/pull/4231) [`c2402e7bc`](https://github.com/statelyai/xstate/commit/c2402e7bc269dd1f1a9eca0d3e4484ad5a4cfadb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `actor` passed to `useSelector(actor, selector)` is now allowed to be `undefined` for an actor that may not exist yet. For actors that may be `undefined`, the `snapshot` provided to the `selector` function can also be `undefined`:
+
+  ```ts
+  const count = useSelector(maybeActor, (snapshot) => {
+    // `snapshot` may be undefined
+    return snapshot?.context.count;
+  });
+
+  count; // number | undefined
+  ```
+
 ## 4.0.3
 
 ### Patch Changes

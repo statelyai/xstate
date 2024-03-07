@@ -15,7 +15,7 @@ export function useActor<TLogic extends AnyActorLogic>(
   options?: ActorOptions<TLogic>
 ): {
   snapshot: Ref<SnapshotFrom<TLogic>>;
-  send: (event: Actor<TLogic>['send']) => void;
+  send: Actor<TLogic>['send'];
   actorRef: Actor<TLogic>;
 };
 export function useActor(

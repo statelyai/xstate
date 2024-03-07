@@ -11,6 +11,6 @@ export default class CreditProfile {
     public ErrorMessage: string,
     public MiddleScore: number,
     public InterestRateOptions: number[],
-    public _id?: ObjectId
+    public _id?: ObjectId,
   ) {}
 }
