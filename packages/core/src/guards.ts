@@ -6,7 +6,6 @@ import type {
   ParameterizedObject,
   AnyMachineSnapshot,
   NoRequiredParams,
-  NoInfer,
   WithDynamicParams,
   Identity,
   Elements

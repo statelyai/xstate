@@ -8,7 +8,6 @@ import {
   DelayExpr,
   EventObject,
   MachineContext,
-  NoInfer,
   ParameterizedObject,
   RaiseActionOptions,
   SendExpr

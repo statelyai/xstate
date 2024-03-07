@@ -4,7 +4,6 @@ import { createErrorActorEvent } from '../eventUtils.ts';
 import {
   ActionArgs,
   ActionFunction,
-  ActorRef,
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
@@ -15,7 +14,6 @@ import {
   EventObject,
   InferEvent,
   MachineContext,
-  NoInfer,
   ParameterizedObject,
   SendExpr,
   SendToActionOptions,

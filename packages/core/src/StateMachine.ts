@@ -38,14 +38,12 @@ import type {
   MachineConfig,
   MachineContext,
   MachineImplementationsSimplified,
-  NoInfer,
   ParameterizedObject,
   ProvidedActor,
   Snapshot,
   SnapshotFrom,
   StateMachineDefinition,
   StateValue,
-  TODO,
   TransitionDefinition
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
