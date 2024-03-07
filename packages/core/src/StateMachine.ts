@@ -30,6 +30,7 @@ import type {
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
+  DoNotInfer,
   Equals,
   EventDescriptor,
   EventObject,
@@ -66,7 +67,7 @@ export class StateMachine<
   TEmitted extends EventObject = EventObject, // TODO: remove default
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
-    NoInfer<TEvent>,
+    DoNotInfer<TEvent>,
     TActor,
     TAction,
     TGuard,

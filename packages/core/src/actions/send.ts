@@ -10,6 +10,7 @@ import {
   AnyMachineSnapshot,
   Cast,
   DelayExpr,
+  DoNotInfer,
   EventFrom,
   EventObject,
   InferEvent,
@@ -217,7 +218,7 @@ export function sendTo<
     TContext,
     TExpressionEvent,
     TParams,
-    NoInfer<TEvent>,
+    DoNotInfer<TEvent>,
     TUsedDelay
   >
 ): ActionFunction<
