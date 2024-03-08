@@ -21,7 +21,7 @@ npm i xstate @xstate/lit
 
 2. Import the `UseMachine` Lit controller:
 
-**`new UseMachine(this, {machine, options?, subscriptionProperty?)`**
+**`new UseMachine(this, {machine, options?, callback?})`**
 
 ```js
 import { html, LitElement } from 'lit';
@@ -76,7 +76,7 @@ constructor() {
 
 ## API
 
-### `new UseMachine(host, {machine, options?, subscriptionProperty?})`
+### `new UseMachine(host, {machine, options?, callback?})`
 
 A class that creates an actor from the given machine and starts a service that runs for the lifetime of the component.
 
@@ -91,7 +91,7 @@ A class that creates an actor from the given machine and starts a service that r
 
 `actor` - Returns the actor (state machine) instance.
 `snapshot` - Returns the current state snapshot.
-`send` - Sends an event to the state machine.
+`send` - Send an event to the state machine.
 `unsubscribe` - Unsubscribes from state updates.
 
 ## Matching States
@@ -118,9 +118,9 @@ const persistedState = JSON.parse(
 );
 // highlight-end
 
-connectedCallback() {
-  super.connectedCallback && super.connectedCallback();
-  this.fetchController = this.fetchController ?? new UseMachine(this, {
+constructor() {
+  super();
+  this.fetchController = new UseMachine(this, {
     machine: someMachine,
     options: {
       snapshot: this.persistedState
