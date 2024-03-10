@@ -138,7 +138,8 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
         error: undefined,
         context: undefined,
         input,
-        _subscription: undefined
+        _subscription: undefined,
+        children: {}
       };
     },
     start: (state, { self, system }) => {
@@ -278,7 +279,8 @@ export function fromEventObservable<
         error: undefined,
         context: undefined,
         input,
-        _subscription: undefined
+        _subscription: undefined,
+        children: {}
       };
     },
     start: (state, { self, system }) => {

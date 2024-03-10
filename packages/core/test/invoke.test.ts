@@ -2264,7 +2264,8 @@ describe('invoke', () => {
           status: 'active',
           output: undefined,
           error: undefined,
-          context: 0
+          context: 0,
+          children: {}
         }),
         getPersistedSnapshot: (s) => s
       };
@@ -2305,7 +2306,8 @@ describe('invoke', () => {
         getInitialSnapshot: () => ({
           status: 'active',
           output: undefined,
-          error: undefined
+          error: undefined,
+          children: {}
         }),
         getPersistedSnapshot: (s) => s
       };

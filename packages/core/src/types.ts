@@ -2175,21 +2175,25 @@ export type Snapshot<TOutput> =
       status: 'active';
       output: undefined;
       error: undefined;
+      children: Record<string, AnyActorRef | undefined>;
     }
   | {
       status: 'done';
       output: TOutput;
       error: undefined;
+      children: Record<string, AnyActorRef | undefined>;
     }
   | {
       status: 'error';
       output: undefined;
       error: unknown;
+      children: Record<string, AnyActorRef | undefined>;
     }
   | {
       status: 'stopped';
       output: undefined;
       error: undefined;
+      children: Record<string, AnyActorRef | undefined>;
     };
 
 /**

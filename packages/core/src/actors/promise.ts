@@ -161,7 +161,8 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
         status: 'active',
         output: undefined,
         error: undefined,
-        input
+        input,
+        children: {}
       };
     },
     getPersistedSnapshot: (snapshot) => snapshot,

@@ -132,7 +132,8 @@ export function fromTransition<
         context:
           typeof initialContext === 'function'
             ? (initialContext as any)({ input })
-            : initialContext
+            : initialContext,
+        children: {}
       };
     },
     getPersistedSnapshot: (snapshot) => snapshot,
