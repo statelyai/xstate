@@ -79,11 +79,12 @@ function resolveSpawn(
       `Actor type '${src}' not found in machine '${actorScope.id}'.`
     );
   }
+
   return [
     cloneMachineSnapshot(snapshot, {
       children: {
         ...snapshot.children,
-        [resolvedId]: actorRef!
+        [resolvedId]: actorRef
       }
     }),
     {

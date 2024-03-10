@@ -6,7 +6,9 @@ import {
   fromObservable,
   fromPromise,
   sendTo,
-  spawnChild
+  setup,
+  spawnChild,
+  toPromise
 } from '../src';
 
 describe('spawnChild action', () => {
@@ -111,5 +113,33 @@ describe('spawnChild action', () => {
     createActor(machine).start();
 
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it(`should handle dynamic input`, async () => {
+    const child = fromPromise(({ input }: { input: number }) =>
+      Promise.resolve(input)
+    );
+
+    const machine = setup({
+      actors: {
+        child
+      }
+    }).createMachine({
+      context: {
+        number: 42
+      },
+      entry: spawnChild('child', {
+        input: ({ context }) => context.number,
+        id: 'someChild'
+      })
+    });
+
+    const actor = createActor(machine).start();
+
+    const childActor = actor.getSnapshot().children.someChild;
+
+    const output = await toPromise(childActor!);
+
+    expect(output).toEqual(42);
   });
 });

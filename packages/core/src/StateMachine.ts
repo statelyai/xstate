@@ -400,13 +400,13 @@ export class StateMachine<
       TOutput
     >
   ): void {
-    Object.values(snapshot.children as Record<string, AnyActorRef>).forEach(
-      (child: any) => {
-        if (child.getSnapshot().status === 'active') {
-          child.start();
-        }
+    for (const child of Object.values(
+      snapshot.children as Record<string, AnyActorRef>
+    )) {
+      if (child.getSnapshot().status === 'active') {
+        child.start();
       }
-    );
+    }
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
