@@ -74,6 +74,10 @@ export type Cast<A, B> = A extends B ? A : B;
 // @TODO: Replace with native `NoInfer` when TS issue gets fixed:
 // https://github.com/microsoft/TypeScript/pull/57673
 export type DoNotInfer<T> = [T][T extends any ? 0 : any];
+/**
+ * @deprecated Use the built-in `NoInfer` type instead
+ */
+export type NoInfer<T> = DoNotInfer<T>;
 export type LowInfer<T> = T & {};
 
 export type MetaObject = Record<string, any>;
