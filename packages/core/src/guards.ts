@@ -6,10 +6,10 @@ import type {
   ParameterizedObject,
   AnyMachineSnapshot,
   NoRequiredParams,
-  NoInfer,
   WithDynamicParams,
   Identity,
-  Elements
+  Elements,
+  DoNotInfer
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
 
@@ -174,7 +174,7 @@ export function not<
   TContext,
   TExpressionEvent,
   unknown,
-  NormalizeGuardArg<NoInfer<TArg>>
+  NormalizeGuardArg<DoNotInfer<TArg>>
 > {
   function not(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
     if (isDevelopment) {
@@ -248,7 +248,7 @@ export function and<
   TContext,
   TExpressionEvent,
   unknown,
-  NormalizeGuardArgArray<NoInfer<TArg>>
+  NormalizeGuardArgArray<DoNotInfer<TArg>>
 > {
   function and(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
     if (isDevelopment) {
@@ -320,7 +320,7 @@ export function or<
   TContext,
   TExpressionEvent,
   unknown,
-  NormalizeGuardArgArray<NoInfer<TArg>>
+  NormalizeGuardArgArray<DoNotInfer<TArg>>
 > {
   function or(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
     if (isDevelopment) {

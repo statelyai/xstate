@@ -6,9 +6,9 @@ import {
   AnyEventObject,
   AnyMachineSnapshot,
   DelayExpr,
+  DoNotInfer,
   EventObject,
   MachineContext,
-  NoInfer,
   ParameterizedObject,
   RaiseActionOptions,
   SendExpr
@@ -121,13 +121,13 @@ export function raise<
   TUsedDelay extends TDelay = never
 >(
   eventOrExpr:
-    | NoInfer<TEvent>
-    | SendExpr<TContext, TExpressionEvent, TParams, NoInfer<TEvent>, TEvent>,
+    | DoNotInfer<TEvent>
+    | SendExpr<TContext, TExpressionEvent, TParams, DoNotInfer<TEvent>, TEvent>,
   options?: RaiseActionOptions<
     TContext,
     TExpressionEvent,
     TParams,
-    NoInfer<TEvent>,
+    DoNotInfer<TEvent>,
     TUsedDelay
   >
 ): ActionFunction<
