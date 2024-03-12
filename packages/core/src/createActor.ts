@@ -678,10 +678,17 @@ export class Actor<TLogic extends AnyActorLogic>
    * @param event The event to send
    */
   public send(event: EventFromLogic<TLogic>) {
-    if (isDevelopment && typeof event === 'string') {
-      throw new Error(
-        `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
-      );
+    if (isDevelopment) {
+      if (typeof event === 'string') {
+        throw new Error(
+          `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
+        );
+      }
+      if (this._processingStatus === ProcessingStatus.NotStarted) {
+        console.warn(
+          `Event "${event.type}" sent to actor "${this.id}" before it started. Remember to call \`actor.start()\` before sending events.`
+        );
+      }
     }
     this.system._relay(undefined, this, event);
   }
