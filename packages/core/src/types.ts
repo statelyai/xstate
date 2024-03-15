@@ -1993,8 +1993,7 @@ export interface ActorRef<
   getPersistedSnapshot: () => Snapshot<unknown>;
   stop: () => void;
   toJSON?: () => any;
-  // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
-  _parent?: AnyActorRef;
+  _parent?: Omit<AnyActorRef, '_parent'>;
   system: AnyActorSystem;
   /** @internal */
   _processingStatus: ProcessingStatus;
