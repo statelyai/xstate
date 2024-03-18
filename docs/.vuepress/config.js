@@ -405,6 +405,7 @@ module.exports = {
       {
         title: 'Examples',
         children: [
+          '/examples/xstate-catalogue',
           '/examples/counter',
           '/examples/todomvc',
           '/examples/calculator',
