@@ -30,6 +30,7 @@ import type {
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
+  DoNotInfer,
   Equals,
   EventDescriptor,
   EventObject,
@@ -38,14 +39,12 @@ import type {
   MachineConfig,
   MachineContext,
   MachineImplementationsSimplified,
-  NoInfer,
   ParameterizedObject,
   ProvidedActor,
   Snapshot,
   SnapshotFrom,
   StateMachineDefinition,
   StateValue,
-  TODO,
   TransitionDefinition
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
@@ -68,7 +67,7 @@ export class StateMachine<
   TEmitted extends EventObject = EventObject, // TODO: remove default
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
-    NoInfer<TEvent>,
+    DoNotInfer<TEvent>,
     TActor,
     TAction,
     TGuard,

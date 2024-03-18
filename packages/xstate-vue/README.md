@@ -2,7 +2,7 @@
 
 This package contains utilities for using [XState](https://github.com/statelyai/xstate) with [Vue](https://github.com/vuejs/vue).
 
-- [Read the full documentation in the XState docs](https://xstate.js.org/docs/packages/xstate-vue/).
+- [Read the full documentation in the XState docs](https://stately.ai/docs/xstate-vue).
 - [Read our contribution guidelines](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md).
 
 ## :warning: Vue 2 Notice:
@@ -45,13 +45,13 @@ const toggleMachine = createMachine({
   }
 });
 
-const { snapshot: state, send } = useMachine(toggleMachine);
+const { snapshot, send } = useMachine(toggleMachine);
 </script>
 
 <template>
   <button @click="send({ type: 'TOGGLE' })">
     {{
-      state.value === 'inactive'
+      snapshot.value === 'inactive'
         ? 'Click to activate'
         : 'Active! Click to deactivate'
     }}
