@@ -31,6 +31,7 @@ import {
 } from '../src/index.ts';
 import { setup } from '../src/setup.ts';
 import { sleep } from '@xstate-repo/jest-utils';
+import { XSTATE_STOP } from '../src/constants.ts';
 
 describe('spawning machines', () => {
   const context = {
@@ -1009,6 +1010,23 @@ describe('actors', () => {
 
     expect(cleanup1).toBeCalledTimes(1);
     expect(cleanup2).toBeCalledTimes(1);
+  });
+
+  it('should receive an "xstate.stop" event when stopped', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      on: {
+        [XSTATE_STOP]: {
+          actions: spy
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    actor.stop();
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   describe('with actor logic', () => {

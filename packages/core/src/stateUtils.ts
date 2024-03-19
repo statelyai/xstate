@@ -1647,22 +1647,6 @@ export function macrostep(
     microstates.push(microstate);
   }
 
-  // Handle stop event
-  if (event.type === XSTATE_STOP) {
-    nextSnapshot = cloneMachineSnapshot(
-      stopChildren(nextSnapshot, event, actorScope),
-      {
-        status: 'stopped'
-      }
-    );
-    addMicrostate(nextSnapshot, event, []);
-
-    return {
-      snapshot: nextSnapshot,
-      microstates
-    };
-  }
-
   let nextEvent = event;
 
   // Assume the state is at rest (no raised events)
@@ -1678,6 +1662,9 @@ export function macrostep(
       // `*` shouldn't be matched, likely `xstate.error.*` shouldnt be either
       // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
       nextSnapshot = cloneMachineSnapshot<typeof snapshot>(snapshot, {
+        // TODO: determine if this should be "stop" or "error"
+        // if event.type === XSTATE_STOP
+        // Both seem valid...
         status: 'error',
         error: currentEvent.error
       });
@@ -1729,6 +1716,9 @@ export function macrostep(
     shouldSelectEventlessTransitions = nextSnapshot !== previousState;
     addMicrostate(nextSnapshot, nextEvent, enabledTransitions);
   }
+
+  nextSnapshot.status =
+    event.type === XSTATE_STOP ? 'stopped' : nextSnapshot.status;
 
   if (nextSnapshot.status !== 'active') {
     stopChildren(nextSnapshot, nextEvent, actorScope);
