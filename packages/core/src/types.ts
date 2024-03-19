@@ -2167,6 +2167,10 @@ export interface ActorScope<
   emit: (event: TEmitted) => void;
   system: TSystem;
   stopChild: (child: AnyActorRef) => void;
+  spawnChild: <T extends AnyActorLogic>(
+    logic: T,
+    actorOptions?: ActorOptions<T>
+  ) => ActorRefFrom<T>;
 }
 
 export type AnyActorScope = ActorScope<

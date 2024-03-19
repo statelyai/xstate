@@ -4,6 +4,7 @@ import {
   ActorLogic,
   ActorRefFrom,
   AnyActorRef,
+  AnyActorScope,
   AnyEventObject,
   EventObject,
   NonReducibleUnknown,
@@ -55,7 +56,8 @@ export type InvokeCallback<
   system,
   self,
   sendBack,
-  receive
+  receive,
+  spawnChild
 }: {
   /**
    * Data that was provided to the callback actor
@@ -79,6 +81,7 @@ export type InvokeCallback<
    * the listener is then called whenever events are received by the callback actor
    */
   receive: Receiver<TEvent>;
+  spawnChild: AnyActorScope['spawnChild'];
 }) => (() => void) | void;
 
 /**
@@ -147,7 +150,7 @@ export function fromCallback<
   const logic: CallbackActorLogic<TEvent, TInput> = {
     config: invokeCallback,
     start: (state, actorScope) => {
-      const { self, system } = actorScope;
+      const { self, system, spawnChild } = actorScope;
 
       const callbackState: CallbackInstanceState<TEvent> = {
         receivers: undefined,
@@ -171,7 +174,8 @@ export function fromCallback<
         receive: (listener) => {
           callbackState.receivers ??= new Set();
           callbackState.receivers.add(listener);
-        }
+        },
+        spawnChild
       });
     },
     transition: (state, event, actorScope) => {
