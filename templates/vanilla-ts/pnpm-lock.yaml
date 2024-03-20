@@ -7,10 +7,10 @@ settings:
 dependencies:
   '@statelyai/inspect':
     specifier: ^0.2.5
-    version: 0.2.5(ws@8.16.0)(xstate@5.4.1)
+    version: 0.2.5(ws@8.16.0)(xstate@5.9.1)
   xstate:
-    specifier: 5.4.1
-    version: 5.4.1
+    specifier: ^5.9.1
+    version: 5.9.1
 
 devDependencies:
   typescript:
@@ -333,7 +333,7 @@ packages:
     dev: true
     optional: true
 
-  /@statelyai/inspect@0.2.5(ws@8.16.0)(xstate@5.4.1):
+  /@statelyai/inspect@0.2.5(ws@8.16.0)(xstate@5.9.1):
     resolution: {integrity: sha512-cm8MuyjLlGA4r9/LzvFLdpAmZg6JYgbmGFc4sHzG1NLHX/kybyLVuYLNc2It6i02tSPmu6eae97JV3nr/hIVIA==, tarball: https://registry.npmjs.org/@statelyai/inspect/-/inspect-0.2.5.tgz}
     peerDependencies:
       xstate: ^5.5.1
@@ -344,7 +344,7 @@ packages:
       safe-stable-stringify: 2.4.3
       superjson: 1.13.3
       uuid: 9.0.1
-      xstate: 5.4.1
+      xstate: 5.9.1
     transitivePeerDependencies:
       - ws
     dev: false
@@ -545,6 +545,6 @@ packages:
         optional: true
     dev: false
 
-  /xstate@5.4.1:
-    resolution: {integrity: sha512-1DDT047hsTCSgm3BwLyb4sXQDmTdbLutc4ni0MLACgd2yX6vij35pnNNf1F4U6kQ8njx6NxQ6wpLjlh1lqs0NQ==, tarball: https://registry.npmjs.org/xstate/-/xstate-5.4.1.tgz}
+  /xstate@5.9.1:
+    resolution: {integrity: sha512-85edx7iMqRJSRlEPevDwc98EWDYUlT5zEQ54AXuRVR+G76gFbcVTAUdtAeqOVxy8zYnUr9FBB5114iK6enljjw==, tarball: https://registry.npmjs.org/xstate/-/xstate-5.9.1.tgz}
     dev: false

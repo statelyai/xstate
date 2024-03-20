@@ -14,6 +14,6 @@
   },
   "dependencies": {
     "@statelyai/inspect": "^0.2.5",
-    "xstate": "^5.4.1"
+    "xstate": "^5.9.1"
   }
 }
