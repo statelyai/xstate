@@ -8,7 +8,8 @@ import {
   Recipe,
   EventPayloadMap,
   Store,
-  ExtractEventsFromPayloadMap
+  ExtractEventsFromPayloadMap,
+  StoreSnapshot
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -82,8 +83,12 @@ export function createStore<
   ) => NoInfer<TContext>
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
   const setter = updater ?? defaultSetter;
-  let currentContext = context;
+  let observers: Set<Observer<StoreSnapshot<TContext>>> | undefined;
+  const initialSnapshot = { context };
+  let currentSnapshot = initialSnapshot;
+
   function receive(ev: ExtractEventsFromPayloadMap<TEventPayloadMap>) {
+    let currentContext = currentSnapshot.context;
     const fn =
       transitions?.[
         ev.type as ExtractEventsFromPayloadMap<TEventPayloadMap>['type']
@@ -111,9 +116,10 @@ export function createStore<
       currentContext = Object.assign({}, currentContext, partialUpdate);
     }
 
-    observers?.forEach((o) => o.next?.(currentContext));
+    currentSnapshot = { context: currentContext };
+
+    observers?.forEach((o) => o.next?.(currentSnapshot));
   }
-  let observers: Set<Observer<any>> | undefined;
 
   const store: Store<
     TContext,
@@ -123,10 +129,10 @@ export function createStore<
       receive(ev as unknown as ExtractEventsFromPayloadMap<TEventPayloadMap>);
     },
     getSnapshot() {
-      return currentContext;
+      return currentSnapshot;
     },
     getInitialSnapshot() {
-      return context;
+      return initialSnapshot;
     },
     subscribe(observerOrFn) {
       const observer = toObserver(observerOrFn);
@@ -141,13 +147,6 @@ export function createStore<
     },
     [symbolObservable](): InteropSubscribable<any> {
       return this;
-    },
-    withTransitions(newTransitions) {
-      return createStore(
-        context,
-        { ...transitions, ...newTransitions },
-        updater
-      ) as any;
     }
   };
 

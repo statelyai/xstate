@@ -17,8 +17,8 @@ it('updates a store with an event without mutating original context', () => {
 
   const next = store.getSnapshot();
 
-  expect(initial).toEqual({ count: 0 });
-  expect(next).toEqual({ count: 1 });
+  expect(initial.context).toEqual({ count: 0 });
+  expect(next.context).toEqual({ count: 1 });
   expect(context.count).toEqual(0);
 });
 
@@ -39,12 +39,12 @@ it('can update context with a property assigner', () => {
   store.send({
     type: 'inc'
   });
-  expect(store.getSnapshot()).toEqual({ count: 1, greeting: 'hello' });
+  expect(store.getSnapshot().context).toEqual({ count: 1, greeting: 'hello' });
 
   store.send({
     type: 'updateBoth'
   });
-  expect(store.getSnapshot()).toEqual({ count: 42, greeting: 'hi' });
+  expect(store.getSnapshot().context).toEqual({ count: 42, greeting: 'hi' });
 });
 
 it('handles unknown events (does not do anything)', () => {
@@ -61,7 +61,7 @@ it('handles unknown events (does not do anything)', () => {
     // @ts-expect-error
     type: 'unknown'
   });
-  expect(store.getSnapshot()).toEqual({ count: 0 });
+  expect(store.getSnapshot().context).toEqual({ count: 0 });
 });
 
 it('updates state from sent events', () => {
@@ -91,10 +91,10 @@ it('updates state from sent events', () => {
   store.send({ type: 'inc', by: 9 });
   store.send({ type: 'dec', by: 3 });
 
-  expect(store.getSnapshot()).toEqual({ count: 6 });
+  expect(store.getSnapshot().context).toEqual({ count: 6 });
   store.send({ type: 'clear' });
 
-  expect(store.getSnapshot()).toEqual({ count: 0 });
+  expect(store.getSnapshot().context).toEqual({ count: 0 });
 });
 
 it('works with a custom API', () => {
@@ -115,8 +115,8 @@ it('works with a custom API', () => {
 
   store.send({ type: 'inc' });
 
-  expect(store.getSnapshot()).toEqual({ count: 1 });
-  expect(store.getInitialSnapshot()).toEqual({ count: 0 });
+  expect(store.getSnapshot().context).toEqual({ count: 1 });
+  expect(store.getInitialSnapshot().context).toEqual({ count: 0 });
 });
 
 it('works with immer', () => {
@@ -138,8 +138,8 @@ it('works with immer', () => {
     type: 'whatever'
   });
 
-  expect(store.getSnapshot()).toEqual({ count: 3 });
-  expect(store.getInitialSnapshot()).toEqual({ count: 0 });
+  expect(store.getSnapshot().context).toEqual({ count: 3 });
+  expect(store.getInitialSnapshot().context).toEqual({ count: 0 });
 });
 
 it('can be observed', () => {
@@ -156,7 +156,7 @@ it('can be observed', () => {
 
   const counts: number[] = [];
 
-  const sub = store.subscribe((s) => counts.push(s.count));
+  const sub = store.subscribe((s) => counts.push(s.context.count));
 
   store.send({ type: 'inc' }); // 1
   store.send({ type: 'inc' }); // 2

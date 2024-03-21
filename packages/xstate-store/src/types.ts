@@ -17,6 +17,10 @@ export type PropertyAssigner<TC, TE extends EventObject> = {
   [K in keyof TC]?: TC[K] | ((ctx: TC, ev: TE) => Partial<TC>[K]);
 };
 
+export interface StoreSnapshot<TContext> {
+  context: TContext;
+}
+
 /**
  * An actor-like object that:
  * - has its own state
@@ -24,16 +28,11 @@ export type PropertyAssigner<TC, TE extends EventObject> = {
  * - is observable
  */
 export interface Store<TContext, Ev extends EventObject>
-  extends Subscribable<TContext>,
-    InteropObservable<TContext> {
+  extends Subscribable<StoreSnapshot<TContext>>,
+    InteropObservable<StoreSnapshot<TContext>> {
   send: (event: Ev) => void;
-  getSnapshot: () => TContext;
-  getInitialSnapshot: () => TContext;
-  withTransitions: <TEventPayloadMap extends EventPayloadMap>(transitions: {
-    [K in keyof TEventPayloadMap & string]:
-      | Assigner<NoInfer<TContext>, { type: K } & TEventPayloadMap[K]>
-      | PropertyAssigner<NoInfer<TContext>, { type: K } & TEventPayloadMap[K]>;
-  }) => Store<TContext, Ev | ExtractEventsFromPayloadMap<TEventPayloadMap>>;
+  getSnapshot: () => StoreSnapshot<TContext>;
+  getInitialSnapshot: () => StoreSnapshot<TContext>;
 }
 
 export type ContextFromStore<TStore extends Store<any, any>> =
