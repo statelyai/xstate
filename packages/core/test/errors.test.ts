@@ -833,7 +833,8 @@ describe('error handling', () => {
       status: 'error',
       output: undefined,
       error: 'immediate error!',
-      context: undefined
+      context: undefined,
+      children: {}
     });
 
     const machine = createMachine(
