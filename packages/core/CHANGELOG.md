@@ -1,5 +1,49 @@
 # xstate
 
+## 5.9.1
+
+### Patch Changes
+
+- [#4780](https://github.com/statelyai/xstate/pull/4780) [`567267ed2`](https://github.com/statelyai/xstate/commit/567267ed2db596375032aaf075fb682524423541) Thanks [@Andarist](https://github.com/Andarist)! - Add missing `emit` export
+
+## 5.9.0
+
+### Minor Changes
+
+- [#4746](https://github.com/statelyai/xstate/pull/4746) [`b570ba20d`](https://github.com/statelyai/xstate/commit/b570ba20d7350819cbaf6740ff00a2bad5ffedfe) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The new `emit(…)` action creator emits events that can be received by listeners. Actors are now event emitters.
+
+  ```ts
+  import { emit } from 'xstate';
+
+  const machine = createMachine({
+    // ...
+    on: {
+      something: {
+        actions: emit({
+          type: 'emitted',
+          some: 'data'
+        })
+      }
+    }
+    // ...
+  });
+
+  const actor = createActor(machine).start();
+
+  actor.on('emitted', (event) => {
+    console.log(event);
+  });
+
+  actor.send({ type: 'something' });
+  // logs:
+  // {
+  //   type: 'emitted',
+  //   some: 'data'
+  // }
+  ```
+
+- [#4777](https://github.com/statelyai/xstate/pull/4777) [`4abeed9df`](https://github.com/statelyai/xstate/commit/4abeed9dfbaa01d2c1f8f7278aa600086a8a8386) Thanks [@Andarist](https://github.com/Andarist)! - Added support for `params` to `enqueueActions`
+
 ## 5.8.2
 
 ### Patch Changes

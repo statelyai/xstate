@@ -192,6 +192,7 @@ export function spawnChild<
   TActor,
   never,
   never,
+  never,
   never
 > {
   function spawnChild(

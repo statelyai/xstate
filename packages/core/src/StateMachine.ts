@@ -30,6 +30,7 @@ import type {
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
+  DoNotInfer,
   Equals,
   EventDescriptor,
   EventObject,
@@ -38,14 +39,12 @@ import type {
   MachineConfig,
   MachineContext,
   MachineImplementationsSimplified,
-  NoInfer,
   ParameterizedObject,
   ProvidedActor,
   Snapshot,
   SnapshotFrom,
   StateMachineDefinition,
   StateValue,
-  TODO,
   TransitionDefinition
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
@@ -65,21 +64,24 @@ export class StateMachine<
   TTag extends string,
   TInput,
   TOutput,
+  TEmitted extends EventObject = EventObject, // TODO: remove default
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
-    NoInfer<TEvent>,
+    DoNotInfer<TEvent>,
     TActor,
     TAction,
     TGuard,
     TDelay,
-    TTag
+    TTag,
+    TEmitted
   >
 > implements
     ActorLogic<
       MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>,
       TEvent,
       TInput,
-      AnyActorSystem
+      AnyActorSystem,
+      TEmitted
     >
 {
   /**
@@ -190,6 +192,7 @@ export class StateMachine<
     TTag,
     TInput,
     TOutput,
+    TEmitted,
     TResolvedTypesMeta
   > {
     const { actions, guards, actors, delays } = this.implementations;
@@ -259,7 +262,7 @@ export class StateMachine<
       TOutput
     >,
     event: TEvent,
-    actorScope: ActorScope<typeof snapshot, TEvent>
+    actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
   ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
     return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
   }
@@ -345,7 +348,9 @@ export class StateMachine<
   public getInitialSnapshot(
     actorScope: ActorScope<
       MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>,
-      TEvent
+      TEvent,
+      AnyActorSystem,
+      TEmitted
     >,
     input?: TInput
   ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
@@ -445,7 +450,9 @@ export class StateMachine<
     snapshot: Snapshot<unknown>,
     _actorScope: ActorScope<
       MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>,
-      TEvent
+      TEvent,
+      AnyActorSystem,
+      TEmitted
     >
   ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
     const children: Record<string, AnyActorRef> = {};

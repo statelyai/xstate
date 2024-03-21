@@ -4,6 +4,7 @@ export {
   type AssignArgs
 } from './actions/assign.ts';
 export { cancel, type CancelAction } from './actions/cancel.ts';
+export { emit, type EmitAction } from './actions/emit.ts';
 export {
   enqueueActions,
   type EnqueueActionsAction

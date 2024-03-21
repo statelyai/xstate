@@ -12,6 +12,7 @@ import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import {
   ActorRef,
   ActorRefFrom,
+  AnyActorRef,
   EventObject,
   Snapshot,
   assign,
@@ -2463,7 +2464,7 @@ describe('forwardTo()', () => {
 
     const parent = createMachine({
       types: {} as {
-        context: { child?: ActorRef<any, any> };
+        context: { child?: AnyActorRef };
         events: { type: 'EVENT'; value: number } | { type: 'SUCCESS' };
       },
       id: 'parent',

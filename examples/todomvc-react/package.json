@@ -12,12 +12,12 @@
     "react-dom": "^17.0.2",
     "todomvc-app-css": "^2.4.3",
     "todomvc-common": "^1.0.5",
-    "xstate": "^5.8.0"
+    "xstate": "^5.9.1"
   },
   "devDependencies": {
-    "@types/react": "^17.0.75",
+    "@types/react": "^17.0.79",
     "@types/react-dom": "^17.0.25",
-    "typescript": "^5.3.3",
+    "typescript": "^5.4.2",
     "vite": "1.0.0-rc.13",
     "vite-plugin-react": "^4.0.1"
   }

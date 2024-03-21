@@ -30,7 +30,8 @@ export type ObservableActorLogic<
   ObservableSnapshot<TContext, TInput>,
   { type: string; [k: string]: unknown },
   TInput,
-  AnyActorSystem
+  AnyActorSystem,
+  EventObject // TEmitted
 >;
 
 export type ObservableActorRef<TContext> = ActorRefFrom<

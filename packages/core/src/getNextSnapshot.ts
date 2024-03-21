@@ -3,6 +3,7 @@ import {
   ActorScope,
   AnyActorLogic,
   AnyActorScope,
+  EmittedFrom,
   EventFromLogic,
   InputFrom,
   SnapshotFrom
@@ -13,14 +14,20 @@ export function createInertActorScope<T extends AnyActorLogic>(
   actorLogic: T
 ): AnyActorScope {
   const self = createActor(actorLogic as AnyActorLogic);
-  const inertActorScope: ActorScope<SnapshotFrom<T>, EventFromLogic<T>, any> = {
+  const inertActorScope: ActorScope<
+    SnapshotFrom<T>,
+    EventFromLogic<T>,
+    any,
+    EmittedFrom<T>
+  > = {
     self,
     defer: () => {},
     id: '',
     logger: () => {},
     sessionId: '',
     stopChild: () => {},
-    system: self.system
+    system: self.system,
+    emit: () => {}
   };
 
   return inertActorScope;

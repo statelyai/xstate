@@ -4,18 +4,17 @@ import { createErrorActorEvent } from '../eventUtils.ts';
 import {
   ActionArgs,
   ActionFunction,
-  ActorRef,
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
   AnyMachineSnapshot,
   Cast,
   DelayExpr,
+  DoNotInfer,
   EventFrom,
   EventObject,
   InferEvent,
   MachineContext,
-  NoInfer,
   ParameterizedObject,
   SendExpr,
   SendToActionOptions,
@@ -219,7 +218,7 @@ export function sendTo<
     TContext,
     TExpressionEvent,
     TParams,
-    NoInfer<TEvent>,
+    DoNotInfer<TEvent>,
     TUsedDelay
   >
 ): ActionFunction<
@@ -230,7 +229,8 @@ export function sendTo<
   never,
   never,
   never,
-  TDelay
+  TDelay,
+  never
 > {
   function sendTo(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
@@ -298,11 +298,11 @@ type Target<
   TEvent extends EventObject
 > =
   | string
-  | ActorRef<any, any>
+  | AnyActorRef
   | ((
       args: ActionArgs<TContext, TExpressionEvent, TEvent>,
       params: TParams
-    ) => string | ActorRef<any, any>);
+    ) => string | AnyActorRef);
 
 /**
  * Forwards (sends) an event to the `target` actor.

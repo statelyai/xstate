@@ -1,13 +1,4 @@
-import {
-  EventObject,
-  AnyStateMachine,
-  StateFrom,
-  EventFrom,
-  ActorLogic,
-  AnyActorLogic,
-  EventFromLogic,
-  SnapshotFrom
-} from 'xstate';
+import { AnyActorLogic, EventFromLogic } from 'xstate';
 import {
   SerializedEvent,
   SerializedState,
@@ -16,7 +7,7 @@ import {
   TraversalOptions,
   VisitedContext
 } from './types';
-import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
+import { resolveTraversalOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
 import { alterPath } from './alterPath';
 import { createMockActorScope } from './actorScope';
