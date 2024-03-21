@@ -16,7 +16,7 @@ it('useSelector should work', () => {
   );
 
   const Counter = () => {
-    const count = useSelector(store, (s) => s.count);
+    const count = useSelector(store, (s) => s.context.count);
 
     return (
       <div
@@ -61,7 +61,7 @@ it('useSelector can take in a custom comparator', () => {
     renderCount++;
     const items = useSelector(
       store,
-      (s) => s.items,
+      (s) => s.context.items,
       (a, b) => JSON.stringify(a) === JSON.stringify(b)
     );
 
@@ -119,7 +119,7 @@ it('can batch updates', () => {
   );
 
   const Counter = () => {
-    const count = useSelector(store, (s) => s.count);
+    const count = useSelector(store, (s) => s.context.count);
 
     return (
       <div

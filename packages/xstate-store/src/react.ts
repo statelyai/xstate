@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
-import { Store, ContextFromStore } from './types';
+import { Store, SnapshotFromStore } from './types';
 
 type SyncExternalStoreSubscribe = Parameters<
   typeof useSyncExternalStoreWithSelector
@@ -14,7 +14,7 @@ export function useSelector<TStore extends Store<any, any> | undefined, T>(
   actor: TStore,
   selector: (
     emitted: TStore extends Store<any, any>
-      ? ContextFromStore<TStore>
+      ? SnapshotFromStore<TStore>
       : undefined
   ) => T,
   compare: (a: T, b: T) => boolean = defaultCompare
@@ -34,6 +34,7 @@ export function useSelector<TStore extends Store<any, any> | undefined, T>(
 
   const selectedSnapshot = useSyncExternalStoreWithSelector(
     subscribe,
+    // @ts-ignore
     boundGetSnapshot,
     boundGetSnapshot,
     selector,

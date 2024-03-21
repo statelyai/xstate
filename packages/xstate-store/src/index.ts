@@ -9,7 +9,9 @@ import {
   EventPayloadMap,
   Store,
   ExtractEventsFromPayloadMap,
-  StoreSnapshot
+  StoreSnapshot,
+  PartialAssigner,
+  CompleteAssigner
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -37,9 +39,15 @@ function defaultSetter<T>(ctx: T, recipe: Recipe<T, T>): T {
   return recipe(ctx);
 }
 
-type Assigner<TC, TE extends EventObject> = (ctx: TC, ev: TE) => Partial<TC>;
-type PropertyAssigner<TC, TE extends EventObject> = {
-  [K in keyof TC]?: TC[K] | ((ctx: TC, ev: TE) => Partial<TC>[K]);
+type Assigner<TContext, TEvent extends EventObject> = (
+  ctx: TContext,
+  ev: TEvent
+) => Partial<TContext>;
+
+type PropertyAssigner<TContext, TEvent extends EventObject> = {
+  [K in keyof TContext]?:
+    | TContext[K]
+    | ((ctx: TContext, ev: TEvent) => Partial<TContext>[K]);
 };
 
 /**
@@ -62,9 +70,9 @@ type PropertyAssigner<TC, TE extends EventObject> = {
     }
   });
 
-  store.getSnapshot(); // { count: 0 }
+  store.getSnapshot(); // { context: { count: 0 } }
   store.send({ type: 'inc', by: 5 });
-  store.getSnapshot(); // { count: 5 }
+  store.getSnapshot(); // { context: { count: 5 } }
   ```
  */
 export function createStore<
@@ -89,28 +97,35 @@ export function createStore<
 
   function receive(ev: ExtractEventsFromPayloadMap<TEventPayloadMap>) {
     let currentContext = currentSnapshot.context;
-    const fn =
+    const assigner =
       transitions?.[
         ev.type as ExtractEventsFromPayloadMap<TEventPayloadMap>['type']
       ];
 
-    if (!fn) {
+    if (!assigner) {
       return;
     }
 
-    if (typeof fn === 'function') {
+    if (typeof assigner === 'function') {
       currentContext = updater
-        ? updater(currentContext, (d) => fn?.(d, ev as any))
-        : setter(currentContext, (d) =>
-            Object.assign({}, currentContext, fn?.(d, ev as any))
+        ? updater(
+            currentContext,
+            (d) => (assigner as CompleteAssigner<TContext, any>)?.(d, ev)
+          )
+        : setter(
+            currentContext,
+            (d) => Object.assign({}, currentContext, assigner?.(d, ev as any)) // TODO: help me
           );
     } else {
       const partialUpdate: Record<string, unknown> = {};
-      for (const key of Object.keys(fn)) {
-        const propAssignment = fn[key];
+      for (const key of Object.keys(assigner)) {
+        const propAssignment = assigner[key];
         partialUpdate[key] =
           typeof propAssignment === 'function'
-            ? propAssignment(currentContext, ev as any)
+            ? (propAssignment as PartialAssigner<TContext, any, typeof key>)(
+                currentContext,
+                ev
+              )
             : propAssignment;
       }
       currentContext = Object.assign({}, currentContext, partialUpdate);

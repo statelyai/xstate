@@ -1,4 +1,4 @@
-import type { EventObject, Subscribable, Values, NoInfer } from 'xstate';
+import type { EventObject, Subscribable, Values } from 'xstate';
 import { InteropObservable } from 'xstate';
 
 export type EventPayloadMap = Record<string, {} | null | undefined>;
@@ -9,12 +9,21 @@ export type ExtractEventsFromPayloadMap<T extends EventPayloadMap> = Values<{
 
 export type Recipe<T, TReturn> = (state: T) => TReturn;
 
-export type Assigner<TC, TE extends EventObject> = (
-  ctx: TC,
-  ev: TE
-) => Partial<TC>;
-export type PropertyAssigner<TC, TE extends EventObject> = {
-  [K in keyof TC]?: TC[K] | ((ctx: TC, ev: TE) => Partial<TC>[K]);
+export type Assigner<TContext, TEvent extends EventObject> = (
+  ctx: TContext,
+  ev: TEvent
+) => Partial<TContext>;
+export type CompleteAssigner<TContext, TEvent extends EventObject> = (
+  ctx: TContext,
+  ev: TEvent
+) => TContext;
+export type PartialAssigner<
+  TContext,
+  TEvent extends EventObject,
+  K extends keyof TContext
+> = (ctx: TContext, ev: TEvent) => Partial<TContext>[K];
+export type PropertyAssigner<TContext, TEvent extends EventObject> = {
+  [K in keyof TContext]?: TContext[K] | PartialAssigner<TContext, TEvent, K>;
 };
 
 export interface StoreSnapshot<TContext> {
@@ -35,5 +44,5 @@ export interface Store<TContext, Ev extends EventObject>
   getInitialSnapshot: () => StoreSnapshot<TContext>;
 }
 
-export type ContextFromStore<TStore extends Store<any, any>> =
-  TStore extends Store<infer TContext, any> ? TContext : never;
+export type SnapshotFromStore<TStore extends Store<any, any>> =
+  TStore extends Store<infer TContext, any> ? StoreSnapshot<TContext> : never;
