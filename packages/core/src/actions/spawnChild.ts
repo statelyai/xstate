@@ -39,13 +39,15 @@ function resolveSpawn(
     systemId,
     src,
     input,
-    syncSnapshot
+    syncSnapshot,
+    snapshot: persistedSnapshot
   }: {
     id: ResolvableActorId<MachineContext, EventObject, EventObject, string>;
     systemId: string | undefined;
     src: AnyActorLogic | string;
     input?: unknown;
     syncSnapshot: boolean;
+    snapshot?: any;
   }
 ) {
   const logic =
@@ -62,6 +64,7 @@ function resolveSpawn(
       src,
       parent: actorScope.self,
       syncSnapshot,
+      snapshot: persistedSnapshot,
       systemId,
       input:
         typeof input === 'function'
@@ -170,6 +173,7 @@ type SpawnArguments<
         systemId?: string;
         input?: unknown;
         syncSnapshot?: boolean;
+        snapshot?: any;
       }
     ];
 
@@ -182,7 +186,7 @@ export function spawnChild<
 >(
   ...[
     src,
-    { id, systemId, input, syncSnapshot = false } = {} as any
+    { id, systemId, input, syncSnapshot = false, snapshot } = {} as any
   ]: SpawnArguments<TContext, TExpressionEvent, TEvent, TActor>
 ): ActionFunction<
   TContext,
@@ -210,6 +214,7 @@ export function spawnChild<
   spawnChild.src = src;
   spawnChild.input = input;
   spawnChild.syncSnapshot = syncSnapshot;
+  spawnChild.snapshot = snapshot;
 
   spawnChild.resolve = resolveSpawn;
   spawnChild.execute = executeSpawn;

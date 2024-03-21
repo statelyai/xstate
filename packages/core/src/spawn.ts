@@ -57,6 +57,7 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
         systemId?: string;
         input?: TLogic extends string ? unknown : InputFrom<TLogic>;
         syncSnapshot?: boolean;
+        snapshot?: any;
       }
     ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;
 
@@ -67,7 +68,7 @@ export function createSpawner(
   spawnedChildren: Record<string, AnyActorRef>
 ): Spawner<any> {
   const spawn: Spawner<any> = (src, options = {}) => {
-    const { systemId, input } = options;
+    const { systemId, input, snapshot } = options;
     if (typeof src === 'string') {
       const logic = resolveReferencedActor(machine, src);
 
@@ -90,7 +91,8 @@ export function createSpawner(
               })
             : input,
         src,
-        systemId
+        systemId,
+        snapshot
       }) as any;
 
       spawnedChildren[actorRef.id] = actorRef;
