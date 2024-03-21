@@ -753,6 +753,7 @@ export interface StateNodeConfig<
   TOutput,
   TEmitted extends EventObject
 > {
+  invariant?: (context: TContext) => unknown;
   /**
    * The initial state transition.
    */
