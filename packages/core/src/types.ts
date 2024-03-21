@@ -911,6 +911,40 @@ export interface StateNodeConfig<
    * A default target for a history state
    */
   target?: string;
+  route?: RouteTransitionConfig<
+    TContext,
+    TEvent,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay
+  >;
+}
+
+export interface RouteTransitionConfig<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string
+> {
+  guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
+  actions?: Actions<
+    TContext,
+    TExpressionEvent,
+    TEvent,
+    undefined,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay
+  >;
+  reenter?: boolean;
+  meta?: Record<string, any>;
+  description?: string;
 }
 
 export type AnyStateNodeConfig = StateNodeConfig<
