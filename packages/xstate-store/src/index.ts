@@ -1,17 +1,14 @@
-import type {
-  EventObject,
-  InteropSubscribable,
-  MachineContext,
-  Observer
-} from 'xstate';
+import type { InteropSubscribable, MachineContext, Observer } from 'xstate';
 import {
   Recipe,
   EventPayloadMap,
   Store,
   ExtractEventsFromPayloadMap,
   StoreSnapshot,
-  PartialAssigner,
-  CompleteAssigner
+  StorePartialAssigner,
+  StoreCompleteAssigner,
+  StoreAssigner,
+  StorePropertyAssigner
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -35,20 +32,12 @@ export function toObserver<T>(
   };
 }
 
-function defaultSetter<T>(ctx: T, recipe: Recipe<T, T>): T {
-  return recipe(ctx);
+function defaultSetter<TContext extends MachineContext>(
+  context: TContext,
+  recipe: Recipe<TContext, TContext>
+): TContext {
+  return recipe(context);
 }
-
-type Assigner<TContext, TEvent extends EventObject> = (
-  ctx: TContext,
-  ev: TEvent
-) => Partial<TContext>;
-
-type PropertyAssigner<TContext, TEvent extends EventObject> = {
-  [K in keyof TContext]?:
-    | TContext[K]
-    | ((ctx: TContext, ev: TEvent) => Partial<TContext>[K]);
-};
 
 /**
  * Creates a `Store` that has its own internal state and can receive events.
@@ -79,22 +68,25 @@ export function createStore<
   TContext extends MachineContext,
   TEventPayloadMap extends EventPayloadMap
 >(
-  context: TContext,
+  initialContext: TContext,
   transitions: {
     [K in keyof TEventPayloadMap & string]:
-      | Assigner<NoInfer<TContext>, { type: K } & TEventPayloadMap[K]>
-      | PropertyAssigner<NoInfer<TContext>, { type: K } & TEventPayloadMap[K]>;
+      | StoreAssigner<NoInfer<TContext>, { type: K } & TEventPayloadMap[K]>
+      | StorePropertyAssigner<
+          NoInfer<TContext>,
+          { type: K } & TEventPayloadMap[K]
+        >;
   },
   updater?: (
-    ctx: NoInfer<TContext>,
-    recipe: (ctx: NoInfer<TContext>) => NoInfer<TContext>
+    context: NoInfer<TContext>,
+    recipe: (context: NoInfer<TContext>) => NoInfer<TContext>
   ) => NoInfer<TContext>
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
   type StoreEvent = ExtractEventsFromPayloadMap<TEventPayloadMap>;
   const setter = updater ?? defaultSetter;
   let observers: Set<Observer<StoreSnapshot<TContext>>> | undefined;
   const initialSnapshot: StoreSnapshot<TContext> = {
-    context,
+    context: initialContext,
     status: 'active'
   };
   let currentSnapshot = initialSnapshot;
@@ -112,7 +104,7 @@ export function createStore<
         ? updater(
             currentContext,
             (draftContext) =>
-              (assigner as CompleteAssigner<TContext, StoreEvent>)?.(
+              (assigner as StoreCompleteAssigner<TContext, StoreEvent>)?.(
                 draftContext,
                 event
               )
@@ -134,7 +126,7 @@ export function createStore<
         partialUpdate[key] =
           typeof propAssignment === 'function'
             ? (
-                propAssignment as PartialAssigner<
+                propAssignment as StorePartialAssigner<
                   TContext,
                   StoreEvent,
                   typeof key
@@ -151,8 +143,8 @@ export function createStore<
   }
 
   const store: Store<TContext, StoreEvent> = {
-    send(ev) {
-      receive(ev as unknown as StoreEvent);
+    send(event) {
+      receive(event as unknown as StoreEvent);
     },
     getSnapshot() {
       return currentSnapshot;
@@ -179,6 +171,32 @@ export function createStore<
   return store;
 }
 
+/**
+ * Creates a `Store` with a provided producer (such as Immer's `producer(…)`
+ * A store has its own internal state and can receive events.
+ * 
+ * @example
+  ```ts
+  import { produce } from 'immer';
+
+  const store = createStoreWithProducer(produce, {
+    // initial context
+    { count: 0 },
+    // transitions 
+    {
+      on: {
+        inc: (context, event: { by: number }) => {
+          context.count += event.by;
+        }
+      }
+    }
+  });
+
+  store.getSnapshot(); // { context: { count: 0 } }
+  store.send({ type: 'inc', by: 5 });
+  store.getSnapshot(); // { context: { count: 5 } }
+  ```
+ */
 export function createStoreWithProducer<
   TProducer extends <TContext>(
     context: TContext,
@@ -191,8 +209,8 @@ export function createStoreWithProducer<
   initialContext: TContext,
   transitions: {
     [K in keyof TEventPayloadMap & string]: (
-      ctx: NoInfer<TContext>,
-      ev: { type: K } & TEventPayloadMap[K]
+      context: NoInfer<TContext>,
+      event: { type: K } & TEventPayloadMap[K]
     ) => void;
   }
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
