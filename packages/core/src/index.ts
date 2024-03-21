@@ -15,7 +15,7 @@ import { StateNode } from './StateNode.ts';
 // TODO: decide from where those should be exported
 export { and, not, or, stateIn } from './guards.ts';
 export { setup } from './setup.ts';
-export type { ActorSystem } from './system.ts';
+export type { ActorSystem, AnyActorSystem, SystemSnapshot } from './system.ts';
 export type {
   InspectedActorEvent,
   InspectedEventEvent,
