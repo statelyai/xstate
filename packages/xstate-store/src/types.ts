@@ -27,6 +27,7 @@ export type PropertyAssigner<TContext, TEvent extends EventObject> = {
 };
 
 export interface StoreSnapshot<TContext> {
+  status: 'active'; // TODO: it can only be active
   context: TContext;
 }
 

@@ -40,6 +40,8 @@
     "use-sync-external-store": "^1.2.0"
   },
   "devDependencies": {
+    "immer": "^10.0.2",
+    "react": "^18.0.0",
     "xstate": "^5.8.2"
   },
   "peerDependencies": {

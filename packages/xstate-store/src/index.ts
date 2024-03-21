@@ -90,17 +90,18 @@ export function createStore<
     recipe: (ctx: NoInfer<TContext>) => NoInfer<TContext>
   ) => NoInfer<TContext>
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
+  type StoreEvent = ExtractEventsFromPayloadMap<TEventPayloadMap>;
   const setter = updater ?? defaultSetter;
   let observers: Set<Observer<StoreSnapshot<TContext>>> | undefined;
-  const initialSnapshot = { context };
+  const initialSnapshot: StoreSnapshot<TContext> = {
+    context,
+    status: 'active'
+  };
   let currentSnapshot = initialSnapshot;
 
-  function receive(ev: ExtractEventsFromPayloadMap<TEventPayloadMap>) {
+  function receive(event: StoreEvent) {
     let currentContext = currentSnapshot.context;
-    const assigner =
-      transitions?.[
-        ev.type as ExtractEventsFromPayloadMap<TEventPayloadMap>['type']
-      ];
+    const assigner = transitions?.[event.type as StoreEvent['type']];
 
     if (!assigner) {
       return;
@@ -110,11 +111,21 @@ export function createStore<
       currentContext = updater
         ? updater(
             currentContext,
-            (d) => (assigner as CompleteAssigner<TContext, any>)?.(d, ev)
+            (draftContext) =>
+              (assigner as CompleteAssigner<TContext, StoreEvent>)?.(
+                draftContext,
+                event
+              )
           )
-        : setter(
-            currentContext,
-            (d) => Object.assign({}, currentContext, assigner?.(d, ev as any)) // TODO: help me
+        : setter(currentContext, (draftContext) =>
+            Object.assign(
+              {},
+              currentContext,
+              assigner?.(
+                draftContext,
+                event as any // TODO: help me
+              )
+            )
           );
     } else {
       const partialUpdate: Record<string, unknown> = {};
@@ -122,26 +133,26 @@ export function createStore<
         const propAssignment = assigner[key];
         partialUpdate[key] =
           typeof propAssignment === 'function'
-            ? (propAssignment as PartialAssigner<TContext, any, typeof key>)(
-                currentContext,
-                ev
-              )
+            ? (
+                propAssignment as PartialAssigner<
+                  TContext,
+                  StoreEvent,
+                  typeof key
+                >
+              )(currentContext, event)
             : propAssignment;
       }
       currentContext = Object.assign({}, currentContext, partialUpdate);
     }
 
-    currentSnapshot = { context: currentContext };
+    currentSnapshot = { ...currentSnapshot, context: currentContext };
 
     observers?.forEach((o) => o.next?.(currentSnapshot));
   }
 
-  const store: Store<
-    TContext,
-    ExtractEventsFromPayloadMap<TEventPayloadMap>
-  > = {
+  const store: Store<TContext, StoreEvent> = {
     send(ev) {
-      receive(ev as unknown as ExtractEventsFromPayloadMap<TEventPayloadMap>);
+      receive(ev as unknown as StoreEvent);
     },
     getSnapshot() {
       return currentSnapshot;
@@ -160,7 +171,7 @@ export function createStore<
         }
       };
     },
-    [symbolObservable](): InteropSubscribable<any> {
+    [symbolObservable](): InteropSubscribable<StoreSnapshot<TContext>> {
       return this;
     }
   };
@@ -169,12 +180,15 @@ export function createStore<
 }
 
 export function createStoreWithProducer<
-  TProducer extends <T>(ctx: T, recipe: (ctx: T) => void) => T,
+  TProducer extends <TContext>(
+    context: TContext,
+    recipe: (context: TContext) => void
+  ) => TContext,
   TContext extends MachineContext,
   TEventPayloadMap extends EventPayloadMap
 >(
   producer: TProducer,
-  context: TContext,
+  initialContext: TContext,
   transitions: {
     [K in keyof TEventPayloadMap & string]: (
       ctx: NoInfer<TContext>,
@@ -182,7 +196,7 @@ export function createStoreWithProducer<
     ) => void;
   }
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
-  return createStore(context, transitions as any, (ctx, recipe) =>
-    producer(ctx, recipe)
+  return createStore(initialContext, transitions as any, (context, recipe) =>
+    producer(context, recipe)
   );
 }
