@@ -1,0 +1,26 @@
+{
+  "name": "lit-ts",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "analyze": "cem analyze --litelement --globs \"{src,define}/**/*.{js,ts}\"",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "npm run dev"
+  },
+  "dependencies": {
+    "@statelyai/inspect": "^0.2.4",
+    "lit": "^3.1.2",
+    "xstate": "^5.8.0"
+  },
+  "devDependencies": {
+    "@custom-elements-manifest/analyzer": "^0.9.2",
+    "@web/rollup-plugin-html": "^2.1.2",
+    "tslib": "^2.6.2",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.4"
+  },
+  "customElements": "custom-elements.json"
+}
