@@ -855,6 +855,27 @@ describe('setup()', () => {
       });
   });
 
+  it('should allow inline actor logic not present in setup', () => {
+    setup({
+      actors: {
+        known: fromPromise(async () => 'known')
+      }
+    }).createMachine({
+      invoke: [
+        {
+          src: 'known'
+        },
+        {
+          src: fromPromise(async () => 'inline')
+        },
+        {
+          // @ts-expect-error
+          src: 'unknown'
+        }
+      ]
+    });
+  });
+
   it('should not accept an incompatible provided logic', () => {
     setup({
       actors: {
@@ -962,9 +983,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input: 4157
       }
     });
@@ -1016,9 +1037,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input:
           Math.random() > 0.5
             ? {
@@ -1040,9 +1061,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input: () => 42
       }
     });
@@ -1079,9 +1100,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input: () =>
           Math.random() > 0.5
             ? {
