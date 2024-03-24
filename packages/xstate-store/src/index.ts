@@ -218,3 +218,9 @@ export function createStoreWithProducer<
     producer(context, recipe)
   );
 }
+
+declare global {
+  interface SymbolConstructor {
+    readonly observable: symbol;
+  }
+}
