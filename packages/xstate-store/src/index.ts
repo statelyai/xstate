@@ -39,32 +39,7 @@ function defaultSetter<TContext extends MachineContext>(
   return recipe(context);
 }
 
-/**
- * Creates a `Store` that has its own internal state and can receive events.
- * 
- * @example
-  ```ts
-  const store = createStore({
-    // initial context
-    { count: 0 },
-    // transitions 
-    {
-      on: {
-        inc: (context, event: { by: number }) => {
-          return {
-            count: context.count + event.by
-          }
-        }
-      }
-    }
-  });
-
-  store.getSnapshot(); // { context: { count: 0 } }
-  store.send({ type: 'inc', by: 5 });
-  store.getSnapshot(); // { context: { count: 5 } }
-  ```
- */
-export function createStore<
+function createStoreCore<
   TContext extends MachineContext,
   TEventPayloadMap extends EventPayloadMap
 >(
@@ -172,9 +147,51 @@ export function createStore<
 }
 
 /**
+ * Creates a `Store` that has its own internal state and can receive events.
+ *
+ * @example
+  ```ts
+  const store = createStore({
+    // initial context
+    { count: 0 },
+    // transitions
+    {
+      on: {
+        inc: (context, event: { by: number }) => {
+          return {
+            count: context.count + event.by
+          }
+        }
+      }
+    }
+  });
+
+  store.getSnapshot(); // { context: { count: 0 } }
+  store.send({ type: 'inc', by: 5 });
+  store.getSnapshot(); // { context: { count: 5 } }
+  ```
+ */
+export function createStore<
+  TContext extends MachineContext,
+  TEventPayloadMap extends EventPayloadMap
+>(
+  initialContext: TContext,
+  transitions: {
+    [K in keyof TEventPayloadMap & string]:
+      | StoreAssigner<NoInfer<TContext>, { type: K } & TEventPayloadMap[K]>
+      | StorePropertyAssigner<
+          NoInfer<TContext>,
+          { type: K } & TEventPayloadMap[K]
+        >;
+  }
+): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
+  return createStoreCore(initialContext, transitions);
+}
+
+/**
  * Creates a `Store` with a provided producer (such as Immer's `producer(…)`
  * A store has its own internal state and can receive events.
- * 
+ *
  * @example
   ```ts
   import { produce } from 'immer';
@@ -182,7 +199,7 @@ export function createStore<
   const store = createStoreWithProducer(produce, {
     // initial context
     { count: 0 },
-    // transitions 
+    // transitions
     {
       on: {
         inc: (context, event: { by: number }) => {
@@ -214,9 +231,7 @@ export function createStoreWithProducer<
     ) => void;
   }
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
-  return createStore(initialContext, transitions as any, (context, recipe) =>
-    producer(context, recipe)
-  );
+  return createStoreCore(initialContext, transitions as any, producer);
 }
 
 declare global {
