@@ -45,15 +45,22 @@
     "xstate": "^5.8.2"
   },
   "peerDependencies": {
-    "immer": "^10.0.3",
+    "xstate": "^5.8.2",
     "react": "^18.2.0"
   },
   "peerDependenciesMeta": {
-    "immer": {
+    "xstate": {
       "optional": true
     },
     "react": {
       "optional": true
     }
+  },
+  "preconstruct": {
+    "umdName": "XStateStore",
+    "entrypoints": [
+      "./index.ts",
+      "./react.ts"
+    ]
   }
 }
