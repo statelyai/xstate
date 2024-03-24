@@ -45,8 +45,8 @@
     "xstate": "^5.8.2"
   },
   "peerDependencies": {
-    "xstate": "^5.8.2",
-    "react": "^18.2.0"
+    "react": "^18.2.0",
+    "xstate": "^5.8.2"
   },
   "peerDependenciesMeta": {
     "xstate": {
