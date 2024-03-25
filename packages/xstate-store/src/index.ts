@@ -32,7 +32,7 @@ export function toObserver<T>(
   };
 }
 
-function defaultSetter<TContext extends MachineContext>(
+function setter<TContext extends MachineContext>(
   context: TContext,
   recipe: Recipe<TContext, TContext>
 ): TContext {
@@ -58,7 +58,6 @@ function createStoreCore<
   ) => NoInfer<TContext>
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
   type StoreEvent = ExtractEventsFromPayloadMap<TEventPayloadMap>;
-  const setter = updater ?? defaultSetter;
   let observers: Set<Observer<StoreSnapshot<TContext>>> | undefined;
   const initialSnapshot: StoreSnapshot<TContext> = {
     context: initialContext,
