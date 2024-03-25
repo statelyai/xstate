@@ -215,14 +215,13 @@ export function createStore<
   ```
  */
 export function createStoreWithProducer<
-  TProducer extends <TContext>(
-    context: TContext,
-    recipe: (context: TContext) => void
-  ) => TContext,
   TContext extends MachineContext,
   TEventPayloadMap extends EventPayloadMap
 >(
-  producer: TProducer,
+  producer: (
+    context: TContext,
+    recipe: (context: TContext) => void
+  ) => TContext,
   initialContext: TContext,
   transitions: {
     [K in keyof TEventPayloadMap & string]: (
