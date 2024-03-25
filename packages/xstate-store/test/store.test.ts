@@ -97,28 +97,6 @@ it('updates state from sent events', () => {
   expect(store.getSnapshot().context).toEqual({ count: 0 });
 });
 
-it('works with a custom API', () => {
-  const store = createStore(
-    {
-      count: 0
-    },
-    {
-      inc: (ctx) => {
-        return { count: ctx.count + 1 };
-      }
-    },
-    (ctx, recipe) => {
-      const cloned = { ...ctx };
-      return recipe(cloned);
-    }
-  );
-
-  store.send({ type: 'inc' });
-
-  expect(store.getSnapshot().context).toEqual({ count: 1 });
-  expect(store.getInitialSnapshot().context).toEqual({ count: 0 });
-});
-
 it('works with immer', () => {
   const store = createStoreWithProducer(
     produce,
