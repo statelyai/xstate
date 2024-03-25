@@ -5,12 +5,14 @@ These steps assume You've forked the repo and created a branch for your PR. For 
 1. In the CLI, navigate to the `/examples` folder. Start a [new Vite project](https://vitejs.dev/guide/#scaffolding-your-first-vite-project) using the appropiate template (e.g. `react-ts`) and adding the name of the framework at the end of your example's name:
 
 ```bash
+cd examples
 pnpm create vite@latest my-example-react --template react-ts
 ```
 
-2. Install `xstate` and the library-specific beta (e.g. `@xstate/react`):
+2. Navigate to the project you just created and install `xstate` and any related libraries (e.g. `@xstate/react`):
 
 ```bash
+cd my-example-react
 pnpm i xstate @xstate/react
 ```
 
