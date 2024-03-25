@@ -1,4 +1,3 @@
-import type { InteropSubscribable, MachineContext, Observer } from 'xstate';
 import {
   Recipe,
   EventPayloadMap,
@@ -8,7 +7,10 @@ import {
   StorePartialAssigner,
   StoreCompleteAssigner,
   StoreAssigner,
-  StorePropertyAssigner
+  StorePropertyAssigner,
+  Observer,
+  StoreContext,
+  InteropSubscribable
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -32,7 +34,7 @@ export function toObserver<T>(
   };
 }
 
-function setter<TContext extends MachineContext>(
+function setter<TContext extends StoreContext>(
   context: TContext,
   recipe: Recipe<TContext, TContext>
 ): TContext {
@@ -40,7 +42,7 @@ function setter<TContext extends MachineContext>(
 }
 
 function createStoreCore<
-  TContext extends MachineContext,
+  TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap
 >(
   initialContext: TContext,
@@ -171,7 +173,7 @@ function createStoreCore<
   ```
  */
 export function createStore<
-  TContext extends MachineContext,
+  TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap
 >(
   initialContext: TContext,
@@ -214,7 +216,7 @@ export function createStore<
   ```
  */
 export function createStoreWithProducer<
-  TContext extends MachineContext,
+  TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap
 >(
   producer: (

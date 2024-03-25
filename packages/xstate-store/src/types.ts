@@ -1,4 +1,4 @@
-import type { EventObject, MachineContext, Subscribable, Values } from 'xstate';
+// import type { EventObject, Subscribable, Values } from 'xstate';
 import { InteropObservable } from 'xstate';
 
 export type EventPayloadMap = Record<string, {} | null | undefined>;
@@ -10,7 +10,7 @@ export type ExtractEventsFromPayloadMap<T extends EventPayloadMap> = Values<{
 export type Recipe<T, TReturn> = (state: T) => TReturn;
 
 export type StoreAssigner<
-  TContext extends MachineContext,
+  TContext extends StoreContext,
   TEvent extends EventObject
 > = (context: TContext, event: TEvent) => Partial<TContext>;
 export type StoreCompleteAssigner<TContext, TEvent extends EventObject> = (
@@ -49,3 +49,44 @@ export interface Store<TContext, Ev extends EventObject>
 
 export type SnapshotFromStore<TStore extends Store<any, any>> =
   TStore extends Store<infer TContext, any> ? StoreSnapshot<TContext> : never;
+
+// Copied from XState core
+// -----------------------
+
+export interface InteropSubscribable<T> {
+  subscribe(observer: Observer<T>): Subscription;
+}
+
+// Based on RxJS types
+export type Observer<T> = {
+  next?: (value: T) => void;
+  error?: (err: unknown) => void;
+  complete?: () => void;
+};
+
+export interface Subscription {
+  unsubscribe(): void;
+}
+
+export interface Subscribable<T> extends InteropSubscribable<T> {
+  subscribe(observer: Observer<T>): Subscription;
+  subscribe(
+    next: (value: T) => void,
+    error?: (error: any) => void,
+    complete?: () => void
+  ): Subscription;
+}
+
+// Same as MachineContext (for now)
+export type StoreContext = Record<string, any>;
+
+/**
+ * The full definition of an event, with a string `type`.
+ */
+export type EventObject = {
+  /**
+   * The type of event that is sent.
+   */
+  type: string;
+};
+type Values<T> = T[keyof T];
