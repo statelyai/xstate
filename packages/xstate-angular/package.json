@@ -1,0 +1,70 @@
+{
+  "name": "@xstate/angular",
+  "version": "3.1.1",
+  "description": "XState tools for Vue",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "state",
+    "graph",
+    "angular"
+  ],
+  "type": "module",
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-angular#readme",
+  "license": "MIT",
+  "main": "dist/xstate-angular.cjs.js",
+  "module": "dist/xstate-angular.esm.js",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-angular.cjs.mjs",
+        "default": "./dist/xstate-angular.cjs.js"
+      },
+      "development": {
+        "module": "./dist/xstate-angular.development.esm.js",
+        "import": "./dist/xstate-angular.development.cjs.mjs",
+        "default": "./dist/xstate-angular.development.cjs.js"
+      },
+      "module": "./dist/xstate-angular.esm.js",
+      "import": "./dist/xstate-angular.cjs.mjs",
+      "default": "./dist/xstate-angular.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "imports": {
+    "#is-development": {
+      "development": "./src/true.ts",
+      "default": "./src/false.ts"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "peerDependencies": {
+    "@angular/core": "^17.0.0",
+    "xstate": "^5.9.1"
+  },
+  "peerDependenciesMeta": {
+    "xstate": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@angular/core": "^17.0.0",
+    "@testing-library/angular": "15.2.0",
+    "@testing-library/jest-dom": "^6.1.4",
+    "ng-packagr": "^17.0.0",
+    "xstate": "5.9.1"
+  }
+}
