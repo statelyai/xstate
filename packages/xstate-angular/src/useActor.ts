@@ -3,8 +3,7 @@ import {
   ActorOptions,
   AnyActorLogic,
   Snapshot,
-  SnapshotFrom,
-  isActorLogic
+  SnapshotFrom
 } from 'xstate';
 import {
   Injectable,
@@ -16,34 +15,13 @@ import {
 import { useSelector } from './useSelector.ts';
 import { useActorRef } from './useActorRef.ts';
 
-export interface UseActorConfig {
-  providedIn: 'root';
-}
-
-export function useActor<TLogic extends AnyActorLogic>(
-  provided: UseActorConfig,
-  actorLogic: TLogic,
-  options?: ActorOptions<TLogic>
-): Type<ActorStoreProps<TLogic>>;
 export function useActor<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
-  options?: ActorOptions<TLogic>
-): Type<ActorStoreProps<TLogic>>;
-export function useActor<TLogic extends AnyActorLogic>(
-  providedInOrActor: UseActorConfig | TLogic,
-  actorLogicOrOptions?: TLogic | ActorOptions<TLogic>,
-  _options?: ActorOptions<TLogic>
+  _options?: ActorOptions<TLogic> & { providedIn: 'root' }
 ): Type<ActorStoreProps<TLogic>> {
-  const providedIn =
-    'providedIn' in providedInOrActor ? providedInOrActor.providedIn : null;
+  const { providedIn, ...options } = _options ?? {};
 
-  const [actorLogic, options] = (
-    isActorLogic(providedInOrActor)
-      ? [providedInOrActor, actorLogicOrOptions]
-      : [actorLogicOrOptions, _options]
-  ) as [TLogic, ActorOptions<TLogic>];
-
-  @Injectable({ providedIn })
+  @Injectable({ providedIn: providedIn ?? null })
   class ActorStore implements ActorStoreProps<TLogic> {
     public actorRef: Actor<TLogic>;
     private _snapshot: WritableSignal<SnapshotFrom<TLogic>>;
@@ -52,7 +30,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     public get snapshot() {
       return this._snapshot.asReadonly();
     }
-    //
+
     constructor() {
       const listener = (nextSnapshot: Snapshot<unknown>) => {
         this._snapshot?.set(nextSnapshot as any);

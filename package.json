@@ -10,7 +10,7 @@
   },
   "preconstruct": {
     "packages": [
-      "packages/!(xstate-dev)"
+      "packages/!(xstate-dev|xstate-angular)"
     ],
     "globals": {
       "react": "React"

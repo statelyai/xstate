@@ -27,8 +27,7 @@ export {
   getAllOwnEventDescriptors as __unsafe_getAllOwnEventDescriptors,
   matchesState,
   pathToStateValue,
-  toObserver,
-  isActorLogic
+  toObserver
 } from './utils.ts';
 export {
   Actor,

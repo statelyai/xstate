@@ -33,6 +33,8 @@ const toggleMachine = createMachine({
   }
 });
 
+const ToggleMachine = useMachine(toggleMachine, {providedIn: 'root'})
+
 @Component({
   selector: 'app-toggle',
   standalone: true,
@@ -48,6 +50,6 @@ const toggleMachine = createMachine({
   styleUrl: './toggle.component.css'
 })
 export class ToggleComponent {
-  public toggleMachine = inject({providedIn: "root", }ToggleMachine);
+  public toggleMachine = inject(ToggleMachine);
 }
 ```

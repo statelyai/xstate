@@ -1,7 +1,7 @@
 {
   "name": "@xstate/angular",
-  "version": "3.1.1",
-  "description": "XState tools for Vue",
+  "version": "0.0.1",
+  "description": "XState tools for Angular",
   "keywords": [
     "state",
     "machine",
