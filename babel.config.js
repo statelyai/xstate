@@ -25,6 +25,7 @@ module.exports = {
     setPublicClassFields: true,
     setSpreadProperties: true
   },
+  ignore: [/\/xstate-angular\//],
   presets: [
     [
       '@babel/preset-env',
