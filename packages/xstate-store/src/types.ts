@@ -1,6 +1,3 @@
-// import type { EventObject, Subscribable, Values } from 'xstate';
-import { InteropObservable } from 'xstate';
-
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
 export type ExtractEventsFromPayloadMap<T extends EventPayloadMap> = Values<{
@@ -55,6 +52,10 @@ export type SnapshotFromStore<TStore extends Store<any, any>> =
 
 export interface InteropSubscribable<T> {
   subscribe(observer: Observer<T>): Subscription;
+}
+
+interface InteropObservable<T> {
+  [Symbol.observable]: () => InteropSubscribable<T>;
 }
 
 // Based on RxJS types
