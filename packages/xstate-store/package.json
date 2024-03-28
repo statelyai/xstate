@@ -21,11 +21,21 @@
       "import": "./dist/xstate-store.cjs.mjs",
       "default": "./dist/xstate-store.cjs.js"
     },
+    "./react": {
+      "types": {
+        "import": "./react/dist/xstate-store-react.cjs.mjs",
+        "default": "./react/dist/xstate-store-react.cjs.js"
+      },
+      "module": "./react/dist/xstate-store-react.esm.js",
+      "import": "./react/dist/xstate-store-react.cjs.mjs",
+      "default": "./react/dist/xstate-store-react.cjs.js"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "react"
   ],
   "repository": {
     "type": "git",
