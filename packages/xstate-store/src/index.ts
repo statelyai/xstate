@@ -1,4 +1,3 @@
-import { EventObject } from 'xstate/src';
 import {
   Recipe,
   EventPayloadMap,
@@ -13,6 +12,7 @@ import {
   StoreContext,
   InteropSubscribable
 } from './types';
+export { fromStore } from './fromStore';
 
 const symbolObservable: typeof Symbol.observable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) ||
