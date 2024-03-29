@@ -1,3 +1,4 @@
+import { EventObject } from 'xstate/src';
 import {
   Recipe,
   EventPayloadMap,
@@ -66,54 +67,13 @@ function createStoreCore<
     status: 'active'
   };
   let currentSnapshot = initialSnapshot;
+  const transition = createStoreTransition<TContext, TEventPayloadMap>(
+    transitions,
+    updater
+  );
 
   function receive(event: StoreEvent) {
-    let currentContext = currentSnapshot.context;
-    const assigner = transitions?.[event.type as StoreEvent['type']];
-
-    if (!assigner) {
-      return;
-    }
-
-    if (typeof assigner === 'function') {
-      currentContext = updater
-        ? updater(
-            currentContext,
-            (draftContext) =>
-              (assigner as StoreCompleteAssigner<TContext, StoreEvent>)?.(
-                draftContext,
-                event
-              )
-          )
-        : setter(currentContext, (draftContext) =>
-            Object.assign(
-              {},
-              currentContext,
-              assigner?.(
-                draftContext,
-                event as any // TODO: help me
-              )
-            )
-          );
-    } else {
-      const partialUpdate: Record<string, unknown> = {};
-      for (const key of Object.keys(assigner)) {
-        const propAssignment = assigner[key];
-        partialUpdate[key] =
-          typeof propAssignment === 'function'
-            ? (
-                propAssignment as StorePartialAssigner<
-                  TContext,
-                  StoreEvent,
-                  typeof key
-                >
-              )(currentContext, event)
-            : propAssignment;
-      }
-      currentContext = Object.assign({}, currentContext, partialUpdate);
-    }
-
-    currentSnapshot = { ...currentSnapshot, context: currentContext };
+    currentSnapshot = transition(currentSnapshot, event);
 
     observers?.forEach((o) => o.next?.(currentSnapshot));
   }
@@ -238,4 +198,75 @@ declare global {
   interface SymbolConstructor {
     readonly observable: symbol;
   }
+}
+
+export function createStoreTransition<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap
+>(
+  transitions: {
+    [K in keyof TEventPayloadMap & string]:
+      | StoreAssigner<NoInfer<TContext>, { type: K } & TEventPayloadMap[K]>
+      | StorePropertyAssigner<
+          NoInfer<TContext>,
+          { type: K } & TEventPayloadMap[K]
+        >;
+  },
+  updater?: (
+    context: NoInfer<TContext>,
+    recipe: (context: NoInfer<TContext>) => NoInfer<TContext>
+  ) => NoInfer<TContext>
+) {
+  return (
+    snapshot: StoreSnapshot<TContext>,
+    event: ExtractEventsFromPayloadMap<TEventPayloadMap>
+  ): StoreSnapshot<TContext> => {
+    type StoreEvent = ExtractEventsFromPayloadMap<TEventPayloadMap>;
+    let currentContext = snapshot.context;
+    const assigner = transitions?.[event.type as StoreEvent['type']];
+
+    if (!assigner) {
+      return snapshot;
+    }
+
+    if (typeof assigner === 'function') {
+      currentContext = updater
+        ? updater(
+            currentContext,
+            (draftContext) =>
+              (assigner as StoreCompleteAssigner<TContext, StoreEvent>)?.(
+                draftContext,
+                event
+              )
+          )
+        : setter(currentContext, (draftContext) =>
+            Object.assign(
+              {},
+              currentContext,
+              assigner?.(
+                draftContext,
+                event as any // TODO: help me
+              )
+            )
+          );
+    } else {
+      const partialUpdate: Record<string, unknown> = {};
+      for (const key of Object.keys(assigner)) {
+        const propAssignment = assigner[key];
+        partialUpdate[key] =
+          typeof propAssignment === 'function'
+            ? (
+                propAssignment as StorePartialAssigner<
+                  TContext,
+                  StoreEvent,
+                  typeof key
+                >
+              )(currentContext, event)
+            : propAssignment;
+      }
+      currentContext = Object.assign({}, currentContext, partialUpdate);
+    }
+
+    return { ...snapshot, context: currentContext };
+  };
 }
