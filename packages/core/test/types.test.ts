@@ -1648,9 +1648,9 @@ describe('invoke', () => {
           logic: typeof child;
         };
       },
-      // @ts-expect-error
       invoke: {
         id: 'child',
+        // @ts-expect-error
         src: 'child'
       }
     });
@@ -1707,7 +1707,7 @@ describe('invoke', () => {
     });
   });
 
-  it(`should not allow anonymous inline actors outside of the configured ones`, () => {
+  it(`should allow anonymous inline actors outside of the configured ones`, () => {
     const child1 = createMachine({
       context: {
         counter: 0
@@ -1727,7 +1727,6 @@ describe('invoke', () => {
           logic: typeof child1;
         };
       },
-      // @ts-expect-error
       invoke: {
         src: child2
       }
@@ -1746,9 +1745,9 @@ describe('invoke', () => {
           logic: typeof child;
         };
       },
-      // @ts-expect-error
       invoke: {
         src: 'child',
+        // @ts-expect-error
         input: 'hello'
       }
     });
@@ -1804,9 +1803,9 @@ describe('invoke', () => {
           logic: typeof child;
         };
       },
-      // @ts-expect-error
       invoke: {
         src: 'child',
+        // @ts-expect-error
         input: Math.random() > 0.5 ? 'string' : 42
       }
     });
@@ -1824,9 +1823,9 @@ describe('invoke', () => {
           logic: typeof child;
         };
       },
-      // @ts-expect-error
       invoke: {
         src: 'child',
+        // @ts-expect-error
         input: () => 'hello'
       }
     });
@@ -1863,9 +1862,9 @@ describe('invoke', () => {
           logic: typeof child;
         };
       },
-      // @ts-expect-error
       invoke: {
         src: 'child',
+        // @ts-expect-error
         input: () => (Math.random() > 0.5 ? 42 : 'hello')
       }
     });
