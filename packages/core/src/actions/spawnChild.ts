@@ -132,6 +132,7 @@ interface SpawnActionOptions<
     | Mapper<TContext, TEvent, InputFrom<TActor['logic']>, TEvent>
     | InputFrom<TActor['logic']>;
   syncSnapshot?: boolean;
+  logger?: (...args: any[]) => void;
 }
 
 type DistributeActors<
@@ -170,6 +171,7 @@ type SpawnArguments<
         systemId?: string;
         input?: unknown;
         syncSnapshot?: boolean;
+        logger?: (...args: any[]) => void;
       }
     ];
 
@@ -182,7 +184,7 @@ export function spawnChild<
 >(
   ...[
     src,
-    { id, systemId, input, syncSnapshot = false } = {} as any
+    { id, systemId, input, syncSnapshot = false, logger } = {} as any
   ]: SpawnArguments<TContext, TExpressionEvent, TEvent, TActor>
 ): ActionFunction<
   TContext,
@@ -210,6 +212,7 @@ export function spawnChild<
   spawnChild.src = src;
   spawnChild.input = input;
   spawnChild.syncSnapshot = syncSnapshot;
+  spawnChild.logger = logger;
 
   spawnChild.resolve = resolveSpawn;
   spawnChild.execute = executeSpawn;
