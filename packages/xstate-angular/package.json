@@ -68,7 +68,7 @@
     "@angular/platform-browser": "^17.0.0",
     "@angular/platform-browser-dynamic": "^17.0.0",
     "ng-packagr": "^17.0.0",
-    "rxjs": "7.8.1",
+    "rxjs": "^7.8.1",
     "tslib": "2.6.2",
     "typescript": "^5.4.2",
     "xstate": "5.9.1",
