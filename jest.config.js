@@ -1,12 +1,6 @@
 const { constants } = require('jest-config');
 const { defaultTransformerOptions } = require('jest-preset-angular/presets');
 
-const esModules = ['@angular'].join('|');
-
-// eslint-disable-next-line no-undef
-globalThis.ngJest = {
-  tsconfig: 'tsconfig.spec.json'
-};
 /**
  * @type {import('@jest/types').Config.InitialOptions}
  */
@@ -17,14 +11,7 @@ module.exports = {
   ],
   moduleFileExtensions: ['ts', 'html', 'js', 'json', 'mjs'],
   transform: {
-    '^.+\\.(mjs)$': [
-      'jest-preset-angular',
-      {
-        ...defaultTransformerOptions,
-        useESM: true
-      }
-    ],
-    '^.+xstate-angular/.+\\.(ts|js)$': [
+    '^.+\\.(mjs)$|^.+xstate-angular/.+\\.(ts|js)$': [
       'jest-preset-angular',
       {
         ...defaultTransformerOptions,
@@ -41,12 +28,7 @@ module.exports = {
       }
     ]
   },
-  transformIgnorePatterns: [`/node_modules/(?!(${esModules}|.*.mjs$))`],
-  snapshotSerializers: [
-    'jest-preset-angular/build/serializers/no-ng-attributes',
-    'jest-preset-angular/build/serializers/ng-snapshot',
-    'jest-preset-angular/build/serializers/html-comment'
-  ],
+  transformIgnorePatterns: [`/node_modules/(?!(@angular|.*.mjs$))`],
   resolver: '<rootDir>/scripts/jest-resolver.js',
   globals: {
     'vue-jest': {
