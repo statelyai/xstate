@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "importHelpers": true,
+    "sourceMap": true,
+    "declaration": false,
+    "downlevelIteration": true,
+    "noImplicitOverride": true,
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "dom"],
+    "outDir": "../out-tsc/app",
+    "baseUrl": ".",
+    "rootDir": ".",
+    "strict": true,
+    "module": "commonjs",
+    "types": ["jest", "node"],
+    "target": "es2020",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": ["packages/xstate-angular/**/*.test.ts", "src/**/*.d.ts"]
+}

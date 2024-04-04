@@ -50,6 +50,6 @@ const ToggleMachine = useMachine(toggleMachine, {providedIn: 'root'})
   styleUrl: './toggle.component.css'
 })
 export class ToggleComponent {
-  public toggleMachine = inject(ToggleMachine);
+  public toggleMachine = inject(SuperToggleService);
 }
 ```

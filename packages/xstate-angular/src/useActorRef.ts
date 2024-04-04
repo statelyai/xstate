@@ -23,8 +23,8 @@ export function useActorRef<TLogic extends AnyActorLogic>(
   if (observerOrListener) {
     sub = actorRef.subscribe(toObserver(observerOrListener));
   }
-  actorRef.start();
 
+  actorRef.start();
   inject(DestroyRef).onDestroy(() => {
     actorRef.stop();
     sub?.unsubscribe();
