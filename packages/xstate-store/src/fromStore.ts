@@ -9,7 +9,9 @@ export function fromStore<
   initialContext: ((input: TInput) => TContext) | TContext,
   transitions: Parameters<typeof createStore<TContext, TEventPayloadMap>>[1]
 ) {
-  const transition = createStoreTransition(transitions);
+  const transition = createStoreTransition<TContext, TEventPayloadMap>(
+    transitions
+  );
   return {
     config: null as any, // TODO,
     transition,
