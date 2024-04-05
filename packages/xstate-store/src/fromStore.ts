@@ -1,6 +1,13 @@
 import { createStore, createStoreTransition } from '.';
 import { EventPayloadMap, StoreContext, StoreSnapshot } from './types';
 
+/**
+ * An actor logic creator which creates store actor logic.
+ *
+ * @param initialContext The initial context for the store, either a function that returns context based on input, or the context itself
+ * @param transitions The transitions object defining how the context updates due to events
+ * @returns An actor logic creator function that creates store actor logic
+ */
 export function fromStore<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
@@ -13,7 +20,6 @@ export function fromStore<
     transitions
   );
   return {
-    config: null as any, // TODO,
     transition,
     start: () => {},
     getInitialSnapshot: (_: any, input: TInput) => {
