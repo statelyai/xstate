@@ -8,7 +8,12 @@ import {
   Subscription,
   toObserver
 } from 'xstate';
-import { DestroyRef, inject } from '@angular/core';
+import {
+  afterNextRender,
+  AfterRenderPhase,
+  DestroyRef,
+  inject
+} from '@angular/core';
 
 export function useActorRef<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
@@ -24,7 +29,13 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     sub = actorRef.subscribe(toObserver(observerOrListener));
   }
 
-  actorRef.start();
+  afterNextRender(
+    () => {
+      actorRef.start();
+    },
+    { phase: AfterRenderPhase.Read }
+  );
+
   inject(DestroyRef).onDestroy(() => {
     actorRef.stop();
     sub?.unsubscribe();
