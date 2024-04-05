@@ -64,7 +64,10 @@ function createStoreCore<
   let observers: Set<Observer<StoreSnapshot<TContext>>> | undefined;
   const initialSnapshot: StoreSnapshot<TContext> = {
     context: initialContext,
-    status: 'active'
+    status: 'active',
+    // XState compatibility
+    output: undefined,
+    error: undefined
   };
   let currentSnapshot = initialSnapshot;
   const transition = createStoreTransition<TContext, TEventPayloadMap>(
