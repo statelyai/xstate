@@ -1,4 +1,4 @@
-import { createStore, createStoreTransition } from '.';
+import { createStore, createStoreTransition } from './store';
 import {
   EventPayloadMap,
   StoreContext,

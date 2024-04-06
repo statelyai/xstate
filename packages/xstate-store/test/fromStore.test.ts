@@ -1,5 +1,5 @@
 import { createActor } from 'xstate';
-import { fromStore } from '../src';
+import { fromStore } from '../src/index.ts';
 
 describe('fromStore', () => {
   it('creates an actor from store logic with input', () => {

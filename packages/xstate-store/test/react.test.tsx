@@ -1,6 +1,6 @@
 import { fireEvent, screen, render } from '@testing-library/react';
-import { createStore } from '../src';
-import { useSelector } from '../src/react';
+import { createStore } from '../src/index.ts';
+import { useSelector } from '../src/react.ts';
 import ReactDOM from 'react-dom';
 
 it('useSelector should work', () => {
