@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "typescript": "^5.4.2",
-    "vite": "^4.5.2"
+    "typescript": "^5.4.4",
+    "vite": "^5.2.8"
   },
   "dependencies": {
     "xstate": "^5.9.1"

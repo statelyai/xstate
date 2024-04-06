@@ -15,10 +15,10 @@
     "xstate": "^5.9.1"
   },
   "devDependencies": {
-    "@types/react": "^18.2.67",
-    "@types/react-dom": "^18.2.22",
-    "@vitejs/plugin-react": "^3.1.0",
-    "typescript": "^5.4.2",
-    "vite": "^5.1.6"
+    "@types/react": "^18.2.74",
+    "@types/react-dom": "^18.2.24",
+    "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "^5.4.4",
+    "vite": "^5.2.8"
   }
 }

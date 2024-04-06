@@ -12,9 +12,9 @@
     "xstate": "^5.9.1"
   },
   "devDependencies": {
-    "@types/react": "^17.0.79",
+    "@types/react": "^17.0.80",
     "@types/react-dom": "^17.0.25",
-    "typescript": "^5.4.2",
-    "vite": "^5.1.6"
+    "typescript": "^5.4.4",
+    "vite": "^5.2.8"
   }
 }
