@@ -1,5 +1,10 @@
 import { createStore, createStoreTransition } from '.';
-import { EventPayloadMap, StoreContext, StoreSnapshot } from './types';
+import {
+  EventPayloadMap,
+  StoreContext,
+  StoreSnapshot,
+  Snapshot
+} from './types';
 
 /**
  * An actor logic creator which creates store actor logic.
@@ -28,10 +33,12 @@ export function fromStore<
         context:
           typeof initialContext === 'function'
             ? initialContext(input)
-            : initialContext
+            : initialContext,
+        output: undefined,
+        error: undefined
       } satisfies StoreSnapshot<TContext>;
     },
     getPersistedSnapshot: (s: StoreSnapshot<TContext>) => s,
-    restoreSnapshot: (s: StoreSnapshot<TContext>) => s
+    restoreSnapshot: (s: Snapshot<unknown>) => s as StoreSnapshot<TContext>
   };
 }

@@ -25,10 +25,31 @@ export type StorePropertyAssigner<TContext, TEvent extends EventObject> = {
     | StorePartialAssigner<TContext, TEvent, K>;
 };
 
-export interface StoreSnapshot<TContext> {
-  status: 'active';
+export type Snapshot<TOutput> =
+  | {
+      status: 'active';
+      output: undefined;
+      error: undefined;
+    }
+  | {
+      status: 'done';
+      output: TOutput;
+      error: undefined;
+    }
+  | {
+      status: 'error';
+      output: undefined;
+      error: unknown;
+    }
+  | {
+      status: 'stopped';
+      output: undefined;
+      error: undefined;
+    };
+
+export type StoreSnapshot<TContext> = Snapshot<undefined> & {
   context: TContext;
-}
+};
 
 /**
  * An actor-like object that:
