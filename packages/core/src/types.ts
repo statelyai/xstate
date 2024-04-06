@@ -2311,7 +2311,7 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
 
 export type EventFromLogic<TLogic extends AnyActorLogic> =
   TLogic extends ActorLogic<
-    any,
+    infer _TSnapshot,
     infer TEvent,
     infer _TInput,
     infer _TEmitted,
