@@ -34,9 +34,6 @@ examples.forEach(function (example) {
     return;
   }
 
-  // remove lockfile
-  cp.execSync('rm -f ' + path.join(dirPath, 'pnpm-lock.yaml'));
-
   const exampleDir = path.join(
     path.resolve(__dirname, '..', 'examples', example)
   );
