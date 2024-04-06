@@ -28,12 +28,10 @@ export function fromStore<
         context:
           typeof initialContext === 'function'
             ? initialContext(input)
-            : initialContext,
-        // XState  compatibility
-        error: undefined,
-        output: undefined
+            : initialContext
       } satisfies StoreSnapshot<TContext>;
     },
-    getPersistedSnapshot: (s: StoreSnapshot<TContext>) => s
+    getPersistedSnapshot: (s: StoreSnapshot<TContext>) => s,
+    restoreSnapshot: (s: StoreSnapshot<TContext>) => s
   };
 }

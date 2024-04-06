@@ -148,12 +148,13 @@ export type InputFrom<T> = T extends StateMachine<
   infer _TResolvedTypesMeta
 >
   ? TInput
-  : T extends {
-        getInitialSnapshot: (
-          actorScope: infer _TActorScope,
-          input: infer TInput
-        ) => infer _TSnapshot;
-      }
+  : T extends ActorLogic<
+        infer _TSnapshot,
+        infer _TEvent,
+        infer TInput,
+        infer _TSystem,
+        infer _TEmitted
+      >
     ? TInput
     : never;
 
@@ -2290,14 +2291,14 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TSnapshot
     : R extends Actor<infer TLogic>
       ? SnapshotFrom<TLogic>
-      : R extends {
-            transition: (
-              snapshot: infer TSnapshot,
-              message: infer _TEvent,
-              actorScope: infer _TActorScope
-            ) => infer TSnapshot;
-          }
-        ? TSnapshot
+      : R extends ActorLogic<
+            infer _TSnapshot,
+            infer _TEvent,
+            infer _TInput,
+            infer _TEmitted,
+            infer _TSystem
+          >
+        ? ReturnType<R['transition']>
         : R extends ActorScope<
               infer TSnapshot,
               infer _TEvent,
@@ -2308,16 +2309,16 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
           : never
   : never;
 
-export type EventFromLogic<TLogic extends AnyActorLogic> = EventObject &
-  (TLogic extends {
-    transition: (
-      snapshot: infer _TSnapshot,
-      message: infer TEvent,
-      actorScope: infer _TActorScope
-    ) => infer _TSnapshotReturn;
-  }
+export type EventFromLogic<TLogic extends AnyActorLogic> =
+  TLogic extends ActorLogic<
+    infer _TSnapshot,
+    infer TEvent,
+    infer _TInput,
+    infer _TEmitted,
+    infer _TSystem
+  >
     ? TEvent
-    : never);
+    : never;
 
 export type EmittedFrom<TLogic extends AnyActorLogic> =
   TLogic extends ActorLogic<

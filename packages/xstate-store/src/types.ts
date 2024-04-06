@@ -28,8 +28,6 @@ export type StorePropertyAssigner<TContext, TEvent extends EventObject> = {
 export interface StoreSnapshot<TContext> {
   status: 'active';
   context: TContext;
-  output: undefined;
-  error: undefined;
 }
 
 /**
