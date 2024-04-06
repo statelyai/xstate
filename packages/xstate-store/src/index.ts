@@ -62,10 +62,12 @@ function createStoreCore<
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
   type StoreEvent = ExtractEventsFromPayloadMap<TEventPayloadMap>;
   let observers: Set<Observer<StoreSnapshot<TContext>>> | undefined;
-  const initialSnapshot: StoreSnapshot<TContext> = {
+  const initialSnapshot = {
     context: initialContext,
-    status: 'active'
-  };
+    status: 'active',
+    output: undefined,
+    error: undefined
+  } satisfies StoreSnapshot<TContext> as StoreSnapshot<TContext>;
   let currentSnapshot = initialSnapshot;
   const transition = createStoreTransition<TContext, TEventPayloadMap>(
     transitions,
