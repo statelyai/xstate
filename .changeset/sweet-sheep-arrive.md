@@ -1,5 +1,5 @@
 ---
-'xstate': patch
+'xstate': minor
 ---
 
 `fromPromise` now passes a signal into it's creator function.
