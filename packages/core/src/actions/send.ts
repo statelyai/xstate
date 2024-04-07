@@ -4,18 +4,17 @@ import { createErrorActorEvent } from '../eventUtils.ts';
 import {
   ActionArgs,
   ActionFunction,
-  ActorRef,
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
   AnyMachineSnapshot,
   Cast,
   DelayExpr,
+  DoNotInfer,
   EventFrom,
   EventObject,
   InferEvent,
   MachineContext,
-  NoInfer,
   ParameterizedObject,
   SendExpr,
   SendToActionOptions,
@@ -219,7 +218,7 @@ export function sendTo<
     TContext,
     TExpressionEvent,
     TParams,
-    NoInfer<TEvent>,
+    DoNotInfer<TEvent>,
     TUsedDelay
   >
 ): ActionFunction<

@@ -71,7 +71,13 @@ export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
   : false;
 export type IsAny<T> = Equals<T, any>;
 export type Cast<A, B> = A extends B ? A : B;
-export type NoInfer<T> = [T][T extends any ? 0 : any];
+// @TODO: Replace with native `NoInfer` when TS issue gets fixed:
+// https://github.com/microsoft/TypeScript/pull/57673
+export type DoNotInfer<T> = [T][T extends any ? 0 : any];
+/**
+ * @deprecated Use the built-in `NoInfer` type instead
+ */
+export type NoInfer<T> = DoNotInfer<T>;
 export type LowInfer<T> = T & {};
 
 export type MetaObject = Record<string, any>;
@@ -1380,15 +1386,15 @@ export type MachineConfig<
   TTypesMeta = TypegenDisabled
 > = (Omit<
   StateNodeConfig<
-    NoInfer<TContext>,
-    NoInfer<TEvent>,
-    NoInfer<TActor>,
-    NoInfer<TAction>,
-    NoInfer<TGuard>,
-    NoInfer<TDelay>,
-    NoInfer<TTag>,
-    NoInfer<TOutput>,
-    NoInfer<TEmitted>
+    DoNotInfer<TContext>,
+    DoNotInfer<TEvent>,
+    DoNotInfer<TActor>,
+    DoNotInfer<TAction>,
+    DoNotInfer<TGuard>,
+    DoNotInfer<TDelay>,
+    DoNotInfer<TTag>,
+    DoNotInfer<TOutput>,
+    DoNotInfer<TEmitted>
   >,
   'output'
 > & {
