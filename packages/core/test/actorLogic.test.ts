@@ -452,20 +452,21 @@ describe('promise logic (fromPromise)', () => {
     });
     const actor = createActor(machine).start();
 
+    // resolve the first promise and no canceling
+    await waitFor(actor, (s) => s.matches('running'));
     const deferred1 = deferredList[0];
     const fn1 = fnList[0];
     deferred1.resolve(42);
-    await deferred1.promise;
-    expect(fn1).toHaveBeenCalledWith(false);
-
     await waitFor(actor, (s) => s.matches('done'));
+    expect(fn1).toHaveBeenCalledWith(false);
 
     actor.send({ type: 'restart' });
 
+    // cancel while running
     await waitFor(actor, (s) => s.matches('running'));
-
     actor.send({ type: 'cancel' });
     await waitFor(actor, (s) => s.matches('canceled'));
+
     const deferred2 = deferredList[1];
     deferred2.resolve(42);
     await deferred2.promise;
