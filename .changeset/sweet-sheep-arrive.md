@@ -2,7 +2,7 @@
 'xstate': patch
 ---
 
-`fromPromise` now passes a signal into it's callback function.
+`fromPromise` now passes a signal into it's creator function.
 
 ```ts
 const logic = fromPromise(({ signal }) =>
