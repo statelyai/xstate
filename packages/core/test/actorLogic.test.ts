@@ -232,6 +232,46 @@ describe('promise logic (fromPromise)', () => {
 
     createActor(promiseLogic).start();
   });
+
+  it('should abort when stopping', (done) => {
+    let signal: AbortSignal;
+    const promiseLogic = fromPromise((ctx) => {
+      signal = ctx.signal;
+      return new Promise((res) => {
+        setTimeout(() => res(42), 1000);
+      });
+    });
+
+    const actor = createActor(promiseLogic).start();
+
+    actor.stop();
+
+    setTimeout(() => {
+      expect(actor.getSnapshot().status).toBe('stopped');
+      expect(signal.aborted).toBe(true);
+      done();
+    }, 10);
+  });
+
+  it('should not abort when stopped if promise is resolved/rejected', (done) => {
+    let signal: AbortSignal;
+    const promiseLogic = fromPromise((ctx) => {
+      signal = ctx.signal;
+      return new Promise((res) => {
+        setTimeout(() => res(42), 10);
+      });
+    });
+
+    const actor = createActor(promiseLogic).start();
+
+    setTimeout(() => {
+      actor.stop();
+
+      expect(actor.getSnapshot().status).toBe('done');
+      expect(signal.aborted).toBe(false);
+      done();
+    }, 20);
+  });
 });
 
 describe('transition function logic (fromTransition)', () => {

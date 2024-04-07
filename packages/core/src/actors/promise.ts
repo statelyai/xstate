@@ -88,8 +88,11 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
      * The parent actor of the promise actor
      */
     self: PromiseActorRef<TOutput>;
+    signal: AbortSignal;
   }) => PromiseLike<TOutput>
 ): PromiseActorLogic<TOutput, TInput> {
+  const controller = new AbortController();
+  let done = false;
   const logic: PromiseActorLogic<TOutput, TInput> = {
     config: promiseCreator,
     transition: (state, event) => {
@@ -114,12 +117,16 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
             error: (event as any).data,
             input: undefined
           };
-        case XSTATE_STOP:
+        case XSTATE_STOP: {
+          if (!done) {
+            controller.abort();
+          }
           return {
             ...state,
             status: 'stopped',
             input: undefined
           };
+        }
         default:
           return state;
       }
@@ -132,29 +139,38 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
       }
 
       const resolvedPromise = Promise.resolve(
-        promiseCreator({ input: state.input!, system, self })
+        promiseCreator({
+          input: state.input!,
+          system,
+          self,
+          signal: controller.signal
+        })
       );
 
-      resolvedPromise.then(
-        (response) => {
-          if (self.getSnapshot().status !== 'active') {
-            return;
+      resolvedPromise
+        .then(
+          (response) => {
+            if (self.getSnapshot().status !== 'active') {
+              return;
+            }
+            system._relay(self, self, {
+              type: XSTATE_PROMISE_RESOLVE,
+              data: response
+            });
+          },
+          (errorData) => {
+            if (self.getSnapshot().status !== 'active') {
+              return;
+            }
+            system._relay(self, self, {
+              type: XSTATE_PROMISE_REJECT,
+              data: errorData
+            });
           }
-          system._relay(self, self, {
-            type: XSTATE_PROMISE_RESOLVE,
-            data: response
-          });
-        },
-        (errorData) => {
-          if (self.getSnapshot().status !== 'active') {
-            return;
-          }
-          system._relay(self, self, {
-            type: XSTATE_PROMISE_REJECT,
-            data: errorData
-          });
-        }
-      );
+        )
+        .finally(() => {
+          done = true;
+        });
     },
     getInitialSnapshot: (_, input) => {
       return {
