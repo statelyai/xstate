@@ -1,0 +1,72 @@
+{
+  "name": "@xstate/store",
+  "version": "0.0.1",
+  "description": "Simple stores",
+  "keywords": [
+    "store",
+    "state"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store#readme",
+  "license": "MIT",
+  "main": "dist/xstate-store.cjs.js",
+  "module": "dist/xstate-store.esm.js",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-store.cjs.mjs",
+        "default": "./dist/xstate-store.cjs.js"
+      },
+      "module": "./dist/xstate-store.esm.js",
+      "import": "./dist/xstate-store.cjs.mjs",
+      "default": "./dist/xstate-store.cjs.js"
+    },
+    "./react": {
+      "types": {
+        "import": "./react/dist/xstate-store-react.cjs.mjs",
+        "default": "./react/dist/xstate-store-react.cjs.js"
+      },
+      "module": "./react/dist/xstate-store-react.esm.js",
+      "import": "./react/dist/xstate-store-react.cjs.mjs",
+      "default": "./react/dist/xstate-store-react.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "react"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "scripts": {},
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "dependencies": {
+    "use-sync-external-store": "^1.2.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^14.2.1",
+    "immer": "^10.0.2",
+    "react": "^18.0.0",
+    "xstate": "^5.9.1"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "preconstruct": {
+    "umdName": "XStateStore",
+    "entrypoints": [
+      "./index.ts",
+      "./react.ts"
+    ]
+  }
+}
