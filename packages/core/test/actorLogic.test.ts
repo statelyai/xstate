@@ -238,35 +238,50 @@ describe('promise logic (fromPromise)', () => {
     const fn = jest.fn();
     const promiseLogic = fromPromise((ctx) => {
       return deferred.promise.then((res) => {
-        fn(ctx.signal);
-        return res;
-      });
-    });
-
-    const actor = createActor(promiseLogic).start();
-
-    actor.stop();
-
-    deferred.resolve(42);
-    await deferred.promise;
-    expect(fn).toHaveBeenCalledWith(expect.objectContaining({ aborted: true }));
-  });
-
-  it('should not abort when stopped if promise is resolved/rejected', async () => {
-    const deferred = defer<number>();
-    const fn = jest.fn();
-    const promiseLogic = fromPromise((ctx) => {
-      return deferred.promise.then((res) => {
         fn(ctx.signal.aborted);
         return res;
       });
     });
 
     const actor = createActor(promiseLogic).start();
+
+    actor.stop();
+
     deferred.resolve(42);
     await deferred.promise;
+    expect(fn).toHaveBeenCalledWith(true);
+  });
+
+  it('should not abort when stopped if promise is resolved/rejected', async () => {
+    const resolvedDeferred = defer<number>();
+    const resolvedFn = jest.fn();
+    const resolvedPromiseLogic = fromPromise((ctx) => {
+      return resolvedDeferred.promise.then((res) => {
+        resolvedFn(ctx.signal.aborted);
+        return res;
+      });
+    });
+
+    const rejectedDeferred = defer<number>();
+    const rejectedFn = jest.fn();
+    const rejectedPromiseLogic = fromPromise((ctx) => {
+      return rejectedDeferred.promise.catch((res) => {
+        rejectedFn(ctx.signal.aborted);
+        return res;
+      });
+    });
+
+    const actor = createActor(resolvedPromiseLogic).start();
+    resolvedDeferred.resolve(42);
+    await resolvedDeferred.promise;
     actor.stop();
-    expect(fn).toHaveBeenCalledWith(false);
+    expect(resolvedFn).toHaveBeenCalledWith(false);
+
+    const actor2 = createActor(rejectedPromiseLogic).start();
+    rejectedDeferred.reject(42);
+    await rejectedDeferred.promise.catch(() => {});
+    actor2.stop();
+    expect(rejectedFn).toHaveBeenCalledWith(false);
   });
 
   it('should not reuse the same signal for different actors with same logic', async () => {
@@ -323,7 +338,10 @@ describe('promise logic (fromPromise)', () => {
     actor.send({ type: 'CANCEL_1' });
     p1Deferred.resolve(42);
     p2Deferred.resolve(42);
-    await Promise.all([p1Deferred.promise, p2Deferred.promise]);
+    await Promise.all([
+      waitFor(actor, (s) => s.matches('p1.canceled')),
+      waitFor(actor, (s) => s.matches('p2.done'))
+    ]);
     expect(fnMap.get('p1')).toHaveBeenCalledWith(true);
     expect(fnMap.get('p2')).toHaveBeenCalledWith(false);
   });
@@ -384,7 +402,12 @@ describe('promise logic (fromPromise)', () => {
     actor.send({ type: 'CANCEL_1' });
     p1Deferred.resolve(42);
     p2Deferred.resolve(42);
-    await Promise.all([p1Deferred.promise, p2Deferred.promise]);
+
+    await Promise.all([
+      waitFor(actor, (s) => s.matches('p1.canceled')),
+      waitFor(actor, (s) => s.matches('p2.done'))
+    ]);
+
     expect(p1Fn).toHaveBeenCalledWith(true);
     expect(p2Fn).toHaveBeenCalledWith(false);
   });
@@ -439,9 +462,12 @@ describe('promise logic (fromPromise)', () => {
 
     actor.send({ type: 'restart' });
 
+    await waitFor(actor, (s) => s.matches('running'));
+
+    actor.send({ type: 'cancel' });
+    await waitFor(actor, (s) => s.matches('canceled'));
     const deferred2 = deferredList[1];
     deferred2.resolve(42);
-    actor.send({ type: 'cancel' });
     await deferred2.promise;
     const fn2 = fnList[1];
     expect(fn2).toHaveBeenCalledWith(true);
