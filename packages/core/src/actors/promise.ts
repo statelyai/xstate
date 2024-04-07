@@ -154,9 +154,9 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
       resolvedPromise.then(
         (response) => {
           if (self.getSnapshot().status !== 'active') {
-            controllerMap.delete(self);
             return;
           }
+          controllerMap.delete(self);
           system._relay(self, self, {
             type: XSTATE_PROMISE_RESOLVE,
             data: response
@@ -164,9 +164,9 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
         },
         (errorData) => {
           if (self.getSnapshot().status !== 'active') {
-            controllerMap.delete(self);
             return;
           }
+          controllerMap.delete(self);
           system._relay(self, self, {
             type: XSTATE_PROMISE_REJECT,
             data: errorData
