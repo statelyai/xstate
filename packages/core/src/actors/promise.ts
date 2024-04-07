@@ -3,6 +3,7 @@ import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
   ActorRefFrom,
+  AnyActorRef,
   EventObject,
   NonReducibleUnknown,
   Snapshot
@@ -71,6 +72,9 @@ export type PromiseActorRef<TOutput> = ActorRefFrom<
  * // }
  * ```
  */
+
+let controllerMap = new WeakMap<AnyActorRef, AbortController>();
+
 export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
   promiseCreator: ({
     input,
@@ -91,11 +95,9 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
     signal: AbortSignal;
   }) => PromiseLike<TOutput>
 ): PromiseActorLogic<TOutput, TInput> {
-  const controller = new AbortController();
-  let done = false;
   const logic: PromiseActorLogic<TOutput, TInput> = {
     config: promiseCreator,
-    transition: (state, event) => {
+    transition: (state, event, scope) => {
       if (state.status !== 'active') {
         return state;
       }
@@ -118,7 +120,8 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
             input: undefined
           };
         case XSTATE_STOP: {
-          if (!done) {
+          const controller = controllerMap.get(scope.self);
+          if (controller) {
             controller.abort();
           }
           return {
@@ -137,7 +140,8 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
       if (state.status !== 'active') {
         return;
       }
-
+      const controller = new AbortController();
+      controllerMap.set(self, controller);
       const resolvedPromise = Promise.resolve(
         promiseCreator({
           input: state.input!,
@@ -147,30 +151,28 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
         })
       );
 
-      resolvedPromise
-        .then(
-          (response) => {
-            if (self.getSnapshot().status !== 'active') {
-              return;
-            }
-            system._relay(self, self, {
-              type: XSTATE_PROMISE_RESOLVE,
-              data: response
-            });
-          },
-          (errorData) => {
-            if (self.getSnapshot().status !== 'active') {
-              return;
-            }
-            system._relay(self, self, {
-              type: XSTATE_PROMISE_REJECT,
-              data: errorData
-            });
+      resolvedPromise.then(
+        (response) => {
+          if (self.getSnapshot().status !== 'active') {
+            controllerMap.delete(self);
+            return;
           }
-        )
-        .finally(() => {
-          done = true;
-        });
+          system._relay(self, self, {
+            type: XSTATE_PROMISE_RESOLVE,
+            data: response
+          });
+        },
+        (errorData) => {
+          if (self.getSnapshot().status !== 'active') {
+            controllerMap.delete(self);
+            return;
+          }
+          system._relay(self, self, {
+            type: XSTATE_PROMISE_REJECT,
+            data: errorData
+          });
+        }
+      );
     },
     getInitialSnapshot: (_, input) => {
       return {

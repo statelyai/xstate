@@ -233,12 +233,13 @@ describe('promise logic (fromPromise)', () => {
     createActor(promiseLogic).start();
   });
 
-  it('should abort when stopping', (done) => {
-    let signal: AbortSignal;
+  it('should abort when stopping', async () => {
+    const deferred = defer<number>();
+    const fn = jest.fn();
     const promiseLogic = fromPromise((ctx) => {
-      signal = ctx.signal;
-      return new Promise((res) => {
-        setTimeout(() => res(42), 1000);
+      return deferred.promise.then((res) => {
+        fn(ctx.signal);
+        return res;
       });
     });
 
@@ -246,31 +247,204 @@ describe('promise logic (fromPromise)', () => {
 
     actor.stop();
 
-    setTimeout(() => {
-      expect(actor.getSnapshot().status).toBe('stopped');
-      expect(signal.aborted).toBe(true);
-      done();
-    }, 10);
+    deferred.resolve(42);
+    await deferred.promise;
+    expect(fn).toHaveBeenCalledWith(expect.objectContaining({ aborted: true }));
   });
 
-  it('should not abort when stopped if promise is resolved/rejected', (done) => {
-    let signal: AbortSignal;
+  it('should not abort when stopped if promise is resolved/rejected', async () => {
+    const deferred = defer<number>();
+    const fn = jest.fn();
     const promiseLogic = fromPromise((ctx) => {
-      signal = ctx.signal;
-      return new Promise((res) => {
-        setTimeout(() => res(42), 10);
+      return deferred.promise.then((res) => {
+        fn(ctx.signal.aborted);
+        return res;
       });
     });
 
     const actor = createActor(promiseLogic).start();
+    deferred.resolve(42);
+    await deferred.promise;
+    actor.stop();
+    expect(fn).toHaveBeenCalledWith(false);
+  });
 
-    setTimeout(() => {
-      actor.stop();
+  it('should not reuse the same signal for different actors with same logic', async () => {
+    let deferredMap: Map<string, Deferred<number>> = new Map();
+    let fnMap: Map<string, jest.Mock> = new Map();
+    const p = fromPromise(({ self, signal }) => {
+      const deferred = defer<number>();
+      const fn = jest.fn();
+      deferredMap.set(self.id, deferred);
+      fnMap.set(self.id, fn);
+      return deferred.promise.then((res) => {
+        fn(signal.aborted);
+        return res;
+      });
+    });
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        p1: {
+          initial: 'running',
+          states: {
+            running: {
+              invoke: {
+                src: p,
+                id: 'p1'
+              },
+              on: {
+                CANCEL_1: 'canceled'
+              }
+            },
+            canceled: {}
+          }
+        },
+        p2: {
+          initial: 'running',
+          states: {
+            running: {
+              invoke: {
+                src: p,
+                id: 'p2',
+                onDone: 'done'
+              }
+            },
+            done: {}
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
 
-      expect(actor.getSnapshot().status).toBe('done');
-      expect(signal.aborted).toBe(false);
-      done();
-    }, 20);
+    const p1Deferred = deferredMap.get('p1')!;
+    const p2Deferred = deferredMap.get('p2')!;
+
+    actor.send({ type: 'CANCEL_1' });
+    p1Deferred.resolve(42);
+    p2Deferred.resolve(42);
+    await Promise.all([p1Deferred.promise, p2Deferred.promise]);
+    expect(fnMap.get('p1')).toHaveBeenCalledWith(true);
+    expect(fnMap.get('p2')).toHaveBeenCalledWith(false);
+  });
+
+  it('should not reuse the same signal for different actors with same logic and id', async () => {
+    let deferredList: Deferred<number>[] = [];
+    let fnList: jest.Mock[] = [];
+    const p = fromPromise(({ signal }) => {
+      const deferred = defer<number>();
+      const fn = jest.fn();
+      deferredList.push(deferred);
+      fnList.push(fn);
+      return deferred.promise.then((res) => {
+        fn(signal.aborted);
+        return res;
+      });
+    });
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        p1: {
+          initial: 'running',
+          states: {
+            running: {
+              invoke: {
+                src: p,
+                id: 'p'
+              },
+              on: {
+                CANCEL_1: 'canceled'
+              }
+            },
+            canceled: {}
+          }
+        },
+        p2: {
+          initial: 'running',
+          states: {
+            running: {
+              invoke: {
+                src: p,
+                id: 'p',
+                onDone: 'done'
+              }
+            },
+            done: {}
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    const p1Deferred = deferredList[0];
+    const p2Deferred = deferredList[1];
+    const p1Fn = fnList[0];
+    const p2Fn = fnList[1];
+
+    actor.send({ type: 'CANCEL_1' });
+    p1Deferred.resolve(42);
+    p2Deferred.resolve(42);
+    await Promise.all([p1Deferred.promise, p2Deferred.promise]);
+    expect(p1Fn).toHaveBeenCalledWith(true);
+    expect(p2Fn).toHaveBeenCalledWith(false);
+  });
+
+  it('should not reuse the same signal for the same actor when restarted', async () => {
+    let deferredList: Deferred<number>[] = [];
+    let fnList: jest.Mock[] = [];
+    const p = fromPromise(({ signal }) => {
+      const deferred = defer<number>();
+      const fn = jest.fn();
+      deferredList.push(deferred);
+      fnList.push(fn);
+      return deferred.promise.then((res) => {
+        fn(signal.aborted);
+        return res;
+      });
+    });
+    const machine = createMachine({
+      initial: 'running',
+      states: {
+        running: {
+          invoke: {
+            src: p,
+            id: 'p',
+            onDone: 'done'
+          },
+          on: {
+            cancel: 'canceled'
+          }
+        },
+        done: {
+          on: {
+            restart: 'running'
+          }
+        },
+        canceled: {
+          on: {
+            restart: 'running'
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    const deferred1 = deferredList[0];
+    const fn1 = fnList[0];
+    deferred1.resolve(42);
+    await deferred1.promise;
+    expect(fn1).toHaveBeenCalledWith(false);
+
+    await waitFor(actor, (s) => s.matches('done'));
+
+    actor.send({ type: 'restart' });
+
+    const deferred2 = deferredList[1];
+    deferred2.resolve(42);
+    actor.send({ type: 'cancel' });
+    await deferred2.promise;
+    const fn2 = fnList[1];
+    expect(fn2).toHaveBeenCalledWith(true);
   });
 });
 
@@ -1072,3 +1246,25 @@ describe('composable actor logic', () => {
     );
   });
 });
+
+interface Deferred<T> {
+  resolve(value: T): void;
+  reject(reason: any): void;
+  promise: Promise<T>;
+}
+
+function defer<T>(): Deferred<T> {
+  let resolve: (value: T) => void;
+  let reject: (reason: any) => void;
+
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return {
+    resolve: resolve!,
+    reject: reject!,
+    promise
+  };
+}
