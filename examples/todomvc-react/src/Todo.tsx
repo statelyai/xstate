@@ -1,19 +1,17 @@
 import React, { useRef } from 'react';
 import { useActorRef, useSelector } from '@xstate/react';
 import cn from 'classnames';
-import { assign, createMachine } from 'xstate';
+import { assign, setup } from 'xstate';
 import { TodosContext } from './App';
 import { TodoItem } from './todosMachine';
 
-export const todoMachine = createMachine({
-  id: 'todo',
-  initial: 'reading',
-  types: {} as {
-    context: {
+export const todoMachine = setup({
+  types: {
+    context: {} as {
       initialTitle: string;
       title: string;
-    };
-    events:
+    },
+    events: {} as
       | {
           type: 'edit';
         }
@@ -26,8 +24,18 @@ export const todoMachine = createMachine({
       | {
           type: 'change';
           value: string;
-        };
+        },
+    input: {} as {
+      todo: TodoItem;
+    }
   },
+  actions: {
+    focusInput: () => {},
+    onCommit: () => {}
+  }
+}).createMachine({
+  id: 'todo',
+  initial: 'reading',
   context: ({ input }) => ({
     initialTitle: input.todo.title,
     title: input.todo.title
