@@ -7,7 +7,7 @@ import {
 } from './types';
 
 /**
- * An actor logic creator which creates store actor logic.
+ * An actor logic creator which creates store [actor logic](https://stately.ai/docs/actors#actor-logic) for use with XState.
  *
  * @param initialContext The initial context for the store, either a function that returns context based on input, or the context itself
  * @param transitions The transitions object defining how the context updates due to events

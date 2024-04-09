@@ -109,14 +109,15 @@ function createStoreCore<
 }
 
 /**
- * Creates a `Store` that has its own internal state and can receive events.
+ * Creates a **store** that has its own internal state and can be sent events that
+ * update its internal state based on transitions.
  *
  * @example
   ```ts
   const store = createStore({
-    // initial context
+    // Initial context
     { count: 0 },
-    // transitions
+    // Transitions
     {
       on: {
         inc: (context, event: { by: number }) => {
@@ -128,9 +129,12 @@ function createStoreCore<
     }
   });
 
-  store.getSnapshot(); // { context: { count: 0 } }
+  store.subscribe((snapshot) => {
+    console.log(snapshot);
+  });
+
   store.send({ type: 'inc', by: 5 });
-  store.getSnapshot(); // { context: { count: 5 } }
+  // Logs { context: { count: 5 }, status: 'active', ... }
   ```
  */
 export function createStore<
@@ -159,9 +163,9 @@ export function createStore<
   import { produce } from 'immer';
 
   const store = createStoreWithProducer(produce, {
-    // initial context
+    // Initial context
     { count: 0 },
-    // transitions
+    // Transitions
     {
       on: {
         inc: (context, event: { by: number }) => {
@@ -171,9 +175,12 @@ export function createStore<
     }
   });
 
-  store.getSnapshot(); // { context: { count: 0 } }
+  store.subscribe((snapshot) => {
+    console.log(snapshot);
+  });
+
   store.send({ type: 'inc', by: 5 });
-  store.getSnapshot(); // { context: { count: 5 } }
+  // Logs { context: { count: 5 }, status: 'active', ... }
   ```
  */
 export function createStoreWithProducer<
