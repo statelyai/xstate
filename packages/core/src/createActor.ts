@@ -156,7 +156,8 @@ export class Actor<TLogic extends AnyActorLogic>
     this.system = parent
       ? parent.system
       : createSystem(this, {
-          clock
+          clock,
+          logger
         });
 
     if (inspect && !parent) {
@@ -166,8 +167,8 @@ export class Actor<TLogic extends AnyActorLogic>
 
     this.sessionId = this.system._bookId();
     this.id = id ?? this.sessionId;
-    this.logger = logger;
-    this.clock = clock;
+    this.logger = options?.logger ?? this.system._logger;
+    this.clock = options?.clock ?? this.system._clock;
     this._parent = parent;
     this._syncSnapshot = syncSnapshot;
     this.options = resolvedOptions as ActorOptions<TLogic> &
