@@ -31,10 +31,10 @@ export const donutStore = createStore(
   },
   {
     addDonut: {
-      donuts: (ctx) => ctx.donuts + 1
+      donuts: (context) => context.donuts + 1
     },
     changeFlavor: {
-      favoriteFlavor: (ctx, event: { flavor: string }) => event.flavor
+      favoriteFlavor: (context, event: { flavor: string }) => event.flavor
     },
     eatAllDonuts: {
       donuts: 0
