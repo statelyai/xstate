@@ -39,7 +39,12 @@ export const todoMachine = createMachine({
       }
     },
     editing: {
-      entry: 'focusInput',
+      entry: [
+        assign({
+          initialTitle: ({ context }) => context.title
+        }),
+        { type: 'focusInput' }
+      ],
       on: {
         blur: {
           target: 'reading',
