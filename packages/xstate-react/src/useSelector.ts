@@ -16,7 +16,7 @@ export function useSelector<
 >(
   actor: TActor,
   selector: (
-    emitted: TActor extends { getSnapshot(): infer TSnapshot }
+    snapshot: TActor extends { getSnapshot(): infer TSnapshot }
       ? TSnapshot
       : undefined
   ) => T,
