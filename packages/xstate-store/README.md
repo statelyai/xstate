@@ -23,12 +23,9 @@ npm install @xstate/store
 ```ts
 import { createStore } from '@xstate/store';
 
-// 1. Create a store
 export const donutStore = createStore(
-  {
-    donuts: 0,
-    favoriteFlavor: 'chocolate'
-  },
+  { donuts: 0, favoriteFlavor: 'chocolate' },
+
   {
     addDonut: {
       donuts: (context) => context.donuts + 1
@@ -42,29 +39,18 @@ export const donutStore = createStore(
   }
 );
 
-console.log(store.getSnapshot());
-// {
-//   status: 'active',
-//   context: {
-//     donuts: 0,
-//     favoriteFlavor: 'chocolate'
-//   }
-// }
-
-// 2. Subscribe to the store
-store.subscribe((snapshot) => {
+donutStore.subscribe((snapshot) => {
   console.log(snapshot.context);
 });
 
-// 3. Send events
-store.send({ type: 'addDonut' });
-// logs { donuts: 1, favoriteFlavor: 'chocolate' }
+donutStore.send({ type: 'addDonut' });
+// => { donuts: 1, favoriteFlavor: 'chocolate' }
 
-store.send({
+donutStore.send({
   type: 'changeFlavor',
   flavor: 'strawberry' // Strongly-typed!
 });
-// logs { donuts; 1, favoriteFlavor: 'strawberry' }
+// => { donuts: 1, favoriteFlavor: 'chocolate' }
 ```
 
 ## Usage with React
