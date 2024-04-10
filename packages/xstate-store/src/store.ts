@@ -208,6 +208,12 @@ declare global {
   }
 }
 
+/**
+ * Creates a store function, which is a function that accepts the current snapshot and an event and returns a new snapshot.
+ * @param transitions
+ * @param updater
+ * @returns
+ */
 export function createStoreTransition<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap

@@ -1,6 +1,7 @@
 import { fireEvent, screen, render } from '@testing-library/react';
 import { createStore } from '../src/index.ts';
 import { useSelector } from '../src/react.ts';
+import { useSelector as useXStateSelector } from '@xstate/react';
 import ReactDOM from 'react-dom';
 
 it('useSelector should work', () => {
@@ -145,4 +146,42 @@ it('can batch updates', () => {
   fireEvent.click(countDiv);
 
   expect(countDiv.textContent).toEqual('2');
+});
+
+it('useSelector (@xstate/react) should work', () => {
+  const store = createStore(
+    {
+      count: 0
+    },
+    {
+      inc: {
+        count: (ctx) => ctx.count + 1
+      }
+    }
+  );
+
+  const Counter = () => {
+    const count = useXStateSelector(store, (s) => s.context.count);
+
+    return (
+      <div
+        data-testid="count"
+        onClick={() => {
+          store.send({ type: 'inc' });
+        }}
+      >
+        {count}
+      </div>
+    );
+  };
+
+  render(<Counter />);
+
+  const countDiv = screen.getByTestId('count');
+
+  expect(countDiv.textContent).toEqual('0');
+
+  fireEvent.click(countDiv);
+
+  expect(countDiv.textContent).toEqual('1');
 });
