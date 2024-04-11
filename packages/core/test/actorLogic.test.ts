@@ -1271,7 +1271,7 @@ interface Deferred<T> {
 }
 
 function withResolvers<T>(): PromiseWithResolvers<T> {
-  let resolve: (value: T | Promise<T> | PromiseLike<T>) => void;
+  let resolve: (value: T | PromiseLike<T>) => void;
   let reject: (reason: any) => void;
 
   const promise = new Promise<T>((res, rej) => {
