@@ -1,5 +1,40 @@
 # xstate
 
+## 5.10.0
+
+### Minor Changes
+
+- [#4822](https://github.com/statelyai/xstate/pull/4822) [`f7f1fbbf3`](https://github.com/statelyai/xstate/commit/f7f1fbbf3d56af9fcffe6ef9a37ab5953a90ca72) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `clock` and `logger` specified in the `options` object of `createActor(logic, options)` will now propagate to all actors created within the same actor system.
+
+  ```ts
+  import { setup, log, createActor } from 'xstate';
+
+  const childMachine = setup({
+    // ...
+  }).createMachine({
+    // ...
+    // Uses custom logger from root actor
+    entry: log('something')
+  });
+
+  const parentMachine = setup({
+    // ...
+  }).createMachine({
+    // ...
+    invoke: {
+      src: childMachine
+    }
+  });
+
+  const actor = createActor(parentMachine, {
+    logger: (...args) => {
+      // custom logger for args
+    }
+  });
+
+  actor.start();
+  ```
+
 ## 5.9.1
 
 ### Patch Changes
