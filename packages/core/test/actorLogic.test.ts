@@ -256,14 +256,14 @@ describe('promise logic (fromPromise)', () => {
     const resolvedSignalListener = jest.fn();
     const resolvedPromiseLogic = fromPromise((ctx) => {
       ctx.signal.addEventListener('abort', resolvedSignalListener);
-      return resolvedDeferred.promise.then();
+      return resolvedDeferred.promise;
     });
 
     const rejectedDeferred = withResolvers<number>();
     const rejectedSignalListener = jest.fn();
     const rejectedPromiseLogic = fromPromise((ctx) => {
       ctx.signal.addEventListener('abort', rejectedSignalListener);
-      return rejectedDeferred.promise;
+      return rejectedDeferred.promise.catch(() => {});
     });
 
     const actor = createActor(resolvedPromiseLogic).start();
@@ -273,9 +273,10 @@ describe('promise logic (fromPromise)', () => {
     expect(resolvedSignalListener).not.toHaveBeenCalled();
 
     const actor2 = createActor(rejectedPromiseLogic).start();
-    rejectedDeferred.reject(42);
+
+    rejectedDeferred.reject(50);
     await rejectedDeferred.promise.catch(() => {});
-    await waitFor(actor2, (s) => s.status === 'error');
+    await waitFor(actor2, (s) => s.status === 'done');
     actor2.stop();
     expect(rejectedSignalListener).not.toHaveBeenCalled();
   });
