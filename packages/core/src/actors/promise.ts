@@ -73,7 +73,7 @@ export type PromiseActorRef<TOutput> = ActorRefFrom<
  * ```
  */
 
-let controllerMap = new WeakMap<AnyActorRef, AbortController>();
+const controllerMap = new WeakMap<AnyActorRef, AbortController>();
 
 export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
   promiseCreator: ({
@@ -120,10 +120,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
             input: undefined
           };
         case XSTATE_STOP: {
-          const controller = controllerMap.get(scope.self);
-          if (controller) {
-            controller.abort();
-          }
+          controllerMap.get(scope.self)?.abort();
           return {
             ...state,
             status: 'stopped',
