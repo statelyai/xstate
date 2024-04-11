@@ -1,5 +1,5 @@
 import { Ref, isRef, shallowRef, watch } from 'vue';
-import { ActorRef, SnapshotFrom } from 'xstate';
+import { AnyActorRef } from 'xstate';
 
 function defaultCompare<T>(a: T, b: T) {
   return a === b;
@@ -9,11 +9,14 @@ const noop = () => {
   /* ... */
 };
 
-export function useSelector<TActor extends ActorRef<any, any> | undefined, T>(
+export function useSelector<
+  TActor extends Pick<AnyActorRef, 'getSnapshot' | 'subscribe'> | undefined,
+  T
+>(
   actor: TActor | Ref<TActor>,
   selector: (
-    snapshot: TActor extends ActorRef<any, any>
-      ? SnapshotFrom<TActor>
+    snapshot: TActor extends { getSnapshot(): infer TSnapshot }
+      ? TSnapshot
       : undefined
   ) => T,
   compare: (a: T, b: T) => boolean = defaultCompare
