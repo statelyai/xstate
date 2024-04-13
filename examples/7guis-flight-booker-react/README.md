@@ -11,4 +11,6 @@ Visit the [7GUIs project](https://eugenkiss.github.io/7guis/tasks#flight/ "Fligh
 
 ## Screenshots
 
-![App Screenshot](public/flight-booker.jpg)
+![App Screenshot](public/flight-booker.png)
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/examples/7guis-flight-booker-react)

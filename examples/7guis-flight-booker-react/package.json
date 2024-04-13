@@ -11,9 +11,9 @@
   },
   "dependencies": {
     "@xstate/react": "^4.1.0",
-    "lucide-react": "^0.366.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "vite-tsconfig-paths": "^4.3.2",
     "xstate": "^5.10.0"
   },
   "devDependencies": {

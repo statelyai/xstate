@@ -1,79 +1,54 @@
-import { FlightContext } from "./machine";
-import { DateInput } from "./DateInput";
-import { useRef, useState } from "react";
-import { X } from "lucide-react";
+import FlightContext from "./machines/flightMachine";
+import { BookButton, Header } from "./components";
+import { DateSelector, TripSelector } from "./components";
+import { TODAY } from "./utils";
 
-const Flight = () => {
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
+export default function App() {
   const { send } = FlightContext.useActorRef();
   const state = FlightContext.useSelector((state) => state);
+  const { departDate, returnDate } = state.context;
+  const isRoundTrip = state.matches({ booking: "roundTrip" });
+  const isBooked = state.matches("booked");
 
-  const { startDate, returnDate } = state.context;
-  const isValidDate = startDate && (!returnDate || returnDate >= startDate);
-  const canSubmit = state.matches("booking") && isValidDate;
-
-  const trip = state.matches({ booking: "roundTrip" }) ? "roundTrip" : "oneWay";
+  const isValidDepartDate = departDate >= TODAY;
+  const isValidReturnDate = returnDate >= departDate;
 
   return (
-    <section>
-      <button className="open" onClick={() => dialogRef.current?.showModal()}>
-        Book a flight
-      </button>
-      <dialog ref={dialogRef}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <h1>
-            Book Flight
-            <button
-              className="close"
-              onClick={() => {
-                dialogRef.current?.close();
-              }}
-            >
-              <X />
-            </button>
-          </h1>
-        </div>
-        <form style={{ display: "flex", flexDirection: "column" }}>
-          <select
-            onChange={() => {
-              send({ type: "CHANGE_TRIP" });
-            }}
-            value={trip}
-          >
-            <option value="oneWay">one way flight</option>
-            <option value="roundTrip">return flight</option>
-          </select>
-          <DateInput
-            value={startDate}
-            onChange={(value: string) =>
-              send({ type: "CHANGE_START_DATE", value })
-            }
-            label="Start date"
-          />
-          <DateInput
-            value={returnDate}
-            onChange={(value: string) =>
-              send({ type: "CHANGE_RETURN_DATE", value })
-            }
-            disabled={trip === "oneWay" || !startDate}
-            label="Return date"
-          />
-          <button
-            type="button"
-            onClick={() => send({ type: "BOOK" })}
-            disabled={!canSubmit}
-          >
-            {state.matches("booking") && "Book"}
-            {state.matches("booked") && "Success!"}
-          </button>
-        </form>
-      </dialog>
-    </section>
+    <dialog>
+      <Header>Book Flight</Header>
+      <TripSelector
+        id="Trip Type"
+        isBooked={isBooked}
+        tripType={isRoundTrip ? "roundTrip" : "oneWay"}
+      />
+      <DateSelector
+        id="Depart Date"
+        value={departDate}
+        isValidDate={isValidDepartDate}
+        disabled={isBooked}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          send({
+            type: "CHANGE_DEPART_DATE",
+            value: e.currentTarget.value,
+          })
+        }
+      />
+      <DateSelector
+        id="Return Date"
+        value={returnDate}
+        isValidDate={isValidReturnDate}
+        disabled={!isRoundTrip || isBooked}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          send({
+            type: "CHANGE_RETURN_DATE",
+            value: e.currentTarget.value,
+          })
+        }
+      />
+      <BookButton
+        eventType={isRoundTrip ? "BOOK_RETURN" : "BOOK_DEPART"}
+        isBooked={isBooked}
+      />
+    </dialog>
   );
-};
-
-const App = () => {
-  return <Flight />;
-};
-
-export default App;
+}

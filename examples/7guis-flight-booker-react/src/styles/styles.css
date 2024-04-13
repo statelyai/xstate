@@ -1,0 +1,108 @@
+:root {
+  --white: hsl(0, 0%, 95%);
+  --black: hsl(0, 0%, 15%);
+  --gray: hsl(0, 10%, 70%);
+  --lightgray: hsl(0, 20%, 85%);
+  --background: hsl(214, 27%, 7%);
+  --box-shadow: var(--gray) 0px 0px 0px 2px inset, var(--black) 0px 0px 0px 2px;
+  --inner-shadow: rgba(0, 0, 0, 0.15) 0px 3px 3px 0px inset;
+}
+
+* {
+  color: var(--white);
+  border-radius: 4px;
+  padding: 8px;
+  width: 100%;
+  outline-offset: 2px;
+}
+
+*:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+h1 {
+  color: var(--black);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  padding-bottom: 6px;
+  border-radius: 0;
+  border-bottom: 1px solid var(--black);
+}
+
+body {
+  display: grid;
+  place-content: center;
+  min-height: 100vh;
+  background-color: var(--background);
+}
+
+dialog {
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  width: 150px;
+  border: none;
+  background: var(--gray);
+}
+
+button {
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  font-family: inherit;
+  border: none;
+  background-color: var(--black);
+  transition: box-shadow 0.1s;
+  &:hover:not(:disabled) {
+    box-shadow: var(--box-shadow);
+  }
+}
+
+input[type="date"] {
+  cursor: pointer;
+  border: 1px solid (var(--gray));
+  border-top: none;
+  border-bottom: 1px solid var(--lightgray);
+  box-shadow: inset 0 1px 2px hsl(0 0% 0%/0.8), 0 -1px 1px var(--gray),
+    0 1px 0 var(--gray);
+  color: var(--black);
+  box-sizing: border-box;
+  transition: box-shadow 0.1s;
+  &:disabled {
+    cursor: not-allowed;
+  }
+  &:hover:not(:disabled) {
+    /* box-shadow: var(--box-shadow); */
+  }
+}
+
+select {
+  cursor: pointer;
+  border: none;
+  background: var(--black);
+  transition: box-shadow 0.1s;
+  &:hover {
+    box-shadow: var(--box-shadow);
+  }
+}
+
+.visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.error {
+  outline: 2px solid red;
+  background: red;
+  fontweight: 700;
+}
