@@ -25,7 +25,7 @@ export default function App() {
         id="Depart Date"
         value={departDate}
         isValidDate={isValidDepartDate}
-        disabled={isBooked}
+        disabled={isBookeda
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           send({
             type: "CHANGE_DEPART_DATE",
