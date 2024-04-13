@@ -77,7 +77,6 @@ input[type="date"] {
     cursor: not-allowed;
   }
   &:hover:not(:disabled) {
-    /* box-shadow: var(--box-shadow); */
   }
 }
 
