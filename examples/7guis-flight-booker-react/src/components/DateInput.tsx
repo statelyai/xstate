@@ -6,7 +6,7 @@ function DateInput({ isValidDate, ...props }: Props) {
   return (
     <label>
       <span className="visually-hidden">{props.id}</span>
-      <input type="date" {...props} style={isValidDate ? null : errorStyle} />
+      <input type="date" {...props} style={isValidDate ? {} : errorStyle} />
     </label>
   );
 }

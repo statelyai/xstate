@@ -100,9 +100,3 @@ select {
   white-space: nowrap;
   width: 1px;
 }
-
-.error {
-  outline: 2px solid red;
-  background: red;
-  fontweight: 700;
-}
