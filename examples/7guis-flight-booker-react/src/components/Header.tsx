@@ -1,4 +1,8 @@
 function Header({ children }: { children: React.ReactNode }) {
-  return <h1>{children}</h1>;
+  return (
+    <header>
+      <h1>{children}</h1>
+    </header>
+  );
 }
 export default Header;
