@@ -282,7 +282,7 @@ describe('promise logic (fromPromise)', () => {
   });
 
   it('should not reuse the same signal for different actors with same logic', async () => {
-    let deferredMap: Map<string, Deferred<number>> = new Map();
+    let deferredMap: Map<string, PromiseWithResolvers<number>> = new Map();
     let signalListenerMap: Map<string, jest.Mock> = new Map();
     const p = fromPromise(({ self, signal }) => {
       const deferred = withResolvers<number>();
@@ -342,7 +342,7 @@ describe('promise logic (fromPromise)', () => {
   });
 
   it('should not reuse the same signal for different actors with same logic and id', async () => {
-    let deferredList: Deferred<number>[] = [];
+    let deferredList: PromiseWithResolvers<number>[] = [];
     let signalListenerList: jest.Mock[] = [];
     const p = fromPromise(({ signal }) => {
       const deferred = withResolvers<number>();
@@ -406,7 +406,7 @@ describe('promise logic (fromPromise)', () => {
   });
 
   it('should not reuse the same signal for the same actor when restarted', async () => {
-    let deferredList: Deferred<number>[] = [];
+    let deferredList: PromiseWithResolvers<number>[] = [];
     let signalListenerList: jest.Mock[] = [];
     const p = fromPromise(({ signal }) => {
       const deferred = withResolvers<number>();
@@ -1264,12 +1264,6 @@ describe('composable actor logic', () => {
     );
   });
 });
-
-interface Deferred<T> {
-  resolve(value: T): void;
-  reject(reason: any): void;
-  promise: Promise<T>;
-}
 
 function withResolvers<T>(): PromiseWithResolvers<T> {
   let resolve: (value: T | PromiseLike<T>) => void;
