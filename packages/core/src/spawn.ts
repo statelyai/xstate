@@ -46,10 +46,21 @@ type GetConcreteLogic<
 export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
   TActor['src']
 > extends true
-  ? <TSrc extends TActor['src']>(
-      logic: TSrc,
-      ...[options]: SpawnOptions<TActor, TSrc>
-    ) => ActorRefFrom<GetConcreteLogic<TActor, TSrc>>
+  ? {
+      <TSrc extends TActor['src']>(
+        logic: TSrc,
+        ...[options]: SpawnOptions<TActor, TSrc>
+      ): ActorRefFrom<GetConcreteLogic<TActor, TSrc>>;
+      <TLogic extends AnyActorLogic>(
+        src: TLogic,
+        options?: {
+          id?: never;
+          systemId?: string;
+          input?: InputFrom<TLogic>;
+          syncSnapshot?: boolean;
+        }
+      ): ActorRefFrom<TLogic>;
+    }
   : <TLogic extends AnyActorLogic | string>(
       src: TLogic,
       options?: {
