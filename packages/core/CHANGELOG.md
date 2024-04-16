@@ -1,5 +1,28 @@
 # xstate
 
+## 5.11.0
+
+### Minor Changes
+
+- [#4806](https://github.com/statelyai/xstate/pull/4806) [`f4e0ec48c`](https://github.com/statelyai/xstate/commit/f4e0ec48cccbbe3e74de8a6a5b25eaa727512a83) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Inline actor logic is now permitted when named actors are present. Defining inline actors will no longer cause a TypeScript error:
+
+  ```ts
+  const machine = setup({
+    actors: {
+      existingActor: fromPromise(async () => {
+        // ...
+      })
+    }
+  }).createMachine({
+    invoke: {
+      src: fromPromise(async () => {
+        // Inline actor
+      })
+      // ...
+    }
+  });
+  ```
+
 ## 5.10.0
 
 ### Minor Changes
