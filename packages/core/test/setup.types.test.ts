@@ -855,24 +855,29 @@ describe('setup()', () => {
       });
   });
 
-  it('should allow inline actor logic not present in setup', () => {
+  it('should allow anonymous inline actor outside of the configured actors', () => {
     setup({
       actors: {
         known: fromPromise(async () => 'known')
       }
     }).createMachine({
-      invoke: [
-        {
-          src: 'known'
-        },
-        {
-          src: fromPromise(async () => 'inline')
-        },
-        {
-          // @ts-expect-error
-          src: 'unknown'
-        }
-      ]
+      invoke: {
+        src: fromPromise(async () => 'inline')
+      }
+    });
+  });
+
+  it('should disallow anonymous inline actor with an id outside of the configured actors', () => {
+    setup({
+      actors: {
+        known: fromPromise(async () => 'known')
+      }
+    }).createMachine({
+      invoke: {
+        src: fromPromise(async () => 'inline'),
+        // @ts-expect-error
+        id: 'myChild'
+      }
     });
   });
 
