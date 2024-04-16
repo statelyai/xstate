@@ -1649,8 +1649,8 @@ describe('invoke', () => {
         };
       },
       invoke: {
-        id: 'child',
         // @ts-expect-error
+        id: 'child',
         src: 'child'
       }
     });

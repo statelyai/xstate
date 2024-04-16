@@ -659,10 +659,9 @@ type DistributeActors<
           } & { [K in RequiredActorOptions<TSpecificActor>]: unknown }
         >
       | {
-          id?: string;
+          id?: never;
           systemId?: string;
           src: AnyActorLogic;
-
           input?:
             | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
             | NonReducibleUnknown;
