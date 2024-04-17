@@ -1,6 +1,7 @@
 import FlightContext from "../machines/flightMachine";
 
 export default function TripSelector({
+  isBooking,
   isBooked,
   tripType,
   ...props
@@ -11,7 +12,7 @@ export default function TripSelector({
     <label>
       <span className="visually-hidden">{props.id}</span>
       <select
-        disabled={isBooked}
+        disabled={isBooked || isBooking}
         value={tripType}
         onChange={() => {
           send({ type: "CHANGE_TRIP_TYPE" });

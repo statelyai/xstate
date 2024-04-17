@@ -13,6 +13,9 @@
   --box-border: var(--gray) 0px 0px 0px 2px inset, var(--black) 0px 0px 0px 2px;
   --inner-shadow: inset 0 1px 2px hsl(0 0% 0%/0.8), 0 -1px 1px var(--gray),
     0 1px 0 var(--gray);
+  --outer-shadow: 0.3px 0.5px 0.7px var(--black),
+    0.8px 1.6px 2px -0.8px var(--black), 2.1px 4.1px 5.2px -1.7px var(--black),
+    5px 10px 12.6px -2.5px var(--black);
 }
 
 /****************************
@@ -22,7 +25,7 @@
   transition: box-shadow 0.1s;
   border: none;
   font-size: 1rem;
-  color: var(--white);
+  /* color: var(--white); */
   border-radius: 4px;
   padding: 8px;
   width: 100%;
@@ -53,19 +56,40 @@ body {
   }
 }
 
-dialog {
-  top: 0;
-  bottom: 0;
+main {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 16px;
-  width: fit-content;
   background: var(--gray);
   & .error {
     background: red;
     font-weight: 700;
     color: white !important;
+  }
+}
+
+dialog {
+  width: fit-content;
+  background: var(--gray);
+  padding: 12px 24px;
+  box-shadow: var(--outer-shadow);
+  font-weight: 700;
+  transition: background 0.5s;
+  & h2 {
+    color: var(--black);
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--black);
+    border-radius: 0;
+  }
+  & p {
+    margin: 8px 0;
+    font-weight: normal;
+    & span {
+      font-weight: 700;
+    }
   }
 }
 
@@ -81,6 +105,7 @@ input[type="date"] {
 
 select {
   cursor: pointer;
+  color: var(--white);
   background: var(--black);
   &:hover {
     box-shadow: var(--box-border);
@@ -89,6 +114,7 @@ select {
 
 button {
   cursor: pointer;
+  color: var(--white);
   font-weight: 500;
   font-family: inherit;
   background-color: var(--black);

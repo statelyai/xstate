@@ -1,6 +1,8 @@
-import { setup, assign, assertEvent } from "xstate";
+import { setup, assign, assertEvent, fromPromise } from "xstate";
 import { createActorContext } from "@xstate/react";
 import { TODAY, TOMORROW } from "../utils";
+import { sleep } from "../utils";
+import { s } from "node_modules/vite/dist/node/types.d-aGj9QkWt";
 
 export const flightBookerMachine = setup({
   types: {
@@ -22,6 +24,11 @@ export const flightBookerMachine = setup({
       return { returnDate: event.value };
     }),
   },
+  actors: {
+    Booker: fromPromise(() => {
+      return sleep(2000);
+    }),
+  },
   guards: {
     "isValidDepartDate?": ({ context: { departDate } }) => {
       return departDate >= TODAY;
@@ -36,9 +43,9 @@ export const flightBookerMachine = setup({
     departDate: TODAY,
     returnDate: TOMORROW,
   },
-  initial: "booking",
+  initial: "scheduling",
   states: {
-    booking: {
+    scheduling: {
       initial: "oneWay",
       on: {
         CHANGE_DEPART_DATE: {
@@ -54,7 +61,7 @@ export const flightBookerMachine = setup({
               target: "roundTrip",
             },
             BOOK_DEPART: {
-              target: "#flightBookerMachine.booked",
+              target: "#flightBookerMachine.booking",
               guard: {
                 type: "isValidDepartDate?",
               },
@@ -72,12 +79,23 @@ export const flightBookerMachine = setup({
               },
             },
             BOOK_RETURN: {
-              target: "#flightBookerMachine.booked",
+              target: "#flightBookerMachine.booking",
               guard: {
                 type: "isValidReturnDate?",
               },
             },
           },
+        },
+      },
+    },
+    booking: {
+      invoke: {
+        src: "Booker",
+        onDone: {
+          target: "booked",
+        },
+        onError: {
+          target: "scheduling",
         },
       },
     },
