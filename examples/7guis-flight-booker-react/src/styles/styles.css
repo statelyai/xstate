@@ -7,7 +7,6 @@
   --black: hsl(0 0% 15%);
   --gray: hsl(0 10% 70%);
   --lightgray: hsl(0 20% 80%);
-  --bg-color: hsl(0 15% 10%);
 
   /* shadows */
   --box-border: var(--gray) 0px 0px 0px 2px inset, var(--black) 0px 0px 0px 2px;
@@ -25,7 +24,6 @@
   transition: box-shadow 0.1s;
   border: none;
   font-size: 1rem;
-  /* color: var(--white); */
   border-radius: 4px;
   padding: 8px;
   width: 100%;
@@ -43,7 +41,7 @@ body {
   display: grid;
   min-height: 100vh;
   place-content: center;
-  background: var(--bg-color);
+  background: var(--black);
   & h1 {
     margin-top: -4px;
     color: var(--black);
