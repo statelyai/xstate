@@ -2,7 +2,6 @@ import { setup, assign, assertEvent, fromPromise } from "xstate";
 import { createActorContext } from "@xstate/react";
 import { TODAY, TOMORROW } from "../utils";
 import { sleep } from "../utils";
-import { s } from "node_modules/vite/dist/node/types.d-aGj9QkWt";
 
 export const flightBookerMachine = setup({
   types: {
