@@ -1,6 +1,7 @@
 ---
 '@xstate/react': patch
-'@xstate/store': patch
+'@xstate/svelte': patch
+'@xstate/vue': patch
 ---
 
 The `useSelector(…)` hook from `@xstate/react` is now compatible with stores from `@xstate/store`.
