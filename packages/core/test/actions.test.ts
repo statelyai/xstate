@@ -1733,7 +1733,7 @@ describe('entry/exit actions', () => {
       interpreter.stop();
     });
 
-    it('should note execute referenced custom actions correctly when stopping an interpreter', () => {
+    it('should not execute referenced custom actions correctly when stopping an interpreter', () => {
       const spy = jest.fn();
       const parent = createMachine(
         {

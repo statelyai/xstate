@@ -3352,6 +3352,39 @@ describe('invoke', () => {
     await sleep(3);
     expect(actorRef.getSnapshot().status).toBe('done');
   });
+
+  it('should call child exit when stopping a machine', () => {
+    const exit = jest.fn();
+
+    const parentMachine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: createMachine({
+              entry: () => {
+                console.log('hm');
+              },
+              exit: () => {
+                console.log('hey');
+                exit();
+              }
+            })
+          },
+          on: {
+            next: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+
+    const actor = createActor(parentMachine);
+    actor.start();
+    actor.send({ type: 'next' });
+
+    expect(exit).toHaveBeenCalled();
+  });
 });
 
 describe('invoke input', () => {

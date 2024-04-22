@@ -1649,6 +1649,22 @@ export function macrostep(
 
   // Handle stop event
   if (event.type === XSTATE_STOP) {
+    const statesToExit = snapshot._nodes;
+    const actions = [];
+    for (const s of statesToExit) {
+      actions.push(...s.exit);
+    }
+    resolveAndExecuteActionsWithContext(
+      nextSnapshot,
+      event,
+      actorScope,
+      actions as any,
+      {
+        internalQueue: [],
+        deferredActorIds: []
+      },
+      undefined
+    );
     nextSnapshot = cloneMachineSnapshot(
       stopChildren(nextSnapshot, event, actorScope),
       {
