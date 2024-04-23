@@ -97,6 +97,8 @@ export interface ActorSystem<T extends ActorSystemInfo>
    */
   _snapshot: SystemSnapshot;
   start: () => void;
+  _clock: Clock;
+  _logger: (...args: any[]) => void;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
@@ -106,6 +108,7 @@ export function createSystem<T extends ActorSystemInfo>(
   rootActor: AnyActorRef,
   options: {
     clock: Clock;
+    logger: (...args: any[]) => void;
     snapshot?: unknown;
   }
 ): ActorSystem<T> {
@@ -115,7 +118,7 @@ export function createSystem<T extends ActorSystemInfo>(
   const inspectionObservers = new Set<Observer<InspectionEvent>>();
   const systemObservers = new Set<Observer<SystemSnapshot>>();
   const timerMap: { [id: ScheduledEventId]: number } = {};
-  const clock = options.clock;
+  const { clock, logger } = options;
 
   const scheduler: Scheduler = {
     schedule: (
@@ -329,7 +332,9 @@ export function createSystem<T extends ActorSystemInfo>(
           _scheduledEvents[scheduledId as ScheduledEventId];
         scheduler.schedule(source, target, event, delay, id);
       }
-    }
+    },
+    _clock: clock,
+    _logger: logger
   };
 
   return system;

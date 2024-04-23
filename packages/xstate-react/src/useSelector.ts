@@ -11,13 +11,13 @@ function defaultCompare<T>(a: T, b: T) {
 }
 
 export function useSelector<
-  TActor extends AnyActorRef | AnyActorSystem | undefined,
+  TActor extends Pick<AnyActorRef, 'subscribe' | 'getSnapshot'> | undefined,
   T
 >(
   actor: TActor,
   selector: (
-    emitted: TActor extends AnyActorRef | AnyActorSystem
-      ? SnapshotFrom<TActor>
+    snapshot: TActor extends { getSnapshot(): infer TSnapshot }
+      ? TSnapshot
       : undefined
   ) => T,
   compare: (a: T, b: T) => boolean = defaultCompare

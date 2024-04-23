@@ -581,77 +581,134 @@ type DistributeActors<
   TEmitted extends EventObject,
   TSpecificActor extends ProvidedActor
 > = TSpecificActor extends { src: infer TSrc }
-  ? Compute<
-      {
-        systemId?: string;
-        /**
-         * The source of the machine to be invoked, or the machine itself.
-         */
-        src: TSrc;
+  ?
+      | Compute<
+          {
+            systemId?: string;
+            /**
+             * The source of the machine to be invoked, or the machine itself.
+             */
+            src: TSrc;
 
-        /**
-         * The unique identifier for the invoked machine. If not specified, this
-         * will be the machine's own `id`, or the URL (from `src`).
-         */
-        id?: TSpecificActor['id'];
+            /**
+             * The unique identifier for the invoked machine. If not specified, this
+             * will be the machine's own `id`, or the URL (from `src`).
+             */
+            id?: TSpecificActor['id'];
 
-        // TODO: currently we do not enforce required inputs here
-        // in a sense, we shouldn't - they could be provided within the `implementations` object
-        // how do we verify if the required input has been provided?
-        input?:
-          | Mapper<TContext, TEvent, InputFrom<TSpecificActor['logic']>, TEvent>
-          | InputFrom<TSpecificActor['logic']>;
-        /**
-         * The transition to take upon the invoked child machine reaching its final top-level state.
-         */
-        onDone?:
-          | string
-          | SingleOrArray<
-              TransitionConfigOrTarget<
-                TContext,
-                DoneActorEvent<OutputFrom<TSpecificActor['logic']>>,
-                TEvent,
-                TActor,
-                TAction,
-                TGuard,
-                TDelay,
-                TEmitted
-              >
-            >;
-        /**
-         * The transition to take upon the invoked child machine sending an error event.
-         */
-        onError?:
-          | string
-          | SingleOrArray<
-              TransitionConfigOrTarget<
-                TContext,
-                ErrorActorEvent,
-                TEvent,
-                TActor,
-                TAction,
-                TGuard,
-                TDelay,
-                TEmitted
-              >
-            >;
+            // TODO: currently we do not enforce required inputs here
+            // in a sense, we shouldn't - they could be provided within the `implementations` object
+            // how do we verify if the required input has been provided?
+            input?:
+              | Mapper<
+                  TContext,
+                  TEvent,
+                  InputFrom<TSpecificActor['logic']>,
+                  TEvent
+                >
+              | InputFrom<TSpecificActor['logic']>;
+            /**
+             * The transition to take upon the invoked child machine reaching its final top-level state.
+             */
+            onDone?:
+              | string
+              | SingleOrArray<
+                  TransitionConfigOrTarget<
+                    TContext,
+                    DoneActorEvent<OutputFrom<TSpecificActor['logic']>>,
+                    TEvent,
+                    TActor,
+                    TAction,
+                    TGuard,
+                    TDelay,
+                    TEmitted
+                  >
+                >;
+            /**
+             * The transition to take upon the invoked child machine sending an error event.
+             */
+            onError?:
+              | string
+              | SingleOrArray<
+                  TransitionConfigOrTarget<
+                    TContext,
+                    ErrorActorEvent,
+                    TEvent,
+                    TActor,
+                    TAction,
+                    TGuard,
+                    TDelay,
+                    TEmitted
+                  >
+                >;
 
-        onSnapshot?:
-          | string
-          | SingleOrArray<
-              TransitionConfigOrTarget<
-                TContext,
-                SnapshotEvent<SnapshotFrom<TSpecificActor['logic']>>,
-                TEvent,
-                TActor,
-                TAction,
-                TGuard,
-                TDelay,
-                TEmitted
-              >
-            >;
-      } & { [K in RequiredActorOptions<TSpecificActor>]: unknown }
-    >
+            onSnapshot?:
+              | string
+              | SingleOrArray<
+                  TransitionConfigOrTarget<
+                    TContext,
+                    SnapshotEvent<SnapshotFrom<TSpecificActor['logic']>>,
+                    TEvent,
+                    TActor,
+                    TAction,
+                    TGuard,
+                    TDelay,
+                    TEmitted
+                  >
+                >;
+          } & { [K in RequiredActorOptions<TSpecificActor>]: unknown }
+        >
+      | {
+          id?: never;
+          systemId?: string;
+          src: AnyActorLogic;
+          input?:
+            | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
+            | NonReducibleUnknown;
+          onDone?:
+            | string
+            | SingleOrArray<
+                TransitionConfigOrTarget<
+                  TContext,
+                  DoneActorEvent<unknown>,
+                  TEvent,
+                  TActor,
+                  TAction,
+                  TGuard,
+                  TDelay,
+                  TEmitted
+                >
+              >;
+          onError?:
+            | string
+            | SingleOrArray<
+                TransitionConfigOrTarget<
+                  TContext,
+                  ErrorActorEvent,
+                  TEvent,
+                  TActor,
+                  TAction,
+                  TGuard,
+                  TDelay,
+                  TEmitted
+                >
+              >;
+
+          onSnapshot?:
+            | string
+            | SingleOrArray<
+                TransitionConfigOrTarget<
+                  TContext,
+                  SnapshotEvent,
+                  TEvent,
+                  TActor,
+                  TAction,
+                  TGuard,
+                  TDelay,
+                  TEmitted
+                >
+              >;
+        }
   : never;
 
 export type InvokeConfig<

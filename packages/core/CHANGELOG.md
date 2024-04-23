@@ -1,5 +1,63 @@
 # xstate
 
+## 5.11.0
+
+### Minor Changes
+
+- [#4806](https://github.com/statelyai/xstate/pull/4806) [`f4e0ec48c`](https://github.com/statelyai/xstate/commit/f4e0ec48cccbbe3e74de8a6a5b25eaa727512a83) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Inline actor logic is now permitted when named actors are present. Defining inline actors will no longer cause a TypeScript error:
+
+  ```ts
+  const machine = setup({
+    actors: {
+      existingActor: fromPromise(async () => {
+        // ...
+      })
+    }
+  }).createMachine({
+    invoke: {
+      src: fromPromise(async () => {
+        // Inline actor
+      })
+      // ...
+    }
+  });
+  ```
+
+## 5.10.0
+
+### Minor Changes
+
+- [#4822](https://github.com/statelyai/xstate/pull/4822) [`f7f1fbbf3`](https://github.com/statelyai/xstate/commit/f7f1fbbf3d56af9fcffe6ef9a37ab5953a90ca72) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `clock` and `logger` specified in the `options` object of `createActor(logic, options)` will now propagate to all actors created within the same actor system.
+
+  ```ts
+  import { setup, log, createActor } from 'xstate';
+
+  const childMachine = setup({
+    // ...
+  }).createMachine({
+    // ...
+    // Uses custom logger from root actor
+    entry: log('something')
+  });
+
+  const parentMachine = setup({
+    // ...
+  }).createMachine({
+    // ...
+    invoke: {
+      src: childMachine
+    }
+  });
+
+  const actor = createActor(parentMachine, {
+    logger: (...args) => {
+      // custom logger for args
+    }
+  });
+
+  actor.start();
+  ```
+
 ## 5.9.1
 
 ### Patch Changes
