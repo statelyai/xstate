@@ -1,5 +1,36 @@
 # xstate
 
+## 5.12.0
+
+### Minor Changes
+
+- [#4863](https://github.com/statelyai/xstate/pull/4863) [`0696adc21`](https://github.com/statelyai/xstate/commit/0696adc21d2e4c0a48ee3a5b0a8321a43f0e0d30) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Meta objects for state nodes and transitions can now be specified in `setup({ types: … })`:
+
+  ```ts
+  const machine = setup({
+    types: {
+      meta: {} as {
+        layout: string;
+      }
+    }
+  }).createMachine({
+    initial: 'home',
+    states: {
+      home: {
+        meta: {
+          layout: 'full'
+        }
+      }
+    }
+  });
+
+  const actor = createActor(machine).start();
+
+  actor.getSnapshot().getMeta().home;
+  // => { layout: 'full' }
+  // if in "home" state
+  ```
+
 ## 5.11.0
 
 ### Minor Changes
