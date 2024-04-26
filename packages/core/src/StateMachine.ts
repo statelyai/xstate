@@ -152,6 +152,7 @@ export class StateMachine<
     this.getPersistedSnapshot = this.getPersistedSnapshot.bind(this);
     this.restoreSnapshot = this.restoreSnapshot.bind(this);
     this.start = this.start.bind(this);
+    this.provide = this.provide.bind(this);
 
     this.root = new StateNode(config, {
       _key: this.id,
