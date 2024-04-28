@@ -10,6 +10,7 @@ import {
 
 export type PromiseSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
   input: TInput | undefined;
+  steps?: Record<string, [status: 0 | 1 | 2, result: any]>;
 };
 
 const XSTATE_PROMISE_RESOLVE = 'xstate.promise.resolve';
@@ -88,8 +89,10 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
      * The parent actor of the promise actor
      */
     self: PromiseActorRef<TOutput>;
+    step: <T>(name: string, promiseCreator: () => Promise<T>) => Promise<T>;
   }) => PromiseLike<TOutput>
 ): PromiseActorLogic<TOutput, TInput> {
+  // TODO: add event types
   const logic: PromiseActorLogic<TOutput, TInput> = {
     config: promiseCreator,
     transition: (state, event) => {
@@ -120,6 +123,14 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
             status: 'stopped',
             input: undefined
           };
+        case '$$xstate.step':
+          return {
+            ...state,
+            steps: {
+              ...(state.steps || {}),
+              [(event as any).name]: [event.status, (event as any).output]
+            }
+          };
         default:
           return state;
       }
@@ -131,8 +142,32 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
         return;
       }
 
+      function step(name: string, promiseCreator: () => Promise<any>) {
+        if (state.steps?.[name]) {
+          return state.steps[name][1];
+        }
+
+        const promise = promiseCreator();
+        return promise.then(
+          (result) => {
+            self.send({
+              type: '$$xstate.step',
+              status: 1,
+              name,
+              output: result
+            });
+            return result;
+          },
+          (error) => {
+            // self.send({ type: '$$xstate.step', status: 2, name, error });
+
+            return error;
+          }
+        );
+      }
+
       const resolvedPromise = Promise.resolve(
-        promiseCreator({ input: state.input!, system, self })
+        promiseCreator({ input: state.input!, system, self, step })
       );
 
       resolvedPromise.then(
