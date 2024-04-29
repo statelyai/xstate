@@ -206,7 +206,7 @@ export interface ActionFunctionEnqueuer<
     actionFn:
       | NoRequiredParams<TAction>
       | WithDynamicParams<TContext, TExpressionEvent, TAction>
-      | (() => void)
+      | ((args: ActionArgs<TContext, TExpressionEvent, TEvent>) => void)
   ) => void;
   check: (
     guard: Guard<TContext, TExpressionEvent, undefined, TGuard>
