@@ -1,6 +1,7 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
 import { ProcessingStatus, createActor } from '../createActor.ts';
+import { executingCustomAction } from '../stateUtils.ts';
 import {
   ActionArgs,
   ActionFunction,
@@ -205,6 +206,12 @@ export function spawnChild<
   never,
   never
 > {
+  if (isDevelopment && executingCustomAction) {
+    console.warn(
+      'Custom actions should not call `spawnChild()` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.'
+    );
+  }
+
   function spawnChild(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams

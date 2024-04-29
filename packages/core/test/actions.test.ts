@@ -1,11 +1,13 @@
 import { sleep } from '@xstate-repo/jest-utils';
 import {
   cancel,
+  emit,
   enqueueActions,
   log,
   raise,
   sendParent,
   sendTo,
+  spawnChild,
   stopChild
 } from '../src/actions.ts';
 import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
@@ -3934,5 +3936,39 @@ describe('actions', () => {
     expect(spy).toHaveBeenCalledWith({
       foo: 'bar'
     });
+  });
+
+  it('should warn if called in custom action', () => {
+    const machine = createMachine({
+      entry: () => {
+        assign({});
+        raise({ type: '' });
+        sendTo('', { type: '' });
+        emit({ type: '' });
+        spawnChild('');
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+[
+  [
+    "Custom actions should not call \`assign()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
+  ],
+  [
+    "Custom actions should not call \`raise()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
+  ],
+  [
+    "Custom actions should not call \`raise()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
+  ],
+  [
+    "Custom actions should not call \`emit()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
+  ],
+  [
+    "Custom actions should not call \`spawnChild()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
+  ],
+]
+`);
   });
 });
