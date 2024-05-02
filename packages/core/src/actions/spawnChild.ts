@@ -206,12 +206,6 @@ export function spawnChild<
   never,
   never
 > {
-  if (isDevelopment && executingCustomAction) {
-    console.warn(
-      'Custom actions should not call `spawnChild()` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.'
-    );
-  }
-
   function spawnChild(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams

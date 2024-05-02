@@ -1491,7 +1491,9 @@ interface BuiltinAction {
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
-export let executingCustomAction = false;
+export let executingCustomAction:
+  | ActionFunction<any, any, any, any, any, any, any, any, any>
+  | false = false;
 
 function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
@@ -1570,12 +1572,12 @@ function resolveAndExecuteActionsWithContext(
 
     if (!('resolve' in resolvedAction)) {
       if (actorScope.self._processingStatus === ProcessingStatus.Running) {
-        executingCustomAction = true;
+        executingCustomAction = resolvedAction;
         executeAction();
         executingCustomAction = false;
       } else {
         actorScope.defer(() => {
-          executingCustomAction = true;
+          executingCustomAction = resolvedAction;
           executeAction();
           executingCustomAction = false;
         });

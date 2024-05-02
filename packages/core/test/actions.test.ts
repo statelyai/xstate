@@ -3945,7 +3945,6 @@ describe('actions', () => {
         raise({ type: '' });
         sendTo('', { type: '' });
         emit({ type: '' });
-        spawnChild('');
       }
     });
 
@@ -3964,9 +3963,6 @@ describe('actions', () => {
   ],
   [
     "Custom actions should not call \`emit()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
-  ],
-  [
-    "Custom actions should not call \`spawnChild()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
   ],
 ]
 `);
