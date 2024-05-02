@@ -16,7 +16,8 @@ import type {
   AnyActorRef,
   Snapshot,
   ParameterizedObject,
-  IsNever
+  IsNever,
+  MetaObject
 } from './types.ts';
 import { matchesState } from './utils.ts';
 
@@ -52,6 +53,7 @@ interface MachineSnapshotBase<
   TStateValue extends StateValue,
   TTag extends string,
   TOutput,
+  TMeta,
   _TUnusedButLeftForCompatReasons = never
 > {
   /**
@@ -69,7 +71,8 @@ interface MachineSnapshotBase<
     TTag,
     unknown,
     TOutput,
-    EventObject // TEmitted
+    EventObject, // TEmitted
+    any // TMeta
   >;
   /**
    * The tags of the active state nodes that represent the current state value.
@@ -133,7 +136,10 @@ interface MachineSnapshotBase<
    */
   can: (event: TEvent) => boolean;
 
-  getMeta: () => Record<string, any>;
+  getMeta: () => Record<
+    string,
+    TMeta | undefined // States might not have meta defined
+  >;
 
   toJSON: () => unknown;
 }
@@ -144,14 +150,16 @@ interface ActiveMachineSnapshot<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TStateValue extends StateValue,
   TTag extends string,
-  TOutput
+  TOutput,
+  TMeta extends MetaObject
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
     TChildren,
     TStateValue,
     TTag,
-    TOutput
+    TOutput,
+    TMeta
   > {
   status: 'active';
   output: undefined;
@@ -164,14 +172,16 @@ interface DoneMachineSnapshot<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TStateValue extends StateValue,
   TTag extends string,
-  TOutput
+  TOutput,
+  TMeta extends MetaObject
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
     TChildren,
     TStateValue,
     TTag,
-    TOutput
+    TOutput,
+    TMeta
   > {
   status: 'done';
   output: TOutput;
@@ -184,14 +194,16 @@ interface ErrorMachineSnapshot<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TStateValue extends StateValue,
   TTag extends string,
-  TOutput
+  TOutput,
+  TMeta extends MetaObject
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
     TChildren,
     TStateValue,
     TTag,
-    TOutput
+    TOutput,
+    TMeta
   > {
   status: 'error';
   output: undefined;
@@ -204,14 +216,16 @@ interface StoppedMachineSnapshot<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TStateValue extends StateValue,
   TTag extends string,
-  TOutput
+  TOutput,
+  TMeta extends MetaObject
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
     TChildren,
     TStateValue,
     TTag,
-    TOutput
+    TOutput,
+    TMeta
   > {
   status: 'stopped';
   output: undefined;
@@ -225,6 +239,7 @@ export type MachineSnapshot<
   TStateValue extends StateValue,
   TTag extends string,
   TOutput,
+  TMeta extends MetaObject,
   _TUnusedButLeftForCompatReasons = never
 > =
   | ActiveMachineSnapshot<
@@ -233,16 +248,26 @@ export type MachineSnapshot<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TMeta
     >
-  | DoneMachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>
+  | DoneMachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput,
+      TMeta
+    >
   | ErrorMachineSnapshot<
       TContext,
       TEvent,
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TMeta
     >
   | StoppedMachineSnapshot<
       TContext,
@@ -250,7 +275,8 @@ export type MachineSnapshot<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TMeta
     >;
 
 const machineSnapshotMatches = function matches(
@@ -318,11 +344,20 @@ export function createMachineSnapshot<
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
   TStateValue extends StateValue,
-  TTag extends string
+  TTag extends string,
+  TMeta extends MetaObject
 >(
   config: StateConfig<TContext, TEvent>,
   machine: AnyStateMachine
-): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, undefined> {
+): MachineSnapshot<
+  TContext,
+  TEvent,
+  TChildren,
+  TStateValue,
+  TTag,
+  undefined,
+  TMeta
+> {
   return {
     status: config.status as never,
     output: config.output,
@@ -358,7 +393,8 @@ export function getPersistedSnapshot<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TStateValue extends StateValue,
   TTag extends string,
-  TOutput
+  TOutput,
+  TMeta extends MetaObject
 >(
   snapshot: MachineSnapshot<
     TContext,
@@ -366,7 +402,8 @@ export function getPersistedSnapshot<
     TChildren,
     TStateValue,
     TTag,
-    TOutput
+    TOutput,
+    TMeta
   >,
   options?: unknown
 ): Snapshot<unknown> {

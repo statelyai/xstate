@@ -9,15 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@statelyai/inspect": "^0.2.4",
+    "@statelyai/inspect": "^0.2.5",
     "@xstate/vue": "^3.1.1",
-    "vue": "^3.4.19",
-    "xstate": "^5.8.0"
+    "vue": "^3.4.21",
+    "xstate": "^5.9.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
-    "typescript": "^5.3.3",
-    "vite": "^5.1.4",
+    "typescript": "^5.4.4",
+    "vite": "^5.2.8",
     "vue-tsc": "^1.8.27"
   }
 }

@@ -89,6 +89,8 @@ export interface ActorSystem<T extends ActorSystemInfo> {
     _scheduledEvents: Record<ScheduledEventId, ScheduledEvent>;
   };
   start: () => void;
+  _clock: Clock;
+  _logger: (...args: any[]) => void;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
@@ -98,6 +100,7 @@ export function createSystem<T extends ActorSystemInfo>(
   rootActor: AnyActorRef,
   options: {
     clock: Clock;
+    logger: (...args: any[]) => void;
     snapshot?: unknown;
   }
 ): ActorSystem<T> {
@@ -106,7 +109,7 @@ export function createSystem<T extends ActorSystemInfo>(
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
   const inspectionObservers = new Set<Observer<InspectionEvent>>();
   const timerMap: { [id: ScheduledEventId]: number } = {};
-  const clock = options.clock;
+  const { clock, logger } = options;
 
   const scheduler: Scheduler = {
     schedule: (
@@ -231,7 +234,9 @@ export function createSystem<T extends ActorSystemInfo>(
           scheduledEvents[scheduledId as ScheduledEventId];
         scheduler.schedule(source, target, event, delay, id);
       }
-    }
+    },
+    _clock: clock,
+    _logger: logger
   };
 
   return system;

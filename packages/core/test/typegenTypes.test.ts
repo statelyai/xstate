@@ -921,6 +921,7 @@ describe('typegen types', () => {
         any,
         any,
         any,
+        any, // TMeta
         any
       >
     ) {

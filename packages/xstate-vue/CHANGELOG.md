@@ -1,5 +1,39 @@
 # @xstate/vue
 
+## 3.1.2
+
+### Patch Changes
+
+- [#4844](https://github.com/statelyai/xstate/pull/4844) [`5aa6eb05c`](https://github.com/statelyai/xstate/commit/5aa6eb05c4d79a7efda9895b212fdb45a638f31f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useSelector(…)` hook from `@xstate/react` is now compatible with stores from `@xstate/store`.
+
+  ```tsx
+  import { createStore } from '@xstate/store';
+  import { useSelector } from '@xstate/react';
+
+  const store = createStore(
+    {
+      count: 0
+    },
+    {
+      inc: {
+        count: (context) => context.count + 1
+      }
+    }
+  );
+
+  function Counter() {
+    // Note that this `useSelector` is from `@xstate/react`,
+    // not `@xstate/store/react`
+    const count = useSelector(store, (state) => state.context.count);
+
+    return (
+      <div>
+        <button onClick={() => store.send({ type: 'inc' })}>{count}</button>
+      </div>
+    );
+  }
+  ```
+
 ## 3.1.1
 
 ### Patch Changes
