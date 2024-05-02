@@ -2,7 +2,7 @@
 'xstate': minor
 ---
 
-`fromPromise` now passes a signal into it's creator function.
+`fromPromise` now passes a signal into its creator function.
 
 ```ts
 const logic = fromPromise(({ signal }) =>
