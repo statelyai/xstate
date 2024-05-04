@@ -1554,7 +1554,6 @@ function resolveAndExecuteActionsWithContext(
           : undefined;
 
     function executeAction() {
-      executingCustomAction = resolvedAction;
       actorScope.system._sendInspectionEvent({
         type: '@xstate.action',
         actorRef: actorScope.self,
@@ -1569,6 +1568,7 @@ function resolveAndExecuteActionsWithContext(
         }
       });
       try {
+        executingCustomAction = resolvedAction;
         resolvedAction(actionArgs, actionParams);
       } finally {
         executingCustomAction = false;
