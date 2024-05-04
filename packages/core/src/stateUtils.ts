@@ -1569,10 +1569,8 @@ function resolveAndExecuteActionsWithContext(
       });
       try {
         resolvedAction(actionArgs, actionParams);
-      } catch (err) {
+      } finally {
         executingCustomAction = false;
-        // rethrow err
-        throw err;
       }
     }
 
