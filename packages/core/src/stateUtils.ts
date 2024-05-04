@@ -1567,7 +1567,13 @@ function resolveAndExecuteActionsWithContext(
           params: actionParams
         }
       });
-      resolvedAction(actionArgs, actionParams);
+      try {
+        resolvedAction(actionArgs, actionParams);
+      } catch (err) {
+        executingCustomAction = false;
+        // rethrow err
+        throw err;
+      }
     }
 
     if (!('resolve' in resolvedAction)) {
