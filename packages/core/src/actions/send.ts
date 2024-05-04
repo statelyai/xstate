@@ -1,6 +1,7 @@
 import isDevelopment from '#is-development';
 import { XSTATE_ERROR } from '../constants.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
+import { executingCustomAction } from '../stateUtils.ts';
 import {
   ActionArgs,
   ActionFunction,
@@ -232,6 +233,12 @@ export function sendTo<
   TDelay,
   never
 > {
+  if (isDevelopment && executingCustomAction) {
+    console.warn(
+      'Custom actions should not call `raise()` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.'
+    );
+  }
+
   function sendTo(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams

@@ -1491,6 +1491,10 @@ interface BuiltinAction {
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
+export let executingCustomAction:
+  | ActionFunction<any, any, any, any, any, any, any, any, any>
+  | false = false;
+
 function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
@@ -1563,7 +1567,12 @@ function resolveAndExecuteActionsWithContext(
           params: actionParams
         }
       });
-      resolvedAction(actionArgs, actionParams);
+      try {
+        executingCustomAction = resolvedAction;
+        resolvedAction(actionArgs, actionParams);
+      } finally {
+        executingCustomAction = false;
+      }
     }
 
     if (!('resolve' in resolvedAction)) {
