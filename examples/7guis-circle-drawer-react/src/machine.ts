@@ -67,7 +67,7 @@ export const machine = setup({
       assertEvent(event, "END_DRAG");
       const circle = getCircleById(context.circles, context.selectedCircleId);
       if (!circle || !circle.radius) return false;
-      console.log(event.position.x, circle.radius, context.boundaries.x)
+      console.log(event.position.x, circle.radius, context.boundaries.x);
       return (
         event.position.x - circle.radius > 0 &&
         event.position.y - circle.radius > 0 &&

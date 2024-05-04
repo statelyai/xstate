@@ -19,7 +19,7 @@ const ControlButton = ({ children, ...props }: Props) => {
   };
   return (
     <button
-    {...props}
+      {...props}
       onPointerDown={() => {
         onClick();
         timeout.current = setTimeout(repeater, 500);
@@ -52,7 +52,9 @@ export const Number = ({
 
   return (
     <div className="flex">
-      <ControlButton  className="end-cap"  onClick={decrease}>-</ControlButton>
+      <ControlButton className="end-cap" onClick={decrease}>
+        -
+      </ControlButton>
       <input
         type="number"
         tabIndex={0}

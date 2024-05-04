@@ -10,7 +10,7 @@ function Size() {
 
   return (
     <div className="size-input">
-      <div className="end-cap" style={{width: "6ch"}}>
+      <div className="end-cap" style={{ width: "6ch" }}>
         {selectedCircle?.radius || DEFAULT_CIRCLE_RADIUS}px
       </div>
       <label className="visually-hidden" htmlFor="size">

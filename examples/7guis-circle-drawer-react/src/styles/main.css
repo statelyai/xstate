@@ -159,7 +159,6 @@ input[type="range"]::slider-fill {
   }
 }
 
-
 button {
   min-width: 32px;
   height: 32px;
@@ -201,10 +200,6 @@ button {
     border-radius: 0 var(--border-radius) var(--border-radius) 0;
   }
 }
-
-
-
-
 
 @media (width < 700px) {
   button > span {
