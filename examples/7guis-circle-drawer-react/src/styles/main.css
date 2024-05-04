@@ -1,0 +1,218 @@
+*,
+*::before,
+*::after,
+body {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 14px;
+  line-height: 1em;
+  vertical-align: baseline;
+  font-family: Lato, system-ui, "Helvetica Neue", Arial, Helvetica, sans-serif;
+  overflow: hidden;
+}
+* {
+  color: var(--dark-gray);
+  &:disabled {
+    cursor: not-allowed;
+  }
+  & input {
+    accent-color: var(--gray);
+    cursor: pointer;
+  }
+  & button:disabled {
+    opacity: 0.5;
+  }
+}
+
+:root {
+  --shadow-color: 0deg 0% 50%;
+  --shadow: 0.3px 0.5px 0.7px hsl(var(--shadow-color) / 0.36),
+    0.8px 1.6px 2px -0.8px hsl(var(--shadow-color) / 0.36),
+    2.1px 4.1px 5.2px -1.7px hsl(var(--shadow-color) / 0.36),
+    5px 10px 12.6px -2.5px hsl(var(--shadow-color) / 0.36);
+
+  --dark-gray: hsl(0, 0%, 30%);
+  --gray: hsl(0, 50%, 65%);
+  --light-gray: hsl(0, 0%, 70%);
+  --white: hsl(0, 0%, 95%);
+  --off-white: hsl(237, 2%, 88%);
+
+  --border-radius: 0.28571429rem;
+}
+
+header {
+  position: relative;
+  width: 100vw;
+  height: 60px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  background: var(--light-gray);
+  padding: 8px 0;
+  & > div {
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+  }
+}
+
+main {
+  height: calc(100vh - 100px);
+  background: var(--white);
+}
+
+footer {
+  position: fixed;
+  background: var(--dark-gray);
+  color: var(--white);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  bottom: 0;
+  width: 100vw;
+  max-width: 100%;
+  z-index: 10;
+  height: 40px;
+}
+
+.circle {
+  cursor: move;
+  position: absolute;
+  border-radius: 50%;
+  outline-offset: 4px;
+  display: grid;
+  place-content: center;
+  color: var(--white);
+  font-size: 1rem;
+  user-select: none;
+}
+
+.size-input {
+  position: relative;
+  background: var(--white);
+  height: 32px;
+  border-radius: var(--border-radius);
+  display: flex;
+  min-width: fit-content;
+  overflow: hidden;
+  & input {
+    margin: 0 16px 0 12px;
+    width: 85px;
+    border: none;
+  }
+}
+input[type="range"]::-moz-range-progress,
+input[type="range"]::slider-fill {
+  background: var(--gray) !important;
+}
+.color-input {
+  position: relative;
+  svg {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    stroke: var(--white);
+    cursor: pointer;
+    pointer-events: none;
+  }
+
+  input[type="color"] {
+    overflow: hidden;
+    position: relative;
+    top: 1px;
+    width: 146px;
+    height: 32px;
+    border: none;
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 0;
+    &::-webkit-color-swatch-wrapper {
+      width: 42px;
+      padding: 0;
+      float: right;
+      border-radius: var(--border-radius);
+    }
+    &::-webkit-color-swatch {
+      border: none;
+      border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    }
+    &::-moz-color-swatch {
+      border: none;
+      float: right; /* Firefox */
+      width: 42px;
+      left: 44px;
+    }
+  }
+  .swatch-text {
+    position: absolute;
+    top: 11px;
+    left: 18px;
+    pointer-events: none;
+    text-transform: uppercase;
+    z-index: 5;
+  }
+}
+
+
+button {
+  min-width: 32px;
+  height: 32px;
+  user-select: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--white);
+  border-radius: var(--border-radius);
+  padding: 0;
+  align-items: center;
+  cursor: pointer;
+  overflow: hidden;
+  & > span {
+    padding: 0 12px 0 12px;
+  }
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+@media (max-width: 700px) {
+  .swatch-text {
+    display: none;
+  }
+}
+
+.end-cap {
+  background: var(--gray);
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--white);
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
+  padding: 0 8px;
+  user-select: none;
+  &.right {
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+  }
+}
+
+
+
+
+
+@media (width < 700px) {
+  button > span {
+    display: none;
+  }
+  .color-input {
+    input[type="color"] {
+      width: 100%;
+    }
+  }
+}
