@@ -11,32 +11,21 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@testing-library/react": "^15.0.5",
-    "@testing-library/user-event": "^14.5.2",
     "@xstate/react": "^4.1.1",
-    "jquery": "^3.7.1",
     "lucide-react": "^0.372.0",
     "react": "^18.2.0",
-    "react-color": "^2.19.3",
     "react-dom": "^18.2.0",
-    "react-rnd": "^10.4.4",
-    "vitest": "^1.5.2",
     "xstate": "^5.11.0"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.12",
-    "@types/jquery": "^3.5.29",
     "@types/react": "^18.2.66",
-    "@types/react-color": "^3.0.12",
     "@types/react-dom": "^18.2.22",
-    "@types/testing-library__jest-dom": "^6.0.0",
     "@typescript-eslint/eslint-plugin": "^7.2.0",
     "@typescript-eslint/parser": "^7.2.0",
     "@vitejs/plugin-react": "^4.2.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",
-    "jsdom": "^24.0.0",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
     "vite-tsconfig-paths": "^4.3.2"
