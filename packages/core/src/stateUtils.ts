@@ -1554,6 +1554,7 @@ function resolveAndExecuteActionsWithContext(
           : undefined;
 
     function executeAction() {
+      executingCustomAction = resolvedAction;
       actorScope.system._sendInspectionEvent({
         type: '@xstate.action',
         actorRef: actorScope.self,
@@ -1576,14 +1577,10 @@ function resolveAndExecuteActionsWithContext(
 
     if (!('resolve' in resolvedAction)) {
       if (actorScope.self._processingStatus === ProcessingStatus.Running) {
-        executingCustomAction = resolvedAction;
         executeAction();
-        executingCustomAction = false;
       } else {
         actorScope.defer(() => {
-          executingCustomAction = resolvedAction;
           executeAction();
-          executingCustomAction = false;
         });
       }
       continue;
