@@ -126,7 +126,12 @@ export function setup<
   TInput = NonReducibleUnknown,
   TOutput extends NonReducibleUnknown = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject,
-  TMeta extends MetaObject = MetaObject
+  TMeta extends MetaObject = MetaObject,
+  TContextFunction extends ({ input }: { input: TInput }) => TContext = ({
+    input
+  }: {
+    input: any;
+  }) => any
 >({
   schemas,
   actors,
@@ -135,6 +140,7 @@ export function setup<
   delays
 }: {
   schemas?: unknown;
+  context?: TContextFunction & (({ input }: { input: TInput }) => TContext);
   types?: SetupTypes<
     TContext,
     TEvent,

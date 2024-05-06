@@ -46,6 +46,15 @@ describe('setup()', () => {
     });
   });
 
+  it('should be able to define a function guard that depends on context (context function)', () => {
+    setup({
+      context: () => ({ enabled: true }),
+      guards: {
+        check: ({ context }) => context.enabled
+      }
+    });
+  });
+
   it('should be able to define a `not` guard referencing another defined simple function guard using a string', () => {
     setup({
       guards: {
@@ -147,6 +156,15 @@ describe('setup()', () => {
       types: {} as {
         context: { enabled: boolean };
       },
+      guards: {
+        opposite: not(({ context }) => context.enabled)
+      }
+    });
+  });
+
+  it('should be able to define a `not` guard that embeds an inline function guard that depends on context (context function)', () => {
+    setup({
+      context: () => ({ enabled: true }),
       guards: {
         opposite: not(({ context }) => context.enabled)
       }
@@ -338,6 +356,25 @@ describe('setup()', () => {
     });
   });
 
+  it('should be able to use a parameterized `assign` action with its required params in the machine (context function)', () => {
+    setup({
+      context: () => ({ count: 0 }),
+      actions: {
+        resetTo: assign((_, params: number) => ({
+          count: params
+        }))
+      }
+    }).createMachine({
+      context: {
+        count: 0
+      },
+      entry: {
+        type: 'resetTo',
+        params: 0
+      }
+    });
+  });
+
   it('should not accept a string reference to parameterized `assign` without its required params in the machine', () => {
     setup({
       types: {} as {
@@ -345,6 +382,20 @@ describe('setup()', () => {
           count: number;
         };
       },
+      actions: {
+        resetTo: assign((_, params: number) => ({
+          count: params
+        }))
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: 'resetTo'
+    });
+  });
+
+  it('should not accept a string reference to parameterized `assign` without its required params in the machine (context function)', () => {
+    setup({
+      context: () => ({ count: 0 }),
       actions: {
         resetTo: assign((_, params: number) => ({
           count: params
@@ -376,6 +427,22 @@ describe('setup()', () => {
     });
   });
 
+  it('should not accept an object reference to parameterized `assign` without its required params in the machine (context function)', () => {
+    setup({
+      context: () => ({ count: 0 }),
+      actions: {
+        resetTo: assign((_, params: number) => ({
+          count: params
+        }))
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: {
+        type: 'resetTo'
+      }
+    });
+  });
+
   it('should not accept an object reference to parameterized `assign` without its required params in the machine', () => {
     setup({
       types: {} as {
@@ -396,6 +463,22 @@ describe('setup()', () => {
     });
   });
 
+  it('should not accept an object reference to parameterized `assign` without its required params in the machine (context function)', () => {
+    setup({
+      context: () => ({ count: 0 }),
+      actions: {
+        resetTo: assign((_, params: number) => ({
+          count: params
+        }))
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: {
+        type: 'resetTo'
+      }
+    });
+  });
+
   it('should not accept a reference to parameterized `assign` with wrong params in the machine', () => {
     setup({
       types: {} as {
@@ -403,6 +486,23 @@ describe('setup()', () => {
           count: number;
         };
       },
+      actions: {
+        resetTo: assign((_, params: number) => ({
+          count: params
+        }))
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: {
+        type: 'resetTo',
+        params: 'foo'
+      }
+    });
+  });
+
+  it('should not accept a reference to parameterized `assign` with wrong params in the machine (context function)', () => {
+    setup({
+      context: () => ({ count: 0 }),
       actions: {
         resetTo: assign((_, params: number) => ({
           count: params
@@ -1193,6 +1293,26 @@ describe('setup()', () => {
       types: {
         context: {} as { count: number }
       },
+      actors: {
+        child: fromPromise(() => Promise.resolve(1))
+      }
+    }).createMachine({
+      context: { count: 1 },
+      invoke: {
+        src: 'child',
+        input: ({ context }) => {
+          // @ts-expect-error
+          context.foo;
+
+          return undefined;
+        }
+      }
+    });
+  });
+
+  it(`should provide contextual parameters to input factory for an actor that doesn't specify any input (context function)`, () => {
+    setup({
+      context: () => ({ count: 0 }),
       actors: {
         child: fromPromise(() => Promise.resolve(1))
       }
