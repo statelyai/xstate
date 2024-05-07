@@ -1,3 +1,4 @@
+import { expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { generateDate } from "./utils/index.ts";
 import FlightContext from "./machines/flightMachine.ts";
