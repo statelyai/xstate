@@ -9,9 +9,11 @@ declare global {
   type FlightData = {
     departDate: string;
     returnDate: string;
+    tripType: "oneWay" | "roundTrip";
   };
 
   type TripSelectorProps = {
+    isBooking: boolean;
     isBooked: boolean;
     tripType: "oneWay" | "roundTrip";
   } & React.InputHTMLAttributes<HTMLSelectElement>;
