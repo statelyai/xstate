@@ -1,4 +1,4 @@
-import { createActor } from 'xstate';
+import { AnyMachineSnapshot, createActor } from 'xstate';
 import bodyParser from 'body-parser';
 
 function generateActorId() {
@@ -44,7 +44,9 @@ app.post('/workflows/:workflowId', (req, res) => {
   }
 
   const event = req.body;
-  const actor = createActor(machine, { snapshot }).start();
+  const actor = createActor(machine, {
+    snapshot: snapshot as AnyMachineSnapshot
+  }).start();
 
   actor.send(event);
 
