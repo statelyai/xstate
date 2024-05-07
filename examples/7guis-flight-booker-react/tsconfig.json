@@ -5,13 +5,6 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-    "types": ["jest", "@testing-library/jest-dom"],
-
-    "baseUrl": ".",
-    "paths": {
-      "*": ["./*.d.ts"],
-      "@/*": ["./src/*", "./dist/*", ""]
-    },
 
     "baseUrl": ".",
     "paths": {
