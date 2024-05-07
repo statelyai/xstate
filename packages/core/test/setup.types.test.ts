@@ -855,6 +855,32 @@ describe('setup()', () => {
       });
   });
 
+  it('should allow anonymous inline actor outside of the configured actors', () => {
+    setup({
+      actors: {
+        known: fromPromise(async () => 'known')
+      }
+    }).createMachine({
+      invoke: {
+        src: fromPromise(async () => 'inline')
+      }
+    });
+  });
+
+  it('should disallow anonymous inline actor with an id outside of the configured actors', () => {
+    setup({
+      actors: {
+        known: fromPromise(async () => 'known')
+      }
+    }).createMachine({
+      invoke: {
+        src: fromPromise(async () => 'inline'),
+        // @ts-expect-error
+        id: 'myChild'
+      }
+    });
+  });
+
   it('should not accept an incompatible provided logic', () => {
     setup({
       actors: {
@@ -962,9 +988,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input: 4157
       }
     });
@@ -1016,9 +1042,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input:
           Math.random() > 0.5
             ? {
@@ -1040,9 +1066,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input: () => 42
       }
     });
@@ -1079,9 +1105,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input: () =>
           Math.random() > 0.5
             ? {
@@ -2103,5 +2129,64 @@ describe('setup()', () => {
         releaseFromDuty: stopChild('foo')
       }
     });
+  });
+
+  it('should support typing meta properties', () => {
+    const machine = setup({
+      types: {
+        meta: {} as {
+          layout: string;
+        }
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          meta: {
+            layout: 'a-layout'
+          }
+        },
+        b: {
+          meta: {
+            // @ts-expect-error
+            notLayout: 'uh oh'
+          }
+        },
+        c: {}, // no meta
+        d: {
+          meta: {
+            // @ts-expect-error
+            layout: 42
+          }
+        }
+      },
+      on: {
+        e1: {
+          meta: {
+            layout: 'event-layout'
+          }
+        },
+        e2: {
+          meta: {
+            // @ts-expect-error
+            notLayout: 'uh oh'
+          }
+        },
+        e3: {}, // no meta
+        // @ts-expect-error (for some reason the error is here)
+        e4: {
+          meta: {
+            layout: 42
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+
+    actor.getSnapshot().getMeta().a satisfies { layout: string } | undefined;
+
+    // @ts-expect-error
+    actor.getSnapshot().getMeta().a?.whatever;
   });
 });

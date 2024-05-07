@@ -14,7 +14,8 @@ import {
   MachineSnapshot,
   __unsafe_getAllOwnEventDescriptors,
   AnyActorRef,
-  EventFromLogic
+  EventFromLogic,
+  TODO
 } from 'xstate';
 import { TestModel } from './TestModel.ts';
 import {
@@ -78,7 +79,8 @@ function serializeMachineTransition(
     Record<string, AnyActorRef | undefined>,
     StateValue,
     string,
-    unknown
+    unknown,
+    TODO // TMeta
   >,
   event: AnyEventObject | undefined,
   previousSnapshot:
@@ -88,7 +90,8 @@ function serializeMachineTransition(
         Record<string, AnyActorRef | undefined>,
         StateValue,
         string,
-        unknown
+        unknown,
+        TODO // TMeta
       >
     | undefined,
   { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }

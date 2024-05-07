@@ -13,6 +13,12 @@
       "@/*": ["./src/*", "./dist/*", ""]
     },
 
+    "baseUrl": ".",
+    "paths": {
+      "*": ["./*.d.ts"],
+      "@/*": ["./src/*", "./dist/*", ""]
+    },
+
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

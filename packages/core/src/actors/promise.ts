@@ -3,6 +3,7 @@ import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
   ActorRefFrom,
+  AnyActorRef,
   EventObject,
   NonReducibleUnknown,
   Snapshot
@@ -71,6 +72,9 @@ export type PromiseActorRef<TOutput> = ActorRefFrom<
  * // }
  * ```
  */
+
+const controllerMap = new WeakMap<AnyActorRef, AbortController>();
+
 export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
   promiseCreator: ({
     input,
@@ -88,11 +92,12 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
      * The parent actor of the promise actor
      */
     self: PromiseActorRef<TOutput>;
+    signal: AbortSignal;
   }) => PromiseLike<TOutput>
 ): PromiseActorLogic<TOutput, TInput> {
   const logic: PromiseActorLogic<TOutput, TInput> = {
     config: promiseCreator,
-    transition: (state, event) => {
+    transition: (state, event, scope) => {
       if (state.status !== 'active') {
         return state;
       }
@@ -114,12 +119,14 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
             error: (event as any).data,
             input: undefined
           };
-        case XSTATE_STOP:
+        case XSTATE_STOP: {
+          controllerMap.get(scope.self)?.abort();
           return {
             ...state,
             status: 'stopped',
             input: undefined
           };
+        }
         default:
           return state;
       }
@@ -130,9 +137,15 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
       if (state.status !== 'active') {
         return;
       }
-
+      const controller = new AbortController();
+      controllerMap.set(self, controller);
       const resolvedPromise = Promise.resolve(
-        promiseCreator({ input: state.input!, system, self })
+        promiseCreator({
+          input: state.input!,
+          system,
+          self,
+          signal: controller.signal
+        })
       );
 
       resolvedPromise.then(
@@ -140,6 +153,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
           if (self.getSnapshot().status !== 'active') {
             return;
           }
+          controllerMap.delete(self);
           system._relay(self, self, {
             type: XSTATE_PROMISE_RESOLVE,
             data: response
@@ -149,6 +163,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
           if (self.getSnapshot().status !== 'active') {
             return;
           }
+          controllerMap.delete(self);
           system._relay(self, self, {
             type: XSTATE_PROMISE_REJECT,
             data: errorData

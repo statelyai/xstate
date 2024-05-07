@@ -53,3 +53,6 @@ docs/.cache
 
 # Docs
 api/
+
+# pnpm
+.pnpm-lock.yaml
