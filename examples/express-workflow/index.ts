@@ -47,7 +47,7 @@ app.post('/workflows/:workflowId', (req, res) => {
   const actor = createActor(machine, {
     snapshot: snapshot as AnyMachineSnapshot
   }).start();
-
+  console.log(event)
   actor.send(event);
 
   // @ts-ignore
@@ -81,7 +81,7 @@ app.get('/', (_, res) => {
         <p>Start a new workflow instance:</p>
         <pre>curl -X POST http://localhost:4242/workflows</pre>
         <p>Send an event to a workflow instance:</p>
-        <pre>curl -X POST http://localhost:4242/workflows/:workflowId -d '{"type":"TIMER"}'</pre>
+        <pre>curl -X POST http://localhost:4242/workflows/:workflowId -d '{"type":"TIMER"}' -H "Content-Type: application/json" </pre>
         <p>Get the current state of a workflow instance:</p>
         <pre>curl -X GET http://localhost:4242/workflows/:workflowId</pre>
       </body>
