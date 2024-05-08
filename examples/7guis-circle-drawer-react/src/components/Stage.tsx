@@ -22,23 +22,10 @@ function Stage() {
   }
 
   useEffect(() => {
-    function onTouch(e: TouchEvent) {
-      send({
-        type: "DRAG",
-        position: { x: e.touches[0].clientX, y: e.touches[0].clientY },
-      });
-    }
     function onDrag(e: PointerEvent) {
       send({
         type: "DRAG",
         position: { x: e.clientX, y: e.clientY },
-      });
-    }
-    function onTouchEnd(e: TouchEvent) {
-      send({
-        type: "END_DRAG",
-        position: { x: e.touches[0].clientX, y: e.touches[0].clientY },
-        id: selectedCircleId!,
       });
     }
     function onDragEnd(e: PointerEvent) {
@@ -49,15 +36,11 @@ function Stage() {
       });
     }
 
-    window.addEventListener("touchmove", onTouch);
     window.addEventListener("pointermove", onDrag);
-    window.addEventListener("touchend", onTouchEnd);
     window.addEventListener("pointerup", onDragEnd);
 
     return () => {
-      window.removeEventListener("touchmove", onTouch);
       window.removeEventListener("pointermove", onDrag);
-      window.removeEventListener("touchmove", onTouchEnd);
       window.removeEventListener("pointerup", onDragEnd);
     };
   }, [send, selectedCircleId]);
