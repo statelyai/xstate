@@ -90,6 +90,7 @@ footer {
   color: var(--white);
   font-size: 1rem;
   user-select: none;
+  opacity: 0.9;
 }
 
 .size-input {
