@@ -42,9 +42,9 @@ body {
   display: grid;
   place-content: center;
   margin-top: 2.5%;
-  background: var(--light-gray);
+  background: #112;
+  color: var(--light-gray);
   & h1 {
-    color: var(--dark-gray);
     font-size: 2rem;
     font-weight: 700;
     letter-spacing: -0.05em;
@@ -64,8 +64,10 @@ main {
   flex-direction: column;
   gap: 8px;
   padding: 16px;
-  background: var(--white);
-  box-shadow: var(--outer-shadow);
+  border: 1px solid var(--dark-gray);
+  background: linear-gradient(135deg, hsl(5 5% 25%/0.55), hsl(5 5% 25%/0.5));
+  box-shadow: 10px 10px 36px hsl(5 5% 25%/0.25),
+    -10px -10px 36px hsl(5 5% 25%/0.25);
 }
 
 dialog {
@@ -92,7 +94,7 @@ dialog {
   }
 }
 .error {
-  background: red;
+  background: hsl(0 100% 50%/0.25);
   font-weight: 700;
   color: white !important;
   border: 1px solid white !important;

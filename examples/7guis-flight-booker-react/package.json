@@ -19,8 +19,6 @@
     "xstate": "^5.9.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.0",
-    "@types/jest": "^29.5.12",
     "@types/node": "^20.12.10",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
