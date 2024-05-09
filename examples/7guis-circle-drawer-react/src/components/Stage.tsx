@@ -25,11 +25,7 @@ function Stage() {
         if (!circle?.position || !circle?.radius) return;
         const isSelected = selectedCircleId === circle.id;
         return (
-          <Circle
-            key={circle.id}
-            circle={circle}
-            isSelected={isSelected}
-          />
+          <Circle key={circle.id} circle={circle} isSelected={isSelected} />
         );
       })}
     </main>

@@ -5,7 +5,7 @@ type Props = {
   isSelected: boolean;
 };
 
-function Circle({  circle, isSelected }: Props) {
+function Circle({ circle, isSelected }: Props) {
   const { send } = CircleContext.useActorRef();
 
   if (!circle?.position || !circle?.radius) return;

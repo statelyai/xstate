@@ -14,11 +14,6 @@ export const machine = setup({
       selectedCircleId: string | undefined;
       boundaries: Position;
     },
-    // input: {} as {
-    //   selectedCircleId: string | undefined;
-    //   currentPosition: Position;
-    //   circles: Circles;
-    // },
     events: {} as
       | {
           type: "STAGE_TOUCHED";
@@ -99,10 +94,7 @@ export const machine = setup({
         const circles = (input as { circles: Circle[] }).circles;
         const currentPosition = { x: e.clientX, y: e.clientY };
 
-        const selectedCircle = getCircleUnderPointer(
-          circles,
-          currentPosition
-        );
+        const selectedCircle = getCircleUnderPointer(circles, currentPosition);
 
         sendBack({
           type: "END_DRAG",
