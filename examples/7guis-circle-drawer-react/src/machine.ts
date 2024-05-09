@@ -1,6 +1,6 @@
 import { createActorContext } from "@xstate/react";
-import { assertEvent, assign, setup } from "xstate";
-import { getCircleById } from "./utils";
+import { assertEvent, assign, fromCallback, setup } from "xstate";
+import { getCircleById, getCircleUnderPointer } from "./utils";
 
 export const DEFAULT_CIRCLE_RADIUS = 25;
 export const DEFAULT_CIRCLE_COLOR = "#D27979";
@@ -14,6 +14,11 @@ export const machine = setup({
       selectedCircleId: string | undefined;
       boundaries: Position;
     },
+    // input: {} as {
+    //   selectedCircleId: string | undefined;
+    //   currentPosition: Position;
+    //   circles: Circles;
+    // },
     events: {} as
       | {
           type: "STAGE_TOUCHED";
@@ -81,6 +86,40 @@ export const machine = setup({
       return !event.selectedCircle;
     },
   },
+  actors: {
+    Dragger: fromCallback(({ sendBack, input }) => {
+      function onDrag(e: PointerEvent) {
+        sendBack({
+          type: "DRAG",
+          position: { x: e.clientX, y: e.clientY },
+        });
+      }
+
+      function onDragEnd(e: PointerEvent) {
+        const circles = (input as { circles: Circle[] }).circles;
+        const currentPosition = { x: e.clientX, y: e.clientY };
+
+        const selectedCircle = getCircleUnderPointer(
+          circles,
+          currentPosition
+        );
+
+        sendBack({
+          type: "END_DRAG",
+          position: { x: e.clientX, y: e.clientY },
+          id: selectedCircle?.id,
+        });
+      }
+
+      window.addEventListener("pointermove", onDrag);
+      window.addEventListener("pointerup", onDragEnd);
+
+      return () => {
+        window.removeEventListener("pointermove", onDrag);
+        window.removeEventListener("pointerup", onDragEnd);
+      };
+    }),
+  },
   actions: {
     handleAddCircle: assign(({ context, event }) => {
       assertEvent(event, "STAGE_TOUCHED");
@@ -102,8 +141,9 @@ export const machine = setup({
 
     handleDeleteCircle: assign(({ context, event }) => {
       assertEvent(event, "END_DRAG");
+      console.log("message");
       const circles = context.circles.filter(
-        (circle) => circle?.id !== event.id
+        (circle) => circle?.id !== context.selectedCircleId
       );
       return { circles, redos: [] };
     }),
@@ -128,6 +168,7 @@ export const machine = setup({
     }),
 
     handleDragStart: assign(({ context, event }) => {
+      console.log("event.type", event.type);
       assertEvent(event, "START_DRAG");
       const circle = getCircleById(context.circles, context.selectedCircleId);
       const circleCopy = { ...circle, position: event.position };
@@ -140,6 +181,7 @@ export const machine = setup({
     }),
 
     handleDrag: assign(({ context, event }) => {
+      console.log("event.type", event.type);
       assertEvent(event, "DRAG");
       const circle = getCircleById(context.circles, context.selectedCircleId);
       const circleCopy = { ...circle, position: event.position };
@@ -241,6 +283,15 @@ export const machine = setup({
       },
     },
     dragging: {
+      invoke: {
+        src: "Dragger",
+        input: ({ context }) => {
+          return {
+            selectedCircleId: context.selectedCircleId,
+            circles: context.circles,
+          };
+        },
+      },
       on: {
         DRAG: {
           actions: {

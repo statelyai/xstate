@@ -1,12 +1,11 @@
 import { CircleContext } from "@/machine";
 
 type Props = {
-  testid: number;
   circle: Circle;
   isSelected: boolean;
 };
 
-function Circle({ testid, circle, isSelected }: Props) {
+function Circle({  circle, isSelected }: Props) {
   const { send } = CircleContext.useActorRef();
 
   if (!circle?.position || !circle?.radius) return;
@@ -15,7 +14,6 @@ function Circle({ testid, circle, isSelected }: Props) {
     <div
       key={`circle.id`}
       className="circle"
-      data-testid={`circle-${testid}`}
       style={{
         background: circle.color,
         top: circle.position.y - circle.radius,
