@@ -1493,6 +1493,10 @@ interface BuiltinAction {
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
+export let executingCustomAction:
+  | ActionFunction<any, any, any, any, any, any, any, any, any>
+  | false = false;
+
 function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
@@ -1596,7 +1600,12 @@ function resolveAndExecuteActionsWithContext(
             intermediateSnapshot
           )
       };
-      resolvedAction(actionArgs, actionParams, enq);
+      try {
+        executingCustomAction = resolvedAction;
+        resolvedAction(actionArgs, actionParams, enq);
+      } finally {
+        executingCustomAction = false;
+      }
 
       if (actions.length) {
         intermediateSnapshot = resolveAndExecuteActionsWithContext(

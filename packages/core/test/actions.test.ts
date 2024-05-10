@@ -1,11 +1,13 @@
 import { sleep } from '@xstate-repo/jest-utils';
 import {
   cancel,
+  emit,
   enqueueActions,
   log,
   raise,
   sendParent,
   sendTo,
+  spawnChild,
   stopChild
 } from '../src/actions.ts';
 import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
@@ -2748,6 +2750,23 @@ describe('enqueueActions', () => {
     expect(snapshot.context).toEqual({ count: 42 });
   });
 
+  it('should execute assigns when resolving the initial snapshot (inline actions)', () => {
+    const machine = createMachine({
+      context: {
+        count: 0
+      },
+      entry: (_, _params, x) => {
+        x.assign({
+          count: 42
+        });
+      }
+    });
+
+    const snapshot = createActor(machine).getSnapshot();
+
+    expect(snapshot.context).toEqual({ count: 42 });
+  });
+
   it('should be able to check a simple referenced guard', () => {
     const spy = jest.fn().mockImplementation(() => true);
     const machine = createMachine(
@@ -4368,6 +4387,41 @@ describe('assign action order', () => {
     expect(captured).toEqual([0, 1, 2]);
   });
 
+  it('should deeply preserve action order (inline actions)', () => {
+    const captured: number[] = [];
+
+    interface CountCtx {
+      count: number;
+    }
+
+    const machine = createMachine(
+      {
+        types: {} as {
+          context: CountCtx;
+        },
+        context: { count: 0 },
+        entry: [
+          ({ context }) => captured.push(context.count), // 0
+          (_, _params, x) => {
+            x.assign({ count: ({ context }) => context.count + 1 });
+            x.action({ type: 'capture' });
+            x.assign({ count: ({ context }) => context.count + 1 });
+          },
+          ({ context }) => captured.push(context.count) // 2
+        ]
+      },
+      {
+        actions: {
+          capture: ({ context }) => captured.push(context.count)
+        }
+      }
+    );
+
+    createActor(machine).start();
+
+    expect(captured).toEqual([0, 1, 2]);
+  });
+
   it('should capture correct context values on subsequent transitions', () => {
     let captured: number[] = [];
 
@@ -4384,6 +4438,36 @@ describe('assign action order', () => {
             assign({ counter: ({ context }) => context.counter + 1 }),
             ({ context }) => captured.push(context.counter)
           ]
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+
+    service.send({ type: 'EV' });
+    service.send({ type: 'EV' });
+
+    expect(captured).toEqual([1, 2]);
+  });
+
+  it('should capture correct context values on subsequent transitions (inline action)', () => {
+    let captured: number[] = [];
+
+    const machine = createMachine({
+      types: {} as {
+        context: { counter: number };
+      },
+      context: {
+        counter: 0
+      },
+      on: {
+        EV: {
+          actions: (_, _params, x) => {
+            x.assign({
+              counter: ({ context }) => context.counter + 1
+            });
+            x.action(({ context }) => captured.push(context.counter));
+          }
         }
       }
     });
@@ -4528,6 +4612,53 @@ describe('types', () => {
             // @ts-expect-error
             assign(({ event }) => ({ count: event.value }))
           ]
+        }
+      }
+    });
+  });
+
+  it('assign actions should be inferred correctly (inline actions)', () => {
+    createMachine({
+      types: {} as {
+        context: { count: number; text: string };
+        events: { type: 'inc'; value: number } | { type: 'say'; value: string };
+      },
+      context: {
+        count: 0,
+        text: 'hello'
+      },
+      entry: (_, _params, x) => {
+        x.assign({ count: 31 });
+        // @ts-expect-error
+        x.assign({ count: 'string' });
+
+        x.assign({ count: () => 31 });
+        // @ts-expect-error
+        x.assign({ count: () => 'string' });
+
+        x.assign({ count: ({ context }) => context.count + 31 });
+        // @ts-expect-error
+        x.assign({ count: ({ context }) => context.text + 31 });
+
+        x.assign(() => ({ count: 31 }));
+        // @ts-expect-error
+        x.assign(() => ({ count: 'string' }));
+
+        x.assign(({ context }) => ({ count: context.count + 31 }));
+        // @ts-expect-error
+        x.assign(({ context }) => ({ count: context.text + 31 }));
+      },
+      on: {
+        say: {
+          actions: (_, _params, x) => {
+            x.assign({ text: ({ event }) => event.value });
+            // @ts-expect-error
+            x.assign({ count: ({ event }) => event.value });
+
+            x.assign(({ event }) => ({ text: event.value }));
+            // @ts-expect-error
+            x.assign(({ event }) => ({ count: event.value }));
+          }
         }
       }
     });
@@ -4924,6 +5055,36 @@ describe('actions', () => {
     expect(spy).toHaveBeenCalledWith({
       foo: 'bar'
     });
+  });
+
+  it('should warn if called in custom action', () => {
+    const machine = createMachine({
+      entry: () => {
+        assign({});
+        raise({ type: '' });
+        sendTo('', { type: '' });
+        emit({ type: '' });
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+[
+  [
+    "Custom actions should not call \`assign()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
+  ],
+  [
+    "Custom actions should not call \`raise()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
+  ],
+  [
+    "Custom actions should not call \`raise()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
+  ],
+  [
+    "Custom actions should not call \`emit()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
+  ],
+]
+`);
   });
 });
 
