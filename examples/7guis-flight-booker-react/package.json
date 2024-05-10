@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@radix-ui/react-alert-dialog": "^1.0.5",
     "@xstate/react": "^4.1.0",
     "date-fns": "^3.6.0",
     "react": "^18.2.0",
