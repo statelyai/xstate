@@ -160,15 +160,19 @@ export const machine = setup({
     }),
 
     handleDragStart: assign(({ context, event }) => {
-      console.log("event.type", event.type);
+      console.log("context", context);
+      console.log("event", event);
       assertEvent(event, "START_DRAG");
       const circle = getCircleById(context.circles, context.selectedCircleId);
       const circleCopy = { ...circle, position: event.position };
       const index = context.circles.indexOf(circle);
       const circlesCopy = context.circles.toSpliced(index, 1, circleCopy);
+      const isSamePosition = circle?.position?.x === event.position.x;
       return {
         circles: circlesCopy,
-        undos: [...context.undos, context.circles],
+        undos: isSamePosition
+          ? context.undos
+          : [...context.undos, context.circles],
       };
     }),
 
@@ -202,6 +206,7 @@ export const machine = setup({
     }),
   },
 }).createMachine({
+  /** @xstate-layout N4IgpgJg5mDOIC5QGMCWAnZAbMARdAhgO5joB06YBEAngMQDKAKgIIBKTA+gKK4CSTANoAGALqJQABwD2sVABdU0gHYSQAD0QBGAJwBmLQBoQNRABYAbBYC+142kw58xUhSq1GrDp1xsWAcRFxJBAZOUUVNU0EACYADmE9Y1MESxs7EAdsPEISckpqegBVADlcAHkgtTCFJVUQ6K1hOJjk8ytbewxs5zy3Qro2XkqxatlayIbEC2E21I6MrKdc1wKPZgDuTiZyooBhAAleKpCaiPrQaIBWK7MyCzi4rSu4gyu9YRu5vVeyfV04joLFofnEAOwxK6dTLdZYufLuegbfxbHb7I64QRaYJScbnKKIWYmQnQpY5eFkSC1ZRQOi8AQnXHhOoEhBaCx6CxzOJmOKk2HkvpUxQ0ullHj8ISjU54llTNkWK6tYmpHTCfmOQWuCCEKBQVCi3wBRmhWWTS6ISF6Mzc3kanorcg6gh6g207jio2BaVMiYXDSW3lGFVmHR8xYC3ra3X60Ue3A+PyBbFjZnmgMIAC0MRiZBiFjBVx0z2t7y0+aSKq0obIVxmOjBegMYKeZjBtgyymkEDgajJUfQqb9rMzYOEeYLRZLZjL+bm2eEMXtcL6axSvvx8oBcxiBmXWvIwrdQ83FrZY7Bc0n+4HZGdrppJ7lZ-zBfudZ0aTV72El5VVlzLQngMYQLBzLQITMDtrCAA */
   context: {
     circles: [],
     undos: [],
@@ -240,9 +245,7 @@ export const machine = setup({
             actions: {
               type: "handleAddCircle",
             },
-            guard: {
-              type: "cursorUnderCircle?",
-            },
+            guard: "cursorUnderCircle?",
           },
           {
             target: "dragging",
@@ -277,12 +280,15 @@ export const machine = setup({
     dragging: {
       invoke: {
         src: "Dragger",
+
         input: ({ context }) => {
           return {
             selectedCircleId: context.selectedCircleId,
             circles: context.circles,
           };
         },
+
+        id: "Dragger",
       },
       on: {
         DRAG: {
