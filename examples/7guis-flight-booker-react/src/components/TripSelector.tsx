@@ -14,8 +14,9 @@ export default function TripSelector({
       <select
         disabled={isBooked || isBooking}
         value={tripType}
-        onChange={() => {
-          send({ type: "CHANGE_TRIP_TYPE" });
+        onChange={(e) => {
+          const selectedValue = e.currentTarget.value as "oneWay" | "roundTrip";
+          send({ type: "CHANGE_TRIP_TYPE", tripType: selectedValue });
         }}
         {...props}
       >

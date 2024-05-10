@@ -3,18 +3,19 @@
 ****************************/
 &:root {
   /* colors */
-  --white: hsl(0 0% 95%);
-  --black: hsl(0 0% 15%);
-  --gray: hsl(0 10% 70%);
-  --lightgray: hsl(0 20% 80%);
+
+  --dark-gray: hsl(0, 0%, 30%);
+  --gray: hsl(0, 0%, 50%);
+  --light-gray: hsl(0, 0%, 70%);
+  --white: hsl(0, 0%, 90%);
 
   /* shadows */
-  --box-border: var(--gray) 0px 0px 0px 2px inset, var(--black) 0px 0px 0px 2px;
-  --inner-shadow: inset 0 1px 2px hsl(0 0% 0%/0.8), 0 -1px 1px var(--gray),
-    0 1px 0 var(--gray);
-  --outer-shadow: 0.3px 0.5px 0.7px var(--black),
-    0.8px 1.6px 2px -0.8px var(--black), 2.1px 4.1px 5.2px -1.7px var(--black),
-    5px 10px 12.6px -2.5px var(--black);
+  --box-border: var(--white) 0px 0px 0px 2px inset,
+    var(--dark-gray) 0px 0px 0px 2px;
+  --outer-shadow: 0px 0.5px 0.7px var(--dark-gray),
+    0px 1.6px 2px -0.8px var(--dark-gray),
+    0px 4.1px 5.2px -1.7px var(--dark-gray),
+    0px 1px 2.6px -2.5px var(--dark-gray);
 }
 
 /****************************
@@ -39,18 +40,22 @@
 ****************************/
 body {
   display: grid;
-  min-height: 100vh;
   place-content: center;
-  background: var(--black);
+  margin-top: 2.5%;
+  background: #112;
+  color: var(--light-gray);
   & h1 {
-    margin-top: -4px;
-    color: var(--black);
     font-size: 2rem;
     font-weight: 700;
     letter-spacing: -0.05em;
+    text-align: center;
+    margin-top: -4px;
     padding-bottom: 6px;
     border-radius: 0;
-    border-bottom: 1px solid var(--black);
+    border-bottom: 1px solid var(--dark-gray);
+  }
+  & b {
+    font-weight: 700;
   }
 }
 
@@ -59,12 +64,10 @@ main {
   flex-direction: column;
   gap: 8px;
   padding: 16px;
-  background: var(--gray);
-  & .error {
-    background: red;
-    font-weight: 700;
-    color: white !important;
-  }
+  border: 1px solid var(--dark-gray);
+  background: linear-gradient(135deg, hsl(5 5% 25%/0.55), hsl(5 5% 25%/0.5));
+  box-shadow: 10px 10px 36px hsl(5 5% 25%/0.25),
+    -10px -10px 36px hsl(5 5% 25%/0.25);
 }
 
 dialog {
@@ -75,11 +78,11 @@ dialog {
   font-weight: 700;
   transition: background 0.5s;
   & h2 {
-    color: var(--black);
+    color: var(--dark-gray);
     font-size: 1.5rem;
     margin-bottom: 8px;
     padding: 8px 0;
-    border-bottom: 1px solid var(--black);
+    border-bottom: 1px solid var(--dark-gray);
     border-radius: 0;
   }
   & p {
@@ -90,21 +93,27 @@ dialog {
     }
   }
 }
-
+.error {
+  background: hsl(0 100% 50%/0.25);
+  font-weight: 700;
+  color: white !important;
+  border: 1px solid white !important;
+}
 input[type="date"] {
+  text-align: center;
   cursor: pointer;
-  box-shadow: var(--inner-shadow);
-  color: var(--black);
-  border-bottom: 1px solid var(--lightgray);
+  color: var(--dark-gray);
+  border: 1px solid var(--light-gray);
   &:disabled {
     cursor: not-allowed;
   }
 }
 
 select {
+  text-align: center;
   cursor: pointer;
   color: var(--white);
-  background: var(--black);
+  background: var(--dark-gray);
   &:hover {
     box-shadow: var(--box-border);
   }
@@ -115,7 +124,7 @@ button {
   color: var(--white);
   font-weight: 500;
   font-family: inherit;
-  background-color: var(--black);
+  background-color: var(--dark-gray);
   &:hover:not(:disabled) {
     box-shadow: var(--box-border);
   }

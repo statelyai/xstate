@@ -1,7 +1,10 @@
 import { setup, assign, assertEvent, fromPromise } from "xstate";
 import { createActorContext } from "@xstate/react";
-import { TODAY, TOMORROW } from "../utils";
+import { generateDate } from "../utils";
 import { sleep } from "../utils";
+
+export const TODAY = generateDate(0);
+const TOMORROW = generateDate(1);
 
 export const flightBookerMachine = setup({
   types: {
@@ -9,7 +12,7 @@ export const flightBookerMachine = setup({
     events: {} as
       | { type: "BOOK_DEPART" }
       | { type: "BOOK_RETURN" }
-      | { type: "CHANGE_TRIP_TYPE" }
+      | { type: "CHANGE_TRIP_TYPE"; tripType: "oneWay" | "roundTrip" }
       | { type: "CHANGE_DEPART_DATE"; value: string }
       | { type: "CHANGE_RETURN_DATE"; value: string },
   },
@@ -22,10 +25,14 @@ export const flightBookerMachine = setup({
       assertEvent(event, "CHANGE_RETURN_DATE");
       return { returnDate: event.value };
     }),
+    setTripType: assign(({ event }) => {
+      assertEvent(event, "CHANGE_TRIP_TYPE");
+      return { tripType: event.tripType };
+    }),
   },
   actors: {
     Booker: fromPromise(() => {
-      return sleep(2000);
+      return sleep(1000);
     }),
   },
   guards: {
@@ -41,6 +48,7 @@ export const flightBookerMachine = setup({
   context: {
     departDate: TODAY,
     returnDate: TOMORROW,
+    tripType: "oneWay",
   },
   initial: "scheduling",
   states: {
@@ -52,17 +60,29 @@ export const flightBookerMachine = setup({
             type: "setDepartDate",
           },
         },
+
+        BOOK_DEPART: {
+          target: "booking",
+          guard: {
+            type: "isValidDepartDate?",
+          },
+        },
+
+        BOOK_RETURN: {
+          target: "booking",
+          guard: {
+            type: "isValidReturnDate?",
+          },
+        },
       },
       states: {
         oneWay: {
           on: {
             CHANGE_TRIP_TYPE: {
               target: "roundTrip",
-            },
-            BOOK_DEPART: {
-              target: "#flightBookerMachine.booking",
-              guard: {
-                type: "isValidDepartDate?",
+              actions: {
+                type: "setTripType",
+                tripType: "roundTrip",
               },
             },
           },
@@ -71,16 +91,15 @@ export const flightBookerMachine = setup({
           on: {
             CHANGE_TRIP_TYPE: {
               target: "oneWay",
+              actions: {
+                type: "setTripType",
+                tripType: "oneWay",
+              },
             },
+
             CHANGE_RETURN_DATE: {
               actions: {
                 type: "setReturnDate",
-              },
-            },
-            BOOK_RETURN: {
-              target: "#flightBookerMachine.booking",
-              guard: {
-                type: "isValidReturnDate?",
               },
             },
           },
