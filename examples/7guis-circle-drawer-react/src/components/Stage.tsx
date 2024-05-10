@@ -4,29 +4,23 @@ import Circle from "@/components/Circle";
 
 function Stage() {
   const { send } = CircleContext.useActorRef();
-  const { circles, selectedCircleId } = CircleContext.useSelector(
-    (state) => state.context
-  );
+  const { circles } = CircleContext.useSelector((state) => state.context);
 
-  function onStageTouched(e: React.PointerEvent) {
+  const onStageTouched = (e: React.PointerEvent) => {
     const currentPosition = { x: e.clientX, y: e.clientY };
-    const selectedCircle = getCircleUnderPointer(circles, currentPosition);
+    const circleUnderPointer = getCircleUnderPointer(circles, currentPosition);
 
     send({
       type: "STAGE_TOUCHED",
-      selectedCircle,
       currentPosition,
+      circleUnderPointer,
     });
-  }
+  };
 
   return (
     <main onPointerDown={onStageTouched}>
-      {circles.map((circle, i) => {
-        if (!circle?.position || !circle?.radius) return;
-        const isSelected = selectedCircleId === circle.id;
-        return (
-          <Circle key={circle.id} circle={circle} isSelected={isSelected} />
-        );
+      {circles.map((circle: Circle) => {
+        return <Circle key={circle?.id} circle={circle} />;
       })}
     </main>
   );

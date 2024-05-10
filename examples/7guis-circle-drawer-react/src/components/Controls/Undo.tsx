@@ -11,7 +11,7 @@ function Undo() {
       disabled={undos.length === 0}
     >
       <div className="end-cap">
-        <UndoIcon color="hsl(0 0% 95%)" />
+        <UndoIcon color="var(--white)" />
       </div>
       <span>Undo {undos.length > 0 && undos.length}</span>
     </button>

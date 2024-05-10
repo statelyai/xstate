@@ -2,17 +2,17 @@ import { CircleContext } from "@/machine";
 
 type Props = {
   circle: Circle;
-  isSelected: boolean;
 };
 
-function Circle({ circle, isSelected }: Props) {
+function Circle({ circle }: Props) {
   const { send } = CircleContext.useActorRef();
+  const isSelected = CircleContext.useSelector(
+    (state) => state.context.selectedCircleId === circle?.id
+  );
 
   if (!circle?.position || !circle?.radius) return;
-
   return (
     <div
-      key={`circle.id`}
       className="circle"
       style={{
         background: circle.color,
@@ -24,10 +24,10 @@ function Circle({ circle, isSelected }: Props) {
         zIndex: isSelected ? 1 : 0,
       }}
       onPointerDown={(e) => {
-        if (!isSelected) return;
         send({
           type: "START_DRAG",
           position: { x: e.clientX, y: e.clientY },
+          isSelected,
         });
       }}
     />

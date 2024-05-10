@@ -17,7 +17,7 @@ export const machine = setup({
     events: {} as
       | {
           type: "STAGE_TOUCHED";
-          selectedCircle: Circle;
+          circleUnderPointer: Circle;
           currentPosition: Position;
         }
       | {
@@ -49,6 +49,8 @@ export const machine = setup({
       | {
           type: "START_DRAG";
           position: Position;
+          circleUnderPointer?: boolean;
+          isSelected: boolean;
         }
       | {
           type: "DRAG";
@@ -76,9 +78,13 @@ export const machine = setup({
     },
     "undosExist?": ({ context }) => context.undos.length > 0,
     "redosExist?": ({ context }) => context.redos.length > 0,
-    "cursorUnderCircle?": ({ event }) => {
+    "circleUnderPointer?": ({ event }) => {
       assertEvent(event, "STAGE_TOUCHED");
-      return !event.selectedCircle;
+      return !event.circleUnderPointer;
+    },
+    "isSelected?": ({ event }) => {
+      assertEvent(event, "START_DRAG");
+      return event.isSelected;
     },
   },
   actors: {
@@ -94,12 +100,12 @@ export const machine = setup({
         const circles = (input as { circles: Circle[] }).circles;
         const currentPosition = { x: e.clientX, y: e.clientY };
 
-        const selectedCircle = getCircleUnderPointer(circles, currentPosition);
+        const currentCircle = getCircleUnderPointer(circles, currentPosition);
 
         sendBack({
           type: "END_DRAG",
           position: { x: e.clientX, y: e.clientY },
-          id: selectedCircle?.id,
+          id: currentCircle?.id,
         });
       }
 
@@ -133,17 +139,18 @@ export const machine = setup({
 
     handleDeleteCircle: assign(({ context, event }) => {
       assertEvent(event, "END_DRAG");
-      console.log("message");
       const circles = context.circles.filter(
-        (circle) => circle?.id !== context.selectedCircleId
+        (circle: Circle) => circle?.id !== context.selectedCircleId
       );
       return { circles, redos: [] };
     }),
 
-    handleSelectCircle: assign({
-      selectedCircleId: (_, params: { selectedCircle: Circle }) => {
-        return params.selectedCircle?.id as string;
-      },
+    handleSelectCircle: assign(({ event, context }) => {
+      assertEvent(event, "STAGE_TOUCHED");
+      return {
+        selectedCircleId: event.circleUnderPointer?.id,
+        undos: [...context.undos, context.circles],
+      };
     }),
 
     handleEditStart: assign({
@@ -160,30 +167,27 @@ export const machine = setup({
     }),
 
     handleDragStart: assign(({ context, event }) => {
-      console.log("context", context);
-      console.log("event", event);
       assertEvent(event, "START_DRAG");
       const circle = getCircleById(context.circles, context.selectedCircleId);
       const circleCopy = { ...circle, position: event.position };
       const index = context.circles.indexOf(circle);
-      const circlesCopy = context.circles.toSpliced(index, 1, circleCopy);
-      const isSamePosition = circle?.position?.x === event.position.x;
+      const circles = context.circles.toSpliced(index, 1, circleCopy);
+      const isSamePosition =
+        circle?.position?.x === event.position.x &&
+        circle?.position?.y === event.position.y;
+      if (isSamePosition) return { circles, undos: context.undos };
       return {
-        circles: circlesCopy,
-        undos: isSamePosition
-          ? context.undos
-          : [...context.undos, context.circles],
+        circles,
+        undos: [...context.undos, context.circles],
       };
     }),
 
     handleDrag: assign(({ context, event }) => {
-      console.log("event.type", event.type);
       assertEvent(event, "DRAG");
       const circle = getCircleById(context.circles, context.selectedCircleId);
       const circleCopy = { ...circle, position: event.position };
-      const circles = context.circles.slice();
       const index = context.circles.indexOf(circle);
-      circles.splice(index, 1, circleCopy);
+      const circles = context.circles.toSpliced(index, 1, circleCopy);
       return { circles };
     }),
 
@@ -192,7 +196,7 @@ export const machine = setup({
       return {
         circles: context.undos.pop(),
         undos: context.undos.slice(),
-        redos: [...context.redos, context.circles.slice()],
+        redos: [...context.redos, context.circles],
       };
     }),
 
@@ -206,7 +210,6 @@ export const machine = setup({
     }),
   },
 }).createMachine({
-  /** @xstate-layout N4IgpgJg5mDOIC5QGMCWAnZAbMARdAhgO5joB06YBEAngMQDKAKgIIBKTA+gKK4CSTANoAGALqJQABwD2sVABdU0gHYSQAD0QBGAJwBmLQBoQNRABYAbBYC+142kw58xUhSq1GrDp1xsWAcRFxJBAZOUUVNU0EACYADmE9Y1MESxs7EAdsPEISckpqegBVADlcAHkgtTCFJVUQ6K1hOJjk8ytbewxs5zy3Qro2XkqxatlayIbEC2E21I6MrKdc1wKPZgDuTiZyooBhAAleKpCaiPrQaIBWK7MyCzi4rSu4gyu9YRu5vVeyfV04joLFofnEAOwxK6dTLdZYufLuegbfxbHb7I64QRaYJScbnKKIWYmQnQpY5eFkSC1ZRQOi8AQnXHhOoEhBaCx6CxzOJmOKk2HkvpUxQ0ullHj8ISjU54llTNkWK6tYmpHTCfmOQWuCCEKBQVCi3wBRmhWWTS6ISF6Mzc3kanorcg6gh6g207jio2BaVMiYXDSW3lGFVmHR8xYC3ra3X60Ue3A+PyBbFjZnmgMIAC0MRiZBiFjBVx0z2t7y0+aSKq0obIVxmOjBegMYKeZjBtgyymkEDgajJUfQqb9rMzYOEeYLRZLZjL+bm2eEMXtcL6axSvvx8oBcxiBmXWvIwrdQ83FrZY7Bc0n+4HZGdrppJ7lZ-zBfudZ0aTV72El5VVlzLQngMYQLBzLQITMDtrCAA */
   context: {
     circles: [],
     undos: [],
@@ -226,6 +229,7 @@ export const machine = setup({
         START_DRAG: {
           target: "dragging",
           actions: "handleDragStart",
+          guard: "isSelected?",
         },
         UNDO: {
           guard: "undosExist?",
@@ -245,21 +249,12 @@ export const machine = setup({
             actions: {
               type: "handleAddCircle",
             },
-            guard: "cursorUnderCircle?",
+            guard: "circleUnderPointer?",
           },
           {
             target: "dragging",
             actions: {
               type: "handleSelectCircle",
-              params: ({ context, event }) => {
-                const selectedCircle = getCircleById(
-                  context.circles,
-                  event.selectedCircle?.id
-                );
-                return {
-                  selectedCircle,
-                };
-              },
             },
           },
         ],
@@ -280,14 +275,12 @@ export const machine = setup({
     dragging: {
       invoke: {
         src: "Dragger",
-
         input: ({ context }) => {
           return {
             selectedCircleId: context.selectedCircleId,
             circles: context.circles,
           };
         },
-
         id: "Dragger",
       },
       on: {

@@ -12,7 +12,7 @@ function Redo() {
     >
       <span>Redo {redos.length > 0 && redos.length}</span>
       <div className="end-cap right">
-        <RedoIcon color="hsl(0 0% 95%)" />
+        <RedoIcon color="var(--white)" />
       </div>
     </button>
   );
