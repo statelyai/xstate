@@ -187,7 +187,10 @@ export function createStoreWithProducer<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap
 >(
-  producer: <T>(context: T, recipe: (context: T) => void) => T,
+  producer: NoInfer<(
+    context: TContext,
+    recipe: (context: TContext) => void
+  ) => TContext>,
   initialContext: TContext,
   transitions: {
     [K in keyof TEventPayloadMap & string]: (
