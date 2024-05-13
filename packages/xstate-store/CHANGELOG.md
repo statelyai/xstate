@@ -1,5 +1,27 @@
 # @xstate/store
 
+## 0.0.4
+
+### Patch Changes
+
+- [#4890](https://github.com/statelyai/xstate/pull/4890) [`6d92b7770`](https://github.com/statelyai/xstate/commit/6d92b77704750498f669487da185eb005a080034) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `context` type for `createStoreWithProducer(producer, context, transitions)` will now be properly inferred.
+
+  ```ts
+  const store = createStoreWithProducer(
+    produce,
+    {
+      count: 0
+    },
+    {
+      // ...
+    }
+  );
+
+  store.getSnapshot().context;
+  // BEFORE: StoreContext
+  // NOW: { count: number }
+  ```
+
 ## 0.0.3
 
 ### Patch Changes
