@@ -95,8 +95,8 @@ export class TestModel<
     pathGenerator: PathGenerator<TSnapshot, TEvent, TInput>,
     options?: Partial<TraversalOptions<TSnapshot, TEvent>>
   ): Array<TestPath<TSnapshot, TEvent>> {
-    const paths = pathGenerator(this.testLogic, this.resolveOptions(options));
-    return deduplicatePaths(paths).map(this.toTestPath);
+    const paths = pathGenerator(this.testLogic, this._resolveOptions(options));
+    return deduplicatePaths(paths).map(this._toTestPath);
   }
 
   public getShortestPaths(
@@ -117,7 +117,7 @@ export class TestModel<
         fromState: path.state
       });
       for (const shortestPath of shortestPaths) {
-        resultPaths.push(this.toTestPath(joinPaths(path, shortestPath)));
+        resultPaths.push(this._toTestPath(joinPaths(path, shortestPath)));
       }
     }
 
@@ -142,14 +142,14 @@ export class TestModel<
         fromState: path.state
       });
       for (const shortestPath of shortestPaths) {
-        resultPaths.push(this.toTestPath(joinPaths(path, shortestPath)));
+        resultPaths.push(this._toTestPath(joinPaths(path, shortestPath)));
       }
     }
 
     return resultPaths;
   }
 
-  private toTestPath = (
+  private _toTestPath = (
     statePath: StatePath<TSnapshot, TEvent>
   ): TestPath<TSnapshot, TEvent> => {
     function formatEvent(event: EventObject): string {
@@ -169,8 +169,6 @@ export class TestModel<
       ...statePath,
       test: (params: TestParam<TSnapshot, TEvent>) =>
         this.testPath(statePath, params),
-      testSync: (params: TestParam<TSnapshot, TEvent>) =>
-        this.testPathSync(statePath, params),
       description: isMachineSnapshot(statePath.state)
         ? `Reaches ${getDescription(
             statePath.state as any
@@ -185,12 +183,7 @@ export class TestModel<
   ): Array<TestPath<TSnapshot, TEvent>> {
     const paths = getPathsFromEvents(this.testLogic, events, options);
 
-    return paths.map(this.toTestPath);
-  }
-
-  public getAllStates(): TSnapshot[] {
-    const adj = getAdjacencyMap(this.testLogic, this.options);
-    return Object.values(adj).map((x) => x.state);
+    return paths.map(this._toTestPath);
   }
 
   /**
@@ -222,53 +215,6 @@ export class TestModel<
     }
 
     return adjList;
-  }
-
-  public testPathSync(
-    path: StatePath<TSnapshot, TEvent>,
-    params: TestParam<TSnapshot, TEvent>,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent>>
-  ): TestPathResult {
-    const testPathResult: TestPathResult = {
-      steps: [],
-      state: {
-        error: null
-      }
-    };
-
-    try {
-      for (const step of path.steps) {
-        const testStepResult: TestStepResult = {
-          step,
-          state: { error: null },
-          event: { error: null }
-        };
-
-        testPathResult.steps.push(testStepResult);
-
-        try {
-          this.testTransitionSync(params, step);
-        } catch (err: any) {
-          testStepResult.event.error = err;
-
-          throw err;
-        }
-
-        try {
-          this.testStateSync(params, step.state, options);
-        } catch (err: any) {
-          testStepResult.state.error = err;
-
-          throw err;
-        }
-      }
-    } catch (err: any) {
-      // TODO: make option
-      err.message += formatPathTestResult(path, testPathResult, this.options);
-      throw err;
-    }
-
-    return testPathResult;
   }
 
   public async testPath(
@@ -323,16 +269,20 @@ export class TestModel<
     state: TSnapshot,
     options?: Partial<TestModelOptions<TSnapshot, TEvent>>
   ): Promise<void> {
-    const resolvedOptions = this.resolveOptions(options);
+    const resolvedOptions = this._resolveOptions(options);
 
-    const stateTestKeys = this.getStateTestKeys(params, state, resolvedOptions);
+    const stateTestKeys = this._getStateTestKeys(
+      params,
+      state,
+      resolvedOptions
+    );
 
     for (const stateTestKey of stateTestKeys) {
       await params.states?.[stateTestKey](state);
     }
   }
 
-  private getStateTestKeys(
+  private _getStateTestKeys(
     params: TestParam<TSnapshot, TEvent>,
     state: TSnapshot,
     resolvedOptions: TestModelOptions<TSnapshot, TEvent>
@@ -350,24 +300,7 @@ export class TestModel<
     return stateTestKeys;
   }
 
-  public testStateSync(
-    params: TestParam<TSnapshot, TEvent>,
-    state: TSnapshot,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent>>
-  ): void {
-    const resolvedOptions = this.resolveOptions(options);
-
-    const stateTestKeys = this.getStateTestKeys(params, state, resolvedOptions);
-
-    for (const stateTestKey of stateTestKeys) {
-      errorIfPromise(
-        params.states?.[stateTestKey](state),
-        `The test for '${stateTestKey}' returned a promise - did you mean to use the sync method?`
-      );
-    }
-  }
-
-  private getEventExec(
+  private _getEventExec(
     params: TestParam<TSnapshot, TEvent>,
     step: Step<TSnapshot, TEvent>
   ) {
@@ -381,42 +314,14 @@ export class TestModel<
     params: TestParam<TSnapshot, TEvent>,
     step: Step<TSnapshot, TEvent>
   ): Promise<void> {
-    const eventExec = this.getEventExec(params, step);
+    const eventExec = this._getEventExec(params, step);
     await (eventExec as EventExecutor<TSnapshot, TEvent>)?.(step);
   }
 
-  public testTransitionSync(
-    params: TestParam<TSnapshot, TEvent>,
-    step: Step<TSnapshot, TEvent>
-  ): void {
-    const eventExec = this.getEventExec(params, step);
-
-    errorIfPromise(
-      (eventExec as EventExecutor<TSnapshot, TEvent>)?.(step),
-      `The event '${step.event.type}' returned a promise - did you mean to use the sync method?`
-    );
-  }
-
-  public resolveOptions(
+  private _resolveOptions(
     options?: Partial<TestModelOptions<TSnapshot, TEvent>>
   ): TestModelOptions<TSnapshot, TEvent> {
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
-  }
-}
-
-const errorIfPromise = (result: unknown, err: string) => {
-  if (typeof result === 'object' && result && 'then' in result) {
-    throw new Error(err);
-  }
-};
-
-export async function testStateFromMeta(snapshot: AnyMachineSnapshot) {
-  const meta = snapshot.getMeta();
-  for (const id of Object.keys(meta)) {
-    const stateNodeMeta = meta[id];
-    if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
-      await stateNodeMeta.test(snapshot);
-    }
   }
 }
 
