@@ -102,42 +102,42 @@ describe('die hard example', () => {
       }
     );
 
-    const options = {
-      states: {
-        pending: (state: ReturnType<(typeof dieHardMachine)['transition']>) => {
-          expect(jugs.five).not.toEqual(4);
-          expect(jugs.three).toEqual(state.context.three);
-          expect(jugs.five).toEqual(state.context.five);
-        },
-        success: () => {
-          expect(jugs.five).toEqual(4);
-        }
-      },
-      events: {
-        POUR_3_TO_5: async () => {
-          await jugs.transferThree();
-        },
-        POUR_5_TO_3: async () => {
-          await jugs.transferFive();
-        },
-        EMPTY_3: async () => {
-          await jugs.emptyThree();
-        },
-        EMPTY_5: async () => {
-          await jugs.emptyFive();
-        },
-        FILL_3: async () => {
-          await jugs.fillThree();
-        },
-        FILL_5: async () => {
-          await jugs.fillFive();
-        }
-      }
-    };
-
     return {
       model: createTestModel(dieHardMachine),
-      options
+      options: {
+        states: {
+          pending: (
+            state: ReturnType<(typeof dieHardMachine)['transition']>
+          ) => {
+            expect(jugs.five).not.toEqual(4);
+            expect(jugs.three).toEqual(state.context.three);
+            expect(jugs.five).toEqual(state.context.five);
+          },
+          success: () => {
+            expect(jugs.five).toEqual(4);
+          }
+        },
+        events: {
+          POUR_3_TO_5: async () => {
+            await jugs.transferThree();
+          },
+          POUR_5_TO_3: async () => {
+            await jugs.transferFive();
+          },
+          EMPTY_3: async () => {
+            await jugs.emptyThree();
+          },
+          EMPTY_5: async () => {
+            await jugs.emptyFive();
+          },
+          FILL_3: async () => {
+            await jugs.fillThree();
+          },
+          FILL_5: async () => {
+            await jugs.fillFive();
+          }
+        }
+      }
     };
   };
 
