@@ -2,7 +2,8 @@ import {
   getPathsFromEvents,
   getAdjacencyMap,
   joinPaths,
-  AdjacencyValue
+  AdjacencyValue,
+  serializeState
 } from '@xstate/graph';
 import type {
   SerializedEvent,
@@ -13,10 +14,20 @@ import type {
 } from '@xstate/graph';
 import {
   EventObject,
-  AnyMachineSnapshot,
   ActorLogic,
   Snapshot,
-  isMachineSnapshot
+  isMachineSnapshot,
+  __unsafe_getAllOwnEventDescriptors,
+  AnyActorRef,
+  AnyEventObject,
+  AnyMachineSnapshot,
+  AnyStateMachine,
+  EventFromLogic,
+  MachineContext,
+  MachineSnapshot,
+  SnapshotFrom,
+  StateValue,
+  TODO
 } from 'xstate';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
@@ -37,6 +48,7 @@ import {
   getDescription,
   simpleStringify
 } from './utils.ts';
+import { validateMachine } from './validateMachine.ts';
 
 /**
  * Creates a test model that represents an abstract model of a
@@ -70,7 +82,7 @@ export class TestModel<
   }
 
   constructor(
-    public logic: ActorLogic<TSnapshot, TEvent, TInput>,
+    public testLogic: ActorLogic<TSnapshot, TEvent, TInput>,
     options?: Partial<TestModelOptions<TSnapshot, TEvent>>
   ) {
     this.options = {
@@ -83,7 +95,7 @@ export class TestModel<
     pathGenerator: PathGenerator<TSnapshot, TEvent, TInput>,
     options?: Partial<TraversalOptions<TSnapshot, TEvent>>
   ): Array<TestPath<TSnapshot, TEvent>> {
-    const paths = pathGenerator(this.logic, this.resolveOptions(options));
+    const paths = pathGenerator(this.testLogic, this.resolveOptions(options));
     return deduplicatePaths(paths).map(this.toTestPath);
   }
 
@@ -171,13 +183,13 @@ export class TestModel<
     events: TEvent[],
     options?: TraversalOptions<TSnapshot, TEvent>
   ): Array<TestPath<TSnapshot, TEvent>> {
-    const paths = getPathsFromEvents(this.logic, events, options);
+    const paths = getPathsFromEvents(this.testLogic, events, options);
 
     return paths.map(this.toTestPath);
   }
 
   public getAllStates(): TSnapshot[] {
-    const adj = getAdjacencyMap(this.logic, this.options);
+    const adj = getAdjacencyMap(this.testLogic, this.options);
     return Object.values(adj).map((x) => x.state);
   }
 
@@ -190,7 +202,7 @@ export class TestModel<
     event: TEvent;
     nextState: TSnapshot;
   }> {
-    const adjMap = getAdjacencyMap(this.logic, this.options);
+    const adjMap = getAdjacencyMap(this.testLogic, this.options);
     const adjList: Array<{
       state: TSnapshot;
       event: TEvent;
@@ -397,3 +409,159 @@ const errorIfPromise = (result: unknown, err: string) => {
     throw new Error(err);
   }
 };
+
+export async function testStateFromMeta(snapshot: AnyMachineSnapshot) {
+  const meta = snapshot.getMeta();
+  for (const id of Object.keys(meta)) {
+    const stateNodeMeta = meta[id];
+    if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
+      await stateNodeMeta.test(snapshot);
+    }
+  }
+}
+
+function stateValuesEqual(
+  a: StateValue | undefined,
+  b: StateValue | undefined
+): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  if (a === undefined || b === undefined) {
+    return false;
+  }
+
+  if (typeof a === 'string' || typeof b === 'string') {
+    return a === b;
+  }
+
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+
+  return (
+    aKeys.length === bKeys.length &&
+    aKeys.every((key) => stateValuesEqual(a[key], b[key]))
+  );
+}
+
+function serializeMachineTransition(
+  snapshot: MachineSnapshot<
+    MachineContext,
+    EventObject,
+    Record<string, AnyActorRef | undefined>,
+    StateValue,
+    string,
+    unknown,
+    TODO // TMeta
+  >,
+  event: AnyEventObject | undefined,
+  previousSnapshot:
+    | MachineSnapshot<
+        MachineContext,
+        EventObject,
+        Record<string, AnyActorRef | undefined>,
+        StateValue,
+        string,
+        unknown,
+        TODO // TMeta
+      >
+    | undefined,
+  { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
+): string {
+  // TODO: the stateValuesEqual check here is very likely not exactly correct
+  // but I'm not sure what the correct check is and what this is trying to do
+  if (
+    !event ||
+    (previousSnapshot &&
+      stateValuesEqual(previousSnapshot.value, snapshot.value))
+  ) {
+    return '';
+  }
+
+  const prevStateString = previousSnapshot
+    ? ` from ${simpleStringify(previousSnapshot.value)}`
+    : '';
+
+  return ` via ${serializeEvent(event)}${prevStateString}`;
+}
+
+/**
+ * Creates a test model that represents an abstract model of a
+ * system under test (SUT).
+ *
+ * The test model is used to generate test paths, which are used to
+ * verify that states in the `machine` are reachable in the SUT.
+ *
+ * @example
+ *
+ * ```js
+ * const toggleModel = createModel(toggleMachine).withEvents({
+ *   TOGGLE: {
+ *     exec: async page => {
+ *       await page.click('input');
+ *     }
+ *   }
+ * });
+ * ```
+ *
+ * @param machine The state machine used to represent the abstract model.
+ * @param options Options for the created test model:
+ * - `events`: an object mapping string event types (e.g., `SUBMIT`)
+ * to an event test config (e.g., `{exec: () => {...}, cases: [...]}`)
+ */
+export function createTestModel<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  options?: Partial<
+    TestModelOptions<SnapshotFrom<TMachine>, EventFromLogic<TMachine>>
+  >
+): TestModel<SnapshotFrom<TMachine>, EventFromLogic<TMachine>, unknown> {
+  validateMachine(machine);
+
+  const serializeEvent = (options?.serializeEvent ?? simpleStringify) as (
+    event: AnyEventObject
+  ) => string;
+  const serializeTransition =
+    options?.serializeTransition ?? serializeMachineTransition;
+  const { events: getEvents, ...otherOptions } = options ?? {};
+
+  const testModel = new TestModel<
+    SnapshotFrom<TMachine>,
+    EventFromLogic<TMachine>,
+    unknown
+  >(machine as any, {
+    serializeState: (state, event, prevState) => {
+      // Only consider the `state` if `serializeTransition()` is opted out (empty string)
+      return `${serializeState(state)}${serializeTransition(
+        state,
+        event,
+        prevState,
+        {
+          serializeEvent
+        }
+      )}` as SerializedState;
+    },
+    stateMatcher: (state, key) => {
+      return key.startsWith('#')
+        ? (state as any)._nodes.includes(machine.getStateNodeById(key))
+        : (state as any).matches(key);
+    },
+    events: (state) => {
+      const events =
+        typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
+
+      return __unsafe_getAllOwnEventDescriptors(state).flatMap(
+        (eventType: string) => {
+          if (events.some((e) => (e as EventObject).type === eventType)) {
+            return events.filter((e) => (e as EventObject).type === eventType);
+          }
+
+          return [{ type: eventType } as any]; // TODO: fix types
+        }
+      );
+    },
+    ...otherOptions
+  });
+
+  return testModel;
+}
