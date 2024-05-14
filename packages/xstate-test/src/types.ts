@@ -28,28 +28,6 @@ export type GetPathsOptions<
   }
 >;
 
-export interface TestMachineConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
-> extends TestStateNodeConfig<TContext, TEvent> {
-  context?: MachineConfig<TContext, TEvent>['context'];
-  types?: MachineTypes<
-    TContext,
-    TEvent,
-    TODO,
-    TODO,
-    TODO,
-    TODO, // delays
-    TODO, // tags
-    TODO, // input
-    TODO, // output
-    TODO, // emitted
-    TODO, // meta
-    TTypesMeta
-  >;
-}
-
 export interface TestStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -82,26 +60,6 @@ export interface TestStateNodeConfig<
   initial?: string;
   states?: Record<string, TestStateNodeConfig<TContext, TEvent>>;
 }
-
-export type TestMachineOptions<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
-> = Partial<
-  Pick<
-    MachineImplementations<
-      TContext,
-      TEvent,
-      any,
-      ParameterizedObject,
-      ParameterizedObject,
-      string,
-      string,
-      TTypesMeta
-    >,
-    'actions' | 'guards'
-  >
->;
 
 export interface TestMeta<T, TContext extends MachineContext> {
   test?: (

@@ -1,5 +1,5 @@
+import { createMachine } from 'xstate';
 import { createTestModel } from '../src/index.ts';
-import { createTestMachine } from '../src/machine';
 import { testUtils } from './testUtils';
 
 describe('events', () => {
@@ -7,7 +7,7 @@ describe('events', () => {
     let executed = false;
 
     const testModel = createTestModel(
-      createTestMachine({
+      createMachine({
         initial: 'a',
         states: {
           a: {
@@ -35,7 +35,7 @@ describe('events', () => {
     let executed = false;
 
     const testModel = createTestModel(
-      createTestMachine({
+      createMachine({
         initial: 'a',
         states: {
           a: {

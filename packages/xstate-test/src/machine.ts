@@ -18,11 +18,7 @@ import {
   TODO
 } from 'xstate';
 import { TestModel } from './TestModel.ts';
-import {
-  TestMachineConfig,
-  TestMachineOptions,
-  TestModelOptions
-} from './types.ts';
+import { TestModelOptions } from './types.ts';
 import { simpleStringify } from './utils.ts';
 import { validateMachine } from './validateMachine.ts';
 
@@ -34,17 +30,6 @@ export async function testStateFromMeta(snapshot: AnyMachineSnapshot) {
       await stateNodeMeta.test(snapshot);
     }
   }
-}
-
-export function createTestMachine<
-  TContext extends MachineContext,
-  TEvent extends EventObject = AnyEventObject,
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
->(
-  config: TestMachineConfig<TContext, TEvent, TTypesMeta>,
-  options?: TestMachineOptions<TContext, TEvent, TTypesMeta>
-) {
-  return createMachine(config as any, options as any);
 }
 
 function stateValuesEqual(
