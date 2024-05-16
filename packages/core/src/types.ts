@@ -2488,6 +2488,9 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
           : never
   : never;
 
+/**
+ * @deprecated Use `EventFrom<TLogic>` instead.
+ */
 export type EventFromLogic<TLogic extends AnyActorLogic> =
   TLogic extends ActorLogic<
     infer _TSnapshot,
