@@ -3,7 +3,7 @@ import { Routes, Route, useNavigate } from "react-router-dom";
 import Home from "./pages/Home";
 import Trivia from "./pages/Trivia";
 import { TriviaMachineContext } from "./context/AppContext";
-import triviaMachine from "./machines/triviaMachine";
+import triviaMachine from "./triviaMachine";
 
 const App = () => {
   const navigate = useNavigate()

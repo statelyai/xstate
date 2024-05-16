@@ -1,5 +1,5 @@
 
 import { createActorContext } from "@xstate/react";
-import triviaMachine from "../machines/triviaMachine";
+import triviaMachine from "../triviaMachine";
 
 export const TriviaMachineContext = createActorContext(triviaMachine)

@@ -1,7 +1,7 @@
-import { assign, fromPromise, not, setup } from "xstate";
-import { RMCharacter } from "../common/types";
-import { RickCharacters } from "../services/RickApi";
-import { getRandomNumber } from "../common/constants";;
+import { assertEvent, assign, fromPromise, not, setup } from "xstate";
+import { RMCharacter } from "./common/types";
+import { RickCharacters } from "./services/RickApi";
+import { getRandomNumber } from "./common/constants";;
 
 const triviaMachine = setup({
     types: {
@@ -30,7 +30,7 @@ const triviaMachine = setup({
     },
     guards: {
         isAnswerCorrect: ({context, event}) => {
-            if(event.type !== "user.selectAnswer") return false
+            assertEvent(event, 'user.selectAnswer');
             if(!context.currentCharacter) return false
             return event.answer === context.currentCharacter.id
         },
