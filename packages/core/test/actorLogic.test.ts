@@ -6,7 +6,8 @@ import {
   createActor,
   AnyActorLogic,
   Snapshot,
-  ActorLogic
+  ActorLogic,
+  EventFrom
 } from '../src/index.ts';
 import {
   fromCallback,
@@ -469,7 +470,7 @@ describe('promise logic (fromPromise)', () => {
 describe('transition function logic (fromTransition)', () => {
   it('should interpret a transition function', () => {
     const transitionLogic = fromTransition(
-      (state, event) => {
+      (state, event: { type: 'toggle' }) => {
         if (event.type === 'toggle') {
           return {
             ...state,
@@ -545,6 +546,27 @@ describe('transition function logic (fromTransition)', () => {
     const actor = createActor(transitionLogic).start();
 
     actor.send({ type: 'a' });
+  });
+
+  it('EventFrom<…> should extract the event type', () => {
+    const logic = fromTransition(
+      (state, _event: { type: 'foo' } | { type: 'bar'; payload: number }) => {
+        return state;
+      },
+      {}
+    );
+
+    function accept(_event: EventFrom<typeof logic>): void {}
+
+    accept({ type: 'foo' });
+
+    accept({ type: 'bar', payload: 3 });
+
+    // @ts-expect-error
+    accept({ type: 'bar' });
+
+    // @ts-expect-error
+    accept({ type: 'baz' });
   });
 });
 

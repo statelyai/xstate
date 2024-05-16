@@ -2540,7 +2540,15 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       ? TEvent
       : R extends ActorRef<infer _, infer TEvent>
         ? TEvent
-        : never
+        : R extends ActorLogic<
+              infer _TSnapshot,
+              infer TEvent,
+              infer _TInput,
+              infer _TSystem,
+              infer _TEmitted
+            >
+          ? TEvent
+          : never
   : never;
 
 export type EventFrom<
