@@ -25,7 +25,7 @@ describe('states', () => {
       })
     );
 
-    await testUtils.testModel(testModel, {
+    await testUtils.testShortestPaths(testModel, {
       states: {
         a: (state) => {
           testedStateValues.push(state.value);
@@ -89,7 +89,7 @@ describe('states', () => {
       })
     );
 
-    await testUtils.testModel(testModel, {
+    await testUtils.testShortestPaths(testModel, {
       states: {
         '#state_a': (state) => {
           testedStateValues.push(state.value);

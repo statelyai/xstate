@@ -1,20 +1,20 @@
-import { assign, createMachine } from 'xstate';
+import { assign, createMachine, setup } from 'xstate';
 import { createTestModel } from '../src/index.ts';
 import { testUtils } from './testUtils';
 
 describe('events', () => {
   it('should allow for representing many cases', async () => {
-    type Events =
-      | { type: 'CLICK_BAD' }
-      | { type: 'CLICK_GOOD' }
-      | { type: 'CLOSE' }
-      | { type: 'ESC' }
-      | { type: 'SUBMIT'; value: string };
-    const feedbackMachine = createMachine({
-      id: 'feedback',
+    const feedbackMachine = setup({
       types: {
-        events: {} as Events
-      },
+        events: {} as
+          | { type: 'CLICK_BAD' }
+          | { type: 'CLICK_GOOD' }
+          | { type: 'CLOSE' }
+          | { type: 'ESC' }
+          | { type: 'SUBMIT'; value: string }
+      }
+    }).createMachine({
+      id: 'feedback',
       initial: 'question',
       states: {
         question: {
@@ -64,7 +64,7 @@ describe('events', () => {
       ]
     });
 
-    await testUtils.testModel(testModel, {});
+    await testUtils.testShortestPaths(testModel, {});
   });
 
   it('should not throw an error for unimplemented events', () => {
@@ -81,7 +81,7 @@ describe('events', () => {
     const testModel = createTestModel(testMachine);
 
     expect(async () => {
-      await testUtils.testModel(testModel, {});
+      await testUtils.testShortestPaths(testModel, {});
     }).not.toThrow();
   });
 
@@ -221,7 +221,7 @@ describe('test model options', () => {
       })
     );
 
-    await testUtils.testModel(model, {
+    await testUtils.testShortestPaths(model, {
       states: {
         '*': (state) => {
           testedStates.push(state.value);
@@ -321,7 +321,7 @@ describe('state tests', () => {
 
     const model = createTestModel(machine);
 
-    await testUtils.testModel(model, {
+    await testUtils.testShortestPaths(model, {
       states: {
         a: (state) => {
           expect(state.value).toEqual('a');
@@ -352,7 +352,7 @@ describe('state tests', () => {
 
     const model = createTestModel(machine);
 
-    await testUtils.testModel(model, {
+    await testUtils.testShortestPaths(model, {
       states: {
         a: (state) => {
           expect(state.value).toEqual('a');
@@ -387,7 +387,7 @@ describe('state tests', () => {
 
     const model = createTestModel(machine);
 
-    await testUtils.testModel(model, {
+    await testUtils.testShortestPaths(model, {
       states: {
         a: (state) => {
           testedStateValues.push('a');

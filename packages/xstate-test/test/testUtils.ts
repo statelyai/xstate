@@ -2,7 +2,7 @@ import { EventObject, Snapshot } from 'xstate';
 import { TestModel } from '../src/TestModel';
 import { TestParam, TestPath } from '../src/types';
 
-async function testModel<
+async function testShortestPaths<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput
@@ -26,5 +26,5 @@ async function testPaths<
 
 export const testUtils = {
   testPaths,
-  testModel
+  testShortestPaths
 };

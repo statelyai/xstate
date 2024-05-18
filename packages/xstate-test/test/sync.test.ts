@@ -33,7 +33,7 @@ describe('.testPathSync', () => {
           }
         })
       )
-    ).toThrowError(
+    ).toThrow(
       `The test for 'a' returned a promise - did you mean to use the sync method?`
     );
   });

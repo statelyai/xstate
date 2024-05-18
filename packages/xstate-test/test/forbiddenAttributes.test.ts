@@ -11,7 +11,7 @@ describe('Forbidden attributes', () => {
 
     expect(() => {
       createTestModel(machine);
-    }).toThrowError('Invocations on test machines are not supported');
+    }).toThrow('Invocations on test machines are not supported');
   });
 
   it('Should not let you declare after on your test machine', () => {
@@ -25,7 +25,7 @@ describe('Forbidden attributes', () => {
 
     expect(() => {
       createTestModel(machine);
-    }).toThrowError('After events on test machines are not supported');
+    }).toThrow('After events on test machines are not supported');
   });
 
   it('Should not let you delayed actions on your machine', () => {
@@ -44,6 +44,6 @@ describe('Forbidden attributes', () => {
 
     expect(() => {
       createTestModel(machine);
-    }).toThrowError('Delayed actions on test machines are not supported');
+    }).toThrow('Delayed actions on test machines are not supported');
   });
 });
