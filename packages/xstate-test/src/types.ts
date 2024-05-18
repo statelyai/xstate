@@ -120,7 +120,6 @@ export interface TestPath<
    * tests the postcondition that the `state` is reached.
    */
   test: (params: TestParam<TSnapshot, TEvent>) => Promise<TestPathResult>;
-  testSync: (params: TestParam<TSnapshot, TEvent>) => TestPathResult;
 }
 export interface TestPathResult {
   steps: TestStepResult[];
