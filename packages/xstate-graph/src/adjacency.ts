@@ -23,7 +23,7 @@ export function getAdjacencyMap<
     serializeEvent,
     serializeState,
     events: getEvents,
-    traversalLimit: limit,
+    limit,
     fromState: customFromState,
     stopWhen
   } = resolveTraversalOptions(logic, options);

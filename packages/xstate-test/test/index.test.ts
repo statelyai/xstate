@@ -199,7 +199,7 @@ it('prevents infinite recursion based on a provided limit', () => {
   const model = createTestModel(machine);
 
   expect(() => {
-    model.getShortestPaths({ traversalLimit: 100 });
+    model.getShortestPaths({ limit: 100 });
   }).toThrowErrorMatchingInlineSnapshot(`"Traversal limit exceeded"`);
 });
 

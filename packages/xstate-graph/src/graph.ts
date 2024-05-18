@@ -209,7 +209,7 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
     serializeState,
     serializeEvent,
     events: [],
-    traversalLimit: Infinity,
+    limit: Infinity,
     fromState: undefined,
     toState: undefined,
     // Traversal should not continue past the `toState` predicate

@@ -183,7 +183,7 @@ export type TraversalOptions<
   Partial<
     Pick<
       TraversalConfig<TSnapshot, TEvent>,
-      'events' | 'traversalLimit' | 'fromState' | 'stopWhen' | 'toState'
+      'events' | 'limit' | 'fromState' | 'stopWhen' | 'toState'
     >
   >;
 
@@ -198,7 +198,7 @@ export interface TraversalConfig<
    *
    * @default `Infinity`
    */
-  traversalLimit: number;
+  limit: number;
   fromState: TSnapshot | undefined;
   /**
    * When true, traversal of the adjacency map will stop
