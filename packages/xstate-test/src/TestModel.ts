@@ -6,6 +6,7 @@ import {
   serializeSnapshot
 } from '@xstate/graph';
 import type {
+  AdjacencyMap,
   SerializedEvent,
   SerializedSnapshot,
   StatePath,
@@ -197,31 +198,9 @@ export class TestModel<
    * An array of adjacencies, which are objects that represent each `state` with the `nextState`
    * given the `event`.
    */
-  public getAdjacencyList(): Array<{
-    state: TSnapshot;
-    event: TEvent;
-    nextState: TSnapshot;
-  }> {
+  public getAdjacencyMap(): AdjacencyMap<TSnapshot, TEvent> {
     const adjMap = getAdjacencyMap(this.testLogic, this.options);
-    const adjList: Array<{
-      state: TSnapshot;
-      event: TEvent;
-      nextState: TSnapshot;
-    }> = [];
-
-    for (const adjValue of Object.values(adjMap)) {
-      for (const transition of Object.values(
-        (adjValue as AdjacencyValue<TSnapshot, TEvent>).transitions
-      )) {
-        adjList.push({
-          state: (adjValue as AdjacencyValue<TSnapshot, TEvent>).state,
-          event: transition.event,
-          nextState: transition.state
-        });
-      }
-    }
-
-    return adjList;
+    return adjMap;
   }
 
   public testPathSync(
