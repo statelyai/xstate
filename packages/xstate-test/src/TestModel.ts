@@ -3,11 +3,11 @@ import {
   getAdjacencyMap,
   joinPaths,
   AdjacencyValue,
-  serializeState
+  serializeSnapshot
 } from '@xstate/graph';
 import type {
   SerializedEvent,
-  SerializedState,
+  SerializedSnapshot,
   StatePath,
   Step,
   TraversalOptions
@@ -66,7 +66,7 @@ export class TestModel<
   public defaultTraversalOptions?: TraversalOptions<TSnapshot, TEvent>;
   public getDefaultOptions(): TestModelOptions<TSnapshot, TEvent> {
     return {
-      serializeState: (state) => simpleStringify(state) as SerializedState,
+      serializeState: (state) => simpleStringify(state) as SerializedSnapshot,
       serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
       // For non-state-machine test models, we cannot identify
       // separate transitions, so just use event type
@@ -532,14 +532,14 @@ export function createTestModel<TMachine extends AnyStateMachine>(
   >(machine as any, {
     serializeState: (state, event, prevState) => {
       // Only consider the `state` if `serializeTransition()` is opted out (empty string)
-      return `${serializeState(state)}${serializeTransition(
+      return `${serializeSnapshot(state)}${serializeTransition(
         state,
         event,
         prevState,
         {
           serializeEvent
         }
-      )}` as SerializedState;
+      )}` as SerializedSnapshot;
     },
     stateMatcher: (state, key) => {
       return key.startsWith('#')

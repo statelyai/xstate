@@ -5,7 +5,7 @@ import {
   EventObject,
   Snapshot
 } from 'xstate';
-import { SerializedEvent, SerializedState, TraversalOptions } from './types';
+import { SerializedEvent, SerializedSnapshot, TraversalOptions } from './types';
 import { AdjacencyMap, resolveTraversalOptions } from './graph';
 import { createMockActorScope } from './actorScope';
 
@@ -47,7 +47,7 @@ export function getAdjacencyMap<
     event: TEvent | undefined;
     prevState: TSnapshot | undefined;
   }> = [{ nextState: fromState, event: undefined, prevState: undefined }];
-  const stateMap = new Map<SerializedState, TSnapshot>();
+  const stateMap = new Map<SerializedSnapshot, TSnapshot>();
 
   while (queue.length) {
     const { nextState: state, event, prevState } = queue.shift()!;
@@ -60,7 +60,7 @@ export function getAdjacencyMap<
       state,
       event,
       prevState
-    ) as SerializedState;
+    ) as SerializedSnapshot;
     if (adj[serializedState]) {
       continue;
     }

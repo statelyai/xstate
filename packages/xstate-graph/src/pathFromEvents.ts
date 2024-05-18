@@ -9,7 +9,7 @@ import {
 import { getAdjacencyMap } from './adjacency';
 import {
   SerializedEvent,
-  SerializedState,
+  SerializedSnapshot,
   StatePath,
   Steps,
   TraversalOptions
@@ -63,14 +63,14 @@ export function getPathsFromEvents<
 
   const adjacency = getAdjacencyMap(logic, resolvedOptions);
 
-  const stateMap = new Map<SerializedState, TSnapshot>();
+  const stateMap = new Map<SerializedSnapshot, TSnapshot>();
   const steps: Steps<TSnapshot, TEvent> = [];
 
   const serializedFromState = serializeState(
     fromState,
     undefined,
     undefined
-  ) as SerializedState;
+  ) as SerializedSnapshot;
   stateMap.set(serializedFromState, fromState);
 
   let stateSerial = serializedFromState;
@@ -95,7 +95,7 @@ export function getPathsFromEvents<
       nextState,
       event,
       prevState
-    ) as SerializedState;
+    ) as SerializedSnapshot;
     stateMap.set(nextStateSerial, nextState);
 
     stateSerial = nextStateSerial;

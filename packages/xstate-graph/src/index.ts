@@ -2,7 +2,7 @@ export type { AdjacencyMap, AdjacencyValue } from './graph.ts';
 export {
   getStateNodes,
   serializeEvent,
-  serializeMachineState as serializeState,
+  serializeSnapshot,
   toDirectedGraph,
   joinPaths
 } from './graph.ts';

@@ -65,8 +65,8 @@ export type DirectedGraphNode = JSONSerializable<
 >;
 
 export interface ValueAdjacencyMap<TState, TEvent extends EventObject> {
-  [stateId: SerializedState]: Record<
-    SerializedState,
+  [stateId: SerializedSnapshot]: Record<
+    SerializedSnapshot,
     {
       state: TState;
       event: TEvent;
@@ -149,7 +149,7 @@ export interface ValueAdjacencyMapOptions<TState, TEvent extends EventObject> {
 }
 
 export interface VisitedContext<TState, TEvent> {
-  vertices: Set<SerializedState>;
+  vertices: Set<SerializedSnapshot>;
   edges: Set<SerializedEvent>;
   a?: TState | TEvent; // TODO: remove
 }
@@ -220,7 +220,7 @@ export interface TraversalConfig<
 
 type Brand<T, Tag extends string> = T & { __tag: Tag };
 
-export type SerializedState = Brand<string, 'state'>;
+export type SerializedSnapshot = Brand<string, 'state'>;
 export type SerializedEvent = Brand<string, 'event'>;
 
 // XState Test

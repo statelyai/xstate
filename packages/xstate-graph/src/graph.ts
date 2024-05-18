@@ -13,7 +13,7 @@ import {
 } from 'xstate';
 import type {
   SerializedEvent,
-  SerializedState,
+  SerializedSnapshot,
   StatePath,
   DirectedGraphEdge,
   DirectedGraphNode,
@@ -54,14 +54,12 @@ export function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
   return children;
 }
 
-export function serializeMachineState(
-  state: ReturnType<AnyStateMachine['transition']>
-): SerializedState {
-  const { value, context } = state;
+export function serializeSnapshot(snapshot: Snapshot<any>): SerializedSnapshot {
+  const { value, context } = snapshot as any;
   return JSON.stringify({
     value,
-    context: Object.keys(context).length ? context : undefined
-  }) as SerializedState;
+    context: Object.keys(context ?? {}).length ? context : undefined
+  }) as SerializedSnapshot;
 }
 
 export function serializeEvent<TEvent extends EventObject>(
@@ -85,7 +83,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
     ReturnType<TMachine['transition']>,
     EventFromLogic<TMachine>
   > = {
-    serializeState: serializeMachineState,
+    serializeState: serializeSnapshot,
     serializeEvent,
     events: (state) => {
       const events =
@@ -171,7 +169,7 @@ export interface AdjacencyValue<TState, TEvent> {
 }
 
 export interface AdjacencyMap<TState, TEvent> {
-  [key: SerializedState]: AdjacencyValue<TState, TEvent>;
+  [key: SerializedSnapshot]: AdjacencyValue<TState, TEvent>;
 }
 
 function isMachineLogic(logic: AnyActorLogic): logic is AnyStateMachine {
