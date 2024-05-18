@@ -2,7 +2,6 @@ import {
   getPathsFromEvents,
   getAdjacencyMap,
   joinPaths,
-  AdjacencyValue,
   serializeSnapshot
 } from '@xstate/graph';
 import type {
@@ -304,12 +303,6 @@ export class TestModel<
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
   }
 }
-
-const errorIfPromise = (result: unknown, err: string) => {
-  if (typeof result === 'object' && result && 'then' in result) {
-    throw new Error(err);
-  }
-};
 
 export async function testStateFromMeta(snapshot: AnyMachineSnapshot) {
   const meta = snapshot.getMeta();
