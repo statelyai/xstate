@@ -25,7 +25,7 @@ export function getAdjacencyMap<
     events: getEvents,
     traversalLimit: limit,
     fromState: customFromState,
-    stopCondition
+    stopWhen
   } = resolveTraversalOptions(logic, options);
   const actorScope = createMockActorScope() as ActorScope<
     TSnapshot,
@@ -71,7 +71,7 @@ export function getAdjacencyMap<
       transitions: {}
     };
 
-    if (stopCondition && stopCondition(state)) {
+    if (stopWhen && stopWhen(state)) {
       continue;
     }
 
@@ -81,19 +81,17 @@ export function getAdjacencyMap<
     for (const nextEvent of events) {
       const nextSnapshot = transition(state, nextEvent, actorScope);
 
-      if (!options.filter || options.filter(nextSnapshot, nextEvent)) {
-        adj[serializedState].transitions[
-          serializeEvent(nextEvent) as SerializedEvent
-        ] = {
-          event: nextEvent,
-          state: nextSnapshot
-        };
-        queue.push({
-          nextState: nextSnapshot,
-          event: nextEvent,
-          prevState: state
-        });
-      }
+      adj[serializedState].transitions[
+        serializeEvent(nextEvent) as SerializedEvent
+      ] = {
+        event: nextEvent,
+        state: nextSnapshot
+      };
+      queue.push({
+        nextState: nextSnapshot,
+        event: nextEvent,
+        prevState: state
+      });
     }
   }
 

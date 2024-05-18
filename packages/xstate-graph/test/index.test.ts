@@ -172,8 +172,8 @@ describe('state limiting', () => {
     const testModel = createTestModel(machine);
 
     const testPaths = testModel.getShortestPaths({
-      filter: (state) => {
-        return state.context.count < 5;
+      stopWhen: (state) => {
+        return state.context.count >= 5;
       }
     });
 

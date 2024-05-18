@@ -208,14 +208,13 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
   > = {
     serializeState,
     serializeEvent,
-    filter: () => true,
     events: [],
     traversalLimit: Infinity,
     fromState: undefined,
     toState: undefined,
     // Traversal should not continue past the `toState` predicate
     // since the target state has already been reached at that point
-    stopCondition: traversalOptions?.toState,
+    stopWhen: traversalOptions?.toState,
     ...resolvedDefaultOptions,
     ...traversalOptions
   };
