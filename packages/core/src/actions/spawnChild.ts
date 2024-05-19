@@ -1,6 +1,7 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
 import { ProcessingStatus, createActor } from '../createActor.ts';
+import { executingCustomAction } from '../stateUtils.ts';
 import {
   ActionArgs,
   ActionFunction,
@@ -139,22 +140,32 @@ type DistributeActors<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TActor extends ProvidedActor
-> = TActor extends any
-  ? ConditionalRequired<
-      [
-        src: TActor['src'],
-        options?: SpawnActionOptions<
-          TContext,
-          TExpressionEvent,
-          TEvent,
-          TActor
-        > & {
-          [K in RequiredActorOptions<TActor>]: unknown;
-        }
-      ],
-      IsNotNever<RequiredActorOptions<TActor>>
-    >
-  : never;
+> =
+  | (TActor extends any
+      ? ConditionalRequired<
+          [
+            src: TActor['src'],
+            options?: SpawnActionOptions<
+              TContext,
+              TExpressionEvent,
+              TEvent,
+              TActor
+            > & {
+              [K in RequiredActorOptions<TActor>]: unknown;
+            }
+          ],
+          IsNotNever<RequiredActorOptions<TActor>>
+        >
+      : never)
+  | [
+      src: AnyActorLogic,
+      options?: SpawnActionOptions<
+        TContext,
+        TExpressionEvent,
+        TEvent,
+        ProvidedActor
+      > & { id?: never }
+    ];
 
 type SpawnArguments<
   TContext extends MachineContext,

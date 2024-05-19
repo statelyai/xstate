@@ -676,7 +676,15 @@ export function transitionAtomicNode<
 >(
   stateNode: AnyStateNode,
   stateValue: string,
-  snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any>,
+  snapshot: MachineSnapshot<
+    TContext,
+    TEvent,
+    any,
+    any,
+    any,
+    any,
+    any // TMeta
+  >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
@@ -695,7 +703,15 @@ export function transitionCompoundNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any>,
+  snapshot: MachineSnapshot<
+    TContext,
+    TEvent,
+    any,
+    any,
+    any,
+    any,
+    any // TMeta
+  >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const subStateKeys = Object.keys(stateValue);
@@ -721,7 +737,15 @@ export function transitionParallelNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any>,
+  snapshot: MachineSnapshot<
+    TContext,
+    TEvent,
+    any,
+    any,
+    any,
+    any,
+    any // TMeta
+  >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
@@ -1480,6 +1504,10 @@ interface BuiltinAction {
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
+export let executingCustomAction:
+  | ActionFunction<any, any, any, any, any, any, any, any, any>
+  | false = false;
+
 function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
@@ -1552,7 +1580,12 @@ function resolveAndExecuteActionsWithContext(
           params: actionParams
         }
       });
-      resolvedAction(actionArgs, actionParams);
+      try {
+        executingCustomAction = resolvedAction;
+        resolvedAction(actionArgs, actionParams);
+      } finally {
+        executingCustomAction = false;
+      }
     }
 
     if (!('resolve' in resolvedAction)) {

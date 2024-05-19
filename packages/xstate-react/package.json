@@ -1,6 +1,6 @@
 {
   "name": "@xstate/react",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "description": "XState tools for React",
   "keywords": [
     "state",
@@ -55,7 +55,7 @@
   },
   "peerDependencies": {
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
-    "xstate": "^5.9.1"
+    "xstate": "^5.13.0"
   },
   "peerDependenciesMeta": {
     "xstate": {
@@ -64,10 +64,10 @@
   },
   "dependencies": {
     "use-isomorphic-layout-effect": "^1.1.2",
-    "use-sync-external-store": "^1.0.0"
+    "use-sync-external-store": "^1.2.0"
   },
   "devDependencies": {
-    "@testing-library/react": "^13.4.0",
+    "@testing-library/react": "^14.2.1",
     "@types/jsdom": "^12.2.3",
     "@types/react": "^17.0.43",
     "@types/react-dom": "^17.0.14",
@@ -76,6 +76,6 @@
     "jsdom-global": "^3.0.2",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "xstate": "5.9.1"
+    "xstate": "5.13.0"
   }
 }

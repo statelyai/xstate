@@ -30,6 +30,7 @@ import type {
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
+  DoNotInfer,
   Equals,
   EventDescriptor,
   EventObject,
@@ -38,14 +39,13 @@ import type {
   MachineConfig,
   MachineContext,
   MachineImplementationsSimplified,
-  NoInfer,
+  MetaObject,
   ParameterizedObject,
   ProvidedActor,
   Snapshot,
   SnapshotFrom,
   StateMachineDefinition,
   StateValue,
-  TODO,
   TransitionDefinition
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
@@ -66,9 +66,10 @@ export class StateMachine<
   TInput,
   TOutput,
   TEmitted extends EventObject = EventObject, // TODO: remove default
+  TMeta extends MetaObject = MetaObject,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
-    NoInfer<TEvent>,
+    DoNotInfer<TEvent>,
     TActor,
     TAction,
     TGuard,
@@ -78,7 +79,15 @@ export class StateMachine<
   >
 > implements
     ActorLogic<
-      MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>,
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        TChildren,
+        TStateValue,
+        TTag,
+        TOutput,
+        TMeta
+      >,
       TEvent,
       TInput,
       AnyActorSystem,
@@ -121,7 +130,8 @@ export class StateMachine<
       any,
       any,
       TOutput,
-      any
+      any, // TEmitted
+      any // TMeta
     > & {
       schemas?: unknown;
     },
@@ -194,6 +204,7 @@ export class StateMachine<
     TInput,
     TOutput,
     TEmitted,
+    TMeta, // TMeta
     TResolvedTypesMeta
   > {
     const { actions, guards, actors, delays } = this.implementations;
@@ -217,7 +228,15 @@ export class StateMachine<
     } & (Equals<TContext, MachineContext> extends false
       ? { context: unknown }
       : {})
-  ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
+  ): MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TMeta
+  > {
     const resolvedStateValue = resolveStateValue(this.root, config.value);
     const nodeSet = getAllStateNodes(
       getStateNodes(this.root, resolvedStateValue)
@@ -242,7 +261,8 @@ export class StateMachine<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TMeta
     >;
   }
 
@@ -260,11 +280,20 @@ export class StateMachine<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TMeta
     >,
     event: TEvent,
     actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
-  ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
+  ): MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TMeta
+  > {
     return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
   }
 
@@ -282,12 +311,21 @@ export class StateMachine<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TMeta
     >,
     event: TEvent,
     actorScope: AnyActorScope
   ): Array<
-    MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>
+    MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput,
+      TMeta
+    >
   > {
     return macrostep(snapshot, event, actorScope).microstates;
   }
@@ -299,7 +337,8 @@ export class StateMachine<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TMeta
     >,
     event: TEvent
   ): Array<TransitionDefinition<TContext, TEvent>> {
@@ -314,7 +353,15 @@ export class StateMachine<
     actorScope: AnyActorScope,
     initEvent: any,
     internalQueue: AnyEventObject[]
-  ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
+  ): MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TMeta
+  > {
     const { context } = this.config;
 
     const preInitial = createMachineSnapshot(
@@ -348,13 +395,29 @@ export class StateMachine<
    */
   public getInitialSnapshot(
     actorScope: ActorScope<
-      MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>,
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        TChildren,
+        TStateValue,
+        TTag,
+        TOutput,
+        TMeta
+      >,
       TEvent,
       AnyActorSystem,
       TEmitted
     >,
     input?: TInput
-  ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
+  ): MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TMeta
+  > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
     const preInitialState = this.getPreInitialState(
@@ -397,7 +460,8 @@ export class StateMachine<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TMeta
     >
   ): void {
     Object.values(snapshot.children as Record<string, AnyActorRef>).forEach(
@@ -440,7 +504,8 @@ export class StateMachine<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TMeta
     >,
     options?: unknown
   ) {
@@ -450,12 +515,28 @@ export class StateMachine<
   public restoreSnapshot(
     snapshot: Snapshot<unknown>,
     _actorScope: ActorScope<
-      MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>,
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        TChildren,
+        TStateValue,
+        TTag,
+        TOutput,
+        TMeta
+      >,
       TEvent,
       AnyActorSystem,
       TEmitted
     >
-  ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
+  ): MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TMeta
+  > {
     const children: Record<string, AnyActorRef> = {};
     const snapshotChildren: Record<
       string,
@@ -507,7 +588,8 @@ export class StateMachine<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TMeta
     >;
 
     let seen = new Set();

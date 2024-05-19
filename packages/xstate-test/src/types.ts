@@ -44,7 +44,8 @@ export interface TestMachineConfig<
     TODO, // tags
     TODO, // input
     TODO, // output
-    TODO, //emitted
+    TODO, // emitted
+    TODO, // meta
     TTypesMeta
   >;
 }
@@ -62,7 +63,8 @@ export interface TestStateNodeConfig<
       TODO,
       TODO,
       TODO,
-      TODO
+      TODO, // emitted
+      TODO // meta
     >,
     | 'type'
     | 'history'
@@ -104,11 +106,29 @@ export type TestMachineOptions<
 export interface TestMeta<T, TContext extends MachineContext> {
   test?: (
     testContext: T,
-    state: MachineSnapshot<TContext, any, any, any, any, any>
+    state: MachineSnapshot<
+      TContext,
+      any,
+      any,
+      any,
+      any,
+      any,
+      any // TMeta
+    >
   ) => Promise<void> | void;
   description?:
     | string
-    | ((state: MachineSnapshot<TContext, any, any, any, any, any>) => string);
+    | ((
+        state: MachineSnapshot<
+          TContext,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any // TMeta
+        >
+      ) => string);
   skip?: boolean;
 }
 interface TestStateResult {
@@ -184,9 +204,27 @@ export interface TestTransitionConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TTestContext
-> extends TransitionConfig<TContext, TEvent, TEvent, TODO, TODO, TODO, string> {
+> extends TransitionConfig<
+    TContext,
+    TEvent,
+    TEvent,
+    TODO,
+    TODO,
+    TODO,
+    string,
+    TODO, // TEmitted
+    TODO // TMeta
+  > {
   test?: (
-    state: MachineSnapshot<TContext, TEvent, any, any, any, any>,
+    state: MachineSnapshot<
+      TContext,
+      TEvent,
+      any,
+      any,
+      any,
+      any,
+      any // TMeta
+    >,
     testContext: TTestContext
   ) => void;
 }
