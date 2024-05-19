@@ -1,0 +1,188 @@
+:root {
+  --primary-color: hsl(0, 50%, 65%);
+  --white: hsl(0, 0%, 95%);
+  --off-white: hsl(237, 2%, 88%);
+  --border: 1px solid var(--primary-color);
+  --border-radius: 2px;
+}
+
+*,
+*::before,
+*::after {
+  color: var(--primary-color);
+  -webkit-touch-callout: none;
+}
+
+body {
+  overflow: hidden;
+  -webkit-touch-callout: none;
+}
+
+header,
+footer {
+  position: fixed;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  background: var(-off-white);
+  background: #eee;
+  width: 100%;
+  gap: 8px;
+  z-index: 10;
+}
+
+header {
+  border-bottom: 1px solid var(--primary-color);
+  & > div {
+    gap: 4px;
+    align-items: center;
+  }
+}
+
+footer {
+  border-top: 1px solid var(--primary-color);
+  bottom: 0;
+  & span {
+    &::before {
+      content: 'Right-click circle to delete';
+    }
+    @media (pointer: none), (pointer: coarse) {
+      &::before {
+        content: 'Drag circle off screen to delete';
+      }
+    }
+  }
+}
+
+/* Stage */
+main {
+  height: 100vh;
+  background: var(--white);
+}
+
+/* Undo Redo buttons */
+button {
+  height: 32px;
+  min-width: 40px;
+  border: var(--border);
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  background: var(--white);
+  border-radius: var(--border-radius);
+  span {
+    padding: 0 12px 0 12px;
+    width: 10ch;
+  }
+  &:disabled {
+    cursor: not-allowed;
+  }
+  @media (width < 700px) {
+    border: none;
+    span {
+      display: none;
+    }
+  }
+}
+
+.circle {
+  cursor: move;
+  user-select: none;
+  position: absolute;
+  border-radius: 50%;
+  box-sizing: content-box;
+  opacity: 0.9;
+  outline-offset: 4px;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.size {
+  background: var(--white);
+  height: 32px;
+  border: var(--border);
+  border-radius: var(--border-radius);
+  display: flex;
+  min-width: fit-content;
+  &:has(:disabled) {
+    opacity: 0.5;
+  }
+  input[type='range'] {
+    margin: 0 16px 0 12px;
+    width: 85px;
+    border: none;
+  }
+}
+
+.color {
+  position: relative;
+  & input[type='color']:disabled {
+    opacity: 0.5;
+  }
+  input[type='color'] {
+    position: relative;
+    top: 1px;
+    width: 146px;
+    height: 32px;
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 0;
+    border: var(--border);
+    &::-webkit-color-swatch-wrapper {
+      width: 42px;
+      padding: 0;
+      float: right;
+      border-radius: var(--border-radius);
+    }
+    &::-webkit-color-swatch {
+      border: none;
+    }
+    &::-moz-color-swatch {
+      border: none;
+      float: right;
+      width: 42px;
+    }
+  }
+  svg {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    stroke: var(--white);
+    cursor: pointer;
+    pointer-events: none;
+  }
+  .swatch-text {
+    position: absolute;
+    top: 9px;
+    left: 18px;
+    pointer-events: none;
+    text-transform: uppercase;
+    z-index: 5;
+  }
+
+  @media (width < 700px) {
+    input[type='color'] {
+      width: 100%;
+      min-width: 42px;
+      border: none;
+    }
+    .swatch-text {
+      display: none;
+    }
+  }
+}
+
+.end-cap {
+  background: var(--primary-color);
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--white);
+  padding: 0 8px;
+  user-select: none;
+  border-radius: var(--border-radius);
+}
