@@ -2148,8 +2148,7 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
 
 export interface ActorRef<
   TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject,
-  TEmitted extends EventObject = EventObject
+  TEvent extends EventObject
 > extends Subscribable<TSnapshot>,
     InteropObservable<TSnapshot> {
   /**
@@ -2173,7 +2172,7 @@ export interface ActorRef<
   src: string | AnyActorLogic;
 }
 
-export type AnyActorRef = ActorRef<any, any, any>;
+export type AnyActorRef = ActorRef<any, any>;
 
 export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
@@ -2224,8 +2223,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
           TOutput,
           TMeta
         >,
-        TEvent,
-        TEmitted
+        TEvent
       >
     : R extends Promise<infer U>
       ? ActorRefFrom<PromiseActorLogic<U>>
@@ -2236,7 +2234,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
             infer _TSystem,
             infer TEmitted
           >
-        ? ActorRef<TSnapshot, TEvent, TEmitted>
+        ? ActorRef<TSnapshot, TEvent>
         : never
   : never;
 
@@ -2334,7 +2332,7 @@ export interface ActorScope<
   TSystem extends AnyActorSystem = AnyActorSystem,
   TEmitted extends EventObject = EventObject
 > {
-  self: ActorRef<TSnapshot, TEvent, TEmitted>;
+  self: ActorRef<TSnapshot, TEvent>;
   id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
