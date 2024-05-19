@@ -1159,6 +1159,7 @@ describe('actors', () => {
           status: 'active',
           output: undefined,
           error: undefined,
+          context: undefined,
           children: {}
         }),
         getPersistedSnapshot: (s) => s

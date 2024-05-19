@@ -8,9 +8,7 @@ import {
   Snapshot
 } from '../types.ts';
 
-export type TransitionSnapshot<TContext> = Snapshot<undefined> & {
-  context: TContext;
-};
+export type TransitionSnapshot<TContext> = Snapshot<undefined, TContext>;
 
 export type TransitionActorLogic<
   TContext,

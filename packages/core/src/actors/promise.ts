@@ -180,6 +180,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
         output: undefined,
         error: undefined,
         input,
+        context: undefined,
         children: {}
       };
     },

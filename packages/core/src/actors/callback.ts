@@ -204,6 +204,7 @@ export function fromCallback<
         output: undefined,
         error: undefined,
         input,
+        context: undefined,
         children: {}
       };
     },

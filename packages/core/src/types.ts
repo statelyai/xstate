@@ -2359,29 +2359,33 @@ export type AnyActorScope = ActorScope<
   any // TEmitted
 >;
 
-export type Snapshot<TOutput> =
+export type Snapshot<TOutput, TContext = unknown> =
   | {
       status: 'active';
       output: undefined;
       error: undefined;
+      context: TContext;
       children?: Record<string, AnyActorRef | undefined>;
     }
   | {
       status: 'done';
       output: TOutput;
       error: undefined;
+      context: TContext;
       children?: Record<string, AnyActorRef | undefined>;
     }
   | {
       status: 'error';
       output: undefined;
       error: unknown;
+      context: TContext;
       children?: Record<string, AnyActorRef | undefined>;
     }
   | {
       status: 'stopped';
       output: undefined;
       error: undefined;
+      context: TContext;
       children?: Record<string, AnyActorRef | undefined>;
     };
 
