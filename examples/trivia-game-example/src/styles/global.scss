@@ -1,0 +1,62 @@
+@import url("https://fonts.googleapis.com/css?family=Shadows+Into+Light");
+@import "~bootstrap/scss/bootstrap";
+
+.trivia {
+  font-family: "Shadows Into Light", cursive;
+  font-size: 120px;
+  text-align: center;
+}
+
+.small-trivia {
+  font-family: "Shadows Into Light", cursive;
+  font-size: 60px;
+  text-align: center;
+}
+
+body {
+  font-family: "Shadows Into Light", cursive;
+}
+
+.list-group-item {
+  font-size: 1.8em;
+}
+
+.img-loading {
+  width: 300px;
+  height: 300px;
+  align-self: center;
+  margin: 0 auto;
+  padding: 100px;
+  border: solid 3px #13acc9;
+  border-radius: 100%;
+  box-shadow: 2px 0px 14px #efff67;
+}
+
+.img-character {
+  width: 300px;
+  height: 300px;
+  align-self: center;
+  margin: 0 auto;
+  border: solid 3px #13acc9;
+  border-radius: 100%;
+  box-shadow: 2px 0px 14px #efff67;
+}
+
+.small-spinner {
+  margin: 0px 3px 16px 0;
+}
+
+li {
+  font-size: 1.7em;
+}
+
+@media only screen and (max-width: 800px) {
+  .bigImage {
+    width: 90%;
+  }
+}
+@media only screen and (min-width: 801px) {
+  .bigImage {
+    width: 40%;
+  }
+}

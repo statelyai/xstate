@@ -1,5 +1,35 @@
 # xstate
 
+## 5.13.0
+
+### Minor Changes
+
+- [#4832](https://github.com/statelyai/xstate/pull/4832) [`148d8fcef`](https://github.com/statelyai/xstate/commit/148d8fcef7f7467d05bbd427942a3668cb46afe7) Thanks [@cevr](https://github.com/cevr)! - `fromPromise` now passes a signal into its creator function.
+
+  ```ts
+  const logic = fromPromise(({ signal }) =>
+    fetch('https://api.example.com', { signal })
+  );
+  ```
+
+  This will be called whenever the state transitions before the promise is resolved. This is useful for cancelling the promise if the state changes.
+
+### Patch Changes
+
+- [#4876](https://github.com/statelyai/xstate/pull/4876) [`3f6a73b56`](https://github.com/statelyai/xstate/commit/3f6a73b56cb82b43897bc9d583483e0256dbc05c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - XState will now warn when calling built-in actions like `assign`, `sendTo`, `raise`, `emit`, etc. directly inside of a custom action. See https://stately.ai/docs/actions#built-in-actions for more details.
+
+  ```ts
+  const machine = createMachine({
+    entry: () => {
+      // Will warn:
+      // "Custom actions should not call \`assign()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details."
+      assign({
+        // ...
+      });
+    }
+  });
+  ```
+
 ## 5.12.0
 
 ### Minor Changes
