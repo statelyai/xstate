@@ -2171,10 +2171,6 @@ export interface ActorRef<
   /** @internal */
   _processingStatus: ProcessingStatus;
   src: string | AnyActorLogic;
-  on: <TType extends TEmitted['type']>(
-    type: TType,
-    handler: (emitted: TEmitted & { type: TType }) => void
-  ) => Subscription;
 }
 
 export type AnyActorRef = ActorRef<any, any, any>;
