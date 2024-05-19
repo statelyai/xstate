@@ -1,4 +1,4 @@
-import FlightContext from "../machines/flightMachine";
+import FlightContext from '../machines/flightMachine';
 
 type Props = {
   isBooking: boolean;
@@ -32,7 +32,7 @@ export default function BookButton({ eventType, isBooking, isBooked }: Props) {
         {isBooking ? <p>Booking...</p> : successMessage}
       </dialog>
       <button onClick={bookFlight} disabled={!canBook}>
-        {isBooking ? "Booking" : isBooked ? "Booked!" : "Book"}
+        {isBooking ? 'Booking' : isBooked ? 'Booked!' : 'Book'}
       </button>
     </>
   );
