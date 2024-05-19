@@ -1044,7 +1044,8 @@ export interface StateNodeConfig<
     TActor,
     TAction,
     TGuard,
-    TDelay
+    TDelay,
+    TEmitted
   >;
 }
 
@@ -1055,7 +1056,8 @@ export interface RouteTransitionConfig<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
+  TDelay extends string,
+  TEmitted extends EventObject
 > {
   guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
   actions?: Actions<
@@ -1066,7 +1068,8 @@ export interface RouteTransitionConfig<
     TActor,
     TAction,
     TGuard,
-    TDelay
+    TDelay,
+    TEmitted
   >;
   reenter?: boolean;
   meta?: Record<string, any>;
