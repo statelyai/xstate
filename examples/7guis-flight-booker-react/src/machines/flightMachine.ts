@@ -1,107 +1,126 @@
-import { setup, assign, assertEvent, fromPromise } from 'xstate';
-import { createActorContext } from '@xstate/react';
-import { TODAY, TOMORROW } from '../utils';
-import { sleep } from '../utils';
+import { setup, assign, assertEvent, fromPromise } from "xstate";
+import { createActorContext } from "@xstate/react";
+import { generateDate } from "../utils";
+import { sleep } from "../utils";
+
+export const TODAY = generateDate(0);
+const TOMORROW = generateDate(1);
 
 export const flightBookerMachine = setup({
   types: {
     context: {} as FlightData,
     events: {} as
-      | { type: 'BOOK_DEPART' }
-      | { type: 'BOOK_RETURN' }
-      | { type: 'CHANGE_TRIP_TYPE' }
-      | { type: 'CHANGE_DEPART_DATE'; value: string }
-      | { type: 'CHANGE_RETURN_DATE'; value: string }
+      | { type: "BOOK_DEPART" }
+      | { type: "BOOK_RETURN" }
+      | { type: "CHANGE_TRIP_TYPE"; tripType: "oneWay" | "roundTrip" }
+      | { type: "CHANGE_DEPART_DATE"; value: string }
+      | { type: "CHANGE_RETURN_DATE"; value: string },
   },
   actions: {
     setDepartDate: assign(({ event }) => {
-      assertEvent(event, 'CHANGE_DEPART_DATE');
+      assertEvent(event, "CHANGE_DEPART_DATE");
       return { departDate: event.value };
     }),
     setReturnDate: assign(({ event }) => {
-      assertEvent(event, 'CHANGE_RETURN_DATE');
+      assertEvent(event, "CHANGE_RETURN_DATE");
       return { returnDate: event.value };
-    })
+    }),
+    setTripType: assign(({ event }) => {
+      assertEvent(event, "CHANGE_TRIP_TYPE");
+      return { tripType: event.tripType };
+    }),
   },
   actors: {
     Booker: fromPromise(() => {
-      return sleep(2000);
-    })
+      return sleep(1000);
+    }),
   },
   guards: {
-    'isValidDepartDate?': ({ context: { departDate } }) => {
+    "isValidDepartDate?": ({ context: { departDate } }) => {
       return departDate >= TODAY;
     },
-    'isValidReturnDate?': ({ context: { departDate, returnDate } }) => {
+    "isValidReturnDate?": ({ context: { departDate, returnDate } }) => {
       return departDate >= TODAY && returnDate > departDate;
-    }
-  }
+    },
+  },
 }).createMachine({
-  id: 'flightBookerMachine',
+  id: "flightBookerMachine",
   context: {
     departDate: TODAY,
-    returnDate: TOMORROW
+    returnDate: TOMORROW,
+    tripType: "oneWay",
   },
-  initial: 'scheduling',
+  initial: "scheduling",
   states: {
     scheduling: {
-      initial: 'oneWay',
+      initial: "oneWay",
       on: {
         CHANGE_DEPART_DATE: {
           actions: {
-            type: 'setDepartDate'
-          }
-        }
+            type: "setDepartDate",
+          },
+        },
+
+        BOOK_DEPART: {
+          target: "booking",
+          guard: {
+            type: "isValidDepartDate?",
+          },
+        },
+
+        BOOK_RETURN: {
+          target: "booking",
+          guard: {
+            type: "isValidReturnDate?",
+          },
+        },
       },
       states: {
         oneWay: {
           on: {
             CHANGE_TRIP_TYPE: {
-              target: 'roundTrip'
+              target: "roundTrip",
+              actions: {
+                type: "setTripType",
+                tripType: "roundTrip",
+              },
             },
-            BOOK_DEPART: {
-              target: '#flightBookerMachine.booking',
-              guard: {
-                type: 'isValidDepartDate?'
-              }
-            }
-          }
+          },
         },
         roundTrip: {
           on: {
             CHANGE_TRIP_TYPE: {
-              target: 'oneWay'
+              target: "oneWay",
+              actions: {
+                type: "setTripType",
+                tripType: "oneWay",
+              },
             },
+
             CHANGE_RETURN_DATE: {
               actions: {
-                type: 'setReturnDate'
-              }
+                type: "setReturnDate",
+              },
             },
-            BOOK_RETURN: {
-              target: '#flightBookerMachine.booking',
-              guard: {
-                type: 'isValidReturnDate?'
-              }
-            }
-          }
-        }
-      }
+          },
+        },
+      },
     },
     booking: {
       invoke: {
-        src: 'Booker',
+        src: "Booker",
         onDone: {
-          target: 'booked'
+          target: "booked",
         },
         onError: {
-          target: 'scheduling'
-        }
-      }
+          target: "scheduling",
+        },
+      },
     },
     booked: {
-      type: 'final'
-    }
-  }
+      type: "final",
+    },
+  },
 });
 
 export default createActorContext(flightBookerMachine);
