@@ -188,4 +188,37 @@ describe('event emitter', () => {
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith('b');
   });
+
+  it('wildcard listeners should be able to receive all emitted events', () => {
+    const spy = jest.fn();
+
+    const machine = setup({
+      types: {
+        events: {} as { type: 'event' },
+        emitted: {} as { type: 'emitted' } | { type: 'anotherEmitted' }
+      }
+    }).createMachine({
+      on: {
+        event: {
+          actions: emit({ type: 'emitted' })
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+
+    actor.on('*', (ev) => {
+      ev.type satisfies 'emitted' | 'anotherEmitted';
+
+      // @ts-expect-error
+      ev.type satisfies 'whatever';
+      spy(ev);
+    });
+
+    actor.start();
+
+    actor.send({ type: 'event' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
 });
