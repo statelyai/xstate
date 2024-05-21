@@ -46,7 +46,8 @@ import type {
   SnapshotFrom,
   StateMachineDefinition,
   StateValue,
-  TransitionDefinition
+  TransitionDefinition,
+  UnknownMachineConfig
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
 
@@ -61,7 +62,7 @@ export class StateMachine<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
-  TStateValue extends StateValue,
+  TConfig extends UnknownMachineConfig,
   TTag extends string,
   TInput,
   TOutput,
@@ -83,7 +84,7 @@ export class StateMachine<
         TContext,
         TEvent,
         TChildren,
-        TStateValue,
+        TConfig,
         TTag,
         TOutput,
         TMeta
@@ -120,21 +121,7 @@ export class StateMachine<
     /**
      * The raw config used to create the machine.
      */
-    public config: MachineConfig<
-      TContext,
-      TEvent,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      TOutput,
-      any, // TEmitted
-      any // TMeta
-    > & {
-      schemas?: unknown;
-    },
+    public config: TConfig,
     implementations?: MachineImplementationsSimplified<TContext, TEvent>
   ) {
     this.id = config.id || '(machine)';
@@ -199,7 +186,7 @@ export class StateMachine<
     TAction,
     TGuard,
     TDelay,
-    TStateValue,
+    TConfig,
     TTag,
     TInput,
     TOutput,
@@ -232,7 +219,7 @@ export class StateMachine<
     TContext,
     TEvent,
     TChildren,
-    TStateValue,
+    TConfig,
     TTag,
     TOutput,
     TMeta
@@ -259,7 +246,7 @@ export class StateMachine<
       TContext,
       TEvent,
       TChildren,
-      TStateValue,
+      TConfig,
       TTag,
       TOutput,
       TMeta
@@ -278,7 +265,7 @@ export class StateMachine<
       TContext,
       TEvent,
       TChildren,
-      TStateValue,
+      TConfig,
       TTag,
       TOutput,
       TMeta
@@ -289,7 +276,7 @@ export class StateMachine<
     TContext,
     TEvent,
     TChildren,
-    TStateValue,
+    TConfig,
     TTag,
     TOutput,
     TMeta
@@ -309,7 +296,7 @@ export class StateMachine<
       TContext,
       TEvent,
       TChildren,
-      TStateValue,
+      TConfig,
       TTag,
       TOutput,
       TMeta
@@ -317,15 +304,7 @@ export class StateMachine<
     event: TEvent,
     actorScope: AnyActorScope
   ): Array<
-    MachineSnapshot<
-      TContext,
-      TEvent,
-      TChildren,
-      TStateValue,
-      TTag,
-      TOutput,
-      TMeta
-    >
+    MachineSnapshot<TContext, TEvent, TChildren, TConfig, TTag, TOutput, TMeta>
   > {
     return macrostep(snapshot, event, actorScope).microstates;
   }
@@ -335,7 +314,7 @@ export class StateMachine<
       TContext,
       TEvent,
       TChildren,
-      TStateValue,
+      TConfig,
       TTag,
       TOutput,
       TMeta
@@ -357,7 +336,7 @@ export class StateMachine<
     TContext,
     TEvent,
     TChildren,
-    TStateValue,
+    TConfig,
     TTag,
     TOutput,
     TMeta
@@ -399,7 +378,7 @@ export class StateMachine<
         TContext,
         TEvent,
         TChildren,
-        TStateValue,
+        TConfig,
         TTag,
         TOutput,
         TMeta
@@ -413,7 +392,7 @@ export class StateMachine<
     TContext,
     TEvent,
     TChildren,
-    TStateValue,
+    TConfig,
     TTag,
     TOutput,
     TMeta
@@ -458,7 +437,7 @@ export class StateMachine<
       TContext,
       TEvent,
       TChildren,
-      TStateValue,
+      TConfig,
       TTag,
       TOutput,
       TMeta
@@ -502,7 +481,7 @@ export class StateMachine<
       TContext,
       TEvent,
       TChildren,
-      TStateValue,
+      TConfig,
       TTag,
       TOutput,
       TMeta
@@ -519,7 +498,7 @@ export class StateMachine<
         TContext,
         TEvent,
         TChildren,
-        TStateValue,
+        TConfig,
         TTag,
         TOutput,
         TMeta
@@ -532,7 +511,7 @@ export class StateMachine<
     TContext,
     TEvent,
     TChildren,
-    TStateValue,
+    TConfig,
     TTag,
     TOutput,
     TMeta
@@ -586,7 +565,7 @@ export class StateMachine<
       TContext,
       TEvent,
       TChildren,
-      TStateValue,
+      TConfig,
       TTag,
       TOutput,
       TMeta

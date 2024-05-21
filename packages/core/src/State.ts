@@ -17,9 +17,13 @@ import type {
   Snapshot,
   ParameterizedObject,
   IsNever,
-  MetaObject
+  MetaObject,
+  UnknownMachineConfig,
+  TODO,
+  Prop
 } from './types.ts';
 import { matchesState } from './utils.ts';
+import { ToStateValue } from './setup.ts';
 
 type ToTestStateValue<TStateValue extends StateValue> =
   TStateValue extends string
@@ -50,7 +54,7 @@ interface MachineSnapshotBase<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
-  TStateValue extends StateValue,
+  TConfig extends UnknownMachineConfig,
   TTag extends string,
   TOutput,
   TMeta,
@@ -67,7 +71,7 @@ interface MachineSnapshotBase<
     ParameterizedObject,
     ParameterizedObject,
     string,
-    TStateValue,
+    TConfig,
     TTag,
     unknown,
     TOutput,
@@ -96,7 +100,7 @@ interface MachineSnapshotBase<
   snapshot.value; // => { red: 'wait' }
   ```
    */
-  value: TStateValue;
+  value: ToStateValue<TConfig>;
   /**
    * The current status of this snapshot.
    */
@@ -118,7 +122,12 @@ interface MachineSnapshotBase<
    * Whether the current state value is a subset of the given partial state value.
    * @param partialStateValue
    */
-  matches: (partialStateValue: ToTestStateValue<TStateValue>) => boolean;
+  matches: <const T extends ToTestStateValue<ToStateValue<TConfig>>>(
+    partialStateValue: T
+  ) => this is {
+    val: T;
+    ctx: Prop<Prop<Prop<TConfig, 'states'>, T>, 'contextType'>;
+  };
 
   /**
    * Whether the current state nodes has a state node with the specified `tag`.
@@ -148,7 +157,7 @@ interface ActiveMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
-  TStateValue extends StateValue,
+  TConfig extends UnknownMachineConfig,
   TTag extends string,
   TOutput,
   TMeta extends MetaObject
@@ -156,7 +165,7 @@ interface ActiveMachineSnapshot<
     TContext,
     TEvent,
     TChildren,
-    TStateValue,
+    TConfig,
     TTag,
     TOutput,
     TMeta
@@ -170,7 +179,7 @@ interface DoneMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
-  TStateValue extends StateValue,
+  TConfig extends UnknownMachineConfig,
   TTag extends string,
   TOutput,
   TMeta extends MetaObject
@@ -178,7 +187,7 @@ interface DoneMachineSnapshot<
     TContext,
     TEvent,
     TChildren,
-    TStateValue,
+    TConfig,
     TTag,
     TOutput,
     TMeta
@@ -192,7 +201,7 @@ interface ErrorMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
-  TStateValue extends StateValue,
+  TConfig extends UnknownMachineConfig,
   TTag extends string,
   TOutput,
   TMeta extends MetaObject
@@ -200,7 +209,7 @@ interface ErrorMachineSnapshot<
     TContext,
     TEvent,
     TChildren,
-    TStateValue,
+    TConfig,
     TTag,
     TOutput,
     TMeta
@@ -214,7 +223,7 @@ interface StoppedMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
-  TStateValue extends StateValue,
+  TConfig extends UnknownMachineConfig,
   TTag extends string,
   TOutput,
   TMeta extends MetaObject
@@ -222,7 +231,7 @@ interface StoppedMachineSnapshot<
     TContext,
     TEvent,
     TChildren,
-    TStateValue,
+    TConfig,
     TTag,
     TOutput,
     TMeta
@@ -236,7 +245,7 @@ export type MachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
-  TStateValue extends StateValue,
+  TConfig extends UnknownMachineConfig,
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
@@ -246,7 +255,7 @@ export type MachineSnapshot<
       TContext,
       TEvent,
       TChildren,
-      TStateValue,
+      TConfig,
       TTag,
       TOutput,
       TMeta
@@ -255,7 +264,7 @@ export type MachineSnapshot<
       TContext,
       TEvent,
       TChildren,
-      TStateValue,
+      TConfig,
       TTag,
       TOutput,
       TMeta
@@ -264,7 +273,7 @@ export type MachineSnapshot<
       TContext,
       TEvent,
       TChildren,
-      TStateValue,
+      TConfig,
       TTag,
       TOutput,
       TMeta
@@ -273,7 +282,7 @@ export type MachineSnapshot<
       TContext,
       TEvent,
       TChildren,
-      TStateValue,
+      TConfig,
       TTag,
       TOutput,
       TMeta
@@ -343,7 +352,7 @@ export function createMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
-  TStateValue extends StateValue,
+  TConfig extends UnknownMachineConfig,
   TTag extends string,
   TMeta extends MetaObject
 >(
@@ -353,7 +362,7 @@ export function createMachineSnapshot<
   TContext,
   TEvent,
   TChildren,
-  TStateValue,
+  TConfig,
   TTag,
   undefined,
   TMeta
@@ -362,7 +371,7 @@ export function createMachineSnapshot<
     status: config.status as never,
     output: config.output,
     error: config.error,
-    machine,
+    machine: machine as TODO,
     context: config.context,
     _nodes: config._nodes,
     value: getStateValue(machine.root, config._nodes) as never,
@@ -391,7 +400,7 @@ export function getPersistedSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
-  TStateValue extends StateValue,
+  TConfig extends UnknownMachineConfig,
   TTag extends string,
   TOutput,
   TMeta extends MetaObject
@@ -400,7 +409,7 @@ export function getPersistedSnapshot<
     TContext,
     TEvent,
     TChildren,
-    TStateValue,
+    TConfig,
     TTag,
     TOutput,
     TMeta

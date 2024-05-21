@@ -1395,11 +1395,22 @@ describe('setup()', () => {
   });
 
   it('should type the snapshot state value without including history state keys', () => {
-    const machine = setup({}).createMachine({
+    const machine = setup({
+      types: {
+        context: {} as { count: number | string }
+      }
+    }).createMachine({
       initial: 'a',
+      context: {
+        count: 0
+      },
       states: {
-        a: {},
-        b: {},
+        a: {
+          contextType: {} as { count: number }
+        },
+        b: {
+          contextType: {} as { count: 1 }
+        },
         c: {
           type: 'history'
         }
@@ -1408,6 +1419,14 @@ describe('setup()', () => {
 
     const snapshot = createActor(machine).getSnapshot();
 
+    if (snapshot.matches('a')) {
+      snapshot.val satisfies 'a';
+      snapshot.ctx satisfies { count: number };
+    }
+    if (snapshot.matches('b')) {
+      snapshot.val satisfies 'b';
+      snapshot.ctx satisfies { count: 1 };
+    }
     type ExpectedType = 'a' | 'b';
 
     snapshot.value satisfies ExpectedType;

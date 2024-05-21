@@ -85,7 +85,7 @@ type GroupStateKeys<T extends StateSchema, S extends keyof T['states']> = {
   leaf: _GroupStateKeys<T, S & string>[1];
 };
 
-type ToStateValue<T extends StateSchema> = T extends {
+export type ToStateValue<T extends StateSchema> = T extends {
   states: Record<infer S, any>;
 }
   ? IsNever<S> extends true
@@ -221,7 +221,7 @@ export function setup<
     ToParameterizedObject<TActions>,
     ToParameterizedObject<TGuards>,
     TDelay,
-    ToStateValue<TConfig>,
+    TConfig,
     TTag,
     TInput,
     TOutput,

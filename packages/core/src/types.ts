@@ -116,7 +116,7 @@ export interface UnifiedArg<
       TContext,
       TEvent,
       Record<string, AnyActorRef | undefined>, // TODO: this should be replaced with `TChildren`
-      StateValue,
+      any,
       string,
       unknown,
       TODO // TMeta
@@ -865,6 +865,7 @@ export interface StateNodeConfig<
   TEmitted extends EventObject,
   TMeta extends MetaObject
 > {
+  contextType?: TContext;
   /**
    * The initial state transition.
    */
@@ -1516,7 +1517,7 @@ export type ContextFactory<
       TContext,
       TEvent,
       Record<string, AnyActorRef | undefined>, // TODO: this should be replaced with `TChildren`
-      StateValue,
+      any,
       string,
       unknown,
       TODO // TMeta
@@ -1567,7 +1568,19 @@ export type MachineConfig<
     ? { context?: InitialContext<LowInfer<TContext>, TActor, TInput, TEvent> }
     : { context: InitialContext<LowInfer<TContext>, TActor, TInput, TEvent> });
 
-export type UnknownMachineConfig = MachineConfig<MachineContext, EventObject>;
+export type UnknownMachineConfig = MachineConfig<
+  MachineContext,
+  EventObject,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any
+>;
 
 export interface ProvidedActor {
   src: string;
@@ -1822,7 +1835,7 @@ export type Mapper<
       TContext,
       TEvent,
       Record<string, AnyActorRef>, // TODO: this should be replaced with `TChildren`
-      StateValue,
+      any,
       string,
       unknown,
       TODO // TMeta
