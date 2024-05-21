@@ -2148,7 +2148,8 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
 
 export interface ActorRef<
   TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TEmitted extends EventObject = EventObject
 > extends Subscribable<TSnapshot>,
     InteropObservable<TSnapshot> {
   /**
@@ -2170,6 +2171,14 @@ export interface ActorRef<
   /** @internal */
   _processingStatus: ProcessingStatus;
   src: string | AnyActorLogic;
+  // TODO: remove from ActorRef interface
+  // (should only be available on Actor)
+  on: <TType extends TEmitted['type'] | '*'>(
+    type: TType,
+    handler: (
+      emitted: TEmitted & (TType extends '*' ? {} : { type: TType })
+    ) => void
+  ) => Subscription;
 }
 
 export type AnyActorRef = ActorRef<any, any>;
