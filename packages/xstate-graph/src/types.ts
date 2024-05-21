@@ -178,8 +178,11 @@ export type SerializationOptions<
 
 export type TraversalOptions<
   TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
-> = SerializationOptions<TSnapshot, TEvent> &
+  TEvent extends EventObject,
+  TInput
+> = {
+  input?: TInput;
+} & SerializationOptions<TSnapshot, TEvent> &
   Partial<
     Pick<
       TraversalConfig<TSnapshot, TEvent>,
@@ -220,7 +223,7 @@ export type GetPathsOptions<
   TEvent extends EventObject,
   TInput
 > = Partial<
-  TraversalOptions<TSnapshot, TEvent> & {
+  TraversalOptions<TSnapshot, TEvent, TInput> & {
     pathGenerator?: PathGenerator<TSnapshot, TEvent, TInput>;
   }
 >;
@@ -340,8 +343,9 @@ export type EventExecutor<
 
 export interface TestModelOptions<
   TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
-> extends TraversalOptions<TSnapshot, TEvent> {
+  TEvent extends EventObject,
+  TInput
+> extends TraversalOptions<TSnapshot, TEvent, TInput> {
   stateMatcher: (state: TSnapshot, stateKey: string) => boolean;
   logger: {
     log: (msg: string) => void;
@@ -401,5 +405,5 @@ export type PathGenerator<
   TInput
 > = (
   behavior: ActorLogic<TSnapshot, TEvent, TInput>,
-  options: TraversalOptions<TSnapshot, TEvent>
+  options: TraversalOptions<TSnapshot, TEvent, TInput>
 ) => Array<StatePath<TSnapshot, TEvent>>;

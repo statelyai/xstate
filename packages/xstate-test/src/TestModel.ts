@@ -27,7 +27,8 @@ import {
   MachineSnapshot,
   SnapshotFrom,
   StateValue,
-  TODO
+  TODO,
+  InputFrom
 } from 'xstate';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
@@ -62,9 +63,9 @@ export class TestModel<
   TEvent extends EventObject,
   TInput
 > {
-  public options: TestModelOptions<TSnapshot, TEvent>;
-  public defaultTraversalOptions?: TraversalOptions<TSnapshot, TEvent>;
-  public getDefaultOptions(): TestModelOptions<TSnapshot, TEvent> {
+  public options: TestModelOptions<TSnapshot, TEvent, TInput>;
+  public defaultTraversalOptions?: TraversalOptions<TSnapshot, TEvent, TInput>;
+  public getDefaultOptions(): TestModelOptions<TSnapshot, TEvent, TInput> {
     return {
       serializeState: (state) => simpleStringify(state) as SerializedSnapshot,
       serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
@@ -83,7 +84,7 @@ export class TestModel<
 
   constructor(
     public testLogic: ActorLogic<TSnapshot, TEvent, TInput>,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent>>
+    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
   ) {
     this.options = {
       ...this.getDefaultOptions(),
@@ -93,21 +94,21 @@ export class TestModel<
 
   public getPaths(
     pathGenerator: PathGenerator<TSnapshot, TEvent, TInput>,
-    options?: Partial<TraversalOptions<TSnapshot, TEvent>>
+    options?: Partial<TraversalOptions<TSnapshot, TEvent, TInput>>
   ): Array<TestPath<TSnapshot, TEvent>> {
     const paths = pathGenerator(this.testLogic, this.resolveOptions(options));
     return deduplicatePaths(paths).map(this.toTestPath);
   }
 
   public getShortestPaths(
-    options?: Partial<TraversalOptions<TSnapshot, TEvent>>
+    options?: Partial<TraversalOptions<TSnapshot, TEvent, TInput>>
   ): Array<TestPath<TSnapshot, TEvent>> {
     return this.getPaths(createShortestPathsGen(), options);
   }
 
   public getShortestPathsFrom(
     paths: Array<TestPath<TSnapshot, TEvent>>,
-    options?: Partial<TraversalOptions<TSnapshot, any>>
+    options?: Partial<TraversalOptions<TSnapshot, TEvent, TInput>>
   ): Array<TestPath<TSnapshot, TEvent>> {
     const resultPaths: TestPath<TSnapshot, TEvent>[] = [];
 
@@ -125,14 +126,14 @@ export class TestModel<
   }
 
   public getSimplePaths(
-    options?: Partial<TraversalOptions<TSnapshot, TEvent>>
+    options?: Partial<TraversalOptions<TSnapshot, TEvent, TInput>>
   ): Array<TestPath<TSnapshot, TEvent>> {
     return this.getPaths(createSimplePathsGen(), options);
   }
 
   public getSimplePathsFrom(
     paths: Array<TestPath<TSnapshot, TEvent>>,
-    options?: Partial<TraversalOptions<TSnapshot, any>>
+    options?: Partial<TraversalOptions<TSnapshot, TEvent, TInput>>
   ): Array<TestPath<TSnapshot, TEvent>> {
     const resultPaths: TestPath<TSnapshot, TEvent>[] = [];
 
@@ -179,7 +180,7 @@ export class TestModel<
 
   public getPathsFromEvents(
     events: TEvent[],
-    options?: TraversalOptions<TSnapshot, TEvent>
+    options?: TraversalOptions<TSnapshot, TEvent, TInput>
   ): Array<TestPath<TSnapshot, TEvent>> {
     const paths = getPathsFromEvents(this.testLogic, events, options);
 
@@ -203,7 +204,7 @@ export class TestModel<
   public async testPath(
     path: StatePath<TSnapshot, TEvent>,
     params: TestParam<TSnapshot, TEvent>,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent>>
+    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
   ): Promise<TestPathResult> {
     const testPathResult: TestPathResult = {
       steps: [],
@@ -250,7 +251,7 @@ export class TestModel<
   public async testState(
     params: TestParam<TSnapshot, TEvent>,
     state: TSnapshot,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent>>
+    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
   ): Promise<void> {
     const resolvedOptions = this.resolveOptions(options);
 
@@ -264,7 +265,7 @@ export class TestModel<
   private getStateTestKeys(
     params: TestParam<TSnapshot, TEvent>,
     state: TSnapshot,
-    resolvedOptions: TestModelOptions<TSnapshot, TEvent>
+    resolvedOptions: TestModelOptions<TSnapshot, TEvent, TInput>
   ) {
     const states = params.states || {};
     const stateTestKeys = Object.keys(states).filter((stateKey) => {
@@ -298,8 +299,8 @@ export class TestModel<
   }
 
   public resolveOptions(
-    options?: Partial<TestModelOptions<TSnapshot, TEvent>>
-  ): TestModelOptions<TSnapshot, TEvent> {
+    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
+  ): TestModelOptions<TSnapshot, TEvent, TInput> {
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
   }
 }
@@ -407,7 +408,11 @@ function serializeMachineTransition(
 export function createTestModel<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: Partial<
-    TestModelOptions<SnapshotFrom<TMachine>, EventFromLogic<TMachine>>
+    TestModelOptions<
+      SnapshotFrom<TMachine>,
+      EventFromLogic<TMachine>,
+      InputFrom<TMachine>
+    >
   >
 ): TestModel<SnapshotFrom<TMachine>, EventFromLogic<TMachine>, unknown> {
   validateMachine(machine);

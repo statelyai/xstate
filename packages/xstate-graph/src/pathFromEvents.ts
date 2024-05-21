@@ -34,7 +34,7 @@ export function getPathsFromEvents<
 >(
   logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
   events: TEvent[],
-  options?: TraversalOptions<TSnapshot, TEvent>
+  options?: TraversalOptions<TSnapshot, TEvent, TInput>
 ): Array<StatePath<TSnapshot, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(
     logic,
@@ -44,7 +44,11 @@ export function getPathsFromEvents<
     },
     (isMachine(logic)
       ? createDefaultMachineOptions(logic)
-      : createDefaultLogicOptions()) as TraversalOptions<TSnapshot, TEvent>
+      : createDefaultLogicOptions()) as TraversalOptions<
+      TSnapshot,
+      TEvent,
+      TInput
+    >
   );
   const actorScope = createMockActorScope() as ActorScope<
     TSnapshot,
@@ -56,7 +60,7 @@ export function getPathsFromEvents<
     logic.getInitialSnapshot(
       actorScope,
       // TODO: fix this
-      undefined as TInput
+      options?.input as TInput
     );
 
   const { serializeState, serializeEvent } = resolvedOptions;

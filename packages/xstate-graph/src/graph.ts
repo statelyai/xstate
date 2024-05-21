@@ -9,7 +9,8 @@ import {
   SnapshotFrom,
   EventFromLogic,
   Snapshot,
-  __unsafe_getAllOwnEventDescriptors
+  __unsafe_getAllOwnEventDescriptors,
+  InputFrom
 } from 'xstate';
 import type {
   SerializedEvent,
@@ -72,16 +73,19 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: TraversalOptions<
     ReturnType<TMachine['transition']>,
-    EventFromLogic<TMachine>
+    EventFromLogic<TMachine>,
+    InputFrom<TMachine>
   >
 ): TraversalOptions<
   ReturnType<TMachine['transition']>,
-  EventFromLogic<TMachine>
+  EventFromLogic<TMachine>,
+  InputFrom<TMachine>
 > {
   const { events: getEvents, ...otherOptions } = options ?? {};
   const traversalOptions: TraversalOptions<
     ReturnType<TMachine['transition']>,
-    EventFromLogic<TMachine>
+    EventFromLogic<TMachine>,
+    InputFrom<TMachine>
   > = {
     serializeState: serializeSnapshot,
     serializeEvent,
@@ -96,16 +100,17 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
         return [{ type }];
       }) as any[];
     },
-    fromState: machine.getInitialSnapshot(createMockActorScope()) as ReturnType<
-      TMachine['transition']
-    >,
+    fromState: machine.getInitialSnapshot(
+      createMockActorScope(),
+      options?.input
+    ) as ReturnType<TMachine['transition']>,
     ...otherOptions
   };
 
   return traversalOptions;
 }
 
-export function createDefaultLogicOptions(): TraversalOptions<any, any> {
+export function createDefaultLogicOptions(): TraversalOptions<any, any, any> {
   return {
     serializeState: (state) => JSON.stringify(state),
     serializeEvent
@@ -180,11 +185,13 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
   logic: TLogic,
   traversalOptions?: TraversalOptions<
     ReturnType<TLogic['transition']>,
-    EventFromLogic<TLogic>
+    EventFromLogic<TLogic>,
+    InputFrom<TLogic>
   >,
   defaultOptions?: TraversalOptions<
     ReturnType<TLogic['transition']>,
-    EventFromLogic<TLogic>
+    EventFromLogic<TLogic>,
+    InputFrom<TLogic>
   >
 ): TraversalConfig<ReturnType<TLogic['transition']>, EventFromLogic<TLogic>> {
   const resolvedDefaultOptions =
@@ -195,7 +202,8 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
           traversalOptions as any
         ) as TraversalOptions<
           ReturnType<TLogic['transition']>,
-          EventFromLogic<TLogic>
+          EventFromLogic<TLogic>,
+          InputFrom<TLogic>
         >)
       : undefined);
   const serializeState =

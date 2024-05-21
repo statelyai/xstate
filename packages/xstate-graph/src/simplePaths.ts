@@ -1,4 +1,4 @@
-import { AnyActorLogic, EventFromLogic } from 'xstate';
+import { AnyActorLogic, EventFromLogic, InputFrom } from 'xstate';
 import {
   SerializedEvent,
   SerializedSnapshot,
@@ -16,7 +16,8 @@ export function getSimplePaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: TraversalOptions<
     ReturnType<TLogic['transition']>,
-    EventFromLogic<TLogic>
+    EventFromLogic<TLogic>,
+    InputFrom<TLogic>
   >
 ): Array<StatePath<ReturnType<TLogic['transition']>, EventFromLogic<TLogic>>> {
   type TState = ReturnType<TLogic['transition']>;
@@ -26,7 +27,7 @@ export function getSimplePaths<TLogic extends AnyActorLogic>(
   const actorScope = createMockActorScope();
   const fromState =
     resolvedOptions.fromState ??
-    logic.getInitialSnapshot(actorScope, undefined);
+    logic.getInitialSnapshot(actorScope, options?.input);
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedSnapshot;

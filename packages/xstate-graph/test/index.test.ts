@@ -1,4 +1,4 @@
-import { assign, createMachine } from 'xstate';
+import { assign, createMachine, setup } from 'xstate';
 import { createTestModel } from '../src/index.ts';
 import { testUtils } from './testUtils';
 
@@ -410,5 +410,47 @@ describe('state tests', () => {
         "b.b1",
       ]
     `);
+  });
+
+  it('should test with input', () => {
+    const model = createTestModel(
+      setup({
+        types: {
+          input: {} as {
+            name: string;
+          },
+          context: {} as {
+            name: string;
+          }
+        }
+      }).createMachine({
+        context: (x) => ({
+          name: x.input.name
+        }),
+        initial: 'checking',
+        states: {
+          checking: {
+            always: [
+              { guard: (x) => x.context.name.length > 3, target: 'longName' },
+              { target: 'shortName' }
+            ]
+          },
+          longName: {},
+          shortName: {}
+        }
+      })
+    );
+
+    const path1 = model.getShortestPaths({
+      input: { name: 'ed' }
+    });
+
+    expect(path1[0].steps.map((s) => s.state.value)).toEqual(['shortName']);
+
+    const path2 = model.getShortestPaths({
+      input: { name: 'edward' }
+    });
+
+    expect(path2[0].steps.map((s) => s.state.value)).toEqual(['longName']);
   });
 });

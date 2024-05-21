@@ -1,4 +1,4 @@
-import { AnyActorLogic, EventFromLogic } from 'xstate';
+import { AnyActorLogic, EventFromLogic, InputFrom } from 'xstate';
 import { getAdjacencyMap } from './adjacency';
 import { alterPath } from './alterPath';
 import { resolveTraversalOptions } from './graph';
@@ -15,7 +15,8 @@ export function getShortestPaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: TraversalOptions<
     ReturnType<TLogic['transition']>,
-    EventFromLogic<TLogic>
+    EventFromLogic<TLogic>,
+    InputFrom<TLogic>
   >
 ): Array<StatePath<ReturnType<TLogic['transition']>, EventFromLogic<TLogic>>> {
   type TInternalState = ReturnType<TLogic['transition']>;
@@ -27,7 +28,7 @@ export function getShortestPaths<TLogic extends AnyActorLogic>(
   ) => SerializedSnapshot;
   const fromState =
     resolvedOptions.fromState ??
-    logic.getInitialSnapshot(createMockActorScope(), undefined);
+    logic.getInitialSnapshot(createMockActorScope(), options?.input);
   const adjacency = getAdjacencyMap(logic, resolvedOptions);
 
   // weight, state, event
