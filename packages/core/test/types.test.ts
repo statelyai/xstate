@@ -3556,10 +3556,12 @@ describe('inline actions (prev. enqueueActions)', () => {
     });
   });
 
-  it('should be able to enqueue an inline custom action', () => {
+  it('should be able to execute an inline custom action', () => {
     setup({
-      actions: (_, _params: any, x) => {
-        x.action(() => {});
+      actions: {
+        foo: (_, _params: any, x) => {
+          x.action(() => {});
+        }
       }
     });
   });
