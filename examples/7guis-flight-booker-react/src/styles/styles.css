@@ -91,7 +91,7 @@ dialog {
   }
 }
 
-input[type="date"] {
+input[type='date'] {
   cursor: pointer;
   box-shadow: var(--inner-shadow);
   color: var(--black);

@@ -7,7 +7,7 @@ The 7GUIs Fligt Booker App built with:
 - Typescript
 - Vite
 
-Visit the [7GUIs project](https://eugenkiss.github.io/7guis/tasks#flight/ "Flight Booker") for more info.
+Visit the [7GUIs project](https://eugenkiss.github.io/7guis/tasks#flight/ 'Flight Booker') for more info.
 
 ## Screenshots
 
