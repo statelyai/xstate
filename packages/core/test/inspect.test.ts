@@ -1016,4 +1016,20 @@ describe('inspect', () => {
       ]
     `);
   });
+
+  it('@xstate.microstep inspection events should report no transitions if an unknown event was sent', () => {
+    const machine = createMachine({});
+    expect.assertions(1);
+
+    const actor = createActor(machine, {
+      inspect: (ev) => {
+        if (ev.type === '@xstate.microstep') {
+          expect(ev._transitions.length).toBe(0);
+        }
+      }
+    });
+
+    actor.start();
+    actor.send({ type: 'any' });
+  });
 });
