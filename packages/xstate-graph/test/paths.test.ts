@@ -102,6 +102,16 @@ describe('testModel.testPaths(...)', () => {
 
       expect(paths).toHaveLength(2);
     });
+
+    it('Should not dedup simple path paths if deduplicate: false', () => {
+      const model = createTestModel(multiPathMachine);
+
+      const paths = model.getSimplePaths({
+        allowDuplicatePaths: true
+      });
+
+      expect(paths).toHaveLength(5);
+    });
   });
 });
 
