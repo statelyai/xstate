@@ -5,7 +5,7 @@ import {
   EventObject,
   Snapshot
 } from 'xstate';
-import { SerializedEvent, SerializedState, TraversalOptions } from './types';
+import { SerializedEvent, SerializedSnapshot, TraversalOptions } from './types';
 import { AdjacencyMap, resolveTraversalOptions } from './graph';
 import { createMockActorScope } from './actorScope';
 
@@ -16,16 +16,16 @@ export function getAdjacencyMap<
   TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
   logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
-  options: TraversalOptions<TSnapshot, TEvent>
+  options: TraversalOptions<TSnapshot, TEvent, TInput>
 ): AdjacencyMap<TSnapshot, TEvent> {
   const { transition } = logic;
   const {
     serializeEvent,
     serializeState,
     events: getEvents,
-    traversalLimit: limit,
+    limit,
     fromState: customFromState,
-    stopCondition
+    stopWhen
   } = resolveTraversalOptions(logic, options);
   const actorScope = createMockActorScope() as ActorScope<
     TSnapshot,
@@ -37,7 +37,7 @@ export function getAdjacencyMap<
     logic.getInitialSnapshot(
       actorScope,
       // TODO: fix this
-      undefined as TInput
+      options.input as TInput
     );
   const adj: AdjacencyMap<TSnapshot, TEvent> = {};
 
@@ -47,7 +47,7 @@ export function getAdjacencyMap<
     event: TEvent | undefined;
     prevState: TSnapshot | undefined;
   }> = [{ nextState: fromState, event: undefined, prevState: undefined }];
-  const stateMap = new Map<SerializedState, TSnapshot>();
+  const stateMap = new Map<SerializedSnapshot, TSnapshot>();
 
   while (queue.length) {
     const { nextState: state, event, prevState } = queue.shift()!;
@@ -60,7 +60,7 @@ export function getAdjacencyMap<
       state,
       event,
       prevState
-    ) as SerializedState;
+    ) as SerializedSnapshot;
     if (adj[serializedState]) {
       continue;
     }
@@ -71,7 +71,7 @@ export function getAdjacencyMap<
       transitions: {}
     };
 
-    if (stopCondition && stopCondition(state)) {
+    if (stopWhen && stopWhen(state)) {
       continue;
     }
 
@@ -81,19 +81,17 @@ export function getAdjacencyMap<
     for (const nextEvent of events) {
       const nextSnapshot = transition(state, nextEvent, actorScope);
 
-      if (!options.filter || options.filter(nextSnapshot, nextEvent)) {
-        adj[serializedState].transitions[
-          serializeEvent(nextEvent) as SerializedEvent
-        ] = {
-          event: nextEvent,
-          state: nextSnapshot
-        };
-        queue.push({
-          nextState: nextSnapshot,
-          event: nextEvent,
-          prevState: state
-        });
-      }
+      adj[serializedState].transitions[
+        serializeEvent(nextEvent) as SerializedEvent
+      ] = {
+        event: nextEvent,
+        state: nextSnapshot
+      };
+      queue.push({
+        nextState: nextSnapshot,
+        event: nextEvent,
+        prevState: state
+      });
     }
   }
 

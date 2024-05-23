@@ -1,9 +1,8 @@
 import { createMachine } from 'xstate';
-import { createTestModel } from '../src';
-import { adjacencyMapToArray } from '@xstate/graph';
+import { adjacencyMapToArray, createTestModel } from '../src';
 
 describe('model.getAdjacencyMap()', () => {
-  it('generates an adjacency map', () => {
+  it('generates an adjacency map (converted to an array)', () => {
     const machine = createMachine({
       initial: 'standing',
       states: {

@@ -9,11 +9,12 @@ import {
   SnapshotFrom,
   EventFromLogic,
   Snapshot,
-  __unsafe_getAllOwnEventDescriptors
+  __unsafe_getAllOwnEventDescriptors,
+  InputFrom
 } from 'xstate';
 import type {
   SerializedEvent,
-  SerializedState,
+  SerializedSnapshot,
   StatePath,
   DirectedGraphEdge,
   DirectedGraphNode,
@@ -54,14 +55,12 @@ export function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
   return children;
 }
 
-export function serializeMachineState(
-  state: ReturnType<AnyStateMachine['transition']>
-): SerializedState {
-  const { value, context } = state;
+export function serializeSnapshot(snapshot: Snapshot<any>): SerializedSnapshot {
+  const { value, context } = snapshot as any;
   return JSON.stringify({
     value,
-    context: Object.keys(context).length ? context : undefined
-  }) as SerializedState;
+    context: Object.keys(context ?? {}).length ? context : undefined
+  }) as SerializedSnapshot;
 }
 
 export function serializeEvent<TEvent extends EventObject>(
@@ -74,18 +73,21 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: TraversalOptions<
     ReturnType<TMachine['transition']>,
-    EventFromLogic<TMachine>
+    EventFromLogic<TMachine>,
+    InputFrom<TMachine>
   >
 ): TraversalOptions<
   ReturnType<TMachine['transition']>,
-  EventFromLogic<TMachine>
+  EventFromLogic<TMachine>,
+  InputFrom<TMachine>
 > {
   const { events: getEvents, ...otherOptions } = options ?? {};
   const traversalOptions: TraversalOptions<
     ReturnType<TMachine['transition']>,
-    EventFromLogic<TMachine>
+    EventFromLogic<TMachine>,
+    InputFrom<TMachine>
   > = {
-    serializeState: serializeMachineState,
+    serializeState: serializeSnapshot,
     serializeEvent,
     events: (state) => {
       const events =
@@ -98,16 +100,17 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
         return [{ type }];
       }) as any[];
     },
-    fromState: machine.getInitialSnapshot(createMockActorScope()) as ReturnType<
-      TMachine['transition']
-    >,
+    fromState: machine.getInitialSnapshot(
+      createMockActorScope(),
+      options?.input
+    ) as ReturnType<TMachine['transition']>,
     ...otherOptions
   };
 
   return traversalOptions;
 }
 
-export function createDefaultLogicOptions(): TraversalOptions<any, any> {
+export function createDefaultLogicOptions(): TraversalOptions<any, any, any> {
   return {
     serializeState: (state) => JSON.stringify(state),
     serializeEvent
@@ -171,7 +174,7 @@ export interface AdjacencyValue<TState, TEvent> {
 }
 
 export interface AdjacencyMap<TState, TEvent> {
-  [key: SerializedState]: AdjacencyValue<TState, TEvent>;
+  [key: SerializedSnapshot]: AdjacencyValue<TState, TEvent>;
 }
 
 function isMachineLogic(logic: AnyActorLogic): logic is AnyStateMachine {
@@ -182,11 +185,13 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
   logic: TLogic,
   traversalOptions?: TraversalOptions<
     ReturnType<TLogic['transition']>,
-    EventFromLogic<TLogic>
+    EventFromLogic<TLogic>,
+    InputFrom<TLogic>
   >,
   defaultOptions?: TraversalOptions<
     ReturnType<TLogic['transition']>,
-    EventFromLogic<TLogic>
+    EventFromLogic<TLogic>,
+    InputFrom<TLogic>
   >
 ): TraversalConfig<ReturnType<TLogic['transition']>, EventFromLogic<TLogic>> {
   const resolvedDefaultOptions =
@@ -197,7 +202,8 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
           traversalOptions as any
         ) as TraversalOptions<
           ReturnType<TLogic['transition']>,
-          EventFromLogic<TLogic>
+          EventFromLogic<TLogic>,
+          InputFrom<TLogic>
         >)
       : undefined);
   const serializeState =
@@ -210,14 +216,13 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
   > = {
     serializeState,
     serializeEvent,
-    filter: () => true,
     events: [],
-    traversalLimit: Infinity,
+    limit: Infinity,
     fromState: undefined,
     toState: undefined,
     // Traversal should not continue past the `toState` predicate
     // since the target state has already been reached at that point
-    stopCondition: traversalOptions?.toState,
+    stopWhen: traversalOptions?.toState,
     ...resolvedDefaultOptions,
     ...traversalOptions
   };

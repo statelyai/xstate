@@ -1,7 +1,7 @@
-import { AnyActorLogic, EventFromLogic } from 'xstate';
+import { AnyActorLogic, EventFromLogic, InputFrom } from 'xstate';
 import {
   SerializedEvent,
-  SerializedState,
+  SerializedSnapshot,
   StatePath,
   Steps,
   TraversalOptions,
@@ -16,7 +16,8 @@ export function getSimplePaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: TraversalOptions<
     ReturnType<TLogic['transition']>,
-    EventFromLogic<TLogic>
+    EventFromLogic<TLogic>,
+    InputFrom<TLogic>
   >
 ): Array<StatePath<ReturnType<TLogic['transition']>, EventFromLogic<TLogic>>> {
   type TState = ReturnType<TLogic['transition']>;
@@ -26,25 +27,25 @@ export function getSimplePaths<TLogic extends AnyActorLogic>(
   const actorScope = createMockActorScope();
   const fromState =
     resolvedOptions.fromState ??
-    logic.getInitialSnapshot(actorScope, undefined);
+    logic.getInitialSnapshot(actorScope, options?.input);
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
-  ) => SerializedState;
+  ) => SerializedSnapshot;
   const adjacency = getAdjacencyMap(logic, resolvedOptions);
-  const stateMap = new Map<SerializedState, TState>();
+  const stateMap = new Map<SerializedSnapshot, TState>();
   const visitCtx: VisitedContext<TState, TEvent> = {
     vertices: new Set(),
     edges: new Set()
   };
   const steps: Steps<TState, TEvent> = [];
   const pathMap: Record<
-    SerializedState,
+    SerializedSnapshot,
     { state: TState; paths: Array<StatePath<TState, TEvent>> }
   > = {};
 
   function util(
-    fromStateSerial: SerializedState,
-    toStateSerial: SerializedState
+    fromStateSerial: SerializedSnapshot,
+    toStateSerial: SerializedSnapshot
   ) {
     const fromState = stateMap.get(fromStateSerial)!;
     visitCtx.vertices.add(fromStateSerial);
@@ -99,7 +100,9 @@ export function getSimplePaths<TLogic extends AnyActorLogic>(
   const fromStateSerial = serializeState(fromState, undefined);
   stateMap.set(fromStateSerial, fromState);
 
-  for (const nextStateSerial of Object.keys(adjacency) as SerializedState[]) {
+  for (const nextStateSerial of Object.keys(
+    adjacency
+  ) as SerializedSnapshot[]) {
     util(fromStateSerial, nextStateSerial);
   }
 

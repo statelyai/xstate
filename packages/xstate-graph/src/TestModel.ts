@@ -2,6 +2,7 @@ import {
   getPathsFromEvents,
   getAdjacencyMap,
   joinPaths,
+  AdjacencyValue,
   serializeSnapshot
 } from '@xstate/graph';
 import type {
@@ -20,7 +21,6 @@ import {
   __unsafe_getAllOwnEventDescriptors,
   AnyActorRef,
   AnyEventObject,
-  AnyMachineSnapshot,
   AnyStateMachine,
   EventFromLogic,
   MachineContext,
@@ -50,6 +50,20 @@ import {
   simpleStringify
 } from './utils.ts';
 import { validateMachine } from './validateMachine.ts';
+
+type GetPathOptions<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject,
+  TInput
+> = Partial<TraversalOptions<TSnapshot, TEvent, TInput>> & {
+  /**
+   * Whether to allow deduplicate paths so that paths that are contained by longer paths
+   * are included.
+   *
+   * @default false
+   */
+  allowDuplicatePaths?: boolean;
+};
 
 /**
  * Creates a test model that represents an abstract model of a
@@ -94,21 +108,24 @@ export class TestModel<
 
   public getPaths(
     pathGenerator: PathGenerator<TSnapshot, TEvent, TInput>,
-    options?: Partial<TraversalOptions<TSnapshot, TEvent, TInput>>
+    options?: GetPathOptions<TSnapshot, TEvent, TInput>
   ): Array<TestPath<TSnapshot, TEvent>> {
-    const paths = pathGenerator(this.testLogic, this.resolveOptions(options));
-    return deduplicatePaths(paths).map(this.toTestPath);
+    const allowDuplicatePaths = options?.allowDuplicatePaths ?? false;
+    const paths = pathGenerator(this.testLogic, this._resolveOptions(options));
+    return (allowDuplicatePaths ? paths : deduplicatePaths(paths)).map(
+      this._toTestPath
+    );
   }
 
   public getShortestPaths(
-    options?: Partial<TraversalOptions<TSnapshot, TEvent, TInput>>
+    options?: GetPathOptions<TSnapshot, TEvent, TInput>
   ): Array<TestPath<TSnapshot, TEvent>> {
     return this.getPaths(createShortestPathsGen(), options);
   }
 
   public getShortestPathsFrom(
     paths: Array<TestPath<TSnapshot, TEvent>>,
-    options?: Partial<TraversalOptions<TSnapshot, TEvent, TInput>>
+    options?: GetPathOptions<TSnapshot, TEvent, TInput>
   ): Array<TestPath<TSnapshot, TEvent>> {
     const resultPaths: TestPath<TSnapshot, TEvent>[] = [];
 
@@ -118,7 +135,7 @@ export class TestModel<
         fromState: path.state
       });
       for (const shortestPath of shortestPaths) {
-        resultPaths.push(this.toTestPath(joinPaths(path, shortestPath)));
+        resultPaths.push(this._toTestPath(joinPaths(path, shortestPath)));
       }
     }
 
@@ -126,14 +143,14 @@ export class TestModel<
   }
 
   public getSimplePaths(
-    options?: Partial<TraversalOptions<TSnapshot, TEvent, TInput>>
+    options?: GetPathOptions<TSnapshot, TEvent, TInput>
   ): Array<TestPath<TSnapshot, TEvent>> {
     return this.getPaths(createSimplePathsGen(), options);
   }
 
   public getSimplePathsFrom(
     paths: Array<TestPath<TSnapshot, TEvent>>,
-    options?: Partial<TraversalOptions<TSnapshot, TEvent, TInput>>
+    options?: GetPathOptions<TSnapshot, TEvent, TInput>
   ): Array<TestPath<TSnapshot, TEvent>> {
     const resultPaths: TestPath<TSnapshot, TEvent>[] = [];
 
@@ -143,14 +160,14 @@ export class TestModel<
         fromState: path.state
       });
       for (const shortestPath of shortestPaths) {
-        resultPaths.push(this.toTestPath(joinPaths(path, shortestPath)));
+        resultPaths.push(this._toTestPath(joinPaths(path, shortestPath)));
       }
     }
 
     return resultPaths;
   }
 
-  private toTestPath = (
+  private _toTestPath = (
     statePath: StatePath<TSnapshot, TEvent>
   ): TestPath<TSnapshot, TEvent> => {
     function formatEvent(event: EventObject): string {
@@ -180,16 +197,11 @@ export class TestModel<
 
   public getPathsFromEvents(
     events: TEvent[],
-    options?: TraversalOptions<TSnapshot, TEvent, TInput>
+    options?: GetPathOptions<TSnapshot, TEvent, TInput>
   ): Array<TestPath<TSnapshot, TEvent>> {
     const paths = getPathsFromEvents(this.testLogic, events, options);
 
-    return paths.map(this.toTestPath);
-  }
-
-  public getAllStates(): TSnapshot[] {
-    const adj = getAdjacencyMap(this.testLogic, this.options);
-    return Object.values(adj).map((x) => x.state);
+    return paths.map(this._toTestPath);
   }
 
   /**
@@ -253,16 +265,20 @@ export class TestModel<
     state: TSnapshot,
     options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
   ): Promise<void> {
-    const resolvedOptions = this.resolveOptions(options);
+    const resolvedOptions = this._resolveOptions(options);
 
-    const stateTestKeys = this.getStateTestKeys(params, state, resolvedOptions);
+    const stateTestKeys = this._getStateTestKeys(
+      params,
+      state,
+      resolvedOptions
+    );
 
     for (const stateTestKey of stateTestKeys) {
       await params.states?.[stateTestKey](state);
     }
   }
 
-  private getStateTestKeys(
+  private _getStateTestKeys(
     params: TestParam<TSnapshot, TEvent>,
     state: TSnapshot,
     resolvedOptions: TestModelOptions<TSnapshot, TEvent, TInput>
@@ -280,7 +296,7 @@ export class TestModel<
     return stateTestKeys;
   }
 
-  private getEventExec(
+  private _getEventExec(
     params: TestParam<TSnapshot, TEvent>,
     step: Step<TSnapshot, TEvent>
   ) {
@@ -294,24 +310,14 @@ export class TestModel<
     params: TestParam<TSnapshot, TEvent>,
     step: Step<TSnapshot, TEvent>
   ): Promise<void> {
-    const eventExec = this.getEventExec(params, step);
+    const eventExec = this._getEventExec(params, step);
     await (eventExec as EventExecutor<TSnapshot, TEvent>)?.(step);
   }
 
-  public resolveOptions(
+  private _resolveOptions(
     options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
   ): TestModelOptions<TSnapshot, TEvent, TInput> {
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
-  }
-}
-
-export async function testStateFromMeta(snapshot: AnyMachineSnapshot) {
-  const meta = snapshot.getMeta();
-  for (const id of Object.keys(meta)) {
-    const stateNodeMeta = meta[id];
-    if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
-      await stateNodeMeta.test(snapshot);
-    }
   }
 }
 
@@ -463,4 +469,32 @@ export function createTestModel<TMachine extends AnyStateMachine>(
   });
 
   return testModel;
+}
+
+export function adjacencyMapToArray<TSnapshot, TEvent>(
+  adjMap: AdjacencyMap<TSnapshot, TEvent>
+): Array<{
+  state: TSnapshot;
+  event: TEvent;
+  nextState: TSnapshot;
+}> {
+  const adjList: Array<{
+    state: TSnapshot;
+    event: TEvent;
+    nextState: TSnapshot;
+  }> = [];
+
+  for (const adjValue of Object.values(adjMap)) {
+    for (const transition of Object.values(
+      (adjValue as AdjacencyValue<TSnapshot, TEvent>).transitions
+    )) {
+      adjList.push({
+        state: (adjValue as AdjacencyValue<TSnapshot, TEvent>).state,
+        event: transition.event,
+        nextState: transition.state
+      });
+    }
+  }
+
+  return adjList;
 }
