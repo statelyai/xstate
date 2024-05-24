@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
-import { AnyActorRef, AnyActorSystem, SnapshotFrom } from 'xstate';
+import { AnyActorRef, SnapshotFrom } from 'xstate';
 
 type SyncExternalStoreSubscribe = Parameters<
   typeof useSyncExternalStoreWithSelector
