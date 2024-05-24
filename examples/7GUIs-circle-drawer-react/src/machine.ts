@@ -12,6 +12,7 @@ export const machine = setup({
       undos: (Circles | undefined)[];
       redos: (Circles | undefined)[];
       selectedCircleId: string | undefined;
+      currentPosition: Position;
       boundaries: Position;
     },
     events: {} as
@@ -22,17 +23,8 @@ export const machine = setup({
         }
       | { type: 'STAGE_RESIZE'; boundaries: Position }
       | {
-          type: 'SELECT_CIRCLE';
-          selectedCircle: Circle;
-          params: { selectedCircle: Circle };
-        }
-      | {
           type: 'ADD_CIRCLE';
           currentPosition: Position;
-        }
-      | {
-          type: 'DELETE_CIRCLE';
-          id: string;
         }
       | {
           type: 'START_EDIT';
@@ -48,7 +40,6 @@ export const machine = setup({
       | {
           type: 'START_DRAG';
           position: Position;
-          circleUnderPointer?: boolean;
           isSelected: boolean;
         }
       | {
@@ -69,9 +60,9 @@ export const machine = setup({
       const circle = getCircleById(context.circles, context.selectedCircleId);
       if (!circle || !circle.radius) return false;
       return (
-        event.position.y - circle.radius > 0 && // top
-        event.position.x - circle.radius > 0 && // left
-        event.position.y < context.boundaries.y && // bot
+        event.position.y - 60 + circle.radius > 0 && // top
+        event.position.x > 0 && // left
+        event.position.y + 40 - circle.radius < context.boundaries.y && // bot
         event.position.x < context.boundaries.x // rt
       );
     },
@@ -108,9 +99,11 @@ export const machine = setup({
 
       document.body.addEventListener('pointermove', onDrag);
       document.body.addEventListener('pointerup', onDragEnd);
+      document.body.addEventListener('pointerleave', onDragEnd);
       return () => {
         document.body.removeEventListener('pointermove', onDrag);
         document.body.removeEventListener('pointerup', onDragEnd);
+        document.body.removeEventListener('pointerleave', onDragEnd);
       };
     }),
 
@@ -188,10 +181,16 @@ export const machine = setup({
       return { circles, redos: [] };
     }),
 
-    handleSelectCircle: assign(({ event }) => {
+    handleSelectCircle: assign(({ context, event }) => {
       assertEvent(event, 'STAGE_TOUCHED');
+      const circle = event.circleUnderPointer;
+      const circleCopy = { ...circle, position: event.currentPosition };
+      const index = context.circles.indexOf(circle);
+      const circles = context.circles.toSpliced(index, 1, circleCopy);
       return {
-        selectedCircleId: event.circleUnderPointer?.id
+        selectedCircleId: event.circleUnderPointer?.id,
+        circles,
+        undos: [...context.undos, context.circles]
       };
     }),
 
@@ -211,12 +210,15 @@ export const machine = setup({
     handleDragStart: assign(({ context, event }) => {
       assertEvent(event, 'START_DRAG');
       const circle = getCircleById(context.circles, context.selectedCircleId);
+      const isSamePosition = event.position.x === circle.position.x;
       const circleCopy = { ...circle, position: event.position };
       const index = context.circles.indexOf(circle);
-      const circlesCopy = context.circles.toSpliced(index, 1, circleCopy);
+      const circles = context.circles.toSpliced(index, 1, circleCopy);
       return {
-        circles: circlesCopy,
-        undos: [...context.undos, context.circles],
+        circles,
+        undos: isSamePosition
+          ? context.undos
+          : [...context.undos, context.circles],
         redos: []
       };
     }),
@@ -227,14 +229,13 @@ export const machine = setup({
       const circleCopy = { ...circle, position: event.position };
       const index = context.circles.indexOf(circle);
       const circles = context.circles.toSpliced(index, 1, circleCopy);
-      return { circles, redos: [] };
+      return { circles };
     }),
 
     handleUndo: assign(({ context }) => {
       if (context.undos.length === 0) return context;
       return {
         circles: context.undos.pop(),
-        undos: context.undos.slice(),
         redos: [...context.redos, context.circles]
       };
     }),
@@ -243,8 +244,7 @@ export const machine = setup({
       if (context.redos.length === 0) return context;
       return {
         circles: context.redos.pop(),
-        undos: [...context.undos, context.circles.slice()],
-        redos: context.redos.slice()
+        undos: [...context.undos, context.circles.slice()]
       };
     })
   }
@@ -254,7 +254,8 @@ export const machine = setup({
     undos: [],
     redos: [],
     boundaries: { x: window.innerWidth, y: window.innerHeight },
-    selectedCircleId: undefined
+    selectedCircleId: undefined,
+    currentPosition: { x: 0, y: 0 }
   },
   id: 'circleDrawer',
   initial: 'ready',
@@ -296,7 +297,7 @@ export const machine = setup({
         },
         STAGE_TOUCHED: [
           {
-            target: 'ready',
+            target: 'dragging',
 
             actions: {
               type: 'handleAddCircle'
@@ -305,7 +306,7 @@ export const machine = setup({
             guard: 'circleUnderPointer?'
           },
           {
-            target: 'ready',
+            target: 'dragging',
             actions: {
               type: 'handleSelectCircle'
             }
@@ -360,12 +361,7 @@ export const machine = setup({
               type: 'handleDeleteCircle'
             }
           }
-        ],
-        DELETE_CIRCLE: {
-          actions: {
-            type: 'handleDeleteCircle'
-          }
-        }
+        ]
       }
     }
   }

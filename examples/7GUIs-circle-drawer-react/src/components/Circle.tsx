@@ -34,7 +34,6 @@ function Circle({ circle }: Props) {
       }}
       onContextMenu={(e) => {
         e.preventDefault();
-        send({ type: 'DELETE_CIRCLE', id: circle.id! });
       }}
     />
   );

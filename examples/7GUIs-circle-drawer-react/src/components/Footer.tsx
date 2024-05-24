@@ -1,8 +1,4 @@
 function Footer() {
-  return (
-    <footer>
-      <span />
-    </footer>
-  );
+  return <footer>Drag circle off the stage to delete</footer>;
 }
 export default Footer;

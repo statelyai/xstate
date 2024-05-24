@@ -33,7 +33,7 @@ function Color() {
             value: e.currentTarget.value
           });
         }}
-        onPointerUp={() => {
+        onBlur={() => {
           send({
             type: 'END_EDIT'
           });

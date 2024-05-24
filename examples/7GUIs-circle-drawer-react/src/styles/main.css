@@ -11,6 +11,7 @@
 *::after {
   color: var(--primary-color);
   -webkit-touch-callout: none;
+  -webkit-user-select: none;
 }
 
 body {
@@ -33,6 +34,7 @@ footer {
 }
 
 header {
+  height: 60px;
   border-bottom: 1px solid var(--primary-color);
   & > div {
     gap: 4px;
@@ -41,18 +43,9 @@ header {
 }
 
 footer {
+  height: 40px;
   border-top: 1px solid var(--primary-color);
   bottom: 0;
-  & span {
-    &::before {
-      content: 'Right-click circle to delete';
-    }
-    @media (pointer: none), (pointer: coarse) {
-      &::before {
-        content: 'Drag circle off screen to delete';
-      }
-    }
-  }
 }
 
 /* Stage */
