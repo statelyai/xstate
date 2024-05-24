@@ -1,21 +1,20 @@
-import { assign, createMachine } from 'xstate';
+import { assign, createMachine, setup } from 'xstate';
 import { createTestModel } from '../src/index.ts';
-import { createTestMachine } from '../src/machine';
 import { testUtils } from './testUtils';
 
 describe('events', () => {
   it('should allow for representing many cases', async () => {
-    type Events =
-      | { type: 'CLICK_BAD' }
-      | { type: 'CLICK_GOOD' }
-      | { type: 'CLOSE' }
-      | { type: 'ESC' }
-      | { type: 'SUBMIT'; value: string };
-    const feedbackMachine = createTestMachine({
-      id: 'feedback',
+    const feedbackMachine = setup({
       types: {
-        events: {} as Events
-      },
+        events: {} as
+          | { type: 'CLICK_BAD' }
+          | { type: 'CLICK_GOOD' }
+          | { type: 'CLOSE' }
+          | { type: 'ESC' }
+          | { type: 'SUBMIT'; value: string }
+      }
+    }).createMachine({
+      id: 'feedback',
       initial: 'question',
       states: {
         question: {
@@ -65,11 +64,11 @@ describe('events', () => {
       ]
     });
 
-    await testUtils.testModel(testModel, {});
+    await testUtils.testShortestPaths(testModel, {});
   });
 
   it('should not throw an error for unimplemented events', () => {
-    const testMachine = createTestMachine({
+    const testMachine = createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -82,7 +81,7 @@ describe('events', () => {
     const testModel = createTestModel(testMachine);
 
     expect(async () => {
-      await testUtils.testModel(testModel, {});
+      await testUtils.testShortestPaths(testModel, {});
     }).not.toThrow();
   });
 
@@ -173,8 +172,8 @@ describe('state limiting', () => {
     const testModel = createTestModel(machine);
 
     const testPaths = testModel.getShortestPaths({
-      filter: (state) => {
-        return state.context.count < 5;
+      stopWhen: (state) => {
+        return state.context.count >= 5;
       }
     });
 
@@ -200,7 +199,7 @@ it('prevents infinite recursion based on a provided limit', () => {
   const model = createTestModel(machine);
 
   expect(() => {
-    model.getShortestPaths({ traversalLimit: 100 });
+    model.getShortestPaths({ limit: 100 });
   }).toThrowErrorMatchingInlineSnapshot(`"Traversal limit exceeded"`);
 });
 
@@ -209,7 +208,7 @@ describe('test model options', () => {
     const testedStates: any[] = [];
 
     const model = createTestModel(
-      createTestMachine({
+      createMachine({
         initial: 'inactive',
         states: {
           inactive: {
@@ -222,7 +221,7 @@ describe('test model options', () => {
       })
     );
 
-    await testUtils.testModel(model, {
+    await testUtils.testShortestPaths(model, {
       states: {
         '*': (state) => {
           testedStates.push(state.value);
@@ -237,7 +236,7 @@ describe('test model options', () => {
 // https://github.com/statelyai/xstate/issues/1538
 it('tests transitions', async () => {
   expect.assertions(2);
-  const machine = createTestMachine({
+  const machine = createMachine({
     initial: 'first',
     states: {
       first: {
@@ -265,7 +264,7 @@ it('tests transitions', async () => {
 
 // https://github.com/statelyai/xstate/issues/982
 it('Event in event executor should contain payload from case', async () => {
-  const machine = createTestMachine({
+  const machine = createMachine({
     initial: 'first',
     states: {
       first: {
@@ -310,7 +309,7 @@ describe('state tests', () => {
     // a -> b (2)
     expect.assertions(2);
 
-    const machine = createTestMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -322,7 +321,7 @@ describe('state tests', () => {
 
     const model = createTestModel(machine);
 
-    await testUtils.testModel(model, {
+    await testUtils.testShortestPaths(model, {
       states: {
         a: (state) => {
           expect(state.value).toEqual('a');
@@ -340,7 +339,7 @@ describe('state tests', () => {
     // a -> c (2)
     expect.assertions(4);
 
-    const machine = createTestMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -353,7 +352,7 @@ describe('state tests', () => {
 
     const model = createTestModel(machine);
 
-    await testUtils.testModel(model, {
+    await testUtils.testShortestPaths(model, {
       states: {
         a: (state) => {
           expect(state.value).toEqual('a');
@@ -371,7 +370,7 @@ describe('state tests', () => {
   it('should test nested states', async () => {
     const testedStateValues: any[] = [];
 
-    const machine = createTestMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -388,7 +387,7 @@ describe('state tests', () => {
 
     const model = createTestModel(machine);
 
-    await testUtils.testModel(model, {
+    await testUtils.testShortestPaths(model, {
       states: {
         a: (state) => {
           testedStateValues.push('a');

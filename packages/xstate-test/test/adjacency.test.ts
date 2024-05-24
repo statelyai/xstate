@@ -1,8 +1,9 @@
 import { createMachine } from 'xstate';
 import { createTestModel } from '../src';
+import { adjacencyMapToArray } from '@xstate/graph';
 
-describe('model.getAdjacencyList()', () => {
-  it('generates an adjacency list', () => {
+describe('model.getAdjacencyMap()', () => {
+  it('generates an adjacency map', () => {
     const machine = createMachine({
       initial: 'standing',
       states: {
@@ -35,12 +36,10 @@ describe('model.getAdjacencyList()', () => {
     const model = createTestModel(machine);
 
     expect(
-      model
-        .getAdjacencyList()
-        .map(
-          ({ state, event, nextState }) =>
-            `Given Mario is ${state.value}, when ${event.type}, then ${nextState.value}`
-        )
+      adjacencyMapToArray(model.getAdjacencyMap()).map(
+        ({ state, event, nextState }) =>
+          `Given Mario is ${state.value}, when ${event.type}, then ${nextState.value}`
+      )
     ).toMatchInlineSnapshot(`
       [
         "Given Mario is standing, when left, then walking",

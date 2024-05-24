@@ -1,6 +1,5 @@
-import { StateFrom, assign, createMachine } from 'xstate';
+import { assign, createMachine, setup } from 'xstate';
 import { createTestModel } from '../src/index.ts';
-import { createTestMachine } from '../src/machine';
 import { getDescription } from '../src/utils';
 
 describe('die hard example', () => {
@@ -39,118 +38,89 @@ describe('die hard example', () => {
       this.five = this.five - poured;
     }
   }
-  let jugs: Jugs;
+  const dieHardMachine = setup({
+    types: {
+      context: {} as DieHardContext,
+      events: {} as
+        | {
+            type: 'POUR_3_TO_5';
+          }
+        | {
+            type: 'POUR_5_TO_3';
+          }
+        | {
+            type: 'FILL_3';
+          }
+        | {
+            type: 'FILL_5';
+          }
+        | {
+            type: 'EMPTY_3';
+          }
+        | {
+            type: 'EMPTY_5';
+          }
+    },
+    guards: {
+      weHave4Gallons: ({ context }) => context.five === 4
+    }
+  }).createMachine({
+    id: 'dieHard',
+    initial: 'pending',
+    context: { three: 0, five: 0 },
+    states: {
+      pending: {
+        always: {
+          target: 'success',
+          guard: 'weHave4Gallons'
+        },
+        on: {
+          POUR_3_TO_5: {
+            actions: assign(({ context }) => {
+              const poured = Math.min(5 - context.five, context.three);
 
-  const createDieHardModel = () => {
-    const dieHardMachine = createMachine(
-      {
-        types: {} as { context: DieHardContext },
-        id: 'dieHard',
-        initial: 'pending',
-        context: { three: 0, five: 0 },
-        states: {
-          pending: {
-            always: {
-              target: 'success',
-              guard: 'weHave4Gallons'
-            },
-            on: {
-              POUR_3_TO_5: {
-                actions: assign(({ context }) => {
-                  const poured = Math.min(5 - context.five, context.three);
-
-                  return {
-                    three: context.three - poured,
-                    five: context.five + poured
-                  };
-                })
-              },
-              POUR_5_TO_3: {
-                actions: assign(({ context }) => {
-                  const poured = Math.min(3 - context.three, context.five);
-
-                  const res = {
-                    three: context.three + poured,
-                    five: context.five - poured
-                  };
-
-                  return res;
-                })
-              },
-              FILL_3: {
-                actions: assign({ three: 3 })
-              },
-              FILL_5: {
-                actions: assign({ five: 5 })
-              },
-              EMPTY_3: {
-                actions: assign({ three: 0 })
-              },
-              EMPTY_5: {
-                actions: assign({ five: 0 })
-              }
-            }
+              return {
+                three: context.three - poured,
+                five: context.five + poured
+              };
+            })
           },
-          success: {
-            type: 'final'
+          POUR_5_TO_3: {
+            actions: assign(({ context }) => {
+              const poured = Math.min(3 - context.three, context.five);
+
+              const res = {
+                three: context.three + poured,
+                five: context.five - poured
+              };
+
+              return res;
+            })
+          },
+          FILL_3: {
+            actions: assign({ three: 3 })
+          },
+          FILL_5: {
+            actions: assign({ five: 5 })
+          },
+          EMPTY_3: {
+            actions: assign({ three: 0 })
+          },
+          EMPTY_5: {
+            actions: assign({ five: 0 })
           }
         }
       },
-      {
-        guards: {
-          weHave4Gallons: ({ context }) => context.five === 4
-        }
+      success: {
+        type: 'final'
       }
-    );
-
-    const options = {
-      states: {
-        pending: (state: ReturnType<(typeof dieHardMachine)['transition']>) => {
-          expect(jugs.five).not.toEqual(4);
-          expect(jugs.three).toEqual(state.context.three);
-          expect(jugs.five).toEqual(state.context.five);
-        },
-        success: () => {
-          expect(jugs.five).toEqual(4);
-        }
-      },
-      events: {
-        POUR_3_TO_5: async () => {
-          await jugs.transferThree();
-        },
-        POUR_5_TO_3: async () => {
-          await jugs.transferFive();
-        },
-        EMPTY_3: async () => {
-          await jugs.emptyThree();
-        },
-        EMPTY_5: async () => {
-          await jugs.emptyFive();
-        },
-        FILL_3: async () => {
-          await jugs.fillThree();
-        },
-        FILL_5: async () => {
-          await jugs.fillFive();
-        }
-      }
-    };
-
-    return {
-      model: createTestModel(dieHardMachine),
-      options
-    };
-  };
-
-  beforeEach(() => {
-    jugs = new Jugs();
-    jugs.version = Math.random();
+    }
   });
 
-  describe('testing a model (shortestPathsTo)', () => {
-    const dieHardModel = createDieHardModel();
+  const dieHardModel = createTestModel(dieHardMachine);
 
-    const paths = dieHardModel.model.getShortestPaths({
+  describe('testing a model (shortestPathsTo)', () => {
+    const paths = dieHardModel.getShortestPaths({
       toState: (state) => state.matches('success')
     });
 
@@ -161,15 +131,48 @@ describe('die hard example', () => {
     paths.forEach((path) => {
       describe(`path ${getDescription(path.state)}`, () => {
         it(`path ${getDescription(path.state)}`, async () => {
-          await dieHardModel.model.testPath(path, dieHardModel.options);
+          const jugs = new Jugs();
+          await dieHardModel.testPath(path, {
+            states: {
+              pending: (
+                state: ReturnType<(typeof dieHardMachine)['transition']>
+              ) => {
+                expect(jugs.five).not.toEqual(4);
+                expect(jugs.three).toEqual(state.context.three);
+                expect(jugs.five).toEqual(state.context.five);
+              },
+              success: () => {
+                expect(jugs.five).toEqual(4);
+              }
+            },
+            events: {
+              POUR_3_TO_5: async () => {
+                await jugs.transferThree();
+              },
+              POUR_5_TO_3: async () => {
+                await jugs.transferFive();
+              },
+              EMPTY_3: async () => {
+                await jugs.emptyThree();
+              },
+              EMPTY_5: async () => {
+                await jugs.emptyFive();
+              },
+              FILL_3: async () => {
+                await jugs.fillThree();
+              },
+              FILL_5: async () => {
+                await jugs.fillFive();
+              }
+            }
+          });
         });
       });
     });
   });
 
   describe('testing a model (simplePathsTo)', () => {
-    const dieHardModel = createDieHardModel();
-    const paths = dieHardModel.model.getSimplePaths({
+    const paths = dieHardModel.getSimplePaths({
       toState: (state) => state.matches('success')
     });
 
@@ -182,16 +185,48 @@ describe('die hard example', () => {
         path.state.value
       )} (${JSON.stringify(path.state.context)})`, () => {
         it(`path ${getDescription(path.state)}`, async () => {
-          await dieHardModel.model.testPath(path, dieHardModel.options);
+          const jugs = new Jugs();
+          await dieHardModel.testPath(path, {
+            states: {
+              pending: (
+                state: ReturnType<(typeof dieHardMachine)['transition']>
+              ) => {
+                expect(jugs.five).not.toEqual(4);
+                expect(jugs.three).toEqual(state.context.three);
+                expect(jugs.five).toEqual(state.context.five);
+              },
+              success: () => {
+                expect(jugs.five).toEqual(4);
+              }
+            },
+            events: {
+              POUR_3_TO_5: async () => {
+                await jugs.transferThree();
+              },
+              POUR_5_TO_3: async () => {
+                await jugs.transferFive();
+              },
+              EMPTY_3: async () => {
+                await jugs.emptyThree();
+              },
+              EMPTY_5: async () => {
+                await jugs.emptyFive();
+              },
+              FILL_3: async () => {
+                await jugs.fillThree();
+              },
+              FILL_5: async () => {
+                await jugs.fillFive();
+              }
+            }
+          });
         });
       });
     });
   });
 
   describe('testing a model (getPathFromEvents)', () => {
-    const dieHardModel = createDieHardModel();
-
-    const path = dieHardModel.model.getPathsFromEvents(
+    const path = dieHardModel.getPathsFromEvents(
       [
         { type: 'FILL_5' },
         { type: 'POUR_5_TO_3' },
@@ -207,25 +242,55 @@ describe('die hard example', () => {
       path.state.value
     )} (${JSON.stringify(path.state.context)})`, () => {
       it(`path ${getDescription(path.state)}`, async () => {
-        await dieHardModel.model.testPath(path, dieHardModel.options);
+        const jugs = new Jugs();
+        await dieHardModel.testPath(path, {
+          states: {
+            pending: (
+              state: ReturnType<(typeof dieHardMachine)['transition']>
+            ) => {
+              expect(jugs.five).not.toEqual(4);
+              expect(jugs.three).toEqual(state.context.three);
+              expect(jugs.five).toEqual(state.context.five);
+            },
+            success: () => {
+              expect(jugs.five).toEqual(4);
+            }
+          },
+          events: {
+            POUR_3_TO_5: async () => {
+              await jugs.transferThree();
+            },
+            POUR_5_TO_3: async () => {
+              await jugs.transferFive();
+            },
+            EMPTY_3: async () => {
+              await jugs.emptyThree();
+            },
+            EMPTY_5: async () => {
+              await jugs.emptyFive();
+            },
+            FILL_3: async () => {
+              await jugs.fillThree();
+            },
+            FILL_5: async () => {
+              await jugs.fillFive();
+            }
+          }
+        });
       });
     });
 
     it('should return no paths if the target does not match the last entered state', () => {
-      const paths = dieHardModel.model.getPathsFromEvents(
-        [{ type: 'FILL_5' }],
-        {
-          toState: (state) => state.matches('success')
-        }
-      );
+      const paths = dieHardModel.getPathsFromEvents([{ type: 'FILL_5' }], {
+        toState: (state) => state.matches('success')
+      });
 
       expect(paths).toHaveLength(0);
     });
   });
 
   describe('.testPath(path)', () => {
-    const dieHardModel = createDieHardModel();
-    const paths = dieHardModel.model.getSimplePaths({
+    const paths = dieHardModel.getSimplePaths({
       toState: (state) => {
         return state.matches('success') && state.context.three === 0;
       }
@@ -241,7 +306,41 @@ describe('die hard example', () => {
       )} (${JSON.stringify(path.state.context)})`, () => {
         describe(`path ${getDescription(path.state)}`, () => {
           it(`reaches the target state`, async () => {
-            await dieHardModel.model.testPath(path, dieHardModel.options);
+            const jugs = new Jugs();
+            await dieHardModel.testPath(path, {
+              states: {
+                pending: (
+                  state: ReturnType<(typeof dieHardMachine)['transition']>
+                ) => {
+                  expect(jugs.five).not.toEqual(4);
+                  expect(jugs.three).toEqual(state.context.three);
+                  expect(jugs.five).toEqual(state.context.five);
+                },
+                success: () => {
+                  expect(jugs.five).toEqual(4);
+                }
+              },
+              events: {
+                POUR_3_TO_5: async () => {
+                  await jugs.transferThree();
+                },
+                POUR_5_TO_3: async () => {
+                  await jugs.transferFive();
+                },
+                EMPTY_3: async () => {
+                  await jugs.emptyThree();
+                },
+                EMPTY_5: async () => {
+                  await jugs.emptyFive();
+                },
+                FILL_3: async () => {
+                  await jugs.fillThree();
+                },
+                FILL_5: async () => {
+                  await jugs.fillFive();
+                }
+              }
+            });
           });
         });
       });
@@ -250,7 +349,7 @@ describe('die hard example', () => {
 });
 describe('error path trace', () => {
   describe('should return trace for failed state', () => {
-    const machine = createTestMachine({
+    const machine = createMachine({
       initial: 'first',
       states: {
         first: {

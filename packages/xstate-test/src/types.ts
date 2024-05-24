@@ -1,14 +1,9 @@
 import { StatePath, Step, TraversalOptions } from '@xstate/graph';
 import {
   EventObject,
-  MachineConfig,
-  MachineTypes,
   StateNodeConfig,
   TransitionConfig,
-  TypegenConstraint,
-  TypegenDisabled,
   ExtractEvent,
-  MachineImplementations,
   MachineContext,
   ActorLogic,
   ParameterizedObject,
@@ -23,31 +18,10 @@ export type GetPathsOptions<
   TEvent extends EventObject,
   TInput
 > = Partial<
-  TraversalOptions<TSnapshot, TEvent> & {
+  TraversalOptions<TSnapshot, TEvent, TInput> & {
     pathGenerator?: PathGenerator<TSnapshot, TEvent, TInput>;
   }
 >;
-
-export interface TestMachineConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
-> extends TestStateNodeConfig<TContext, TEvent> {
-  context?: MachineConfig<TContext, TEvent>['context'];
-  types?: MachineTypes<
-    TContext,
-    TEvent,
-    TODO,
-    TODO,
-    TODO,
-    TODO, // delays
-    TODO, // tags
-    TODO, // input
-    TODO, // output
-    TODO, //emitted
-    TTypesMeta
-  >;
-}
 
 export interface TestStateNodeConfig<
   TContext extends MachineContext,
@@ -62,7 +36,8 @@ export interface TestStateNodeConfig<
       TODO,
       TODO,
       TODO,
-      TODO
+      TODO, // emitted
+      TODO // meta
     >,
     | 'type'
     | 'history'
@@ -81,34 +56,32 @@ export interface TestStateNodeConfig<
   states?: Record<string, TestStateNodeConfig<TContext, TEvent>>;
 }
 
-export type TestMachineOptions<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
-> = Partial<
-  Pick<
-    MachineImplementations<
-      TContext,
-      TEvent,
-      any,
-      ParameterizedObject,
-      ParameterizedObject,
-      string,
-      string,
-      TTypesMeta
-    >,
-    'actions' | 'guards'
-  >
->;
-
 export interface TestMeta<T, TContext extends MachineContext> {
   test?: (
     testContext: T,
-    state: MachineSnapshot<TContext, any, any, any, any, any>
+    state: MachineSnapshot<
+      TContext,
+      any,
+      any,
+      any,
+      any,
+      any,
+      any // TMeta
+    >
   ) => Promise<void> | void;
   description?:
     | string
-    | ((state: MachineSnapshot<TContext, any, any, any, any, any>) => string);
+    | ((
+        state: MachineSnapshot<
+          TContext,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any // TMeta
+        >
+      ) => string);
   skip?: boolean;
 }
 interface TestStateResult {
@@ -147,7 +120,6 @@ export interface TestPath<
    * tests the postcondition that the `state` is reached.
    */
   test: (params: TestParam<TSnapshot, TEvent>) => Promise<TestPathResult>;
-  testSync: (params: TestParam<TSnapshot, TEvent>) => TestPathResult;
 }
 export interface TestPathResult {
   steps: TestStepResult[];
@@ -166,8 +138,9 @@ export type EventExecutor<
 
 export interface TestModelOptions<
   TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
-> extends TraversalOptions<TSnapshot, TEvent> {
+  TEvent extends EventObject,
+  TInput
+> extends TraversalOptions<TSnapshot, TEvent, TInput> {
   stateMatcher: (state: TSnapshot, stateKey: string) => boolean;
   logger: {
     log: (msg: string) => void;
@@ -184,9 +157,27 @@ export interface TestTransitionConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TTestContext
-> extends TransitionConfig<TContext, TEvent, TEvent, TODO, TODO, TODO, string> {
+> extends TransitionConfig<
+    TContext,
+    TEvent,
+    TEvent,
+    TODO,
+    TODO,
+    TODO,
+    string,
+    TODO, // TEmitted
+    TODO // TMeta
+  > {
   test?: (
-    state: MachineSnapshot<TContext, TEvent, any, any, any, any>,
+    state: MachineSnapshot<
+      TContext,
+      TEvent,
+      any,
+      any,
+      any,
+      any,
+      any // TMeta
+    >,
     testContext: TTestContext
   ) => void;
 }
@@ -209,5 +200,5 @@ export type PathGenerator<
   TInput
 > = (
   behavior: ActorLogic<TSnapshot, TEvent, TInput>,
-  options: TraversalOptions<TSnapshot, TEvent>
+  options: TraversalOptions<TSnapshot, TEvent, TInput>
 ) => Array<StatePath<TSnapshot, TEvent>>;

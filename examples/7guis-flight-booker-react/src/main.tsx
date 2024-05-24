@@ -1,10 +1,12 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { FlightContext } from "./machine.ts";
-import App from "./App.tsx";
-import "./index.css";
+import './styles/reset.css';
+import './styles/styles.css';
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import FlightContext from './machines/flightMachine.ts';
+import App from './App.tsx';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <FlightContext.Provider>
       <App />

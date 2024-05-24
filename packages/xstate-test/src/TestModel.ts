@@ -2,21 +2,33 @@ import {
   getPathsFromEvents,
   getAdjacencyMap,
   joinPaths,
-  AdjacencyValue
+  serializeSnapshot
 } from '@xstate/graph';
 import type {
+  AdjacencyMap,
   SerializedEvent,
-  SerializedState,
+  SerializedSnapshot,
   StatePath,
   Step,
   TraversalOptions
 } from '@xstate/graph';
 import {
   EventObject,
-  AnyMachineSnapshot,
   ActorLogic,
   Snapshot,
-  isMachineSnapshot
+  isMachineSnapshot,
+  __unsafe_getAllOwnEventDescriptors,
+  AnyActorRef,
+  AnyEventObject,
+  AnyMachineSnapshot,
+  AnyStateMachine,
+  EventFromLogic,
+  MachineContext,
+  MachineSnapshot,
+  SnapshotFrom,
+  StateValue,
+  TODO,
+  InputFrom
 } from 'xstate';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
@@ -37,6 +49,7 @@ import {
   getDescription,
   simpleStringify
 } from './utils.ts';
+import { validateMachine } from './validateMachine.ts';
 
 /**
  * Creates a test model that represents an abstract model of a
@@ -50,11 +63,11 @@ export class TestModel<
   TEvent extends EventObject,
   TInput
 > {
-  public options: TestModelOptions<TSnapshot, TEvent>;
-  public defaultTraversalOptions?: TraversalOptions<TSnapshot, TEvent>;
-  public getDefaultOptions(): TestModelOptions<TSnapshot, TEvent> {
+  public options: TestModelOptions<TSnapshot, TEvent, TInput>;
+  public defaultTraversalOptions?: TraversalOptions<TSnapshot, TEvent, TInput>;
+  public getDefaultOptions(): TestModelOptions<TSnapshot, TEvent, TInput> {
     return {
-      serializeState: (state) => simpleStringify(state) as SerializedState,
+      serializeState: (state) => simpleStringify(state) as SerializedSnapshot,
       serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
       // For non-state-machine test models, we cannot identify
       // separate transitions, so just use event type
@@ -70,8 +83,8 @@ export class TestModel<
   }
 
   constructor(
-    public logic: ActorLogic<TSnapshot, TEvent, TInput>,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent>>
+    public testLogic: ActorLogic<TSnapshot, TEvent, TInput>,
+    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
   ) {
     this.options = {
       ...this.getDefaultOptions(),
@@ -81,21 +94,21 @@ export class TestModel<
 
   public getPaths(
     pathGenerator: PathGenerator<TSnapshot, TEvent, TInput>,
-    options?: Partial<TraversalOptions<TSnapshot, TEvent>>
+    options?: Partial<TraversalOptions<TSnapshot, TEvent, TInput>>
   ): Array<TestPath<TSnapshot, TEvent>> {
-    const paths = pathGenerator(this.logic, this.resolveOptions(options));
+    const paths = pathGenerator(this.testLogic, this.resolveOptions(options));
     return deduplicatePaths(paths).map(this.toTestPath);
   }
 
   public getShortestPaths(
-    options?: Partial<TraversalOptions<TSnapshot, TEvent>>
+    options?: Partial<TraversalOptions<TSnapshot, TEvent, TInput>>
   ): Array<TestPath<TSnapshot, TEvent>> {
     return this.getPaths(createShortestPathsGen(), options);
   }
 
   public getShortestPathsFrom(
     paths: Array<TestPath<TSnapshot, TEvent>>,
-    options?: Partial<TraversalOptions<TSnapshot, any>>
+    options?: Partial<TraversalOptions<TSnapshot, TEvent, TInput>>
   ): Array<TestPath<TSnapshot, TEvent>> {
     const resultPaths: TestPath<TSnapshot, TEvent>[] = [];
 
@@ -113,14 +126,14 @@ export class TestModel<
   }
 
   public getSimplePaths(
-    options?: Partial<TraversalOptions<TSnapshot, TEvent>>
+    options?: Partial<TraversalOptions<TSnapshot, TEvent, TInput>>
   ): Array<TestPath<TSnapshot, TEvent>> {
     return this.getPaths(createSimplePathsGen(), options);
   }
 
   public getSimplePathsFrom(
     paths: Array<TestPath<TSnapshot, TEvent>>,
-    options?: Partial<TraversalOptions<TSnapshot, any>>
+    options?: Partial<TraversalOptions<TSnapshot, TEvent, TInput>>
   ): Array<TestPath<TSnapshot, TEvent>> {
     const resultPaths: TestPath<TSnapshot, TEvent>[] = [];
 
@@ -157,8 +170,6 @@ export class TestModel<
       ...statePath,
       test: (params: TestParam<TSnapshot, TEvent>) =>
         this.testPath(statePath, params),
-      testSync: (params: TestParam<TSnapshot, TEvent>) =>
-        this.testPathSync(statePath, params),
       description: isMachineSnapshot(statePath.state)
         ? `Reaches ${getDescription(
             statePath.state as any
@@ -169,15 +180,15 @@ export class TestModel<
 
   public getPathsFromEvents(
     events: TEvent[],
-    options?: TraversalOptions<TSnapshot, TEvent>
+    options?: TraversalOptions<TSnapshot, TEvent, TInput>
   ): Array<TestPath<TSnapshot, TEvent>> {
-    const paths = getPathsFromEvents(this.logic, events, options);
+    const paths = getPathsFromEvents(this.testLogic, events, options);
 
     return paths.map(this.toTestPath);
   }
 
   public getAllStates(): TSnapshot[] {
-    const adj = getAdjacencyMap(this.logic, this.options);
+    const adj = getAdjacencyMap(this.testLogic, this.options);
     return Object.values(adj).map((x) => x.state);
   }
 
@@ -185,84 +196,15 @@ export class TestModel<
    * An array of adjacencies, which are objects that represent each `state` with the `nextState`
    * given the `event`.
    */
-  public getAdjacencyList(): Array<{
-    state: TSnapshot;
-    event: TEvent;
-    nextState: TSnapshot;
-  }> {
-    const adjMap = getAdjacencyMap(this.logic, this.options);
-    const adjList: Array<{
-      state: TSnapshot;
-      event: TEvent;
-      nextState: TSnapshot;
-    }> = [];
-
-    for (const adjValue of Object.values(adjMap)) {
-      for (const transition of Object.values(
-        (adjValue as AdjacencyValue<TSnapshot, TEvent>).transitions
-      )) {
-        adjList.push({
-          state: (adjValue as AdjacencyValue<TSnapshot, TEvent>).state,
-          event: transition.event,
-          nextState: transition.state
-        });
-      }
-    }
-
-    return adjList;
-  }
-
-  public testPathSync(
-    path: StatePath<TSnapshot, TEvent>,
-    params: TestParam<TSnapshot, TEvent>,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent>>
-  ): TestPathResult {
-    const testPathResult: TestPathResult = {
-      steps: [],
-      state: {
-        error: null
-      }
-    };
-
-    try {
-      for (const step of path.steps) {
-        const testStepResult: TestStepResult = {
-          step,
-          state: { error: null },
-          event: { error: null }
-        };
-
-        testPathResult.steps.push(testStepResult);
-
-        try {
-          this.testTransitionSync(params, step);
-        } catch (err: any) {
-          testStepResult.event.error = err;
-
-          throw err;
-        }
-
-        try {
-          this.testStateSync(params, step.state, options);
-        } catch (err: any) {
-          testStepResult.state.error = err;
-
-          throw err;
-        }
-      }
-    } catch (err: any) {
-      // TODO: make option
-      err.message += formatPathTestResult(path, testPathResult, this.options);
-      throw err;
-    }
-
-    return testPathResult;
+  public getAdjacencyMap(): AdjacencyMap<TSnapshot, TEvent> {
+    const adjMap = getAdjacencyMap(this.testLogic, this.options);
+    return adjMap;
   }
 
   public async testPath(
     path: StatePath<TSnapshot, TEvent>,
     params: TestParam<TSnapshot, TEvent>,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent>>
+    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
   ): Promise<TestPathResult> {
     const testPathResult: TestPathResult = {
       steps: [],
@@ -309,7 +251,7 @@ export class TestModel<
   public async testState(
     params: TestParam<TSnapshot, TEvent>,
     state: TSnapshot,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent>>
+    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
   ): Promise<void> {
     const resolvedOptions = this.resolveOptions(options);
 
@@ -323,7 +265,7 @@ export class TestModel<
   private getStateTestKeys(
     params: TestParam<TSnapshot, TEvent>,
     state: TSnapshot,
-    resolvedOptions: TestModelOptions<TSnapshot, TEvent>
+    resolvedOptions: TestModelOptions<TSnapshot, TEvent, TInput>
   ) {
     const states = params.states || {};
     const stateTestKeys = Object.keys(states).filter((stateKey) => {
@@ -336,23 +278,6 @@ export class TestModel<
     }
 
     return stateTestKeys;
-  }
-
-  public testStateSync(
-    params: TestParam<TSnapshot, TEvent>,
-    state: TSnapshot,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent>>
-  ): void {
-    const resolvedOptions = this.resolveOptions(options);
-
-    const stateTestKeys = this.getStateTestKeys(params, state, resolvedOptions);
-
-    for (const stateTestKey of stateTestKeys) {
-      errorIfPromise(
-        params.states?.[stateTestKey](state),
-        `The test for '${stateTestKey}' returned a promise - did you mean to use the sync method?`
-      );
-    }
   }
 
   private getEventExec(
@@ -373,27 +298,169 @@ export class TestModel<
     await (eventExec as EventExecutor<TSnapshot, TEvent>)?.(step);
   }
 
-  public testTransitionSync(
-    params: TestParam<TSnapshot, TEvent>,
-    step: Step<TSnapshot, TEvent>
-  ): void {
-    const eventExec = this.getEventExec(params, step);
-
-    errorIfPromise(
-      (eventExec as EventExecutor<TSnapshot, TEvent>)?.(step),
-      `The event '${step.event.type}' returned a promise - did you mean to use the sync method?`
-    );
-  }
-
   public resolveOptions(
-    options?: Partial<TestModelOptions<TSnapshot, TEvent>>
-  ): TestModelOptions<TSnapshot, TEvent> {
+    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
+  ): TestModelOptions<TSnapshot, TEvent, TInput> {
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
   }
 }
 
-const errorIfPromise = (result: unknown, err: string) => {
-  if (typeof result === 'object' && result && 'then' in result) {
-    throw new Error(err);
+export async function testStateFromMeta(snapshot: AnyMachineSnapshot) {
+  const meta = snapshot.getMeta();
+  for (const id of Object.keys(meta)) {
+    const stateNodeMeta = meta[id];
+    if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
+      await stateNodeMeta.test(snapshot);
+    }
   }
-};
+}
+
+function stateValuesEqual(
+  a: StateValue | undefined,
+  b: StateValue | undefined
+): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  if (a === undefined || b === undefined) {
+    return false;
+  }
+
+  if (typeof a === 'string' || typeof b === 'string') {
+    return a === b;
+  }
+
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+
+  return (
+    aKeys.length === bKeys.length &&
+    aKeys.every((key) => stateValuesEqual(a[key], b[key]))
+  );
+}
+
+function serializeMachineTransition(
+  snapshot: MachineSnapshot<
+    MachineContext,
+    EventObject,
+    Record<string, AnyActorRef | undefined>,
+    StateValue,
+    string,
+    unknown,
+    TODO // TMeta
+  >,
+  event: AnyEventObject | undefined,
+  previousSnapshot:
+    | MachineSnapshot<
+        MachineContext,
+        EventObject,
+        Record<string, AnyActorRef | undefined>,
+        StateValue,
+        string,
+        unknown,
+        TODO // TMeta
+      >
+    | undefined,
+  { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
+): string {
+  // TODO: the stateValuesEqual check here is very likely not exactly correct
+  // but I'm not sure what the correct check is and what this is trying to do
+  if (
+    !event ||
+    (previousSnapshot &&
+      stateValuesEqual(previousSnapshot.value, snapshot.value))
+  ) {
+    return '';
+  }
+
+  const prevStateString = previousSnapshot
+    ? ` from ${simpleStringify(previousSnapshot.value)}`
+    : '';
+
+  return ` via ${serializeEvent(event)}${prevStateString}`;
+}
+
+/**
+ * Creates a test model that represents an abstract model of a
+ * system under test (SUT).
+ *
+ * The test model is used to generate test paths, which are used to
+ * verify that states in the `machine` are reachable in the SUT.
+ *
+ * @example
+ *
+ * ```js
+ * const toggleModel = createModel(toggleMachine).withEvents({
+ *   TOGGLE: {
+ *     exec: async page => {
+ *       await page.click('input');
+ *     }
+ *   }
+ * });
+ * ```
+ *
+ * @param machine The state machine used to represent the abstract model.
+ * @param options Options for the created test model:
+ * - `events`: an object mapping string event types (e.g., `SUBMIT`)
+ * to an event test config (e.g., `{exec: () => {...}, cases: [...]}`)
+ */
+export function createTestModel<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  options?: Partial<
+    TestModelOptions<
+      SnapshotFrom<TMachine>,
+      EventFromLogic<TMachine>,
+      InputFrom<TMachine>
+    >
+  >
+): TestModel<SnapshotFrom<TMachine>, EventFromLogic<TMachine>, unknown> {
+  validateMachine(machine);
+
+  const serializeEvent = (options?.serializeEvent ?? simpleStringify) as (
+    event: AnyEventObject
+  ) => string;
+  const serializeTransition =
+    options?.serializeTransition ?? serializeMachineTransition;
+  const { events: getEvents, ...otherOptions } = options ?? {};
+
+  const testModel = new TestModel<
+    SnapshotFrom<TMachine>,
+    EventFromLogic<TMachine>,
+    unknown
+  >(machine as any, {
+    serializeState: (state, event, prevState) => {
+      // Only consider the `state` if `serializeTransition()` is opted out (empty string)
+      return `${serializeSnapshot(state)}${serializeTransition(
+        state,
+        event,
+        prevState,
+        {
+          serializeEvent
+        }
+      )}` as SerializedSnapshot;
+    },
+    stateMatcher: (state, key) => {
+      return key.startsWith('#')
+        ? (state as any)._nodes.includes(machine.getStateNodeById(key))
+        : (state as any).matches(key);
+    },
+    events: (state) => {
+      const events =
+        typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
+
+      return __unsafe_getAllOwnEventDescriptors(state).flatMap(
+        (eventType: string) => {
+          if (events.some((e) => (e as EventObject).type === eventType)) {
+            return events.filter((e) => (e as EventObject).type === eventType);
+          }
+
+          return [{ type: eventType } as any]; // TODO: fix types
+        }
+      );
+    },
+    ...otherOptions
+  });
+
+  return testModel;
+}
