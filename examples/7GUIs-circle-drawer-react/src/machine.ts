@@ -1,9 +1,9 @@
-import { createActorContext } from '@xstate/react';
-import { assertEvent, assign, fromCallback, setup } from 'xstate';
-import { getCircleById, getCircleUnderPointer } from './utils';
+import { createActorContext } from "@xstate/react";
+import { assertEvent, assign, fromCallback, setup } from "xstate";
+import { getCircleById, getCircleUnderPointer } from "./utils";
 
 export const DEFAULT_CIRCLE_RADIUS = 25;
-export const DEFAULT_CIRCLE_COLOR = '#D27979';
+export const DEFAULT_CIRCLE_COLOR = "#D27979";
 
 export const machine = setup({
   types: {
@@ -17,46 +17,46 @@ export const machine = setup({
     },
     events: {} as
       | {
-          type: 'STAGE_TOUCHED';
+          type: "STAGE_TOUCHED";
           circleUnderPointer: Circle;
           currentPosition: Position;
         }
-      | { type: 'STAGE_RESIZE'; boundaries: Position }
+      | { type: "STAGE_RESIZE"; boundaries: Position }
       | {
-          type: 'ADD_CIRCLE';
+          type: "ADD_CIRCLE";
           currentPosition: Position;
         }
       | {
-          type: 'START_EDIT';
+          type: "START_EDIT";
         }
       | {
-          type: 'EDIT';
+          type: "EDIT";
           setting: string;
           value: number | string;
         }
       | {
-          type: 'END_EDIT';
+          type: "END_EDIT";
         }
       | {
-          type: 'START_DRAG';
+          type: "START_DRAG";
           position: Position;
           isSelected: boolean;
         }
       | {
-          type: 'DRAG';
+          type: "DRAG";
           position: Position;
         }
       | {
-          type: 'END_DRAG';
+          type: "END_DRAG";
           position: Position;
           id: string;
         }
-      | { type: 'UNDO' }
-      | { type: 'REDO' }
+      | { type: "UNDO" }
+      | { type: "REDO" },
   },
   guards: {
-    'inBounds?': function ({ context, event }) {
-      assertEvent(event, 'END_DRAG');
+    "inBounds?": function ({ context, event }) {
+      assertEvent(event, "END_DRAG");
       const circle = getCircleById(context.circles, context.selectedCircleId);
       if (!circle || !circle.radius) return false;
       return (
@@ -66,23 +66,23 @@ export const machine = setup({
         event.position.x < context.boundaries.x // rt
       );
     },
-    'undosExist?': ({ context }) => context.undos.length > 0,
-    'redosExist?': ({ context }) => context.redos.length > 0,
-    'circleUnderPointer?': ({ event }) => {
-      assertEvent(event, 'STAGE_TOUCHED');
-      return !event.circleUnderPointer;
+    "undosExist?": ({ context }) => context.undos.length > 0,
+    "redosExist?": ({ context }) => context.redos.length > 0,
+    "circleUnderPointer?": ({ event }) => {
+      assertEvent(event, "STAGE_TOUCHED");
+      return !!event.circleUnderPointer;
     },
-    'isSelected?': ({ event }) => {
-      assertEvent(event, 'START_DRAG');
+    "isSelected?": ({ event }) => {
+      assertEvent(event, "START_DRAG");
       return event.isSelected;
-    }
+    },
   },
   actors: {
     Dragger: fromCallback(({ sendBack, input }) => {
       function onDrag(e: PointerEvent) {
         sendBack({
-          type: 'DRAG',
-          position: { x: e.clientX, y: e.clientY }
+          type: "DRAG",
+          position: { x: e.clientX, y: e.clientY },
         });
       }
 
@@ -91,51 +91,51 @@ export const machine = setup({
         const currentPosition = { x: e.clientX, y: e.clientY };
         const currentCircle = getCircleUnderPointer(circles, currentPosition);
         sendBack({
-          type: 'END_DRAG',
+          type: "END_DRAG",
           position: { x: e.clientX, y: e.clientY },
-          id: currentCircle?.id
+          id: currentCircle?.id,
         });
       }
 
-      document.body.addEventListener('pointermove', onDrag);
-      document.body.addEventListener('pointerup', onDragEnd);
-      document.body.addEventListener('pointerleave', onDragEnd);
+      document.body.addEventListener("pointermove", onDrag);
+      document.body.addEventListener("pointerup", onDragEnd);
+      document.body.addEventListener("pointerleave", onDragEnd);
       return () => {
-        document.body.removeEventListener('pointermove', onDrag);
-        document.body.removeEventListener('pointerup', onDragEnd);
-        document.body.removeEventListener('pointerleave', onDragEnd);
+        document.body.removeEventListener("pointermove", onDrag);
+        document.body.removeEventListener("pointerup", onDragEnd);
+        document.body.removeEventListener("pointerleave", onDragEnd);
       };
     }),
 
     Sizer: fromCallback(({ sendBack }) => {
       function onResize() {
         sendBack({
-          type: 'STAGE_RESIZE',
-          boundaries: { x: window.innerWidth, y: window.innerHeight }
+          type: "STAGE_RESIZE",
+          boundaries: { x: window.innerWidth, y: window.innerHeight },
         });
       }
-      window.addEventListener('resize', onResize);
+      window.addEventListener("resize", onResize);
       return () => {
-        window.removeEventListener('resize', onResize);
+        window.removeEventListener("resize", onResize);
       };
     }),
 
     OrientationChanger: fromCallback(({ sendBack }) => {
       function onResize() {
         sendBack({
-          type: 'STAGE_RESIZE',
-          boundaries: { x: screen.width, y: screen.height }
+          type: "STAGE_RESIZE",
+          boundaries: { x: screen.width, y: screen.height },
         });
       }
-      screen.orientation?.addEventListener('change', onResize);
+      screen.orientation?.addEventListener("change", onResize);
       return () => {
-        screen.orientation?.removeEventListener('change', onResize);
+        screen.orientation?.removeEventListener("change", onResize);
       };
-    })
+    }),
   },
   actions: {
     enforceBoundaries: assign(({ context, event }) => {
-      assertEvent(event, 'STAGE_RESIZE');
+      assertEvent(event, "STAGE_RESIZE");
       let undos = context.undos;
       context.circles.map((circle: Circle) => {
         if (!circle?.position || !circle.radius) return;
@@ -153,24 +153,24 @@ export const machine = setup({
       return {
         boundaries: event.boundaries,
         circles: context.circles,
-        undos
+        undos,
       };
     }),
     handleAddCircle: assign(({ context, event }) => {
-      assertEvent(event, 'STAGE_TOUCHED');
+      assertEvent(event, "STAGE_TOUCHED");
 
       const circle = {
         id: crypto.randomUUID(),
         radius: DEFAULT_CIRCLE_RADIUS,
         color: DEFAULT_CIRCLE_COLOR,
-        position: event.currentPosition
+        position: event.currentPosition,
       };
 
       return {
         selectedCircleId: circle.id,
         circles: [...context.circles, circle],
         undos: [...context.undos, context.circles],
-        redos: []
+        redos: [],
       };
     }),
 
@@ -182,7 +182,7 @@ export const machine = setup({
     }),
 
     handleSelectCircle: assign(({ context, event }) => {
-      assertEvent(event, 'STAGE_TOUCHED');
+      assertEvent(event, "STAGE_TOUCHED");
       const circle = event.circleUnderPointer;
       const circleCopy = { ...circle, position: event.currentPosition };
       const index = context.circles.indexOf(circle);
@@ -190,16 +190,16 @@ export const machine = setup({
       return {
         selectedCircleId: event.circleUnderPointer?.id,
         circles,
-        undos: [...context.undos, context.circles]
+        undos: [...context.undos, context.circles],
       };
     }),
 
     handleEditStart: assign({
-      undos: ({ context }) => [...context.undos, context.circles]
+      undos: ({ context }) => [...context.undos, context.circles],
     }),
 
     handleEdit: assign(({ context, event }) => {
-      assertEvent(event, 'EDIT');
+      assertEvent(event, "EDIT");
       const circle = getCircleById(context.circles, context.selectedCircleId);
       const circleCopy = { ...circle, [event.setting]: event.value };
       const index = context.circles.indexOf(circle);
@@ -208,7 +208,7 @@ export const machine = setup({
     }),
 
     handleDragStart: assign(({ context, event }) => {
-      assertEvent(event, 'START_DRAG');
+      assertEvent(event, "START_DRAG");
       const circle = getCircleById(context.circles, context.selectedCircleId);
       const isSamePosition = event.position.x === circle.position.x;
       const circleCopy = { ...circle, position: event.position };
@@ -219,12 +219,12 @@ export const machine = setup({
         undos: isSamePosition
           ? context.undos
           : [...context.undos, context.circles],
-        redos: []
+        redos: [],
       };
     }),
 
     handleDrag: assign(({ context, event }) => {
-      assertEvent(event, 'DRAG');
+      assertEvent(event, "DRAG");
       const circle = getCircleById(context.circles, context.selectedCircleId);
       const circleCopy = { ...circle, position: event.position };
       const index = context.circles.indexOf(circle);
@@ -236,7 +236,7 @@ export const machine = setup({
       if (context.undos.length === 0) return context;
       return {
         circles: context.undos.pop(),
-        redos: [...context.redos, context.circles]
+        redos: [...context.redos, context.circles],
       };
     }),
 
@@ -244,10 +244,10 @@ export const machine = setup({
       if (context.redos.length === 0) return context;
       return {
         circles: context.redos.pop(),
-        undos: [...context.undos, context.circles.slice()]
+        undos: [...context.undos, context.circles.slice()],
       };
-    })
-  }
+    }),
+  },
 }).createMachine({
   context: {
     circles: [],
@@ -255,116 +255,116 @@ export const machine = setup({
     redos: [],
     boundaries: { x: window.innerWidth, y: window.innerHeight },
     selectedCircleId: undefined,
-    currentPosition: { x: 0, y: 0 }
+    currentPosition: { x: 0, y: 0 },
   },
-  id: 'circleDrawer',
-  initial: 'ready',
+  id: "circleDrawer",
+  initial: "ready",
   states: {
     ready: {
       invoke: [
         {
-          src: 'Sizer',
-          id: 'Sizer'
+          src: "Sizer",
+          id: "Sizer",
         },
         {
-          src: 'OrientationChanger',
-          id: 'OrientationChanger'
-        }
+          src: "OrientationChanger",
+          id: "OrientationChanger",
+        },
       ],
       on: {
         START_EDIT: {
-          target: 'editing',
-          actions: { type: 'handleEditStart' }
+          target: "editing",
+          actions: { type: "handleEditStart" },
         },
         UNDO: {
-          guard: 'undosExist?',
+          guard: "undosExist?",
           actions: {
-            type: 'handleUndo'
-          }
+            type: "handleUndo",
+          },
         },
         REDO: {
-          guard: 'redosExist?',
+          guard: "redosExist?",
           actions: {
-            type: 'handleRedo'
-          }
+            type: "handleRedo",
+          },
         },
         START_DRAG: {
-          target: 'dragging',
+          target: "dragging",
           actions: {
-            type: 'handleDragStart'
+            type: "handleDragStart",
           },
-          guard: 'isSelected?'
+          guard: "isSelected?",
         },
         STAGE_TOUCHED: [
           {
-            target: 'dragging',
+            target: "dragging",
 
             actions: {
-              type: 'handleAddCircle'
+              type: "handleSelectCircle",
             },
 
-            guard: 'circleUnderPointer?'
+            guard: "circleUnderPointer?",
           },
           {
-            target: 'dragging',
+            target: "dragging",
             actions: {
-              type: 'handleSelectCircle'
-            }
-          }
+              type: "handleAddCircle",
+            },
+          },
         ],
         STAGE_RESIZE: {
           actions: {
-            type: 'enforceBoundaries'
-          }
-        }
-      }
+            type: "enforceBoundaries",
+          },
+        },
+      },
     },
     editing: {
       on: {
         EDIT: {
           actions: {
-            type: 'handleEdit'
-          }
+            type: "handleEdit",
+          },
         },
         END_EDIT: {
-          target: 'ready'
-        }
-      }
+          target: "ready",
+        },
+      },
     },
     dragging: {
       invoke: {
-        src: 'Dragger',
+        src: "Dragger",
         input: ({ context }) => {
           return {
             selectedCircleId: context.selectedCircleId,
-            circles: context.circles
+            circles: context.circles,
           };
         },
-        id: 'Dragger'
+        id: "Dragger",
       },
       on: {
         DRAG: {
           actions: {
-            type: 'handleDrag'
-          }
+            type: "handleDrag",
+          },
         },
         END_DRAG: [
           {
-            target: 'ready',
+            target: "ready",
             guard: {
-              type: 'inBounds?'
-            }
+              type: "inBounds?",
+            },
           },
           {
-            target: 'ready',
+            target: "ready",
             actions: {
-              type: 'handleDeleteCircle'
-            }
-          }
-        ]
-      }
-    }
-  }
+              type: "handleDeleteCircle",
+            },
+          },
+        ],
+      },
+    },
+  },
 });
 
 export const CircleContext = createActorContext(machine);
