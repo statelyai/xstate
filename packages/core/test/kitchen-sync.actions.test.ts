@@ -14,8 +14,8 @@ import {
   sendParent,
   sendTo,
   setup,
-  spawnChild,
-  stopChild
+  stopChild,
+  SimulatedClock
 } from '../src';
 
 describe('Consolidated Actions Setup', () => {
@@ -161,9 +161,10 @@ describe('Consolidated Actions Setup', () => {
     }
   });
 
-  const actor = createActor(machine);
+  it('should setup a comprehensive machine with all functionalities', () => {
+    const clock = new SimulatedClock();
+    const actor = createActor(machine, { clock });
 
-  it('should setup a comprehensive machine with all functionalities', (done) => {
     actor.start();
     let snapshot = actor.getSnapshot();
 
@@ -185,24 +186,13 @@ describe('Consolidated Actions Setup', () => {
     snapshot = actor.getSnapshot();
     expect(snapshot.context.data).toBeDefined();
 
-    // Verify sending FINISH_CHILD event to child
     actor.send({ type: 'FINISH_CHILD' });
     snapshot = actor.getSnapshot();
     expect(snapshot.context.child).toBeDefined();
 
-    // Verify the child has transitioned to 'done' and sent 'CHILD_DONE' to parent
-    setTimeout(() => {
-      snapshot = actor.getSnapshot();
-      // Handle child done verification
-
-      // Delay verification to ensure after transition works
-      setTimeout(() => {
-        snapshot = actor.getSnapshot();
-        expect(snapshot.value).toEqual('b');
-        done();
-      }, 150);
-    }, 100);
+    // Increment the clock to simulate delay and verify state transition after delay
+    clock.increment(100);
+    snapshot = actor.getSnapshot();
+    expect(snapshot.value).toEqual('b');
   });
-
-  // Additional tests to verify specific functionalities
 });
