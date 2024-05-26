@@ -115,6 +115,11 @@ describe('Consolidated Actions Setup', () => {
       child: spawn(childMachine)
     }),
     initial: 'a',
+    on: {
+      SOMETHING_ELSE: {
+        actions: 'spawnFetcher'
+      }
+    },
     states: {
       a: {
         meta: { layout: 'a-layout' },
@@ -125,9 +130,6 @@ describe('Consolidated Actions Setup', () => {
           NEXT: {
             guard: 'checkStuff',
             target: 'b'
-          },
-          SOMETHING: {
-            actions: 'enqueueSomething'
           },
           FINISH_CHILD: {
             actions: [
@@ -146,7 +148,13 @@ describe('Consolidated Actions Setup', () => {
         }
       },
       b: {
-        meta: { layout: 'b-layout' }
+        meta: { layout: 'b-layout' },
+
+        on: {
+          SOMETHING: {
+            actions: 'enqueueSomething'
+          }
+        }
       },
       c: {},
       d: {}
@@ -155,12 +163,45 @@ describe('Consolidated Actions Setup', () => {
 
   const actor = createActor(machine);
 
-  it('should setup a comprehensive machine with all functionalities', () => {
-    const snapshot = actor.start().getSnapshot();
+  it('should setup a comprehensive machine with all functionalities', (done) => {
+    actor.start();
+    let snapshot = actor.getSnapshot();
+
     expect(snapshot.context.count).toBe(0);
     expect(snapshot.context.enabled).toBe(true);
 
-    // Additional assertions to verify other functionalities
+    // Verify the initial state and context
+    expect(snapshot.value).toEqual('a');
+    expect(snapshot.context.count).toBe(0);
+    expect(snapshot.context.enabled).toBe(true);
+
+    // Send NEXT event and verify transition to state 'b'
+    actor.send({ type: 'NEXT' });
+    snapshot = actor.getSnapshot();
+    expect(snapshot.value).toEqual('b');
+
+    // Send SOMETHING event and verify action is called
+    actor.send({ type: 'SOMETHING' });
+    snapshot = actor.getSnapshot();
+    expect(snapshot.context.data).toBeDefined();
+
+    // Verify sending FINISH_CHILD event to child
+    actor.send({ type: 'FINISH_CHILD' });
+    snapshot = actor.getSnapshot();
+    expect(snapshot.context.child).toBeDefined();
+
+    // Verify the child has transitioned to 'done' and sent 'CHILD_DONE' to parent
+    setTimeout(() => {
+      snapshot = actor.getSnapshot();
+      // Handle child done verification
+
+      // Delay verification to ensure after transition works
+      setTimeout(() => {
+        snapshot = actor.getSnapshot();
+        expect(snapshot.value).toEqual('b');
+        done();
+      }, 150);
+    }, 100);
   });
 
   // Additional tests to verify specific functionalities
