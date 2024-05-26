@@ -62,7 +62,6 @@ describe('Consolidated Actions Setup', () => {
       check: () => true,
       checkStuff: () => true,
       checkWithParams: (_: any, params: number) => true,
-      checkContext: ({ context }: any) => context.enabled,
       opposite: not('check'),
       combinedCheck: and([
         { type: 'check' },
