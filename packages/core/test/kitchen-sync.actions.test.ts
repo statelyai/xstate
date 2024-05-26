@@ -50,6 +50,7 @@ describe('Consolidated Actions Setup', () => {
         | { type: 'SOMETHING' }
         | { type: 'FINISH_CHILD' }
         | { type: 'CHILD_DONE' }
+        | { type: 'e1' }
         | { type: 'SOMETHING_ELSE' };
       children: {
         myChild: 'child';
@@ -149,11 +150,6 @@ describe('Consolidated Actions Setup', () => {
       },
       c: {},
       d: {}
-    },
-    on: {
-      e1: {
-        meta: { layout: 'event-layout' }
-      }
     }
   });
 
