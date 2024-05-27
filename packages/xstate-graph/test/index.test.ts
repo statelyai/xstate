@@ -4,17 +4,17 @@ import { testUtils } from './testUtils';
 
 describe('events', () => {
   it('should allow for representing many cases', async () => {
-    const feedbackMachine = setup({
-      types: {
-        events: {} as
-          | { type: 'CLICK_BAD' }
-          | { type: 'CLICK_GOOD' }
-          | { type: 'CLOSE' }
-          | { type: 'ESC' }
-          | { type: 'SUBMIT'; value: string }
-      }
-    }).createMachine({
+    type Events =
+      | { type: 'CLICK_BAD' }
+      | { type: 'CLICK_GOOD' }
+      | { type: 'CLOSE' }
+      | { type: 'ESC' }
+      | { type: 'SUBMIT'; value: string };
+    const feedbackMachine = createMachine({
       id: 'feedback',
+      types: {
+        events: {} as Events
+      },
       initial: 'question',
       states: {
         question: {
@@ -64,7 +64,7 @@ describe('events', () => {
       ]
     });
 
-    await testUtils.testShortestPaths(testModel, {});
+    await testUtils.testModel(testModel, {});
   });
 
   it('should not throw an error for unimplemented events', () => {
@@ -81,7 +81,7 @@ describe('events', () => {
     const testModel = createTestModel(testMachine);
 
     expect(async () => {
-      await testUtils.testShortestPaths(testModel, {});
+      await testUtils.testModel(testModel, {});
     }).not.toThrow();
   });
 
@@ -221,7 +221,7 @@ describe('test model options', () => {
       })
     );
 
-    await testUtils.testShortestPaths(model, {
+    await testUtils.testModel(model, {
       states: {
         '*': (state) => {
           testedStates.push(state.value);
@@ -321,7 +321,7 @@ describe('state tests', () => {
 
     const model = createTestModel(machine);
 
-    await testUtils.testShortestPaths(model, {
+    await testUtils.testModel(model, {
       states: {
         a: (state) => {
           expect(state.value).toEqual('a');
@@ -352,7 +352,7 @@ describe('state tests', () => {
 
     const model = createTestModel(machine);
 
-    await testUtils.testShortestPaths(model, {
+    await testUtils.testModel(model, {
       states: {
         a: (state) => {
           expect(state.value).toEqual('a');
@@ -387,7 +387,7 @@ describe('state tests', () => {
 
     const model = createTestModel(machine);
 
-    await testUtils.testShortestPaths(model, {
+    await testUtils.testModel(model, {
       states: {
         a: (state) => {
           testedStateValues.push('a');
@@ -410,5 +410,47 @@ describe('state tests', () => {
         "b.b1",
       ]
     `);
+  });
+
+  it('should test with input', () => {
+    const model = createTestModel(
+      setup({
+        types: {
+          input: {} as {
+            name: string;
+          },
+          context: {} as {
+            name: string;
+          }
+        }
+      }).createMachine({
+        context: (x) => ({
+          name: x.input.name
+        }),
+        initial: 'checking',
+        states: {
+          checking: {
+            always: [
+              { guard: (x) => x.context.name.length > 3, target: 'longName' },
+              { target: 'shortName' }
+            ]
+          },
+          longName: {},
+          shortName: {}
+        }
+      })
+    );
+
+    const path1 = model.getShortestPaths({
+      input: { name: 'ed' }
+    });
+
+    expect(path1[0].steps.map((s) => s.state.value)).toEqual(['shortName']);
+
+    const path2 = model.getShortestPaths({
+      input: { name: 'edward' }
+    });
+
+    expect(path2[0].steps.map((s) => s.state.value)).toEqual(['longName']);
   });
 });

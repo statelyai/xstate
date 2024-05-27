@@ -77,46 +77,4 @@ describe('custom test models', () => {
     expect(testedStateKeys).toContain('even');
     expect(testedStateKeys).toContain('odd');
   });
-
-  it('works with input', async () => {
-    const testedStateKeys: string[] = [];
-
-    const transition = fromTransition(
-      (value, event) => {
-        if (event.type === 'even') {
-          return value / 2;
-        } else {
-          return value * 3 + 1;
-        }
-      },
-      ({ input }: { input: number }) => input
-    );
-
-    const model = new TestModel(transition, {
-      input: 5,
-      events: (state) => {
-        if (state.context % 2 === 0) {
-          return [{ type: 'even' }];
-        }
-        return [{ type: 'odd' }];
-      },
-      stateMatcher: (state, key) => {
-        if (key === 'even') {
-          return state.context % 2 === 0;
-        }
-        if (key === 'odd') {
-          return state.context % 2 === 1;
-        }
-        return false;
-      }
-    });
-
-    const paths = model.getShortestPaths({
-      toState: (state) => state.context === 1
-    });
-
-    expect(paths[0]!.steps.map((s) => s.state.context)).toEqual([
-      5, 16, 8, 4, 2, 1
-    ]);
-  });
 });
