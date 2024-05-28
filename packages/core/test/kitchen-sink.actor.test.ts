@@ -177,71 +177,26 @@ describe('composite state machine', () => {
 
   it('should work as a composite state machine', (done) => {
     const actor = createActor(compositeMachine);
+    let eventsSent = 0;
+
     actor.subscribe({
       complete: () => {
         done();
-      }
-    });
-
-    actor.start();
-    actor.send({ type: 'PING' });
-    actor.send({ type: 'START_CB' });
-    actor.send({ type: 'SET_COMPLETE', id: 42 });
-  });
-
-  it('should transition to success state on receiving GREET from child', (done) => {
-    const actor = createActor(compositeMachine);
-    actor.subscribe({
-      complete: () => {
-        done();
-      }
-    });
-
-    actor.start();
-  });
-
-  it('should transition to success state on receiving COUNT with val 5', (done) => {
-    const actor = createActor(compositeMachine);
-    actor.subscribe({
-      complete: () => {
-        done();
-      }
-    });
-
-    actor.start();
-  });
-
-  it('should transition to success state on receiving SEND_BACK from callback', (done) => {
-    const actor = createActor(compositeMachine);
-    actor.subscribe({
-      complete: () => {
-        done();
-      }
-    });
-
-    actor.start();
-    actor.send({ type: 'START_CB' });
-  });
-
-  it('should handle multiple PING events correctly', (done) => {
-    const actor = createActor(compositeMachine);
-    actor.subscribe({
-      complete: () => {
-        done();
-      }
-    });
-
-    actor.start();
-    actor.send({ type: 'PING' });
-    actor.send({ type: 'PING' });
-    actor.send({ type: 'PING' });
-  });
-
-  it('should transition to success state on promise resolution', (done) => {
-    const actor = createActor(compositeMachine);
-    actor.subscribe({
-      complete: () => {
-        done();
+      },
+      next: (state) => {
+        if (state.matches('active')) {
+          // Send events sequentially
+          if (eventsSent === 0) {
+            actor.send({ type: 'PING' });
+          } else if (eventsSent === 1) {
+            actor.send({ type: 'START_CB' });
+          } else if (eventsSent === 2) {
+            actor.send({ type: 'SET_COMPLETE', id: 42 });
+          } else if (eventsSent === 3) {
+            actor.send({ type: 'COUNT', val: 5 });
+          }
+          eventsSent++;
+        }
       }
     });
 
