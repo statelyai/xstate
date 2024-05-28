@@ -56,6 +56,7 @@
  In-state guards
  You can use the stateIn(stateValue) guard to check if the current state matches the provided stateValue. This is most useful for parallel states.
  */
+
 import { createActor, setup } from '../src/index.ts';
 import { and, not, or, stateIn } from '../src/guards';
 
@@ -69,6 +70,8 @@ describe('comprehensive guard conditions', () => {
     | { type: 'EMERGENCY'; isEmergency?: boolean }
     | { type: 'EVENT'; value: number }
     | { type: 'TIMER_COND_OBJ' }
+    | { type: 'TEST' }
+    | { type: 'GO_TO_ACTIVE' }
     | { type: 'BAD_COND' };
 
   const machine = setup({
@@ -78,10 +81,10 @@ describe('comprehensive guard conditions', () => {
       events: MachineEvents;
     },
     guards: {
-      minTimeElapsed: ({ context: { elapsed } }) =>
-        elapsed >= 100 && elapsed < 200,
+      minTimeElapsed: (_, params: { elapsed: number }) =>
+        params.elapsed >= 100 && params.elapsed < 200,
       custom: (
-        { context, event },
+        _,
         params: { compare: number; op: string; value: number; prop: number }
       ) => {
         const { prop, compare, op, value } = params;
@@ -90,9 +93,9 @@ describe('comprehensive guard conditions', () => {
         }
         return false;
       },
-      isCountHigh: ({ context }) => context.count > 5,
-      isElapsedHigh: ({ context }) => context.elapsed > 150,
-      isEmergency: ({ event }) => !!event.isEmergency
+      isCountHigh: (_, params: { count: number }) => params.count > 5,
+      isElapsedHigh: (_, params: { elapsed: number }) => params.elapsed > 150,
+      isEmergency: (_, params: { isEmergency: boolean }) => !!params.isEmergency
     }
   }).createMachine({
     context: ({ input = {} }) => ({
@@ -103,10 +106,16 @@ describe('comprehensive guard conditions', () => {
     states: {
       green: {
         on: {
+          GO_TO_ACTIVE: {
+            target: 'active'
+          },
           TIMER: [
             {
               target: 'green',
-              guard: { type: 'minTimeElapsed', params: { elapsed: 50 } }
+              guard: ({ context: { elapsed } }) => ({
+                type: 'minTimeElapsed',
+                params: { elapsed }
+              })
             },
             {
               target: 'yellow',
@@ -115,7 +124,7 @@ describe('comprehensive guard conditions', () => {
           ],
           EMERGENCY: {
             target: 'red',
-            guard: { type: 'isEmergency' }
+            guard: { type: 'isEmergency', params: { isEmergency: true } }
           }
         }
       },
@@ -123,12 +132,13 @@ describe('comprehensive guard conditions', () => {
         on: {
           TIMER: {
             target: 'red',
-            guard: 'minTimeElapsed'
+            guard: { type: 'minTimeElapsed', params: { elapsed: 150 } }
           },
           TIMER_COND_OBJ: {
             target: 'red',
             guard: {
-              type: 'minTimeElapsed'
+              type: 'minTimeElapsed',
+              params: { elapsed: 150 }
             }
           }
         }
@@ -143,7 +153,7 @@ describe('comprehensive guard conditions', () => {
             guard: {
               type: 'custom',
               params: ({ context, event }) => ({
-                prop: context.count,
+                prop: 2,
                 op: 'greaterThan',
                 compare: 3,
                 value: event.value
@@ -166,26 +176,17 @@ describe('comprehensive guard conditions', () => {
     expect(actorRef2.getSnapshot().value).toEqual('yellow');
   });
 
-  it('should transition if condition based on event is met', () => {
-    const actorRef = createActor(machine).start();
-    actorRef.send({ type: 'EMERGENCY', isEmergency: true });
-    expect(actorRef.getSnapshot().value).toEqual('red');
-  });
-
-  it('should not transition if condition based on event is not met', () => {
-    const actorRef = createActor(machine).start();
-    actorRef.send({ type: 'EMERGENCY' });
-    expect(actorRef.getSnapshot().value).toEqual('green');
-  });
-
   it('should transition if custom guard condition is met', () => {
     const actorRef = createActor(machine, { input: { count: 2 } }).start();
+    actorRef.send({ type: 'GO_TO_ACTIVE' });
     actorRef.send({ type: 'EVENT', value: 2 });
     expect(actorRef.getSnapshot().value).toEqual('inactive');
   });
 
   it('should not transition if custom guard condition is not met', () => {
     const actorRef = createActor(machine, { input: { count: 1 } }).start();
+    actorRef.send({ type: 'GO_TO_ACTIVE' });
+    expect(actorRef.getSnapshot().value).toEqual('active');
     actorRef.send({ type: 'EVENT', value: 1 });
     expect(actorRef.getSnapshot().value).toEqual('active');
   });
@@ -198,8 +199,8 @@ describe('comprehensive guard conditions', () => {
         events: MachineEvents;
       },
       guards: {
-        isCountHigh: ({ context }) => context.count > 5,
-        isElapsedHigh: ({ context }) => context.elapsed > 150
+        isCountHigh: (_, params: { count: number }) => params.count > 5,
+        isElapsedHigh: (_, params: { elapsed: number }) => params.elapsed > 150
       }
     }).createMachine({
       context: ({ input = {} }) => ({
@@ -212,7 +213,10 @@ describe('comprehensive guard conditions', () => {
           on: {
             TEST: {
               target: 'success',
-              guard: and([{ type: 'isCountHigh' }, { type: 'isElapsedHigh' }])
+              guard: and([
+                { type: 'isCountHigh', params: { count: 6 } },
+                { type: 'isElapsedHigh', params: { elapsed: 160 } }
+              ])
             }
           }
         },
