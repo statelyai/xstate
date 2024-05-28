@@ -1,8 +1,8 @@
 import { createMachine } from 'xstate';
 import { adjacencyMapToArray, createTestModel } from '../src';
 
-describe('model.getAdjacencyMap()', () => {
-  it('generates an adjacency map (converted to an array)', () => {
+describe('adjacency maps', () => {
+  it('model generates an adjacency map (converted to an array)', () => {
     const machine = createMachine({
       initial: 'standing',
       states: {
@@ -66,5 +66,61 @@ describe('model.getAdjacencyMap()', () => {
         "Given Mario is standing, when up, then jumping",
       ]
     `);
+  });
+
+  it('function generates an adjacency map (converted to an array)', () => {
+    const machine = createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          on: {
+            TIMER: 'yellow'
+          }
+        },
+        yellow: {
+          on: {
+            TIMER: 'red'
+          }
+        },
+        red: {
+          on: {
+            TIMER: 'green'
+          }
+        }
+      }
+    });
+
+    const arr = adjacencyMapToArray(createTestModel(machine).getAdjacencyMap());
+
+    expect(
+      arr.map((x) => ({
+        state: x.state.value,
+        event: x.event.type,
+        nextState: x.nextState.value
+      }))
+    ).toMatchInlineSnapshot(`
+[
+  {
+    "event": "TIMER",
+    "nextState": "yellow",
+    "state": "green",
+  },
+  {
+    "event": "TIMER",
+    "nextState": "red",
+    "state": "yellow",
+  },
+  {
+    "event": "TIMER",
+    "nextState": "green",
+    "state": "red",
+  },
+  {
+    "event": "TIMER",
+    "nextState": "yellow",
+    "state": "green",
+  },
+]
+`);
   });
 });
