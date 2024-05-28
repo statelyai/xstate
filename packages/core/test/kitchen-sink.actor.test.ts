@@ -184,15 +184,22 @@ describe('composite state machine', () => {
         done();
       },
       next: (state) => {
+        // Log state transitions
+        console.log('State:', state.value);
+
         if (state.matches('active')) {
           // Send events sequentially
           if (eventsSent === 0) {
+            console.log('Sending PING event');
             actor.send({ type: 'PING' });
           } else if (eventsSent === 1) {
+            console.log('Sending START_CB event');
             actor.send({ type: 'START_CB' });
           } else if (eventsSent === 2) {
+            console.log('Sending SET_COMPLETE event');
             actor.send({ type: 'SET_COMPLETE', id: 42 });
           } else if (eventsSent === 3) {
+            console.log('Sending COUNT event');
             actor.send({ type: 'COUNT', val: 5 });
           }
           eventsSent++;
