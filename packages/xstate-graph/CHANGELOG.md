@@ -1,5 +1,215 @@
 # @xstate/graph
 
+## 2.0.0
+
+### Major Changes
+
+- [#4896](https://github.com/statelyai/xstate/pull/4896) [`7c6e2ea`](https://github.com/statelyai/xstate/commit/7c6e2ea) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Test model path generation now has the option to allow duplicate paths by setting `allowDuplicatePaths: true`:
+
+  ```ts
+  const paths = model.getSimplePaths({
+    allowDuplicatePaths: true
+  });
+  // a
+  // a -> b
+  // a -> b -> c
+  // a -> d
+  // a -> d -> e
+  ```
+
+  By default, `allowDuplicatePaths` is set to `false`:
+
+  ```ts
+  const paths = model.getSimplePaths();
+  // a -> b -> c
+  // a -> d -> e
+  ```
+
+- [#4896](https://github.com/statelyai/xstate/pull/4896) [`7c6e2ea`](https://github.com/statelyai/xstate/commit/7c6e2ea) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `adjacencyMapToArray(…)` helper function has been introduced, which converts an adjacency map to an array of `{ state, event, nextState }` objects.
+
+  ```ts
+  import { getAdjacencyMap, adjacencyMapToArray } from '@xstate/graph';
+
+  const machine = createMachine({
+    initial: 'green',
+    states: {
+      green: {
+        on: {
+          TIMER: 'yellow'
+        }
+      },
+      yellow: {
+        on: {
+          TIMER: 'red'
+        }
+      },
+      red: {
+        on: {
+          TIMER: 'green'
+        }
+      }
+    }
+  });
+
+  const arr = adjacencyMapToArray(getAdjacencyMap(machine));
+  // [
+  //   {
+  //     "state": {value: "green", ... },
+  //     "event": { type: "TIMER" },
+  //     "nextState": { value: "yellow", ... }
+  //   },
+  //   {
+  //     "state": {value: "yellow", ... },
+  //     "event": { type: "TIMER" },
+  //     "nextState": { value: "red", ... }
+  //   },
+  //   {
+  //     "state": {value: "red", ... },
+  //     "event": { type: "TIMER" },
+  //     "nextState": { value: "green", ... }
+  //   },
+  //   {
+  //     "state": {value: "green", ... },
+  //     "event": { type: "TIMER" },
+  //     "nextState": { value: "yellow", ... }
+  //   },
+  // ]
+  ```
+
+- [#4896](https://github.com/statelyai/xstate/pull/4896) [`7c6e2ea`](https://github.com/statelyai/xstate/commit/7c6e2ea) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `traversalLimit` option has been renamed to `limit`:
+
+  ```diff
+  model.getShortestPaths({
+  - traversalLimit: 100
+  + limit: 100
+  });
+  ```
+
+- [#4233](https://github.com/statelyai/xstate/pull/4233) [`3d96d0f95`](https://github.com/statelyai/xstate/commit/3d96d0f95) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Remove `getMachineShortestPaths` and `getMachineSimplePaths`
+
+  ```diff
+  import {
+  - getMachineShortestPaths,
+  + getShortestPaths,
+  - getMachineSimplePaths,
+  + getSimplePaths
+  } from '@xstate/graph';
+
+  -const paths = getMachineShortestPaths(machine);
+  +const paths = getShortestPaths(machine);
+
+  -const paths = getMachineSimplePaths(machine);
+  +const paths = getSimplePaths(machine);
+  ```
+
+- [#4238](https://github.com/statelyai/xstate/pull/4238) [`b4f12a517`](https://github.com/statelyai/xstate/commit/b4f12a517) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The steps in the paths returned from functions like `getShortestPaths(...)` and `getSimplePaths(...)` have the following changes:
+
+  - The `step.event` property now represents the `event` object that resulted in the transition to the `step.state`, _not_ the event that comes before the next step.
+  - The `path.steps` array now includes the target `path.state` as the last step.
+    - Note: this means that `path.steps` always has at least one step.
+  - The first `step` now has the `{ type: 'xstate.init' }` event
+
+- [#4896](https://github.com/statelyai/xstate/pull/4896) [`7c6e2ea`](https://github.com/statelyai/xstate/commit/7c6e2ea) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createTestMachine(…)` function has been removed. Use a normal `createMachine(…)` or `setup(…).createMachine(…)` function instead to create machines for path generation.
+
+- [#4896](https://github.com/statelyai/xstate/pull/4896) [`7c6e2ea`](https://github.com/statelyai/xstate/commit/7c6e2ea) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `filter` and `stopCondition` option for path generation has been renamed to `stopWhen`, which is used to stop path generation when a condition is met. This is a breaking change, but it is a more accurate name for the option.
+
+  ```diff
+  const shortestPaths = getShortestPaths(machine, {
+    events: [{ type: 'INC' }],
+  - filter: (state) => state.context.count < 5
+  - stopCondition: (state) => state.context.count < 5
+  + stopWhen: (state) => state.context.count === 5
+  });
+  ```
+
+- [#4896](https://github.com/statelyai/xstate/pull/4896) [`7c6e2ea`](https://github.com/statelyai/xstate/commit/7c6e2ea) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Path generation now supports `input` for actor logic:
+
+  ```ts
+  const model = createTestModel(
+    setup({
+      types: {
+        input: {} as {
+          name: string;
+        },
+        context: {} as {
+          name: string;
+        }
+      }
+    }).createMachine({
+      context: (x) => ({
+        name: x.input.name
+      }),
+      initial: 'checking',
+      states: {
+        checking: {
+          always: [
+            { guard: (x) => x.context.name.length > 3, target: 'longName' },
+            { target: 'shortName' }
+          ]
+        },
+        longName: {},
+        shortName: {}
+      }
+    })
+  );
+
+  const path1 = model.getShortestPaths({
+    input: { name: 'ed' }
+  });
+
+  expect(path1[0].steps.map((s) => s.state.value)).toEqual(['shortName']);
+
+  const path2 = model.getShortestPaths({
+    input: { name: 'edward' }
+  });
+
+  expect(path2[0].steps.map((s) => s.state.value)).toEqual(['longName']);
+  ```
+
+- [#4896](https://github.com/statelyai/xstate/pull/4896) [`7c6e2ea`](https://github.com/statelyai/xstate/commit/7c6e2ea) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The test model "sync" methods have been removed, including:
+
+  - `testModel.testPathSync(…)`
+  - `testModel.testStateSync(…)`
+  - `testPath.testSync(…)`
+
+  The `async` methods should always be used instead.
+
+  ```diff
+  model.getShortestPaths().forEach(async (path) => {
+  - model.testPathSync(path, {
+  + await model.testPath(path, {
+      states: { /* ... */ },
+      events: { /* ... */ },
+    });
+  })
+  ```
+
+### Minor Changes
+
+- [#3727](https://github.com/statelyai/xstate/pull/3727) [`5fb3c683d`](https://github.com/statelyai/xstate/commit/5fb3c683d) Thanks [@Andarist](https://github.com/Andarist)! - `exports` field has been added to the `package.json` manifest. It limits what files can be imported from a package - it's no longer possible to import from files that are not considered to be a part of the public API.
+
+### Patch Changes
+
+- [#4896](https://github.com/statelyai/xstate/pull/4896) [`7c6e2ea`](https://github.com/statelyai/xstate/commit/7c6e2ea) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `@xstate/graph` package now includes everything from `@xstate/test`.
+
+- [#4308](https://github.com/statelyai/xstate/pull/4308) [`af032db12`](https://github.com/statelyai/xstate/commit/af032db12) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Traversing state machines that have delayed transitions will now work as expected:
+
+  ```ts
+  const machine = createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        after: {
+          1000: 'b'
+        }
+      },
+      b: {}
+    }
+  });
+
+  const paths = getShortestPaths(machine); // works
+  ```
+
 ## 2.0.0-beta.6
 
 ### Minor Changes
