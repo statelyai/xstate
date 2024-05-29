@@ -6,7 +6,7 @@ import {
   Snapshot
 } from 'xstate';
 import { SerializedEvent, SerializedSnapshot, TraversalOptions } from './types';
-import { AdjacencyMap, resolveTraversalOptions } from './graph';
+import { AdjacencyMap, AdjacencyValue, resolveTraversalOptions } from './graph';
 import { createMockActorScope } from './actorScope';
 
 export function getAdjacencyMap<
@@ -96,4 +96,32 @@ export function getAdjacencyMap<
   }
 
   return adj;
+}
+
+export function adjacencyMapToArray<TSnapshot, TEvent>(
+  adjMap: AdjacencyMap<TSnapshot, TEvent>
+): Array<{
+  state: TSnapshot;
+  event: TEvent;
+  nextState: TSnapshot;
+}> {
+  const adjList: Array<{
+    state: TSnapshot;
+    event: TEvent;
+    nextState: TSnapshot;
+  }> = [];
+
+  for (const adjValue of Object.values(adjMap)) {
+    for (const transition of Object.values(
+      (adjValue as AdjacencyValue<TSnapshot, TEvent>).transitions
+    )) {
+      adjList.push({
+        state: (adjValue as AdjacencyValue<TSnapshot, TEvent>).state,
+        event: transition.event,
+        nextState: transition.state
+      });
+    }
+  }
+
+  return adjList;
 }
