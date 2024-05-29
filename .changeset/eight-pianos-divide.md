@@ -2,6 +2,10 @@
 '@xstate/graph': major
 ---
 
+pr: #4896
+commit: 7c6e2ea
+
+
 Test model path generation now has the option to allow duplicate paths by setting `allowDuplicatePaths: true`:
 
 ```ts
