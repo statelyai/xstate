@@ -1,6 +1,5 @@
 ---
 '@xstate/graph': minor
-'@xstate/test': minor
 ---
 
 pr: #3727
