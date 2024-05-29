@@ -2,6 +2,9 @@
 '@xstate/graph': major
 ---
 
+pr: #4896
+commit: 7c6e2ea
+
 The test model "sync" methods have been removed, including:
 
 - `testModel.testPathSync(…)`

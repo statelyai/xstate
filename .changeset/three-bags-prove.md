@@ -2,6 +2,9 @@
 '@xstate/graph': major
 ---
 
+pr: #4896
+commit: 7c6e2ea
+
 Path generation now supports `input` for actor logic:
 
 ```ts

@@ -2,6 +2,9 @@
 '@xstate/graph': major
 ---
 
+pr: #4896
+commit: 7c6e2ea
+
 The `filter` and `stopCondition` option for path generation has been renamed to `stopWhen`, which is used to stop path generation when a condition is met. This is a breaking change, but it is a more accurate name for the option.
 
 ```diff

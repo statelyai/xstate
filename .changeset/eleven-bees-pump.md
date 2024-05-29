@@ -2,6 +2,9 @@
 '@xstate/graph': major
 ---
 
+pr: #4896
+commit: 7c6e2ea
+
 The `adjacencyMapToArray(…)` helper function has been introduced, which converts an adjacency map to an array of `{ state, event, nextState }` objects.
 
 ```ts
