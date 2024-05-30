@@ -1,5 +1,17 @@
 # @xstate/store
 
+## 0.0.5
+
+### Patch Changes
+
+- [#4918](https://github.com/statelyai/xstate/pull/4918) [`3323c85a6`](https://github.com/statelyai/xstate/commit/3323c85a6159d63fc73e83985ef46796f3582d90) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Types are now exported:
+
+  ```ts
+  import type { SnapshotFromStore } from '@xstate/store';
+
+  // ...
+  ```
+
 ## 0.0.4
 
 ### Patch Changes
