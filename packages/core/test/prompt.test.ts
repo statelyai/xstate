@@ -1,15 +1,96 @@
 /**
- * You have access to extensive training data on XState version 4. However, XState version 5 has been universally released with significant breaking changes. Follow these guidelines for XState version 5 unless explicitly stated otherwise by the user:
+ * ## SITUATION
+ * You have access to extensive training data on XState version 4. However,
+ * XState version 5 has been universally released with significant breaking
+ * changes. Follow these guidelines for XState version 5 unless explicitly
+ * stated otherwise by the user:
  *
+ * ## INSTRUCTIONS
+ *
+ * 1. **Gather Requirements and Clarify**
+ *    - The user provides a description of the state machine they would like
+ *      to build.
+ *    - Assume the description will be incomplete. First, lay out a happy path
+ *      of the sequence of events that will cause transitions, side effects
+ *      that will occur, actions that will be invoked, events that will
+ *      trigger those actions and transitions, etc.
+ *    - Fill in the blanks where there are holes in the user's description by
+ *      asking clarifying questions. Establish a full picture of the user's
+ *      idea before starting to write code to avoid wasting time.
+ *
+ * 2. **Test-Driven Development**
+ *    - Write tests first based on the clarified requirements.
+ *
+ * 3. **Define Action Functions**
+ *    - Always define action functions with an empty first parameter of type
+ *      `any` with parameters that are strongly typed to what your action
+ *      function needs.
+ *
+ * 4. **Declare Machine Context**
+ *    - Always declare a machine context as an interface.
+ *
+ * 5. **Declare Initial Context**
+ *    - Declare an initial context of type example initial context, using your
+ *      best judgment to name that context outside of the machine.
+ *
+ * 6. **Define Union Type of Machine Events**
+ *    - Define a union type of machine events prefixed by a short domain.
+ *      Event types should be lowercase, camel case. If an event has a value
+ *      it needs attached, add that value directly to the type. Avoid nested
+ *      params.
+ *
+ * 7. **Use the New Setup API**
+ *    - Always use the new setup API as demonstrated in the example machine.
+ *      Pass in types for context, events, guards, actors, etc.
+ *
+ * 8. **Pass in Actions**
+ *    - Pass in actions from above. If there are assign actions, define those
+ *      inline in the actions block in the setup.
+ *
+ * 9. **Define Guards**
+ *    - Define guards in the setup block, similar to actions, with an
+ *      underscore ignored argument as the first argument and strongly typed
+ *      parameters for the second argument.
+ *
+ * 10. **Casing Conventions**
+ *     - Events will be lowercase camelcase and will be prefixed by some
+ *       domain type to which they belong.
+ *     - States will be pascalcase.
+ *     - Delays will be pascalcase.
+ *     - Actions will be camelcase.
+ *     - We will have no screaming snakecase, snakecase, or kebabcase.
+ *
+ * ---
+ *
+ * ### Summary
+ *
+ * To build a state machine with XState version 5 following these instructions,
+ * start by gathering and clarifying requirements from the user to ensure a
+ * complete understanding of the desired functionality. Write tests first based
+ * on the clarified requirements before proceeding to define the state machine.
+ * Always define action functions with an empty first parameter of type `any`
+ * and strongly typed parameters for the rest. Declare the machine context as
+ * an interface and the initial context outside of the machine. Define a union
+ * type for machine events with lowercase, camelcase event types. Use the new
+ * setup API, passing in types for context, events, guards, actors, etc. Pass
+ * in actions, defining inline assign actions in the setup block. Define guards
+ * similarly to actions. Follow the specified casing conventions: events in
+ * lowercase camelcase with domain prefix, states and delays in pascalcase,
+ * and actions in camelcase. Avoid using screaming snakecase, snakecase, or
+ * kebabcase. This approach ensures clarity, strong typing, and adherence to
+ * best practices in XState version 5.
  * ### XState and TypeScript Integration
  *
  * #### Comprehensive Example
  *
- * The following example demonstrates how all the functionality within XState v5 works, including setting up actions, using dynamic parameters, specifying types, and defining context and event types externally.
+ * The following example demonstrates how all the functionality within XState
+ * v5 works, including setting up actions, using dynamic parameters, specifying
+ * types, and defining context and event types externally.
  *
  * #### Type Helpers
  *
- * Utilize type helpers provided by XState for strongly-typed references, snapshots, and events:
+ * Utilize type helpers provided by XState for strongly-typed references,
+ * snapshots, and events:
  *
  * ```typescript
  * import {
@@ -28,29 +109,6 @@
  * // Union of all event types
  * type SomeEvent = EventFromLogic<typeof someMachine>;
  * ```
- *
- * #### Cheat Sheet: Provide Implementations
- *
- * ```typescript
- * import { createMachine } from 'xstate';
- * import { someMachine } from './someMachine';
- *
- * const machineWithImpls = someMachine.provide({
- *   actions: {
- *     ...
- *   },
- *   actors: {
- *     ...
- *   },
- *   guards: {
- *     ...
- *   },
- *   delays: {
- *     ...
- *   }
- * });
- * ```
- *
  * ### Additional Instructions
  *
  * If you are unaware of how a specific piece of functionality works, ask for
@@ -62,17 +120,12 @@
  * refactorable.
  */
 
-import { createActor, setup } from 'xstate';
+import { assign, createActor, setup } from 'xstate';
 
 // Define action implementations
 function track(_: any, params: { response: string }) {
   // tslint:disable-next-line:no-console
   console.log(`Tracking response: ${params.response}`);
-}
-
-function increment(_: any, params: { value: number }) {
-  // tslint:disable-next-line:no-console
-  console.log(`Incrementing by: ${params.value}`);
 }
 
 function logInitialRating(_: any, params: { initialRating: number }) {
@@ -89,20 +142,23 @@ interface ExampleMachineContext {
   feedback: string;
   initialRating: number;
   user: { name: string };
+  count: number;
 }
 
 const InitialContext: ExampleMachineContext = {
   feedback: '',
   initialRating: 3,
-  user: { name: 'David' }
-};
+  user: { name: 'David' },
+  count: 0
+} as const;
 
 // Define event types
 type ExampleMachineEvents =
   | { type: 'feedback.good' }
   | { type: 'feedback.bad' }
-  | { type: 'count.increment'; count: number }
-  | { type: 'count.decrement'; count: number };
+  | { type: 'count.increment' }
+  | { type: 'count.incrementBy'; increment: number }
+  | { type: 'count.decrement' };
 
 // Machine setup with strongly typed context and events
 const exampleMachine = setup({
@@ -112,9 +168,20 @@ const exampleMachine = setup({
   },
   actions: {
     track,
-    increment,
     logInitialRating,
-    greet
+    greet,
+    increment: assign({
+      count: ({ context }) => {
+        return context.count + 1;
+      }
+    }),
+    decrement: assign({ count: ({ context }) => context.count - 1 }),
+    incrementBy: assign({
+      count: ({ context }, params: { increment: number }) => {
+        const result = context.count + params.increment;
+        return result;
+      }
+    })
   },
   guards: {
     isGreaterThan: (_, params: { count: number; min: number }) => {
@@ -128,7 +195,6 @@ const exampleMachine = setup({
   context: InitialContext,
   entry: [
     { type: 'track', params: { response: 'good' } },
-    { type: 'increment', params: { value: 1 } },
     {
       type: 'logInitialRating',
       params: ({ context }) => ({ initialRating: context.initialRating })
@@ -159,27 +225,51 @@ const exampleMachine = setup({
         },
         'count.increment': [
           {
+            actions: 'increment',
             guard: {
               type: 'isGreaterThan',
-              params: ({ event }) => ({ count: event.count, min: 5 })
+              params: ({ context }) => ({ count: context.count, min: 5 })
             },
             target: 'greater'
           },
           {
-            guard: {
-              type: 'isLessThan',
-              params: ({ event }) => ({ count: event.count, max: 5 })
-            },
-            target: 'less'
+            actions: 'increment'
           }
         ],
-        'count.decrement': {
-          guard: {
-            type: 'isLessThan',
-            params: ({ event }) => ({ count: event.count, max: 0 })
+        'count.incrementBy': [
+          {
+            actions: {
+              type: 'incrementBy',
+              params: ({ event }) => ({
+                increment: event.increment
+              })
+            },
+            guard: {
+              type: 'isGreaterThan',
+              params: ({ context }) => ({ count: context.count, min: 5 })
+            },
+            target: 'greater'
           },
-          target: 'negative'
-        }
+          {
+            actions: {
+              type: 'incrementBy',
+              params: ({ event }) => ({
+                increment: event.increment
+              })
+            }
+          }
+        ],
+        'count.decrement': [
+          {
+            actions: 'decrement',
+            guard: {
+              type: 'isLessThan',
+              params: ({ context }) => ({ count: context.count, max: 0 })
+            },
+            target: 'negative'
+          },
+          { actions: 'decrement' }
+        ]
       }
     },
     greater: {
@@ -223,10 +313,9 @@ describe('exampleMachine', () => {
   it('should log initial rating and greet user on entry', () => {
     const logSpy = jest.spyOn(console, 'log').mockImplementation();
 
-    const actor = createActor(exampleMachine).start();
+    createActor(exampleMachine).start();
 
     expect(logSpy).toHaveBeenCalledWith('Tracking response: good');
-    expect(logSpy).toHaveBeenCalledWith('Incrementing by: 1');
     expect(logSpy).toHaveBeenCalledWith('Initial rating: 3');
     expect(logSpy).toHaveBeenCalledWith('Hello, David!');
 
@@ -236,49 +325,24 @@ describe('exampleMachine', () => {
   it('should transition to "greater" state if count is greater than 5', () => {
     const actor = createActor(exampleMachine).start();
 
-    actor.send({ type: 'count.increment', count: 6 });
+    actor.send({ type: 'count.incrementBy', increment: 6 });
+    actor.send({ type: 'count.incrementBy', increment: 6 });
+    expect(actor.getSnapshot().context.count).toEqual(12);
     expect(actor.getSnapshot().matches('greater')).toBeTruthy();
-  });
-
-  it('should transition to "less" state if count is less than 5', () => {
-    const actor = createActor(exampleMachine).start();
-
-    actor.send({ type: 'count.increment', count: 4 });
-    expect(actor.getSnapshot().matches('less')).toBeTruthy();
   });
 
   it('should transition to "negative" state if count is less than 0', () => {
     const actor = createActor(exampleMachine).start();
 
-    actor.send({ type: 'count.decrement', count: -1 });
+    actor.send({ type: 'count.decrement' });
+    actor.send({ type: 'count.decrement' });
     expect(actor.getSnapshot().matches('negative')).toBeTruthy();
   });
 
   it('should stay in "question" state if no guards are satisfied', () => {
     const actor = createActor(exampleMachine).start();
 
-    actor.send({ type: 'count.increment', count: 5 });
+    actor.send({ type: 'count.incrementBy', increment: 5 });
     expect(actor.getSnapshot().matches('question')).toBeTruthy();
-  });
-
-  it('should transition to "less" state if count is less than 5', () => {
-    const actor = createActor(exampleMachine).start();
-
-    // Send an increment event to transition to the greater state
-    actor.send({ type: 'count.increment', count: 6 });
-    expect(actor.getSnapshot().matches('greater')).toBeTruthy();
-
-    // Expectation before stopping the actor
-    expect(actor.getSnapshot().value).toEqual('greater');
-
-    // Create a new actor instance
-    const extendedActor = createActor(exampleMachine).start();
-
-    // Ensure the new actor starts in the initial state 'question'
-    expect(extendedActor.getSnapshot().matches('question')).toBeTruthy();
-
-    // Send an increment event to transition to the less state
-    extendedActor.send({ type: 'count.increment', count: 4 });
-    expect(extendedActor.getSnapshot().matches('less')).toBeTruthy();
   });
 });
