@@ -250,7 +250,8 @@ describe('exampleMachine', () => {
   it('should stay in "Question" state if no guards are satisfied', () => {
     const actor = createActor(exampleMachine).start();
 
-    actor.send({ type: 'count.incrementBy', increment: 5 });
+    actor.send({ type: 'count.incrementBy', increment: -5 });
+    expect(actor.getSnapshot().context.count).toEqual(-5);
     expect(actor.getSnapshot().matches('Question')).toBeTruthy();
   });
 });
