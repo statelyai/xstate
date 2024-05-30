@@ -8,14 +8,15 @@
  * ## INSTRUCTIONS
  *
  * 1. **Gather Requirements and Clarify**
- *    - Obtain a description of the state machine from the user and assume
+ *    - Obtain a description of the state machine from the user, assuming
  *      it will be incomplete. Lay out a happy path of events causing
- *      transitions, side effects, actions, and triggers. Fill in the gaps
- *      by asking clarifying questions to establish a full picture before
+ *      transitions, side effects, actions, and triggers. Fill in gaps by
+ *      asking clarifying questions to establish a full picture before
  *      starting to code.
  *
  * 2. **Test-Driven Development**
- *    - Write tests first based on the clarified requirements.
+ *    - Write tests first based on the clarified requirements, using the
+ *      simulated clock strategy instead of Jest's simulated clock.
  *
  * 3. **Define Action Functions**
  *    - Define action functions with an empty first parameter of type `any`
@@ -48,7 +49,7 @@
  *    - Avoid using screaming snakecase, snakecase, or kebabcase.
  */
 
-import { assign, createActor, setup } from 'xstate';
+import { assign, createActor, setup, SimulatedClock } from 'xstate';
 
 function logInitialRating(_: any, params: { initialRating: number }) {
   console.log(`Initial rating: ${params.initialRating}`);
@@ -77,8 +78,7 @@ type ExampleMachineEvents =
   | { type: 'feedback.good' }
   | { type: 'feedback.bad' }
   | { type: 'count.increment' }
-  | { type: 'count.incrementBy'; increment: number }
-  | { type: 'count.decrement' };
+  | { type: 'count.incrementBy'; increment: number };
 
 // Machine setup with strongly typed context and events
 const exampleMachine = setup({
@@ -105,10 +105,10 @@ const exampleMachine = setup({
   guards: {
     isGreaterThan: (_, params: { count: number; min: number }) => {
       return params.count > params.min;
-    },
-    isLessThan: (_, params: { count: number; max: number }) => {
-      return params.count < params.max;
     }
+  },
+  delays: {
+    testDelay: 10_000
   }
 }).createMachine({
   context: InitialContext,
@@ -175,18 +175,10 @@ const exampleMachine = setup({
               })
             }
           }
-        ],
-        'count.decrement': [
-          {
-            actions: 'decrement',
-            guard: {
-              type: 'isLessThan',
-              params: ({ context }) => ({ count: context.count, max: 0 })
-            },
-            target: 'Negative'
-          },
-          { actions: 'decrement' }
         ]
+      },
+      after: {
+        testDelay: 'TimedOut'
       }
     },
     Greater: {
@@ -196,6 +188,9 @@ const exampleMachine = setup({
       type: 'final'
     },
     Negative: {
+      type: 'final'
+    },
+    TimedOut: {
       type: 'final'
     }
   }
@@ -253,5 +248,18 @@ describe('exampleMachine', () => {
     actor.send({ type: 'count.incrementBy', increment: -5 });
     expect(actor.getSnapshot().context.count).toEqual(-5);
     expect(actor.getSnapshot().matches('Question')).toBeTruthy();
+  });
+
+  it('should transition to "TimedOut" state after delay', () => {
+    const clock = new SimulatedClock();
+    const actor = createActor(exampleMachine, {
+      clock
+    }).start();
+
+    expect(actor.getSnapshot().value).toEqual('Question');
+
+    clock.increment(10_000);
+
+    expect(actor.getSnapshot().value).toEqual('TimedOut');
   });
 });
