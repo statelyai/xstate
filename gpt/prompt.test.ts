@@ -12,11 +12,11 @@
  *      it will be incomplete. Lay out a happy path of events causing
  *      transitions, side effects, actions, and triggers. Fill in gaps by
  *      asking clarifying questions to establish a full picture before
- *      starting to code.
+ *      starting to code. WAIT for the user to respond before writing any code.
  *
  * 2. **Test-Driven Development**
- *    - Write tests first based on the clarified requirements, using the
- *      simulated clock strategy instead of Jest's simulated clock.
+ *    - Write tests first based on the clarified requirements
+ *    - use the SimulatedClock instead of Jest's simulated clock.
  *
  * 3. **Define Action Functions**
  *    - Define action functions with an empty first parameter of type `any`
@@ -56,10 +56,6 @@ function logInitialRating(_: any, params: { initialRating: number }) {
   console.log(`Initial rating: ${params.initialRating}`);
 }
 
-function greet(_: any, params: { name: string }) {
-  console.log(`Hello, ${params.name}!`);
-}
-
 interface ExampleMachineContext {
   feedback: string;
   initialRating: number;
@@ -89,7 +85,6 @@ const exampleMachine = setup({
   },
   actions: {
     logInitialRating,
-    greet,
     increment: assign({
       count: ({ context }) => {
         return context.count + 1;
@@ -117,10 +112,6 @@ const exampleMachine = setup({
     {
       type: 'logInitialRating',
       params: ({ context }) => ({ initialRating: context.initialRating })
-    },
-    {
-      type: 'greet',
-      params: ({ context }) => ({ name: context.user.name })
     }
   ],
   initial: 'Question',
@@ -134,10 +125,6 @@ const exampleMachine = setup({
               params: ({ context }) => ({
                 initialRating: context.initialRating
               })
-            },
-            {
-              type: 'greet',
-              params: ({ context }) => ({ name: context.user.name })
             }
           ]
         },
@@ -223,13 +210,12 @@ const invalidEvent: SomeEvent = { invalid: true }; // Should produce a type erro
 const validEvent: SomeEvent = { type: 'feedback.good' }; // Should be valid
 
 describe('exampleMachine', () => {
-  it('should log initial rating and greet user on entry', () => {
+  it('should log initial rating on entry', () => {
     const logSpy = jest.spyOn(console, 'log').mockImplementation();
 
     createActor(exampleMachine).start();
 
     expect(logSpy).toHaveBeenCalledWith('Initial rating: 3');
-    expect(logSpy).toHaveBeenCalledWith('Hello, David!');
 
     logSpy.mockRestore();
   });
