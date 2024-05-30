@@ -204,9 +204,9 @@ const exampleMachine = setup({
       params: ({ context }) => ({ name: context.user.name })
     }
   ],
-  initial: 'question',
+  initial: 'Question',
   states: {
-    question: {
+    Question: {
       on: {
         'feedback.good': {
           actions: [
@@ -230,7 +230,7 @@ const exampleMachine = setup({
               type: 'isGreaterThan',
               params: ({ context }) => ({ count: context.count, min: 5 })
             },
-            target: 'greater'
+            target: 'Greater'
           },
           {
             actions: 'increment'
@@ -248,7 +248,7 @@ const exampleMachine = setup({
               type: 'isGreaterThan',
               params: ({ context }) => ({ count: context.count, min: 5 })
             },
-            target: 'greater'
+            target: 'Greater'
           },
           {
             actions: {
@@ -266,19 +266,19 @@ const exampleMachine = setup({
               type: 'isLessThan',
               params: ({ context }) => ({ count: context.count, max: 0 })
             },
-            target: 'negative'
+            target: 'Negative'
           },
           { actions: 'decrement' }
         ]
       }
     },
-    greater: {
+    Greater: {
       type: 'final'
     },
-    less: {
+    Less: {
       type: 'final'
     },
-    negative: {
+    Negative: {
       type: 'final'
     }
   }
@@ -322,27 +322,27 @@ describe('exampleMachine', () => {
     logSpy.mockRestore();
   });
 
-  it('should transition to "greater" state if count is greater than 5', () => {
+  it('should transition to "Greater" state if count is greater than 5', () => {
     const actor = createActor(exampleMachine).start();
 
     actor.send({ type: 'count.incrementBy', increment: 6 });
     actor.send({ type: 'count.incrementBy', increment: 6 });
     expect(actor.getSnapshot().context.count).toEqual(12);
-    expect(actor.getSnapshot().matches('greater')).toBeTruthy();
+    expect(actor.getSnapshot().matches('Greater')).toBeTruthy();
   });
 
-  it('should transition to "negative" state if count is less than 0', () => {
+  it('should transition to "Negative" state if count is less than 0', () => {
     const actor = createActor(exampleMachine).start();
 
     actor.send({ type: 'count.decrement' });
     actor.send({ type: 'count.decrement' });
-    expect(actor.getSnapshot().matches('negative')).toBeTruthy();
+    expect(actor.getSnapshot().matches('Negative')).toBeTruthy();
   });
 
-  it('should stay in "question" state if no guards are satisfied', () => {
+  it('should stay in "Question" state if no guards are satisfied', () => {
     const actor = createActor(exampleMachine).start();
 
     actor.send({ type: 'count.incrementBy', increment: 5 });
-    expect(actor.getSnapshot().matches('question')).toBeTruthy();
+    expect(actor.getSnapshot().matches('Question')).toBeTruthy();
   });
 });
