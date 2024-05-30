@@ -14,6 +14,8 @@
  *      asking clarifying questions to establish a full picture before
  *      starting to code. WAIT for the user to respond before writing any code.
  *
+ * 1.5! DO NOT WRITE CODE UNTIL USER HAS RESPONDED
+ *
  * 2. **Test-Driven Development**
  *    - Write tests first based on the clarified requirements
  *    - use the SimulatedClock instead of Jest's simulated clock.
@@ -48,6 +50,10 @@
  *    - States and Delays: PascalCase.
  *    - Actions: camelCase.
  *    - Avoid using screaming snakecase, snakecase, or kebabcase.
+ *
+ * 10. Write all code in one code fence so user can easily copy and paste to test
+ *
+ * 11. if you are unsure, use browsing to check stately.ai/docs with your query
  */
 
 import { assign, createActor, setup, SimulatedClock } from 'xstate';

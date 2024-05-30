@@ -1,183 +1,169 @@
-import { assign, createActor, setup, SimulatedClock } from 'xstate';
-
-function logCount(_: any, params: { count: number }) {
-  console.log(`Current count: ${params.count}`);
-}
-
-interface CountingMachineContext {
+import { createActor, SimulatedClock } from 'xstate';
+interface CounterMachineContext {
   count: number;
-  wait: boolean;
+  isWaiting: boolean;
+  isNormalState: boolean;
 }
 
-const InitialContext: CountingMachineContext = {
+const initialContext: CounterMachineContext = {
   count: 0,
-  wait: false
+  isWaiting: false,
+  isNormalState: true
 };
-
-type CountingMachineEvents =
+type CounterMachineEvents =
   | { type: 'increment' }
   | { type: 'decrement' }
   | { type: 'reset' }
-  | { type: 'random' }
-  | { type: 'error'; message: string };
+  | { type: 'celebrate' }
+  | { type: 'random.modify'; value: number };
+const actions = {
+  increment: assign<CounterMachineContext>({
+    count: ({ context }) => context.count + 1
+  }),
+  decrement: assign<CounterMachineContext>({
+    count: ({ context }) => context.count - 1
+  }),
+  reverseIncrement: assign<CounterMachineContext>({
+    count: ({ context }) => context.count - 1
+  }),
+  celebrate: () => console.log('Celebration!'),
+  applyRandomModification: assign<
+    CounterMachineContext,
+    { type: 'random.modify'; value: number }
+  >({
+    count: ({ context }, event) => context.count + event.value
+  }),
+  resetState: assign<CounterMachineContext>({
+    isNormalState: true,
+    isWaiting: false
+  })
+};
+const guards = {
+  isCountThree: ({ context }: { context: CounterMachineContext }) =>
+    context.count === 3,
+  isCountSeven: ({ context }: { context: CounterMachineContext }) =>
+    context.count === 7
+};
+import { createMachine, assign, interpret } from 'xstate';
 
-const countingMachine = setup({
-  types: {
-    context: {} as CountingMachineContext,
-    events: {} as CountingMachineEvents
-  },
-  actions: {
-    logCount,
-    increment: assign({
-      count: ({ context }) => context.count + 1
-    }),
-    decrement: assign({
-      count: ({ context }) => context.count - 1
-    }),
-    reverseIncrement: assign({
-      count: ({ context }) => context.count - 1
-    }),
-    resetBehavior: assign({
-      wait: (_) => false
-    }),
-    applyRandomEvent: assign({
-      count: ({ context }) => context.count + Math.floor(Math.random() * 10) - 5
-    }),
-    enterErrorState: assign({
-      count: (_) => 0
-    })
-  },
-  guards: {
-    isAtThreshold: ({ context }) => context.count === 3,
-    isWaiting: ({ context }) => context.wait,
-    isMilestone: ({ context }) => [10, 20, 30].includes(context.count)
-  },
-  delays: {
-    waitDelay: 400,
-    holdDelay: 2000
-  }
-}).createMachine({
-  context: InitialContext,
-  initial: 'Normal',
-  states: {
-    Normal: {
-      entry: [
-        {
-          type: 'logCount',
-          params: ({ context }) => ({ count: context.count })
+const counterMachine = createMachine<
+  CounterMachineContext,
+  CounterMachineEvents
+>(
+  {
+    id: 'counter',
+    initial: 'Normal',
+    context: initialContext,
+    states: {
+      Normal: {
+        always: [{ guard: 'isCountSeven', target: 'Celebrating' }],
+        on: {
+          increment: [
+            {
+              guard: 'isCountThree',
+              target: 'Waiting'
+            },
+            { actions: 'increment' }
+          ],
+          decrement: { actions: 'decrement' },
+          'random.modify': { actions: 'applyRandomModification' },
+          reset: { actions: 'resetState' }
         }
-      ],
-      on: {
-        increment: [
-          {
-            cond: 'isWaiting',
-            actions: 'reverseIncrement'
-          },
-          {
-            cond: 'isAtThreshold',
-            actions: 'increment',
-            target: 'Waiting'
-          },
-          {
-            actions: 'increment'
+      },
+      Waiting: {
+        after: {
+          400: {
+            target: 'Normal',
+            actions: assign({ isWaiting: false })
           }
-        ],
-        decrement: { actions: 'decrement' },
-        reset: { actions: 'resetBehavior' },
-        random: { actions: 'applyRandomEvent' },
-        error: { target: 'Error', actions: 'enterErrorState' }
+        },
+        on: {
+          increment: { actions: 'reverseIncrement' },
+          reset: { actions: 'resetState' }
+        },
+        entry: assign({ isWaiting: true })
       },
-      always: {
-        cond: 'isMilestone',
-        target: 'Milestone'
+      Celebrating: {
+        entry: ['celebrate'],
+        always: { target: 'Normal' }
       }
     },
-    Waiting: {
-      after: {
-        waitDelay: 'Normal'
-      },
-      on: {
-        increment: {
-          actions: 'reverseIncrement'
-        }
-      }
-    },
-    Milestone: {
-      entry: () => console.log('Milestone reached!'),
-      always: 'Normal'
-    },
-    Error: {
-      entry: ({ event }) => console.error(`Error: ${event.message}`),
-      after: {
-        holdDelay: 'Normal'
-      }
+    on: {
+      'random.modify': { actions: 'applyRandomModification' },
+      reset: { actions: 'resetState' }
     }
+  },
+  {
+    actions,
+    guards
   }
-});
+);
 
-describe('countingMachine', () => {
-  it('should increment and decrement the count', () => {
-    const actor = createActor(countingMachine).start();
+describe('counterMachine', () => {
+  it('should increment and transition to Waiting state at count 3', () => {
+    const actor = createActor(counterMachine).start();
 
     actor.send({ type: 'increment' });
-    expect(actor.getSnapshot().context.count).toEqual(1);
-
-    actor.send({ type: 'decrement' });
-    expect(actor.getSnapshot().context.count).toEqual(0);
+    actor.send({ type: 'increment' });
+    actor.send({ type: 'increment' });
+    expect(actor.getSnapshot().value).toEqual('Waiting');
+    expect(actor.getSnapshot().context.count).toEqual(3);
   });
 
-  it('should enforce a 400 ms wait at count 3', () => {
-    const clock = new SimulatedClock();
-    const actor = createActor(countingMachine, { clock }).start();
+  it('should reverse increment to decrement in Waiting state', () => {
+    const actor = createActor(counterMachine).start();
 
     actor.send({ type: 'increment' });
     actor.send({ type: 'increment' });
     actor.send({ type: 'increment' });
+    actor.send({ type: 'increment' });
+    expect(actor.getSnapshot().context.count).toEqual(3);
+  });
+
+  it('should reset state to normal after reset event', () => {
+    const actor = createActor(counterMachine).start();
+
+    actor.send({ type: 'increment' });
+    actor.send({ type: 'increment' });
+    actor.send({ type: 'increment' });
+    actor.send({ type: 'reset' });
+    expect(actor.getSnapshot().context.isNormalState).toBeTruthy();
+    expect(actor.getSnapshot().context.isWaiting).toBeFalsy();
+  });
+
+  it('should celebrate at count 7', () => {
+    const logSpy = jest.spyOn(console, 'log').mockImplementation();
+    const actor = createActor(counterMachine).start();
+
+    for (let i = 0; i < 7; i++) {
+      actor.send({ type: 'increment' });
+    }
+
+    expect(logSpy).toHaveBeenCalledWith('Celebration!');
+    logSpy.mockRestore();
+  });
+
+  it('should apply random modification to the count', () => {
+    const actor = createActor(counterMachine).start();
+
+    actor.send({ type: 'random.modify', value: 5 });
+    expect(actor.getSnapshot().context.count).toEqual(5);
+  });
+
+  it('should transition to normal state after 400ms', () => {
+    const clock = new SimulatedClock();
+    const actor = createActor(counterMachine, {
+      clock
+    }).start();
+
+    actor.send({ type: 'increment' });
+    actor.send({ type: 'increment' });
+    actor.send({ type: 'increment' });
+
     expect(actor.getSnapshot().value).toEqual('Waiting');
 
     clock.increment(400);
+
     expect(actor.getSnapshot().value).toEqual('Normal');
-  });
-
-  it('should reverse increment to decrement during wait', () => {
-    const clock = new SimulatedClock();
-    const actor = createActor(countingMachine, { clock }).start();
-
-    actor.send({ type: 'increment' });
-    actor.send({ type: 'increment' });
-    actor.send({ type: 'increment' });
-    expect(actor.getSnapshot().value).toEqual('Waiting');
-
-    actor.send({ type: 'increment' });
-    expect(actor.getSnapshot().context.count).toEqual(2);
-  });
-
-  it('should reset behavior after 2 seconds in Error state', () => {
-    const clock = new SimulatedClock();
-    const actor = createActor(countingMachine, { clock }).start();
-
-    actor.send({ type: 'error', message: 'Test Error' });
-    expect(actor.getSnapshot().value).toEqual('Error');
-
-    clock.increment(2000);
-    expect(actor.getSnapshot().value).toEqual('Normal');
-  });
-
-  it('should celebrate milestones', () => {
-    const actor = createActor(countingMachine).start();
-
-    for (let i = 0; i < 10; i++) {
-      actor.send({ type: 'increment' });
-    }
-    expect(actor.getSnapshot().value).toEqual('Milestone');
-  });
-
-  it('should handle random events', () => {
-    const actor = createActor(countingMachine).start();
-
-    actor.send({ type: 'random' });
-    const countAfterRandomEvent = actor.getSnapshot().context.count;
-    expect(countAfterRandomEvent).toBeGreaterThanOrEqual(-5);
-    expect(countAfterRandomEvent).toBeLessThanOrEqual(5);
   });
 });
