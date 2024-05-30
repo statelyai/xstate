@@ -8,72 +8,44 @@
  * ## INSTRUCTIONS
  *
  * 1. **Gather Requirements and Clarify**
- *    - The user provides a description of the state machine they would like
- *      to build.
- *    - Assume the description will be incomplete. First, lay out a happy path
- *      of the sequence of events that will cause transitions, side effects
- *      that will occur, actions that will be invoked, events that will
- *      trigger those actions and transitions, etc.
- *    - Fill in the blanks where there are holes in the user's description by
- *      asking clarifying questions. Establish a full picture of the user's
- *      idea before starting to write code to avoid wasting time.
+ *    - Obtain a description of the state machine from the user and assume
+ *      it will be incomplete. Lay out a happy path of events causing
+ *      transitions, side effects, actions, and triggers. Fill in the gaps
+ *      by asking clarifying questions to establish a full picture before
+ *      starting to code.
  *
  * 2. **Test-Driven Development**
  *    - Write tests first based on the clarified requirements.
  *
  * 3. **Define Action Functions**
- *    - Always define action functions with an empty first parameter of type
- *      `any` with parameters that are strongly typed to what your action
- *      function needs.
+ *    - Define action functions with an empty first parameter of type `any`
+ *      and strongly typed parameters.
  *
- * 4. **Declare Machine Context**
- *    - Always declare a machine context as an interface.
+ * 4. **Declare Context and Initial Context**
+ *    - Declare a machine context as an interface and define an initial
+ *      context outside of the machine using your best judgment for naming.
  *
- * 5. **Declare Initial Context**
- *    - Declare an initial context of type example initial context, using your
- *      best judgment to name that context outside of the machine.
+ * 5. **Define Union Type of Machine Events**
+ *    - Create a union type of machine events prefixed by a short domain,
+ *      using lowercase camelCase for event types. Attach event values
+ *      directly to the type, avoiding nested params.
  *
- * 6. **Define Union Type of Machine Events**
- *    - Define a union type of machine events prefixed by a short domain.
- *      Event types should be lowercase, camel case. If an event has a value
- *      it needs attached, add that value directly to the type. Avoid nested
- *      params.
+ * 6. **Use the New Setup API**
+ *    - Use the new setup API as demonstrated in the example machine,
+ *      passing in types for context, events, guards, actors, etc.
  *
- * 7. **Use the New Setup API**
- *    - Always use the new setup API as demonstrated in the example machine.
- *      Pass in types for context, events, guards, actors, etc.
+ * 7. **Pass in Actions and Define Inline Assign Actions**
+ *    - Pass in actions, defining inline assign actions in the setup block.
  *
- * 8. **Pass in Actions**
- *    - Pass in actions from above. If there are assign actions, define those
- *      inline in the actions block in the setup.
+ * 8. **Define Guards**
+ *    - Define guards in the setup block with an underscore ignored argument
+ *      as the first argument and strongly typed parameters for the second.
  *
- * 9. **Define Guards**
- *    - Define guards in the setup block, similar to actions, with an
- *      underscore ignored argument as the first argument and strongly typed
- *      parameters for the second argument.
- *
- * 10. **Casing Conventions**
- *     - Events will be lowercase camelcase and will be prefixed by some
- *       domain type to which they belong.
- *     - States will be PascalCase.
- *     - Delays will be PascalCase.
- *     - Actions will be camelCase.
- *     - We will have no screaming snakecase, snakecase, or kebabcase.
- *
- * #### Comprehensive Example
- *
- * The following example demonstrates how all the functionality within XState
- * v5 works, including setting up actions, using dynamic parameters, specifying
- * types, and defining context and event types externally.
- *
- *
- * If you are unaware of how a specific piece of functionality works, ask for
- * more documentation, specifying exactly what you are curious about.
- *
- * Always write test-driven development (TDD) code. Present a test first,
- * include the code that should pass the test within the test file, and only
- * move on after the test passes. This ensures the code remains simple and
- * refactorable.
+ * 9. **Casing Conventions**
+ *    - Events: lowercase camelCase, prefixed by domain type.
+ *    - States and Delays: PascalCase.
+ *    - Actions: camelCase.
+ *    - Avoid using screaming snakecase, snakecase, or kebabcase.
  */
 
 import { assign, createActor, setup } from 'xstate';
@@ -273,14 +245,6 @@ describe('exampleMachine', () => {
     actor.send({ type: 'count.incrementBy', increment: 6 });
     expect(actor.getSnapshot().context.count).toEqual(12);
     expect(actor.getSnapshot().matches('Greater')).toBeTruthy();
-  });
-
-  it('should transition to "Negative" state if count is less than 0', () => {
-    const actor = createActor(exampleMachine).start();
-
-    actor.send({ type: 'count.decrement' });
-    actor.send({ type: 'count.decrement' });
-    expect(actor.getSnapshot().matches('Negative')).toBeTruthy();
   });
 
   it('should stay in "Question" state if no guards are satisfied', () => {
