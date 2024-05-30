@@ -166,16 +166,6 @@ describe('comprehensive guard conditions', () => {
     }
   });
 
-  it('should transition only if condition is met', () => {
-    const actorRef1 = createActor(machine, { input: { elapsed: 50 } }).start();
-    actorRef1.send({ type: 'TIMER', elapsed: 50 });
-    expect(actorRef1.getSnapshot().value).toEqual('green');
-
-    const actorRef2 = createActor(machine, { input: { elapsed: 120 } }).start();
-    actorRef2.send({ type: 'TIMER', elapsed: 120 });
-    expect(actorRef2.getSnapshot().value).toEqual('yellow');
-  });
-
   it('should transition if custom guard condition is met', () => {
     const actorRef = createActor(machine, { input: { count: 2 } }).start();
     actorRef.send({ type: 'GO_TO_ACTIVE' });

@@ -101,6 +101,21 @@ const feedbackMachine = setup({
               params: ({ context }) => ({ name: context.user.name })
             }
           ]
+        },
+        'feedback.bad': {
+          actions: [
+            { type: 'track', params: { response: 'bad' } },
+            {
+              type: 'logInitialRating',
+              params: ({ context }) => ({
+                initialRating: context.initialRating
+              })
+            },
+            {
+              type: 'greet',
+              params: ({ context }) => ({ name: context.user.name })
+            }
+          ]
         }
       }
     }

@@ -1,18 +1,23 @@
-import { createActor, setup, stateIn } from 'xstate';
+import { createActor, setup } from 'xstate';
 
+// Define action implementations
 function track(_: any, params: { response: string }) {
+  // tslint:disable-next-line:no-console
   console.log(`Tracking response: ${params.response}`);
 }
 
 function increment(_: any, params: { value: number }) {
+  // tslint:disable-next-line:no-console
   console.log(`Incrementing by: ${params.value}`);
 }
 
 function logInitialRating(_: any, params: { initialRating: number }) {
+  // tslint:disable-next-line:no-console
   console.log(`Initial rating: ${params.initialRating}`);
 }
 
 function greet(_: any, params: { name: string }) {
+  // tslint:disable-next-line:no-console
   console.log(`Hello, ${params.name}!`);
 }
 
@@ -32,8 +37,8 @@ const InitialContext: FeedbackMachineContext = {
 type FeedbackMachineEvents =
   | { type: 'feedback.good' }
   | { type: 'feedback.bad' }
-  | { type: 'increment'; count: number }
-  | { type: 'decrement'; count: number };
+  | { type: 'count.increment'; count: number }
+  | { type: 'count.decrement'; count: number };
 
 // Machine setup with strongly typed context and events
 const feedbackMachine = setup({
@@ -88,7 +93,7 @@ const feedbackMachine = setup({
             }
           ]
         },
-        increment: [
+        'count.increment': [
           {
             guard: {
               type: 'isGreaterThan',
@@ -104,7 +109,7 @@ const feedbackMachine = setup({
             target: 'less'
           }
         ],
-        decrement: {
+        'count.decrement': {
           guard: {
             type: 'isLessThan',
             params: ({ event }) => ({ count: event.count, max: 0 })
@@ -167,28 +172,49 @@ describe('feedbackMachine', () => {
   it('should transition to "greater" state if count is greater than 5', () => {
     const actor = createActor(feedbackMachine).start();
 
-    actor.send({ type: 'increment', count: 6 });
+    actor.send({ type: 'count.increment', count: 6 });
     expect(actor.getSnapshot().matches('greater')).toBeTruthy();
   });
 
   it('should transition to "less" state if count is less than 5', () => {
     const actor = createActor(feedbackMachine).start();
 
-    actor.send({ type: 'increment', count: 4 });
+    actor.send({ type: 'count.increment', count: 4 });
     expect(actor.getSnapshot().matches('less')).toBeTruthy();
   });
 
   it('should transition to "negative" state if count is less than 0', () => {
     const actor = createActor(feedbackMachine).start();
 
-    actor.send({ type: 'decrement', count: -1 });
+    actor.send({ type: 'count.decrement', count: -1 });
     expect(actor.getSnapshot().matches('negative')).toBeTruthy();
   });
 
   it('should stay in "question" state if no guards are satisfied', () => {
     const actor = createActor(feedbackMachine).start();
 
-    actor.send({ type: 'increment', count: 5 });
+    actor.send({ type: 'count.increment', count: 5 });
     expect(actor.getSnapshot().matches('question')).toBeTruthy();
+  });
+
+  it('should transition to "less" state if count is less than 5', () => {
+    const actor = createActor(feedbackMachine).start();
+
+    // Send an increment event to transition to the greater state
+    actor.send({ type: 'count.increment', count: 6 });
+    expect(actor.getSnapshot().matches('greater')).toBeTruthy();
+
+    // Expectation before stopping the actor
+    expect(actor.getSnapshot().value).toEqual('greater');
+
+    // Create a new actor instance
+    const extendedActor = createActor(feedbackMachine).start();
+
+    // Ensure the new actor starts in the initial state 'question'
+    expect(extendedActor.getSnapshot().matches('question')).toBeTruthy();
+
+    // Send an increment event to transition to the less state
+    extendedActor.send({ type: 'count.increment', count: 4 });
+    expect(extendedActor.getSnapshot().matches('less')).toBeTruthy();
   });
 });
