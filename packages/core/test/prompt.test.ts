@@ -55,31 +55,10 @@
  * 10. **Casing Conventions**
  *     - Events will be lowercase camelcase and will be prefixed by some
  *       domain type to which they belong.
- *     - States will be pascalcase.
- *     - Delays will be pascalcase.
- *     - Actions will be camelcase.
+ *     - States will be PascalCase.
+ *     - Delays will be PascalCase.
+ *     - Actions will be camelCase.
  *     - We will have no screaming snakecase, snakecase, or kebabcase.
- *
- * ---
- *
- * ### Summary
- *
- * To build a state machine with XState version 5 following these instructions,
- * start by gathering and clarifying requirements from the user to ensure a
- * complete understanding of the desired functionality. Write tests first based
- * on the clarified requirements before proceeding to define the state machine.
- * Always define action functions with an empty first parameter of type `any`
- * and strongly typed parameters for the rest. Declare the machine context as
- * an interface and the initial context outside of the machine. Define a union
- * type for machine events with lowercase, camelcase event types. Use the new
- * setup API, passing in types for context, events, guards, actors, etc. Pass
- * in actions, defining inline assign actions in the setup block. Define guards
- * similarly to actions. Follow the specified casing conventions: events in
- * lowercase camelcase with domain prefix, states and delays in pascalcase,
- * and actions in camelcase. Avoid using screaming snakecase, snakecase, or
- * kebabcase. This approach ensures clarity, strong typing, and adherence to
- * best practices in XState version 5.
- * ### XState and TypeScript Integration
  *
  * #### Comprehensive Example
  *
@@ -87,29 +66,6 @@
  * v5 works, including setting up actions, using dynamic parameters, specifying
  * types, and defining context and event types externally.
  *
- * #### Type Helpers
- *
- * Utilize type helpers provided by XState for strongly-typed references,
- * snapshots, and events:
- *
- * ```typescript
- * import {
- *   type ActorRefFrom,
- *   type SnapshotFrom,
- *   type EventFromLogic
- * } from 'xstate';
- * import { someMachine } from './someMachine';
- *
- * // Strongly-typed actor reference
- * type SomeActorRef = ActorRefFrom<typeof someMachine>;
- *
- * // Strongly-typed snapshot
- * type SomeSnapshot = SnapshotFrom<typeof someMachine>;
- *
- * // Union of all event types
- * type SomeEvent = EventFromLogic<typeof someMachine>;
- * ```
- * ### Additional Instructions
  *
  * If you are unaware of how a specific piece of functionality works, ask for
  * more documentation, specifying exactly what you are curious about.
@@ -122,19 +78,11 @@
 
 import { assign, createActor, setup } from 'xstate';
 
-// Define action implementations
-function track(_: any, params: { response: string }) {
-  // tslint:disable-next-line:no-console
-  console.log(`Tracking response: ${params.response}`);
-}
-
 function logInitialRating(_: any, params: { initialRating: number }) {
-  // tslint:disable-next-line:no-console
   console.log(`Initial rating: ${params.initialRating}`);
 }
 
 function greet(_: any, params: { name: string }) {
-  // tslint:disable-next-line:no-console
   console.log(`Hello, ${params.name}!`);
 }
 
@@ -167,7 +115,6 @@ const exampleMachine = setup({
     events: {} as ExampleMachineEvents
   },
   actions: {
-    track,
     logInitialRating,
     greet,
     increment: assign({
@@ -194,7 +141,6 @@ const exampleMachine = setup({
 }).createMachine({
   context: InitialContext,
   entry: [
-    { type: 'track', params: { response: 'good' } },
     {
       type: 'logInitialRating',
       params: ({ context }) => ({ initialRating: context.initialRating })
@@ -210,7 +156,6 @@ const exampleMachine = setup({
       on: {
         'feedback.good': {
           actions: [
-            { type: 'track', params: { response: 'good' } },
             {
               type: 'logInitialRating',
               params: ({ context }) => ({
@@ -315,7 +260,6 @@ describe('exampleMachine', () => {
 
     createActor(exampleMachine).start();
 
-    expect(logSpy).toHaveBeenCalledWith('Tracking response: good');
     expect(logSpy).toHaveBeenCalledWith('Initial rating: 3');
     expect(logSpy).toHaveBeenCalledWith('Hello, David!');
 
