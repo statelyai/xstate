@@ -1,5 +1,5 @@
 ---
-'@xstate/store': minor
+'@xstate/store': patch
 ---
 
 Types are now exported:
