@@ -31,7 +31,8 @@
  *      using lowercase camelCase for event types. Attach event values
  *      directly to the type, avoiding nested params.
  *
- * 6. **Use the New Setup API**
+ * 6. **Use the New v5 APIs**
+ *    - use guard instead of cond
  *    - Use the new setup API as demonstrated in the example machine,
  *      passing in types for context, events, guards, actors, etc.
  *
