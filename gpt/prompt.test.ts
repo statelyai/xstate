@@ -34,7 +34,7 @@
  *      directly to the type, avoiding nested params.
  *
  * 6. **Use the New v5 APIs**
- *    - use guard instead of cond
+ *    - guard has replaced cond. cond is deprecated
  *    - Use the new setup API as demonstrated in the example machine,
  *      passing in types for context, events, guards, actors, etc.
  *
