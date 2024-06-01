@@ -23,6 +23,13 @@ import {
   Values
 } from './types';
 
+type ZodLike = {
+  _input: unknown;
+  _output: unknown;
+  _type: unknown;
+  _def: unknown;
+};
+
 type ToParameterizedObject<
   TParameterizedMap extends Record<
     string,
@@ -195,3 +202,27 @@ export function setup<
       )
   };
 }
+
+import { z, infer } from 'zod';
+
+const ctx = z.object({
+  count: z.number()
+});
+
+ctx;
+
+type ZType<T> = { _output: T };
+
+function setup2<T>(x: {
+  types: {
+    context: ZType<T>;
+  };
+}): T {}
+
+const res = setup2({
+  types: {
+    context: z.object({
+      count: z.number()
+    })
+  }
+});
