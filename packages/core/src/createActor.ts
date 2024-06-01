@@ -71,8 +71,7 @@ const defaultOptions = {
  * An Actor is a running process that can receive events, send events and change its behavior based on the events it receives, which can cause effects outside of the actor. When you run a state machine, it becomes an actor.
  */
 export class Actor<TLogic extends AnyActorLogic>
-  implements
-    ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>, EmittedFrom<TLogic>>
+  implements ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>
 {
   /**
    * The current internal state of the actor.
@@ -107,11 +106,7 @@ export class Actor<TLogic extends AnyActorLogic>
   public _parent?: AnyActorRef;
   /** @internal */
   public _syncSnapshot?: boolean;
-  public ref: ActorRef<
-    SnapshotFrom<TLogic>,
-    EventFromLogic<TLogic>,
-    EmittedFrom<TLogic>
-  >;
+  public ref: ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>;
   // TODO: add typings for system
   private _actorScope: ActorScope<
     SnapshotFrom<TLogic>,
@@ -194,10 +189,15 @@ export class Actor<TLogic extends AnyActorLogic>
       },
       emit: (emittedEvent) => {
         const listeners = this.eventListeners.get(emittedEvent.type);
-        if (!listeners) {
+        const wildcardListener = this.eventListeners.get('*');
+        if (!listeners && !wildcardListener) {
           return;
         }
-        for (const handler of Array.from(listeners)) {
+        const allListeners = new Set([
+          ...(listeners ? listeners.values() : []),
+          ...(wildcardListener ? wildcardListener.values() : [])
+        ]);
+        for (const handler of Array.from(allListeners)) {
           handler(emittedEvent);
         }
       }
@@ -419,9 +419,11 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
-  public on<TType extends EmittedFrom<TLogic>['type']>(
+  public on<TType extends EmittedFrom<TLogic>['type'] | '*'>(
     type: TType,
-    handler: (emitted: EmittedFrom<TLogic> & { type: TType }) => void
+    handler: (
+      emitted: EmittedFrom<TLogic> & (TType extends '*' ? {} : { type: TType })
+    ) => void
   ): Subscription {
     let listeners = this.eventListeners.get(type);
     if (!listeners) {

@@ -2171,13 +2171,17 @@ export interface ActorRef<
   /** @internal */
   _processingStatus: ProcessingStatus;
   src: string | AnyActorLogic;
-  on: <TType extends TEmitted['type']>(
+  // TODO: remove from ActorRef interface
+  // (should only be available on Actor)
+  on: <TType extends TEmitted['type'] | '*'>(
     type: TType,
-    handler: (emitted: TEmitted & { type: TType }) => void
+    handler: (
+      emitted: TEmitted & (TType extends '*' ? {} : { type: TType })
+    ) => void
   ) => Subscription;
 }
 
-export type AnyActorRef = ActorRef<any, any, any>;
+export type AnyActorRef = ActorRef<any, any>;
 
 export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
@@ -2228,8 +2232,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
           TOutput,
           TMeta
         >,
-        TEvent,
-        TEmitted
+        TEvent
       >
     : R extends Promise<infer U>
       ? ActorRefFrom<PromiseActorLogic<U>>
@@ -2240,7 +2243,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
             infer _TSystem,
             infer TEmitted
           >
-        ? ActorRef<TSnapshot, TEvent, TEmitted>
+        ? ActorRef<TSnapshot, TEvent>
         : never
   : never;
 
@@ -2338,7 +2341,7 @@ export interface ActorScope<
   TSystem extends AnyActorSystem = AnyActorSystem,
   TEmitted extends EventObject = EventObject
 > {
-  self: ActorRef<TSnapshot, TEvent, TEmitted>;
+  self: ActorRef<TSnapshot, TEvent>;
   id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
