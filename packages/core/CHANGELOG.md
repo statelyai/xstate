@@ -1,5 +1,17 @@
 # xstate
 
+## 5.13.1
+
+### Patch Changes
+
+- [#4905](https://github.com/statelyai/xstate/pull/4905) [`dbeafeb25`](https://github.com/statelyai/xstate/commit/dbeafeb25eed63ee1d2b027f10bc63d9937ab073) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now use a wildcard to listen for _any_ emitted event from an actor:
+
+  ```ts
+  actor.on('*', (emitted) => {
+    console.log(emitted); // Any emitted event
+  });
+  ```
+
 ## 5.13.0
 
 ### Minor Changes
