@@ -1,5 +1,5 @@
 {
-  "name": "7guis-flight-booker-react",
+  "name": "fb",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,13 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@radix-ui/react-alert-dialog": "^1.0.5",
     "@xstate/react": "^4.1.0",
+    "date-fns": "^3.6.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "vite-tsconfig-paths": "^4.3.2",
-    "xstate": "^5.10.0"
+    "xstate": "^5.9.1"
   },
   "devDependencies": {
+    "@types/node": "^20.12.10",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@typescript-eslint/eslint-plugin": "^7.2.0",
@@ -26,6 +28,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",
     "typescript": "^5.2.2",
-    "vite": "^5.2.0"
+    "vite": "^5.2.0",
+    "vite-tsconfig-paths": "^4.3.2"
   }
 }
