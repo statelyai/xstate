@@ -30,7 +30,8 @@ import type {
   AnyStateNodeConfig,
   ProvidedActor,
   NonReducibleUnknown,
-  EventDescriptor
+  EventDescriptor,
+  UnknownActionObject
 } from './types.ts';
 import {
   createInvokeId,
@@ -105,11 +106,11 @@ export class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public entry: UnknownAction[];
+  public entry: UnknownActionObject[];
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public exit: UnknownAction[];
+  public exit: UnknownActionObject[];
   /**
    * The parent state node.
    */
@@ -220,8 +221,28 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this.entry = toArray(this.config.entry).slice();
-    this.exit = toArray(this.config.exit).slice();
+    const convertAction = (
+      action: UnknownAction,
+      kind: 'entry' | 'exit',
+      i: number
+    ): UnknownActionObject => {
+      if (typeof action === 'string') {
+        return { type: action };
+      }
+      if (typeof action === 'function' && !('resolve' in action)) {
+        const type = `${this.id}|${kind}:${i}`;
+        this.machine.implementations.actions[type] = action as any;
+        return { type };
+      }
+      return action as any;
+    };
+
+    this.entry = toArray(this.config.entry as UnknownAction).map((a, i) =>
+      convertAction(a, 'entry', i)
+    );
+    this.exit = toArray(this.config.exit as UnknownAction).map((a, i) =>
+      convertAction(a, 'exit', i)
+    );
 
     this.meta = this.config.meta;
     this.output =

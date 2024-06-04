@@ -253,6 +253,22 @@ export type Action<
       TEmitted
     >;
 
+export type ActionObject<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TAction extends ParameterizedObject
+> =
+  // TODO: consider merging `NoRequiredParams` and `WithDynamicParams` into one
+  // this way we could iterate over `TAction` (and `TGuard` in the `Guard` type) once and not twice
+  | NoRequiredParams<TAction>
+  | WithDynamicParams<TContext, TExpressionEvent, TAction>;
+
+export type UnknownActionObject = ActionObject<
+  MachineContext,
+  EventObject,
+  ParameterizedObject
+>;
+
 export type UnknownAction = Action<
   MachineContext,
   EventObject,
@@ -1854,7 +1870,7 @@ export interface TransitionDefinition<
   > {
   target: ReadonlyArray<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
-  actions: readonly UnknownAction[];
+  actions: readonly UnknownActionObject[];
   reenter: boolean;
   guard?: UnknownGuard;
   eventType: EventDescriptor<TEvent>;
