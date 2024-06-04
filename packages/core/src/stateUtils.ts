@@ -38,7 +38,8 @@ import {
   ActionFunction,
   AnyTransitionConfig,
   ProvidedActor,
-  AnyActorScope
+  AnyActorScope,
+  NonReducibleUnknown
 } from './types.ts';
 import {
   resolveOutput,
@@ -49,6 +50,10 @@ import {
   isErrorActorEvent
 } from './utils.ts';
 import { ProcessingStatus } from './createActor.ts';
+
+export const defaultActionExecutor: ActionExecutor = (actionToExecute) => {
+  actionToExecute.execute(actionToExecute.stuff, actionToExecute.params);
+};
 
 type StateNodeIterable<
   TContext extends MachineContext,
@@ -998,7 +1003,8 @@ export function microstep<
   actorScope: AnyActorScope,
   event: AnyEventObject,
   isInitial: boolean,
-  internalQueue: Array<AnyEventObject>
+  internalQueue: Array<AnyEventObject>,
+  actionExecutor: ActionExecutor
 ): AnyMachineSnapshot {
   if (!transitions.length) {
     return currentSnapshot;
@@ -1023,7 +1029,8 @@ export function microstep<
       filteredTransitions,
       mutStateNodeSet,
       historyValue,
-      internalQueue
+      internalQueue,
+      actionExecutor
     );
   }
 
@@ -1033,7 +1040,9 @@ export function microstep<
     event,
     actorScope,
     filteredTransitions.flatMap((t) => t.actions),
-    internalQueue
+    internalQueue,
+    undefined,
+    actionExecutor
   );
 
   // Enter states
@@ -1045,7 +1054,8 @@ export function microstep<
     mutStateNodeSet,
     internalQueue,
     historyValue,
-    isInitial
+    isInitial,
+    actionExecutor
   );
 
   const nextStateNodes = [...mutStateNodeSet];
@@ -1058,7 +1068,9 @@ export function microstep<
       nextStateNodes
         .sort((a, b) => b.order - a.order)
         .flatMap((state) => state.exit),
-      internalQueue
+      internalQueue,
+      undefined,
+      actionExecutor
     );
   }
 
@@ -1117,7 +1129,8 @@ function enterStates(
   mutStateNodeSet: Set<AnyStateNode>,
   internalQueue: AnyEventObject[],
   historyValue: HistoryValue<any, any>,
-  isInitial: boolean
+  isInitial: boolean,
+  actionExecutor: ActionExecutor
 ) {
   let nextSnapshot = currentSnapshot;
   const statesToEnter = new Set<AnyStateNode>();
@@ -1168,7 +1181,8 @@ function enterStates(
       actorScope,
       actions,
       internalQueue,
-      stateNodeToEnter.invoke.map((invokeDef) => invokeDef.id)
+      stateNodeToEnter.invoke.map((invokeDef) => invokeDef.id),
+      actionExecutor
     );
 
     if (stateNodeToEnter.type === 'final') {
@@ -1425,7 +1439,8 @@ function exitStates(
   transitions: AnyTransitionDefinition[],
   mutStateNodeSet: Set<AnyStateNode>,
   historyValue: HistoryValue<any, any>,
-  internalQueue: AnyEventObject[]
+  internalQueue: AnyEventObject[],
+  actionExecutor: ActionExecutor
 ) {
   let nextSnapshot = currentSnapshot;
   const statesToExit = computeExitSet(
@@ -1462,7 +1477,9 @@ function exitStates(
       event,
       actorScope,
       [...s.exit, ...s.invoke.map((def) => stopChild(def.id))],
-      internalQueue
+      internalQueue,
+      undefined,
+      actionExecutor
     );
     mutStateNodeSet.delete(s);
   }
@@ -1495,6 +1512,18 @@ export let executingCustomAction:
   | ActionFunction<any, any, any, any, any, any, any, any, any>
   | false = false;
 
+interface ActionToExecute {
+  actionType: string;
+  stuff: ActionArgs<MachineContext, EventObject, EventObject>;
+  params: NonReducibleUnknown;
+  execute: (
+    stuff: ActionArgs<MachineContext, EventObject, EventObject>,
+    params: NonReducibleUnknown
+  ) => void;
+}
+
+type ActionExecutor = (actionToExecute: ActionToExecute) => void;
+
 function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
@@ -1504,7 +1533,8 @@ function resolveAndExecuteActionsWithContext(
     internalQueue: AnyEventObject[];
     deferredActorIds: string[] | undefined;
   },
-  retries: (readonly [BuiltinAction, unknown])[] | undefined
+  retries: (readonly [BuiltinAction, unknown])[] | undefined,
+  actionExecutor: ActionExecutor
 ): AnyMachineSnapshot {
   const { machine } = currentSnapshot;
   let intermediateSnapshot = currentSnapshot;
@@ -1569,7 +1599,13 @@ function resolveAndExecuteActionsWithContext(
       });
       try {
         executingCustomAction = resolvedAction;
-        resolvedAction(actionArgs, actionParams);
+        actionExecutor({
+          actionType: typeof action === 'object' ? action.type : 'TODO',
+          stuff: actionArgs,
+          params: actionParams,
+          execute: resolvedAction
+        });
+        // resolvedAction(actionArgs, actionParams);
       } finally {
         executingCustomAction = false;
       }
@@ -1617,7 +1653,8 @@ function resolveAndExecuteActionsWithContext(
         actorScope,
         actions,
         extra,
-        retries
+        retries,
+        actionExecutor
       );
     }
   }
@@ -1631,7 +1668,8 @@ export function resolveActionsAndContext(
   actorScope: AnyActorScope,
   actions: UnknownAction[],
   internalQueue: AnyEventObject[],
-  deferredActorIds?: string[]
+  deferredActorIds: string[] | undefined,
+  actionExecutor: ActionExecutor
 ): AnyMachineSnapshot {
   const retries: (readonly [BuiltinAction, unknown])[] | undefined =
     deferredActorIds ? [] : undefined;
@@ -1641,7 +1679,8 @@ export function resolveActionsAndContext(
     actorScope,
     actions,
     { internalQueue, deferredActorIds },
-    retries
+    retries,
+    actionExecutor
   );
   retries?.forEach(([builtinAction, params]) => {
     builtinAction.retryResolve(actorScope, nextState, params);
@@ -1653,7 +1692,8 @@ export function macrostep(
   snapshot: AnyMachineSnapshot,
   event: EventObject,
   actorScope: AnyActorScope,
-  internalQueue: AnyEventObject[] = []
+  internalQueue: AnyEventObject[],
+  actionExecutor: ActionExecutor
 ): {
   snapshot: typeof snapshot;
   microstates: Array<typeof snapshot>;
@@ -1683,7 +1723,7 @@ export function macrostep(
   // Handle stop event
   if (event.type === XSTATE_STOP) {
     nextSnapshot = cloneMachineSnapshot(
-      stopChildren(nextSnapshot, event, actorScope),
+      stopChildren(nextSnapshot, event, actorScope, actionExecutor),
       {
         status: 'stopped'
       }
@@ -1726,7 +1766,8 @@ export function macrostep(
       actorScope,
       nextEvent,
       false, // isInitial
-      internalQueue
+      internalQueue,
+      actionExecutor
     );
     addMicrostate(nextSnapshot, currentEvent, transitions);
   }
@@ -1757,14 +1798,15 @@ export function macrostep(
       actorScope,
       nextEvent,
       false,
-      internalQueue
+      internalQueue,
+      actionExecutor
     );
     shouldSelectEventlessTransitions = nextSnapshot !== previousState;
     addMicrostate(nextSnapshot, nextEvent, enabledTransitions);
   }
 
   if (nextSnapshot.status !== 'active') {
-    stopChildren(nextSnapshot, nextEvent, actorScope);
+    stopChildren(nextSnapshot, nextEvent, actorScope, actionExecutor);
   }
 
   return {
@@ -1776,14 +1818,17 @@ export function macrostep(
 function stopChildren(
   nextState: AnyMachineSnapshot,
   event: AnyEventObject,
-  actorScope: AnyActorScope
+  actorScope: AnyActorScope,
+  actionExecutor: ActionExecutor
 ) {
   return resolveActionsAndContext(
     nextState,
     event,
     actorScope,
     Object.values(nextState.children).map((child: any) => stopChild(child)),
-    []
+    [],
+    undefined,
+    actionExecutor
   );
 }
 

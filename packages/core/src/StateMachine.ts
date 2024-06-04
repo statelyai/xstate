@@ -9,6 +9,7 @@ import {
 } from './State.ts';
 import { StateNode } from './StateNode.ts';
 import {
+  defaultActionExecutor,
   getAllStateNodes,
   getInitialStateNodes,
   getStateNodeByPath,
@@ -294,7 +295,8 @@ export class StateMachine<
     TOutput,
     TMeta
   > {
-    return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
+    return macrostep(snapshot, event, actorScope, [], defaultActionExecutor)
+      .snapshot as typeof snapshot;
   }
 
   /**
@@ -327,7 +329,8 @@ export class StateMachine<
       TMeta
     >
   > {
-    return macrostep(snapshot, event, actorScope).microstates;
+    return macrostep(snapshot, event, actorScope, [], defaultActionExecutor)
+      .microstates;
   }
 
   public getTransitionData(
@@ -383,7 +386,9 @@ export class StateMachine<
         initEvent,
         actorScope,
         [assign(assignment)],
-        internalQueue
+        internalQueue,
+        undefined,
+        defaultActionExecutor
       ) as SnapshotFrom<this>;
     }
 
@@ -440,14 +445,16 @@ export class StateMachine<
       actorScope,
       initEvent,
       true,
-      internalQueue
+      internalQueue,
+      defaultActionExecutor
     );
 
     const { snapshot: macroState } = macrostep(
       nextState,
       initEvent as AnyEventObject,
       actorScope,
-      internalQueue
+      internalQueue,
+      defaultActionExecutor
     );
 
     return macroState as SnapshotFrom<this>;
