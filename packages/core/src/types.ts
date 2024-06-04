@@ -257,11 +257,12 @@ export type ActionObject<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TAction extends ParameterizedObject
-> =
-  // TODO: consider merging `NoRequiredParams` and `WithDynamicParams` into one
-  // this way we could iterate over `TAction` (and `TGuard` in the `Guard` type) once and not twice
+> = {
+  type: string;
+} & ( // this way we could iterate over `TAction` (and `TGuard` in the `Guard` type) once and not twice // TODO: consider merging `NoRequiredParams` and `WithDynamicParams` into one
   | NoRequiredParams<TAction>
-  | WithDynamicParams<TContext, TExpressionEvent, TAction>;
+  | WithDynamicParams<TContext, TExpressionEvent, TAction>
+);
 
 export type UnknownActionObject = ActionObject<
   MachineContext,
@@ -1082,8 +1083,8 @@ export interface StateNodeDefinition<
   on: TransitionDefinitionMap<TContext, TEvent>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   // TODO: establish what a definition really is
-  entry: UnknownAction[];
-  exit: UnknownAction[];
+  entry: UnknownActionObject[];
+  exit: UnknownActionObject[];
   meta: any;
   order: number;
   output?: StateNodeConfig<
@@ -1877,7 +1878,7 @@ export interface TransitionDefinition<
   toJSON: () => {
     target: string[] | undefined;
     source: string;
-    actions: readonly UnknownAction[];
+    actions: readonly UnknownActionObject[];
     guard?: UnknownGuard;
     eventType: EventDescriptor<TEvent>;
     meta?: Record<string, any>;

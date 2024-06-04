@@ -47,7 +47,8 @@ import type {
   SnapshotFrom,
   StateMachineDefinition,
   StateValue,
-  TransitionDefinition
+  TransitionDefinition,
+  UnknownActionObject
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
 
@@ -385,7 +386,7 @@ export class StateMachine<
         preInitial,
         initEvent,
         actorScope,
-        [assign(assignment)],
+        [assign(assignment) as unknown as UnknownActionObject],
         internalQueue,
         undefined,
         defaultActionExecutor

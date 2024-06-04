@@ -22,7 +22,6 @@ import {
   AnyMachineSnapshot,
   AnyStateNode,
   AnyTransitionDefinition,
-  DelayExpr,
   DelayedTransitionDefinition,
   EventObject,
   HistoryValue,
@@ -39,7 +38,8 @@ import {
   AnyTransitionConfig,
   ProvidedActor,
   AnyActorScope,
-  NonReducibleUnknown
+  NonReducibleUnknown,
+  UnknownActionObject
 } from './types.ts';
 import {
   resolveOutput,
@@ -285,11 +285,17 @@ export function getDelayedTransitions(
     return [];
   }
 
-  const mutateEntryExit = (delay: string | number, i: number) => {
+  const mutateEntryExit = (delay: string | number) => {
     const afterEvent = createAfterEvent(delay, stateNode.id);
     const eventType = afterEvent.type;
-    stateNode.entry.push(raise(afterEvent, { id: eventType, delay }));
-    stateNode.exit.push(cancel(eventType));
+
+    stateNode.entry.push(
+      raise(afterEvent, {
+        id: eventType,
+        delay: delay as any // TODO: fix types
+      }) as unknown as UnknownActionObject
+    );
+    stateNode.exit.push(cancel(eventType) as unknown as UnknownActionObject);
     return eventType;
   };
 
@@ -300,20 +306,21 @@ export function getDelayedTransitions(
         ? { target: configTransition }
         : configTransition;
     const resolvedDelay = Number.isNaN(+delay) ? delay : +delay;
-    const eventType = mutateEntryExit(resolvedDelay, i);
+    const eventType = mutateEntryExit(resolvedDelay);
     return toArray(resolvedTransition).map((transition) => ({
       ...transition,
       event: eventType,
       delay: resolvedDelay
     }));
   });
-  return delayedTransitions.map((delayedTransition) => {
+  return delayedTransitions.map((delayedTransition, i) => {
     const { delay } = delayedTransition;
     return {
       ...formatTransition(
         stateNode,
         delayedTransition.event,
-        delayedTransition
+        delayedTransition,
+        i
       ),
       delay
     };
@@ -326,7 +333,8 @@ export function formatTransition<
 >(
   stateNode: AnyStateNode,
   descriptor: string,
-  transitionConfig: AnyTransitionConfig
+  transitionConfig: AnyTransitionConfig,
+  index: number
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;
@@ -338,9 +346,25 @@ export function formatTransition<
       `State "${stateNode.id}" has declared \`cond\` for one of its transitions. This property has been renamed to \`guard\`. Please update your code.`
     );
   }
+
+  const convertAction = (
+    action: UnknownAction,
+    i: number
+  ): UnknownActionObject => {
+    if (typeof action === 'string') {
+      return { type: action };
+    }
+    if (typeof action === 'function' && !('resolve' in action)) {
+      const type = `${stateNode.id}|${descriptor}:${index}:${i}`;
+      stateNode.machine.implementations.actions[type] = action as any;
+      return { type };
+    }
+    return action as any;
+  };
+
   const transition = {
     ...transitionConfig,
-    actions: toArray(transitionConfig.actions),
+    actions: toArray(transitionConfig.actions).map(convertAction),
     guard: transitionConfig.guard as never,
     target,
     source: stateNode,
@@ -376,8 +400,8 @@ export function formatTransitions<
       const transitionsConfig = stateNode.config.on[descriptor];
       transitions.set(
         descriptor,
-        toTransitionConfigArray(transitionsConfig).map((t) =>
-          formatTransition(stateNode, descriptor, t)
+        toTransitionConfigArray(transitionsConfig).map((t, i) =>
+          formatTransition(stateNode, descriptor, t, i)
         )
       );
     }
@@ -386,8 +410,8 @@ export function formatTransitions<
     const descriptor = `xstate.done.state.${stateNode.id}`;
     transitions.set(
       descriptor,
-      toTransitionConfigArray(stateNode.config.onDone).map((t) =>
-        formatTransition(stateNode, descriptor, t)
+      toTransitionConfigArray(stateNode.config.onDone).map((t, i) =>
+        formatTransition(stateNode, descriptor, t, i)
       )
     );
   }
@@ -396,8 +420,8 @@ export function formatTransitions<
       const descriptor = `xstate.done.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onDone).map((t) =>
-          formatTransition(stateNode, descriptor, t)
+        toTransitionConfigArray(invokeDef.onDone).map((t, i) =>
+          formatTransition(stateNode, descriptor, t, i)
         )
       );
     }
@@ -405,8 +429,8 @@ export function formatTransitions<
       const descriptor = `xstate.error.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onError).map((t) =>
-          formatTransition(stateNode, descriptor, t)
+        toTransitionConfigArray(invokeDef.onError).map((t, i) =>
+          formatTransition(stateNode, descriptor, t, i)
         )
       );
     }
@@ -414,8 +438,8 @@ export function formatTransitions<
       const descriptor = `xstate.snapshot.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onSnapshot).map((t) =>
-          formatTransition(stateNode, descriptor, t)
+        toTransitionConfigArray(invokeDef.onSnapshot).map((t, i) =>
+          formatTransition(stateNode, descriptor, t, i)
         )
       );
     }
@@ -1156,7 +1180,7 @@ function enterStates(
     (a, b) => a.order - b.order
   )) {
     mutStateNodeSet.add(stateNodeToEnter);
-    const actions: UnknownAction[] = [];
+    const actions: UnknownActionObject[] = [];
 
     // Add entry actions
     actions.push(...stateNodeToEnter.entry);
@@ -1166,7 +1190,7 @@ function enterStates(
         spawnChild(invokeDef.src, {
           ...invokeDef,
           syncSnapshot: !!invokeDef.onSnapshot
-        })
+        }) as unknown as UnknownActionObject
       );
     }
 
@@ -1476,7 +1500,12 @@ function exitStates(
       nextSnapshot,
       event,
       actorScope,
-      [...s.exit, ...s.invoke.map((def) => stopChild(def.id))],
+      [
+        ...s.exit,
+        ...(s.invoke.map((def) =>
+          stopChild(def.id)
+        ) as unknown as UnknownActionObject[])
+      ],
       internalQueue,
       undefined,
       actionExecutor
@@ -1498,7 +1527,7 @@ interface BuiltinAction {
   ) => [
     newState: AnyMachineSnapshot,
     params: unknown,
-    actions?: UnknownAction[]
+    actions?: UnknownActionObject[]
   ];
   retryResolve: (
     actorScope: AnyActorScope,
@@ -1528,7 +1557,7 @@ function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
-  actions: UnknownAction[],
+  actions: UnknownActionObject[],
   extra: {
     internalQueue: AnyEventObject[];
     deferredActorIds: string[] | undefined;
@@ -1588,12 +1617,7 @@ function resolveAndExecuteActionsWithContext(
         type: '@xstate.action',
         actorRef: actorScope.self,
         action: {
-          type:
-            typeof action === 'string'
-              ? action
-              : typeof action === 'object'
-                ? action.type
-                : action.name || '(anonymous)',
+          type: action.type,
           params: actionParams
         }
       });
@@ -1666,7 +1690,7 @@ export function resolveActionsAndContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
-  actions: UnknownAction[],
+  actions: UnknownActionObject[],
   internalQueue: AnyEventObject[],
   deferredActorIds: string[] | undefined,
   actionExecutor: ActionExecutor
@@ -1825,7 +1849,9 @@ function stopChildren(
     nextState,
     event,
     actorScope,
-    Object.values(nextState.children).map((child: any) => stopChild(child)),
+    Object.values(nextState.children).map(
+      (child: any) => stopChild(child) as unknown as UnknownActionObject
+    ),
     [],
     undefined,
     actionExecutor
