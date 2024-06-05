@@ -9,6 +9,7 @@ import {
 } from './State.ts';
 import { StateNode } from './StateNode.ts';
 import {
+  ActionExecutor,
   defaultActionExecutor,
   getAllStateNodes,
   getInitialStateNodes,
@@ -286,7 +287,8 @@ export class StateMachine<
       TMeta
     >,
     event: TEvent,
-    actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
+    actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>,
+    actionExecutor: ActionExecutor = defaultActionExecutor
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -296,7 +298,7 @@ export class StateMachine<
     TOutput,
     TMeta
   > {
-    return macrostep(snapshot, event, actorScope, [], defaultActionExecutor)
+    return macrostep(snapshot, event, actorScope, [], actionExecutor)
       .snapshot as typeof snapshot;
   }
 
@@ -318,7 +320,8 @@ export class StateMachine<
       TMeta
     >,
     event: TEvent,
-    actorScope: AnyActorScope
+    actorScope: AnyActorScope,
+    actionExecutor: ActionExecutor = defaultActionExecutor
   ): Array<
     MachineSnapshot<
       TContext,
@@ -330,7 +333,7 @@ export class StateMachine<
       TMeta
     >
   > {
-    return macrostep(snapshot, event, actorScope, [], defaultActionExecutor)
+    return macrostep(snapshot, event, actorScope, [], actionExecutor)
       .microstates;
   }
 
@@ -356,7 +359,8 @@ export class StateMachine<
   private getPreInitialState(
     actorScope: AnyActorScope,
     initEvent: any,
-    internalQueue: AnyEventObject[]
+    internalQueue: AnyEventObject[],
+    actionExecutor: ActionExecutor
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -389,7 +393,7 @@ export class StateMachine<
         [assign(assignment) as unknown as UnknownActionObject],
         internalQueue,
         undefined,
-        defaultActionExecutor
+        actionExecutor
       ) as SnapshotFrom<this>;
     }
 
@@ -414,7 +418,8 @@ export class StateMachine<
       AnyActorSystem,
       TEmitted
     >,
-    input?: TInput
+    input?: TInput,
+    actionExecutor: ActionExecutor = defaultActionExecutor
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -429,7 +434,8 @@ export class StateMachine<
     const preInitialState = this.getPreInitialState(
       actorScope,
       initEvent,
-      internalQueue
+      internalQueue,
+      actionExecutor
     );
     const nextState = microstep(
       [
@@ -447,7 +453,7 @@ export class StateMachine<
       initEvent,
       true,
       internalQueue,
-      defaultActionExecutor
+      actionExecutor
     );
 
     const { snapshot: macroState } = macrostep(
@@ -455,7 +461,7 @@ export class StateMachine<
       initEvent as AnyEventObject,
       actorScope,
       internalQueue,
-      defaultActionExecutor
+      actionExecutor
     );
 
     return macroState as SnapshotFrom<this>;

@@ -1551,7 +1551,7 @@ interface ActionToExecute {
   ) => void;
 }
 
-type ActionExecutor = (actionToExecute: ActionToExecute) => void;
+export type ActionExecutor = (actionToExecute: ActionToExecute) => void;
 
 function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
