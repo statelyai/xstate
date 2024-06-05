@@ -8,9 +8,10 @@ import {
   createInitEvent
 } from './eventUtils.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
-import { defaultActionExecutor } from './stateUtils.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { AnyActorSystem, Clock, createSystem } from './system.ts';
+
+export let executingCustomAction: ((...args: any[]) => void) | false = false;
 
 import type {
   ActorScope,
@@ -202,7 +203,26 @@ export class Actor<TLogic extends AnyActorLogic>
           handler(emittedEvent);
         }
       },
-      actionExecutor: defaultActionExecutor
+      actionExecutor: (action) => {
+        if (this._processingStatus === ProcessingStatus.Running) {
+          this._actorScope.system._sendInspectionEvent({
+            type: '@xstate.action',
+            actorRef: this,
+            action: {
+              type: action.type,
+              params: action.params as any // TODO: fix types
+            }
+          });
+          try {
+            executingCustomAction = action.execute;
+            action.execute();
+          } finally {
+            executingCustomAction = false;
+          }
+        } else {
+          this._deferred.push(action.execute);
+        }
+      }
     };
 
     // Ensure that the send method is bound to this Actor instance

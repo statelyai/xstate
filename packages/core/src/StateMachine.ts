@@ -9,8 +9,6 @@ import {
 } from './State.ts';
 import { StateNode } from './StateNode.ts';
 import {
-  ActionExecutor,
-  defaultActionExecutor,
   getAllStateNodes,
   getInitialStateNodes,
   getStateNodeByPath,
@@ -356,8 +354,7 @@ export class StateMachine<
   private getPreInitialState(
     actorScope: AnyActorScope,
     initEvent: any,
-    internalQueue: AnyEventObject[],
-    actionExecutor: ActionExecutor
+    internalQueue: AnyEventObject[]
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -414,8 +411,7 @@ export class StateMachine<
       AnyActorSystem,
       TEmitted
     >,
-    input?: TInput,
-    actionExecutor: ActionExecutor = defaultActionExecutor
+    input?: TInput
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -430,8 +426,7 @@ export class StateMachine<
     const preInitialState = this.getPreInitialState(
       actorScope,
       initEvent,
-      internalQueue,
-      actionExecutor
+      internalQueue
     );
     const nextState = microstep(
       [

@@ -1530,10 +1530,6 @@ interface BuiltinAction {
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
-export let executingCustomAction:
-  | ActionFunction<any, any, any, any, any, any, any, any, any>
-  | false = false;
-
 export interface ExecutableAction {
   /**
    * The action type
@@ -1609,36 +1605,43 @@ function resolveAndExecuteActionsWithContext(
           : undefined;
 
     function executeAction() {
-      actorScope.system._sendInspectionEvent({
-        type: '@xstate.action',
-        actorRef: actorScope.self,
-        action: {
-          type: action.type,
-          params: actionParams
-        }
+      actorScope.actionExecutor({
+        type: typeof action === 'object' ? action.type : 'TODO',
+        _info: actionArgs,
+        params: actionParams,
+        execute: () => resolvedAction(actionArgs, actionParams)
       });
-      try {
-        executingCustomAction = resolvedAction;
-        actorScope.actionExecutor({
-          type: typeof action === 'object' ? action.type : 'TODO',
-          _info: actionArgs,
-          params: actionParams,
-          execute: () => resolvedAction(actionArgs, actionParams)
-        });
-        // resolvedAction(actionArgs, actionParams);
-      } finally {
-        executingCustomAction = false;
-      }
+      // actorScope.system._sendInspectionEvent({
+      //   type: '@xstate.action',
+      //   actorRef: actorScope.self,
+      //   action: {
+      //     type: action.type,
+      //     params: actionParams
+      //   }
+      // });
+      // try {
+      //   executingCustomAction = resolvedAction;
+      //   actorScope.actionExecutor({
+      //     type: typeof action === 'object' ? action.type : 'TODO',
+      //     _info: actionArgs,
+      //     params: actionParams,
+      //     execute: () => resolvedAction(actionArgs, actionParams)
+      //   });
+      //   // resolvedAction(actionArgs, actionParams);
+      // } finally {
+      //   executingCustomAction = false;
+      // }
     }
 
     if (!('resolve' in resolvedAction)) {
-      if (actorScope.self._processingStatus === ProcessingStatus.Running) {
-        executeAction();
-      } else {
-        actorScope.defer(() => {
-          executeAction();
-        });
-      }
+      executeAction();
+      // if (actorScope.self._processingStatus === ProcessingStatus.Running) {
+      //   executeAction();
+      // } else {
+      //   actorScope.defer(() => {
+      //     executeAction();
+      //   });
+      // }
       continue;
     }
 

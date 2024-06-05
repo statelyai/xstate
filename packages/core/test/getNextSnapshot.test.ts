@@ -51,7 +51,24 @@ describe('getNextSnapshot', () => {
 
     expect(s2.value).toEqual('c');
   });
-  it('should not execute actions', () => {
+  it('should not execute entry actions', () => {
+    const fn = jest.fn();
+
+    const machine = createMachine({
+      initial: 'a',
+      entry: fn,
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+
+    getInitialSnapshot(machine, undefined);
+
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('should not execute transition actions', () => {
     const fn = jest.fn();
 
     const machine = createMachine({

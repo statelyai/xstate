@@ -38,6 +38,7 @@ export {
   type Interpreter
 };
 export { assertEvent } from './assert.ts';
+export { transition } from './transition.ts';
 
 declare global {
   interface SymbolConstructor {
