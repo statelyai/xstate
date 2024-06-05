@@ -287,8 +287,7 @@ export class StateMachine<
       TMeta
     >,
     event: TEvent,
-    actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>,
-    actionExecutor: ActionExecutor = defaultActionExecutor
+    actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -298,7 +297,7 @@ export class StateMachine<
     TOutput,
     TMeta
   > {
-    return macrostep(snapshot, event, actorScope, [], actionExecutor)
+    return macrostep(snapshot, event, actorScope, [])
       .snapshot as typeof snapshot;
   }
 
@@ -320,8 +319,7 @@ export class StateMachine<
       TMeta
     >,
     event: TEvent,
-    actorScope: AnyActorScope,
-    actionExecutor: ActionExecutor = defaultActionExecutor
+    actorScope: AnyActorScope
   ): Array<
     MachineSnapshot<
       TContext,
@@ -333,8 +331,7 @@ export class StateMachine<
       TMeta
     >
   > {
-    return macrostep(snapshot, event, actorScope, [], actionExecutor)
-      .microstates;
+    return macrostep(snapshot, event, actorScope, []).microstates;
   }
 
   public getTransitionData(
@@ -392,8 +389,7 @@ export class StateMachine<
         actorScope,
         [assign(assignment) as unknown as UnknownActionObject],
         internalQueue,
-        undefined,
-        actionExecutor
+        undefined
       ) as SnapshotFrom<this>;
     }
 
@@ -452,16 +448,14 @@ export class StateMachine<
       actorScope,
       initEvent,
       true,
-      internalQueue,
-      actionExecutor
+      internalQueue
     );
 
     const { snapshot: macroState } = macrostep(
       nextState,
       initEvent as AnyEventObject,
       actorScope,
-      internalQueue,
-      actionExecutor
+      internalQueue
     );
 
     return macroState as SnapshotFrom<this>;

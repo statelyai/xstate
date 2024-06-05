@@ -27,7 +27,8 @@ export function createInertActorScope<T extends AnyActorLogic>(
     sessionId: '',
     stopChild: () => {},
     system: self.system,
-    emit: () => {}
+    emit: () => {},
+    actionExecutor: () => {}
   };
 
   return inertActorScope;
