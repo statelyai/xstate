@@ -2186,6 +2186,8 @@ export interface ActorRef<
 
 export type AnyActorRef = ActorRef<any, any, any>;
 
+export type UnknownActorRef = ActorRef<Snapshot<unknown>, EventObject>;
+
 export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
       any,
