@@ -5,7 +5,7 @@ import { createImmutable } from './createImmutable.ts';
 const noop = () => {};
 
 export function fromActorRef<
-  TActor extends ActorRef<any, any, any> | undefined
+  TActor extends AnyActorRef | undefined
 >(
   actorRef: Accessor<TActor> | TActor
 ): Accessor<
