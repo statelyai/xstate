@@ -3,7 +3,8 @@ import {
   createActor,
   createMachine,
   enqueueActions,
-  setup
+  setup,
+  toPromise
 } from '../src';
 import { emit } from '../src/actions/emit';
 

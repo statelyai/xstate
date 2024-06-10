@@ -18,7 +18,8 @@ import {
   sendTo,
   spawnChild,
   stateIn,
-  setup
+  setup,
+  toPromise
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -4551,5 +4552,18 @@ describe('snapshot methods', () => {
 
     snapshot.getMeta();
     snapshot.toJSON();
+  });
+
+  // https://github.com/statelyai/xstate/issues/4931
+  it('fromPromise should not have issues with actors with emitted types', () => {
+    const machine = setup({
+      types: {
+        emitted: {} as { type: 'FOO' }
+      }
+    }).createMachine({});
+
+    const actor = createActor(machine).start();
+
+    toPromise(actor);
   });
 });

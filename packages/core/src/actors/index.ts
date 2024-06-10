@@ -27,7 +27,8 @@ const emptyLogic = fromTransition((_) => undefined, undefined);
 
 export function createEmptyActor(): ActorRef<
   Snapshot<undefined>,
-  AnyEventObject
+  AnyEventObject,
+  any
 > {
   return createActor(emptyLogic);
 }

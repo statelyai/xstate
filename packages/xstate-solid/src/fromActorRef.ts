@@ -4,7 +4,9 @@ import { createImmutable } from './createImmutable.ts';
 
 const noop = () => {};
 
-export function fromActorRef<TActor extends ActorRef<any, any> | undefined>(
+export function fromActorRef<
+  TActor extends ActorRef<any, any, any> | undefined
+>(
   actorRef: Accessor<TActor> | TActor
 ): Accessor<
   | SnapshotFrom<NonNullable<TActor>>
