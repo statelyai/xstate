@@ -11,9 +11,9 @@
   },
   "dependencies": {
     "parcel-bundler": "^1.12.5",
-    "xstate": "^5.9.1"
+    "xstate": "^5.13.1"
   },
   "devDependencies": {
-    "typescript": "^5.4.4"
+    "typescript": "^5.4.5"
   }
 }

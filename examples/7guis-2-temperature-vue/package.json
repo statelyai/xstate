@@ -9,14 +9,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@xstate/vue": "^3.1.1",
-    "vue": "^3.4.21",
-    "xstate": "^5.9.1"
+    "@xstate/vue": "^3.1.2",
+    "vue": "^3.4.27",
+    "xstate": "^5.13.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.6.2",
-    "typescript": "^5.4.4",
-    "vite": "^5.2.8",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.13",
     "vue-tsc": "^1.8.27"
   }
 }
