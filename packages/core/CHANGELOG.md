@@ -1,5 +1,11 @@
 # xstate
 
+## 5.13.2
+
+### Patch Changes
+
+- [#4932](https://github.com/statelyai/xstate/pull/4932) [`71a7f8692`](https://github.com/statelyai/xstate/commit/71a7f8692beabfea97d1741098cf406e66cf4b0b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actors with emitted events should no longer cause type issues: https://github.com/statelyai/xstate/issues/4931
+
 ## 5.13.1
 
 ### Patch Changes
