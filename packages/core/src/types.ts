@@ -122,7 +122,7 @@ export interface UnifiedArg<
       TODO // TMeta
     >,
     TEvent,
-    any // TODO
+    AnyEventObject
   >;
   system: AnyActorSystem;
 }
@@ -1523,7 +1523,7 @@ export type ContextFactory<
       TODO // TMeta
     >,
     TEvent,
-    any // TODO
+    AnyEventObject
   >;
 }) => TContext;
 
@@ -1830,7 +1830,7 @@ export type Mapper<
       TODO // TMeta
     >,
     TEvent,
-    any // TODO
+    AnyEventObject
   >;
 }) => TResult;
 
