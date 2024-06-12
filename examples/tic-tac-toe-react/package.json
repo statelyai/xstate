@@ -6,15 +6,15 @@
     "serve": "vite preview"
   },
   "dependencies": {
-    "@xstate/react": "^4.1.0",
+    "@xstate/react": "^4.1.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "xstate": "^5.9.1"
+    "xstate": "^5.13.1"
   },
   "devDependencies": {
     "@types/react": "^17.0.80",
     "@types/react-dom": "^17.0.25",
-    "typescript": "^5.4.4",
-    "vite": "^5.2.8"
+    "typescript": "^5.4.5",
+    "vite": "^5.2.13"
   }
 }

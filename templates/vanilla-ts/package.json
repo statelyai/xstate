@@ -9,11 +9,11 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "typescript": "^5.4.4",
-    "vite": "^5.2.8"
+    "typescript": "^5.4.5",
+    "vite": "^5.2.13"
   },
   "dependencies": {
     "@statelyai/inspect": "^0.2.5",
-    "xstate": "^5.9.1"
+    "xstate": "^5.13.1"
   }
 }

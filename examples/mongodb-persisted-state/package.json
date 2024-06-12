@@ -10,12 +10,12 @@
   },
   "devDependencies": {
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.4",
-    "vite": "^5.2.8",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.13",
     "vite-node": "^0.31.4"
   },
   "dependencies": {
-    "mongodb": "^6.5.0",
-    "xstate": "^5.9.1"
+    "mongodb": "^6.7.0",
+    "xstate": "^5.13.1"
   }
 }
