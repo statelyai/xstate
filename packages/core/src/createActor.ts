@@ -100,13 +100,13 @@ export class Actor<TLogic extends AnyActorLogic>
   > = new Map();
   private logger: (...args: any[]) => void;
 
-  /** @internal */
   public _processingStatus: ProcessingStatus = ProcessingStatus.NotStarted;
 
   // Actor Ref
   public _parent?: AnyActorRef;
   /** @internal */
   public _syncSnapshot?: boolean;
+  /** @deprecated */
   public ref: ActorRef<
     SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,

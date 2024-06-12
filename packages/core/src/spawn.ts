@@ -121,7 +121,7 @@ export function createSpawner(
     }
   };
   return (src, options) => {
-    const actorRef = spawn(src, options) as TODO; // TODO: fix types
+    const actorRef = spawn(src, options);
     spawnedChildren[actorRef.id] = actorRef;
     actorScope.defer(() => {
       if (actorRef._processingStatus === ProcessingStatus.Stopped) {

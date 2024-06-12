@@ -2159,6 +2159,9 @@ export interface ActorRef<
    * The unique identifier for this actor relative to its parent.
    */
   id: string;
+  /**
+   * The globally unique identifier for this actor.
+   */
   sessionId: string;
   /** @internal */
   _send: (event: TEvent) => void;
@@ -2171,7 +2174,6 @@ export interface ActorRef<
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: AnyActorRef;
   system: AnyActorSystem;
-  /** @internal */
   _processingStatus: ProcessingStatus;
   src: string | AnyActorLogic;
   // TODO: remove from ActorRef interface
