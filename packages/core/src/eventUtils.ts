@@ -44,7 +44,8 @@ export function createDoneActorEvent(
 ): DoneActorEvent {
   return {
     type: `xstate.done.actor.${invokeId}`,
-    output
+    output,
+    actorId: invokeId
   };
 }
 
@@ -52,7 +53,7 @@ export function createErrorActorEvent(
   id: string,
   error?: unknown
 ): ErrorActorEvent {
-  return { type: `xstate.error.actor.${id}`, error };
+  return { type: `xstate.error.actor.${id}`, error, actorId: id };
 }
 
 export function createInitEvent(input: unknown) {
