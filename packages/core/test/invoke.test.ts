@@ -21,7 +21,7 @@ import {
   sendParent,
   Snapshot,
   ActorRef,
-  DoneActorEvent
+  AnyEventObject
 } from '../src/index.ts';
 import { sleep } from '@xstate-repo/jest-utils';
 
@@ -3082,7 +3082,7 @@ describe('invoke', () => {
   });
 
   it('xstate.done.actor events should have unique names when invokee is a machine with an id property', (done) => {
-    const actual: DoneActorEvent<void>[] = [];
+    const actual: AnyEventObject[] = [];
 
     const childMachine = createMachine({
       id: 'child',
@@ -3122,7 +3122,7 @@ describe('invoke', () => {
       on: {
         '*': {
           actions: ({ event }) => {
-            actual.push(event as any);
+            actual.push(event);
           }
         }
       }
