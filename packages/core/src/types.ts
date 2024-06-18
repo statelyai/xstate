@@ -8,11 +8,6 @@ import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Spawner } from './spawn.ts';
 import { AnyActorSystem, Clock } from './system.js';
 import { InspectionEvent } from './inspection.ts';
-import {
-  ResolveTypegenMeta,
-  TypegenConstraint,
-  TypegenDisabled
-} from './typegenTypes.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -148,8 +143,7 @@ export type InputFrom<T> = T extends StateMachine<
   infer TInput,
   infer _TOutput,
   infer _TEmitted,
-  infer _TMeta,
-  infer _TResolvedTypesMeta
+  infer _TMeta
 >
   ? TInput
   : T extends ActorLogic<
@@ -1134,8 +1128,7 @@ export type AnyStateMachine = StateMachine<
   any, // input
   any, // output
   any, // emitted
-  any, // TMeta
-  any // typegen
+  any // TMeta
 >;
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
@@ -1259,239 +1252,25 @@ export interface MachineImplementationsSimplified<
   delays: DelayFunctionMap<TContext, TEvent, TAction>;
 }
 
-type MaybeNarrowedEvent<TIndexedEvents, TCausingLookup, K> = Cast<
-  Prop<
-    TIndexedEvents,
-    K extends keyof TCausingLookup
-      ? TCausingLookup[K]
-      : TIndexedEvents[keyof TIndexedEvents]
-  >,
-  EventObject
->;
-
-type MachineImplementationsActions<
-  TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TEventsCausingActions = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'eventsCausingActions'
-  >,
-  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
-  TIndexedActors = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActors'>,
-  TIndexedActions = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'indexedActions'
-  >,
-  TIndexedGuards = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedGuards'>,
-  TIndexedDelays = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedDelays'>,
-  TEmitted = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'emitted'>
-> = {
-  [K in keyof TIndexedActions]?: ActionFunction<
-    TContext,
-    MaybeNarrowedEvent<TIndexedEvents, TEventsCausingActions, K>,
-    Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>,
-    GetParameterizedParams<Cast<TIndexedActions[K], ParameterizedObject>>,
-    Cast<Prop<TIndexedActors, keyof TIndexedActors>, ProvidedActor>,
-    Cast<Prop<TIndexedActions, keyof TIndexedActions>, ParameterizedObject>,
-    Cast<Prop<TIndexedGuards, keyof TIndexedGuards>, ParameterizedObject>,
-    Cast<
-      Prop<TIndexedDelays, keyof TIndexedDelays>,
-      ParameterizedObject
-    >['type'],
-    Cast<TEmitted, EventObject>
-  >;
-};
-
-type MachineImplementationsActors<
-  _TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TIndexedActors = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActors'>,
-  _TInvokeSrcNameMap = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'invokeSrcNameMap'
-  >
-> = {
-  [K in keyof TIndexedActors]?: Cast<
-    Prop<TIndexedActors[K], 'logic'>,
-    AnyActorLogic
-  >;
-};
-
-type MachineImplementationsDelays<
-  TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TEventsCausingDelays = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'eventsCausingDelays'
-  >,
-  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
-  TIndexedActions = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'indexedActions'
-  >,
-  TIndexedDelays = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedDelays'>
-> = {
-  [K in keyof TIndexedDelays]?: DelayConfig<
-    TContext,
-    MaybeNarrowedEvent<TIndexedEvents, TEventsCausingDelays, K>,
-    // delays in referenced send actions might use specific `TAction`
-    // delays executed by auto-generated send actions related to after transitions won't have that
-    // since they are effectively implicit inline actions
-    | Cast<
-        Prop<Prop<TIndexedActions, keyof TIndexedActions>, 'params'>,
-        ParameterizedObject['params'] | undefined
-      >
-    | undefined,
-    Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>
-  >;
-};
-
-type MachineImplementationsGuards<
-  TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TEventsCausingGuards = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'eventsCausingGuards'
-  >,
-  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
-  TIndexedGuards = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedGuards'>
-> = {
-  [K in keyof TIndexedGuards]?: Guard<
-    TContext,
-    MaybeNarrowedEvent<TIndexedEvents, TEventsCausingGuards, K>,
-    GetParameterizedParams<
-      Cast<TIndexedGuards[K], ParameterizedObject | undefined>
-    >,
-    Cast<Prop<TIndexedGuards, keyof TIndexedGuards>, ParameterizedObject>
-  >;
-};
-
-type MakeKeysRequired<T extends string> = { [K in T]: unknown };
-
-type MaybeMakeMissingImplementationsRequired<
-  TImplementationType,
-  TMissingImplementationsForType,
-  TRequireMissingImplementations
-> = TRequireMissingImplementations extends true
-  ? IsNever<TMissingImplementationsForType> extends true
-    ? {}
-    : {
-        [K in Cast<TImplementationType, string>]: MakeKeysRequired<
-          Cast<TMissingImplementationsForType, string>
-        >;
-      }
-  : {};
-
-type GenerateActionsImplementationsPart<
-  TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TRequireMissingImplementations,
-  TMissingImplementations
-> = Compute<
-  MaybeMakeMissingImplementationsRequired<
-    'actions',
-    Prop<TMissingImplementations, 'actions'>,
-    TRequireMissingImplementations
-  > & {
-    actions?: MachineImplementationsActions<TContext, TResolvedTypesMeta>;
-  }
->;
-
-type GenerateActorsImplementationsPart<
-  TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TRequireMissingImplementations,
-  TMissingImplementations
-> = Compute<
-  MaybeMakeMissingImplementationsRequired<
-    'actors',
-    Prop<TMissingImplementations, 'actors'>,
-    TRequireMissingImplementations
-  > & {
-    actors?: MachineImplementationsActors<TContext, TResolvedTypesMeta>;
-  }
->;
-
-type GenerateDelaysImplementationsPart<
-  TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TRequireMissingImplementations,
-  TMissingImplementations
-> = Compute<
-  MaybeMakeMissingImplementationsRequired<
-    'delays',
-    Prop<TMissingImplementations, 'delays'>,
-    TRequireMissingImplementations
-  > & {
-    delays?: MachineImplementationsDelays<TContext, TResolvedTypesMeta>;
-  }
->;
-
-type GenerateGuardsImplementationsPart<
-  TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TRequireMissingImplementations,
-  TMissingImplementations
-> = Compute<
-  MaybeMakeMissingImplementationsRequired<
-    'guards',
-    Prop<TMissingImplementations, 'guards'>,
-    TRequireMissingImplementations
-  > & {
-    guards?: MachineImplementationsGuards<TContext, TResolvedTypesMeta>;
-  }
->;
-
 export type InternalMachineImplementations<
   TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TRequireMissingImplementations extends boolean = false,
-  TMissingImplementations = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'missingImplementations'
-  >
-> =
-  // TODO: remove per-Generate* Computes
-  Compute<
-    GenerateActionsImplementationsPart<
-      TContext,
-      TResolvedTypesMeta,
-      TRequireMissingImplementations,
-      TMissingImplementations
-    > &
-      GenerateActorsImplementationsPart<
-        TContext,
-        TResolvedTypesMeta,
-        TRequireMissingImplementations,
-        TMissingImplementations
-      > &
-      GenerateDelaysImplementationsPart<
-        TContext,
-        TResolvedTypesMeta,
-        TRequireMissingImplementations,
-        TMissingImplementations
-      > &
-      GenerateGuardsImplementationsPart<
-        TContext,
-        TResolvedTypesMeta,
-        TRequireMissingImplementations,
-        TMissingImplementations
-      >
-  >;
-
-export type MachineImplementations<
-  TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor = ProvidedActor,
-  TAction extends ParameterizedObject = ParameterizedObject,
-  TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string,
-  TTag extends string = string,
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
-> = InternalMachineImplementations<
-  TContext,
-  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
->;
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject
+> = {
+  guards?: GuardMap<TContext, TEvent, TGuard>;
+  actions?: ActionFunctionMap<TContext, TEvent, TActor, TAction>;
+  actors?: Record<
+    string,
+    | AnyActorLogic
+    | {
+        src: AnyActorLogic;
+        input: Mapper<TContext, TEvent, unknown, TEvent> | NonReducibleUnknown;
+      }
+  >;
+  delays?: DelayFunctionMap<TContext, TEvent, TAction>;
+};
 
 type InitialContext<
   TContext extends MachineContext,
@@ -1538,8 +1317,7 @@ export type MachineConfig<
   TInput = any,
   TOutput = unknown,
   TEmitted extends EventObject = EventObject,
-  TMeta extends MetaObject = MetaObject,
-  TTypesMeta = TypegenDisabled
+  TMeta extends MetaObject = MetaObject
 > = (Omit<
   StateNodeConfig<
     DoNotInfer<TContext>,
@@ -1608,8 +1386,7 @@ export interface MachineTypes<
   TInput,
   TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject,
-  TTypesMeta = TypegenDisabled
+  TMeta extends MetaObject
 > extends SetupTypes<
     TContext,
     TEvent,
@@ -1626,7 +1403,6 @@ export interface MachineTypes<
   actions?: TAction;
   guards?: TGuard;
   delays?: TDelay;
-  typegen?: TTypesMeta;
   meta?: TMeta;
 }
 
@@ -2222,8 +1998,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TInput,
       infer TOutput,
       infer TEmitted,
-      infer TMeta,
-      infer _TResolvedTypesMeta
+      infer TMeta
     >
     ? ActorRef<
         MachineSnapshot<
@@ -2271,8 +2046,7 @@ export type InterpreterFrom<
   infer TInput,
   infer TOutput,
   infer TEmitted,
-  infer TMeta,
-  infer _TResolvedTypesMeta
+  infer TMeta
 >
   ? Actor<
       ActorLogic<
@@ -2294,49 +2068,23 @@ export type InterpreterFrom<
   : never;
 
 export type MachineImplementationsFrom<
-  T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine),
-  TRequireMissingImplementations extends boolean = false
+  T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
-  infer _TEvent,
+  infer TEvent,
   infer _TChildren,
-  infer _TActor,
-  infer _TAction,
-  infer _TGuard,
+  infer TActor,
+  infer TAction,
+  infer TGuard,
   infer _TDelay,
   infer _TStateValue,
   infer _TTag,
   infer _TInput,
   infer _TOutput,
   infer _TEmitted,
-  infer _TMeta,
-  infer TResolvedTypesMeta
+  infer _TMeta
 >
-  ? InternalMachineImplementations<
-      TContext,
-      TResolvedTypesMeta,
-      TRequireMissingImplementations
-    >
-  : never;
-
-// only meant to be used internally for debugging purposes
-export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
-  any, // context
-  any, // event
-  any, // children
-  any, // actor
-  any, // action
-  any, // guard
-  any, // delay
-  any, // state value
-  any, // tag
-  any, // input
-  any, // output
-  any, // emitted
-  any, // TMeta
-  infer TResolvedTypesMeta
->
-  ? TResolvedTypesMeta
+  ? InternalMachineImplementations<TContext, TEvent, TActor, TAction, TGuard>
   : never;
 
 export interface ActorScope<
@@ -2531,8 +2279,7 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       infer _TInput,
       infer _TOutput,
       infer _TEmitted,
-      infer _TMeta,
-      infer _TResolvedTypesMeta
+      infer _TMeta
     >
     ? TEvent
     : R extends MachineSnapshot<
@@ -2570,8 +2317,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TInput,
       infer _TOutput,
       infer _TEmitted,
-      infer _TMeta,
-      infer _TResolvedTypesMeta
+      infer _TMeta
     >
     ? TContext
     : R extends MachineSnapshot<
