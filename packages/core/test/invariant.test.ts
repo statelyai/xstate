@@ -171,14 +171,14 @@ describe('state invariants', () => {
               on: {
                 updateAge: {
                   actions: assign({
-                    user: (x) => ({ ...x.context.user, age: -3 })
+                    user: (x) => ({ ...x.context.user!, age: -3 })
                   })
                 }
               }
             },
             b: {
               invariant: (x) => {
-                if (x.context.user.age < 0) {
+                if (x.context.user!.age < 0) {
                   throw new Error('User age cannot be negative');
                 }
               },
