@@ -144,7 +144,7 @@ describe('state invariants', () => {
     expect(actor.getSnapshot().value).toEqual('idle');
   });
 
-  it('interacts correctly with parallel states', () => {
+  it('parallel regions check for state invariants', () => {
     const spy = jest.fn();
 
     const machine = createMachine({
