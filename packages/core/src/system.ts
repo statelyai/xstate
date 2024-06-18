@@ -7,8 +7,10 @@ import {
   Snapshot,
   HomomorphicOmit,
   EventObject,
-  AnyTransitionDefinition
+  AnyTransitionDefinition,
+  Subscription
 } from './types.ts';
+import { toObserver } from './utils.ts';
 
 export interface ScheduledEvent {
   id: string;
@@ -63,7 +65,12 @@ export interface ActorSystem<T extends ActorSystemInfo> {
    */
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
-  inspect: (observer: Observer<InspectionEvent>) => void;
+
+  inspect: (
+    observer:
+      | Observer<InspectionEvent>
+      | ((inspectionEvent: InspectionEvent) => void)
+  ) => Subscription;
   /**
    * @internal
    */
@@ -206,8 +213,15 @@ export function createSystem<T extends ActorSystemInfo>(
       keyedActors.set(systemId, actorRef);
       reverseKeyedActors.set(actorRef, systemId);
     },
-    inspect: (observer) => {
+    inspect: (observerOrFn) => {
+      const observer = toObserver(observerOrFn);
       inspectionObservers.add(observer);
+
+      return {
+        unsubscribe() {
+          inspectionObservers.delete(observer);
+        }
+      };
     },
     _sendInspectionEvent: sendInspectionEvent as any,
     _relay: (source, target, event) => {
