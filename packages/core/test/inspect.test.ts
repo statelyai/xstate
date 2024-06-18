@@ -1032,4 +1032,94 @@ describe('inspect', () => {
     actor.start();
     actor.send({ type: 'any' });
   });
+
+  it('actor.system.inspect(…) can inspect actors', () => {
+    const actor = createActor(createMachine({}));
+    const events: InspectionEvent[] = [];
+
+    actor.system.inspect((ev) => {
+      events.push(ev);
+    });
+
+    actor.start();
+
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: '@xstate.event'
+      })
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: '@xstate.snapshot'
+      })
+    );
+  });
+
+  it('actor.system.inspect(…) can inspect actors (observer)', () => {
+    const actor = createActor(createMachine({}));
+    const events: InspectionEvent[] = [];
+
+    actor.system.inspect({
+      next: (ev) => {
+        events.push(ev);
+      }
+    });
+
+    actor.start();
+
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: '@xstate.event'
+      })
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: '@xstate.snapshot'
+      })
+    );
+  });
+
+  it('actor.system.inspect(…) can be unsubscribed', () => {
+    const actor = createActor(createMachine({}));
+    const events: InspectionEvent[] = [];
+
+    const sub = actor.system.inspect((ev) => {
+      events.push(ev);
+    });
+
+    actor.start();
+
+    expect(events.length).toEqual(2);
+
+    events.length = 0;
+
+    sub.unsubscribe();
+
+    actor.send({ type: 'someEvent' });
+
+    expect(events.length).toEqual(0);
+  });
+
+  it('actor.system.inspect(…) can be unsubscribed (observer)', () => {
+    const actor = createActor(createMachine({}));
+    const events: InspectionEvent[] = [];
+
+    const sub = actor.system.inspect({
+      next: (ev) => {
+        events.push(ev);
+      }
+    });
+
+    actor.start();
+
+    expect(events.length).toEqual(2);
+
+    events.length = 0;
+
+    sub.unsubscribe();
+
+    actor.send({ type: 'someEvent' });
+
+    expect(events.length).toEqual(0);
+  });
 });
