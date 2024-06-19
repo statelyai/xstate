@@ -143,5 +143,9 @@ export function emit<
   emit.resolve = resolveEmit;
   emit.execute = executeEmit;
 
+  emit.toJSON = () => ({
+    ...emit
+  });
+
   return emit;
 }

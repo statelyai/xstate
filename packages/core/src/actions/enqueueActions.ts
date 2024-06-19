@@ -304,5 +304,9 @@ export function enqueueActions<
   enqueueActions.collect = collect;
   enqueueActions.resolve = resolveEnqueueActions;
 
+  enqueueActions.toJSON = () => ({
+    ...enqueueActions
+  });
+
   return enqueueActions;
 }

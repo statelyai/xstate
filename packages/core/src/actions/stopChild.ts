@@ -3,7 +3,6 @@ import { cloneMachineSnapshot } from '../State.ts';
 import { ProcessingStatus } from '../createActor.ts';
 import {
   ActionArgs,
-  ActorRef,
   AnyActorRef,
   AnyActorScope,
   AnyMachineSnapshot,
@@ -115,6 +114,10 @@ export function stopChild<
 
   stop.resolve = resolveStop;
   stop.execute = executeStop;
+
+  stop.toJSON = () => ({
+    ...stop
+  });
 
   return stop;
 }

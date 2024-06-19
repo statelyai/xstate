@@ -177,5 +177,9 @@ export function assign<
 
   assign.resolve = resolveAssign;
 
+  assign.toJSON = () => ({
+    ...assign
+  });
+
   return assign;
 }

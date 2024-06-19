@@ -165,5 +165,9 @@ export function raise<
   raise.resolve = resolveRaise;
   raise.execute = executeRaise;
 
+  raise.toJSON = () => ({
+    ...raise
+  });
+
   return raise;
 }

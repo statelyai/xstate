@@ -225,5 +225,9 @@ export function spawnChild<
   spawnChild.resolve = resolveSpawn;
   spawnChild.execute = executeSpawn;
 
+  spawnChild.toJSON = () => ({
+    ...spawnChild
+  });
+
   return spawnChild;
 }

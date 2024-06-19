@@ -258,6 +258,10 @@ export function sendTo<
   sendTo.retryResolve = retryResolveSendTo;
   sendTo.execute = executeSendTo;
 
+  sendTo.toJSON = () => ({
+    ...sendTo
+  });
+
   return sendTo;
 }
 

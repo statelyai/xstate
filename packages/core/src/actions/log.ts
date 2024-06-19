@@ -95,5 +95,9 @@ export function log<
   log.resolve = resolveLog;
   log.execute = executeLog;
 
+  log.toJSON = () => ({
+    ...log
+  });
+
   return log;
 }
