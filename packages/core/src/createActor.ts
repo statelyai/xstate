@@ -209,7 +209,7 @@ export class Actor<TLogic extends AnyActorLogic>
         }
       },
       actionExecutor: (action) => {
-        if (this._processingStatus === ProcessingStatus.Running) {
+        const exec = () => {
           this._actorScope.system._sendInspectionEvent({
             type: '@xstate.action',
             actorRef: this,
@@ -224,8 +224,11 @@ export class Actor<TLogic extends AnyActorLogic>
           } finally {
             executingCustomAction = false;
           }
+        };
+        if (this._processingStatus === ProcessingStatus.Running) {
+          exec();
         } else {
-          this._deferred.push(action.execute);
+          this._deferred.push(exec);
         }
       }
     };

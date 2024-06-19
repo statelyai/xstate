@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { XSTATE_ERROR } from '../constants.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
-import { executingCustomAction } from '../stateUtils.ts';
+import { executingCustomAction } from '../createActor.ts';
 import {
   ActionArgs,
   ActionFunction,
