@@ -151,8 +151,7 @@ export function createMachine<
     TInput,
     TOutput,
     TEmitted,
-    TMeta,
-    TTypesMeta
+    TMeta
   >,
   implementations?: InternalMachineImplementations<
     TContext,

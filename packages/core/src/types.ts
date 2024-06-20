@@ -1538,8 +1538,7 @@ export type MachineConfig<
   TInput = any,
   TOutput = unknown,
   TEmitted extends EventObject = EventObject,
-  TMeta extends MetaObject = MetaObject,
-  TTypesMeta = TypegenDisabled
+  TMeta extends MetaObject = MetaObject
 > = (Omit<
   StateNodeConfig<
     DoNotInfer<TContext>,
