@@ -14,14 +14,14 @@ export interface TypegenEnabled {
   '@@xstate/typegen': true;
 }
 
-export interface Stuff {
-  TEvent: EventObject;
-  TActor: ProvidedActor;
-  TAction: ParameterizedObject;
-  TGuard: ParameterizedObject;
-  TDelay: string;
-  TTag: string;
-  TEmitted: EventObject;
+export interface StateMachineTypes {
+  events: EventObject;
+  actors: ProvidedActor;
+  actions: ParameterizedObject;
+  guards: ParameterizedObject;
+  delays: string;
+  tags: string;
+  emitted: EventObject;
 }
 
 /**
@@ -36,11 +36,11 @@ export interface ResolveTypegenMeta<
   TTag extends string,
   TEmitted extends EventObject = EventObject
 > {
-  TEvent: TEvent;
-  TActor: TActor;
-  TAction: TAction;
-  TGuard: TGuard;
-  TDelay: TDelay;
-  TTag: TTag;
-  TEmitted: TEmitted;
+  events: TEvent;
+  actors: TActor;
+  actions: TAction;
+  guards: TGuard;
+  delays: TDelay;
+  tags: TTag;
+  emitted: TEmitted;
 }

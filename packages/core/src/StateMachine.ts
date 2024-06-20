@@ -22,7 +22,7 @@ import {
   transitionNode
 } from './stateUtils.ts';
 import { AnyActorSystem } from './system.ts';
-import { ResolveTypegenMeta, Stuff } from './typegenTypes.ts';
+import { ResolveTypegenMeta, StateMachineTypes } from './typegenTypes.ts';
 import type {
   ActorLogic,
   ActorScope,
