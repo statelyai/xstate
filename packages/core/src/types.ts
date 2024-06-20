@@ -1260,16 +1260,6 @@ export interface MachineImplementationsSimplified<
   delays: DelayFunctionMap<TContext, TEvent, TAction>;
 }
 
-type MaybeNarrowedEvent<TIndexedEvents, TCausingLookup, K> = Cast<
-  Prop<
-    TIndexedEvents,
-    K extends keyof TCausingLookup
-      ? TCausingLookup[K]
-      : TIndexedEvents[keyof TIndexedEvents]
-  >,
-  EventObject
->;
-
 type MachineImplementationsActions<
   TContext extends MachineContext,
   TResolvedTypesMeta extends Stuff
@@ -1298,50 +1288,28 @@ type MachineImplementationsActors<
 
 type MachineImplementationsDelays<
   TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TEventsCausingDelays = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'eventsCausingDelays'
-  >,
-  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
-  TIndexedActions = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'indexedActions'
-  >,
-  TIndexedDelays = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedDelays'>
+  TResolvedTypesMeta extends Stuff
 > = {
-  [K in keyof TIndexedDelays]?: DelayConfig<
+  [K in TResolvedTypesMeta['TDelay']]?: DelayConfig<
     TContext,
-    MaybeNarrowedEvent<TIndexedEvents, TEventsCausingDelays, K>,
+    TResolvedTypesMeta['TEvent'],
     // delays in referenced send actions might use specific `TAction`
     // delays executed by auto-generated send actions related to after transitions won't have that
     // since they are effectively implicit inline actions
-    | Cast<
-        Prop<Prop<TIndexedActions, keyof TIndexedActions>, 'params'>,
-        ParameterizedObject['params'] | undefined
-      >
-    | undefined,
-    Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>
+    undefined,
+    TResolvedTypesMeta['TEvent']
   >;
 };
 
 type MachineImplementationsGuards<
   TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TEventsCausingGuards = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'eventsCausingGuards'
-  >,
-  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
-  TIndexedGuards = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedGuards'>
+  TResolvedTypesMeta extends Stuff
 > = {
-  [K in keyof TIndexedGuards]?: Guard<
+  [K in TResolvedTypesMeta['TGuard']['type']]?: Guard<
     TContext,
-    MaybeNarrowedEvent<TIndexedEvents, TEventsCausingGuards, K>,
-    GetParameterizedParams<
-      Cast<TIndexedGuards[K], ParameterizedObject | undefined>
-    >,
-    Cast<Prop<TIndexedGuards, keyof TIndexedGuards>, ParameterizedObject>
+    TResolvedTypesMeta['TEvent'],
+    (TResolvedTypesMeta['TGuard'] & { type: K })['params'],
+    TResolvedTypesMeta['TGuard'] & { type: K }
   >;
 };
 

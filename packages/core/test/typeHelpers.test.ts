@@ -12,7 +12,6 @@ import {
   createActor,
   createMachine
 } from '../src/index.ts';
-import { TypegenMeta } from '../src/typegenTypes';
 
 describe('ContextFrom', () => {
   it('should return context of a machine', () => {

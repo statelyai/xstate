@@ -59,52 +59,13 @@ export interface TypegenMeta extends TypegenEnabled {
    * ```
    */
   internalEvents: {};
-
-  /**
-   * Keeps track of which events lead to which
-   * actions.
-   *
-   * Key: 'EVENT_NAME'
-   * Value: 'actionName' | 'otherActionName'
-   */
-  eventsCausingActions: Record<string, string>;
-  /**
-   * Keeps track of which events lead to which
-   * delays.
-   *
-   * Key: 'EVENT_NAME'
-   * Value: 'delayName' | 'otherDelayName'
-   */
-  eventsCausingDelays: Record<string, string>;
-  /**
-   * Keeps track of which events lead to which
-   * guards.
-   *
-   * Key: 'EVENT_NAME'
-   * Value: 'guardName' | 'otherGuardName'
-   */
-  eventsCausingGuards: Record<string, string>;
-  /**
-   * Keeps track of which events lead to which
-   * actors.
-   *
-   * Key: 'EVENT_NAME'
-   * Value: 'actorName' | 'otherActorName'
-   */
-  eventsCausingActors: Record<string, string>;
 }
 
 /**
  * @deprecated
  */
 export interface ResolvedTypegenMeta extends TypegenMeta {
-  resolved: TypegenMeta & {
-    indexedActors: Record<string, ProvidedActor>;
-    indexedActions: Record<string, ParameterizedObject>;
-    indexedEvents: Record<string, EventObject>;
-    indexedGuards: Record<string, ParameterizedObject>;
-    indexedDelays: Record<string, ParameterizedObject>;
-  };
+  resolved: TypegenMeta;
 }
 
 /**
@@ -140,12 +101,7 @@ interface AllImplementationsProvided {
   };
 }
 
-type AllowAllEvents = {
-  eventsCausingActions: Record<string, string>;
-  eventsCausingActors: Record<string, string>;
-  eventsCausingDelays: Record<string, string>;
-  eventsCausingGuards: Record<string, string>;
-};
+type AllowAllEvents = {};
 
 type WrapIntoParameterizedObject<T extends string> = T extends any
   ? { type: T }
@@ -182,16 +138,5 @@ export interface ResolveTypegenMeta<
   TTag: TTag;
   TEmitted: TEmitted;
   '@@xstate/typegen': TTypesMeta['@@xstate/typegen'];
-  resolved: TypegenDisabled &
-    AllImplementationsProvided &
-    AllowAllEvents & {
-      indexedActions: IndexByType<TAction>;
-      indexedActors: IndexByProp<TActor, 'src'>;
-      // we don't have to iterate through this since we'll never index a concrete event type on this without the typegen meta
-      indexedEvents: Record<string, TEvent>;
-      indexedGuards: IndexByType<TGuard>;
-      indexedDelays: IndexByType<WrapIntoParameterizedObject<TDelay>>;
-      tags: TTag;
-      emitted: TEmitted;
-    };
+  resolved: TypegenDisabled & AllImplementationsProvided & AllowAllEvents;
 }

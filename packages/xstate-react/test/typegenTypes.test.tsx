@@ -1,6 +1,5 @@
-import { render } from '@testing-library/react';
-import { ActorRefFrom, assign, createMachine, TypegenMeta } from 'xstate';
-import { createActorContext, useActorRef, useMachine } from '../src/index.ts';
+import { createMachine } from 'xstate';
+import { useMachine } from '../src/index.ts';
 
 describe('useActorRef', () => {
   it('should handle multiple state.matches when NOT passed TypegenMeta', () => {
