@@ -185,103 +185,6 @@ describe('MachineImplementationsFrom', () => {
     // @ts-expect-error
     acceptMachineImplementations(100);
   });
-
-  it('should return optional implementations for a typegen-based machine by default', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'myAction';
-        delays: never;
-        guards: never;
-        actors: never;
-      };
-      eventsCausingActions: {
-        myAction: 'FOO';
-      };
-    }
-    const machine = createMachine({
-      context: {
-        count: 100
-      },
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
-      }
-    });
-
-    const acceptMachineImplementations = (
-      _options: MachineImplementationsFrom<typeof machine>
-    ) => {};
-
-    acceptMachineImplementations({
-      actions: {
-        // @ts-expect-error
-        foo: () => {}
-      }
-    });
-    acceptMachineImplementations({
-      actions: {}
-    });
-    acceptMachineImplementations({
-      actions: {
-        myAction: assign(({ context, event }) => {
-          ((_accept: number) => {})(context.count);
-          ((_accept: 'FOO') => {})(event.type);
-          return {};
-        })
-      }
-    });
-    // @ts-expect-error
-    acceptMachineImplementations(100);
-  });
-
-  it('should return required implementations for a typegen-based machine with a flag', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'myAction';
-        delays: never;
-        guards: never;
-        actors: never;
-      };
-      eventsCausingActions: {
-        myAction: 'FOO';
-      };
-    }
-    const machine = createMachine({
-      context: {
-        count: 100
-      },
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
-      }
-    });
-
-    const acceptMachineImplementations = (
-      _options: MachineImplementationsFrom<typeof machine, true>
-    ) => {};
-
-    acceptMachineImplementations({
-      actions: {
-        // @ts-expect-error
-        foo: () => {}
-      }
-    });
-    acceptMachineImplementations({
-      // @ts-expect-error
-      actions: {}
-    });
-    acceptMachineImplementations({
-      actions: {
-        myAction: assign(({ context, event }) => {
-          ((_accept: number) => {})(context.count);
-          ((_accept: 'FOO') => {})(event.type);
-          return {};
-        })
-      }
-    });
-    // @ts-expect-error
-    acceptMachineImplementations(100);
-  });
 });
 
 describe('StateValueFrom', () => {
@@ -376,27 +279,6 @@ describe('ActorRefFrom', () => {
 });
 
 describe('tags', () => {
-  it('derives tags from StateMachine when typegen is enabled', () => {
-    interface TypesMeta extends TypegenMeta {
-      tags: 'a' | 'b' | 'c';
-    }
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta
-      }
-    });
-
-    type Tags = TagsFrom<typeof machine>;
-
-    const acceptTag = (_tag: Tags) => {};
-
-    acceptTag('a');
-    acceptTag('b');
-    acceptTag('c');
-    // @ts-expect-error d is not a valid tag
-    acceptTag('d');
-  });
-
   it('derives string from StateMachine without typegen', () => {
     const machine = createMachine({});
 
