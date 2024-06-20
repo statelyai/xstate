@@ -1,7 +1,7 @@
 import { StateMachine } from './StateMachine';
 import { createMachine } from './createMachine';
 import { GuardPredicate } from './guards';
-import { ResolveTypegenMeta, TypegenDisabled } from './typegenTypes';
+import { ResolveTypegenMeta } from './typegenTypes';
 import {
   ActionFunction,
   AnyActorRef,

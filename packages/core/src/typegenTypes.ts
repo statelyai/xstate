@@ -1,14 +1,4 @@
-import {
-  EventObject,
-  IndexByType,
-  IsNever,
-  Prop,
-  ParameterizedObject,
-  ProvidedActor,
-  OutputFrom,
-  AnyActorLogic,
-  IndexByProp
-} from './types.ts';
+import { EventObject, ParameterizedObject, ProvidedActor } from './types.ts';
 
 /**
  * @deprecated
@@ -23,71 +13,6 @@ export interface TypegenDisabled {
 export interface TypegenEnabled {
   '@@xstate/typegen': true;
 }
-
-/**
- * @deprecated
- */
-export interface TypegenMeta extends TypegenEnabled {
-  /**
-   * Allows you to specify all the results of state.matches
-   */
-  matchesStates: string | {};
-  /**
-   * Allows you to specify all tags used by the machine
-   */
-  tags: string;
-  /**
-   * Allows you to specify all the missing implementations
-   * of the machine
-   */
-  missingImplementations: {
-    actions: string;
-    actors: string;
-    delays: string;
-    guards: string;
-  };
-  /**
-   * A map for the internal events of the machine.
-   *
-   * ```js
-   * key: 'xstate.done.actor.myActor'
-   * value: {
-   *   type: 'xstate.done.actor.myActor';
-   *   data: unknown;
-   *   __tip: 'Declare the type in event types!';
-   * }
-   * ```
-   */
-  internalEvents: {};
-}
-
-/**
- * @deprecated
- */
-export interface ResolvedTypegenMeta extends TypegenMeta {}
-
-/**
- * @deprecated
- */
-export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
-
-/**
- * @deprecated
- */
-interface AllImplementationsProvided {
-  missingImplementations: {
-    actions: never;
-    actors: never;
-    delays: never;
-    guards: never;
-  };
-}
-
-type AllowAllEvents = {};
-
-type WrapIntoParameterizedObject<T extends string> = T extends any
-  ? { type: T }
-  : never;
 
 export interface Stuff {
   TEvent: EventObject;

@@ -8,12 +8,7 @@ import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Spawner } from './spawn.ts';
 import { AnyActorSystem, Clock } from './system.js';
 import { InspectionEvent } from './inspection.ts';
-import {
-  ResolveTypegenMeta,
-  Stuff,
-  TypegenConstraint,
-  TypegenDisabled
-} from './typegenTypes.ts';
+import { Stuff } from './typegenTypes.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
