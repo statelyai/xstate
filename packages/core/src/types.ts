@@ -1366,118 +1366,21 @@ type MachineImplementationsGuards<
   >;
 };
 
-type MakeKeysRequired<T extends string> = { [K in T]: unknown };
-
-type MaybeMakeMissingImplementationsRequired<
-  TImplementationType,
-  TMissingImplementationsForType,
-  TRequireMissingImplementations
-> = TRequireMissingImplementations extends true
-  ? IsNever<TMissingImplementationsForType> extends true
-    ? {}
-    : {
-        [K in Cast<TImplementationType, string>]: MakeKeysRequired<
-          Cast<TMissingImplementationsForType, string>
-        >;
-      }
-  : {};
-
-type GenerateActionsImplementationsPart<
-  TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TRequireMissingImplementations,
-  TMissingImplementations
-> = Compute<
-  MaybeMakeMissingImplementationsRequired<
-    'actions',
-    Prop<TMissingImplementations, 'actions'>,
-    TRequireMissingImplementations
-  > & {
-    actions?: MachineImplementationsActions<TContext, TResolvedTypesMeta>;
-  }
->;
-
-type GenerateActorsImplementationsPart<
-  TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TRequireMissingImplementations,
-  TMissingImplementations
-> = Compute<
-  MaybeMakeMissingImplementationsRequired<
-    'actors',
-    Prop<TMissingImplementations, 'actors'>,
-    TRequireMissingImplementations
-  > & {
-    actors?: MachineImplementationsActors<TContext, TResolvedTypesMeta>;
-  }
->;
-
-type GenerateDelaysImplementationsPart<
-  TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TRequireMissingImplementations,
-  TMissingImplementations
-> = Compute<
-  MaybeMakeMissingImplementationsRequired<
-    'delays',
-    Prop<TMissingImplementations, 'delays'>,
-    TRequireMissingImplementations
-  > & {
-    delays?: MachineImplementationsDelays<TContext, TResolvedTypesMeta>;
-  }
->;
-
-type GenerateGuardsImplementationsPart<
-  TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TRequireMissingImplementations,
-  TMissingImplementations
-> = Compute<
-  MaybeMakeMissingImplementationsRequired<
-    'guards',
-    Prop<TMissingImplementations, 'guards'>,
-    TRequireMissingImplementations
-  > & {
-    guards?: MachineImplementationsGuards<TContext, TResolvedTypesMeta>;
-  }
->;
-
 export type InternalMachineImplementations<
   TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TRequireMissingImplementations extends boolean = false,
-  TMissingImplementations = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'missingImplementations'
-  >
+  TResolvedTypesMeta
 > =
   // TODO: remove per-Generate* Computes
-  Compute<
-    GenerateActionsImplementationsPart<
-      TContext,
-      TResolvedTypesMeta,
-      TRequireMissingImplementations,
-      TMissingImplementations
-    > &
-      GenerateActorsImplementationsPart<
-        TContext,
-        TResolvedTypesMeta,
-        TRequireMissingImplementations,
-        TMissingImplementations
-      > &
-      GenerateDelaysImplementationsPart<
-        TContext,
-        TResolvedTypesMeta,
-        TRequireMissingImplementations,
-        TMissingImplementations
-      > &
-      GenerateGuardsImplementationsPart<
-        TContext,
-        TResolvedTypesMeta,
-        TRequireMissingImplementations,
-        TMissingImplementations
-      >
-  >;
+
+  {
+    actions?: MachineImplementationsActions<TContext, TResolvedTypesMeta>;
+
+    actors?: MachineImplementationsActors<TContext, TResolvedTypesMeta>;
+
+    delays?: MachineImplementationsDelays<TContext, TResolvedTypesMeta>;
+
+    guards?: MachineImplementationsGuards<TContext, TResolvedTypesMeta>;
+  };
 
 export type MachineImplementations<
   TContext extends MachineContext,
@@ -2293,8 +2196,7 @@ export type InterpreterFrom<
   : never;
 
 export type MachineImplementationsFrom<
-  T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine),
-  TRequireMissingImplementations extends boolean = false
+  T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
   infer _TEvent,
@@ -2311,11 +2213,7 @@ export type MachineImplementationsFrom<
   infer _TMeta,
   infer TResolvedTypesMeta
 >
-  ? InternalMachineImplementations<
-      TContext,
-      TResolvedTypesMeta,
-      TRequireMissingImplementations
-    >
+  ? InternalMachineImplementations<TContext, TResolvedTypesMeta>
   : never;
 
 // only meant to be used internally for debugging purposes

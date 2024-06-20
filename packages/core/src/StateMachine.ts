@@ -188,8 +188,7 @@ export class StateMachine<
   public provide(
     implementations: InternalMachineImplementations<
       TContext,
-      TResolvedTypesMeta,
-      true
+      TResolvedTypesMeta
     >
   ): StateMachine<
     TContext,
