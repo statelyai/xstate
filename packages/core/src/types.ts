@@ -1272,10 +1272,7 @@ type MaybeNarrowedEvent<TIndexedEvents, TCausingLookup, K> = Cast<
 type MachineImplementationsActions<
   TContext extends MachineContext,
   TResolvedTypesMeta,
-  TEventsCausingActions = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'eventsCausingActions'
-  >,
+  TEventsCausingActions = Record<string, string>,
   TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
   TIndexedActors = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActors'>,
   TIndexedActions = Prop<
@@ -1510,8 +1507,7 @@ export interface MachineTypes<
   TInput,
   TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject,
-  TTypesMeta = TypegenDisabled
+  TMeta extends MetaObject
 > extends SetupTypes<
     TContext,
     TEvent,
@@ -1528,7 +1524,6 @@ export interface MachineTypes<
   actions?: TAction;
   guards?: TGuard;
   delays?: TDelay;
-  typegen?: TTypesMeta;
   meta?: TMeta;
 }
 

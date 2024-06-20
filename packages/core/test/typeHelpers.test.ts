@@ -39,62 +39,12 @@ describe('ContextFrom', () => {
     // @ts-expect-error
     acceptMachineContext(obj);
   });
-
-  it('should return context of a typegened machine', () => {
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypegenMeta,
-        context: {} as { counter: number }
-      },
-      context: {
-        counter: 0
-      }
-    });
-
-    type MachineContext = ContextFrom<typeof machine>;
-
-    const acceptMachineContext = (_event: MachineContext) => {};
-
-    acceptMachineContext({ counter: 100 });
-    acceptMachineContext({
-      counter: 100,
-      // @ts-expect-error
-      other: 'unknown'
-    });
-    const obj = { completely: 'invalid' };
-    // @ts-expect-error
-    acceptMachineContext(obj);
-  });
 });
 
 describe('EventFrom', () => {
   it('should return events for a machine', () => {
     const machine = createMachine({
       types: {
-        events: {} as
-          | { type: 'UPDATE_NAME'; value: string }
-          | { type: 'UPDATE_AGE'; value: number }
-          | { type: 'ANOTHER_EVENT' }
-      }
-    });
-
-    type MachineEvent = EventFrom<typeof machine>;
-
-    const acceptMachineEvent = (_event: MachineEvent) => {};
-
-    acceptMachineEvent({ type: 'UPDATE_NAME', value: 'test' });
-    acceptMachineEvent({ type: 'UPDATE_AGE', value: 12 });
-    acceptMachineEvent({ type: 'ANOTHER_EVENT' });
-    acceptMachineEvent({
-      // @ts-expect-error
-      type: 'UNKNOWN_EVENT'
-    });
-  });
-
-  it('should return events for a typegened machine', () => {
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypegenMeta,
         events: {} as
           | { type: 'UPDATE_NAME'; value: string }
           | { type: 'UPDATE_AGE'; value: number }
@@ -188,25 +138,6 @@ describe('MachineImplementationsFrom', () => {
 });
 
 describe('StateValueFrom', () => {
-  it('should return possible state values from a typegened machine', () => {
-    interface TypesMeta extends TypegenMeta {
-      matchesStates: 'a' | 'b' | 'c';
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta
-      }
-    });
-
-    function matches(_value: StateValueFrom<typeof machine>) {}
-
-    matches('a');
-    matches('b');
-    // @ts-expect-error
-    matches('unknown');
-  });
-
   it('should return any from a typegenless machine', () => {
     const machine = createMachine({});
 

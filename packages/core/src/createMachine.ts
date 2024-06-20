@@ -122,7 +122,7 @@ export function createMachine<
   // it's important to have at least one default type parameter here
   // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
   // we should be able to remove this when we start inferring TConfig, with it we'll always have an inference candidate
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
+  _ = any
 >(
   config: {
     types?: MachineTypes<
@@ -136,8 +136,7 @@ export function createMachine<
       TInput,
       TOutput,
       TEmitted,
-      TMeta,
-      TTypesMeta
+      TMeta
     >;
     schemas?: unknown;
   } & MachineConfig<
@@ -156,7 +155,7 @@ export function createMachine<
   implementations?: InternalMachineImplementations<
     TContext,
     ResolveTypegenMeta<
-      TTypesMeta,
+      TypegenDisabled,
       TEvent,
       TActor,
       TAction,
@@ -174,29 +173,14 @@ export function createMachine<
   TAction,
   TGuard,
   TDelay,
-  'matchesStates' extends keyof TTypesMeta
-    ? ToStateValue<Cast<TTypesMeta['matchesStates'], TestValue>>
-    : StateValue,
-  Prop<
-    ResolveTypegenMeta<
-      TTypesMeta,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TTag,
-      TEmitted
-    >['resolved'],
-    'tags'
-  > &
-    string,
+  StateValue,
+  TTag & string,
   TInput,
   TOutput,
   TEmitted,
   TMeta, // TMeta
   ResolveTypegenMeta<
-    TTypesMeta,
+    TypegenDisabled,
     TEvent,
     TActor,
     TAction,
