@@ -64,30 +64,12 @@ export interface TypegenMeta extends TypegenEnabled {
 /**
  * @deprecated
  */
-export interface ResolvedTypegenMeta extends TypegenMeta {
-  resolved: TypegenMeta;
-}
+export interface ResolvedTypegenMeta extends TypegenMeta {}
 
 /**
  * @deprecated
  */
 export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
-
-/**
- * @deprecated Always resolves to `true`
- */
-export type AreAllImplementationsAssumedToBeProvided<
-  _TResolvedTypesMeta,
-  _TMissingImplementations = never
-> = true;
-
-/**
- * @deprecated Always resolves to `never`
- */
-export type MissingImplementationsError<
-  _TResolvedTypesMeta,
-  _TMissingImplementations = never
-> = never;
 
 /**
  * @deprecated
@@ -121,7 +103,6 @@ export interface Stuff {
  * @deprecated
  */
 export interface ResolveTypegenMeta<
-  TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
@@ -137,6 +118,4 @@ export interface ResolveTypegenMeta<
   TDelay: TDelay;
   TTag: TTag;
   TEmitted: TEmitted;
-  '@@xstate/typegen': TTypesMeta['@@xstate/typegen'];
-  resolved: TypegenDisabled & AllImplementationsProvided & AllowAllEvents;
 }

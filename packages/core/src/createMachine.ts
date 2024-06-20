@@ -1,9 +1,5 @@
 import { StateMachine } from './StateMachine.ts';
-import {
-  ResolveTypegenMeta,
-  TypegenConstraint,
-  TypegenDisabled
-} from './typegenTypes.ts';
+import { ResolveTypegenMeta } from './typegenTypes.ts';
 import {
   AnyActorRef,
   EventObject,
@@ -16,7 +12,6 @@ import {
   MachineTypes,
   NonReducibleUnknown,
   ParameterizedObject,
-  Prop,
   ProvidedActor,
   StateValue,
   ToChildren,
@@ -154,16 +149,7 @@ export function createMachine<
   >,
   implementations?: InternalMachineImplementations<
     TContext,
-    ResolveTypegenMeta<
-      TypegenDisabled,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TTag,
-      TEmitted
-    >
+    ResolveTypegenMeta<TEvent, TActor, TAction, TGuard, TDelay, TTag, TEmitted>
   >
 ): StateMachine<
   TContext,
@@ -179,16 +165,7 @@ export function createMachine<
   TOutput,
   TEmitted,
   TMeta, // TMeta
-  ResolveTypegenMeta<
-    TypegenDisabled,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TEmitted
-  >
+  ResolveTypegenMeta<TEvent, TActor, TAction, TGuard, TDelay, TTag, TEmitted>
 > {
   return new StateMachine<
     any,

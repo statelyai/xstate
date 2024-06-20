@@ -218,7 +218,6 @@ export function setup<
     TEmitted,
     TMeta,
     ResolveTypegenMeta<
-      TypegenDisabled,
       TEvent,
       ToProvidedActor<TChildrenMap, TActors>,
       ToParameterizedObject<TActions>,

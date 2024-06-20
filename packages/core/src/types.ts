@@ -1316,32 +1316,12 @@ type MachineImplementationsGuards<
 export type InternalMachineImplementations<
   TContext extends MachineContext,
   TResolvedTypesMeta extends Stuff
-> =
-  // TODO: remove per-Generate* Computes
-
-  {
-    actions?: MachineImplementationsActions<TContext, TResolvedTypesMeta>;
-
-    actors?: MachineImplementationsActors<TContext, TResolvedTypesMeta>;
-
-    delays?: MachineImplementationsDelays<TContext, TResolvedTypesMeta>;
-
-    guards?: MachineImplementationsGuards<TContext, TResolvedTypesMeta>;
-  };
-
-export type MachineImplementations<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor = ProvidedActor,
-  TAction extends ParameterizedObject = ParameterizedObject,
-  TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string,
-  TTag extends string = string,
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
-> = InternalMachineImplementations<
-  TContext,
-  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
->;
+> = {
+  actions?: MachineImplementationsActions<TContext, TResolvedTypesMeta>;
+  actors?: MachineImplementationsActors<TContext, TResolvedTypesMeta>;
+  delays?: MachineImplementationsDelays<TContext, TResolvedTypesMeta>;
+  guards?: MachineImplementationsGuards<TContext, TResolvedTypesMeta>;
+};
 
 type InitialContext<
   TContext extends MachineContext,
