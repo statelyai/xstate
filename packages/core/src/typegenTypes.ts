@@ -1,19 +1,5 @@
 import { EventObject, ParameterizedObject, ProvidedActor } from './types.ts';
 
-/**
- * @deprecated
- */
-export interface TypegenDisabled {
-  '@@xstate/typegen': false;
-}
-
-/**
- * @deprecated
- */
-export interface TypegenEnabled {
-  '@@xstate/typegen': true;
-}
-
 export interface StateMachineTypes {
   events: EventObject;
   actors: ProvidedActor;
