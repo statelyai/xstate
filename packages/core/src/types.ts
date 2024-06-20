@@ -1272,17 +1272,7 @@ type MaybeNarrowedEvent<TIndexedEvents, TCausingLookup, K> = Cast<
 
 type MachineImplementationsActions<
   TContext extends MachineContext,
-  TResolvedTypesMeta extends Stuff,
-  TEventsCausingActions = Record<string, string>,
-  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
-  TIndexedActors = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActors'>,
-  TIndexedActions = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'indexedActions'
-  >,
-  TIndexedGuards = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedGuards'>,
-  TIndexedDelays = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedDelays'>,
-  TEmitted = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'emitted'>
+  TResolvedTypesMeta extends Stuff
 > = {
   [K in TResolvedTypesMeta['TAction']['type']]?: ActionFunction<
     TContext,
@@ -1299,13 +1289,11 @@ type MachineImplementationsActions<
 
 type MachineImplementationsActors<
   _TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TIndexedActors = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActors'>
+  TResolvedTypesMeta extends Stuff
 > = {
-  [K in keyof TIndexedActors]?: Cast<
-    Prop<TIndexedActors[K], 'logic'>,
-    AnyActorLogic
-  >;
+  [K in TResolvedTypesMeta['TActor']['src']]?: (TResolvedTypesMeta['TActor'] & {
+    src: K;
+  })['logic'];
 };
 
 type MachineImplementationsDelays<
