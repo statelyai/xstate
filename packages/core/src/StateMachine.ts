@@ -66,16 +66,7 @@ export class StateMachine<
   TInput,
   TOutput,
   TEmitted extends EventObject = EventObject, // TODO: remove default
-  TMeta extends MetaObject = MetaObject,
-  TResolvedTypesMeta extends Stuff = ResolveTypegenMeta<
-    DoNotInfer<TEvent>,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TEmitted
-  >
+  TMeta extends MetaObject = MetaObject
 > implements
     ActorLogic<
       MachineSnapshot<
@@ -187,7 +178,15 @@ export class StateMachine<
   public provide(
     implementations: InternalMachineImplementations<
       TContext,
-      TResolvedTypesMeta
+      ResolveTypegenMeta<
+        DoNotInfer<TEvent>,
+        TActor,
+        TAction,
+        TGuard,
+        TDelay,
+        TTag,
+        TEmitted
+      >
     >
   ): StateMachine<
     TContext,
@@ -202,8 +201,7 @@ export class StateMachine<
     TInput,
     TOutput,
     TEmitted,
-    TMeta, // TMeta
-    TResolvedTypesMeta
+    TMeta
   > {
     const { actions, guards, actors, delays } = this.implementations;
 
@@ -621,5 +619,13 @@ export class StateMachine<
   /**
    * @deprecated an internal property that was acting as a "phantom" type, it's not used by anything right now but it's kept around for compatibility reasons
    **/
-  __TResolvedTypesMeta!: TResolvedTypesMeta;
+  __TResolvedTypesMeta!: ResolveTypegenMeta<
+    DoNotInfer<TEvent>,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TTag,
+    TEmitted
+  >;
 }

@@ -1,7 +1,7 @@
 import { StateMachine } from './StateMachine';
 import { createMachine } from './createMachine';
 import { GuardPredicate } from './guards';
-import { ResolveTypegenMeta } from './typegenTypes';
+
 import {
   ActionFunction,
   AnyActorRef,
@@ -216,16 +216,7 @@ export function setup<
     TInput,
     TOutput,
     TEmitted,
-    TMeta,
-    ResolveTypegenMeta<
-      TEvent,
-      ToProvidedActor<TChildrenMap, TActors>,
-      ToParameterizedObject<TActions>,
-      ToParameterizedObject<TGuards>,
-      TDelay,
-      TTag,
-      TEmitted
-    >
+    TMeta
   >;
 } {
   return {

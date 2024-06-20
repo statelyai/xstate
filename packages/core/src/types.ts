@@ -8,7 +8,7 @@ import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Spawner } from './spawn.ts';
 import { AnyActorSystem, Clock } from './system.js';
 import { InspectionEvent } from './inspection.ts';
-import { Stuff } from './typegenTypes.ts';
+import { ResolveTypegenMeta, Stuff } from './typegenTypes.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -144,8 +144,7 @@ export type InputFrom<T> = T extends StateMachine<
   infer TInput,
   infer _TOutput,
   infer _TEmitted,
-  infer _TMeta,
-  infer _TResolvedTypesMeta
+  infer _TMeta
 >
   ? TInput
   : T extends ActorLogic<
@@ -1130,8 +1129,7 @@ export type AnyStateMachine = StateMachine<
   any, // input
   any, // output
   any, // emitted
-  any, // TMeta
-  any // typegen
+  any // TMeta
 >;
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
@@ -2044,8 +2042,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TInput,
       infer TOutput,
       infer TEmitted,
-      infer TMeta,
-      infer _TResolvedTypesMeta
+      infer TMeta
     >
     ? ActorRef<
         MachineSnapshot<
@@ -2093,8 +2090,7 @@ export type InterpreterFrom<
   infer TInput,
   infer TOutput,
   infer TEmitted,
-  infer TMeta,
-  infer _TResolvedTypesMeta
+  infer TMeta
 >
   ? Actor<
       ActorLogic<
@@ -2119,41 +2115,31 @@ export type MachineImplementationsFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
-  infer _TEvent,
+  infer TEvent,
   infer _TChildren,
-  infer _TActor,
-  infer _TAction,
-  infer _TGuard,
-  infer _TDelay,
+  infer TActor,
+  infer TAction,
+  infer TGuard,
+  infer TDelay,
   infer _TStateValue,
-  infer _TTag,
+  infer TTag,
   infer _TInput,
   infer _TOutput,
-  infer _TEmitted,
-  infer _TMeta,
-  infer TResolvedTypesMeta
+  infer TEmitted,
+  infer _TMeta
 >
-  ? InternalMachineImplementations<TContext, TResolvedTypesMeta>
-  : never;
-
-// only meant to be used internally for debugging purposes
-export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
-  any, // context
-  any, // event
-  any, // children
-  any, // actor
-  any, // action
-  any, // guard
-  any, // delay
-  any, // state value
-  any, // tag
-  any, // input
-  any, // output
-  any, // emitted
-  any, // TMeta
-  infer TResolvedTypesMeta
->
-  ? TResolvedTypesMeta
+  ? InternalMachineImplementations<
+      TContext,
+      ResolveTypegenMeta<
+        TEvent,
+        TActor,
+        TAction,
+        TGuard,
+        TDelay,
+        TTag,
+        TEmitted
+      >
+    >
   : never;
 
 export interface ActorScope<
@@ -2348,8 +2334,7 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       infer _TInput,
       infer _TOutput,
       infer _TEmitted,
-      infer _TMeta,
-      infer _TResolvedTypesMeta
+      infer _TMeta
     >
     ? TEvent
     : R extends MachineSnapshot<
@@ -2387,8 +2372,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TInput,
       infer _TOutput,
       infer _TEmitted,
-      infer _TMeta,
-      infer _TResolvedTypesMeta
+      infer _TMeta
     >
     ? TContext
     : R extends MachineSnapshot<
