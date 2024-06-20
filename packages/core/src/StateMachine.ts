@@ -22,7 +22,7 @@ import {
   transitionNode
 } from './stateUtils.ts';
 import { AnyActorSystem } from './system.ts';
-import { ResolveTypegenMeta, TypegenDisabled } from './typegenTypes.ts';
+import { ResolveTypegenMeta, Stuff, TypegenDisabled } from './typegenTypes.ts';
 import type {
   ActorLogic,
   ActorScope,
@@ -67,7 +67,7 @@ export class StateMachine<
   TOutput,
   TEmitted extends EventObject = EventObject, // TODO: remove default
   TMeta extends MetaObject = MetaObject,
-  TResolvedTypesMeta = ResolveTypegenMeta<
+  TResolvedTypesMeta extends Stuff = ResolveTypegenMeta<
     TypegenDisabled,
     DoNotInfer<TEvent>,
     TActor,

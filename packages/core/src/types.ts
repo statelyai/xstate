@@ -10,6 +10,7 @@ import { AnyActorSystem, Clock } from './system.js';
 import { InspectionEvent } from './inspection.ts';
 import {
   ResolveTypegenMeta,
+  Stuff,
   TypegenConstraint,
   TypegenDisabled
 } from './typegenTypes.ts';
@@ -1271,7 +1272,7 @@ type MaybeNarrowedEvent<TIndexedEvents, TCausingLookup, K> = Cast<
 
 type MachineImplementationsActions<
   TContext extends MachineContext,
-  TResolvedTypesMeta,
+  TResolvedTypesMeta extends Stuff,
   TEventsCausingActions = Record<string, string>,
   TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
   TIndexedActors = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActors'>,
@@ -1283,30 +1284,23 @@ type MachineImplementationsActions<
   TIndexedDelays = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedDelays'>,
   TEmitted = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'emitted'>
 > = {
-  [K in keyof TIndexedActions]?: ActionFunction<
+  [K in TResolvedTypesMeta['TAction']['type']]?: ActionFunction<
     TContext,
-    MaybeNarrowedEvent<TIndexedEvents, TEventsCausingActions, K>,
-    Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>,
-    GetParameterizedParams<Cast<TIndexedActions[K], ParameterizedObject>>,
-    Cast<Prop<TIndexedActors, keyof TIndexedActors>, ProvidedActor>,
-    Cast<Prop<TIndexedActions, keyof TIndexedActions>, ParameterizedObject>,
-    Cast<Prop<TIndexedGuards, keyof TIndexedGuards>, ParameterizedObject>,
-    Cast<
-      Prop<TIndexedDelays, keyof TIndexedDelays>,
-      ParameterizedObject
-    >['type'],
-    Cast<TEmitted, EventObject>
+    TResolvedTypesMeta['TEvent'],
+    TResolvedTypesMeta['TEvent'],
+    (TResolvedTypesMeta['TAction'] & { type: K })['params'],
+    TResolvedTypesMeta['TActor'],
+    TResolvedTypesMeta['TAction'],
+    TResolvedTypesMeta['TGuard'],
+    TResolvedTypesMeta['TDelay'],
+    TResolvedTypesMeta['TEmitted']
   >;
 };
 
 type MachineImplementationsActors<
   _TContext extends MachineContext,
   TResolvedTypesMeta,
-  TIndexedActors = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActors'>,
-  _TInvokeSrcNameMap = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'invokeSrcNameMap'
-  >
+  TIndexedActors = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActors'>
 > = {
   [K in keyof TIndexedActors]?: Cast<
     Prop<TIndexedActors[K], 'logic'>,
@@ -1365,7 +1359,7 @@ type MachineImplementationsGuards<
 
 export type InternalMachineImplementations<
   TContext extends MachineContext,
-  TResolvedTypesMeta
+  TResolvedTypesMeta extends Stuff
 > =
   // TODO: remove per-Generate* Computes
 
