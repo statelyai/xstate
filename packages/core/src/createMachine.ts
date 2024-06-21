@@ -1,5 +1,5 @@
 import { StateMachine } from './StateMachine.ts';
-import { ResolveTypegenMeta } from './typegenTypes.ts';
+import { ResolveTypegenMeta } from './types.ts';
 import {
   AnyActorRef,
   EventObject,

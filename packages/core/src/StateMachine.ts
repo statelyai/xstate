@@ -22,7 +22,6 @@ import {
   transitionNode
 } from './stateUtils.ts';
 import { AnyActorSystem } from './system.ts';
-import { ResolveTypegenMeta } from './typegenTypes.ts';
 import type {
   ActorLogic,
   ActorScope,
@@ -46,7 +45,8 @@ import type {
   SnapshotFrom,
   StateMachineDefinition,
   StateValue,
-  TransitionDefinition
+  TransitionDefinition,
+  ResolveTypegenMeta
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
 

@@ -91,7 +91,7 @@ describe('EventFrom', () => {
 });
 
 describe('MachineImplementationsFrom', () => {
-  it('should return implementations for a typegen-less machine', () => {
+  it('should return implementations for a machine', () => {
     const machine = createMachine({
       context: {
         count: 100
@@ -137,7 +137,7 @@ describe('MachineImplementationsFrom', () => {
 });
 
 describe('StateValueFrom', () => {
-  it('should return any from a typegenless machine', () => {
+  it('should return any from a machine', () => {
     const machine = createMachine({});
 
     function matches(_value: StateValueFrom<typeof machine>) {}
@@ -209,7 +209,7 @@ describe('ActorRefFrom', () => {
 });
 
 describe('tags', () => {
-  it('derives string from StateMachine without typegen', () => {
+  it('derives string from StateMachine', () => {
     const machine = createMachine({});
 
     type Tags = TagsFrom<typeof machine>;

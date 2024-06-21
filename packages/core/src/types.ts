@@ -8,7 +8,6 @@ import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Spawner } from './spawn.ts';
 import { AnyActorSystem, Clock } from './system.js';
 import { InspectionEvent } from './inspection.ts';
-import { ResolveTypegenMeta, StateMachineTypes } from './typegenTypes.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -2464,3 +2463,34 @@ export type ToChildren<TActor extends ProvidedActor> =
 export type StateSchema = {
   states?: Record<string, StateSchema>;
 };
+
+export interface StateMachineTypes {
+  events: EventObject;
+  actors: ProvidedActor;
+  actions: ParameterizedObject;
+  guards: ParameterizedObject;
+  delays: string;
+  tags: string;
+  emitted: EventObject;
+}
+
+/**
+ * @deprecated
+ */
+export interface ResolveTypegenMeta<
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TTag extends string,
+  TEmitted extends EventObject = EventObject
+> {
+  events: TEvent;
+  actors: TActor;
+  actions: TAction;
+  guards: TGuard;
+  delays: TDelay;
+  tags: TTag;
+  emitted: TEmitted;
+}
