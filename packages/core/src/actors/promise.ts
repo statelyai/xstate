@@ -3,6 +3,7 @@ import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
   ActorRefFrom,
+  AnyActorScope,
   AnyActorRef,
   EventObject,
   NonReducibleUnknown,
@@ -92,6 +93,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
      * The parent actor of the promise actor
      */
     self: PromiseActorRef<TOutput>;
+    spawnChild: AnyActorScope['spawnChild'];
     signal: AbortSignal;
   }) => PromiseLike<TOutput>
 ): PromiseActorLogic<TOutput, TInput> {
@@ -131,7 +133,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
           return state;
       }
     },
-    start: (state, { self, system }) => {
+    start: (state, { self, system, spawnChild }) => {
       // TODO: determine how to allow customizing this so that promises
       // can be restarted if necessary
       if (state.status !== 'active') {
@@ -144,7 +146,8 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
           input: state.input!,
           system,
           self,
-          signal: controller.signal
+          signal: controller.signal,
+          spawnChild
         })
       );
 
@@ -176,7 +179,9 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
         status: 'active',
         output: undefined,
         error: undefined,
-        input
+        input,
+        context: undefined,
+        children: {}
       };
     },
     getPersistedSnapshot: (snapshot) => snapshot,

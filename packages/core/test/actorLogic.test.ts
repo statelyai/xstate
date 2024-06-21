@@ -135,6 +135,7 @@ describe('promise logic (fromPromise)', () => {
 
       expect(resolvedPersistedState).toMatchInlineSnapshot(`
         {
+          "children": {},
           "error": undefined,
           "input": undefined,
           "output": 42,
@@ -164,6 +165,7 @@ describe('promise logic (fromPromise)', () => {
     const resolvedPersistedState = actor.getPersistedSnapshot();
     expect(resolvedPersistedState).toMatchInlineSnapshot(`
       {
+        "children": {},
         "error": undefined,
         "input": undefined,
         "output": 1,
@@ -195,6 +197,7 @@ describe('promise logic (fromPromise)', () => {
     const rejectedPersistedState = actorRef.getPersistedSnapshot();
     expect(rejectedPersistedState).toMatchInlineSnapshot(`
       {
+        "children": {},
         "error": 1,
         "input": undefined,
         "output": undefined,
@@ -513,7 +516,8 @@ describe('transition function logic (fromTransition)', () => {
       error: undefined,
       context: {
         enabled: 'on'
-      }
+      },
+      children: {}
     });
 
     const restoredActor = createActor(logic, { snapshot: persistedSnapshot });
@@ -840,6 +844,7 @@ describe('machine logic', () => {
 
     expect((persistedState as any).children.a.snapshot).toMatchInlineSnapshot(`
       {
+        "children": {},
         "error": undefined,
         "input": undefined,
         "output": 42,
@@ -855,9 +860,9 @@ describe('machine logic', () => {
         value: 'start',
         children: {
           reducer: expect.objectContaining({
-            snapshot: {
+            snapshot: expect.objectContaining({
               status: 'active'
-            }
+            })
           })
         }
       })

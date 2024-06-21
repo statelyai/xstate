@@ -3,6 +3,7 @@ import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
   ActorRefFrom,
+  AnyActorScope,
   EventObject,
   NonReducibleUnknown,
   Snapshot,
@@ -86,12 +87,13 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
     input: TInput;
     system: AnyActorSystem;
     self: ObservableActorRef<TContext>;
+    spawnChild: AnyActorScope['spawnChild'];
   }) => Subscribable<TContext>
 ): ObservableActorLogic<TContext, TInput> {
   // TODO: add event types
   const logic: ObservableActorLogic<TContext, TInput> = {
     config: observableCreator,
-    transition: (snapshot, event, { self, id, defer, system }) => {
+    transition: (snapshot, event) => {
       if (snapshot.status !== 'active') {
         return snapshot;
       }
@@ -138,10 +140,11 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
         error: undefined,
         context: undefined,
         input,
-        _subscription: undefined
+        _subscription: undefined,
+        children: {}
       };
     },
-    start: (state, { self, system }) => {
+    start: (state, { self, system, spawnChild }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
         return;
@@ -149,7 +152,8 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
       state._subscription = observableCreator({
         input: state.input!,
         system,
-        self
+        self,
+        spawnChild
       }).subscribe({
         next: (value) => {
           system._relay(self, self, {
@@ -278,7 +282,8 @@ export function fromEventObservable<
         error: undefined,
         context: undefined,
         input,
-        _subscription: undefined
+        _subscription: undefined,
+        children: {}
       };
     },
     start: (state, { self, system }) => {

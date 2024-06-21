@@ -206,6 +206,15 @@ export function isActorLogic(value: any): value is AnyActorLogic {
   );
 }
 
+export function isActorRef(value: any): value is AnyActorRef {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'send' in value &&
+    typeof value.send === 'function'
+  );
+}
+
 export function isArray(value: any): value is readonly any[] {
   return Array.isArray(value);
 }
