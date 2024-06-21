@@ -428,4 +428,49 @@ describe('event emitter', () => {
       })
     );
   });
+
+  it('events can be emitted from callback logic (restored root)', () => {
+    const spy = jest.fn();
+
+    const logic = fromCallback<any, any, { type: 'emitted'; msg: string }>(
+      ({ emit }) => {
+        emit({
+          type: 'emitted',
+          msg: 'hello'
+        });
+      }
+    );
+
+    const machine = setup({
+      actors: { logic }
+    }).createMachine({
+      invoke: {
+        id: 'cb',
+        src: 'logic'
+      }
+    });
+
+    const actor = createActor(machine);
+
+    // Persist the root actor
+    const persistedSnapshot = actor.getPersistedSnapshot();
+
+    // Rehydrate a new instance of the root actor using the persisted snapshot
+    const restoredActor = createActor(machine, {
+      snapshot: persistedSnapshot
+    });
+
+    restoredActor.getSnapshot().children.cb!.on('emitted', (ev) => {
+      spy(ev);
+    });
+
+    restoredActor.start();
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'emitted',
+        msg: 'hello'
+      })
+    );
+  });
 });
