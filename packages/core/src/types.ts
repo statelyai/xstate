@@ -1252,63 +1252,52 @@ export interface MachineImplementationsSimplified<
   delays: DelayFunctionMap<TContext, TEvent, TAction>;
 }
 
-type MachineImplementationsActions<
-  // TContext extends MachineContext,
-  TResolvedTypesMeta extends StateMachineTypes
-> = {
-  [K in TResolvedTypesMeta['actions']['type']]?: ActionFunction<
-    TResolvedTypesMeta['context'],
-    TResolvedTypesMeta['events'],
-    TResolvedTypesMeta['events'],
-    (TResolvedTypesMeta['actions'] & { type: K })['params'],
-    TResolvedTypesMeta['actors'],
-    TResolvedTypesMeta['actions'],
-    TResolvedTypesMeta['guards'],
-    TResolvedTypesMeta['delays'],
-    TResolvedTypesMeta['emitted']
+type MachineImplementationsActions<TTypes extends StateMachineTypes> = {
+  [K in TTypes['actions']['type']]?: ActionFunction<
+    TTypes['context'],
+    TTypes['events'],
+    TTypes['events'],
+    (TTypes['actions'] & { type: K })['params'],
+    TTypes['actors'],
+    TTypes['actions'],
+    TTypes['guards'],
+    TTypes['delays'],
+    TTypes['emitted']
   >;
 };
 
-type MachineImplementationsActors<
-  TResolvedTypesMeta extends StateMachineTypes
-> = {
-  [K in TResolvedTypesMeta['actors']['src']]?: (TResolvedTypesMeta['actors'] & {
+type MachineImplementationsActors<TTypes extends StateMachineTypes> = {
+  [K in TTypes['actors']['src']]?: (TTypes['actors'] & {
     src: K;
   })['logic'];
 };
 
-type MachineImplementationsDelays<
-  TResolvedTypesMeta extends StateMachineTypes
-> = {
-  [K in TResolvedTypesMeta['delays']]?: DelayConfig<
-    TResolvedTypesMeta['context'],
-    TResolvedTypesMeta['events'],
+type MachineImplementationsDelays<TTypes extends StateMachineTypes> = {
+  [K in TTypes['delays']]?: DelayConfig<
+    TTypes['context'],
+    TTypes['events'],
     // delays in referenced send actions might use specific `TAction`
     // delays executed by auto-generated send actions related to after transitions won't have that
     // since they are effectively implicit inline actions
     undefined,
-    TResolvedTypesMeta['events']
+    TTypes['events']
   >;
 };
 
-type MachineImplementationsGuards<
-  TResolvedTypesMeta extends StateMachineTypes
-> = {
-  [K in TResolvedTypesMeta['guards']['type']]?: Guard<
-    TResolvedTypesMeta['context'],
-    TResolvedTypesMeta['events'],
-    (TResolvedTypesMeta['guards'] & { type: K })['params'],
-    TResolvedTypesMeta['guards'] & { type: K }
+type MachineImplementationsGuards<TTypes extends StateMachineTypes> = {
+  [K in TTypes['guards']['type']]?: Guard<
+    TTypes['context'],
+    TTypes['events'],
+    (TTypes['guards'] & { type: K })['params'],
+    TTypes['guards'] & { type: K }
   >;
 };
 
-export type InternalMachineImplementations<
-  TResolvedTypesMeta extends StateMachineTypes
-> = {
-  actions?: MachineImplementationsActions<TResolvedTypesMeta>;
-  actors?: MachineImplementationsActors<TResolvedTypesMeta>;
-  delays?: MachineImplementationsDelays<TResolvedTypesMeta>;
-  guards?: MachineImplementationsGuards<TResolvedTypesMeta>;
+export type InternalMachineImplementations<TTypes extends StateMachineTypes> = {
+  actions?: MachineImplementationsActions<TTypes>;
+  actors?: MachineImplementationsActors<TTypes>;
+  delays?: MachineImplementationsDelays<TTypes>;
+  guards?: MachineImplementationsGuards<TTypes>;
 };
 
 type InitialContext<
@@ -2402,7 +2391,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
             infer _TOutput,
             infer _TEmitted,
             infer _TMeta,
-            infer _TResolvedTypesMeta
+            infer _TTypes
           >
           ? TContext
           : never
