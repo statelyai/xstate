@@ -1475,14 +1475,20 @@ export type Transitions<
   TEvent extends EventObject
 > = Array<TransitionDefinition<TContext, TEvent>>;
 
-export interface DoneActorEvent<TOutput = unknown> {
-  type: `xstate.done.actor.${string}`;
+export interface DoneActorEvent<TOutput = unknown, TId extends string = string>
+  extends EventObject {
+  type: `xstate.done.actor.${TId}`;
   output: TOutput;
+  actorId: TId;
 }
 
-export interface ErrorActorEvent<TErrorData = unknown> extends EventObject {
-  type: `xstate.error.actor.${string}`;
+export interface ErrorActorEvent<
+  TErrorData = unknown,
+  TId extends string = string
+> extends EventObject {
+  type: `xstate.error.actor.${TId}`;
   error: TErrorData;
+  actorId: TId;
 }
 
 export interface SnapshotEvent<
@@ -2004,6 +2010,8 @@ export interface ActorRef<
 }
 
 export type AnyActorRef = ActorRef<any, any, any>;
+
+export type UnknownActorRef = ActorRef<Snapshot<unknown>, EventObject>;
 
 export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
