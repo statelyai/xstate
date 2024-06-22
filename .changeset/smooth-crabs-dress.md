@@ -2,7 +2,7 @@
 'xstate': minor
 ---
 
-All actor logic creators now support emitting events:
+All actor logic creators now support [emitting events](https://stately.ai/docs/event-emitter):
 
 **Promise actors**
 
