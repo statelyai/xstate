@@ -5,6 +5,7 @@ import {
   AnyActorRef,
   Observer,
   Snapshot,
+  Subscribable,
   HomomorphicOmit,
   EventObject,
   AnyTransitionDefinition,
@@ -38,6 +39,11 @@ export interface Scheduler {
   cancelAll(actorRef: AnyActorRef): void;
 }
 
+export interface SystemSnapshot {
+  _scheduledEvents: Record<ScheduledEventId, ScheduledEvent>;
+  actors: Record<string, AnyActorRef>;
+}
+
 type ScheduledEventId = string & { __scheduledEventId: never };
 
 function createScheduledEventId(
@@ -47,7 +53,8 @@ function createScheduledEventId(
   return `${actorRef.sessionId}.${id}` as ScheduledEventId;
 }
 
-export interface ActorSystem<T extends ActorSystemInfo> {
+export interface ActorSystem<T extends ActorSystemInfo>
+  extends Subscribable<SystemSnapshot> {
   /**
    * @internal
    */
@@ -86,15 +93,15 @@ export interface ActorSystem<T extends ActorSystemInfo> {
     event: AnyEventObject
   ) => void;
   scheduler: Scheduler;
-  getSnapshot: () => {
-    _scheduledEvents: Record<string, ScheduledEvent>;
-  };
+  getSnapshot: () => SystemSnapshot;
   /**
    * @internal
    */
-  _snapshot: {
-    _scheduledEvents: Record<ScheduledEventId, ScheduledEvent>;
-  };
+  _updateSnapshot: (snapshot: SystemSnapshot) => void;
+  /**
+   * @internal
+   */
+  _snapshot: SystemSnapshot;
   start: () => void;
   _clock: Clock;
   _logger: (...args: any[]) => void;
@@ -115,6 +122,7 @@ export function createSystem<T extends ActorSystemInfo>(
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
   const inspectionObservers = new Set<Observer<InspectionEvent>>();
+  const systemObservers = new Set<Observer<SystemSnapshot>>();
   const timerMap: { [id: ScheduledEventId]: number } = {};
   const { clock, logger } = options;
 
@@ -135,11 +143,27 @@ export function createSystem<T extends ActorSystemInfo>(
         startedAt: Date.now()
       };
       const scheduledEventId = createScheduledEventId(source, id);
-      system._snapshot._scheduledEvents[scheduledEventId] = scheduledEvent;
+      const snapshot = system.getSnapshot();
+      system._updateSnapshot({
+        _scheduledEvents: {
+          ...snapshot._scheduledEvents,
+          [scheduledEventId]: scheduledEvent
+        },
+        actors: { ...snapshot.actors }
+      });
 
       const timeout = clock.setTimeout(() => {
         delete timerMap[scheduledEventId];
-        delete system._snapshot._scheduledEvents[scheduledEventId];
+        const {
+          _scheduledEvents: { [scheduledEventId]: _, ..._scheduledEvents },
+          actors
+        } = system.getSnapshot();
+        system._updateSnapshot({
+          _scheduledEvents: {
+            ..._scheduledEvents
+          },
+          actors: { ...snapshot.actors }
+        });
 
         system._relay(source, target, event);
       }, delay);
@@ -151,7 +175,16 @@ export function createSystem<T extends ActorSystemInfo>(
       const timeout = timerMap[scheduledEventId];
 
       delete timerMap[scheduledEventId];
-      delete system._snapshot._scheduledEvents[scheduledEventId];
+      const {
+        _scheduledEvents: { [scheduledEventId]: _, ..._scheduledEvents },
+        actors
+      } = system.getSnapshot();
+      system._updateSnapshot({
+        _scheduledEvents: {
+          ..._scheduledEvents
+        },
+        actors: { ...actors }
+      });
 
       clock.clearTimeout(timeout);
     },
@@ -183,11 +216,26 @@ export function createSystem<T extends ActorSystemInfo>(
   const system: ActorSystem<T> = {
     _snapshot: {
       _scheduledEvents:
-        (options?.snapshot && (options.snapshot as any).scheduler) ?? {}
+        (options?.snapshot && (options.snapshot as any).scheduler) ?? {},
+      actors: {}
     },
+
     _bookId: () => `x:${idCounter++}`,
     _register: (sessionId, actorRef) => {
       children.set(sessionId, actorRef);
+      const systemId = reverseKeyedActors.get(actorRef);
+      if (systemId !== undefined) {
+        const currentSnapshot = system.getSnapshot();
+        if (currentSnapshot.actors[systemId as any] !== actorRef) {
+          system._updateSnapshot({
+            _scheduledEvents: { ...currentSnapshot._scheduledEvents },
+            actors: {
+              ...currentSnapshot.actors,
+              [systemId]: actorRef
+            }
+          });
+        }
+      }
       return sessionId;
     },
     _unregister: (actorRef) => {
@@ -197,10 +245,39 @@ export function createSystem<T extends ActorSystemInfo>(
       if (systemId !== undefined) {
         keyedActors.delete(systemId);
         reverseKeyedActors.delete(actorRef);
+        const {
+          _scheduledEvents,
+          actors: { [systemId]: _, ...actors }
+        } = system.getSnapshot();
+        system._updateSnapshot({
+          _scheduledEvents: { ..._scheduledEvents },
+          actors
+        });
       }
     },
     get: (systemId) => {
       return keyedActors.get(systemId) as T['actors'][any];
+    },
+    subscribe: (
+      nextListenerOrObserver:
+        | ((event: SystemSnapshot) => void)
+        | Observer<SystemSnapshot>,
+      errorListener?: (error: any) => void,
+      completeListener?: () => void
+    ) => {
+      const observer = toObserver(
+        nextListenerOrObserver,
+        errorListener,
+        completeListener
+      );
+
+      systemObservers.add(observer);
+
+      return {
+        unsubscribe: () => {
+          systemObservers.delete(observer);
+        }
+      };
     },
     _set: (systemId, actorRef) => {
       const existing = keyedActors.get(systemId);
@@ -212,6 +289,16 @@ export function createSystem<T extends ActorSystemInfo>(
 
       keyedActors.set(systemId, actorRef);
       reverseKeyedActors.set(actorRef, systemId);
+      const currentSnapshot = system.getSnapshot();
+      if (currentSnapshot.actors[systemId as any] !== actorRef) {
+        system._updateSnapshot({
+          _scheduledEvents: { ...system._snapshot._scheduledEvents },
+          actors: {
+            ...system._snapshot.actors,
+            [systemId]: actorRef
+          }
+        });
+      }
     },
     inspect: (observerOrFn) => {
       const observer = toObserver(observerOrFn);
@@ -237,15 +324,25 @@ export function createSystem<T extends ActorSystemInfo>(
     scheduler,
     getSnapshot: () => {
       return {
-        _scheduledEvents: { ...system._snapshot._scheduledEvents }
+        _scheduledEvents: { ...system._snapshot._scheduledEvents },
+        actors: { ...system._snapshot.actors }
       };
     },
+    _updateSnapshot: (snapshot) => {
+      system._snapshot = snapshot;
+      systemObservers.forEach((listener) => {
+        listener.next?.(snapshot);
+      });
+    },
     start: () => {
-      const scheduledEvents = system._snapshot._scheduledEvents;
-      system._snapshot._scheduledEvents = {};
-      for (const scheduledId in scheduledEvents) {
+      const { _scheduledEvents } = system.getSnapshot();
+      system._updateSnapshot({
+        _scheduledEvents: {},
+        actors: { ...system._snapshot.actors }
+      });
+      for (const scheduledId in _scheduledEvents) {
         const { source, target, event, delay, id } =
-          scheduledEvents[scheduledId as ScheduledEventId];
+          _scheduledEvents[scheduledId as ScheduledEventId];
         scheduler.schedule(source, target, event, delay, id);
       }
     },
