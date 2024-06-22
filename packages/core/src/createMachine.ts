@@ -148,8 +148,16 @@ export function createMachine<
     TMeta
   >,
   implementations?: InternalMachineImplementations<
-    TContext,
-    ResolveTypegenMeta<TEvent, TActor, TAction, TGuard, TDelay, TTag, TEmitted>
+    ResolveTypegenMeta<
+      TContext,
+      TEvent,
+      TActor,
+      TAction,
+      TGuard,
+      TDelay,
+      TTag,
+      TEmitted
+    >
   >
 ): StateMachine<
   TContext,

@@ -177,8 +177,8 @@ export class StateMachine<
    */
   public provide(
     implementations: InternalMachineImplementations<
-      TContext,
       ResolveTypegenMeta<
+        TContext,
         DoNotInfer<TEvent>,
         TActor,
         TAction,
@@ -620,6 +620,7 @@ export class StateMachine<
    * @deprecated an internal property that was acting as a "phantom" type, it's not used by anything right now but it's kept around for compatibility reasons
    **/
   __TResolvedTypesMeta!: ResolveTypegenMeta<
+    DoNotInfer<TContext>,
     DoNotInfer<TEvent>,
     TActor,
     TAction,

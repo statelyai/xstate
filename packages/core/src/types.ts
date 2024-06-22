@@ -1253,11 +1253,11 @@ export interface MachineImplementationsSimplified<
 }
 
 type MachineImplementationsActions<
-  TContext extends MachineContext,
+  // TContext extends MachineContext,
   TResolvedTypesMeta extends StateMachineTypes
 > = {
   [K in TResolvedTypesMeta['actions']['type']]?: ActionFunction<
-    TContext,
+    TResolvedTypesMeta['context'],
     TResolvedTypesMeta['events'],
     TResolvedTypesMeta['events'],
     (TResolvedTypesMeta['actions'] & { type: K })['params'],
@@ -1270,7 +1270,6 @@ type MachineImplementationsActions<
 };
 
 type MachineImplementationsActors<
-  _TContext extends MachineContext,
   TResolvedTypesMeta extends StateMachineTypes
 > = {
   [K in TResolvedTypesMeta['actors']['src']]?: (TResolvedTypesMeta['actors'] & {
@@ -1279,11 +1278,10 @@ type MachineImplementationsActors<
 };
 
 type MachineImplementationsDelays<
-  TContext extends MachineContext,
   TResolvedTypesMeta extends StateMachineTypes
 > = {
   [K in TResolvedTypesMeta['delays']]?: DelayConfig<
-    TContext,
+    TResolvedTypesMeta['context'],
     TResolvedTypesMeta['events'],
     // delays in referenced send actions might use specific `TAction`
     // delays executed by auto-generated send actions related to after transitions won't have that
@@ -1294,11 +1292,10 @@ type MachineImplementationsDelays<
 };
 
 type MachineImplementationsGuards<
-  TContext extends MachineContext,
   TResolvedTypesMeta extends StateMachineTypes
 > = {
   [K in TResolvedTypesMeta['guards']['type']]?: Guard<
-    TContext,
+    TResolvedTypesMeta['context'],
     TResolvedTypesMeta['events'],
     (TResolvedTypesMeta['guards'] & { type: K })['params'],
     TResolvedTypesMeta['guards'] & { type: K }
@@ -1306,13 +1303,12 @@ type MachineImplementationsGuards<
 };
 
 export type InternalMachineImplementations<
-  TContext extends MachineContext,
   TResolvedTypesMeta extends StateMachineTypes
 > = {
-  actions?: MachineImplementationsActions<TContext, TResolvedTypesMeta>;
-  actors?: MachineImplementationsActors<TContext, TResolvedTypesMeta>;
-  delays?: MachineImplementationsDelays<TContext, TResolvedTypesMeta>;
-  guards?: MachineImplementationsGuards<TContext, TResolvedTypesMeta>;
+  actions?: MachineImplementationsActions<TResolvedTypesMeta>;
+  actors?: MachineImplementationsActors<TResolvedTypesMeta>;
+  delays?: MachineImplementationsDelays<TResolvedTypesMeta>;
+  guards?: MachineImplementationsGuards<TResolvedTypesMeta>;
 };
 
 type InitialContext<
@@ -2136,8 +2132,8 @@ export type MachineImplementationsFrom<
   infer _TMeta
 >
   ? InternalMachineImplementations<
-      TContext,
       ResolveTypegenMeta<
+        TContext,
         TEvent,
         TActor,
         TAction,
@@ -2473,6 +2469,7 @@ export type StateSchema = {
 };
 
 export interface StateMachineTypes {
+  context: MachineContext;
   events: EventObject;
   actors: ProvidedActor;
   actions: ParameterizedObject;
@@ -2486,6 +2483,7 @@ export interface StateMachineTypes {
  * @deprecated
  */
 export interface ResolveTypegenMeta<
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
@@ -2494,6 +2492,7 @@ export interface ResolveTypegenMeta<
   TTag extends string,
   TEmitted extends EventObject = EventObject
 > {
+  context: TContext;
   events: TEvent;
   actors: TActor;
   actions: TAction;
