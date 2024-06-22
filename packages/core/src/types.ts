@@ -1415,18 +1415,16 @@ export interface MachineTypes<
   TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject
-> extends SetupTypes<
-    TContext,
-    TEvent,
-    // in machine types we currently don't support `TChildren`
-    // and IDs can still be configured through `TActor['id']`
-    never,
-    TTag,
-    TInput,
-    TOutput,
-    TEmitted,
-    TMeta
-  > {
+> {
+  context?: TContext;
+  events?: TEvent;
+  // in machine types we currently don't support `TChildren`
+  // and IDs can still be configured through `TActor['id']`
+  children?: never;
+  tags?: TTag;
+  input?: TInput;
+  output?: TOutput;
+  emitted?: TEmitted;
   actors?: TActor;
   actions?: TAction;
   guards?: TGuard;
