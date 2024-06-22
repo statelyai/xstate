@@ -423,6 +423,19 @@ export function formatTransitions<
     }
     existing.push(delayedTransition);
   }
+  Object.values(stateNode.states).forEach((sn) => {
+    if (sn.config.route) {
+      const eventType = `xstate.route.${sn.path.join('.')}`;
+      const transition: AnyTransitionConfig = {
+        ...sn.config.route,
+        target: `.${sn.key}`
+      };
+
+      transitions.set(eventType, [
+        formatTransition(stateNode, eventType, transition)
+      ]);
+    }
+  });
   return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
 }
 
