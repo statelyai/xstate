@@ -866,6 +866,7 @@ export interface StateNodeConfig<
   TEmitted extends EventObject,
   TMeta extends MetaObject
 > {
+  invariant?: (context: TContext) => unknown;
   /**
    * The initial state transition.
    */
