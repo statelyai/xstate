@@ -241,7 +241,8 @@ export function sendTo<
 
   function sendTo(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    params: TParams,
+    _: any
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

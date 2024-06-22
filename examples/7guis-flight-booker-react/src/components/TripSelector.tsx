@@ -1,4 +1,4 @@
-import FlightContext from "../machines/flightMachine";
+import FlightContext from '../machines/flightMachine';
 
 export default function TripSelector({
   isBooking,
@@ -15,7 +15,7 @@ export default function TripSelector({
         disabled={isBooked || isBooking}
         value={tripType}
         onChange={() => {
-          send({ type: "CHANGE_TRIP_TYPE" });
+          send({ type: 'CHANGE_TRIP_TYPE' });
         }}
         {...props}
       >
