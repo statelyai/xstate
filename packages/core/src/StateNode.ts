@@ -125,12 +125,12 @@ export class StateNode<
     any, // action
     any, // guard
     any, // delay
+    any, // state value
     any, // tag
     any, // input
     any, // output
     any, // emitted
-    any, // TMeta
-    any // typegen
+    any // meta
   >;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
