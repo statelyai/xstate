@@ -3,6 +3,11 @@ import {
   createActor,
   createMachine,
   enqueueActions,
+  fromCallback,
+  fromEventObservable,
+  fromObservable,
+  fromPromise,
+  fromTransition,
   setup
 } from '../src';
 import { emit } from '../src/actions/emit';
@@ -220,5 +225,252 @@ describe('event emitter', () => {
     actor.send({ type: 'event' });
 
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('events can be emitted from promise logic', () => {
+    const spy = jest.fn();
+
+    const logic = fromPromise<any, any, { type: 'emitted'; msg: string }>(
+      async ({ emit }) => {
+        emit({
+          type: 'emitted',
+          msg: 'hello'
+        });
+      }
+    );
+
+    const actor = createActor(logic);
+
+    actor.on('emitted', (ev) => {
+      ev.type satisfies 'emitted';
+
+      // @ts-expect-error
+      ev.type satisfies 'whatever';
+
+      ev satisfies { msg: string };
+
+      spy(ev);
+    });
+
+    actor.start();
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'emitted',
+        msg: 'hello'
+      })
+    );
+  });
+
+  it('events can be emitted from transition logic', () => {
+    const spy = jest.fn();
+
+    const logic = fromTransition<
+      any,
+      any,
+      any,
+      any,
+      { type: 'emitted'; msg: string }
+    >((s, e, { emit }) => {
+      if (e.type === 'emit') {
+        emit({
+          type: 'emitted',
+          msg: 'hello'
+        });
+      }
+      return s;
+    }, {});
+
+    const actor = createActor(logic);
+
+    actor.on('emitted', (ev) => {
+      ev.type satisfies 'emitted';
+
+      // @ts-expect-error
+      ev.type satisfies 'whatever';
+
+      ev satisfies { msg: string };
+
+      spy(ev);
+    });
+
+    actor.start();
+
+    actor.send({ type: 'emit' });
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'emitted',
+        msg: 'hello'
+      })
+    );
+  });
+
+  it('events can be emitted from observable logic', () => {
+    const spy = jest.fn();
+
+    const logic = fromObservable<any, any, { type: 'emitted'; msg: string }>(
+      ({ emit }) => {
+        emit({
+          type: 'emitted',
+          msg: 'hello'
+        });
+
+        return {
+          subscribe: () => {
+            return {
+              unsubscribe: () => {}
+            };
+          }
+        };
+      }
+    );
+
+    const actor = createActor(logic);
+
+    actor.on('emitted', (ev) => {
+      ev.type satisfies 'emitted';
+
+      // @ts-expect-error
+      ev.type satisfies 'whatever';
+
+      ev satisfies { msg: string };
+
+      spy(ev);
+    });
+
+    actor.start();
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'emitted',
+        msg: 'hello'
+      })
+    );
+  });
+
+  it('events can be emitted from event observable logic', () => {
+    const spy = jest.fn();
+
+    const logic = fromEventObservable<
+      any,
+      any,
+      { type: 'emitted'; msg: string }
+    >(({ emit }) => {
+      emit({
+        type: 'emitted',
+        msg: 'hello'
+      });
+
+      return {
+        subscribe: () => {
+          return {
+            unsubscribe: () => {}
+          };
+        }
+      };
+    });
+
+    const actor = createActor(logic);
+
+    actor.on('emitted', (ev) => {
+      ev.type satisfies 'emitted';
+
+      // @ts-expect-error
+      ev.type satisfies 'whatever';
+
+      ev satisfies { msg: string };
+
+      spy(ev);
+    });
+
+    actor.start();
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'emitted',
+        msg: 'hello'
+      })
+    );
+  });
+
+  it('events can be emitted from callback logic', () => {
+    const spy = jest.fn();
+
+    const logic = fromCallback<any, any, { type: 'emitted'; msg: string }>(
+      ({ emit }) => {
+        emit({
+          type: 'emitted',
+          msg: 'hello'
+        });
+      }
+    );
+
+    const actor = createActor(logic);
+
+    actor.on('emitted', (ev) => {
+      ev.type satisfies 'emitted';
+
+      // @ts-expect-error
+      ev.type satisfies 'whatever';
+
+      ev satisfies { msg: string };
+
+      spy(ev);
+    });
+
+    actor.start();
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'emitted',
+        msg: 'hello'
+      })
+    );
+  });
+
+  it('events can be emitted from callback logic (restored root)', () => {
+    const spy = jest.fn();
+
+    const logic = fromCallback<any, any, { type: 'emitted'; msg: string }>(
+      ({ emit }) => {
+        emit({
+          type: 'emitted',
+          msg: 'hello'
+        });
+      }
+    );
+
+    const machine = setup({
+      actors: { logic }
+    }).createMachine({
+      invoke: {
+        id: 'cb',
+        src: 'logic'
+      }
+    });
+
+    const actor = createActor(machine);
+
+    // Persist the root actor
+    const persistedSnapshot = actor.getPersistedSnapshot();
+
+    // Rehydrate a new instance of the root actor using the persisted snapshot
+    const restoredActor = createActor(machine, {
+      snapshot: persistedSnapshot
+    });
+
+    restoredActor.getSnapshot().children.cb!.on('emitted', (ev) => {
+      spy(ev);
+    });
+
+    restoredActor.start();
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'emitted',
+        msg: 'hello'
+      })
+    );
   });
 });

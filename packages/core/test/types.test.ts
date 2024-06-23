@@ -2,7 +2,12 @@ import { from } from 'rxjs';
 import { log } from '../src/actions/log';
 import { raise } from '../src/actions/raise';
 import { stopChild } from '../src/actions/stopChild';
-import { PromiseActorLogic, fromCallback, fromPromise } from '../src/actors';
+import {
+  PromiseActorLogic,
+  createEmptyActor,
+  fromCallback,
+  fromPromise
+} from '../src/actors';
 import {
   ActorRefFrom,
   InputFrom,
@@ -19,7 +24,8 @@ import {
   spawnChild,
   stateIn,
   setup,
-  toPromise
+  toPromise,
+  UnknownActorRef
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -4566,4 +4572,11 @@ it('fromPromise should not have issues with actors with emitted types', () => {
   const actor = createActor(machine).start();
 
   toPromise(actor);
+});
+
+it('UnknownActorRef should return a Snapshot-typed value from getSnapshot()', () => {
+  const actor: UnknownActorRef = createEmptyActor();
+
+  // @ts-expect-error
+  actor.getSnapshot().status === 'FOO';
 });
