@@ -1,5 +1,93 @@
 # xstate
 
+## 5.14.0
+
+### Minor Changes
+
+- [#4936](https://github.com/statelyai/xstate/pull/4936) [`c58b36dc3`](https://github.com/statelyai/xstate/commit/c58b36dc35991e20ba5d3c6e212e075f9b27f37d) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Inspecting an actor system via `actor.system.inspect(ev => …)` now accepts a function or observer, and returns a subscription:
+
+  ```ts
+  const actor = createActor(someMachine);
+
+  const sub = actor.system.inspect((inspectionEvent) => {
+    console.log(inspectionEvent);
+  });
+
+  // Inspection events will be logged
+  actor.start();
+  actor.send({ type: 'anEvent' });
+
+  // ...
+
+  sub.unsubscribe();
+
+  // Will no longer log inspection events
+  actor.send({ type: 'someEvent' });
+  ```
+
+- [#4942](https://github.com/statelyai/xstate/pull/4942) [`9caaa1f70`](https://github.com/statelyai/xstate/commit/9caaa1f7039f2f50096afd3885560dd40f6f17c0) Thanks [@boneskull](https://github.com/boneskull)! - `DoneActorEvent` and `ErrorActorEvent` now contain property `actorId`, which refers to the ID of the actor the event refers to.
+
+- [#4935](https://github.com/statelyai/xstate/pull/4935) [`2ac08b700`](https://github.com/statelyai/xstate/commit/2ac08b70054e8c6699051b7fafa450af95f7e483) Thanks [@davidkpiano](https://github.com/davidkpiano)! - All actor logic creators now support [emitting events](https://stately.ai/docs/event-emitter):
+
+  **Promise actors**
+
+  ```ts
+  const logic = fromPromise(async ({ emit }) => {
+    // ...
+    emit({
+      type: 'emitted',
+      msg: 'hello'
+    });
+    // ...
+  });
+  ```
+
+  **Transition actors**
+
+  ```ts
+  const logic = fromTransition((state, event, { emit }) => {
+    // ...
+    emit({
+      type: 'emitted',
+      msg: 'hello'
+    });
+    // ...
+    return state;
+  }, {});
+  ```
+
+  **Observable actors**
+
+  ```ts
+  const logic = fromObservable(({ emit }) => {
+    // ...
+
+    emit({
+      type: 'emitted',
+      msg: 'hello'
+    });
+
+    // ...
+  });
+  ```
+
+  **Callback actors**
+
+  ```ts
+  const logic = fromCallback(({ emit }) => {
+    // ...
+    emit({
+      type: 'emitted',
+      msg: 'hello'
+    });
+    // ...
+  });
+  ```
+
+### Patch Changes
+
+- [#4929](https://github.com/statelyai/xstate/pull/4929) [`417f35a11`](https://github.com/statelyai/xstate/commit/417f35a119d2d5a579927af4a971a41857836b4a) Thanks [@boneskull](https://github.com/boneskull)! - Expose type `UnknownActorRef` for use when calling `getSnapshot()` on an unknown `ActorRef`.
+
 ## 5.13.2
 
 ### Patch Changes

@@ -368,6 +368,7 @@ describe('inspect', () => {
         },
         {
           "event": {
+            "actorId": "0.(machine).loading",
             "output": 42,
             "type": "xstate.done.actor.0.(machine).loading",
           },
@@ -396,6 +397,7 @@ describe('inspect', () => {
         },
         {
           "event": {
+            "actorId": "child",
             "output": undefined,
             "type": "xstate.done.actor.child",
           },
@@ -406,6 +408,7 @@ describe('inspect', () => {
         {
           "actorId": "x:1",
           "event": {
+            "actorId": "child",
             "output": undefined,
             "type": "xstate.done.actor.child",
           },
@@ -418,6 +421,7 @@ describe('inspect', () => {
         {
           "actorId": "x:2",
           "event": {
+            "actorId": "0.(machine).loading",
             "output": 42,
             "type": "xstate.done.actor.0.(machine).loading",
           },
