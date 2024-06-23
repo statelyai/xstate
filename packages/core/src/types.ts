@@ -837,6 +837,81 @@ export type InvokeConfig<
           >;
     };
 
+type DORS<T extends { context: MachineContext }, TThing> =
+  | TThing
+  | InvokeAsFn<T>;
+
+export type InvokeAsFn<T extends { context: MachineContext }> = {
+  (thing: T): void;
+  /**
+   * The unique identifier for the invoked machine. If not specified, this
+   * will be the machine's own `id`, or the URL (from `src`).
+   */
+  id?: string;
+
+  systemId?: string;
+  /**
+   * The source of the machine to be invoked, or the machine itself.
+   */
+  src: AnyActorLogic | string; // TODO: fix types
+
+  input?:
+    | Mapper<T['context'], any, NonReducibleUnknown, any>
+    | NonReducibleUnknown;
+  /**
+   * The transition to take upon the invoked child machine reaching its final top-level state.
+   */
+  onDone?:
+    | string
+    | SingleOrArray<
+        TransitionConfigOrTarget<
+          T['context'],
+          DoneActorEvent<any>, // TODO: consider replacing with `unknown`
+          any,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any
+        >
+      >;
+  /**
+   * The transition to take upon the invoked child machine sending an error event.
+   */
+  onError?:
+    | string
+    | SingleOrArray<
+        TransitionConfigOrTarget<
+          T['context'],
+          ErrorActorEvent,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any
+        >
+      >;
+
+  onSnapshot?:
+    | string
+    | SingleOrArray<
+        TransitionConfigOrTarget<
+          T['context'],
+          SnapshotEvent,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any
+        >
+      >;
+};
+
 export type AnyInvokeConfig = InvokeConfig<
   any,
   any,
@@ -915,6 +990,7 @@ export interface StateNodeConfig<
       TMeta
     >
   >;
+  invoke2?: InvokeAsFn<{ context: TContext }>;
   /**
    * The mapping of event types to their potential transition(s).
    */

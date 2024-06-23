@@ -21,11 +21,41 @@ import {
   sendParent,
   Snapshot,
   ActorRef,
-  AnyEventObject
+  AnyEventObject,
+  MachineContext,
+  ActionFunction,
+  InvokeAsFn,
+  AnyActorLogic,
+  DoneActorEvent,
+  OutputFrom
 } from '../src/index.ts';
 import { sleep } from '@xstate-repo/jest-utils';
 
 const user = { name: 'David' };
+
+function invoke<
+  TLogic extends AnyActorLogic,
+  T extends { context: MachineContext }
+>(
+  logic: TLogic,
+  config: {
+    onDone?: {
+      actions: ActionFunction<
+        T['context'],
+        DoneActorEvent<OutputFrom<TLogic>>,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any
+      >;
+    };
+  }
+): InvokeAsFn<T> {
+  return null as any;
+}
 
 describe('invoke', () => {
   it('child can immediately respond to the parent with multiple events', () => {
@@ -63,6 +93,12 @@ describe('invoke', () => {
         },
         context: { count: 0 },
         initial: 'start',
+        invoke2: invoke(
+          fromPromise(() => Promise.resolve({ user: 'david' })),
+          {
+            actions: (x) => x.event.output
+          }
+        ),
         states: {
           start: {
             invoke: {
