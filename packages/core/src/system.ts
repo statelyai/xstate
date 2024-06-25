@@ -98,6 +98,11 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   start: () => void;
   _clock: Clock;
   _logger: (...args: any[]) => void;
+  _emit: (event: AnyEventObject) => void;
+  on<TType extends string>(
+    type: TType,
+    handler: (emitted: AnyEventObject) => void
+  ): Subscription;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
@@ -179,6 +184,10 @@ export function createSystem<T extends ActorSystemInfo>(
       (observer) => observer.next?.(resolvedInspectionEvent)
     );
   };
+  const eventListeners: Map<
+    string,
+    Set<(emittedEvent: AnyEventObject) => void>
+  > = new Map();
 
   const system: ActorSystem<T> = {
     _snapshot: {
@@ -250,7 +259,36 @@ export function createSystem<T extends ActorSystemInfo>(
       }
     },
     _clock: clock,
-    _logger: logger
+    _logger: logger,
+    _emit: (emittedEvent) => {
+      const listeners = eventListeners.get(emittedEvent.type);
+      const wildcardListener = eventListeners.get('*');
+      if (!listeners && !wildcardListener) {
+        return;
+      }
+      const allListeners = new Set([
+        ...(listeners ? listeners.values() : []),
+        ...(wildcardListener ? wildcardListener.values() : [])
+      ]);
+      for (const handler of Array.from(allListeners)) {
+        handler(emittedEvent);
+      }
+    },
+    on(type, handler) {
+      let listeners = eventListeners.get(type);
+      if (!listeners) {
+        listeners = new Set();
+        eventListeners.set(type, listeners);
+      }
+      const wrappedHandler = handler.bind(undefined);
+      listeners.add(wrappedHandler);
+
+      return {
+        unsubscribe: () => {
+          listeners.delete(wrappedHandler);
+        }
+      };
+    }
   };
 
   return system;
