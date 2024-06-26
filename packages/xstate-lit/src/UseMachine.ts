@@ -36,7 +36,6 @@ export class UseMachine<TMachine extends AnyStateMachine>
     this.options = options;
     this.callback = callback;
     this.currentSnapshot = this.snapshot;
-    this.onNext = this.onNext.bind(this);
 
     (this.host = host).addController(this);
   }
@@ -57,13 +56,13 @@ export class UseMachine<TMachine extends AnyStateMachine>
     this.subs.unsubscribe();
   }
 
-  protected onNext(snapshot: SnapshotFrom<TMachine>) {
+  protected onNext = (snapshot: SnapshotFrom<TMachine>) => {
     if (this.currentSnapshot !== snapshot) {
       this.currentSnapshot = snapshot;
       this.callback?.(snapshot);
       this.host.requestUpdate();
     }
-  }
+  };
 
   private startService() {
     this.actorRef = createActor(this.machine, this.options);

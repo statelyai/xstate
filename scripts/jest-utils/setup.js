@@ -20,6 +20,15 @@ afterEach(() => {
     const spy = consoleSpies[method];
 
     if (spy.mock.calls.length) {
+      spy.mock.calls = spy.mock.calls.filter(
+        (args) =>
+          !args.includes(
+            'Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.'
+          )
+      );
+    }
+
+    if (spy.mock.calls.length) {
       const calls = spy.mock.calls;
 
       spy.mockRestore();
