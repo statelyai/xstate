@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
+import { executingCustomAction } from '../createActor.ts';
 import { Spawner, createSpawner } from '../spawn.ts';
-import { executingCustomAction } from '../stateUtils.ts';
 import type {
   ActionArgs,
   AnyActorScope,
@@ -176,6 +176,10 @@ export function assign<
   assign.assignment = assignment;
 
   assign.resolve = resolveAssign;
+
+  assign.toJSON = () => ({
+    ...assign
+  });
 
   return assign;
 }

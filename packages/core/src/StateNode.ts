@@ -30,7 +30,8 @@ import type {
   AnyStateNodeConfig,
   ProvidedActor,
   NonReducibleUnknown,
-  EventDescriptor
+  EventDescriptor,
+  UnknownActionObject
 } from './types.ts';
 import {
   createInvokeId,
@@ -40,21 +41,6 @@ import {
 } from './utils.ts';
 
 const EMPTY_OBJECT = {};
-
-const toSerializableAction = (action: UnknownAction) => {
-  if (typeof action === 'string') {
-    return { type: action };
-  }
-  if (typeof action === 'function') {
-    if ('resolve' in action) {
-      return { type: (action as any).type };
-    }
-    return {
-      type: action.name
-    };
-  }
-  return action;
-};
 
 interface StateNodeOptions<
   TContext extends MachineContext,
@@ -105,11 +91,11 @@ export class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public entry: UnknownAction[];
+  public entry: UnknownActionObject[];
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public exit: UnknownAction[];
+  public exit: UnknownActionObject[];
   /**
    * The parent state node.
    */
@@ -220,8 +206,28 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this.entry = toArray(this.config.entry).slice();
-    this.exit = toArray(this.config.exit).slice();
+    const convertAction = (
+      action: UnknownAction,
+      kind: 'entry' | 'exit',
+      i: number
+    ): UnknownActionObject => {
+      if (typeof action === 'string') {
+        return { type: action };
+      }
+      if (typeof action === 'function' && !('resolve' in action)) {
+        const type = `${this.id}|${kind}:${i}`;
+        this.machine.implementations.actions[type] = action as any;
+        return { type };
+      }
+      return action as any;
+    };
+
+    this.entry = toArray(this.config.entry as UnknownAction).map((a, i) =>
+      convertAction(a, 'entry', i)
+    );
+    this.exit = toArray(this.config.exit as UnknownAction).map((a, i) =>
+      convertAction(a, 'exit', i)
+    );
 
     this.meta = this.config.meta;
     this.output =
@@ -233,8 +239,8 @@ export class StateNode<
   public _initialize() {
     this.transitions = formatTransitions(this);
     if (this.config.always) {
-      this.always = toTransitionConfigArray(this.config.always).map((t) =>
-        formatTransition(this, NULL_EVENT, t)
+      this.always = toTransitionConfigArray(this.config.always).map((t, i) =>
+        formatTransition(this, NULL_EVENT, t, i)
       );
     }
 
@@ -256,13 +262,13 @@ export class StateNode<
         ? {
             target: this.initial.target,
             source: this,
-            actions: this.initial.actions.map(toSerializableAction),
+            actions: this.initial.actions,
             eventType: null as any,
             reenter: false,
             toJSON: () => ({
               target: this.initial!.target!.map((t) => `#${t.id}`),
               source: `#${this.id}`,
-              actions: this.initial!.actions.map(toSerializableAction),
+              actions: this.initial!.actions,
               eventType: null as any
             })
           }
@@ -274,10 +280,10 @@ export class StateNode<
       on: this.on,
       transitions: [...this.transitions.values()].flat().map((t) => ({
         ...t,
-        actions: t.actions.map(toSerializableAction)
+        actions: t.actions
       })),
-      entry: this.entry.map(toSerializableAction),
-      exit: this.exit.map(toSerializableAction),
+      entry: this.entry,
+      exit: this.exit,
       meta: this.meta,
       order: this.order || -1,
       output: this.output,
@@ -391,7 +397,7 @@ export class StateNode<
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;
-    const actions: UnknownAction[] = [];
+    const actions: UnknownActionObject[] = [];
 
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 

@@ -46,7 +46,8 @@ import type {
   SnapshotFrom,
   StateMachineDefinition,
   StateValue,
-  TransitionDefinition
+  TransitionDefinition,
+  UnknownActionObject
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
 
@@ -294,7 +295,8 @@ export class StateMachine<
     TOutput,
     TMeta
   > {
-    return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
+    return macrostep(snapshot, event, actorScope, [])
+      .snapshot as typeof snapshot;
   }
 
   /**
@@ -327,7 +329,7 @@ export class StateMachine<
       TMeta
     >
   > {
-    return macrostep(snapshot, event, actorScope).microstates;
+    return macrostep(snapshot, event, actorScope, []).microstates;
   }
 
   public getTransitionData(
@@ -382,8 +384,9 @@ export class StateMachine<
         preInitial,
         initEvent,
         actorScope,
-        [assign(assignment)],
-        internalQueue
+        [assign(assignment) as unknown as UnknownActionObject],
+        internalQueue,
+        undefined
       ) as SnapshotFrom<this>;
     }
 

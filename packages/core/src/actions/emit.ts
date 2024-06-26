@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { executingCustomAction } from '../stateUtils.ts';
+import { executingCustomAction } from '../createActor.ts';
 import {
   ActionArgs,
   AnyActorScope,
@@ -142,6 +142,10 @@ export function emit<
 
   emit.resolve = resolveEmit;
   emit.execute = executeEmit;
+
+  emit.toJSON = () => ({
+    ...emit
+  });
 
   return emit;
 }

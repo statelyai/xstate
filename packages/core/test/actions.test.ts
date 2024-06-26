@@ -3482,7 +3482,9 @@ describe('assign action order', () => {
       ]
     });
 
-    createActor(machine).start();
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().context).toEqual({ count: 2 });
 
     expect(captured).toEqual([0, 1, 2]);
   });

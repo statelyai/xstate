@@ -11,6 +11,8 @@ import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { AnyActorSystem, Clock, createSystem } from './system.ts';
 
+export let executingCustomAction: ((...args: any[]) => void) | false = false;
+
 import type {
   ActorScope,
   AnyActorLogic,
@@ -204,6 +206,29 @@ export class Actor<TLogic extends AnyActorLogic>
         ]);
         for (const handler of Array.from(allListeners)) {
           handler(emittedEvent);
+        }
+      },
+      actionExecutor: (action) => {
+        const exec = () => {
+          this._actorScope.system._sendInspectionEvent({
+            type: '@xstate.action',
+            actorRef: this,
+            action: {
+              type: action.type,
+              params: action.params as any // TODO: fix types
+            }
+          });
+          try {
+            executingCustomAction = action.execute;
+            action.execute();
+          } finally {
+            executingCustomAction = false;
+          }
+        };
+        if (this._processingStatus === ProcessingStatus.Running) {
+          exec();
+        } else {
+          this._deferred.push(exec);
         }
       }
     };

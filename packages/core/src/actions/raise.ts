@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { executingCustomAction } from '../stateUtils.ts';
+import { executingCustomAction } from '../createActor.ts';
 import {
   ActionArgs,
   ActionFunction,
@@ -164,6 +164,10 @@ export function raise<
 
   raise.resolve = resolveRaise;
   raise.execute = executeRaise;
+
+  raise.toJSON = () => ({
+    ...raise
+  });
 
   return raise;
 }
