@@ -129,6 +129,7 @@ export class StateNode<
     any, // input
     any, // output
     any, // emitted
+    any, // TMeta
     any // typegen
   >;
   /**
@@ -166,7 +167,8 @@ export class StateNode<
       TODO, // delays
       TODO, // tags
       TODO, // output
-      TODO // emitted
+      TODO, // emitted
+      TODO // meta
     >,
     options: StateNodeOptions<TContext, TEvent>
   ) {

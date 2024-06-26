@@ -45,7 +45,7 @@ const toggleMachine = createMachine({
   }
 });
 
-const { snapshot: state, send } = useMachine(toggleMachine);
+const { snapshot, send } = useMachine(toggleMachine);
 </script>
 
 <template>

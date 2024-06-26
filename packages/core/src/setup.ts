@@ -125,7 +125,8 @@ export function setup<
   TTag extends string = string,
   TInput = NonReducibleUnknown,
   TOutput extends NonReducibleUnknown = NonReducibleUnknown,
-  TEmitted extends EventObject = EventObject
+  TEmitted extends EventObject = EventObject,
+  TMeta extends MetaObject = MetaObject
 >({
   schemas,
   actors,
@@ -141,7 +142,8 @@ export function setup<
     TTag,
     TInput,
     TOutput,
-    TEmitted
+    TEmitted,
+    TMeta
   >;
   actors?: {
     // union here enforces that all configured children have to be provided in actors
@@ -194,6 +196,7 @@ export function setup<
       TInput,
       TOutput,
       TEmitted,
+      TMeta,
       ResolveTypegenMeta<
         TypegenDisabled,
         TEvent,
@@ -223,6 +226,7 @@ export function setup<
     TInput,
     TOutput,
     TEmitted,
+    TMeta,
     ResolveTypegenMeta<
       TypegenDisabled,
       TEvent,

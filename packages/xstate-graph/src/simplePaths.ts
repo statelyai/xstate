@@ -1,4 +1,4 @@
-import { AnyActorLogic, EventFromLogic } from 'xstate';
+import { AnyActorLogic, EventFromLogic, InputFrom } from 'xstate';
 import {
   SerializedEvent,
   SerializedSnapshot,
