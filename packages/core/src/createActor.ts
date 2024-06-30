@@ -589,6 +589,13 @@ export class Actor<TLogic extends AnyActorLogic>
     }
     return this._stop();
   }
+
+  public onStop(handler: () => void): Subscription {
+    return this.subscribe({
+      complete: handler
+    });
+  }
+
   private _complete(): void {
     for (const observer of this.observers) {
       try {
