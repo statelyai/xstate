@@ -2184,7 +2184,9 @@ describe('setup()', () => {
 
     const actor = createActor(machine);
 
-    actor.getSnapshot().getMeta().a satisfies { layout: string } | undefined;
+    actor.getSnapshot().getMeta()['(machine)'] satisfies
+      | { layout: string }
+      | undefined;
 
     // @ts-expect-error
     actor.getSnapshot().getMeta().a?.whatever;
