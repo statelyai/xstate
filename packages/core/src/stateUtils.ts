@@ -1611,26 +1611,6 @@ function resolveAndExecuteActionsWithContext(
         params: actionParams,
         execute: () => resolvedAction(actionArgs, actionParams)
       });
-      // actorScope.system._sendInspectionEvent({
-      //   type: '@xstate.action',
-      //   actorRef: actorScope.self,
-      //   action: {
-      //     type: action.type,
-      //     params: actionParams
-      //   }
-      // });
-      // try {
-      //   executingCustomAction = resolvedAction;
-      //   actorScope.actionExecutor({
-      //     type: typeof action === 'object' ? action.type : 'TODO',
-      //     _info: actionArgs,
-      //     params: actionParams,
-      //     execute: () => resolvedAction(actionArgs, actionParams)
-      //   });
-      //   // resolvedAction(actionArgs, actionParams);
-      // } finally {
-      //   executingCustomAction = false;
-      // }
     }
 
     if (!('resolve' in resolvedAction)) {
