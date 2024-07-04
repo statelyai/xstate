@@ -1,4 +1,10 @@
-import { assign, setup, transition } from '../src';
+import {
+  assign,
+  createMachine,
+  enqueueActions,
+  setup,
+  transition
+} from '../src';
 import { executeAction } from '../src/stateUtils';
 import { initialTransition } from '../src/transition';
 
@@ -77,5 +83,23 @@ describe('transition function', () => {
     expect(actionWithDynamicParams).toHaveBeenCalledWith({
       msg: 'hello'
     });
+  });
+
+  it('should capture enqueued actions', () => {
+    const machine = createMachine({
+      entry: [
+        enqueueActions((x) => {
+          x.enqueue('stringAction');
+          x.enqueue({ type: 'objectAction' });
+        })
+      ]
+    });
+
+    const [_state, actions] = initialTransition(machine);
+
+    expect(actions).toEqual([
+      expect.objectContaining({ type: 'stringAction' }),
+      expect.objectContaining({ type: 'objectAction' })
+    ]);
   });
 });

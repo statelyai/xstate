@@ -471,7 +471,11 @@ export function formatInitialTransition<
   const transition: InitialTransitionDefinition<TContext, TEvent> = {
     source: stateNode,
     actions:
-      !_target || typeof _target === 'string' ? [] : toArray(_target.actions),
+      !_target || typeof _target === 'string'
+        ? []
+        : toArray(_target.actions).map((action) =>
+            convertAction(action, stateNode, 'xstate.init', undefined, 0, 0)
+          ),
     eventType: null as any,
     reenter: false,
     target: resolvedTarget ? [resolvedTarget] : [],
@@ -1529,7 +1533,9 @@ export interface ExecutableAction {
   type: string;
   info: ActionArgs<MachineContext, EventObject, EventObject>;
   params: NonReducibleUnknown;
-  function: (info: ActionArgs<any, any, any>, params: unknown) => void;
+  function:
+    | ((info: ActionArgs<any, any, any>, params: unknown) => void)
+    | undefined;
 }
 
 export type ActionExecutor = (actionToExecute: ExecutableAction) => void;
@@ -1572,10 +1578,6 @@ function resolveAndExecuteActionsWithContext(
           >
         )[typeof action === 'string' ? action : action.type];
 
-    if (!resolvedAction) {
-      continue;
-    }
-
     const actionArgs = {
       context: intermediateSnapshot.context,
       event,
@@ -1601,8 +1603,12 @@ function resolveAndExecuteActionsWithContext(
       });
     }
 
-    if (!('resolve' in resolvedAction)) {
+    if (!resolvedAction || !('resolve' in resolvedAction)) {
       executeAction();
+      continue;
+    }
+
+    if (!resolvedAction) {
       continue;
     }
 
@@ -1916,5 +1922,5 @@ export function executeAction(
   info: ActionArgs<any, any, any> = action.info,
   params: unknown = action.params
 ) {
-  return action.function(info, params);
+  return action.function?.(info, params);
 }

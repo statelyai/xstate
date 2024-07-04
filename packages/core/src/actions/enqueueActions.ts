@@ -1,5 +1,6 @@
 import isDevelopment from '#is-development';
 import { Guard, evaluateGuard } from '../guards.ts';
+import { convertAction } from '../stateUtils.ts';
 import {
   Action,
   ActionArgs,
@@ -121,7 +122,16 @@ function resolveEnqueueActions(
   const enqueue: Parameters<typeof collect>[0]['enqueue'] = function enqueue(
     action
   ) {
-    actions.push(action);
+    actions.push(
+      convertAction(
+        action as any,
+        snapshot.machine.root,
+        'enqueue' + Math.random(), // TODO: this should come from state node ID which isn't provided
+        undefined,
+        0,
+        actions.length
+      )
+    );
   };
   enqueue.assign = (...args) => {
     actions.push(assign(...args));
