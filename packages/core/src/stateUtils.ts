@@ -1609,13 +1609,6 @@ function resolveAndExecuteActionsWithContext(
 
     if (!('resolve' in resolvedAction)) {
       executeAction();
-      // if (actorScope.self._processingStatus === ProcessingStatus.Running) {
-      //   executeAction();
-      // } else {
-      //   actorScope.defer(() => {
-      //     executeAction();
-      //   });
-      // }
       continue;
     }
 
