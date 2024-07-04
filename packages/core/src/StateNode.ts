@@ -4,6 +4,7 @@ import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
 import { evaluateGuard } from './guards.ts';
 import { memo } from './memo.ts';
 import {
+  convertAction,
   formatInitialTransition,
   formatTransition,
   formatTransitions,
@@ -206,27 +207,31 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    const convertAction = (
-      action: UnknownAction,
-      kind: 'entry' | 'exit',
-      i: number
-    ): UnknownActionObject => {
-      if (typeof action === 'string') {
-        return { type: action };
+    this.entry = toArray(this.config.entry as UnknownAction).map(
+      (action, actionIndex) => {
+        const actionObject = convertAction(
+          action,
+          this,
+          undefined,
+          'entry',
+          0,
+          actionIndex
+        );
+        return actionObject;
       }
-      if (typeof action === 'function' && !('resolve' in action)) {
-        const type = `${this.id}|${kind}:${i}`;
-        this.machine.implementations.actions[type] = action as any;
-        return { type };
-      }
-      return action as any;
-    };
-
-    this.entry = toArray(this.config.entry as UnknownAction).map((a, i) =>
-      convertAction(a, 'entry', i)
     );
-    this.exit = toArray(this.config.exit as UnknownAction).map((a, i) =>
-      convertAction(a, 'exit', i)
+    this.exit = toArray(this.config.exit as UnknownAction).map(
+      (action, actionIndex) => {
+        const actionObject = convertAction(
+          action,
+          this,
+          undefined,
+          'exit',
+          0,
+          actionIndex
+        );
+        return actionObject;
+      }
     );
 
     this.meta = this.config.meta;

@@ -334,7 +334,7 @@ export function formatTransition<
   stateNode: AnyStateNode,
   descriptor: string,
   transitionConfig: AnyTransitionConfig,
-  index: number
+  transitionIndex: number
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;
@@ -347,24 +347,18 @@ export function formatTransition<
     );
   }
 
-  const convertAction = (
-    action: UnknownAction,
-    i: number
-  ): UnknownActionObject => {
-    if (typeof action === 'string') {
-      return { type: action };
-    }
-    if (typeof action === 'function' && !('resolve' in action)) {
-      const type = `${stateNode.id}|${descriptor}:${index}:${i}`;
-      stateNode.machine.implementations.actions[type] = action as any;
-      return { type };
-    }
-    return action as any;
-  };
-
   const transition = {
     ...transitionConfig,
-    actions: toArray(transitionConfig.actions).map(convertAction),
+    actions: toArray(transitionConfig.actions).map((action, actionIndex) => {
+      return convertAction(
+        action,
+        stateNode,
+        descriptor,
+        undefined,
+        transitionIndex,
+        actionIndex
+      );
+    }),
     guard: transitionConfig.guard as never,
     target,
     source: stateNode,
@@ -1905,4 +1899,27 @@ export function stateValuesEqual(
     aKeys.length === bKeys.length &&
     aKeys.every((key) => stateValuesEqual(a[key], b[key]))
   );
+}
+
+export function convertAction(
+  action: UnknownAction,
+  stateNode: AnyStateNode,
+  descriptor: string | undefined,
+  kind: 'entry' | 'exit' | undefined,
+  transitionIndex: number,
+  actionIndex: number
+): UnknownActionObject {
+  if (typeof action === 'string') {
+    return { type: action };
+  }
+  if (typeof action === 'function' && !('resolve' in action)) {
+    const type = `${stateNode.id}|${
+      descriptor ?? kind
+    }:${transitionIndex}:${actionIndex}`;
+    stateNode.machine.implementations.actions[type] = action as any;
+    return {
+      type
+    };
+  }
+  return action as any;
 }
