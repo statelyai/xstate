@@ -219,6 +219,9 @@ export class Actor<TLogic extends AnyActorLogic>
               params: action.params as any // TODO: fix types
             }
           });
+          if (!action.function) {
+            return;
+          }
           try {
             executingCustomAction = action.function;
             executeAction(action);
