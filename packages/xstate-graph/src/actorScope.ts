@@ -10,6 +10,7 @@ export function createMockActorScope(): AnyActorScope {
     defer: () => {},
     system: emptyActor.system, // TODO: mock system?
     stopChild: () => {},
-    spawnChild: () => emptyActor as any
+    spawnChild: () => emptyActor as any,
+    emit: () => {}
   };
 }

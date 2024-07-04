@@ -1,6 +1,7 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
 import { Spawner, createSpawner } from '../spawn.ts';
+import { executingCustomAction } from '../stateUtils.ts';
 import type {
   ActionArgs,
   AnyActorScope,
@@ -153,8 +154,15 @@ export function assign<
   TActor,
   never,
   never,
+  never,
   never
 > {
+  if (isDevelopment && executingCustomAction) {
+    console.warn(
+      'Custom actions should not call `assign()` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.'
+    );
+  }
+
   function assign(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams

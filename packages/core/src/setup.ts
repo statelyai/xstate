@@ -9,10 +9,12 @@ import {
   Cast,
   ConditionalRequired,
   DelayConfig,
+  EventObject,
   Invert,
   IsNever,
   MachineConfig,
   MachineContext,
+  MetaObject,
   NonReducibleUnknown,
   ParameterizedObject,
   SetupTypes,
@@ -122,7 +124,9 @@ export function setup<
   TDelay extends string = never,
   TTag extends string = string,
   TInput = NonReducibleUnknown,
-  TOutput extends NonReducibleUnknown = NonReducibleUnknown
+  TOutput extends NonReducibleUnknown = NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject,
+  TMeta extends MetaObject = MetaObject
 >({
   schemas,
   actors,
@@ -131,7 +135,16 @@ export function setup<
   delays
 }: {
   schemas?: unknown;
-  types?: SetupTypes<TContext, TEvent, TChildrenMap, TTag, TInput, TOutput>;
+  types?: SetupTypes<
+    TContext,
+    TEvent,
+    TChildrenMap,
+    TTag,
+    TInput,
+    TOutput,
+    TEmitted,
+    TMeta
+  >;
   actors?: {
     // union here enforces that all configured children have to be provided in actors
     // it makes those values required here
@@ -148,7 +161,8 @@ export function setup<
       ToProvidedActor<TChildrenMap, TActors>,
       ToParameterizedObject<TActions>,
       ToParameterizedObject<TGuards>,
-      TDelay
+      TDelay,
+      TEmitted
     >;
   };
   guards?: {
@@ -181,6 +195,8 @@ export function setup<
       TTag,
       TInput,
       TOutput,
+      TEmitted,
+      TMeta,
       ResolveTypegenMeta<
         TypegenDisabled,
         TEvent,
@@ -188,7 +204,8 @@ export function setup<
         ToParameterizedObject<TActions>,
         ToParameterizedObject<TGuards>,
         TDelay,
-        TTag
+        TTag,
+        TEmitted
       >
     >
   >(
@@ -208,6 +225,8 @@ export function setup<
     TTag,
     TInput,
     TOutput,
+    TEmitted,
+    TMeta,
     ResolveTypegenMeta<
       TypegenDisabled,
       TEvent,
@@ -215,7 +234,8 @@ export function setup<
       ToParameterizedObject<TActions>,
       ToParameterizedObject<TGuards>,
       TDelay,
-      TTag
+      TTag,
+      TEmitted
     >
   >;
 } {

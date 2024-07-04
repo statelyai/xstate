@@ -15,8 +15,15 @@ export type TransitionSnapshot<TContext> = Snapshot<undefined> & {
 export type TransitionActorLogic<
   TContext,
   TEvent extends EventObject,
-  TInput extends NonReducibleUnknown
-> = ActorLogic<TransitionSnapshot<TContext>, TEvent, TInput, AnyActorSystem>;
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+> = ActorLogic<
+  TransitionSnapshot<TContext>,
+  TEvent,
+  TInput,
+  AnyActorSystem,
+  TEmitted
+>;
 
 export type TransitionActorRef<
   TContext,
@@ -87,12 +94,18 @@ export function fromTransition<
   TContext,
   TEvent extends EventObject,
   TSystem extends AnyActorSystem,
-  TInput extends NonReducibleUnknown
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
 >(
   transition: (
     snapshot: TContext,
     event: TEvent,
-    actorScope: ActorScope<TransitionSnapshot<TContext>, TEvent, TSystem>
+    actorScope: ActorScope<
+      TransitionSnapshot<TContext>,
+      TEvent,
+      TSystem,
+      TEmitted
+    >
   ) => TContext,
   initialContext:
     | TContext
@@ -105,7 +118,7 @@ export function fromTransition<
         self: TransitionActorRef<TContext, TEvent>;
         spawnChild: ActorScope<any, any, any>['spawnChild'];
       }) => TContext) // TODO: type
-): TransitionActorLogic<TContext, TEvent, TInput> {
+): TransitionActorLogic<TContext, TEvent, TInput, TEmitted> {
   return {
     config: transition,
     transition: (snapshot, event, actorScope) => {

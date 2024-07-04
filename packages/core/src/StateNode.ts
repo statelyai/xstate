@@ -128,6 +128,8 @@ export class StateNode<
     any, // tag
     any, // input
     any, // output
+    any, // emitted
+    any, // TMeta
     any // typegen
   >;
   /**
@@ -159,12 +161,14 @@ export class StateNode<
     public config: StateNodeConfig<
       TContext,
       TEvent,
-      TODO, // actions
       TODO, // actors
-      TODO, // output
+      TODO, // actions
       TODO, // guards
       TODO, // delays
-      TODO // tags
+      TODO, // tags
+      TODO, // output
+      TODO, // emitted
+      TODO // meta
     >,
     options: StateNodeOptions<TContext, TEvent>
   ) {
@@ -298,7 +302,9 @@ export class StateNode<
       ProvidedActor,
       ParameterizedObject,
       ParameterizedObject,
-      string
+      string,
+      TODO, // TEmitted
+      TODO // TMeta
     >
   > {
     return memo(this, 'invoke', () =>
@@ -329,7 +335,9 @@ export class StateNode<
           ProvidedActor,
           ParameterizedObject,
           ParameterizedObject,
-          string
+          string,
+          TODO, // TEmitted
+          TODO // TMeta
         >;
       })
     );
@@ -371,7 +379,15 @@ export class StateNode<
 
   /** @internal */
   public next(
-    snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any>,
+    snapshot: MachineSnapshot<
+      TContext,
+      TEvent,
+      any,
+      any,
+      any,
+      any,
+      any // TMeta
+    >,
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;

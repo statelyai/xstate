@@ -15,8 +15,10 @@ import type {
   ActorRefFrom,
   ActorScope,
   AnyActorLogic,
+  AnyActorRef,
   ConditionalRequired,
   DoneActorEvent,
+  EmittedFrom,
   EventFromLogic,
   InputFrom,
   IsNotNever,
@@ -70,7 +72,8 @@ const defaultOptions = {
  * An Actor is a running process that can receive events, send events and change its behavior based on the events it receives, which can cause effects outside of the actor. When you run a state machine, it becomes an actor.
  */
 export class Actor<TLogic extends AnyActorLogic>
-  implements ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>
+  implements
+    ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>, EmittedFrom<TLogic>>
 {
   /**
    * The current internal state of the actor.
@@ -92,21 +95,30 @@ export class Actor<TLogic extends AnyActorLogic>
   );
 
   private observers: Set<Observer<SnapshotFrom<TLogic>>> = new Set();
+  private eventListeners: Map<
+    string,
+    Set<(emittedEvent: EmittedFrom<TLogic>) => void>
+  > = new Map();
   private logger: (...args: any[]) => void;
 
   /** @internal */
   public _processingStatus: ProcessingStatus = ProcessingStatus.NotStarted;
 
   // Actor Ref
-  public _parent?: ActorRef<any, any>;
+  public _parent?: AnyActorRef;
   /** @internal */
   public _syncSnapshot?: boolean;
-  public ref: ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>;
+  public ref: ActorRef<
+    SnapshotFrom<TLogic>,
+    EventFromLogic<TLogic>,
+    EmittedFrom<TLogic>
+  >;
   // TODO: add typings for system
   private _actorScope: ActorScope<
     SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
-    any
+    AnyActorSystem,
+    EmittedFrom<TLogic>
   >;
 
   private _systemId: string | undefined;
@@ -145,7 +157,8 @@ export class Actor<TLogic extends AnyActorLogic>
     this.system = parent
       ? parent.system
       : createSystem(this, {
-          clock
+          clock,
+          logger
         });
 
     if (inspect && !parent) {
@@ -155,8 +168,8 @@ export class Actor<TLogic extends AnyActorLogic>
 
     this.sessionId = this.system._bookId();
     this.id = id ?? this.sessionId;
-    this.logger = logger;
-    this.clock = clock;
+    this.logger = options?.logger ?? this.system._logger;
+    this.clock = options?.clock ?? this.system._clock;
     this._parent = parent;
     this._syncSnapshot = syncSnapshot;
     this.options = resolvedOptions as ActorOptions<TLogic> &
@@ -194,6 +207,20 @@ export class Actor<TLogic extends AnyActorLogic>
         }
 
         return actor as ActorRefFrom<T>;
+      },
+      emit: (emittedEvent) => {
+        const listeners = this.eventListeners.get(emittedEvent.type);
+        const wildcardListener = this.eventListeners.get('*');
+        if (!listeners && !wildcardListener) {
+          return;
+        }
+        const allListeners = new Set([
+          ...(listeners ? listeners.values() : []),
+          ...(wildcardListener ? wildcardListener.values() : [])
+        ]);
+        for (const handler of Array.from(allListeners)) {
+          handler(emittedEvent);
+        }
       }
     };
 
@@ -409,6 +436,27 @@ export class Actor<TLogic extends AnyActorLogic>
     return {
       unsubscribe: () => {
         this.observers.delete(observer);
+      }
+    };
+  }
+
+  public on<TType extends EmittedFrom<TLogic>['type'] | '*'>(
+    type: TType,
+    handler: (
+      emitted: EmittedFrom<TLogic> & (TType extends '*' ? {} : { type: TType })
+    ) => void
+  ): Subscription {
+    let listeners = this.eventListeners.get(type);
+    if (!listeners) {
+      listeners = new Set();
+      this.eventListeners.set(type, listeners);
+    }
+    const wrappedHandler = handler.bind(undefined);
+    listeners.add(wrappedHandler);
+
+    return {
+      unsubscribe: () => {
+        listeners!.delete(wrappedHandler);
       }
     };
   }

@@ -238,6 +238,238 @@ describe('promise logic (fromPromise)', () => {
     createActor(promiseLogic).start();
   });
 
+  it('should abort when stopping', async () => {
+    const deferred = withResolvers<number>();
+    const fn = jest.fn();
+    const promiseLogic = fromPromise((ctx) => {
+      return new Promise((res) => {
+        ctx.signal.addEventListener('abort', fn);
+      });
+    });
+
+    const actor = createActor(promiseLogic).start();
+
+    actor.stop();
+
+    deferred.resolve(42);
+    await deferred.promise;
+    expect(fn).toHaveBeenCalled();
+  });
+
+  it('should not abort when stopped if promise is resolved/rejected', async () => {
+    const resolvedDeferred = withResolvers<number>();
+    const resolvedSignalListener = jest.fn();
+    const resolvedPromiseLogic = fromPromise((ctx) => {
+      ctx.signal.addEventListener('abort', resolvedSignalListener);
+      return resolvedDeferred.promise;
+    });
+
+    const rejectedDeferred = withResolvers<number>();
+    const rejectedSignalListener = jest.fn();
+    const rejectedPromiseLogic = fromPromise((ctx) => {
+      ctx.signal.addEventListener('abort', rejectedSignalListener);
+      return rejectedDeferred.promise.catch(() => {});
+    });
+
+    const actor = createActor(resolvedPromiseLogic).start();
+    resolvedDeferred.resolve(42);
+    await waitFor(actor, (s) => s.status === 'done');
+    actor.stop();
+    expect(resolvedSignalListener).not.toHaveBeenCalled();
+
+    const actor2 = createActor(rejectedPromiseLogic).start();
+
+    rejectedDeferred.reject(50);
+    await rejectedDeferred.promise.catch(() => {});
+    await waitFor(actor2, (s) => s.status === 'done');
+    actor2.stop();
+    expect(rejectedSignalListener).not.toHaveBeenCalled();
+  });
+
+  it('should not reuse the same signal for different actors with same logic', async () => {
+    let deferredMap: Map<string, PromiseWithResolvers<number>> = new Map();
+    let signalListenerMap: Map<string, jest.Mock> = new Map();
+    const p = fromPromise(({ self, signal }) => {
+      const deferred = withResolvers<number>();
+      const signalListener = jest.fn();
+      deferredMap.set(self.id, deferred);
+      signalListenerMap.set(self.id, signalListener);
+      signal.addEventListener('abort', signalListener);
+      return deferred.promise;
+    });
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        p1: {
+          initial: 'running',
+          states: {
+            running: {
+              invoke: {
+                src: p,
+                id: 'p1'
+              },
+              on: {
+                CANCEL_1: 'canceled'
+              }
+            },
+            canceled: {}
+          }
+        },
+        p2: {
+          initial: 'running',
+          states: {
+            running: {
+              invoke: {
+                src: p,
+                id: 'p2',
+                onDone: 'done'
+              }
+            },
+            done: {}
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    const p1Deferred = deferredMap.get('p1')!;
+    const p2Deferred = deferredMap.get('p2')!;
+
+    actor.send({ type: 'CANCEL_1' });
+    p1Deferred.resolve(42);
+    p2Deferred.resolve(42);
+    await Promise.all([
+      waitFor(actor, (s) => s.matches('p1.canceled')),
+      waitFor(actor, (s) => s.matches('p2.done'))
+    ]);
+    expect(signalListenerMap.get('p1')).toHaveBeenCalled();
+    expect(signalListenerMap.get('p2')).not.toHaveBeenCalled();
+  });
+
+  it('should not reuse the same signal for different actors with same logic and id', async () => {
+    let deferredList: PromiseWithResolvers<number>[] = [];
+    let signalListenerList: jest.Mock[] = [];
+    const p = fromPromise(({ signal }) => {
+      const deferred = withResolvers<number>();
+      const fn = jest.fn();
+      deferredList.push(deferred);
+      signalListenerList.push(fn);
+      signal.addEventListener('abort', fn);
+      return deferred.promise;
+    });
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        p1: {
+          initial: 'running',
+          states: {
+            running: {
+              invoke: {
+                src: p,
+                id: 'p'
+              },
+              on: {
+                CANCEL_1: 'canceled'
+              }
+            },
+            canceled: {}
+          }
+        },
+        p2: {
+          initial: 'running',
+          states: {
+            running: {
+              invoke: {
+                src: p,
+                id: 'p',
+                onDone: 'done'
+              }
+            },
+            done: {}
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    const p1Deferred = deferredList[0];
+    const p2Deferred = deferredList[1];
+    const p1Fn = signalListenerList[0];
+    const p2Fn = signalListenerList[1];
+
+    actor.send({ type: 'CANCEL_1' });
+    p1Deferred.resolve(42);
+    p2Deferred.resolve(42);
+
+    await Promise.all([
+      waitFor(actor, (s) => s.matches('p1.canceled')),
+      waitFor(actor, (s) => s.matches('p2.done'))
+    ]);
+
+    expect(p1Fn).toHaveBeenCalled();
+    expect(p2Fn).not.toHaveBeenCalled();
+  });
+
+  it('should not reuse the same signal for the same actor when restarted', async () => {
+    let deferredList: PromiseWithResolvers<number>[] = [];
+    let signalListenerList: jest.Mock[] = [];
+    const p = fromPromise(({ signal }) => {
+      const deferred = withResolvers<number>();
+      const fn = jest.fn();
+      deferredList.push(deferred);
+      signalListenerList.push(fn);
+      signal.addEventListener('abort', fn);
+      return deferred.promise;
+    });
+    const machine = createMachine({
+      initial: 'running',
+      states: {
+        running: {
+          invoke: {
+            src: p,
+            id: 'p',
+            onDone: 'done'
+          },
+          on: {
+            cancel: 'canceled'
+          }
+        },
+        done: {
+          on: {
+            restart: 'running'
+          }
+        },
+        canceled: {
+          on: {
+            restart: 'running'
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    // resolve the first promise and no canceling
+    await waitFor(actor, (s) => s.matches('running'));
+    const deferred1 = deferredList[0];
+    const fn1 = signalListenerList[0];
+    deferred1.resolve(42);
+    await waitFor(actor, (s) => s.matches('done'));
+    expect(fn1).not.toHaveBeenCalled();
+
+    actor.send({ type: 'restart' });
+
+    // cancel while running
+    await waitFor(actor, (s) => s.matches('running'));
+    actor.send({ type: 'cancel' });
+    await waitFor(actor, (s) => s.matches('canceled'));
+
+    const deferred2 = deferredList[1];
+    deferred2.resolve(42);
+    await deferred2.promise;
+    const fn2 = signalListenerList[1];
+    expect(fn2).toHaveBeenCalled();
+  });
+
   it('can spawn an actor', () => {
     expect.assertions(3);
     const promiseLogic = fromPromise<AnyActorRef>(({ spawnChild }) => {
@@ -439,6 +671,55 @@ describe('transition function logic (fromTransition)', () => {
     actor.send({ type: 'a' });
   });
 
+  it('can spawn an actor when receiving an event', () => {
+    expect.assertions(1);
+    const transitionLogic = fromTransition<
+      AnyActorRef | undefined,
+      any,
+      any,
+      any
+    >((state, _event, { spawnChild }) => {
+      if (state) {
+        return state;
+      }
+      const childActor = spawnChild(fromPromise(() => Promise.resolve(42)));
+      return childActor;
+    }, undefined);
+
+    const actor = createActor(transitionLogic);
+    actor.subscribe({
+      error: (err) => {
+        console.error(err);
+      }
+    });
+    actor.start();
+    actor.send({ type: 'anyEvent' });
+
+    expect(isActorRef(actor.getSnapshot().context)).toBeTruthy();
+  });
+
+  it('can spawn an actor upon start', () => {
+    expect.assertions(1);
+    const transitionLogic = fromTransition<
+      AnyActorRef | undefined,
+      any,
+      any,
+      any
+    >(
+      (state) => {
+        return state;
+      },
+      ({ spawnChild }) => {
+        const childActor = spawnChild(fromPromise(() => Promise.resolve(42)));
+        return childActor;
+      }
+    );
+
+    const actor = createActor(transitionLogic).start();
+    actor.send({ type: 'anyEvent' });
+
+    expect(isActorRef(actor.getSnapshot().context)).toBeTruthy();
+  });
   it('can spawn an actor when receiving an event', () => {
     expect.assertions(1);
     const transitionLogic = fromTransition<
@@ -1239,3 +1520,19 @@ describe('composable actor logic', () => {
     );
   });
 });
+
+function withResolvers<T>(): PromiseWithResolvers<T> {
+  let resolve: (value: T | PromiseLike<T>) => void;
+  let reject: (reason: any) => void;
+
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return {
+    resolve: resolve!,
+    reject: reject!,
+    promise
+  };
+}

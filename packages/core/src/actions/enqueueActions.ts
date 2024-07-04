@@ -15,6 +15,7 @@ import {
 } from '../types.ts';
 import { assign } from './assign.ts';
 import { cancel } from './cancel.ts';
+import { emit } from './emit.ts';
 import { raise } from './raise.ts';
 import { sendTo } from './send.ts';
 import { spawnChild } from './spawnChild.ts';
@@ -27,7 +28,8 @@ interface ActionEnqueuer<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
+  TDelay extends string,
+  TEmitted extends EventObject
 > {
   (
     action: Action<
@@ -38,7 +40,8 @@ interface ActionEnqueuer<
       TActor,
       TAction,
       TGuard,
-      TDelay
+      TDelay,
+      TEmitted
     >
   ): void;
   assign: (
@@ -86,24 +89,31 @@ interface ActionEnqueuer<
       typeof stopChild<TContext, TExpressionEvent, undefined, TEvent>
     >
   ) => void;
+  emit: (
+    ...args: Parameters<
+      typeof emit<TContext, TExpressionEvent, undefined, TEvent, TEmitted>
+    >
+  ) => void;
 }
 
 function resolveEnqueueActions(
   actorScope: AnyActorScope,
   snapshot: AnyMachineSnapshot,
   args: ActionArgs<any, any, any>,
-  _actionParams: ParameterizedObject['params'] | undefined,
+  actionParams: ParameterizedObject['params'] | undefined,
   {
     collect
   }: {
     collect: CollectActions<
       MachineContext,
       EventObject,
+      ParameterizedObject['params'] | undefined,
       EventObject,
       ProvidedActor,
       ParameterizedObject,
       ParameterizedObject,
-      string
+      string,
+      EventObject
     >;
   }
 ) {
@@ -120,12 +130,12 @@ function resolveEnqueueActions(
     actions.push(cancel(...args));
   };
   enqueue.raise = (...args) => {
-    // for some reason it fails to infer `TDelay` from `...args` here and infers `picks` its default (`never`)
+    // for some reason it fails to infer `TDelay` from `...args` here and picks its default (`never`)
     // then it fails to typecheck that because `...args` use `string` in place of `TDelay`
     actions.push((raise as typeof enqueue.raise)(...args));
   };
   enqueue.sendTo = (...args) => {
-    // for some reason it fails to infer `TDelay` from `...args` here and infers `picks` its default (`never`)
+    // for some reason it fails to infer `TDelay` from `...args` here and picks its default (`never`)
     // then it fails to typecheck that because `...args` use `string` in place of `TDelay
     actions.push((sendTo as typeof enqueue.sendTo)(...args));
   };
@@ -135,16 +145,22 @@ function resolveEnqueueActions(
   enqueue.stopChild = (...args) => {
     actions.push(stopChild(...args));
   };
+  enqueue.emit = (...args) => {
+    actions.push(emit(...args));
+  };
 
-  collect({
-    context: args.context,
-    event: args.event,
-    enqueue,
-    check: (guard) =>
-      evaluateGuard(guard, snapshot.context, args.event, snapshot),
-    self: actorScope.self,
-    system: actorScope.system
-  });
+  collect(
+    {
+      context: args.context,
+      event: args.event,
+      enqueue,
+      check: (guard) =>
+        evaluateGuard(guard, snapshot.context, args.event, snapshot),
+      self: actorScope.self,
+      system: actorScope.system
+    },
+    actionParams
+  );
 
   return [snapshot, undefined, actions];
 }
@@ -152,13 +168,14 @@ function resolveEnqueueActions(
 export interface EnqueueActionsAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
 > {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: unknown): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TEvent?: TEvent;
   _out_TActor?: TActor;
   _out_TAction?: TAction;
@@ -173,7 +190,8 @@ interface CollectActionsArg<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
+  TDelay extends string,
+  TEmitted extends EventObject
 > extends UnifiedArg<TContext, TExpressionEvent, TEvent> {
   check: (
     guard: Guard<TContext, TExpressionEvent, undefined, TGuard>
@@ -185,33 +203,40 @@ interface CollectActionsArg<
     TActor,
     TAction,
     TGuard,
-    TDelay
+    TDelay,
+    TEmitted
   >;
 }
 
 type CollectActions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
-> = ({
-  context,
-  event,
-  check,
-  enqueue,
-  self
-}: CollectActionsArg<
-  TContext,
-  TExpressionEvent,
-  TEvent,
-  TActor,
-  TAction,
-  TGuard,
-  TDelay
->) => void;
+  TDelay extends string,
+  TEmitted extends EventObject
+> = (
+  {
+    context,
+    event,
+    check,
+    enqueue,
+    self
+  }: CollectActionsArg<
+    TContext,
+    TExpressionEvent,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TEmitted
+  >,
+  params: TParams
+) => void;
 
 /**
  * Creates an action object that will execute actions that are queued by the `enqueue(action)` function.
@@ -236,30 +261,35 @@ type CollectActions<
 export function enqueueActions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject = TExpressionEvent,
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = never
+  TDelay extends string = never,
+  TEmitted extends EventObject = EventObject
 >(
   collect: CollectActions<
     TContext,
     TExpressionEvent,
+    TParams,
     TEvent,
     TActor,
     TAction,
     TGuard,
-    TDelay
+    TDelay,
+    TEmitted
   >
 ): ActionFunction<
   TContext,
   TExpressionEvent,
   TEvent,
-  unknown,
+  TParams,
   TActor,
   TAction,
   TGuard,
-  TDelay
+  TDelay,
+  TEmitted
 > {
   function enqueueActions(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,

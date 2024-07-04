@@ -5,6 +5,7 @@ import {
   ActorRefFrom,
   ActorScope,
   AnyActorRef,
+  EventObject,
   NonReducibleUnknown,
   Snapshot
 } from '../types.ts';
@@ -18,11 +19,16 @@ const XSTATE_PROMISE_RESOLVE = 'xstate.promise.resolve';
 const XSTATE_PROMISE_REJECT = 'xstate.promise.reject';
 const XSTATE_SPAWN_CHILD = 'xstate.spawn.child';
 
-export type PromiseActorLogic<TOutput, TInput = unknown> = ActorLogic<
+export type PromiseActorLogic<
+  TOutput,
+  TInput = unknown,
+  TEmitted extends EventObject = EventObject
+> = ActorLogic<
   PromiseSnapshot<TOutput, TInput>,
   { type: string; [k: string]: unknown },
   TInput, // input
-  AnyActorSystem
+  AnyActorSystem,
+  TEmitted // TEmitted
 >;
 
 export type PromiseActorRef<TOutput> = ActorRefFrom<
@@ -73,10 +79,20 @@ export type PromiseActorRef<TOutput> = ActorRefFrom<
  * // }
  * ```
  */
-export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
+
+const controllerMap = new WeakMap<AnyActorRef, AbortController>();
+
+export function fromPromise<
+  TOutput,
+  TInput = NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
   promiseCreator: ({
     input,
-    system
+    system,
+    self,
+    signal,
+    emit
   }: {
     /**
      * Data that was provided to the promise actor
@@ -91,9 +107,11 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
      */
     self: PromiseActorRef<TOutput>;
     spawnChild: ActorScope<any, any, any>['spawnChild'];
+    signal: AbortSignal;
+    emit: (emitted: TEmitted) => void;
   }) => PromiseLike<TOutput>
-): PromiseActorLogic<TOutput, TInput> {
-  const logic: PromiseActorLogic<TOutput, TInput> = {
+): PromiseActorLogic<TOutput, TInput, TEmitted> {
+  const logic: PromiseActorLogic<TOutput, TInput, TEmitted> = {
     config: promiseCreator,
     transition: (state, event, actorScope) => {
       if (state.status !== 'active') {
@@ -127,6 +145,8 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
           };
         case XSTATE_STOP:
           stopChildren();
+          controllerMap.get(actorScope.self)?.abort();
+
           return {
             ...state,
             status: 'stopped',
@@ -145,7 +165,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
           return state;
       }
     },
-    start: (state, { self, system, spawnChild }) => {
+    start: (state, { self, system, spawnChild, emit }) => {
       // TODO: determine how to allow customizing this so that promises
       // can be restarted if necessary
       if (state.status !== 'active') {
@@ -163,12 +183,16 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
         return child;
       };
 
+      const controller = new AbortController();
+      controllerMap.set(self, controller);
       const resolvedPromise = Promise.resolve(
         promiseCreator({
           input: state.input!,
           system,
           self,
-          spawnChild: innerSpawnChild as any
+          spawnChild: innerSpawnChild as any,
+          signal: controller.signal,
+          emit
         })
       );
 
@@ -177,6 +201,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
           if (self.getSnapshot().status !== 'active') {
             return;
           }
+          controllerMap.delete(self);
           system._relay(self, self, {
             type: XSTATE_PROMISE_RESOLVE,
             data: response
@@ -186,6 +211,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
           if (self.getSnapshot().status !== 'active') {
             return;
           }
+          controllerMap.delete(self);
           system._relay(self, self, {
             type: XSTATE_PROMISE_REJECT,
             data: errorData

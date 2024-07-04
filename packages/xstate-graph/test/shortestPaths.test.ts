@@ -131,7 +131,7 @@ describe('getShortestPaths', () => {
           todo: 'two'
         } as const
       ],
-      filter: (state) => state.context.todos.length < 3
+      stopWhen: (state) => state.context.todos.length >= 3
     });
 
     const pathWithTwoTodos = shortestPaths.filter(

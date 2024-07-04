@@ -10,7 +10,8 @@ import {
   cancel,
   raise,
   stopChild,
-  log
+  log,
+  AnyActorRef
 } from '../src/index.ts';
 import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
@@ -1670,7 +1671,7 @@ describe('interpreter', () => {
         context: {} as {
           machineRef: ActorRefFrom<typeof childMachine>;
           promiseRef: ActorRefFrom<typeof fromPromise>;
-          observableRef: ActorRef<any, any>;
+          observableRef: AnyActorRef;
         },
         entry: assign({
           machineRef: ({ spawn }) =>

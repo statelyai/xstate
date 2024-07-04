@@ -663,7 +663,15 @@ export function transitionAtomicNode<
 >(
   stateNode: AnyStateNode,
   stateValue: string,
-  snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any>,
+  snapshot: MachineSnapshot<
+    TContext,
+    TEvent,
+    any,
+    any,
+    any,
+    any,
+    any // TMeta
+  >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
@@ -682,7 +690,15 @@ export function transitionCompoundNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any>,
+  snapshot: MachineSnapshot<
+    TContext,
+    TEvent,
+    any,
+    any,
+    any,
+    any,
+    any // TMeta
+  >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const subStateKeys = Object.keys(stateValue);
@@ -708,7 +724,15 @@ export function transitionParallelNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any>,
+  snapshot: MachineSnapshot<
+    TContext,
+    TEvent,
+    any,
+    any,
+    any,
+    any,
+    any // TMeta
+  >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
@@ -1063,12 +1087,12 @@ function getMachineOutput(
   rootNode: AnyStateNode,
   rootCompletionNode: AnyStateNode
 ) {
-  if (!rootNode.output) {
+  if (rootNode.output === undefined) {
     return;
   }
   const doneStateEvent = createDoneStateEvent(
     rootCompletionNode.id,
-    rootCompletionNode.output && rootCompletionNode.parent
+    rootCompletionNode.output !== undefined && rootCompletionNode.parent
       ? resolveOutput(
           rootCompletionNode.output,
           snapshot.context,
@@ -1158,7 +1182,7 @@ function enterStates(
         internalQueue.push(
           createDoneStateEvent(
             parent!.id,
-            stateNodeToEnter.output
+            stateNodeToEnter.output !== undefined
               ? resolveOutput(
                   stateNodeToEnter.output,
                   nextSnapshot.context,
@@ -1467,6 +1491,10 @@ interface BuiltinAction {
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
+export let executingCustomAction:
+  | ActionFunction<any, any, any, any, any, any, any, any, any>
+  | false = false;
+
 function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
@@ -1499,7 +1527,8 @@ function resolveAndExecuteActionsWithContext(
               ProvidedActor,
               ParameterizedObject,
               ParameterizedObject,
-              string
+              string,
+              EventObject
             >
           >
         )[typeof action === 'string' ? action : action.type];
@@ -1538,7 +1567,12 @@ function resolveAndExecuteActionsWithContext(
           params: actionParams
         }
       });
-      resolvedAction(actionArgs, actionParams);
+      try {
+        executingCustomAction = resolvedAction;
+        resolvedAction(actionArgs, actionParams);
+      } finally {
+        executingCustomAction = false;
+      }
     }
 
     if (!('resolve' in resolvedAction)) {

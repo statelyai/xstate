@@ -11,6 +11,7 @@ import {
   log,
   not,
   raise,
+  sendParent,
   sendTo,
   setup,
   spawnChild,
@@ -776,6 +777,25 @@ describe('setup()', () => {
     });
   });
 
+  it('should accept a `sendParent` action when delays are not configured', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        sendFoo: sendParent({
+          type: 'FOO'
+        })
+      }
+    });
+  });
+
   it("should be able to use an output of specific actor in the `assign` within `invoke`'s `onDone` in the machine", () => {
     setup({
       actors: {
@@ -833,6 +853,32 @@ describe('setup()', () => {
           reducer: fromTransition((s) => s, { count: 100 })
         }
       });
+  });
+
+  it('should allow anonymous inline actor outside of the configured actors', () => {
+    setup({
+      actors: {
+        known: fromPromise(async () => 'known')
+      }
+    }).createMachine({
+      invoke: {
+        src: fromPromise(async () => 'inline')
+      }
+    });
+  });
+
+  it('should disallow anonymous inline actor with an id outside of the configured actors', () => {
+    setup({
+      actors: {
+        known: fromPromise(async () => 'known')
+      }
+    }).createMachine({
+      invoke: {
+        src: fromPromise(async () => 'inline'),
+        // @ts-expect-error
+        id: 'myChild'
+      }
+    });
   });
 
   it('should not accept an incompatible provided logic', () => {
@@ -942,9 +988,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input: 4157
       }
     });
@@ -996,9 +1042,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input:
           Math.random() > 0.5
             ? {
@@ -1020,9 +1066,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input: () => 42
       }
     });
@@ -1059,9 +1105,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input: () =>
           Math.random() > 0.5
             ? {
@@ -1997,6 +2043,70 @@ describe('setup()', () => {
     });
   });
 
+  it('should be able to use a parameterized `enqueueActions` action with its required params in the machine', () => {
+    setup({
+      actions: {
+        doStuff: enqueueActions((_, params: number) => {})
+      }
+    }).createMachine({
+      entry: {
+        type: 'doStuff',
+        params: 0
+      }
+    });
+  });
+
+  it('should not accept a string reference to parameterized `enqueueActions` without its required params in the machine', () => {
+    setup({
+      actions: {
+        doStuff: enqueueActions((_, params: number) => {})
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: 'doStuff'
+    });
+  });
+
+  it('should not accept an object reference to parameterized `enqueueActions` without its required params in the machine', () => {
+    setup({
+      actions: {
+        doStuff: enqueueActions((_, params: number) => {})
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: {
+        type: 'doStuff'
+      }
+    });
+  });
+
+  it('should not accept an object reference to parameterized `enqueueActions` without its required params in the machine', () => {
+    setup({
+      actions: {
+        doStuff: enqueueActions((_, params: number) => {})
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: {
+        type: 'doStuff'
+      }
+    });
+  });
+
+  it('should not accept a reference to parameterized `enqueueActions` with wrong params in the machine', () => {
+    setup({
+      actions: {
+        doStuff: enqueueActions((_, params: number) => {})
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: {
+        type: 'doStuff',
+        params: 'foo'
+      }
+    });
+  });
+
   it('should allow `cancel` action to be configured', () => {
     setup({
       actions: {
@@ -2019,5 +2129,64 @@ describe('setup()', () => {
         releaseFromDuty: stopChild('foo')
       }
     });
+  });
+
+  it('should support typing meta properties', () => {
+    const machine = setup({
+      types: {
+        meta: {} as {
+          layout: string;
+        }
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          meta: {
+            layout: 'a-layout'
+          }
+        },
+        b: {
+          meta: {
+            // @ts-expect-error
+            notLayout: 'uh oh'
+          }
+        },
+        c: {}, // no meta
+        d: {
+          meta: {
+            // @ts-expect-error
+            layout: 42
+          }
+        }
+      },
+      on: {
+        e1: {
+          meta: {
+            layout: 'event-layout'
+          }
+        },
+        e2: {
+          meta: {
+            // @ts-expect-error
+            notLayout: 'uh oh'
+          }
+        },
+        e3: {}, // no meta
+        // @ts-expect-error (for some reason the error is here)
+        e4: {
+          meta: {
+            layout: 42
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+
+    actor.getSnapshot().getMeta().a satisfies { layout: string } | undefined;
+
+    // @ts-expect-error
+    actor.getSnapshot().getMeta().a?.whatever;
   });
 });

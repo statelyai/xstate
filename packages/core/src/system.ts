@@ -7,8 +7,10 @@ import {
   Snapshot,
   HomomorphicOmit,
   EventObject,
-  AnyTransitionDefinition
+  AnyTransitionDefinition,
+  Subscription
 } from './types.ts';
+import { toObserver } from './utils.ts';
 
 export interface ScheduledEvent {
   id: string;
@@ -63,7 +65,12 @@ export interface ActorSystem<T extends ActorSystemInfo> {
    */
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
-  inspect: (observer: Observer<InspectionEvent>) => void;
+
+  inspect: (
+    observer:
+      | Observer<InspectionEvent>
+      | ((inspectionEvent: InspectionEvent) => void)
+  ) => Subscription;
   /**
    * @internal
    */
@@ -89,6 +96,8 @@ export interface ActorSystem<T extends ActorSystemInfo> {
     _scheduledEvents: Record<ScheduledEventId, ScheduledEvent>;
   };
   start: () => void;
+  _clock: Clock;
+  _logger: (...args: any[]) => void;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
@@ -98,6 +107,7 @@ export function createSystem<T extends ActorSystemInfo>(
   rootActor: AnyActorRef,
   options: {
     clock: Clock;
+    logger: (...args: any[]) => void;
     snapshot?: unknown;
   }
 ): ActorSystem<T> {
@@ -106,7 +116,7 @@ export function createSystem<T extends ActorSystemInfo>(
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
   const inspectionObservers = new Set<Observer<InspectionEvent>>();
   const timerMap: { [id: ScheduledEventId]: number } = {};
-  const clock = options.clock;
+  const { clock, logger } = options;
 
   const scheduler: Scheduler = {
     schedule: (
@@ -203,8 +213,15 @@ export function createSystem<T extends ActorSystemInfo>(
       keyedActors.set(systemId, actorRef);
       reverseKeyedActors.set(actorRef, systemId);
     },
-    inspect: (observer) => {
+    inspect: (observerOrFn) => {
+      const observer = toObserver(observerOrFn);
       inspectionObservers.add(observer);
+
+      return {
+        unsubscribe() {
+          inspectionObservers.delete(observer);
+        }
+      };
     },
     _sendInspectionEvent: sendInspectionEvent as any,
     _relay: (source, target, event) => {
@@ -231,7 +248,9 @@ export function createSystem<T extends ActorSystemInfo>(
           scheduledEvents[scheduledId as ScheduledEventId];
         scheduler.schedule(source, target, event, delay, id);
       }
-    }
+    },
+    _clock: clock,
+    _logger: logger
   };
 
   return system;

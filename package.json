@@ -80,7 +80,7 @@
     "synckit": "^0.8.5",
     "tslib": "^2.3.1",
     "tslint": "^5.11.0",
-    "typescript": "^5.2.2",
+    "typescript": "^5.4.2",
     "vue": "^3.0.11",
     "webpack-dev-middleware": "^3.6.0"
   },
