@@ -1,4 +1,5 @@
 import { assign, setup, transition } from '../src';
+import { executeAction } from '../src/stateUtils';
 import { initialTransition } from '../src/transition';
 
 describe('transition function', () => {
@@ -50,7 +51,7 @@ describe('transition function', () => {
     expect(stringAction).not.toHaveBeenCalled();
 
     // Execute actions
-    actions0.forEach((a) => a.execute());
+    actions0.forEach((a) => executeAction(a));
 
     expect(actionWithParams).toHaveBeenCalledWith(expect.anything(), { a: 1 });
     expect(stringAction).toHaveBeenCalled();
@@ -71,7 +72,7 @@ describe('transition function', () => {
     expect(actionWithDynamicParams).not.toHaveBeenCalled();
 
     // Execute actions
-    actions1.forEach((a) => a.execute());
+    actions1.forEach((a) => executeAction(a));
 
     expect(actionWithDynamicParams).toHaveBeenCalledWith({
       msg: 'hello'

@@ -51,9 +51,7 @@ import {
 } from './utils.ts';
 import { ProcessingStatus } from './createActor.ts';
 
-export const defaultActionExecutor: ActionExecutor = (actionToExecute) => {
-  actionToExecute.execute();
-};
+export const defaultActionExecutor: ActionExecutor = executeAction;
 
 type StateNodeIterable<
   TContext extends MachineContext,
@@ -1529,13 +1527,9 @@ export interface ExecutableAction {
    * The action type
    */
   type: string;
-  // TODO: don't know if we need this
-  _info: ActionArgs<MachineContext, EventObject, EventObject>;
+  info: ActionArgs<MachineContext, EventObject, EventObject>;
   params: NonReducibleUnknown;
-  /**
-   * Executes the action with the params (and extra action info, like context/event, for now)
-   */
-  execute: () => void;
+  function: (info: ActionArgs<any, any, any>, params: unknown) => void;
 }
 
 export type ActionExecutor = (actionToExecute: ExecutableAction) => void;
@@ -1601,9 +1595,9 @@ function resolveAndExecuteActionsWithContext(
     function executeAction() {
       actorScope.actionExecutor({
         type: action.type,
-        _info: actionArgs,
+        info: actionArgs,
         params: actionParams,
-        execute: () => resolvedAction(actionArgs, actionParams)
+        function: resolvedAction
       });
     }
 
@@ -1915,4 +1909,12 @@ export function convertAction(
     };
   }
   return action as any;
+}
+
+export function executeAction(
+  action: ExecutableAction,
+  info: ActionArgs<any, any, any> = action.info,
+  params: unknown = action.params
+) {
+  return action.function(info, params);
 }
