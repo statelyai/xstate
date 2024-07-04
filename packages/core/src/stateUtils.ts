@@ -1600,7 +1600,7 @@ function resolveAndExecuteActionsWithContext(
 
     function executeAction() {
       actorScope.actionExecutor({
-        type: typeof action === 'object' ? action.type : 'TODO',
+        type: action.type,
         _info: actionArgs,
         params: actionParams,
         execute: () => resolvedAction(actionArgs, actionParams)
