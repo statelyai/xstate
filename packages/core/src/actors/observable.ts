@@ -25,13 +25,14 @@ export type ObservableSnapshot<
 
 export type ObservableActorLogic<
   TContext,
-  TInput extends NonReducibleUnknown
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
 > = ActorLogic<
   ObservableSnapshot<TContext, TInput>,
   { type: string; [k: string]: unknown },
   TInput,
   AnyActorSystem,
-  EventObject // TEmitted
+  TEmitted
 >;
 
 export type ObservableActorRef<TContext> = ActorRefFrom<
@@ -78,20 +79,26 @@ export type ObservableActorRef<TContext> = ActorRefFrom<
  * @see {@link https://rxjs.dev} for documentation on RxJS Observable and observable creators.
  * @see {@link Subscribable} interface in XState, which is based on and compatible with RxJS Observable.
  */
-export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
+export function fromObservable<
+  TContext,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
   observableCreator: ({
     input,
-    system
+    system,
+    self
   }: {
     input: TInput;
     system: AnyActorSystem;
     self: ObservableActorRef<TContext>;
+    emit: (emitted: TEmitted) => void;
   }) => Subscribable<TContext>
-): ObservableActorLogic<TContext, TInput> {
+): ObservableActorLogic<TContext, TInput, TEmitted> {
   // TODO: add event types
-  const logic: ObservableActorLogic<TContext, TInput> = {
+  const logic: ObservableActorLogic<TContext, TInput, TEmitted> = {
     config: observableCreator,
-    transition: (snapshot, event, { self, id, defer, system }) => {
+    transition: (snapshot, event) => {
       if (snapshot.status !== 'active') {
         return snapshot;
       }
@@ -141,7 +148,7 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
         _subscription: undefined
       };
     },
-    start: (state, { self, system }) => {
+    start: (state, { self, system, emit }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
         return;
@@ -149,7 +156,8 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
       state._subscription = observableCreator({
         input: state.input!,
         system,
-        self
+        self,
+        emit
       }).subscribe({
         next: (value) => {
           system._relay(self, self, {
@@ -223,20 +231,24 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
  * ```
  */
 export function fromEventObservable<
-  T extends EventObject,
-  TInput extends NonReducibleUnknown
+  TEvent extends EventObject,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
 >(
   lazyObservable: ({
     input,
-    system
+    system,
+    self,
+    emit
   }: {
     input: TInput;
     system: AnyActorSystem;
-    self: ObservableActorRef<T>;
-  }) => Subscribable<T>
-): ObservableActorLogic<T, TInput> {
+    self: ObservableActorRef<TEvent>;
+    emit: (emitted: TEmitted) => void;
+  }) => Subscribable<TEvent>
+): ObservableActorLogic<TEvent, TInput, TEmitted> {
   // TODO: event types
-  const logic: ObservableActorLogic<T, TInput> = {
+  const logic: ObservableActorLogic<TEvent, TInput, TEmitted> = {
     config: lazyObservable,
     transition: (state, event) => {
       if (state.status !== 'active') {
@@ -281,7 +293,7 @@ export function fromEventObservable<
         _subscription: undefined
       };
     },
-    start: (state, { self, system }) => {
+    start: (state, { self, system, emit }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
         return;
@@ -290,7 +302,8 @@ export function fromEventObservable<
       state._subscription = lazyObservable({
         input: state.input!,
         system,
-        self
+        self,
+        emit
       }).subscribe({
         next: (value) => {
           if (self._parent) {

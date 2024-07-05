@@ -26,13 +26,14 @@ export type CallbackSnapshot<TInput> = Snapshot<undefined> & {
 
 export type CallbackActorLogic<
   TEvent extends EventObject,
-  TInput = NonReducibleUnknown
+  TInput = NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
 > = ActorLogic<
   CallbackSnapshot<TInput>,
   TEvent,
   TInput,
   AnyActorSystem,
-  EventObject // TEmitted
+  TEmitted
 >;
 
 export type CallbackActorRef<
@@ -49,13 +50,15 @@ export type Receiver<TEvent extends EventObject> = (
 export type InvokeCallback<
   TEvent extends EventObject = AnyEventObject,
   TSentEvent extends EventObject = AnyEventObject,
-  TInput = NonReducibleUnknown
+  TInput = NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
 > = ({
   input,
   system,
   self,
   sendBack,
-  receive
+  receive,
+  emit
 }: {
   /**
    * Data that was provided to the callback actor
@@ -79,6 +82,7 @@ export type InvokeCallback<
    * the listener is then called whenever events are received by the callback actor
    */
   receive: Receiver<TEvent>;
+  emit: (emitted: TEmitted) => void;
 }) => (() => void) | void;
 
 /**
@@ -140,14 +144,15 @@ export type InvokeCallback<
  */
 export function fromCallback<
   TEvent extends EventObject,
-  TInput = NonReducibleUnknown
+  TInput = NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
 >(
-  invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
-): CallbackActorLogic<TEvent, TInput> {
-  const logic: CallbackActorLogic<TEvent, TInput> = {
+  invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput, TEmitted>
+): CallbackActorLogic<TEvent, TInput, TEmitted> {
+  const logic: CallbackActorLogic<TEvent, TInput, TEmitted> = {
     config: invokeCallback,
     start: (state, actorScope) => {
-      const { self, system } = actorScope;
+      const { self, system, emit } = actorScope;
 
       const callbackState: CallbackInstanceState<TEvent> = {
         receivers: undefined,
@@ -171,7 +176,8 @@ export function fromCallback<
         receive: (listener) => {
           callbackState.receivers ??= new Set();
           callbackState.receivers.add(listener);
-        }
+        },
+        emit
       });
     },
     transition: (state, event, actorScope) => {

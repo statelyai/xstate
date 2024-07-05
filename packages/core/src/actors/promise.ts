@@ -16,12 +16,16 @@ export type PromiseSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
 const XSTATE_PROMISE_RESOLVE = 'xstate.promise.resolve';
 const XSTATE_PROMISE_REJECT = 'xstate.promise.reject';
 
-export type PromiseActorLogic<TOutput, TInput = unknown> = ActorLogic<
+export type PromiseActorLogic<
+  TOutput,
+  TInput = unknown,
+  TEmitted extends EventObject = EventObject
+> = ActorLogic<
   PromiseSnapshot<TOutput, TInput>,
   { type: string; [k: string]: unknown },
   TInput, // input
   AnyActorSystem,
-  EventObject // TEmitted
+  TEmitted // TEmitted
 >;
 
 export type PromiseActorRef<TOutput> = ActorRefFrom<
@@ -75,10 +79,17 @@ export type PromiseActorRef<TOutput> = ActorRefFrom<
 
 const controllerMap = new WeakMap<AnyActorRef, AbortController>();
 
-export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
+export function fromPromise<
+  TOutput,
+  TInput = NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
   promiseCreator: ({
     input,
-    system
+    system,
+    self,
+    signal,
+    emit
   }: {
     /**
      * Data that was provided to the promise actor
@@ -93,9 +104,10 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
      */
     self: PromiseActorRef<TOutput>;
     signal: AbortSignal;
+    emit: (emitted: TEmitted) => void;
   }) => PromiseLike<TOutput>
-): PromiseActorLogic<TOutput, TInput> {
-  const logic: PromiseActorLogic<TOutput, TInput> = {
+): PromiseActorLogic<TOutput, TInput, TEmitted> {
+  const logic: PromiseActorLogic<TOutput, TInput, TEmitted> = {
     config: promiseCreator,
     transition: (state, event, scope) => {
       if (state.status !== 'active') {
@@ -131,7 +143,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
           return state;
       }
     },
-    start: (state, { self, system }) => {
+    start: (state, { self, system, emit }) => {
       // TODO: determine how to allow customizing this so that promises
       // can be restarted if necessary
       if (state.status !== 'active') {
@@ -144,7 +156,8 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
           input: state.input!,
           system,
           self,
-          signal: controller.signal
+          signal: controller.signal,
+          emit
         })
       );
 
