@@ -123,7 +123,8 @@ export interface UnifiedArg<
       unknown,
       TODO // TMeta
     >,
-    TEvent
+    TEvent,
+    AnyEventObject
   >;
   system: AnyActorSystem;
 }
@@ -171,7 +172,7 @@ export type OutputFrom<T> = T extends ActorLogic<
   infer _TEmitted
 >
   ? (TSnapshot & { status: 'done' })['output']
-  : T extends ActorRef<infer TSnapshot, infer _TEvent>
+  : T extends ActorRef<infer TSnapshot, infer _TEvent, infer _TEmitted>
     ? (TSnapshot & { status: 'done' })['output']
     : never;
 
@@ -1587,7 +1588,8 @@ export type ContextFactory<
       unknown,
       TODO // TMeta
     >,
-    TEvent
+    TEvent,
+    AnyEventObject
   >;
 }) => TContext;
 
@@ -1720,14 +1722,20 @@ export type Transitions<
   TEvent extends EventObject
 > = Array<TransitionDefinition<TContext, TEvent>>;
 
-export interface DoneActorEvent<TOutput = unknown> {
-  type: `xstate.done.actor.${string}`;
+export interface DoneActorEvent<TOutput = unknown, TId extends string = string>
+  extends EventObject {
+  type: `xstate.done.actor.${TId}`;
   output: TOutput;
+  actorId: TId;
 }
 
-export interface ErrorActorEvent<TErrorData = unknown> extends EventObject {
-  type: `xstate.error.actor.${string}`;
+export interface ErrorActorEvent<
+  TErrorData = unknown,
+  TId extends string = string
+> extends EventObject {
+  type: `xstate.error.actor.${TId}`;
   error: TErrorData;
+  actorId: TId;
 }
 
 export interface SnapshotEvent<
@@ -1893,7 +1901,8 @@ export type Mapper<
       unknown,
       TODO // TMeta
     >,
-    TEvent
+    TEvent,
+    AnyEventObject
   >;
 }) => TResult;
 
@@ -2237,13 +2246,19 @@ export interface ActorRef<
   /** @internal */
   _processingStatus: ProcessingStatus;
   src: string | AnyActorLogic;
-  on: <TType extends TEmitted['type']>(
+  // TODO: remove from ActorRef interface
+  // (should only be available on Actor)
+  on: <TType extends TEmitted['type'] | '*'>(
     type: TType,
-    handler: (emitted: TEmitted & { type: TType }) => void
+    handler: (
+      emitted: TEmitted & (TType extends '*' ? {} : { type: TType })
+    ) => void
   ) => Subscription;
 }
 
 export type AnyActorRef = ActorRef<any, any, any>;
+
+export type UnknownActorRef = ActorRef<Snapshot<unknown>, EventObject>;
 
 export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
@@ -2532,7 +2547,7 @@ export type UnknownActorLogic = ActorLogic<
 >;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends ActorRef<infer TSnapshot, infer _>
+  ? R extends ActorRef<infer TSnapshot, infer _, infer __>
     ? TSnapshot
     : R extends Actor<infer TLogic>
       ? SnapshotFrom<TLogic>
@@ -2604,7 +2619,7 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
           infer _TMeta
         >
       ? TEvent
-      : R extends ActorRef<infer _, infer TEvent>
+      : R extends ActorRef<infer _TSnapshot, infer TEvent, infer _TEmitted>
         ? TEvent
         : never
   : never;

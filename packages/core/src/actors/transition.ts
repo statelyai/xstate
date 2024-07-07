@@ -100,7 +100,12 @@ export function fromTransition<
   transition: (
     snapshot: TContext,
     event: TEvent,
-    actorScope: ActorScope<TransitionSnapshot<TContext>, TEvent, TSystem>
+    actorScope: ActorScope<
+      TransitionSnapshot<TContext>,
+      TEvent,
+      TSystem,
+      TEmitted
+    >
   ) => TContext,
   initialContext:
     | TContext
