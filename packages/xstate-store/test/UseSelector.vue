@@ -14,11 +14,14 @@ import { createStore } from '../src/index.ts';
 export default defineComponent({
   emits: ['rerender'],
   setup() {
-    const store = createStore({
-      count: 0
-    }, {
-      inc: (ctx) => ({ count: ctx.count + 1 })
-    })
+    const store = createStore(
+      {
+        count: 0
+      },
+      {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    );
     const count = useSelector(store, (state) => state.context.count);
 
     count satisfies Ref<number>;

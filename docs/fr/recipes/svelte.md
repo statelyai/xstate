@@ -46,19 +46,21 @@ export const toggleMachine = createMachine({
 
 ```html
 <script>
-    import {interpret} from 'xstate';
-    import {toggleMachine} from './machine';
+  import { interpret } from 'xstate';
+  import { toggleMachine } from './machine';
 
-    let current;
+  let current;
 
-    const toggleService = interpret(toggleMachine)
-        .onTransition((state) => {
-            current = state;
-        }).start()
+  const toggleService = interpret(toggleMachine)
+    .onTransition((state) => {
+      current = state;
+    })
+    .start();
 </script>
 
-<button on:click={() => toggleService.send({type:'TOGGLE'})}>
-    {current.matches('inactive') ? 'Off' : 'On'}
+<button on:click="{()" ="">
+  toggleService.send({type:'TOGGLE'})}> {current.matches('inactive') ? 'Off' :
+  'On'}
 </button>
 ```
 
@@ -68,14 +70,15 @@ The toggleService has a `.subscribe` function that is similar to Svelte stores, 
 
 ```html
 <script>
-    import {interpret} from 'xstate';
-    import {toggleMachine} from './machine';
+  import { interpret } from 'xstate';
+  import { toggleMachine } from './machine';
 
-    const toggleService = interpret(toggleMachine).start();
+  const toggleService = interpret(toggleMachine).start();
 </script>
 
-<button on:click={() => toggleService.send({type:'TOGGLE'})}>
-    {$toggleService.matches('inactive') ? 'Off' : 'On'}
+<button on:click="{()" ="">
+  toggleService.send({type:'TOGGLE'})}> {$toggleService.matches('inactive') ?
+  'Off' : 'On'}
 </button>
 ```
 

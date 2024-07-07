@@ -1,6 +1,6 @@
-import { RICK_AND_MORTY_API, getRandomNumber } from "../common/constants";
-import axios from "axios";
-import { RMCharacter, RMEpisode } from "../common/types";
+import { RICK_AND_MORTY_API, getRandomNumber } from '../common/constants';
+import axios from 'axios';
+import { RMCharacter, RMEpisode } from '../common/types';
 
 class RickCharactersImpl {
   public getCharacters(page: number): Promise<RMCharacter[]> {

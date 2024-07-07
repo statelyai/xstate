@@ -26,5 +26,4 @@ Si vous décidez d'utiliser XState, [John Yanarella](https://github.com/CodeCata
 > Le monde du développement Front est le Far West, et il pourrait apprendre de ce que d'autres disciplines d'ingénierie ont connu et employé pendant des années.
 >
 > 3. Il a **passé un seuil critique de maturité** depuis la version 4, notamment depuis l'introduction du [visualiseur](https://statecharts.github.io/xstate-viz). Et ce n'est que la partie émergée de l'iceberg de ce qu'il pourrait accomplir ensuite, car lui (et [sa communauté] (https://github.com/statelyai/xstate/discussions)) ont introduit des outils qui tirent parti de la façon dont un diagramme d'état peut être visualisé, analysé et testé.
->
 > 4. La **communauté** qui grandit tout autour et la prise de conscience qu'elle apporte aux machines à états finis et aux diagrammes d'états. Si vous relisez cet historique gitter, il y a une multitude de liens vers des articles de recherche, d'autres implémentations FSM et Statechart, etc. qui ont été collectés par [Erik Mogensen](https://twitter.com/mogsie) sur [statecharts.github.io](https://statecharts.github.io).

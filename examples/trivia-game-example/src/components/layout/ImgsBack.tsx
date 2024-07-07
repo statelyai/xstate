@@ -1,6 +1,6 @@
-import React from "react";
-import { ImgBack } from "../styled/ImgBack";
-import { RMCharacter } from "../../common/types";
+import React from 'react';
+import { ImgBack } from '../styled/ImgBack';
+import { RMCharacter } from '../../common/types';
 
 interface CharacterProps {
   characters: RMCharacter[];

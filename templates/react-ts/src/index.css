@@ -1,4 +1,6 @@
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   position: relative;
   box-sizing: border-box;
 }
