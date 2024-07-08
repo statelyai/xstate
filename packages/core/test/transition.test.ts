@@ -3,9 +3,9 @@ import {
   createMachine,
   enqueueActions,
   setup,
-  transition
+  transition,
+  executeAction
 } from '../src';
-import { executeAction } from '../src/stateUtils';
 import { initialTransition } from '../src/transition';
 
 describe('transition function', () => {

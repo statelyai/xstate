@@ -1917,6 +1917,20 @@ export function convertAction(
   return action as any;
 }
 
+/**
+ * Runs an executable action. Executable actions are
+ * returned from the `transition(…)` function.
+ * 
+ * @example
+  ```ts
+  const [state, actions] = transition(someMachine, someState, someEvent);
+
+  for (const action of actions) {
+    // Executes the action
+    executeAction(action);
+  }
+  ```
+ */
 export function executeAction(
   action: ExecutableAction,
   info: ActionArgs<any, any, any> = action.info,
