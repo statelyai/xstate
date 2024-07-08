@@ -224,7 +224,7 @@ export class Actor<TLogic extends AnyActorLogic>
           }
           try {
             executingCustomAction = action.function;
-            executeAction(action);
+            executeAction(action, this);
           } finally {
             executingCustomAction = false;
           }

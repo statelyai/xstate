@@ -4,7 +4,9 @@ import {
   enqueueActions,
   setup,
   transition,
-  executeAction
+  executeAction,
+  raise,
+  createActor
 } from '../src';
 import { initialTransition } from '../src/transition';
 
@@ -57,7 +59,7 @@ describe('transition function', () => {
     expect(stringAction).not.toHaveBeenCalled();
 
     // Execute actions
-    actions0.forEach((a) => executeAction(a));
+    actions0.forEach((a) => executeAction(a, {} as any));
 
     expect(actionWithParams).toHaveBeenCalledWith(expect.anything(), { a: 1 });
     expect(stringAction).toHaveBeenCalled();
@@ -78,7 +80,7 @@ describe('transition function', () => {
     expect(actionWithDynamicParams).not.toHaveBeenCalled();
 
     // Execute actions
-    actions1.forEach((a) => executeAction(a));
+    actions1.forEach((a) => executeAction(a, {} as any));
 
     expect(actionWithDynamicParams).toHaveBeenCalledWith({
       msg: 'hello'
@@ -101,5 +103,34 @@ describe('transition function', () => {
       expect.objectContaining({ type: 'stringAction' }),
       expect.objectContaining({ type: 'objectAction' })
     ]);
+  });
+
+  it('actor can be specified', () => {
+    const machine = createMachine({
+      entry: (x) => {
+        x.self.send({ type: 'next' });
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: { next: 'b' }
+        },
+        b: {}
+      }
+    });
+
+    const [state, actions] = initialTransition(machine);
+
+    const actor = createActor(machine, {
+      snapshot: state
+    }).start();
+
+    expect(actor.getSnapshot().matches('a')).toBeTruthy();
+
+    actions.forEach((action) => {
+      executeAction(action, actor);
+    });
+
+    expect(actor.getSnapshot().matches('b')).toBeTruthy();
   });
 });

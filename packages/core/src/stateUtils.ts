@@ -39,7 +39,8 @@ import {
   ProvidedActor,
   AnyActorScope,
   NonReducibleUnknown,
-  UnknownActionObject
+  UnknownActionObject,
+  AnyActorRef
 } from './types.ts';
 import {
   resolveOutput,
@@ -1933,8 +1934,13 @@ export function convertAction(
  */
 export function executeAction(
   action: ExecutableAction,
-  info: ActionArgs<any, any, any> = action.info,
+  actor: AnyActorRef,
   params: unknown = action.params
 ) {
-  return action.function?.(info, params);
+  const resolvedInfo = {
+    ...action.info,
+    self: actor,
+    system: actor.system
+  };
+  return action.function?.(resolvedInfo, params);
 }
