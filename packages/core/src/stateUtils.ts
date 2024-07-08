@@ -1539,7 +1539,10 @@ export interface ExecutableAction {
     | undefined;
 }
 
-export type ActionExecutor = (actionToExecute: ExecutableAction) => void;
+export type ActionExecutor = (
+  actionToExecute: ExecutableAction,
+  actorRef: AnyActorRef
+) => void;
 
 function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
@@ -1596,12 +1599,15 @@ function resolveAndExecuteActionsWithContext(
           : undefined;
 
     function executeAction() {
-      actorScope.actionExecutor({
-        type: action.type,
-        info: actionArgs,
-        params: actionParams,
-        function: resolvedAction
-      });
+      actorScope.actionExecutor(
+        {
+          type: action.type,
+          info: actionArgs,
+          params: actionParams,
+          function: resolvedAction
+        },
+        actorScope.self
+      );
     }
 
     if (!resolvedAction || !('resolve' in resolvedAction)) {
