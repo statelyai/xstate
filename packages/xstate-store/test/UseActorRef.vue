@@ -14,12 +14,17 @@ import { fromStore } from '../src/index.ts';
 export default defineComponent({
   emits: ['rerender'],
   setup() {
-    const actorRef = useActorRef(fromStore({
-      count: 0
-    }, {
-      inc: (ctx) => ({ count: ctx.count + 1 })
-    }))
-    const count = useSelector(actorRef, s => s.context.count)
+    const actorRef = useActorRef(
+      fromStore(
+        {
+          count: 0
+        },
+        {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      )
+    );
+    const count = useSelector(actorRef, (s) => s.context.count);
 
     count satisfies Ref<number>;
 
