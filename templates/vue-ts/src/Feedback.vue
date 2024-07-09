@@ -48,7 +48,7 @@ const { snapshot, send } = useMachine(feedbackMachine, {
       <h2>What can we do better?</h2>
       <textarea
         name="feedback"
-        rows="{4}"
+        rows="4"
         placeholder="So many things..."
         @input="
           (ev) => {
