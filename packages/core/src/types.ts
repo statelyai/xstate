@@ -2123,7 +2123,7 @@ export type MachineImplementationsFrom<
   infer _TMeta
 >
   ? InternalMachineImplementations<
-      ResolveTypegenMeta<
+      ResolvedStateMachineTypes<
         TContext,
         TEvent,
         TActor,
@@ -2473,7 +2473,7 @@ export interface StateMachineTypes {
 /**
  * @deprecated
  */
-export interface ResolveTypegenMeta<
+export interface ResolvedStateMachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
