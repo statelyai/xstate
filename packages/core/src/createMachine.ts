@@ -1,9 +1,5 @@
 import { StateMachine } from './StateMachine.ts';
-import {
-  ResolveTypegenMeta,
-  TypegenConstraint,
-  TypegenDisabled
-} from './typegenTypes.ts';
+import { ResolvedStateMachineTypes } from './types.ts';
 import {
   AnyActorRef,
   EventObject,
@@ -16,7 +12,6 @@ import {
   MachineTypes,
   NonReducibleUnknown,
   ParameterizedObject,
-  Prop,
   ProvidedActor,
   StateValue,
   ToChildren,
@@ -122,7 +117,7 @@ export function createMachine<
   // it's important to have at least one default type parameter here
   // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
   // we should be able to remove this when we start inferring TConfig, with it we'll always have an inference candidate
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
+  _ = any
 >(
   config: {
     types?: MachineTypes<
@@ -136,8 +131,7 @@ export function createMachine<
       TInput,
       TOutput,
       TEmitted,
-      TMeta,
-      TTypesMeta
+      TMeta
     >;
     schemas?: unknown;
   } & MachineConfig<
@@ -151,13 +145,11 @@ export function createMachine<
     TInput,
     TOutput,
     TEmitted,
-    TMeta,
-    TTypesMeta
+    TMeta
   >,
   implementations?: InternalMachineImplementations<
-    TContext,
-    ResolveTypegenMeta<
-      TTypesMeta,
+    ResolvedStateMachineTypes<
+      TContext,
       TEvent,
       TActor,
       TAction,
@@ -175,37 +167,12 @@ export function createMachine<
   TAction,
   TGuard,
   TDelay,
-  'matchesStates' extends keyof TTypesMeta
-    ? ToStateValue<Cast<TTypesMeta['matchesStates'], TestValue>>
-    : StateValue,
-  Prop<
-    ResolveTypegenMeta<
-      TTypesMeta,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TTag,
-      TEmitted
-    >['resolved'],
-    'tags'
-  > &
-    string,
+  StateValue,
+  TTag & string,
   TInput,
   TOutput,
   TEmitted,
-  TMeta, // TMeta
-  ResolveTypegenMeta<
-    TTypesMeta,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TEmitted
-  >
+  TMeta // TMeta
 > {
   return new StateMachine<
     any,
@@ -220,7 +187,6 @@ export function createMachine<
     any,
     any,
     any, // TEmitted
-    any, // TMeta
-    any
+    any // TMeta
   >(config as any, implementations as any);
 }
