@@ -1267,9 +1267,11 @@ type MachineImplementationsActions<TTypes extends StateMachineTypes> = {
 };
 
 type MachineImplementationsActors<TTypes extends StateMachineTypes> = {
-  [K in TTypes['actors']['src']]?: (TTypes['actors'] & {
-    src: K;
-  })['logic'];
+  [K in TTypes['actors']['src']]?: GetConcreteByKey<
+    TTypes['actors'],
+    'src',
+    K
+  >['logic'];
 };
 
 type MachineImplementationsDelays<TTypes extends StateMachineTypes> = {
