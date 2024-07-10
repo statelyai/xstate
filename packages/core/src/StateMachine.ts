@@ -615,18 +615,4 @@ export class StateMachine<
 
     return restoredSnapshot;
   }
-
-  /**
-   * @deprecated an internal property that was acting as a "phantom" type, it's not used by anything right now but it's kept around for compatibility reasons
-   **/
-  __TResolvedTypesMeta!: ResolvedStateMachineTypes<
-    DoNotInfer<TContext>,
-    DoNotInfer<TEvent>,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TEmitted
-  >;
 }
