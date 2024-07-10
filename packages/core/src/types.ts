@@ -1257,7 +1257,7 @@ type MachineImplementationsActions<TTypes extends StateMachineTypes> = {
     TTypes['context'],
     TTypes['events'],
     TTypes['events'],
-    (TTypes['actions'] & { type: K })['params'],
+    GetConcreteByKey<TTypes['actions'], 'type', K>['params'],
     TTypes['actors'],
     TTypes['actions'],
     TTypes['guards'],
@@ -1288,8 +1288,8 @@ type MachineImplementationsGuards<TTypes extends StateMachineTypes> = {
   [K in TTypes['guards']['type']]?: Guard<
     TTypes['context'],
     TTypes['events'],
-    (TTypes['guards'] & { type: K })['params'],
-    TTypes['guards'] & { type: K }
+    GetConcreteByKey<TTypes['guards'], 'type', K>['params'],
+    TTypes['guards']
   >;
 };
 
