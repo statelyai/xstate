@@ -1,11 +1,11 @@
 :root {
-  --color-primary: #056DFF;
+  --color-primary: #056dff;
 }
 .step {
   padding: 2rem;
   background: white;
   border-radius: 1rem;
-  box-shadow: 0 .5rem 1rem #0001;
+  box-shadow: 0 0.5rem 1rem #0001;
   width: 75vw;
   max-width: 40rem;
 }
@@ -50,7 +50,7 @@ body {
 textarea {
   display: block;
   border: 2px solid #eaeaea;
-  border-radius: .25rem;
+  border-radius: 0.25rem;
   margin-bottom: 1rem;
   width: 100%;
   padding: 0.5rem;

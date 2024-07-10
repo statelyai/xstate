@@ -46,7 +46,7 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
-  ResolveTypegenMeta,
+  ResolvedStateMachineTypes,
   StateSchema
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
@@ -181,7 +181,7 @@ export class StateMachine<
    */
   public provide(
     implementations: InternalMachineImplementations<
-      ResolveTypegenMeta<
+      ResolvedStateMachineTypes<
         TContext,
         DoNotInfer<TEvent>,
         TActor,
@@ -649,18 +649,4 @@ export class StateMachine<
 
     return restoredSnapshot;
   }
-
-  /**
-   * @deprecated an internal property that was acting as a "phantom" type, it's not used by anything right now but it's kept around for compatibility reasons
-   **/
-  __TResolvedTypesMeta!: ResolveTypegenMeta<
-    DoNotInfer<TContext>,
-    DoNotInfer<TEvent>,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TEmitted
-  >;
 }

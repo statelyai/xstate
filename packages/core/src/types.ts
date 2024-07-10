@@ -1259,7 +1259,7 @@ type MachineImplementationsActions<TTypes extends StateMachineTypes> = {
     TTypes['context'],
     TTypes['events'],
     TTypes['events'],
-    (TTypes['actions'] & { type: K })['params'],
+    GetConcreteByKey<TTypes['actions'], 'type', K>['params'],
     TTypes['actors'],
     TTypes['actions'],
     TTypes['guards'],
@@ -1269,9 +1269,11 @@ type MachineImplementationsActions<TTypes extends StateMachineTypes> = {
 };
 
 type MachineImplementationsActors<TTypes extends StateMachineTypes> = {
-  [K in TTypes['actors']['src']]?: (TTypes['actors'] & {
-    src: K;
-  })['logic'];
+  [K in TTypes['actors']['src']]?: GetConcreteByKey<
+    TTypes['actors'],
+    'src',
+    K
+  >['logic'];
 };
 
 type MachineImplementationsDelays<TTypes extends StateMachineTypes> = {
@@ -1290,8 +1292,8 @@ type MachineImplementationsGuards<TTypes extends StateMachineTypes> = {
   [K in TTypes['guards']['type']]?: Guard<
     TTypes['context'],
     TTypes['events'],
-    (TTypes['guards'] & { type: K })['params'],
-    TTypes['guards'] & { type: K }
+    GetConcreteByKey<TTypes['guards'], 'type', K>['params'],
+    TTypes['guards']
   >;
 };
 
@@ -1417,16 +1419,18 @@ export interface MachineTypes<
   TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject
-> {
-  context?: TContext;
-  events?: TEvent;
-  // in machine types we currently don't support `TChildren`
-  // and IDs can still be configured through `TActor['id']`
-  children?: never;
-  tags?: TTag;
-  input?: TInput;
-  output?: TOutput;
-  emitted?: TEmitted;
+> extends SetupTypes<
+    TContext,
+    TEvent,
+    // in machine types we currently don't support `TChildren`
+    // and IDs can still be configured through `TActor['id']`
+    never,
+    TTag,
+    TInput,
+    TOutput,
+    TEmitted,
+    TMeta
+  > {
   actors?: TActor;
   actions?: TAction;
   guards?: TGuard;
@@ -2121,7 +2125,7 @@ export type MachineImplementationsFrom<
   infer _TMeta
 >
   ? InternalMachineImplementations<
-      ResolveTypegenMeta<
+      ResolvedStateMachineTypes<
         TContext,
         TEvent,
         TActor,
@@ -2514,7 +2518,7 @@ export interface StateMachineTypes {
 /**
  * @deprecated
  */
-export interface ResolveTypegenMeta<
+export interface ResolvedStateMachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
@@ -2533,3 +2537,9 @@ export interface ResolveTypegenMeta<
   tags: TTag;
   emitted: TEmitted;
 }
+
+export type GetConcreteByKey<
+  T,
+  TKey extends keyof T,
+  TValue extends T[TKey]
+> = T & Record<TKey, TValue>;

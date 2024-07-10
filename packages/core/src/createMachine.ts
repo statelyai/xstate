@@ -1,5 +1,5 @@
 import { StateMachine } from './StateMachine.ts';
-import { ResolveTypegenMeta } from './types.ts';
+import { ResolvedStateMachineTypes } from './types.ts';
 import {
   AnyActorRef,
   EventObject,
@@ -148,7 +148,7 @@ export function createMachine<
     TMeta
   >,
   implementations?: InternalMachineImplementations<
-    ResolveTypegenMeta<
+    ResolvedStateMachineTypes<
       TContext,
       TEvent,
       TActor,
