@@ -2493,11 +2493,8 @@ export interface ResolveTypegenMeta<
   emitted: TEmitted;
 }
 
-// it's likely-ish that `T & Record<TKey, TValue>` would be faster
-// but it's only possible to do it since https://github.com/microsoft/TypeScript/pull/53098 (TS 5.1)
-// and we strive to support TS 5.0 whenever possible
 export type GetConcreteByKey<
   T,
   TKey extends keyof T,
   TValue extends T[TKey]
-> = Extract<T, Record<TKey, TValue>>;
+> = T & Record<TKey, TValue>;
