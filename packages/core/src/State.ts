@@ -143,9 +143,6 @@ interface MachineSnapshotBase<
     TMeta | undefined // States might not have meta defined
   >;
 
-  stateId: StateId<TConfig>;
-  config: TConfig;
-
   toJSON: () => unknown;
 }
 
