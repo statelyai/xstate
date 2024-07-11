@@ -101,34 +101,36 @@ export interface AssignAction<
 /**
  * Updates the current context of the machine.
  *
- * @param assignment An object that represents the partial context to update, or a
- * function that returns an object that represents the partial context to update.
- *
  * @example
-  ```ts
-  import { createMachine, assign } from 'xstate';
-
-  const countMachine = createMachine({
-    context: {
-      count: 0,
-      message: ''
-    },
-    on: {
-      inc: {
-        actions: assign({
-          count: ({ context }) => context.count + 1
-        })
-      },
-      updateMessage: {
-        actions: assign(({ context, event }) => {
-          return {
-            message: event.message.trim()
-          }
-        })
-      }
-    }
-  });
-  ```
+ *
+ * ```ts
+ * import { createMachine, assign } from 'xstate';
+ *
+ * const countMachine = createMachine({
+ *   context: {
+ *     count: 0,
+ *     message: ''
+ *   },
+ *   on: {
+ *     inc: {
+ *       actions: assign({
+ *         count: ({ context }) => context.count + 1
+ *       })
+ *     },
+ *     updateMessage: {
+ *       actions: assign(({ context, event }) => {
+ *         return {
+ *           message: event.message.trim()
+ *         };
+ *       })
+ *     }
+ *   }
+ * });
+ * ```
+ *
+ * @param assignment An object that represents the partial context to update, or
+ *   a function that returns an object that represents the partial context to
+ *   update.
  */
 export function assign<
   TContext extends MachineContext,

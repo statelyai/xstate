@@ -57,53 +57,40 @@ export class StateNode<
   TEvent extends EventObject = EventObject
 > {
   /**
-   * The relative key of the state node, which represents its location in the overall state value.
+   * The relative key of the state node, which represents its location in the
+   * overall state value.
    */
   public key: string;
-  /**
-   * The unique ID of the state node.
-   */
+  /** The unique ID of the state node. */
   public id: string;
   /**
    * The type of this state node:
    *
-   *  - `'atomic'` - no child state nodes
-   *  - `'compound'` - nested child state nodes (XOR)
-   *  - `'parallel'` - orthogonal nested child state nodes (AND)
-   *  - `'history'` - history state node
-   *  - `'final'` - final state node
+   * - `'atomic'` - no child state nodes
+   * - `'compound'` - nested child state nodes (XOR)
+   * - `'parallel'` - orthogonal nested child state nodes (AND)
+   * - `'history'` - history state node
+   * - `'final'` - final state node
    */
   public type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
-  /**
-   * The string path from the root machine node to this node.
-   */
+  /** The string path from the root machine node to this node. */
   public path: string[];
-  /**
-   * The child state nodes.
-   */
+  /** The child state nodes. */
   public states: StateNodesConfig<TContext, TEvent>;
   /**
    * The type of history on this state node. Can be:
    *
-   *  - `'shallow'` - recalls only top-level historical state value
-   *  - `'deep'` - recalls historical state value at all levels
+   * - `'shallow'` - recalls only top-level historical state value
+   * - `'deep'` - recalls historical state value at all levels
    */
   public history: false | 'shallow' | 'deep';
-  /**
-   * The action(s) to be executed upon entering the state node.
-   */
+  /** The action(s) to be executed upon entering the state node. */
   public entry: UnknownActionObject[];
-  /**
-   * The action(s) to be executed upon exiting the state node.
-   */
+  /** The action(s) to be executed upon exiting the state node. */
   public exit: UnknownActionObject[];
-  /**
-   * The parent state node.
-   */
+  /** The parent state node. */
   public parent?: StateNode<TContext, TEvent>;
-  /**
-   * The root machine node.
-   */
+  /** The root machine node. */
   public machine: StateMachine<
     TContext,
     TEvent,
@@ -120,18 +107,21 @@ export class StateNode<
     any // meta
   >;
   /**
-   * The meta data associated with this state node, which will be returned in State instances.
+   * The meta data associated with this state node, which will be returned in
+   * State instances.
    */
   public meta?: any;
   /**
-   * The output data sent with the "xstate.done.state._id_" event if this is a final state node.
+   * The output data sent with the "xstate.done.state._id_" event if this is a
+   * final state node.
    */
   public output?:
     | Mapper<MachineContext, EventObject, unknown, EventObject>
     | NonReducibleUnknown;
 
   /**
-   * The order this state node appears. Corresponds to the implicit document order.
+   * The order this state node appears. Corresponds to the implicit document
+   * order.
    */
   public order: number = -1;
 
@@ -142,9 +132,7 @@ export class StateNode<
   public always?: Array<TransitionDefinition<TContext, TEvent>>;
 
   constructor(
-    /**
-     * The raw config used to create the machine.
-     */
+    /** The raw config used to create the machine. */
     public config: StateNodeConfig<
       TContext,
       TEvent,
@@ -254,9 +242,7 @@ export class StateNode<
     });
   }
 
-  /**
-   * The well-structured state node definition.
-   */
+  /** The well-structured state node definition. */
   public get definition(): StateNodeDefinition<TContext, TEvent> {
     return {
       id: this.id,
@@ -303,9 +289,7 @@ export class StateNode<
     return this.definition;
   }
 
-  /**
-   * The logic invoked as actors by this state node.
-   */
+  /** The logic invoked as actors by this state node. */
   public get invoke(): Array<
     InvokeDefinition<
       TContext,
@@ -354,9 +338,7 @@ export class StateNode<
     );
   }
 
-  /**
-   * The mapping of events to transitions.
-   */
+  /** The mapping of events to transitions. */
   public get on(): TransitionDefinitionMap<TContext, TEvent> {
     return memo(this, 'on', () => {
       const transitions = this.transitions;
@@ -453,9 +435,7 @@ export class StateNode<
     return selectedTransition ? [selectedTransition] : undefined;
   }
 
-  /**
-   * All the event types accepted by this state node and its descendants.
-   */
+  /** All the event types accepted by this state node and its descendants. */
   public get events(): Array<EventDescriptor<TEvent>> {
     return memo(this, 'events', () => {
       const { states } = this;

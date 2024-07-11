@@ -65,38 +65,40 @@ export interface EmitAction<
 }
 
 /**
- * Emits an event to event handlers registered on the actor via `actor.on(event, handler)`.
+ * Emits an event to event handlers registered on the actor via `actor.on(event,
+ * handler)`.
  *
  * @example
-  ```ts
-  import { emit } from 'xstate';
-
-  const machine = createMachine({
-    // ...
-    on: {
-      something: {
-        actions: emit({
-          type: 'emitted',
-          some: 'data'
-        })
-      }
-    }
-    // ...
-  });
-
-  const actor = createActor(machine).start();
-
-  actor.on('emitted', (event) => {
-    console.log(event);
-  });
-
-  actor.send({ type: 'something' });
-  // logs:
-  // {
-  //   type: 'emitted',
-  //   some: 'data'
-  // }
-  ```
+ *
+ * ```ts
+ * import { emit } from 'xstate';
+ *
+ * const machine = createMachine({
+ *   // ...
+ *   on: {
+ *     something: {
+ *       actions: emit({
+ *         type: 'emitted',
+ *         some: 'data'
+ *       })
+ *     }
+ *   }
+ *   // ...
+ * });
+ *
+ * const actor = createActor(machine).start();
+ *
+ * actor.on('emitted', (event) => {
+ *   console.log(event);
+ * });
+ *
+ * actor.send({ type: 'something' });
+ * // logs:
+ * // {
+ * //   type: 'emitted',
+ * //   some: 'data'
+ * // }
+ * ```
  */
 export function emit<
   TContext extends MachineContext,
@@ -105,9 +107,7 @@ export function emit<
   TEvent extends EventObject,
   TEmitted extends EventObject
 >(
-  /**
-   * The event to emit, or an expression that returns an event to emit.
-   */
+  /** The event to emit, or an expression that returns an event to emit. */
   eventOrExpr:
     | TEmitted
     | SendExpr<TContext, TExpressionEvent, TParams, TEmitted, TEvent>

@@ -53,9 +53,10 @@ export type StoreSnapshot<TContext> = Snapshot<undefined> & {
 
 /**
  * An actor-like object that:
- * - has its own state
- * - can receive events
- * - is observable
+ *
+ * - Has its own state
+ * - Can receive events
+ * - Is observable
  */
 export interface Store<TContext, Ev extends EventObject>
   extends Subscribable<StoreSnapshot<TContext>>,
@@ -102,13 +103,9 @@ export interface Subscribable<T> extends InteropSubscribable<T> {
 // Same as MachineContext (for now)
 export type StoreContext = Record<string, any>;
 
-/**
- * The full definition of an event, with a string `type`.
- */
+/** The full definition of an event, with a string `type`. */
 export type EventObject = {
-  /**
-   * The type of event that is sent.
-   */
+  /** The type of event that is sent. */
   type: string;
 };
 type Values<T> = T[keyof T];

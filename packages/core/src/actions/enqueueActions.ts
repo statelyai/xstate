@@ -249,24 +249,26 @@ type CollectActions<
 ) => void;
 
 /**
- * Creates an action object that will execute actions that are queued by the `enqueue(action)` function.
+ * Creates an action object that will execute actions that are queued by the
+ * `enqueue(action)` function.
  *
  * @example
-  ```ts
-  import { createMachine, enqueueActions } from 'xstate';
-
-  const machine = createMachine({
-    entry: enqueueActions(({ enqueue, check }) => {
-      enqueue.assign({ count: 0 });
-
-      if (check('someGuard')) {
-        enqueue.assign({ count: 1 });
-      }
-
-      enqueue('someAction');
-    })
-  })
-  ```
+ *
+ * ```ts
+ * import { createMachine, enqueueActions } from 'xstate';
+ *
+ * const machine = createMachine({
+ *   entry: enqueueActions(({ enqueue, check }) => {
+ *     enqueue.assign({ count: 0 });
+ *
+ *     if (check('someGuard')) {
+ *       enqueue.assign({ count: 1 });
+ *     }
+ *
+ *     enqueue('someAction');
+ *   })
+ * });
+ * ```
  */
 export function enqueueActions<
   TContext extends MachineContext,

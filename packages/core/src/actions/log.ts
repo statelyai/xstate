@@ -60,11 +60,12 @@ export interface LogAction<
 }
 
 /**
+ * @param expr The expression function to evaluate which will be logged. Takes
+ *   in 2 arguments:
  *
- * @param expr The expression function to evaluate which will be logged.
- *  Takes in 2 arguments:
- *  - `ctx` - the current state context
- *  - `event` - the event that caused this action to be executed.
+ *   - `ctx` - the current state context
+ *   - `event` - the event that caused this action to be executed.
+ *
  * @param label The label to give to the logged expression.
  */
 export function log<
