@@ -36,17 +36,6 @@ import { toObserver } from './utils.ts';
 
 export const $$ACTOR_TYPE = 1;
 
-export type SnapshotListener<TLogic extends AnyActorLogic> = (
-  snapshot: SnapshotFrom<TLogic>
-) => void;
-
-export type EventListener<TEvent extends EventObject = EventObject> = (
-  event: TEvent
-) => void;
-
-export type Listener = () => void;
-export type ErrorListener = (error: any) => void;
-
 // those values are currently used by @xstate/react directly so it's important to keep the assigned values in sync
 export enum ProcessingStatus {
   NotStarted = 0,
