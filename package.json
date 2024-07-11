@@ -30,7 +30,6 @@
     "typecheck": "tsc",
     "test": "jest",
     "test:core": "jest packages/core",
-    "dev": "node ./scripts/dev.js",
     "changeset": "changeset",
     "release": "changeset publish",
     "version": "changeset version && node ./scripts/bump-peer-dep-ranges.js"
@@ -72,6 +71,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "jest-regex-util": "^29.6.3",
     "jest-watch-typeahead": "^2.2.2",
+    "knip": "^5.25.2",
     "lint-staged": "^8.2.1",
     "markdown-it-codesandbox-embed": "^0.1.0",
     "patch-package": "^6.5.1",
