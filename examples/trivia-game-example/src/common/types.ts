@@ -1,5 +1,4 @@
-import { ReactNode } from "react";
-
+import { ReactNode } from 'react';
 
 export type RMCharacter = {
   id: number;
@@ -20,7 +19,6 @@ export type RMEpisode = {
   url: string;
   created: string;
 };
-
 
 export interface ClueProps {
   episode: string | null;

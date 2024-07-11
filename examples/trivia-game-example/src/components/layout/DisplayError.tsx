@@ -1,12 +1,12 @@
-import { Col, Container, Row } from "react-bootstrap";
-import Image from "react-bootstrap/Image";
-import { Button } from "../styled/Button";
-import { TriviaMachineContext } from "../../context/AppContext";
+import { Col, Container, Row } from 'react-bootstrap';
+import Image from 'react-bootstrap/Image';
+import { Button } from '../styled/Button';
+import { TriviaMachineContext } from '../../context/AppContext';
 
 const DisplayError = () => {
-  const triviaActorRef = TriviaMachineContext.useActorRef()
-  const state = TriviaMachineContext.useSelector((state) => state)
-  const { hasLoaded } = state.context
+  const triviaActorRef = TriviaMachineContext.useActorRef();
+  const state = TriviaMachineContext.useSelector((state) => state);
+  const { hasLoaded } = state.context;
   return (
     <Container>
       <Row>
@@ -18,7 +18,10 @@ const DisplayError = () => {
           />
           <h2 className="trivia">Sorry there was an error!</h2>
           {hasLoaded && (
-            <Button onClick={() => triviaActorRef.send({type: "user.playAgain"})} primary>
+            <Button
+              onClick={() => triviaActorRef.send({ type: 'user.playAgain' })}
+              primary
+            >
               PLAY AGAIN
             </Button>
           )}
