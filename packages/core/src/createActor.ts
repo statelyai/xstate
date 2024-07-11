@@ -806,8 +806,12 @@ export function createActor<TLogic extends AnyActorLogic>(
  * options, if any.
  *
  * @deprecated Use `createActor` instead
+ * @alias
  */
 export const interpret = createActor;
 
-/** @deprecated Use `Actor` instead. */
+/**
+ * @deprecated Use `Actor` instead.
+ * @alias
+ */
 export type Interpreter = typeof Actor;
