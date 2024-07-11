@@ -41,13 +41,13 @@ export type CallbackActorRef<
   TInput = NonReducibleUnknown
 > = ActorRefFrom<CallbackActorLogic<TEvent, TInput>>;
 
-export type Receiver<TEvent extends EventObject> = (
+type Receiver<TEvent extends EventObject> = (
   listener: {
     bivarianceHack(event: TEvent): void;
   }['bivarianceHack']
 ) => void;
 
-export type InvokeCallback<
+type InvokeCallback<
   TEvent extends EventObject = AnyEventObject,
   TSentEvent extends EventObject = AnyEventObject,
   TInput = NonReducibleUnknown,

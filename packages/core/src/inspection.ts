@@ -12,7 +12,7 @@ export type InspectionEvent =
   | InspectedMicrostepEvent
   | InspectedActionEvent;
 
-export interface BaseInspectionEventProperties {
+interface BaseInspectionEventProperties {
   rootId: string; // the session ID of the root
   /**
    * The relevant actorRef for the inspection event.
@@ -30,7 +30,7 @@ export interface InspectedSnapshotEvent extends BaseInspectionEventProperties {
   snapshot: Snapshot<unknown>;
 }
 
-export interface InspectedMicrostepEvent extends BaseInspectionEventProperties {
+interface InspectedMicrostepEvent extends BaseInspectionEventProperties {
   type: '@xstate.microstep';
   event: AnyEventObject; // { type: string, ... }
   snapshot: Snapshot<unknown>;
