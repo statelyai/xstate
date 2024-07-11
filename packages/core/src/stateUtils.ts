@@ -269,9 +269,7 @@ export function getCandidates<TEvent extends EventObject>(
   return candidates;
 }
 
-/**
- * All delayed transitions from the config.
- */
+/** All delayed transitions from the config. */
 export function getDelayedTransitions(
   stateNode: AnyStateNode
 ): Array<DelayedTransitionDefinition<MachineContext, EventObject>> {
@@ -576,9 +574,7 @@ export function getInitialStateNodes(stateNode: AnyStateNode) {
 
   return set;
 }
-/**
- * Returns the child state node from its relative `stateKey`, or throws.
- */
+/** Returns the child state node from its relative `stateKey`, or throws. */
 export function getStateNode(
   stateNode: AnyStateNode,
   stateKey: string
@@ -999,9 +995,7 @@ function areStateNodeCollectionsEqual(
   return true;
 }
 
-/**
- * https://www.w3.org/TR/scxml/#microstepProcedure
- */
+/** https://www.w3.org/TR/scxml/#microstepProcedure */
 export function microstep<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -1841,7 +1835,8 @@ function selectEventlessTransitions(
 }
 
 /**
- * Resolves a partial state value with its full representation in the state node's machine.
+ * Resolves a partial state value with its full representation in the state
+ * node's machine.
  *
  * @param stateValue The partial state value to resolve.
  */

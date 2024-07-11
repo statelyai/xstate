@@ -10,11 +10,12 @@ export function isWrappable(obj: any): obj is object {
 }
 
 /**
- * Accepts any value and creates a deep clone if it is an object
- * This function only deeply clones objects, any classes with be copied
+ * Accepts any value and creates a deep clone if it is an object This function
+ * only deeply clones objects, any classes with be copied
+ *
  * @param value The variable to deeply clone
  * @param valueRefs A WeakMap that stores a reference from the original
- * object/array to the cloned object/array
+ *   object/array to the cloned object/array
  */
 const clone = <T extends unknown>(
   value: T,
