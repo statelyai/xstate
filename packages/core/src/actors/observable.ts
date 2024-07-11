@@ -40,7 +40,8 @@ export type ObservableActorRef<TContext> = ActorRefFrom<
 >;
 
 /**
- * Observable actor logic is described by an observable stream of values. Actors created from observable logic (“observable actors”) can:
+ * Observable actor logic is described by an observable stream of values. Actors
+ * created from observable logic (“observable actors”) can:
  *
  * - Emit snapshots of the observable’s emitted value
  *
@@ -48,16 +49,10 @@ export type ObservableActorRef<TContext> = ActorRefFrom<
  *
  * Sending events to observable actors will have no effect.
  *
- * @param observableCreator A function that creates an observable. It receives one argument, an object with the following properties:
- * - `input` - Data that was provided to the observable actor
- * - `self` - The parent actor
- * - `system` - The actor system to which the observable actor belongs
- *
- * It should return a {@link Subscribable}, which is compatible with an RxJS Observable, although RxJS is not required to create them.
- *
  * @example
+ *
  * ```ts
- * import { fromObservable, createActor } from 'xstate'
+ * import { fromObservable, createActor } from 'xstate';
  * import { interval } from 'rxjs';
  *
  * const logic = fromObservable((obj) => interval(1000));
@@ -76,6 +71,15 @@ export type ObservableActorRef<TContext> = ActorRefFrom<
  * // ...
  * ```
  *
+ * @param observableCreator A function that creates an observable. It receives
+ *   one argument, an object with the following properties:
+ *
+ *   - `input` - Data that was provided to the observable actor
+ *   - `self` - The parent actor
+ *   - `system` - The actor system to which the observable actor belongs
+ *
+ *   It should return a {@link Subscribable}, which is compatible with an RxJS
+ *   Observable, although RxJS is not required to create them.
  * @see {@link https://rxjs.dev} for documentation on RxJS Observable and observable creators.
  * @see {@link Subscribable} interface in XState, which is based on and compatible with RxJS Observable.
  */
@@ -187,24 +191,20 @@ export function fromObservable<
 }
 
 /**
- * Creates event observable logic that listens to an observable that delivers event objects.
+ * Creates event observable logic that listens to an observable that delivers
+ * event objects.
  *
- * Event observable actor logic is described by an observable stream of {@link https://stately.ai/docs/transitions#event-objects | event objects}. Actors created from event observable logic (“event observable actors”) can:
+ * Event observable actor logic is described by an observable stream of
+ * {@link https://stately.ai/docs/transitions#event-objects | event objects}.
+ * Actors created from event observable logic (“event observable actors”) can:
  *
  * - Implicitly send events to its parent actor
  * - Emit snapshots of its emitted event objects
  *
  * Sending events to event observable actors will have no effect.
  *
- * @param lazyObservable A function that creates an observable that delivers event objects. It receives one argument, an object with the following properties:
- *
- * - `input` - Data that was provided to the event observable actor
- * - `self` - The parent actor
- * - `system` - The actor system to which the event observable actor belongs.
- *
- * It should return a {@link Subscribable}, which is compatible with an RxJS Observable, although RxJS is not required to create them.
- *
  * @example
+ *
  * ```ts
  * import {
  *   fromEventObservable,
@@ -215,20 +215,31 @@ export function fromObservable<
  * } from 'xstate';
  * import { fromEvent } from 'rxjs';
  *
- * const mouseClickLogic = fromEventObservable(() =>
- *   fromEvent(document.body, 'click') as Subscribable<EventObject>
+ * const mouseClickLogic = fromEventObservable(
+ *   () => fromEvent(document.body, 'click') as Subscribable<EventObject>
  * );
  *
  * const canvasMachine = createMachine({
  *   invoke: {
  *     // Will send mouse `click` events to the canvas actor
- *     src: mouseClickLogic,
+ *     src: mouseClickLogic
  *   }
  * });
  *
  * const canvasActor = createActor(canvasMachine);
  * canvasActor.start();
  * ```
+ *
+ * @param lazyObservable A function that creates an observable that delivers
+ *   event objects. It receives one argument, an object with the following
+ *   properties:
+ *
+ *   - `input` - Data that was provided to the event observable actor
+ *   - `self` - The parent actor
+ *   - `system` - The actor system to which the event observable actor belongs.
+ *
+ *   It should return a {@link Subscribable}, which is compatible with an RxJS
+ *   Observable, although RxJS is not required to create them.
  */
 export function fromEventObservable<
   TEvent extends EventObject,

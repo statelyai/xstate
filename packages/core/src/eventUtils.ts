@@ -2,8 +2,8 @@ import { XSTATE_INIT } from './constants.ts';
 import { DoneActorEvent, DoneStateEvent, ErrorActorEvent } from './types.ts';
 
 /**
- * Returns an event that represents an implicit event that
- * is sent after the specified `delay`.
+ * Returns an event that represents an implicit event that is sent after the
+ * specified `delay`.
  *
  * @param delayRef The delay in milliseconds
  * @param id The state node ID where this event is handled
@@ -13,8 +13,8 @@ export function createAfterEvent(delayRef: number | string, id: string) {
 }
 
 /**
- * Returns an event that represents that a final state node
- * has been reached in the parent state node.
+ * Returns an event that represents that a final state node has been reached in
+ * the parent state node.
  *
  * @param id The final state node's parent state node `id`
  * @param output The data to pass into the event
@@ -32,8 +32,8 @@ export function createDoneStateEvent(
 /**
  * Returns an event that represents that an invoked service has terminated.
  *
- * An invoked service is terminated when it has reached a top-level final state node,
- * but not when it is canceled.
+ * An invoked service is terminated when it has reached a top-level final state
+ * node, but not when it is canceled.
  *
  * @param invokeId The invoked service ID
  * @param output The data to pass into the event

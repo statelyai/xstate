@@ -53,9 +53,7 @@ export type DirectedGraphNode = JSONSerializable<
     id: string;
     stateNode: StateNode;
     children: DirectedGraphNode[];
-    /**
-     * The edges representing all transitions from this `stateNode`.
-     */
+    /** The edges representing all transitions from this `stateNode`. */
     edges: DirectedGraphEdge[];
   },
   {
@@ -78,13 +76,9 @@ export interface StatePlan<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
-  /**
-   * The target state.
-   */
+  /** The target state. */
   state: TSnapshot;
-  /**
-   * The paths that reach the target state.
-   */
+  /** The paths that reach the target state. */
   paths: Array<StatePath<TSnapshot, TEvent>>;
 }
 
@@ -92,17 +86,14 @@ export interface StatePath<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
-  /**
-   * The ending state of the path.
-   */
+  /** The ending state of the path. */
   state: TSnapshot;
   /**
-   * The ordered array of state-event pairs (steps) which reach the ending `state`.
+   * The ordered array of state-event pairs (steps) which reach the ending
+   * `state`.
    */
   steps: Steps<TSnapshot, TEvent>;
-  /**
-   * The combined weight of all steps in the path.
-   */
+  /** The combined weight of all steps in the path. */
   weight: number;
 }
 
@@ -117,13 +108,9 @@ export interface Step<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
-  /**
-   * The event that resulted in the current state
-   */
+  /** The event that resulted in the current state */
   event: TEvent;
-  /**
-   * The current state after taking the event.
-   */
+  /** The current state after taking the event. */
   state: TSnapshot;
 }
 
@@ -196,17 +183,14 @@ export interface TraversalConfig<
 > extends SerializationConfig<TSnapshot, TEvent> {
   events: readonly TEvent[] | ((state: TSnapshot) => readonly TEvent[]);
   /**
-   * The maximum number of traversals to perform when calculating
-   * the state transition adjacency map.
+   * The maximum number of traversals to perform when calculating the state
+   * transition adjacency map.
    *
    * @default `Infinity`
    */
   limit: number;
   fromState: TSnapshot | undefined;
-  /**
-   * When true, traversal of the adjacency map will stop
-   * for that current state.
-   */
+  /** When true, traversal of the adjacency map will stop for that current state. */
   stopWhen: ((state: TSnapshot) => boolean) | undefined;
   toState: ((state: TSnapshot) => boolean) | undefined;
 }
@@ -321,8 +305,8 @@ export interface TestPath<
 > extends StatePath<TSnapshot, TEvent> {
   description: string;
   /**
-   * Tests and executes each step in `steps` sequentially, and then
-   * tests the postcondition that the `state` is reached.
+   * Tests and executes each step in `steps` sequentially, and then tests the
+   * postcondition that the `state` is reached.
    */
   test: (params: TestParam<TSnapshot, TEvent>) => Promise<TestPathResult>;
 }
@@ -333,8 +317,8 @@ export interface TestPathResult {
 
 export type StatePredicate<TState> = (state: TState) => boolean;
 /**
- * Executes an effect using the `testContext` and `event`
- * that triggers the represented `event`.
+ * Executes an effect using the `testContext` and `event` that triggers the
+ * represented `event`.
  */
 export type EventExecutor<
   TSnapshot extends Snapshot<unknown>,

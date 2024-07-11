@@ -11,21 +11,24 @@ function defaultCompare<T>(a: T, b: T) {
 }
 
 /**
- * A React hook that subscribes to the `store` and selects a value from the store's snapshot,
- * with an optional compare function.
- * 
+ * A React hook that subscribes to the `store` and selects a value from the
+ * store's snapshot, with an optional compare function.
+ *
  * @example
-  ```ts
-  function Component() {
-    const count = useSelector(store, (s) => s.count);
-
-    return <div>{count}</div>;
-  }
-  ```
- * 
+ *
+ * ```ts
+ * function Component() {
+ *   const count = useSelector(store, (s) => s.count);
+ *
+ *   return <div>{count}</div>;
+ * }
+ * ```
+ *
  * @param store The store, created from `createStore(…)`
- * @param selector A function which takes in the `snapshot` and returns a selected value
- * @param compare An optional function which compares the selected value to the previous value
+ * @param selector A function which takes in the `snapshot` and returns a
+ *   selected value
+ * @param compare An optional function which compares the selected value to the
+ *   previous value
  * @returns The selected value
  */
 export function useSelector<TStore extends Store<any, any> | undefined, T>(

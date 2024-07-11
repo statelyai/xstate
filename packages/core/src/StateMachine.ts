@@ -84,9 +84,7 @@ export class StateMachine<
       TEmitted
     >
 {
-  /**
-   * The machine's own version.
-   */
+  /** The machine's own version. */
   public version?: string;
 
   public schemas: unknown;
@@ -107,9 +105,7 @@ export class StateMachine<
   public events: Array<EventDescriptor<TEvent>>;
 
   constructor(
-    /**
-     * The raw config used to create the machine.
-     */
+    /** The raw config used to create the machine. */
     public config: MachineConfig<
       TContext,
       TEvent,
@@ -167,12 +163,11 @@ export class StateMachine<
   }
 
   /**
-   * Clones this state machine with the provided implementations
-   * and merges the `context` (if provided).
+   * Clones this state machine with the provided implementations and merges the
+   * `context` (if provided).
    *
-   * @param implementations Options (`actions`, `guards`, `actors`, `delays`, `context`)
-   *  to recursively merge with the existing options.
-   *
+   * @param implementations Options (`actions`, `guards`, `actors`, `delays`,
+   *   `context`) to recursively merge with the existing options.
    * @returns A new `StateMachine` instance with the provided implementations.
    */
   public provide(
@@ -263,8 +258,8 @@ export class StateMachine<
   }
 
   /**
-   * Determines the next snapshot given the current `snapshot` and received `event`.
-   * Calculates a full macrostep from all microsteps.
+   * Determines the next snapshot given the current `snapshot` and received
+   * `event`. Calculates a full macrostep from all microsteps.
    *
    * @param snapshot The current snapshot
    * @param event The received event
@@ -294,8 +289,8 @@ export class StateMachine<
   }
 
   /**
-   * Determines the next state given the current `state` and `event`.
-   * Calculates a microstep.
+   * Determines the next state given the current `state` and `event`. Calculates
+   * a microstep.
    *
    * @param state The current state
    * @param event The received event
@@ -342,8 +337,8 @@ export class StateMachine<
   }
 
   /**
-   * The initial state _before_ evaluating any microsteps.
-   * This "pre-initial" state is provided to initial actions executed in the initial state.
+   * The initial state _before_ evaluating any microsteps. This "pre-initial"
+   * state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
     actorScope: AnyActorScope,
@@ -387,7 +382,8 @@ export class StateMachine<
   }
 
   /**
-   * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
+   * Returns the initial `State` instance, with reference to `self` as an
+   * `ActorRef`.
    */
   public getInitialSnapshot(
     actorScope: ActorScope<
