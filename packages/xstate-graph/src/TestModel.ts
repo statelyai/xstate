@@ -57,8 +57,8 @@ type GetPathOptions<
   TInput
 > = Partial<TraversalOptions<TSnapshot, TEvent, TInput>> & {
   /**
-   * Whether to allow deduplicate paths so that paths that are contained by longer paths
-   * are included.
+   * Whether to allow deduplicate paths so that paths that are contained by
+   * longer paths are included.
    *
    * @default false
    */
@@ -66,11 +66,11 @@ type GetPathOptions<
 };
 
 /**
- * Creates a test model that represents an abstract model of a
- * system under test (SUT).
+ * Creates a test model that represents an abstract model of a system under test
+ * (SUT).
  *
- * The test model is used to generate test paths, which are used to
- * verify that states in the model are reachable in the SUT.
+ * The test model is used to generate test paths, which are used to verify that
+ * states in the model are reachable in the SUT.
  */
 export class TestModel<
   TSnapshot extends Snapshot<unknown>,
@@ -205,8 +205,8 @@ export class TestModel<
   }
 
   /**
-   * An array of adjacencies, which are objects that represent each `state` with the `nextState`
-   * given the `event`.
+   * An array of adjacencies, which are objects that represent each `state` with
+   * the `nextState` given the `event`.
    */
   public getAdjacencyMap(): AdjacencyMap<TSnapshot, TEvent> {
     const adjMap = getAdjacencyMap(this.testLogic, this.options);
@@ -388,18 +388,18 @@ function serializeMachineTransition(
 }
 
 /**
- * Creates a test model that represents an abstract model of a
- * system under test (SUT).
+ * Creates a test model that represents an abstract model of a system under test
+ * (SUT).
  *
- * The test model is used to generate test paths, which are used to
- * verify that states in the `machine` are reachable in the SUT.
+ * The test model is used to generate test paths, which are used to verify that
+ * states in the `machine` are reachable in the SUT.
  *
  * @example
  *
  * ```js
  * const toggleModel = createModel(toggleMachine).withEvents({
  *   TOGGLE: {
- *     exec: async page => {
+ *     exec: async (page) => {
  *       await page.click('input');
  *     }
  *   }
@@ -408,8 +408,9 @@ function serializeMachineTransition(
  *
  * @param machine The state machine used to represent the abstract model.
  * @param options Options for the created test model:
- * - `events`: an object mapping string event types (e.g., `SUBMIT`)
- * to an event test config (e.g., `{exec: () => {...}, cases: [...]}`)
+ *
+ *   - `events`: an object mapping string event types (e.g., `SUBMIT`) to an event
+ *       test config (e.g., `{exec: () => {...}, cases: [...]}`)
  */
 export function createTestModel<TMachine extends AnyStateMachine>(
   machine: TMachine,
