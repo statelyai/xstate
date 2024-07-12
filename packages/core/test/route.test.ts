@@ -110,4 +110,53 @@ describe('route', () => {
       filter: 'active'
     });
   });
+
+  it('route events are strongly typed', () => {
+    const machine = setup({
+      types: {
+        events: {} as never
+      }
+    }).createMachine({
+      id: 'root',
+      initial: 'aRoute',
+      states: {
+        aRoute: {
+          route: {}
+        },
+        notARoute: {
+          initial: 'childRoute',
+          states: {
+            childRoute: {
+              route: {}
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    actor.send({
+      type: 'xstate.route.root.aRoute'
+    });
+
+    actor.send({
+      type: 'xstate.route.root.notARoute.childRoute'
+    });
+
+    actor.send({
+      // @ts-expect-error
+      type: 'xstate.route.root.notARoute'
+    });
+
+    actor.send({
+      // @ts-expect-error
+      type: 'xstate.route.root'
+    });
+
+    actor.send({
+      // @ts-expect-error
+      type: 'xstate.route.root.blahblah'
+    });
+  });
 });

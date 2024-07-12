@@ -2476,6 +2476,7 @@ export type ToChildren<TActor extends ProvidedActor> =
 
 export type StateSchema = {
   id?: string;
+  route?: any;
   states?: Record<string, StateSchema>;
 };
 
@@ -2492,6 +2493,32 @@ export type StateId<
   | (TSchema['states'] extends Record<string, any>
       ? Values<{
           [K in keyof TSchema['states'] & string]: StateId<
+            TSchema['states'][K],
+            K,
+            TParentKey extends string
+              ? `${TParentKey}.${TKey}`
+              : TSchema['id'] extends string
+                ? TSchema['id']
+                : TKey
+          >;
+        }>
+      : never);
+
+export type RoutableStateId<
+  TSchema extends StateSchema,
+  TKey extends string = '(machine)',
+  TParentKey extends string | null = null
+> =
+  | (TSchema extends { route: any }
+      ? TSchema extends { id: string }
+        ? TSchema['id']
+        : TParentKey extends null
+          ? TKey
+          : `${TParentKey}.${TKey}`
+      : never)
+  | (TSchema['states'] extends Record<string, any>
+      ? Values<{
+          [K in keyof TSchema['states'] & string]: RoutableStateId<
             TSchema['states'][K],
             K,
             TParentKey extends string
