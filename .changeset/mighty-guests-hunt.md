@@ -6,7 +6,7 @@ Added exports for actor logic-specific `ActorRef` types: `CallbackActorRef`, `Ob
 
 Each type represents `ActorRef` narrowed to the corresponding type of logic (the type of `self` within the actor's logic):
 
-- `CallbackActorRef`: actor created by [ `fromCallback`](https://stately.ai/docs/actors#fromcallback)
+- `CallbackActorRef`: actor created by [`fromCallback`](https://stately.ai/docs/actors#fromcallback)
 
   ```ts
   import { fromCallback, createActor } from 'xstate';
