@@ -32,6 +32,8 @@ export type PromiseActorRef<TOutput> = ActorRefFrom<
   PromiseActorLogic<TOutput, unknown>
 >;
 
+const controllerMap = new WeakMap<AnyActorRef, AbortController>();
+
 /**
  * An actor logic creator which returns promise logic as defined by an async
  * process that resolves or rejects after some time.
@@ -82,9 +84,6 @@ export type PromiseActorRef<TOutput> = ActorRefFrom<
  *
  * @see {@link https://stately.ai/docs/input | Input docs} for more information about how input is passed
  */
-
-const controllerMap = new WeakMap<AnyActorRef, AbortController>();
-
 export function fromPromise<
   TOutput,
   TInput = NonReducibleUnknown,
