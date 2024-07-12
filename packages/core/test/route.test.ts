@@ -1,9 +1,9 @@
-import { createActor, createMachine } from '../src';
+import { createActor, setup } from '../src';
 
 describe('route', () => {
   it('should transition directly to a route if route is an empty transition config', () => {
-    const machine = createMachine({
-      id: 'routeTest',
+    const machine = setup({}).createMachine({
+      id: 'test',
       initial: 'a',
       states: {
         a: {},
@@ -17,21 +17,21 @@ describe('route', () => {
     const actor = createActor(machine).start();
 
     actor.send({
-      type: 'xstate.route.b'
+      type: 'xstate.route.test.b'
     });
 
     expect(actor.getSnapshot().value).toEqual('b');
 
     actor.send({
-      type: 'xstate.route.c'
+      type: 'xstate.route.test.c'
     });
 
     expect(actor.getSnapshot().value).toEqual('b');
   });
 
   it('should transition directly to a route if guard passes', () => {
-    const machine = createMachine({
-      id: 'routeTest',
+    const machine = setup({}).createMachine({
+      id: 'test',
       initial: 'a',
       states: {
         a: {},
@@ -53,20 +53,21 @@ describe('route', () => {
     expect(actor.getSnapshot().value).toEqual('a');
 
     actor.send({
-      type: 'xstate.route.b'
+      type: 'xstate.route.test.b'
     });
 
     expect(actor.getSnapshot().value).toEqual('a');
 
     actor.send({
-      type: 'xstate.route.c'
+      type: 'xstate.route.test.c'
     });
 
     expect(actor.getSnapshot().value).toEqual('c');
   });
 
   it('should work with parallel states', () => {
-    const todoMachine = createMachine({
+    const todoMachine = setup({}).createMachine({
+      id: 'todos',
       type: 'parallel',
       states: {
         todo: {
@@ -101,7 +102,7 @@ describe('route', () => {
     });
 
     todoActor.send({
-      type: 'xstate.route.filter.active'
+      type: 'xstate.route.todos.filter.active'
     });
 
     expect(todoActor.getSnapshot().value).toEqual({

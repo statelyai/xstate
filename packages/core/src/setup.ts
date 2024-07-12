@@ -18,6 +18,7 @@ import {
   NonReducibleUnknown,
   ParameterizedObject,
   SetupTypes,
+  StateId,
   StateSchema,
   ToChildren,
   UnknownActorLogic,
@@ -202,7 +203,7 @@ export function setup<
     config: TConfig
   ) => StateMachine<
     TContext,
-    TEvent,
+    TEvent | { type: `xstate.route.${StateId<TConfig>}` },
     Cast<
       ToChildren<ToProvidedActor<TChildrenMap, TActors>>,
       Record<string, AnyActorRef | undefined>
