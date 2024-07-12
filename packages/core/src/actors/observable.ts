@@ -35,7 +35,7 @@ export type ObservableActorLogic<
   TEmitted
 >;
 
-type ObservableActorRef<TContext> = ActorRefFrom<
+export type ObservableActorRef<TContext> = ActorRefFrom<
   ObservableActorLogic<TContext, any>
 >;
 

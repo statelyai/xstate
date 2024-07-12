@@ -25,7 +25,7 @@ export type TransitionActorLogic<
   TEmitted
 >;
 
-type TransitionActorRef<
+export type TransitionActorRef<
   TContext,
   TEvent extends EventObject
 > = ActorRefFrom<
