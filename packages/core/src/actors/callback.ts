@@ -36,6 +36,40 @@ export type CallbackActorLogic<
   TEmitted
 >;
 
+/**
+ * Represents an actor created by `fromCallback`.
+ *
+ * The type of `self` within the actor's logic.
+ *
+ * @example
+ *
+ * ```ts
+ * import { fromCallback, createActor } from 'xstate';
+ *
+ * // The events the actor receives.
+ * type Event = { type: 'someEvent' };
+ * // The actor's input.
+ * type Input = { name: string };
+ *
+ * // Actor logic that logs whenever it receives an event of type `someEvent`.
+ * const logic = fromCallback<Event, Input>(({ self, input, receive }) => {
+ *   self;
+ *   // ^? CallbackActorRef<Event, Input>
+ *
+ *   receive((event) => {
+ *     if (event.type === 'someEvent') {
+ *       console.log(`${input.name}: received "someEvent" event`);
+ *       // logs 'myActor: received "someEvent" event'
+ *     }
+ *   });
+ * });
+ *
+ * const actor = createActor(logic, { input: { name: 'myActor' } });
+ * //    ^? CallbackActorRef<Event, Input>
+ * ```
+ *
+ * @see {@link fromCallback}
+ */
 export type CallbackActorRef<
   TEvent extends EventObject,
   TInput = NonReducibleUnknown

@@ -28,9 +28,44 @@ export type PromiseActorLogic<
   TEmitted // TEmitted
 >;
 
+/**
+ * Represents an actor created by `fromPromise`.
+ *
+ * The type of `self` within the actor's logic.
+ *
+ * @example
+ *
+ * ```ts
+ * import { fromPromise, createActor } from 'xstate';
+ *
+ * // The actor's resolved output
+ * type Output = string;
+ * // The actor's input.
+ * type Input = { message: string };
+ *
+ * // Actor logic that fetches the url of an image of a cat saying `input.message`.
+ * const logic = fromPromise<Output, Input>(async ({ input, self }) => {
+ *   self;
+ *   // ^? PromiseActorRef<Output, Input>
+ *
+ *   const data = await fetch(
+ *     `https://cataas.com/cat/says/${input.message}`
+ *   );
+ *   const url = await data.json();
+ *   return url;
+ * });
+ *
+ * const actor = createActor(logic, { input: { message: 'hello world' } });
+ * //    ^? PromiseActorRef<Output, Input>
+ * ```
+ *
+ * @see {@link fromPromise}
+ */
 export type PromiseActorRef<TOutput> = ActorRefFrom<
   PromiseActorLogic<TOutput, unknown>
 >;
+
+const controllerMap = new WeakMap<AnyActorRef, AbortController>();
 
 /**
  * An actor logic creator which returns promise logic as defined by an async
@@ -82,9 +117,6 @@ export type PromiseActorRef<TOutput> = ActorRefFrom<
  *
  * @see {@link https://stately.ai/docs/input | Input docs} for more information about how input is passed
  */
-
-const controllerMap = new WeakMap<AnyActorRef, AbortController>();
-
 export function fromPromise<
   TOutput,
   TInput = NonReducibleUnknown,
