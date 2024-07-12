@@ -2184,9 +2184,48 @@ describe('setup()', () => {
 
     const actor = createActor(machine);
 
-    actor.getSnapshot().getMeta().a satisfies { layout: string } | undefined;
+    actor.getSnapshot().getMeta()['(machine)'] satisfies
+      | { layout: string }
+      | undefined;
 
     // @ts-expect-error
     actor.getSnapshot().getMeta().a?.whatever;
+  });
+
+  it('should strongly type the state IDs in snapshot.getMeta()', () => {
+    const machine = setup({}).createMachine({
+      id: 'root',
+      initial: 'parentState',
+      states: {
+        parentState: {
+          meta: {},
+          initial: 'childState',
+          states: {
+            childState: {
+              meta: {}
+            },
+            stateWithId: {
+              id: 'state with id',
+              meta: {}
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+
+    const metaValues = actor.getSnapshot().getMeta();
+
+    metaValues.root;
+    metaValues['root.parentState'];
+    metaValues['root.parentState.childState'];
+    metaValues['state with id'];
+
+    // @ts-expect-error
+    metaValues['root.parentState.stateWithId'];
+
+    // @ts-expect-error
+    metaValues['unknown state'];
   });
 });

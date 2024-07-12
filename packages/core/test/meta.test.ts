@@ -1,4 +1,4 @@
-import { createMachine, createActor } from '../src/index.ts';
+import { createMachine, createActor, setup } from '../src/index.ts';
 
 describe('state meta data', () => {
   const pedestrianStates = {
@@ -134,6 +134,53 @@ describe('state meta data', () => {
         name: 'second state'
       }
     });
+  });
+
+  it('meta keys are strongly-typed', () => {
+    const machine = setup({
+      types: {
+        meta: {} as { template: string }
+      }
+    }).createMachine({
+      id: 'root',
+      initial: 'a',
+      states: {
+        a: {},
+        b: {},
+        c: {
+          initial: 'one',
+          states: {
+            one: {
+              id: 'one'
+            },
+            two: {},
+            three: {}
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    const snapshot = actor.getSnapshot();
+    const meta = snapshot.getMeta();
+
+    meta['root'];
+    meta['root.c'];
+    meta['one'] satisfies { template: string } | undefined;
+    // @ts-expect-error
+    meta['one'] satisfies { template: number } | undefined;
+    // @ts-expect-error
+    meta['one'] satisfies { template: string };
+
+    // @ts-expect-error
+    meta['(machine)'];
+
+    // @ts-expect-error
+    meta['c'];
+
+    // @ts-expect-error
+    meta['root.c.one'];
   });
 });
 

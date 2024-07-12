@@ -46,7 +46,8 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
-  ResolvedStateMachineTypes
+  ResolvedStateMachineTypes,
+  StateSchema
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
 
@@ -66,7 +67,8 @@ export class StateMachine<
   TInput,
   TOutput,
   TEmitted extends EventObject = EventObject, // TODO: remove default
-  TMeta extends MetaObject = MetaObject
+  TMeta extends MetaObject = MetaObject,
+  TConfig extends StateSchema = StateSchema
 > implements
     ActorLogic<
       MachineSnapshot<
@@ -76,7 +78,9 @@ export class StateMachine<
         TStateValue,
         TTag,
         TOutput,
-        TMeta
+        TMeta,
+        never,
+        TConfig
       >,
       TEvent,
       TInput,
@@ -226,7 +230,9 @@ export class StateMachine<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    never,
+    TConfig
   > {
     const resolvedStateValue = resolveStateValue(this.root, config.value);
     const nodeSet = getAllStateNodes(
@@ -253,7 +259,9 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      never,
+      TConfig
     >;
   }
 
@@ -272,7 +280,9 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      never,
+      TConfig
     >,
     event: TEvent,
     actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
@@ -283,7 +293,9 @@ export class StateMachine<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    never,
+    TConfig
   > {
     return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
   }
@@ -303,7 +315,9 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      never,
+      TConfig
     >,
     event: TEvent,
     actorScope: AnyActorScope
@@ -315,7 +329,9 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      never,
+      TConfig
     >
   > {
     return macrostep(snapshot, event, actorScope).microstates;
@@ -329,7 +345,9 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      never,
+      TConfig
     >,
     event: TEvent
   ): Array<TransitionDefinition<TContext, TEvent>> {
@@ -351,7 +369,9 @@ export class StateMachine<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    never,
+    TConfig
   > {
     const { context } = this.config;
 
@@ -394,7 +414,9 @@ export class StateMachine<
         TStateValue,
         TTag,
         TOutput,
-        TMeta
+        TMeta,
+        never,
+        TConfig
       >,
       TEvent,
       AnyActorSystem,
@@ -408,7 +430,9 @@ export class StateMachine<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    never,
+    TConfig
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
@@ -453,7 +477,9 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      never,
+      TConfig
     >
   ): void {
     Object.values(snapshot.children as Record<string, AnyActorRef>).forEach(
@@ -497,7 +523,9 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      never,
+      TConfig
     >,
     options?: unknown
   ) {
@@ -514,7 +542,9 @@ export class StateMachine<
         TStateValue,
         TTag,
         TOutput,
-        TMeta
+        TMeta,
+        never,
+        TConfig
       >,
       TEvent,
       AnyActorSystem,
@@ -527,7 +557,9 @@ export class StateMachine<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    never,
+    TConfig
   > {
     const children: Record<string, AnyActorRef> = {};
     const snapshotChildren: Record<
@@ -581,7 +613,9 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      never,
+      TConfig
     >;
 
     let seen = new Set();
