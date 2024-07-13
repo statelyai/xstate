@@ -25,6 +25,64 @@ export type TransitionActorLogic<
   TEmitted
 >;
 
+/**
+ * Represents an actor created by `fromTransition`.
+ *
+ * The type of `self` within the actor's logic.
+ *
+ * @example
+ *
+ * ```ts
+ * import {
+ *   fromTransition,
+ *   createActor,
+ *   type AnyActorSystem
+ * } from 'xstate';
+ *
+ * //* The actor's stored context.
+ * type Context = {
+ *   // The current count.
+ *   count: number;
+ *   // The amount to increase `count` by.
+ *   step: number;
+ * };
+ * // The events the actor receives.
+ * type Event = { type: 'increment' };
+ * // The actor's input.
+ * type Input = { step?: number };
+ *
+ * // Actor logic that increments `count` by `step` when it receives an event of
+ * // type `increment`.
+ * const logic = fromTransition<Context, Event, AnyActorSystem, Input>(
+ *   (state, event, actorScope) => {
+ *     actorScope.self;
+ *     //         ^? TransitionActorRef<Context, Event>
+ *
+ *     if (event.type === 'increment') {
+ *       return {
+ *         ...state,
+ *         count: state.count + state.step
+ *       };
+ *     }
+ *     return state;
+ *   },
+ *   ({ input, self }) => {
+ *     self;
+ *     // ^? TransitionActorRef<Context, Event>
+ *
+ *     return {
+ *       count: 0,
+ *       step: input.step ?? 1
+ *     };
+ *   }
+ * );
+ *
+ * const actor = createActor(logic, { input: { step: 10 } });
+ * //    ^? TransitionActorRef<Context, Event>
+ * ```
+ *
+ * @see {@link fromTransition}
+ */
 export type TransitionActorRef<
   TContext,
   TEvent extends EventObject
