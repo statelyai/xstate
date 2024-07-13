@@ -2486,24 +2486,6 @@ export type StateId<
         }>
       : never);
 
-type Test = Compute<
-  StateId<{
-    id: 'root';
-    states: {
-      green: {};
-      yellow: {};
-      red: {
-        states: {
-          walk: {
-            id: 'walk';
-          };
-          wait: {};
-        };
-      };
-    };
-  }>
->;
-
 export interface StateMachineTypes {
   context: MachineContext;
   events: EventObject;
