@@ -4,6 +4,7 @@ import {
   getNextSnapshot,
   getInitialSnapshot
 } from '../src';
+import { initialTransition, transition } from '../src/transition';
 
 describe('getNextSnapshot', () => {
   it('should calculate the next snapshot for transition logic', () => {
@@ -18,10 +19,10 @@ describe('getNextSnapshot', () => {
       { count: 0 }
     );
 
-    const init = getInitialSnapshot(logic, undefined);
-    const s1 = getNextSnapshot(logic, init, { type: 'next' });
+    const [init] = initialTransition(logic);
+    const [s1] = transition(logic, init, { type: 'next' });
     expect(s1.context.count).toEqual(1);
-    const s2 = getNextSnapshot(logic, s1, { type: 'next' });
+    const [s2] = transition(logic, s1, { type: 'next' });
     expect(s2.context.count).toEqual(2);
   });
   it('should calculate the next snapshot for machine logic', () => {
