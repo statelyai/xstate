@@ -19,13 +19,5 @@
     "svelte-jester",
     "synckit",
     "tslib"
-  ],
-  "workspaces": {
-    "examples": {
-      "entry": "src/{index,main}.{ts,tsx}"
-    },
-    "templates": {
-      "entry": "src/main.{ts,tsx}"
-    }
-  }
+  ]
 }
