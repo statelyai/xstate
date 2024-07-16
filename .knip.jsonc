@@ -17,7 +17,6 @@
     "husky",
     "lint-staged",
     "svelte-jester",
-    "synckit",
-    "tslib"
+    "synckit"
   ]
 }
