@@ -155,7 +155,7 @@ importers:
         specifier: ^3.1.0
         version: 3.1.0
       rxjs:
-        specifier: ^7.8.0
+        specifier: ^7.8.1
         version: 7.8.1
       xml-js:
         specifier: ^1.6.11
@@ -216,6 +216,9 @@ importers:
       '@types/use-sync-external-store':
         specifier: ^0.0.3
         version: 0.0.3
+      '@xstate-repo/jest-utils':
+        specifier: workspace:^
+        version: link:../../scripts/jest-utils
       jsdom:
         specifier: ^14.0.0
         version: 14.1.0
@@ -228,6 +231,9 @@ importers:
       react-dom:
         specifier: ^18.0.0
         version: 18.3.1(react@18.3.1)
+      rxjs:
+        specifier: ^7.8.1
+        version: 7.8.1
       xstate:
         specifier: workspace:^
         version: link:../core
@@ -253,12 +259,27 @@ importers:
       '@testing-library/react':
         specifier: ^14.2.1
         version: 14.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@types/react':
+        specifier: ^17.0.43
+        version: 17.0.80
+      '@types/react-dom':
+        specifier: ^17.0.14
+        version: 17.0.25
+      '@types/use-sync-external-store':
+        specifier: ^0.0.3
+        version: 0.0.3
+      '@xstate/react':
+        specifier: workspace:^
+        version: link:../xstate-react
       immer:
         specifier: ^10.0.2
         version: 10.1.1
       react:
         specifier: ^18.0.0
         version: 18.3.1
+      react-dom:
+        specifier: ^18.0.0
+        version: 18.3.1(react@18.3.1)
       xstate:
         specifier: 5.15.0
         version: 5.15.0

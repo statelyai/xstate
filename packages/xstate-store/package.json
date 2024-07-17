@@ -50,8 +50,13 @@
   },
   "devDependencies": {
     "@testing-library/react": "^14.2.1",
+    "@types/react": "^17.0.43",
+    "@types/react-dom": "^17.0.14",
+    "@types/use-sync-external-store": "^0.0.3",
+    "@xstate/react": "workspace:^",
     "immer": "^10.0.2",
     "react": "^18.0.0",
+    "react-dom": "^18.0.0",
     "xstate": "5.15.0"
   },
   "peerDependencies": {
