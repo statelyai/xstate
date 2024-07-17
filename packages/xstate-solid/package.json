@@ -53,6 +53,6 @@
   "devDependencies": {
     "solid-js": "^1.7.6",
     "solid-testing-library": "^0.3.0",
-    "xstate": "5.15.0"
+    "xstate": "workspace:^"
   }
 }

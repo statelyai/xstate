@@ -53,7 +53,7 @@
   "devDependencies": {
     "@types/ws": "^8.2.2",
     "ws": "^8.4.0",
-    "xstate": "5.15.0"
+    "xstate": "workspace:^"
   },
   "peerDependencies": {
     "@types/ws": "^8.0.0",

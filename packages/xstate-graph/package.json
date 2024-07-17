@@ -43,7 +43,7 @@
     "xstate": "^5.15.0"
   },
   "devDependencies": {
-    "xstate": "5.15.0"
+    "xstate": "workspace:^"
   },
   "dependencies": {}
 }

@@ -52,7 +52,7 @@
     "@testing-library/react": "^14.2.1",
     "immer": "^10.0.2",
     "react": "^18.0.0",
-    "xstate": "^5.9.1"
+    "xstate": "5.15.0"
   },
   "peerDependencies": {
     "react": "^18.2.0"

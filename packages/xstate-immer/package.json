@@ -45,6 +45,6 @@
   },
   "devDependencies": {
     "immer": "^10.0.2",
-    "xstate": "5.15.0"
+    "xstate": "workspace:^"
   }
 }
