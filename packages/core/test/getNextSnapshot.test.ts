@@ -4,7 +4,6 @@ import {
   getNextSnapshot,
   getInitialSnapshot
 } from '../src';
-import { initialTransition, transition } from '../src/transition';
 
 describe('getNextSnapshot', () => {
   it('should calculate the next snapshot for transition logic', () => {
@@ -19,10 +18,10 @@ describe('getNextSnapshot', () => {
       { count: 0 }
     );
 
-    const [init] = initialTransition(logic);
-    const [s1] = transition(logic, init, { type: 'next' });
+    const init = getInitialSnapshot(logic, undefined);
+    const s1 = getNextSnapshot(logic, init, { type: 'next' });
     expect(s1.context.count).toEqual(1);
-    const [s2] = transition(logic, s1, { type: 'next' });
+    const s2 = getNextSnapshot(logic, s1, { type: 'next' });
     expect(s2.context.count).toEqual(2);
   });
   it('should calculate the next snapshot for machine logic', () => {
@@ -52,24 +51,7 @@ describe('getNextSnapshot', () => {
 
     expect(s2.value).toEqual('c');
   });
-  it('should not execute entry actions', () => {
-    const fn = jest.fn();
-
-    const machine = createMachine({
-      initial: 'a',
-      entry: fn,
-      states: {
-        a: {},
-        b: {}
-      }
-    });
-
-    getInitialSnapshot(machine, undefined);
-
-    expect(fn).not.toHaveBeenCalled();
-  });
-
-  it('should not execute transition actions', () => {
+  it('should not execute actions', () => {
     const fn = jest.fn();
 
     const machine = createMachine({
