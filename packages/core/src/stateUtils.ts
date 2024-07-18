@@ -52,7 +52,6 @@ import {
 } from './utils.ts';
 import { ProcessingStatus } from './createActor.ts';
 
-
 type StateNodeIterable<
   TContext extends MachineContext,
   TE extends EventObject
@@ -1525,7 +1524,7 @@ export interface ExecutableAction {
   type: string;
   info: ActionArgs<MachineContext, EventObject, EventObject>;
   params: NonReducibleUnknown;
-  function:
+  exec:
     | ((info: ActionArgs<any, any, any>, params: unknown) => void)
     | undefined;
 }
@@ -1595,7 +1594,7 @@ function resolveAndExecuteActionsWithContext(
           type: action.type,
           info: actionArgs,
           params: actionParams,
-          function: resolvedAction
+          exec: resolvedAction
         },
         actorScope.self
       );
@@ -1941,5 +1940,5 @@ export function executeAction(
     self: actor,
     system: actor.system
   };
-  return action.function?.(resolvedInfo, params);
+  return action.exec?.(resolvedInfo, params);
 }
