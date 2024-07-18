@@ -311,6 +311,12 @@ importers:
         specifier: workspace:^
         version: link:../core
 
+  packages/xstate-svelte/test:
+    devDependencies:
+      '@xstate/svelte':
+        specifier: workspace:^
+        version: link:..
+
   packages/xstate-vue:
     devDependencies:
       '@testing-library/jest-dom':
