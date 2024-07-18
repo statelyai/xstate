@@ -52,7 +52,6 @@ import {
 } from './utils.ts';
 import { ProcessingStatus } from './createActor.ts';
 
-export const defaultActionExecutor: ActionExecutor = executeAction;
 
 type StateNodeIterable<
   TContext extends MachineContext,
