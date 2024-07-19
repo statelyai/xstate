@@ -26,6 +26,7 @@ import { createMockActorScope } from './actorScope.ts';
 
 /**
  * Returns all state nodes of the given `node`.
+ *
  * @param stateNode State node to recursively get child state nodes from
  */
 export function getStateNodes(

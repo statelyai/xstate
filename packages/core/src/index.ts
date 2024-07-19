@@ -5,7 +5,6 @@ export { type Spawner } from './spawn.ts';
 export { isMachineSnapshot, type MachineSnapshot } from './State.ts';
 export { StateMachine } from './StateMachine.ts';
 export { getStateNodes } from './stateUtils.ts';
-export * from './typegenTypes.ts';
 export * from './types.ts';
 export { waitFor } from './waitFor.ts';
 import { createMachine } from './createMachine.ts';

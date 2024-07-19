@@ -14,11 +14,16 @@ import { fromStore } from '../src/index.ts';
 export default defineComponent({
   emits: ['rerender'],
   setup() {
-    const { snapshot, send } = useActor(fromStore({
-      count: 0
-    }, {
-      inc: (ctx) => ({ count: ctx.count + 1 })
-    }))
+    const { snapshot, send } = useActor(
+      fromStore(
+        {
+          count: 0
+        },
+        {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      )
+    );
 
     snapshot.value.context.count satisfies number;
 

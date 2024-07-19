@@ -2,26 +2,27 @@ import { EventObject } from './types.ts';
 import { toArray } from './utils.ts';
 
 /**
- * Asserts that the given event object is of the specified type or types.
- * Throws an error if the event object is not of the specified types.
-  @example
-
-  ```ts
-  // ...
-  entry: ({ event }) => {
-    assertEvent(event, 'doNothing');
-    // event is { type: 'doNothing' }
-  },
-  // ...
-  exit: ({ event }) => {
-    assertEvent(event, 'greet');
-    // event is { type: 'greet'; message: string }
-
-    assertEvent(event, ['greet', 'notify']);
-    // event is { type: 'greet'; message: string }
-    // or { type: 'notify'; message: string; level: 'info' | 'error' }
-  },
-  ```
+ * Asserts that the given event object is of the specified type or types. Throws
+ * an error if the event object is not of the specified types.
+ *
+ * @example
+ *
+ * ```ts
+ * // ...
+ * entry: ({ event }) => {
+ *   assertEvent(event, 'doNothing');
+ *   // event is { type: 'doNothing' }
+ * },
+ * // ...
+ * exit: ({ event }) => {
+ *   assertEvent(event, 'greet');
+ *   // event is { type: 'greet'; message: string }
+ *
+ *   assertEvent(event, ['greet', 'notify']);
+ *   // event is { type: 'greet'; message: string }
+ *   // or { type: 'notify'; message: string; level: 'info' | 'error' }
+ * },
+ * ```
  */
 export function assertEvent<
   TEvent extends EventObject,

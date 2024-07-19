@@ -8,9 +8,7 @@ import {
 } from 'xstate';
 import { useActor } from './useActor.ts';
 
-/**
- * @alias useActor
- */
+/** @alias useActor */
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options: ActorOptions<TMachine> = {}
