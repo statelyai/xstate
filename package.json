@@ -70,7 +70,7 @@
     "jest-resolve": "^29.7.0",
     "jest-snapshot": "^29.7.0",
     "jest-watch-typeahead": "^2.2.2",
-    "knip": "^5.25.2",
+    "knip": "https://pkg.pr.new/knip@bd16c98",
     "lint-staged": "^8.2.1",
     "patch-package": "^6.5.1",
     "prettier": "^3.1.0",

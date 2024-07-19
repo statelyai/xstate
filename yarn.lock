@@ -6200,7 +6200,7 @@ json5@^1.0.1:
   dependencies:
     minimist "^1.2.0"
 
-json5@^2.2.2, json5@^2.2.3:
+json5@^2.2.3:
   version "2.2.3"
   resolved "https://registry.yarnpkg.com/json5/-/json5-2.2.3.tgz#78cd6f1a19bdc12b73db5ad0c61efd66c1e29283"
   integrity sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==
@@ -6279,10 +6279,9 @@ kleur@^4.1.4:
   resolved "https://registry.yarnpkg.com/kleur/-/kleur-4.1.5.tgz#95106101795f7050c6c650f350c683febddb1780"
   integrity sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==
 
-knip@^5.25.2:
-  version "5.25.2"
-  resolved "https://registry.yarnpkg.com/knip/-/knip-5.25.2.tgz#c4e00d0fd54fd561308866f9892209c0721281b6"
-  integrity sha512-ivo01AK3f6Afj00/8j+3Nfdv2md+a6/ASfuurY2Nun1ni2oYS1Y1t6f05q4CldigaMjOMC7oWbgANRIG+McxGQ==
+"knip@https://pkg.pr.new/knip@bd16c98":
+  version "5.26.0"
+  resolved "https://pkg.pr.new/knip@bd16c98#e8feb73aa3b1093501c143fee20e7e456c40a625"
   dependencies:
     "@nodelib/fs.walk" "1.2.8"
     "@snyk/github-codeowners" "1.1.0"
@@ -6298,7 +6297,6 @@ knip@^5.25.2:
     smol-toml "^1.1.4"
     strip-json-comments "5.0.1"
     summary "2.1.0"
-    tsconfig-paths "^4.2.0"
     zod "^3.22.4"
     zod-validation-error "^3.0.3"
 
@@ -9148,15 +9146,6 @@ trim-newlines@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/trim-newlines/-/trim-newlines-3.0.0.tgz#79726304a6a898aa8373427298d54c2ee8b1cb30"
   integrity sha512-C4+gOpvmxaSMKuEf9Qc134F1ZuOHVXKRbtEflf4NTtuuJDEIJ9p5PXsalL8SkeRw+qit1Mo+yuvMPAKwWg/1hA==
-
-tsconfig-paths@^4.2.0:
-  version "4.2.0"
-  resolved "https://registry.yarnpkg.com/tsconfig-paths/-/tsconfig-paths-4.2.0.tgz#ef78e19039133446d244beac0fd6a1632e2d107c"
-  integrity sha512-NoZ4roiN7LnbKn9QqE1amc9DJfzvZXxF4xDavcOWt1BPkdx+m+0gJuPM+S0vCe7zTJMYUP0R8pO2XMr+Y8oLIg==
-  dependencies:
-    json5 "^2.2.2"
-    minimist "^1.2.6"
-    strip-bom "^3.0.0"
 
 tsconfig@^7.0.0:
   version "7.0.0"
