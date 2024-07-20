@@ -91,8 +91,8 @@ const updateStore = <Path extends unknown[]>(
 };
 
 /**
- * Based on Ryan Carniato's createImmutable prototype
- * Clones the initial value and diffs updates
+ * Based on Ryan Carniato's createImmutable prototype Clones the initial value
+ * and diffs updates
  */
 export function createImmutable<T extends object>(
   init: T

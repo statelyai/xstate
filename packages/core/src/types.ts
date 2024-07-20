@@ -26,18 +26,20 @@ export type GetParameterizedParams<T extends ParameterizedObject | undefined> =
   T extends any ? ('params' extends keyof T ? T['params'] : undefined) : never;
 
 /**
- *
  * @remarks
- *
- * `T | unknown` reduces to `unknown` and that can be problematic when it comes to contextual typing.
- * It especially is a problem when the union has a function member, like here:
+ * `T | unknown` reduces to `unknown` and that can be problematic when it comes
+ * to contextual typing. It especially is a problem when the union has a
+ * function member, like here:
  *
  * ```ts
- * declare function test(cbOrVal: ((arg: number) => unknown) | unknown): void;
- * test((arg) => {}) // oops, implicit any
+ * declare function test(
+ *   cbOrVal: ((arg: number) => unknown) | unknown
+ * ): void;
+ * test((arg) => {}); // oops, implicit any
  * ```
  *
- * This type can be used to avoid this problem. This union represents the same value space as `unknown`.
+ * This type can be used to avoid this problem. This union represents the same
+ * value space as `unknown`.
  */
 export type NonReducibleUnknown = {} | null | undefined;
 export type AnyFunction = (...args: any[]) => any;
@@ -69,9 +71,7 @@ export type Cast<A, B> = A extends B ? A : B;
 // @TODO: Replace with native `NoInfer` when TS issue gets fixed:
 // https://github.com/microsoft/TypeScript/pull/57673
 export type DoNotInfer<T> = [T][T extends any ? 0 : any];
-/**
- * @deprecated Use the built-in `NoInfer` type instead
- */
+/** @deprecated Use the built-in `NoInfer` type instead */
 export type NoInfer<T> = DoNotInfer<T>;
 export type LowInfer<T> = T & {};
 
@@ -80,13 +80,9 @@ export type MetaObject = Record<string, any>;
 export type Lazy<T> = () => T;
 export type MaybeLazy<T> = T | Lazy<T>;
 
-/**
- * The full definition of an event, with a string `type`.
- */
+/** The full definition of an event, with a string `type`. */
 export type EventObject = {
-  /**
-   * The type of event that is sent.
-   */
+  /** The type of event that is sent. */
   type: string;
 };
 
@@ -291,13 +287,13 @@ export interface StateValueMap {
 }
 
 /**
- * The string or object representing the state value relative to the parent state node.
+ * The string or object representing the state value relative to the parent
+ * state node.
  *
  * @remarks
- *
  * - For a child atomic state node, this is a string, e.g., `"pending"`.
- *
- * - For complex state nodes, this is an object, e.g., `{ success: "someChildState" }`.
+ * - For complex state nodes, this is an object, e.g., `{ success:
+ *   "someChildState" }`.
  */
 export type StateValue = string | StateValueMap;
 
@@ -378,16 +374,15 @@ export interface InvokeDefinition<
   id: string;
 
   systemId: string | undefined;
-  /**
-   * The source of the actor logic to be invoked
-   */
+  /** The source of the actor logic to be invoked */
   src: AnyActorLogic | string;
 
   input?:
     | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
     | NonReducibleUnknown;
   /**
-   * The transition to take upon the invoked child machine reaching its final top-level state.
+   * The transition to take upon the invoked child machine reaching its final
+   * top-level state.
    */
   onDone?:
     | string
@@ -405,7 +400,8 @@ export interface InvokeDefinition<
         >
       >;
   /**
-   * The transition to take upon the invoked child machine sending an error event.
+   * The transition to take upon the invoked child machine sending an error
+   * event.
    */
   onError?:
     | string
@@ -614,14 +610,12 @@ type DistributeActors<
       | Compute<
           {
             systemId?: string;
-            /**
-             * The source of the machine to be invoked, or the machine itself.
-             */
+            /** The source of the machine to be invoked, or the machine itself. */
             src: TSrc;
 
             /**
-             * The unique identifier for the invoked machine. If not specified, this
-             * will be the machine's own `id`, or the URL (from `src`).
+             * The unique identifier for the invoked machine. If not specified,
+             * this will be the machine's own `id`, or the URL (from `src`).
              */
             id?: TSpecificActor['id'];
 
@@ -637,7 +631,8 @@ type DistributeActors<
                 >
               | InputFrom<TSpecificActor['logic']>;
             /**
-             * The transition to take upon the invoked child machine reaching its final top-level state.
+             * The transition to take upon the invoked child machine reaching
+             * its final top-level state.
              */
             onDone?:
               | string
@@ -655,7 +650,8 @@ type DistributeActors<
                   >
                 >;
             /**
-             * The transition to take upon the invoked child machine sending an error event.
+             * The transition to take upon the invoked child machine sending an
+             * error event.
              */
             onError?:
               | string
@@ -775,16 +771,15 @@ export type InvokeConfig<
       id?: string;
 
       systemId?: string;
-      /**
-       * The source of the machine to be invoked, or the machine itself.
-       */
+      /** The source of the machine to be invoked, or the machine itself. */
       src: AnyActorLogic | string; // TODO: fix types
 
       input?:
         | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
         | NonReducibleUnknown;
       /**
-       * The transition to take upon the invoked child machine reaching its final top-level state.
+       * The transition to take upon the invoked child machine reaching its
+       * final top-level state.
        */
       onDone?:
         | string
@@ -802,7 +797,8 @@ export type InvokeConfig<
             >
           >;
       /**
-       * The transition to take upon the invoked child machine sending an error event.
+       * The transition to take upon the invoked child machine sending an error
+       * event.
        */
       onError?:
         | string
@@ -860,9 +856,7 @@ export interface StateNodeConfig<
   TEmitted extends EventObject,
   TMeta extends MetaObject
 > {
-  /**
-   * The initial state transition.
-   */
+  /** The initial state transition. */
   initial?:
     | InitialTransitionConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
     | string
@@ -870,21 +864,21 @@ export interface StateNodeConfig<
   /**
    * The type of this state node:
    *
-   *  - `'atomic'` - no child state nodes
-   *  - `'compound'` - nested child state nodes (XOR)
-   *  - `'parallel'` - orthogonal nested child state nodes (AND)
-   *  - `'history'` - history state node
-   *  - `'final'` - final state node
+   * - `'atomic'` - no child state nodes
+   * - `'compound'` - nested child state nodes (XOR)
+   * - `'parallel'` - orthogonal nested child state nodes (AND)
+   * - `'history'` - history state node
+   * - `'final'` - final state node
    */
   type?: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   /**
-   * Indicates whether the state node is a history state node, and what
-   * type of history:
-   * shallow, deep, true (shallow), false (none), undefined (none)
+   * Indicates whether the state node is a history state node, and what type of
+   * history: shallow, deep, true (shallow), false (none), undefined (none)
    */
   history?: 'shallow' | 'deep' | boolean | undefined;
   /**
-   * The mapping of state node keys to their state node configurations (recursive).
+   * The mapping of state node keys to their state node configurations
+   * (recursive).
    */
   states?:
     | StatesConfig<
@@ -901,7 +895,8 @@ export interface StateNodeConfig<
       >
     | undefined;
   /**
-   * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
+   * The services to invoke upon entering this state node. These services will
+   * be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
     InvokeConfig<
@@ -915,9 +910,7 @@ export interface StateNodeConfig<
       TMeta
     >
   >;
-  /**
-   * The mapping of event types to their potential transition(s).
-   */
+  /** The mapping of event types to their potential transition(s). */
   on?: TransitionsConfig<
     TContext,
     TEvent,
@@ -928,9 +921,7 @@ export interface StateNodeConfig<
     TEmitted,
     TMeta
   >;
-  /**
-   * The action(s) to be executed upon entering the state node.
-   */
+  /** The action(s) to be executed upon entering the state node. */
   entry?: Actions<
     TContext,
     TEvent,
@@ -942,9 +933,7 @@ export interface StateNodeConfig<
     TDelay,
     TEmitted
   >;
-  /**
-   * The action(s) to be executed upon exiting the state node.
-   */
+  /** The action(s) to be executed upon exiting the state node. */
   exit?: Actions<
     TContext,
     TEvent,
@@ -957,9 +946,11 @@ export interface StateNodeConfig<
     TEmitted
   >;
   /**
-   * The potential transition(s) to be taken upon reaching a final child state node.
+   * The potential transition(s) to be taken upon reaching a final child state
+   * node.
    *
-   * This is equivalent to defining a `[done(id)]` transition on this state node's `on` property.
+   * This is equivalent to defining a `[done(id)]` transition on this state
+   * node's `on` property.
    */
   onDone?:
     | string
@@ -978,13 +969,15 @@ export interface StateNodeConfig<
       >
     | undefined;
   /**
-   * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
-   * The delayed transitions are taken after the specified delay in an interpreter.
+   * The mapping (or array) of delays (in milliseconds) to their potential
+   * transition(s). The delayed transitions are taken after the specified delay
+   * in an interpreter.
    */
   after?: DelayedTransitions<TContext, TEvent, TActor, TAction, TGuard, TDelay>;
 
   /**
-   * An eventless transition that is always taken when this state node is active.
+   * An eventless transition that is always taken when this state node is
+   * active.
    */
   always?: TransitionConfigOrTarget<
     TContext,
@@ -999,38 +992,38 @@ export interface StateNodeConfig<
   >;
   parent?: StateNode<TContext, TEvent>;
   /**
-   * The meta data associated with this state node, which will be returned in State instances.
+   * The meta data associated with this state node, which will be returned in
+   * State instances.
    */
   meta?: TMeta;
   /**
-   * The output data sent with the "xstate.done.state._id_" event if this is a final state node.
+   * The output data sent with the "xstate.done.state._id_" event if this is a
+   * final state node.
    *
-   * The output data will be evaluated with the current `context` and placed on the `.data` property
-   * of the event.
+   * The output data will be evaluated with the current `context` and placed on
+   * the `.data` property of the event.
    */
   output?: Mapper<TContext, TEvent, unknown, TEvent> | NonReducibleUnknown;
   /**
-   * The unique ID of the state node, which can be referenced as a transition target via the
-   * `#id` syntax.
+   * The unique ID of the state node, which can be referenced as a transition
+   * target via the `#id` syntax.
    */
   id?: string | undefined;
   /**
-   * The order this state node appears. Corresponds to the implicit document order.
+   * The order this state node appears. Corresponds to the implicit document
+   * order.
    */
   order?: number;
 
   /**
-   * The tags for this state node, which are accumulated into the `state.tags` property.
+   * The tags for this state node, which are accumulated into the `state.tags`
+   * property.
    */
   tags?: SingleOrArray<TTag>;
-  /**
-   * A text description of the state node
-   */
+  /** A text description of the state node */
   description?: string;
 
-  /**
-   * A default target for a history state
-   */
+  /** A default target for a history state */
   target?: string;
 }
 
@@ -1114,7 +1107,7 @@ export type AnyMachineSnapshot = MachineSnapshot<
   any
 >;
 
-/** @deprecated use `AnyMachineSnapshot` instead */
+/** @deprecated Use `AnyMachineSnapshot` instead */
 export type AnyState = AnyMachineSnapshot;
 
 export type AnyStateMachine = StateMachine<
@@ -1231,9 +1224,7 @@ export type DelayConfig<
 > = number | DelayExpr<TContext, TExpressionEvent, TParams, TEvent>;
 
 // TODO: possibly refactor this somehow, use even a simpler type, and maybe even make `machine.options` private or something
-/**
- * @hidden
- */
+/** @ignore */
 export interface MachineImplementationsSimplified<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1365,12 +1356,8 @@ export type MachineConfig<
   >,
   'output'
 > & {
-  /**
-   * The initial context (extended state)
-   */
-  /**
-   * The machine's own version.
-   */
+  /** The initial context (extended state) */
+  /** The machine's own version. */
   version?: string;
   // TODO: make it conditionally required
   output?: Mapper<TContext, DoneStateEvent, TOutput, TEvent> | TOutput;
@@ -1723,9 +1710,7 @@ export interface StateConfig<
 > {
   context: TContext;
   historyValue?: HistoryValue<TContext, TEvent>;
-  /**
-   * @internal
-   */
+  /** @internal */
   _nodes: Array<StateNode<TContext, TEvent>>;
   children: Record<string, AnyActorRef>;
   status: 'active' | 'done' | 'error' | 'stopped';
@@ -1750,10 +1735,12 @@ export interface StateConfig<
 
 export interface ActorOptions<TLogic extends AnyActorLogic> {
   /**
-   * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
+   * The clock that is responsible for setting and clearing timeouts, such as
+   * delayed events and transitions.
    *
    * @remarks
-   * You can create your own “clock”. The clock interface is an object with two functions/methods:
+   * You can create your own “clock”. The clock interface is an object with two
+   * functions/methods:
    *
    * - `setTimeout` - same arguments as `window.setTimeout(fn, timeout)`
    * - `clearTimeout` - same arguments as `window.clearTimeout(id)`
@@ -1761,74 +1748,65 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * By default, the native `setTimeout` and `clearTimeout` functions are used.
    *
    * For testing, XState provides `SimulatedClock`.
-   *
    * @see {@link Clock}
    * @see {@link SimulatedClock}
    */
   clock?: Clock;
   /**
-   * Specifies the logger to be used for `log(...)` actions. Defaults to the native `console.log(...)` method.
+   * Specifies the logger to be used for `log(...)` actions. Defaults to the
+   * native `console.log(...)` method.
    */
   logger?: (...args: any[]) => void;
   parent?: AnyActorRef;
-  /**
-   * @internal
-   */
+  /** @internal */
   syncSnapshot?: boolean;
-  /**
-   * The custom `id` for referencing this service.
-   */
+  /** The custom `id` for referencing this service. */
   id?: string;
-  /**
-   * @deprecated Use `inspect` instead.
-   */
+  /** @deprecated Use `inspect` instead. */
   devTools?: never;
 
-  /**
-   * The system ID to register this actor under.
-   */
+  /** The system ID to register this actor under. */
   systemId?: string;
-  /**
-   * The input data to pass to the actor.
-   */
+  /** The input data to pass to the actor. */
   input?: InputFrom<TLogic>;
 
   /**
    * Initializes actor logic from a specific persisted internal state.
    *
    * @remarks
-   *
-   * If the state is compatible with the actor logic, when the actor is started it will be at that persisted state.
-   * Actions from machine actors will not be re-executed, because they are assumed to have been already executed.
-   * However, invocations will be restarted, and spawned actors will be restored recursively.
+   * If the state is compatible with the actor logic, when the actor is started
+   * it will be at that persisted state. Actions from machine actors will not be
+   * re-executed, because they are assumed to have been already executed.
+   * However, invocations will be restarted, and spawned actors will be restored
+   * recursively.
    *
    * Can be generated with {@link Actor.getPersistedSnapshot}.
-   *
    * @see https://stately.ai/docs/persistence
    */
   snapshot?: Snapshot<unknown>;
 
-  /**
-   * @deprecated Use `snapshot` instead.
-   */
+  /** @deprecated Use `snapshot` instead. */
   state?: Snapshot<unknown>;
 
-  /**
-   * The source actor logic.
-   */
+  /** The source actor logic. */
   src?: string | AnyActorLogic;
 
   /**
-   * A callback function or observer object which can be used to inspect actor system updates.
+   * A callback function or observer object which can be used to inspect actor
+   * system updates.
    *
    * @remarks
-   * If a callback function is provided, it can accept an inspection event argument. The types of inspection events that can be observed include:
+   * If a callback function is provided, it can accept an inspection event
+   * argument. The types of inspection events that can be observed include:
    *
    * - `@xstate.actor` - An actor ref has been created in the system
-   * - `@xstate.event` - An event was sent from a source actor ref to a target actor ref in the system
-   * - `@xstate.snapshot` - An actor ref emitted a snapshot due to a received event
+   * - `@xstate.event` - An event was sent from a source actor ref to a target
+   *   actor ref in the system
+   * - `@xstate.snapshot` - An actor ref emitted a snapshot due to a received
+   *   event
    *
    * @example
+   *
    * ```ts
    * import { createMachine } from 'xstate';
    *
@@ -1861,9 +1839,11 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * });
    * ```
    *
-   * Alternately, an observer object (`{ next?, error?, complete? }`) can be provided:
+   * Alternately, an observer object (`{ next?, error?, complete? }`) can be
+   * provided:
    *
    * @example
+   *
    * ```ts
    * const actor = createActor(machine, {
    *   inspect: {
@@ -1899,9 +1879,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
 
 export type AnyActor = Actor<any>;
 
-/**
- * @deprecated Use `AnyActor` instead.
- */
+/** @deprecated Use `AnyActor` instead. */
 export type AnyInterpreter = AnyActor;
 
 // Based on RxJS types
@@ -1969,9 +1947,7 @@ export interface ActorRef<
   TEmitted extends EventObject = EventObject
 > extends Subscribable<TSnapshot>,
     InteropObservable<TSnapshot> {
-  /**
-   * The unique identifier for this actor relative to its parent.
-   */
+  /** The unique identifier for this actor relative to its parent. */
   id: string;
   sessionId: string;
   /** @internal */
@@ -2068,9 +2044,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
 
 export type DevToolsAdapter = (service: AnyActor) => void;
 
-/**
- * @deprecated Use `Actor<T>` instead.
- */
+/** @deprecated Use `Actor<T>` instead. */
 export type InterpreterFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > = ReturnTypeOrValue<T> extends StateMachine<
@@ -2201,8 +2175,9 @@ export interface ActorLogic<
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
   /**
-   * Transition function that processes the current state and an incoming message
-   * to produce a new state.
+   * Transition function that processes the current state and an incoming
+   * message to produce a new state.
+   *
    * @param snapshot - The current state.
    * @param message - The incoming message.
    * @param actorScope - The actor scope.
@@ -2215,6 +2190,7 @@ export interface ActorLogic<
   ) => TSnapshot;
   /**
    * Called to provide the initial state of the actor.
+   *
    * @param actorScope - The actor scope.
    * @param input - The input for the initial state.
    * @returns The initial state.
@@ -2224,8 +2200,10 @@ export interface ActorLogic<
     input: TInput
   ) => TSnapshot;
   /**
-   * Called when Actor is created to restore the internal state of the actor given a persisted state.
-   * The persisted state can be created by `getPersistedSnapshot`.
+   * Called when Actor is created to restore the internal state of the actor
+   * given a persisted state. The persisted state can be created by
+   * `getPersistedSnapshot`.
+   *
    * @param persistedState - The persisted state to restore from.
    * @param actorScope - The actor scope.
    * @returns The restored state.
@@ -2236,6 +2214,7 @@ export interface ActorLogic<
   ) => TSnapshot;
   /**
    * Called when the actor is started.
+   *
    * @param snapshot - The starting state.
    * @param actorScope - The actor scope.
    */
@@ -2244,8 +2223,9 @@ export interface ActorLogic<
     actorScope: ActorScope<TSnapshot, TEvent, AnyActorSystem, TEmitted>
   ) => void;
   /**
-   * Obtains the internal state of the actor in a representation which can be be persisted.
-   * The persisted state can be restored by `restoreSnapshot`.
+   * Obtains the internal state of the actor in a representation which can be be
+   * persisted. The persisted state can be restored by `restoreSnapshot`.
+   *
    * @param snapshot - The current state.
    * @returns The a representation of the internal state to be persisted.
    */
@@ -2497,9 +2477,7 @@ export interface StateMachineTypes {
   emitted: EventObject;
 }
 
-/**
- * @deprecated
- */
+/** @deprecated */
 export interface ResolvedStateMachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,

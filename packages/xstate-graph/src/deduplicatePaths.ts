@@ -3,8 +3,8 @@ import { EventObject, Snapshot } from 'xstate';
 import { simpleStringify } from './utils.ts';
 
 /**
- * Deduplicates your paths so that A -> B
- * is not executed separately to A -> B -> C
+ * Deduplicates your paths so that A -> B is not executed separately to A -> B
+ * -> C
  */
 export const deduplicatePaths = <
   TSnapshot extends Snapshot<unknown>,
@@ -13,9 +13,7 @@ export const deduplicatePaths = <
   paths: StatePath<TSnapshot, TEvent>[],
   serializeEvent: (event: TEvent) => string = simpleStringify
 ): StatePath<TSnapshot, TEvent>[] => {
-  /**
-   * Put all paths on the same level so we can dedup them
-   */
+  /** Put all paths on the same level so we can dedup them */
   const allPathsWithEventSequence: Array<{
     path: StatePath<TSnapshot, TEvent>;
     eventSequence: string[];
@@ -35,9 +33,7 @@ export const deduplicatePaths = <
 
   const superpathsWithEventSequence: typeof allPathsWithEventSequence = [];
 
-  /**
-   * Filter out the paths that are subpaths of superpaths
-   */
+  /** Filter out the paths that are subpaths of superpaths */
   pathLoop: for (const pathWithEventSequence of allPathsWithEventSequence) {
     // Check each existing superpath to see if the path is a subpath of it
     superpathLoop: for (const superpathWithEventSequence of superpathsWithEventSequence) {

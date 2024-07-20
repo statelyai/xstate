@@ -58,9 +58,7 @@ interface MachineSnapshotBase<
   _TUnusedButLeftForCompatReasons = never,
   TConfig extends StateSchema = StateSchema
 > {
-  /**
-   * The state machine that produced this state snapshot.
-   */
+  /** The state machine that produced this state snapshot. */
   machine: StateMachine<
     TContext,
     TEvent,
@@ -76,61 +74,59 @@ interface MachineSnapshotBase<
     EventObject, // TEmitted
     any // TMeta
   >;
-  /**
-   * The tags of the active state nodes that represent the current state value.
-   */
+  /** The tags of the active state nodes that represent the current state value. */
   tags: Set<string>;
   /**
    * The current state value.
    *
    * This represents the active state nodes in the state machine.
-   * - For atomic state nodes, it is a string. 
+   *
+   * - For atomic state nodes, it is a string.
    * - For compound parent state nodes, it is an object where:
+   *
    *   - The key is the parent state node's key
    *   - The value is the current state value of the active child state node(s)
-   * 
+   *
    * @example
-  ```ts
-  // single-level state node
-  snapshot.value; // => 'yellow'
-
-  // nested state nodes
-  snapshot.value; // => { red: 'wait' }
-  ```
+   *
+   * ```ts
+   * // single-level state node
+   * snapshot.value; // => 'yellow'
+   *
+   * // nested state nodes
+   * snapshot.value; // => { red: 'wait' }
+   * ```
    */
   value: TStateValue;
-  /**
-   * The current status of this snapshot.
-   */
+  /** The current status of this snapshot. */
   status: 'active' | 'done' | 'error' | 'stopped';
   error: unknown;
   context: TContext;
 
   historyValue: Readonly<HistoryValue<TContext, TEvent>>;
-  /**
-   * The enabled state nodes representative of the state value.
-   */
+  /** The enabled state nodes representative of the state value. */
   _nodes: Array<StateNode<TContext, TEvent>>;
-  /**
-   * An object mapping actor names to spawned/invoked actors.
-   */
+  /** An object mapping actor names to spawned/invoked actors. */
   children: TChildren;
 
   /**
-   * Whether the current state value is a subset of the given partial state value.
+   * Whether the current state value is a subset of the given partial state
+   * value.
+   *
    * @param partialStateValue
    */
   matches: (partialStateValue: ToTestStateValue<TStateValue>) => boolean;
 
   /**
    * Whether the current state nodes has a state node with the specified `tag`.
+   *
    * @param tag
    */
   hasTag: (tag: TTag) => boolean;
 
   /**
-   * Determines whether sending the `event` will cause a non-forbidden transition
-   * to be selected, even if the transitions have no actions nor
+   * Determines whether sending the `event` will cause a non-forbidden
+   * transition to be selected, even if the transitions have no actions nor
    * change the state value.
    *
    * @param event The event to test
