@@ -6,6 +6,7 @@ import {
   ActionFunction,
   AnyActorRef,
   AnyActorScope,
+  AnyEventObject,
   AnyMachineSnapshot,
   EventObject,
   MachineContext,
@@ -17,7 +18,7 @@ import { assign } from './assign.ts';
 import { cancel } from './cancel.ts';
 import { emit } from './emit.ts';
 import { raise } from './raise.ts';
-import { sendTo } from './send.ts';
+import { sendParent, sendTo } from './send.ts';
 import { spawnChild } from './spawnChild.ts';
 import { stopChild } from './stopChild.ts';
 
@@ -73,6 +74,19 @@ interface ActionEnqueuer<
         TExpressionEvent,
         undefined,
         TTargetActor,
+        TEvent,
+        TDelay,
+        TDelay
+      >
+    >
+  ) => void;
+  sendParent: (
+    ...args: Parameters<
+      typeof sendParent<
+        TContext,
+        TExpressionEvent,
+        undefined,
+        AnyEventObject,
         TEvent,
         TDelay,
         TDelay
@@ -138,6 +152,9 @@ function resolveEnqueueActions(
     // for some reason it fails to infer `TDelay` from `...args` here and picks its default (`never`)
     // then it fails to typecheck that because `...args` use `string` in place of `TDelay
     actions.push((sendTo as typeof enqueue.sendTo)(...args));
+  };
+  enqueue.sendParent = (...args) => {
+    actions.push((sendParent as typeof enqueue.sendParent)(...args));
   };
   enqueue.spawnChild = (...args) => {
     actions.push(spawnChild(...args));
