@@ -4,6 +4,9 @@
     ".": {
       "entry": ["scripts/*.js"],
       "project": ["scripts/*.js"]
+    },
+    "packages/xstate-svelte": {
+      "typescript": "test/tsconfig.json"
     }
   },
   "ignore": [
@@ -14,8 +17,6 @@
   ],
   "ignoreBinaries": ["svelte-check", "docs:build"],
   "ignoreDependencies": [
-    // used by packages/xstate-svelte/test
-    "@tsconfig/svelte",
     "@xstate-repo/jest-utils",
     "@xstate-repo/jest-utils/setup",
     "synckit",
