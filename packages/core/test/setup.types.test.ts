@@ -2184,7 +2184,7 @@ describe('setup()', () => {
 
     const actor = createActor(machine);
 
-    actor.getSnapshot().getMeta()['(machine)'] satisfies
+    actor.getSnapshot().getMeta()['(machine).a'] satisfies
       | { layout: string }
       | undefined;
 
