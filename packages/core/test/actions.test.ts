@@ -2883,6 +2883,51 @@ describe('enqueueActions', () => {
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
+
+  it('should enqueue.sendParent', () => {
+    interface ChildEvent {
+      type: 'CHILD_EVENT';
+    }
+
+    interface ParentEvent {
+      type: 'PARENT_EVENT';
+    }
+
+    const childMachine = setup({
+      types: {} as {
+        events: ChildEvent;
+      },
+      actions: {
+        sendToParent: enqueueActions(({ context, enqueue }) => {
+          enqueue.sendParent({ type: 'PARENT_EVENT' });
+        })
+      }
+    }).createMachine({
+      entry: 'sendToParent'
+    });
+
+    const parentSpy = jest.fn();
+
+    const parentMachine = setup({
+      types: {} as { events: ParentEvent },
+      actors: {
+        child: childMachine
+      }
+    }).createMachine({
+      on: {
+        PARENT_EVENT: {
+          actions: parentSpy
+        }
+      },
+      invoke: {
+        src: 'child'
+      }
+    });
+
+    const actorRef = createActor(parentMachine).start();
+
+    expect(parentSpy).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('sendParent', () => {
