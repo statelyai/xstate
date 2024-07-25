@@ -2268,4 +2268,41 @@ describe('setup()', () => {
     // @ts-expect-error
     metaValues['unknown state'];
   });
+
+  it('should strongly type the state IDs in snapshot.getMeta() (no root ID)', () => {
+    const machine = setup({}).createMachine({
+      // id is (machine)
+      initial: 'parentState',
+      states: {
+        parentState: {
+          meta: {},
+          initial: 'childState',
+          states: {
+            childState: {
+              meta: {}
+            },
+            stateWithId: {
+              id: 'state with id',
+              meta: {}
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+
+    const metaValues = actor.getSnapshot().getMeta();
+
+    metaValues['(machine)'];
+    metaValues['(machine).parentState'];
+    metaValues['(machine).parentState.childState'];
+    metaValues['state with id'];
+
+    // @ts-expect-error
+    metaValues['(machine).parentState.stateWithId'];
+
+    // @ts-expect-error
+    metaValues['unknown state'];
+  });
 });
