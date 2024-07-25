@@ -1103,7 +1103,6 @@ export type AnyMachineSnapshot = MachineSnapshot<
   any,
   any,
   any,
-  never,
   any
 >;
 

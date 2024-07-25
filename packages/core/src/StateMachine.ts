@@ -79,7 +79,6 @@ export class StateMachine<
         TTag,
         TOutput,
         TMeta,
-        never,
         TConfig
       >,
       TEvent,
@@ -231,7 +230,6 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    never,
     TConfig
   > {
     const resolvedStateValue = resolveStateValue(this.root, config.value);
@@ -260,7 +258,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >;
   }
@@ -281,7 +278,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >,
     event: TEvent,
@@ -294,7 +290,6 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    never,
     TConfig
   > {
     return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
@@ -316,7 +311,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >,
     event: TEvent,
@@ -330,7 +324,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >
   > {
@@ -346,7 +339,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >,
     event: TEvent
@@ -370,7 +362,6 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    never,
     TConfig
   > {
     const { context } = this.config;
@@ -415,7 +406,6 @@ export class StateMachine<
         TTag,
         TOutput,
         TMeta,
-        never,
         TConfig
       >,
       TEvent,
@@ -431,7 +421,6 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    never,
     TConfig
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
@@ -478,7 +467,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >
   ): void {
@@ -524,7 +512,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >,
     options?: unknown
@@ -543,7 +530,6 @@ export class StateMachine<
         TTag,
         TOutput,
         TMeta,
-        never,
         TConfig
       >,
       TEvent,
@@ -558,7 +544,6 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    never,
     TConfig
   > {
     const children: Record<string, AnyActorRef> = {};
@@ -614,7 +599,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >;
 

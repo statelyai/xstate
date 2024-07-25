@@ -55,7 +55,6 @@ interface MachineSnapshotBase<
   TTag extends string,
   TOutput,
   TMeta,
-  _TUnusedButLeftForCompatReasons = never,
   TConfig extends StateSchema = StateSchema
 > {
   /** The state machine that produced this state snapshot. */
@@ -159,7 +158,6 @@ interface ActiveMachineSnapshot<
     TTag,
     TOutput,
     TMeta,
-    never,
     TConfig
   > {
   status: 'active';
@@ -184,7 +182,6 @@ interface DoneMachineSnapshot<
     TTag,
     TOutput,
     TMeta,
-    never,
     TConfig
   > {
   status: 'done';
@@ -209,7 +206,6 @@ interface ErrorMachineSnapshot<
     TTag,
     TOutput,
     TMeta,
-    never,
     TConfig
   > {
   status: 'error';
@@ -234,7 +230,6 @@ interface StoppedMachineSnapshot<
     TTag,
     TOutput,
     TMeta,
-    never,
     TConfig
   > {
   status: 'stopped';
@@ -250,7 +245,6 @@ export type MachineSnapshot<
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
-  _TUnusedButLeftForCompatReasons = never,
   TConfig extends StateSchema = StateSchema
 > =
   | ActiveMachineSnapshot<
