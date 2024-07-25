@@ -1711,7 +1711,7 @@ export interface StateConfig<
   /** @internal */
   _nodes: Array<StateNode<TContext, TEvent>>;
   children: Record<string, AnyActorRef>;
-  status: 'active' | 'done' | 'error' | 'stopped';
+  status: SnapshotStatus;
   output?: any;
   error?: unknown;
   machine?: StateMachine<
