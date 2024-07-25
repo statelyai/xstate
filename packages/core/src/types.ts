@@ -2133,6 +2133,8 @@ export type AnyActorScope = ActorScope<
   any // TEmitted
 >;
 
+export type SnapshotStatus = 'active' | 'done' | 'error' | 'stopped';
+
 export type Snapshot<TOutput> =
   | {
       status: 'active';
