@@ -2184,12 +2184,52 @@ describe('setup()', () => {
 
     const actor = createActor(machine);
 
-    actor.getSnapshot().getMeta()['(machine).a'] satisfies
+    actor.getSnapshot().getMeta()['(machine)'] satisfies
       | { layout: string }
       | undefined;
 
     // @ts-expect-error
     actor.getSnapshot().getMeta().a?.whatever;
+  });
+
+  it('should support typing meta properties (no ts-expected errors)', () => {
+    const machine = setup({
+      types: {
+        meta: {} as {
+          layout: string;
+        }
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          meta: {
+            layout: 'a-layout'
+          }
+        },
+        b: {},
+        c: {},
+        d: {}
+      },
+      on: {
+        e1: {
+          meta: {
+            layout: 'event-layout'
+          }
+        },
+        e2: {},
+        e3: {},
+        e4: {}
+      }
+    });
+
+    const actor = createActor(machine);
+
+    actor.getSnapshot().getMeta()['(machine)'] satisfies
+      | { layout: string }
+      | undefined;
+
+    actor.getSnapshot().getMeta()['(machine).a'];
   });
 
   it('should strongly type the state IDs in snapshot.getMeta()', () => {
