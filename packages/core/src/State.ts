@@ -16,7 +16,8 @@ import type {
   Snapshot,
   ParameterizedObject,
   IsNever,
-  MetaObject
+  MetaObject,
+  SnapshotStatus
 } from './types.ts';
 import { matchesState } from './utils.ts';
 
@@ -96,7 +97,7 @@ interface MachineSnapshotBase<
    */
   value: TStateValue;
   /** The current status of this snapshot. */
-  status: 'active' | 'done' | 'error' | 'stopped';
+  status: SnapshotStatus;
   error: unknown;
   context: TContext;
 
