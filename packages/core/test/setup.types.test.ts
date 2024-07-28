@@ -2131,8 +2131,8 @@ describe('setup()', () => {
     });
   });
 
-  it('should support typing meta properties', () => {
-    const machine = setup({
+  it('TS should error with unexpected meta property', () => {
+    setup({
       types: {
         meta: {} as {
           layout: string;
@@ -2151,15 +2151,64 @@ describe('setup()', () => {
             // @ts-expect-error
             notLayout: 'uh oh'
           }
+        }
+      }
+    });
+  });
+
+  it('TS should error with wrong meta value type', () => {
+    setup({
+      types: {
+        meta: {} as {
+          layout: string;
+        }
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          meta: {
+            layout: 'a-layout'
+          }
         },
-        c: {}, // no meta
         d: {
           meta: {
             // @ts-expect-error
             layout: 42
           }
         }
-      },
+      }
+    });
+  });
+
+  it('should allow states to omit meta', () => {
+    const machine = setup({
+      types: {
+        meta: {} as {
+          layout: string;
+        }
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          meta: {
+            layout: 'a-layout'
+          }
+        },
+        c: {} // no meta
+      }
+    });
+  });
+
+  it('TS should error with unexpected transition meta property', () => {
+    setup({
+      types: {
+        meta: {} as {
+          layout: string;
+        }
+      }
+    }).createMachine({
       on: {
         e1: {
           meta: {
@@ -2171,25 +2220,33 @@ describe('setup()', () => {
             // @ts-expect-error
             notLayout: 'uh oh'
           }
+        }
+      }
+    });
+  });
+
+  it('TS should error with wrong transition meta value type', () => {
+    setup({
+      types: {
+        meta: {} as {
+          layout: string;
+        }
+      }
+    }).createMachine({
+      on: {
+        e1: {
+          meta: {
+            layout: 'event-layout'
+          }
         },
-        e3: {}, // no meta
-        // @ts-expect-error (for some reason the error is here)
-        e4: {
+        // @ts-expect-error (error is here for some reason...)
+        e2: {
           meta: {
             layout: 42
           }
         }
       }
     });
-
-    const actor = createActor(machine);
-
-    actor.getSnapshot().getMeta()['(machine)'] satisfies
-      | { layout: string }
-      | undefined;
-
-    // @ts-expect-error
-    actor.getSnapshot().getMeta().a?.whatever;
   });
 
   it('should support typing meta properties (no ts-expected errors)', () => {
