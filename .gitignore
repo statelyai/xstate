@@ -1,3 +1,6 @@
+# eslint
+.eslintcache
+
 # Logs
 logs
 *.log
