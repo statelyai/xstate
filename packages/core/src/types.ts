@@ -1711,7 +1711,7 @@ export interface StateConfig<
   /** @internal */
   _nodes: Array<StateNode<TContext, TEvent>>;
   children: Record<string, AnyActorRef>;
-  status: 'active' | 'done' | 'error' | 'stopped';
+  status: SnapshotStatus;
   output?: any;
   error?: unknown;
   machine?: StateMachine<
@@ -2132,6 +2132,8 @@ export type AnyActorScope = ActorScope<
   AnyActorSystem,
   any // TEmitted
 >;
+
+export type SnapshotStatus = 'active' | 'done' | 'error' | 'stopped';
 
 export type Snapshot<TOutput> =
   | {
