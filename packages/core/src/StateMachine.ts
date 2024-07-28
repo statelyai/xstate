@@ -47,7 +47,8 @@ import type {
   StateValue,
   TransitionDefinition,
   ResolvedStateMachineTypes,
-  StateSchema
+  StateSchema,
+  SnapshotStatus
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
 
@@ -216,7 +217,7 @@ export class StateMachine<
       value: StateValue;
       context?: TContext;
       historyValue?: HistoryValue<TContext, TEvent>;
-      status?: 'active' | 'done' | 'error' | 'stopped';
+      status?: SnapshotStatus;
       output?: TOutput;
       error?: unknown;
     } & (Equals<TContext, MachineContext> extends false
