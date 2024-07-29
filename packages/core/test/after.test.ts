@@ -43,6 +43,30 @@ describe('delayed transitions', () => {
     expect(actorRef.getSnapshot().value).toBe('yellow');
   });
 
+  it('should never try to clear an undefined timeout ID', () => {
+    // https://github.com/statelyai/xstate/issues/5001
+    jest.useFakeTimers();
+
+    const actorRef = createActor(lightMachine, {
+      clock: {
+        setTimeout,
+        clearTimeout(id) {
+          if (id === undefined) {
+            // in some workflow implementations, clearing an undefined ID will error
+            throw new Error('undefined ID');
+          }
+        }
+      }
+    }).start();
+    expect(actorRef.getSnapshot().value).toBe('green');
+
+    jest.advanceTimersByTime(500);
+    expect(actorRef.getSnapshot().value).toBe('green');
+
+    jest.advanceTimersByTime(510);
+    expect(actorRef.getSnapshot().value).toBe('yellow');
+  });
+
   it('should format transitions properly', () => {
     const greenNode = lightMachine.states.green;
 
