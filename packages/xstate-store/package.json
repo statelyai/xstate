@@ -48,8 +48,11 @@
   "devDependencies": {
     "@testing-library/react": "^16.0.0",
     "@types/react": "^18.3.3",
+    "@xstate/react": "^4.1.1",
+    "@xstate/vue": "^3.1.2",
     "immer": "^10.0.2",
     "react": "^18.0.0",
+    "react-dom": "^18.0.0",
     "xstate": "^5.9.1"
   },
   "peerDependencies": {
