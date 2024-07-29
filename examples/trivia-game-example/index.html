@@ -1,81 +1,79 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + React + TS</title>
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vite + React + TS</title>
-</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+  <style lang="sass">
+    @import url("https://fonts.googleapis.com/css?family=Shadows+Into+Light");
+    @import "~bootstrap/scss/bootstrap.scss";
 
-<body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.tsx"></script>
-</body>
-<style lang="sass">
-  @import url("https://fonts.googleapis.com/css?family=Shadows+Into+Light");
-  @import "~bootstrap/scss/bootstrap.scss";
-
-  .trivia {
-    font-family: "Shadows Into Light", cursive;
-    font-size: 120px;
-    text-align: center;
-  }
-
-  .small-trivia {
-    font-family: "Shadows Into Light", cursive;
-    font-size: 60px;
-    text-align: center;
-  }
-
-  body {
-    font-family: "Shadows Into Light", cursive;
-  }
-
-  .list-group-item {
-    font-size: 1.8em;
-  }
-
-  .img-loading {
-    width: 300px;
-    height: 300px;
-    align-self: center;
-    margin: 0 auto;
-    padding: 100px;
-    border: solid 3px #13acc9;
-    border-radius: 100%;
-    box-shadow: 2px 0px 14px #efff67;
-  }
-
-  .img-character {
-    width: 300px;
-    height: 300px;
-    align-self: center;
-    margin: 0 auto;
-    border: solid 3px #13acc9;
-    border-radius: 100%;
-    box-shadow: 2px 0px 14px #efff67;
-  }
-
-  .small-spinner {
-    margin: 0px 3px 16px 0;
-  }
-
-  li {
-    font-size: 1.7em;
-  }
-
-  @media only screen and (max-width: 800px) {
-    .bigImage {
-      width: 90%;
+    .trivia {
+      font-family: "Shadows Into Light", cursive;
+      font-size: 120px;
+      text-align: center;
     }
-  }
 
-  @media only screen and (min-width: 801px) {
-    .bigImage {
-      width: 40%;
+    .small-trivia {
+      font-family: "Shadows Into Light", cursive;
+      font-size: 60px;
+      text-align: center;
     }
-  }
-</style>
 
+    body {
+      font-family: "Shadows Into Light", cursive;
+    }
+
+    .list-group-item {
+      font-size: 1.8em;
+    }
+
+    .img-loading {
+      width: 300px;
+      height: 300px;
+      align-self: center;
+      margin: 0 auto;
+      padding: 100px;
+      border: solid 3px #13acc9;
+      border-radius: 100%;
+      box-shadow: 2px 0px 14px #efff67;
+    }
+
+    .img-character {
+      width: 300px;
+      height: 300px;
+      align-self: center;
+      margin: 0 auto;
+      border: solid 3px #13acc9;
+      border-radius: 100%;
+      box-shadow: 2px 0px 14px #efff67;
+    }
+
+    .small-spinner {
+      margin: 0px 3px 16px 0;
+    }
+
+    li {
+      font-size: 1.7em;
+    }
+
+    @media only screen and (max-width: 800px) {
+      .bigImage {
+        width: 90%;
+      }
+    }
+
+    @media only screen and (min-width: 801px) {
+      .bigImage {
+        width: 40%;
+      }
+    }
+  </style>
 </html>

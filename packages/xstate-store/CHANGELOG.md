@@ -1,5 +1,23 @@
 # @xstate/store
 
+## 1.0.0
+
+### Major Changes
+
+- [#4921](https://github.com/statelyai/xstate/pull/4921) [`f73366504`](https://github.com/statelyai/xstate/commit/f73366504684266e4a1c7c997896b310ec2e7f29) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Release `@xstate/store` version 1.0
+
+## 0.0.5
+
+### Patch Changes
+
+- [#4918](https://github.com/statelyai/xstate/pull/4918) [`3323c85a6`](https://github.com/statelyai/xstate/commit/3323c85a6159d63fc73e83985ef46796f3582d90) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Types are now exported:
+
+  ```ts
+  import type { SnapshotFromStore } from '@xstate/store';
+
+  // ...
+  ```
+
 ## 0.0.4
 
 ### Patch Changes

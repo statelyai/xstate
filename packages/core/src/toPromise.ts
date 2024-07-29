@@ -4,6 +4,7 @@ import { AnyActorRef, OutputFrom } from './types.ts';
  * Returns a promise that resolves to the `output` of the actor when it is done.
  *
  * @example
+ *
  * ```ts
  * const machine = createMachine({
  *   // ...

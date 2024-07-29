@@ -1,10 +1,10 @@
-import  { Component, ErrorInfo } from "react";
-import { PropsNode, State } from "../../common/types";
-import DisplayError from "./DisplayError";
+import { Component, ErrorInfo } from 'react';
+import { PropsNode, State } from '../../common/types';
+import DisplayError from './DisplayError';
 
 class ErrorBoundary extends Component<PropsNode, State> {
   public state: State = {
-    hasError: false,
+    hasError: false
   };
 
   public static getDerivedStateFromError(_: Error): State {
@@ -12,7 +12,7 @@ class ErrorBoundary extends Component<PropsNode, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo);
+    console.error('Uncaught error:', error, errorInfo);
   }
 
   public render() {

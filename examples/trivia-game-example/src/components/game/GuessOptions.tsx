@@ -1,22 +1,24 @@
-import { useState } from "react";
-import { RMCharacter } from "../../common/types";
-import { append, sortBy, prop } from "ramda";
-import { Button } from "../styled/Button";
-import { Option } from "../styled/Option";
-import { TriviaMachineContext } from "../../context/AppContext";
+import { useState } from 'react';
+import { RMCharacter } from '../../common/types';
+import { append, sortBy, prop } from 'ramda';
+import { Button } from '../styled/Button';
+import { Option } from '../styled/Option';
+import { TriviaMachineContext } from '../../context/AppContext';
 
 const GuessOptions = () => {
-  const context = TriviaMachineContext.useSelector(state => state.context)
-  const triviaActorRef = TriviaMachineContext.useActorRef()
+  const context = TriviaMachineContext.useSelector((state) => state.context);
+  const triviaActorRef = TriviaMachineContext.useActorRef();
   const generateQuestions = (): RMCharacter[] => {
     if (context.hasLoaded && context.randomCharacters.length > 0) {
-      const randomOptions: RMCharacter[] = context.randomCharacters.filter(
-          (character: RMCharacter) => character.id !== context.currentCharacter!.id
+      const randomOptions: RMCharacter[] = context.randomCharacters
+        .filter(
+          (character: RMCharacter) =>
+            character.id !== context.currentCharacter!.id
         )
         .map((character: RMCharacter) => {
           return character;
         });
-      const sortById = sortBy(prop("id"));
+      const sortById = sortBy(prop('id'));
       return sortById(append(context.currentCharacter!, randomOptions));
     } else {
       return [];
@@ -28,12 +30,12 @@ const GuessOptions = () => {
   const itemVariant = (character: number) => {
     if (revealAnswer && context.hasLoaded) {
       if (character === context.currentCharacter!.id) {
-        return "success";
+        return 'success';
       }
-      return "danger";
+      return 'danger';
     }
   };
-  
+
   return (
     <div>
       <h2 className="text-center py-4">Who's this?</h2>
@@ -47,8 +49,8 @@ const GuessOptions = () => {
                   variant={itemVariant(character.id)}
                   onClick={() => {
                     triviaActorRef.send({
-                      type: "user.selectAnswer",
-                      answer:character.id
+                      type: 'user.selectAnswer',
+                      answer: character.id
                     });
                     setRevealAnswer(true);
                   }}
@@ -62,7 +64,7 @@ const GuessOptions = () => {
             className="mt-3"
             onClick={() => {
               setRevealAnswer(false);
-              triviaActorRef.send({type:"user.nextQuestion"})
+              triviaActorRef.send({ type: 'user.nextQuestion' });
             }}
             primary
           >

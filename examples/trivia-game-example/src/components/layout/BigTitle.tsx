@@ -1,4 +1,3 @@
-
 const App = () => {
   return (
     <section className="jumbotron text-center">

@@ -20,7 +20,8 @@ import {
   createActor,
   sendParent,
   Snapshot,
-  ActorRef
+  ActorRef,
+  AnyEventObject
 } from '../src/index.ts';
 import { sleep } from '@xstate-repo/jest-utils';
 
@@ -3081,7 +3082,7 @@ describe('invoke', () => {
   });
 
   it('xstate.done.actor events should have unique names when invokee is a machine with an id property', (done) => {
-    const actual: string[] = [];
+    const actual: AnyEventObject[] = [];
 
     const childMachine = createMachine({
       id: 'child',
@@ -3121,7 +3122,7 @@ describe('invoke', () => {
       on: {
         '*': {
           actions: ({ event }) => {
-            actual.push(event.type);
+            actual.push(event);
           }
         }
       }
@@ -3132,8 +3133,16 @@ describe('invoke', () => {
     // check within a macrotask so all promise-induced microtasks have a chance to resolve first
     setTimeout(() => {
       expect(actual).toEqual([
-        'xstate.done.actor.0.(machine).first.fetch',
-        'xstate.done.actor.0.(machine).second.fetch'
+        {
+          type: 'xstate.done.actor.0.(machine).first.fetch',
+          output: undefined,
+          actorId: '0.(machine).first.fetch'
+        },
+        {
+          type: 'xstate.done.actor.0.(machine).second.fetch',
+          output: undefined,
+          actorId: '0.(machine).second.fetch'
+        }
       ]);
       done();
     }, 100);
