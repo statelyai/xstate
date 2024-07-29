@@ -58,7 +58,7 @@
     "@preconstruct/cli": "^2.8.1",
     "@testing-library/vue": "^6.6.1",
     "@types/jest": "^29.5.10",
-    "@types/node": "^12.11.1",
+    "@types/node": "^20.14.13",
     "@vue/compiler-sfc": "^3.0.11",
     "@vue/vue3-jest": "^29.2.6",
     "babel-jest": "^29.7.0",
