@@ -139,7 +139,9 @@ export function createSystem<T extends ActorSystemInfo>(
       delete timerMap[scheduledEventId];
       delete system._snapshot._scheduledEvents[scheduledEventId];
 
-      clock.clearTimeout(timeout);
+      if (timeout !== undefined) {
+        clock.clearTimeout(timeout);
+      }
     },
     cancelAll: (actorRef) => {
       for (const scheduledEventId in system._snapshot._scheduledEvents) {
