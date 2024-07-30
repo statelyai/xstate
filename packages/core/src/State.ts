@@ -56,7 +56,7 @@ interface MachineSnapshotBase<
   TTag extends string,
   TOutput,
   TMeta,
-  TConfig extends StateSchema = StateSchema
+  TStateSchema extends StateSchema = StateSchema
 > {
   /** The state machine that produced this state snapshot. */
   machine: StateMachine<
@@ -135,7 +135,7 @@ interface MachineSnapshotBase<
   can: (event: TEvent) => boolean;
 
   getMeta: () => Record<
-    StateId<TConfig> & string,
+    StateId<TStateSchema> & string,
     TMeta | undefined // States might not have meta defined
   >;
 

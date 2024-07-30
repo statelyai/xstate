@@ -2504,3 +2504,40 @@ export type GetConcreteByKey<
   TKey extends keyof T,
   TValue extends T[TKey]
 > = T & Record<TKey, TValue>;
+
+type _GroupStateKeys<
+  T extends StateSchema,
+  S extends keyof T['states']
+> = S extends any
+  ? T['states'][S] extends { type: 'history' }
+    ? [never, never]
+    : T extends { type: 'parallel' }
+      ? [S, never]
+      : 'states' extends keyof T['states'][S]
+        ? [S, never]
+        : [never, S]
+  : never;
+
+type GroupStateKeys<T extends StateSchema, S extends keyof T['states']> = {
+  nonLeaf: _GroupStateKeys<T, S & string>[0];
+  leaf: _GroupStateKeys<T, S & string>[1];
+};
+
+export type ToStateValue<T extends StateSchema> = T extends {
+  states: Record<infer S, any>;
+}
+  ? IsNever<S> extends true
+    ? {}
+    :
+        | GroupStateKeys<T, S>['leaf']
+        | (IsNever<GroupStateKeys<T, S>['nonLeaf']> extends false
+            ? ConditionalRequired<
+                {
+                  [K in GroupStateKeys<T, S>['nonLeaf']]?: ToStateValue<
+                    T['states'][K]
+                  >;
+                },
+                T extends { type: 'parallel' } ? true : false
+              >
+            : never)
+  : {};
