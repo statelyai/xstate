@@ -3384,7 +3384,7 @@ describe('raise', () => {
 });
 
 describe('cancel', () => {
-  it('should be possible to cancel a raised delayed event', () => {
+  it('should be possible to cancel a raised delayed event', async () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -3405,11 +3405,18 @@ describe('cancel', () => {
 
     const actor = createActor(machine).start();
 
+    // This should raise the 'RAISED' event after 1ms
+    actor.send({ type: 'NEXT' });
+
+    // This should cancel the 'RAISED' event
     actor.send({ type: 'CANCEL' });
 
-    setTimeout(() => {
-      expect(actor.getSnapshot().value).toBe('a');
-    }, 10);
+    await new Promise<void>((res) => {
+      setTimeout(() => {
+        expect(actor.getSnapshot().value).toBe('a');
+        res();
+      }, 10);
+    });
   });
 
   it('should cancel only the delayed event in the machine that scheduled it when canceling the event with the same ID in the machine that sent it first', async () => {
@@ -3506,6 +3513,31 @@ describe('cancel', () => {
 
     expect(fooSpy).toHaveBeenCalledTimes(1);
     expect(barSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not try to clear an undefined timeout when canceling an unscheduled timer', async () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      on: {
+        FOO: {
+          actions: cancel('foo')
+        }
+      }
+    });
+
+    const actorRef = createActor(machine, {
+      clock: {
+        setTimeout,
+        clearTimeout: spy
+      }
+    }).start();
+
+    actorRef.send({
+      type: 'FOO'
+    });
+
+    expect(spy.mock.calls.length).toBe(0);
   });
 });
 

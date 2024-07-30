@@ -126,5 +126,6 @@ export function stopChild<
  * Stops a child actor.
  *
  * @deprecated Use `stopChild(...)` instead
+ * @alias
  */
 export const stop = stopChild;

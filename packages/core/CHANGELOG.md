@@ -1,5 +1,23 @@
 # xstate
 
+## 5.16.0
+
+### Minor Changes
+
+- [#4996](https://github.com/statelyai/xstate/pull/4996) [`5be796cd2`](https://github.com/statelyai/xstate/commit/5be796cd252f024ed29a589d1f2d6c8e626167db) Thanks [@ronvoluted](https://github.com/ronvoluted)! - The actor snapshot `status` type (`'active' | 'done' | 'error' | 'stopped'`) is now exposed as `SnapshotStatus`
+
+- [#4981](https://github.com/statelyai/xstate/pull/4981) [`c4ae156b2`](https://github.com/statelyai/xstate/commit/c4ae156b278779e898aeb8d86b089de2cf959683) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `sendParent` to the `enqueueActions` feature. This allows users to enqueue actions that send events to the parent actor within the `enqueueActions` block.
+
+  ```js
+  import { createMachine, enqueueActions } from 'xstate';
+
+  const childMachine = createMachine({
+    entry: enqueueActions(({ enqueue }) => {
+      enqueue.sendParent({ type: 'CHILD_READY' });
+    })
+  });
+  ```
+
 ## 5.15.0
 
 ### Minor Changes

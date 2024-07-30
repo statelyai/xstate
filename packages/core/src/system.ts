@@ -12,7 +12,7 @@ import {
 } from './types.ts';
 import { toObserver } from './utils.ts';
 
-export interface ScheduledEvent {
+interface ScheduledEvent {
   id: string;
   event: EventObject;
   startedAt: number; // timestamp
@@ -26,7 +26,7 @@ export interface Clock {
   clearTimeout(id: any): void;
 }
 
-export interface Scheduler {
+interface Scheduler {
   schedule(
     source: AnyActorRef,
     target: AnyActorRef,
@@ -139,7 +139,9 @@ export function createSystem<T extends ActorSystemInfo>(
       delete timerMap[scheduledEventId];
       delete system._snapshot._scheduledEvents[scheduledEventId];
 
-      clock.clearTimeout(timeout);
+      if (timeout !== undefined) {
+        clock.clearTimeout(timeout);
+      }
     },
     cancelAll: (actorRef) => {
       for (const scheduledEventId in system._snapshot._scheduledEvents) {
