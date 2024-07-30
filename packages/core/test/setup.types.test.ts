@@ -1437,10 +1437,13 @@ describe('setup()', () => {
 
     const snapshot = createActor(machine).getSnapshot();
 
-    type ExpectedType = {
-      a?: 'a1' | 'a2';
-      b?: 'b1' | 'b2';
-    };
+    type ExpectedType =
+      | {
+          a: 'a1' | 'a2';
+        }
+      | {
+          b: 'b1' | 'b2';
+        };
 
     snapshot.value satisfies ExpectedType;
     ({}) as ExpectedType satisfies typeof snapshot.value;
@@ -1530,15 +1533,99 @@ describe('setup()', () => {
     type ExpectedType =
       | 'a'
       | {
-          b?:
+          b:
             | 'b2'
             | {
-                b1?: 'b11' | 'b12';
+                b1: 'b11' | 'b12';
               };
         };
 
     snapshot.value satisfies ExpectedType;
     ({}) as ExpectedType satisfies typeof snapshot.value;
+  });
+
+  it('state.value from setup state machine actors should be strongly-typed', () => {
+    const machine = setup({}).createMachine({
+      initial: 'green',
+      states: {
+        green: {},
+        yellow: {},
+        red: {
+          initial: 'walk',
+          states: {
+            walk: {},
+            wait: {},
+            stop: {}
+          }
+        },
+        emergency: {
+          type: 'parallel',
+          states: {
+            main: {
+              initial: 'blinking',
+              states: {
+                blinking: {}
+              }
+            },
+            cross: {
+              initial: 'blinking',
+              states: {
+                blinking: {}
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    const stateValue = actor.getSnapshot().value;
+
+    'green' satisfies typeof stateValue;
+
+    'yellow' satisfies typeof stateValue;
+
+    // @ts-expect-error compound state
+    'red' satisfies typeof stateValue;
+
+    // @ts-expect-error parallel state
+    'emergency' satisfies typeof stateValue;
+
+    const _redWalk = { red: 'walk' } satisfies typeof stateValue;
+    const _redWait = { red: 'wait' } satisfies typeof stateValue;
+
+    const _redUnknown = {
+      // @ts-expect-error
+      red: 'unknown'
+    } satisfies typeof stateValue;
+
+    const _emergency0 = {
+      emergency: {
+        main: 'blinking',
+        cross: 'blinking'
+      }
+    } satisfies typeof stateValue;
+
+    const _emergency1 = {
+      // @ts-expect-error
+      emergency: 'main'
+    } satisfies typeof stateValue;
+
+    const _emergency2 = {
+      // @ts-expect-error
+      emergency: {
+        main: 'blinking'
+      }
+    } satisfies typeof stateValue;
+
+    const _emergency3 = {
+      emergency: {
+        // @ts-expect-error
+        main: 'unknown',
+        cross: 'blinking'
+      }
+    } satisfies typeof stateValue;
   });
 
   it('should accept `assign` when no actor and children types are provided', () => {
