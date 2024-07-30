@@ -3514,6 +3514,31 @@ describe('cancel', () => {
     expect(fooSpy).toHaveBeenCalledTimes(1);
     expect(barSpy).not.toHaveBeenCalled();
   });
+
+  it('should not try to clear an undefined timeout when canceling an unscheduled timer', async () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      on: {
+        FOO: {
+          actions: cancel('foo')
+        }
+      }
+    });
+
+    const actorRef = createActor(machine, {
+      clock: {
+        setTimeout,
+        clearTimeout: spy
+      }
+    }).start();
+
+    actorRef.send({
+      type: 'FOO'
+    });
+
+    expect(spy.mock.calls.length).toBe(0);
+  });
 });
 
 describe('assign action order', () => {
