@@ -55,7 +55,7 @@
   },
   "peerDependencies": {
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
-    "xstate": "^5.15.0"
+    "xstate": "^5.16.0"
   },
   "peerDependenciesMeta": {
     "xstate": {
@@ -68,13 +68,10 @@
   },
   "devDependencies": {
     "@testing-library/react": "^14.2.1",
-    "@types/jsdom": "^12.2.3",
     "@types/react": "^17.0.43",
     "@types/react-dom": "^17.0.14",
     "@types/use-sync-external-store": "^0.0.3",
     "@xstate-repo/jest-utils": "workspace:^",
-    "jsdom": "^14.0.0",
-    "jsdom-global": "^3.0.2",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "rxjs": "^7.8.1",

@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "5.15.0",
+  "version": "5.16.0",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
   "module": "dist/xstate.esm.js",
@@ -121,8 +121,6 @@
     "@scion-scxml/test-framework": "^2.0.15",
     "@xstate-repo/jest-utils": "workspace:*",
     "ajv": "^8.12.0",
-    "jsdom": "^14.0.0",
-    "jsdom-global": "^3.0.2",
     "pkg-up": "^3.1.0",
     "rxjs": "^7.8.1",
     "xml-js": "^1.6.11"

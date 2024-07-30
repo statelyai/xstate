@@ -44,7 +44,7 @@ export function getStateNodes(
   return nodes;
 }
 
-export function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
+function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
   if (!stateNode.states) {
     return [];
   }

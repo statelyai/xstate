@@ -58,7 +58,7 @@
   "peerDependencies": {
     "@types/ws": "^8.0.0",
     "ws": "^8.0.0",
-    "xstate": "^5.15.0"
+    "xstate": "^5.16.0"
   },
   "peerDependenciesMeta": {
     "@types/ws": {

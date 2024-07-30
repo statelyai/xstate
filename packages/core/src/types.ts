@@ -1102,6 +1102,7 @@ export type AnyMachineSnapshot = MachineSnapshot<
   any,
   any,
   any,
+  any,
   any
 >;
 
@@ -1711,7 +1712,7 @@ export interface StateConfig<
   /** @internal */
   _nodes: Array<StateNode<TContext, TEvent>>;
   children: Record<string, AnyActorRef>;
-  status: 'active' | 'done' | 'error' | 'stopped';
+  status: SnapshotStatus;
   output?: any;
   error?: unknown;
   machine?: StateMachine<
@@ -2133,6 +2134,8 @@ export type AnyActorScope = ActorScope<
   any // TEmitted
 >;
 
+export type SnapshotStatus = 'active' | 'done' | 'error' | 'stopped';
+
 export type Snapshot<TOutput> =
   | {
       status: 'active';
@@ -2436,8 +2439,33 @@ export type ToChildren<TActor extends ProvidedActor> =
       >;
 
 export type StateSchema = {
+  id?: string;
   states?: Record<string, StateSchema>;
 };
+
+export type StateId<
+  TSchema extends StateSchema,
+  TKey extends string = '(machine)',
+  TParentKey extends string | null = null
+> =
+  | (TSchema extends { id: string }
+      ? TSchema['id']
+      : TParentKey extends null
+        ? TKey
+        : `${TParentKey}.${TKey}`)
+  | (TSchema['states'] extends Record<string, any>
+      ? Values<{
+          [K in keyof TSchema['states'] & string]: StateId<
+            TSchema['states'][K],
+            K,
+            TParentKey extends string
+              ? `${TParentKey}.${TKey}`
+              : TSchema['id'] extends string
+                ? TSchema['id']
+                : TKey
+          >;
+        }>
+      : never);
 
 export interface StateMachineTypes {
   context: MachineContext;
