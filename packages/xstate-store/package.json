@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Simple stores",
   "keywords": [
     "store",
@@ -45,16 +45,12 @@
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
-  "dependencies": {
-    "use-sync-external-store": "^1.2.0"
-  },
   "devDependencies": {
-    "@testing-library/react": "^14.2.1",
-    "@types/react": "^17.0.43",
-    "@types/react-dom": "^17.0.14",
+    "@testing-library/react": "^16.0.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
     "@types/use-sync-external-store": "^0.0.3",
     "@xstate/react": "workspace:^",
-    "@xstate/vue": "workspace:^",
     "immer": "^10.0.2",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",

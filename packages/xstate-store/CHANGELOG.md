@@ -1,5 +1,15 @@
 # @xstate/store
 
+## 2.0.0
+
+### Major Changes
+
+- [#5000](https://github.com/statelyai/xstate/pull/5000) [`eeadb7121`](https://github.com/statelyai/xstate/commit/eeadb7121e8523cf34fe3a299731ca085152c65d) Thanks [@TkDodo](https://github.com/TkDodo)! - - Replace `use-sync-external-store/shim` with `useSyncExternalStore` from React.
+  - Do not memoize `getSnapshot` in `useSyncExternalStore`.
+  - Implement `getServerSnapshot` in `useSyncExternalStore`.
+  - Expect `store` to always be defined in `useSelector`
+  - Update React types to v18 and testing library to v16.
+
 ## 1.0.0
 
 ### Major Changes
