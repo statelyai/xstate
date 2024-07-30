@@ -244,6 +244,9 @@ importers:
       '@xstate/vue':
         specifier: workspace:^
         version: link:../xstate-vue
+      immer:
+        specifier: ^10.0.2
+        version: 10.1.1
       react:
         specifier: ^18.0.0
         version: 18.3.1
