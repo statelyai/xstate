@@ -2531,13 +2531,18 @@ export type ToStateValue<T extends StateSchema> = T extends {
     :
         | GroupStateKeys<T, S>['leaf']
         | (IsNever<GroupStateKeys<T, S>['nonLeaf']> extends false
-            ? ConditionalRequired<
-                {
-                  [K in GroupStateKeys<T, S>['nonLeaf']]?: ToStateValue<
+            ? T extends { type: 'parallel' }
+              ? {
+                  [K in GroupStateKeys<T, S>['nonLeaf']]: ToStateValue<
                     T['states'][K]
                   >;
-                },
-                T extends { type: 'parallel' } ? true : false
-              >
+                }
+              : Compute<
+                  Values<{
+                    [K in GroupStateKeys<T, S>['nonLeaf']]: {
+                      [StateKey in K]: ToStateValue<T['states'][K]>;
+                    };
+                  }>
+                >
             : never)
   : {};
