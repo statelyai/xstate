@@ -55,6 +55,8 @@
     "@types/use-sync-external-store": "^0.0.3",
     "@xstate/react": "workspace:^",
     "@xstate/vue": "workspace:^",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
     "xstate": "workspace:^"
   },
   "peerDependencies": {
