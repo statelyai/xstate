@@ -10,9 +10,6 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 permissions: {}
 
-env:
-  PNPM_CACHE_FOLDER: '.pnpm-store'
-
 jobs:
   release:
     permissions:
