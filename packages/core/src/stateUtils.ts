@@ -158,10 +158,9 @@ function getValueFromAdj(baseNode: AnyStateNode, adjList: AdjList): StateValue {
   return stateValue;
 }
 
-function getAdjList<
-  TContext extends MachineContext,
-  TE extends EventObject
->(stateNodes: StateNodeIterable<TContext, TE>): AdjList {
+function getAdjList<TContext extends MachineContext, TE extends EventObject>(
+  stateNodes: StateNodeIterable<TContext, TE>
+): AdjList {
   const adjList: AdjList = new Map();
 
   for (const s of stateNodes) {
@@ -528,9 +527,7 @@ function isHistoryNode(
   return stateNode.type === 'history';
 }
 
-function getInitialStateNodesWithTheirAncestors(
-  stateNode: AnyStateNode
-) {
+function getInitialStateNodesWithTheirAncestors(stateNode: AnyStateNode) {
   const states = getInitialStateNodes(stateNode);
   for (const initialState of states) {
     for (const ancestor of getProperAncestors(initialState, stateNode)) {
@@ -562,10 +559,7 @@ export function getInitialStateNodes(stateNode: AnyStateNode) {
   return set;
 }
 /** Returns the child state node from its relative `stateKey`, or throws. */
-function getStateNode(
-  stateNode: AnyStateNode,
-  stateKey: string
-): AnyStateNode {
+function getStateNode(stateNode: AnyStateNode, stateKey: string): AnyStateNode {
   if (isStateId(stateKey)) {
     return stateNode.machine.getStateNodeById(stateKey);
   }
