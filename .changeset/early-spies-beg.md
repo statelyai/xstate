@@ -1,9 +1,9 @@
 ---
-'@xstate/store': patch
+'@xstate/store': major
 ---
 
-- replace use-sync-external-store/shim with useSyncExternalStore from react
-- do not memoize getSnapshot in uSES
-- implement getServerSnapshot in uSES
-- expect store to always be defined
-- update react types to v18 and testing library to v16
+- Replace `use-sync-external-store/shim` with `useSyncExternalStore` from React.
+- Do not memoize `getSnapshot` in `useSyncExternalStore`.
+- Implement `getServerSnapshot` in `useSyncExternalStore`.
+- Expect `store` to always be defined in `useSelector`
+- Update React types to v18 and testing library to v16.
