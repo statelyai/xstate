@@ -13,6 +13,10 @@ runs:
         node-version: 20.x
         cache: 'pnpm'
 
+    - name: Setup pnpm config
+      run: pnpm config set store-dir $PNPM_CACHE_FOLDER
+      shell: bash
+
     - name: Install Dependencies
       run: pnpm install
       shell: bash

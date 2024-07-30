@@ -12,6 +12,9 @@ on:
 permissions:
   contents: read #  to fetch code (actions/checkout)
 
+env:
+  PNPM_CACHE_FOLDER: '.pnpm-store'
+
 jobs:
   build:
     timeout-minutes: 20
