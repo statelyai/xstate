@@ -31,7 +31,6 @@ import {
 } from '../src/index.ts';
 import { setup } from '../src/setup.ts';
 import { sleep } from '@xstate-repo/jest-utils';
-import { spawn } from 'child_process';
 
 describe('spawning machines', () => {
   const context = {
