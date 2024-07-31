@@ -255,7 +255,8 @@ export interface TestMeta<T, TContext extends MachineContext> {
       any,
       any,
       any,
-      any // TMeta
+      any, // TMeta
+      any // TStateSchema
     >
   ) => Promise<void> | void;
   description?:
@@ -268,7 +269,8 @@ export interface TestMeta<T, TContext extends MachineContext> {
           any,
           any,
           any,
-          any // TMeta
+          any, // TMeta
+          any // TStateSchema
         >
       ) => string);
   skip?: boolean;
@@ -365,7 +367,8 @@ export interface TestTransitionConfig<
       any,
       any,
       any,
-      any // TMeta
+      any, // TMeta
+      any // TStateSchema
     >,
     testContext: TTestContext
   ) => void;

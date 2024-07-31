@@ -354,7 +354,8 @@ function serializeMachineTransition(
     StateValue,
     string,
     unknown,
-    TODO // TMeta
+    TODO, // TMeta
+    TODO // TStateSchema
   >,
   event: AnyEventObject | undefined,
   previousSnapshot:
@@ -365,7 +366,8 @@ function serializeMachineTransition(
         StateValue,
         string,
         unknown,
-        TODO // TMeta
+        TODO, // TMeta
+        TODO // TStateSchema
       >
     | undefined,
   { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
