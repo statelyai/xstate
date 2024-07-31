@@ -2460,10 +2460,6 @@ export type StateSchema = {
   states?: Record<string, StateSchema>;
 };
 
-type Test = SnapshotFrom<AnyStateMachine>;
-
-['getMeta'];
-
 export type StateId<
   TSchema extends StateSchema,
   TKey extends string = '(machine)',
