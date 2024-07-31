@@ -199,7 +199,8 @@ export class StateMachine<
     TInput,
     TOutput,
     TEmitted,
-    TMeta
+    TMeta,
+    TConfig
   > {
     const { actions, guards, actors, delays } = this.implementations;
 

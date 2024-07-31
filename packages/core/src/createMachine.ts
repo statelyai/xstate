@@ -189,6 +189,7 @@ export function createMachine<
     any,
     any,
     any, // TEmitted
-    any // TMeta
+    any, // TMeta
+    any // TStateSchema
   >(config as any, implementations as any);
 }

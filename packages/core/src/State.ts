@@ -19,7 +19,8 @@ import type {
   MetaObject,
   StateSchema,
   StateId,
-  SnapshotStatus
+  SnapshotStatus,
+  SnapshotFrom
 } from './types.ts';
 import { matchesState } from './utils.ts';
 
@@ -56,7 +57,7 @@ interface MachineSnapshotBase<
   TTag extends string,
   TOutput,
   TMeta,
-  TConfig extends StateSchema = StateSchema
+  TConfig extends StateSchema
 > {
   /** The state machine that produced this state snapshot. */
   machine: StateMachine<
@@ -198,7 +199,7 @@ interface ErrorMachineSnapshot<
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
-  TConfig extends StateSchema = StateSchema
+  TConfig extends StateSchema
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -222,7 +223,7 @@ interface StoppedMachineSnapshot<
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
-  TConfig extends StateSchema = StateSchema
+  TConfig extends StateSchema
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -246,7 +247,7 @@ export type MachineSnapshot<
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
-  TConfig extends StateSchema = StateSchema
+  TConfig extends StateSchema
 > =
   | ActiveMachineSnapshot<
       TContext,
@@ -355,7 +356,8 @@ export function createMachineSnapshot<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TStateValue extends StateValue,
   TTag extends string,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TStateSchema extends StateSchema
 >(
   config: StateConfig<TContext, TEvent>,
   machine: AnyStateMachine
@@ -366,7 +368,8 @@ export function createMachineSnapshot<
   TStateValue,
   TTag,
   undefined,
-  TMeta
+  TMeta,
+  TStateSchema
 > {
   return {
     status: config.status as never,
@@ -413,7 +416,8 @@ export function getPersistedSnapshot<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    any // state schema
   >,
   options?: unknown
 ): Snapshot<unknown> {
