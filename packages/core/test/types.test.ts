@@ -25,7 +25,12 @@ import {
   stateIn,
   setup,
   toPromise,
-  UnknownActorRef
+  UnknownActorRef,
+  AnyActorLogic,
+  ActorRef,
+  SnapshotFrom,
+  EmittedFrom,
+  EventFrom
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -4579,4 +4584,26 @@ it('UnknownActorRef should return a Snapshot-typed value from getSnapshot()', ()
 
   // @ts-expect-error
   actor.getSnapshot().status === 'FOO';
+});
+
+it('Actor<T> should be assignable to ActorRefFrom<T>', () => {
+  const logic = createMachine({});
+
+  // It works here...
+  const actor = createActor(logic);
+  actor satisfies ActorRefFrom<typeof logic>;
+
+  class ActorThing<T extends AnyActorLogic> {
+    // actorRef: ActorRefFrom<T>;
+    actorRef: ActorRefFrom<T>;
+    constructor(actorLogic: T) {
+      const actor = createActor(actorLogic);
+
+      // But it doesn't work here...
+      actor satisfies ActorRefFrom<typeof actorLogic>;
+      this.actorRef = actor;
+    }
+  }
+
+  new ActorThing(logic);
 });
