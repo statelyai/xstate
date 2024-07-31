@@ -2468,27 +2468,25 @@ export type StateId<
   TSchema extends StateSchema,
   TKey extends string = '(machine)',
   TParentKey extends string | null = null
-> = IsAny<TSchema> extends true
-  ? string
-  :
-      | (TSchema extends { id: string }
-          ? TSchema['id']
-          : TParentKey extends null
-            ? TKey
-            : `${TParentKey}.${TKey}`)
-      | (TSchema['states'] extends Record<string, any>
-          ? Values<{
-              [K in keyof TSchema['states'] & string]: StateId<
-                TSchema['states'][K],
-                K,
-                TParentKey extends string
-                  ? `${TParentKey}.${TKey}`
-                  : TSchema['id'] extends string
-                    ? TSchema['id']
-                    : TKey
-              >;
-            }>
-          : never);
+> =
+  | (TSchema extends { id: string }
+      ? TSchema['id']
+      : TParentKey extends null
+        ? TKey
+        : `${TParentKey}.${TKey}`)
+  | (TSchema['states'] extends Record<string, any>
+      ? Values<{
+          [K in keyof TSchema['states'] & string]: StateId<
+            TSchema['states'][K],
+            K,
+            TParentKey extends string
+              ? `${TParentKey}.${TKey}`
+              : TSchema['id'] extends string
+                ? TSchema['id']
+                : TKey
+          >;
+        }>
+      : never);
 
 export interface StateMachineTypes {
   context: MachineContext;
