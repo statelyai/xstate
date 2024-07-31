@@ -28,7 +28,7 @@ function sleep(ms: number) {
 }
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 describe('useActor', () => {
@@ -1081,7 +1081,7 @@ describe('useActor', () => {
   });
 
   it('should be able to use a delay provided outside of SolidJS', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
     const machine = createMachine(
       {
@@ -1130,7 +1130,7 @@ describe('useActor', () => {
 
     expect(screen.getByTestId('result').textContent).toBe('b');
 
-    jest.advanceTimersByTime(310);
+    vi.advanceTimersByTime(310);
 
     expect(screen.getByTestId('result').textContent).toBe('c');
   });
@@ -1390,7 +1390,7 @@ describe('useActor', () => {
   });
 
   it('Service should stop on component cleanup', (done) => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -1420,7 +1420,7 @@ describe('useActor', () => {
     };
 
     render(() => <Counter />);
-    jest.advanceTimersByTime(200);
+    vi.advanceTimersByTime(200);
   });
 
   it('.can should trigger on context change', () => {
@@ -1633,7 +1633,7 @@ describe('useActor', () => {
 
   // https://github.com/davidkpiano/xstate/issues/1334
   it('delayed transitions should work when initializing from a rehydrated state', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
       const testMachine = createMachine({
         types: {} as {
@@ -1681,11 +1681,11 @@ describe('useActor', () => {
       const button = screen.getByTestId('button');
 
       fireEvent.click(button);
-      jest.advanceTimersByTime(110);
+      vi.advanceTimersByTime(110);
 
       expect(container.textContent).toBe('idle');
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 

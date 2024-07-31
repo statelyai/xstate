@@ -1145,7 +1145,7 @@ describe('fromActorRef', () => {
   });
 
   it(`actor should not reevaluate a scope depending on state.matches when state.value doesn't change`, (done) => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
     interface MachineContext {
       counter: number;
@@ -1203,7 +1203,7 @@ describe('fromActorRef', () => {
     };
 
     render(() => <Comp />);
-    jest.advanceTimersByTime(110);
+    vi.advanceTimersByTime(110);
   });
 
   it('actor should be updated when it changes shallow', () => {

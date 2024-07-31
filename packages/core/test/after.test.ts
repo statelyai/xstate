@@ -27,26 +27,26 @@ const lightMachine = createMachine({
 });
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 describe('delayed transitions', () => {
   it('should transition after delay', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
     const actorRef = createActor(lightMachine).start();
     expect(actorRef.getSnapshot().value).toBe('green');
 
-    jest.advanceTimersByTime(500);
+    vi.advanceTimersByTime(500);
     expect(actorRef.getSnapshot().value).toBe('green');
 
-    jest.advanceTimersByTime(510);
+    vi.advanceTimersByTime(510);
     expect(actorRef.getSnapshot().value).toBe('yellow');
   });
 
   it('should not try to clear an undefined timeout when exiting source state of a delayed transition', async () => {
     // https://github.com/statelyai/xstate/issues/5001
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'green',
@@ -154,8 +154,8 @@ describe('delayed transitions', () => {
   });
 
   it('should defer a single send event for a delayed conditional transition (#886)', () => {
-    jest.useFakeTimers();
-    const spy = jest.fn();
+    vi.useFakeTimers();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'X',
       states: {
@@ -185,7 +185,7 @@ describe('delayed transitions', () => {
 
     createActor(machine).start();
 
-    jest.advanceTimersByTime(10);
+    vi.advanceTimersByTime(10);
     expect(spy).not.toHaveBeenCalled();
   });
 
@@ -256,8 +256,8 @@ describe('delayed transitions', () => {
 
   describe('delay expressions', () => {
     it('should evaluate the expression (function) to determine the delay', () => {
-      jest.useFakeTimers();
-      const spy = jest.fn();
+      vi.useFakeTimers();
+      const spy = vi.fn();
       const context = {
         delay: 500
       };
@@ -287,16 +287,16 @@ describe('delayed transitions', () => {
       expect(spy).toBeCalledWith(context);
       expect(actor.getSnapshot().value).toBe('inactive');
 
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
       expect(actor.getSnapshot().value).toBe('inactive');
 
-      jest.advanceTimersByTime(200);
+      vi.advanceTimersByTime(200);
       expect(actor.getSnapshot().value).toBe('active');
     });
 
     it('should evaluate the expression (string) to determine the delay', () => {
-      jest.useFakeTimers();
-      const spy = jest.fn();
+      vi.useFakeTimers();
+      const spy = vi.fn();
       const machine = createMachine(
         {
           initial: 'inactive',
@@ -334,10 +334,10 @@ describe('delayed transitions', () => {
       expect(spy).toBeCalledWith(event);
       expect(actor.getSnapshot().value).toBe('active');
 
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
       expect(actor.getSnapshot().value).toBe('active');
 
-      jest.advanceTimersByTime(200);
+      vi.advanceTimersByTime(200);
       expect(actor.getSnapshot().value).toBe('inactive');
     });
   });

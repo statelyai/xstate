@@ -217,7 +217,7 @@ describe('system', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine, { systemId: 'test' });
     actorRef.subscribe({
@@ -468,7 +468,7 @@ describe('system', () => {
   });
 
   it('should gracefully handle re-registration of a `systemId` during a reentering transition', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     let counter = 0;
 
@@ -513,7 +513,7 @@ describe('system', () => {
   });
 
   it('should be able to send an event to an ancestor with a registered `systemId` from an initial entry action', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const child = createMachine({
       entry: sendTo(({ system }) => system.get('myRoot'), {

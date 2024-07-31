@@ -86,7 +86,7 @@ describe('spawnChild action', () => {
   });
 
   it('should handle a dynamic id', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const child = createMachine({
       on: {

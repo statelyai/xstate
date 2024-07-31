@@ -15,7 +15,7 @@ describe('final states', () => {
     expect(actorRef.getSnapshot().status).toBe('done');
   });
   it('output of a machine with a root state being final should be called with a "xstate.done.state.ROOT_ID" event', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       type: 'final',
       output: ({ event }) => {
@@ -36,7 +36,7 @@ describe('final states', () => {
     `);
   });
   it('should emit the "xstate.done.state.*" event when all nested states are in their final states', () => {
-    const onDoneSpy = jest.fn();
+    const onDoneSpy = vi.fn();
 
     const machine = createMachine({
       id: 'm',
@@ -182,7 +182,7 @@ describe('final states', () => {
   });
 
   it("should only call data expression once when entering root's final state", () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'start',
       states: {
@@ -224,7 +224,7 @@ describe('final states', () => {
   });
 
   it('state output should be able to use context updated by the entry action of the reached final state', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       context: {
         count: 0
@@ -577,7 +577,7 @@ describe('final states', () => {
     expect(actorRef.getSnapshot().status).toEqual('done');
   });
   it('root output should be called with a "xstate.done.state.*" event of the parallel root when a direct final child of that parallel root is reached', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       type: 'parallel',
       states: {
@@ -605,7 +605,7 @@ describe('final states', () => {
   });
 
   it('root output should be called with a "xstate.done.state.*" event of the parallel root when a final child of its compound child is reached', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       type: 'parallel',
       states: {
@@ -638,7 +638,7 @@ describe('final states', () => {
   });
 
   it('root output should be called with a "xstate.done.state.*" event of the parallel root when a final descendant is reached 2 parallel levels deep', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       type: 'parallel',
       states: {
@@ -676,7 +676,7 @@ describe('final states', () => {
   });
 
   it('onDone of an outer parallel state should be called with its own "xstate.done.state.*" event when its direct parallel child completes', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -720,7 +720,7 @@ describe('final states', () => {
   });
 
   it('onDone should not be called when the machine reaches its final state', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       type: 'parallel',
       states: {
@@ -754,7 +754,7 @@ describe('final states', () => {
   });
 
   it('machine should not complete when a parallel child of a compound state completes', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -780,7 +780,7 @@ describe('final states', () => {
   });
 
   it('root output should only be called once when multiple parallel regions complete at once', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       type: 'parallel',
@@ -801,7 +801,7 @@ describe('final states', () => {
   });
 
   it('onDone of a parallel state should only be called once when multiple parallel regions complete at once', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'a',
@@ -1083,7 +1083,7 @@ describe('final states', () => {
   });
 
   it('should not resolve output of a final state if its parent is a parallel state', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'A',
@@ -1112,7 +1112,7 @@ describe('final states', () => {
   });
 
   it('should only call exit actions once when a child machine reaches its final state and sends an event to its parent that ends up stopping that child', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const child = createMachine({
       initial: 'start',

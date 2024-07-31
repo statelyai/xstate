@@ -20,7 +20,7 @@ import { useActor, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
@@ -662,7 +662,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should be able to use a delay provided outside of React', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
     const machine = createMachine(
       {
@@ -708,7 +708,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     expect(screen.getByTestId('result').textContent).toBe('b');
 
     act(() => {
-      jest.advanceTimersByTime(310);
+      vi.advanceTimersByTime(310);
     });
 
     expect(screen.getByTestId('result').textContent).toBe('c');
@@ -880,7 +880,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   // https://github.com/statelyai/xstate/issues/1334
   it('delayed transitions should work when initializing from a rehydrated state', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     const testMachine = createMachine({
       types: {} as {
         events: {
@@ -931,7 +931,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     fireEvent.click(button);
     act(() => {
-      jest.advanceTimersByTime(110);
+      vi.advanceTimersByTime(110);
     });
 
     expect(currentState!.matches('idle')).toBe(true);
@@ -969,7 +969,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should deliver messages sent from an effect to an actor registered in the system', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const m = createMachine({
       invoke: {
         systemId: 'child',
@@ -1001,7 +1001,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should work with `onSnapshot`', () => {
     const subject = new BehaviorSubject(0);
 
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       invoke: [

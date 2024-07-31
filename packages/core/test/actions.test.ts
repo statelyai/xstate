@@ -422,9 +422,9 @@ describe('entry/exit actions', () => {
     });
 
     it('should work with function actions', () => {
-      const entrySpy = jest.fn();
-      const exitSpy = jest.fn();
-      const transitionSpy = jest.fn();
+      const entrySpy = vi.fn();
+      const exitSpy = vi.fn();
+      const transitionSpy = vi.fn();
 
       const machine = createMachine({
         initial: 'a',
@@ -553,7 +553,7 @@ describe('entry/exit actions', () => {
     });
 
     it("shouldn't use a referenced custom action over a builtin one when there is a naming conflict", () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       const machine = createMachine(
         {
           context: {
@@ -580,7 +580,7 @@ describe('entry/exit actions', () => {
     });
 
     it("shouldn't use a referenced custom action over an inline one when there is a naming conflict", () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       let called = false;
 
       const machine = createMachine(
@@ -609,8 +609,8 @@ describe('entry/exit actions', () => {
     });
 
     it('root entry/exit actions should be called on root reentering transitions', () => {
-      let entrySpy = jest.fn();
-      let exitSpy = jest.fn();
+      let entrySpy = vi.fn();
+      let exitSpy = vi.fn();
 
       const machine = createMachine({
         id: 'root',
@@ -1464,8 +1464,8 @@ describe('entry/exit actions', () => {
 
   describe('when stopped', () => {
     it('exit actions should not be called when stopping a machine', () => {
-      const rootSpy = jest.fn();
-      const childSpy = jest.fn();
+      const rootSpy = vi.fn();
+      const childSpy = vi.fn();
 
       const machine = createMachine({
         exit: rootSpy,
@@ -1622,7 +1622,7 @@ describe('entry/exit actions', () => {
     });
 
     it('sent events from exit handlers of a stopped child should not be received by its children', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
 
       const grandchild = createMachine({
         id: 'grandchild',
@@ -1665,7 +1665,7 @@ describe('entry/exit actions', () => {
     });
 
     it('sent events from exit handlers of a done child should be received by its children', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
 
       const grandchild = createMachine({
         id: 'grandchild',
@@ -1736,7 +1736,7 @@ describe('entry/exit actions', () => {
     });
 
     it('should note execute referenced custom actions correctly when stopping an interpreter', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       const parent = createMachine(
         {
           id: 'parent',
@@ -1947,7 +1947,7 @@ describe('initial actions', () => {
   });
 
   it('should execute actions of initial transitions only once when taking an explicit transition', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -1995,7 +1995,7 @@ describe('initial actions', () => {
   });
 
   it('should execute actions of all initial transitions resolving to the initial state value', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: {
         target: 'a',
@@ -2029,7 +2029,7 @@ describe('initial actions', () => {
   });
 
   it('should execute actions of the initial transition when taking a root reentering self-transition', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       id: 'root',
       initial: {
@@ -2066,7 +2066,7 @@ describe('initial actions', () => {
 
 describe('actions on invalid transition', () => {
   it('should not recall previous actions', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'idle',
       states: {
@@ -2104,7 +2104,7 @@ describe('actions config', () => {
   const definedAction = () => {};
 
   it('should reference actions defined in actions parameter of machine options (entry actions)', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -2133,7 +2133,7 @@ describe('actions config', () => {
   });
 
   it('should reference actions defined in actions parameter of machine options (initial state)', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine(
       {
         entry: ['definedAction', { type: 'definedAction' }, 'undefinedAction']
@@ -2235,7 +2235,7 @@ describe('actions config', () => {
 
 describe('action meta', () => {
   it('should provide the original params', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const testMachine = createMachine(
       {
@@ -2269,7 +2269,7 @@ describe('action meta', () => {
   });
 
   it('should provide undefined params when it was configured as string', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const testMachine = createMachine(
       {
@@ -2296,7 +2296,7 @@ describe('action meta', () => {
   });
 
   it('should provide the action with resolved params when they are dynamic', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -2322,7 +2322,7 @@ describe('action meta', () => {
   });
 
   it('should resolve dynamic params using context value', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -2351,7 +2351,7 @@ describe('action meta', () => {
   });
 
   it('should resolve dynamic params using event value', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -2506,7 +2506,7 @@ describe('forwardTo()', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -2527,7 +2527,7 @@ describe('forwardTo()', () => {
 
 describe('log()', () => {
   it('should log a string', () => {
-    const consoleSpy = jest.fn();
+    const consoleSpy = vi.fn();
     console.log = consoleSpy;
     const machine = createMachine({
       entry: log('some string', 'string label')
@@ -2545,7 +2545,7 @@ describe('log()', () => {
   });
 
   it('should log an expression', () => {
-    const consoleSpy = jest.fn();
+    const consoleSpy = vi.fn();
     console.log = consoleSpy;
     const machine = createMachine({
       context: {
@@ -2568,7 +2568,7 @@ describe('log()', () => {
 
 describe('enqueueActions', () => {
   it('should execute a simple referenced action', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -2589,8 +2589,8 @@ describe('enqueueActions', () => {
   });
 
   it('should execute multiple different referenced actions', () => {
-    const spy1 = jest.fn();
-    const spy2 = jest.fn();
+    const spy1 = vi.fn();
+    const spy2 = vi.fn();
 
     const machine = createMachine(
       {
@@ -2614,7 +2614,7 @@ describe('enqueueActions', () => {
   });
 
   it('should execute multiple same referenced actions', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -2636,7 +2636,7 @@ describe('enqueueActions', () => {
   });
 
   it('should execute a parameterized action', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -2668,7 +2668,7 @@ describe('enqueueActions', () => {
   });
 
   it('should execute a function', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       entry: enqueueActions(({ enqueue }) => {
@@ -2682,7 +2682,7 @@ describe('enqueueActions', () => {
   });
 
   it('should execute a builtin action using its own action creator', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       on: {
@@ -2709,7 +2709,7 @@ describe('enqueueActions', () => {
   });
 
   it('should execute a builtin action using its bound action creator', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       on: {
@@ -2751,7 +2751,7 @@ describe('enqueueActions', () => {
   });
 
   it('should be able to check a simple referenced guard', () => {
-    const spy = jest.fn().mockImplementation(() => true);
+    const spy = vi.fn().mockImplementation(() => true);
     const machine = createMachine(
       {
         context: {
@@ -2774,7 +2774,7 @@ describe('enqueueActions', () => {
   });
 
   it('should be able to check a parameterized guard', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -2860,7 +2860,7 @@ describe('enqueueActions', () => {
       }
     });
 
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const parentMachine = setup({
       types: {} as { events: ParentEvent },
@@ -2906,7 +2906,7 @@ describe('enqueueActions', () => {
       entry: 'sendToParent'
     });
 
-    const parentSpy = jest.fn();
+    const parentSpy = vi.fn();
 
     const parentMachine = setup({
       types: {} as { events: ParentEvent },
@@ -3159,7 +3159,7 @@ describe('sendTo', () => {
       entry: sendTo('child', 'a string')
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -3365,7 +3365,7 @@ describe('raise', () => {
       )
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -3420,8 +3420,8 @@ describe('cancel', () => {
   });
 
   it('should cancel only the delayed event in the machine that scheduled it when canceling the event with the same ID in the machine that sent it first', async () => {
-    const fooSpy = jest.fn();
-    const barSpy = jest.fn();
+    const fooSpy = vi.fn();
+    const barSpy = vi.fn();
 
     const machine = createMachine({
       invoke: [
@@ -3468,8 +3468,8 @@ describe('cancel', () => {
   });
 
   it('should cancel only the delayed event in the machine that scheduled it when canceling the event with the same ID in the machine that sent it second', async () => {
-    const fooSpy = jest.fn();
-    const barSpy = jest.fn();
+    const fooSpy = vi.fn();
+    const barSpy = vi.fn();
 
     const machine = createMachine({
       invoke: [
@@ -3516,7 +3516,7 @@ describe('cancel', () => {
   });
 
   it('should not try to clear an undefined timeout when canceling an unscheduled timer', async () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       on: {
@@ -3758,7 +3758,7 @@ describe('actions', () => {
   });
 
   it('should call an inline action responding to an initial raise with the raised event', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       entry: raise({ type: 'HELLO' }),
@@ -3777,7 +3777,7 @@ describe('actions', () => {
   });
 
   it('should call a referenced action responding to an initial raise with the raised event', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -3803,7 +3803,7 @@ describe('actions', () => {
   });
 
   it('should call an inline action responding to an initial raise with updated (non-initial) context', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       context: { count: 0 },
@@ -3823,7 +3823,7 @@ describe('actions', () => {
   });
 
   it('should call a referenced action responding to an initial raise with updated (non-initial) context', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -3850,7 +3850,7 @@ describe('actions', () => {
   });
 
   it('should call inline entry custom action with undefined parametrized action object', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     createActor(
       createMachine({
         entry: (_, params) => {
@@ -3863,7 +3863,7 @@ describe('actions', () => {
   });
 
   it('should call inline entry builtin action with undefined parametrized action object', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     createActor(
       createMachine({
         entry: assign((_, params) => {
@@ -3877,7 +3877,7 @@ describe('actions', () => {
   });
 
   it('should call inline transition custom action with undefined parametrized action object', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const actorRef = createActor(
       createMachine({
@@ -3896,7 +3896,7 @@ describe('actions', () => {
   });
 
   it('should call inline transition builtin action with undefined parameters', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const actorRef = createActor(
       createMachine({
@@ -3916,7 +3916,7 @@ describe('actions', () => {
   });
 
   it('should call a referenced custom action with undefined params when it has no params and it is referenced using a string', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     createActor(
       createMachine(
@@ -3937,7 +3937,7 @@ describe('actions', () => {
   });
 
   it('should call a referenced builtin action with undefined params when it has no params and it is referenced using a string', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     createActor(
       createMachine(
@@ -3959,7 +3959,7 @@ describe('actions', () => {
   });
 
   it('should call a referenced custom action with the provided parametrized action object', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     createActor(
       createMachine(
@@ -3987,7 +3987,7 @@ describe('actions', () => {
   });
 
   it('should call a referenced builtin action with the provided parametrized action object', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     createActor(
       createMachine(

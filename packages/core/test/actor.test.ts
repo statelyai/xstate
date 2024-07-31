@@ -384,7 +384,7 @@ describe('spawning callbacks', () => {
   });
 
   it('should not deliver events sent to the parent after the callback actor gets stopped', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     let sendToParent: () => void;
 
@@ -600,7 +600,7 @@ describe('spawning observables', () => {
 
     await waitFor(actorRef, (state) => state.matches('active'));
 
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     actorRef.getSnapshot().children.childActor!.subscribe((data) => {
       spy(data.context);
@@ -654,7 +654,7 @@ describe('spawning observables', () => {
 
     await waitFor(actorRef, (state) => state.matches('active'));
 
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     actorRef.getSnapshot().children.childActor!.subscribe((data) => {
       spy(data);
@@ -964,8 +964,8 @@ describe('actors', () => {
   });
 
   it('should stop multiple inline spawned actors that have no explicit ids', () => {
-    const cleanup1 = jest.fn();
-    const cleanup2 = jest.fn();
+    const cleanup1 = vi.fn();
+    const cleanup2 = vi.fn();
 
     const parent = createMachine({
       context: ({ spawn }) => ({
@@ -984,8 +984,8 @@ describe('actors', () => {
   });
 
   it('should stop multiple referenced spawned actors that have no explicit ids', () => {
-    const cleanup1 = jest.fn();
-    const cleanup2 = jest.fn();
+    const cleanup1 = vi.fn();
+    const cleanup2 = vi.fn();
 
     const parent = createMachine(
       {
@@ -1693,7 +1693,7 @@ describe('actors', () => {
   });
 
   it('should be possible to pass `self` as input to a child machine from within the context factory', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const child = createMachine({
       types: {} as {

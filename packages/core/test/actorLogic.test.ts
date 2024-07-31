@@ -235,7 +235,7 @@ describe('promise logic (fromPromise)', () => {
 
   it('should abort when stopping', async () => {
     const deferred = withResolvers<number>();
-    const fn = jest.fn();
+    const fn = vi.fn();
     const promiseLogic = fromPromise((ctx) => {
       return new Promise((res) => {
         ctx.signal.addEventListener('abort', fn);
@@ -253,14 +253,14 @@ describe('promise logic (fromPromise)', () => {
 
   it('should not abort when stopped if promise is resolved/rejected', async () => {
     const resolvedDeferred = withResolvers<number>();
-    const resolvedSignalListener = jest.fn();
+    const resolvedSignalListener = vi.fn();
     const resolvedPromiseLogic = fromPromise((ctx) => {
       ctx.signal.addEventListener('abort', resolvedSignalListener);
       return resolvedDeferred.promise;
     });
 
     const rejectedDeferred = withResolvers<number>();
-    const rejectedSignalListener = jest.fn();
+    const rejectedSignalListener = vi.fn();
     const rejectedPromiseLogic = fromPromise((ctx) => {
       ctx.signal.addEventListener('abort', rejectedSignalListener);
       return rejectedDeferred.promise.catch(() => {});
@@ -283,10 +283,10 @@ describe('promise logic (fromPromise)', () => {
 
   it('should not reuse the same signal for different actors with same logic', async () => {
     let deferredMap: Map<string, PromiseWithResolvers<number>> = new Map();
-    let signalListenerMap: Map<string, jest.Mock> = new Map();
+    let signalListenerMap: Map<string, vi.Mock> = new Map();
     const p = fromPromise(({ self, signal }) => {
       const deferred = withResolvers<number>();
-      const signalListener = jest.fn();
+      const signalListener = vi.fn();
       deferredMap.set(self.id, deferred);
       signalListenerMap.set(self.id, signalListener);
       signal.addEventListener('abort', signalListener);
@@ -343,10 +343,10 @@ describe('promise logic (fromPromise)', () => {
 
   it('should not reuse the same signal for different actors with same logic and id', async () => {
     let deferredList: PromiseWithResolvers<number>[] = [];
-    let signalListenerList: jest.Mock[] = [];
+    let signalListenerList: vi.Mock[] = [];
     const p = fromPromise(({ signal }) => {
       const deferred = withResolvers<number>();
-      const fn = jest.fn();
+      const fn = vi.fn();
       deferredList.push(deferred);
       signalListenerList.push(fn);
       signal.addEventListener('abort', fn);
@@ -407,10 +407,10 @@ describe('promise logic (fromPromise)', () => {
 
   it('should not reuse the same signal for the same actor when restarted', async () => {
     let deferredList: PromiseWithResolvers<number>[] = [];
-    let signalListenerList: jest.Mock[] = [];
+    let signalListenerList: vi.Mock[] = [];
     const p = fromPromise(({ signal }) => {
       const deferred = withResolvers<number>();
-      const fn = jest.fn();
+      const fn = vi.fn();
       deferredList.push(deferred);
       signalListenerList.push(fn);
       signal.addEventListener('abort', fn);
@@ -561,7 +561,7 @@ describe('observable logic (fromObservable)', () => {
 
   it('should resolve', () => {
     const actor = createActor(fromObservable(() => of(42)));
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     actor.subscribe((snapshot) => spy(snapshot.context));
 
@@ -572,7 +572,7 @@ describe('observable logic (fromObservable)', () => {
 
   it('should resolve (observer .next)', () => {
     const actor = createActor(fromObservable(() => of(42)));
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     actor.subscribe({
       next: (snapshot) => spy(snapshot.context)
@@ -586,7 +586,7 @@ describe('observable logic (fromObservable)', () => {
     const actor = createActor(
       fromObservable(() => throwError(() => 'Observable error.'))
     );
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     actor.subscribe({
       error: spy
@@ -604,7 +604,7 @@ describe('observable logic (fromObservable)', () => {
 
   it('should complete (observer .complete)', () => {
     const actor = createActor(fromObservable(() => EMPTY));
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     actor.subscribe({
       complete: spy
@@ -740,7 +740,7 @@ describe('callback logic (fromCallback)', () => {
   });
 
   it('should persist the input of a callback', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine(
       {
         types: {} as { events: { type: 'EV'; data: number } },

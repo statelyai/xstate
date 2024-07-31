@@ -52,7 +52,7 @@ describe('getNextSnapshot', () => {
     expect(s2.value).toEqual('c');
   });
   it('should not execute actions', () => {
-    const fn = jest.fn();
+    const fn = vi.fn();
 
     const machine = createMachine({
       initial: 'a',

@@ -10,7 +10,7 @@ import {
 
 describe('input', () => {
   it('should create a machine with input', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       types: {} as {
@@ -179,7 +179,7 @@ describe('input', () => {
   });
 
   it('should provide a static inline input to the referenced actor', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const child = createMachine({
       context: ({ input }: { input: number }) => {
@@ -211,7 +211,7 @@ describe('input', () => {
   });
 
   it('should provide a dynamic inline input to the referenced actor', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const child = createMachine({
       context: ({ input }: { input: number }) => {
@@ -255,7 +255,7 @@ describe('input', () => {
   });
 
   it('should call the input factory with self when invoking', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       invoke: {
@@ -270,7 +270,7 @@ describe('input', () => {
   });
 
   it('should call the input factory with self when spawning', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {

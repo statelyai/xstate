@@ -115,7 +115,7 @@ describe('waitFor', () => {
     const machine = createMachine({});
 
     const actorRef = createActor(machine).start();
-    const spy = jest.fn();
+    const spy = vi.fn();
     actorRef.subscribe = spy;
 
     waitFor(actorRef, () => true).then(() => {});

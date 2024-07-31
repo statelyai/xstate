@@ -756,7 +756,7 @@ describe('parallel states', () => {
   });
 
   it('should execute actions of the initial transition of a parallel region when entering the initial state nodes of a machine', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       type: 'parallel',
@@ -779,7 +779,7 @@ describe('parallel states', () => {
   });
 
   it('should execute actions of the initial transition of a parallel region when the parallel state is targeted with an explicit transition', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'a',

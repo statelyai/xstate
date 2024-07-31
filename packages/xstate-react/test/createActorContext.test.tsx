@@ -243,7 +243,7 @@ describe('createActorContext', () => {
   });
 
   it('useActorRef should throw when the actor was not provided', () => {
-    console.error = jest.fn();
+    console.error = vi.fn();
     const SomeContext = createActorContext(createMachine({}));
 
     const App = () => {
@@ -258,7 +258,7 @@ describe('createActorContext', () => {
   });
 
   it('useSelector should throw when the actor was not provided', () => {
-    console.error = jest.fn();
+    console.error = vi.fn();
     const SomeContext = createActorContext(createMachine({}));
 
     const App = () => {
@@ -281,7 +281,7 @@ describe('createActorContext', () => {
         }
       }
     });
-    const stubFn = jest.fn();
+    const stubFn = vi.fn();
     const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
@@ -342,7 +342,7 @@ describe('createActorContext', () => {
         }
       }
     });
-    const stubFn = jest.fn();
+    const stubFn = vi.fn();
     const SomeContext = createActorContext(someMachine);
 
     const Component = () => {

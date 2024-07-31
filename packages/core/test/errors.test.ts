@@ -36,7 +36,7 @@ describe('error handling', () => {
       }
     });
 
-    const spy = jest.fn().mockImplementation(() => {
+    const spy = vi.fn().mockImplementation(() => {
       throw new Error('no_infinite_loop_when_error_is_thrown_in_subscribe');
     });
 
@@ -57,7 +57,7 @@ describe('error handling', () => {
   });
 
   it(`doesn't crash the actor when an error is thrown in subscribe`, (done) => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       id: 'machine',
@@ -79,7 +79,7 @@ describe('error handling', () => {
       }
     });
 
-    const subscriber = jest.fn().mockImplementationOnce(() => {
+    const subscriber = vi.fn().mockImplementationOnce(() => {
       throw new Error('doesnt_crash_actor_when_error_is_thrown_in_subscribe');
     });
 
@@ -119,12 +119,12 @@ describe('error handling', () => {
       }
     });
 
-    const nextSpy = jest.fn().mockImplementation(() => {
+    const nextSpy = vi.fn().mockImplementation(() => {
       throw new Error(
         'doesnt_notify_error_listener_when_error_is_thrown_in_subscribe'
       );
     });
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actor = createActor(machine).start();
 
@@ -207,7 +207,7 @@ describe('error handling', () => {
   });
 
   it('unhandled rejection of a promise actor should be reported to the existing error listener of its parent', async () => {
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const machine = createMachine({
       initial: 'pending',
@@ -248,7 +248,7 @@ describe('error handling', () => {
   });
 
   it('unhandled rejection of a promise actor should be reported to the existing error listener of its grandparent', async () => {
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const child = createMachine({
       initial: 'pending',
@@ -458,7 +458,7 @@ describe('error handling', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -489,7 +489,7 @@ describe('error handling', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -526,7 +526,7 @@ describe('error handling', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -546,7 +546,7 @@ describe('error handling', () => {
   });
 
   it(`handled sync errors thrown when starting an actor shouldn't crash the parent`, () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'pending',
@@ -713,7 +713,7 @@ describe('error handling', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -742,7 +742,7 @@ describe('error handling', () => {
       })
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
 
@@ -785,7 +785,7 @@ describe('error handling', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -809,7 +809,7 @@ describe('error handling', () => {
   });
 
   it(`shouldn't execute deferred initial actions that come after an action that errors`, () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       entry: [
@@ -860,7 +860,7 @@ describe('error handling', () => {
   });
 
   it('should error when a guard throws when transitioning', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {

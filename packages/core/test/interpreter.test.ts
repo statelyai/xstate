@@ -179,7 +179,7 @@ describe('interpreter', () => {
     });
 
     it('should not notify subscribers of the current state upon subscription (subscribe)', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       const service = createActor(machine).start();
 
       service.subscribe(spy);
@@ -441,7 +441,7 @@ describe('interpreter', () => {
 
   describe('activities (deprecated)', () => {
     it('should start activities', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
 
       const activityMachine = createMachine(
         {
@@ -473,7 +473,7 @@ describe('interpreter', () => {
     });
 
     it('should stop activities', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
 
       const activityMachine = createMachine(
         {
@@ -509,7 +509,7 @@ describe('interpreter', () => {
     });
 
     it('should stop activities upon stopping the service', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
 
       const stopActivityMachine = createMachine(
         {
@@ -998,8 +998,8 @@ describe('interpreter', () => {
 
   describe('.start()', () => {
     it('should initialize the service', () => {
-      const contextSpy = jest.fn();
-      const entrySpy = jest.fn();
+      const contextSpy = vi.fn();
+      const entrySpy = vi.fn();
 
       const machine = createMachine({
         context: contextSpy,
@@ -1019,8 +1019,8 @@ describe('interpreter', () => {
     });
 
     it('should not reinitialize a started service', () => {
-      const contextSpy = jest.fn();
-      const entrySpy = jest.fn();
+      const contextSpy = vi.fn();
+      const entrySpy = vi.fn();
 
       const machine = createMachine({
         context: contextSpy,
@@ -1390,7 +1390,7 @@ describe('interpreter', () => {
     });
 
     it('should call complete() once a final state is reached', () => {
-      const completeCb = jest.fn();
+      const completeCb = vi.fn();
 
       const service = createActor(
         createMachine({
@@ -1416,7 +1416,7 @@ describe('interpreter', () => {
     });
 
     it('should call complete() once the interpreter is stopped', () => {
-      const completeCb = jest.fn();
+      const completeCb = vi.fn();
 
       const service = createActor(createMachine({})).start();
 
@@ -1726,7 +1726,7 @@ describe('interpreter', () => {
   });
 
   it("shouldn't execute actions when reading a snapshot of not started actor", () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const actorRef = createActor(
       createMachine({
         entry: () => {
@@ -1741,7 +1741,7 @@ describe('interpreter', () => {
   });
 
   it(`should execute entry actions when starting the actor after reading its snapshot first`, () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const actorRef = createActor(
       createMachine({
@@ -1841,7 +1841,7 @@ it('should not process events sent directly to own actor ref before initial entr
 });
 
 it('should not notify the completion observer for an active logic when it gets subscribed before starting', () => {
-  const spy = jest.fn();
+  const spy = vi.fn();
 
   const machine = createMachine({});
   createActor(machine).subscribe({ complete: spy });
@@ -1850,7 +1850,7 @@ it('should not notify the completion observer for an active logic when it gets s
 });
 
 it('should not notify the completion observer for an errored logic when it gets subscribed after it errors', () => {
-  const spy = jest.fn();
+  const spy = vi.fn();
 
   const machine = createMachine({
     entry: () => {
@@ -1869,7 +1869,7 @@ it('should not notify the completion observer for an errored logic when it gets 
 });
 
 it('should notify the error observer for an errored logic when it gets subscribed after it errors', () => {
-  const spy = jest.fn();
+  const spy = vi.fn();
 
   const machine = createMachine({
     entry: () => {

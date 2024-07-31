@@ -385,11 +385,11 @@ describe('@xstate/inspect', () => {
   });
 
   it('browser inspector should use targetWindow if provided', () => {
-    const windowMock = jest.fn() as unknown as Window;
-    const windowSpy = jest.spyOn(window, 'open');
+    const windowMock = vi.fn() as unknown as Window;
+    const windowSpy = vi.spyOn(window, 'open');
     windowSpy.mockImplementation(() => windowMock);
 
-    const localWindowMock = jest.fn() as unknown as Window;
+    const localWindowMock = vi.fn() as unknown as Window;
     const devTools = createDevTools();
 
     inspect({

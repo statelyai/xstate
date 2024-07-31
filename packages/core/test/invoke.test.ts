@@ -851,7 +851,7 @@ describe('invoke', () => {
       });
 
       it('should be invoked with a promise factory and stop on unhandled onError target', (done) => {
-        const completeSpy = jest.fn();
+        const completeSpy = vi.fn();
 
         const promiseMachine = createMachine({
           id: 'invokePromise',
@@ -1586,7 +1586,7 @@ describe('invoke', () => {
     });
 
     it('should dispose of the callback (if disposal function provided)', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       const intervalMachine = createMachine({
         id: 'interval',
         initial: 'counting',
@@ -1795,7 +1795,7 @@ describe('invoke', () => {
           }
         }
       });
-      const spy = jest.fn();
+      const spy = vi.fn();
 
       const actorRef = createActor(errorMachine);
       actorRef.subscribe({
