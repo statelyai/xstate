@@ -31,6 +31,7 @@ import {
 } from '../src/index.ts';
 import { setup } from '../src/setup.ts';
 import { sleep } from '@xstate-repo/jest-utils';
+import { spawn } from 'child_process';
 
 describe('spawning machines', () => {
   const context = {
@@ -1726,5 +1727,31 @@ describe('actors', () => {
     createActor(machine).start();
 
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('catches errors from spawned promise actors', () => {
+    expect.assertions(1);
+    const machine = createMachine({
+      on: {
+        event: {
+          actions: assign(({ spawn }) => {
+            spawn(
+              fromPromise(async () => {
+                throw new Error('uh oh');
+              })
+            );
+          })
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.subscribe({
+      error: (err) => {
+        expect((err as Error).message).toBe('uh oh');
+      }
+    });
+    actor.start();
+    actor.send({ type: 'event' });
   });
 });
