@@ -1732,6 +1732,7 @@ export interface StateConfig<
     any,
     any,
     any,
+    any,
     any, // TMeta
     any // TStateSchema
   >;
@@ -1984,6 +1985,7 @@ export type UnknownActorRef = ActorRef<Snapshot<unknown>, EventObject>;
 
 export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
+      any,
       any,
       any,
       any,
@@ -2385,6 +2387,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
             infer _TAction,
             infer _TGuard,
             infer _TDelay,
+            infer _TStateValue,
             infer _TTag,
             infer _TInput,
             infer _TOutput,

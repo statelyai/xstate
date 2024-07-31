@@ -1,5 +1,5 @@
 import { StateMachine } from './StateMachine.ts';
-import { ResolvedStateMachineTypes } from './types.ts';
+import { ResolvedStateMachineTypes, TODO } from './types.ts';
 import {
   AnyActorRef,
   EventObject,
@@ -174,7 +174,8 @@ export function createMachine<
   TInput,
   TOutput,
   TEmitted,
-  TMeta // TMeta
+  TMeta, // TMeta
+  TODO // TStateSchema
 > {
   return new StateMachine<
     any,

@@ -66,9 +66,9 @@ export class StateMachine<
   TTag extends string,
   TInput,
   TOutput,
-  TEmitted extends EventObject = EventObject, // TODO: remove default
-  TMeta extends MetaObject = MetaObject,
-  TConfig extends StateSchema = StateSchema
+  TEmitted extends EventObject,
+  TMeta extends MetaObject,
+  TConfig extends StateSchema
 > implements
     ActorLogic<
       MachineSnapshot<
