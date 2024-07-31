@@ -125,61 +125,62 @@ describe('final states', () => {
     expect(actual).toEqual(['bazAction', 'barAction', 'fooAction']);
   });
 
-  it('should call output expressions on nested final nodes', (done) => {
-    interface Ctx {
-      revealedSecret?: string;
-    }
+  it('should call output expressions on nested final nodes', () =>
+    new Promise<void>((resolve) => {
+      interface Ctx {
+        revealedSecret?: string;
+      }
 
-    const machine = createMachine({
-      types: {} as { context: Ctx },
-      initial: 'secret',
-      context: {
-        revealedSecret: undefined
-      },
-      states: {
-        secret: {
-          initial: 'wait',
-          states: {
-            wait: {
-              on: {
-                REQUEST_SECRET: 'reveal'
+      const machine = createMachine({
+        types: {} as { context: Ctx },
+        initial: 'secret',
+        context: {
+          revealedSecret: undefined
+        },
+        states: {
+          secret: {
+            initial: 'wait',
+            states: {
+              wait: {
+                on: {
+                  REQUEST_SECRET: 'reveal'
+                }
+              },
+              reveal: {
+                type: 'final',
+                output: () => ({
+                  secret: 'the secret'
+                })
               }
             },
-            reveal: {
-              type: 'final',
-              output: () => ({
-                secret: 'the secret'
+            onDone: {
+              target: 'success',
+              actions: assign({
+                revealedSecret: ({ event }) => {
+                  return (event.output as any).secret;
+                }
               })
             }
           },
-          onDone: {
-            target: 'success',
-            actions: assign({
-              revealedSecret: ({ event }) => {
-                return (event.output as any).secret;
-              }
-            })
+          success: {
+            type: 'final'
           }
-        },
-        success: {
-          type: 'final'
         }
-      }
-    });
+      });
 
-    const service = createActor(machine);
-    service.subscribe({
-      complete: () => {
-        expect(service.getSnapshot().context).toEqual({
-          revealedSecret: 'the secret'
-        });
-        done();
-      }
-    });
-    service.start();
+      const service = createActor(machine);
+      service.subscribe({
+        complete: () => {
+          expect(service.getSnapshot().context).toEqual({
+            revealedSecret: 'the secret'
+          });
+          resolve();
+        }
+      });
+      service.start();
 
-    service.send({ type: 'REQUEST_SECRET' });
-  });
+      service.send({ type: 'REQUEST_SECRET' });
+    }));
 
   it("should only call data expression once when entering root's final state", () => {
     const spy = vi.fn();

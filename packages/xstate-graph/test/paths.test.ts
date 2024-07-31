@@ -47,7 +47,7 @@ describe('testModel.testPaths(...)', () => {
       const events =
         typeof options.events === 'function'
           ? options.events(initialState)
-          : options.events ?? [];
+          : (options.events ?? []);
 
       const nextState = getNextSnapshot(logic, initialState, events[0]);
       return [

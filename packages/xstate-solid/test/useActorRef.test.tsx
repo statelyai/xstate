@@ -5,83 +5,85 @@ import { useActorRef } from '../src/index.ts';
 import { createEffect } from 'solid-js';
 
 describe('useActorRef', () => {
-  it('observer should be called with next state', (done) => {
-    const machine = createMachine({
-      initial: 'inactive',
-      states: {
-        inactive: {
-          on: {
-            ACTIVATE: 'active'
-          }
-        },
-        active: {}
-      }
-    });
-
-    const App = () => {
-      const service = useActorRef(machine);
-
-      createEffect(() => {
-        service.subscribe((state) => {
-          if (state.matches('active')) {
-            done();
-          }
-        });
+  it('observer should be called with next state', () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        initial: 'inactive',
+        states: {
+          inactive: {
+            on: {
+              ACTIVATE: 'active'
+            }
+          },
+          active: {}
+        }
       });
 
-      return (
-        <button
-          data-testid="button"
-          onclick={() => {
-            service.send({ type: 'ACTIVATE' });
-          }}
-        />
-      );
-    };
+      const App = () => {
+        const service = useActorRef(machine);
 
-    render(() => <App />);
-    const button = screen.getByTestId('button');
-
-    fireEvent.click(button);
-  });
-
-  it('service should work with from SolidJS utility', (done) => {
-    const machine = createMachine({
-      initial: 'inactive',
-      states: {
-        inactive: {
-          on: {
-            ACTIVATE: 'active'
-          }
-        },
-        active: {}
-      }
-    });
-
-    const App = () => {
-      const service = useActorRef(machine);
-
-      createEffect(() => {
-        service.subscribe((state) => {
-          if (state.matches('active')) {
-            done();
-          }
+        createEffect(() => {
+          service.subscribe((state) => {
+            if (state.matches('active')) {
+              resolve();
+            }
+          });
         });
+
+        return (
+          <button
+            data-testid="button"
+            onclick={() => {
+              service.send({ type: 'ACTIVATE' });
+            }}
+          />
+        );
+      };
+
+      render(() => <App />);
+      const button = screen.getByTestId('button');
+
+      fireEvent.click(button);
+    }));
+
+  it('service should work with from SolidJS utility', () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        initial: 'inactive',
+        states: {
+          inactive: {
+            on: {
+              ACTIVATE: 'active'
+            }
+          },
+          active: {}
+        }
       });
 
-      return (
-        <button
-          data-testid="button"
-          onclick={() => {
-            service.send({ type: 'ACTIVATE' });
-          }}
-        />
-      );
-    };
+      const App = () => {
+        const service = useActorRef(machine);
 
-    render(() => <App />);
-    const button = screen.getByTestId('button');
+        createEffect(() => {
+          service.subscribe((state) => {
+            if (state.matches('active')) {
+              resolve();
+            }
+          });
+        });
 
-    fireEvent.click(button);
-  });
+        return (
+          <button
+            data-testid="button"
+            onclick={() => {
+              service.send({ type: 'ACTIVATE' });
+            }}
+          />
+        );
+      };
+
+      render(() => <App />);
+      const button = screen.getByTestId('button');
+
+      fireEvent.click(button);
+    }));
 });

@@ -30,16 +30,17 @@ describe('input', () => {
     expect(spy).toHaveBeenCalledWith(42);
   });
 
-  it('initial event should have input property', (done) => {
-    const machine = createMachine({
-      entry: ({ event }) => {
-        expect(event.input.greeting).toBe('hello');
-        done();
-      }
-    });
+  it('initial event should have input property', () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        entry: ({ event }) => {
+          expect(event.input.greeting).toBe('hello');
+          resolve();
+        }
+      });
 
-    createActor(machine, { input: { greeting: 'hello' } }).start();
-  });
+      createActor(machine, { input: { greeting: 'hello' } }).start();
+    }));
 
   it('should error if input is expected but not provided', () => {
     const machine = createMachine({
@@ -69,56 +70,58 @@ describe('input', () => {
     }).not.toThrowError();
   });
 
-  it('should provide input data to invoked machines', (done) => {
-    const invokedMachine = createMachine({
-      types: {} as {
-        input: { greeting: string };
-        context: { greeting: string };
-      },
-      context: ({ input }) => input,
-      entry: ({ context, event }) => {
-        expect(context.greeting).toBe('hello');
-        expect(event.input.greeting).toBe('hello');
-        done();
-      }
-    });
+  it('should provide input data to invoked machines', () =>
+    new Promise<void>((resolve) => {
+      const invokedMachine = createMachine({
+        types: {} as {
+          input: { greeting: string };
+          context: { greeting: string };
+        },
+        context: ({ input }) => input,
+        entry: ({ context, event }) => {
+          expect(context.greeting).toBe('hello');
+          expect(event.input.greeting).toBe('hello');
+          resolve();
+        }
+      });
 
-    const machine = createMachine({
-      invoke: {
-        src: invokedMachine,
-        input: { greeting: 'hello' }
-      }
-    });
+      const machine = createMachine({
+        invoke: {
+          src: invokedMachine,
+          input: { greeting: 'hello' }
+        }
+      });
 
-    createActor(machine).start();
-  });
+      createActor(machine).start();
+    }));
 
-  it('should provide input data to spawned machines', (done) => {
-    const spawnedMachine = createMachine({
-      types: {} as {
-        input: { greeting: string };
-        context: { greeting: string };
-      },
-      context({ input }) {
-        return input;
-      },
-      entry: ({ context, event }) => {
-        expect(context.greeting).toBe('hello');
-        expect(event.input.greeting).toBe('hello');
-        done();
-      }
-    });
+  it('should provide input data to spawned machines', () =>
+    new Promise<void>((resolve) => {
+      const spawnedMachine = createMachine({
+        types: {} as {
+          input: { greeting: string };
+          context: { greeting: string };
+        },
+        context({ input }) {
+          return input;
+        },
+        entry: ({ context, event }) => {
+          expect(context.greeting).toBe('hello');
+          expect(event.input.greeting).toBe('hello');
+          resolve();
+        }
+      });
 
-    const machine = createMachine({
-      entry: assign(({ spawn }) => {
-        return {
-          ref: spawn(spawnedMachine, { input: { greeting: 'hello' } })
-        };
-      })
-    });
+      const machine = createMachine({
+        entry: assign(({ spawn }) => {
+          return {
+            ref: spawn(spawnedMachine, { input: { greeting: 'hello' } })
+          };
+        })
+      });
 
-    createActor(machine).start();
-  });
+      createActor(machine).start();
+    }));
 
   it('should create a promise with input', async () => {
     const promiseLogic = fromPromise<{ count: number }, { count: number }>(
@@ -147,36 +150,38 @@ describe('input', () => {
     expect(transitionActor.getSnapshot().context).toEqual({ count: 42 });
   });
 
-  it('should create an observable actor with input', (done) => {
-    const observableLogic = fromObservable<
-      { count: number },
-      { count: number }
-    >(({ input }) => of(input));
+  it('should create an observable actor with input', () =>
+    new Promise<void>((resolve) => {
+      const observableLogic = fromObservable<
+        { count: number },
+        { count: number }
+      >(({ input }) => of(input));
 
-    const observableActor = createActor(observableLogic, {
-      input: { count: 42 }
-    });
+      const observableActor = createActor(observableLogic, {
+        input: { count: 42 }
+      });
 
-    const sub = observableActor.subscribe((state) => {
-      if (state.context?.count !== 42) return;
-      expect(state.context).toEqual({ count: 42 });
-      done();
-      sub.unsubscribe();
-    });
+      const sub = observableActor.subscribe((state) => {
+        if (state.context?.count !== 42) return;
+        expect(state.context).toEqual({ count: 42 });
+        resolve();
+        sub.unsubscribe();
+      });
 
-    observableActor.start();
-  });
+      observableActor.start();
+    }));
 
-  it('should create a callback actor with input', (done) => {
-    const callbackLogic = fromCallback(({ input }) => {
-      expect(input).toEqual({ count: 42 });
-      done();
-    });
+  it('should create a callback actor with input', () =>
+    new Promise<void>((resolve) => {
+      const callbackLogic = fromCallback(({ input }) => {
+        expect(input).toEqual({ count: 42 });
+        resolve();
+      });
 
-    createActor(callbackLogic, {
-      input: { count: 42 }
-    }).start();
-  });
+      createActor(callbackLogic, {
+        input: { count: 42 }
+      }).start();
+    }));
 
   it('should provide a static inline input to the referenced actor', () => {
     const spy = vi.fn();

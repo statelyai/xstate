@@ -21,190 +21,195 @@ afterEach(() => {
 
 describe('error handling', () => {
   // https://github.com/statelyai/xstate/issues/4004
-  it('does not cause an infinite loop when an error is thrown in subscribe', (done) => {
-    const machine = createMachine({
-      id: 'machine',
-      initial: 'initial',
-      context: {
-        count: 0
-      },
-      states: {
-        initial: {
-          on: { activate: 'active' }
+  it('does not cause an infinite loop when an error is thrown in subscribe', () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        id: 'machine',
+        initial: 'initial',
+        context: {
+          count: 0
         },
-        active: {}
-      }
-    });
+        states: {
+          initial: {
+            on: { activate: 'active' }
+          },
+          active: {}
+        }
+      });
 
-    const spy = vi.fn().mockImplementation(() => {
-      throw new Error('no_infinite_loop_when_error_is_thrown_in_subscribe');
-    });
+      const spy = vi.fn().mockImplementation(() => {
+        throw new Error('no_infinite_loop_when_error_is_thrown_in_subscribe');
+      });
 
-    const actor = createActor(machine).start();
+      const actor = createActor(machine).start();
 
-    actor.subscribe(spy);
-    actor.send({ type: 'activate' });
+      actor.subscribe(spy);
+      actor.send({ type: 'activate' });
 
-    expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
 
-    installGlobalOnErrorHandler((ev) => {
-      ev.preventDefault();
-      expect(ev.error.message).toEqual(
-        'no_infinite_loop_when_error_is_thrown_in_subscribe'
-      );
-      done();
-    });
-  });
+      installGlobalOnErrorHandler((ev) => {
+        ev.preventDefault();
+        expect(ev.error.message).toEqual(
+          'no_infinite_loop_when_error_is_thrown_in_subscribe'
+        );
+        resolve();
+      });
+    }));
 
-  it(`doesn't crash the actor when an error is thrown in subscribe`, (done) => {
-    const spy = vi.fn();
+  it(`doesn't crash the actor when an error is thrown in subscribe`, () =>
+    new Promise<void>((resolve) => {
+      const spy = vi.fn();
 
-    const machine = createMachine({
-      id: 'machine',
-      initial: 'initial',
-      context: {
-        count: 0
-      },
-      states: {
-        initial: {
-          on: { activate: 'active' }
+      const machine = createMachine({
+        id: 'machine',
+        initial: 'initial',
+        context: {
+          count: 0
         },
-        active: {
-          on: {
-            do: {
-              actions: spy
+        states: {
+          initial: {
+            on: { activate: 'active' }
+          },
+          active: {
+            on: {
+              do: {
+                actions: spy
+              }
             }
           }
         }
-      }
-    });
+      });
 
-    const subscriber = vi.fn().mockImplementationOnce(() => {
-      throw new Error('doesnt_crash_actor_when_error_is_thrown_in_subscribe');
-    });
+      const subscriber = vi.fn().mockImplementationOnce(() => {
+        throw new Error('doesnt_crash_actor_when_error_is_thrown_in_subscribe');
+      });
 
-    const actor = createActor(machine).start();
+      const actor = createActor(machine).start();
 
-    actor.subscribe(subscriber);
-    actor.send({ type: 'activate' });
+      actor.subscribe(subscriber);
+      actor.send({ type: 'activate' });
 
-    expect(subscriber).toHaveBeenCalledTimes(1);
-    expect(actor.getSnapshot().status).toEqual('active');
+      expect(subscriber).toHaveBeenCalledTimes(1);
+      expect(actor.getSnapshot().status).toEqual('active');
 
-    installGlobalOnErrorHandler((ev) => {
-      ev.preventDefault();
-      expect(ev.error.message).toEqual(
-        'doesnt_crash_actor_when_error_is_thrown_in_subscribe'
-      );
+      installGlobalOnErrorHandler((ev) => {
+        ev.preventDefault();
+        expect(ev.error.message).toEqual(
+          'doesnt_crash_actor_when_error_is_thrown_in_subscribe'
+        );
 
-      actor.send({ type: 'do' });
-      expect(spy).toHaveBeenCalledTimes(1);
+        actor.send({ type: 'do' });
+        expect(spy).toHaveBeenCalledTimes(1);
 
-      done();
-    });
-  });
+        resolve();
+      });
+    }));
 
-  it(`doesn't notify error listener when an error is thrown in subscribe`, (done) => {
-    const machine = createMachine({
-      id: 'machine',
-      initial: 'initial',
-      context: {
-        count: 0
-      },
-      states: {
-        initial: {
-          on: { activate: 'active' }
+  it(`doesn't notify error listener when an error is thrown in subscribe`, () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        id: 'machine',
+        initial: 'initial',
+        context: {
+          count: 0
         },
-        active: {}
-      }
-    });
-
-    const nextSpy = vi.fn().mockImplementation(() => {
-      throw new Error(
-        'doesnt_notify_error_listener_when_error_is_thrown_in_subscribe'
-      );
-    });
-    const errorSpy = vi.fn();
-
-    const actor = createActor(machine).start();
-
-    actor.subscribe({
-      next: nextSpy,
-      error: errorSpy
-    });
-    actor.send({ type: 'activate' });
-
-    expect(nextSpy).toHaveBeenCalledTimes(1);
-    expect(errorSpy).toHaveBeenCalledTimes(0);
-
-    installGlobalOnErrorHandler((ev) => {
-      ev.preventDefault();
-      expect(ev.error.message).toEqual(
-        'doesnt_notify_error_listener_when_error_is_thrown_in_subscribe'
-      );
-      done();
-    });
-  });
-
-  it('unhandled sync errors thrown when starting a child actor should be reported globally', (done) => {
-    const machine = createMachine({
-      initial: 'pending',
-      states: {
-        pending: {
-          invoke: {
-            src: fromCallback(() => {
-              throw new Error('unhandled_sync_error_in_actor_start');
-            }),
-            onDone: 'success'
-          }
-        },
-        success: {
-          type: 'final'
+        states: {
+          initial: {
+            on: { activate: 'active' }
+          },
+          active: {}
         }
-      }
-    });
+      });
 
-    createActor(machine).start();
+      const nextSpy = vi.fn().mockImplementation(() => {
+        throw new Error(
+          'doesnt_notify_error_listener_when_error_is_thrown_in_subscribe'
+        );
+      });
+      const errorSpy = vi.fn();
 
-    installGlobalOnErrorHandler((ev) => {
-      ev.preventDefault();
-      expect(ev.error.message).toEqual('unhandled_sync_error_in_actor_start');
-      done();
-    });
-  });
+      const actor = createActor(machine).start();
 
-  it('unhandled rejection of a promise actor should be reported globally in absence of error listener', (done) => {
-    const machine = createMachine({
-      initial: 'pending',
-      states: {
-        pending: {
-          invoke: {
-            src: fromPromise(() =>
-              Promise.reject(
-                new Error(
-                  'unhandled_rejection_in_promise_actor_without_error_listener'
+      actor.subscribe({
+        next: nextSpy,
+        error: errorSpy
+      });
+      actor.send({ type: 'activate' });
+
+      expect(nextSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledTimes(0);
+
+      installGlobalOnErrorHandler((ev) => {
+        ev.preventDefault();
+        expect(ev.error.message).toEqual(
+          'doesnt_notify_error_listener_when_error_is_thrown_in_subscribe'
+        );
+        resolve();
+      });
+    }));
+
+  it('unhandled sync errors thrown when starting a child actor should be reported globally', () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: fromCallback(() => {
+                throw new Error('unhandled_sync_error_in_actor_start');
+              }),
+              onDone: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      createActor(machine).start();
+
+      installGlobalOnErrorHandler((ev) => {
+        ev.preventDefault();
+        expect(ev.error.message).toEqual('unhandled_sync_error_in_actor_start');
+        resolve();
+      });
+    }));
+
+  it('unhandled rejection of a promise actor should be reported globally in absence of error listener', () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: fromPromise(() =>
+                Promise.reject(
+                  new Error(
+                    'unhandled_rejection_in_promise_actor_without_error_listener'
+                  )
                 )
-              )
-            ),
-            onDone: 'success'
+              ),
+              onDone: 'success'
+            }
+          },
+          success: {
+            type: 'final'
           }
-        },
-        success: {
-          type: 'final'
         }
-      }
-    });
+      });
 
-    createActor(machine).start();
+      createActor(machine).start();
 
-    installGlobalOnErrorHandler((ev) => {
-      ev.preventDefault();
-      expect(ev.error.message).toEqual(
-        'unhandled_rejection_in_promise_actor_without_error_listener'
-      );
-      done();
-    });
-  });
+      installGlobalOnErrorHandler((ev) => {
+        ev.preventDefault();
+        expect(ev.error.message).toEqual(
+          'unhandled_rejection_in_promise_actor_without_error_listener'
+        );
+        resolve();
+      });
+    }));
 
   it('unhandled rejection of a promise actor should be reported to the existing error listener of its parent', async () => {
     const errorSpy = vi.fn();
@@ -303,142 +308,146 @@ describe('error handling', () => {
     `);
   });
 
-  it('handled sync errors thrown when starting a child actor should not be reported globally', (done) => {
-    const machine = createMachine({
-      initial: 'pending',
-      states: {
-        pending: {
-          invoke: {
-            src: fromCallback(() => {
-              throw new Error('handled_sync_error_in_actor_start');
-            }),
-            onError: 'failed'
-          }
-        },
-        failed: {
-          type: 'final'
-        }
-      }
-    });
-
-    createActor(machine).start();
-
-    installGlobalOnErrorHandler(() => {
-      done.fail();
-    });
-
-    setTimeout(() => {
-      done();
-    }, 10);
-  });
-
-  it('handled sync errors thrown when starting a child actor should be reported globally when not all of its own observers come with an error listener', (done) => {
-    const machine = createMachine({
-      initial: 'pending',
-      states: {
-        pending: {
-          invoke: {
-            src: fromCallback(() => {
-              throw new Error('handled_sync_error_in_actor_start');
-            }),
-            onError: 'failed'
-          }
-        },
-        failed: {
-          type: 'final'
-        }
-      }
-    });
-
-    const actorRef = createActor(machine);
-    const childActorRef = Object.values(actorRef.getSnapshot().children)[0];
-    childActorRef.subscribe({
-      error: function preventUnhandledErrorListener() {}
-    });
-    childActorRef.subscribe(() => {});
-    actorRef.start();
-
-    installGlobalOnErrorHandler((ev) => {
-      ev.preventDefault();
-      expect(ev.error.message).toEqual('handled_sync_error_in_actor_start');
-      done();
-    });
-  });
-
-  it('handled sync errors thrown when starting a child actor should not be reported globally when all of its own observers come with an error listener', (done) => {
-    const machine = createMachine({
-      initial: 'pending',
-      states: {
-        pending: {
-          invoke: {
-            src: fromCallback(() => {
-              throw new Error('handled_sync_error_in_actor_start');
-            }),
-            onError: 'failed'
-          }
-        },
-        failed: {
-          type: 'final'
-        }
-      }
-    });
-
-    const actorRef = createActor(machine);
-    const childActorRef = Object.values(actorRef.getSnapshot().children)[0];
-    childActorRef.subscribe({
-      error: function preventUnhandledErrorListener() {}
-    });
-    childActorRef.subscribe({
-      error: function preventUnhandledErrorListener() {}
-    });
-    actorRef.start();
-
-    installGlobalOnErrorHandler(() => {
-      done.fail();
-    });
-
-    setTimeout(() => {
-      done();
-    }, 10);
-  });
-
-  it('unhandled sync errors thrown when starting a child actor should be reported twice globally when not all of its own observers come with an error listener and when the root has no error listener of its own', (done) => {
-    const machine = createMachine({
-      initial: 'pending',
-      states: {
-        pending: {
-          invoke: {
-            src: fromCallback(() => {
-              throw new Error('handled_sync_error_in_actor_start');
-            })
+  it('handled sync errors thrown when starting a child actor should not be reported globally', () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: fromCallback(() => {
+                throw new Error('handled_sync_error_in_actor_start');
+              }),
+              onError: 'failed'
+            }
+          },
+          failed: {
+            type: 'final'
           }
         }
-      }
-    });
+      });
 
-    const actorRef = createActor(machine);
-    const childActorRef = Object.values(actorRef.getSnapshot().children)[0];
-    childActorRef.subscribe({
-      error: function preventUnhandledErrorListener() {}
-    });
-    childActorRef.subscribe({});
-    actorRef.start();
+      createActor(machine).start();
 
-    const actual: string[] = [];
+      installGlobalOnErrorHandler(() => {
+        done.fail();
+      });
 
-    installGlobalOnErrorHandler((ev) => {
-      ev.preventDefault();
-      actual.push(ev.error.message);
+      setTimeout(() => {
+        resolve();
+      }, 10);
+    }));
 
-      if (actual.length === 2) {
-        expect(actual).toEqual([
-          'handled_sync_error_in_actor_start',
-          'handled_sync_error_in_actor_start'
-        ]);
-        done();
-      }
-    });
-  });
+  it('handled sync errors thrown when starting a child actor should be reported globally when not all of its own observers come with an error listener', () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: fromCallback(() => {
+                throw new Error('handled_sync_error_in_actor_start');
+              }),
+              onError: 'failed'
+            }
+          },
+          failed: {
+            type: 'final'
+          }
+        }
+      });
+
+      const actorRef = createActor(machine);
+      const childActorRef = Object.values(actorRef.getSnapshot().children)[0];
+      childActorRef.subscribe({
+        error: function preventUnhandledErrorListener() {}
+      });
+      childActorRef.subscribe(() => {});
+      actorRef.start();
+
+      installGlobalOnErrorHandler((ev) => {
+        ev.preventDefault();
+        expect(ev.error.message).toEqual('handled_sync_error_in_actor_start');
+        resolve();
+      });
+    }));
+
+  it('handled sync errors thrown when starting a child actor should not be reported globally when all of its own observers come with an error listener', () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: fromCallback(() => {
+                throw new Error('handled_sync_error_in_actor_start');
+              }),
+              onError: 'failed'
+            }
+          },
+          failed: {
+            type: 'final'
+          }
+        }
+      });
+
+      const actorRef = createActor(machine);
+      const childActorRef = Object.values(actorRef.getSnapshot().children)[0];
+      childActorRef.subscribe({
+        error: function preventUnhandledErrorListener() {}
+      });
+      childActorRef.subscribe({
+        error: function preventUnhandledErrorListener() {}
+      });
+      actorRef.start();
+
+      installGlobalOnErrorHandler(() => {
+        done.fail();
+      });
+
+      setTimeout(() => {
+        resolve();
+      }, 10);
+    }));
+
+  it('unhandled sync errors thrown when starting a child actor should be reported twice globally when not all of its own observers come with an error listener and when the root has no error listener of its own', () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: fromCallback(() => {
+                throw new Error('handled_sync_error_in_actor_start');
+              })
+            }
+          }
+        }
+      });
+
+      const actorRef = createActor(machine);
+      const childActorRef = Object.values(actorRef.getSnapshot().children)[0];
+      childActorRef.subscribe({
+        error: function preventUnhandledErrorListener() {}
+      });
+      childActorRef.subscribe({});
+      actorRef.start();
+
+      const actual: string[] = [];
+
+      installGlobalOnErrorHandler((ev) => {
+        ev.preventDefault();
+        actual.push(ev.error.message);
+
+        if (actual.length === 2) {
+          expect(actual).toEqual([
+            'handled_sync_error_in_actor_start',
+            'handled_sync_error_in_actor_start'
+          ]);
+          resolve();
+        }
+      });
+    }));
 
   it(`handled sync errors shouldn't notify the error listener`, () => {
     const machine = createMachine({
@@ -506,44 +515,45 @@ describe('error handling', () => {
     `);
   });
 
-  it(`unhandled sync errors should not notify the global listener when the root error listener is present`, (done) => {
-    const machine = createMachine({
-      initial: 'pending',
-      states: {
-        pending: {
-          invoke: {
-            src: fromCallback(() => {
-              throw new Error(
-                'unhandled_sync_error_in_actor_start_with_root_error_listener'
-              );
-            }),
-            onDone: 'success'
+  it(`unhandled sync errors should not notify the global listener when the root error listener is present`, () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: fromCallback(() => {
+                throw new Error(
+                  'unhandled_sync_error_in_actor_start_with_root_error_listener'
+                );
+              }),
+              onDone: 'success'
+            }
+          },
+          success: {
+            type: 'final'
           }
-        },
-        success: {
-          type: 'final'
         }
-      }
-    });
+      });
 
-    const errorSpy = vi.fn();
+      const errorSpy = vi.fn();
 
-    const actorRef = createActor(machine);
-    actorRef.subscribe({
-      error: errorSpy
-    });
-    actorRef.start();
+      const actorRef = createActor(machine);
+      actorRef.subscribe({
+        error: errorSpy
+      });
+      actorRef.start();
 
-    expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledTimes(1);
 
-    installGlobalOnErrorHandler(() => {
-      done.fail();
-    });
+      installGlobalOnErrorHandler(() => {
+        done.fail();
+      });
 
-    setTimeout(() => {
-      done();
-    }, 10);
-  });
+      setTimeout(() => {
+        resolve();
+      }, 10);
+    }));
 
   it(`handled sync errors thrown when starting an actor shouldn't crash the parent`, () => {
     const spy = vi.fn();
@@ -578,133 +588,137 @@ describe('error handling', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it(`unhandled sync errors thrown when starting an actor should crash the parent`, (done) => {
-    const machine = createMachine({
-      initial: 'pending',
-      states: {
-        pending: {
-          invoke: {
-            src: fromCallback(() => {
-              throw new Error('unhandled_sync_error_in_actor_start');
-            })
+  it(`unhandled sync errors thrown when starting an actor should crash the parent`, () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: fromCallback(() => {
+                throw new Error('unhandled_sync_error_in_actor_start');
+              })
+            }
           }
         }
-      }
-    });
+      });
 
-    const actorRef = createActor(machine);
-    actorRef.start();
+      const actorRef = createActor(machine);
+      actorRef.start();
 
-    expect(actorRef.getSnapshot().status).toBe('error');
+      expect(actorRef.getSnapshot().status).toBe('error');
 
-    installGlobalOnErrorHandler((ev) => {
-      ev.preventDefault();
-      expect(ev.error.message).toEqual('unhandled_sync_error_in_actor_start');
-      done();
-    });
-  });
+      installGlobalOnErrorHandler((ev) => {
+        ev.preventDefault();
+        expect(ev.error.message).toEqual('unhandled_sync_error_in_actor_start');
+        resolve();
+      });
+    }));
 
-  it(`error thrown by the error listener should be reported globally`, (done) => {
-    const machine = createMachine({
-      initial: 'pending',
-      states: {
-        pending: {
-          invoke: {
-            src: fromCallback(() => {
-              throw new Error('handled_sync_error_in_actor_start');
-            })
+  it(`error thrown by the error listener should be reported globally`, () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: fromCallback(() => {
+                throw new Error('handled_sync_error_in_actor_start');
+              })
+            }
           }
         }
-      }
-    });
+      });
 
-    const actorRef = createActor(machine);
-    actorRef.subscribe({
-      error: () => {
-        throw new Error('error_thrown_by_error_listener');
-      }
-    });
-    actorRef.start();
+      const actorRef = createActor(machine);
+      actorRef.subscribe({
+        error: () => {
+          throw new Error('error_thrown_by_error_listener');
+        }
+      });
+      actorRef.start();
 
-    installGlobalOnErrorHandler((ev) => {
-      ev.preventDefault();
-      expect(ev.error.message).toEqual('error_thrown_by_error_listener');
-      done();
-    });
-  });
+      installGlobalOnErrorHandler((ev) => {
+        ev.preventDefault();
+        expect(ev.error.message).toEqual('error_thrown_by_error_listener');
+        resolve();
+      });
+    }));
 
-  it(`error should be reported globally if not every observer comes with an error listener`, (done) => {
-    const machine = createMachine({
-      initial: 'pending',
-      states: {
-        pending: {
-          invoke: {
-            src: fromCallback(() => {
-              throw new Error(
-                'error_thrown_when_not_every_observer_comes_with_an_error_listener'
-              );
-            })
+  it(`error should be reported globally if not every observer comes with an error listener`, () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: fromCallback(() => {
+                throw new Error(
+                  'error_thrown_when_not_every_observer_comes_with_an_error_listener'
+                );
+              })
+            }
           }
         }
-      }
-    });
+      });
 
-    const actorRef = createActor(machine);
-    actorRef.subscribe({
-      error: function preventUnhandledErrorListener() {}
-    });
-    actorRef.subscribe(() => {});
-    actorRef.start();
+      const actorRef = createActor(machine);
+      actorRef.subscribe({
+        error: function preventUnhandledErrorListener() {}
+      });
+      actorRef.subscribe(() => {});
+      actorRef.start();
 
-    installGlobalOnErrorHandler((ev) => {
-      ev.preventDefault();
-      expect(ev.error.message).toEqual(
-        'error_thrown_when_not_every_observer_comes_with_an_error_listener'
-      );
-      done();
-    });
-  });
-
-  it(`uncaught error and an error thrown by the error listener should both be reported globally when not every observer comes with an error listener`, (done) => {
-    const machine = createMachine({
-      initial: 'pending',
-      states: {
-        pending: {
-          invoke: {
-            src: fromCallback(() => {
-              throw new Error(
-                'error_thrown_when_not_every_observer_comes_with_an_error_listener'
-              );
-            })
-          }
-        }
-      }
-    });
-
-    const actorRef = createActor(machine);
-    actorRef.subscribe({
-      error: () => {
-        throw new Error('error_thrown_by_error_listener');
-      }
-    });
-    actorRef.subscribe(() => {});
-    actorRef.start();
-
-    let actual: string[] = [];
-
-    installGlobalOnErrorHandler((ev) => {
-      ev.preventDefault();
-      actual.push(ev.error.message);
-
-      if (actual.length === 2) {
-        expect(actual).toEqual([
-          'error_thrown_by_error_listener',
+      installGlobalOnErrorHandler((ev) => {
+        ev.preventDefault();
+        expect(ev.error.message).toEqual(
           'error_thrown_when_not_every_observer_comes_with_an_error_listener'
-        ]);
-        done();
-      }
-    });
-  });
+        );
+        resolve();
+      });
+    }));
+
+  it(`uncaught error and an error thrown by the error listener should both be reported globally when not every observer comes with an error listener`, () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: fromCallback(() => {
+                throw new Error(
+                  'error_thrown_when_not_every_observer_comes_with_an_error_listener'
+                );
+              })
+            }
+          }
+        }
+      });
+
+      const actorRef = createActor(machine);
+      actorRef.subscribe({
+        error: () => {
+          throw new Error('error_thrown_by_error_listener');
+        }
+      });
+      actorRef.subscribe(() => {});
+      actorRef.start();
+
+      let actual: string[] = [];
+
+      installGlobalOnErrorHandler((ev) => {
+        ev.preventDefault();
+        actual.push(ev.error.message);
+
+        if (actual.length === 2) {
+          expect(actual).toEqual([
+            'error_thrown_by_error_listener',
+            'error_thrown_when_not_every_observer_comes_with_an_error_listener'
+          ]);
+          resolve();
+        }
+      });
+    }));
 
   it('error thrown in initial custom entry action should error the actor', () => {
     const machine = createMachine({

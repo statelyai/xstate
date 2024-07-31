@@ -48,42 +48,43 @@ describe('spawnChild action', () => {
     expect(actor.getSnapshot().children.child).toBeDefined();
   });
 
-  it('should accept `syncSnapshot` option', (done) => {
-    const observableLogic = fromObservable(() => interval(10));
-    const observableMachine = createMachine({
-      id: 'observable',
-      initial: 'idle',
-      context: {
-        observableRef: undefined! as ActorRefFrom<typeof observableLogic>
-      },
-      states: {
-        idle: {
-          entry: spawnChild(observableLogic, {
-            id: 'int',
-            syncSnapshot: true
-          }),
-          on: {
-            'xstate.snapshot.int': {
-              target: 'success',
-              guard: ({ event }) => event.snapshot.context === 5
-            }
-          }
+  it('should accept `syncSnapshot` option', () =>
+    new Promise<void>((resolve) => {
+      const observableLogic = fromObservable(() => interval(10));
+      const observableMachine = createMachine({
+        id: 'observable',
+        initial: 'idle',
+        context: {
+          observableRef: undefined! as ActorRefFrom<typeof observableLogic>
         },
-        success: {
-          type: 'final'
+        states: {
+          idle: {
+            entry: spawnChild(observableLogic, {
+              id: 'int',
+              syncSnapshot: true
+            }),
+            on: {
+              'xstate.snapshot.int': {
+                target: 'success',
+                guard: ({ event }) => event.snapshot.context === 5
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
         }
-      }
-    });
+      });
 
-    const observableService = createActor(observableMachine);
-    observableService.subscribe({
-      complete: () => {
-        done();
-      }
-    });
+      const observableService = createActor(observableMachine);
+      observableService.subscribe({
+        complete: () => {
+          resolve();
+        }
+      });
 
-    observableService.start();
-  });
+      observableService.start();
+    }));
 
   it('should handle a dynamic id', () => {
     const spy = vi.fn();
