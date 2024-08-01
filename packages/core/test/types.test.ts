@@ -30,7 +30,8 @@ import {
   ActorRef,
   SnapshotFrom,
   EmittedFrom,
-  EventFrom
+  EventFrom,
+  ActorRefFromLogic
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -4594,13 +4595,29 @@ it('Actor<T> should be assignable to ActorRefFrom<T>', () => {
   actor satisfies ActorRefFrom<typeof logic>;
 
   class ActorThing<T extends AnyActorLogic> {
-    // actorRef: ActorRefFrom<T>;
     actorRef: ActorRefFrom<T>;
+    // actorRef: ActorRefFromLogic<T>;
     constructor(actorLogic: T) {
       const actor = createActor(actorLogic);
 
       // But it doesn't work here...
       actor satisfies ActorRefFrom<typeof actorLogic>;
+      this.actorRef = actor;
+    }
+  }
+
+  new ActorThing(logic);
+});
+
+it('Actor<T> should be assignable to ActorRefFromLogic<T>', () => {
+  const logic = createMachine({});
+
+  class ActorThing<T extends AnyActorLogic> {
+    actorRef: ActorRefFromLogic<T>;
+    constructor(actorLogic: T) {
+      const actor = createActor(actorLogic);
+
+      actor satisfies ActorRefFromLogic<typeof actorLogic>;
       this.actorRef = actor;
     }
   }

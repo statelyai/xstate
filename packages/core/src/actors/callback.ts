@@ -2,7 +2,7 @@ import { XSTATE_STOP } from '../constants.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
-  ActorRefFrom,
+  ActorRefFromLogic,
   AnyActorRef,
   AnyEventObject,
   EventObject,
@@ -73,7 +73,7 @@ export type CallbackActorLogic<
 export type CallbackActorRef<
   TEvent extends EventObject,
   TInput = NonReducibleUnknown
-> = ActorRefFrom<CallbackActorLogic<TEvent, TInput>>;
+> = ActorRefFromLogic<CallbackActorLogic<TEvent, TInput>>;
 
 type Receiver<TEvent extends EventObject> = (
   listener: {
