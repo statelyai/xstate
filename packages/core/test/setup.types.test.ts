@@ -9,6 +9,7 @@ import {
   fromPromise,
   fromTransition,
   log,
+  matchesState,
   not,
   raise,
   sendParent,
@@ -17,6 +18,7 @@ import {
   spawnChild,
   stopChild
 } from '../src';
+import { stateValueMatches } from '../src/utils';
 
 describe('setup()', () => {
   it('should be able to define a simple function guard', () => {
@@ -1689,6 +1691,20 @@ describe('setup()', () => {
           };
         }
       }
+    }
+
+    // Nested state exhaustiveness
+    if (stateValueMatches(value, 'red')) {
+      // @ts-expect-error
+      value satisfies 'green';
+
+      // @ts-expect-error
+      value satisfies 'red';
+
+      // @ts-expect-error
+      value.emergency;
+
+      value.red satisfies 'walk' | 'wait' | 'stop';
     }
 
     if (

@@ -51,6 +51,13 @@ export function matchesState(
   });
 }
 
+type ParentKeys<T extends StateValue> = T extends string ? T : keyof T;
+
+export function stateValueMatches<
+  T extends StateValue,
+  const M extends ParentKeys<T>
+>(stateValue: T, matcher: M): stateValue is { [P in M]: any } {}
+
 export function toStatePath(stateId: string | string[]): string[] {
   if (isArray(stateId)) {
     return stateId;

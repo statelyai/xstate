@@ -24,7 +24,7 @@ import type {
 } from './types.ts';
 import { matchesState } from './utils.ts';
 
-type ToTestStateValue<TStateValue extends StateValue> =
+export type ToTestStateValue<TStateValue extends StateValue> =
   TStateValue extends string
     ? TStateValue
     : IsNever<keyof TStateValue> extends true
