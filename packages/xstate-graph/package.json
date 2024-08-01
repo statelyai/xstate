@@ -40,10 +40,10 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^5.16.0"
+    "xstate": "^5.17.1"
   },
   "devDependencies": {
-    "xstate": "5.16.0"
+    "xstate": "5.17.1"
   },
   "dependencies": {}
 }

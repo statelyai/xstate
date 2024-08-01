@@ -1,5 +1,61 @@
 # xstate
 
+## 5.17.1
+
+### Patch Changes
+
+- [#5009](https://github.com/statelyai/xstate/pull/5009) [`51d4c4fc5`](https://github.com/statelyai/xstate/commit/51d4c4fc5bd303a00a554534956d8b994ea82e99) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The internal types for `StateMachine<...>` have been improved so that all type params are required, to prevent errors when using the types. This fixes weird issues like #5008.
+
+## 5.17.0
+
+### Minor Changes
+
+- [#4979](https://github.com/statelyai/xstate/pull/4979) [`a0e9ebcef`](https://github.com/statelyai/xstate/commit/a0e9ebcef26552659ac6c2c785c138387eafc766) Thanks [@davidkpiano](https://github.com/davidkpiano)! - State IDs are now strongly typed as keys of `snapshot.getMeta()` for state machine actor snapshots.
+
+  ```ts
+  const machine = setup({
+    // ...
+  }).createMachine({
+    id: 'root',
+    initial: 'parentState',
+    states: {
+      parentState: {
+        meta: {},
+        initial: 'childState',
+        states: {
+          childState: {
+            meta: {}
+          },
+          stateWithId: {
+            id: 'state with id',
+            meta: {}
+          }
+        }
+      }
+    }
+  });
+
+  const actor = createActor(machine);
+
+  const metaValues = actor.getSnapshot().getMeta();
+
+  // Auto-completed keys:
+  metaValues.root;
+  metaValues['root.parentState'];
+  metaValues['root.parentState.childState'];
+  metaValues['state with id'];
+
+  // @ts-expect-error
+  metaValues['root.parentState.stateWithId'];
+
+  // @ts-expect-error
+  metaValues['unknown state'];
+  ```
+
+### Patch Changes
+
+- [#5002](https://github.com/statelyai/xstate/pull/5002) [`9877d548b`](https://github.com/statelyai/xstate/commit/9877d548b3cab1bbc5db4e3a51bbcf223868bd46) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix an issue where `clearTimeout(undefined)` was sometimes being called, which can cause errors for some clock implementations. See https://github.com/statelyai/xstate/issues/5001 for details.
+
 ## 5.16.0
 
 ### Minor Changes
