@@ -1,5 +1,11 @@
 # xstate
 
+## 5.17.1
+
+### Patch Changes
+
+- [#5009](https://github.com/statelyai/xstate/pull/5009) [`51d4c4fc5`](https://github.com/statelyai/xstate/commit/51d4c4fc5bd303a00a554534956d8b994ea82e99) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The internal types for `StateMachine<...>` have been improved so that all type params are required, to prevent errors when using the types. This fixes weird issues like #5008.
+
 ## 5.17.0
 
 ### Minor Changes

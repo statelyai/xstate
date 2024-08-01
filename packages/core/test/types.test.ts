@@ -404,6 +404,7 @@ it('should work with generic context', () => {
     any,
     any,
     any,
+    any,
     any, // TMeta
     any
   > {
@@ -538,6 +539,7 @@ describe('events', () => {
       _machine: StateMachine<
         TContext,
         TEvent,
+        any,
         any,
         any,
         any,

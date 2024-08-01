@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react';
-import { ActorRefFrom, assign, createMachine } from 'xstate';
+import { ActorRefFrom, assign, createMachine, setup } from 'xstate';
 import { useMachine, useSelector } from '../src/index.ts';
+import { useEffect, useMemo } from 'react';
 
 describe('useMachine', () => {
   interface YesNoContext {
@@ -118,4 +119,25 @@ describe('useMachine', () => {
 
     noop(App);
   });
+});
+
+it('useMachine types work for machines with a specified id and state with an after property #5008', () => {
+  // https://github.com/statelyai/xstate/issues/5008
+  const cheatCodeMachine = setup({}).createMachine({
+    id: 'cheatCodeMachine',
+    initial: 'disabled',
+    states: {
+      disabled: {
+        after: {}
+      },
+      enabled: {}
+    }
+  });
+
+  function _useCheatCode(): boolean {
+    // This should typecheck without errors
+    const [state] = useMachine(cheatCodeMachine);
+
+    return state.matches('enabled');
+  }
 });

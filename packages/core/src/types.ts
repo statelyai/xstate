@@ -110,7 +110,8 @@ export interface UnifiedArg<
       StateValue,
       string,
       unknown,
-      TODO // TMeta
+      TODO, // TMeta
+      TODO // State schema
     >,
     TEvent,
     AnyEventObject
@@ -139,7 +140,8 @@ export type InputFrom<T> = T extends StateMachine<
   infer TInput,
   infer _TOutput,
   infer _TEmitted,
-  infer _TMeta
+  infer _TMeta,
+  infer _TStateSchema
 >
   ? TInput
   : T extends ActorLogic<
@@ -1122,7 +1124,8 @@ export type AnyStateMachine = StateMachine<
   any, // input
   any, // output
   any, // emitted
-  any // TMeta
+  any, // TMeta
+  any // TStateSchema
 >;
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
@@ -1321,7 +1324,8 @@ export type ContextFactory<
       StateValue,
       string,
       unknown,
-      TODO // TMeta
+      TODO, // TMeta
+      TODO // State schema
     >,
     TEvent,
     AnyEventObject
@@ -1627,7 +1631,8 @@ export type Mapper<
       StateValue,
       string,
       unknown,
-      TODO // TMeta
+      TODO, // TMeta
+      TODO // State schema
     >,
     TEvent,
     AnyEventObject
@@ -1727,8 +1732,9 @@ export interface StateConfig<
     any,
     any,
     any,
+    any,
     any, // TMeta
-    any
+    any // TStateSchema
   >;
 }
 
@@ -1990,8 +1996,9 @@ export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
       any,
       any,
       any,
+      any,
       any, // TMeta
-      any
+      any // TStateSchema
     >
     ? R
     : R extends Promise<infer U>
@@ -2030,7 +2037,8 @@ export type InterpreterFrom<
   infer TInput,
   infer TOutput,
   infer TEmitted,
-  infer TMeta
+  infer TMeta,
+  infer TStateSchema
 >
   ? Actor<
       ActorLogic<
@@ -2041,7 +2049,8 @@ export type InterpreterFrom<
           TStateValue,
           TTag,
           TOutput,
-          TMeta
+          TMeta,
+          TStateSchema
         >,
         TEvent,
         TInput,
@@ -2066,7 +2075,8 @@ export type MachineImplementationsFrom<
   infer _TInput,
   infer _TOutput,
   infer TEmitted,
-  infer _TMeta
+  infer _TMeta,
+  infer _TStateSchema
 >
   ? InternalMachineImplementations<
       ResolvedStateMachineTypes<
@@ -2282,7 +2292,8 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       infer _TInput,
       infer _TOutput,
       infer _TEmitted,
-      infer _TMeta
+      infer _TMeta,
+      infer _TStateSchema
     >
     ? TEvent
     : R extends MachineSnapshot<
@@ -2292,7 +2303,8 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
           infer _TStateValue,
           infer _TTag,
           infer _TOutput,
-          infer _TMeta
+          infer _TMeta,
+          infer _TStateSchema
         >
       ? TEvent
       : R extends ActorRef<infer _TSnapshot, infer TEvent, infer _TEmitted>
@@ -2320,7 +2332,8 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TInput,
       infer _TOutput,
       infer _TEmitted,
-      infer _TMeta
+      infer _TMeta,
+      infer _TStateSchema
     >
     ? TContext
     : R extends MachineSnapshot<
@@ -2330,7 +2343,8 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
           infer _TStateValue,
           infer _TTag,
           infer _TOutput,
-          infer _TMeta
+          infer _TMeta,
+          infer _TStateSchema
         >
       ? TContext
       : R extends Actor<infer TActorLogic>
@@ -2342,12 +2356,13 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
             infer _TAction,
             infer _TGuard,
             infer _TDelay,
+            infer _TStateValue,
             infer _TTag,
             infer _TInput,
             infer _TOutput,
             infer _TEmitted,
             infer _TMeta,
-            infer _TTypes
+            infer _TStateSchema
           >
           ? TContext
           : never
