@@ -1868,6 +1868,9 @@ it('should not notify the completion observer for an active logic when it gets s
 });
 
 it('should not notify the completion observer for an errored logic when it gets subscribed after it errors', () => {
+  // use fake timers to avoid error being thrown in separate microtask
+  vi.useFakeTimers();
+
   const spy = vi.fn();
 
   const machine = createMachine({
@@ -1877,6 +1880,7 @@ it('should not notify the completion observer for an errored logic when it gets 
   });
   const actorRef = createActor(machine);
   actorRef.subscribe({ error: () => {} });
+
   actorRef.start();
 
   actorRef.subscribe({
