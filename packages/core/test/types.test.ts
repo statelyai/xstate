@@ -3485,8 +3485,8 @@ describe('inline actions (prev. enqueueActions)', () => {
         poke: () => {}
       }
     }).createMachine({
-      entry: (_, _params, x) => {
-        x.action({
+      entry: (_, _params, enq) => {
+        enq.action({
           type: 'greet',
           params: {
             name: 'Anders'
@@ -3505,8 +3505,8 @@ describe('inline actions (prev. enqueueActions)', () => {
         poke: () => {}
       }
     }).createMachine({
-      entry: (_, _params, x) => {
-        x.action({
+      entry: (_, _params, enq) => {
+        enq.action({
           type: 'greet',
           // @ts-expect-error
           params: {}
@@ -3524,8 +3524,8 @@ describe('inline actions (prev. enqueueActions)', () => {
         poke: () => {}
       }
     }).createMachine({
-      entry: (_, _params, x) => {
-        x.action(
+      entry: (_, _params, enq) => {
+        enq.action(
           // @ts-expect-error
           {
             type: 'other'
@@ -3544,8 +3544,8 @@ describe('inline actions (prev. enqueueActions)', () => {
         poke: () => {}
       }
     }).createMachine({
-      entry: (_, _params, x) => {
-        x.action('poke');
+      entry: (_, _params, enq) => {
+        enq.action('poke');
       }
     });
   });
@@ -3559,8 +3559,8 @@ describe('inline actions (prev. enqueueActions)', () => {
         poke: () => {}
       }
     }).createMachine({
-      entry: (_, _params, x) => {
-        x.action({ type: 'poke' });
+      entry: (_, _params, enq) => {
+        enq.action({ type: 'poke' });
       }
     });
   });
@@ -3568,8 +3568,8 @@ describe('inline actions (prev. enqueueActions)', () => {
   it('should be able to execute an inline custom action', () => {
     setup({
       actions: {
-        foo: (_, _params: any, x) => {
-          x.action(() => {});
+        foo: (_, _params: any, enq) => {
+          enq.action(() => {});
         }
       }
     });
@@ -3604,8 +3604,8 @@ describe('inline actions (prev. enqueueActions)', () => {
         isGreaterThan: (_, { count }: { count: number }) => count > 10
       },
       actions: {
-        foo: (_, _params, x) => {
-          x.check('plainGuard');
+        foo: (_, _params, enq) => {
+          enq.check('plainGuard');
         }
       }
     });
@@ -3618,8 +3618,8 @@ describe('inline actions (prev. enqueueActions)', () => {
         plainGuard: () => true
       },
       actions: {
-        foo: (_, _params, x) => {
-          x.check({
+        foo: (_, _params, enq) => {
+          enq.check({
             type: 'isGreaterThan',
             params: {
               count: 10
@@ -3637,8 +3637,8 @@ describe('inline actions (prev. enqueueActions)', () => {
         plainGuard: () => true
       },
       actions: {
-        foo: (_, _params, x) => {
-          x.check(
+        foo: (_, _params, enq) => {
+          enq.check(
             // @ts-expect-error
             {
               type: 'other'
@@ -3656,8 +3656,8 @@ describe('inline actions (prev. enqueueActions)', () => {
         plainGuard: () => true
       },
       actions: {
-        foo: (_, _params, x) => {
-          x.check((_, params) => {
+        foo: (_, _params, enq) => {
+          enq.check((_, params) => {
             params satisfies undefined;
             undefined satisfies typeof params;
             // @ts-expect-error
@@ -3684,8 +3684,8 @@ describe('inline actions (prev. enqueueActions)', () => {
     }).createMachine({
       on: {
         SOMETHING: {
-          actions: (_, _params, x) => {
-            x.raise({ type: 'SOMETHING_ELSE' });
+          actions: (_, _params, enq) => {
+            enq.raise({ type: 'SOMETHING_ELSE' });
           }
         }
       }
@@ -3706,8 +3706,8 @@ describe('inline actions (prev. enqueueActions)', () => {
     }).createMachine({
       on: {
         SOMETHING: {
-          actions: (_, _params, x) => {
-            x.raise({
+          actions: (_, _params, enq) => {
+            enq.raise({
               // @ts-expect-error
               type: 'OTHER'
             });

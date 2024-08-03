@@ -2755,8 +2755,8 @@ describe('enqueueActions', () => {
       context: {
         count: 0
       },
-      entry: (_, _params, x) => {
-        x.assign({
+      entry: (_, _params, enq) => {
+        enq.assign({
           count: 42
         });
       }
@@ -2956,8 +2956,8 @@ describe('with inline actions', () => {
         // entry: enqueueActions(({ enqueue }) => {
         //   enqueue('someAction');
         // })
-        entry: (_, __, x) => {
-          x.action('someAction');
+        entry: (_, __, enq) => {
+          enq.action('someAction');
         }
       },
       {
@@ -2982,9 +2982,9 @@ describe('with inline actions', () => {
         //   enqueue('someAction');
         //   enqueue('otherAction');
         // })
-        entry: (_, _params, x) => {
-          x.action('someAction');
-          x.action('otherAction');
+        entry: (_, _params, enq) => {
+          enq.action('someAction');
+          enq.action('otherAction');
         }
       },
       {
@@ -3006,9 +3006,9 @@ describe('with inline actions', () => {
 
     const machine = createMachine(
       {
-        entry: (_, _params, x) => {
-          x.action('someAction');
-          x.action('someAction');
+        entry: (_, _params, enq) => {
+          enq.action('someAction');
+          enq.action('someAction');
         }
       },
       {
@@ -3034,8 +3034,8 @@ describe('with inline actions', () => {
         //     params: { answer: 42 }
         //   });
         // }),
-        entry: (_, _params, x) => {
-          x.action({
+        entry: (_, _params, enq) => {
+          enq.action({
             type: 'someAction',
             params: { answer: 42 }
           });
@@ -3065,8 +3065,8 @@ describe('with inline actions', () => {
     const spy = jest.fn();
 
     const machine = createMachine({
-      entry: (_, _params, x) => {
-        x.action(spy);
+      entry: (_, _params, enq) => {
+        enq.action(spy);
       }
     });
 
@@ -3088,8 +3088,8 @@ describe('with inline actions', () => {
           //     })
           //   );
           // })
-          actions: (_, _params, x) => {
-            x.raise({
+          actions: (_, _params, enq) => {
+            enq.raise({
               type: 'RAISED'
             });
           }
@@ -3118,8 +3118,8 @@ describe('with inline actions', () => {
           //     type: 'RAISED'
           //   });
           // })
-          actions: (_, _params, x) => {
-            x.raise({
+          actions: (_, _params, enq) => {
+            enq.raise({
               type: 'RAISED'
             });
           }
@@ -3142,8 +3142,8 @@ describe('with inline actions', () => {
       context: {
         count: 0
       },
-      entry: (_, __, x) => {
-        x.assign({
+      entry: (_, __, enq) => {
+        enq.assign({
           count: 42
         });
       }
@@ -3164,8 +3164,8 @@ describe('with inline actions', () => {
         // entry: enqueueActions(({ check }) => {
         //   check('alwaysTrue');
         // })
-        entry: (_, __, x) => {
-          x.check('alwaysTrue');
+        entry: (_, __, enq) => {
+          enq.check('alwaysTrue');
         }
       },
       {
@@ -3196,8 +3196,8 @@ describe('with inline actions', () => {
         //     }
         //   });
         // })
-        entry: (_, __, x) => {
-          x.check({
+        entry: (_, __, enq) => {
+          enq.check({
             type: 'alwaysTrue',
             params: {
               max: 100
@@ -3267,7 +3267,7 @@ describe('with inline actions', () => {
         //     enqueue.sendTo(context.parent, event);
         //   }
         // )
-        mySendParent: ({ context }, params: ParentEvent, x) => {
+        mySendParent: ({ context }, params: ParentEvent, enq) => {
           if (!context.parent) {
             // it's here just for illustration purposes
             console.log(
@@ -3275,7 +3275,7 @@ describe('with inline actions', () => {
             );
             return;
           }
-          x.sendTo(context.parent, params);
+          enq.sendTo(context.parent, params);
         }
       }
     }).createMachine({
@@ -3588,8 +3588,8 @@ describe('sendTo with inline actions', () => {
         child: spawn(childMachine)
       }),
       // entry: sendTo(({ context }) => context.child, { type: 'EVENT' })
-      entry: (_, _params, x) => {
-        x.sendTo(({ context }) => context.child, { type: 'EVENT' });
+      entry: (_, _params, enq) => {
+        enq.sendTo(({ context }) => context.child, { type: 'EVENT' });
       }
     });
 
@@ -3630,8 +3630,8 @@ describe('sendTo with inline actions', () => {
       //   ({ context }) => context.child,
       //   ({ context }) => ({ type: 'EVENT', count: context.count })
       // )
-      entry: (_, _params, x) => {
-        x.sendTo(
+      entry: (_, _params, enq) => {
+        enq.sendTo(
           ({ context }) => context.child,
           ({ context }) => ({ type: 'EVENT', count: context.count })
         );
@@ -3669,8 +3669,8 @@ describe('sendTo with inline actions', () => {
       //   // @ts-expect-error
       //   type: 'UNKNOWN'
       // })
-      entry: (_, _params, x) => {
-        x.sendTo(({ context }) => context.child, {
+      entry: (_, _params, enq) => {
+        enq.sendTo(({ context }) => context.child, {
           // @ts-expect-error
           type: 'UNKNOWN'
         });
@@ -3701,8 +3701,8 @@ describe('sendTo with inline actions', () => {
         child: spawn(childMachine, { id: 'child' })
       }),
       // No type-safety for the event yet
-      entry: (_, _params, x) => {
-        x.sendTo('child', { type: 'EVENT' });
+      entry: (_, _params, enq) => {
+        enq.sendTo('child', { type: 'EVENT' });
       }
     });
 
@@ -3731,8 +3731,8 @@ describe('sendTo with inline actions', () => {
       context: ({ spawn }) => ({
         child: spawn(childMachine)
       }),
-      entry: (_, _params, x) => {
-        x.sendTo(({ context }) => context.child, { type: 'EVENT' });
+      entry: (_, _params, enq) => {
+        enq.sendTo(({ context }) => context.child, { type: 'EVENT' });
       }
     });
 
@@ -3760,8 +3760,8 @@ describe('sendTo with inline actions', () => {
         a: {
           on: {
             EVENT: {
-              actions: (_, _params, x) => {
-                x.sendTo(({ context, event }) => context[event.value], {
+              actions: (_, _params, enq) => {
+                enq.sendTo(({ context, event }) => context[event.value], {
                   type: 'EVENT'
                 });
               }
@@ -3782,8 +3782,8 @@ describe('sendTo with inline actions', () => {
         id: 'child',
         src: fromCallback(() => {})
       },
-      entry: (_, _params, x) => {
-        x.sendTo('child', 'a string');
+      entry: (_, _params, enq) => {
+        enq.sendTo('child', 'a string');
       }
     });
 
@@ -4023,8 +4023,8 @@ describe('raise with inline actions', () => {
           //     delay: 1
           //   }
           // ),
-          entry: (_, _params, x) => {
-            x.raise({ type: 'EVENT' }, { delay: 1 });
+          entry: (_, _params, enq) => {
+            enq.raise({ type: 'EVENT' }, { delay: 1 });
           },
           on: {
             TO_B: 'b'
@@ -4060,8 +4060,8 @@ describe('raise with inline actions', () => {
           //     delay: 0
           //   }
           // ),
-          entry: (_, _params, x) => {
-            x.raise({ type: 'EVENT' }, { delay: 0 });
+          entry: (_, _params, enq) => {
+            enq.raise({ type: 'EVENT' }, { delay: 0 });
           },
           on: {
             EVENT: 'b'
@@ -4089,8 +4089,8 @@ describe('raise with inline actions', () => {
       states: {
         a: {
           // entry: raise({ type: 'TO_B' }),
-          entry: (_, _params, x) => {
-            x.raise({ type: 'TO_B' });
+          entry: (_, _params, enq) => {
+            enq.raise({ type: 'TO_B' });
           },
           on: {
             TO_B: 'b'
@@ -4118,8 +4118,8 @@ describe('raise with inline actions', () => {
           //     delay: 100
           //   }
           // ),
-          entry: (_, _params, x) => {
-            x.raise(
+          entry: (_, _params, enq) => {
+            enq.raise(
               { type: 'TO_B' },
               {
                 delay: 100
@@ -4154,8 +4154,8 @@ describe('raise with inline actions', () => {
           on: {
             NEXT: {
               // actions: raise(() => ({ type: 'RAISED' }))
-              actions: (_, _params, x) => {
-                x.raise(() => ({ type: 'RAISED' }));
+              actions: (_, _params, enq) => {
+                enq.raise(() => ({ type: 'RAISED' }));
               }
             },
             RAISED: 'b'
@@ -4196,8 +4196,8 @@ describe('raise with inline actions', () => {
               // actions: raise(({ context }) => ({
               //   type: context.eventType
               // }))
-              actions: (_, _params, x) => {
-                x.raise(({ context }) => ({
+              actions: (_, _params, enq) => {
+                enq.raise(({ context }) => ({
                   type: context.eventType
                 }));
               }
@@ -4222,8 +4222,8 @@ describe('raise with inline actions', () => {
       //   // @ts-ignore
       //   'a string'
       // )
-      entry: (_, _params, x) => {
-        x.raise(
+      entry: (_, _params, enq) => {
+        enq.raise(
           // @ts-expect-error
           'a string'
         );
@@ -4479,10 +4479,10 @@ describe('assign action order', () => {
         context: { count: 0 },
         entry: [
           ({ context }) => captured.push(context.count), // 0
-          (_, _params, x) => {
-            x.assign({ count: ({ context }) => context.count + 1 });
-            x.action({ type: 'capture' });
-            x.assign({ count: ({ context }) => context.count + 1 });
+          (_, _params, enq) => {
+            enq.assign({ count: ({ context }) => context.count + 1 });
+            enq.action({ type: 'capture' });
+            enq.assign({ count: ({ context }) => context.count + 1 });
           },
           ({ context }) => captured.push(context.count) // 2
         ]
@@ -4539,11 +4539,11 @@ describe('assign action order', () => {
       },
       on: {
         EV: {
-          actions: (_, _params, x) => {
-            x.assign({
+          actions: (_, _params, enq) => {
+            enq.assign({
               counter: ({ context }) => context.counter + 1
             });
-            x.action(({ context }) => captured.push(context.counter));
+            enq.action(({ context }) => captured.push(context.counter));
           }
         }
       }
@@ -4567,12 +4567,12 @@ describe('assign action order with inline actions', () => {
         context: { count: number };
       },
       context: { count: 0 },
-      entry: (_, _params, x) => {
-        x.action(({ context }) => captured.push(context.count)); // 0
-        x.assign({ count: ({ context }) => context.count + 1 });
-        x.action(({ context }) => captured.push(context.count)); // 1
-        x.assign({ count: ({ context }) => context.count + 1 });
-        x.action(({ context }) => captured.push(context.count)); // 2
+      entry: (_, _params, enq) => {
+        enq.action(({ context }) => captured.push(context.count)); // 0
+        enq.assign({ count: ({ context }) => context.count + 1 });
+        enq.action(({ context }) => captured.push(context.count)); // 1
+        enq.assign({ count: ({ context }) => context.count + 1 });
+        enq.action(({ context }) => captured.push(context.count)); // 2
       }
     });
 
@@ -4598,12 +4598,12 @@ describe('assign action order with inline actions', () => {
     }).createMachine({
       context: { count: 0 },
       entry: [
-        (_, _params, x) => {
-          x.action(({ context }) => captured.push(context.count)); // 0
-          x.assign({ count: ({ context }) => context.count + 1 });
-          x.action({ type: 'capture' });
-          x.assign({ count: ({ context }) => context.count + 1 });
-          x.action(({ context }) => captured.push(context.count)); // 2
+        (_, _params, enq) => {
+          enq.action(({ context }) => captured.push(context.count)); // 0
+          enq.assign({ count: ({ context }) => context.count + 1 });
+          enq.action({ type: 'capture' });
+          enq.assign({ count: ({ context }) => context.count + 1 });
+          enq.action(({ context }) => captured.push(context.count)); // 2
         }
       ]
     });
@@ -4629,9 +4629,9 @@ describe('assign action order with inline actions', () => {
           //   assign({ counter: ({ context }) => context.counter + 1 }),
           //   ({ context }) => captured.push(context.counter)
           // ]
-          actions: (_, _params, x) => {
-            x.assign({ counter: ({ context }) => context.counter + 1 });
-            x.action(({ context }) => captured.push(context.counter));
+          actions: (_, _params, enq) => {
+            enq.assign({ counter: ({ context }) => context.counter + 1 });
+            enq.action(({ context }) => captured.push(context.counter));
           }
         }
       }
@@ -4704,37 +4704,37 @@ describe('types', () => {
         count: 0,
         text: 'hello'
       },
-      entry: (_, _params, x) => {
-        x.assign({ count: 31 });
+      entry: (_, _params, enq) => {
+        enq.assign({ count: 31 });
         // @ts-expect-error
-        x.assign({ count: 'string' });
+        enq.assign({ count: 'string' });
 
-        x.assign({ count: () => 31 });
+        enq.assign({ count: () => 31 });
         // @ts-expect-error
-        x.assign({ count: () => 'string' });
+        enq.assign({ count: () => 'string' });
 
-        x.assign({ count: ({ context }) => context.count + 31 });
+        enq.assign({ count: ({ context }) => context.count + 31 });
         // @ts-expect-error
-        x.assign({ count: ({ context }) => context.text + 31 });
+        enq.assign({ count: ({ context }) => context.text + 31 });
 
-        x.assign(() => ({ count: 31 }));
+        enq.assign(() => ({ count: 31 }));
         // @ts-expect-error
-        x.assign(() => ({ count: 'string' }));
+        enq.assign(() => ({ count: 'string' }));
 
-        x.assign(({ context }) => ({ count: context.count + 31 }));
+        enq.assign(({ context }) => ({ count: context.count + 31 }));
         // @ts-expect-error
-        x.assign(({ context }) => ({ count: context.text + 31 }));
+        enq.assign(({ context }) => ({ count: context.text + 31 }));
       },
       on: {
         say: {
-          actions: (_, _params, x) => {
-            x.assign({ text: ({ event }) => event.value });
+          actions: (_, _params, enq) => {
+            enq.assign({ text: ({ event }) => event.value });
             // @ts-expect-error
-            x.assign({ count: ({ event }) => event.value });
+            enq.assign({ count: ({ event }) => event.value });
 
-            x.assign(({ event }) => ({ text: event.value }));
+            enq.assign(({ event }) => ({ text: event.value }));
             // @ts-expect-error
-            x.assign(({ event }) => ({ count: event.value }));
+            enq.assign(({ event }) => ({ count: event.value }));
           }
         }
       }
@@ -4753,22 +4753,22 @@ describe('types with inline actions', () => {
         count: 0,
         text: 'hello'
       },
-      entry: (_, _params, x) => {
-        x.assign({ count: 31 }),
+      entry: (_, _params, enq) => {
+        enq.assign({ count: 31 }),
           // @ts-expect-error
-          x.assign({ count: 'string' }),
-          x.assign({ count: () => 31 }),
+          enq.assign({ count: 'string' }),
+          enq.assign({ count: () => 31 }),
           // @ts-expect-error
-          x.assign({ count: () => 'string' }),
-          x.assign({ count: ({ context }) => context.count + 31 }),
+          enq.assign({ count: () => 'string' }),
+          enq.assign({ count: ({ context }) => context.count + 31 }),
           // @ts-expect-error
-          x.assign({ count: ({ context }) => context.text + 31 }),
-          x.assign(() => ({ count: 31 })),
+          enq.assign({ count: ({ context }) => context.text + 31 }),
+          enq.assign(() => ({ count: 31 })),
           // @ts-expect-error
-          x.assign(() => ({ count: 'string' })),
-          x.assign(({ context }) => ({ count: context.count + 31 })),
+          enq.assign(() => ({ count: 'string' })),
+          enq.assign(({ context }) => ({ count: context.count + 31 })),
           // @ts-expect-error
-          x.assign(({ context }) => ({ count: context.text + 31 }));
+          enq.assign(({ context }) => ({ count: context.text + 31 }));
       },
       on: {
         say: {
@@ -4781,14 +4781,14 @@ describe('types with inline actions', () => {
           //   // @ts-expect-error
           //   assign(({ event }) => ({ count: event.value }))
           // ]
-          actions: (_, _params, x) => {
-            x.assign({ text: ({ event }) => event.value });
+          actions: (_, _params, enq) => {
+            enq.assign({ text: ({ event }) => event.value });
             // @ts-expect-error
-            x.assign({ count: ({ event }) => event.value });
+            enq.assign({ count: ({ event }) => event.value });
 
-            x.assign(({ event }) => ({ text: event.value }));
+            enq.assign(({ event }) => ({ text: event.value }));
             // @ts-expect-error
-            x.assign(({ event }) => ({ count: event.value }));
+            enq.assign(({ event }) => ({ count: event.value }));
           }
         }
       }
@@ -5175,8 +5175,8 @@ describe('actions with inline actions', () => {
         a: {
           on: {
             FOO: {
-              actions: (_, _params, x) => {
-                x.action(() => actual.push('a'));
+              actions: (_, _params, enq) => {
+                enq.action(() => actual.push('a'));
               }
             }
           }
@@ -5184,8 +5184,8 @@ describe('actions with inline actions', () => {
         b: {
           on: {
             FOO: {
-              actions: (_, _params, x) => {
-                x.action(() => actual.push('b'));
+              actions: (_, _params, enq) => {
+                enq.action(() => actual.push('b'));
               }
             }
           }
@@ -5210,8 +5210,8 @@ describe('actions with inline actions', () => {
             a1: {
               on: {
                 FOO: {
-                  actions: (_, _params, x) => {
-                    x.action(() => actual.push('a1'));
+                  actions: (_, _params, enq) => {
+                    enq.action(() => actual.push('a1'));
                   }
                 }
               }
@@ -5221,8 +5221,8 @@ describe('actions with inline actions', () => {
         b: {
           on: {
             FOO: {
-              actions: (_, _params, x) => {
-                x.action(() => actual.push('b'));
+              actions: (_, _params, enq) => {
+                enq.action(() => actual.push('b'));
               }
             }
           }
@@ -5239,13 +5239,13 @@ describe('actions with inline actions', () => {
     const spy = jest.fn();
 
     const machine = createMachine({
-      entry: (_, _params, x) => {
-        x.raise({ type: 'HELLO' });
+      entry: (_, _params, enq) => {
+        enq.raise({ type: 'HELLO' });
       },
       on: {
         HELLO: {
-          actions: ({ event }, _params, x) => {
-            x.action(() => spy(event));
+          actions: ({ event }, _params, enq) => {
+            enq.action(() => spy(event));
           }
         }
       }
@@ -5266,8 +5266,8 @@ describe('actions with inline actions', () => {
         }
       }
     }).createMachine({
-      entry: (_, _params, x) => {
-        x.raise({ type: 'HELLO' });
+      entry: (_, _params, enq) => {
+        enq.raise({ type: 'HELLO' });
       },
       on: {
         HELLO: {
@@ -5287,14 +5287,14 @@ describe('actions with inline actions', () => {
     const machine = createMachine({
       context: { count: 0 },
       // entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
-      entry: (_, _params, x) => {
-        x.assign({ count: 42 });
-        x.raise({ type: 'HELLO' });
+      entry: (_, _params, enq) => {
+        enq.assign({ count: 42 });
+        enq.raise({ type: 'HELLO' });
       },
       on: {
         HELLO: {
-          actions: ({ context }, _params, x) => {
-            x.action(() => spy(context));
+          actions: ({ context }, _params, enq) => {
+            enq.action(() => spy(context));
           }
         }
       }
@@ -5317,9 +5317,9 @@ describe('actions with inline actions', () => {
     }).createMachine({
       context: { count: 0 },
       // entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
-      entry: (_, _params, x) => {
-        x.assign({ count: 42 });
-        x.raise({ type: 'HELLO' });
+      entry: (_, _params, enq) => {
+        enq.assign({ count: 42 });
+        enq.raise({ type: 'HELLO' });
       },
       on: {
         HELLO: {
@@ -5350,8 +5350,8 @@ describe('actions with inline actions', () => {
     const spy = jest.fn();
     createActor(
       createMachine({
-        entry: (_, params, x) => {
-          x.assign(() => {
+        entry: (_, params, enq) => {
+          enq.assign(() => {
             spy(params);
             return {};
           });
@@ -5388,8 +5388,8 @@ describe('actions with inline actions', () => {
       createMachine({
         on: {
           FOO: {
-            actions: (_, params, x) => {
-              x.assign(() => {
+            actions: (_, params, enq) => {
+              enq.assign(() => {
                 spy(params);
                 return {};
               });
@@ -5471,8 +5471,8 @@ describe('actions with inline actions', () => {
     createActor(
       setup({
         actions: {
-          myAction: (_, params, x) => {
-            x.assign(() => {
+          myAction: (_, params, enq) => {
+            enq.assign(() => {
               spy(params);
               return {};
             });

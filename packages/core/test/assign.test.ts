@@ -297,8 +297,8 @@ describe('assign with inline actions', () => {
           INC: [
             {
               target: 'counting',
-              actions: (_, _params, x) => {
-                x.assign(({ context }) => ({
+              actions: (_, _params, enq) => {
+                enq.assign(({ context }) => ({
                   count: context.count + 1
                 }));
               }
@@ -312,8 +312,8 @@ describe('assign with inline actions', () => {
               //     count: ({ context }) => context.count - 1
               //   })
               // ]
-              actions: (_, _params, x) => {
-                x.assign({
+              actions: (_, _params, enq) => {
+                enq.assign({
                   count: ({ context }) => context.count - 1
                 });
               }
@@ -328,8 +328,8 @@ describe('assign with inline actions', () => {
               //     foo: () => 'win'
               //   })
               // ]
-              actions: (_, _params, x) => {
-                x.assign({
+              actions: (_, _params, enq) => {
+                enq.assign({
                   count: () => 100,
                   foo: () => 'win'
                 });
@@ -345,8 +345,8 @@ describe('assign with inline actions', () => {
               //     foo: 'win'
               //   })
               // ]
-              actions: (_, _params, x) => {
-                x.assign({
+              actions: (_, _params, enq) => {
+                enq.assign({
                   count: 100,
                   foo: 'win'
                 });
@@ -362,8 +362,8 @@ describe('assign with inline actions', () => {
               //     foo: 'win'
               //   })
               // ]
-              actions: (_, _params, x) => {
-                x.assign({
+              actions: (_, _params, enq) => {
+                enq.assign({
                   count: () => 100,
                   foo: 'win'
                 });
@@ -379,8 +379,8 @@ describe('assign with inline actions', () => {
               //     foo: 'win'
               //   }))
               // ]
-              actions: (_, _params, x) => {
-                x.assign(() => ({
+              actions: (_, _params, enq) => {
+                enq.assign(() => ({
                   count: 100,
                   foo: 'win'
                 }));
@@ -394,8 +394,8 @@ describe('assign with inline actions', () => {
               //     maybe: 'defined'
               //   })
               // ]
-              actions: (_, _params, x) => {
-                x.assign({
+              actions: (_, _params, enq) => {
+                enq.assign({
                   maybe: 'defined'
                 });
               }
@@ -493,8 +493,8 @@ describe('assign with inline actions', () => {
                 //     count: ({ context }) => context.count - 1
                 //   })
                 // ]
-                actions: (_, _params, x) => {
-                  x.assign({
+                actions: (_, _params, enq) => {
+                  enq.assign({
                     count: ({ context }) => context.count - 1
                   });
                 }
@@ -538,8 +538,8 @@ describe('assign with inline actions', () => {
             INC: [
               {
                 target: 'counting',
-                actions: (_, _params, x) => {
-                  x.assign(({ context }) => ({
+                actions: (_, _params, enq) => {
+                  enq.assign(({ context }) => ({
                     count: context.count + 1
                   }));
                 }
@@ -553,8 +553,8 @@ describe('assign with inline actions', () => {
                 //     count: ({ context }) => context.count - 1
                 //   })
                 // ]
-                actions: (_, _params, x) => {
-                  x.assign({
+                actions: (_, _params, enq) => {
+                  enq.assign({
                     count: ({ context }) => context.count - 1
                   });
                 }
@@ -633,8 +633,8 @@ describe('assign with inline actions', () => {
               // actions: assign({
               //   count: ({ event }) => event.value
               // })
-              actions: (_, _params, x) => {
-                x.assign({
+              actions: (_, _params, enq) => {
+                enq.assign({
                   count: ({ event }) => event.value
                 });
               }
@@ -740,8 +740,8 @@ describe('assign meta with inline actions', () => {
         context: {} as { count: number }
       },
       actions: {
-        inc: (_, params: { by: number }, x) => {
-          x.assign(({ context }) => ({
+        inc: (_, params: { by: number }, enq) => {
+          enq.assign(({ context }) => ({
             count: context.count + params.by
           }));
         }
@@ -765,8 +765,8 @@ describe('assign meta with inline actions', () => {
         context: {} as { count: number }
       },
       actions: {
-        inc: (_, params: { by: number }, x) => {
-          x.assign({
+        inc: (_, params: { by: number }, enq) => {
+          enq.assign({
             count: ({ context }) => context.count + params.by
           });
         }
@@ -787,8 +787,8 @@ describe('assign meta with inline actions', () => {
   it('a parameterized action that resolves to assign() should be provided the params', (done) => {
     const machine = setup({
       actions: {
-        inc: (_, params: { value: number }, x) => {
-          x.assign(({ context }) => {
+        inc: (_, params: { value: number }, enq) => {
+          enq.assign(({ context }) => {
             expect(params).toEqual({ value: 5 });
             done();
             return context;
