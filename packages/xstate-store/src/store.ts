@@ -109,33 +109,34 @@ function createStoreCore<
 }
 
 /**
- * Creates a **store** that has its own internal state and can be sent events that
- * update its internal state based on transitions.
+ * Creates a **store** that has its own internal state and can be sent events
+ * that update its internal state based on transitions.
  *
  * @example
-  ```ts
-  const store = createStore({
-    // Initial context
-    { count: 0 },
-    // Transitions
-    {
-      on: {
-        inc: (context, event: { by: number }) => {
-          return {
-            count: context.count + event.by
-          }
-        }
-      }
-    }
-  });
-
-  store.subscribe((snapshot) => {
-    console.log(snapshot);
-  });
-
-  store.send({ type: 'inc', by: 5 });
-  // Logs { context: { count: 5 }, status: 'active', ... }
-  ```
+ *
+ * ```ts
+ * const store = createStore({
+ *   // Initial context
+ *   { count: 0 },
+ *   // Transitions
+ *   {
+ *     on: {
+ *       inc: (context, event: { by: number }) => {
+ *         return {
+ *           count: context.count + event.by
+ *         }
+ *       }
+ *     }
+ *   }
+ * });
+ *
+ * store.subscribe((snapshot) => {
+ *   console.log(snapshot);
+ * });
+ *
+ * store.send({ type: 'inc', by: 5 });
+ * // Logs { context: { count: 5 }, status: 'active', ... }
+ * ```
  */
 export function createStore<
   TContext extends StoreContext,
@@ -155,33 +156,34 @@ export function createStore<
 }
 
 /**
- * Creates a `Store` with a provided producer (such as Immer's `producer(…)`
- * A store has its own internal state and can receive events.
+ * Creates a `Store` with a provided producer (such as Immer's `producer(…)` A
+ * store has its own internal state and can receive events.
  *
  * @example
-  ```ts
-  import { produce } from 'immer';
-
-  const store = createStoreWithProducer(produce, {
-    // Initial context
-    { count: 0 },
-    // Transitions
-    {
-      on: {
-        inc: (context, event: { by: number }) => {
-          context.count += event.by;
-        }
-      }
-    }
-  });
-
-  store.subscribe((snapshot) => {
-    console.log(snapshot);
-  });
-
-  store.send({ type: 'inc', by: 5 });
-  // Logs { context: { count: 5 }, status: 'active', ... }
-  ```
+ *
+ * ```ts
+ * import { produce } from 'immer';
+ *
+ * const store = createStoreWithProducer(produce, {
+ *   // Initial context
+ *   { count: 0 },
+ *   // Transitions
+ *   {
+ *     on: {
+ *       inc: (context, event: { by: number }) => {
+ *         context.count += event.by;
+ *       }
+ *     }
+ *   }
+ * });
+ *
+ * store.subscribe((snapshot) => {
+ *   console.log(snapshot);
+ * });
+ *
+ * store.send({ type: 'inc', by: 5 });
+ * // Logs { context: { count: 5 }, status: 'active', ... }
+ * ```
  */
 export function createStoreWithProducer<
   TContext extends StoreContext,
@@ -208,7 +210,9 @@ declare global {
 }
 
 /**
- * Creates a store function, which is a function that accepts the current snapshot and an event and returns a new snapshot.
+ * Creates a store function, which is a function that accepts the current
+ * snapshot and an event and returns a new snapshot.
+ *
  * @param transitions
  * @param updater
  * @returns

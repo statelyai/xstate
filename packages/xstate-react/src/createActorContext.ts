@@ -15,9 +15,7 @@ export function createActorContext<TLogic extends AnyActorLogic>(
   Provider: (props: {
     children: React.ReactNode;
     options?: ActorOptions<TLogic>;
-    /**
-     * @deprecated Use `logic` instead.
-     */
+    /** @deprecated Use `logic` instead. */
     machine?: never;
     logic?: TLogic;
   }) => React.ReactElement<any, any>;
@@ -34,9 +32,7 @@ export function createActorContext<TLogic extends AnyActorLogic>(
   }: {
     children: React.ReactNode;
     logic: TLogic;
-    /**
-     * @deprecated Use `logic` instead.
-     */
+    /** @deprecated Use `logic` instead. */
     machine?: never;
     options?: ActorOptions<TLogic>;
   }) {

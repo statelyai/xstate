@@ -216,7 +216,8 @@ export function setup<
     TInput,
     TOutput,
     TEmitted,
-    TMeta
+    TMeta,
+    TConfig
   >;
 } {
   return {

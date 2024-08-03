@@ -193,7 +193,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
           >
             Send to child
           </button>
-          <div data-testid="child-state">{childState.value}</div>
+          <div data-testid="child-state">{childState.value as string}</div>
         </>
       );
     };
@@ -251,7 +251,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
           >
             Send to child
           </button>
-          <div data-testid="child-state">{childState.value}</div>
+          <div data-testid="child-state">{childState.value as string}</div>
         </>
       );
     };
@@ -325,7 +325,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
 
   it('should work with a promise actor', async () => {
     const promiseLogic = fromPromise(
-      () => new Promise((resolve) => setTimeout(() => resolve(42), 10))
+      () => new Promise<number>((resolve) => setTimeout(() => resolve(42), 10))
     );
 
     const App = () => {
@@ -506,7 +506,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
           >
             Send event
           </button>
-          <span>{value}</span>
+          <span>{value as string}</span>
         </>
       );
     }
@@ -565,7 +565,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
           >
             Send event
           </button>
-          <span>{value}</span>
+          <span>{value as string}</span>
         </>
       );
     }

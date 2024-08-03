@@ -185,10 +185,12 @@ export interface SendToAction<
  * Sends an event to an actor.
  *
  * @param actor The `ActorRef` to send the event to.
- * @param event The event to send, or an expression that evaluates to the event to send
+ * @param event The event to send, or an expression that evaluates to the event
+ *   to send
  * @param options Send action options
- *  - `id` - The unique send event identifier (used with `cancel()`).
- *  - `delay` - The number of milliseconds to delay the sending of the event.
+ *
+ *   - `id` - The unique send event identifier (used with `cancel()`).
+ *   - `delay` - The number of milliseconds to delay the sending of the event.
  */
 export function sendTo<
   TContext extends MachineContext,

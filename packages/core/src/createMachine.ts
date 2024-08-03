@@ -1,5 +1,5 @@
 import { StateMachine } from './StateMachine.ts';
-import { ResolvedStateMachineTypes } from './types.ts';
+import { ResolvedStateMachineTypes, TODO } from './types.ts';
 import {
   AnyActorRef,
   EventObject,
@@ -67,40 +67,42 @@ type ToStateValue<TTestValue extends string | TestValue> =
  *
  * The state machine represents the pure logic of a state machine actor.
  *
- * @param config The state machine configuration.
- * @param options DEPRECATED: use `setup({ ... })` or `machine.provide({ ... })` to provide machine implementations instead.
- *
  * @example
-  ```ts
-  import { createMachine } from 'xstate';
-
-  const lightMachine = createMachine({
-    id: 'light',
-    initial: 'green',
-    states: {
-      green: {
-        on: {
-          TIMER: { target: 'yellow' }
-        }
-      },
-      yellow: {
-        on: {
-          TIMER: { target: 'red' }
-        }
-      },
-      red: {
-        on: {
-          TIMER: { target: 'green' }
-        }
-      }
-    }
-  });
-
-  const lightActor = createActor(lightMachine);
-  lightActor.start();
-
-  lightActor.send({ type: 'TIMER' });
-  ```
+ *
+ * ```ts
+ * import { createMachine } from 'xstate';
+ *
+ * const lightMachine = createMachine({
+ *   id: 'light',
+ *   initial: 'green',
+ *   states: {
+ *     green: {
+ *       on: {
+ *         TIMER: { target: 'yellow' }
+ *       }
+ *     },
+ *     yellow: {
+ *       on: {
+ *         TIMER: { target: 'red' }
+ *       }
+ *     },
+ *     red: {
+ *       on: {
+ *         TIMER: { target: 'green' }
+ *       }
+ *     }
+ *   }
+ * });
+ *
+ * const lightActor = createActor(lightMachine);
+ * lightActor.start();
+ *
+ * lightActor.send({ type: 'TIMER' });
+ * ```
+ *
+ * @param config The state machine configuration.
+ * @param options DEPRECATED: use `setup({ ... })` or `machine.provide({ ... })`
+ *   to provide machine implementations instead.
  */
 export function createMachine<
   TContext extends MachineContext,
@@ -172,7 +174,8 @@ export function createMachine<
   TInput,
   TOutput,
   TEmitted,
-  TMeta // TMeta
+  TMeta, // TMeta
+  TODO // TStateSchema
 > {
   return new StateMachine<
     any,
@@ -187,6 +190,7 @@ export function createMachine<
     any,
     any,
     any, // TEmitted
-    any // TMeta
+    any, // TMeta
+    any // TStateSchema
   >(config as any, implementations as any);
 }
