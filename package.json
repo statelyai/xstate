@@ -63,6 +63,7 @@
     "@vue/vue3-jest": "^29.2.6",
     "babel-jest": "^29.7.0",
     "babel-preset-solid": "^1.8.4",
+    "happy-dom": "^14.12.3",
     "husky": "^3.1.0",
     "jest": "^29.7.0",
     "jest-config": "^29.7.0",
