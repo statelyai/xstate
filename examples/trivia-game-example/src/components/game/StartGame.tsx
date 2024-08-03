@@ -2,7 +2,6 @@ import { Button } from '../styled/Button';
 import { TriviaMachineContext } from '../../context/AppContext';
 import ImgsBack from '../layout/ImgsBack';
 import LoadingOverlay from 'react-loading-overlay-ts';
-import { Link } from 'react-router-dom';
 
 const StartGame = () => {
   const triviaActorRef = TriviaMachineContext.useActorRef();

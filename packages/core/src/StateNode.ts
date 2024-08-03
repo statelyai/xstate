@@ -104,7 +104,8 @@ export class StateNode<
     any, // input
     any, // output
     any, // emitted
-    any // meta
+    any, // meta
+    any // state schema
   >;
   /**
    * The meta data associated with this state node, which will be returned in
@@ -379,7 +380,8 @@ export class StateNode<
       any,
       any,
       any,
-      any // TMeta
+      any, // TMeta
+      any // TStateSchema
     >,
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {

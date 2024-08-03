@@ -684,7 +684,8 @@ function transitionAtomicNode<
     any,
     any,
     any,
-    any // TMeta
+    any, // TMeta
+    any // TStateSchema
   >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
@@ -711,7 +712,8 @@ function transitionCompoundNode<
     any,
     any,
     any,
-    any // TMeta
+    any, // TMeta
+    any // TStateSchema
   >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
@@ -745,7 +747,8 @@ function transitionParallelNode<
     any,
     any,
     any,
-    any // TMeta
+    any, // TMeta
+    any // TStateSchema
   >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
@@ -782,7 +785,16 @@ export function transitionNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValue,
-  snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any, any>,
+  snapshot: MachineSnapshot<
+    TContext,
+    TEvent,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any // TStateSchema
+  >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node

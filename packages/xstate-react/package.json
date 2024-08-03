@@ -55,7 +55,7 @@
   },
   "peerDependencies": {
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
-    "xstate": "^5.16.0"
+    "xstate": "^5.17.1"
   },
   "peerDependenciesMeta": {
     "xstate": {
@@ -67,13 +67,13 @@
     "use-sync-external-store": "^1.2.0"
   },
   "devDependencies": {
-    "@testing-library/react": "^14.2.1",
-    "@types/react": "^17.0.43",
-    "@types/react-dom": "^17.0.14",
+    "@testing-library/react": "^16.0.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
     "@types/use-sync-external-store": "^0.0.3",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "rxjs": "^7.8.0",
-    "xstate": "5.16.0"
+    "xstate": "5.17.1"
   }
 }
