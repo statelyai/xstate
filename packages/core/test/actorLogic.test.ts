@@ -17,6 +17,7 @@ import {
 } from '../src/actors/index.ts';
 import { waitFor } from '../src/waitFor.ts';
 import { raise, sendTo } from '../src/actions.ts';
+import type { Mock } from 'vitest';
 
 describe('promise logic (fromPromise)', () => {
   it('should interpret a promise', async () => {
@@ -288,7 +289,7 @@ describe('promise logic (fromPromise)', () => {
 
   it('should not reuse the same signal for different actors with same logic', async () => {
     let deferredMap: Map<string, PromiseWithResolvers<number>> = new Map();
-    let signalListenerMap: Map<string, vi.Mock> = new Map();
+    let signalListenerMap: Map<string, Mock> = new Map();
     const p = fromPromise(({ self, signal }) => {
       const deferred = withResolvers<number>();
       const signalListener = vi.fn();
@@ -348,7 +349,7 @@ describe('promise logic (fromPromise)', () => {
 
   it('should not reuse the same signal for different actors with same logic and id', async () => {
     let deferredList: PromiseWithResolvers<number>[] = [];
-    let signalListenerList: vi.Mock[] = [];
+    let signalListenerList: Mock[] = [];
     const p = fromPromise(({ signal }) => {
       const deferred = withResolvers<number>();
       const fn = vi.fn();
@@ -412,7 +413,7 @@ describe('promise logic (fromPromise)', () => {
 
   it('should not reuse the same signal for the same actor when restarted', async () => {
     let deferredList: PromiseWithResolvers<number>[] = [];
-    let signalListenerList: vi.Mock[] = [];
+    let signalListenerList: Mock[] = [];
     const p = fromPromise(({ signal }) => {
       const deferred = withResolvers<number>();
       const fn = vi.fn();
