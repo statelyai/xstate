@@ -1086,7 +1086,7 @@ describe('machine logic', () => {
     expect(() =>
       actorRef.getPersistedSnapshot()
     ).toThrowErrorMatchingInlineSnapshot(
-      `"An inline child actor cannot be persisted."`
+      `[Error: An inline child actor cannot be persisted.]`
     );
   });
 
