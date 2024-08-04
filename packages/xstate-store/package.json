@@ -48,6 +48,7 @@
   "devDependencies": {
     "@testing-library/react": "^16.0.0",
     "@types/react": "^18.3.3",
+    "@vitejs/plugin-vue": "^5.1.2",
     "@xstate/react": "^4.1.1",
     "@xstate/vue": "^3.1.2",
     "immer": "^10.0.2",
