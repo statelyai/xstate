@@ -7,7 +7,7 @@ import {
   assign,
   sendTo
 } from '../src/index.ts';
-import { sleep } from '@xstate-repo/jest-utils';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {

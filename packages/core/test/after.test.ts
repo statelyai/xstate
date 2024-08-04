@@ -1,4 +1,4 @@
-import { sleep } from '@xstate-repo/jest-utils';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { createMachine, createActor, cancel } from '../src/index.ts';
 
 const lightMachine = createMachine({
