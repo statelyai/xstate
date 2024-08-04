@@ -309,7 +309,7 @@ describe('error handling', () => {
   });
 
   it('handled sync errors thrown when starting a child actor should not be reported globally', () =>
-    new Promise<void>((resolve) => {
+    new Promise<void>((resolve, reject) => {
       const machine = createMachine({
         initial: 'pending',
         states: {
@@ -330,7 +330,7 @@ describe('error handling', () => {
       createActor(machine).start();
 
       installGlobalOnErrorHandler(() => {
-        done.fail();
+        reject();
       });
 
       setTimeout(() => {
@@ -373,7 +373,7 @@ describe('error handling', () => {
     }));
 
   it('handled sync errors thrown when starting a child actor should not be reported globally when all of its own observers come with an error listener', () =>
-    new Promise<void>((resolve) => {
+    new Promise<void>((resolve, reject) => {
       const machine = createMachine({
         initial: 'pending',
         states: {
@@ -402,7 +402,7 @@ describe('error handling', () => {
       actorRef.start();
 
       installGlobalOnErrorHandler(() => {
-        done.fail();
+        reject();
       });
 
       setTimeout(() => {
@@ -516,7 +516,7 @@ describe('error handling', () => {
   });
 
   it(`unhandled sync errors should not notify the global listener when the root error listener is present`, () =>
-    new Promise<void>((resolve) => {
+    new Promise<void>((resolve, reject) => {
       const machine = createMachine({
         initial: 'pending',
         states: {
@@ -547,7 +547,7 @@ describe('error handling', () => {
       expect(errorSpy).toHaveBeenCalledTimes(1);
 
       installGlobalOnErrorHandler(() => {
-        done.fail();
+        reject();
       });
 
       setTimeout(() => {
