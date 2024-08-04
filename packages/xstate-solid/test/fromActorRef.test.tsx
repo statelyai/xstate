@@ -10,7 +10,7 @@ import {
   onMount
 } from 'solid-js';
 import { createStore, reconcile } from 'solid-js/store';
-import { fireEvent, render, screen, waitFor } from 'solid-testing-library';
+import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
 import {
   ActorRef,
   ActorRefFrom,

@@ -51,8 +51,9 @@
     }
   },
   "devDependencies": {
+    "@solidjs/testing-library": "^0.8.9",
     "solid-js": "^1.7.6",
-    "solid-testing-library": "^0.3.0",
+    "vite-plugin-solid": "^2.10.2",
     "xstate": "5.17.1"
   }
 }

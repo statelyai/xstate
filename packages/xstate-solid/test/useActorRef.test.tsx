@@ -1,6 +1,6 @@
 /* @jsxImportSource solid-js */
 import { createMachine } from 'xstate';
-import { render, fireEvent, screen } from 'solid-testing-library';
+import { render, fireEvent, screen } from '@solidjs/testing-library';
 import { useActorRef } from '../src/index.ts';
 import { createEffect } from 'solid-js';
 
