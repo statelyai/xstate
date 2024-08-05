@@ -140,7 +140,7 @@ export type SnapshotFromStore<TStore extends Store<any, any>> =
  * ```
  */
 export type EventFromStore<TStore extends Store<any, any>> =
-  TStore extends Store<any, infer TEvent> ? TEvent : never;
+  TStore extends Store<infer _TContext, infer TEvent> ? TEvent : never;
 
 // Copied from XState core
 // -----------------------
