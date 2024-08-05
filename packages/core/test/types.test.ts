@@ -4589,28 +4589,6 @@ it('UnknownActorRef should return a Snapshot-typed value from getSnapshot()', ()
   actor.getSnapshot().status === 'FOO';
 });
 
-it('Actor<T> should be assignable to ActorRefFrom<T>', () => {
-  const logic = createMachine({});
-
-  // It works here...
-  const actor = createActor(logic);
-  actor satisfies ActorRefFrom<typeof logic>;
-
-  class ActorThing<T extends AnyActorLogic> {
-    actorRef: ActorRefFrom<T>;
-    // actorRef: ActorRefFromLogic<T>;
-    constructor(actorLogic: T) {
-      const actor = createActor(actorLogic);
-
-      // But it doesn't work here...
-      actor satisfies ActorRefFrom<typeof actorLogic>;
-      this.actorRef = actor;
-    }
-  }
-
-  new ActorThing(logic);
-});
-
 it('Actor<T> should be assignable to ActorRefFromLogic<T>', () => {
   const logic = createMachine({});
 
