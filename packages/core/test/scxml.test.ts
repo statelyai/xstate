@@ -1,4 +1,3 @@
-import { clearConsoleMocks } from '@xstate-repo/jest-utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
@@ -478,8 +477,6 @@ describe('scxml', () => {
         } catch (e) {
           console.log(JSON.stringify(machine.config, null, 2));
           throw e;
-        } finally {
-          clearConsoleMocks();
         }
       });
     });
