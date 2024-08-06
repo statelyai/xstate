@@ -599,7 +599,7 @@ describe('observable logic (fromObservable)', () => {
     });
 
     actor.start();
-    expect(spy).toMatchMockCallsInlineSnapshot(`
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           "Observable error.",

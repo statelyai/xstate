@@ -243,7 +243,7 @@ describe('error handling', () => {
 
     await sleep(0);
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: unhandled_rejection_in_promise_actor_with_parent_listener],
@@ -299,7 +299,7 @@ describe('error handling', () => {
 
     await sleep(0);
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: unhandled_rejection_in_promise_actor_with_grandparent_listener],
@@ -506,7 +506,7 @@ describe('error handling', () => {
     });
     actorRef.start();
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: unhandled_sync_error_in_actor_start_with_root_error_listener],
@@ -740,7 +740,7 @@ describe('error handling', () => {
     expect(snapshot.error).toMatchInlineSnapshot(
       `[Error: error_thrown_in_initial_entry_action]`
     );
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: error_thrown_in_initial_entry_action],
@@ -771,7 +771,7 @@ describe('error handling', () => {
     });
     actorRef.start();
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: error_thrown_when_resolving_initial_entry_action],
@@ -813,7 +813,7 @@ describe('error handling', () => {
     expect(snapshot.error).toMatchInlineSnapshot(
       `[Error: error_thrown_in_a_custom_entry_action_when_transitioning]`
     );
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: error_thrown_in_a_custom_entry_action_when_transitioning],

@@ -228,7 +228,7 @@ describe('system', () => {
     actorRef.start();
     actorRef.send({ type: 'toggle' });
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: Actor with system ID 'test' already exists.],

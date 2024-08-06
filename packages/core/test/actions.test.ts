@@ -2519,7 +2519,7 @@ describe('forwardTo()', () => {
     actorRef.start();
     actorRef.send({ type: 'TEST' });
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: Attempted to forward event to undefined actor. This risks an infinite loop in the sender.],
@@ -2660,7 +2660,7 @@ describe('enqueueActions', () => {
 
     createActor(machine).start();
 
-    expect(spy).toMatchMockCallsInlineSnapshot(`
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           {
@@ -2806,7 +2806,7 @@ describe('enqueueActions', () => {
 
     createActor(machine);
 
-    expect(spy).toMatchMockCallsInlineSnapshot(`
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           {
@@ -3175,7 +3175,7 @@ describe('sendTo', () => {
     });
     actorRef.start();
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: Only event objects may be used with sendTo; use sendTo({ type: "a string" }) instead],
@@ -3384,7 +3384,7 @@ describe('raise', () => {
     });
     actorRef.start();
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: Only event objects may be used with raise; use raise({ type: "a string" }) instead],
@@ -4027,6 +4027,8 @@ describe('actions', () => {
   });
 
   it('should warn if called in custom action', () => {
+    const warnSpy = vi.spyOn(console, 'warn');
+
     const machine = createMachine({
       entry: () => {
         assign({});
@@ -4038,7 +4040,7 @@ describe('actions', () => {
 
     createActor(machine).start();
 
-    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+    expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
 [
   [
     "Custom actions should not call \`assign()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",

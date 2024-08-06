@@ -249,7 +249,7 @@ describe('guard conditions', () => {
 
     actorRef.send({ type: 'BAD_COND' });
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: Unable to evaluate guard 'doesNotExist' in transition for event 'BAD_COND' in state node '(machine).foo':
@@ -884,7 +884,7 @@ describe('referencing guards', () => {
     actorRef.start();
     actorRef.send({ type: 'EVENT' });
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: Unable to evaluate guard 'missing-predicate' in transition for event 'EVENT' in state node 'invalid-predicate.active':
@@ -1158,7 +1158,7 @@ describe('not() guard', () => {
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EV', secret: 42 });
 
-    expect(spy).toMatchMockCallsInlineSnapshot(`
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           {
@@ -1328,7 +1328,7 @@ describe('and() guard', () => {
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EV', secret: 42 });
 
-    expect(spy).toMatchMockCallsInlineSnapshot(`
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           {
@@ -1499,7 +1499,7 @@ describe('or() guard', () => {
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EV', secret: 42 });
 
-    expect(spy).toMatchMockCallsInlineSnapshot(`
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           {

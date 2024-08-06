@@ -741,7 +741,7 @@ describe('interpreter', () => {
       expect(service.getSnapshot().value).toEqual('yellow');
     }
 
-    expect(spy).toMatchMockCallsInlineSnapshot(`
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           "Event "TIMER" was sent to stopped actor "x:27 (x:27)". This actor has already reached its final state, and will not transition.
@@ -1138,6 +1138,8 @@ describe('interpreter', () => {
 
     it('should not execute transitions after being stopped', () =>
       new Promise<void>((resolve) => {
+        const warnSpy = vi.spyOn(console, 'warn');
+
         let called = false;
 
         const testMachine = createMachine({
@@ -1164,7 +1166,7 @@ describe('interpreter', () => {
 
         setTimeout(() => {
           expect(called).toBeFalsy();
-          expect(console.warn).toMatchMockCallsInlineSnapshot(`
+          expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
           [
             [
               "Event "TRIGGER" was sent to stopped actor "x:43 (x:43)". This actor has already reached its final state, and will not transition.
@@ -1908,7 +1910,7 @@ it('should notify the error observer for an errored logic when it gets subscribe
     error: spy
   });
 
-  expect(spy).toMatchMockCallsInlineSnapshot(`
+  expect(spy.mock.calls).toMatchInlineSnapshot(`
     [
       [
         [Error: error],
