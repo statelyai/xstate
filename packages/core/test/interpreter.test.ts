@@ -724,6 +724,8 @@ describe('interpreter', () => {
   });
 
   it('should not update when stopped', () => {
+    const spy = vi.spyOn(console, 'warn');
+
     const service = createActor(lightMachine, {
       clock: new SimulatedClock()
     });
@@ -739,7 +741,7 @@ describe('interpreter', () => {
       expect(service.getSnapshot().value).toEqual('yellow');
     }
 
-    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+    expect(spy).toMatchMockCallsInlineSnapshot(`
       [
         [
           "Event "TIMER" was sent to stopped actor "x:27 (x:27)". This actor has already reached its final state, and will not transition.
