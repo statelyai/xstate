@@ -29,7 +29,7 @@
     "fix": "manypkg fix",
     "typecheck": "tsc",
     "test": "vitest",
-    "test:core": "vitest packages/core",
+    "test:core": "vitest --project xstate",
     "changeset": "changeset",
     "release": "changeset publish",
     "version": "changeset version && node ./scripts/bump-peer-dep-ranges.js"
