@@ -8,6 +8,19 @@ import {
   fromTransition
 } from '../src';
 
+// mocked reportUnhandledError due to unknown issue with vitest and global error
+// handlers not catching thrown errors
+// see: https://github.com/vitest-dev/vitest/issues/6292
+vi.mock('../src/reportUnhandledError.ts', () => {
+  return {
+    reportUnhandledError: (err: unknown) => {
+      setTimeout(() => {
+        dispatchEvent(new ErrorEvent('error', { error: err }));
+      });
+    }
+  };
+});
+
 const cleanups: (() => void)[] = [];
 function installGlobalOnErrorHandler(handler: (ev: ErrorEvent) => void) {
   window.addEventListener('error', handler);
