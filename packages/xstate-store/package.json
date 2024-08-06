@@ -47,6 +47,7 @@
   },
   "devDependencies": {
     "@testing-library/react": "^16.0.0",
+    "@testing-library/vue": "^8.1.0",
     "@types/react": "^18.3.3",
     "@vitejs/plugin-vue": "^5.1.2",
     "@xstate/react": "^4.1.1",
@@ -54,6 +55,7 @@
     "immer": "^10.0.2",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "vue": "^3.4.35",
     "xstate": "^5.17.0"
   },
   "peerDependencies": {
