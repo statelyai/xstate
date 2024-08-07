@@ -5,6 +5,7 @@
     "moduleResolution": "node16",
     "module": "node16",
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["vitest/globals"]
   }
 }
