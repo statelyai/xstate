@@ -1505,6 +1505,7 @@ function exitStates(
 
 interface BuiltinAction {
   (): void;
+  type: `xstate.${string}`;
   resolve: (
     actorScope: AnyActorScope,
     snapshot: AnyMachineSnapshot,
@@ -1632,6 +1633,15 @@ function resolveAndExecuteActionsWithContext(
     }
 
     if ('execute' in builtinAction) {
+      actorScope.actionExecutor(
+        {
+          type: builtinAction.type,
+          info: actionArgs,
+          params,
+          exec: () => {} // noop
+        },
+        actorScope.self
+      );
       if (actorScope.self._processingStatus === ProcessingStatus.Running) {
         builtinAction.execute(actorScope, params);
       } else {
@@ -1946,5 +1956,15 @@ export function executeAction(
     self: actor,
     system: actor.system
   };
+  if (action.type === 'xstate.raise' && (action.params as any).delay) {
+    actor.system.scheduler.schedule(
+      actor,
+      actor,
+      (action.params as any).event,
+      (action.params as any).delay,
+      (action.params as any).id
+    );
+    return;
+  }
   return action.exec?.(resolvedInfo, params);
 }

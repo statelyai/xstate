@@ -7,7 +7,8 @@ import {
   executeAction,
   raise,
   createActor,
-  fromTransition
+  fromTransition,
+  waitFor
 } from '../src';
 import { initialTransition } from '../src/transition';
 
@@ -133,6 +134,71 @@ describe('transition function', () => {
     });
 
     expect(actor.getSnapshot().matches('b')).toBeTruthy();
+  });
+
+  it('Delayed raise actions should be returned', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          entry: raise({ type: 'NEXT' }, { delay: 10 }),
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+
+    const [state, actions] = initialTransition(machine);
+
+    expect(state.value).toEqual('a');
+
+    expect(actions[0]).toEqual(
+      expect.objectContaining({
+        type: 'xstate.raise',
+        params: expect.objectContaining({
+          delay: 10,
+          event: { type: 'NEXT' }
+        })
+      })
+    );
+
+    const actor = createActor(machine, {
+      snapshot: state
+    }).start();
+
+    actions.forEach((action) => {
+      executeAction(action, actor);
+    });
+
+    await waitFor(actor, (s) => s.matches('b'));
+  });
+
+  it('Delayed transitions should be returned', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          after: { 10: 'b' }
+        },
+        b: {}
+      }
+    });
+
+    const [state, actions] = initialTransition(machine);
+
+    expect(state.value).toEqual('a');
+
+    expect(actions[0]).toEqual(
+      expect.objectContaining({
+        type: 'xstate.raise',
+        params: expect.objectContaining({
+          delay: 10,
+          event: { type: 'xstate.after.10.(machine).a' }
+        })
+      })
+    );
   });
 
   // Copied from getSnapshot.test.ts
