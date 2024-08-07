@@ -6,6 +6,7 @@
     "module": "node16",
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "types": ["vitest/globals"]
+    "types": ["vitest/globals"],
+    "verbatimModuleSyntax": false
   }
 }
