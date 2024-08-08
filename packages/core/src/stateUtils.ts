@@ -1956,7 +1956,10 @@ export function executeAction(
     self: actor,
     system: actor.system
   };
-  if (action.type === 'xstate.raise' && (action.params as any).delay) {
+  if (
+    action.type === 'xstate.raise' &&
+    (action.params as any).delay !== undefined
+  ) {
     actor.system.scheduler.schedule(
       actor,
       actor,
@@ -1965,6 +1968,8 @@ export function executeAction(
       (action.params as any).id
     );
     return;
+  } else if (action.type === 'xstate.cancel') {
+    actor.system.scheduler.cancel(actor, action.params as string);
   }
   return action.exec?.(resolvedInfo, params);
 }

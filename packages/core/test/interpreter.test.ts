@@ -1316,7 +1316,9 @@ describe('interpreter', () => {
       expect(typeof intervalService.subscribe === 'function').toBeTruthy();
 
       intervalService.subscribe(
-        (state) => (count = state.context.count),
+        (state) => {
+          count = state.context.count;
+        },
         undefined,
         () => {
           expect(count).toEqual(5);

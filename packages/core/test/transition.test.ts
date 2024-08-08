@@ -175,7 +175,7 @@ describe('transition function', () => {
     await waitFor(actor, (s) => s.matches('b'));
   });
 
-  it('Delayed transitions should be returned', () => {
+  it('Delayed transitions should be returned', async () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -199,6 +199,16 @@ describe('transition function', () => {
         })
       })
     );
+
+    const actor = createActor(machine, {
+      snapshot: state
+    }).start();
+
+    actions.forEach((action) => {
+      executeAction(action, actor);
+    });
+
+    await waitFor(actor, (s) => s.matches('b'));
   });
 
   // Copied from getSnapshot.test.ts

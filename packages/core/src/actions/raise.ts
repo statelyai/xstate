@@ -87,10 +87,10 @@ function executeRaise(
 ) {
   const { event, delay, id } = params;
   if (typeof delay === 'number') {
-    actorScope.defer(() => {
-      const self = actorScope.self;
-      actorScope.system.scheduler.schedule(self, self, event, delay, id);
-    });
+    // actorScope.defer(() => {
+    //   const self = actorScope.self;
+    //   actorScope.system.scheduler.schedule(self, self, event, delay, id);
+    // });
     return;
   }
 }
