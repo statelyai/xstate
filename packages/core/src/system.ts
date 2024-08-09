@@ -29,7 +29,7 @@ export interface Clock {
 interface Scheduler {
   schedule(
     source: AnyActorRef,
-    target: AnyActorRef,
+    target: AnyActorRef | string,
     event: EventObject,
     delay: number,
     id: string | undefined
@@ -127,7 +127,16 @@ export function createSystem<T extends ActorSystemInfo>(
         delete timerMap[scheduledEventId];
         delete system._snapshot._scheduledEvents[scheduledEventId];
 
-        system._relay(source, target, event);
+        const resolvedTarget =
+          typeof target === 'string'
+            ? source.getSnapshot().children[target]
+            : target;
+
+        if (!resolvedTarget) {
+          throw new Error(`Actor with id ${target} not found in the system.`);
+        }
+
+        system._relay(source, resolvedTarget, event);
       }, delay);
 
       timerMap[scheduledEventId] = timeout;

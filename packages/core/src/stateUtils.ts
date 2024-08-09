@@ -1970,6 +1970,19 @@ export function executeAction(
     return;
   } else if (action.type === 'xstate.cancel') {
     actor.system.scheduler.cancel(actor, action.params as string);
+    return;
+  } else if (
+    action.type === 'xstate.sendTo' &&
+    (action.params as any).delay !== undefined
+  ) {
+    actor.system.scheduler.schedule(
+      actor,
+      (action.params as any).to,
+      (action.params as any).event,
+      (action.params as any).delay,
+      (action.params as any).id
+    );
+    return;
   }
   return action.exec?.(resolvedInfo, params);
 }

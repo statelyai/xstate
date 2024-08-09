@@ -149,13 +149,6 @@ function executeSendTo(
   actorScope.defer(() => {
     const { to, event, delay, id } = params;
     if (typeof delay === 'number') {
-      actorScope.system.scheduler.schedule(
-        actorScope.self,
-        to,
-        event,
-        delay,
-        id
-      );
       return;
     }
     actorScope.system._relay(
@@ -250,7 +243,7 @@ export function sendTo<
     }
   }
 
-  sendTo.type = 'xsnapshot.sendTo';
+  sendTo.type = 'xstate.sendTo';
   sendTo.to = to;
   sendTo.event = eventOrExpr;
   sendTo.id = options?.id;

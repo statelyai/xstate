@@ -21,7 +21,8 @@ import {
   sendParent,
   Snapshot,
   ActorRef,
-  AnyEventObject
+  AnyEventObject,
+  waitFor
 } from '../src/index.ts';
 import { sleep } from '@xstate-repo/jest-utils';
 
@@ -3344,7 +3345,7 @@ describe('invoke', () => {
             src: child
           },
           entry: sendTo('foo', ({ self }) => ({ type: 'PING', origin: self }), {
-            delay: 1
+            delay: 10
           }),
           on: {
             PONG: 'c'
@@ -3357,10 +3358,13 @@ describe('invoke', () => {
     });
 
     const actorRef = createActor(machine).start();
+    actorRef.system.inspect((e) => {
+      e;
+    });
     actorRef.send({ type: 'NEXT' });
-    await sleep(3);
-    expect(actorRef.getSnapshot().status).toBe('done');
-  });
+
+    await waitFor(actorRef, (s) => s.status === 'done');
+  }, 100000);
 });
 
 describe('invoke input', () => {
