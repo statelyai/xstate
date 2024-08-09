@@ -45,7 +45,7 @@
   },
   "peerDependencies": {
     "svelte": "^3.24.1 || ^4",
-    "xstate": "^5.17.0"
+    "xstate": "workspace:^"
   },
   "peerDependenciesMeta": {
     "xstate": {

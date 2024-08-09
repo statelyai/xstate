@@ -125,7 +125,7 @@ importers:
         specifier: ^2.0.15
         version: 2.0.16
       '@xstate-repo/jest-utils':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../scripts/jest-utils
       ajv:
         specifier: ^8.12.0

@@ -54,7 +54,7 @@
   },
   "peerDependencies": {
     "vue": "^3.0.0",
-    "xstate": "^5.17.0"
+    "xstate": "workspace:^"
   },
   "peerDependenciesMeta": {
     "xstate": {
