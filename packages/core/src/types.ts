@@ -2071,49 +2071,18 @@ export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
       : never
   : never;
 
+// TODO: in v6, this should only accept AnyActorLogic, like ActorRefFromLogic
 export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<
-      infer TContext,
-      infer TEvent,
-      infer TChildren,
-      infer _TActor,
-      infer _TAction,
-      infer _TGuard,
-      infer _TDelay,
-      infer TStateValue,
-      infer TTag,
-      infer _TInput,
-      infer TOutput,
-      infer TEmitted,
-      infer TMeta,
-      infer TStateSchema
-    >
-    ? ActorRef<
-        MachineSnapshot<
-          TContext,
-          TEvent,
-          TChildren,
-          TStateValue,
-          TTag,
-          TOutput,
-          TMeta,
-          TStateSchema
-        >,
-        TEvent,
-        TEmitted
-      >
-    : R extends Promise<infer U>
-      ? ActorRefFrom<PromiseActorLogic<U>>
-      : R extends ActorLogic<
-            infer TSnapshot,
-            infer TEvent,
-            infer _TInput,
-            infer _TSystem,
-            infer TEmitted
-          >
-        ? ActorRef<TSnapshot, TEvent, TEmitted>
-        : never
+  ? R extends AnyActorLogic
+    ? ActorRefFromLogic<R>
+    : never
   : never;
+
+export type ActorRefFromLogic<T extends AnyActorLogic> = ActorRef<
+  SnapshotFrom<T>,
+  EventFromLogic<T>,
+  EmittedFrom<T>
+>;
 
 export type DevToolsAdapter = (service: AnyActor) => void;
 
@@ -2324,7 +2293,7 @@ export type AnyActorLogic = ActorLogic<
 export type UnknownActorLogic = ActorLogic<
   any, // snapshot
   any, // event
-  never, // input
+  any, // input
   AnyActorSystem,
   any // emitted
 >;
@@ -2494,7 +2463,9 @@ type ExtractLiteralString<T extends string | undefined> = T extends string
   : never;
 
 type ToConcreteChildren<TActor extends ProvidedActor> = {
-  [A in TActor as ExtractLiteralString<A['id']>]?: ActorRefFrom<A['logic']>;
+  [A in TActor as ExtractLiteralString<A['id']>]?: ActorRefFromLogic<
+    A['logic']
+  >;
 };
 
 export type ToChildren<TActor extends ProvidedActor> =
@@ -2509,7 +2480,7 @@ export type ToChildren<TActor extends ProvidedActor> =
           {
             include: {
               [id: string]: TActor extends any
-                ? ActorRefFrom<TActor['logic']> | undefined
+                ? ActorRefFromLogic<TActor['logic']> | undefined
                 : never;
             };
             exclude: {};

@@ -25,7 +25,13 @@ import {
   stateIn,
   setup,
   toPromise,
-  UnknownActorRef
+  UnknownActorRef,
+  AnyActorLogic,
+  ActorRef,
+  SnapshotFrom,
+  EmittedFrom,
+  EventFrom,
+  ActorRefFromLogic
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -4824,4 +4830,20 @@ it('UnknownActorRef should return a Snapshot-typed value from getSnapshot()', ()
 
   // @ts-expect-error
   actor.getSnapshot().status === 'FOO';
+});
+
+it('Actor<T> should be assignable to ActorRefFromLogic<T>', () => {
+  const logic = createMachine({});
+
+  class ActorThing<T extends AnyActorLogic> {
+    actorRef: ActorRefFromLogic<T>;
+    constructor(actorLogic: T) {
+      const actor = createActor(actorLogic);
+
+      actor satisfies ActorRefFromLogic<typeof actorLogic>;
+      this.actorRef = actor;
+    }
+  }
+
+  new ActorThing(logic);
 });
