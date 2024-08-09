@@ -2,7 +2,7 @@ import { XSTATE_STOP } from '../constants.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
-  ActorRefFrom,
+  ActorRefFromLogic,
   AnyActorRef,
   EventObject,
   NonReducibleUnknown,
@@ -61,7 +61,7 @@ export type PromiseActorLogic<
  *
  * @see {@link fromPromise}
  */
-export type PromiseActorRef<TOutput> = ActorRefFrom<
+export type PromiseActorRef<TOutput> = ActorRefFromLogic<
   PromiseActorLogic<TOutput, unknown>
 >;
 

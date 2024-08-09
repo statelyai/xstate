@@ -413,33 +413,33 @@ describe('state tests', () => {
   });
 
   it('should test with input', () => {
-    const model = createTestModel(
-      setup({
-        types: {
-          input: {} as {
-            name: string;
-          },
-          context: {} as {
-            name: string;
-          }
+    const machine = setup({
+      types: {
+        input: {} as {
+          name: string;
+        },
+        context: {} as {
+          name: string;
         }
-      }).createMachine({
-        context: (x) => ({
-          name: x.input.name
-        }),
-        initial: 'checking',
-        states: {
-          checking: {
-            always: [
-              { guard: (x) => x.context.name.length > 3, target: 'longName' },
-              { target: 'shortName' }
-            ]
-          },
-          longName: {},
-          shortName: {}
-        }
-      })
-    );
+      }
+    }).createMachine({
+      context: (x) => ({
+        name: x.input.name
+      }),
+      initial: 'checking',
+      states: {
+        checking: {
+          always: [
+            { guard: (x) => x.context.name.length > 3, target: 'longName' },
+            { target: 'shortName' }
+          ]
+        },
+        longName: {},
+        shortName: {}
+      }
+    });
+
+    const model = createTestModel(machine);
 
     const path1 = model.getShortestPaths({
       input: { name: 'ed' }
