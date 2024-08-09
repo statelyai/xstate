@@ -7,13 +7,12 @@ import {
   raise,
   sendParent,
   sendTo,
-  spawnChild,
   stopChild
 } from '../src/actions.ts';
 import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import {
   ActorRef,
-  ActorRefFrom,
+  ActorRefFromLogic,
   AnyActorRef,
   EventObject,
   Snapshot,
@@ -1553,7 +1552,7 @@ describe('entry/exit actions', () => {
       const parent = createMachine({
         types: {} as {
           context: {
-            child: ActorRefFrom<typeof child>;
+            child: ActorRefFromLogic<typeof child>;
           };
         },
         id: 'parent',
@@ -1598,7 +1597,7 @@ describe('entry/exit actions', () => {
       const parent = createMachine({
         types: {} as {
           context: {
-            child: ActorRefFrom<typeof child>;
+            child: ActorRefFromLogic<typeof child>;
           };
         },
         id: 'parent',
@@ -2981,7 +2980,7 @@ describe('sendTo', () => {
       const parentMachine = createMachine({
         types: {} as {
           context: {
-            child: ActorRefFrom<typeof childMachine>;
+            child: ActorRefFromLogic<typeof childMachine>;
           };
         },
         context: ({ spawn }) => ({
@@ -3014,7 +3013,7 @@ describe('sendTo', () => {
       const parentMachine = createMachine({
         types: {} as {
           context: {
-            child: ActorRefFrom<typeof childMachine>;
+            child: ActorRefFromLogic<typeof childMachine>;
             count: number;
           };
         },
@@ -3051,7 +3050,7 @@ describe('sendTo', () => {
     createMachine({
       types: {} as {
         context: {
-          child: ActorRefFrom<typeof childMachine>;
+          child: ActorRefFromLogic<typeof childMachine>;
         };
       },
       context: ({ spawn }) => ({
@@ -3083,7 +3082,9 @@ describe('sendTo', () => {
       });
 
       const parentMachine = createMachine({
-        types: {} as { context: { child: ActorRefFrom<typeof childMachine> } },
+        types: {} as {
+          context: { child: ActorRefFromLogic<typeof childMachine> };
+        },
         context: ({ spawn }) => ({
           child: spawn(childMachine, { id: 'child' })
         }),
@@ -3113,7 +3114,9 @@ describe('sendTo', () => {
       });
 
       const parentMachine = createMachine({
-        types: {} as { context: { child: ActorRefFrom<typeof childMachine> } },
+        types: {} as {
+          context: { child: ActorRefFromLogic<typeof childMachine> };
+        },
         context: ({ spawn }) => ({
           child: spawn(childMachine)
         }),
