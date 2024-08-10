@@ -3584,7 +3584,7 @@ describe('sendTo with inline actions', () => {
     const parentMachine = createMachine({
       types: {} as {
         context: {
-          child: ActorRefFrom<typeof childMachine>;
+          child: ActorRefFromLogic<typeof childMachine>;
         };
       },
       context: ({ spawn }) => ({
@@ -3619,7 +3619,7 @@ describe('sendTo with inline actions', () => {
     const parentMachine = createMachine({
       types: {} as {
         context: {
-          child: ActorRefFrom<typeof childMachine>;
+          child: ActorRefFromLogic<typeof childMachine>;
           count: number;
         };
       },
@@ -3662,7 +3662,7 @@ describe('sendTo with inline actions', () => {
     createMachine({
       types: {} as {
         context: {
-          child: ActorRefFrom<typeof childMachine>;
+          child: ActorRefFromLogic<typeof childMachine>;
         };
       },
       context: ({ spawn }) => ({
@@ -3699,7 +3699,9 @@ describe('sendTo with inline actions', () => {
     });
 
     const parentMachine = createMachine({
-      types: {} as { context: { child: ActorRefFrom<typeof childMachine> } },
+      types: {} as {
+        context: { child: ActorRefFromLogic<typeof childMachine> };
+      },
       context: ({ spawn }) => ({
         child: spawn(childMachine, { id: 'child' })
       }),
@@ -3730,7 +3732,9 @@ describe('sendTo with inline actions', () => {
     });
 
     const parentMachine = createMachine({
-      types: {} as { context: { child: ActorRefFrom<typeof childMachine> } },
+      types: {} as {
+        context: { child: ActorRefFromLogic<typeof childMachine> };
+      },
       context: ({ spawn }) => ({
         child: spawn(childMachine)
       }),
