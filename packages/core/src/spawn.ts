@@ -1,6 +1,6 @@
 import { ProcessingStatus, createActor } from './createActor.ts';
 import {
-  ActorRefFrom,
+  ActorRefFromLogic,
   AnyActorLogic,
   AnyActorRef,
   AnyActorScope,
@@ -43,7 +43,7 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
       <TSrc extends TActor['src']>(
         logic: TSrc,
         ...[options]: SpawnOptions<TActor, TSrc>
-      ): ActorRefFrom<GetConcreteByKey<TActor, 'src', TSrc>['logic']>;
+      ): ActorRefFromLogic<GetConcreteByKey<TActor, 'src', TSrc>['logic']>;
       <TLogic extends AnyActorLogic>(
         src: TLogic,
         options?: {
@@ -52,7 +52,7 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
           input?: InputFrom<TLogic>;
           syncSnapshot?: boolean;
         }
-      ): ActorRefFrom<TLogic>;
+      ): ActorRefFromLogic<TLogic>;
     }
   : <TLogic extends AnyActorLogic | string>(
       src: TLogic,
@@ -62,7 +62,7 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
         input?: TLogic extends string ? unknown : InputFrom<TLogic>;
         syncSnapshot?: boolean;
       }
-    ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;
+    ) => TLogic extends AnyActorLogic ? ActorRefFromLogic<TLogic> : AnyActorRef;
 
 export function createSpawner(
   actorScope: AnyActorScope,
