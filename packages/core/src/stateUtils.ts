@@ -1951,38 +1951,52 @@ export function executeAction(
   actor: AnyActorRef,
   params: unknown = action.params
 ) {
+  const resolvedAction = resolveSpecialAction(action);
   const resolvedInfo = {
     ...action.info,
     self: actor,
     system: actor.system
   };
-  if (
-    action.type === 'xstate.raise' &&
-    (action.params as any).delay !== undefined
-  ) {
-    actor.system.scheduler.schedule(
-      actor,
-      actor,
-      (action.params as any).event,
-      (action.params as any).delay,
-      (action.params as any).id
-    );
-    return;
-  } else if (action.type === 'xstate.cancel') {
-    actor.system.scheduler.cancel(actor, action.params as string);
-    return;
-  } else if (
-    action.type === 'xstate.sendTo' &&
-    (action.params as any).delay !== undefined
-  ) {
-    actor.system.scheduler.schedule(
-      actor,
-      (action.params as any).to,
-      (action.params as any).event,
-      (action.params as any).delay,
-      (action.params as any).id
-    );
-    return;
+  return resolvedAction.exec?.(resolvedInfo, params);
+}
+
+function resolveSpecialAction(action: ExecutableAction): ExecutableAction {
+  const resolvedAction = { ...action };
+  switch (action.type) {
+    case 'xstate.raise':
+      if ((action.params as any).delay !== undefined) {
+        resolvedAction.exec = (info, params) => {
+          info.system.scheduler.schedule(
+            info.self,
+            info.self,
+            (action.params as any).event,
+            (action.params as any).delay,
+            (action.params as any).id
+          );
+        };
+        return resolvedAction;
+      }
+      break;
+    case 'xstate.cancel':
+      resolvedAction.exec = (info, params) => {
+        info.system.scheduler.cancel(info.self, action.params as string);
+      };
+      return resolvedAction;
+    case 'xstate.sendTo':
+      if ((action.params as any).delay !== undefined) {
+        resolvedAction.exec = (info, params) => {
+          info.system.scheduler.schedule(
+            info.self,
+            (action.params as any).to,
+            (action.params as any).event,
+            (action.params as any).delay,
+            (action.params as any).id
+          );
+        };
+        return resolvedAction;
+      }
+      break;
   }
-  return action.exec?.(resolvedInfo, params);
+
+  return action;
 }

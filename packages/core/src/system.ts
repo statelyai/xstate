@@ -18,7 +18,12 @@ interface ScheduledEvent {
   startedAt: number; // timestamp
   delay: number;
   source: AnyActorRef;
-  target: AnyActorRef;
+  /**
+   * The target `ActorRef` of the event.
+   *
+   * Can be a `string` (references `snapshot.children[target]`) or an `ActorRef`
+   */
+  target: AnyActorRef | string;
 }
 
 export interface Clock {
