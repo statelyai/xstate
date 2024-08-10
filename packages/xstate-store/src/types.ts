@@ -1,3 +1,5 @@
+import { InspectionEvent } from 'xstate';
+
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
 export type ExtractEventsFromPayloadMap<T extends EventPayloadMap> = Values<{
@@ -64,6 +66,12 @@ export interface Store<TContext, Ev extends EventObject>
   send: (event: Ev) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
   getInitialSnapshot: () => StoreSnapshot<TContext>;
+  inspect: (
+    observer:
+      | Observer<InspectionEvent>
+      | ((inspectionEvent: InspectionEvent) => void)
+  ) => Subscription;
+  sessionId: string;
 }
 
 export type SnapshotFromStore<TStore extends Store<any, any>> =

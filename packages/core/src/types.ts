@@ -1981,6 +1981,11 @@ export interface ActorRef<
 
 export type AnyActorRef = ActorRef<any, any, any>;
 
+export type ActorRefLike = Pick<
+  AnyActorRef,
+  'sessionId' | 'send' | 'getSnapshot'
+>;
+
 export type UnknownActorRef = ActorRef<Snapshot<unknown>, EventObject>;
 
 export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
