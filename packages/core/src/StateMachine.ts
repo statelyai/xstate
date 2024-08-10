@@ -95,7 +95,7 @@ export class StateMachine<
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
   /** @internal */
-  public __xstatenode: true = true;
+  public __xstatenode = true as const;
 
   /** @internal */
   public idMap: Map<string, StateNode<TContext, TEvent>> = new Map();
@@ -222,7 +222,8 @@ export class StateMachine<
       error?: unknown;
     } & (Equals<TContext, MachineContext> extends false
       ? { context: unknown }
-      : {})
+      : // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+        {})
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -603,7 +604,7 @@ export class StateMachine<
       TConfig
     >;
 
-    let seen = new Set();
+    const seen = new Set();
 
     function reviveContext(
       contextPart: Record<string, unknown>,
@@ -613,7 +614,7 @@ export class StateMachine<
         return;
       }
       seen.add(contextPart);
-      for (let key in contextPart) {
+      for (const key in contextPart) {
         const value: unknown = contextPart[key];
 
         if (value && typeof value === 'object') {

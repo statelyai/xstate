@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { ActorRef, AnyActorRef, SnapshotFrom, Subscription } from './types.ts';
+import { AnyActorRef, SnapshotFrom, Subscription } from './types.ts';
 
 interface WaitForOptions {
   /**
@@ -73,6 +73,7 @@ export function waitFor<TActorRef extends AnyActorRef>(
       }
     }
 
+    // eslint-disable-next-line prefer-const
     let sub: Subscription | undefined; // avoid TDZ when disposing synchronously
 
     // See if the current snapshot already matches the predicate

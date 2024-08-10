@@ -52,7 +52,7 @@ function getAttribute(
   return element.attributes ? element.attributes[attribute] : undefined;
 }
 
-function indexedRecord<T extends {}>(
+function indexedRecord<T>(
   items: T[],
   identifierFn: (item: T) => string
 ): Record<string, T> {
@@ -106,7 +106,7 @@ function delayToMs(delay?: string | number): number | undefined {
     if (!hasDecimal) {
       return parseInt(secondsMatch[3], 10) * 1000;
     }
-    const secondsPart = !!secondsMatch[1]
+    const secondsPart = secondsMatch[1]
       ? parseInt(secondsMatch[1], 10) * 1000
       : 0;
     const millisecondsPart = parseInt(
@@ -320,7 +320,7 @@ return ${element.attributes!.expr};
 
       branches.push(current);
 
-      return enqueueActions(({ context, event, enqueue, check, ...meta }) => {
+      return enqueueActions(({ enqueue, check }) => {
         for (const branch of branches) {
           if (!branch.guard || check(branch.guard)) {
             branch.actions.forEach(enqueue);

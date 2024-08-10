@@ -1,6 +1,3 @@
-const { NODE_ENV } = process.env;
-const isTest = NODE_ENV === 'test';
-
 module.exports = {
   assumptions: {
     constantReexports: true, // only matters for tests (since only there we transpile to CJS using Babel), it makes debugging easier

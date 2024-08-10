@@ -423,7 +423,8 @@ export class Actor<TLogic extends AnyActorLogic>
   public on<TType extends EmittedFrom<TLogic>['type'] | '*'>(
     type: TType,
     handler: (
-      emitted: EmittedFrom<TLogic> & (TType extends '*' ? {} : { type: TType })
+      emitted: EmittedFrom<TLogic> &
+        (TType extends '*' ? unknown : { type: TType })
     ) => void
   ): Subscription {
     let listeners = this.eventListeners.get(type);

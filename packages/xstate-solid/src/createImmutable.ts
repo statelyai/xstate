@@ -19,7 +19,7 @@ const updateStore = <Path extends unknown[]>(
   store: Store<any>
 ) => {
   const valueRefs = new WeakMap<any, unknown>();
-  const diff = <CompareValue extends unknown>(
+  const diff = <CompareValue>(
     next: CompareValue,
     prev: CompareValue,
     path: Path

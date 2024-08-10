@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 import { StateMachine } from './StateMachine';
 import { createMachine } from './createMachine';
 import { GuardPredicate } from './guards';
@@ -89,7 +90,7 @@ type ToStateValue<T extends StateSchema> = T extends {
   states: Record<infer S, any>;
 }
   ? IsNever<S> extends true
-    ? {}
+    ? NonNullable<unknown>
     :
         | GroupStateKeys<T, S>['leaf']
         | (IsNever<GroupStateKeys<T, S>['nonLeaf']> extends false
@@ -102,7 +103,7 @@ type ToStateValue<T extends StateSchema> = T extends {
                 T extends { type: 'parallel' } ? true : false
               >
             : never)
-  : {};
+  : NonNullable<unknown>;
 
 type RequiredSetupKeys<TChildrenMap> = IsNever<keyof TChildrenMap> extends true
   ? never

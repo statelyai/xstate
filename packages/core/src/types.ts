@@ -41,7 +41,7 @@ export type GetParameterizedParams<T extends ParameterizedObject | undefined> =
  * This type can be used to avoid this problem. This union represents the same
  * value space as `unknown`.
  */
-export type NonReducibleUnknown = {} | null | undefined;
+export type NonReducibleUnknown = NonNullable<unknown> | null | undefined;
 export type AnyFunction = (...args: any[]) => any;
 
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
@@ -50,7 +50,7 @@ type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
 export type IsNever<T> = [T] extends [never] ? true : false;
 export type IsNotNever<T> = [T] extends [never] ? false : true;
 
-export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
+export type Compute<A> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export type Values<T> = T[keyof T];
 export type Elements<T> = T[keyof T & `${number}`];
@@ -61,9 +61,9 @@ export type IndexByProp<T extends Record<P, string>, P extends keyof T> = {
 
 export type IndexByType<T extends { type: string }> = IndexByProp<T, 'type'>;
 
-export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
-  ? true
-  : false) extends <A>() => A extends A1 ? true : false
+export type Equals<A1, A2> = (<A>() => A extends A2 ? true : false) extends <
+  A
+>() => A extends A1 ? true : false
   ? true
   : false;
 export type IsAny<T> = Equals<T, any>;
@@ -73,7 +73,7 @@ export type Cast<A, B> = A extends B ? A : B;
 export type DoNotInfer<T> = [T][T extends any ? 0 : any];
 /** @deprecated Use the built-in `NoInfer` type instead */
 export type NoInfer<T> = DoNotInfer<T>;
-export type LowInfer<T> = T & {};
+export type LowInfer<T> = T & NonNullable<unknown>;
 
 export type MetaObject = Record<string, any>;
 
@@ -854,7 +854,7 @@ export interface StateNodeConfig<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TTag extends string,
-  TOutput,
+  _TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject
 > {
@@ -1974,7 +1974,7 @@ export interface ActorRef<
   on: <TType extends TEmitted['type'] | '*'>(
     type: TType,
     handler: (
-      emitted: TEmitted & (TType extends '*' ? {} : { type: TType })
+      emitted: TEmitted & (TType extends '*' ? unknown : { type: TType })
     ) => void
   ) => Subscription;
 }
@@ -2461,7 +2461,7 @@ export type ToChildren<TActor extends ProvidedActor> =
                 ? ActorRefFromLogic<TActor['logic']> | undefined
                 : never;
             };
-            exclude: {};
+            exclude: unknown;
           }[undefined extends TActor['id'] // if not all actors have literal string IDs then we need to create an index signature containing all possible actor types
             ? 'include'
             : string extends TActor['id']
