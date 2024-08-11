@@ -66,6 +66,13 @@ export interface Store<TContext, Ev extends EventObject>
   send: (event: Ev) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
   getInitialSnapshot: () => StoreSnapshot<TContext>;
+  /**
+   * Subscribes to [inspection events](https://stately.ai/docs/inspection) from
+   * the store.
+   *
+   * Inspectors that call `store.inspect(…)` will immediately receive an
+   * "@xstate.actor" inspection event.
+   */
   inspect: (
     observer:
       | Observer<InspectionEvent>
