@@ -1,5 +1,13 @@
 # xstate
 
+## 5.17.2
+
+### Patch Changes
+
+- [#5029](https://github.com/statelyai/xstate/pull/5029) [`88bd87ab41`](https://github.com/statelyai/xstate/commit/88bd87ab412f22fb251a6060f45ba3b6f39ac208) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Revert `ActorRefFrom` change
+
+- [#5011](https://github.com/statelyai/xstate/pull/5011) [`a275d274de`](https://github.com/statelyai/xstate/commit/a275d274deb07ed17bb582e63d9428c5616067db) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is a new type helper: `ActorRefFromLogic<TLogic>`. This type is a stricter form of `ActorRefFrom<TLogic>` that only accepts actor logic types. See https://github.com/statelyai/xstate/issues/4997 for more details.
+
 ## 5.17.1
 
 ### Patch Changes
