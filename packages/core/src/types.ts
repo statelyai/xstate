@@ -2008,9 +2008,47 @@ export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
 
 // TODO: in v6, this should only accept AnyActorLogic, like ActorRefFromLogic
 export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends AnyActorLogic
-    ? ActorRefFromLogic<R>
-    : never
+  ? R extends StateMachine<
+      infer TContext,
+      infer TEvent,
+      infer TChildren,
+      infer _TActor,
+      infer _TAction,
+      infer _TGuard,
+      infer _TDelay,
+      infer TStateValue,
+      infer TTag,
+      infer _TInput,
+      infer TOutput,
+      infer TEmitted,
+      infer TMeta,
+      infer TStateSchema
+    >
+    ? ActorRef<
+        MachineSnapshot<
+          TContext,
+          TEvent,
+          TChildren,
+          TStateValue,
+          TTag,
+          TOutput,
+          TMeta,
+          TStateSchema
+        >,
+        TEvent,
+        TEmitted
+      >
+    : R extends Promise<infer U>
+      ? ActorRefFrom<PromiseActorLogic<U>>
+      : R extends ActorLogic<
+            infer TSnapshot,
+            infer TEvent,
+            infer _TInput,
+            infer _TSystem,
+            infer TEmitted
+          >
+        ? ActorRef<TSnapshot, TEvent, TEmitted>
+        : never
   : never;
 
 export type ActorRefFromLogic<T extends AnyActorLogic> = ActorRef<
