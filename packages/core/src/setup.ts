@@ -17,6 +17,7 @@ import {
   MetaObject,
   NonReducibleUnknown,
   ParameterizedObject,
+  Prop,
   SetupTypes,
   StateSchema,
   ToChildren,
@@ -69,18 +70,21 @@ type ToProvidedActor<
 
 type _GroupStateKeys<
   T extends StateSchema,
-  S extends keyof T['states']
+  S extends keyof T['states' & keyof T]
 > = S extends any
-  ? T['states'][S] extends { type: 'history' }
+  ? T['states' & keyof T][S] extends { type: 'history' }
     ? [never, never]
     : T extends { type: 'parallel' }
       ? [S, never]
-      : 'states' extends keyof T['states'][S]
+      : 'states' & keyof T extends keyof T['states' & keyof T][S]
         ? [S, never]
         : [never, S]
   : never;
 
-type GroupStateKeys<T extends StateSchema, S extends keyof T['states']> = {
+type GroupStateKeys<
+  T extends StateSchema,
+  S extends keyof T['states' & keyof T]
+> = {
   nonLeaf: _GroupStateKeys<T, S & string>[0];
   leaf: _GroupStateKeys<T, S & string>[1];
 };
@@ -96,7 +100,7 @@ type ToStateValue<T extends StateSchema> = T extends {
             ? ConditionalRequired<
                 {
                   [K in GroupStateKeys<T, S>['nonLeaf']]?: ToStateValue<
-                    T['states'][K]
+                    Prop<T['states' & keyof T], K>
                   >;
                 },
                 T extends { type: 'parallel' } ? true : false

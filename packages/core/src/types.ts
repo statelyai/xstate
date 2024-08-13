@@ -2481,15 +2481,15 @@ export type StateId<
       : TParentKey extends null
         ? TKey
         : `${TParentKey}.${TKey}`)
-  | (TSchema['states'] extends Record<string, any>
+  | (TSchema['states' & keyof TSchema] extends Record<string, any>
       ? Values<{
-          [K in keyof TSchema['states'] & string]: StateId<
-            TSchema['states'][K],
+          [K in keyof TSchema['states' & keyof TSchema] & string]: StateId<
+            TSchema['states' & keyof TSchema][K],
             K,
             TParentKey extends string
               ? `${TParentKey}.${TKey}`
-              : TSchema['id'] extends string
-                ? TSchema['id']
+              : TSchema['id' & keyof TSchema] extends string
+                ? TSchema['id' & keyof TSchema]
                 : TKey
           >;
         }>
