@@ -2164,7 +2164,7 @@ describe('setup()', () => {
     ((_accept: EventFrom<typeof machine>) => {})({ type: 'SOME_EVENT' });
   });
 
-  it('ContextFrom should work', () => {
+  it('ContextFrom should work with a machine that has transitions defined on a state', () => {
     // https://github.com/statelyai/xstate/issues/5031
 
     const machine = setup({
