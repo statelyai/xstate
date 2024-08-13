@@ -2134,7 +2134,7 @@ describe('setup()', () => {
     });
   });
 
-  it('EventFrom should work', () => {
+  it('EventFrom should work with a machine that has transitions defined on a state', () => {
     // https://github.com/statelyai/xstate/issues/5031
 
     const machine = setup({
