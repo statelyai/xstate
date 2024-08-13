@@ -2467,6 +2467,22 @@ export type ToChildren<TActor extends ProvidedActor> =
 export type StateSchema = {
   id?: string;
   states?: Record<string, StateSchema>;
+
+  // Other types
+  // Needed because TS treats objects with all optional properties as a "weak" object
+  // https://github.com/statelyai/xstate/issues/5031
+  type?: unknown;
+  invoke?: unknown;
+  on?: unknown;
+  entry?: unknown;
+  exit?: unknown;
+  onDone?: unknown;
+  after?: unknown;
+  always?: unknown;
+  meta?: unknown;
+  output?: unknown;
+  tags?: unknown;
+  description?: unknown;
 };
 
 export type StateId<

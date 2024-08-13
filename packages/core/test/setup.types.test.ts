@@ -6,6 +6,8 @@ import {
   createActor,
   createMachine,
   enqueueActions,
+  EventFrom,
+  EventObject,
   fromPromise,
   fromTransition,
   log,
@@ -2129,5 +2131,43 @@ describe('setup()', () => {
         releaseFromDuty: stopChild('foo')
       }
     });
+  });
+
+  it('EventFrom should work', () => {
+    // https://github.com/statelyai/xstate/issues/5031
+
+    const machine = setup({
+      types: {} as {
+        context: {
+          myVar: string;
+        };
+        events: {
+          type: 'SOME_EVENT';
+        };
+      },
+      guards: {},
+      actors: {},
+      actions: {},
+      delays: {}
+    }).createMachine({
+      id: 'authorization',
+      initial: 'loading',
+      context: {
+        myVar: 'foo'
+      },
+      states: {
+        loaded: {},
+        loading: {
+          on: {
+            // This event name autocompletes fine
+            SOME_EVENT: {
+              target: 'loaded'
+            }
+          }
+        }
+      }
+    });
+
+    ((_accept: EventFrom<typeof machine>) => {})({ type: 'SOME_EVENT' });
   });
 });
