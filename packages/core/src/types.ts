@@ -1027,8 +1027,6 @@ export interface StateNodeConfig<
 
   /** A default target for a history state */
   target?: string;
-
-  [k: string]: unknown; // TODO: figure out how to remove this since it turns off excess property checks
 }
 
 export type AnyStateNodeConfig = StateNodeConfig<
@@ -2466,11 +2464,12 @@ export type ToChildren<TActor extends ProvidedActor> =
               : 'exclude']
       >;
 
-export type StateSchema = {
-  id?: string;
-  states?: Record<string, StateSchema>;
-  [key: string]: unknown;
-};
+export type StateSchema =
+  | {
+      id?: string;
+      states?: Record<string, StateSchema>;
+    }
+  | {};
 
 export type StateId<
   TSchema extends StateSchema,
