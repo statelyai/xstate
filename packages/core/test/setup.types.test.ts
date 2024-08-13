@@ -3,9 +3,12 @@ import {
   and,
   assign,
   cancel,
+  ContextFrom,
   createActor,
   createMachine,
   enqueueActions,
+  EventFrom,
+  EventObject,
   fromPromise,
   fromTransition,
   log,
@@ -2129,5 +2132,65 @@ describe('setup()', () => {
         releaseFromDuty: stopChild('foo')
       }
     });
+  });
+
+  it('EventFrom should work with a machine that has transitions defined on a state', () => {
+    // https://github.com/statelyai/xstate/issues/5031
+
+    const machine = setup({
+      types: {} as {
+        events: {
+          type: 'SOME_EVENT';
+        };
+      }
+    }).createMachine({
+      id: 'authorization',
+      initial: 'loading',
+      context: {
+        myVar: 'foo'
+      },
+      states: {
+        loaded: {},
+        loading: {
+          on: {
+            SOME_EVENT: {
+              target: 'loaded'
+            }
+          }
+        }
+      }
+    });
+
+    ((_accept: EventFrom<typeof machine>) => {})({ type: 'SOME_EVENT' });
+  });
+
+  it('ContextFrom should work with a machine that has transitions defined on a state', () => {
+    // https://github.com/statelyai/xstate/issues/5031
+
+    const machine = setup({
+      types: {} as {
+        context: {
+          myVar: string;
+        };
+      }
+    }).createMachine({
+      id: 'authorization',
+      initial: 'loading',
+      context: {
+        myVar: 'foo'
+      },
+      states: {
+        loaded: {},
+        loading: {
+          on: {
+            SOME_EVENT: {
+              target: 'loaded'
+            }
+          }
+        }
+      }
+    });
+
+    ((_accept: ContextFrom<typeof machine>) => {})({ myVar: 'whatever' });
   });
 });
