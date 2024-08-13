@@ -1,5 +1,11 @@
 # xstate
 
+## 5.17.3
+
+### Patch Changes
+
+- [#5034](https://github.com/statelyai/xstate/pull/5034) [`7bed484c38`](https://github.com/statelyai/xstate/commit/7bed484c38f8028416c93656372f1463c47fdd58) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `EventFrom` and `ContextFrom` types
+
 ## 5.17.2
 
 ### Patch Changes
