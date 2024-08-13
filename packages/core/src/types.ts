@@ -1027,6 +1027,8 @@ export interface StateNodeConfig<
 
   /** A default target for a history state */
   target?: string;
+
+  [k: string]: unknown; // TODO: figure out how to remove this since it turns off excess property checks
 }
 
 export type AnyStateNodeConfig = StateNodeConfig<
