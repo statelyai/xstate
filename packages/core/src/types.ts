@@ -2467,6 +2467,7 @@ export type ToChildren<TActor extends ProvidedActor> =
 export type StateSchema = {
   id?: string;
   states?: Record<string, StateSchema>;
+  [key: string]: unknown;
 };
 
 export type StateId<
