@@ -1,5 +1,12 @@
-import { useCallback, useRef, useSyncExternalStore } from 'react';
-import { Store, SnapshotFromStore } from './types';
+import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
+import {
+  Store,
+  SnapshotFromStore,
+  StoreLogic,
+  SendersFromStore,
+  SendersFromStoreLogic
+} from './types';
+import { createStore } from './store';
 
 function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;
@@ -58,4 +65,32 @@ export function useSelector<TStore extends Store<any, any>, T>(
         store.getInitialSnapshot() as SnapshotFromStore<TStore>
       )
   );
+}
+
+export function useStoreState<TStoreLogic extends StoreLogic<any, any>>(
+  storeLogic: TStoreLogic
+): [TStoreLogic['initialSnapshot'], SendersFromStoreLogic<TStoreLogic>] {
+  const storeRef = useRef<Store<any, any>>();
+
+  if (!storeRef.current) {
+    storeRef.current = createStore(
+      storeLogic.initialSnapshot.context,
+      storeLogic.transitions
+    );
+  }
+
+  const state = useSelector(storeRef.current, (s) => s);
+
+  const senders = useMemo(() => {
+    return Object.keys(storeLogic.transitions).reduce(
+      (acc, key: keyof typeof storeLogic.transitions) => {
+        acc[key] = (payload: any) =>
+          storeRef.current!.send({ type: key, ...payload });
+        return acc;
+      },
+      {} as SendersFromStoreLogic<TStoreLogic>
+    );
+  }, []);
+
+  return [state, senders];
 }

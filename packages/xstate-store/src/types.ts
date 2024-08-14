@@ -1,4 +1,4 @@
-import { InspectionEvent } from 'xstate';
+import { Compute, InspectionEvent } from 'xstate';
 
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
@@ -53,6 +53,18 @@ export type StoreSnapshot<TContext> = Snapshot<undefined> & {
   context: TContext;
 };
 
+export type StoreLogic<
+  TContext extends StoreContext,
+  TEvent extends EventObject
+> = {
+  initialSnapshot: StoreSnapshot<TContext>;
+  transitions: {
+    [K in TEvent['type']]:
+      | StoreAssigner<TContext, TEvent>
+      | StorePropertyAssigner<TContext, TEvent>;
+  };
+};
+
 /**
  * An actor-like object that:
  *
@@ -60,10 +72,10 @@ export type StoreSnapshot<TContext> = Snapshot<undefined> & {
  * - Can receive events
  * - Is observable
  */
-export interface Store<TContext, Ev extends EventObject>
+export interface Store<TContext, TEvent extends EventObject>
   extends Subscribable<StoreSnapshot<TContext>>,
     InteropObservable<StoreSnapshot<TContext>> {
-  send: (event: Ev) => void;
+  send: (event: TEvent) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
   getInitialSnapshot: () => StoreSnapshot<TContext>;
   /**
@@ -78,6 +90,7 @@ export interface Store<TContext, Ev extends EventObject>
       | Observer<InspectionEvent>
       | ((inspectionEvent: InspectionEvent) => void)
   ) => Subscription;
+  logic: StoreLogic<TContext, TEvent>;
   sessionId: string;
 }
 
@@ -156,6 +169,19 @@ export type SnapshotFromStore<TStore extends Store<any, any>> =
  */
 export type EventFromStore<TStore extends Store<any, any>> =
   TStore extends Store<infer _TContext, infer TEvent> ? TEvent : never;
+
+export type EventFromStoreLogic<TStoreLogic extends StoreLogic<any, any>> =
+  Compute<TStoreLogic extends StoreLogic<any, infer TEvent> ? TEvent : never>;
+
+type WithOptionalType<T, K extends keyof T> = Omit<T, K> & { type?: T[K] };
+
+export type SendersFromStoreLogic<TStoreLogic extends StoreLogic<any, any>> = {
+  [K in EventFromStoreLogic<TStoreLogic>['type']]: (
+    event: Compute<
+      Omit<Extract<EventFromStoreLogic<TStoreLogic>, { type: K }>, 'type'>
+    >
+  ) => void;
+};
 
 // Copied from XState core
 // -----------------------

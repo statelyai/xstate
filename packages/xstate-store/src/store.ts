@@ -96,6 +96,10 @@ function createStoreCore<
   }
 
   const store: Store<TContext, StoreEvent> = {
+    logic: {
+      initialSnapshot,
+      transitions: transitions as any
+    },
     sessionId: 'test',
     send(event) {
       inspectionObservers.get(store)?.forEach((observer) => {

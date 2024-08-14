@@ -1,6 +1,6 @@
 import { fireEvent, screen, render } from '@testing-library/react';
 import { createStore, fromStore } from '../src/index.ts';
-import { useSelector } from '../src/react.ts';
+import { useSelector, useStoreState } from '../src/react.ts';
 import {
   useActor,
   useActorRef,
@@ -265,4 +265,49 @@ it('useActorRef (@xstate/react) should work', () => {
   fireEvent.click(countDiv);
 
   expect(countDiv.textContent).toEqual('1');
+});
+
+it('useStoreState should work', () => {
+  const store = (initialCount: number) =>
+    createStore(
+      {
+        count: initialCount
+      },
+      {
+        increment: (context, event: { by: number }) => {
+          return {
+            count: context.count + 1
+          };
+        },
+        decrement: (context, event: { by: number }) => {
+          return {
+            count: context.count - 1
+          };
+        }
+      }
+    );
+
+  const Counter = () => {
+    const [state, { increment }] = useStoreState(store(42).logic);
+
+    return (
+      <>
+        <button data-testid="increment" onClick={() => increment({ by: 1 })}>
+          +
+        </button>
+        <output data-testid="count">{state.context.count}</output>
+      </>
+    );
+  };
+
+  render(<Counter />);
+
+  const incrementButton = screen.getByTestId('increment');
+  const countOutput = screen.getByTestId('count');
+
+  expect(countOutput.textContent).toEqual('0');
+
+  fireEvent.click(incrementButton);
+
+  expect(countOutput.textContent).toEqual('1');
 });
