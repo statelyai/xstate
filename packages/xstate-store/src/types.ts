@@ -261,6 +261,6 @@ export interface InspectedActorEvent extends BaseInspectionEventProperties {
 
 export type ActorRefLike = {
   sessionId: string;
-  send: (event: EventObject) => void;
+  send: (...args: never) => void;
   getSnapshot: () => any;
 };
