@@ -22,22 +22,23 @@ export interface AssignArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TActor extends ProvidedActor
-> extends ActionArgs<TContext, TExpressionEvent, TEvent> {
+  TActor extends ProvidedActor,
+  TEmitted extends EventObject
+> extends ActionArgs<TContext, TExpressionEvent, TEvent, TEmitted> {
   spawn: Spawner<TActor>;
 }
 
 function resolveAssign(
   actorScope: AnyActorScope,
   snapshot: AnyMachineSnapshot,
-  actionArgs: ActionArgs<any, any, any>,
+  actionArgs: ActionArgs<any, any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
     assignment
   }: {
     assignment:
-      | Assigner<any, any, any, any, any>
-      | PropertyAssigner<any, any, any, any, any>;
+      | Assigner<any, any, any, any, any, any>
+      | PropertyAssigner<any, any, any, any, any, any>;
   }
 ) {
   if (!snapshot.context) {
@@ -47,7 +48,7 @@ function resolveAssign(
   }
   const spawnedChildren: Record<string, AnyActorRef> = {};
 
-  const assignArgs: AssignArgs<any, any, any, any> = {
+  const assignArgs: AssignArgs<any, any, any, any, any> = {
     context: snapshot.context,
     event: actionArgs.event,
     spawn: createSpawner(
@@ -92,10 +93,15 @@ export interface AssignAction<
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
-  TActor extends ProvidedActor
+  TActor extends ProvidedActor,
+  TEmitted extends EventObject
 > {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  (
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TEmitted>,
+    params: TParams
+  ): void;
   _out_TActor?: TActor;
+  _out_TEmitted?: TEmitted;
 }
 
 /**
@@ -137,16 +143,25 @@ export function assign<
   TExpressionEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
-  TActor extends ProvidedActor
+  TActor extends ProvidedActor,
+  TEmitted extends EventObject
 >(
   assignment:
-    | Assigner<LowInfer<TContext>, TExpressionEvent, TParams, TEvent, TActor>
+    | Assigner<
+        LowInfer<TContext>,
+        TExpressionEvent,
+        TParams,
+        TEvent,
+        TActor,
+        TEmitted
+      >
     | PropertyAssigner<
         LowInfer<TContext>,
         TExpressionEvent,
         TParams,
         TEvent,
-        TActor
+        TActor,
+        TEmitted
       >
 ): ActionFunction<
   TContext,
@@ -157,7 +172,7 @@ export function assign<
   never,
   never,
   never,
-  never
+  TEmitted
 > {
   if (isDevelopment && executingCustomAction) {
     console.warn(
@@ -166,7 +181,7 @@ export function assign<
   }
 
   function assign(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TEmitted>,
     params: TParams
   ) {
     if (isDevelopment) {

@@ -266,3 +266,32 @@ it('useActorRef (@xstate/react) should work', () => {
 
   expect(countDiv.textContent).toEqual('1');
 });
+
+import { ActorRef, ActorRefFrom, assign, emit, setup } from '../../core/src';
+
+type EmittedEvents = { type: 'BAR' };
+
+const machineB = setup({
+  types: {
+    input: {} as {
+      a: ActorRef<any, any, EmittedEvents>;
+    }
+  }
+}).createMachine({});
+
+const machineA = setup({
+  types: {
+    emitted: {} as EmittedEvents,
+    context: {} as { b?: ActorRefFrom<typeof machineB> }
+  },
+  actors: {
+    machineB
+  }
+}).createMachine({
+  entry: [
+    emit({ type: 'BAR' }),
+    assign({
+      b: ({ spawn, self }) => spawn('machineB', { input: { a: self } })
+    })
+  ]
+});

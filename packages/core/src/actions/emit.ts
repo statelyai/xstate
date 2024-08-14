@@ -14,7 +14,7 @@ import {
 function resolveEmit(
   _: AnyActorScope,
   snapshot: AnyMachineSnapshot,
-  args: ActionArgs<any, any, any>,
+  args: ActionArgs<any, any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
     event: eventOrExpr
@@ -60,7 +60,10 @@ export interface EmitAction<
   TEvent extends EventObject,
   TEmitted extends EventObject
 > {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  (
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TEmitted>,
+    params: TParams
+  ): void;
   _out_TEmitted?: TEmitted;
 }
 
@@ -129,7 +132,7 @@ export function emit<
   }
 
   function emit(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TEmitted>,
     params: TParams
   ) {
     if (isDevelopment) {

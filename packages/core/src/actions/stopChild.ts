@@ -9,7 +9,8 @@ import {
   AnyMachineSnapshot,
   EventObject,
   MachineContext,
-  ParameterizedObject
+  ParameterizedObject,
+  TODO
 } from '../types.ts';
 
 type ResolvableActorRef<
@@ -21,14 +22,14 @@ type ResolvableActorRef<
   | string
   | AnyActorRef
   | ((
-      args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+      args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
       params: TParams
     ) => AnyActorRef | string);
 
 function resolveStop(
   _: AnyActorScope,
   snapshot: AnyMachineSnapshot,
-  args: ActionArgs<any, any, any>,
+  args: ActionArgs<any, any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   { actorRef }: { actorRef: ResolvableActorRef<any, any, any, any> }
 ) {
@@ -85,7 +86,10 @@ export interface StopAction<
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 > {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  (
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
+    params: TParams
+  ): void;
 }
 
 /**
@@ -102,7 +106,7 @@ export function stopChild<
   actorRef: ResolvableActorRef<TContext, TExpressionEvent, TParams, TEvent>
 ): StopAction<TContext, TExpressionEvent, TParams, TEvent> {
   function stop(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
     params: TParams
   ) {
     if (isDevelopment) {

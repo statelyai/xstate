@@ -98,7 +98,8 @@ export interface ParameterizedObject {
 export interface UnifiedArg<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TEmitted extends EventObject
 > {
   context: TContext;
   event: TExpressionEvent;
@@ -114,7 +115,7 @@ export interface UnifiedArg<
       TODO // State schema
     >,
     TEvent,
-    AnyEventObject
+    TEmitted
   >;
   system: AnyActorSystem;
 }
@@ -124,8 +125,9 @@ export type MachineContext = Record<string, any>;
 export interface ActionArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject
-> extends UnifiedArg<TContext, TExpressionEvent, TEvent> {}
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> extends UnifiedArg<TContext, TExpressionEvent, TEvent, TEmitted> {}
 
 export type InputFrom<T> = T extends StateMachine<
   infer _TContext,
@@ -177,7 +179,10 @@ export type ActionFunction<
   TDelay extends string,
   TEmitted extends EventObject
 > = {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  (
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TEmitted>,
+    params: TParams
+  ): void;
   _out_TEvent?: TEvent; // TODO: it feels like we should be able to remove this since now `TEvent` is "observable" by `self`
   _out_TActor?: TActor;
   _out_TAction?: TAction;
@@ -309,7 +314,7 @@ export interface TransitionConfig<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
-  TEmitted extends EventObject = EventObject,
+  TEmitted extends EventObject,
   TMeta extends MetaObject = MetaObject
 > {
   guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
@@ -1184,7 +1189,7 @@ export type ActionFunctionMap<
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
   TDelay extends string = string,
-  TEmitted extends EventObject = EventObject
+  TEmitted extends EventObject = AnyEventObject
 > = {
   [K in TAction['type']]?: ActionFunction<
     TContext,
@@ -1342,7 +1347,7 @@ export type MachineConfig<
   TTag extends string = string,
   TInput = any,
   TOutput = unknown,
-  TEmitted extends EventObject = EventObject,
+  TEmitted extends EventObject = AnyEventObject,
   TMeta extends MetaObject = MetaObject
 > = (Omit<
   StateNodeConfig<
@@ -1488,7 +1493,7 @@ export type DelayExpr<
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 > = (
-  args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+  args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
   params: TParams
 ) => number;
 
@@ -1498,7 +1503,7 @@ export type LogExpr<
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 > = (
-  args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+  args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
   params: TParams
 ) => unknown;
 
@@ -1509,7 +1514,7 @@ export type SendExpr<
   TSentEvent extends EventObject,
   TEvent extends EventObject
 > = (
-  args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+  args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
   params: TParams
 ) => TSentEvent;
 
@@ -1585,9 +1590,10 @@ export type Assigner<
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
-  TActor extends ProvidedActor
+  TActor extends ProvidedActor,
+  TEmitted extends EventObject
 > = (
-  args: AssignArgs<TContext, TExpressionEvent, TEvent, TActor>,
+  args: AssignArgs<TContext, TExpressionEvent, TEvent, TActor, TEmitted>,
   params: TParams
 ) => Partial<TContext>;
 
@@ -1597,9 +1603,10 @@ export type PartialAssigner<
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
+  TEmitted extends EventObject,
   TKey extends keyof TContext
 > = (
-  args: AssignArgs<TContext, TExpressionEvent, TEvent, TActor>,
+  args: AssignArgs<TContext, TExpressionEvent, TEvent, TActor, TEmitted>,
   params: TParams
 ) => TContext[TKey];
 
@@ -1608,10 +1615,19 @@ export type PropertyAssigner<
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
-  TActor extends ProvidedActor
+  TActor extends ProvidedActor,
+  TEmitted extends EventObject
 > = {
   [K in keyof TContext]?:
-    | PartialAssigner<TContext, TExpressionEvent, TParams, TEvent, TActor, K>
+    | PartialAssigner<
+        TContext,
+        TExpressionEvent,
+        TParams,
+        TEvent,
+        TActor,
+        TEmitted,
+        K
+      >
     | TContext[K];
 };
 
@@ -1949,7 +1965,7 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
 export interface ActorRef<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TEmitted extends EventObject = EventObject
+  TEmitted extends EventObject = AnyEventObject
 > extends Subscribable<TSnapshot>,
     InteropObservable<TSnapshot> {
   /** The unique identifier for this actor relative to its parent. */
@@ -2139,7 +2155,7 @@ export interface ActorScope<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TSystem extends AnyActorSystem = AnyActorSystem,
-  TEmitted extends EventObject = EventObject
+  TEmitted extends EventObject = AnyEventObject
 > {
   self: ActorRef<TSnapshot, TEvent, TEmitted>;
   id: string;

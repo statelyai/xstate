@@ -20,13 +20,14 @@ import {
   SendExpr,
   SendToActionOptions,
   SpecialTargets,
+  TODO,
   UnifiedArg
 } from '../types.ts';
 
 function resolveSendTo(
   actorScope: AnyActorScope,
   snapshot: AnyMachineSnapshot,
-  args: ActionArgs<any, any, any>,
+  args: ActionArgs<any, any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
     to,
@@ -38,7 +39,7 @@ function resolveSendTo(
       | AnyActorRef
       | string
       | ((
-          args: UnifiedArg<MachineContext, EventObject, EventObject>,
+          args: UnifiedArg<MachineContext, EventObject, EventObject, TODO>,
           params: ParameterizedObject['params'] | undefined
         ) => AnyActorRef | string);
     event:
@@ -177,7 +178,10 @@ export interface SendToAction<
   TEvent extends EventObject,
   TDelay extends string
 > {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  (
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
+    params: TParams
+  ): void;
   _out_TDelay?: TDelay;
 }
 
@@ -205,7 +209,7 @@ export function sendTo<
     | TTargetActor
     | string
     | ((
-        args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+        args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
         params: TParams
       ) => TTargetActor | string),
   eventOrExpr:
@@ -233,7 +237,7 @@ export function sendTo<
   never,
   never,
   TDelay,
-  never
+  TODO
 > {
   if (isDevelopment && executingCustomAction) {
     console.warn(
@@ -242,7 +246,7 @@ export function sendTo<
   }
 
   function sendTo(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
     params: TParams
   ) {
     if (isDevelopment) {
@@ -309,7 +313,7 @@ type Target<
   | string
   | AnyActorRef
   | ((
-      args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+      args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
       params: TParams
     ) => string | AnyActorRef);
 

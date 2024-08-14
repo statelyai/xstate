@@ -1474,7 +1474,7 @@ interface BuiltinAction {
   resolve: (
     actorScope: AnyActorScope,
     snapshot: AnyMachineSnapshot,
-    actionArgs: ActionArgs<any, any, any>,
+    actionArgs: ActionArgs<any, any, any, any>,
     actionParams: ParameterizedObject['params'] | undefined,
     action: unknown,
     extra: unknown

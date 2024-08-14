@@ -12,13 +12,14 @@ import {
   MachineContext,
   ParameterizedObject,
   RaiseActionOptions,
-  SendExpr
+  SendExpr,
+  TODO
 } from '../types.ts';
 
 function resolveRaise(
   _: AnyActorScope,
   snapshot: AnyMachineSnapshot,
-  args: ActionArgs<any, any, any>,
+  args: ActionArgs<any, any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
     event: eventOrExpr,
@@ -102,7 +103,10 @@ export interface RaiseAction<
   TEvent extends EventObject,
   TDelay extends string
 > {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  (
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
+    params: TParams
+  ): void;
   _out_TEvent?: TEvent;
   _out_TDelay?: TDelay;
 }
@@ -140,7 +144,7 @@ export function raise<
   never,
   never,
   TDelay,
-  never
+  TODO
 > {
   if (isDevelopment && executingCustomAction) {
     console.warn(
@@ -149,7 +153,7 @@ export function raise<
   }
 
   function raise(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
     params: TParams
   ) {
     if (isDevelopment) {

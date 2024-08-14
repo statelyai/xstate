@@ -6,7 +6,8 @@ import {
   EventObject,
   LogExpr,
   MachineContext,
-  ParameterizedObject
+  ParameterizedObject,
+  TODO
 } from '../types.ts';
 
 type ResolvableLogValue<
@@ -19,7 +20,7 @@ type ResolvableLogValue<
 function resolveLog(
   _: AnyActorScope,
   snapshot: AnyMachineSnapshot,
-  actionArgs: ActionArgs<any, any, any>,
+  actionArgs: ActionArgs<any, any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
     value,
@@ -56,7 +57,10 @@ export interface LogAction<
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 > {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  (
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
+    params: TParams
+  ): void;
 }
 
 /**
@@ -81,7 +85,7 @@ export function log<
   label?: string
 ): LogAction<TContext, TExpressionEvent, TParams, TEvent> {
   function log(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
     params: TParams
   ) {
     if (isDevelopment) {

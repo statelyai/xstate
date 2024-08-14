@@ -125,7 +125,7 @@ export function setup<
   TTag extends string = string,
   TInput = NonReducibleUnknown,
   TOutput extends NonReducibleUnknown = NonReducibleUnknown,
-  TEmitted extends EventObject = EventObject,
+  TEmitted extends EventObject = AnyEventObject,
   TMeta extends MetaObject = MetaObject
 >({
   schemas,

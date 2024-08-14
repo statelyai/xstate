@@ -6,7 +6,8 @@ import {
   EventObject,
   MachineContext,
   ActionArgs,
-  ParameterizedObject
+  ParameterizedObject,
+  TODO
 } from '../types.ts';
 
 type ResolvableSendId<
@@ -17,14 +18,14 @@ type ResolvableSendId<
 > =
   | string
   | ((
-      args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+      args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
       params: TParams
     ) => string);
 
 function resolveCancel(
   _: AnyActorScope,
   snapshot: AnyMachineSnapshot,
-  actionArgs: ActionArgs<any, any, any>,
+  actionArgs: ActionArgs<any, any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   { sendId }: { sendId: ResolvableSendId<any, any, any, any> }
 ) {
@@ -45,7 +46,10 @@ export interface CancelAction<
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 > {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  (
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
+    params: TParams
+  ): void;
 }
 
 /**
@@ -89,7 +93,7 @@ export function cancel<
   sendId: ResolvableSendId<TContext, TExpressionEvent, TParams, TEvent>
 ): CancelAction<TContext, TExpressionEvent, TParams, TEvent> {
   function cancel(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TODO>,
     params: TParams
   ) {
     if (isDevelopment) {

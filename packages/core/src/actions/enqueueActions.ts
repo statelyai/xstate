@@ -47,7 +47,14 @@ interface ActionEnqueuer<
   ): void;
   assign: (
     ...args: Parameters<
-      typeof assign<TContext, TExpressionEvent, undefined, TEvent, TActor>
+      typeof assign<
+        TContext,
+        TExpressionEvent,
+        undefined,
+        TEvent,
+        TActor,
+        TEmitted
+      >
     >
   ) => void;
   cancel: (
@@ -95,7 +102,14 @@ interface ActionEnqueuer<
   ) => void;
   spawnChild: (
     ...args: Parameters<
-      typeof spawnChild<TContext, TExpressionEvent, undefined, TEvent, TActor>
+      typeof spawnChild<
+        TContext,
+        TExpressionEvent,
+        undefined,
+        TEvent,
+        TActor,
+        TEmitted
+      >
     >
   ) => void;
   stopChild: (
@@ -113,7 +127,7 @@ interface ActionEnqueuer<
 function resolveEnqueueActions(
   actorScope: AnyActorScope,
   snapshot: AnyMachineSnapshot,
-  args: ActionArgs<any, any, any>,
+  args: ActionArgs<any, any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
     collect
@@ -190,9 +204,13 @@ export interface EnqueueActionsAction<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
+  TDelay extends string,
+  TEmitted extends EventObject
 > {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  (
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TEmitted>,
+    params: TParams
+  ): void;
   _out_TEvent?: TEvent;
   _out_TActor?: TActor;
   _out_TAction?: TAction;
@@ -209,7 +227,7 @@ interface CollectActionsArg<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TEmitted extends EventObject
-> extends UnifiedArg<TContext, TExpressionEvent, TEvent> {
+> extends UnifiedArg<TContext, TExpressionEvent, TEvent, TEmitted> {
   check: (
     guard: Guard<TContext, TExpressionEvent, undefined, TGuard>
   ) => boolean;
@@ -286,7 +304,7 @@ export function enqueueActions<
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
   TDelay extends string = never,
-  TEmitted extends EventObject = EventObject
+  TEmitted extends EventObject = AnyEventObject
 >(
   collect: CollectActions<
     TContext,
@@ -311,7 +329,7 @@ export function enqueueActions<
   TEmitted
 > {
   function enqueueActions(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TEmitted>,
     params: unknown
   ) {
     if (isDevelopment) {

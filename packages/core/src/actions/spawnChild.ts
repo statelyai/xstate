@@ -19,6 +19,7 @@ import {
   ParameterizedObject,
   ProvidedActor,
   RequiredActorOptions,
+  TODO,
   UnifiedArg
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
@@ -27,13 +28,16 @@ type ResolvableActorId<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TId extends string | undefined
-> = TId | ((args: UnifiedArg<TContext, TExpressionEvent, TEvent>) => TId);
+  TId extends string | undefined,
+  TEmitted extends EventObject
+> =
+  | TId
+  | ((args: UnifiedArg<TContext, TExpressionEvent, TEvent, TEmitted>) => TId);
 
 function resolveSpawn(
   actorScope: AnyActorScope,
   snapshot: AnyMachineSnapshot,
-  actionArgs: ActionArgs<any, any, any>,
+  actionArgs: ActionArgs<any, any, any, any>,
   _actionParams: ParameterizedObject['params'] | undefined,
   {
     id,
@@ -42,7 +46,13 @@ function resolveSpawn(
     input,
     syncSnapshot
   }: {
-    id: ResolvableActorId<MachineContext, EventObject, EventObject, string>;
+    id: ResolvableActorId<
+      MachineContext,
+      EventObject,
+      EventObject,
+      string,
+      TODO
+    >;
     systemId: string | undefined;
     src: AnyActorLogic | string;
     input?: unknown;
@@ -115,19 +125,31 @@ export interface SpawnAction<
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
-  TActor extends ProvidedActor
+  TActor extends ProvidedActor,
+  TEmitted extends EventObject
 > {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  (
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TEmitted>,
+    params: TParams
+  ): void;
   _out_TActor?: TActor;
+  _out_TEmitted?: TEmitted;
 }
 
 interface SpawnActionOptions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TActor extends ProvidedActor
+  TActor extends ProvidedActor,
+  TEmitted extends EventObject
 > {
-  id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, TActor['id']>;
+  id?: ResolvableActorId<
+    TContext,
+    TExpressionEvent,
+    TEvent,
+    TActor['id'],
+    TEmitted
+  >;
   systemId?: string;
   input?:
     | Mapper<TContext, TEvent, InputFrom<TActor['logic']>, TEvent>
@@ -139,7 +161,8 @@ type DistributeActors<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TActor extends ProvidedActor
+  TActor extends ProvidedActor,
+  TEmitted extends EventObject
 > =
   | (TActor extends any
       ? ConditionalRequired<
@@ -149,7 +172,8 @@ type DistributeActors<
               TContext,
               TExpressionEvent,
               TEvent,
-              TActor
+              TActor,
+              TEmitted
             > & {
               [K in RequiredActorOptions<TActor>]: unknown;
             }
@@ -163,7 +187,8 @@ type DistributeActors<
         TContext,
         TExpressionEvent,
         TEvent,
-        ProvidedActor
+        ProvidedActor,
+        TEmitted
       > & { id?: never }
     ];
 
@@ -171,13 +196,20 @@ type SpawnArguments<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TActor extends ProvidedActor
+  TActor extends ProvidedActor,
+  TEmitted extends EventObject
 > = IsLiteralString<TActor['src']> extends true
-  ? DistributeActors<TContext, TExpressionEvent, TEvent, TActor>
+  ? DistributeActors<TContext, TExpressionEvent, TEvent, TActor, TEmitted>
   : [
       src: string | AnyActorLogic,
       options?: {
-        id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
+        id?: ResolvableActorId<
+          TContext,
+          TExpressionEvent,
+          TEvent,
+          string,
+          TEmitted
+        >;
         systemId?: string;
         input?: unknown;
         syncSnapshot?: boolean;
@@ -189,12 +221,13 @@ export function spawnChild<
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
-  TActor extends ProvidedActor
+  TActor extends ProvidedActor,
+  TEmitted extends EventObject
 >(
   ...[
     src,
     { id, systemId, input, syncSnapshot = false } = {} as any
-  ]: SpawnArguments<TContext, TExpressionEvent, TEvent, TActor>
+  ]: SpawnArguments<TContext, TExpressionEvent, TEvent, TActor, TEmitted>
 ): ActionFunction<
   TContext,
   TExpressionEvent,
@@ -204,10 +237,10 @@ export function spawnChild<
   never,
   never,
   never,
-  never
+  TEmitted
 > {
   function spawnChild(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    args: ActionArgs<TContext, TExpressionEvent, TEvent, TEmitted>,
     params: TParams
   ) {
     if (isDevelopment) {
