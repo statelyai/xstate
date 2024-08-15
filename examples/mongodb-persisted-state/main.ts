@@ -1,6 +1,7 @@
 import { __unsafe_getAllOwnEventDescriptors, createActor } from 'xstate';
 import { MongoClient, ServerApiVersion } from 'mongodb';
 import { donutMachine } from './donutMachine';
+import { TaskQueue } from './TaskQueue';
 
 const uri = '<your mongodb connection string>';
 
@@ -26,44 +27,50 @@ try {
     state: restoredState?.persistedState
   });
 
+  const taskQueue = new TaskQueue();
+
   actor.subscribe({
-    async next(snapshot) {
-      // save persisted state to mongodb
-      const persistedState = actor.getPersistedSnapshot();
-      const updateDoc = {
-        $set: {
-          persistedState
+    next(snapshot) {
+      taskQueue.addTask(async () => {
+        // save persisted state to mongodb
+        const persistedState = actor.getPersistedSnapshot();
+        const updateDoc = {
+          $set: {
+            persistedState
+          }
+        };
+
+        const result = await donutCollection.updateOne(
+          filter,
+          updateDoc,
+          options
+        );
+
+        // only log if the upsert occurred
+        if (result.modifiedCount > 0 || result.upsertedCount > 0) {
+          console.log('persisted state saved to db. ', result);
         }
-      };
 
-      const result = await donutCollection.updateOne(
-        filter,
-        updateDoc,
-        options
-      );
-
-      // only log if the upsert occurred
-      if (result.modifiedCount > 0 || result.upsertedCount > 0) {
-        console.log('persisted state saved to db. ', result);
-      }
-
-      const nextEvents = __unsafe_getAllOwnEventDescriptors(snapshot);
-      console.log(
-        'Current state:',
-        // the current state, bolded
-        `\x1b[1m${JSON.stringify(snapshot.value)}\x1b[0m\n`,
-        'Next events:',
-        // the next events, each of them bolded
-        nextEvents
-          .filter((event) => !event.startsWith('done.'))
-          .map((event) => `\n  \x1b[1m${event}\x1b[0m`)
-          .join(''),
-        '\nEnter the next event to send:'
-      );
+        const nextEvents = __unsafe_getAllOwnEventDescriptors(snapshot);
+        console.log(
+          'Current state:',
+          // the current state, bolded
+          `\x1b[1m${JSON.stringify(snapshot.value)}\x1b[0m\n`,
+          'Next events:',
+          // the next events, each of them bolded
+          nextEvents
+            .filter((event) => !event.startsWith('done.'))
+            .map((event) => `\n  \x1b[1m${event}\x1b[0m`)
+            .join(''),
+          '\nEnter the next event to send:'
+        );
+      });
     },
-    async complete() {
-      console.log('workflow completed', actor.getSnapshot().output);
-      await client.close();
+    complete() {
+      taskQueue.addTask(async () => {
+        console.log('workflow completed', actor.getSnapshot().output);
+        await client.close();
+      });
     }
   });
 
