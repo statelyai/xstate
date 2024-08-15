@@ -1,5 +1,22 @@
 # @xstate/store
 
+## 2.2.0
+
+### Minor Changes
+
+- [#5027](https://github.com/statelyai/xstate/pull/5027) [`758a78711d`](https://github.com/statelyai/xstate/commit/758a78711ddb35ce56951b551d48f9b6f54a37b5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now inspect XState stores using the `.inspect(inspector)` method:
+
+  ```ts
+  import { someStore } from './someStore';
+
+  someStore.inspect((inspEv) => {
+    console.log(inspEv);
+    // logs "@xstate.event" events and "@xstate.snapshot" events
+    // whenever an event is sent to the store
+  });
+  // The "@xstate.actor" event is immediately logged
+  ```
+
 ## 2.1.0
 
 ### Minor Changes

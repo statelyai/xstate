@@ -1,5 +1,11 @@
 # xstate
 
+## 5.17.4
+
+### Patch Changes
+
+- [#5039](https://github.com/statelyai/xstate/pull/5039) [`d6df8fb470`](https://github.com/statelyai/xstate/commit/d6df8fb470020a5798f27ed667432535a509712f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an inference issue that prevented `emit` used directly in `setup` (or bare `createMachine`) to benefit from `types.emitted` types.
+
 ## 5.17.3
 
 ### Patch Changes
