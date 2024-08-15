@@ -2,13 +2,14 @@ import isDevelopment from '#is-development';
 import { executingCustomAction } from '../stateUtils.ts';
 import {
   ActionArgs,
+  ActionFunction,
   AnyActorScope,
   AnyMachineSnapshot,
+  DoNotInfer,
   EventObject,
   MachineContext,
-  SendExpr,
   ParameterizedObject,
-  ActionFunction
+  SendExpr
 } from '../types.ts';
 
 function resolveEmit(
@@ -109,8 +110,14 @@ export function emit<
 >(
   /** The event to emit, or an expression that returns an event to emit. */
   eventOrExpr:
-    | TEmitted
-    | SendExpr<TContext, TExpressionEvent, TParams, TEmitted, TEvent>
+    | DoNotInfer<TEmitted>
+    | SendExpr<
+        TContext,
+        TExpressionEvent,
+        TParams,
+        DoNotInfer<TEmitted>,
+        TEvent
+      >
 ): ActionFunction<
   TContext,
   TExpressionEvent,

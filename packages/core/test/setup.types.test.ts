@@ -6,9 +6,9 @@ import {
   ContextFrom,
   createActor,
   createMachine,
+  emit,
   enqueueActions,
   EventFrom,
-  EventObject,
   fromPromise,
   fromTransition,
   log,
@@ -794,6 +794,45 @@ describe('setup()', () => {
       actions: {
         sendFoo: sendParent({
           type: 'FOO'
+        })
+      }
+    });
+  });
+
+  it('should accept an `emit` action that emits a known event', () => {
+    setup({
+      types: {} as {
+        emitted:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        emitFoo: emit({
+          type: 'FOO'
+        })
+      }
+    });
+  });
+
+  it('should not accept an `emit` action that emits an unknown event', () => {
+    setup({
+      types: {} as {
+        emitted:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        emitFoo: emit({
+          // @ts-expect-error
+          type: 'BAZ'
         })
       }
     });
@@ -2110,7 +2149,7 @@ describe('setup()', () => {
     });
   });
 
-  it('should allow `cancel` action to be configured', () => {
+  it('should allow `log` action to be configured', () => {
     setup({
       actions: {
         writeDown: log('foo')
