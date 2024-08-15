@@ -4,6 +4,7 @@ import {
   ActionArgs,
   ActionFunction,
   AnyActorScope,
+  AnyEventObject,
   AnyMachineSnapshot,
   DoNotInfer,
   EventObject,
@@ -106,7 +107,7 @@ export function emit<
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
-  TEmitted extends EventObject
+  TEmitted extends AnyEventObject
 >(
   /** The event to emit, or an expression that returns an event to emit. */
   eventOrExpr:
