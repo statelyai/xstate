@@ -1,5 +1,25 @@
 # xstate
 
+## 5.17.4
+
+### Patch Changes
+
+- [#5039](https://github.com/statelyai/xstate/pull/5039) [`d6df8fb470`](https://github.com/statelyai/xstate/commit/d6df8fb470020a5798f27ed667432535a509712f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an inference issue that prevented `emit` used directly in `setup` (or bare `createMachine`) to benefit from `types.emitted` types.
+
+## 5.17.3
+
+### Patch Changes
+
+- [#5034](https://github.com/statelyai/xstate/pull/5034) [`7bed484c38`](https://github.com/statelyai/xstate/commit/7bed484c38f8028416c93656372f1463c47fdd58) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `EventFrom` and `ContextFrom` types
+
+## 5.17.2
+
+### Patch Changes
+
+- [#5029](https://github.com/statelyai/xstate/pull/5029) [`88bd87ab41`](https://github.com/statelyai/xstate/commit/88bd87ab412f22fb251a6060f45ba3b6f39ac208) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Revert `ActorRefFrom` change
+
+- [#5011](https://github.com/statelyai/xstate/pull/5011) [`a275d274de`](https://github.com/statelyai/xstate/commit/a275d274deb07ed17bb582e63d9428c5616067db) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is a new type helper: `ActorRefFromLogic<TLogic>`. This type is a stricter form of `ActorRefFrom<TLogic>` that only accepts actor logic types. See https://github.com/statelyai/xstate/issues/4997 for more details.
+
 ## 5.17.1
 
 ### Patch Changes

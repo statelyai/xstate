@@ -166,3 +166,40 @@ it('can be observed', () => {
 
   expect(counts).toEqual([1, 2, 3]);
 });
+
+it('can be inspected', () => {
+  const store = createStore(
+    {
+      count: 0
+    },
+    {
+      inc: {
+        count: (ctx) => ctx.count + 1
+      }
+    }
+  );
+
+  const evs: any[] = [];
+
+  store.inspect((ev) => evs.push(ev));
+
+  store.send({ type: 'inc' });
+
+  expect(evs).toEqual([
+    expect.objectContaining({
+      type: '@xstate.actor'
+    }),
+    expect.objectContaining({
+      type: '@xstate.snapshot',
+      snapshot: expect.objectContaining({ context: { count: 0 } })
+    }),
+    expect.objectContaining({
+      type: '@xstate.event',
+      event: { type: 'inc' }
+    }),
+    expect.objectContaining({
+      type: '@xstate.snapshot',
+      snapshot: expect.objectContaining({ context: { count: 1 } })
+    })
+  ]);
+});

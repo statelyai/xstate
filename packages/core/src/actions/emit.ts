@@ -2,13 +2,15 @@ import isDevelopment from '#is-development';
 import { executingCustomAction } from '../stateUtils.ts';
 import {
   ActionArgs,
+  ActionFunction,
   AnyActorScope,
+  AnyEventObject,
   AnyMachineSnapshot,
+  DoNotInfer,
   EventObject,
   MachineContext,
-  SendExpr,
   ParameterizedObject,
-  ActionFunction
+  SendExpr
 } from '../types.ts';
 
 function resolveEmit(
@@ -105,12 +107,18 @@ export function emit<
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
-  TEmitted extends EventObject
+  TEmitted extends AnyEventObject
 >(
   /** The event to emit, or an expression that returns an event to emit. */
   eventOrExpr:
-    | TEmitted
-    | SendExpr<TContext, TExpressionEvent, TParams, TEmitted, TEvent>
+    | DoNotInfer<TEmitted>
+    | SendExpr<
+        TContext,
+        TExpressionEvent,
+        TParams,
+        DoNotInfer<TEmitted>,
+        TEvent
+      >
 ): ActionFunction<
   TContext,
   TExpressionEvent,

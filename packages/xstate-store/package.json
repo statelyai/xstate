@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Simple stores",
   "keywords": [
     "store",
@@ -56,7 +56,7 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "vue": "^3.4.35",
-    "xstate": "^5.17.0"
+    "xstate": "^5.17.4"
   },
   "peerDependencies": {
     "react": "^18.2.0"
