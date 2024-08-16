@@ -6,6 +6,10 @@ runs:
       run: yarn build
       shell: bash
 
+    - name: ESLint
+      run: yarn lint --no-cache
+      shell: bash
+
     - name: Typecheck
       run: yarn typecheck
       shell: bash
