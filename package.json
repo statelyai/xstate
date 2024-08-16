@@ -31,7 +31,8 @@
     "test": "jest",
     "test:core": "jest packages/core",
     "changeset": "changeset",
-    "version": "changeset version && node ./scripts/bump-peer-dep-ranges.js"
+    "version": "changeset version && node ./scripts/bump-peer-dep-ranges.js",
+    "publish": "pnpm -r publish --access=public && changeset tag"
   },
   "repository": {
     "type": "git",
