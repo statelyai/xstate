@@ -798,7 +798,7 @@ export function createActor<TLogic extends AnyActorLogic>(
     IsNotNever<RequiredOptions<TLogic>>
   >
 ): Actor<TLogic> {
-  return new Actor(logic, options);
+  return new Actor(logic, { ...options, input: options?.input ?? logic.input });
 }
 
 /**

@@ -3,11 +3,11 @@ import type { StateMachine } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
 import { AssignArgs } from './actions/assign.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
-import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
+import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
+import { InspectionEvent } from './inspection.ts';
 import { Spawner } from './spawn.ts';
 import { AnyActorSystem, Clock } from './system.js';
-import { InspectionEvent } from './inspection.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -1377,6 +1377,26 @@ export interface ProvidedActor {
   id?: string;
 }
 
+export interface SetupTypesWithInput<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TChildrenMap extends Record<string, string>,
+  TTag extends string,
+  TInput,
+  TOutput,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject
+> {
+  context?: TContext;
+  events?: TEvent;
+  children?: TChildrenMap;
+  tags?: TTag;
+  input: TInput;
+  output?: TOutput;
+  emitted?: TEmitted;
+  meta?: TMeta;
+}
+
 export interface SetupTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1410,6 +1430,37 @@ export interface MachineTypes<
   TEmitted extends EventObject,
   TMeta extends MetaObject
 > extends SetupTypes<
+    TContext,
+    TEvent,
+    // in machine types we currently don't support `TChildren`
+    // and IDs can still be configured through `TActor['id']`
+    never,
+    TTag,
+    TInput,
+    TOutput,
+    TEmitted,
+    TMeta
+  > {
+  actors?: TActor;
+  actions?: TAction;
+  guards?: TGuard;
+  delays?: TDelay;
+  meta?: TMeta;
+}
+
+export interface MachineTypesWithInput<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TTag extends string,
+  TInput,
+  TOutput,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject
+> extends SetupTypesWithInput<
     TContext,
     TEvent,
     // in machine types we currently don't support `TChildren`
@@ -2191,6 +2242,80 @@ export type Snapshot<TOutput> =
  * @template TSystem - The type of the actor system.
  */
 export interface ActorLogic<
+  in out TSnapshot extends Snapshot<unknown>, // it's invariant because it's also part of `ActorScope["self"]["getSnapshot"]`
+  in out TEvent extends EventObject, // it's invariant because it's also part of `ActorScope["self"]["send"]`
+  in out TInput = NonReducibleUnknown,
+  TSystem extends AnyActorSystem = AnyActorSystem,
+  in out TEmitted extends EventObject = EventObject // it's invariant because it's also aprt of `ActorScope["self"]["on"]`
+> {
+  /** The initial setup/configuration used to create the actor logic. */
+  config?: unknown;
+
+  /** The input stored when creating an actor. */
+  input?: TInput;
+
+  /**
+   * Transition function that processes the current state and an incoming
+   * message to produce a new state.
+   *
+   * @param snapshot - The current state.
+   * @param message - The incoming message.
+   * @param actorScope - The actor scope.
+   * @returns The new state.
+   */
+  transition: (
+    snapshot: TSnapshot,
+    message: TEvent,
+    actorScope: ActorScope<TSnapshot, TEvent, TSystem, TEmitted>
+  ) => TSnapshot;
+  /**
+   * Called to provide the initial state of the actor.
+   *
+   * @param actorScope - The actor scope.
+   * @param input - The input for the initial state.
+   * @returns The initial state.
+   */
+  getInitialSnapshot: (
+    actorScope: ActorScope<TSnapshot, TEvent, TSystem, TEmitted>,
+    input: TInput
+  ) => TSnapshot;
+  /**
+   * Called when Actor is created to restore the internal state of the actor
+   * given a persisted state. The persisted state can be created by
+   * `getPersistedSnapshot`.
+   *
+   * @param persistedState - The persisted state to restore from.
+   * @param actorScope - The actor scope.
+   * @returns The restored state.
+   */
+  restoreSnapshot?: (
+    persistedState: Snapshot<unknown>,
+    actorScope: ActorScope<TSnapshot, TEvent, AnyActorSystem, TEmitted>
+  ) => TSnapshot;
+  /**
+   * Called when the actor is started.
+   *
+   * @param snapshot - The starting state.
+   * @param actorScope - The actor scope.
+   */
+  start?: (
+    snapshot: TSnapshot,
+    actorScope: ActorScope<TSnapshot, TEvent, AnyActorSystem, TEmitted>
+  ) => void;
+  /**
+   * Obtains the internal state of the actor in a representation which can be be
+   * persisted. The persisted state can be restored by `restoreSnapshot`.
+   *
+   * @param snapshot - The current state.
+   * @returns The a representation of the internal state to be persisted.
+   */
+  getPersistedSnapshot: (
+    snapshot: TSnapshot,
+    options?: unknown
+  ) => Snapshot<unknown>;
+}
+
+export interface ActorLogicWithInput<
   in out TSnapshot extends Snapshot<unknown>, // it's invariant because it's also part of `ActorScope["self"]["getSnapshot"]`
   in out TEvent extends EventObject, // it's invariant because it's also part of `ActorScope["self"]["send"]`
   in TInput = NonReducibleUnknown,

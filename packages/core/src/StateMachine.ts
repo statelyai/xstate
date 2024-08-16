@@ -41,14 +41,14 @@ import type {
   MetaObject,
   ParameterizedObject,
   ProvidedActor,
+  ResolvedStateMachineTypes,
   Snapshot,
   SnapshotFrom,
+  SnapshotStatus,
   StateMachineDefinition,
-  StateValue,
-  TransitionDefinition,
-  ResolvedStateMachineTypes,
   StateSchema,
-  SnapshotStatus
+  StateValue,
+  TransitionDefinition
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
 
@@ -91,6 +91,7 @@ export class StateMachine<
   public version?: string;
 
   public schemas: unknown;
+  public input?: TInput;
 
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
@@ -124,7 +125,8 @@ export class StateMachine<
     > & {
       schemas?: unknown;
     },
-    implementations?: MachineImplementationsSimplified<TContext, TEvent>
+    implementations?: MachineImplementationsSimplified<TContext, TEvent>,
+    input?: TInput
   ) {
     this.id = config.id || '(machine)';
     this.implementations = {
@@ -151,6 +153,7 @@ export class StateMachine<
 
     this.states = this.root.states; // TODO: remove!
     this.events = this.root.events;
+    this.input = input;
 
     if (
       isDevelopment &&
