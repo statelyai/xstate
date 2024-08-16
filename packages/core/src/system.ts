@@ -168,7 +168,9 @@ export function createSystem<T extends ActorSystemInfo>(
         actors: { ...actors }
       });
 
-      clock.clearTimeout(timeout);
+      if (timeout !== undefined) {
+        clock.clearTimeout(timeout);
+      }
     },
     cancelAll: (actorRef) => {
       for (const scheduledEventId in system._snapshot._scheduledEvents) {

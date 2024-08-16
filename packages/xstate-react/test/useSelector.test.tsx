@@ -684,7 +684,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
       return (
         <>
-          <div data-testid="child-state">{childState.value}</div>
+          <div data-testid="child-state">{childState.value as string}</div>
           <button
             data-testid="child-send"
             onClick={() => childRef.send({ type: 'NEXT' })}
