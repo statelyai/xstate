@@ -1880,6 +1880,19 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   inspect?:
     | Observer<InspectionEvent>
     | ((inspectionEvent: InspectionEvent) => void);
+
+  sync?: Synchronizer<SnapshotFrom<TLogic>>;
+}
+
+export interface Synchronizer<T> extends Subscribable<T> {
+  /**
+   * Gets the snapshot or undefined
+   *
+   * An undefined snapshot means the synchronizer does not intend to override
+   * the initial or provided snapshot of the actor
+   */
+  getSnapshot(): Snapshot<T> | undefined;
+  setSnapshot(snapshot: T): void;
 }
 
 export type AnyActor = Actor<any>;

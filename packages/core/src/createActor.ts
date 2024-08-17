@@ -22,7 +22,8 @@ import type {
   InputFrom,
   IsNotNever,
   Snapshot,
-  SnapshotFrom
+  SnapshotFrom,
+  Synchronizer
 } from './types.ts';
 import {
   ActorOptions,
@@ -119,6 +120,8 @@ export class Actor<TLogic extends AnyActorLogic>
 
   public src: string | AnyActorLogic;
 
+  private _synchronizer?: Synchronizer<any>;
+
   /**
    * Creates a new actor instance for the given logic with the provided options,
    * if any.
@@ -206,7 +209,12 @@ export class Actor<TLogic extends AnyActorLogic>
       this.system._set(systemId, this);
     }
 
-    this._initState(options?.snapshot ?? options?.state);
+    this._synchronizer = options?.sync;
+
+    const initialSnapshot =
+      this._synchronizer?.getSnapshot() ?? options?.snapshot ?? options?.state;
+
+    this._initState(initialSnapshot);
 
     if (systemId && (this._snapshot as any).status !== 'active') {
       this.system._unregister(this);
@@ -229,6 +237,8 @@ export class Actor<TLogic extends AnyActorLogic>
         output: undefined,
         error: err
       } as any;
+
+      throw err;
     }
   }
 
@@ -262,6 +272,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
     switch ((this._snapshot as any).status) {
       case 'active':
+        this._synchronizer?.setSnapshot(snapshot);
         for (const observer of this.observers) {
           try {
             observer.next?.(snapshot);
