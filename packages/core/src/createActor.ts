@@ -491,7 +491,26 @@ export class Actor<TLogic extends AnyActorLogic>
         // TODO: rethink cleanup of observers, mailbox, etc
         return this;
       case 'error':
+        // in this case, creation of the initial snapshot caused an error.
+
+        // **if the actor has no observer when start() is called**, this error would otherwise be
+        // thrown to the global error handler. to prevent this--and allow start() to be wrapped in try/catch--we
+        // create a temporary observer that receives the error (via _reportError()) and rethrows it from this call stack.
+        let err: unknown;
+        let errorTrapSub: Subscription | undefined;
+        if (!this.observers.size) {
+          errorTrapSub = this.subscribe({
+            error: (error) => {
+              // we cannot throw here because it would be caught elsewhere and rethrown as unhandled
+              err = error;
+            }
+          });
+        }
         this._error((this._snapshot as any).error);
+        errorTrapSub?.unsubscribe();
+        if (err) {
+          throw err;
+        }
         return this;
     }
 

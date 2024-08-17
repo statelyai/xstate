@@ -5,7 +5,8 @@ import {
   createMachine,
   fromCallback,
   fromPromise,
-  fromTransition
+  fromTransition,
+  toPromise
 } from '../src';
 
 const cleanups: (() => void)[] = [];
@@ -891,5 +892,42 @@ describe('error handling', () => {
       [Error: Unable to evaluate guard in transition for event 'NEXT' in state node '(machine).a':
       error_thrown_in_guard_when_transitioning]
     `);
+  });
+
+  it('error thrown when resolving the initial context should rethrow synchronously', (done) => {
+    const machine = createMachine({
+      context: () => {
+        throw new Error('oh no');
+      }
+    });
+
+    const actor = createActor(machine);
+
+    installGlobalOnErrorHandler(() => {
+      done.fail();
+    });
+
+    expect(() => actor.start()).toThrowErrorMatchingInlineSnapshot(`"oh no"`);
+
+    setTimeout(() => {
+      done();
+    }, 10);
+  });
+
+  it('error thrown when resolving the initial context should reject when wrapped in a Promise', async () => {
+    const machine = createMachine({
+      context: () => {
+        throw new Error('oh no');
+      }
+    });
+
+    const actor = createActor(machine);
+
+    try {
+      await toPromise(actor.start());
+      fail();
+    } catch (err) {
+      expect((err as Error).message).toEqual('oh no');
+    }
   });
 });
