@@ -11,7 +11,9 @@ import {
   StorePropertyAssigner,
   Observer,
   StoreContext,
-  InteropSubscribable
+  InteropSubscribable,
+  StoreEnq,
+  EventObject
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -67,6 +69,7 @@ function createStoreCore<
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
   type StoreEvent = ExtractEventsFromPayloadMap<TEventPayloadMap>;
   let observers: Set<Observer<StoreSnapshot<TContext>>> | undefined;
+  const mailbox: StoreEvent[] = [];
   const initialSnapshot = {
     context: initialContext,
     status: 'active',
@@ -76,10 +79,18 @@ function createStoreCore<
   let currentSnapshot = initialSnapshot;
   const transition = createStoreTransition<TContext, TEventPayloadMap>(
     transitions,
-    updater
+    updater,
+    {
+      send: (event) => {
+        store.send(event);
+      },
+      action: (fn) => {
+        fn();
+      }
+    }
   );
 
-  function receive(event: StoreEvent) {
+  function process(event: StoreEvent) {
     currentSnapshot = transition(currentSnapshot, event);
 
     inspectionObservers.get(store)?.forEach((observer) => {
@@ -107,7 +118,14 @@ function createStoreCore<
           rootId: store.sessionId
         });
       });
-      receive(event as unknown as StoreEvent);
+      // receive(event as unknown as StoreEvent);
+      mailbox.push(event);
+      if (mailbox.length === 1) {
+        while (mailbox.length) {
+          process(mailbox[0]);
+          mailbox.shift();
+        }
+      }
     },
     getSnapshot() {
       return currentSnapshot;
@@ -286,7 +304,8 @@ export function createStoreTransition<
   updater?: (
     context: NoInfer<TContext>,
     recipe: (context: NoInfer<TContext>) => NoInfer<TContext>
-  ) => NoInfer<TContext>
+  ) => NoInfer<TContext>,
+  enq: StoreEnq = {} as any
 ) {
   return (
     snapshot: StoreSnapshot<TContext>,
@@ -307,7 +326,8 @@ export function createStoreTransition<
             (draftContext) =>
               (assigner as StoreCompleteAssigner<TContext, StoreEvent>)?.(
                 draftContext,
-                event
+                event,
+                enq
               )
           )
         : setter(currentContext, (draftContext) =>
@@ -316,7 +336,8 @@ export function createStoreTransition<
               currentContext,
               assigner?.(
                 draftContext,
-                event as any // TODO: help me
+                event as any, // TODO: help me
+                enq
               )
             )
           );
@@ -332,7 +353,7 @@ export function createStoreTransition<
                   StoreEvent,
                   typeof key
                 >
-              )(currentContext, event)
+              )(currentContext, event, enq)
             : propAssignment;
       }
       currentContext = Object.assign({}, currentContext, partialUpdate);

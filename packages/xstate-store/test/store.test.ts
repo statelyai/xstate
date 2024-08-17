@@ -1,5 +1,6 @@
 import { produce } from 'immer';
 import { createStore, createStoreWithProducer } from '../src/index.ts';
+import { count } from 'console';
 
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
@@ -202,4 +203,25 @@ it('can be inspected', () => {
       snapshot: expect.objectContaining({ context: { count: 1 } })
     })
   ]);
+});
+
+it('enq.send', () => {
+  const store = createStore(
+    {
+      count: 0
+    },
+    {
+      inc: (ctx, _, enq) => {
+        enq.send({ type: 'inc2' });
+
+        return ctx;
+      },
+      inc2: {
+        count: 42
+      }
+    }
+  );
+
+  store.send({ type: 'inc' });
+  expect(store.getSnapshot().context).toEqual({ count: 42 });
 });

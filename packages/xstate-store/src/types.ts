@@ -8,19 +8,25 @@ export type ExtractEventsFromPayloadMap<T extends EventPayloadMap> = Values<{
 
 export type Recipe<T, TReturn> = (state: T) => TReturn;
 
+export interface StoreEnq {
+  emit: (action: EventObject) => void;
+  send: (event: EventObject) => void;
+}
+
 export type StoreAssigner<
   TContext extends StoreContext,
   TEvent extends EventObject
-> = (context: TContext, event: TEvent) => Partial<TContext>;
+> = (context: TContext, event: TEvent, enq: StoreEnq) => Partial<TContext>;
 export type StoreCompleteAssigner<TContext, TEvent extends EventObject> = (
   ctx: TContext,
-  ev: TEvent
+  ev: TEvent,
+  enq: StoreEnq
 ) => TContext;
 export type StorePartialAssigner<
   TContext,
   TEvent extends EventObject,
   K extends keyof TContext
-> = (ctx: TContext, ev: TEvent) => Partial<TContext>[K];
+> = (ctx: TContext, ev: TEvent, enq: StoreEnq) => Partial<TContext>[K];
 export type StorePropertyAssigner<TContext, TEvent extends EventObject> = {
   [K in keyof TContext]?:
     | TContext[K]
