@@ -102,6 +102,8 @@ function executeSpawn(
   }
 
   actorScope.defer(() => {
+    actorRef._parent = actorScope.self;
+    actorRef.system = actorScope.system;
     if (actorRef._processingStatus === ProcessingStatus.Stopped) {
       return;
     }
@@ -214,7 +216,7 @@ export function spawnChild<
     }
   }
 
-  spawnChild.type = 'snapshot.spawnChild';
+  spawnChild.type = 'xstate.spawn';
   spawnChild.id = id;
   spawnChild.systemId = systemId;
   spawnChild.src = src;

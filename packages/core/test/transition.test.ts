@@ -8,7 +8,10 @@ import {
   raise,
   createActor,
   fromTransition,
-  waitFor
+  waitFor,
+  EventObject,
+  fromCallback,
+  fromPromise
 } from '../src';
 import { initialTransition } from '../src/transition';
 
@@ -284,13 +287,30 @@ describe('transition function', () => {
       states: {
         a: {
           on: {
-            event: {
-              target: 'b',
-              actions: fn
+            event: ({ context, check }, enq) => {
+              enq.action(alwaysDoThisAction);
+
+              if (check({ type: 'blah' })) {
+                enq.action(doThisOtherAction);
+                return 'otherState';
+              }
+
+              return 'someState';
             }
           }
         },
-        b: {}
+        b: {
+          on: {
+            someEvent: {
+              guard: ({ context }): context is User =>
+                context.user !== undefined,
+              actions: ({ context }) => {
+                context.user; // undefined | User
+              },
+              target: 'a'
+            }
+          }
+        }
       }
     });
 
@@ -299,5 +319,65 @@ describe('transition function', () => {
 
     expect(fn).not.toHaveBeenCalled();
     expect(nextSnapshot.value).toEqual('b');
+  });
+
+  it.only('serverless workflow example', (done) => {
+    expect.assertions(1);
+    const db = {
+      state: undefined as any
+    };
+
+    const machine = createMachine({
+      initial: 'sendingWelcomeEmail',
+      states: {
+        sendingWelcomeEmail: {
+          invoke: {
+            src: fromPromise(async () => {
+              return { id: 1 };
+            }),
+            onDone: 'finish'
+          }
+        },
+        finish: {}
+      }
+    });
+
+    const logic = fromTransition((_, ev) => {
+      ev;
+    }, {});
+
+    function createProxyActor() {
+      const actor = createActor(logic).start();
+
+      return actor;
+    }
+
+    // POST /workflow
+    function postStart() {
+      const [state, actions] = initialTransition(machine);
+
+      // execute actions
+      actions.forEach((action) => {
+        executeAction(action, createProxyActor());
+      });
+
+      db.state = state;
+    }
+
+    // POST /workflow/{sessionId}
+    async function postEvent(event: EventObject) {
+      const [nextState, actions] = transition(machine, db.state, event);
+
+      // "sync" built-in actions: assign, raise, cancel, stop
+      // "external" built-in actions: sendTo, raise w/delay, log
+      actions.forEach((action) => {
+        executeAction(action, createProxyActor());
+      });
+
+      db.state = nextState;
+      done();
+    }
+
+    postStart();
   });
 });

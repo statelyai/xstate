@@ -1946,18 +1946,14 @@ export function convertAction(
  * }
  * ```
  */
-export function executeAction(
-  action: ExecutableAction,
-  actor: AnyActorRef,
-  params: unknown = action.params
-) {
+export function executeAction(action: ExecutableAction, actor: AnyActorRef) {
   const resolvedAction = resolveSpecialAction(action);
   const resolvedInfo = {
     ...action.info,
     self: actor,
     system: actor.system
   };
-  return resolvedAction.exec?.(resolvedInfo, params);
+  return resolvedAction.exec?.(resolvedInfo, action.params);
 }
 
 function resolveSpecialAction(action: ExecutableAction): ExecutableAction {
