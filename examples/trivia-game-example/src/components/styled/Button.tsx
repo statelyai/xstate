@@ -1,4 +1,4 @@
-import styled, { css } from "styled-components";
+import styled, { css } from 'styled-components';
 
 export const Button = styled.button<{ primary?: boolean; secondary?: boolean }>`
   background: transparent;

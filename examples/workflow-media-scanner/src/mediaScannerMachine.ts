@@ -25,6 +25,11 @@ export const mediaScannerMachine = setup({
       acceptedFileTypes: string[];
     }
   },
+  actions: {
+    emailErrors: () => {
+      console.log('Emailing errors');
+    }
+  },
   actors: {
     scanLibrary: fromPromise(
       async ({ input }: { input: { basePath: string } }) =>

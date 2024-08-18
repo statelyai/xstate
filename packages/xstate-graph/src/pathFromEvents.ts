@@ -9,7 +9,7 @@ import {
 import { getAdjacencyMap } from './adjacency';
 import {
   SerializedEvent,
-  SerializedState,
+  SerializedSnapshot,
   StatePath,
   Steps,
   TraversalOptions
@@ -34,7 +34,7 @@ export function getPathsFromEvents<
 >(
   logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
   events: TEvent[],
-  options?: TraversalOptions<TSnapshot, TEvent>
+  options?: TraversalOptions<TSnapshot, TEvent, TInput>
 ): Array<StatePath<TSnapshot, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(
     logic,
@@ -44,7 +44,11 @@ export function getPathsFromEvents<
     },
     (isMachine(logic)
       ? createDefaultMachineOptions(logic)
-      : createDefaultLogicOptions()) as TraversalOptions<TSnapshot, TEvent>
+      : createDefaultLogicOptions()) as TraversalOptions<
+      TSnapshot,
+      TEvent,
+      TInput
+    >
   );
   const actorScope = createMockActorScope() as ActorScope<
     TSnapshot,
@@ -56,21 +60,21 @@ export function getPathsFromEvents<
     logic.getInitialSnapshot(
       actorScope,
       // TODO: fix this
-      undefined as TInput
+      options?.input as TInput
     );
 
   const { serializeState, serializeEvent } = resolvedOptions;
 
   const adjacency = getAdjacencyMap(logic, resolvedOptions);
 
-  const stateMap = new Map<SerializedState, TSnapshot>();
+  const stateMap = new Map<SerializedSnapshot, TSnapshot>();
   const steps: Steps<TSnapshot, TEvent> = [];
 
   const serializedFromState = serializeState(
     fromState,
     undefined,
     undefined
-  ) as SerializedState;
+  ) as SerializedSnapshot;
   stateMap.set(serializedFromState, fromState);
 
   let stateSerial = serializedFromState;
@@ -95,7 +99,7 @@ export function getPathsFromEvents<
       nextState,
       event,
       prevState
-    ) as SerializedState;
+    ) as SerializedSnapshot;
     stateMap.set(nextStateSerial, nextState);
 
     stateSerial = nextStateSerial;

@@ -1,6 +1,6 @@
 {
   "name": "@xstate/graph",
-  "version": "2.0.0-beta.6",
+  "version": "2.0.0",
   "description": "XState graph utilities",
   "keywords": [
     "state",
@@ -11,7 +11,7 @@
     "graph"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-test#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-graph#readme",
   "license": "MIT",
   "main": "dist/xstate-graph.cjs.js",
   "module": "dist/xstate-graph.esm.js",
@@ -40,10 +40,10 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^5.13.0"
+    "xstate": "^5.17.4"
   },
   "devDependencies": {
-    "xstate": "5.13.0"
+    "xstate": "5.17.4"
   },
   "dependencies": {}
 }

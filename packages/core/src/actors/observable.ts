@@ -4,6 +4,7 @@ import {
   ActorLogic,
   ActorRefFrom,
   AnyActorScope,
+  ActorRefFromLogic,
   EventObject,
   NonReducibleUnknown,
   Snapshot,
@@ -26,21 +27,55 @@ export type ObservableSnapshot<
 
 export type ObservableActorLogic<
   TContext,
-  TInput extends NonReducibleUnknown
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
 > = ActorLogic<
   ObservableSnapshot<TContext, TInput>,
   { type: string; [k: string]: unknown },
   TInput,
   AnyActorSystem,
-  EventObject // TEmitted
+  TEmitted
 >;
 
-export type ObservableActorRef<TContext> = ActorRefFrom<
+/**
+ * Represents an actor created by `fromObservable` or `fromEventObservable`.
+ *
+ * The type of `self` within the actor's logic.
+ *
+ * @example
+ *
+ * ```ts
+ * import { fromObservable, createActor } from 'xstate';
+ * import { interval } from 'rxjs';
+ *
+ * // The type of the value observed by the actor's logic.
+ * type Context = number;
+ * // The actor's input.
+ * type Input = { period?: number };
+ *
+ * // Actor logic that observes a number incremented every `input.period`
+ * // milliseconds (default: 1_000).
+ * const logic = fromObservable<Context, Input>(({ input, self }) => {
+ *   self;
+ *   // ^? ObservableActorRef<Event, Input>
+ *
+ *   return interval(input.period ?? 1_000);
+ * });
+ *
+ * const actor = createActor(logic, { input: { period: 2_000 } });
+ * //    ^? ObservableActorRef<Event, Input>
+ * ```
+ *
+ * @see {@link fromObservable}
+ * @see {@link fromEventObservable}
+ */
+export type ObservableActorRef<TContext> = ActorRefFromLogic<
   ObservableActorLogic<TContext, any>
 >;
 
 /**
- * Observable actor logic is described by an observable stream of values. Actors created from observable logic (“observable actors”) can:
+ * Observable actor logic is described by an observable stream of values. Actors
+ * created from observable logic (“observable actors”) can:
  *
  * - Emit snapshots of the observable’s emitted value
  *
@@ -48,16 +83,10 @@ export type ObservableActorRef<TContext> = ActorRefFrom<
  *
  * Sending events to observable actors will have no effect.
  *
- * @param observableCreator A function that creates an observable. It receives one argument, an object with the following properties:
- * - `input` - Data that was provided to the observable actor
- * - `self` - The parent actor
- * - `system` - The actor system to which the observable actor belongs
- *
- * It should return a {@link Subscribable}, which is compatible with an RxJS Observable, although RxJS is not required to create them.
- *
  * @example
+ *
  * ```ts
- * import { fromObservable, createActor } from 'xstate'
+ * import { fromObservable, createActor } from 'xstate';
  * import { interval } from 'rxjs';
  *
  * const logic = fromObservable((obj) => interval(1000));
@@ -76,22 +105,37 @@ export type ObservableActorRef<TContext> = ActorRefFrom<
  * // ...
  * ```
  *
+ * @param observableCreator A function that creates an observable. It receives
+ *   one argument, an object with the following properties:
+ *
+ *   - `input` - Data that was provided to the observable actor
+ *   - `self` - The parent actor
+ *   - `system` - The actor system to which the observable actor belongs
+ *
+ *   It should return a {@link Subscribable}, which is compatible with an RxJS
+ *   Observable, although RxJS is not required to create them.
  * @see {@link https://rxjs.dev} for documentation on RxJS Observable and observable creators.
  * @see {@link Subscribable} interface in XState, which is based on and compatible with RxJS Observable.
  */
-export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
+export function fromObservable<
+  TContext,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
   observableCreator: ({
     input,
-    system
+    system,
+    self
   }: {
     input: TInput;
     system: AnyActorSystem;
     self: ObservableActorRef<TContext>;
     spawnChild: AnyActorScope['spawnChild'];
+    emit: (emitted: TEmitted) => void;
   }) => Subscribable<TContext>
-): ObservableActorLogic<TContext, TInput> {
+): ObservableActorLogic<TContext, TInput, TEmitted> {
   // TODO: add event types
-  const logic: ObservableActorLogic<TContext, TInput> = {
+  const logic: ObservableActorLogic<TContext, TInput, TEmitted> = {
     config: observableCreator,
     transition: (snapshot, event) => {
       if (snapshot.status !== 'active') {
@@ -144,7 +188,7 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
         children: {}
       };
     },
-    start: (state, { self, system, spawnChild }) => {
+    start: (state, { self, system, spawnChild, emit }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
         return;
@@ -153,7 +197,8 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
         input: state.input!,
         system,
         self,
-        spawnChild
+        spawnChild,
+        emit
       }).subscribe({
         next: (value) => {
           system._relay(self, self, {
@@ -183,24 +228,20 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
 }
 
 /**
- * Creates event observable logic that listens to an observable that delivers event objects.
+ * Creates event observable logic that listens to an observable that delivers
+ * event objects.
  *
- * Event observable actor logic is described by an observable stream of {@link https://stately.ai/docs/transitions#event-objects | event objects}. Actors created from event observable logic (“event observable actors”) can:
+ * Event observable actor logic is described by an observable stream of
+ * {@link https://stately.ai/docs/transitions#event-objects | event objects}.
+ * Actors created from event observable logic (“event observable actors”) can:
  *
  * - Implicitly send events to its parent actor
  * - Emit snapshots of its emitted event objects
  *
  * Sending events to event observable actors will have no effect.
  *
- * @param lazyObservable A function that creates an observable that delivers event objects. It receives one argument, an object with the following properties:
- *
- * - `input` - Data that was provided to the event observable actor
- * - `self` - The parent actor
- * - `system` - The actor system to which the event observable actor belongs.
- *
- * It should return a {@link Subscribable}, which is compatible with an RxJS Observable, although RxJS is not required to create them.
- *
  * @example
+ *
  * ```ts
  * import {
  *   fromEventObservable,
@@ -211,36 +252,51 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
  * } from 'xstate';
  * import { fromEvent } from 'rxjs';
  *
- * const mouseClickLogic = fromEventObservable(() =>
- *   fromEvent(document.body, 'click') as Subscribable<EventObject>
+ * const mouseClickLogic = fromEventObservable(
+ *   () => fromEvent(document.body, 'click') as Subscribable<EventObject>
  * );
  *
  * const canvasMachine = createMachine({
  *   invoke: {
  *     // Will send mouse `click` events to the canvas actor
- *     src: mouseClickLogic,
+ *     src: mouseClickLogic
  *   }
  * });
  *
  * const canvasActor = createActor(canvasMachine);
  * canvasActor.start();
  * ```
+ *
+ * @param lazyObservable A function that creates an observable that delivers
+ *   event objects. It receives one argument, an object with the following
+ *   properties:
+ *
+ *   - `input` - Data that was provided to the event observable actor
+ *   - `self` - The parent actor
+ *   - `system` - The actor system to which the event observable actor belongs.
+ *
+ *   It should return a {@link Subscribable}, which is compatible with an RxJS
+ *   Observable, although RxJS is not required to create them.
  */
 export function fromEventObservable<
-  T extends EventObject,
-  TInput extends NonReducibleUnknown
+  TEvent extends EventObject,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
 >(
   lazyObservable: ({
     input,
-    system
+    system,
+    self,
+    emit
   }: {
     input: TInput;
     system: AnyActorSystem;
-    self: ObservableActorRef<T>;
-  }) => Subscribable<T>
-): ObservableActorLogic<T, TInput> {
+    self: ObservableActorRef<TEvent>;
+    emit: (emitted: TEmitted) => void;
+  }) => Subscribable<TEvent>
+): ObservableActorLogic<TEvent, TInput, TEmitted> {
   // TODO: event types
-  const logic: ObservableActorLogic<T, TInput> = {
+  const logic: ObservableActorLogic<TEvent, TInput, TEmitted> = {
     config: lazyObservable,
     transition: (state, event) => {
       if (state.status !== 'active') {
@@ -286,7 +342,7 @@ export function fromEventObservable<
         children: {}
       };
     },
-    start: (state, { self, system }) => {
+    start: (state, { self, system, emit }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
         return;
@@ -295,7 +351,8 @@ export function fromEventObservable<
       state._subscription = lazyObservable({
         input: state.input!,
         system,
-        self
+        self,
+        emit
       }).subscribe({
         next: (value) => {
           if (self._parent) {

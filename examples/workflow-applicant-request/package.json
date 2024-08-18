@@ -9,12 +9,12 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "typescript": "^5.4.4",
-    "vite": "^5.2.8",
+    "typescript": "^5.5.4",
+    "vite": "^5.3.5",
     "vite-node": "^0.31.4"
   },
   "dependencies": {
     "ts-node": "^10.9.2",
-    "xstate": "^5.9.1"
+    "xstate": "^5.17.1"
   }
 }

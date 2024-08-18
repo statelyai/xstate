@@ -1,4 +1,4 @@
-import { Container, Jumbotron } from "react-bootstrap";
+import { Container, Jumbotron } from 'react-bootstrap';
 
 const GameTitle = () => {
   return (

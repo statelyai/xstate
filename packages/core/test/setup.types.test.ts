@@ -3,9 +3,12 @@ import {
   and,
   assign,
   cancel,
+  ContextFrom,
   createActor,
   createMachine,
+  emit,
   enqueueActions,
+  EventFrom,
   fromPromise,
   fromTransition,
   log,
@@ -791,6 +794,45 @@ describe('setup()', () => {
       actions: {
         sendFoo: sendParent({
           type: 'FOO'
+        })
+      }
+    });
+  });
+
+  it('should accept an `emit` action that emits a known event', () => {
+    setup({
+      types: {} as {
+        emitted:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        emitFoo: emit({
+          type: 'FOO'
+        })
+      }
+    });
+  });
+
+  it('should not accept an `emit` action that emits an unknown event', () => {
+    setup({
+      types: {} as {
+        emitted:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        emitFoo: emit({
+          // @ts-expect-error
+          type: 'BAZ'
         })
       }
     });
@@ -2107,7 +2149,7 @@ describe('setup()', () => {
     });
   });
 
-  it('should allow `cancel` action to be configured', () => {
+  it('should allow `log` action to be configured', () => {
     setup({
       actions: {
         writeDown: log('foo')
@@ -2131,62 +2173,63 @@ describe('setup()', () => {
     });
   });
 
-  it('should support typing meta properties', () => {
+  it('EventFrom should work with a machine that has transitions defined on a state', () => {
+    // https://github.com/statelyai/xstate/issues/5031
+
     const machine = setup({
-      types: {
-        meta: {} as {
-          layout: string;
-        }
+      types: {} as {
+        events: {
+          type: 'SOME_EVENT';
+        };
       }
     }).createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          meta: {
-            layout: 'a-layout'
-          }
-        },
-        b: {
-          meta: {
-            // @ts-expect-error
-            notLayout: 'uh oh'
-          }
-        },
-        c: {}, // no meta
-        d: {
-          meta: {
-            // @ts-expect-error
-            layout: 42
-          }
-        }
+      id: 'authorization',
+      initial: 'loading',
+      context: {
+        myVar: 'foo'
       },
-      on: {
-        e1: {
-          meta: {
-            layout: 'event-layout'
-          }
-        },
-        e2: {
-          meta: {
-            // @ts-expect-error
-            notLayout: 'uh oh'
-          }
-        },
-        e3: {}, // no meta
-        // @ts-expect-error (for some reason the error is here)
-        e4: {
-          meta: {
-            layout: 42
+      states: {
+        loaded: {},
+        loading: {
+          on: {
+            SOME_EVENT: {
+              target: 'loaded'
+            }
           }
         }
       }
     });
 
-    const actor = createActor(machine);
+    ((_accept: EventFrom<typeof machine>) => {})({ type: 'SOME_EVENT' });
+  });
 
-    actor.getSnapshot().getMeta().a satisfies { layout: string } | undefined;
+  it('ContextFrom should work with a machine that has transitions defined on a state', () => {
+    // https://github.com/statelyai/xstate/issues/5031
 
-    // @ts-expect-error
-    actor.getSnapshot().getMeta().a?.whatever;
+    const machine = setup({
+      types: {} as {
+        context: {
+          myVar: string;
+        };
+      }
+    }).createMachine({
+      id: 'authorization',
+      initial: 'loading',
+      context: {
+        myVar: 'foo'
+      },
+      states: {
+        loaded: {},
+        loading: {
+          on: {
+            SOME_EVENT: {
+              target: 'loaded'
+            }
+          }
+        }
+      }
+    });
+
+    ((_accept: ContextFrom<typeof machine>) => {})({ myVar: 'whatever' });
   });
 });

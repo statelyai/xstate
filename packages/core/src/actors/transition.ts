@@ -1,7 +1,7 @@
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
-  ActorRefFrom,
+  ActorRefFromLogic,
   ActorScope,
   EventObject,
   NonReducibleUnknown,
@@ -23,50 +23,104 @@ export type TransitionActorLogic<
   TEmitted
 >;
 
+/**
+ * Represents an actor created by `fromTransition`.
+ *
+ * The type of `self` within the actor's logic.
+ *
+ * @example
+ *
+ * ```ts
+ * import {
+ *   fromTransition,
+ *   createActor,
+ *   type AnyActorSystem
+ * } from 'xstate';
+ *
+ * //* The actor's stored context.
+ * type Context = {
+ *   // The current count.
+ *   count: number;
+ *   // The amount to increase `count` by.
+ *   step: number;
+ * };
+ * // The events the actor receives.
+ * type Event = { type: 'increment' };
+ * // The actor's input.
+ * type Input = { step?: number };
+ *
+ * // Actor logic that increments `count` by `step` when it receives an event of
+ * // type `increment`.
+ * const logic = fromTransition<Context, Event, AnyActorSystem, Input>(
+ *   (state, event, actorScope) => {
+ *     actorScope.self;
+ *     //         ^? TransitionActorRef<Context, Event>
+ *
+ *     if (event.type === 'increment') {
+ *       return {
+ *         ...state,
+ *         count: state.count + state.step
+ *       };
+ *     }
+ *     return state;
+ *   },
+ *   ({ input, self }) => {
+ *     self;
+ *     // ^? TransitionActorRef<Context, Event>
+ *
+ *     return {
+ *       count: 0,
+ *       step: input.step ?? 1
+ *     };
+ *   }
+ * );
+ *
+ * const actor = createActor(logic, { input: { step: 10 } });
+ * //    ^? TransitionActorRef<Context, Event>
+ * ```
+ *
+ * @see {@link fromTransition}
+ */
 export type TransitionActorRef<
   TContext,
   TEvent extends EventObject
-> = ActorRefFrom<
+> = ActorRefFromLogic<
   TransitionActorLogic<TransitionSnapshot<TContext>, TEvent, unknown>
 >;
 
 /**
  * Returns actor logic given a transition function and its initial state.
  *
- * A “transition function” is a function that takes the current `state` and received `event` object as arguments, and returns the next state, similar to a reducer.
+ * A “transition function” is a function that takes the current `state` and
+ * received `event` object as arguments, and returns the next state, similar to
+ * a reducer.
  *
  * Actors created from transition logic (“transition actors”) can:
  *
  * - Receive events
  * - Emit snapshots of its state
  *
- * The transition function’s `state` is used as its transition actor’s `context`.
+ * The transition function’s `state` is used as its transition actor’s
+ * `context`.
  *
- * Note that the "state" for a transition function is provided by the initial state argument, and is not the same as the State object of an actor or a state within a machine configuration.
- *
- * @param transition The transition function used to describe the transition logic. It should return the next state given the current state and event. It receives the following arguments:
- * - `state` - the current state.
- * - `event` - the received event.
- * - `actorScope` - the actor scope object, with properties like `self` and `system`.
- * @param initialContext The initial state of the transition function, either an object representing the state, or a function which returns a state object. If a function, it will receive as its only argument an object with the following properties:
- * - `input` - the `input` provided to its parent transition actor.
- * - `self` - a reference to its parent transition actor.
- * @see {@link https://stately.ai/docs/input | Input docs} for more information about how input is passed
- * @returns Actor logic
+ * Note that the "state" for a transition function is provided by the initial
+ * state argument, and is not the same as the State object of an actor or a
+ * state within a machine configuration.
  *
  * @example
+ *
  * ```ts
  * const transitionLogic = fromTransition(
  *   (state, event) => {
  *     if (event.type === 'increment') {
  *       return {
  *         ...state,
- *         count: state.count + 1,
+ *         count: state.count + 1
  *       };
  *     }
  *     return state;
  *   },
- *   { count: 0 },
+ *   { count: 0 }
  * );
  *
  * const transitionActor = createActor(transitionLogic);
@@ -87,6 +141,26 @@ export type TransitionActorRef<
  * //   ...
  * // }
  * ```
+ *
+ * @param transition The transition function used to describe the transition
+ *   logic. It should return the next state given the current state and event.
+ *   It receives the following arguments:
+ *
+ *   - `state` - the current state.
+ *   - `event` - the received event.
+ *   - `actorScope` - the actor scope object, with properties like `self` and
+ *       `system`.
+ *
+ * @param initialContext The initial state of the transition function, either an
+ *   object representing the state, or a function which returns a state object.
+ *   If a function, it will receive as its only argument an object with the
+ *   following properties:
+ *
+ *   - `input` - the `input` provided to its parent transition actor.
+ *   - `self` - a reference to its parent transition actor.
+ *
+ * @returns Actor logic
+ * @see {@link https://stately.ai/docs/input | Input docs} for more information about how input is passed
  */
 export function fromTransition<
   TContext,
@@ -98,7 +172,12 @@ export function fromTransition<
   transition: (
     snapshot: TContext,
     event: TEvent,
-    actorScope: ActorScope<TransitionSnapshot<TContext>, TEvent, TSystem>
+    actorScope: ActorScope<
+      TransitionSnapshot<TContext>,
+      TEvent,
+      TSystem,
+      TEmitted
+    >
   ) => TContext,
   initialContext:
     | TContext

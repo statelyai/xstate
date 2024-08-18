@@ -3,8 +3,8 @@ import { ActorRef, AnyActorRef, SnapshotFrom, Subscription } from './types.ts';
 
 interface WaitForOptions {
   /**
-   * How long to wait before rejecting, if no emitted
-   * state satisfies the predicate.
+   * How long to wait before rejecting, if no emitted state satisfies the
+   * predicate.
    *
    * @defaultValue Infinity
    */
@@ -16,14 +16,14 @@ const defaultWaitForOptions: WaitForOptions = {
 };
 
 /**
- * Subscribes to an actor ref and waits for its emitted value to satisfy
- * a predicate, and then resolves with that value.
- * Will throw if the desired state is not reached after an optional timeout.
- * (defaults to Infinity).
+ * Subscribes to an actor ref and waits for its emitted value to satisfy a
+ * predicate, and then resolves with that value. Will throw if the desired state
+ * is not reached after an optional timeout. (defaults to Infinity).
  *
  * @example
+ *
  * ```js
- * const state = await waitFor(someService, state => {
+ * const state = await waitFor(someService, (state) => {
  *   return state.hasTag('loaded');
  * });
  *
@@ -33,8 +33,8 @@ const defaultWaitForOptions: WaitForOptions = {
  * @param actorRef The actor ref to subscribe to
  * @param predicate Determines if a value matches the condition to wait for
  * @param options
- * @returns A promise that eventually resolves to the emitted value
- * that matches the condition
+ * @returns A promise that eventually resolves to the emitted value that matches
+ *   the condition
  */
 export function waitFor<TActorRef extends AnyActorRef>(
   actorRef: TActorRef,

@@ -694,7 +694,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       const [state, send] = useActor(machine);
       return (
         <>
-          <div data-testid="result">{state.value}</div>
+          <div data-testid="result">{state.value as string}</div>
           <button onClick={() => send({ type: 'EV' })} />
         </>
       );
@@ -740,7 +740,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       );
       return (
         <>
-          <div data-testid="result">{state.value}</div>
+          <div data-testid="result">{state.value as string}</div>
           <button onClick={() => send({ type: 'EV' })} />
         </>
       );

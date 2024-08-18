@@ -37,7 +37,7 @@ export function isReceiverEvent(event: any): event is ReceiverEvent {
   return false;
 }
 
-export function parseState(stateJSON: string): StateConfig<any, any> {
+function parseState(stateJSON: string): StateConfig<any, any> {
   const state = JSON.parse(stateJSON);
 
   return state;

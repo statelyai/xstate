@@ -2,7 +2,7 @@ import { AnyMachineSnapshot, AnyStateMachine } from 'xstate';
 import { Replacer } from './types.ts';
 import { stringify } from './utils.ts';
 
-export function selectivelyStringify<T extends object>(
+function selectivelyStringify<T extends object>(
   value: T,
   keys: Array<keyof T>,
   replacer?: Replacer
