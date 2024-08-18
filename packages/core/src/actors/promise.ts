@@ -2,8 +2,8 @@ import { XSTATE_STOP } from '../constants.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
-  ActorRefFrom,
   ActorScope,
+  ActorRefFromLogic,
   AnyActorRef,
   EventObject,
   NonReducibleUnknown,
@@ -64,7 +64,7 @@ export type PromiseActorLogic<
  *
  * @see {@link fromPromise}
  */
-export type PromiseActorRef<TOutput> = ActorRefFrom<
+export type PromiseActorRef<TOutput> = ActorRefFromLogic<
   PromiseActorLogic<TOutput, unknown>
 >;
 
@@ -152,7 +152,7 @@ export function fromPromise<
 
       const stopChildren = () => {
         for (const child of Object.values(state.children)) {
-          actorScope.stopChild(child);
+          actorScope.stopChild?.(child);
         }
       };
 
@@ -205,7 +205,7 @@ export function fromPromise<
       }
 
       const innerSpawnChild: typeof spawnChild<any> = (logic, actorOptions) => {
-        const child = spawnChild(logic, actorOptions) as AnyActorRef;
+        const child = spawnChild?.(logic, actorOptions) as AnyActorRef;
 
         self.send({
           type: XSTATE_SPAWN_CHILD,
@@ -253,6 +253,7 @@ export function fromPromise<
     },
     getInitialSnapshot: (_, input) => {
       return {
+        context: undefined,
         status: 'active',
         output: undefined,
         error: undefined,

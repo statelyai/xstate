@@ -4,6 +4,7 @@ import {
   ActorLogic,
   ActorRefFrom,
   ActorScope,
+  ActorRefFromLogic,
   AnyActorRef,
   AnyEventObject,
   EventObject,
@@ -74,15 +75,15 @@ export type CallbackActorLogic<
 export type CallbackActorRef<
   TEvent extends EventObject,
   TInput = NonReducibleUnknown
-> = ActorRefFrom<CallbackActorLogic<TEvent, TInput>>;
+> = ActorRefFromLogic<CallbackActorLogic<TEvent, TInput>>;
 
-export type Receiver<TEvent extends EventObject> = (
+type Receiver<TEvent extends EventObject> = (
   listener: {
     bivarianceHack(event: TEvent): void;
   }['bivarianceHack']
 ) => void;
 
-export type InvokeCallback<
+type InvokeCallback<
   TEvent extends EventObject = AnyEventObject,
   TSentEvent extends EventObject = AnyEventObject,
   TInput = NonReducibleUnknown,
@@ -245,6 +246,7 @@ export function fromCallback<
     },
     getInitialSnapshot: (_, input) => {
       return {
+        context: undefined,
         status: 'active',
         output: undefined,
         error: undefined,

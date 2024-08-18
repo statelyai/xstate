@@ -110,7 +110,8 @@ export interface UnifiedArg<
       StateValue,
       string,
       unknown,
-      TODO // TMeta
+      TODO, // TMeta
+      TODO // State schema
     >,
     TEvent,
     AnyEventObject
@@ -139,7 +140,8 @@ export type InputFrom<T> = T extends StateMachine<
   infer TInput,
   infer _TOutput,
   infer _TEmitted,
-  infer _TMeta
+  infer _TMeta,
+  infer _TStateSchema
 >
   ? TInput
   : T extends ActorLogic<
@@ -1102,6 +1104,7 @@ export type AnyMachineSnapshot = MachineSnapshot<
   any,
   any,
   any,
+  any,
   any
 >;
 
@@ -1121,7 +1124,8 @@ export type AnyStateMachine = StateMachine<
   any, // input
   any, // output
   any, // emitted
-  any // TMeta
+  any, // TMeta
+  any // TStateSchema
 >;
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
@@ -1320,7 +1324,8 @@ export type ContextFactory<
       StateValue,
       string,
       unknown,
-      TODO // TMeta
+      TODO, // TMeta
+      TODO // State schema
     >,
     TEvent,
     AnyEventObject
@@ -1626,7 +1631,8 @@ export type Mapper<
       StateValue,
       string,
       unknown,
-      TODO // TMeta
+      TODO, // TMeta
+      TODO // State schema
     >,
     TEvent,
     AnyEventObject
@@ -1711,7 +1717,7 @@ export interface StateConfig<
   /** @internal */
   _nodes: Array<StateNode<TContext, TEvent>>;
   children: Record<string, AnyActorRef>;
-  status: 'active' | 'done' | 'error' | 'stopped';
+  status: SnapshotStatus;
   output?: any;
   error?: unknown;
   machine?: StateMachine<
@@ -1726,8 +1732,9 @@ export interface StateConfig<
     any,
     any,
     any,
+    any,
     any, // TMeta
-    any
+    any // TStateSchema
   >;
 }
 
@@ -1974,6 +1981,11 @@ export interface ActorRef<
 
 export type AnyActorRef = ActorRef<any, any, any>;
 
+export type ActorRefLike = Pick<
+  AnyActorRef,
+  'sessionId' | 'send' | 'getSnapshot'
+>;
+
 export type UnknownActorRef = ActorRef<Snapshot<unknown>, EventObject>;
 
 export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
@@ -1989,8 +2001,9 @@ export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
       any,
       any,
       any,
+      any,
       any, // TMeta
-      any
+      any // TStateSchema
     >
     ? R
     : R extends Promise<infer U>
@@ -1998,6 +2011,7 @@ export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
       : never
   : never;
 
+// TODO: in v6, this should only accept AnyActorLogic, like ActorRefFromLogic
 export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
       infer TContext,
@@ -2012,7 +2026,8 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TInput,
       infer TOutput,
       infer TEmitted,
-      infer TMeta
+      infer TMeta,
+      infer TStateSchema
     >
     ? ActorRef<
         MachineSnapshot<
@@ -2022,7 +2037,8 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
           TStateValue,
           TTag,
           TOutput,
-          TMeta
+          TMeta,
+          TStateSchema
         >,
         TEvent,
         TEmitted
@@ -2039,6 +2055,12 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         ? ActorRef<TSnapshot, TEvent, TEmitted>
         : never
   : never;
+
+export type ActorRefFromLogic<T extends AnyActorLogic> = ActorRef<
+  SnapshotFrom<T>,
+  EventFromLogic<T>,
+  EmittedFrom<T>
+>;
 
 export type DevToolsAdapter = (service: AnyActor) => void;
 
@@ -2058,7 +2080,8 @@ export type InterpreterFrom<
   infer TInput,
   infer TOutput,
   infer TEmitted,
-  infer TMeta
+  infer TMeta,
+  infer TStateSchema
 >
   ? Actor<
       ActorLogic<
@@ -2069,7 +2092,8 @@ export type InterpreterFrom<
           TStateValue,
           TTag,
           TOutput,
-          TMeta
+          TMeta,
+          TStateSchema
         >,
         TEvent,
         TInput,
@@ -2094,7 +2118,8 @@ export type MachineImplementationsFrom<
   infer _TInput,
   infer _TOutput,
   infer TEmitted,
-  infer _TMeta
+  infer _TMeta,
+  infer _TStateSchema
 >
   ? InternalMachineImplementations<
       ResolvedStateMachineTypes<
@@ -2136,6 +2161,8 @@ export type AnyActorScope = ActorScope<
   AnyActorSystem,
   any // TEmitted
 >;
+
+export type SnapshotStatus = 'active' | 'done' | 'error' | 'stopped';
 
 export type Snapshot<TOutput> =
   | {
@@ -2248,7 +2275,7 @@ export type AnyActorLogic = ActorLogic<
 export type UnknownActorLogic = ActorLogic<
   any, // snapshot
   any, // event
-  never, // input
+  any, // input
   AnyActorSystem,
   any // emitted
 >;
@@ -2312,7 +2339,8 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       infer _TInput,
       infer _TOutput,
       infer _TEmitted,
-      infer _TMeta
+      infer _TMeta,
+      infer _TStateSchema
     >
     ? TEvent
     : R extends MachineSnapshot<
@@ -2322,7 +2350,8 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
           infer _TStateValue,
           infer _TTag,
           infer _TOutput,
-          infer _TMeta
+          infer _TMeta,
+          infer _TStateSchema
         >
       ? TEvent
       : R extends ActorRef<infer _TSnapshot, infer TEvent, infer _TEmitted>
@@ -2350,7 +2379,8 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TInput,
       infer _TOutput,
       infer _TEmitted,
-      infer _TMeta
+      infer _TMeta,
+      infer _TStateSchema
     >
     ? TContext
     : R extends MachineSnapshot<
@@ -2360,7 +2390,8 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
           infer _TStateValue,
           infer _TTag,
           infer _TOutput,
-          infer _TMeta
+          infer _TMeta,
+          infer _TStateSchema
         >
       ? TContext
       : R extends Actor<infer TActorLogic>
@@ -2372,12 +2403,13 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
             infer _TAction,
             infer _TGuard,
             infer _TDelay,
+            infer _TStateValue,
             infer _TTag,
             infer _TInput,
             infer _TOutput,
             infer _TEmitted,
             infer _TMeta,
-            infer _TTypes
+            infer _TStateSchema
           >
           ? TContext
           : never
@@ -2413,7 +2445,9 @@ type ExtractLiteralString<T extends string | undefined> = T extends string
   : never;
 
 type ToConcreteChildren<TActor extends ProvidedActor> = {
-  [A in TActor as ExtractLiteralString<A['id']>]?: ActorRefFrom<A['logic']>;
+  [A in TActor as ExtractLiteralString<A['id']>]?: ActorRefFromLogic<
+    A['logic']
+  >;
 };
 
 export type ToChildren<TActor extends ProvidedActor> =
@@ -2428,7 +2462,7 @@ export type ToChildren<TActor extends ProvidedActor> =
           {
             include: {
               [id: string]: TActor extends any
-                ? ActorRefFrom<TActor['logic']> | undefined
+                ? ActorRefFromLogic<TActor['logic']> | undefined
                 : never;
             };
             exclude: {};
@@ -2440,8 +2474,49 @@ export type ToChildren<TActor extends ProvidedActor> =
       >;
 
 export type StateSchema = {
+  id?: string;
   states?: Record<string, StateSchema>;
+
+  // Other types
+  // Needed because TS treats objects with all optional properties as a "weak" object
+  // https://github.com/statelyai/xstate/issues/5031
+  type?: unknown;
+  invoke?: unknown;
+  on?: unknown;
+  entry?: unknown;
+  exit?: unknown;
+  onDone?: unknown;
+  after?: unknown;
+  always?: unknown;
+  meta?: unknown;
+  output?: unknown;
+  tags?: unknown;
+  description?: unknown;
 };
+
+export type StateId<
+  TSchema extends StateSchema,
+  TKey extends string = '(machine)',
+  TParentKey extends string | null = null
+> =
+  | (TSchema extends { id: string }
+      ? TSchema['id']
+      : TParentKey extends null
+        ? TKey
+        : `${TParentKey}.${TKey}`)
+  | (TSchema['states'] extends Record<string, any>
+      ? Values<{
+          [K in keyof TSchema['states'] & string]: StateId<
+            TSchema['states'][K],
+            K,
+            TParentKey extends string
+              ? `${TParentKey}.${TKey}`
+              : TSchema['id'] extends string
+                ? TSchema['id']
+                : TKey
+          >;
+        }>
+      : never);
 
 export interface StateMachineTypes {
   context: MachineContext;

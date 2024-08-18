@@ -2,8 +2,8 @@ import { XSTATE_STOP } from '../constants';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
-  ActorRefFrom,
   ActorScope,
+  ActorRefFromLogic,
   EventObject,
   NonReducibleUnknown,
   Snapshot,
@@ -68,7 +68,7 @@ export type ObservableActorLogic<
  * @see {@link fromObservable}
  * @see {@link fromEventObservable}
  */
-export type ObservableActorRef<TContext> = ActorRefFrom<
+export type ObservableActorRef<TContext> = ActorRefFromLogic<
   ObservableActorLogic<TContext, any>
 >;
 

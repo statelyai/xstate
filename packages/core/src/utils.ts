@@ -3,7 +3,6 @@ import { isMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import { TARGETLESS_KEY } from './constants.ts';
 import type {
-  AnyActorLogic,
   AnyActorRef,
   AnyEventObject,
   AnyMachineSnapshot,
@@ -83,9 +82,7 @@ export function toStatePath(stateId: string | string[]): string[] {
   return result;
 }
 
-export function toStateValue(
-  stateValue: StateLike<any> | StateValue
-): StateValue {
+function toStateValue(stateValue: StateLike<any> | StateValue): StateValue {
   if (isMachineSnapshot(stateValue)) {
     return stateValue.value;
   }
@@ -144,7 +141,7 @@ export function mapValues(
   return result;
 }
 
-export function toArrayStrict<T>(value: readonly T[] | T): readonly T[] {
+function toArrayStrict<T>(value: readonly T[] | T): readonly T[] {
   if (isArray(value)) {
     return value;
   }
@@ -197,25 +194,7 @@ export function resolveOutput<
   return mapper;
 }
 
-export function isActorLogic(value: any): value is AnyActorLogic {
-  return (
-    value !== null &&
-    typeof value === 'object' &&
-    'transition' in value &&
-    typeof value.transition === 'function'
-  );
-}
-
-export function isActorRef(value: any): value is AnyActorRef {
-  return (
-    value !== null &&
-    typeof value === 'object' &&
-    'send' in value &&
-    typeof value.send === 'function'
-  );
-}
-
-export function isArray(value: any): value is readonly any[] {
+function isArray(value: any): value is readonly any[] {
   return Array.isArray(value);
 }
 
@@ -302,4 +281,8 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
 
 export function getAllOwnEventDescriptors(snapshot: AnyMachineSnapshot) {
   return [...new Set([...snapshot._nodes.flatMap((sn) => sn.ownEvents)])];
+}
+
+export function isActorRef(actorRef: unknown): actorRef is AnyActorRef {
+  return !!actorRef && typeof actorRef === 'object' && 'send' in actorRef;
 }

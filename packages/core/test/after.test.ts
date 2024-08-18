@@ -1,4 +1,5 @@
-import { createMachine, createActor } from '../src/index.ts';
+import { sleep } from '@xstate-repo/jest-utils';
+import { createMachine, createActor, cancel } from '../src/index.ts';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -41,6 +42,35 @@ describe('delayed transitions', () => {
 
     jest.advanceTimersByTime(510);
     expect(actorRef.getSnapshot().value).toBe('yellow');
+  });
+
+  it('should not try to clear an undefined timeout when exiting source state of a delayed transition', async () => {
+    // https://github.com/statelyai/xstate/issues/5001
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          after: {
+            1: 'yellow'
+          }
+        },
+        yellow: {}
+      }
+    });
+
+    const actorRef = createActor(machine, {
+      clock: {
+        setTimeout,
+        clearTimeout: spy
+      }
+    }).start();
+
+    // when the after transition gets executed it tries to clear its own timer when exiting its source state
+    await sleep(5);
+    expect(actorRef.getSnapshot().value).toBe('yellow');
+    expect(spy.mock.calls.length).toBe(0);
   });
 
   it('should format transitions properly', () => {
