@@ -240,216 +240,218 @@ describe('inspect', () => {
         ['@xstate.actor', '@xstate.event', '@xstate.snapshot'].includes(ev.type)
       )
     ).toMatchInlineSnapshot(`
-      [
-        {
-          "actorId": "x:1",
-          "type": "@xstate.actor",
-        },
-        {
-          "actorId": "x:2",
-          "type": "@xstate.actor",
-        },
-        {
-          "event": {
-            "input": undefined,
-            "type": "xstate.init",
-          },
-          "sourceId": undefined,
-          "targetId": "x:1",
-          "type": "@xstate.event",
-        },
-        {
-          "event": {
-            "input": undefined,
-            "type": "xstate.init",
-          },
-          "sourceId": "x:1",
-          "targetId": "x:2",
-          "type": "@xstate.event",
-        },
-        {
-          "actorId": "x:2",
-          "event": {
-            "input": undefined,
-            "type": "xstate.init",
-          },
-          "snapshot": {
-            "value": "start",
-          },
-          "status": "active",
-          "type": "@xstate.snapshot",
-        },
-        {
-          "actorId": "x:1",
-          "event": {
-            "input": undefined,
-            "type": "xstate.init",
-          },
-          "snapshot": {
-            "value": "waiting",
-          },
-          "status": "active",
-          "type": "@xstate.snapshot",
-        },
-        {
-          "event": {
-            "type": "load",
-          },
-          "sourceId": undefined,
-          "targetId": "x:1",
-          "type": "@xstate.event",
-        },
-        {
-          "event": {
-            "type": "loadChild",
-          },
-          "sourceId": "x:1",
-          "targetId": "x:2",
-          "type": "@xstate.event",
-        },
-        {
-          "actorId": "x:3",
-          "type": "@xstate.actor",
-        },
-        {
-          "event": {
-            "input": undefined,
-            "type": "xstate.init",
-          },
-          "sourceId": "x:2",
-          "targetId": "x:3",
-          "type": "@xstate.event",
-        },
-        {
-          "actorId": "x:3",
-          "event": {
-            "input": undefined,
-            "type": "xstate.init",
-          },
-          "snapshot": {
-            "children": {},
-            "error": undefined,
-            "input": undefined,
-            "output": undefined,
-            "status": "active",
-          },
-          "status": "active",
-          "type": "@xstate.snapshot",
-        },
-        {
-          "actorId": "x:2",
-          "event": {
-            "type": "loadChild",
-          },
-          "snapshot": {
-            "value": "loading",
-          },
-          "status": "active",
-          "type": "@xstate.snapshot",
-        },
-        {
-          "actorId": "x:1",
-          "event": {
-            "type": "load",
-          },
-          "snapshot": {
-            "value": "waiting",
-          },
-          "status": "active",
-          "type": "@xstate.snapshot",
-        },
-        {
-          "event": {
-            "data": 42,
-            "type": "xstate.promise.resolve",
-          },
-          "sourceId": "x:3",
-          "targetId": "x:3",
-          "type": "@xstate.event",
-        },
-        {
-          "event": {
-            "actorId": "0.(machine).loading",
-            "output": 42,
-            "type": "xstate.done.actor.0.(machine).loading",
-          },
-          "sourceId": "x:3",
-          "targetId": "x:2",
-          "type": "@xstate.event",
-        },
-        {
-          "event": {
-            "type": "toParent",
-          },
-          "sourceId": "x:2",
-          "targetId": "x:1",
-          "type": "@xstate.event",
-        },
-        {
-          "actorId": "x:1",
-          "event": {
-            "type": "toParent",
-          },
-          "snapshot": {
-            "value": "waiting",
-          },
-          "status": "active",
-          "type": "@xstate.snapshot",
-        },
-        {
-          "event": {
-            "actorId": "child",
-            "output": undefined,
-            "type": "xstate.done.actor.child",
-          },
-          "sourceId": "x:2",
-          "targetId": "x:1",
-          "type": "@xstate.event",
-        },
-        {
-          "actorId": "x:1",
-          "event": {
-            "actorId": "child",
-            "output": undefined,
-            "type": "xstate.done.actor.child",
-          },
-          "snapshot": {
-            "value": "success",
-          },
-          "status": "active",
-          "type": "@xstate.snapshot",
-        },
-        {
-          "actorId": "x:2",
-          "event": {
-            "actorId": "0.(machine).loading",
-            "output": 42,
-            "type": "xstate.done.actor.0.(machine).loading",
-          },
-          "snapshot": {
-            "value": "loaded",
-          },
-          "status": "done",
-          "type": "@xstate.snapshot",
-        },
-        {
-          "actorId": "x:3",
-          "event": {
-            "data": 42,
-            "type": "xstate.promise.resolve",
-          },
-          "snapshot": {
-            "children": {},
-            "error": undefined,
-            "input": undefined,
-            "output": 42,
-            "status": "done",
-          },
-          "status": "done",
-          "type": "@xstate.snapshot",
-        },
-      ]
-    `);
+[
+  {
+    "actorId": "x:1",
+    "type": "@xstate.actor",
+  },
+  {
+    "actorId": "x:2",
+    "type": "@xstate.actor",
+  },
+  {
+    "event": {
+      "input": undefined,
+      "type": "xstate.init",
+    },
+    "sourceId": undefined,
+    "targetId": "x:1",
+    "type": "@xstate.event",
+  },
+  {
+    "event": {
+      "input": undefined,
+      "type": "xstate.init",
+    },
+    "sourceId": "x:1",
+    "targetId": "x:2",
+    "type": "@xstate.event",
+  },
+  {
+    "actorId": "x:2",
+    "event": {
+      "input": undefined,
+      "type": "xstate.init",
+    },
+    "snapshot": {
+      "value": "start",
+    },
+    "status": "active",
+    "type": "@xstate.snapshot",
+  },
+  {
+    "actorId": "x:1",
+    "event": {
+      "input": undefined,
+      "type": "xstate.init",
+    },
+    "snapshot": {
+      "value": "waiting",
+    },
+    "status": "active",
+    "type": "@xstate.snapshot",
+  },
+  {
+    "event": {
+      "type": "load",
+    },
+    "sourceId": undefined,
+    "targetId": "x:1",
+    "type": "@xstate.event",
+  },
+  {
+    "event": {
+      "type": "loadChild",
+    },
+    "sourceId": "x:1",
+    "targetId": "x:2",
+    "type": "@xstate.event",
+  },
+  {
+    "actorId": "x:3",
+    "type": "@xstate.actor",
+  },
+  {
+    "event": {
+      "input": undefined,
+      "type": "xstate.init",
+    },
+    "sourceId": "x:2",
+    "targetId": "x:3",
+    "type": "@xstate.event",
+  },
+  {
+    "actorId": "x:3",
+    "event": {
+      "input": undefined,
+      "type": "xstate.init",
+    },
+    "snapshot": {
+      "children": {},
+      "context": undefined,
+      "error": undefined,
+      "input": undefined,
+      "output": undefined,
+      "status": "active",
+    },
+    "status": "active",
+    "type": "@xstate.snapshot",
+  },
+  {
+    "actorId": "x:2",
+    "event": {
+      "type": "loadChild",
+    },
+    "snapshot": {
+      "value": "loading",
+    },
+    "status": "active",
+    "type": "@xstate.snapshot",
+  },
+  {
+    "actorId": "x:1",
+    "event": {
+      "type": "load",
+    },
+    "snapshot": {
+      "value": "waiting",
+    },
+    "status": "active",
+    "type": "@xstate.snapshot",
+  },
+  {
+    "event": {
+      "data": 42,
+      "type": "xstate.promise.resolve",
+    },
+    "sourceId": "x:3",
+    "targetId": "x:3",
+    "type": "@xstate.event",
+  },
+  {
+    "event": {
+      "actorId": "0.(machine).loading",
+      "output": 42,
+      "type": "xstate.done.actor.0.(machine).loading",
+    },
+    "sourceId": "x:3",
+    "targetId": "x:2",
+    "type": "@xstate.event",
+  },
+  {
+    "event": {
+      "type": "toParent",
+    },
+    "sourceId": "x:2",
+    "targetId": "x:1",
+    "type": "@xstate.event",
+  },
+  {
+    "actorId": "x:1",
+    "event": {
+      "type": "toParent",
+    },
+    "snapshot": {
+      "value": "waiting",
+    },
+    "status": "active",
+    "type": "@xstate.snapshot",
+  },
+  {
+    "event": {
+      "actorId": "child",
+      "output": undefined,
+      "type": "xstate.done.actor.child",
+    },
+    "sourceId": "x:2",
+    "targetId": "x:1",
+    "type": "@xstate.event",
+  },
+  {
+    "actorId": "x:1",
+    "event": {
+      "actorId": "child",
+      "output": undefined,
+      "type": "xstate.done.actor.child",
+    },
+    "snapshot": {
+      "value": "success",
+    },
+    "status": "active",
+    "type": "@xstate.snapshot",
+  },
+  {
+    "actorId": "x:2",
+    "event": {
+      "actorId": "0.(machine).loading",
+      "output": 42,
+      "type": "xstate.done.actor.0.(machine).loading",
+    },
+    "snapshot": {
+      "value": "loaded",
+    },
+    "status": "done",
+    "type": "@xstate.snapshot",
+  },
+  {
+    "actorId": "x:3",
+    "event": {
+      "data": 42,
+      "type": "xstate.promise.resolve",
+    },
+    "snapshot": {
+      "children": {},
+      "context": undefined,
+      "error": undefined,
+      "input": undefined,
+      "output": 42,
+      "status": "done",
+    },
+    "status": "done",
+    "type": "@xstate.snapshot",
+  },
+]
+`);
   });
 
   it('can inspect microsteps from always events', async () => {

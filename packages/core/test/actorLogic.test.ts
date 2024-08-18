@@ -134,14 +134,15 @@ describe('promise logic (fromPromise)', () => {
       const resolvedPersistedState = actor.getPersistedSnapshot();
 
       expect(resolvedPersistedState).toMatchInlineSnapshot(`
-        {
-          "children": {},
-          "error": undefined,
-          "input": undefined,
-          "output": 42,
-          "status": "done",
-        }
-      `);
+{
+  "children": {},
+  "context": undefined,
+  "error": undefined,
+  "input": undefined,
+  "output": 42,
+  "status": "done",
+}
+`);
 
       const restoredActor = createActor(promiseLogic, {
         snapshot: resolvedPersistedState
@@ -164,14 +165,15 @@ describe('promise logic (fromPromise)', () => {
 
     const resolvedPersistedState = actor.getPersistedSnapshot();
     expect(resolvedPersistedState).toMatchInlineSnapshot(`
-      {
-        "children": {},
-        "error": undefined,
-        "input": undefined,
-        "output": 1,
-        "status": "done",
-      }
-    `);
+{
+  "children": {},
+  "context": undefined,
+  "error": undefined,
+  "input": undefined,
+  "output": 1,
+  "status": "done",
+}
+`);
     expect(createdPromises).toBe(1);
 
     const restoredActor = createActor(promiseLogic, {
@@ -196,14 +198,15 @@ describe('promise logic (fromPromise)', () => {
 
     const rejectedPersistedState = actorRef.getPersistedSnapshot();
     expect(rejectedPersistedState).toMatchInlineSnapshot(`
-      {
-        "children": {},
-        "error": 1,
-        "input": undefined,
-        "output": undefined,
-        "status": "error",
-      }
-    `);
+{
+  "children": {},
+  "context": undefined,
+  "error": 1,
+  "input": undefined,
+  "output": undefined,
+  "status": "error",
+}
+`);
     expect(createdPromises).toBe(1);
 
     const actorRef2 = createActor(promiseLogic, {
@@ -843,14 +846,15 @@ describe('machine logic', () => {
     const persistedState = actor.getPersistedSnapshot()!;
 
     expect((persistedState as any).children.a.snapshot).toMatchInlineSnapshot(`
-      {
-        "children": {},
-        "error": undefined,
-        "input": undefined,
-        "output": 42,
-        "status": "done",
-      }
-    `);
+{
+  "children": {},
+  "context": undefined,
+  "error": undefined,
+  "input": undefined,
+  "output": 42,
+  "status": "done",
+}
+`);
 
     expect((persistedState as any).children.b.snapshot).toEqual(
       expect.objectContaining({
