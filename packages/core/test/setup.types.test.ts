@@ -1,3 +1,4 @@
+import z from 'zod';
 import {
   ActorRefFrom,
   and,
@@ -1234,7 +1235,7 @@ describe('setup()', () => {
   it(`should provide contextual parameters to input factory for an actor that doesn't specify any input`, () => {
     setup({
       types: {
-        context: {} as { count: number }
+        context: z.object({ count: z.number() })
       },
       actors: {
         child: fromPromise(() => Promise.resolve(1))
@@ -2054,8 +2055,12 @@ describe('setup()', () => {
 
   it('should accept a guarded transition that references a known guard', () => {
     setup({
-      types: {} as {
-        events: { type: 'NEXT' };
+      types: {
+        // events: {} as { type: 'NEXT' }
+        events: [
+          z.object({ type: z.literal('NEXT') }),
+          z.object({ type: z.literal('BACK') })
+        ]
       },
       guards: {
         checkStuff: () => true
@@ -2064,14 +2069,14 @@ describe('setup()', () => {
       initial: 'a',
       states: {
         a: {
+          entry: ({ event }) => {},
           on: {
             NEXT: {
               guard: 'checkStuff',
               target: 'b'
             }
           }
-        },
-        b: {}
+        }
       }
     });
   });

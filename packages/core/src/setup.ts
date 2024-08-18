@@ -203,26 +203,26 @@ export function setup<
   };
 }
 
-import { z, infer } from 'zod';
+// import { z, infer } from 'zod';
 
-const ctx = z.object({
-  count: z.number()
-});
+// const ctx = z.object({
+//   count: z.number()
+// });
 
-ctx;
+// ctx;
 
-type ZType<T> = { _output: T };
+// type ZType<T> = { _output: T };
 
-function setup2<T>(x: {
-  types: {
-    context: ZType<T>;
-  };
-}): T {}
+// function setup2<T>(x: {
+//   types: {
+//     context: ZType<T>;
+//   };
+// }): T {}
 
-const res = setup2({
-  types: {
-    context: z.object({
-      count: z.number()
-    })
-  }
-});
+// const res = setup2({
+//   types: {
+//     context: z.object({
+//       count: z.number()
+//     })
+//   }
+// });

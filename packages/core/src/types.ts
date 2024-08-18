@@ -1377,6 +1377,12 @@ export interface ProvidedActor {
   id?: string;
 }
 
+type ZType<T> = { _output: T };
+
+type ZEventMap<T extends EventObject> = {
+  [K in T['type']]: T extends { type: K } ? ZType<T> : never;
+};
+
 export interface SetupTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1387,8 +1393,8 @@ export interface SetupTypes<
   TEmitted extends EventObject,
   TMeta extends MetaObject
 > {
-  context?: TContext;
-  events?: TEvent;
+  context?: ZType<TContext> | TContext;
+  events?: ZEventMap<TEvent>;
   children?: TChildrenMap;
   tags?: TTag;
   input?: TInput;
