@@ -261,6 +261,7 @@ export interface InspectedActorEvent extends BaseInspectionEventProperties {
 
 export type ActorRefLike = {
   sessionId: string;
+  // https://github.com/statelyai/xstate/pull/5037/files#r1717036732
   send: (...args: never) => void;
   getSnapshot: () => any;
 };
