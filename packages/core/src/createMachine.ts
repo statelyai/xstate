@@ -163,22 +163,24 @@ export function createMachine<
       TEmitted
     >
   >
-): (input: NonNullable<TInput>) => StateMachine<
-  TContext,
-  TEvent,
-  Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
-  TActor,
-  TAction,
-  TGuard,
-  TDelay,
-  StateValue,
-  TTag & string,
-  NonNullable<TInput>,
-  TOutput,
-  TEmitted,
-  TMeta, // TMeta
-  TODO // TStateSchema
->;
+): {
+  withInput: (input: TInput) => StateMachine<
+    TContext,
+    TEvent,
+    Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    StateValue,
+    TTag & string,
+    TInput,
+    TOutput,
+    TEmitted,
+    TMeta, // TMeta
+    TODO // TStateSchema
+  >;
+};
 export function createMachine<
   TContext extends MachineContext,
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
@@ -187,7 +189,7 @@ export function createMachine<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TTag extends string,
-  TInput extends never,
+  TInput,
   TOutput extends NonReducibleUnknown,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
@@ -326,40 +328,44 @@ export function createMachine<
       TMeta, // TMeta
       TODO // TStateSchema
     >
-  | ((input: NonNullable<TInput>) => StateMachine<
-      TContext,
-      TEvent,
-      Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      StateValue,
-      TTag & string,
-      NonNullable<TInput>,
-      TOutput,
-      TEmitted,
-      TMeta, // TMeta
-      TODO // TStateSchema
-    >) {
+  | {
+      withInput: (input: TInput) => StateMachine<
+        TContext,
+        TEvent,
+        Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
+        TActor,
+        TAction,
+        TGuard,
+        TDelay,
+        StateValue,
+        TTag & string,
+        TInput,
+        TOutput,
+        TEmitted,
+        TMeta, // TMeta
+        TODO // TStateSchema
+      >;
+    } {
   if (config.types?.input !== undefined) {
-    return (input: TInput) =>
-      new StateMachine<
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any, // TEmitted
-        any, // TMeta
-        any // TStateSchema
-      >(config, implementations as any, input);
+    return {
+      withInput: (input: TInput) =>
+        new StateMachine<
+          any,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any, // TEmitted
+          any, // TMeta
+          any // TStateSchema
+        >(config, implementations as any, input)
+    };
   }
   return new StateMachine<
     any,
