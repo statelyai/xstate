@@ -12,7 +12,7 @@ import {
 } from './types.ts';
 import { toObserver } from './utils.ts';
 
-export interface ScheduledEvent {
+interface ScheduledEvent {
   id: string;
   event: EventObject;
   startedAt: number; // timestamp
@@ -26,7 +26,7 @@ export interface Clock {
   clearTimeout(id: any): void;
 }
 
-export interface Scheduler {
+interface Scheduler {
   schedule(
     source: AnyActorRef,
     target: AnyActorRef,
@@ -48,21 +48,13 @@ function createScheduledEventId(
 }
 
 export interface ActorSystem<T extends ActorSystemInfo> {
-  /**
-   * @internal
-   */
+  /** @internal */
   _bookId: () => string;
-  /**
-   * @internal
-   */
+  /** @internal */
   _register: (sessionId: string, actorRef: AnyActorRef) => string;
-  /**
-   * @internal
-   */
+  /** @internal */
   _unregister: (actorRef: AnyActorRef) => void;
-  /**
-   * @internal
-   */
+  /** @internal */
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
 
@@ -71,15 +63,11 @@ export interface ActorSystem<T extends ActorSystemInfo> {
       | Observer<InspectionEvent>
       | ((inspectionEvent: InspectionEvent) => void)
   ) => Subscription;
-  /**
-   * @internal
-   */
+  /** @internal */
   _sendInspectionEvent: (
     event: HomomorphicOmit<InspectionEvent, 'rootId'>
   ) => void;
-  /**
-   * @internal
-   */
+  /** @internal */
   _relay: (
     source: AnyActorRef | undefined,
     target: AnyActorRef,
@@ -89,9 +77,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   getSnapshot: () => {
     _scheduledEvents: Record<string, ScheduledEvent>;
   };
-  /**
-   * @internal
-   */
+  /** @internal */
   _snapshot: {
     _scheduledEvents: Record<ScheduledEventId, ScheduledEvent>;
   };
@@ -153,7 +139,9 @@ export function createSystem<T extends ActorSystemInfo>(
       delete timerMap[scheduledEventId];
       delete system._snapshot._scheduledEvents[scheduledEventId];
 
-      clock.clearTimeout(timeout);
+      if (timeout !== undefined) {
+        clock.clearTimeout(timeout);
+      }
     },
     cancelAll: (actorRef) => {
       for (const scheduledEventId in system._snapshot._scheduledEvents) {

@@ -26,7 +26,7 @@ import {
   stringify
 } from './utils.ts';
 
-export const serviceMap = new Map<string, AnyActor>();
+const serviceMap = new Map<string, AnyActor>();
 
 export function createDevTools(): XStateDevInterface {
   const services = new Set<AnyActor>();

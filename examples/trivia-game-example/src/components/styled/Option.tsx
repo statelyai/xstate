@@ -1,4 +1,4 @@
-import styled, { css } from "styled-components";
+import styled, { css } from 'styled-components';
 
 export const Option = styled.button<{ variant: string | undefined }>`
   background: transparent;
@@ -12,7 +12,7 @@ export const Option = styled.button<{ variant: string | undefined }>`
     width: 90%;
   }
   ${(props) =>
-    props.variant === "success" &&
+    props.variant === 'success' &&
     css`
       background-color: #c3e6cb;
       color: white;
@@ -24,7 +24,7 @@ export const Option = styled.button<{ variant: string | undefined }>`
     `};
 
   ${(props) =>
-    props.variant === "danger" &&
+    props.variant === 'danger' &&
     css`
       background-color: #f5c6cb;
       color: white;

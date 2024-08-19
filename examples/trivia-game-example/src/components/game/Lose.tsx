@@ -1,11 +1,11 @@
-import { Col, Container, Row } from "react-bootstrap";
-import Image from "react-bootstrap/Image";
-import { Button } from "../styled/Button";
-import { TriviaMachineContext } from "../../context/AppContext";
+import { Col, Container, Row } from 'react-bootstrap';
+import Image from 'react-bootstrap/Image';
+import { Button } from '../styled/Button';
+import { TriviaMachineContext } from '../../context/AppContext';
 
 const Lose = () => {
-  const context = TriviaMachineContext.useSelector(state => state.context)
-  const triviaActorRef = TriviaMachineContext.useActorRef()
+  const context = TriviaMachineContext.useSelector((state) => state.context);
+  const triviaActorRef = TriviaMachineContext.useActorRef();
   return (
     <Container>
       <Row>
@@ -17,7 +17,10 @@ const Lose = () => {
           />
           <h2 className="trivia">YOU LOST!</h2>
           {context.hasLoaded && (
-            <Button onClick={() => triviaActorRef.send({type: "user.playAgain"})} primary>
+            <Button
+              onClick={() => triviaActorRef.send({ type: 'user.playAgain' })}
+              primary
+            >
               PLAY AGAIN
             </Button>
           )}

@@ -2,13 +2,15 @@ import isDevelopment from '#is-development';
 import { executingCustomAction } from '../stateUtils.ts';
 import {
   ActionArgs,
+  ActionFunction,
   AnyActorScope,
+  AnyEventObject,
   AnyMachineSnapshot,
+  DoNotInfer,
   EventObject,
   MachineContext,
-  SendExpr,
   ParameterizedObject,
-  ActionFunction
+  SendExpr
 } from '../types.ts';
 
 function resolveEmit(
@@ -65,52 +67,58 @@ export interface EmitAction<
 }
 
 /**
- * Emits an event to event handlers registered on the actor via `actor.on(event, handler)`.
+ * Emits an event to event handlers registered on the actor via `actor.on(event,
+ * handler)`.
  *
  * @example
-  ```ts
-  import { emit } from 'xstate';
-
-  const machine = createMachine({
-    // ...
-    on: {
-      something: {
-        actions: emit({
-          type: 'emitted',
-          some: 'data'
-        })
-      }
-    }
-    // ...
-  });
-
-  const actor = createActor(machine).start();
-
-  actor.on('emitted', (event) => {
-    console.log(event);
-  });
-
-  actor.send({ type: 'something' });
-  // logs:
-  // {
-  //   type: 'emitted',
-  //   some: 'data'
-  // }
-  ```
+ *
+ * ```ts
+ * import { emit } from 'xstate';
+ *
+ * const machine = createMachine({
+ *   // ...
+ *   on: {
+ *     something: {
+ *       actions: emit({
+ *         type: 'emitted',
+ *         some: 'data'
+ *       })
+ *     }
+ *   }
+ *   // ...
+ * });
+ *
+ * const actor = createActor(machine).start();
+ *
+ * actor.on('emitted', (event) => {
+ *   console.log(event);
+ * });
+ *
+ * actor.send({ type: 'something' });
+ * // logs:
+ * // {
+ * //   type: 'emitted',
+ * //   some: 'data'
+ * // }
+ * ```
  */
 export function emit<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
-  TEmitted extends EventObject
+  TEmitted extends AnyEventObject
 >(
-  /**
-   * The event to emit, or an expression that returns an event to emit.
-   */
+  /** The event to emit, or an expression that returns an event to emit. */
   eventOrExpr:
-    | TEmitted
-    | SendExpr<TContext, TExpressionEvent, TParams, TEmitted, TEvent>
+    | DoNotInfer<TEmitted>
+    | SendExpr<
+        TContext,
+        TExpressionEvent,
+        TParams,
+        DoNotInfer<TEmitted>,
+        TEvent
+      >
 ): ActionFunction<
   TContext,
   TExpressionEvent,

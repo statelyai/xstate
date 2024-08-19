@@ -1,5 +1,235 @@
 # xstate
 
+## 5.17.4
+
+### Patch Changes
+
+- [#5039](https://github.com/statelyai/xstate/pull/5039) [`d6df8fb470`](https://github.com/statelyai/xstate/commit/d6df8fb470020a5798f27ed667432535a509712f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an inference issue that prevented `emit` used directly in `setup` (or bare `createMachine`) to benefit from `types.emitted` types.
+
+## 5.17.3
+
+### Patch Changes
+
+- [#5034](https://github.com/statelyai/xstate/pull/5034) [`7bed484c38`](https://github.com/statelyai/xstate/commit/7bed484c38f8028416c93656372f1463c47fdd58) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `EventFrom` and `ContextFrom` types
+
+## 5.17.2
+
+### Patch Changes
+
+- [#5029](https://github.com/statelyai/xstate/pull/5029) [`88bd87ab41`](https://github.com/statelyai/xstate/commit/88bd87ab412f22fb251a6060f45ba3b6f39ac208) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Revert `ActorRefFrom` change
+
+- [#5011](https://github.com/statelyai/xstate/pull/5011) [`a275d274de`](https://github.com/statelyai/xstate/commit/a275d274deb07ed17bb582e63d9428c5616067db) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is a new type helper: `ActorRefFromLogic<TLogic>`. This type is a stricter form of `ActorRefFrom<TLogic>` that only accepts actor logic types. See https://github.com/statelyai/xstate/issues/4997 for more details.
+
+## 5.17.1
+
+### Patch Changes
+
+- [#5009](https://github.com/statelyai/xstate/pull/5009) [`51d4c4fc5`](https://github.com/statelyai/xstate/commit/51d4c4fc5bd303a00a554534956d8b994ea82e99) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The internal types for `StateMachine<...>` have been improved so that all type params are required, to prevent errors when using the types. This fixes weird issues like #5008.
+
+## 5.17.0
+
+### Minor Changes
+
+- [#4979](https://github.com/statelyai/xstate/pull/4979) [`a0e9ebcef`](https://github.com/statelyai/xstate/commit/a0e9ebcef26552659ac6c2c785c138387eafc766) Thanks [@davidkpiano](https://github.com/davidkpiano)! - State IDs are now strongly typed as keys of `snapshot.getMeta()` for state machine actor snapshots.
+
+  ```ts
+  const machine = setup({
+    // ...
+  }).createMachine({
+    id: 'root',
+    initial: 'parentState',
+    states: {
+      parentState: {
+        meta: {},
+        initial: 'childState',
+        states: {
+          childState: {
+            meta: {}
+          },
+          stateWithId: {
+            id: 'state with id',
+            meta: {}
+          }
+        }
+      }
+    }
+  });
+
+  const actor = createActor(machine);
+
+  const metaValues = actor.getSnapshot().getMeta();
+
+  // Auto-completed keys:
+  metaValues.root;
+  metaValues['root.parentState'];
+  metaValues['root.parentState.childState'];
+  metaValues['state with id'];
+
+  // @ts-expect-error
+  metaValues['root.parentState.stateWithId'];
+
+  // @ts-expect-error
+  metaValues['unknown state'];
+  ```
+
+### Patch Changes
+
+- [#5002](https://github.com/statelyai/xstate/pull/5002) [`9877d548b`](https://github.com/statelyai/xstate/commit/9877d548b3cab1bbc5db4e3a51bbcf223868bd46) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix an issue where `clearTimeout(undefined)` was sometimes being called, which can cause errors for some clock implementations. See https://github.com/statelyai/xstate/issues/5001 for details.
+
+## 5.16.0
+
+### Minor Changes
+
+- [#4996](https://github.com/statelyai/xstate/pull/4996) [`5be796cd2`](https://github.com/statelyai/xstate/commit/5be796cd252f024ed29a589d1f2d6c8e626167db) Thanks [@ronvoluted](https://github.com/ronvoluted)! - The actor snapshot `status` type (`'active' | 'done' | 'error' | 'stopped'`) is now exposed as `SnapshotStatus`
+
+- [#4981](https://github.com/statelyai/xstate/pull/4981) [`c4ae156b2`](https://github.com/statelyai/xstate/commit/c4ae156b278779e898aeb8d86b089de2cf959683) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `sendParent` to the `enqueueActions` feature. This allows users to enqueue actions that send events to the parent actor within the `enqueueActions` block.
+
+  ```js
+  import { createMachine, enqueueActions } from 'xstate';
+
+  const childMachine = createMachine({
+    entry: enqueueActions(({ enqueue }) => {
+      enqueue.sendParent({ type: 'CHILD_READY' });
+    })
+  });
+  ```
+
+## 5.15.0
+
+### Minor Changes
+
+- [#4976](https://github.com/statelyai/xstate/pull/4976) [`452bce71e`](https://github.com/statelyai/xstate/commit/452bce71e56fb28bfd85294b44138cf1bd5a9608) Thanks [@with-heart](https://github.com/with-heart)! - Added exports for actor logic-specific `ActorRef` types: `CallbackActorRef`, `ObservableActorRef`, `PromiseActorRef`, and `TransitionActorRef`.
+
+  Each type represents `ActorRef` narrowed to the corresponding type of logic (the type of `self` within the actor's logic):
+
+  - `CallbackActorRef`: actor created by [`fromCallback`](https://stately.ai/docs/actors#fromcallback)
+
+    ```ts
+    import { fromCallback, createActor } from 'xstate';
+
+    /** The events the actor receives. */
+    type Event = { type: 'someEvent' };
+    /** The actor's input. */
+    type Input = { name: string };
+
+    /** Actor logic that logs whenever it receives an event of type `someEvent`. */
+    const logic = fromCallback<Event, Input>(({ self, input, receive }) => {
+      self;
+      // ^? CallbackActorRef<Event, Input>
+
+      receive((event) => {
+        if (event.type === 'someEvent') {
+          console.log(`${input.name}: received "someEvent" event`);
+          // logs 'myActor: received "someEvent" event'
+        }
+      });
+    });
+
+    const actor = createActor(logic, { input: { name: 'myActor' } });
+    //    ^? CallbackActorRef<Event, Input>
+    ```
+
+  - `ObservableActorRef`: actor created by [`fromObservable`](https://stately.ai/docs/actors#fromobservable) and [`fromEventObservable`](https://stately.ai/docs/actors#fromeventobservable)
+
+    ```ts
+    import { fromObservable, createActor } from 'xstate';
+    import { interval } from 'rxjs';
+
+    /** The type of the value observed by the actor's logic. */
+    type Context = number;
+    /** The actor's input. */
+    type Input = { period?: number };
+
+    /**
+     * Actor logic that observes a number incremented every `input.period`
+     * milliseconds (default: 1_000).
+     */
+    const logic = fromObservable<Context, Input>(({ input, self }) => {
+      self;
+      // ^? ObservableActorRef<Event, Input>
+
+      return interval(input.period ?? 1_000);
+    });
+
+    const actor = createActor(logic, { input: { period: 2_000 } });
+    //    ^? ObservableActorRef<Event, Input>
+    ```
+
+  - `PromiseActorRef`: actor created by [`fromPromise`](https://stately.ai/docs/actors#actors-as-promises)
+
+    ```ts
+    import { fromPromise, createActor } from 'xstate';
+
+    /** The actor's resolved output. */
+    type Output = string;
+    /** The actor's input. */
+    type Input = { message: string };
+
+    /** Actor logic that fetches the url of an image of a cat saying `input.message`. */
+    const logic = fromPromise<Output, Input>(async ({ input, self }) => {
+      self;
+      // ^? PromiseActorRef<Output, Input>
+
+      const data = await fetch(`https://cataas.com/cat/says/${input.message}`);
+      const url = await data.json();
+      return url;
+    });
+
+    const actor = createActor(logic, { input: { message: 'hello world' } });
+    //    ^? PromiseActorRef<Output, Input>
+    ```
+
+  - `TransitionActorRef`: actor created by [`fromTransition`](https://stately.ai/docs/actors#fromtransition)
+
+    ```ts
+    import { fromTransition, createActor, type AnyActorSystem } from 'xstate';
+
+    /** The actor's stored context. */
+    type Context = {
+      /** The current count. */
+      count: number;
+      /** The amount to increase `count` by. */
+      step: number;
+    };
+    /** The events the actor receives. */
+    type Event = { type: 'increment' };
+    /** The actor's input. */
+    type Input = { step?: number };
+
+    /**
+     * Actor logic that increments `count` by `step` when it receives an event of
+     * type `increment`.
+     */
+    const logic = fromTransition<Context, Event, AnyActorSystem, Input>(
+      (state, event, actorScope) => {
+        actorScope.self;
+        //         ^? TransitionActorRef<Context, Event>
+
+        if (event.type === 'increment') {
+          return {
+            ...state,
+            count: state.count + state.step
+          };
+        }
+        return state;
+      },
+      ({ input, self }) => {
+        self;
+        // ^? TransitionActorRef<Context, Event>
+
+        return {
+          count: 0,
+          step: input.step ?? 1
+        };
+      }
+    );
+
+    const actor = createActor(logic, { input: { step: 10 } });
+    //    ^? TransitionActorRef<Context, Event>
+    ```
+
+- [#4949](https://github.com/statelyai/xstate/pull/4949) [`8aa4c2b90`](https://github.com/statelyai/xstate/commit/8aa4c2b90c6a07a4678202181420b5ddd33edacf) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The TypeGen-related types have been removed from XState, simplifying the internal types without affecting normal XState usage.
+
 ## 5.14.0
 
 ### Minor Changes

@@ -9,10 +9,10 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "typescript": "^5.4.5",
-    "vite": "^5.2.13"
+    "typescript": "^5.5.4",
+    "vite": "^5.3.5"
   },
   "dependencies": {
-    "xstate": "^5.13.1"
+    "xstate": "^5.17.1"
   }
 }

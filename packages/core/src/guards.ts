@@ -139,30 +139,33 @@ function checkNot(
 }
 
 /**
- * Higher-order guard that evaluates to `true` if the `guard` passed to it evaluates to `false`.
+ * Higher-order guard that evaluates to `true` if the `guard` passed to it
+ * evaluates to `false`.
  *
  * @category Guards
  * @example
-  ```ts
-  import { setup, not } from 'xstate';
-
-  const machine = setup({
-    guards: {
-      someNamedGuard: () => false
-    }
-  }).createMachine({
-    on: {
-      someEvent: {
-        guard: not('someNamedGuard'),
-        actions: () => {
-          // will be executed if guard in `not(...)`
-          // evaluates to `false`
-        }
-      }
-    }
-  });
-  ```
- * @returns A guard 
+ *
+ * ```ts
+ * import { setup, not } from 'xstate';
+ *
+ * const machine = setup({
+ *   guards: {
+ *     someNamedGuard: () => false
+ *   }
+ * }).createMachine({
+ *   on: {
+ *     someEvent: {
+ *       guard: not('someNamedGuard'),
+ *       actions: () => {
+ *         // will be executed if guard in `not(...)`
+ *         // evaluates to `false`
+ *       }
+ *     }
+ *   }
+ * });
+ * ```
+ *
+ * @returns A guard
  */
 export function not<
   TContext extends MachineContext,
@@ -205,28 +208,27 @@ function checkAnd(
  *
  * @category Guards
  * @example
-  ```ts
-  import { setup, and } from 'xstate';
-
-  const machine = setup({
-    guards: {
-      someNamedGuard: () => true
-    }
-  }).createMachine({
-    on: {
-      someEvent: {
-        guard: and([
-          ({ context }) => context.value > 0,
-          'someNamedGuard'
-        ]),
-        actions: () => {
-          // will be executed if all guards in `and(...)`
-          // evaluate to true
-        }
-      }
-    }
-  });
-  ```
+ *
+ * ```ts
+ * import { setup, and } from 'xstate';
+ *
+ * const machine = setup({
+ *   guards: {
+ *     someNamedGuard: () => true
+ *   }
+ * }).createMachine({
+ *   on: {
+ *     someEvent: {
+ *       guard: and([({ context }) => context.value > 0, 'someNamedGuard']),
+ *       actions: () => {
+ *         // will be executed if all guards in `and(...)`
+ *         // evaluate to true
+ *       }
+ *     }
+ *   }
+ * });
+ * ```
+ *
  * @returns A guard action object
  */
 export function and<
@@ -272,33 +274,32 @@ function checkOr(
 }
 
 /**
- * Higher-order guard that evaluates to `true` if any of the `guards` passed to it
- * evaluate to `true`.
+ * Higher-order guard that evaluates to `true` if any of the `guards` passed to
+ * it evaluate to `true`.
  *
  * @category Guards
  * @example
-  ```ts
-  import { setup, or } from 'xstate';
-
-  const machine = setup({
-    guards: {
-      someNamedGuard: () => true
-    }
-  }).createMachine({
-    on: {
-      someEvent: {
-        guard: or([
-          ({ context }) => context.value > 0,
-          'someNamedGuard'
-        ]),
-        actions: () => {
-          // will be executed if any of the guards in `or(...)`
-          // evaluate to true
-        }
-      }
-    }
-  });
-  ```
+ *
+ * ```ts
+ * import { setup, or } from 'xstate';
+ *
+ * const machine = setup({
+ *   guards: {
+ *     someNamedGuard: () => true
+ *   }
+ * }).createMachine({
+ *   on: {
+ *     someEvent: {
+ *       guard: or([({ context }) => context.value > 0, 'someNamedGuard']),
+ *       actions: () => {
+ *         // will be executed if any of the guards in `or(...)`
+ *         // evaluate to true
+ *       }
+ *     }
+ *   }
+ * });
+ * ```
+ *
  * @returns A guard action object
  */
 export function or<

@@ -57,7 +57,7 @@ type AnyStateNodeIterable = StateNodeIterable<any, any>;
 
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 
-export const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
+const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
   stateNode.type === 'atomic' || stateNode.type === 'final';
 
 function getChildren<TContext extends MachineContext, TE extends EventObject>(
@@ -157,10 +157,9 @@ function getValueFromAdj(baseNode: AnyStateNode, adjList: AdjList): StateValue {
   return stateValue;
 }
 
-export function getAdjList<
-  TContext extends MachineContext,
-  TE extends EventObject
->(stateNodes: StateNodeIterable<TContext, TE>): AdjList {
+function getAdjList<TContext extends MachineContext, TE extends EventObject>(
+  stateNodes: StateNodeIterable<TContext, TE>
+): AdjList {
   const adjList: AdjList = new Map();
 
   for (const s of stateNodes) {
@@ -268,9 +267,7 @@ export function getCandidates<TEvent extends EventObject>(
   return candidates;
 }
 
-/**
- * All delayed transitions from the config.
- */
+/** All delayed transitions from the config. */
 export function getDelayedTransitions(
   stateNode: AnyStateNode
 ): Array<DelayedTransitionDefinition<MachineContext, EventObject>> {
@@ -463,7 +460,7 @@ export function formatInitialTransition<
   return transition;
 }
 
-export function resolveTarget(
+function resolveTarget(
   stateNode: AnyStateNode,
   targets: ReadonlyArray<string | AnyStateNode> | undefined
 ): ReadonlyArray<AnyStateNode> | undefined {
@@ -529,9 +526,7 @@ function isHistoryNode(
   return stateNode.type === 'history';
 }
 
-export function getInitialStateNodesWithTheirAncestors(
-  stateNode: AnyStateNode
-) {
+function getInitialStateNodesWithTheirAncestors(stateNode: AnyStateNode) {
   const states = getInitialStateNodes(stateNode);
   for (const initialState of states) {
     for (const ancestor of getProperAncestors(initialState, stateNode)) {
@@ -562,13 +557,8 @@ export function getInitialStateNodes(stateNode: AnyStateNode) {
 
   return set;
 }
-/**
- * Returns the child state node from its relative `stateKey`, or throws.
- */
-export function getStateNode(
-  stateNode: AnyStateNode,
-  stateKey: string
-): AnyStateNode {
+/** Returns the child state node from its relative `stateKey`, or throws. */
+function getStateNode(stateNode: AnyStateNode, stateKey: string): AnyStateNode {
   if (isStateId(stateKey)) {
     return stateNode.machine.getStateNodeById(stateKey);
   }
@@ -656,7 +646,7 @@ export function getStateNodes<
   );
 }
 
-export function transitionAtomicNode<
+function transitionAtomicNode<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
@@ -669,7 +659,8 @@ export function transitionAtomicNode<
     any,
     any,
     any,
-    any // TMeta
+    any, // TMeta
+    any // TStateSchema
   >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
@@ -683,7 +674,7 @@ export function transitionAtomicNode<
   return next;
 }
 
-export function transitionCompoundNode<
+function transitionCompoundNode<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
@@ -696,7 +687,8 @@ export function transitionCompoundNode<
     any,
     any,
     any,
-    any // TMeta
+    any, // TMeta
+    any // TStateSchema
   >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
@@ -717,7 +709,7 @@ export function transitionCompoundNode<
   return next;
 }
 
-export function transitionParallelNode<
+function transitionParallelNode<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
@@ -730,7 +722,8 @@ export function transitionParallelNode<
     any,
     any,
     any,
-    any // TMeta
+    any, // TMeta
+    any // TStateSchema
   >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
@@ -767,7 +760,16 @@ export function transitionNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValue,
-  snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any, any>,
+  snapshot: MachineSnapshot<
+    TContext,
+    TEvent,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any // TStateSchema
+  >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
@@ -831,7 +833,7 @@ function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
   return false;
 }
 
-export function removeConflictingTransitions(
+function removeConflictingTransitions(
   enabledTransitions: Array<AnyTransitionDefinition>,
   stateNodeSet: Set<AnyStateNode>,
   historyValue: AnyHistoryValue
@@ -985,9 +987,7 @@ function areStateNodeCollectionsEqual(
   return true;
 }
 
-/**
- * https://www.w3.org/TR/scxml/#microstepProcedure
- */
+/** https://www.w3.org/TR/scxml/#microstepProcedure */
 export function microstep<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -1836,7 +1836,8 @@ function selectEventlessTransitions(
 }
 
 /**
- * Resolves a partial state value with its full representation in the state node's machine.
+ * Resolves a partial state value with its full representation in the state
+ * node's machine.
  *
  * @param stateValue The partial state value to resolve.
  */
@@ -1848,7 +1849,7 @@ export function resolveStateValue(
   return getStateValue(rootNode, [...allStateNodes]);
 }
 
-export function stateValuesEqual(
+function stateValuesEqual(
   a: StateValue | undefined,
   b: StateValue | undefined
 ): boolean {

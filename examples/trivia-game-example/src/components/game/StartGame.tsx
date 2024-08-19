@@ -1,13 +1,12 @@
-import { Button } from "../styled/Button";
-import { TriviaMachineContext } from "../../context/AppContext";
-import ImgsBack from "../layout/ImgsBack";
-import LoadingOverlay from "react-loading-overlay-ts";
-import { Link } from "react-router-dom";
+import { Button } from '../styled/Button';
+import { TriviaMachineContext } from '../../context/AppContext';
+import ImgsBack from '../layout/ImgsBack';
+import LoadingOverlay from 'react-loading-overlay-ts';
 
 const StartGame = () => {
-  const triviaActorRef = TriviaMachineContext.useActorRef()
-  const state = TriviaMachineContext.useSelector((state) => state)
-  const { homePageCharacters, hasLoaded } = state.context
+  const triviaActorRef = TriviaMachineContext.useActorRef();
+  const state = TriviaMachineContext.useSelector((state) => state);
+  const { homePageCharacters, hasLoaded } = state.context;
 
   return (
     <div className="container">
@@ -21,12 +20,15 @@ const StartGame = () => {
           >
             {hasLoaded && (
               <>
-                <Button onClick={() => 
-                  triviaActorRef.send({type: "user.play"})
-                  } primary>
+                <Button
+                  onClick={() => triviaActorRef.send({ type: 'user.play' })}
+                  primary
+                >
                   PLAY
                 </Button>
-                {homePageCharacters.length > 0 && <ImgsBack characters={homePageCharacters} />}
+                {homePageCharacters.length > 0 && (
+                  <ImgsBack characters={homePageCharacters} />
+                )}
               </>
             )}
           </LoadingOverlay>

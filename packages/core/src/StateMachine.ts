@@ -22,7 +22,6 @@ import {
   transitionNode
 } from './stateUtils.ts';
 import { AnyActorSystem } from './system.ts';
-import { ResolveTypegenMeta, TypegenDisabled } from './typegenTypes.ts';
 import type {
   ActorLogic,
   ActorScope,
@@ -46,12 +45,14 @@ import type {
   SnapshotFrom,
   StateMachineDefinition,
   StateValue,
-  TransitionDefinition
+  TransitionDefinition,
+  ResolvedStateMachineTypes,
+  StateSchema,
+  SnapshotStatus
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
 
-export const STATE_IDENTIFIER = '#';
-export const WILDCARD = '*';
+const STATE_IDENTIFIER = '#';
 
 export class StateMachine<
   TContext extends MachineContext,
@@ -65,18 +66,9 @@ export class StateMachine<
   TTag extends string,
   TInput,
   TOutput,
-  TEmitted extends EventObject = EventObject, // TODO: remove default
-  TMeta extends MetaObject = MetaObject,
-  TResolvedTypesMeta = ResolveTypegenMeta<
-    TypegenDisabled,
-    DoNotInfer<TEvent>,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TEmitted
-  >
+  TEmitted extends EventObject,
+  TMeta extends MetaObject,
+  TConfig extends StateSchema
 > implements
     ActorLogic<
       MachineSnapshot<
@@ -86,7 +78,8 @@ export class StateMachine<
         TStateValue,
         TTag,
         TOutput,
-        TMeta
+        TMeta,
+        TConfig
       >,
       TEvent,
       TInput,
@@ -94,9 +87,7 @@ export class StateMachine<
       TEmitted
     >
 {
-  /**
-   * The machine's own version.
-   */
+  /** The machine's own version. */
   public version?: string;
 
   public schemas: unknown;
@@ -117,9 +108,7 @@ export class StateMachine<
   public events: Array<EventDescriptor<TEvent>>;
 
   constructor(
-    /**
-     * The raw config used to create the machine.
-     */
+    /** The raw config used to create the machine. */
     public config: MachineConfig<
       TContext,
       TEvent,
@@ -177,19 +166,25 @@ export class StateMachine<
   }
 
   /**
-   * Clones this state machine with the provided implementations
-   * and merges the `context` (if provided).
+   * Clones this state machine with the provided implementations and merges the
+   * `context` (if provided).
    *
-   * @param implementations Options (`actions`, `guards`, `actors`, `delays`, `context`)
-   *  to recursively merge with the existing options.
-   *
+   * @param implementations Options (`actions`, `guards`, `actors`, `delays`,
+   *   `context`) to recursively merge with the existing options.
    * @returns A new `StateMachine` instance with the provided implementations.
    */
   public provide(
     implementations: InternalMachineImplementations<
-      TContext,
-      TResolvedTypesMeta,
-      true
+      ResolvedStateMachineTypes<
+        TContext,
+        DoNotInfer<TEvent>,
+        TActor,
+        TAction,
+        TGuard,
+        TDelay,
+        TTag,
+        TEmitted
+      >
     >
   ): StateMachine<
     TContext,
@@ -204,8 +199,8 @@ export class StateMachine<
     TInput,
     TOutput,
     TEmitted,
-    TMeta, // TMeta
-    TResolvedTypesMeta
+    TMeta,
+    TConfig
   > {
     const { actions, guards, actors, delays } = this.implementations;
 
@@ -222,7 +217,7 @@ export class StateMachine<
       value: StateValue;
       context?: TContext;
       historyValue?: HistoryValue<TContext, TEvent>;
-      status?: 'active' | 'done' | 'error' | 'stopped';
+      status?: SnapshotStatus;
       output?: TOutput;
       error?: unknown;
     } & (Equals<TContext, MachineContext> extends false
@@ -235,7 +230,8 @@ export class StateMachine<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    TConfig
   > {
     const resolvedStateValue = resolveStateValue(this.root, config.value);
     const nodeSet = getAllStateNodes(
@@ -262,13 +258,14 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      TConfig
     >;
   }
 
   /**
-   * Determines the next snapshot given the current `snapshot` and received `event`.
-   * Calculates a full macrostep from all microsteps.
+   * Determines the next snapshot given the current `snapshot` and received
+   * `event`. Calculates a full macrostep from all microsteps.
    *
    * @param snapshot The current snapshot
    * @param event The received event
@@ -281,7 +278,8 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      TConfig
     >,
     event: TEvent,
     actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
@@ -292,14 +290,15 @@ export class StateMachine<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    TConfig
   > {
     return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
   }
 
   /**
-   * Determines the next state given the current `state` and `event`.
-   * Calculates a microstep.
+   * Determines the next state given the current `state` and `event`. Calculates
+   * a microstep.
    *
    * @param state The current state
    * @param event The received event
@@ -312,7 +311,8 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      TConfig
     >,
     event: TEvent,
     actorScope: AnyActorScope
@@ -324,7 +324,8 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      TConfig
     >
   > {
     return macrostep(snapshot, event, actorScope).microstates;
@@ -338,7 +339,8 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      TConfig
     >,
     event: TEvent
   ): Array<TransitionDefinition<TContext, TEvent>> {
@@ -346,8 +348,8 @@ export class StateMachine<
   }
 
   /**
-   * The initial state _before_ evaluating any microsteps.
-   * This "pre-initial" state is provided to initial actions executed in the initial state.
+   * The initial state _before_ evaluating any microsteps. This "pre-initial"
+   * state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
     actorScope: AnyActorScope,
@@ -360,7 +362,8 @@ export class StateMachine<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    TConfig
   > {
     const { context } = this.config;
 
@@ -391,7 +394,8 @@ export class StateMachine<
   }
 
   /**
-   * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
+   * Returns the initial `State` instance, with reference to `self` as an
+   * `ActorRef`.
    */
   public getInitialSnapshot(
     actorScope: ActorScope<
@@ -402,7 +406,8 @@ export class StateMachine<
         TStateValue,
         TTag,
         TOutput,
-        TMeta
+        TMeta,
+        TConfig
       >,
       TEvent,
       AnyActorSystem,
@@ -416,7 +421,8 @@ export class StateMachine<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    TConfig
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
@@ -461,7 +467,8 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      TConfig
     >
   ): void {
     Object.values(snapshot.children as Record<string, AnyActorRef>).forEach(
@@ -505,7 +512,8 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      TConfig
     >,
     options?: unknown
   ) {
@@ -522,7 +530,8 @@ export class StateMachine<
         TStateValue,
         TTag,
         TOutput,
-        TMeta
+        TMeta,
+        TConfig
       >,
       TEvent,
       AnyActorSystem,
@@ -535,7 +544,8 @@ export class StateMachine<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    TConfig
   > {
     const children: Record<string, AnyActorRef> = {};
     const snapshotChildren: Record<
@@ -589,7 +599,8 @@ export class StateMachine<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      TConfig
     >;
 
     let seen = new Set();
@@ -619,9 +630,4 @@ export class StateMachine<
 
     return restoredSnapshot;
   }
-
-  /**
-   * @deprecated an internal property that was acting as a "phantom" type, it's not used by anything right now but it's kept around for compatibility reasons
-   **/
-  __TResolvedTypesMeta!: TResolvedTypesMeta;
 }
