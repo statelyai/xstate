@@ -10,7 +10,8 @@ import {
   StorePropertyAssigner,
   Observer,
   StoreContext,
-  InteropSubscribable
+  InteropSubscribable,
+  InspectionEvent
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -40,6 +41,11 @@ function setter<TContext extends StoreContext>(
 ): TContext {
   return recipe(context);
 }
+
+const inspectionObservers = new WeakMap<
+  Store<any, any>,
+  Set<Observer<InspectionEvent>>
+>();
 
 function createStoreCore<
   TContext extends StoreContext,
@@ -76,11 +82,31 @@ function createStoreCore<
   function receive(event: StoreEvent) {
     currentSnapshot = transition(currentSnapshot, event);
 
+    inspectionObservers.get(store)?.forEach((observer) => {
+      observer.next?.({
+        type: '@xstate.snapshot',
+        event,
+        snapshot: currentSnapshot,
+        actorRef: store,
+        rootId: store.sessionId
+      });
+    });
+
     observers?.forEach((o) => o.next?.(currentSnapshot));
   }
 
   const store: Store<TContext, StoreEvent> = {
+    sessionId: uniqueId(),
     send(event) {
+      inspectionObservers.get(store)?.forEach((observer) => {
+        observer.next?.({
+          type: '@xstate.event',
+          event,
+          sourceRef: undefined,
+          actorRef: store,
+          rootId: store.sessionId
+        });
+      });
       receive(event as unknown as StoreEvent);
     },
     getSnapshot() {
@@ -102,6 +128,34 @@ function createStoreCore<
     },
     [symbolObservable](): InteropSubscribable<StoreSnapshot<TContext>> {
       return this;
+    },
+    inspect: (observerOrFn) => {
+      const observer = toObserver(observerOrFn);
+      inspectionObservers.set(
+        store,
+        inspectionObservers.get(store) ?? new Set()
+      );
+      inspectionObservers.get(store)!.add(observer);
+
+      observer.next?.({
+        type: '@xstate.actor',
+        actorRef: store,
+        rootId: store.sessionId
+      });
+
+      observer.next?.({
+        type: '@xstate.snapshot',
+        snapshot: initialSnapshot,
+        event: { type: '@xstate.init' },
+        actorRef: store,
+        rootId: store.sessionId
+      });
+
+      return {
+        unsubscribe() {
+          return inspectionObservers.get(store)?.delete(observer);
+        }
+      };
     }
   };
 
@@ -286,4 +340,9 @@ export function createStoreTransition<
 
     return { ...snapshot, context: currentContext };
   };
+}
+
+// create a unique 6-char id
+export function uniqueId() {
+  return Math.random().toString(36).slice(6);
 }

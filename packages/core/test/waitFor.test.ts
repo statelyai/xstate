@@ -196,4 +196,206 @@ describe('waitFor', () => {
       `[Error: Actor terminated without satisfying predicate]`
     );
   });
+
+  it('should not subscribe to the actor when it receives an aborted signal', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+    service.send({ type: 'NEXT' });
+
+    const controller = new AbortController();
+    const { signal } = controller;
+    controller.abort(new Error('Aborted!'));
+    const spy = jest.fn();
+    service.subscribe = spy;
+    try {
+      await waitFor(service, (state) => state.matches('b'), { signal });
+      fail('should have rejected');
+    } catch {
+      expect(spy).not.toHaveBeenCalled();
+    }
+  });
+
+  it('should not listen for the "abort" event when it receives an aborted signal', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+    service.send({ type: 'NEXT' });
+
+    const controller = new AbortController();
+    const { signal } = controller;
+    controller.abort(new Error('Aborted!'));
+
+    const spy = jest.fn();
+    signal.addEventListener = spy;
+
+    try {
+      await waitFor(service, (state) => state.matches('b'), { signal });
+      fail('should have rejected');
+    } catch {
+      expect(spy).not.toHaveBeenCalled();
+    }
+  });
+
+  it('should not listen for the "abort" event for actor in its final state that matches the predicate', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+    service.send({ type: 'NEXT' });
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    const spy = jest.fn();
+    signal.addEventListener = spy;
+
+    await waitFor(service, (state) => state.matches('b'), { signal });
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('should immediately reject when it receives an aborted signal', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+    service.send({ type: 'NEXT' });
+
+    const controller = new AbortController();
+    const { signal } = controller;
+    controller.abort(new Error('Aborted!'));
+
+    await expect(
+      waitFor(service, (state) => state.matches('b'), { signal })
+    ).rejects.toMatchInlineSnapshot(`[Error: Aborted!]`);
+  });
+
+  it('should reject when the signal is aborted while waiting', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {}
+      }
+    });
+
+    const service = createActor(machine).start();
+    const controller = new AbortController();
+    const { signal } = controller;
+    setTimeout(() => controller.abort(new Error('Aborted!')), 10);
+
+    await expect(
+      waitFor(service, (state) => state.matches('b'), { signal })
+    ).rejects.toMatchInlineSnapshot(`[Error: Aborted!]`);
+  });
+
+  it('should stop listening for the "abort" event upon successful completion', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+    setTimeout(() => {
+      service.send({ type: 'NEXT' });
+    }, 10);
+
+    const controller = new AbortController();
+    const { signal } = controller;
+    const spy = jest.fn();
+    signal.removeEventListener = spy;
+
+    await waitFor(service, (state) => state.matches('b'), { signal });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should stop listening for the "abort" event upon failure', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+
+    setTimeout(() => {
+      service.send({ type: 'NEXT' });
+    }, 10);
+
+    const controller = new AbortController();
+    const { signal } = controller;
+    const spy = jest.fn();
+    signal.removeEventListener = spy;
+
+    try {
+      await waitFor(service, (state) => state.matches('never'), { signal });
+      fail('should have rejected');
+    } catch {
+      expect(spy).toHaveBeenCalledTimes(1);
+    }
+  });
 });

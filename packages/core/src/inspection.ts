@@ -1,4 +1,5 @@
 import {
+  ActorRefLike,
   AnyActorRef,
   AnyEventObject,
   AnyTransitionDefinition,
@@ -21,7 +22,7 @@ interface BaseInspectionEventProperties {
    * - For event events, this is the target `actorRef` (recipient of event).
    * - For actor events, this is the `actorRef` of the registered actor.
    */
-  actorRef: AnyActorRef;
+  actorRef: ActorRefLike;
 }
 
 export interface InspectedSnapshotEvent extends BaseInspectionEventProperties {
