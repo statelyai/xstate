@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 2.2.1
+
+### Patch Changes
+
+- [`b740aafdb1`](https://github.com/statelyai/xstate/commit/b740aafdb12ed6577ba31d0e07653bf99ebaca76) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed some small issues from #5027 regarding XState types being imported
+
 ## 2.2.0
 
 ### Minor Changes
