@@ -91,6 +91,8 @@ export class StateMachine<
   public version?: string;
 
   public schemas: unknown;
+
+  /** @internal */
   public input?: TInput;
 
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
@@ -632,5 +634,26 @@ export class StateMachine<
     reviveContext(restoredSnapshot.context, children);
 
     return restoredSnapshot;
+  }
+
+  public withInput(
+    input: TInput
+  ): StateMachine<
+    TContext,
+    TEvent,
+    TChildren,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TStateValue,
+    TTag,
+    TInput,
+    TOutput,
+    TEmitted,
+    TMeta,
+    TConfig
+  > {
+    return new StateMachine(this.config, this.implementations, input);
   }
 }

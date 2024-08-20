@@ -1,5 +1,6 @@
 import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
+import { StateMachine } from './StateMachine.ts';
 import { XSTATE_STOP } from './constants.ts';
 import { devToolsAdapter } from './dev/index.ts';
 import {
@@ -798,7 +799,12 @@ export function createActor<TLogic extends AnyActorLogic>(
     IsNotNever<RequiredOptions<TLogic>>
   >
 ): Actor<TLogic> {
-  return new Actor(logic, { ...options, input: options?.input ?? logic.input });
+  return new Actor(
+    logic,
+    logic instanceof StateMachine
+      ? { ...options, input: options?.input ?? logic.input }
+      : options
+  );
 }
 
 /**

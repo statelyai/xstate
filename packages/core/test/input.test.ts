@@ -1,12 +1,12 @@
 import { of } from 'rxjs';
 import { assign, createActor, spawnChild } from '../src';
-import { createMachine } from '../src/createMachine';
 import {
   fromCallback,
   fromObservable,
   fromPromise,
   fromTransition
 } from '../src/actors';
+import { createMachine } from '../src/createMachine';
 
 describe('input', () => {
   it('should create a machine with input', () => {
@@ -26,6 +26,28 @@ describe('input', () => {
     });
 
     createActor(machine, { input: { startCount: 42 } }).start();
+
+    expect(spy).toHaveBeenCalledWith(42);
+  });
+
+  it('should provide input to the machine from withInput', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      types: {} as {
+        context: { count: number };
+        input: { startCount: number };
+      },
+      context: ({ input }) => ({
+        count: input.startCount
+      }),
+      entry: ({ context }) => {
+        spy(context.count);
+      }
+    });
+
+    const machineWithInput = machine.withInput({ startCount: 42 });
+    createActor(machineWithInput).start();
 
     expect(spy).toHaveBeenCalledWith(42);
   });

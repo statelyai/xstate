@@ -1377,26 +1377,6 @@ export interface ProvidedActor {
   id?: string;
 }
 
-export interface SetupTypesWithInput<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TChildrenMap extends Record<string, string>,
-  TTag extends string,
-  TInput,
-  TOutput,
-  TEmitted extends EventObject,
-  TMeta extends MetaObject
-> {
-  context?: TContext;
-  events?: TEvent;
-  children?: TChildrenMap;
-  tags?: TTag;
-  input: TInput;
-  output?: TOutput;
-  emitted?: TEmitted;
-  meta?: TMeta;
-}
-
 export interface SetupTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1430,37 +1410,6 @@ export interface MachineTypes<
   TEmitted extends EventObject,
   TMeta extends MetaObject
 > extends SetupTypes<
-    TContext,
-    TEvent,
-    // in machine types we currently don't support `TChildren`
-    // and IDs can still be configured through `TActor['id']`
-    never,
-    TTag,
-    TInput,
-    TOutput,
-    TEmitted,
-    TMeta
-  > {
-  actors?: TActor;
-  actions?: TAction;
-  guards?: TGuard;
-  delays?: TDelay;
-  meta?: TMeta;
-}
-
-export interface MachineTypesWithInput<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TTag extends string,
-  TInput,
-  TOutput,
-  TEmitted extends EventObject,
-  TMeta extends MetaObject
-> extends SetupTypesWithInput<
     TContext,
     TEvent,
     // in machine types we currently don't support `TChildren`
@@ -2244,15 +2193,12 @@ export type Snapshot<TOutput> =
 export interface ActorLogic<
   in out TSnapshot extends Snapshot<unknown>, // it's invariant because it's also part of `ActorScope["self"]["getSnapshot"]`
   in out TEvent extends EventObject, // it's invariant because it's also part of `ActorScope["self"]["send"]`
-  in out TInput = NonReducibleUnknown,
+  in TInput = NonReducibleUnknown,
   TSystem extends AnyActorSystem = AnyActorSystem,
   in out TEmitted extends EventObject = EventObject // it's invariant because it's also aprt of `ActorScope["self"]["on"]`
 > {
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
-
-  /** The input stored when creating an actor. */
-  input?: TInput;
 
   /**
    * Transition function that processes the current state and an incoming
