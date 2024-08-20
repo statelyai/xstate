@@ -92,9 +92,6 @@ export class StateMachine<
 
   public schemas: unknown;
 
-  /** @internal */
-  public input?: TInput;
-
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
   /** @internal */
@@ -127,8 +124,7 @@ export class StateMachine<
     > & {
       schemas?: unknown;
     },
-    implementations?: MachineImplementationsSimplified<TContext, TEvent>,
-    input?: TInput
+    implementations?: MachineImplementationsSimplified<TContext, TEvent>
   ) {
     this.id = config.id || '(machine)';
     this.implementations = {
@@ -155,7 +151,6 @@ export class StateMachine<
 
     this.states = this.root.states; // TODO: remove!
     this.events = this.root.events;
-    this.input = input;
 
     if (
       isDevelopment &&
@@ -638,7 +633,7 @@ export class StateMachine<
 
   public withInput(
     input: TInput
-  ): StateMachine<
+  ): StateMachineWithInput<
     TContext,
     TEvent,
     TChildren,
@@ -654,6 +649,65 @@ export class StateMachine<
     TMeta,
     TConfig
   > {
-    return new StateMachine(this.config, this.implementations, input);
+    return new StateMachineWithInput(input, this.config, this.implementations);
+  }
+}
+
+export class StateMachineWithInput<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TStateValue extends StateValue,
+  TTag extends string,
+  TInput,
+  TOutput,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject,
+  TConfig extends StateSchema
+> extends StateMachine<
+  TContext,
+  TEvent,
+  TChildren,
+  TActor,
+  TAction,
+  TGuard,
+  TDelay,
+  TStateValue,
+  TTag,
+  TInput,
+  TOutput,
+  TEmitted,
+  TMeta,
+  TConfig
+> {
+  /** @internal */
+  public input: TInput;
+
+  constructor(
+    input: TInput,
+    /** The raw config used to create the machine. */
+    public config: MachineConfig<
+      TContext,
+      TEvent,
+      any,
+      any,
+      any,
+      any,
+      any,
+      any,
+      TOutput,
+      any, // TEmitted
+      any // TMeta
+    > & {
+      schemas?: unknown;
+    },
+    implementations?: MachineImplementationsSimplified<TContext, TEvent>
+  ) {
+    super(config, implementations);
+    this.input = input;
   }
 }

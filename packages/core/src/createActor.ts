@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
-import { StateMachine } from './StateMachine.ts';
+import { StateMachineWithInput } from './StateMachine.ts';
 import { XSTATE_STOP } from './constants.ts';
 import { devToolsAdapter } from './dev/index.ts';
 import {
@@ -796,12 +796,31 @@ export function createActor<TLogic extends AnyActorLogic>(
         [K in RequiredOptions<TLogic>]: unknown;
       }
     ],
-    IsNotNever<RequiredOptions<TLogic>>
+    IsNotNever<
+      TLogic extends StateMachineWithInput<
+        infer _TContext,
+        infer _TEvent,
+        infer _TChildren,
+        infer _TActor,
+        infer _TAction,
+        infer _TGuard,
+        infer _TDelay,
+        infer _TStateValue,
+        infer _TTag,
+        infer _TInput,
+        infer _TOutput,
+        infer _TEmitted,
+        infer _TMeta,
+        infer _TStateSchema
+      >
+        ? never
+        : RequiredOptions<TLogic>
+    >
   >
 ): Actor<TLogic> {
   return new Actor(
     logic,
-    logic instanceof StateMachine
+    logic instanceof StateMachineWithInput
       ? { ...options, input: options?.input ?? logic.input }
       : options
   );
