@@ -1,5 +1,5 @@
 {
-  "name": "toggle",
+  "name": "@xstate/example-toggle",
   "private": true,
   "version": "0.0.0",
   "type": "module",

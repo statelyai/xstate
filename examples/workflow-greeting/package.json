@@ -1,5 +1,5 @@
 {
-  "name": "hello-workflow",
+  "name": "@xstate/example-workflow-greeting",
   "private": true,
   "version": "0.0.0",
   "type": "module",

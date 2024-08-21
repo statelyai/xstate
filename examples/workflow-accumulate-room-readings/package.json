@@ -1,5 +1,5 @@
 {
-  "name": "hello-workflow",
+  "name": "@xstate/example-workflow-accumulate-room-readings",
   "private": true,
   "version": "0.0.0",
   "type": "module",

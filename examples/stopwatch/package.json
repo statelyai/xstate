@@ -1,5 +1,5 @@
 {
-  "name": "counter",
+  "name": "@xstate/example-stopwatch",
   "private": true,
   "version": "0.0.0",
   "type": "module",

@@ -1,5 +1,5 @@
 {
-  "name": "tiles",
+  "name": "@xstate/example-tiles",
   "private": true,
   "version": "0.0.0",
   "type": "module",
