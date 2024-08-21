@@ -46,6 +46,9 @@ describe('input', () => {
       }
     });
 
+    // @ts-expect-error: Cannot create actor without input
+    createActor(machine);
+
     const machineWithInput = machine.withInput({ startCount: 42 });
     createActor(machineWithInput).start();
 
