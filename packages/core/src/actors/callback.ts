@@ -81,7 +81,7 @@ type Receiver<TEvent extends EventObject> = (
   }['bivarianceHack']
 ) => void;
 
-type InvokeCallback<
+export type CallbackLogicFunction<
   TEvent extends EventObject = AnyEventObject,
   TSentEvent extends EventObject = AnyEventObject,
   TInput = NonReducibleUnknown,
@@ -178,7 +178,7 @@ type InvokeCallback<
  *       when the actor is stopped.
  *
  * @returns Callback logic
- * @see {@link InvokeCallback} for more information about the callback function and its object argument
+ * @see {@link CallbackLogicFunction} for more information about the callback function and its object argument
  * @see {@link https://stately.ai/docs/input | Input docs} for more information about how input is passed
  */
 export function fromCallback<
@@ -186,7 +186,12 @@ export function fromCallback<
   TInput = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
 >(
-  invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput, TEmitted>
+  invokeCallback: CallbackLogicFunction<
+    TEvent,
+    AnyEventObject,
+    TInput,
+    TEmitted
+  >
 ): CallbackActorLogic<TEvent, TInput, TEmitted> {
   const logic: CallbackActorLogic<TEvent, TInput, TEmitted> = {
     config: invokeCallback,
