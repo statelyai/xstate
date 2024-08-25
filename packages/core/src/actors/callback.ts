@@ -163,9 +163,8 @@ export type CallbackLogicFunction<
  * });
  * ```
  *
- * @param invokeCallback - The callback function used to describe the callback
- *   logic The callback function is passed an object with the following
- *   properties:
+ * @param callback - The callback function used to describe the callback logic
+ *   The callback function is passed an object with the following properties:
  *
  *   - `receive` - A function that can send events back to the parent actor; the
  *       listener is then called whenever events are received by the callback
@@ -186,15 +185,10 @@ export function fromCallback<
   TInput = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
 >(
-  callback: CallbackLogicFunction<
-    TEvent,
-    AnyEventObject,
-    TInput,
-    TEmitted
-  >
+  callback: CallbackLogicFunction<TEvent, AnyEventObject, TInput, TEmitted>
 ): CallbackActorLogic<TEvent, TInput, TEmitted> {
   const logic: CallbackActorLogic<TEvent, TInput, TEmitted> = {
-    config: invokeCallback,
+    config: callback,
     start: (state, actorScope) => {
       const { self, system, emit } = actorScope;
 
@@ -205,7 +199,7 @@ export function fromCallback<
 
       instanceStates.set(self, callbackState);
 
-      callbackState.dispose = invokeCallback({
+      callbackState.dispose = callback({
         input: state.input,
         system,
         self,
