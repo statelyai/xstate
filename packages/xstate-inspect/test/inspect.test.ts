@@ -1,9 +1,6 @@
 import { assign, createMachine, createActor } from 'xstate';
 import { createDevTools, inspect } from '../src/index.ts';
 
-// mute the warning about this not being implemented by jsdom
-window.open = () => null;
-
 const windowListenersUsedArguments: Array<any> = [];
 const windowAddEventListener = window.addEventListener;
 window.addEventListener = function (...args: any) {
@@ -223,46 +220,48 @@ describe('@xstate/inspect', () => {
   });
 
   // TODO: the value is still available on `machine.definition.initial` and that is not handled by the serializer
-  it.skip('should not crash when registering machine with very deep context when serializer manages to replace it', (done) => {
-    type DeepObject = { nested?: DeepObject };
+  it.skip('should not crash when registering machine with very deep context when serializer manages to replace it', async () => {
+    await new Promise<void>((resolve) => {
+      type DeepObject = { nested?: DeepObject };
 
-    const deepObj: DeepObject = {};
+      const deepObj: DeepObject = {};
 
-    let current = deepObj;
-    for (let i = 0; i < 20_000; i += 1) {
-      current.nested = {};
-      current = current.nested;
-    }
-
-    const machine = createMachine({
-      initial: 'active',
-      context: deepObj,
-      states: {
-        active: {}
+      let current = deepObj;
+      for (let i = 0; i < 20_000; i += 1) {
+        current.nested = {};
+        current = current.nested;
       }
-    });
 
-    const devTools = createDevTools();
-
-    inspect({
-      iframe: false,
-      devTools,
-      serialize: (key, value) => {
-        if (key === 'nested') {
-          return '[very deep]';
+      const machine = createMachine({
+        initial: 'active',
+        context: deepObj,
+        states: {
+          active: {}
         }
+      });
 
-        return value;
-      }
+      const devTools = createDevTools();
+
+      inspect({
+        iframe: false,
+        devTools,
+        serialize: (key, value) => {
+          if (key === 'nested') {
+            return '[very deep]';
+          }
+
+          return value;
+        }
+      });
+
+      const service = createActor(machine).start();
+
+      devTools.onRegister(() => {
+        resolve();
+      });
+
+      expect(() => devTools.register(service)).not.toThrow();
     });
-
-    const service = createActor(machine).start();
-
-    devTools.onRegister(() => {
-      done();
-    });
-
-    expect(() => devTools.register(service)).not.toThrow();
   });
 
   it('should successfully serialize value with unsafe toJSON when serializer manages to replace it', () => {
@@ -385,11 +384,11 @@ describe('@xstate/inspect', () => {
   });
 
   it('browser inspector should use targetWindow if provided', () => {
-    const windowMock = jest.fn() as unknown as Window;
-    const windowSpy = jest.spyOn(window, 'open');
+    const windowMock = vi.fn() as unknown as Window;
+    const windowSpy = vi.spyOn(window, 'open');
     windowSpy.mockImplementation(() => windowMock);
 
-    const localWindowMock = jest.fn() as unknown as Window;
+    const localWindowMock = vi.fn() as unknown as Window;
     const devTools = createDevTools();
 
     inspect({

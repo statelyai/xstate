@@ -158,76 +158,78 @@ describe('@xstate/immer', () => {
     expect(actorRef.getSnapshot().context.foo.bar.baz).toEqual([1, 2, 3, 4]);
   });
 
-  it('should create updates (form example)', (done) => {
-    interface FormContext {
-      name: string;
-      age: number | undefined;
-    }
+  it('should create updates (form example)', () =>
+    new Promise<void>((resolve) => {
+      interface FormContext {
+        name: string;
+        age: number | undefined;
+      }
 
-    type NameUpdateEvent = ImmerUpdateEvent<'UPDATE_NAME', string>;
-    type AgeUpdateEvent = ImmerUpdateEvent<'UPDATE_AGE', number>;
+      type NameUpdateEvent = ImmerUpdateEvent<'UPDATE_NAME', string>;
+      type AgeUpdateEvent = ImmerUpdateEvent<'UPDATE_AGE', number>;
 
-    type FormEvent =
-      | NameUpdateEvent
-      | AgeUpdateEvent
-      | {
-          type: 'SUBMIT';
-        };
+      type FormEvent =
+        | NameUpdateEvent
+        | AgeUpdateEvent
+        | {
+            type: 'SUBMIT';
+          };
 
-    const nameUpdater = createUpdater<FormContext, NameUpdateEvent, FormEvent>(
-      'UPDATE_NAME',
-      ({ context, event }) => {
+      const nameUpdater = createUpdater<
+        FormContext,
+        NameUpdateEvent,
+        FormEvent
+      >('UPDATE_NAME', ({ context, event }) => {
         context.name = event.input;
-      }
-    );
+      });
 
-    const ageUpdater = createUpdater<FormContext, AgeUpdateEvent, FormEvent>(
-      'UPDATE_AGE',
-      ({ context, event }) => {
-        context.age = event.input;
-      }
-    );
-
-    const formMachine = createMachine({
-      types: {} as { context: FormContext; events: FormEvent },
-      initial: 'editing',
-      context: {
-        name: '',
-        age: undefined
-      },
-      states: {
-        editing: {
-          on: {
-            [nameUpdater.type]: { actions: nameUpdater.action },
-            [ageUpdater.type]: { actions: ageUpdater.action },
-            SUBMIT: 'submitting'
-          }
-        },
-        submitting: {
-          always: {
-            target: 'success',
-            guard: ({ context }) => {
-              return context.name === 'David' && context.age === 0;
-            }
-          }
-        },
-        success: {
-          type: 'final'
+      const ageUpdater = createUpdater<FormContext, AgeUpdateEvent, FormEvent>(
+        'UPDATE_AGE',
+        ({ context, event }) => {
+          context.age = event.input;
         }
-      }
-    });
+      );
 
-    const service = createActor(formMachine);
-    service.subscribe({
-      complete: () => {
-        done();
-      }
-    });
-    service.start();
+      const formMachine = createMachine({
+        types: {} as { context: FormContext; events: FormEvent },
+        initial: 'editing',
+        context: {
+          name: '',
+          age: undefined
+        },
+        states: {
+          editing: {
+            on: {
+              [nameUpdater.type]: { actions: nameUpdater.action },
+              [ageUpdater.type]: { actions: ageUpdater.action },
+              SUBMIT: 'submitting'
+            }
+          },
+          submitting: {
+            always: {
+              target: 'success',
+              guard: ({ context }) => {
+                return context.name === 'David' && context.age === 0;
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
 
-    service.send(nameUpdater.update('David'));
-    service.send(ageUpdater.update(0));
+      const service = createActor(formMachine);
+      service.subscribe({
+        complete: () => {
+          resolve();
+        }
+      });
+      service.start();
 
-    service.send({ type: 'SUBMIT' });
-  });
+      service.send(nameUpdater.update('David'));
+      service.send(ageUpdater.update(0));
+
+      service.send({ type: 'SUBMIT' });
+    }));
 });

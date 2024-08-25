@@ -8,25 +8,6 @@ import {
 import { fireEvent, screen, render, waitFor } from '@testing-library/react';
 import { useSelector, createActorContext, shallowEqual } from '../src';
 
-const originalConsoleError = console.error;
-
-afterEach(() => {
-  console.error = originalConsoleError;
-});
-
-function checkConsoleErrorOutputForMissingProvider() {
-  expect(console.error).toHaveBeenCalledTimes(3);
-  expect((console.error as any).mock.calls[0][0].message.split('\n')[0]).toBe(
-    `Uncaught [Error: You used a hook from \"ActorProvider\" but it's not inside a <ActorProvider> component.]`
-  );
-  expect((console.error as any).mock.calls[1][0].message.split('\n')[0]).toBe(
-    `Uncaught [Error: You used a hook from \"ActorProvider\" but it's not inside a <ActorProvider> component.]`
-  );
-  expect((console.error as any).mock.calls[2][0].split('\n')[0]).toBe(
-    `The above error occurred in the <App> component:`
-  );
-}
-
 describe('createActorContext', () => {
   it('should work with useSelector', () => {
     const someMachine = createMachine({
@@ -243,7 +224,8 @@ describe('createActorContext', () => {
   });
 
   it('useActorRef should throw when the actor was not provided', () => {
-    console.error = jest.fn();
+    const spy = vi.spyOn(console, 'error');
+
     const SomeContext = createActorContext(createMachine({}));
 
     const App = () => {
@@ -252,13 +234,18 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component."`
+      `[Error: You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component.]`
     );
-    checkConsoleErrorOutputForMissingProvider();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][0].split('\n')[0]).toMatchInlineSnapshot(
+      `"The above error occurred in the <App> component:"`
+    );
   });
 
   it('useSelector should throw when the actor was not provided', () => {
-    console.error = jest.fn();
+    const spy = vi.spyOn(console, 'error');
+
     const SomeContext = createActorContext(createMachine({}));
 
     const App = () => {
@@ -267,9 +254,13 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component."`
+      `[Error: You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component.]`
     );
-    checkConsoleErrorOutputForMissingProvider();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][0].split('\n')[0]).toMatchInlineSnapshot(
+      `"The above error occurred in the <App> component:"`
+    );
   });
 
   it('should be able to pass interpreter options to the provider', () => {
@@ -281,7 +272,7 @@ describe('createActorContext', () => {
         }
       }
     });
-    const stubFn = jest.fn();
+    const stubFn = vi.fn();
     const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
@@ -342,7 +333,7 @@ describe('createActorContext', () => {
         }
       }
     });
-    const stubFn = jest.fn();
+    const stubFn = vi.fn();
     const SomeContext = createActorContext(someMachine);
 
     const Component = () => {

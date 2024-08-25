@@ -1,4 +1,4 @@
-import { sleep } from '@xstate-repo/jest-utils';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { createMachine, createActor, cancel } from '../src/index.ts';
 
 const lightMachine = createMachine({
@@ -27,26 +27,26 @@ const lightMachine = createMachine({
 });
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 describe('delayed transitions', () => {
   it('should transition after delay', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
     const actorRef = createActor(lightMachine).start();
     expect(actorRef.getSnapshot().value).toBe('green');
 
-    jest.advanceTimersByTime(500);
+    vi.advanceTimersByTime(500);
     expect(actorRef.getSnapshot().value).toBe('green');
 
-    jest.advanceTimersByTime(510);
+    vi.advanceTimersByTime(510);
     expect(actorRef.getSnapshot().value).toBe('yellow');
   });
 
   it('should not try to clear an undefined timeout when exiting source state of a delayed transition', async () => {
     // https://github.com/statelyai/xstate/issues/5001
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'green',
@@ -85,77 +85,83 @@ describe('delayed transitions', () => {
     `);
   });
 
-  it('should be able to transition with delay from nested initial state', (done) => {
-    const machine = createMachine({
-      initial: 'nested',
-      states: {
-        nested: {
-          initial: 'wait',
-          states: {
-            wait: {
-              after: {
-                10: '#end'
+  it('should be able to transition with delay from nested initial state', () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        initial: 'nested',
+        states: {
+          nested: {
+            initial: 'wait',
+            states: {
+              wait: {
+                after: {
+                  10: '#end'
+                }
               }
             }
+          },
+          end: {
+            id: 'end',
+            type: 'final'
           }
-        },
-        end: {
-          id: 'end',
-          type: 'final'
         }
-      }
-    });
+      });
 
-    const actor = createActor(machine);
-    actor.subscribe({
-      complete: () => {
-        done();
-      }
-    });
-    actor.start();
-  });
+      const actor = createActor(machine);
+      actor.subscribe({
+        complete: () => {
+          resolve();
+        }
+      });
+      actor.start();
+    }));
 
-  it('parent state should enter child state without re-entering self (relative target)', (done) => {
-    const actual: string[] = [];
-    const machine = createMachine({
-      initial: 'one',
-      states: {
-        one: {
-          initial: 'two',
-          entry: () => actual.push('entered one'),
-          states: {
-            two: {
-              entry: () => actual.push('entered two')
+  it('parent state should enter child state without re-entering self (relative target)', () =>
+    new Promise<void>((resolve) => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        initial: 'one',
+        states: {
+          one: {
+            initial: 'two',
+            entry: () => actual.push('entered one'),
+            states: {
+              two: {
+                entry: () => actual.push('entered two')
+              },
+              three: {
+                entry: () => actual.push('entered three'),
+                always: '#end'
+              }
             },
-            three: {
-              entry: () => actual.push('entered three'),
-              always: '#end'
+            after: {
+              10: '.three'
             }
           },
-          after: {
-            10: '.three'
+          end: {
+            id: 'end',
+            type: 'final'
           }
-        },
-        end: {
-          id: 'end',
-          type: 'final'
         }
-      }
-    });
+      });
 
-    const actor = createActor(machine);
-    actor.subscribe({
-      complete: () => {
-        expect(actual).toEqual(['entered one', 'entered two', 'entered three']);
-        done();
-      }
-    });
-    actor.start();
-  });
+      const actor = createActor(machine);
+      actor.subscribe({
+        complete: () => {
+          expect(actual).toEqual([
+            'entered one',
+            'entered two',
+            'entered three'
+          ]);
+          resolve();
+        }
+      });
+      actor.start();
+    }));
 
   it('should defer a single send event for a delayed conditional transition (#886)', () => {
-    jest.useFakeTimers();
-    const spy = jest.fn();
+    vi.useFakeTimers();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'X',
       states: {
@@ -185,79 +191,83 @@ describe('delayed transitions', () => {
 
     createActor(machine).start();
 
-    jest.advanceTimersByTime(10);
+    vi.advanceTimersByTime(10);
     expect(spy).not.toHaveBeenCalled();
   });
 
   // TODO: figure out correct behavior for restoring delayed transitions
-  it.skip('should execute an after transition after starting from a state resolved using `.getPersistedSnapshot`', (done) => {
-    const machine = createMachine({
-      id: 'machine',
-      initial: 'a',
-      states: {
-        a: {
-          on: { next: 'withAfter' }
-        },
-
-        withAfter: {
-          after: {
-            1: { target: 'done' }
-          }
-        },
-
-        done: {
-          type: 'final'
-        }
-      }
-    });
-
-    const actorRef1 = createActor(machine).start();
-    actorRef1.send({ type: 'next' });
-    const withAfterState = actorRef1.getPersistedSnapshot();
-
-    const actorRef2 = createActor(machine, { snapshot: withAfterState });
-    actorRef2.subscribe({ complete: () => done() });
-    actorRef2.start();
-  });
-
-  it('should execute an after transition after starting from a persisted state', (done) => {
-    const createMyMachine = () =>
-      createMachine({
-        initial: 'A',
+  it.skip('should execute an after transition after starting from a state resolved using `.getPersistedSnapshot`', () =>
+    new Promise<void>((resolve) => {
+      const machine = createMachine({
+        id: 'machine',
+        initial: 'a',
         states: {
-          A: {
-            on: {
-              NEXT: 'B'
-            }
+          a: {
+            on: { next: 'withAfter' }
           },
-          B: {
+
+          withAfter: {
             after: {
-              1: 'C'
+              1: { target: 'done' }
             }
           },
-          C: {
+
+          done: {
             type: 'final'
           }
         }
       });
 
-    let service = createActor(createMyMachine()).start();
+      const actorRef1 = createActor(machine).start();
+      actorRef1.send({ type: 'next' });
+      const withAfterState = actorRef1.getPersistedSnapshot();
 
-    const persistedSnapshot = JSON.parse(JSON.stringify(service.getSnapshot()));
+      const actorRef2 = createActor(machine, { snapshot: withAfterState });
+      actorRef2.subscribe({ complete: () => resolve() });
+      actorRef2.start();
+    }));
 
-    service = createActor(createMyMachine(), {
-      snapshot: persistedSnapshot
-    }).start();
+  it('should execute an after transition after starting from a persisted state', () =>
+    new Promise<void>((resolve) => {
+      const createMyMachine = () =>
+        createMachine({
+          initial: 'A',
+          states: {
+            A: {
+              on: {
+                NEXT: 'B'
+              }
+            },
+            B: {
+              after: {
+                1: 'C'
+              }
+            },
+            C: {
+              type: 'final'
+            }
+          }
+        });
 
-    service.send({ type: 'NEXT' });
+      let service = createActor(createMyMachine()).start();
 
-    service.subscribe({ complete: () => done() });
-  });
+      const persistedSnapshot = JSON.parse(
+        JSON.stringify(service.getSnapshot())
+      );
+
+      service = createActor(createMyMachine(), {
+        snapshot: persistedSnapshot
+      }).start();
+
+      service.send({ type: 'NEXT' });
+
+      service.subscribe({ complete: () => resolve() });
+    }));
 
   describe('delay expressions', () => {
     it('should evaluate the expression (function) to determine the delay', () => {
-      jest.useFakeTimers();
-      const spy = jest.fn();
+      vi.useFakeTimers();
+      const spy = vi.fn();
       const context = {
         delay: 500
       };
@@ -287,16 +297,16 @@ describe('delayed transitions', () => {
       expect(spy).toBeCalledWith(context);
       expect(actor.getSnapshot().value).toBe('inactive');
 
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
       expect(actor.getSnapshot().value).toBe('inactive');
 
-      jest.advanceTimersByTime(200);
+      vi.advanceTimersByTime(200);
       expect(actor.getSnapshot().value).toBe('active');
     });
 
     it('should evaluate the expression (string) to determine the delay', () => {
-      jest.useFakeTimers();
-      const spy = jest.fn();
+      vi.useFakeTimers();
+      const spy = vi.fn();
       const machine = createMachine(
         {
           initial: 'inactive',
@@ -334,10 +344,10 @@ describe('delayed transitions', () => {
       expect(spy).toBeCalledWith(event);
       expect(actor.getSnapshot().value).toBe('active');
 
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
       expect(actor.getSnapshot().value).toBe('active');
 
-      jest.advanceTimersByTime(200);
+      vi.advanceTimersByTime(200);
       expect(actor.getSnapshot().value).toBe('inactive');
     });
   });
