@@ -186,7 +186,7 @@ export function fromCallback<
   TInput = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
 >(
-  invokeCallback: CallbackLogicFunction<
+  callback: CallbackLogicFunction<
     TEvent,
     AnyEventObject,
     TInput,
