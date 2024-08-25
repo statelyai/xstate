@@ -746,7 +746,7 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 }
 
-type RequiredOptions<TLogic extends AnyActorLogic> =
+export type RequiredOptions<TLogic extends AnyActorLogic> =
   undefined extends InputFrom<TLogic> ? never : 'input';
 
 /**

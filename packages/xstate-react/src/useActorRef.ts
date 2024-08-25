@@ -8,13 +8,23 @@ import {
   Observer,
   SnapshotFrom,
   createActor,
-  toObserver
+  toObserver,
+  type ConditionalRequired,
+  type IsNotNever,
+  type RequiredOptions
 } from 'xstate';
 import { stopRootWithRehydration } from './stopRootWithRehydration';
 
 export function useIdleActorRef<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  options: Partial<ActorOptions<TLogic>>
+  ...[options]: ConditionalRequired<
+    [
+      options?: ActorOptions<TLogic> & {
+        [K in RequiredOptions<TLogic>]: unknown;
+      }
+    ],
+    IsNotNever<RequiredOptions<TLogic>>
+  >
 ): Actor<TLogic> {
   let [[currentConfig, actorRef], setCurrent] = useState(() => {
     const actorRef = createActor(logic, options);
