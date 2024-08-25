@@ -54,7 +54,14 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
 
 export function useActorRef<TLogic extends AnyActorLogic>(
   machine: TLogic,
-  options: ActorOptions<TLogic> = {},
+  options?: ConditionalRequired<
+    [
+      options?: ActorOptions<TLogic> & {
+        [K in RequiredOptions<TLogic>]: unknown;
+      }
+    ],
+    IsNotNever<RequiredOptions<TLogic>>
+  >['0'],
   observerOrListener?:
     | Observer<SnapshotFrom<TLogic>>
     | ((value: SnapshotFrom<TLogic>) => void)

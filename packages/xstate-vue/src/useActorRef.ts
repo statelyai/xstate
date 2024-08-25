@@ -7,12 +7,22 @@ import {
   SnapshotFrom,
   Subscription,
   createActor,
-  toObserver
+  toObserver,
+  type ConditionalRequired,
+  type IsNotNever,
+  type RequiredOptions
 } from 'xstate';
 
 export function useActorRef<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
-  options: ActorOptions<TLogic> = {},
+  options?: ConditionalRequired<
+    [
+      options?: ActorOptions<TLogic> & {
+        [K in RequiredOptions<TLogic>]: unknown;
+      }
+    ],
+    IsNotNever<RequiredOptions<TLogic>>
+  >['0'],
   observerOrListener?:
     | Observer<SnapshotFrom<TLogic>>
     | ((value: SnapshotFrom<TLogic>) => void)
