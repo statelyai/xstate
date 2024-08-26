@@ -6,7 +6,7 @@ import {
   createActor,
   type ConditionalRequired,
   type IsNotNever,
-  type RequiredOptions
+  type RequiredActorInstanceOptions
 } from 'xstate';
 
 export function useActorRef<TLogic extends AnyActorLogic>(
@@ -14,10 +14,10 @@ export function useActorRef<TLogic extends AnyActorLogic>(
   ...[options]: ConditionalRequired<
     [
       options?: ActorOptions<TLogic> & {
-        [K in RequiredOptions<TLogic>]: unknown;
+        [K in RequiredActorInstanceOptions<TLogic>]: unknown;
       }
     ],
-    IsNotNever<RequiredOptions<TLogic>>
+    IsNotNever<RequiredActorInstanceOptions<TLogic>>
   >
 ): Actor<TLogic> {
   const actorRef = createActor(logic, options).start();

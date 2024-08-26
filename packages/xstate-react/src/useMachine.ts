@@ -5,7 +5,7 @@ import {
   StateFrom,
   type ConditionalRequired,
   type IsNotNever,
-  type RequiredOptions
+  type RequiredActorInstanceOptions
 } from 'xstate';
 import { useActor } from './useActor.ts';
 
@@ -15,10 +15,10 @@ export function useMachine<TMachine extends AnyStateMachine>(
   ...[options]: ConditionalRequired<
     [
       options?: ActorOptions<TMachine> & {
-        [K in RequiredOptions<TMachine>]: unknown;
+        [K in RequiredActorInstanceOptions<TMachine>]: unknown;
       }
     ],
-    IsNotNever<RequiredOptions<TMachine>>
+    IsNotNever<RequiredActorInstanceOptions<TMachine>>
   >
 ): [StateFrom<TMachine>, Actor<TMachine>['send'], Actor<TMachine>] {
   return useActor(machine, options);

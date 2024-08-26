@@ -7,7 +7,7 @@ import {
   SnapshotFrom,
   type ConditionalRequired,
   type IsNotNever,
-  type RequiredOptions
+  type RequiredActorInstanceOptions
 } from 'xstate';
 import { useActorRef } from './useActorRef';
 
@@ -16,10 +16,10 @@ export function useActor<TLogic extends AnyActorLogic>(
   ...[options]: ConditionalRequired<
     [
       options?: ActorOptions<TLogic> & {
-        [K in RequiredOptions<TLogic>]: unknown;
+        [K in RequiredActorInstanceOptions<TLogic>]: unknown;
       }
     ],
-    IsNotNever<RequiredOptions<TLogic>>
+    IsNotNever<RequiredActorInstanceOptions<TLogic>>
   >
 ): {
   snapshot: Readable<SnapshotFrom<TLogic>>;
