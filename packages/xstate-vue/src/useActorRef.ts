@@ -8,24 +8,29 @@ import {
   Subscription,
   createActor,
   toObserver,
-  type ConditionalRequired,
   type IsNotNever,
   type RequiredOptions
 } from 'xstate';
 
 export function useActorRef<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
-  options?: ConditionalRequired<
-    [
-      options?: ActorOptions<TLogic> & {
-        [K in RequiredOptions<TLogic>]: unknown;
-      }
-    ],
-    IsNotNever<RequiredOptions<TLogic>>
-  >['0'],
-  observerOrListener?:
-    | Observer<SnapshotFrom<TLogic>>
-    | ((value: SnapshotFrom<TLogic>) => void)
+  ...[options, observerOrListener]: IsNotNever<
+    RequiredOptions<TLogic>
+  > extends true
+    ? [
+        options: ActorOptions<TLogic> & {
+          [K in RequiredOptions<TLogic>]: unknown;
+        },
+        observerOrListener?:
+          | Observer<SnapshotFrom<TLogic>>
+          | ((value: SnapshotFrom<TLogic>) => void)
+      ]
+    : [
+        options?: ActorOptions<TLogic>,
+        observerOrListener?:
+          | Observer<SnapshotFrom<TLogic>>
+          | ((value: SnapshotFrom<TLogic>) => void)
+      ]
 ): Actor<TLogic> {
   const actorRef = createActor(actorLogic, options);
 
