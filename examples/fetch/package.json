@@ -1,5 +1,5 @@
 {
-  "name": "@xstate/examples-fetch",
+  "name": "@xstate/example-fetch",
   "version": "1.0.0",
   "private": true,
   "main": "index.html",

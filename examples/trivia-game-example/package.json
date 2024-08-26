@@ -1,5 +1,5 @@
 {
-  "name": "trivia-game-example",
+  "name": "@xstate/example-trivia-game-example",
   "private": true,
   "version": "0.0.0",
   "type": "module",

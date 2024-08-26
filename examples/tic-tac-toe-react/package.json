@@ -16,5 +16,6 @@
     "@types/react-dom": "^17.0.25",
     "typescript": "^5.5.4",
     "vite": "^5.3.5"
-  }
+  },
+  "name": "@xstate/example-tic-tac-toe-react"
 }
