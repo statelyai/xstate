@@ -7,27 +7,10 @@ function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;
 }
 
-function useSelectorWithCompare<
-  TStore extends
-    | Store<any, any>
-    | Pick<AnyActorRef, 'subscribe' | 'getSnapshot'>,
-  T
->(
-  selector: (
-    snapshot: TStore extends Store<any, any>
-      ? SnapshotFromStore<TStore>
-      : TStore extends { getSnapshot(): infer TSnapshot }
-        ? TSnapshot
-        : never
-  ) => T,
-  compare: (a: T | undefined, b: T) => boolean = defaultCompare
-): (
-  snapshot: TStore extends Store<any, any>
-    ? SnapshotFromStore<TStore>
-    : TStore extends { getSnapshot(): infer TSnapshot }
-      ? TSnapshot
-      : never
-) => T {
+function useSelectorWithCompare<TStore extends Store<any, any>, T>(
+  selector: (snapshot: SnapshotFromStore<TStore>) => T,
+  compare: (a: T | undefined, b: T) => boolean
+): (snapshot: SnapshotFromStore<TStore>) => T {
   let previous: T | undefined;
 
   return (state): T => {
@@ -71,20 +54,9 @@ function useSelectorWithCompare<
  *   previously selected value
  * @returns A read-only signal of the selected value
  */
-export function useSelector<
-  TStore extends
-    | Store<any, any>
-    | Pick<AnyActorRef, 'subscribe' | 'getSnapshot'>,
-  T
->(
+export function useSelector<TStore extends Store<any, any>, T>(
   store: TStore,
-  selector: (
-    snapshot: TStore extends Store<any, any>
-      ? SnapshotFromStore<TStore>
-      : TStore extends { getSnapshot(): infer TSnapshot }
-        ? TSnapshot
-        : never
-  ) => T,
+  selector: (snapshot: SnapshotFromStore<TStore>) => T,
   compare: (a: T | undefined, b: T) => boolean = defaultCompare
 ): () => T {
   const selectorWithCompare = useSelectorWithCompare(selector, compare);

@@ -1,13 +1,33 @@
 /* @jsxImportSource solid-js */
-import type { ActorRefFrom } from 'xstate';
 import type { Accessor, Component } from 'solid-js';
 
-import { useActor, useActorRef } from '@xstate/solid';
 import { createRenderEffect, createSignal } from 'solid-js';
 import { fireEvent, render, screen } from 'solid-testing-library';
 
 import { createStore, fromStore } from '../src/index.ts';
 import { useSelector } from '../src/solid.ts';
+
+/** A function that tracks renders caused by the given accessors changing */
+const useRenderTracker = (...accessors: Accessor<unknown>[]) => {
+  const [renders, setRenders] = createSignal(0);
+
+  createRenderEffect(() => {
+    accessors.forEach((s) => s());
+    setRenders((p) => p + 1);
+  });
+
+  return renders;
+};
+
+/** A commonly reused store for testing selector behaviours. */
+const createCounterStore = () =>
+  createStore(
+    { count: 0, other: 0 },
+    {
+      increment: { count: ({ count }) => count + 1 },
+      other: { other: ({ other }) => other + 1 }
+    }
+  );
 
 describe('Solid.js integration', () => {
   describe('useSelector', () => {
@@ -52,15 +72,44 @@ describe('Solid.js integration', () => {
       const INITIAL_ITEMS = [1, 2];
       const DIFFERENT_ITEMS = [3, 4];
       const INITIAL_ITEMS_STRING = INITIAL_ITEMS.join(',');
+      const DIFFERENT_ITEMS_STRING = DIFFERENT_ITEMS.join(',');
 
-      const store = createItemStore(INITIAL_ITEMS, DIFFERENT_ITEMS);
+      const store = createStore(
+        { items: INITIAL_ITEMS },
+        {
+          same: { items: () => [...INITIAL_ITEMS] },
+          different: { items: () => DIFFERENT_ITEMS }
+        }
+      );
+
+      const ItemList: Component<{
+        itemStore: typeof store;
+        name: string;
+        comparison?: (a: number[] | undefined, b: number[]) => boolean;
+      }> = ({ itemStore, name, comparison }) => {
+        const items = useSelector(
+          itemStore,
+          (s) => s.context.items,
+          comparison
+        );
+        const renders = useRenderTracker(items);
+
+        return (
+          <div>
+            <div data-testid={`${name}-selector-renders`}>{renders()}</div>
+            <div data-testid={`${name}-selector-items`}>
+              {items().join(',')}
+            </div>
+          </div>
+        );
+      };
 
       const Container = () => {
         return (
           <>
-            <ItemList store={store} name="default" comparison={undefined} />
+            <ItemList itemStore={store} name="default" comparison={undefined} />
             <ItemList
-              store={store}
+              itemStore={store}
               name="custom"
               comparison={(a, b) => JSON.stringify(a) === JSON.stringify(b)}
             />
@@ -107,36 +156,38 @@ describe('Solid.js integration', () => {
       expect(customItemsDiv.textContent).toBe(INITIAL_ITEMS_STRING);
       expect(customRendersDiv.textContent).toBe('1');
 
-      // Should cause a rerender for default selector, but not for custom selector
       fireEvent.click(sameButton);
 
+      // Expect a rerender for default selector
       expect(defaultItemsDiv.textContent).toBe(INITIAL_ITEMS_STRING);
       expect(defaultRendersDiv.textContent).toBe('2');
 
+      // Expect no rerender for custom selector
       expect(customItemsDiv.textContent).toBe(INITIAL_ITEMS_STRING);
       expect(defaultRendersDiv.textContent).toBe('2');
       expect(customRendersDiv.textContent).toBe('1');
 
-      // Toggling [1, 2] to [3, 4] should trigger a rerender for both selectors
       fireEvent.click(differentButton);
 
-      expect(defaultItemsDiv.textContent).toBe('3,4');
-      expect(customItemsDiv.textContent).toBe('3,4');
+      // Expect a rerender for both selectors
+      expect(defaultItemsDiv.textContent).toBe(DIFFERENT_ITEMS_STRING);
+      expect(customItemsDiv.textContent).toBe(DIFFERENT_ITEMS_STRING);
       expect(defaultRendersDiv.textContent).toBe('3');
       expect(customRendersDiv.textContent).toBe('2');
 
-      // Both should rerender
       fireEvent.click(sameButton);
 
+      // Expect a rerender for both selectors
       expect(defaultItemsDiv.textContent).toBe(INITIAL_ITEMS_STRING);
       expect(customItemsDiv.textContent).toBe(INITIAL_ITEMS_STRING);
       expect(defaultRendersDiv.textContent).toBe('4');
       expect(customRendersDiv.textContent).toBe('3');
 
-      // Only default selector should rerender
+      // Only default comparison selector should rerender
       fireEvent.click(sameButton);
       fireEvent.click(sameButton);
 
+      // Expect only default selector to cause rerenders
       expect(defaultItemsDiv.textContent).toBe(INITIAL_ITEMS_STRING);
       expect(customItemsDiv.textContent).toBe(INITIAL_ITEMS_STRING);
       expect(defaultRendersDiv.textContent).toBe('6');
@@ -173,70 +224,11 @@ describe('Solid.js integration', () => {
       expect(countDiv.textContent).toEqual('2');
     });
   });
-
-  describe('XState compatibility', () => {
-    it('useActorRef (@xstate/solid) should work with useSelector', () => {
-      const store = fromStore(
-        { count: 0 },
-        { inc: { count: (ctx) => ctx.count + 1 } }
-      );
-
-      const Counter = () => {
-        const actorRef = useActorRef(store);
-        const count = useSelector(actorRef, (s) => s.context.count);
-
-        return (
-          <div
-            data-testid="count"
-            onClick={() => {
-              actorRef.send({ type: 'inc' });
-            }}
-          >
-            {count()}
-          </div>
-        );
-      };
-
-      render(() => <Counter />);
-
-      const countDiv = screen.getByTestId('count');
-
-      expect(countDiv.textContent).toEqual('0');
-
-      fireEvent.click(countDiv);
-      fireEvent.click(countDiv);
-      fireEvent.click(countDiv);
-
-      expect(countDiv.textContent).toEqual('3');
-    });
-  });
 });
-
-const useRenderTracker = (...accessors: Accessor<unknown>[]) => {
-  const [renders, setRenders] = createSignal(0);
-  createRenderEffect(() => {
-    accessors.forEach((s) => s());
-    setRenders((p) => p + 1);
-  });
-  return renders;
-};
-
-/**
- * A simple store that has `count` and `other` properties, and two actions which
- * increment `count`. It's paired with 2 small components to aid with testing
- * store behaviours.
- */
-const createCounterStore = () =>
-  createStore(
-    { count: 0, other: 0 },
-    {
-      increment: { count: ({ count }) => count + 1 },
-      other: { other: ({ other }) => other + 1 }
-    }
-  );
 
 type CounterStore = ReturnType<typeof createCounterStore>;
 
+// Used to help track renders caused by selector updates
 const CounterLabel: Component<{ store: CounterStore }> = ({ store }) => {
   const count = useSelector(store, (s) => s.context.count);
   const renders = useRenderTracker(count);
@@ -264,40 +256,6 @@ const Counter: Component<{ store: CounterStore }> = ({ store }) => {
         data-testid="increment-button"
         onclick={() => store.send({ type: 'increment' })}
       />
-    </div>
-  );
-};
-
-/**
- * A store that has an `items` property, and two actions which change `items`
- * between two different arrays. It's paired with 2 small components to aid with
- * testing store behaviours.
- *
- * The `comparison` parameter is used to determine whether the selectors should
- * be re-evaluated. If not provided, the selectors will be re-evaluated on every
- * change.
- */
-const createItemStore = (initialItems: number[], differentItems: number[]) =>
-  createStore(
-    { items: initialItems },
-    {
-      same: { items: () => [...initialItems] },
-      different: { items: () => differentItems }
-    }
-  );
-
-const ItemList: Component<{
-  store: ReturnType<typeof createItemStore>;
-  name: string;
-  comparison?: (a: number[] | undefined, b: number[]) => boolean;
-}> = ({ store, name, comparison }) => {
-  const items = useSelector(store, (s) => s.context.items, comparison);
-  const renders = useRenderTracker(items);
-
-  return (
-    <div>
-      <div data-testid={`${name}-selector-renders`}>{renders()}</div>
-      <div data-testid={`${name}-selector-items`}>{items().join(',')}</div>
     </div>
   );
 };
