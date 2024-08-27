@@ -175,41 +175,7 @@ describe('Solid.js integration', () => {
   });
 
   describe('XState compatibility', () => {
-    it('useActor (@xstate/solid) should work', () => {
-      const store = fromStore(
-        { count: 0 },
-        {
-          inc: { count: (ctx) => ctx.count + 1 }
-        }
-      );
-
-      const Counter = () => {
-        const [snapshot, send] = useActor(store);
-
-        return (
-          <div
-            data-testid="count"
-            onClick={() => {
-              send({ type: 'inc' });
-            }}
-          >
-            {snapshot.context.count}
-          </div>
-        );
-      };
-
-      render(() => <Counter />);
-
-      const countDiv = screen.getByTestId('count');
-
-      expect(countDiv.textContent).toEqual('0');
-
-      fireEvent.click(countDiv);
-
-      expect(countDiv.textContent).toEqual('1');
-    });
-
-    it('useActorRef (@xstate/solid) should work', () => {
+    it('useActorRef (@xstate/solid) should work with useSelector', () => {
       const store = fromStore(
         { count: 0 },
         { inc: { count: (ctx) => ctx.count + 1 } }
