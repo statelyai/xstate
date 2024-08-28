@@ -1,5 +1,5 @@
 {
-  "name": "hello-workflow",
+  "name": "@xstate/example-mongodb-persisted-state",
   "private": true,
   "version": "0.0.0",
   "type": "module",

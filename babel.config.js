@@ -49,7 +49,7 @@ module.exports = {
       ]
     },
     {
-      test: /\/xstate-solid\//,
+      test: /\/xstate-solid\/|solid\.test\.tsx$/,
       presets: ['babel-preset-solid']
     }
   ],

@@ -1,5 +1,5 @@
 {
-  "name": "counter-react",
+  "name": "@xstate/example-store-counter-react",
   "private": true,
   "version": "0.0.0",
   "type": "module",
