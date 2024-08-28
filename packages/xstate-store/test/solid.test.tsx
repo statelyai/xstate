@@ -1,10 +1,8 @@
 /* @jsxImportSource solid-js */
 import type { Accessor, Component } from 'solid-js';
-
 import { createRenderEffect, createSignal } from 'solid-js';
 import { fireEvent, render, screen } from 'solid-testing-library';
-
-import { createStore, fromStore } from '../src/index.ts';
+import { createStore } from '../src/index.ts';
 import { useSelector } from '../src/solid.ts';
 
 /** A function that tracks renders caused by the given accessors changing */
