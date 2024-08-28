@@ -287,30 +287,13 @@ describe('transition function', () => {
       states: {
         a: {
           on: {
-            event: ({ context, check }, enq) => {
-              enq.action(alwaysDoThisAction);
-
-              if (check({ type: 'blah' })) {
-                enq.action(doThisOtherAction);
-                return 'otherState';
-              }
-
-              return 'someState';
+            event: {
+              target: 'b',
+              actions: fn
             }
           }
         },
-        b: {
-          on: {
-            someEvent: {
-              guard: ({ context }): context is User =>
-                context.user !== undefined,
-              actions: ({ context }) => {
-                context.user; // undefined | User
-              },
-              target: 'a'
-            }
-          }
-        }
+        b: {}
       }
     });
 
