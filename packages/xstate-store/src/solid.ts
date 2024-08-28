@@ -1,5 +1,4 @@
 /* @jsxImportSource solid-js */
-import { AnyActorRef } from 'xstate';
 import { createEffect, createSignal, onCleanup } from 'solid-js';
 import { Store, SnapshotFromStore } from './types';
 
@@ -61,12 +60,14 @@ export function useSelector<TStore extends Store<any, any>, T>(
 ): () => T {
   const selectorWithCompare = useSelectorWithCompare(selector, compare);
   const [selectedValue, setSelectedValue] = createSignal(
-    selectorWithCompare(store.getSnapshot() as any)
+    selectorWithCompare(store.getSnapshot() as SnapshotFromStore<TStore>)
   );
 
   createEffect(() => {
     const subscription = store.subscribe(() => {
-      const newValue = selectorWithCompare(store.getSnapshot() as any);
+      const newValue = selectorWithCompare(
+        store.getSnapshot() as SnapshotFromStore<TStore>
+      );
       setSelectedValue(() => newValue);
     });
 
