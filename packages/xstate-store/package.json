@@ -30,18 +30,27 @@
       "import": "./react/dist/xstate-store-react.cjs.mjs",
       "default": "./react/dist/xstate-store-react.cjs.js"
     },
+    "./solid": {
+      "types": {
+        "import": "./solid/dist/xstate-store-solid.cjs.mjs",
+        "default": "./solid/dist/xstate-store-solid.cjs.js"
+      },
+      "module": "./solid/dist/xstate-store-solid.esm.js",
+      "import": "./solid/dist/xstate-store-solid.cjs.mjs",
+      "default": "./solid/dist/xstate-store-solid.cjs.js"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": false,
   "files": [
     "dist",
-    "react"
+    "react",
+    "solid"
   ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
-  "scripts": {},
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
@@ -53,13 +62,19 @@
     "immer": "^10.0.2",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "solid-js": "^1.7.6",
+    "solid-testing-library": "^0.3.0",
     "xstate": "^5.17.4"
   },
   "peerDependencies": {
-    "react": "^18.2.0"
+    "react": "^18.2.0",
+    "solid-js": "^1.7.6"
   },
   "peerDependenciesMeta": {
     "react": {
+      "optional": true
+    },
+    "solid-js": {
       "optional": true
     }
   },
@@ -67,7 +82,8 @@
     "umdName": "XStateStore",
     "entrypoints": [
       "./index.ts",
-      "./react.ts"
+      "./react.ts",
+      "./solid.ts"
     ]
   }
 }
