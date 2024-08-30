@@ -1,4 +1,3 @@
 packages:
   - 'packages/*'
-  - 'packages/xstate-svelte/test'
   - 'scripts/jest-utils'
