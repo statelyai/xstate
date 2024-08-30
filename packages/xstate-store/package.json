@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store",
-  "version": "2.2.1",
+  "version": "2.3.0",
   "description": "Simple stores",
   "keywords": [
     "store",
@@ -64,7 +64,7 @@
     "react-dom": "^18.0.0",
     "solid-js": "^1.7.6",
     "solid-testing-library": "^0.3.0",
-    "xstate": "^5.17.4"
+    "xstate": "^5.18.0"
   },
   "peerDependencies": {
     "react": "^18.2.0",
