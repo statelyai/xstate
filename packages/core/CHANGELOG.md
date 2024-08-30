@@ -1,5 +1,81 @@
 # xstate
 
+## 5.18.0
+
+### Minor Changes
+
+- [#5042](https://github.com/statelyai/xstate/pull/5042) [`54c9d9e6a4`](https://github.com/statelyai/xstate/commit/54c9d9e6a49ab8af8b58d700ed967536f9c06fb4) Thanks [@boneskull](https://github.com/boneskull)! - `waitFor()` now accepts a `{signal: AbortSignal}` in `WaitForOptions`
+
+- [#5006](https://github.com/statelyai/xstate/pull/5006) [`1ab974547f`](https://github.com/statelyai/xstate/commit/1ab974547f2e1f1b656279f144f6b88a4419d87e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The state value typings for setup state machine actors (`setup({}).createMachine({ ... })`) have been improved to represent the actual expected state values.
+
+  ```ts
+  const machine = setup({}).createMachine({
+    initial: 'green',
+    states: {
+      green: {},
+      yellow: {},
+      red: {
+        initial: 'walk',
+        states: {
+          walk: {},
+          wait: {},
+          stop: {}
+        }
+      },
+      emergency: {
+        type: 'parallel',
+        states: {
+          main: {
+            initial: 'blinking',
+            states: {
+              blinking: {}
+            }
+          },
+          cross: {
+            initial: 'blinking',
+            states: {
+              blinking: {}
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const actor = createActor(machine).start();
+
+  const stateValue = actor.getSnapshot().value;
+
+  if (stateValue === 'green') {
+    // ...
+  } else if (stateValue === 'yellow') {
+    // ...
+  } else if ('red' in stateValue) {
+    stateValue;
+    // {
+    //   red: "walk" | "wait" | "stop";
+    // }
+  } else {
+    stateValue;
+    // {
+    //   emergency: {
+    //     main: "blinking";
+    //     cross: "blinking";
+    //   };
+    // }
+  }
+  ```
+
+### Patch Changes
+
+- [#5054](https://github.com/statelyai/xstate/pull/5054) [`853f6daa0b`](https://github.com/statelyai/xstate/commit/853f6daa0b58bab6ea4153043f9efcfb18d18172) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `CallbackLogicFunction` type (previously `InvokeCallback`) is now exported. This is the callback function that you pass into `fromCallback(callbackLogicFn)` to create an actor from a callback function.
+
+  ```ts
+  import { type CallbackLogicFunction } from 'xstate';
+
+  // ...
+  ```
+
 ## 5.17.4
 
 ### Patch Changes
