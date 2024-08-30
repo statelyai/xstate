@@ -196,6 +196,7 @@ export class Actor<TLogic extends AnyActorLogic>
     // Ensure that the send method is bound to this Actor instance
     // if destructured
     this.send = this.send.bind(this);
+
     this.system._sendInspectionEvent({
       type: '@xstate.actor',
       actorRef: this
@@ -437,7 +438,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
     return {
       unsubscribe: () => {
-        listeners!.delete(wrappedHandler);
+        listeners.delete(wrappedHandler);
       }
     };
   }

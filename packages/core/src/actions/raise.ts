@@ -50,11 +50,6 @@ function resolveRaise(
 ) {
   const delaysMap = snapshot.machine.implementations.delays;
 
-  if (typeof eventOrExpr === 'string') {
-    throw new Error(
-      `Only event objects may be used with raise; use raise({ type: "${eventOrExpr}" }) instead`
-    );
-  }
   const resolvedEvent =
     typeof eventOrExpr === 'function'
       ? eventOrExpr(args, actionParams)

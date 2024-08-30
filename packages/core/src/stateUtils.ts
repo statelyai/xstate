@@ -437,6 +437,7 @@ export function formatInitialTransition<
         : undefined;
   if (!resolvedTarget && _target) {
     throw new Error(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-base-to-string
       `Initial state node "${_target}" not found on parent state node #${stateNode.id}`
     );
   }
@@ -1140,7 +1141,7 @@ function enterStates(
     }
 
     if (statesForDefaultEntry.has(stateNodeToEnter)) {
-      const initialActions = stateNodeToEnter.initial!.actions;
+      const initialActions = stateNodeToEnter.initial.actions;
       actions.push(...initialActions);
     }
 
@@ -1163,7 +1164,7 @@ function enterStates(
       if (parent?.type === 'compound') {
         internalQueue.push(
           createDoneStateEvent(
-            parent!.id,
+            parent.id,
             stateNodeToEnter.output !== undefined
               ? resolveOutput(
                   stateNodeToEnter.output,
@@ -1239,7 +1240,7 @@ function computeEntrySet(
     for (const s of targetStates) {
       const ancestors = getProperAncestors(s, domain);
       if (domain?.type === 'parallel') {
-        ancestors.push(domain!);
+        ancestors.push(domain);
       }
       addAncestorStatesToEnter(
         statesToEnter,
@@ -1277,7 +1278,7 @@ function addDescendantStatesToEnter<
       for (const s of historyStateNodes) {
         addProperAncestorStatesToEnter(
           s,
-          stateNode.parent!,
+          stateNode.parent,
           statesToEnter,
           historyValue,
           statesForDefaultEntry
@@ -1306,7 +1307,7 @@ function addDescendantStatesToEnter<
       for (const s of historyDefaultTransition.target) {
         addProperAncestorStatesToEnter(
           s,
-          stateNode.parent!,
+          stateNode.parent,
           statesToEnter,
           historyValue,
           statesForDefaultEntry

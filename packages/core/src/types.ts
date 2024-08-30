@@ -50,7 +50,7 @@ type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
 export type IsNever<T> = [T] extends [never] ? true : false;
 export type IsNotNever<T> = [T] extends [never] ? false : true;
 
-export type Compute<A> = { [K in keyof A]: A[K] } & unknown;
+export type Compute<A> = { [K in keyof A]: A[K] };
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export type Values<T> = T[keyof T];
 export type Elements<T> = T[keyof T & `${number}`];
@@ -485,7 +485,7 @@ export type StateTypes =
   | 'parallel'
   | 'final'
   | 'history'
-  | string; // TODO: remove once TS fixes this type-widening issue
+  | ({} & string); // TODO: remove once TS fixes this type-widening issue
 
 export type SingleOrArray<T> = readonly T[] | T;
 

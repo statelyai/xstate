@@ -32,11 +32,6 @@ function resolveEmit(
         >;
   }
 ) {
-  if (isDevelopment && typeof eventOrExpr === 'string') {
-    throw new Error(
-      `Only event objects may be used with emit; use emit({ type: "${eventOrExpr}" }) instead`
-    );
-  }
   const resolvedEvent =
     typeof eventOrExpr === 'function'
       ? eventOrExpr(args, actionParams)

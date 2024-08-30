@@ -561,7 +561,7 @@ export class StateMachine<
 
     Object.keys(snapshotChildren).forEach((actorId) => {
       const actorData =
-        snapshotChildren[actorId as keyof typeof snapshotChildren];
+        snapshotChildren[actorId];
       const childState = actorData.snapshot;
       const src = actorData.src;
 

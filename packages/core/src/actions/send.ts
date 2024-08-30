@@ -66,11 +66,6 @@ function resolveSendTo(
 ) {
   const delaysMap = snapshot.machine.implementations.delays;
 
-  if (typeof eventOrExpr === 'string') {
-    throw new Error(
-      `Only event objects may be used with sendTo; use sendTo({ type: "${eventOrExpr}" }) instead`
-    );
-  }
   const resolvedEvent =
     typeof eventOrExpr === 'function'
       ? eventOrExpr(args, actionParams)
@@ -92,9 +87,12 @@ function resolveSendTo(
   let targetActorRef: AnyActorRef | string | undefined;
 
   if (typeof resolvedTarget === 'string') {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (resolvedTarget === SpecialTargets.Parent) {
       targetActorRef = actorScope.self._parent;
-    } else if (resolvedTarget === SpecialTargets.Internal) {
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    else if (resolvedTarget === SpecialTargets.Internal) {
       targetActorRef = actorScope.self;
     } else if (resolvedTarget.startsWith('#_')) {
       // SCXML compatibility: https://www.w3.org/TR/scxml/#SCXMLEventProcessor
@@ -162,7 +160,7 @@ function executeSendTo(
       actorScope.self,
       // at this point, in a deferred task, it should already be mutated by retryResolveSendTo
       // if it initially started as a string
-      to as Exclude<typeof to, string>,
+      to,
       event.type === XSTATE_ERROR
         ? createErrorActorEvent(actorScope.self.id, (event as any).data)
         : event

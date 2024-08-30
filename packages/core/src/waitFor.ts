@@ -61,7 +61,7 @@ export function waitFor<TActorRef extends AnyActorRef>(
           }, resolvedOptions.timeout);
 
     const dispose = () => {
-      clearTimeout(handle!);
+      clearTimeout(handle);
       done = true;
       sub?.unsubscribe();
     };
@@ -86,6 +86,7 @@ export function waitFor<TActorRef extends AnyActorRef>(
       next: checkEmitted,
       error: (err) => {
         dispose();
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         rej(err);
       },
       complete: () => {
