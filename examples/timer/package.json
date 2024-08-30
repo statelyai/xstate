@@ -1,5 +1,5 @@
 {
-  "name": "timer",
+  "name": "@xstate/example-timer",
   "private": true,
   "version": "0.0.0",
   "type": "module",

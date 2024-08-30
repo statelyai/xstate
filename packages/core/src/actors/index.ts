@@ -5,7 +5,8 @@ export {
   fromCallback,
   type CallbackActorLogic,
   type CallbackActorRef,
-  type CallbackSnapshot
+  type CallbackSnapshot,
+  type CallbackLogicFunction
 } from './callback.ts';
 export {
   fromEventObservable,
