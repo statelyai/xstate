@@ -246,6 +246,12 @@ importers:
       react-dom:
         specifier: ^18.0.0
         version: 18.3.1(react@18.3.1)
+      solid-js:
+        specifier: ^1.7.6
+        version: 1.8.18(patch_hash=bnedbn2dasvtjqe5towjsj6ov4)
+      solid-testing-library:
+        specifier: ^0.3.0
+        version: 0.3.0(patch_hash=3yjltdgyeyuwrz7kmsnebnamca)(solid-js@1.8.18(patch_hash=bnedbn2dasvtjqe5towjsj6ov4))
       xstate:
         specifier: workspace:^
         version: link:../core
