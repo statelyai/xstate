@@ -6,7 +6,7 @@ import ts from 'typescript-eslint';
 export default ts.config(
   // plugins
   js.configs.recommended,
-  ...ts.configs.recommended,
+  ...ts.configs.recommendedTypeChecked,
 
   // global ignore
   {
@@ -21,14 +21,18 @@ export default ts.config(
   // global language and linter options
   {
     languageOptions: {
-      globals: { ...globals.browser, ...globals.node }
+      globals: { ...globals.browser, ...globals.node },
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname
+      }
     },
     linterOptions: {
       reportUnusedDisableDirectives: 'error'
     }
   },
 
-  // global rules
+  // global rule overrides
   {
     rules: {
       '@typescript-eslint/no-empty-object-type': [
@@ -37,7 +41,12 @@ export default ts.config(
           allowInterfaces: 'with-single-extends'
         }
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -50,6 +59,7 @@ export default ts.config(
           ignoreRestSiblings: true
         }
       ],
+      '@typescript-eslint/unbound-method': 'off',
       'prefer-const': [
         'error',
         {
@@ -57,6 +67,12 @@ export default ts.config(
         }
       ]
     }
+  },
+
+  // disable type-checking for js files
+  {
+    files: ['**/*.{js,cjs,mjs}'],
+    ...ts.configs.disableTypeChecked
   },
 
   // js-specific config and rules
