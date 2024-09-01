@@ -336,12 +336,16 @@ describe('transition function', () => {
         await executeAction(action);
       }
 
-      db.state = state;
+      db.state = JSON.stringify(state);
     }
 
     // POST /workflow/{sessionId}
     async function postEvent(event: EventFrom<typeof machine>) {
-      const [nextState, actions] = transition(machine, db.state, event);
+      const [nextState, actions] = transition(
+        machine,
+        machine.resolveState(JSON.parse(db.state)),
+        event
+      );
 
       // "sync" built-in actions: assign, raise, cancel, stop
       // "external" built-in actions: sendTo, raise w/delay, log
@@ -349,12 +353,12 @@ describe('transition function', () => {
         await executeAction(action);
       }
 
-      db.state = nextState;
+      db.state = JSON.stringify(nextState);
     }
 
     await postStart();
     postEvent({ type: 'sent' });
 
-    expect(db.state.value).toBe('finish');
+    expect(JSON.parse(db.state).value).toBe('finish');
   });
 });
