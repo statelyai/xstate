@@ -9,6 +9,7 @@
       "args": ["${file}", "--config", "jest.config.js", "--no-cache"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "node",
       "windows": {
         "program": "${workspaceFolder}/node_modules/jest/bin/jest"
       }
@@ -27,6 +28,7 @@
       ],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "node",
       "windows": {
         "program": "${workspaceFolder}/node_modules/jest/bin/jest"
       }

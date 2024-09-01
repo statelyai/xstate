@@ -51,6 +51,7 @@ import {
   isErrorActorEvent
 } from './utils.ts';
 import { ProcessingStatus } from './createActor.ts';
+import { createEmptyActor } from './actors/index.ts';
 
 type StateNodeIterable<
   TContext extends MachineContext,
@@ -1946,7 +1947,10 @@ export function convertAction(
  * }
  * ```
  */
-export function executeAction(action: ExecutableAction, actor: AnyActorRef) {
+export function executeAction(
+  action: ExecutableAction,
+  actor: AnyActorRef = createEmptyActor()
+) {
   const resolvedAction = resolveSpecialAction(action);
   const resolvedInfo = {
     ...action.info,

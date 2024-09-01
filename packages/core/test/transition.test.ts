@@ -11,7 +11,8 @@ import {
   waitFor,
   EventObject,
   fromCallback,
-  fromPromise
+  fromPromise,
+  EventFrom
 } from '../src';
 import { initialTransition } from '../src/transition';
 
@@ -304,7 +305,7 @@ describe('transition function', () => {
     expect(nextSnapshot.value).toEqual('b');
   });
 
-  it.only('serverless workflow example', (done) => {
+  it('serverless workflow example', async () => {
     expect.assertions(1);
     const db = {
       state: undefined as any
@@ -314,53 +315,46 @@ describe('transition function', () => {
       initial: 'sendingWelcomeEmail',
       states: {
         sendingWelcomeEmail: {
-          invoke: {
-            src: fromPromise(async () => {
-              return { id: 1 };
-            }),
-            onDone: 'finish'
-          }
+          entry: async () => {
+            // send welcome email
+            await new Promise((resolve) => {
+              setTimeout(resolve, 100);
+            });
+          },
+          on: { sent: 'finish' }
         },
         finish: {}
       }
     });
 
-    const logic = fromTransition((_, ev) => {
-      ev;
-    }, {});
-
-    function createProxyActor() {
-      const actor = createActor(logic).start();
-
-      return actor;
-    }
-
     // POST /workflow
-    function postStart() {
+    async function postStart() {
       const [state, actions] = initialTransition(machine);
 
       // execute actions
-      actions.forEach((action) => {
-        executeAction(action, createProxyActor());
-      });
+      for (const action of actions) {
+        await executeAction(action);
+      }
 
       db.state = state;
     }
 
     // POST /workflow/{sessionId}
-    async function postEvent(event: EventObject) {
+    async function postEvent(event: EventFrom<typeof machine>) {
       const [nextState, actions] = transition(machine, db.state, event);
 
       // "sync" built-in actions: assign, raise, cancel, stop
       // "external" built-in actions: sendTo, raise w/delay, log
-      actions.forEach((action) => {
-        executeAction(action, createProxyActor());
-      });
+      for (const action of actions) {
+        await executeAction(action);
+      }
 
       db.state = nextState;
-      done();
     }
 
-    postStart();
+    await postStart();
+    postEvent({ type: 'sent' });
+
+    expect(db.state.value).toBe('finish');
   });
 });
