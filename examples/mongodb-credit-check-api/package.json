@@ -1,5 +1,5 @@
 {
-  "name": "express-workflow",
+  "name": "@xstate/example-mongodb-credit-check-api",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",

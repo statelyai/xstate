@@ -1,5 +1,3 @@
-import { InspectionEvent } from 'xstate';
-
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
 export type ExtractEventsFromPayloadMap<T extends EventPayloadMap> = Values<{
@@ -197,3 +195,73 @@ export type EventObject = {
   type: string;
 };
 type Values<T> = T[keyof T];
+
+export type InspectionEvent =
+  | InspectedSnapshotEvent
+  | InspectedEventEvent
+  | InspectedActorEvent
+  | InspectedMicrostepEvent
+  | InspectedActionEvent;
+
+interface BaseInspectionEventProperties {
+  rootId: string; // the session ID of the root
+  /**
+   * The relevant actorRef for the inspection event.
+   *
+   * - For snapshot events, this is the `actorRef` of the snapshot.
+   * - For event events, this is the target `actorRef` (recipient of event).
+   * - For actor events, this is the `actorRef` of the registered actor.
+   */
+  actorRef: ActorRefLike;
+}
+
+export interface InspectedSnapshotEvent extends BaseInspectionEventProperties {
+  type: '@xstate.snapshot';
+  event: AnyEventObject; // { type: string, ... }
+  snapshot: Snapshot<unknown>;
+}
+
+interface InspectedMicrostepEvent extends BaseInspectionEventProperties {
+  type: '@xstate.microstep';
+  event: AnyEventObject; // { type: string, ... }
+  snapshot: Snapshot<unknown>;
+  _transitions: unknown[];
+}
+
+export interface InspectedActionEvent extends BaseInspectionEventProperties {
+  type: '@xstate.action';
+  action: {
+    type: string;
+    params: Record<string, unknown>;
+  };
+}
+
+export interface InspectedEventEvent extends BaseInspectionEventProperties {
+  type: '@xstate.event';
+  // The source might not exist, e.g. when:
+  // - root init events
+  // - events sent from external (non-actor) sources
+  sourceRef: ActorRefLike | undefined;
+  event: AnyEventObject; // { type: string, ... }
+}
+
+interface AnyEventObject {
+  type: string;
+  [key: string]: any;
+}
+
+export interface InspectedActorEvent extends BaseInspectionEventProperties {
+  type: '@xstate.actor';
+}
+
+// export type ActorRefLike = Pick<
+//   AnyActorRef,
+//   'sessionId' | 'send' | 'getSnapshot'
+// >;
+
+export type ActorRefLike = {
+  sessionId: string;
+  // https://github.com/statelyai/xstate/pull/5037/files#r1717036732
+  send: (...args: never) => void;
+  getSnapshot: () => any;
+};
