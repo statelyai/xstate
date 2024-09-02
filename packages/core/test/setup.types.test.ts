@@ -22,6 +22,7 @@ import {
   spawnChild,
   stopChild
 } from '../src';
+import { setup2 } from '../src/setup';
 
 describe('setup()', () => {
   it('should be able to define a simple function guard', () => {
@@ -1235,7 +1236,9 @@ describe('setup()', () => {
   it(`should provide contextual parameters to input factory for an actor that doesn't specify any input`, () => {
     setup({
       types: {
-        context: z.object({ count: z.number() })
+        context: {} as {
+          count: number;
+        }
       },
       actors: {
         child: fromPromise(() => Promise.resolve(1))
@@ -2056,11 +2059,7 @@ describe('setup()', () => {
   it('should accept a guarded transition that references a known guard', () => {
     setup({
       types: {
-        // events: {} as { type: 'NEXT' }
-        events: [
-          z.object({ type: z.literal('NEXT') }),
-          z.object({ type: z.literal('BACK') })
-        ]
+        events: {} as { type: 'NEXT' }
       },
       guards: {
         checkStuff: () => true
@@ -2403,4 +2402,37 @@ describe('setup()', () => {
 
     ((_accept: ContextFrom<typeof machine>) => {})({ myVar: 'whatever' });
   });
+});
+
+setup2({
+  schemas: {
+    context: {
+      count: z.number()
+    },
+    events: {
+      increase: z.object({ by: z.number() }),
+      decrease: z.object({ to: z.number() })
+    },
+    tags: [z.literal('loading'), z.literal('loaded')]
+  }
+}).createMachine({
+  context: { count: 3 },
+  on: {
+    increase: {
+      actions: ({ context, event }) => {
+        event.by;
+      }
+    },
+    decrease: {
+      actions: ({ event }) => {
+        event.to;
+      }
+    }
+  },
+  initial: 'pending',
+  states: {
+    pending: {
+      tags: 'loading'
+    }
+  }
 });

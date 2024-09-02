@@ -13,6 +13,7 @@ import {
   IsNever,
   MachineConfig,
   MachineContext,
+  MaybeZod,
   MetaObject,
   NonReducibleUnknown,
   ParameterizedObject,
@@ -20,15 +21,10 @@ import {
   ToChildren,
   ToStateValue,
   UnknownActorLogic,
-  Values
+  Values,
+  ZodLike,
+  ZType
 } from './types';
-
-type ZodLike = {
-  _input: unknown;
-  _output: unknown;
-  _type: unknown;
-  _def: unknown;
-};
 
 type ToParameterizedObject<
   TParameterizedMap extends Record<
@@ -114,6 +110,142 @@ export function setup<
     TEmitted,
     TMeta
   >;
+  actors?: {
+    // union here enforces that all configured children have to be provided in actors
+    // it makes those values required here
+    [K in keyof TActors | Values<TChildrenMap>]: K extends keyof TActors
+      ? TActors[K]
+      : never;
+  };
+  actions?: {
+    [K in keyof TActions]: ActionFunction<
+      TContext,
+      TEvent,
+      TEvent,
+      TActions[K],
+      ToProvidedActor<TChildrenMap, TActors>,
+      ToParameterizedObject<TActions>,
+      ToParameterizedObject<TGuards>,
+      TDelay,
+      TEmitted
+    >;
+  };
+  guards?: {
+    [K in keyof TGuards]: GuardPredicate<
+      TContext,
+      TEvent,
+      TGuards[K],
+      ToParameterizedObject<TGuards>
+    >;
+  };
+  delays?: {
+    [K in TDelay]: DelayConfig<
+      TContext,
+      TEvent,
+      ToParameterizedObject<TActions>['params'],
+      TEvent
+    >;
+  };
+} & {
+  [K in RequiredSetupKeys<TChildrenMap>]: unknown;
+}): {
+  createMachine: <
+    const TConfig extends MachineConfig<
+      TContext,
+      TEvent,
+      ToProvidedActor<TChildrenMap, TActors>,
+      ToParameterizedObject<TActions>,
+      ToParameterizedObject<TGuards>,
+      TDelay,
+      TTag,
+      TInput,
+      TOutput,
+      TEmitted,
+      TMeta
+    >
+  >(
+    config: TConfig
+  ) => StateMachine<
+    TContext,
+    TEvent,
+    Cast<
+      ToChildren<ToProvidedActor<TChildrenMap, TActors>>,
+      Record<string, AnyActorRef | undefined>
+    >,
+    ToProvidedActor<TChildrenMap, TActors>,
+    ToParameterizedObject<TActions>,
+    ToParameterizedObject<TGuards>,
+    TDelay,
+    ToStateValue<TConfig>,
+    TTag,
+    TInput,
+    TOutput,
+    TEmitted,
+    TMeta,
+    TConfig
+  >;
+} {
+  return {
+    createMachine: (config) =>
+      (createMachine as any)(
+        { ...config, schemas },
+        {
+          actors,
+          actions,
+          guards,
+          delays
+        }
+      )
+  };
+}
+
+type EventFromZEventMap<T extends Record<string, ZodLike>> = {
+  [K in keyof T & string]: {
+    type: K;
+  } & MaybeZod<T[K]>;
+}[keyof T & string];
+
+export function setup2<
+  TContext extends MachineContext,
+  TEventMap extends Record<string, ZodLike>,
+  TActors extends Record<string, UnknownActorLogic> = {},
+  TChildrenMap extends Record<string, string> = {},
+  TActions extends Record<
+    string,
+    ParameterizedObject['params'] | undefined
+  > = {},
+  TGuards extends Record<
+    string,
+    ParameterizedObject['params'] | undefined
+  > = {},
+  TDelay extends string = never,
+  TTag extends string = string,
+  TInput = NonReducibleUnknown,
+  TOutput extends NonReducibleUnknown = NonReducibleUnknown,
+  TEmittedMap extends Record<string, ZodLike> = {},
+  TEmitted extends EventObject = EventFromZEventMap<TEmittedMap>,
+  TMeta extends MetaObject = MetaObject,
+  TEvent extends EventObject = EventFromZEventMap<TEventMap>
+>({
+  schemas,
+  actors,
+  actions,
+  guards,
+  delays
+}: {
+  schemas?: {
+    context?: {
+      [K in keyof TContext]: ZType<TContext[K]>;
+    };
+    events?: TEventMap;
+    tags?: Array<ZType<TTag>>;
+    input?: ZType<TInput>;
+    output?: ZType<TOutput>;
+    emitted?: TEmittedMap;
+    meta?: {
+      [K in keyof TMeta]: ZType<TMeta[K]>;
+    };
+  };
   actors?: {
     // union here enforces that all configured children have to be provided in actors
     // it makes those values required here

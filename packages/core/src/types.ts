@@ -1377,7 +1377,7 @@ export interface ProvidedActor {
   id?: string;
 }
 
-type ZType<T> = { _output: T };
+export type ZType<T> = { _output: T };
 
 type ZEventMap<T extends EventObject> = {
   [K in T['type']]: T extends { type: K } ? ZType<T> : never;
@@ -1393,8 +1393,8 @@ export interface SetupTypes<
   TEmitted extends EventObject,
   TMeta extends MetaObject
 > {
-  context?: ZType<TContext> | TContext;
-  events?: ZEventMap<TEvent>;
+  context?: TContext;
+  events?: TEvent;
   children?: TChildrenMap;
   tags?: TTag;
   input?: TInput;
@@ -2599,3 +2599,12 @@ export type ToStateValue<T extends StateSchema> = T extends {
                 >
             : never)
   : {};
+
+export type ZodLike = {
+  _input: unknown;
+  _output: unknown;
+  _type: unknown;
+  _def: unknown;
+};
+
+export type MaybeZod<T> = T extends { _output: infer U } ? U : T;
