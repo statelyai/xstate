@@ -16,9 +16,7 @@ type EmittedFrom<T extends Record<string, {}>> = {
   [K in keyof T]: Compute<{ type: K } & MaybeZod<T[K]> & EventObject>;
 }[keyof T];
 
-export function setup<const T extends { emitted: Record<string, {}> }>({
-  emitted
-}: T): {
+type SetupOutput<TEmitted extends EventObject> = {
   createStore: <
     TContext extends StoreContext,
     TEventPayloadMap extends EventPayloadMap
@@ -29,20 +27,24 @@ export function setup<const T extends { emitted: Record<string, {}> }>({
         | StoreAssigner<
             NoInfer<TContext>,
             { type: K } & TEventPayloadMap[K],
-            EmittedFrom<T['emitted']>
+            TEmitted
           >
         | StorePropertyAssigner<
             NoInfer<TContext>,
             { type: K } & TEventPayloadMap[K],
-            EmittedFrom<T['emitted']>
+            TEmitted
           >;
     }
-  ) => Store<
-    TContext,
-    ExtractEventsFromPayloadMap<TEventPayloadMap>,
-    EmittedFrom<T['emitted']>
-  >;
-} {
+  ) => Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TEmitted>;
+};
+
+export function setup<
+  const T extends { schemas: { emitted: Record<string, {}> } }
+>({ schemas }: T): SetupOutput<EmittedFrom<T['schemas']['emitted']>>;
+export function setup<const T extends { types: { emitted: EventObject } }>({
+  types
+}: T): SetupOutput<T['types']['emitted']>;
+export function setup(arg: unknown) {
   return {
     createStore
   };

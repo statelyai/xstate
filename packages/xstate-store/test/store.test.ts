@@ -206,12 +206,14 @@ it('can be inspected', () => {
   ]);
 });
 
-it('emits', () =>
+it('emits (schema)', () =>
   new Promise<void>((res) => {
     const store = setup({
-      emitted: {
-        increased: z.object({ upBy: z.number() }),
-        decreased: z.object({ downBy: z.number() })
+      schemas: {
+        emitted: {
+          increased: z.object({ upBy: z.number() }),
+          decreased: z.object({ downBy: z.number() })
+        }
       }
     }).createStore(
       {
@@ -221,6 +223,9 @@ it('emits', () =>
         inc: {
           count: (ctx, _: {}, enq) => {
             enq.emit({ type: 'increased', upBy: 1 });
+
+            // @ts-expect-error
+            enq.emit({ type: 'unknown' });
             return ctx.count + 1;
           }
         }
@@ -228,7 +233,40 @@ it('emits', () =>
     );
 
     store.on('increased', (ev) => {
-      expect(ev).toEqual({ type: 'increased', by: 1 });
+      expect(ev).toEqual({ type: 'increased', upBy: 1 });
+      res();
+    });
+
+    store.send({ type: 'inc' });
+  }));
+
+it('emits (types)', () =>
+  new Promise<void>((res) => {
+    const store = setup({
+      types: {
+        emitted: {} as
+          | { type: 'increased'; upBy: number }
+          | { type: 'decreased'; downBy: number }
+      }
+    }).createStore(
+      {
+        count: 0
+      },
+      {
+        inc: {
+          count: (ctx, _: {}, enq) => {
+            enq.emit({ type: 'increased', upBy: 1 });
+
+            // @ts-expect-error
+            enq.emit({ type: 'unknown' });
+            return ctx.count + 1;
+          }
+        }
+      }
+    );
+
+    store.on('increased', (ev) => {
+      expect(ev).toEqual({ type: 'increased', upBy: 1 });
       res();
     });
 
