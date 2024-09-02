@@ -1,5 +1,7 @@
 import { produce } from 'immer';
 import { createStore, createStoreWithProducer } from '../src/index.ts';
+import { setup } from '../src/setup.ts';
+import { z } from 'zod';
 
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
@@ -206,14 +208,19 @@ it('can be inspected', () => {
 
 it('emits', () =>
   new Promise<void>((res) => {
-    const store = createStore(
+    const store = setup({
+      emitted: {
+        increased: z.object({ upBy: z.number() }),
+        decreased: z.object({ downBy: z.number() })
+      }
+    }).createStore(
       {
         count: 0
       },
       {
         inc: {
           count: (ctx, _: {}, enq) => {
-            enq.emit({ type: 'increased', by: 1 });
+            enq.emit({ type: 'increased', upBy: 1 });
             return ctx.count + 1;
           }
         }

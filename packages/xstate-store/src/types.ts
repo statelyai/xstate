@@ -101,9 +101,11 @@ export interface Store<
   sessionId: string;
   on: <TEmittedType extends TEmitted['type']>(
     eventType: TEmittedType,
-    fn: (ev: TEmitted & { type: TEmittedType }) => void
+    fn: (ev: Compute<TEmitted & { type: TEmittedType }>) => void
   ) => Subscription;
 }
+
+export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 
 export type SnapshotFromStore<TStore extends Store<any, any, any>> =
   TStore extends Store<infer TContext, any, any>
