@@ -8,21 +8,40 @@ export type Recipe<T, TReturn> = (state: T) => TReturn;
 
 export type StoreAssigner<
   TContext extends StoreContext,
-  TEvent extends EventObject
-> = (context: TContext, event: TEvent) => Partial<TContext>;
-export type StoreCompleteAssigner<TContext, TEvent extends EventObject> = (
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = (
+  context: TContext,
+  event: TEvent,
+  enq: { emit: (ev: TEmitted) => void }
+) => Partial<TContext>;
+export type StoreCompleteAssigner<
+  TContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = (
   ctx: TContext,
-  ev: TEvent
+  ev: TEvent,
+  enq: { emit: (ev: TEmitted) => void }
 ) => TContext;
 export type StorePartialAssigner<
   TContext,
   TEvent extends EventObject,
-  K extends keyof TContext
-> = (ctx: TContext, ev: TEvent) => Partial<TContext>[K];
-export type StorePropertyAssigner<TContext, TEvent extends EventObject> = {
+  K extends keyof TContext,
+  TEmitted extends EventObject
+> = (
+  ctx: TContext,
+  ev: TEvent,
+  enq: { emit: (ev: TEmitted) => void }
+) => Partial<TContext>[K];
+export type StorePropertyAssigner<
+  TContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = {
   [K in keyof TContext]?:
     | TContext[K]
-    | StorePartialAssigner<TContext, TEvent, K>;
+    | StorePartialAssigner<TContext, TEvent, K, TEmitted>;
 };
 
 export type Snapshot<TOutput> =
@@ -58,8 +77,11 @@ export type StoreSnapshot<TContext> = Snapshot<undefined> & {
  * - Can receive events
  * - Is observable
  */
-export interface Store<TContext, Ev extends EventObject>
-  extends Subscribable<StoreSnapshot<TContext>>,
+export interface Store<
+  TContext,
+  Ev extends EventObject,
+  TEmitted extends EventObject
+> extends Subscribable<StoreSnapshot<TContext>>,
     InteropObservable<StoreSnapshot<TContext>> {
   send: (event: Ev) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
@@ -77,10 +99,16 @@ export interface Store<TContext, Ev extends EventObject>
       | ((inspectionEvent: InspectionEvent) => void)
   ) => Subscription;
   sessionId: string;
+  on: <TEmittedType extends TEmitted['type']>(
+    eventType: TEmittedType,
+    fn: (ev: TEmitted & { type: TEmittedType }) => void
+  ) => Subscription;
 }
 
-export type SnapshotFromStore<TStore extends Store<any, any>> =
-  TStore extends Store<infer TContext, any> ? StoreSnapshot<TContext> : never;
+export type SnapshotFromStore<TStore extends Store<any, any, any>> =
+  TStore extends Store<infer TContext, any, any>
+    ? StoreSnapshot<TContext>
+    : never;
 
 /**
  * Extract the type of events from a `Store`.
@@ -152,8 +180,10 @@ export type SnapshotFromStore<TStore extends Store<any, any>> =
  * multiply({ multiplier: 2 }); // sends { type: 'multiply', multiplier: 2 }
  * ```
  */
-export type EventFromStore<TStore extends Store<any, any>> =
-  TStore extends Store<infer _TContext, infer TEvent> ? TEvent : never;
+export type EventFromStore<TStore extends Store<any, any, any>> =
+  TStore extends Store<infer _TContext, infer TEvent, infer _TEmitted>
+    ? TEvent
+    : never;
 
 // Copied from XState core
 // -----------------------

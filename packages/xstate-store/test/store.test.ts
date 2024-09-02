@@ -203,3 +203,27 @@ it('can be inspected', () => {
     })
   ]);
 });
+
+it('emits', () =>
+  new Promise<void>((res) => {
+    const store = createStore(
+      {
+        count: 0
+      },
+      {
+        inc: {
+          count: (ctx, _: {}, enq) => {
+            enq.emit({ type: 'increased', by: 1 });
+            return ctx.count + 1;
+          }
+        }
+      }
+    );
+
+    store.on('increased', (ev) => {
+      expect(ev).toEqual({ type: 'increased', by: 1 });
+      res();
+    });
+
+    store.send({ type: 'inc' });
+  }));
