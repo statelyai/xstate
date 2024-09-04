@@ -1,6 +1,5 @@
 import { produce } from 'immer';
-import { createStore, createStoreWithProducer } from '../src/index.ts';
-import { setup } from '../src/setup.ts';
+import { createStore, createStoreWithProducer, setup } from '../src/index.ts';
 import { z } from 'zod';
 
 it('updates a store with an event without mutating original context', () => {
