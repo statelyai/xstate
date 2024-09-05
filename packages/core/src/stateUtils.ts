@@ -1977,11 +1977,6 @@ function resolveSpecialAction(action: ExecutableAction): ExecutableAction {
         return resolvedAction;
       }
       break;
-    case 'xstate.cancel':
-      resolvedAction.exec = (info, params) => {
-        info.system.scheduler.cancel(info.self, action.params as string);
-      };
-      return resolvedAction;
     case 'xstate.sendTo':
       if ((action.params as any).delay !== undefined) {
         resolvedAction.exec = (info, params) => {

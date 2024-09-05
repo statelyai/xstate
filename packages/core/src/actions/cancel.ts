@@ -1,7 +1,6 @@
 import isDevelopment from '#is-development';
 import {
   AnyActorScope,
-  AnyActor,
   AnyMachineSnapshot,
   EventObject,
   MachineContext,
@@ -34,9 +33,7 @@ function resolveCancel(
 }
 
 function executeCancel(actorScope: AnyActorScope, resolvedSendId: string) {
-  actorScope.defer(() => {
-    // actorScope.system.scheduler.cancel(actorScope.self, resolvedSendId);
-  });
+  actorScope.system.scheduler.cancel(actorScope.self, resolvedSendId);
 }
 
 export interface CancelAction<
