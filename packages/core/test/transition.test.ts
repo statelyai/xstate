@@ -327,13 +327,25 @@ describe('transition function', () => {
       }
     });
 
+    // TODO: assigns and raises without timers should not be in the actions
+    // TODO: example with delayed event
+
+    const proxyActor = createProxyActorForThisServer({
+      sendEndpoint: `/postEvent`
+    });
+
     // POST /workflow
     async function postStart() {
+      const system = createPostgresSystem({
+        connectionString: '...',
+        scheduler: {}
+      });
+
       const [state, actions] = initialTransition(machine);
 
       // execute actions
       for (const action of actions) {
-        await executeAction(action);
+        await system.executeAction(action);
       }
 
       db.state = JSON.stringify(state);
@@ -350,7 +362,7 @@ describe('transition function', () => {
       // "sync" built-in actions: assign, raise, cancel, stop
       // "external" built-in actions: sendTo, raise w/delay, log
       for (const action of actions) {
-        await executeAction(action);
+        await machine.executeAction(action);
       }
 
       db.state = JSON.stringify(nextState);
