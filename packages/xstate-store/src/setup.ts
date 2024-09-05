@@ -39,7 +39,7 @@ type SetupOutput<TEmitted extends EventObject> = {
 };
 
 export function setup<
-  const T extends { schemas: { emitted: Record<string, {}> } }
+  const T extends { schemas: { emitted: Record<string, { _output: unknown }> } }
 >({ schemas }: T): SetupOutput<EmittedFrom<T['schemas']['emitted']>>;
 export function setup<const T extends { types: { emitted: EventObject } }>({
   types
