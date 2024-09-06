@@ -126,15 +126,15 @@ describe('useMachine', () => {
 });
 
 describe('useActor', () => {
-  const withInputMachine = createMachine({
-    types: {} as { input: { value: number } },
-    initial: 'idle',
-    states: {
-      idle: {}
-    }
-  });
-
   it('should require input to be specified when defined', () => {
+    const withInputMachine = createMachine({
+      types: {} as { input: { value: number } },
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
     const Component = () => {
       // @ts-expect-error
       const _ = useActor(withInputMachine);
@@ -144,15 +144,14 @@ describe('useActor', () => {
     render(<Component />);
   });
 
-  const noInputMachine = createMachine({
-    types: {} as {},
-    initial: 'idle',
-    states: {
-      idle: {}
-    }
-  });
-
   it('should not require input when not defined', () => {
+    const noInputMachine = createMachine({
+      types: {} as {},
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
     const Component = () => {
       const _ = useActor(noInputMachine);
       return <></>;
@@ -163,15 +162,15 @@ describe('useActor', () => {
 });
 
 describe('useActorRef', () => {
-  const withInputMachine = createMachine({
-    types: {} as { input: { value: number } },
-    initial: 'idle',
-    states: {
-      idle: {}
-    }
-  });
-
   it('should require input to be specified when defined', () => {
+    const withInputMachine = createMachine({
+      types: {} as { input: { value: number } },
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
     const Component = () => {
       // @ts-expect-error
       const _ = useActorRef(withInputMachine);
@@ -181,15 +180,15 @@ describe('useActorRef', () => {
     render(<Component />);
   });
 
-  const noInputMachine = createMachine({
-    types: {} as {},
-    initial: 'idle',
-    states: {
-      idle: {}
-    }
-  });
-
   it('should not require input when not defined', () => {
+    const noInputMachine = createMachine({
+      types: {} as {},
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
     const Component = () => {
       const _ = useActorRef(noInputMachine);
       return <></>;
