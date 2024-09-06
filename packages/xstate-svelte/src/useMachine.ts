@@ -3,7 +3,7 @@ import {
   AnyStateMachine,
   type ConditionalRequired,
   type IsNotNever,
-  type RequiredActorInstanceOptions
+  type RequiredActorOptionsKeys
 } from 'xstate';
 import { useActor } from './useActor';
 
@@ -13,10 +13,10 @@ export function useMachine<TMachine extends AnyStateMachine>(
   ...[options]: ConditionalRequired<
     [
       options?: ActorOptions<TMachine> & {
-        [K in RequiredActorInstanceOptions<TMachine>]: unknown;
+        [K in RequiredActorOptionsKeys<TMachine>]: unknown;
       }
     ],
-    IsNotNever<RequiredActorInstanceOptions<TMachine>>
+    IsNotNever<RequiredActorOptionsKeys<TMachine>>
   >
 ) {
   return useActor(machine, options);

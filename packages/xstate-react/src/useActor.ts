@@ -8,7 +8,7 @@ import {
   SnapshotFrom,
   type ConditionalRequired,
   type IsNotNever,
-  type RequiredActorInstanceOptions
+  type RequiredActorOptionsKeys
 } from 'xstate';
 import { stopRootWithRehydration } from './stopRootWithRehydration.ts';
 import { useIdleActorRef } from './useActorRef.ts';
@@ -18,10 +18,10 @@ export function useActor<TLogic extends AnyActorLogic>(
   ...[options]: ConditionalRequired<
     [
       options?: ActorOptions<TLogic> & {
-        [K in RequiredActorInstanceOptions<TLogic>]: unknown;
+        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
       }
     ],
-    IsNotNever<RequiredActorInstanceOptions<TLogic>>
+    IsNotNever<RequiredActorOptionsKeys<TLogic>>
   >
 ): [SnapshotFrom<TLogic>, Actor<TLogic>['send'], Actor<TLogic>] {
   if (

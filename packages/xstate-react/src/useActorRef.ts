@@ -11,7 +11,7 @@ import {
   toObserver,
   type ConditionalRequired,
   type IsNotNever,
-  type RequiredActorInstanceOptions
+  type RequiredActorOptionsKeys
 } from 'xstate';
 import { stopRootWithRehydration } from './stopRootWithRehydration';
 
@@ -20,10 +20,10 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
   ...[options]: ConditionalRequired<
     [
       options?: ActorOptions<TLogic> & {
-        [K in RequiredActorInstanceOptions<TLogic>]: unknown;
+        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
       }
     ],
-    IsNotNever<RequiredActorInstanceOptions<TLogic>>
+    IsNotNever<RequiredActorOptionsKeys<TLogic>>
   >
 ): Actor<TLogic> {
   let [[currentConfig, actorRef], setCurrent] = useState(() => {
@@ -55,11 +55,11 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
 export function useActorRef<TLogic extends AnyActorLogic>(
   machine: TLogic,
   ...[options, observerOrListener]: IsNotNever<
-    RequiredActorInstanceOptions<TLogic>
+    RequiredActorOptionsKeys<TLogic>
   > extends true
     ? [
         options: ActorOptions<TLogic> & {
-          [K in RequiredActorInstanceOptions<TLogic>]: unknown;
+          [K in RequiredActorOptionsKeys<TLogic>]: unknown;
         },
         observerOrListener?:
           | Observer<SnapshotFrom<TLogic>>

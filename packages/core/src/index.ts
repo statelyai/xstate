@@ -6,7 +6,7 @@ export {
   createActor,
   interpret,
   type Interpreter,
-  type RequiredActorInstanceOptions
+  type RequiredActorOptionsKeys as RequiredActorOptionsKeys
 } from './createActor.ts';
 export { createMachine } from './createMachine.ts';
 export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
