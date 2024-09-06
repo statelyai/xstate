@@ -12,7 +12,8 @@ import {
   Observer,
   StoreContext,
   InteropSubscribable,
-  InspectionEvent
+  InspectionEvent,
+  Compute
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -197,6 +198,86 @@ function createStoreCore<
   return store;
 }
 
+export type TransitionsFromEventPayloadMap<
+  TEventPayloadMap extends EventPayloadMap,
+  TContext extends StoreContext,
+  TEmitted extends EventObject
+> = {
+  [K in keyof TEventPayloadMap & string]:
+    | StoreAssigner<
+        NoInfer<TContext>,
+        {
+          type: K;
+        } & TEventPayloadMap[K],
+        TEmitted
+      >
+    | StorePropertyAssigner<
+        NoInfer<TContext>,
+        {
+          type: K;
+        } & TEventPayloadMap[K],
+        TEmitted
+      >;
+};
+
+export function createStore<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TTypes extends { emitted: EventObject }
+>({
+  context,
+  on,
+  types
+}: {
+  context: TContext;
+  on: {
+    [K in keyof TEventPayloadMap & string]:
+      | StoreAssigner<
+          NoInfer<TContext>,
+          { type: K } & TEventPayloadMap[K],
+          TTypes['emitted']
+        >
+      | StorePropertyAssigner<
+          NoInfer<TContext>,
+          { type: K } & TEventPayloadMap[K],
+          TTypes['emitted']
+        >;
+  };
+} & { types: TTypes }): Store<
+  TContext,
+  ExtractEventsFromPayloadMap<TEventPayloadMap>,
+  TTypes['emitted']
+>;
+
+export function createStore<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TSchemas extends { emitted: Record<string, { _output: unknown }> }
+>({
+  context,
+  on,
+  schemas
+}: {
+  context: TContext;
+  on: {
+    [K in keyof TEventPayloadMap & string]:
+      | StoreAssigner<
+          NoInfer<TContext>,
+          { type: K } & TEventPayloadMap[K],
+          EmittedFromSchemas<TSchemas['emitted']>
+        >
+      | StorePropertyAssigner<
+          NoInfer<TContext>,
+          { type: K } & TEventPayloadMap[K],
+          EmittedFromSchemas<TSchemas['emitted']>
+        >;
+  };
+} & { schemas: TSchemas }): Store<
+  TContext,
+  ExtractEventsFromPayloadMap<TEventPayloadMap>,
+  EmittedFromSchemas<TSchemas['emitted']>
+>;
+
 /**
  * Creates a **store** that has its own internal state and can be sent events
  * that update its internal state based on transitions.
@@ -229,25 +310,24 @@ function createStoreCore<
  */
 export function createStore<
   TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends { type: string }
+  TEventPayloadMap extends EventPayloadMap
 >(
   initialContext: TContext,
-  transitions: {
-    [K in keyof TEventPayloadMap & string]:
-      | StoreAssigner<
-          NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K],
-          TEmitted
-        >
-      | StorePropertyAssigner<
-          NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K],
-          TEmitted
-        >;
+  transitions: TransitionsFromEventPayloadMap<
+    TEventPayloadMap,
+    TContext,
+    EventObject
+  >
+): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, EventObject>;
+
+export function createStore(initialContextOrObject: any, transitions?: any) {
+  if (transitions === undefined) {
+    return createStoreCore(
+      initialContextOrObject.context,
+      initialContextOrObject.on
+    );
   }
-): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TEmitted> {
-  return createStoreCore(initialContext, transitions);
+  return createStoreCore(initialContextOrObject, transitions);
 }
 
 /**
@@ -400,3 +480,10 @@ export function createStoreTransition<
 function uniqueId() {
   return Math.random().toString(36).slice(6);
 }
+
+type MaybeZod<T> = T extends { _output: infer U } ? U : never;
+
+export type EmittedFromSchemas<T extends Record<string, { _output: unknown }>> =
+  {
+    [K in keyof T]: Compute<{ type: K } & MaybeZod<T[K]> & EventObject>;
+  }[keyof T];

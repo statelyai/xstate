@@ -1,5 +1,5 @@
 import { produce } from 'immer';
-import { createStore, createStoreWithProducer, setup } from '../src/index.ts';
+import { createStore, createStoreWithProducer } from '../src/index.ts';
 import { z } from 'zod';
 
 it('updates a store with an event without mutating original context', () => {
@@ -207,18 +207,17 @@ it('can be inspected', () => {
 
 it('emits (schema)', () =>
   new Promise<void>((res) => {
-    const store = setup({
+    const store = createStore({
       schemas: {
         emitted: {
           increased: z.object({ upBy: z.number() }),
           decreased: z.object({ downBy: z.number() })
         }
-      }
-    }).createStore(
-      {
+      },
+      context: {
         count: 0
       },
-      {
+      on: {
         inc: {
           count: (ctx, _: {}, enq) => {
             enq.emit({ type: 'increased', upBy: 1 });
@@ -229,7 +228,7 @@ it('emits (schema)', () =>
           }
         }
       }
-    );
+    });
 
     store.on('increased', (ev) => {
       expect(ev).toEqual({ type: 'increased', upBy: 1 });
@@ -241,17 +240,16 @@ it('emits (schema)', () =>
 
 it('emits (types)', () =>
   new Promise<void>((res) => {
-    const store = setup({
+    const store = createStore({
       types: {
         emitted: {} as
           | { type: 'increased'; upBy: number }
           | { type: 'decreased'; downBy: number }
-      }
-    }).createStore(
-      {
+      },
+      context: {
         count: 0
       },
-      {
+      on: {
         inc: {
           count: (ctx, _: {}, enq) => {
             enq.emit({ type: 'increased', upBy: 1 });
@@ -262,7 +260,7 @@ it('emits (types)', () =>
           }
         }
       }
-    );
+    });
 
     store.on('increased', (ev) => {
       expect(ev).toEqual({ type: 'increased', upBy: 1 });

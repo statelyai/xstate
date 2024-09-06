@@ -1,11 +1,32 @@
 import { EventObject } from 'xstate';
-import { createStore, createStoreTransition } from './store';
+import {
+  createStore,
+  createStoreTransition,
+  EmittedFromSchemas,
+  TransitionsFromEventPayloadMap
+} from './store';
 import {
   EventPayloadMap,
   StoreContext,
-  StoreSnapshot,
-  Snapshot
+  // StoreSnapshot,
+  Snapshot,
+  ExtractEventsFromPayloadMap,
+  StoreSnapshot
 } from './types';
+
+type StoreLogic<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TInput
+> = {
+  transition: (context: TContext, event: TEvent) => TContext;
+  start: () => void;
+  getInitialSnapshot: (_: any, input: TInput) => StoreSnapshot<TContext>;
+  getPersistedSnapshot: (
+    snapshot: StoreSnapshot<TContext>
+  ) => StoreSnapshot<TContext>;
+  restoreSnapshot: (snapshot: Snapshot<unknown>) => StoreSnapshot<TContext>;
+};
 
 /**
  * An actor logic creator which creates store [actor
@@ -21,22 +42,49 @@ export function fromStore<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
   TInput,
-  TEmitted extends EventObject
+  TSchemas extends { emitted: Record<string, { _output: unknown }> }
+>({
+  context,
+  on,
+  schemas
+}: {
+  context: ((input: TInput) => TContext) | TContext;
+  on: TransitionsFromEventPayloadMap<
+    TEventPayloadMap,
+    TContext,
+    EmittedFromSchemas<TSchemas['emitted']>
+  >;
+} & { schemas?: TSchemas }): StoreLogic<
+  TContext,
+  ExtractEventsFromPayloadMap<TEventPayloadMap>,
+  TInput
+>;
+export function fromStore<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TInput
 >(
   initialContext: ((input: TInput) => TContext) | TContext,
-  transitions: Parameters<
-    typeof createStore<TContext, TEventPayloadMap, TEmitted>
-  >[1]
-) {
-  const transition = createStoreTransition<
-    TContext,
+  transitions: TransitionsFromEventPayloadMap<
     TEventPayloadMap,
-    TEmitted
-  >(transitions);
+    TContext,
+    EventObject
+  >
+): StoreLogic<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TInput>;
+export function fromStore(
+  initialContextOrObject: any,
+  transitions?: any
+): StoreLogic<any, any, any> {
+  let [initialContext, actualTransitions] =
+    transitions === undefined
+      ? [initialContextOrObject.context, initialContextOrObject.on]
+      : [initialContextOrObject, transitions];
+
+  const transition = createStoreTransition(transitions);
   return {
     transition,
     start: () => {},
-    getInitialSnapshot: (_: any, input: TInput) => {
+    getInitialSnapshot: (_: any, input: any /* TInput */) => {
       return {
         status: 'active',
         context:
@@ -45,9 +93,9 @@ export function fromStore<
             : initialContext,
         output: undefined,
         error: undefined
-      } satisfies StoreSnapshot<TContext>;
+      }; /* satisfies StoreSnapshot<TContext>; */
     },
-    getPersistedSnapshot: (s: StoreSnapshot<TContext>) => s,
-    restoreSnapshot: (s: Snapshot<unknown>) => s as StoreSnapshot<TContext>
+    getPersistedSnapshot: (s: any /*StoreSnapshot<TContext>*/) => s,
+    restoreSnapshot: (s: Snapshot<unknown>) => s as StoreSnapshot<any>
   };
 }
