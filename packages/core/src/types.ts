@@ -61,11 +61,9 @@ export type IndexByProp<T extends Record<P, string>, P extends keyof T> = {
 
 export type IndexByType<T extends { type: string }> = IndexByProp<T, 'type'>;
 
-export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
-  ? true
-  : false) extends <A>() => A extends A1 ? true : false
-  ? true
-  : false;
+export type Equals<A1 extends any, A2 extends any> = (
+    <A>() => A extends A2 ? true : false
+    ) extends <A>() => A extends A1 ? true : false ? true : false;
 export type IsAny<T> = Equals<T, any>;
 export type Cast<A, B> = A extends B ? A : B;
 // @TODO: Replace with native `NoInfer` when TS issue gets fixed:
