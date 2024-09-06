@@ -1,3 +1,4 @@
+import { EventObject } from 'xstate';
 import { createStore, createStoreTransition } from './store';
 import {
   EventPayloadMap,
@@ -19,14 +20,19 @@ import {
 export function fromStore<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
-  TInput
+  TInput,
+  TEmitted extends EventObject
 >(
   initialContext: ((input: TInput) => TContext) | TContext,
-  transitions: Parameters<typeof createStore<TContext, TEventPayloadMap>>[1]
+  transitions: Parameters<
+    typeof createStore<TContext, TEventPayloadMap, TEmitted>
+  >[1]
 ) {
-  const transition = createStoreTransition<TContext, TEventPayloadMap>(
-    transitions
-  );
+  const transition = createStoreTransition<
+    TContext,
+    TEventPayloadMap,
+    TEmitted
+  >(transitions);
   return {
     transition,
     start: () => {},

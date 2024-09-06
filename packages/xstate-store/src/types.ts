@@ -79,11 +79,11 @@ export type StoreSnapshot<TContext> = Snapshot<undefined> & {
  */
 export interface Store<
   TContext,
-  Ev extends EventObject,
+  TEvent extends EventObject,
   TEmitted extends EventObject
 > extends Subscribable<StoreSnapshot<TContext>>,
     InteropObservable<StoreSnapshot<TContext>> {
-  send: (event: Ev) => void;
+  send: (event: TEvent) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
   getInitialSnapshot: () => StoreSnapshot<TContext>;
   /**
@@ -101,9 +101,13 @@ export interface Store<
   sessionId: string;
   on: <TEmittedType extends TEmitted['type']>(
     eventType: TEmittedType,
-    fn: (ev: Compute<TEmitted & { type: TEmittedType }>) => void
+    emittedEventHandler: (
+      ev: Compute<TEmitted & { type: TEmittedType }>
+    ) => void
   ) => Subscription;
 }
+
+export type AnyStore = Store<any, any, any>;
 
 export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 

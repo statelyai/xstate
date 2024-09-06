@@ -10,10 +10,10 @@ import {
   StorePropertyAssigner
 } from './types';
 
-type MaybeZod<T> = T extends { _output: infer U } ? U : T;
+type ZodLike<T> = T extends { _output: infer U } ? U : never;
 
 type EmittedFrom<T extends Record<string, {}>> = {
-  [K in keyof T]: Compute<{ type: K } & MaybeZod<T[K]> & EventObject>;
+  [K in keyof T]: Compute<{ type: K } & ZodLike<T[K]> & EventObject>;
 }[keyof T];
 
 type SetupOutput<TEmitted extends EventObject> = {
