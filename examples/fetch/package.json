@@ -1,5 +1,5 @@
 {
-  "name": "@xstate/examples-fetch",
+  "name": "@xstate/example-fetch",
   "version": "1.0.0",
   "private": true,
   "main": "index.html",
@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "parcel-bundler": "^1.12.5",
-    "xstate": "^5.17.1"
+    "xstate": "^5.18.0"
   },
   "devDependencies": {
     "typescript": "^5.5.4"

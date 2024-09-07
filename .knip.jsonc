@@ -5,6 +5,21 @@
       "entry": ["scripts/*.js"],
       "project": ["scripts/*.js"]
     },
+    "packages/core": {
+      "entry": [
+        "src/index.ts",
+        "src/actions.ts",
+        "src/actors/index.ts",
+        "src/guards.ts",
+        "src/dev/index.ts"
+      ]
+    },
+    "packages/xstate-inspect": {
+      "entry": ["src/index.ts", "src/server.ts"]
+    },
+    "packages/xstate-store": {
+      "entry": ["src/index.ts", "src/react.ts", "src/solid.ts"]
+    },
     "packages/xstate-svelte": {
       "typescript": "test/tsconfig.json"
     }
@@ -22,6 +37,7 @@
     "synckit",
     // package.json#exports aren't added as entry points, because `dist/` is .gitignored
     "react",
+    "solid-js",
     "xstate",
     "@types/ws"
   ]

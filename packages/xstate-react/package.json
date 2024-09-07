@@ -55,7 +55,7 @@
   },
   "peerDependencies": {
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
-    "xstate": "^5.17.4"
+    "xstate": "^5.18.0"
   },
   "peerDependenciesMeta": {
     "xstate": {
@@ -74,6 +74,6 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "rxjs": "^7.8.0",
-    "xstate": "5.17.4"
+    "xstate": "5.18.0"
   }
 }

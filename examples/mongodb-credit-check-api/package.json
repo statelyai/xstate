@@ -1,5 +1,5 @@
 {
-  "name": "express-workflow",
+  "name": "@xstate/example-mongodb-credit-check-api",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -14,12 +14,12 @@
     "body-parser": "^1.20.2",
     "express": "^4.19.2",
     "mongodb": "^6.8.0",
-    "xstate": "^5.17.1",
+    "xstate": "^5.18.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
-    "@types/node": "^20.14.13",
+    "@types/node": "^20.16.3",
     "nodemon": "^3.1.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"
