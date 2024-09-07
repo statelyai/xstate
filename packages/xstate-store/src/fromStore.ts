@@ -1,4 +1,3 @@
-import { EventObject } from 'xstate';
 import {
   createStore,
   createStoreTransition,
@@ -11,7 +10,8 @@ import {
   // StoreSnapshot,
   Snapshot,
   ExtractEventsFromPayloadMap,
-  StoreSnapshot
+  StoreSnapshot,
+  EventObject
 } from './types';
 
 type StoreLogic<
@@ -28,6 +28,20 @@ type StoreLogic<
   restoreSnapshot: (snapshot: Snapshot<unknown>) => StoreSnapshot<TContext>;
 };
 
+// type StoreLogic1 = {
+//   transition: (snapshot: StoreSnapshot<StoreContext>, event: {
+//       by: number;
+//   } & {
+//       type: "inc";
+//   }) => StoreSnapshot<StoreContext>;
+//   start: () => void;
+//   getInitialSnapshot: (_: any, input: number) => {
+//       ...;
+//   };
+//   getPersistedSnapshot: (s: StoreSnapshot<...>) => StoreSnapshot<...>;
+//   restoreSnapshot: (s: Snapshot<unknown>) => StoreSnapshot<any>;
+// }
+
 /**
  * An actor logic creator which creates store [actor
  * logic](https://stately.ai/docs/actors#actor-logic) for use with XState.
@@ -38,27 +52,27 @@ type StoreLogic<
  *   due to events
  * @returns An actor logic creator function that creates store actor logic
  */
-export function fromStore<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
-  TInput,
-  TSchemas extends { emitted: Record<string, { _output: unknown }> }
->({
-  context,
-  on,
-  schemas
-}: {
-  context: ((input: TInput) => TContext) | TContext;
-  on: TransitionsFromEventPayloadMap<
-    TEventPayloadMap,
-    TContext,
-    EmittedFromSchemas<TSchemas['emitted']>
-  >;
-} & { schemas?: TSchemas }): StoreLogic<
-  TContext,
-  ExtractEventsFromPayloadMap<TEventPayloadMap>,
-  TInput
->;
+// export function fromStore<
+//   TContext extends StoreContext,
+//   TEventPayloadMap extends EventPayloadMap,
+//   TInput,
+//   TSchemas extends { emitted: Record<string, { _output: unknown }> }
+// >({
+//   context,
+//   on,
+//   schemas
+// }: {
+//   context: ((input: TInput) => TContext) | TContext;
+//   on: TransitionsFromEventPayloadMap<
+//     TEventPayloadMap,
+//     TContext,
+//     EmittedFromSchemas<TSchemas['emitted']>
+//   >;
+// } & { schemas?: TSchemas }): StoreLogic<
+//   TContext,
+//   ExtractEventsFromPayloadMap<TEventPayloadMap>,
+//   TInput
+// >;
 export function fromStore<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
@@ -70,21 +84,22 @@ export function fromStore<
     TContext,
     EventObject
   >
-): StoreLogic<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TInput>;
-export function fromStore(
-  initialContextOrObject: any,
-  transitions?: any
-): StoreLogic<any, any, any> {
-  let [initialContext, actualTransitions] =
-    transitions === undefined
-      ? [initialContextOrObject.context, initialContextOrObject.on]
-      : [initialContextOrObject, transitions];
+) {
+  //: StoreLogic<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TInput>;
+  // export function fromStore(
+  //   initialContextOrObject: any,
+  //   transitions?: any
+  // ): StoreLogic<any, any, any>
+  // let [initialContext, actualTransitions] =
+  //   transitions === undefined
+  //     ? [initialContextOrObject.context, initialContextOrObject.on]
+  //     : [initialContextOrObject, transitions];
 
   const transition = createStoreTransition(transitions);
   return {
     transition,
     start: () => {},
-    getInitialSnapshot: (_: any, input: any /* TInput */) => {
+    getInitialSnapshot: (_: any, input: TInput) => {
       return {
         status: 'active',
         context:
@@ -93,9 +108,9 @@ export function fromStore(
             : initialContext,
         output: undefined,
         error: undefined
-      }; /* satisfies StoreSnapshot<TContext>; */
+      } satisfies StoreSnapshot<TContext>;
     },
-    getPersistedSnapshot: (s: any /*StoreSnapshot<TContext>*/) => s,
+    getPersistedSnapshot: (s: StoreSnapshot<TContext>) => s,
     restoreSnapshot: (s: Snapshot<unknown>) => s as StoreSnapshot<any>
   };
 }

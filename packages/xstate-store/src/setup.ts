@@ -1,4 +1,3 @@
-import { EventObject } from 'xstate';
 import { createStore } from './store';
 import {
   Compute,
@@ -7,7 +6,8 @@ import {
   Store,
   StoreAssigner,
   StoreContext,
-  StorePropertyAssigner
+  StorePropertyAssigner,
+  EventObject
 } from './types';
 
 type ZodLike<T> = T extends { _output: infer U } ? U : never;

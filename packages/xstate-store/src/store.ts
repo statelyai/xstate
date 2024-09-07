@@ -415,7 +415,9 @@ export function createStoreTransition<
     context: NoInfer<TContext>,
     recipe: (context: NoInfer<TContext>) => NoInfer<TContext>
   ) => NoInfer<TContext>,
-  enq: { emit: (ev: TEmitted) => void } = { emit: (ev: TEmitted) => void 0 }
+  enqueue: { emit: (ev: TEmitted) => void } = {
+    emit: (_ev: TEmitted) => void 0
+  }
 ) {
   return (
     snapshot: StoreSnapshot<TContext>,
@@ -440,7 +442,7 @@ export function createStoreTransition<
                   StoreEvent,
                   TEmitted
                 >
-              )?.(draftContext, event, enq)
+              )?.(draftContext, event, enqueue)
           )
         : setter(currentContext, (draftContext) =>
             Object.assign(
@@ -449,7 +451,7 @@ export function createStoreTransition<
               assigner?.(
                 draftContext,
                 event as any, // TODO: help me
-                enq
+                enqueue
               )
             )
           );
@@ -466,7 +468,7 @@ export function createStoreTransition<
                   typeof key,
                   TEmitted
                 >
-              )(currentContext, event, enq)
+              )(currentContext, event, enqueue)
             : propAssignment;
       }
       currentContext = Object.assign({}, currentContext, partialUpdate);

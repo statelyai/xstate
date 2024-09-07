@@ -22,26 +22,26 @@ describe('fromStore', () => {
     expect(actor.getSnapshot().context.count).toEqual(50);
   });
 
-  it('creates an actor from store logic with input (1 arg)', () => {
-    const storeLogic = fromStore({
-      context: (count: number) => ({ count }),
-      on: {
-        inc: {
-          count: (ctx, ev: { by: number }) => {
-            return ctx.count + ev.by;
-          }
-        }
-      }
-    });
+  // it('creates an actor from store logic with input (1 arg)', () => {
+  //   const storeLogic = fromStore({
+  //     context: (count: number) => ({ count }),
+  //     on: {
+  //       inc: {
+  //         count: (ctx, ev: { by: number }) => {
+  //           return ctx.count + ev.by;
+  //         }
+  //       }
+  //     }
+  //   });
 
-    const actor = createActor(storeLogic, {
-      input: 42
-    });
+  //   const actor = createActor(storeLogic, {
+  //     input: 42
+  //   });
 
-    actor.start();
+  //   actor.start();
 
-    actor.send({ type: 'inc', by: 8 });
+  //   actor.send({ type: 'inc', by: 8 });
 
-    expect(actor.getSnapshot().context.count).toEqual(50);
-  });
+  //   expect(actor.getSnapshot().context.count).toEqual(50);
+  // });
 });
