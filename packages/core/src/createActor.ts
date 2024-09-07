@@ -121,6 +121,7 @@ export class Actor<TLogic extends AnyActorLogic>
   public src: string | AnyActorLogic;
 
   private _synchronizer?: Synchronizer<any>;
+  private _synchronizerSubscription?: Subscription;
 
   /**
    * Creates a new actor instance for the given logic with the provided options,
@@ -215,6 +216,17 @@ export class Actor<TLogic extends AnyActorLogic>
       this._synchronizer?.getSnapshot() ?? options?.snapshot ?? options?.state;
 
     this._initState(initialSnapshot);
+
+    if (this._synchronizer) {
+      this._synchronizerSubscription = this._synchronizer.subscribe(
+        (rawSnapshot) => {
+          const restoredSnapshot =
+            this.logic.restoreSnapshot?.(rawSnapshot, this._actorScope) ??
+            rawSnapshot;
+          this.update(restoredSnapshot, { type: '@xstate.sync' });
+        }
+      );
+    }
 
     if (systemId && (this._snapshot as any).status !== 'active') {
       this.system._unregister(this);
@@ -576,6 +588,7 @@ export class Actor<TLogic extends AnyActorLogic>
       return this;
     }
     this.mailbox.clear();
+    this._synchronizerSubscription?.unsubscribe();
     if (this._processingStatus === ProcessingStatus.NotStarted) {
       this._processingStatus = ProcessingStatus.Stopped;
       return this;

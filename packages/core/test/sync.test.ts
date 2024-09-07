@@ -3,7 +3,8 @@ import {
   createMachine,
   Observer,
   Synchronizer,
-  toObserver
+  toObserver,
+  waitFor
 } from '../src';
 
 describe('sync', () => {
@@ -70,21 +71,26 @@ describe('sync', () => {
     expect(pseudoStorage.getItem('test').value).toBe('c');
   });
 
-  it.only('work with an asynchronous synchronizer', () => {
+  it('work with an asynchronous synchronizer', async () => {
     let snapshotRef = {
-      current: JSON.stringify({ value: 'b', children: {}, status: 'active' })
+      current: undefined as any
     };
     let onChangeRef = {
       current: (() => {}) as (value: any) => void
     };
     const pseudoStorage = {
       getItem: async (key: string) => {
+        if (!snapshotRef.current) {
+          return undefined;
+        }
         return JSON.parse(snapshotRef.current);
       },
-      setItem: (key: string, value: string) => {
+      setItem: (key: string, value: string, source?: 'sync') => {
         snapshotRef.current = value;
 
-        onChangeRef.current(JSON.parse(value));
+        if (source !== 'sync') {
+          onChangeRef.current(JSON.parse(value));
+        }
       },
       subscribe: (fn: (value: any) => void) => {
         onChangeRef.current = fn;
@@ -93,13 +99,6 @@ describe('sync', () => {
 
     const createStorageSync = (key: string): Synchronizer<any> => {
       const observers = new Set<Observer<any>>();
-      let cachedRef = {
-        current: JSON.stringify({
-          value: {},
-          status: 'pending',
-          children: {}
-        })
-      };
 
       pseudoStorage.subscribe((value) => {
         observers.forEach((observer) => {
@@ -107,19 +106,27 @@ describe('sync', () => {
         });
       });
 
-      return {
-        getSnapshot: () => {
-          return JSON.parse(cachedRef.current);
-        },
+      const getSnapshot = () => {
+        if (!snapshotRef.current) {
+          return undefined;
+        }
+        return JSON.parse(snapshotRef.current);
+      };
+
+      const storageSync = {
+        getSnapshot,
         setSnapshot: (snapshot) => {
-          pseudoStorage.setItem(key, JSON.stringify(snapshot));
+          const s = JSON.stringify(snapshot);
+          pseudoStorage.setItem(key, s, 'sync');
         },
         subscribe: (o) => {
           const observer = toObserver(o);
 
-          const state = pseudoStorage.getItem(key);
+          const state = getSnapshot();
 
-          observer.next?.(state);
+          if (state) {
+            observer.next?.(state);
+          }
 
           observers.add(observer);
 
@@ -129,7 +136,16 @@ describe('sync', () => {
             }
           };
         }
-      };
+      } satisfies Synchronizer<any>;
+
+      setTimeout(() => {
+        pseudoStorage.setItem(
+          'key',
+          JSON.stringify({ value: 'b', children: {}, status: 'active' })
+        );
+      }, 100);
+
+      return storageSync;
     };
 
     const machine = createMachine({
@@ -149,7 +165,9 @@ describe('sync', () => {
       sync: createStorageSync('test')
     }).start();
 
-    expect(actor.getSnapshot().value).toBe('b');
+    expect(actor.getSnapshot().value).toBe('a');
+
+    await waitFor(actor, () => actor.getSnapshot().value === 'b');
 
     actor.send({ type: 'next' });
 
