@@ -1,3 +1,8 @@
+import {
+  fireEvent,
+  screen,
+  waitFor as testWaitFor
+} from '@testing-library/react';
 import * as React from 'react';
 import {
   ActorRefFrom,
@@ -9,11 +14,6 @@ import {
   sendParent,
   sendTo
 } from 'xstate';
-import {
-  fireEvent,
-  screen,
-  waitFor as testWaitFor
-} from '@testing-library/react';
 import { useActorRef, useMachine, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
 
