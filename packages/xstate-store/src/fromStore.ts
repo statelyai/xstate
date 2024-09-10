@@ -52,27 +52,6 @@ type StoreLogic<
  *   due to events
  * @returns An actor logic creator function that creates store actor logic
  */
-// export function fromStore<
-//   TContext extends StoreContext,
-//   TEventPayloadMap extends EventPayloadMap,
-//   TInput,
-//   TSchemas extends { emitted: Record<string, { _output: unknown }> }
-// >({
-//   context,
-//   on,
-//   schemas
-// }: {
-//   context: ((input: TInput) => TContext) | TContext;
-//   on: TransitionsFromEventPayloadMap<
-//     TEventPayloadMap,
-//     TContext,
-//     EmittedFromSchemas<TSchemas['emitted']>
-//   >;
-// } & { schemas?: TSchemas }): StoreLogic<
-//   TContext,
-//   ExtractEventsFromPayloadMap<TEventPayloadMap>,
-//   TInput
-// >;
 export function fromStore<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
