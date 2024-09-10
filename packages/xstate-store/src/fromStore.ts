@@ -85,16 +85,6 @@ export function fromStore<
     EventObject
   >
 ) {
-  //: StoreLogic<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TInput>;
-  // export function fromStore(
-  //   initialContextOrObject: any,
-  //   transitions?: any
-  // ): StoreLogic<any, any, any>
-  // let [initialContext, actualTransitions] =
-  //   transitions === undefined
-  //     ? [initialContextOrObject.context, initialContextOrObject.on]
-  //     : [initialContextOrObject, transitions];
-
   const transition = createStoreTransition(transitions);
   return {
     transition,
