@@ -28,20 +28,6 @@ type StoreLogic<
   restoreSnapshot: (snapshot: Snapshot<unknown>) => StoreSnapshot<TContext>;
 };
 
-// type StoreLogic1 = {
-//   transition: (snapshot: StoreSnapshot<StoreContext>, event: {
-//       by: number;
-//   } & {
-//       type: "inc";
-//   }) => StoreSnapshot<StoreContext>;
-//   start: () => void;
-//   getInitialSnapshot: (_: any, input: number) => {
-//       ...;
-//   };
-//   getPersistedSnapshot: (s: StoreSnapshot<...>) => StoreSnapshot<...>;
-//   restoreSnapshot: (s: Snapshot<unknown>) => StoreSnapshot<any>;
-// }
-
 /**
  * An actor logic creator which creates store [actor
  * logic](https://stately.ai/docs/actors#actor-logic) for use with XState.
