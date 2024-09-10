@@ -269,3 +269,70 @@ it('emits (types)', () =>
 
     store.send({ type: 'inc' });
   }));
+
+it('emitted events can be subscribed to', () => {
+  const store = createStore({
+    schemas: {
+      emitted: {
+        increased: z.object({ upBy: z.number() }),
+        decreased: z.object({ downBy: z.number() })
+      }
+    },
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit({ type: 'increased', upBy: 1 });
+
+        return {
+          ...ctx,
+          count: ctx.count + 1
+        };
+      }
+    }
+  });
+
+  const spy = jest.fn();
+
+  store.on('increased', spy);
+
+  store.send({ type: 'inc' });
+
+  expect(spy).toHaveBeenCalledWith({ type: 'increased', upBy: 1 });
+});
+
+it('emitted events can be unsubscribed to', () => {
+  const store = createStore({
+    schemas: {
+      emitted: {
+        increased: z.object({ upBy: z.number() }),
+        decreased: z.object({ downBy: z.number() })
+      }
+    },
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit({ type: 'increased', upBy: 1 });
+
+        return {
+          ...ctx,
+          count: ctx.count + 1
+        };
+      }
+    }
+  });
+
+  const spy = jest.fn();
+  const sub = store.on('increased', spy);
+  store.send({ type: 'inc' });
+
+  expect(spy).toHaveBeenCalledWith({ type: 'increased', upBy: 1 });
+
+  sub.unsubscribe();
+  store.send({ type: 'inc' });
+
+  expect(spy).toHaveBeenCalledTimes(1);
+});
