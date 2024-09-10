@@ -77,12 +77,12 @@ function createStoreCore<
   type StoreEvent = ExtractEventsFromPayloadMap<TEventPayloadMap>;
   let observers: Set<Observer<StoreSnapshot<TContext>>> | undefined;
   let listeners: Map<TEmitted['type'], Set<any>> | undefined;
-  const initialSnapshot = {
+  const initialSnapshot: StoreSnapshot<TContext> = {
     context: initialContext,
     status: 'active',
     output: undefined,
     error: undefined
-  } satisfies StoreSnapshot<TContext> as StoreSnapshot<TContext>;
+  };
   let currentSnapshot = initialSnapshot;
   const emit = (ev: TEmitted) => {
     if (!listeners) {
