@@ -1,6 +1,15 @@
-import { assign, createMachine, fromCallback } from 'xstate';
+import { assign, fromCallback, setup } from 'xstate';
 
-export const timerMachine = createMachine({
+export const timerMachine = setup({
+  actors: {
+    ticks: fromCallback(({ sendBack }) => {
+      const interval = setInterval(() => {
+        sendBack({ type: 'TICK' });
+      }, 1000);
+      return () => clearInterval(interval);
+    })
+  }
+}).createMachine({
   types: {} as {
     events:
       | { type: 'start' }
@@ -35,12 +44,7 @@ export const timerMachine = createMachine({
     },
     running: {
       invoke: {
-        src: fromCallback(({ sendBack }) => {
-          const interval = setInterval(() => {
-            sendBack({ type: 'TICK' });
-          }, 1000);
-          return () => clearInterval(interval);
-        })
+        src: 'ticks'
       },
       on: {
         stop: 'stopped',

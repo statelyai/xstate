@@ -1,9 +1,8 @@
 const { constants } = require('jest-config');
 
-/**
- * @type {import('@jest/types').Config.InitialOptions}
- */
+/** @type {import('@jest/types').Config.InitialOptions} */
 module.exports = {
+  prettierPath: null,
   setupFilesAfterEnv: ['@xstate-repo/jest-utils/setup'],
   transform: {
     [constants.DEFAULT_JS_PATTERN]: 'babel-jest',

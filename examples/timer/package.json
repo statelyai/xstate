@@ -1,5 +1,5 @@
 {
-  "name": "timer",
+  "name": "@xstate/example-timer",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,16 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@xstate/react": "^4.0.2",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "xstate": "^5.4.1"
+    "@xstate/react": "^4.1.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "xstate": "^5.18.0"
   },
   "devDependencies": {
-    "@types/react": "^18.2.45",
-    "@types/react-dom": "^18.2.18",
-    "@vitejs/plugin-react": "^3.1.0",
-    "typescript": "^5.3.3",
-    "vite": "^5.0.11"
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2"
   }
 }

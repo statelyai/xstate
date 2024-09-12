@@ -6,15 +6,16 @@
     "serve": "vite preview"
   },
   "dependencies": {
-    "@xstate/react": "^4.0.2",
+    "@xstate/react": "^4.1.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "xstate": "^5.4.1"
+    "xstate": "^5.18.0"
   },
   "devDependencies": {
-    "@types/react": "^17.0.73",
+    "@types/react": "^17.0.80",
     "@types/react-dom": "^17.0.25",
-    "typescript": "^5.3.3",
-    "vite": "^5.0.11"
-  }
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2"
+  },
+  "name": "@xstate/example-tic-tac-toe-react"
 }

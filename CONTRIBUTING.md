@@ -22,15 +22,20 @@ Please read [our code of conduct](https://github.com/statelyai/xstate/blob/main/
 Pull requests are encouraged. If you want to add a feature or fix a bug:
 
 1. [Fork](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) and [clone](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) the [repository](https://github.com/statelyai/xstate).
-2. [Create a separate branch](https://docs.github.com/en/desktop/contributing-and-collaborating-using-github-desktop/managing-branches) for your changes.
-3. Make your changes, and ensure that it is formatted by [Prettier](https://prettier.io) and type-checks without errors in [TypeScript](https://www.typescriptlang.org/).
-4. Write tests that validate your change and/or fix.
-5. Run `yarn build` and then run tests with `yarn test` (for all packages) or `yarn test:core` (for only changes to core XState).
-6. For package changes, add docs inside the `/packages/*/README.md`. These docs will be copied on build to the corresponding `/docs/packages/*/index.md` file.
-7. Create a changeset by running `yarn changeset`. [More about changesets](https://github.com/atlassian/changesets).
-8. Push your branch and open a PR 🚀
+1. [Create a separate branch](https://docs.github.com/en/desktop/contributing-and-collaborating-using-github-desktop/managing-branches) for your changes.
+1. Make your changes, and write tests that validate your change and/or fix.
+1. Run `yarn test` (for all packages) or `yarn test:core` (for only changes to core XState).
+1. Run `yarn typecheck` to make sure that there are no type errors.
+1. Create a changeset by running `yarn changeset`. [More about changesets](https://github.com/atlassian/changesets).
+1. Push your branch and open a PR 🚀
 
 PRs are reviewed promptly and merged in within a day or two (or even within an hour) if everything looks good.
+
+## Contributing an example
+
+Our [examples](https://github.com/statelyai/xstate/tree/main/examples) are self-contained apps that show how to solve a common problem, integrate another framework (like Vue or Svelte) or build something fun with XState.
+
+To contribute an example, please read the [`readme`](https://github.com/statelyai/xstate/blob/main/examples/readme.md) in the `/examples` folder.
 
 ## Submit an issue
 

@@ -1,6 +1,7 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
 import { Spawner, createSpawner } from '../spawn.ts';
+import { executingCustomAction } from '../stateUtils.ts';
 import type {
   ActionArgs,
   AnyActorScope,
@@ -13,7 +14,8 @@ import type {
   MachineContext,
   ParameterizedObject,
   PropertyAssigner,
-  ProvidedActor
+  ProvidedActor,
+  ActionFunction
 } from '../types.ts';
 
 export interface AssignArgs<
@@ -99,43 +101,43 @@ export interface AssignAction<
 /**
  * Updates the current context of the machine.
  *
- * @param assignment An object that represents the partial context to update, or a
- * function that returns an object that represents the partial context to update.
- * 
  * @example
-  ```ts
-  import { createMachine, assign } from 'xstate';
-
-  const countMachine = createMachine({
-    context: {
-      count: 0,
-      message: ''
-    },
-    on: {
-      inc: {
-        actions: assign({
-          count: ({ context }) => context.count + 1
-        })
-      },
-      updateMessage: {
-        actions: assign(({ context, event }) => {
-          return {
-            message: event.message.trim()
-          }
-        })
-      }
-    }
-  });
-  ```
+ *
+ * ```ts
+ * import { createMachine, assign } from 'xstate';
+ *
+ * const countMachine = createMachine({
+ *   context: {
+ *     count: 0,
+ *     message: ''
+ *   },
+ *   on: {
+ *     inc: {
+ *       actions: assign({
+ *         count: ({ context }) => context.count + 1
+ *       })
+ *     },
+ *     updateMessage: {
+ *       actions: assign(({ context, event }) => {
+ *         return {
+ *           message: event.message.trim()
+ *         };
+ *       })
+ *     }
+ *   }
+ * });
+ * ```
+ *
+ * @param assignment An object that represents the partial context to update, or
+ *   a function that returns an object that represents the partial context to
+ *   update.
  */
 export function assign<
   TContext extends MachineContext,
-  TExpressionEvent extends AnyEventObject = AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TParams extends ParameterizedObject['params'] | undefined =
-    | ParameterizedObject['params']
-    | undefined,
-  TEvent extends EventObject = EventObject,
-  TActor extends ProvidedActor = ProvidedActor
+  TExpressionEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TParams extends ParameterizedObject['params'] | undefined,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor
 >(
   assignment:
     | Assigner<LowInfer<TContext>, TExpressionEvent, TParams, TEvent, TActor>
@@ -146,7 +148,23 @@ export function assign<
         TEvent,
         TActor
       >
-): AssignAction<TContext, TExpressionEvent, TParams, TEvent, TActor> {
+): ActionFunction<
+  TContext,
+  TExpressionEvent,
+  TEvent,
+  TParams,
+  TActor,
+  never,
+  never,
+  never,
+  never
+> {
+  if (isDevelopment && executingCustomAction) {
+    console.warn(
+      'Custom actions should not call `assign()` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.'
+    );
+  }
+
   function assign(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams

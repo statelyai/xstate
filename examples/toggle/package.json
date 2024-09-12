@@ -1,5 +1,5 @@
 {
-  "name": "toggle",
+  "name": "@xstate/example-toggle",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,10 +9,10 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
-    "vite": "^5.0.10"
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2"
   },
   "dependencies": {
-    "xstate": "^5.4.1"
+    "xstate": "^5.18.0"
   }
 }

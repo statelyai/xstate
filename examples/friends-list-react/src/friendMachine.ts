@@ -1,13 +1,12 @@
-import { createMachine, assign, fromPromise } from 'xstate';
+import { assign, fromPromise, setup } from 'xstate';
 
-export const friendMachine = createMachine({
-  id: 'friend',
-  types: {} as {
-    context: {
+export const friendMachine = setup({
+  types: {
+    context: {} as {
       prevName: string;
       name: string;
-    };
-    events:
+    },
+    events: {} as
       | {
           type: 'SET_NAME';
           value: string;
@@ -20,11 +19,22 @@ export const friendMachine = createMachine({
         }
       | {
           type: 'CANCEL';
-        };
-    input: {
+        },
+    input: {} as {
       name: string;
-    };
+    },
+    tags: {} as 'read' | 'form' | 'saving'
   },
+  actors: {
+    saveUser: fromPromise(async () => {
+      // Simulate network request
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return true;
+    })
+  }
+}).createMachine({
+  id: 'friend',
+
   initial: 'reading',
   context: ({ input }) => ({
     prevName: input.name,
@@ -51,11 +61,7 @@ export const friendMachine = createMachine({
     saving: {
       tags: ['form', 'saving'],
       invoke: {
-        src: fromPromise(async () => {
-          // Simulate network request
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          return true;
-        }),
+        src: 'saveUser',
         onDone: {
           target: 'reading',
           actions: assign({ prevName: ({ context }) => context.name })

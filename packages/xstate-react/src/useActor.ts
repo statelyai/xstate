@@ -6,14 +6,24 @@ import {
   ActorOptions,
   AnyActorLogic,
   Snapshot,
-  SnapshotFrom
+  SnapshotFrom,
+  type ConditionalRequired,
+  type IsNotNever,
+  type RequiredActorOptionsKeys
 } from 'xstate';
 import { stopRootWithRehydration } from './stopRootWithRehydration.ts';
 import { useIdleActorRef } from './useActorRef.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  options: ActorOptions<TLogic> = {}
+  ...[options]: ConditionalRequired<
+    [
+      options?: ActorOptions<TLogic> & {
+        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
+      }
+    ],
+    IsNotNever<RequiredActorOptionsKeys<TLogic>>
+  >
 ): [SnapshotFrom<TLogic>, Actor<TLogic>['send'], Actor<TLogic>] {
   if (
     isDevelopment &&
@@ -33,7 +43,7 @@ export function useActor<TLogic extends AnyActorLogic>(
   }, [actorRef]);
 
   const subscribe = useCallback(
-    (handleStoreChange) => {
+    (handleStoreChange: () => void) => {
       const { unsubscribe } = actorRef.subscribe(
         handleStoreChange,
         handleStoreChange

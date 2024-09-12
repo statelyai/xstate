@@ -1,5 +1,5 @@
 {
-  "name": "hello-workflow",
+  "name": "@xstate/example-mongodb-persisted-state",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,12 +10,12 @@
   },
   "devDependencies": {
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3",
-    "vite": "^4.5.1",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2",
     "vite-node": "^0.31.4"
   },
   "dependencies": {
-    "mongodb": "^6.3.0",
-    "xstate": "^5.4.1"
+    "mongodb": "^6.8.0",
+    "xstate": "^5.18.0"
   }
 }

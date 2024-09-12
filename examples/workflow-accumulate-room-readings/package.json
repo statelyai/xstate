@@ -1,5 +1,5 @@
 {
-  "name": "hello-workflow",
+  "name": "@xstate/example-workflow-accumulate-room-readings",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,12 +9,12 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
-    "vite": "^4.5.1",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2",
     "vite-node": "^0.31.4"
   },
   "dependencies": {
-    "cockatiel": "^3.1.2",
-    "xstate": "^5.4.1"
+    "cockatiel": "^3.2.1",
+    "xstate": "^5.18.0"
   }
 }

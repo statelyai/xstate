@@ -1,4 +1,10 @@
-import { createMachine, assign, fromPromise, Snapshot } from 'xstate';
+import {
+  createMachine,
+  assign,
+  fromPromise,
+  Snapshot,
+  InspectionEvent
+} from 'xstate';
 import { fireEvent, screen, render, waitFor } from '@testing-library/react';
 import { useSelector, createActorContext, shallowEqual } from '../src';
 
@@ -31,7 +37,7 @@ describe('createActorContext', () => {
     const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
-      const value = SomeContext.useSelector((state) => state.value);
+      const value = SomeContext.useSelector((state) => state.value as string);
 
       return <div data-testid="value">{value}</div>;
     };
@@ -70,7 +76,7 @@ describe('createActorContext', () => {
 
       return (
         <>
-          <div data-testid="value">{state.value}</div>
+          <div data-testid="value">{state.value as string}</div>
           <button
             data-testid="next"
             onClick={() => actorRef.send({ type: 'NEXT' })}
@@ -114,14 +120,14 @@ describe('createActorContext', () => {
       },
       on: {
         INC: {
-          actions: assign<MachineContext>(({ context }) => ({
+          actions: assign(({ context }) => ({
             obj: {
               counter: context.obj.counter + 1
             }
           }))
         },
         PUSH: {
-          actions: assign<MachineContext>(({ context }) => ({
+          actions: assign(({ context }) => ({
             arr: [...context.arr, Math.random().toString(36).slice(2)]
           }))
         }
@@ -190,7 +196,7 @@ describe('createActorContext', () => {
       const actor = SomeContext.useActorRef();
       const value = useSelector(actor, (state) => state.value);
 
-      return <div data-testid="value">{value}</div>;
+      return <div data-testid="value">{value as string}</div>;
     };
 
     const App = () => {
@@ -406,7 +412,7 @@ describe('createActorContext', () => {
             actorRef.send({ type: 'next' });
           }}
         >
-          {state.value}
+          {state.value as string}
         </div>
       );
     };
@@ -469,5 +475,48 @@ describe('createActorContext', () => {
     render(<App />);
 
     expect(screen.getByTestId('value').textContent).toBe('84');
+  });
+
+  it('should merge createActorContext options with options passed to the provider', () => {
+    const events: InspectionEvent[] = [];
+    const SomeContext = createActorContext(
+      createMachine({
+        types: {
+          context: {} as { count: number },
+          input: {} as number
+        },
+        context: ({ input }) => ({ count: input })
+      }),
+      {
+        inspect: (ev) => {
+          events.push(ev);
+        }
+      }
+    );
+
+    const Component = () => {
+      const count = SomeContext.useSelector((state) => state.context.count);
+
+      return <div data-testid="value">{count}</div>;
+    };
+
+    const App = () => {
+      return (
+        <SomeContext.Provider options={{ input: 10 }}>
+          <Component />
+        </SomeContext.Provider>
+      );
+    };
+
+    render(<App />);
+
+    expect(events.length).toBeGreaterThan(0);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        snapshot: expect.objectContaining({
+          context: { count: 10 }
+        })
+      })
+    );
   });
 });

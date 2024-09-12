@@ -1,5 +1,114 @@
 # Changelog
 
+## 4.1.2
+
+### Patch Changes
+
+- [#5055](https://github.com/statelyai/xstate/pull/5055) [`ad38c35c37`](https://github.com/statelyai/xstate/commit/ad38c35c377d4ec5c97710fda12512abbe5f7140) Thanks [@SandroMaglione](https://github.com/SandroMaglione)! - Updated types of `useActor`, `useMachine`, and `useActorRef` to require `input` when defined inside `types/input`.
+
+  Previously even when `input` was defined inside `types`, `useActor`, `useMachine`, and `useActorRef` would **not** make the input required:
+
+  ```tsx
+  const machine = setup({
+    types: {
+      input: {} as { value: number }
+    }
+  }).createMachine({});
+
+  function App() {
+    // Event if `input` is not defined, `useMachine` works at compile time, but risks crashing at runtime
+    const _ = useMachine(machine);
+    return <></>;
+  }
+  ```
+
+  With this change the above code will show a type error, since `input` is now required:
+
+  ```tsx
+  const machine = setup({
+    types: {
+      input: {} as { value: number }
+    }
+  }).createMachine({});
+
+  function App() {
+    const _ = useMachine(machine, {
+      input: { value: 1 } // Now input is required at compile time!
+    });
+    return <></>;
+  }
+  ```
+
+  This avoids runtime errors when forgetting to pass `input` when defined inside `types`.
+
+## 4.1.1
+
+### Patch Changes
+
+- [#4844](https://github.com/statelyai/xstate/pull/4844) [`5aa6eb05c`](https://github.com/statelyai/xstate/commit/5aa6eb05c4d79a7efda9895b212fdb45a638f31f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useSelector(…)` hook from `@xstate/react` is now compatible with stores from `@xstate/store`.
+
+  ```tsx
+  import { createStore } from '@xstate/store';
+  import { useSelector } from '@xstate/react';
+
+  const store = createStore(
+    {
+      count: 0
+    },
+    {
+      inc: {
+        count: (context) => context.count + 1
+      }
+    }
+  );
+
+  function Counter() {
+    // Note that this `useSelector` is from `@xstate/react`,
+    // not `@xstate/store/react`
+    const count = useSelector(store, (state) => state.context.count);
+
+    return (
+      <div>
+        <button onClick={() => store.send({ type: 'inc' })}>{count}</button>
+      </div>
+    );
+  }
+  ```
+
+## 4.1.0
+
+### Minor Changes
+
+- [#4231](https://github.com/statelyai/xstate/pull/4231) [`c2402e7bc`](https://github.com/statelyai/xstate/commit/c2402e7bc269dd1f1a9eca0d3e4484ad5a4cfadb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `actor` passed to `useSelector(actor, selector)` is now allowed to be `undefined` for an actor that may not exist yet. For actors that may be `undefined`, the `snapshot` provided to the `selector` function can also be `undefined`:
+
+  ```ts
+  const count = useSelector(maybeActor, (snapshot) => {
+    // `snapshot` may be undefined
+    return snapshot?.context.count;
+  });
+
+  count; // number | undefined
+  ```
+
+## 4.0.3
+
+### Patch Changes
+
+- [#4695](https://github.com/statelyai/xstate/pull/4695) [`52900a084`](https://github.com/statelyai/xstate/commit/52900a084712755b00e6c38eb9aa2c3b290259b5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Options in `createActorContext` are now properly merged with provider options. Previously, provider options replaced the actor options.
+
+  ```tsx
+  const { inspect } = createBrowserInspector();
+
+  const SomeContext = createActorContext(someMachine, { inspect });
+
+  // ...
+  // Options are now merged:
+  // { inspect: inspect, input: 10 }
+  <SomeContext.Provider options={{ input: 10 }}>
+    {/* ... */}
+  </SomeContext.Provider>;
+  ```
+
 ## 4.0.2
 
 ### Patch Changes

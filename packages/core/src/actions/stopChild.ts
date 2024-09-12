@@ -4,6 +4,7 @@ import { ProcessingStatus } from '../createActor.ts';
 import {
   ActionArgs,
   ActorRef,
+  AnyActorRef,
   AnyActorScope,
   AnyMachineSnapshot,
   EventObject,
@@ -18,11 +19,11 @@ type ResolvableActorRef<
   TEvent extends EventObject
 > =
   | string
-  | ActorRef<any, any>
+  | AnyActorRef
   | ((
       args: ActionArgs<TContext, TExpressionEvent, TEvent>,
       params: TParams
-    ) => ActorRef<any, any> | string);
+    ) => AnyActorRef | string);
 
 function resolveStop(
   _: AnyActorScope,
@@ -33,7 +34,7 @@ function resolveStop(
 ) {
   const actorRefOrString =
     typeof actorRef === 'function' ? actorRef(args, actionParams) : actorRef;
-  const resolvedActorRef: ActorRef<any, any> | undefined =
+  const resolvedActorRef: AnyActorRef | undefined =
     typeof actorRefOrString === 'string'
       ? snapshot.children[actorRefOrString]
       : actorRefOrString;
@@ -52,7 +53,7 @@ function resolveStop(
 }
 function executeStop(
   actorScope: AnyActorScope,
-  actorRef: ActorRef<any, any> | undefined
+  actorRef: AnyActorRef | undefined
 ) {
   if (!actorRef) {
     return;
@@ -122,5 +123,6 @@ export function stopChild<
  * Stops a child actor.
  *
  * @deprecated Use `stopChild(...)` instead
+ * @alias
  */
 export const stop = stopChild;

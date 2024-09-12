@@ -2,21 +2,31 @@ import { from } from 'rxjs';
 import { log } from '../src/actions/log';
 import { raise } from '../src/actions/raise';
 import { stopChild } from '../src/actions/stopChild';
-import { PromiseActorLogic, fromCallback, fromPromise } from '../src/actors';
+import {
+  PromiseActorLogic,
+  createEmptyActor,
+  fromCallback,
+  fromPromise
+} from '../src/actors';
 import {
   ActorRefFrom,
+  ActorRefFromLogic,
+  AnyActorLogic,
   MachineContext,
   ProvidedActor,
   Spawner,
   StateMachine,
+  UnknownActorRef,
   assign,
   createActor,
   createMachine,
   enqueueActions,
   not,
   sendTo,
+  setup,
   spawnChild,
-  stateIn
+  stateIn,
+  toPromise
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -304,6 +314,32 @@ describe('output', () => {
   });
 });
 
+describe('emitted', () => {
+  it('emitted type should be represented in actor.on(…)', () => {
+    const m = setup({
+      types: {
+        emitted: {} as
+          | { type: 'onClick'; x: number; y: number }
+          | { type: 'onChange' }
+      }
+    }).createMachine({});
+
+    const actor = createActor(m);
+
+    actor.on('onClick', (ev) => {
+      ev.x satisfies number;
+
+      // @ts-expect-error
+      ev.x satisfies string;
+    });
+
+    actor.on('onChange', () => {});
+
+    // @ts-expect-error
+    actor.on('unknown', () => {});
+  });
+});
+
 it('should infer context type from `config.context` when there is no `schema.context`', () => {
   createMachine(
     {
@@ -351,7 +387,22 @@ it('should not use actions as possible inference sites', () => {
 it('should work with generic context', () => {
   function createMachineWithExtras<TContext extends MachineContext>(
     context: TContext
-  ): StateMachine<TContext, any, any, any, any, any, any, any, any, any, any> {
+  ): StateMachine<
+    TContext,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any, // TMeta
+    any
+  > {
     return createMachine({ context });
   }
 
@@ -434,7 +485,7 @@ describe('events', () => {
           type: 'FOO';
         }
       },
-      entry: raise<any, any, any>({ type: 'FOO' })
+      entry: raise<any, any, any, any, any, any>({ type: 'FOO' })
     });
 
     const service = createActor(machine).start();
@@ -491,6 +542,9 @@ describe('events', () => {
         any,
         any,
         any,
+        any,
+        any,
+        any, // TMeta
         any
       >
     ) {}
@@ -828,10 +882,13 @@ describe('spawnChild action', () => {
           logic: typeof child;
         };
       },
-      entry: spawnChild('child', {
+      entry: spawnChild(
         // @ts-expect-error
-        id: 'child'
-      })
+        'child',
+        {
+          id: 'child'
+        }
+      )
     });
   });
 
@@ -880,7 +937,7 @@ describe('spawnChild action', () => {
     });
   });
 
-  it(`should not allow anonymous inline actors outside of the configured ones`, () => {
+  it(`should allow anonymous inline actor outside of the configured actors`, () => {
     const child1 = createMachine({
       context: {
         counter: 0
@@ -900,9 +957,36 @@ describe('spawnChild action', () => {
           logic: typeof child1;
         };
       },
-      entry:
+      entry: spawnChild(child2)
+    });
+  });
+
+  it(`should disallow anonymous inline actor with an id outside of the configured actors`, () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child1;
+          id: 'myChild';
+        };
+      },
+      entry: spawnChild(
         // @ts-expect-error
-        spawnChild(child2)
+        child2,
+        { id: 'myChild' }
+      )
     });
   });
 
@@ -918,10 +1002,13 @@ describe('spawnChild action', () => {
           logic: typeof child;
         };
       },
-      entry: spawnChild('child', {
+      entry: spawnChild(
         // @ts-expect-error
-        input: 'hello'
-      })
+        'child',
+        {
+          input: 'hello'
+        }
+      )
     });
   });
 
@@ -973,10 +1060,13 @@ describe('spawnChild action', () => {
           logic: typeof child;
         };
       },
-      entry: spawnChild('child', {
+      entry: spawnChild(
         // @ts-expect-error
-        input: Math.random() > 0.5 ? 'string' : 42
-      })
+        'child',
+        {
+          input: Math.random() > 0.5 ? 'string' : 42
+        }
+      )
     });
   });
 
@@ -992,10 +1082,13 @@ describe('spawnChild action', () => {
           logic: typeof child;
         };
       },
-      entry: spawnChild('child', {
+      entry: spawnChild(
         // @ts-expect-error
-        input: () => 'hello'
-      })
+        'child',
+        {
+          input: () => 'hello'
+        }
+      )
     });
   });
 
@@ -1029,10 +1122,13 @@ describe('spawnChild action', () => {
           logic: typeof child;
         };
       },
-      entry: spawnChild('child', {
+      entry: spawnChild(
         // @ts-expect-error
-        input: () => (Math.random() > 0.5 ? 42 : 'hello')
-      })
+        'child',
+        {
+          input: () => (Math.random() > 0.5 ? 42 : 'hello')
+        }
+      )
     });
   });
 
@@ -1194,8 +1290,8 @@ describe('spawner in assign', () => {
         };
       },
       entry: assign(({ spawn }) => {
+        // @ts-expect-error
         spawn('child', {
-          // @ts-expect-error
           id: 'child'
         });
         return {};
@@ -1256,7 +1352,7 @@ describe('spawner in assign', () => {
     });
   });
 
-  it(`should not allow anonymous inline actors outside of the configured ones`, () => {
+  it(`should allow anonymous inline actor outside of the configured actors`, () => {
     const child1 = createMachine({
       context: {
         counter: 0
@@ -1277,8 +1373,36 @@ describe('spawner in assign', () => {
         };
       },
       entry: assign(({ spawn }) => {
-        // @ts-expect-error
         spawn(child2);
+        return {};
+      })
+    });
+  });
+
+  it(`should no allow anonymous inline actor with an id outside of the configured ones`, () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child1;
+          id: 'myChild';
+        };
+      },
+      entry: assign(({ spawn }) => {
+        // @ts-expect-error
+        spawn(child2, { id: 'myChild' });
         return {};
       })
     });
@@ -1297,8 +1421,8 @@ describe('spawner in assign', () => {
         };
       },
       entry: assign(({ spawn }) => {
+        // @ts-expect-error
         spawn('child', {
-          // @ts-expect-error
           input: 'hello'
         });
         return {};
@@ -1361,8 +1485,8 @@ describe('spawner in assign', () => {
         };
       },
       entry: assign(({ spawn }) => {
+        // @ts-expect-error
         spawn('child', {
-          // @ts-expect-error
           input: Math.random() > 0.5 ? 'string' : 42
         });
         return {};
@@ -1383,8 +1507,8 @@ describe('spawner in assign', () => {
         };
       },
       entry: assign(({ spawn }) => {
+        // @ts-expect-error
         spawn('child', {
-          // @ts-expect-error
           input: () => 42
         });
         return {};
@@ -1606,8 +1730,8 @@ describe('invoke', () => {
           logic: typeof child;
         };
       },
-      // @ts-expect-error
       invoke: {
+        // @ts-expect-error
         id: 'child',
         src: 'child'
       }
@@ -1665,7 +1789,7 @@ describe('invoke', () => {
     });
   });
 
-  it(`should not allow anonymous inline actors outside of the configured ones`, () => {
+  it(`should allow anonymous inline actor outside of the configured actors`, () => {
     const child1 = createMachine({
       context: {
         counter: 0
@@ -1685,9 +1809,37 @@ describe('invoke', () => {
           logic: typeof child1;
         };
       },
-      // @ts-expect-error
       invoke: {
         src: child2
+      }
+    });
+  });
+
+  it(`should diallow anonymous inline actor with an id outside of the configured actors`, () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child1;
+          id: 'myChild';
+        };
+      },
+      invoke: {
+        src: child2,
+        // @ts-expect-error
+        id: 'myChild'
       }
     });
   });
@@ -1704,9 +1856,9 @@ describe('invoke', () => {
           logic: typeof child;
         };
       },
-      // @ts-expect-error
       invoke: {
         src: 'child',
+        // @ts-expect-error
         input: 'hello'
       }
     });
@@ -1762,9 +1914,9 @@ describe('invoke', () => {
           logic: typeof child;
         };
       },
-      // @ts-expect-error
       invoke: {
         src: 'child',
+        // @ts-expect-error
         input: Math.random() > 0.5 ? 'string' : 42
       }
     });
@@ -1782,9 +1934,9 @@ describe('invoke', () => {
           logic: typeof child;
         };
       },
-      // @ts-expect-error
       invoke: {
         src: 'child',
+        // @ts-expect-error
         input: () => 'hello'
       }
     });
@@ -1821,9 +1973,9 @@ describe('invoke', () => {
           logic: typeof child;
         };
       },
-      // @ts-expect-error
       invoke: {
         src: 'child',
+        // @ts-expect-error
         input: () => (Math.random() > 0.5 ? 42 : 'hello')
       }
     });
@@ -3369,6 +3521,27 @@ describe('input', () => {
       }
     });
   });
+
+  it('should require input to be specified when defined', () => {
+    const machine = createMachine({
+      types: {
+        input: {} as {
+          count: number;
+        }
+      }
+    });
+
+    // @ts-expect-error
+    createActor(machine);
+  });
+
+  it('should not require input when not defined', () => {
+    const machine = createMachine({
+      types: {}
+    });
+
+    createActor(machine);
+  });
 });
 
 describe('guards', () => {
@@ -4338,4 +4511,112 @@ describe('self', () => {
       })
     });
   });
+});
+
+describe('createActor', () => {
+  it(`should require input to be specified when it is required`, () => {
+    const logic = fromPromise(({}: { input: number }) => Promise.resolve(100));
+
+    // @ts-expect-error
+    createActor(logic);
+  });
+
+  it(`should not require input when it's optional`, () => {
+    const logic = fromPromise(({}: { input: number | undefined }) =>
+      Promise.resolve(100)
+    );
+
+    createActor(logic);
+  });
+});
+
+describe('snapshot methods', () => {
+  it('should type infer actor union snapshot methods', () => {
+    const typeOne = setup({
+      types: {} as {
+        events: { type: 'one' };
+        tags: 'one';
+      }
+    }).createMachine({
+      initial: 'one',
+      states: {
+        one: {}
+      }
+    });
+    type TypeOneRef = ActorRefFrom<typeof typeOne>;
+
+    const typeTwo = setup({
+      types: {} as {
+        events: { type: 'one' } | { type: 'two' };
+        tags: 'one' | 'two';
+      }
+    }).createMachine({
+      initial: 'one',
+      states: {
+        one: {},
+        two: {}
+      }
+    });
+    type TypeTwoRef = ActorRefFrom<typeof typeTwo>;
+
+    const ref = createActor(typeTwo) as TypeOneRef | TypeTwoRef;
+    const snapshot = ref.getSnapshot();
+
+    snapshot.can({ type: 'one' });
+    // @ts-expect-error
+    snapshot.can({ type: 'two' });
+    // @ts-expect-error
+    snapshot.can({ type: 'three' });
+
+    snapshot.hasTag('one');
+    // @ts-expect-error
+    snapshot.hasTag('two');
+    // @ts-expect-error
+    snapshot.hasTag('three');
+
+    snapshot.matches('one');
+    // @ts-expect-error
+    snapshot.matches('two');
+    // @ts-expect-error
+    snapshot.matches('three');
+
+    snapshot.getMeta();
+    snapshot.toJSON();
+  });
+});
+
+// https://github.com/statelyai/xstate/issues/4931
+it('fromPromise should not have issues with actors with emitted types', () => {
+  const machine = setup({
+    types: {
+      emitted: {} as { type: 'FOO' }
+    }
+  }).createMachine({});
+
+  const actor = createActor(machine).start();
+
+  toPromise(actor);
+});
+
+it('UnknownActorRef should return a Snapshot-typed value from getSnapshot()', () => {
+  const actor: UnknownActorRef = createEmptyActor();
+
+  // @ts-expect-error
+  actor.getSnapshot().status === 'FOO';
+});
+
+it('Actor<T> should be assignable to ActorRefFromLogic<T>', () => {
+  const logic = createMachine({});
+
+  class ActorThing<T extends AnyActorLogic> {
+    actorRef: ActorRefFromLogic<T>;
+    constructor(actorLogic: T) {
+      const actor = createActor(actorLogic);
+
+      actor satisfies ActorRefFromLogic<typeof actorLogic>;
+      this.actorRef = actor;
+    }
+  }
+
+  new ActorThing(logic);
 });

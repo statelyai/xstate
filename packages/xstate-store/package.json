@@ -1,0 +1,89 @@
+{
+  "name": "@xstate/store",
+  "version": "2.3.0",
+  "description": "Simple stores",
+  "keywords": [
+    "store",
+    "state"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store#readme",
+  "license": "MIT",
+  "main": "dist/xstate-store.cjs.js",
+  "module": "dist/xstate-store.esm.js",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-store.cjs.mjs",
+        "default": "./dist/xstate-store.cjs.js"
+      },
+      "module": "./dist/xstate-store.esm.js",
+      "import": "./dist/xstate-store.cjs.mjs",
+      "default": "./dist/xstate-store.cjs.js"
+    },
+    "./react": {
+      "types": {
+        "import": "./react/dist/xstate-store-react.cjs.mjs",
+        "default": "./react/dist/xstate-store-react.cjs.js"
+      },
+      "module": "./react/dist/xstate-store-react.esm.js",
+      "import": "./react/dist/xstate-store-react.cjs.mjs",
+      "default": "./react/dist/xstate-store-react.cjs.js"
+    },
+    "./solid": {
+      "types": {
+        "import": "./solid/dist/xstate-store-solid.cjs.mjs",
+        "default": "./solid/dist/xstate-store-solid.cjs.js"
+      },
+      "module": "./solid/dist/xstate-store-solid.esm.js",
+      "import": "./solid/dist/xstate-store-solid.cjs.mjs",
+      "default": "./solid/dist/xstate-store-solid.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "react",
+    "solid"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.0.0",
+    "@types/react": "^18.3.3",
+    "@xstate/react": "^4.1.1",
+    "@xstate/vue": "^3.1.2",
+    "immer": "^10.0.2",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "solid-js": "^1.7.6",
+    "solid-testing-library": "^0.3.0",
+    "xstate": "^5.18.0"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "solid-js": "^1.7.6"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "solid-js": {
+      "optional": true
+    }
+  },
+  "preconstruct": {
+    "umdName": "XStateStore",
+    "entrypoints": [
+      "./index.ts",
+      "./react.ts",
+      "./solid.ts"
+    ]
+  }
+}

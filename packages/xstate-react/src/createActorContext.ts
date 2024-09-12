@@ -5,7 +5,7 @@ import { useSelector as useSelectorUnbound } from './useSelector';
 
 export function createActorContext<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
-  interpreterOptions?: ActorOptions<TLogic>
+  actorOptions?: ActorOptions<TLogic>
 ): {
   useSelector: <T>(
     selector: (snapshot: SnapshotFrom<TLogic>) => T,
@@ -15,9 +15,7 @@ export function createActorContext<TLogic extends AnyActorLogic>(
   Provider: (props: {
     children: React.ReactNode;
     options?: ActorOptions<TLogic>;
-    /**
-     * @deprecated Use `logic` instead.
-     */
+    /** @deprecated Use `logic` instead. */
     machine?: never;
     logic?: TLogic;
   }) => React.ReactElement<any, any>;
@@ -30,13 +28,11 @@ export function createActorContext<TLogic extends AnyActorLogic>(
     children,
     logic: providedLogic = actorLogic,
     machine,
-    options: providedOptions = interpreterOptions
+    options: providedOptions
   }: {
     children: React.ReactNode;
     logic: TLogic;
-    /**
-     * @deprecated Use `logic` instead.
-     */
+    /** @deprecated Use `logic` instead. */
     machine?: never;
     options?: ActorOptions<TLogic>;
   }) {
@@ -46,7 +42,10 @@ export function createActorContext<TLogic extends AnyActorLogic>(
       );
     }
 
-    const actor = useActorRef(providedLogic, providedOptions);
+    const actor = useActorRef(providedLogic, {
+      ...actorOptions,
+      ...providedOptions
+    });
 
     return React.createElement(OriginalProvider, {
       value: actor,

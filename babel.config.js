@@ -1,22 +1,6 @@
 const { NODE_ENV } = process.env;
 const isTest = NODE_ENV === 'test';
 
-const stripSymbolObservableMethodPlugin = ({ types: t }) => {
-  const isSymbolObservable = t.buildMatchMemberExpression('Symbol.observable');
-  return {
-    visitor: {
-      Class(path) {
-        path
-          .get('body.body')
-          .filter(
-            (p) => p.isClassMethod() && isSymbolObservable(p.get('key').node)
-          )
-          .forEach((p) => p.remove());
-      }
-    }
-  };
-};
-
 module.exports = {
   assumptions: {
     constantReexports: true, // only matters for tests (since only there we transpile to CJS using Babel), it makes debugging easier
@@ -65,12 +49,9 @@ module.exports = {
       ]
     },
     {
-      test: /\/xstate-solid\//,
+      test: /\/xstate-solid\/|solid\.test\.tsx$/,
       presets: ['babel-preset-solid']
     }
   ],
-  plugins: [
-    stripSymbolObservableMethodPlugin,
-    '@babel/proposal-class-properties'
-  ]
+  plugins: ['@babel/proposal-class-properties']
 };

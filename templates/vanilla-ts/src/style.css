@@ -1,4 +1,6 @@
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   position: relative;
   box-sizing: border-box;
 }
@@ -39,7 +41,13 @@ h1 {
 }
 
 code {
-  font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, Courier, monospace;
+  font-family:
+    SFMono-Regular,
+    Consolas,
+    Liberation Mono,
+    Menlo,
+    Courier,
+    monospace;
   font-size: 0.9em;
   background: #f6f8fa;
   padding: 0.2em 0.4em;

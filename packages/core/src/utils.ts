@@ -1,9 +1,9 @@
 import isDevelopment from '#is-development';
 import { isMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
-import { STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
+import { TARGETLESS_KEY } from './constants.ts';
 import type {
-  ActorLogic,
+  AnyActorLogic,
   AnyActorRef,
   AnyEventObject,
   AnyMachineSnapshot,
@@ -47,7 +47,7 @@ export function matchesState(
       return false;
     }
 
-    return matchesState(parentStateValue[key], childStateValue[key]);
+    return matchesState(parentStateValue[key]!, childStateValue[key]!);
   });
 }
 
@@ -56,12 +56,34 @@ export function toStatePath(stateId: string | string[]): string[] {
     return stateId;
   }
 
-  return stateId.split(STATE_DELIMITER);
+  let result: string[] = [];
+  let segment = '';
+
+  for (let i = 0; i < stateId.length; i++) {
+    const char = stateId.charCodeAt(i);
+    switch (char) {
+      // \
+      case 92:
+        // consume the next character
+        segment += stateId[i + 1];
+        // and skip over it
+        i++;
+        continue;
+      // .
+      case 46:
+        result.push(segment);
+        segment = '';
+        continue;
+    }
+    segment += stateId[i];
+  }
+
+  result.push(segment);
+
+  return result;
 }
 
-export function toStateValue(
-  stateValue: StateLike<any> | StateValue
-): StateValue {
+function toStateValue(stateValue: StateLike<any> | StateValue): StateValue {
   if (isMachineSnapshot(stateValue)) {
     return stateValue.value;
   }
@@ -120,7 +142,7 @@ export function mapValues(
   return result;
 }
 
-export function toArrayStrict<T>(value: readonly T[] | T): readonly T[] {
+function toArrayStrict<T>(value: readonly T[] | T): readonly T[] {
   if (isArray(value)) {
     return value;
   }
@@ -173,16 +195,7 @@ export function resolveOutput<
   return mapper;
 }
 
-export function isActorLogic(value: any): value is ActorLogic<any, any> {
-  return (
-    value !== null &&
-    typeof value === 'object' &&
-    'transition' in value &&
-    typeof value.transition === 'function'
-  );
-}
-
-export function isArray(value: any): value is readonly any[] {
+function isArray(value: any): value is readonly any[] {
   return Array.isArray(value);
 }
 
@@ -254,7 +267,16 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
   return (
     Array.isArray(invokeConfig)
       ? invokeConfig[indexStr as any]
-      : (invokeConfig as InvokeConfig<any, any, any, any, any, any>)
+      : (invokeConfig as InvokeConfig<
+          any,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any, // TEmitted
+          any // TMeta
+        >)
   ).src;
 }
 

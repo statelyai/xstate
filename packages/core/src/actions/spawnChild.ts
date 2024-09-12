@@ -1,25 +1,25 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
-import { createErrorActorEvent } from '../eventUtils.ts';
 import { ProcessingStatus, createActor } from '../createActor.ts';
+import { executingCustomAction } from '../stateUtils.ts';
 import {
   ActionArgs,
-  AnyActorScope,
-  AnyActorRef,
-  AnyActor,
-  AnyMachineSnapshot,
-  EventObject,
-  MachineContext,
-  ParameterizedObject,
+  ActionFunction,
   AnyActorLogic,
-  ProvidedActor,
-  IsLiteralString,
-  InputFrom,
-  UnifiedArg,
-  Mapper,
-  RequiredActorOptions,
+  AnyActorRef,
+  AnyActorScope,
+  AnyMachineSnapshot,
   ConditionalRequired,
-  IsNotNever
+  EventObject,
+  InputFrom,
+  IsLiteralString,
+  IsNotNever,
+  MachineContext,
+  Mapper,
+  ParameterizedObject,
+  ProvidedActor,
+  RequiredActorOptions,
+  UnifiedArg
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
@@ -140,22 +140,32 @@ type DistributeActors<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TActor extends ProvidedActor
-> = TActor extends any
-  ? ConditionalRequired<
-      [
-        src: TActor['src'],
-        options?: SpawnActionOptions<
-          TContext,
-          TExpressionEvent,
-          TEvent,
-          TActor
-        > & {
-          [K in RequiredActorOptions<TActor>]: unknown;
-        }
-      ],
-      IsNotNever<RequiredActorOptions<TActor>>
-    >
-  : never;
+> =
+  | (TActor extends any
+      ? ConditionalRequired<
+          [
+            src: TActor['src'],
+            options?: SpawnActionOptions<
+              TContext,
+              TExpressionEvent,
+              TEvent,
+              TActor
+            > & {
+              [K in RequiredActorOptions<TActor>]: unknown;
+            }
+          ],
+          IsNotNever<RequiredActorOptions<TActor>>
+        >
+      : never)
+  | [
+      src: AnyActorLogic,
+      options?: SpawnActionOptions<
+        TContext,
+        TExpressionEvent,
+        TEvent,
+        ProvidedActor
+      > & { id?: never }
+    ];
 
 type SpawnArguments<
   TContext extends MachineContext,
@@ -185,7 +195,17 @@ export function spawnChild<
     src,
     { id, systemId, input, syncSnapshot = false } = {} as any
   ]: SpawnArguments<TContext, TExpressionEvent, TEvent, TActor>
-): SpawnAction<TContext, TExpressionEvent, TParams, TEvent, TActor> {
+): ActionFunction<
+  TContext,
+  TExpressionEvent,
+  TEvent,
+  TParams,
+  TActor,
+  never,
+  never,
+  never,
+  never
+> {
   function spawnChild(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams

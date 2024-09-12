@@ -573,30 +573,33 @@ describe('filtering', () => {
       }
     });
 
-    const sp = getShortestPaths(machine, {
+    const shortestPaths = getShortestPaths(machine, {
       events: [{ type: 'INC' }],
-      filter: (s) => s.context.count < 5
+      stopWhen: (state) => state.context.count === 5
     });
 
-    expect(sp.map((p) => p.state.context)).toMatchInlineSnapshot(`
-      [
-        {
-          "count": 0,
-        },
-        {
-          "count": 1,
-        },
-        {
-          "count": 2,
-        },
-        {
-          "count": 3,
-        },
-        {
-          "count": 4,
-        },
-      ]
-    `);
+    expect(shortestPaths.map((p) => p.state.context)).toMatchInlineSnapshot(`
+[
+  {
+    "count": 0,
+  },
+  {
+    "count": 1,
+  },
+  {
+    "count": 2,
+  },
+  {
+    "count": 3,
+  },
+  {
+    "count": 4,
+  },
+  {
+    "count": 5,
+  },
+]
+`);
   });
 });
 

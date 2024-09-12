@@ -14,8 +14,13 @@ import { AnyActorSystem, Clock, createSystem } from './system.ts';
 import type {
   ActorScope,
   AnyActorLogic,
+  AnyActorRef,
+  ConditionalRequired,
   DoneActorEvent,
+  EmittedFrom,
   EventFromLogic,
+  InputFrom,
+  IsNotNever,
   Snapshot,
   SnapshotFrom
 } from './types.ts';
@@ -30,17 +35,6 @@ import {
 import { toObserver } from './utils.ts';
 
 export const $$ACTOR_TYPE = 1;
-
-export type SnapshotListener<TLogic extends AnyActorLogic> = (
-  snapshot: SnapshotFrom<TLogic>
-) => void;
-
-export type EventListener<TEvent extends EventObject = EventObject> = (
-  event: TEvent
-) => void;
-
-export type Listener = () => void;
-export type ErrorListener = (error: any) => void;
 
 // those values are currently used by @xstate/react directly so it's important to keep the assigned values in sync
 export enum ProcessingStatus {
@@ -63,24 +57,24 @@ const defaultOptions = {
 };
 
 /**
- * An Actor is a running process that can receive events, send events and change its behavior based on the events it receives, which can cause effects outside of the actor. When you run a state machine, it becomes an actor.
+ * An Actor is a running process that can receive events, send events and change
+ * its behavior based on the events it receives, which can cause effects outside
+ * of the actor. When you run a state machine, it becomes an actor.
  */
 export class Actor<TLogic extends AnyActorLogic>
-  implements ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>
+  implements
+    ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>, EmittedFrom<TLogic>>
 {
-  /**
-   * The current internal state of the actor.
-   */
+  /** The current internal state of the actor. */
   private _snapshot!: SnapshotFrom<TLogic>;
   /**
-   * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
+   * The clock that is responsible for setting and clearing timeouts, such as
+   * delayed events and transitions.
    */
   public clock: Clock;
   public options: Readonly<ActorOptions<TLogic>>;
 
-  /**
-   * The unique identifier for this actor relative to its parent.
-   */
+  /** The unique identifier for this actor relative to its parent. */
   public id: string;
 
   private mailbox: Mailbox<EventFromLogic<TLogic>> = new Mailbox(
@@ -88,40 +82,46 @@ export class Actor<TLogic extends AnyActorLogic>
   );
 
   private observers: Set<Observer<SnapshotFrom<TLogic>>> = new Set();
+  private eventListeners: Map<
+    string,
+    Set<(emittedEvent: EmittedFrom<TLogic>) => void>
+  > = new Map();
   private logger: (...args: any[]) => void;
 
   /** @internal */
   public _processingStatus: ProcessingStatus = ProcessingStatus.NotStarted;
 
   // Actor Ref
-  public _parent?: ActorRef<any, any>;
+  public _parent?: AnyActorRef;
   /** @internal */
   public _syncSnapshot?: boolean;
-  public ref: ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>;
+  public ref: ActorRef<
+    SnapshotFrom<TLogic>,
+    EventFromLogic<TLogic>,
+    EmittedFrom<TLogic>
+  >;
   // TODO: add typings for system
   private _actorScope: ActorScope<
     SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
-    any
+    AnyActorSystem,
+    EmittedFrom<TLogic>
   >;
 
   private _systemId: string | undefined;
 
-  /**
-   * The globally unique process ID for this invocation.
-   */
+  /** The globally unique process ID for this invocation. */
   public sessionId: string;
 
-  /**
-   * The system to which this actor belongs.
-   */
+  /** The system to which this actor belongs. */
   public system: AnyActorSystem;
   private _doneEvent?: DoneActorEvent;
 
   public src: string | AnyActorLogic;
 
   /**
-   * Creates a new actor instance for the given logic with the provided options, if any.
+   * Creates a new actor instance for the given logic with the provided options,
+   * if any.
    *
    * @param logic The logic to create an actor from
    * @param options Actor options
@@ -141,7 +141,8 @@ export class Actor<TLogic extends AnyActorLogic>
     this.system = parent
       ? parent.system
       : createSystem(this, {
-          clock
+          clock,
+          logger
         });
 
     if (inspect && !parent) {
@@ -151,8 +152,8 @@ export class Actor<TLogic extends AnyActorLogic>
 
     this.sessionId = this.system._bookId();
     this.id = id ?? this.sessionId;
-    this.logger = logger;
-    this.clock = clock;
+    this.logger = options?.logger ?? this.system._logger;
+    this.clock = options?.clock ?? this.system._clock;
     this._parent = parent;
     this._syncSnapshot = syncSnapshot;
     this.options = resolvedOptions as ActorOptions<TLogic> &
@@ -175,6 +176,20 @@ export class Actor<TLogic extends AnyActorLogic>
           );
         }
         (child as any)._stop();
+      },
+      emit: (emittedEvent) => {
+        const listeners = this.eventListeners.get(emittedEvent.type);
+        const wildcardListener = this.eventListeners.get('*');
+        if (!listeners && !wildcardListener) {
+          return;
+        }
+        const allListeners = new Set([
+          ...(listeners ? listeners.values() : []),
+          ...(wildcardListener ? wildcardListener.values() : [])
+        ]);
+        for (const handler of Array.from(allListeners)) {
+          handler(emittedEvent);
+        }
       }
     };
 
@@ -297,11 +312,15 @@ export class Actor<TLogic extends AnyActorLogic>
    * Subscribe an observer to an actor’s snapshot values.
    *
    * @remarks
-   * The observer will receive the actor’s snapshot value when it is emitted. The observer can be:
+   * The observer will receive the actor’s snapshot value when it is emitted.
+   * The observer can be:
+   *
    * - A plain function that receives the latest snapshot, or
-   * - An observer object whose `.next(snapshot)` method receives the latest snapshot
+   * - An observer object whose `.next(snapshot)` method receives the latest
+   *   snapshot
    *
    * @example
+   *
    * ```ts
    * // Observer as a plain function
    * const subscription = actor.subscribe((snapshot) => {
@@ -310,6 +329,7 @@ export class Actor<TLogic extends AnyActorLogic>
    * ```
    *
    * @example
+   *
    * ```ts
    * // Observer as an object
    * const subscription = actor.subscribe({
@@ -321,13 +341,16 @@ export class Actor<TLogic extends AnyActorLogic>
    *   },
    *   complete() {
    *     // ...
-   *   },
+   *   }
    * });
    * ```
    *
-   * The return value of `actor.subscribe(observer)` is a subscription object that has an `.unsubscribe()` method. You can call `subscription.unsubscribe()` to unsubscribe the observer:
+   * The return value of `actor.subscribe(observer)` is a subscription object
+   * that has an `.unsubscribe()` method. You can call
+   * `subscription.unsubscribe()` to unsubscribe the observer:
    *
    * @example
+   *
    * ```ts
    * const subscription = actor.subscribe((snapshot) => {
    *   // ...
@@ -337,9 +360,12 @@ export class Actor<TLogic extends AnyActorLogic>
    * subscription.unsubscribe();
    * ```
    *
-   * When the actor is stopped, all of its observers will automatically be unsubscribed.
+   * When the actor is stopped, all of its observers will automatically be
+   * unsubscribed.
    *
-   * @param observer - Either a plain function that receives the latest snapshot, or an observer object whose `.next(snapshot)` method receives the latest snapshot
+   * @param observer - Either a plain function that receives the latest
+   *   snapshot, or an observer object whose `.next(snapshot)` method receives
+   *   the latest snapshot
    */
   public subscribe(observer: Observer<SnapshotFrom<TLogic>>): Subscription;
   public subscribe(
@@ -394,9 +420,28 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
-  /**
-   * Starts the Actor from the initial state
-   */
+  public on<TType extends EmittedFrom<TLogic>['type'] | '*'>(
+    type: TType,
+    handler: (
+      emitted: EmittedFrom<TLogic> & (TType extends '*' ? {} : { type: TType })
+    ) => void
+  ): Subscription {
+    let listeners = this.eventListeners.get(type);
+    if (!listeners) {
+      listeners = new Set();
+      this.eventListeners.set(type, listeners);
+    }
+    const wrappedHandler = handler.bind(undefined);
+    listeners.add(wrappedHandler);
+
+    return {
+      unsubscribe: () => {
+        listeners!.delete(wrappedHandler);
+      }
+    };
+  }
+
+  /** Starts the Actor from the initial state */
   public start(): this {
     if (this._processingStatus === ProcessingStatus.Running) {
       // Do not restart the service if it is already started
@@ -529,9 +574,7 @@ export class Actor<TLogic extends AnyActorLogic>
     return this;
   }
 
-  /**
-   * Stops the Actor and unsubscribe all listeners.
-   */
+  /** Stops the Actor and unsubscribe all listeners. */
   public stop(): this {
     if (this._parent) {
       throw new Error('A non-root actor cannot be stopped directly.');
@@ -610,9 +653,7 @@ export class Actor<TLogic extends AnyActorLogic>
     return this;
   }
 
-  /**
-   * @internal
-   */
+  /** @internal */
   public _send(event: EventFromLogic<TLogic>) {
     if (this._processingStatus === ProcessingStatus.Stopped) {
       // do nothing
@@ -665,10 +706,11 @@ export class Actor<TLogic extends AnyActorLogic>
    * @remarks
    * The internal state can be persisted from any actor, not only machines.
    *
-   * Note that the persisted state is not the same as the snapshot from {@link Actor.getSnapshot}. Persisted state represents the internal state of the actor, while snapshots represent the actor's last emitted value.
+   * Note that the persisted state is not the same as the snapshot from
+   * {@link Actor.getSnapshot}. Persisted state represents the internal state of
+   * the actor, while snapshots represent the actor's last emitted value.
    *
    * Can be restored with {@link ActorOptions.state}
-   *
    * @see https://stately.ai/docs/persistence
    */
   public getPersistedSnapshot(): Snapshot<unknown>;
@@ -686,11 +728,11 @@ export class Actor<TLogic extends AnyActorLogic>
    * @remarks
    * The snapshot represent an actor's last emitted value.
    *
-   * When an actor receives an event, its internal state may change.
-   * An actor may emit a snapshot when a state transition occurs.
+   * When an actor receives an event, its internal state may change. An actor
+   * may emit a snapshot when a state transition occurs.
    *
-   * Note that some actors, such as callback actors generated with `fromCallback`, will not emit snapshots.
-   *
+   * Note that some actors, such as callback actors generated with
+   * `fromCallback`, will not emit snapshots.
    * @see {@link Actor.subscribe} to subscribe to an actor’s snapshot values.
    * @see {@link Actor.getPersistedSnapshot} to persist the internal state of an actor (which is more than just a snapshot).
    */
@@ -704,14 +746,20 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 }
 
+export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
+  undefined extends InputFrom<TLogic> ? never : 'input';
+
 /**
- * Creates a new actor instance for the given actor logic with the provided options, if any.
+ * Creates a new actor instance for the given actor logic with the provided
+ * options, if any.
  *
  * @remarks
- * When you create an actor from actor logic via `createActor(logic)`, you implicitly create an actor system where the created actor is the root actor.
- * Any actors spawned from this root actor and its descendants are part of that actor system.
- *
+ * When you create an actor from actor logic via `createActor(logic)`, you
+ * implicitly create an actor system where the created actor is the root actor.
+ * Any actors spawned from this root actor and its descendants are part of that
+ * actor system.
  * @example
+ *
  * ```ts
  * import { createActor } from 'xstate';
  * import { someActorLogic } from './someActorLogic.ts';
@@ -733,24 +781,37 @@ export class Actor<TLogic extends AnyActorLogic>
  * actor.stop();
  * ```
  *
- * @param logic - The actor logic to create an actor from. For a state machine actor logic creator, see {@link createMachine}. Other actor logic creators include {@link fromCallback}, {@link fromEventObservable}, {@link fromObservable}, {@link fromPromise}, and {@link fromTransition}.
+ * @param logic - The actor logic to create an actor from. For a state machine
+ *   actor logic creator, see {@link createMachine}. Other actor logic creators
+ *   include {@link fromCallback}, {@link fromEventObservable},
+ *   {@link fromObservable}, {@link fromPromise}, and {@link fromTransition}.
  * @param options - Actor options
  */
 export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  options?: ActorOptions<TLogic>
+  ...[options]: ConditionalRequired<
+    [
+      options?: ActorOptions<TLogic> & {
+        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
+      }
+    ],
+    IsNotNever<RequiredActorOptionsKeys<TLogic>>
+  >
 ): Actor<TLogic> {
   return new Actor(logic, options);
 }
 
 /**
- * Creates a new Interpreter instance for the given machine with the provided options, if any.
+ * Creates a new Interpreter instance for the given machine with the provided
+ * options, if any.
  *
  * @deprecated Use `createActor` instead
+ * @alias
  */
 export const interpret = createActor;
 
 /**
  * @deprecated Use `Actor` instead.
+ * @alias
  */
 export type Interpreter = typeof Actor;

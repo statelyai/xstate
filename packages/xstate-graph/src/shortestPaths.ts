@@ -1,10 +1,10 @@
-import { AnyActorLogic, EventFromLogic } from 'xstate';
+import { AnyActorLogic, EventFromLogic, InputFrom } from 'xstate';
 import { getAdjacencyMap } from './adjacency';
 import { alterPath } from './alterPath';
 import { resolveTraversalOptions } from './graph';
 import {
   SerializedEvent,
-  SerializedState,
+  SerializedSnapshot,
   StatePath,
   StatePlanMap,
   TraversalOptions
@@ -15,7 +15,8 @@ export function getShortestPaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: TraversalOptions<
     ReturnType<TLogic['transition']>,
-    EventFromLogic<TLogic>
+    EventFromLogic<TLogic>,
+    InputFrom<TLogic>
   >
 ): Array<StatePath<ReturnType<TLogic['transition']>, EventFromLogic<TLogic>>> {
   type TInternalState = ReturnType<TLogic['transition']>;
@@ -24,22 +25,22 @@ export function getShortestPaths<TLogic extends AnyActorLogic>(
   const resolvedOptions = resolveTraversalOptions(logic, options);
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
-  ) => SerializedState;
+  ) => SerializedSnapshot;
   const fromState =
     resolvedOptions.fromState ??
-    logic.getInitialSnapshot(createMockActorScope(), undefined);
+    logic.getInitialSnapshot(createMockActorScope(), options?.input);
   const adjacency = getAdjacencyMap(logic, resolvedOptions);
 
   // weight, state, event
   const weightMap = new Map<
-    SerializedState,
+    SerializedSnapshot,
     {
       weight: number;
-      state: SerializedState | undefined;
+      state: SerializedSnapshot | undefined;
       event: TEvent | undefined;
     }
   >();
-  const stateMap = new Map<SerializedState, TInternalState>();
+  const stateMap = new Map<SerializedSnapshot, TInternalState>();
   const serializedFromState = serializeState(fromState, undefined, undefined);
   stateMap.set(serializedFromState, fromState);
 
@@ -48,8 +49,8 @@ export function getShortestPaths<TLogic extends AnyActorLogic>(
     state: undefined,
     event: undefined
   });
-  const unvisited = new Set<SerializedState>();
-  const visited = new Set<SerializedState>();
+  const unvisited = new Set<SerializedSnapshot>();
+  const visited = new Set<SerializedSnapshot>();
 
   unvisited.add(serializedFromState);
   for (const serializedState of unvisited) {

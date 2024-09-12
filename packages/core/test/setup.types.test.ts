@@ -2,15 +2,24 @@ import {
   ActorRefFrom,
   and,
   assign,
+  cancel,
+  ContextFrom,
   createActor,
   createMachine,
+  emit,
+  enqueueActions,
+  EventFrom,
   fromPromise,
   fromTransition,
+  log,
+  matchesState,
   not,
   raise,
+  sendParent,
   sendTo,
   setup,
-  spawnChild
+  spawnChild,
+  stopChild
 } from '../src';
 
 describe('setup()', () => {
@@ -412,7 +421,7 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept a string reference to an unknown action in the machine', () => {
+  it('should not accept a string reference to an unknown action in the machine when actions were configured', () => {
     setup({
       actions: {
         doStuff: () => {}
@@ -423,7 +432,14 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept an object reference to an unknown action in the machine', () => {
+  it('should not accept a string reference to an unknown action in the machine when actions were not configured', () => {
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: 'unknown'
+    });
+  });
+
+  it('should not accept an object reference to an unknown action in the machine when actions were configured', () => {
     setup({
       actions: {
         doStuff: () => {}
@@ -431,6 +447,15 @@ describe('setup()', () => {
     }).createMachine({
       // @ts-expect-error
       entry: {
+        type: 'unknown'
+      }
+    });
+  });
+
+  it('should not accept an object reference to an unknown action in the machine when actions were not configured', () => {
+    setup({}).createMachine({
+      entry: {
+        // @ts-expect-error
         type: 'unknown'
       }
     });
@@ -451,7 +476,7 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept an `assign` with a spawner that tries to spawn an unknown actor', () => {
+  it('should not accept an `assign` with a spawner that tries to spawn an unknown actor when actors are configured', () => {
     setup({
       actors: {
         fetchUser: fromPromise(async () => ({ name: 'Andarist' }))
@@ -468,6 +493,38 @@ describe('setup()', () => {
     });
   });
 
+  it('should not accept an `assign` with a spawner that tries to spawn an unknown actor when actors are not configured', () => {
+    setup({
+      actions: {
+        spawnFetcher: assign(({ spawn }) => {
+          return {
+            child:
+              // @ts-expect-error
+              spawn('unknown')
+          };
+        })
+      }
+    });
+  });
+
+  it('should not accept an invoke that tries to invoke an unknown actor when actors are not configured', () => {
+    setup({}).createMachine({
+      invoke: {
+        // @ts-expect-error
+        src: 'unknown'
+      }
+    });
+  });
+
+  it('should not accept a non-logic actor when children were not configured', () => {
+    setup({
+      actors: {
+        // @ts-expect-error
+        increment: 'bazinga'
+      }
+    });
+  });
+
   it('should accept a `spawnChild` action that tries to spawn a known actor', () => {
     setup({
       actors: {
@@ -479,19 +536,30 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept a `spawnChild` action that tries to spawn an unknown actor', () => {
+  it('should not accept a `spawnChild` action that tries to spawn an unknown actor when actors are configured', () => {
     setup({
       actors: {
         fetchUser: fromPromise(async () => ({ name: 'Andarist' }))
       },
       actions: {
-        spawnFetcher:
+        spawnFetcher: spawnChild(
           // @ts-expect-error
-          spawnChild('unknown')
+          'unknown'
+        )
       }
     });
   });
 
+  it('should not accept a `spawnChild` action that tries to spawn an unknown actor when actors are not configured', () => {
+    setup({
+      actions: {
+        spawnFetcher: spawnChild(
+          // @ts-expect-error
+          'unknown'
+        )
+      }
+    });
+  });
   it('should accept a `raise` action that raises a known event', () => {
     setup({
       types: {} as {
@@ -511,7 +579,7 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept a `raise` action that raises a unknown event', () => {
+  it('should not accept a `raise` action that raises an unknown event', () => {
     setup({
       types: {} as {
         events:
@@ -558,7 +626,7 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept a `raise` action that references a unknown delay', () => {
+  it('should not accept a `raise` action that references an unknown delay when delays are configured', () => {
     setup({
       types: {} as {
         events:
@@ -582,6 +650,31 @@ describe('setup()', () => {
       },
       delays: {
         thousand: 1000
+      }
+    });
+  });
+
+  it('should not accept a `raise` action that references an unknown delay when delays are not configured', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        raiseFoo: raise(
+          {
+            type: 'FOO'
+          },
+          {
+            // @ts-expect-error
+            delay: 'hundred'
+          }
+        )
       }
     });
   });
@@ -614,7 +707,7 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept a `sendTo` action that references a unknown delay', () => {
+  it('should not accept a `sendTo` action that references an unknown delay when delays are configured', () => {
     setup({
       types: {} as {
         events:
@@ -639,6 +732,109 @@ describe('setup()', () => {
       },
       delays: {
         thousand: 1000
+      }
+    });
+  });
+
+  it('should not accept a `sendTo` action that references an unknown delay when delays are not configured', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        sendFoo: sendTo(
+          ({ self }) => self,
+          {
+            type: 'FOO'
+          },
+          {
+            // @ts-expect-error
+            delay: 'hundred'
+          }
+        )
+      }
+    });
+  });
+
+  it('should accept a `sendTo` action that send an event to `self` when delays are not configured', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        sendFoo: sendTo(({ self }) => self, {
+          type: 'FOO'
+        })
+      }
+    });
+  });
+
+  it('should accept a `sendParent` action when delays are not configured', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        sendFoo: sendParent({
+          type: 'FOO'
+        })
+      }
+    });
+  });
+
+  it('should accept an `emit` action that emits a known event', () => {
+    setup({
+      types: {} as {
+        emitted:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        emitFoo: emit({
+          type: 'FOO'
+        })
+      }
+    });
+  });
+
+  it('should not accept an `emit` action that emits an unknown event', () => {
+    setup({
+      types: {} as {
+        emitted:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        emitFoo: emit({
+          // @ts-expect-error
+          type: 'BAZ'
+        })
       }
     });
   });
@@ -702,6 +898,32 @@ describe('setup()', () => {
       });
   });
 
+  it('should allow anonymous inline actor outside of the configured actors', () => {
+    setup({
+      actors: {
+        known: fromPromise(async () => 'known')
+      }
+    }).createMachine({
+      invoke: {
+        src: fromPromise(async () => 'inline')
+      }
+    });
+  });
+
+  it('should disallow anonymous inline actor with an id outside of the configured actors', () => {
+    setup({
+      actors: {
+        known: fromPromise(async () => 'known')
+      }
+    }).createMachine({
+      invoke: {
+        src: fromPromise(async () => 'inline'),
+        // @ts-expect-error
+        id: 'myChild'
+      }
+    });
+  });
+
   it('should not accept an incompatible provided logic', () => {
     setup({
       actors: {
@@ -755,6 +977,20 @@ describe('setup()', () => {
     });
   });
 
+  it('should require actors to be defined when children are configured', () => {
+    setup(
+      // @ts-expect-error
+      {
+        types: {} as {
+          children: {
+            first: 'foo';
+            second: 'bar';
+          };
+        }
+      }
+    );
+  });
+
   it('should allow more actors to be defined than the ones required by children', () => {
     setup({
       types: {} as {
@@ -795,9 +1031,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input: 4157
       }
     });
@@ -849,9 +1085,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input:
           Math.random() > 0.5
             ? {
@@ -873,9 +1109,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input: () => 42
       }
     });
@@ -912,9 +1148,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
-      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
+        // @ts-expect-error
         input: () =>
           Math.random() > 0.5
             ? {
@@ -1244,10 +1480,13 @@ describe('setup()', () => {
 
     const snapshot = createActor(machine).getSnapshot();
 
-    type ExpectedType = {
-      a?: 'a1' | 'a2';
-      b?: 'b1' | 'b2';
-    };
+    type ExpectedType =
+      | {
+          a: 'a1' | 'a2';
+        }
+      | {
+          b: 'b1' | 'b2';
+        };
 
     snapshot.value satisfies ExpectedType;
     ({}) as ExpectedType satisfies typeof snapshot.value;
@@ -1337,15 +1576,177 @@ describe('setup()', () => {
     type ExpectedType =
       | 'a'
       | {
-          b?:
+          b:
             | 'b2'
             | {
-                b1?: 'b11' | 'b12';
+                b1: 'b11' | 'b12';
               };
         };
 
     snapshot.value satisfies ExpectedType;
     ({}) as ExpectedType satisfies typeof snapshot.value;
+  });
+
+  it('state.value from setup state machine actors should be strongly-typed', () => {
+    const machine = setup({}).createMachine({
+      initial: 'green',
+      states: {
+        green: {},
+        yellow: {},
+        red: {
+          initial: 'walk',
+          states: {
+            walk: {},
+            wait: {},
+            stop: {}
+          }
+        },
+        emergency: {
+          type: 'parallel',
+          states: {
+            main: {
+              initial: 'blinking',
+              states: {
+                blinking: {}
+              }
+            },
+            cross: {
+              initial: 'blinking',
+              states: {
+                blinking: {}
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    const stateValue = actor.getSnapshot().value;
+
+    'green' satisfies typeof stateValue;
+
+    'yellow' satisfies typeof stateValue;
+
+    // @ts-expect-error compound state
+    'red' satisfies typeof stateValue;
+
+    // @ts-expect-error parallel state
+    'emergency' satisfies typeof stateValue;
+
+    const _redWalk = { red: 'walk' } satisfies typeof stateValue;
+    const _redWait = { red: 'wait' } satisfies typeof stateValue;
+
+    const _redUnknown = {
+      // @ts-expect-error
+      red: 'unknown'
+    } satisfies typeof stateValue;
+
+    const _emergency0 = {
+      emergency: {
+        main: 'blinking',
+        cross: 'blinking'
+      }
+    } satisfies typeof stateValue;
+
+    const _emergency1 = {
+      // @ts-expect-error
+      emergency: 'main'
+    } satisfies typeof stateValue;
+
+    const _emergency2 = {
+      // @ts-expect-error
+      emergency: {
+        main: 'blinking'
+      }
+    } satisfies typeof stateValue;
+
+    const _emergency3 = {
+      emergency: {
+        // @ts-expect-error
+        main: 'unknown',
+        cross: 'blinking'
+      }
+    } satisfies typeof stateValue;
+  });
+
+  it('state.value is exhaustive', () => {
+    const machine = setup({}).createMachine({
+      initial: 'green',
+      states: {
+        green: {},
+        yellow: {},
+        red: {
+          initial: 'walk',
+          states: {
+            walk: {},
+            wait: {},
+            stop: {}
+          }
+        },
+        emergency: {
+          type: 'parallel',
+          states: {
+            main: {
+              initial: 'blinking',
+              states: {
+                blinking: {}
+              }
+            },
+            cross: {
+              initial: 'blinking',
+              states: {
+                blinking: {}
+              }
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine);
+    const { value } = actor.getSnapshot();
+    if (value === 'green') {
+      // ...
+    } else {
+      value satisfies 'yellow' | { red: any } | { emergency: any };
+      if (value === 'yellow') {
+        // ...
+      } else {
+        value satisfies { red: any } | { emergency: any };
+        if ('red' in value) {
+          value.red satisfies 'walk' | 'wait' | 'stop';
+          // @ts-expect-error
+          value.red satisfies 'other';
+        } else {
+          value satisfies {
+            emergency: {
+              main: 'blinking';
+              cross: 'blinking';
+            };
+          };
+        }
+      }
+    }
+    // Nested state exhaustiveness
+    if (typeof value === 'object' && 'red' in value) {
+      // @ts-expect-error
+      value satisfies 'green';
+      // @ts-expect-error
+      value satisfies 'red';
+      // @ts-expect-error
+      value.emergency;
+      value.red satisfies 'walk' | 'wait' | 'stop';
+    }
+    if (
+      value !== 'green' &&
+      value !== 'yellow' &&
+      !('red' in value) &&
+      !('emergency' in value)
+    ) {
+      // Exhaustive check
+      value satisfies never;
+    }
   });
 
   it('should accept `assign` when no actor and children types are provided', () => {
@@ -1597,5 +1998,404 @@ describe('setup()', () => {
       // @ts-expect-error
       green: 'green'
     });
+  });
+
+  it('should accept an after transition that references a known delay', () => {
+    setup({
+      delays: {
+        hundred: 100
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          after: {
+            hundred: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+  });
+
+  it('should not accept an after transition that references an unknown delay when delays are configured', () => {
+    setup({
+      delays: {
+        thousand: 1000
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          after: {
+            // @x-ts-expect-error https://github.com/microsoft/TypeScript/issues/55709
+            unknown: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+  });
+
+  it('should not accept an after transition that references an unknown delay when delays are not configured', () => {
+    setup({}).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          after: {
+            // @x-ts-expect-error https://github.com/microsoft/TypeScript/issues/55709
+            unknown: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+  });
+
+  it('should accept a guarded transition that references a known guard', () => {
+    setup({
+      types: {} as {
+        events: { type: 'NEXT' };
+      },
+      guards: {
+        checkStuff: () => true
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: {
+              guard: 'checkStuff',
+              target: 'b'
+            }
+          }
+        },
+        b: {}
+      }
+    });
+  });
+
+  it('should not accept a guarded transition that references an unknown guard when guards are configured', () => {
+    setup({
+      types: {} as {
+        events: { type: 'NEXT' };
+      },
+      guards: {
+        checkStuff: () => true
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            // @ts-expect-error
+            NEXT: {
+              guard: 'unknown',
+              target: 'b'
+            }
+          }
+        },
+        b: {}
+      }
+    });
+  });
+
+  it('should not accept a guarded transition that references an unknown guard when guards are not configured', () => {
+    setup({
+      types: {} as {
+        events: { type: 'NEXT' };
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            // @ts-expect-error
+            NEXT: {
+              guard: 'checkStuff',
+              target: 'b'
+            }
+          }
+        },
+        b: {}
+      }
+    });
+  });
+
+  it('should accept `enqueueActions` within the config when actions are not configured', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      }
+    }).createMachine({
+      on: {
+        SOMETHING: {
+          actions: enqueueActions(({ enqueue }) => {
+            enqueue.raise({ type: 'SOMETHING_ELSE' });
+          })
+        }
+      }
+    });
+  });
+
+  it('should accept `enqueueActions` within the config when empty delays are configured', () => {
+    setup({
+      delays: {}
+    }).createMachine({
+      entry: enqueueActions(() => {})
+    });
+  });
+
+  it("should accept `enqueueActions` that doesn't use any other defined actions", () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      actions: {
+        doStuff: enqueueActions(({ enqueue }) => {
+          enqueue.raise({ type: 'SOMETHING_ELSE' });
+        })
+      }
+    });
+  });
+
+  it('should accept `enqueueActions` that uses a known guard', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      actions: {
+        doStuff: enqueueActions(({ enqueue, check }) => {
+          if (check('checkStuff')) {
+            enqueue.raise({ type: 'SOMETHING_ELSE' });
+          }
+        })
+      },
+      guards: {
+        checkStuff: () => true
+      }
+    });
+  });
+
+  it('should not allow `enqueueActions` to use an unknown guard (when guards are configured)', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      actions: {
+        doStuff: enqueueActions(({ enqueue, check }) => {
+          if (
+            check(
+              // @ts-expect-error
+              'unknown'
+            )
+          ) {
+            enqueue.raise({ type: 'SOMETHING_ELSE' });
+          }
+        })
+      },
+      guards: {
+        checkStuff: () => true
+      }
+    });
+  });
+
+  it('should not allow `enqueueActions` to use an unknown guard (when guards are not configured)', () => {
+    setup({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      actions: {
+        doStuff: enqueueActions(({ enqueue, check }) => {
+          if (
+            check(
+              // @ts-expect-error
+              'unknown'
+            )
+          ) {
+            enqueue.raise({ type: 'SOMETHING_ELSE' });
+          }
+        })
+      }
+    });
+  });
+
+  it('should be able to use a parameterized `enqueueActions` action with its required params in the machine', () => {
+    setup({
+      actions: {
+        doStuff: enqueueActions((_, params: number) => {})
+      }
+    }).createMachine({
+      entry: {
+        type: 'doStuff',
+        params: 0
+      }
+    });
+  });
+
+  it('should not accept a string reference to parameterized `enqueueActions` without its required params in the machine', () => {
+    setup({
+      actions: {
+        doStuff: enqueueActions((_, params: number) => {})
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: 'doStuff'
+    });
+  });
+
+  it('should not accept an object reference to parameterized `enqueueActions` without its required params in the machine', () => {
+    setup({
+      actions: {
+        doStuff: enqueueActions((_, params: number) => {})
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: {
+        type: 'doStuff'
+      }
+    });
+  });
+
+  it('should not accept an object reference to parameterized `enqueueActions` without its required params in the machine', () => {
+    setup({
+      actions: {
+        doStuff: enqueueActions((_, params: number) => {})
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: {
+        type: 'doStuff'
+      }
+    });
+  });
+
+  it('should not accept a reference to parameterized `enqueueActions` with wrong params in the machine', () => {
+    setup({
+      actions: {
+        doStuff: enqueueActions((_, params: number) => {})
+      }
+    }).createMachine({
+      // @ts-expect-error
+      entry: {
+        type: 'doStuff',
+        params: 'foo'
+      }
+    });
+  });
+
+  it('should allow `log` action to be configured', () => {
+    setup({
+      actions: {
+        writeDown: log('foo')
+      }
+    });
+  });
+
+  it('should allow `cancel` action to be configured', () => {
+    setup({
+      actions: {
+        revert: cancel('foo')
+      }
+    });
+  });
+
+  it('should allow `stopChild` action to be configured', () => {
+    setup({
+      actions: {
+        releaseFromDuty: stopChild('foo')
+      }
+    });
+  });
+
+  it('EventFrom should work with a machine that has transitions defined on a state', () => {
+    // https://github.com/statelyai/xstate/issues/5031
+
+    const machine = setup({
+      types: {} as {
+        events: {
+          type: 'SOME_EVENT';
+        };
+      }
+    }).createMachine({
+      id: 'authorization',
+      initial: 'loading',
+      context: {
+        myVar: 'foo'
+      },
+      states: {
+        loaded: {},
+        loading: {
+          on: {
+            SOME_EVENT: {
+              target: 'loaded'
+            }
+          }
+        }
+      }
+    });
+
+    ((_accept: EventFrom<typeof machine>) => {})({ type: 'SOME_EVENT' });
+  });
+
+  it('ContextFrom should work with a machine that has transitions defined on a state', () => {
+    // https://github.com/statelyai/xstate/issues/5031
+
+    const machine = setup({
+      types: {} as {
+        context: {
+          myVar: string;
+        };
+      }
+    }).createMachine({
+      id: 'authorization',
+      initial: 'loading',
+      context: {
+        myVar: 'foo'
+      },
+      states: {
+        loaded: {},
+        loading: {
+          on: {
+            SOME_EVENT: {
+              target: 'loaded'
+            }
+          }
+        }
+      }
+    });
+
+    ((_accept: ContextFrom<typeof machine>) => {})({ myVar: 'whatever' });
   });
 });

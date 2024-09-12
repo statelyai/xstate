@@ -1,6 +1,7 @@
 import { sleep } from '@xstate-repo/jest-utils';
 import {
   cancel,
+  emit,
   enqueueActions,
   log,
   raise,
@@ -11,12 +12,15 @@ import {
 import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import {
   ActorRef,
-  ActorRefFrom,
+  ActorRefFromLogic,
+  AnyActorRef,
   EventObject,
+  Snapshot,
   assign,
   createActor,
   createMachine,
-  forwardTo
+  forwardTo,
+  setup
 } from '../src/index.ts';
 import { trackEntries } from './utils.ts';
 
@@ -1546,7 +1550,7 @@ describe('entry/exit actions', () => {
       const parent = createMachine({
         types: {} as {
           context: {
-            child: ActorRefFrom<typeof child>;
+            child: ActorRefFromLogic<typeof child>;
           };
         },
         id: 'parent',
@@ -1591,7 +1595,7 @@ describe('entry/exit actions', () => {
       const parent = createMachine({
         types: {} as {
           context: {
-            child: ActorRefFrom<typeof child>;
+            child: ActorRefFromLogic<typeof child>;
           };
         },
         id: 'parent',
@@ -2461,7 +2465,7 @@ describe('forwardTo()', () => {
 
     const parent = createMachine({
       types: {} as {
-        context: { child?: ActorRef<any, any> };
+        context: { child?: AnyActorRef };
         events: { type: 'EVENT'; value: number } | { type: 'SUCCESS' };
       },
       id: 'parent',
@@ -2807,6 +2811,7 @@ describe('enqueueActions', () => {
       ]
     `);
   });
+
   it('should provide self', () => {
     expect.assertions(1);
     const machine = createMachine({
@@ -2816,6 +2821,111 @@ describe('enqueueActions', () => {
     });
 
     createActor(machine).start();
+  });
+
+  it('should be able to communicate with the parent using params', () => {
+    type ParentEvent = { type: 'FOO' };
+
+    const childMachine = setup({
+      types: {} as {
+        input: {
+          parent?: ActorRef<Snapshot<unknown>, ParentEvent>;
+        };
+        context: {
+          parent?: ActorRef<Snapshot<unknown>, ParentEvent>;
+        };
+      },
+      actions: {
+        mySendParent: enqueueActions(
+          ({ context, enqueue }, event: ParentEvent) => {
+            if (!context.parent) {
+              // it's here just for illustration purposes
+              console.log(
+                'WARN: an attempt to send an event to a non-existent parent'
+              );
+              return;
+            }
+            enqueue.sendTo(context.parent, event);
+          }
+        )
+      }
+    }).createMachine({
+      context: ({ input }) => ({ parent: input.parent }),
+      entry: {
+        type: 'mySendParent',
+        params: {
+          type: 'FOO'
+        }
+      }
+    });
+
+    const spy = jest.fn();
+
+    const parentMachine = setup({
+      types: {} as { events: ParentEvent },
+      actors: {
+        child: childMachine
+      }
+    }).createMachine({
+      on: {
+        FOO: {
+          actions: spy
+        }
+      },
+      invoke: {
+        src: 'child',
+        input: ({ self }) => ({ parent: self })
+      }
+    });
+
+    const actorRef = createActor(parentMachine).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should enqueue.sendParent', () => {
+    interface ChildEvent {
+      type: 'CHILD_EVENT';
+    }
+
+    interface ParentEvent {
+      type: 'PARENT_EVENT';
+    }
+
+    const childMachine = setup({
+      types: {} as {
+        events: ChildEvent;
+      },
+      actions: {
+        sendToParent: enqueueActions(({ context, enqueue }) => {
+          enqueue.sendParent({ type: 'PARENT_EVENT' });
+        })
+      }
+    }).createMachine({
+      entry: 'sendToParent'
+    });
+
+    const parentSpy = jest.fn();
+
+    const parentMachine = setup({
+      types: {} as { events: ParentEvent },
+      actors: {
+        child: childMachine
+      }
+    }).createMachine({
+      on: {
+        PARENT_EVENT: {
+          actions: parentSpy
+        }
+      },
+      invoke: {
+        src: 'child'
+      }
+    });
+
+    const actorRef = createActor(parentMachine).start();
+
+    expect(parentSpy).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -2865,7 +2975,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       types: {} as {
         context: {
-          child: ActorRefFrom<typeof childMachine>;
+          child: ActorRefFromLogic<typeof childMachine>;
         };
       },
       context: ({ spawn }) => ({
@@ -2897,7 +3007,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       types: {} as {
         context: {
-          child: ActorRefFrom<typeof childMachine>;
+          child: ActorRefFromLogic<typeof childMachine>;
           count: number;
         };
       },
@@ -2934,7 +3044,7 @@ describe('sendTo', () => {
     createMachine({
       types: {} as {
         context: {
-          child: ActorRefFrom<typeof childMachine>;
+          child: ActorRefFromLogic<typeof childMachine>;
         };
       },
       context: ({ spawn }) => ({
@@ -2965,7 +3075,9 @@ describe('sendTo', () => {
     });
 
     const parentMachine = createMachine({
-      types: {} as { context: { child: ActorRefFrom<typeof childMachine> } },
+      types: {} as {
+        context: { child: ActorRefFromLogic<typeof childMachine> };
+      },
       context: ({ spawn }) => ({
         child: spawn(childMachine, { id: 'child' })
       }),
@@ -2994,7 +3106,9 @@ describe('sendTo', () => {
     });
 
     const parentMachine = createMachine({
-      types: {} as { context: { child: ActorRefFrom<typeof childMachine> } },
+      types: {} as {
+        context: { child: ActorRefFromLogic<typeof childMachine> };
+      },
       context: ({ spawn }) => ({
         child: spawn(childMachine)
       }),
@@ -3273,7 +3387,7 @@ describe('raise', () => {
 });
 
 describe('cancel', () => {
-  it('should be possible to cancel a raised delayed event', () => {
+  it('should be possible to cancel a raised delayed event', async () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -3294,11 +3408,18 @@ describe('cancel', () => {
 
     const actor = createActor(machine).start();
 
+    // This should raise the 'RAISED' event after 1ms
+    actor.send({ type: 'NEXT' });
+
+    // This should cancel the 'RAISED' event
     actor.send({ type: 'CANCEL' });
 
-    setTimeout(() => {
-      expect(actor.getSnapshot().value).toBe('a');
-    }, 10);
+    await new Promise<void>((res) => {
+      setTimeout(() => {
+        expect(actor.getSnapshot().value).toBe('a');
+        res();
+      }, 10);
+    });
   });
 
   it('should cancel only the delayed event in the machine that scheduled it when canceling the event with the same ID in the machine that sent it first', async () => {
@@ -3395,6 +3516,31 @@ describe('cancel', () => {
 
     expect(fooSpy).toHaveBeenCalledTimes(1);
     expect(barSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not try to clear an undefined timeout when canceling an unscheduled timer', async () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      on: {
+        FOO: {
+          actions: cancel('foo')
+        }
+      }
+    });
+
+    const actorRef = createActor(machine, {
+      clock: {
+        setTimeout,
+        clearTimeout: spy
+      }
+    }).start();
+
+    actorRef.send({
+      type: 'FOO'
+    });
+
+    expect(spy.mock.calls.length).toBe(0);
   });
 });
 
@@ -3870,5 +4016,35 @@ describe('actions', () => {
     expect(spy).toHaveBeenCalledWith({
       foo: 'bar'
     });
+  });
+
+  it('should warn if called in custom action', () => {
+    const machine = createMachine({
+      entry: () => {
+        assign({});
+        raise({ type: '' });
+        sendTo('', { type: '' });
+        emit({ type: '' });
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+[
+  [
+    "Custom actions should not call \`assign()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
+  ],
+  [
+    "Custom actions should not call \`raise()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
+  ],
+  [
+    "Custom actions should not call \`raise()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
+  ],
+  [
+    "Custom actions should not call \`emit()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
+  ],
+]
+`);
   });
 });

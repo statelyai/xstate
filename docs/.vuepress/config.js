@@ -31,6 +31,7 @@ module.exports = {
     toc: { includeLevel: [2, 3], slugify: slugifyWithBadges }
   },
   head: [
+    ['meta', { name: 'robots', content: 'noindex' }],
     ['script', { src: 'https://plausible.io/js/plausible.js', defer: 'defer' }]
   ],
   themeConfig: {

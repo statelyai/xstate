@@ -12,9 +12,9 @@ permissions: {}
 jobs:
   release:
     permissions:
-      contents: write  #  to create release (changesets/action)
+      contents: write #  to create release (changesets/action)
       issues: write # to post issue comments (changesets/action)
-      pull-requests: write  #  to create pull request (changesets/action)
+      pull-requests: write #  to create pull request (changesets/action)
 
     if: github.repository == 'statelyai/xstate'
 
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/ci-setup
       - uses: ./.github/actions/ci-checks
 

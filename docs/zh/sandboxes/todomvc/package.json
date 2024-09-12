@@ -18,6 +18,6 @@
     "xstate",
     "react"
   ],
-  "name": "xstate-todomvc",
+  "name": "xstate-todomvc-zh",
   "description": "The TodoMVC app implemented with React (using hooks) and XState version 4."
 }

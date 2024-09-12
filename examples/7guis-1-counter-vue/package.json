@@ -1,0 +1,22 @@
+{
+  "name": "@xstate/example-7guis-1-counter-vue",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@xstate/vue": "^3.1.2",
+    "vue": "^3.4.38",
+    "xstate": "^5.18.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.6.2",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2",
+    "vue-tsc": "^1.8.27"
+  }
+}

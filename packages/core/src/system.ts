@@ -1,3 +1,4 @@
+import { InspectionEvent } from './inspection.ts';
 import {
   AnyEventObject,
   ActorSystemInfo,
@@ -5,10 +6,13 @@ import {
   Observer,
   Snapshot,
   HomomorphicOmit,
-  EventObject
+  EventObject,
+  AnyTransitionDefinition,
+  Subscription
 } from './types.ts';
+import { toObserver } from './utils.ts';
 
-export interface ScheduledEvent {
+interface ScheduledEvent {
   id: string;
   event: EventObject;
   startedAt: number; // timestamp
@@ -22,7 +26,7 @@ export interface Clock {
   clearTimeout(id: any): void;
 }
 
-export interface Scheduler {
+interface Scheduler {
   schedule(
     source: AnyActorRef,
     target: AnyActorRef,
@@ -44,33 +48,26 @@ function createScheduledEventId(
 }
 
 export interface ActorSystem<T extends ActorSystemInfo> {
-  /**
-   * @internal
-   */
+  /** @internal */
   _bookId: () => string;
-  /**
-   * @internal
-   */
+  /** @internal */
   _register: (sessionId: string, actorRef: AnyActorRef) => string;
-  /**
-   * @internal
-   */
+  /** @internal */
   _unregister: (actorRef: AnyActorRef) => void;
-  /**
-   * @internal
-   */
+  /** @internal */
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
-  inspect: (observer: Observer<InspectionEvent>) => void;
-  /**
-   * @internal
-   */
+
+  inspect: (
+    observer:
+      | Observer<InspectionEvent>
+      | ((inspectionEvent: InspectionEvent) => void)
+  ) => Subscription;
+  /** @internal */
   _sendInspectionEvent: (
     event: HomomorphicOmit<InspectionEvent, 'rootId'>
   ) => void;
-  /**
-   * @internal
-   */
+  /** @internal */
   _relay: (
     source: AnyActorRef | undefined,
     target: AnyActorRef,
@@ -80,13 +77,13 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   getSnapshot: () => {
     _scheduledEvents: Record<string, ScheduledEvent>;
   };
-  /**
-   * @internal
-   */
+  /** @internal */
   _snapshot: {
     _scheduledEvents: Record<ScheduledEventId, ScheduledEvent>;
   };
   start: () => void;
+  _clock: Clock;
+  _logger: (...args: any[]) => void;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
@@ -96,15 +93,16 @@ export function createSystem<T extends ActorSystemInfo>(
   rootActor: AnyActorRef,
   options: {
     clock: Clock;
+    logger: (...args: any[]) => void;
     snapshot?: unknown;
   }
 ): ActorSystem<T> {
   const children = new Map<string, AnyActorRef>();
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
-  const observers = new Set<Observer<InspectionEvent>>();
+  const inspectionObservers = new Set<Observer<InspectionEvent>>();
   const timerMap: { [id: ScheduledEventId]: number } = {};
-  const clock = options.clock;
+  const { clock, logger } = options;
 
   const scheduler: Scheduler = {
     schedule: (
@@ -141,7 +139,9 @@ export function createSystem<T extends ActorSystemInfo>(
       delete timerMap[scheduledEventId];
       delete system._snapshot._scheduledEvents[scheduledEventId];
 
-      clock.clearTimeout(timeout);
+      if (timeout !== undefined) {
+        clock.clearTimeout(timeout);
+      }
     },
     cancelAll: (actorRef) => {
       for (const scheduledEventId in system._snapshot._scheduledEvents) {
@@ -154,6 +154,18 @@ export function createSystem<T extends ActorSystemInfo>(
         }
       }
     }
+  };
+  const sendInspectionEvent = (event: InspectionEvent) => {
+    if (!inspectionObservers.size) {
+      return;
+    }
+    const resolvedInspectionEvent: InspectionEvent = {
+      ...event,
+      rootId: rootActor.sessionId
+    };
+    inspectionObservers.forEach(
+      (observer) => observer.next?.(resolvedInspectionEvent)
+    );
   };
 
   const system: ActorSystem<T> = {
@@ -189,16 +201,17 @@ export function createSystem<T extends ActorSystemInfo>(
       keyedActors.set(systemId, actorRef);
       reverseKeyedActors.set(actorRef, systemId);
     },
-    inspect: (observer) => {
-      observers.add(observer);
-    },
-    _sendInspectionEvent: (event) => {
-      const resolvedInspectionEvent: InspectionEvent = {
-        ...event,
-        rootId: rootActor.sessionId
+    inspect: (observerOrFn) => {
+      const observer = toObserver(observerOrFn);
+      inspectionObservers.add(observer);
+
+      return {
+        unsubscribe() {
+          inspectionObservers.delete(observer);
+        }
       };
-      observers.forEach((observer) => observer.next?.(resolvedInspectionEvent));
     },
+    _sendInspectionEvent: sendInspectionEvent as any,
     _relay: (source, target, event) => {
       system._sendInspectionEvent({
         type: '@xstate.event',
@@ -216,49 +229,17 @@ export function createSystem<T extends ActorSystemInfo>(
       };
     },
     start: () => {
-      const scheduledEvets = system._snapshot._scheduledEvents;
+      const scheduledEvents = system._snapshot._scheduledEvents;
       system._snapshot._scheduledEvents = {};
-      for (const scheduledId in scheduledEvets) {
+      for (const scheduledId in scheduledEvents) {
         const { source, target, event, delay, id } =
-          scheduledEvets[scheduledId as ScheduledEventId];
+          scheduledEvents[scheduledId as ScheduledEventId];
         scheduler.schedule(source, target, event, delay, id);
       }
-    }
+    },
+    _clock: clock,
+    _logger: logger
   };
 
   return system;
 }
-export interface BaseInspectionEventProperties {
-  rootId: string; // the session ID of the root
-  /**
-   * The relevant actorRef for the inspection event.
-   * - For snapshot events, this is the `actorRef` of the snapshot.
-   * - For event events, this is the target `actorRef` (recipient of event).
-   * - For actor events, this is the `actorRef` of the registered actor.
-   */
-  actorRef: AnyActorRef;
-}
-
-export interface InspectedSnapshotEvent extends BaseInspectionEventProperties {
-  type: '@xstate.snapshot';
-  event: AnyEventObject; // { type: string, ... }
-  snapshot: Snapshot<unknown>;
-}
-
-export interface InspectedEventEvent extends BaseInspectionEventProperties {
-  type: '@xstate.event';
-  // The source might not exist, e.g. when:
-  // - root init events
-  // - events sent from external (non-actor) sources
-  sourceRef: AnyActorRef | undefined;
-  event: AnyEventObject; // { type: string, ... }
-}
-
-export interface InspectedActorEvent extends BaseInspectionEventProperties {
-  type: '@xstate.actor';
-}
-
-export type InspectionEvent =
-  | InspectedSnapshotEvent
-  | InspectedEventEvent
-  | InspectedActorEvent;

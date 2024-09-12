@@ -1,6 +1,6 @@
 {
   "name": "@xstate/solid",
-  "version": "0.1.3",
+  "version": "0.2.1",
   "description": "XState tools for SolidJS",
   "keywords": [
     "state",
@@ -43,7 +43,7 @@
   },
   "peerDependencies": {
     "solid-js": "^1.6.0",
-    "xstate": "^5.5.0"
+    "xstate": "^5.18.1"
   },
   "peerDependenciesMeta": {
     "xstate": {
@@ -53,6 +53,6 @@
   "devDependencies": {
     "solid-js": "^1.7.6",
     "solid-testing-library": "^0.3.0",
-    "xstate": "5.5.0"
+    "xstate": "5.18.1"
   }
 }

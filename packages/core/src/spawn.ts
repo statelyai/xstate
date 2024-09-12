@@ -1,12 +1,13 @@
 import { ProcessingStatus, createActor } from './createActor.ts';
 import {
-  ActorRefFrom,
+  ActorRefFromLogic,
   AnyActorLogic,
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
   AnyMachineSnapshot,
   ConditionalRequired,
+  GetConcreteByKey,
   InputFrom,
   IsLiteralString,
   IsNotNever,
@@ -35,21 +36,24 @@ type SpawnOptions<
     >
   : never;
 
-// it's likely-ish that `(TActor & { src: TSrc })['logic']` would be faster
-// but it's only possible to do it since https://github.com/microsoft/TypeScript/pull/53098 (TS 5.1)
-// and we strive to support TS 5.0 whenever possible
-type GetConcreteLogic<
-  TActor extends ProvidedActor,
-  TSrc extends TActor['src']
-> = Extract<TActor, { src: TSrc }>['logic'];
-
 export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
   TActor['src']
 > extends true
-  ? <TSrc extends TActor['src']>(
-      logic: TSrc,
-      ...[options]: SpawnOptions<TActor, TSrc>
-    ) => ActorRefFrom<GetConcreteLogic<TActor, TSrc>>
+  ? {
+      <TSrc extends TActor['src']>(
+        logic: TSrc,
+        ...[options]: SpawnOptions<TActor, TSrc>
+      ): ActorRefFromLogic<GetConcreteByKey<TActor, 'src', TSrc>['logic']>;
+      <TLogic extends AnyActorLogic>(
+        src: TLogic,
+        options?: {
+          id?: never;
+          systemId?: string;
+          input?: InputFrom<TLogic>;
+          syncSnapshot?: boolean;
+        }
+      ): ActorRefFromLogic<TLogic>;
+    }
   : <TLogic extends AnyActorLogic | string>(
       src: TLogic,
       options?: {
@@ -58,7 +62,7 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
         input?: TLogic extends string ? unknown : InputFrom<TLogic>;
         syncSnapshot?: boolean;
       }
-    ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;
+    ) => TLogic extends AnyActorLogic ? ActorRefFromLogic<TLogic> : AnyActorRef;
 
 export function createSpawner(
   actorScope: AnyActorScope,

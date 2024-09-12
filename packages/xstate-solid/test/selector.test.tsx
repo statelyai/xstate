@@ -1,4 +1,6 @@
 /* @jsxImportSource solid-js */
+import { createMemo, createSignal, from } from 'solid-js';
+import { fireEvent, render, screen } from 'solid-testing-library';
 import {
   ActorRefFrom,
   AnyMachineSnapshot,
@@ -6,10 +8,7 @@ import {
   assign,
   createMachine
 } from 'xstate';
-import { render, fireEvent, screen } from 'solid-testing-library';
-import { useActor, createService, useMachine } from '../src/index.ts';
-import { createMemo, createSignal, from } from 'solid-js';
-
+import { useActorRef, useMachine, fromActorRef } from '../src/index.ts';
 describe('usage of selectors with reactive service state', () => {
   // TODO: rewrite this test to not use `from()`
   it.skip('only rerenders for selected values', () => {
@@ -36,7 +35,7 @@ describe('usage of selectors with reactive service state', () => {
     let rerenders = 0;
 
     const App = () => {
-      const service = createService(machine);
+      const service = useActorRef(machine);
       const serviceState = from(service);
 
       const selector = (state: StateFrom<typeof machine> | undefined) =>
@@ -101,7 +100,7 @@ describe('usage of selectors with reactive service state', () => {
     });
 
     const App = () => {
-      const service = createService(machine);
+      const service = useActorRef(machine);
       const serviceState = from(service);
       const name = createMemo(
         () => serviceState()!.context.name,
@@ -177,14 +176,15 @@ describe('usage of selectors with reactive service state', () => {
 
     const App = () => {
       const [state] = useMachine(parentMachine);
-      const [actorState, actorSend] = useActor(state.context.childActor!);
+      const childActor = state.context.childActor!;
+      const childSnapshot = fromActorRef(childActor);
 
       return (
         <div>
-          <div data-testid="count">{selector(actorState())}</div>
+          <div data-testid="count">{selector(childSnapshot())}</div>
 
           <button
-            onclick={() => actorSend({ type: 'UPDATE_COUNT' })}
+            onclick={() => childActor.send({ type: 'UPDATE_COUNT' })}
             data-testid="button"
           />
         </div>
@@ -340,13 +340,16 @@ describe('usage of selectors with reactive service state', () => {
     const [prop, setProp] = createSignal('first');
 
     const App = () => {
-      const [state] = useMachine(parentMachine);
-      const [actorState, actorSend] = useActor(state.context.childActor!);
-      const value = createMemo(() => `${prop()} ${actorState().context.count}`);
+      const [snapshot] = useMachine(parentMachine);
+      const childActor = () => snapshot.context.childActor!;
+      const childSnapshot = fromActorRef(childActor);
+      const value = createMemo(
+        () => `${prop()} ${childSnapshot().context.count}`
+      );
       return (
         <div>
           <div data-testid="value">{value()}</div>
-          <button onclick={() => actorSend({ type: 'INC' })} />
+          <button onclick={() => childActor().send({ type: 'INC' })} />
         </div>
       );
     };

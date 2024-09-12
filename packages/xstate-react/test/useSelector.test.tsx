@@ -20,7 +20,6 @@ import {
   useSelector
 } from '../src/index.ts';
 import { describeEachReactMode } from './utils';
-import { createEmptyActor } from 'xstate/actors';
 
 const originalConsoleError = console.error;
 
@@ -683,7 +682,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
       return (
         <>
-          <div data-testid="child-state">{childState.value}</div>
+          <div data-testid="child-state">{childState.value as string}</div>
           <button
             data-testid="child-send"
             onClick={() => childRef.send({ type: 'NEXT' })}
@@ -716,27 +715,21 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
     render(<App />);
 
-    expect(spy).not.toBeCalled();
+    expect(spy).not.toHaveBeenCalled();
   });
 
-  it('should work with a null actor', () => {
+  it('should work with an optional actor', () => {
     const Child = (props: {
       actor: ActorRef<TransitionSnapshot<{ count: number }>, any> | undefined;
     }) => {
-      const state = useSelector<
-        ActorRef<
-          Snapshot<undefined> & { context?: { count: number } },
-          AnyEventObject
-        >,
-        Snapshot<undefined> & { context?: { count: number } }
-      >(props.actor ?? createEmptyActor(), (s) => s);
+      const state = useSelector(props.actor, (s) => s);
 
       // @ts-expect-error
-      ((_accept: { count: number }) => {})(state.context);
-      ((_accept: { count: number } | undefined) => {})(state.context);
+      ((_accept: { count: number }) => {})(state?.context);
+      ((_accept: { count: number } | undefined) => {})(state?.context);
 
       return (
-        <div data-testid="state">{state.context?.count ?? 'undefined'}</div>
+        <div data-testid="state">{state?.context?.count ?? 'undefined'}</div>
       );
     };
 
