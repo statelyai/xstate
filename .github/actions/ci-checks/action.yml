@@ -19,5 +19,5 @@ runs:
       shell: bash
 
     - name: Knip
-      run: yarn knip
+      run: pnpm knip
       shell: bash
