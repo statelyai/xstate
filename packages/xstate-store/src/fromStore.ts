@@ -1,25 +1,19 @@
+import { ActorLogic } from 'xstate';
 import { createStoreTransition, TransitionsFromEventPayloadMap } from './store';
 import {
   EventPayloadMap,
   StoreContext,
   Snapshot,
   StoreSnapshot,
-  EventObject
+  EventObject,
+  ExtractEventsFromPayloadMap
 } from './types';
 
 type StoreLogic<
   TContext extends StoreContext,
   TEvent extends EventObject,
   TInput
-> = {
-  transition: (context: TContext, event: TEvent) => TContext;
-  start: () => void;
-  getInitialSnapshot: (_: any, input: TInput) => StoreSnapshot<TContext>;
-  getPersistedSnapshot: (
-    snapshot: StoreSnapshot<TContext>
-  ) => StoreSnapshot<TContext>;
-  restoreSnapshot: (snapshot: Snapshot<unknown>) => StoreSnapshot<TContext>;
-};
+> = ActorLogic<StoreSnapshot<TContext>, TEvent, TInput, any, any>;
 
 /**
  * An actor logic creator which creates store [actor
@@ -42,11 +36,10 @@ export function fromStore<
     TContext,
     EventObject
   >
-) {
-  const transition = createStoreTransition(transitions);
+): StoreLogic<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TInput> {
+  const transition = createStoreTransition(transitions) as any; // TODO: fix type
   return {
     transition,
-    start: () => {},
     getInitialSnapshot: (_: any, input: TInput) => {
       return {
         status: 'active',

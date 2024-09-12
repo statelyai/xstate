@@ -1,4 +1,4 @@
-import { createActor } from 'xstate';
+import { createActor, InputFrom } from 'xstate';
 import { fromStore } from '../src/index.ts';
 
 describe('fromStore', () => {
