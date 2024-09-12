@@ -33,7 +33,7 @@ export function fromStore<
   initialContext: ((input: TInput) => TContext) | TContext,
   transitions: TransitionsFromEventPayloadMap<
     TEventPayloadMap,
-    TContext,
+    NoInfer<TContext>,
     EventObject
   >
 ): StoreLogic<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TInput> {

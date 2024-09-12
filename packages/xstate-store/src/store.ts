@@ -1,18 +1,19 @@
 import { EventObject } from 'xstate';
 import {
-  Recipe,
+  Cast,
   EventPayloadMap,
-  Store,
   ExtractEventsFromPayloadMap,
-  StoreSnapshot,
-  StorePartialAssigner,
-  StoreCompleteAssigner,
-  StoreAssigner,
-  StorePropertyAssigner,
-  Observer,
-  StoreContext,
+  InspectionEvent,
   InteropSubscribable,
-  InspectionEvent
+  Observer,
+  Recipe,
+  Store,
+  StoreAssigner,
+  StoreCompleteAssigner,
+  StoreContext,
+  StorePartialAssigner,
+  StorePropertyAssigner,
+  StoreSnapshot
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -249,7 +250,7 @@ export type TransitionsFromEventPayloadMap<
 export function createStore<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
-  TTypes extends { emitted: EventObject }
+  TTypes extends { emitted?: EventObject; events?: EventObject }
 >({
   context,
   on,
@@ -261,18 +262,18 @@ export function createStore<
       | StoreAssigner<
           NoInfer<TContext>,
           { type: K } & TEventPayloadMap[K],
-          TTypes['emitted']
+          Cast<TTypes['emitted'], EventObject>
         >
       | StorePropertyAssigner<
           NoInfer<TContext>,
           { type: K } & TEventPayloadMap[K],
-          TTypes['emitted']
+          Cast<TTypes['emitted'], EventObject>
         >;
   };
 } & { types: TTypes }): Store<
   TContext,
   ExtractEventsFromPayloadMap<TEventPayloadMap>,
-  TTypes['emitted']
+  Cast<TTypes['emitted'], EventObject>
 >;
 
 /**

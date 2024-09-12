@@ -303,3 +303,5 @@ export type ActorRefLike = {
 };
 
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
+
+export type Cast<A, B> = A extends B ? A : B;
