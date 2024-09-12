@@ -249,8 +249,6 @@ export class Actor<TLogic extends AnyActorLogic>
         output: undefined,
         error: err
       } as any;
-
-      throw err;
     }
   }
 
