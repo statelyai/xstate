@@ -38,7 +38,8 @@ export default ts.config(
       '@typescript-eslint/no-empty-object-type': [
         'error',
         {
-          allowInterfaces: 'with-single-extends'
+          allowInterfaces: 'with-single-extends',
+          allowObjectTypes: 'always'
         }
       ],
       '@typescript-eslint/no-explicit-any': 'off',

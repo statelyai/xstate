@@ -222,8 +222,7 @@ export class StateMachine<
       error?: unknown;
     } & (Equals<TContext, MachineContext> extends false
       ? { context: unknown }
-      : // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-        {})
+      : {})
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -560,8 +559,7 @@ export class StateMachine<
     > = (snapshot as any).children;
 
     Object.keys(snapshotChildren).forEach((actorId) => {
-      const actorData =
-        snapshotChildren[actorId];
+      const actorData = snapshotChildren[actorId];
       const childState = actorData.snapshot;
       const src = actorData.src;
 
