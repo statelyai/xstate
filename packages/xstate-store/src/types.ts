@@ -303,7 +303,3 @@ export type ActorRefLike = {
 };
 
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
-
-export interface StoreSchemas {
-  emitted?: Record<string, { _output: unknown }>;
-}

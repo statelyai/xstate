@@ -12,9 +12,7 @@ import {
   Observer,
   StoreContext,
   InteropSubscribable,
-  InspectionEvent,
-  Compute,
-  StoreSchemas
+  InspectionEvent
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -289,64 +287,6 @@ export function createStore<
  *
  * ```ts
  * const store = createStore({
- *   schemas: {
- *     // ...
- *   },
- *   context: { count: 0 },
- *   on: {
- *     inc: (context, event: { by: number }) => {
- *       return {
- *         count: context.count + event.by
- *       };
- *     }
- *   }
- * });
- *
- * store.subscribe((snapshot) => {
- *   console.log(snapshot);
- * });
- *
- * store.send({ type: 'inc', by: 5 });
- * // Logs { context: { count: 5 }, status: 'active', ... }
- * ```
- */
-export function createStore<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
-  TSchemas extends StoreSchemas
->({
-  context,
-  on,
-  schemas
-}: {
-  context: TContext;
-  on: {
-    [K in keyof TEventPayloadMap & string]:
-      | StoreAssigner<
-          NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K],
-          EmittedFromSchemas<TSchemas>
-        >
-      | StorePropertyAssigner<
-          NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K],
-          EmittedFromSchemas<TSchemas>
-        >;
-  };
-} & { schemas: TSchemas }): Store<
-  TContext,
-  ExtractEventsFromPayloadMap<TEventPayloadMap>,
-  EmittedFromSchemas<TSchemas>
->;
-
-/**
- * Creates a **store** that has its own internal state and can be sent events
- * that update its internal state based on transitions.
- *
- * @example
- *
- * ```ts
- * const store = createStore({
  *   // Initial context
  *   context: { count: 0 },
  *   // Transitions
@@ -592,16 +532,3 @@ export function createStoreTransition<
 function uniqueId() {
   return Math.random().toString(36).slice(6);
 }
-
-type MaybeZod<T> = T extends { _output: infer U } ? U : never;
-
-export type EmittedFromSchemas<TSchemas extends StoreSchemas> =
-  TSchemas extends {
-    emitted: infer TEmitted;
-  }
-    ? {
-        [K in keyof TEmitted]: Compute<
-          { type: K } & MaybeZod<TEmitted[K]> & EventObject
-        >;
-      }[keyof TEmitted]
-    : never;

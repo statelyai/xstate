@@ -205,39 +205,6 @@ it('can be inspected', () => {
   ]);
 });
 
-it('emits (schema)', () =>
-  new Promise<void>((res) => {
-    const store = createStore({
-      schemas: {
-        emitted: {
-          increased: z.object({ upBy: z.number() }),
-          decreased: z.object({ downBy: z.number() })
-        }
-      },
-      context: {
-        count: 0
-      },
-      on: {
-        inc: {
-          count: (ctx, _: {}, enq) => {
-            enq.emit({ type: 'increased', upBy: 1 });
-
-            // @ts-expect-error
-            enq.emit({ type: 'unknown' });
-            return ctx.count + 1;
-          }
-        }
-      }
-    });
-
-    store.on('increased', (ev) => {
-      expect(ev).toEqual({ type: 'increased', upBy: 1 });
-      res();
-    });
-
-    store.send({ type: 'inc' });
-  }));
-
 it('emits (types)', () =>
   new Promise<void>((res) => {
     const store = createStore({
@@ -272,11 +239,10 @@ it('emits (types)', () =>
 
 it('emitted events can be subscribed to', () => {
   const store = createStore({
-    schemas: {
-      emitted: {
-        increased: z.object({ upBy: z.number() }),
-        decreased: z.object({ downBy: z.number() })
-      }
+    types: {
+      emitted: {} as
+        | { type: 'increased'; upBy: number }
+        | { type: 'decreased'; downBy: number }
     },
     context: {
       count: 0
@@ -304,11 +270,10 @@ it('emitted events can be subscribed to', () => {
 
 it('emitted events can be unsubscribed to', () => {
   const store = createStore({
-    schemas: {
-      emitted: {
-        increased: z.object({ upBy: z.number() }),
-        decreased: z.object({ downBy: z.number() })
-      }
+    types: {
+      emitted: {} as
+        | { type: 'increased'; upBy: number }
+        | { type: 'decreased'; downBy: number }
     },
     context: {
       count: 0
