@@ -38,8 +38,8 @@ export function useSelector<
 
   const boundGetSnapshot = useCallback(() => actor?.getSnapshot(), [actor]);
   const boundSelector: typeof selector = useCallback(
-    (snapshot: Snapshot<any>) => {
-      if (snapshot.status === 'error') {
+    (snapshot: Snapshot<any> | undefined) => {
+      if (snapshot?.status === 'error') {
         throw snapshot.error;
       }
       return selector(snapshot as never);
