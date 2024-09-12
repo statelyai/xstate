@@ -64,8 +64,7 @@
     "react-dom": "^18.0.0",
     "solid-js": "^1.7.6",
     "solid-testing-library": "^0.3.0",
-    "xstate": "^5.18.0",
-    "zod": "^3.23.8"
+    "xstate": "^5.18.0"
   },
   "peerDependencies": {
     "react": "^18.2.0",
