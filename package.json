@@ -52,6 +52,7 @@
     "@babel/preset-typescript": "^7.23.3",
     "@changesets/changelog-github": "^0.4.8",
     "@changesets/cli": "^2.26.2",
+    "@jest/types": "^29.6.3",
     "@manypkg/cli": "^0.21.4",
     "@preconstruct/cli": "^2.8.1",
     "@testing-library/vue": "^6.6.1",
