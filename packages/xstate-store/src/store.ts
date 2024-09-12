@@ -258,15 +258,19 @@ export function createStore<
 }: {
   context: TContext;
   on: {
-    [K in keyof TEventPayloadMap & string]:
+    [K in
+      | (keyof TEventPayloadMap & string)
+      | Cast<TTypes['events'], EventObject>['type']]:
       | StoreAssigner<
           NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K],
+          { type: K } & TEventPayloadMap[K] &
+            Cast<TTypes['events'], EventObject>,
           Cast<TTypes['emitted'], EventObject>
         >
       | StorePropertyAssigner<
           NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K],
+          { type: K } & TEventPayloadMap[K] &
+            Cast<TTypes['events'], EventObject>,
           Cast<TTypes['emitted'], EventObject>
         >;
   };
