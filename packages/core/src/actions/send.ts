@@ -66,6 +66,12 @@ function resolveSendTo(
 ) {
   const delaysMap = snapshot.machine.implementations.delays;
 
+  if (typeof eventOrExpr === 'string') {
+    throw new Error(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      `Only event objects may be used with sendTo; use sendTo({ type: "${eventOrExpr}" }) instead`
+    );
+  }
   const resolvedEvent =
     typeof eventOrExpr === 'function'
       ? eventOrExpr(args, actionParams)
