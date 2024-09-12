@@ -1,15 +1,8 @@
-import {
-  createStore,
-  createStoreTransition,
-  EmittedFromSchemas,
-  TransitionsFromEventPayloadMap
-} from './store';
+import { createStoreTransition, TransitionsFromEventPayloadMap } from './store';
 import {
   EventPayloadMap,
   StoreContext,
-  // StoreSnapshot,
   Snapshot,
-  ExtractEventsFromPayloadMap,
   StoreSnapshot,
   EventObject
 } from './types';
@@ -66,6 +59,6 @@ export function fromStore<
       } satisfies StoreSnapshot<TContext>;
     },
     getPersistedSnapshot: (s: StoreSnapshot<TContext>) => s,
-    restoreSnapshot: (s: Snapshot<unknown>) => s as StoreSnapshot<any>
+    restoreSnapshot: (s: Snapshot<unknown>) => s as StoreSnapshot<TContext>
   };
 }

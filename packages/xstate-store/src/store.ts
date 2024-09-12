@@ -83,7 +83,7 @@ function createStoreCore<
     output: undefined,
     error: undefined
   };
-  let currentSnapshot = initialSnapshot;
+  let currentSnapshot: StoreSnapshot<TContext> = initialSnapshot;
   const emit = (ev: TEmitted) => {
     if (!listeners) {
       return;
@@ -117,19 +117,21 @@ function createStoreCore<
   }
 
   const store: Store<TContext, StoreEvent, TEmitted> = {
-    on: (event, fn) => {
+    on(emittedEventType, handler) {
       if (!listeners) {
         listeners = new Map();
       }
-      if (!listeners.has(event)) {
-        listeners.set(event, new Set());
+      let eventListeners = listeners.get(emittedEventType);
+      if (!eventListeners) {
+        eventListeners = new Set();
+        listeners.set(emittedEventType, eventListeners);
       }
-      const set = listeners.get(event)!;
-      set.add(fn);
+      const wrappedHandler = handler.bind(undefined);
+      eventListeners.add(wrappedHandler);
 
       return {
         unsubscribe() {
-          set.delete(fn);
+          eventListeners!.delete(wrappedHandler);
         }
       };
     },
