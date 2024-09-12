@@ -9,6 +9,9 @@ interface WaitForOptions {
    * @defaultValue Infinity
    */
   timeout: number;
+
+  /** A signal which stops waiting when aborted. */
+  signal?: AbortSignal;
 }
 
 const defaultWaitForOptions: WaitForOptions = {
@@ -46,6 +49,12 @@ export function waitFor<TActorRef extends AnyActorRef>(
     ...options
   };
   return new Promise((res, rej) => {
+    const { signal } = resolvedOptions;
+    if (signal?.aborted) {
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+      rej(signal.reason);
+      return;
+    }
     let done = false;
     if (isDevelopment && resolvedOptions.timeout < 0) {
       console.error(
@@ -56,7 +65,7 @@ export function waitFor<TActorRef extends AnyActorRef>(
       resolvedOptions.timeout === Infinity
         ? undefined
         : setTimeout(() => {
-            sub!.unsubscribe();
+            dispose();
             rej(new Error(`Timeout of ${resolvedOptions.timeout} ms exceeded`));
           }, resolvedOptions.timeout);
 
@@ -64,6 +73,9 @@ export function waitFor<TActorRef extends AnyActorRef>(
       clearTimeout(handle);
       done = true;
       sub?.unsubscribe();
+      if (abortListener) {
+        signal!.removeEventListener('abort', abortListener);
+      }
     };
 
     function checkEmitted(emitted: SnapshotFrom<TActorRef>) {
@@ -73,6 +85,11 @@ export function waitFor<TActorRef extends AnyActorRef>(
       }
     }
 
+    /**
+     * If the `signal` option is provided, this will be the listener for its
+     * `abort` event
+     */
+    let abortListener: () => void | undefined;
     // eslint-disable-next-line prefer-const
     let sub: Subscription | undefined; // avoid TDZ when disposing synchronously
 
@@ -80,6 +97,17 @@ export function waitFor<TActorRef extends AnyActorRef>(
     checkEmitted(actorRef.getSnapshot());
     if (done) {
       return;
+    }
+
+    // only define the `abortListener` if the `signal` option is provided
+    if (signal) {
+      abortListener = () => {
+        dispose();
+        // XState does not "own" the signal, so we should reject with its reason (if any)
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+        rej(signal.reason);
+      };
+      signal.addEventListener('abort', abortListener);
     }
 
     sub = actorRef.subscribe({

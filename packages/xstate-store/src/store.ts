@@ -1,4 +1,3 @@
-import type { InspectionEvent } from 'xstate';
 import {
   Recipe,
   EventPayloadMap,
@@ -11,7 +10,8 @@ import {
   StorePropertyAssigner,
   Observer,
   StoreContext,
-  InteropSubscribable
+  InteropSubscribable,
+  InspectionEvent
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -96,7 +96,7 @@ function createStoreCore<
   }
 
   const store: Store<TContext, StoreEvent> = {
-    sessionId: 'test',
+    sessionId: uniqueId(),
     send(event) {
       inspectionObservers.get(store)?.forEach((observer) => {
         observer.next?.({
@@ -340,4 +340,9 @@ export function createStoreTransition<
 
     return { ...snapshot, context: currentContext };
   };
+}
+
+// create a unique 6-char id
+function uniqueId() {
+  return Math.random().toString(36).slice(6);
 }

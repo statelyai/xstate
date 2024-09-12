@@ -1,7 +1,11 @@
 import { render } from '@testing-library/react';
 import { ActorRefFrom, assign, createMachine, setup } from 'xstate';
-import { useMachine, useSelector } from '../src/index.ts';
-import { useEffect, useMemo } from 'react';
+import {
+  useActor,
+  useActorRef,
+  useMachine,
+  useSelector
+} from '../src/index.ts';
 
 describe('useMachine', () => {
   interface YesNoContext {
@@ -118,6 +122,79 @@ describe('useMachine', () => {
     };
 
     noop(App);
+  });
+});
+
+describe('useActor', () => {
+  it('should require input to be specified when defined', () => {
+    const withInputMachine = createMachine({
+      types: {} as { input: { value: number } },
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
+    const Component = () => {
+      // @ts-expect-error
+      const _ = useActor(withInputMachine);
+      return <></>;
+    };
+
+    render(<Component />);
+  });
+
+  it('should not require input when not defined', () => {
+    const noInputMachine = createMachine({
+      types: {} as {},
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+    const Component = () => {
+      const _ = useActor(noInputMachine);
+      return <></>;
+    };
+
+    render(<Component />);
+  });
+});
+
+describe('useActorRef', () => {
+  it('should require input to be specified when defined', () => {
+    const withInputMachine = createMachine({
+      types: {} as { input: { value: number } },
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
+    const Component = () => {
+      // @ts-expect-error
+      const _ = useActorRef(withInputMachine);
+      return <></>;
+    };
+
+    render(<Component />);
+  });
+
+  it('should not require input when not defined', () => {
+    const noInputMachine = createMachine({
+      types: {} as {},
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
+    const Component = () => {
+      const _ = useActorRef(noInputMachine);
+      return <></>;
+    };
+
+    render(<Component />);
   });
 });
 

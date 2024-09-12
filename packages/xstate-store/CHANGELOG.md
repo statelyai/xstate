@@ -1,5 +1,36 @@
 # @xstate/store
 
+## 2.3.0
+
+### Minor Changes
+
+- [#5056](https://github.com/statelyai/xstate/pull/5056) [`8c35da9a72`](https://github.com/statelyai/xstate/commit/8c35da9a72bf067a275335d0391ce9ab85ed8a12) Thanks [@steveadams](https://github.com/steveadams)! - You can now use the xstate/store package with SolidJS.
+
+  Import `useSelector` from `@xstate/store/solid`. Select the data you want via `useSelector(…)` and send events using `store.send(eventObject)`:
+
+  ```tsx
+  import { donutStore } from './donutStore.ts';
+  import { useSelector } from '@xstate/store/solid';
+
+  function DonutCounter() {
+    const donutCount = useSelector(donutStore, (state) => state.context.donuts);
+
+    return (
+      <div>
+        <button onClick={() => donutStore.send({ type: 'addDonut' })}>
+          Add donut ({donutCount()})
+        </button>
+      </div>
+    );
+  }
+  ```
+
+## 2.2.1
+
+### Patch Changes
+
+- [`b740aafdb1`](https://github.com/statelyai/xstate/commit/b740aafdb12ed6577ba31d0e07653bf99ebaca76) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed some small issues from #5027 regarding XState types being imported
+
 ## 2.2.0
 
 ### Minor Changes

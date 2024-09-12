@@ -21,3 +21,7 @@ runs:
     - name: Svelte Check
       run: yarn --cwd packages/xstate-svelte svelte-check
       shell: bash
+
+    - name: Knip
+      run: yarn knip
+      shell: bash

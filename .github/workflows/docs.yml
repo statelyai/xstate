@@ -24,7 +24,7 @@ jobs:
         working-directory: docs
         run: |
           yarn install
-          yarn docs:build
+          NODE_OPTIONS='--openssl-legacy-provider' yarn docs:build
 
       - name: Publish docs
         uses: JamesIves/github-pages-deploy-action@4.1.0

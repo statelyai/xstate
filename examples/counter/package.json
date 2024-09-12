@@ -1,5 +1,5 @@
 {
-  "name": "counter",
+  "name": "@xstate/example-counter",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,9 +10,9 @@
   },
   "devDependencies": {
     "typescript": "^5.5.4",
-    "vite": "^5.3.5"
+    "vite": "^5.4.2"
   },
   "dependencies": {
-    "xstate": "^5.17.1"
+    "xstate": "^5.18.0"
   }
 }
