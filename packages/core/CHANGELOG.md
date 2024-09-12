@@ -1,5 +1,11 @@
 # xstate
 
+## 5.18.1
+
+### Patch Changes
+
+- [#5055](https://github.com/statelyai/xstate/pull/5055) [`ad38c35c37`](https://github.com/statelyai/xstate/commit/ad38c35c377d4ec5c97710fda12512abbe5f7140) Thanks [@SandroMaglione](https://github.com/SandroMaglione)! - Exported `RequiredActorOptionsKeys` type meant to be used by integration packages like `@xstate/react`
+
 ## 5.18.0
 
 ### Minor Changes
