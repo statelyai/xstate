@@ -202,14 +202,14 @@ export type TransitionsFromEventPayloadMap<
 > = {
   [K in keyof TEventPayloadMap & string]:
     | StoreAssigner<
-        NoInfer<TContext>,
+        TContext,
         {
           type: K;
         } & TEventPayloadMap[K],
         TEmitted
       >
     | StorePropertyAssigner<
-        NoInfer<TContext>,
+        TContext,
         {
           type: K;
         } & TEventPayloadMap[K],
