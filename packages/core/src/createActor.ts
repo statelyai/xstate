@@ -770,7 +770,7 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 }
 
-type RequiredOptions<TLogic extends AnyActorLogic> =
+export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
   undefined extends InputFrom<TLogic> ? never : 'input';
 
 /**
@@ -816,10 +816,10 @@ export function createActor<TLogic extends AnyActorLogic>(
   ...[options]: ConditionalRequired<
     [
       options?: ActorOptions<TLogic> & {
-        [K in RequiredOptions<TLogic>]: unknown;
+        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
       }
     ],
-    IsNotNever<RequiredOptions<TLogic>>
+    IsNotNever<RequiredActorOptionsKeys<TLogic>>
   >
 ): Actor<TLogic> {
   return new Actor(logic, options);
