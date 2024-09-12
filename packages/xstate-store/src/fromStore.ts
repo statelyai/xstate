@@ -37,10 +37,10 @@ export function fromStore<
     EventObject
   >
 ): StoreLogic<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TInput> {
-  const transition = createStoreTransition(transitions) as any; // TODO: fix type
+  const transition = createStoreTransition(transitions);
   return {
     transition,
-    getInitialSnapshot: (_: any, input: TInput) => {
+    getInitialSnapshot: (_, input: TInput) => {
       return {
         status: 'active',
         context:

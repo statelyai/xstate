@@ -92,11 +92,7 @@ function createStoreCore<
       typeListeners.forEach((listener) => listener(ev));
     }
   };
-  const transition = createStoreTransition<
-    TContext,
-    TEventPayloadMap,
-    TEmitted
-  >(transitions, updater, { emit });
+  const transition = createStoreTransition(transitions, updater, { emit });
 
   function receive(event: StoreEvent) {
     currentSnapshot = transition(currentSnapshot, event);
@@ -450,21 +446,17 @@ export function createStoreTransition<
 >(
   transitions: {
     [K in keyof TEventPayloadMap & string]:
-      | StoreAssigner<
-          NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K],
-          TEmitted
-        >
+      | StoreAssigner<TContext, { type: K } & TEventPayloadMap[K], TEmitted>
       | StorePropertyAssigner<
-          NoInfer<TContext>,
+          TContext,
           { type: K } & TEventPayloadMap[K],
           TEmitted
         >;
   },
   updater?: (
-    context: NoInfer<TContext>,
-    recipe: (context: NoInfer<TContext>) => NoInfer<TContext>
-  ) => NoInfer<TContext>,
+    context: TContext,
+    recipe: (context: TContext) => TContext
+  ) => TContext,
   enqueue: { emit: (ev: TEmitted) => void } = {
     emit: (_ev: TEmitted) => void 0
   }
