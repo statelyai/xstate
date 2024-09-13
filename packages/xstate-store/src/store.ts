@@ -270,62 +270,11 @@ export function createStore<
           Cast<TTypes['emitted'], EventObject>
         >;
   };
-} & { types: TTypes }): Store<
+} & { types?: TTypes }): Store<
   TContext,
   ExtractEventsFromPayloadMap<TEventPayloadMap>,
   Cast<TTypes['emitted'], EventObject>
 >;
-
-/**
- * Creates a **store** that has its own internal state and can be sent events
- * that update its internal state based on transitions.
- *
- * @example
- *
- * ```ts
- * const store = createStore({
- *   // Initial context
- *   context: { count: 0 },
- *   // Transitions
- *   on: {
- *     inc: (context, event: { by: number }) => {
- *       return {
- *         count: context.count + event.by
- *       };
- *     }
- *   }
- * });
- *
- * store.subscribe((snapshot) => {
- *   console.log(snapshot);
- * });
- *
- * store.send({ type: 'inc', by: 5 });
- * // Logs { context: { count: 5 }, status: 'active', ... }
- * ```
- */
-export function createStore<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap
->({
-  context,
-  on
-}: {
-  context: TContext;
-  on: {
-    [K in keyof TEventPayloadMap & string]:
-      | StoreAssigner<
-          NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K],
-          EventObject
-        >
-      | StorePropertyAssigner<
-          NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K],
-          EventObject
-        >;
-  };
-}): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, EventObject>;
 
 /**
  * Creates a **store** that has its own internal state and can be sent events
