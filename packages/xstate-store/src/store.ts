@@ -250,7 +250,7 @@ export type TransitionsFromEventPayloadMap<
 export function createStore<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
-  TTypes extends { emitted?: EventObject; events?: EventObject }
+  TTypes extends { emitted?: EventObject }
 >({
   context,
   on,
