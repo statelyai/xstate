@@ -300,3 +300,34 @@ it('emitted events can be unsubscribed to', () => {
 
   expect(spy).toHaveBeenCalledTimes(1);
 });
+
+it('emitted events occur after the snapshot is updated', () => {
+  const store = createStore({
+    types: {
+      emitted: {} as { type: 'increased'; upBy: number }
+    },
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit({ type: 'increased', upBy: 1 });
+
+        return {
+          ...ctx,
+          count: ctx.count + 1
+        };
+      }
+    }
+  });
+
+  expect.assertions(1);
+
+  store.on('increased', () => {
+    const s = store.getSnapshot();
+
+    expect(s.context.count).toEqual(1);
+  });
+
+  store.send({ type: 'inc' });
+});

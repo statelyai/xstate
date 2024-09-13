@@ -44,4 +44,37 @@ describe('fromStore', () => {
 
     expect(actor.getSnapshot().context.count).toEqual(50);
   });
+
+  it('emits events', () => {
+    expect.assertions(2);
+
+    const storeLogic = fromStore({
+      types: {
+        emitted: {} as { type: 'increased'; upBy: number }
+      },
+      context: (count: number) => ({ count }),
+      on: {
+        inc: {
+          count: (ctx, ev: { by: number }, enq) => {
+            enq.emit({ type: 'increased', upBy: ev.by });
+            return ctx.count + ev.by;
+          }
+        }
+      }
+    });
+
+    const actor = createActor(storeLogic, {
+      input: 42
+    });
+
+    actor.on('increased', (ev) => {
+      expect(ev).toEqual({ type: 'increased', upBy: 8 });
+    });
+
+    actor.start();
+
+    actor.send({ type: 'inc', by: 8 });
+
+    expect(actor.getSnapshot().context.count).toEqual(50);
+  });
 });

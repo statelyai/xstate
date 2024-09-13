@@ -14,8 +14,9 @@ import {
 type StoreLogic<
   TContext extends StoreContext,
   TEvent extends EventObject,
-  TInput
-> = ActorLogic<StoreSnapshot<TContext>, TEvent, TInput, any, any>;
+  TInput,
+  TEmitted extends EventObject
+> = ActorLogic<StoreSnapshot<TContext>, TEvent, TInput, any, TEmitted>;
 
 /**
  * An actor logic creator which creates store [actor
@@ -38,7 +39,12 @@ export function fromStore<
     NoInfer<TContext>,
     EventObject
   >
-): StoreLogic<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TInput>;
+): StoreLogic<
+  TContext,
+  ExtractEventsFromPayloadMap<TEventPayloadMap>,
+  TInput,
+  EventObject
+>;
 
 /**
  * An actor logic creator which creates store [actor
@@ -73,7 +79,12 @@ export function fromStore<
           >;
     };
   } & { types?: TTypes }
-): StoreLogic<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TInput>;
+): StoreLogic<
+  TContext,
+  ExtractEventsFromPayloadMap<TEventPayloadMap>,
+  TInput,
+  TTypes['emitted'] extends EventObject ? TTypes['emitted'] : EventObject
+>;
 export function fromStore<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
@@ -104,7 +115,12 @@ export function fromStore<
     NoInfer<TContext>,
     EventObject
   >
-): StoreLogic<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TInput> {
+): StoreLogic<
+  TContext,
+  ExtractEventsFromPayloadMap<TEventPayloadMap>,
+  TInput,
+  TTypes['emitted'] extends EventObject ? TTypes['emitted'] : EventObject
+> {
   let initialContext: ((input: TInput) => TContext) | TContext;
   let transitionsObj: TransitionsFromEventPayloadMap<
     TEventPayloadMap,
@@ -125,7 +141,14 @@ export function fromStore<
 
   const transition = createStoreTransition(transitionsObj);
   return {
-    transition,
+    // Only get the
+    transition: (snapshot, event, actorScope) => {
+      const [nextSnapshot, emittedEvents] = transition(snapshot, event);
+
+      emittedEvents.forEach(actorScope.emit);
+
+      return nextSnapshot;
+    },
     getInitialSnapshot: (_, input: TInput) => {
       return {
         status: 'active',

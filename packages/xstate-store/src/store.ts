@@ -83,6 +83,7 @@ function createStoreCore<
     error: undefined
   };
   let currentSnapshot: StoreSnapshot<TContext> = initialSnapshot;
+
   const emit = (ev: TEmitted) => {
     if (!listeners) {
       return;
@@ -93,10 +94,12 @@ function createStoreCore<
       typeListeners.forEach((listener) => listener(ev));
     }
   };
-  const transition = createStoreTransition(transitions, updater, { emit });
+
+  const transition = createStoreTransition(transitions, updater);
 
   function receive(event: StoreEvent) {
-    currentSnapshot = transition(currentSnapshot, event);
+    let emitted: TEmitted[];
+    [currentSnapshot, emitted] = transition(currentSnapshot, event);
 
     inspectionObservers.get(store)?.forEach((observer) => {
       observer.next?.({
@@ -107,6 +110,8 @@ function createStoreCore<
         rootId: store.sessionId
       });
     });
+
+    emitted.forEach(emit);
 
     observers?.forEach((o) => o.next?.(currentSnapshot));
   }
@@ -406,21 +411,25 @@ export function createStoreTransition<
   updater?: (
     context: TContext,
     recipe: (context: TContext) => TContext
-  ) => TContext,
-  enqueue: { emit: (ev: TEmitted) => void } = {
-    emit: (_ev: TEmitted) => void 0
-  }
+  ) => TContext
 ) {
   return (
     snapshot: StoreSnapshot<TContext>,
     event: ExtractEventsFromPayloadMap<TEventPayloadMap>
-  ): StoreSnapshot<TContext> => {
+  ): [StoreSnapshot<TContext>, TEmitted[]] => {
     type StoreEvent = ExtractEventsFromPayloadMap<TEventPayloadMap>;
     let currentContext = snapshot.context;
     const assigner = transitions?.[event.type as StoreEvent['type']];
+    const emitted: TEmitted[] = [];
+
+    const enqueue = {
+      emit: (ev: TEmitted) => {
+        emitted.push(ev);
+      }
+    };
 
     if (!assigner) {
-      return snapshot;
+      return [snapshot, emitted];
     }
 
     if (typeof assigner === 'function') {
@@ -466,7 +475,7 @@ export function createStoreTransition<
       currentContext = Object.assign({}, currentContext, partialUpdate);
     }
 
-    return { ...snapshot, context: currentContext };
+    return [{ ...snapshot, context: currentContext }, emitted];
   };
 }
 
