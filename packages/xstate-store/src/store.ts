@@ -111,9 +111,9 @@ function createStoreCore<
       });
     });
 
-    emitted.forEach(emit);
-
     observers?.forEach((o) => o.next?.(currentSnapshot));
+
+    emitted.forEach(emit);
   }
 
   const store: Store<TContext, StoreEvent, TEmitted> = {
