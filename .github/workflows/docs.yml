@@ -20,7 +20,7 @@ jobs:
       - name: Build docs
         working-directory: docs
         run: |
-          NODE_OPTIONS='--openssl-legacy-provider' yarn docs:build
+          NODE_OPTIONS='--openssl-legacy-provider' pnpm docs:build
 
       - name: Publish docs
         uses: JamesIves/github-pages-deploy-action@4.1.0
