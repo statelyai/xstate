@@ -5,20 +5,20 @@
       "type": "node",
       "request": "launch",
       "name": "Jest Current File",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
       "args": ["${file}", "--config", "jest.config.js", "--no-cache"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "runtimeExecutable": "node",
       "windows": {
-        "program": "${workspaceFolder}/node_modules/jest/bin/jest"
+        "program": "${workspaceFolder}/node_modules/jest/bin/jest.js"
       }
     },
     {
       "type": "node",
       "request": "launch",
       "name": "Jest Current File (no timeout)",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
       "args": [
         "${file}",
         "--config",
@@ -30,7 +30,7 @@
       "internalConsoleOptions": "neverOpen",
       "runtimeExecutable": "node",
       "windows": {
-        "program": "${workspaceFolder}/node_modules/jest/bin/jest"
+        "program": "${workspaceFolder}/node_modules/jest/bin/jest.js"
       }
     }
   ]
