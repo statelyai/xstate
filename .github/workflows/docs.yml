@@ -15,16 +15,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
+      - uses: ./.github/actions/ci-setup
 
       - name: Build docs
         working-directory: docs
         run: |
-          yarn install
-          NODE_OPTIONS='--openssl-legacy-provider' yarn docs:build
+          NODE_OPTIONS='--openssl-legacy-provider' pnpm docs:build
 
       - name: Publish docs
         uses: JamesIves/github-pages-deploy-action@4.1.0
