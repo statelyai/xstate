@@ -307,13 +307,17 @@ export class StateNode<
       toArray(this.config.invoke).map((invokeConfig, i) => {
         const { src, systemId } = invokeConfig;
         const resolvedId = invokeConfig.id ?? createInvokeId(this.id, i);
-        const resolvedSrc =
+        const sourceName =
           typeof src === 'string'
             ? src
             : `xstate.invoke.${createInvokeId(this.id, i)}`;
+        if (typeof src !== 'string') {
+          this.machine.implementations.actors[sourceName] = src;
+        }
+
         return {
           ...invokeConfig,
-          src: resolvedSrc,
+          src: sourceName,
           id: resolvedId,
           systemId: systemId,
           toJSON() {
@@ -321,7 +325,7 @@ export class StateNode<
             return {
               ...invokeDefValues,
               type: 'xstate.invoke',
-              src: resolvedSrc,
+              src: sourceName,
               id: resolvedId
             };
           }

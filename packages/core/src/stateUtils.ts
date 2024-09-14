@@ -1529,13 +1529,23 @@ interface BuiltinAction {
 
 export interface ExecutableAction {
   /** The action type */
-  type: string;
+  type: unknown;
   info: ActionArgs<MachineContext, EventObject, EventObject>;
   params: NonReducibleUnknown;
   exec:
     | ((info: ActionArgs<any, any, any>, params: unknown) => void)
     | undefined;
 }
+
+export type MachineExecutableActions = {
+  type: 'xstate.spawn';
+  info: ActionArgs<MachineContext, EventObject, EventObject>;
+  params: {
+    id: string;
+    actorRef: AnyActorRef | undefined;
+    src: string;
+  };
+};
 
 export type ActionExecutor = (
   actionToExecute: ExecutableAction,

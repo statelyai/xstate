@@ -4,7 +4,6 @@ import {
   enqueueActions,
   setup,
   transition,
-  executeAction,
   raise,
   createActor,
   fromTransition,
@@ -12,8 +11,11 @@ import {
   EventObject,
   fromCallback,
   fromPromise,
-  EventFrom
+  EventFrom,
+  AnyActorRef
 } from '../src';
+import { createDoneActorEvent } from '../src/eventUtils';
+import { ExecutableAction, MachineExecutableActions } from '../src/stateUtils';
 import { initialTransition } from '../src/transition';
 
 describe('transition function', () => {
@@ -65,7 +67,7 @@ describe('transition function', () => {
     expect(stringAction).not.toHaveBeenCalled();
 
     // Execute actions
-    actions0.forEach((a) => executeAction(a, {} as any));
+    actions0.forEach((a) => machine.executeAction(a, {} as any));
 
     expect(actionWithParams).toHaveBeenCalledWith(expect.anything(), { a: 1 });
     expect(stringAction).toHaveBeenCalled();
@@ -86,7 +88,7 @@ describe('transition function', () => {
     expect(actionWithDynamicParams).not.toHaveBeenCalled();
 
     // Execute actions
-    actions1.forEach((a) => executeAction(a, {} as any));
+    actions1.forEach((a) => machine.executeAction(a, {} as any));
 
     expect(actionWithDynamicParams).toHaveBeenCalledWith({
       msg: 'hello'
@@ -134,7 +136,7 @@ describe('transition function', () => {
     expect(actor.getSnapshot().matches('a')).toBeTruthy();
 
     actions.forEach((action) => {
-      executeAction(action, actor);
+      machine.executeAction(action, actor);
     });
 
     expect(actor.getSnapshot().matches('b')).toBeTruthy();
@@ -173,7 +175,7 @@ describe('transition function', () => {
     }).start();
 
     actions.forEach((action) => {
-      executeAction(action, actor);
+      machine.executeAction(action, actor);
     });
 
     await waitFor(actor, (s) => s.matches('b'));
@@ -209,7 +211,7 @@ describe('transition function', () => {
     }).start();
 
     actions.forEach((action) => {
-      executeAction(action, actor);
+      machine.executeAction(action, actor);
     });
 
     await waitFor(actor, (s) => s.matches('b'));
@@ -306,22 +308,25 @@ describe('transition function', () => {
   });
 
   it('serverless workflow example', async () => {
-    expect.assertions(1);
     const db = {
       state: undefined as any
     };
 
-    const machine = createMachine({
+    const machine = setup({
+      actors: {
+        sendWelcomeEmail: fromPromise(async () => {
+          calls.push('sendWelcomeEmail');
+          return {};
+        })
+      }
+    }).createMachine({
       initial: 'sendingWelcomeEmail',
       states: {
         sendingWelcomeEmail: {
-          entry: async () => {
-            // send welcome email
-            await new Promise((resolve) => {
-              setTimeout(resolve, 100);
-            });
-          },
-          on: { sent: 'finish' }
+          invoke: {
+            src: 'sendWelcomeEmail',
+            onDone: 'finish'
+          }
         },
         finish: {}
       }
@@ -330,25 +335,37 @@ describe('transition function', () => {
     // TODO: assigns and raises without timers should not be in the actions
     // TODO: example with delayed event
 
-    const proxyActor = createProxyActorForThisServer({
-      sendEndpoint: `/postEvent`
-    });
+    const calls: string[] = [];
+
+    async function execute(action: MachineExecutableActions) {
+      switch (action.type) {
+        case 'xstate.spawn': {
+          if (action.params.src === 'sendWelcomeEmail') {
+            await new Promise((resolve) => {
+              setTimeout(() => {
+                calls.push('sendWelcomeEmail');
+                resolve(null);
+              }, 100);
+            });
+
+            postEvent(createDoneActorEvent(action.params.id));
+          }
+        }
+        default:
+          break;
+      }
+    }
 
     // POST /workflow
     async function postStart() {
-      const system = createPostgresSystem({
-        connectionString: '...',
-        scheduler: {}
-      });
-
       const [state, actions] = initialTransition(machine);
+
+      db.state = JSON.stringify(state);
 
       // execute actions
       for (const action of actions) {
-        await system.executeAction(action);
+        await execute(action);
       }
-
-      db.state = JSON.stringify(state);
     }
 
     // POST /workflow/{sessionId}
@@ -359,17 +376,19 @@ describe('transition function', () => {
         event
       );
 
+      db.state = JSON.stringify(nextState);
+
       // "sync" built-in actions: assign, raise, cancel, stop
       // "external" built-in actions: sendTo, raise w/delay, log
       for (const action of actions) {
-        await machine.executeAction(action);
+        await execute(action);
       }
-
-      db.state = JSON.stringify(nextState);
     }
 
     await postStart();
     postEvent({ type: 'sent' });
+
+    expect(calls).toEqual(['sendWelcomeEmail']);
 
     expect(JSON.parse(db.state).value).toBe('finish');
   });

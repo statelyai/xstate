@@ -88,7 +88,8 @@ function resolveSpawn(
     }),
     {
       id,
-      actorRef
+      actorRef,
+      src
     }
   ];
 }
@@ -173,17 +174,18 @@ type SpawnArguments<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TActor extends ProvidedActor
-> = IsLiteralString<TActor['src']> extends true
-  ? DistributeActors<TContext, TExpressionEvent, TEvent, TActor>
-  : [
-      src: string | AnyActorLogic,
-      options?: {
-        id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
-        systemId?: string;
-        input?: unknown;
-        syncSnapshot?: boolean;
-      }
-    ];
+> =
+  IsLiteralString<TActor['src']> extends true
+    ? DistributeActors<TContext, TExpressionEvent, TEvent, TActor>
+    : [
+        src: string | AnyActorLogic,
+        options?: {
+          id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
+          systemId?: string;
+          input?: unknown;
+          syncSnapshot?: boolean;
+        }
+      ];
 
 export function spawnChild<
   TContext extends MachineContext,

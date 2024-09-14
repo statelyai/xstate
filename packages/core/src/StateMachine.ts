@@ -9,6 +9,8 @@ import {
 } from './State.ts';
 import { StateNode } from './StateNode.ts';
 import {
+  ExecutableAction,
+  executeAction,
   getAllStateNodes,
   getInitialStateNodes,
   getStateNodeByPath,
@@ -632,5 +634,9 @@ export class StateMachine<
     reviveContext(restoredSnapshot.context, children);
 
     return restoredSnapshot;
+  }
+
+  public executeAction(action: ExecutableAction, actor?: AnyActorRef) {
+    return executeAction(action, actor);
   }
 }

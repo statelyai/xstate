@@ -8,7 +8,6 @@ export {
   type Interpreter,
   type RequiredActorOptionsKeys as RequiredActorOptionsKeys
 } from './createActor.ts';
-export { executeAction } from './stateUtils.ts';
 // TODO: decide from where those should be exported
 export { createMachine } from './createMachine.ts';
 export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
