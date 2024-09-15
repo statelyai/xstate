@@ -1,3 +1,5 @@
+import { createStore } from '../src/index';
+
 describe('emitted', () => {
   it('can emit a known event', () => {
     createStore({

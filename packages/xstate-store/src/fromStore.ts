@@ -141,7 +141,6 @@ export function fromStore<
 
   const transition = createStoreTransition(transitionsObj);
   return {
-    // Only get the
     transition: (snapshot, event, actorScope) => {
       const [nextSnapshot, emittedEvents] = transition(snapshot, event);
 
