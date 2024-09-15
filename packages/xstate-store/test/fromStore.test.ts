@@ -22,7 +22,7 @@ describe('fromStore', () => {
     expect(actor.getSnapshot().context.count).toEqual(50);
   });
 
-  it('creates an actor from store logic with input (2 args) (object API)', () => {
+  it('creates an actor from store logic with input (object API)', () => {
     const storeLogic = fromStore({
       context: (count: number) => ({ count }),
       on: {
