@@ -46,7 +46,7 @@ describe('fromStore', () => {
   });
 
   it('emits events', () => {
-    expect.assertions(2);
+    const spy = jest.fn();
 
     const storeLogic = fromStore({
       types: {
@@ -67,14 +67,14 @@ describe('fromStore', () => {
       input: 42
     });
 
-    actor.on('increased', (ev) => {
-      expect(ev).toEqual({ type: 'increased', upBy: 8 });
-    });
+    actor.on('increased', spy);
 
     actor.start();
 
     actor.send({ type: 'inc', by: 8 });
 
     expect(actor.getSnapshot().context.count).toEqual(50);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith({ type: 'increased', upBy: 8 });
   });
 });
