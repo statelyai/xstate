@@ -10,6 +10,7 @@ runs:
       with:
         node-version: 20.x
         cache: 'pnpm'
+        registry-url: 'https://registry.npmjs.org'
 
     - name: Install Dependencies
       run: pnpm install
