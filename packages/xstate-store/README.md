@@ -23,10 +23,12 @@ npm install @xstate/store
 ```ts
 import { createStore } from '@xstate/store';
 
-export const donutStore = createStore(
-  { donuts: 0, favoriteFlavor: 'chocolate' },
-
-  {
+export const donutStore = createStore({
+  context: {
+    donuts: 0,
+    favoriteFlavor: 'chocolate'
+  },
+  on: {
     addDonut: {
       donuts: (context) => context.donuts + 1
     },
@@ -37,7 +39,7 @@ export const donutStore = createStore(
       donuts: 0
     }
   }
-);
+});
 
 donutStore.subscribe((snapshot) => {
   console.log(snapshot.context);
