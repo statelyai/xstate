@@ -120,6 +120,28 @@ it('createStoreWithProducer(…) works with an immer producer', () => {
   expect(store.getInitialSnapshot().context).toEqual({ count: 0 });
 });
 
+it('createStoreWithProducer(…) works with an immer producer (object API)', () => {
+  const store = createStoreWithProducer(produce, {
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, ev: { by: number }) => {
+        ctx.count += ev.by;
+      }
+    }
+  });
+
+  store.send({ type: 'inc', by: 3 });
+  store.send({
+    // @ts-expect-error
+    type: 'whatever'
+  });
+
+  expect(store.getSnapshot().context).toEqual({ count: 3 });
+  expect(store.getInitialSnapshot().context).toEqual({ count: 0 });
+});
+
 it('createStoreWithProducer(…) infers the context type properly with a producer', () => {
   const store = createStoreWithProducer(
     produce,
@@ -132,6 +154,21 @@ it('createStoreWithProducer(…) infers the context type properly with a produce
       }
     }
   );
+
+  store.getSnapshot().context satisfies { count: number };
+});
+
+it('createStoreWithProducer(…) infers the context type properly with a producer (object API)', () => {
+  const store = createStoreWithProducer(produce, {
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, ev: { by: number }) => {
+        ctx.count += ev.by;
+      }
+    }
+  });
 
   store.getSnapshot().context satisfies { count: number };
 });
