@@ -2,6 +2,9 @@ import './App.css';
 import { createStore } from '@xstate/store';
 import { useSelector } from '@xstate/store/react';
 import { useEffect } from 'react';
+import { createBrowserInspector } from '@statelyai/inspect';
+
+const inspector = createBrowserInspector();
 
 const store = createStore({
   context: {
@@ -21,6 +24,8 @@ const store = createStore({
     }
   }
 });
+
+store.inspect(inspector.inspect);
 
 function App() {
   const count = useSelector(store, (s) => s.context.count);
