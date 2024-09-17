@@ -1,6 +1,7 @@
-import { EventObject } from 'xstate';
+import { EnqueueActionsAction, EventObject } from 'xstate';
 import {
   Cast,
+  EnqueueObject,
   EventPayloadMap,
   ExtractEventsFromPayloadMap,
   InspectionEvent,
@@ -374,7 +375,8 @@ export function createStoreWithProducer<
     on: {
       [K in keyof TEventPayloadMap & string]: (
         context: NoInfer<TContext>,
-        event: { type: K } & TEventPayloadMap[K]
+        event: { type: K } & TEventPayloadMap[K],
+        enqueue: EnqueueObject<TEmitted>
       ) => void;
     };
   }
@@ -391,7 +393,8 @@ export function createStoreWithProducer<
   transitions: {
     [K in keyof TEventPayloadMap & string]: (
       context: NoInfer<TContext>,
-      event: { type: K } & TEventPayloadMap[K]
+      event: { type: K } & TEventPayloadMap[K],
+      enqueue: EnqueueObject<TEmitted>
     ) => void;
   }
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TEmitted>;

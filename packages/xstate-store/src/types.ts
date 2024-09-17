@@ -6,6 +6,10 @@ export type ExtractEventsFromPayloadMap<T extends EventPayloadMap> = Values<{
 
 export type Recipe<T, TReturn> = (state: T) => TReturn;
 
+export type EnqueueObject<TEmitted extends EventObject> = {
+  emit: (ev: TEmitted) => void;
+};
+
 export type StoreAssigner<
   TContext extends StoreContext,
   TEvent extends EventObject,
@@ -13,17 +17,13 @@ export type StoreAssigner<
 > = (
   context: TContext,
   event: TEvent,
-  enq: { emit: (ev: TEmitted) => void }
+  enq: EnqueueObject<TEmitted>
 ) => Partial<TContext>;
 export type StoreCompleteAssigner<
   TContext,
   TEvent extends EventObject,
   TEmitted extends EventObject
-> = (
-  ctx: TContext,
-  ev: TEvent,
-  enq: { emit: (ev: TEmitted) => void }
-) => TContext;
+> = (ctx: TContext, ev: TEvent, enq: EnqueueObject<TEmitted>) => TContext;
 export type StorePartialAssigner<
   TContext,
   TEvent extends EventObject,
@@ -32,7 +32,7 @@ export type StorePartialAssigner<
 > = (
   ctx: TContext,
   ev: TEvent,
-  enq: { emit: (ev: TEmitted) => void }
+  enq: EnqueueObject<TEmitted>
 ) => Partial<TContext>[K];
 export type StorePropertyAssigner<
   TContext,

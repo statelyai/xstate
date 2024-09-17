@@ -164,7 +164,7 @@ it('createStoreWithProducer(…) infers the context type properly with a produce
       count: 0
     },
     on: {
-      inc: (ctx, ev: { by: number }) => {
+      inc: (ctx, ev: { by: number }, enq) => {
         ctx.count += ev.by;
       }
     }
