@@ -404,9 +404,7 @@ export function createStoreWithProducer<
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject = EventObject
 >(
-  producer: NoInfer<
-    (context: TContext, recipe: (context: TContext) => void) => TContext
-  >,
+  producer: (context: TContext, recipe: (context: TContext) => void) => TContext,
   initialContextOrConfig: any,
   transitions?: any
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TEmitted> {
