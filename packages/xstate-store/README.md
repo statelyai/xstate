@@ -105,13 +105,12 @@ XState Store makes it really easy to integrate with immutable update libraries l
 import { createStoreWithProducer } from '@xstate/store';
 import { produce } from 'immer'; // or { create } from 'mutative'
 
-const donutStore = createStoreWithProducer(
-  produce,
-  {
+const donutStore = createStoreWithProducer(produce, {
+  context: {
     donuts: 0,
     favoriteFlavor: 'chocolate'
   },
-  {
+  on: {
     addDonut: (context) => {
       context.donuts++; // "Mutation" (thanks to the producer)
     },
@@ -122,7 +121,7 @@ const donutStore = createStoreWithProducer(
       context.donuts = 0;
     }
   }
-);
+});
 
 // Everything else is the same!
 ```
@@ -134,17 +133,17 @@ XState Store is written in TypeScript and provides full type safety, _without_ y
 ```ts
 import { createStore } from '@xstate/store';
 
-const donutStore = createStore(
-  // Inferred as:
+const donutStore = createStore({
+  // Context inferred as:
   // {
   //   donuts: number;
   //   favoriteFlavor: string;
   // }
-  {
+  context: {
     donuts: 0,
     favoriteFlavor: 'chocolate'
   },
-  {
+  on: {
     // Event inferred as:
     // {
     //   type: 'changeFlavor';
@@ -154,7 +153,7 @@ const donutStore = createStore(
       context.favoriteFlavor = event.flavor;
     }
   }
-);
+});
 
 donutStore.getSnapshot().context.favoriteFlavor; // string
 
@@ -180,6 +179,9 @@ const donutContext: DonutContext = {
 };
 
 const donutStore = createStore(donutContext, {
-  // ... (transitions go here)
+  context: donutContext,
+  on: {
+    // ... (transitions go here)
+  }
 });
 ```
