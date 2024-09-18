@@ -1,5 +1,5 @@
 import { fireEvent, screen, render } from '@testing-library/react';
-import { createStore, fromStore, shallowEqual } from '../src/index.ts';
+import { createStore, fromStore } from '../src/index.ts';
 import { useSelector } from '../src/react.ts';
 import {
   useActor,
