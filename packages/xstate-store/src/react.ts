@@ -9,13 +9,18 @@ function useSelectorWithCompare<TStore extends AnyStore, T>(
   selector: (snapshot: SnapshotFromStore<TStore>) => T,
   compare: (a: T | undefined, b: T) => boolean
 ): (snapshot: SnapshotFromStore<TStore>) => T {
-  const previous = useRef<T>();
+  const previous = useRef<readonly [SnapshotFromStore<TStore>, T]>();
 
   return (state) => {
+    if (state === previous.current?.[0]) {
+      return previous.current[1];
+    }
     const next = selector(state);
-    return compare(previous.current, next)
-      ? (previous.current as T)
-      : (previous.current = next);
+    return (
+      previous.current && compare(previous.current[1], next)
+        ? previous.current!
+        : (previous.current = [state, next] as const)
+    )[1];
   };
 }
 

@@ -266,3 +266,35 @@ it('useActorRef (@xstate/react) should work', () => {
 
   expect(countDiv.textContent).toEqual('1');
 });
+
+it('useSelector should not infinite loop', () => {
+  const store = createStore({
+    context: {
+      count: [1, 2, 3, 4]
+    },
+    on: {}
+  });
+
+  const Counter = () => {
+    // Using .slice() creates a new array reference
+    // which previously caused an infinite loop
+    const count = useSelector(store, (s) => s.context.count.slice());
+
+    return (
+      <div
+        data-testid="count"
+        onClick={() => {
+          store.send({ type: 'inc' });
+        }}
+      >
+        {count.join(',')}
+      </div>
+    );
+  };
+
+  render(<Counter />);
+
+  const countDiv = screen.getByTestId('count');
+
+  expect(countDiv.textContent).toEqual('1,2,3,4');
+});
