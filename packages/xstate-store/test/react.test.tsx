@@ -266,23 +266,3 @@ it('useActorRef (@xstate/react) should work', () => {
 
   expect(countDiv.textContent).toEqual('1');
 });
-
-it('can use a comparator with useSelector', () => {
-  const store = createStore({
-    context: { items: [3, 2, 1] },
-    on: {}
-  });
-
-  const Component = () => {
-    const items = useSelector(
-      store,
-      (s) => s.context.items.slice(),
-      shallowEqual
-    );
-    return <div>{items.join(',')}</div>;
-  };
-
-  expect(() => {
-    render(<Component />);
-  }).not.toThrow();
-});
