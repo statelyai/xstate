@@ -4,6 +4,7 @@ import { GuardPredicate } from './guards';
 
 import {
   ActionFunction,
+  AllEvents,
   AnyActorRef,
   AnyEventObject,
   Cast,
@@ -66,9 +67,8 @@ type ToProvidedActor<
         };
       }>;
 
-type RequiredSetupKeys<TChildrenMap> = IsNever<keyof TChildrenMap> extends true
-  ? never
-  : 'actors';
+type RequiredSetupKeys<TChildrenMap> =
+  IsNever<keyof TChildrenMap> extends true ? never : 'actors';
 
 export function setup<
   TContext extends MachineContext,
@@ -149,7 +149,7 @@ export function setup<
   createMachine: <
     const TConfig extends MachineConfig<
       TContext,
-      TEvent,
+      AllEvents<TEvent, TActors, TChildrenMap> & {},
       ToProvidedActor<TChildrenMap, TActors>,
       ToParameterizedObject<TActions>,
       ToParameterizedObject<TGuards>,

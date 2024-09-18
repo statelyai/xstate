@@ -286,6 +286,12 @@ describe('spawning promises', () => {
 
   it('should be able to spawn a referenced promise', (done) => {
     const promiseMachine = setup({
+      types: {
+        events: {} as { type: 'start' },
+        children: {} as {
+          'my-promise': 'somePromise';
+        }
+      },
       actors: {
         somePromise: fromPromise(() => Promise.resolve('response'))
       }
@@ -297,6 +303,9 @@ describe('spawning promises', () => {
       initial: 'idle',
       context: {
         promiseRef: undefined
+      },
+      entry: ({ event }) => {
+        event.type;
       },
       states: {
         idle: {
