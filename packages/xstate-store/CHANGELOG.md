@@ -1,5 +1,30 @@
 # @xstate/store
 
+## 2.5.0
+
+### Minor Changes
+
+- [#5085](https://github.com/statelyai/xstate/pull/5085) [`51437a4d036029ab4ff74cb52721178b3e525c48`](https://github.com/statelyai/xstate/commit/51437a4d036029ab4ff74cb52721178b3e525c48) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `shallowEqual` comparator has been added for selector comparison:
+
+  ```tsx
+  import { shallowEqual } from '@xstate/store';
+  import { useSelector } from '@xstate/store/react';
+
+  import { store } from './store';
+
+  function MyComponent() {
+    const state = useSelector(
+      store,
+      (s) => {
+        return s.items.filter(/* ... */);
+      },
+      shallowEqual
+    );
+
+    // ...
+  }
+  ```
+
 ## 2.4.0
 
 ### Minor Changes
