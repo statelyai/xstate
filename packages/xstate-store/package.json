@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Simple stores",
   "keywords": [
     "store",
