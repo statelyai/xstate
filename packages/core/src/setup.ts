@@ -16,6 +16,7 @@ import {
   MetaObject,
   NonReducibleUnknown,
   ParameterizedObject,
+  RoutableStateId,
   SetupTypes,
   ToChildren,
   ToStateValue,
@@ -66,9 +67,8 @@ type ToProvidedActor<
         };
       }>;
 
-type RequiredSetupKeys<TChildrenMap> = IsNever<keyof TChildrenMap> extends true
-  ? never
-  : 'actors';
+type RequiredSetupKeys<TChildrenMap> =
+  IsNever<keyof TChildrenMap> extends true ? never : 'actors';
 
 export function setup<
   TContext extends MachineContext,
@@ -164,7 +164,10 @@ export function setup<
     config: TConfig
   ) => StateMachine<
     TContext,
-    TEvent,
+    | TEvent
+    | {
+        type: `xstate.route.${RoutableStateId<TConfig>}`;
+      },
     Cast<
       ToChildren<ToProvidedActor<TChildrenMap, TActors>>,
       Record<string, AnyActorRef | undefined>

@@ -38,13 +38,14 @@ type GroupTestValues<TTestValue extends string | TestValue> = {
 type FilterLeafValues<
   TLeafCandidate extends string,
   TNonLeaf extends { [k: string]: TestValue | undefined }
-> = IsNever<TNonLeaf> extends true
-  ? TLeafCandidate
-  : TLeafCandidate extends string
-    ? TLeafCandidate extends keyof TNonLeaf
-      ? never
-      : TLeafCandidate
-    : never;
+> =
+  IsNever<TNonLeaf> extends true
+    ? TLeafCandidate
+    : TLeafCandidate extends string
+      ? TLeafCandidate extends keyof TNonLeaf
+        ? never
+        : TLeafCandidate
+      : never;
 
 // this is not 100% accurate since we can't make parallel regions required in the result
 // `TTestValue` doesn't encode this information anyhow for us to be able to do that
