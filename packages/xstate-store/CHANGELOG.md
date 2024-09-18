@@ -1,5 +1,279 @@
 # @xstate/store
 
+## 2.5.0
+
+### Minor Changes
+
+- [#5085](https://github.com/statelyai/xstate/pull/5085) [`51437a4d036029ab4ff74cb52721178b3e525c48`](https://github.com/statelyai/xstate/commit/51437a4d036029ab4ff74cb52721178b3e525c48) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `shallowEqual` comparator has been added for selector comparison:
+
+  ```tsx
+  import { shallowEqual } from '@xstate/store';
+  import { useSelector } from '@xstate/store/react';
+
+  import { store } from './store';
+
+  function MyComponent() {
+    const state = useSelector(
+      store,
+      (s) => {
+        return s.items.filter(/* ... */);
+      },
+      shallowEqual
+    );
+
+    // ...
+  }
+  ```
+
+## 2.4.0
+
+### Minor Changes
+
+- [#5064](https://github.com/statelyai/xstate/pull/5064) [`84aca37d0b02cb9cd5a32c8fd09e487bd8fe2a47`](https://github.com/statelyai/xstate/commit/84aca37d0b02cb9cd5a32c8fd09e487bd8fe2a47) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is a new single-argument config API for `createStore(config)`:
+
+  ```ts
+  const store = createStore({
+    // Types (optional)
+    types: {
+      emitted: {} as { type: 'incremented' }
+    },
+
+    // Context
+    context: { count: 0 },
+
+    // Transitions
+    on: {
+      inc: (context, event: { by: number }, enq) => {
+        enq.emit({ type: 'incremented' });
+
+        return { count: context.count + event.by };
+      },
+      dec: (context, event: { by: number }) => ({
+        count: context.count - event.by
+      })
+    }
+  });
+  ```
+
+- [#5064](https://github.com/statelyai/xstate/pull/5064) [`84aca37d0b02cb9cd5a32c8fd09e487bd8fe2a47`](https://github.com/statelyai/xstate/commit/84aca37d0b02cb9cd5a32c8fd09e487bd8fe2a47) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now emit events from a store:
+
+  ```ts
+  import { createStore } from '@xstate/store';
+
+  const store = createStore({
+    context: {
+      count: 0
+    },
+    on: {
+      increment: (context, event, { emit }) => {
+        emit({ type: 'incremented' });
+        return { count: context.count + 1 };
+      }
+    }
+  });
+
+  store.on('incremented', () => {
+    console.log('incremented!');
+  });
+  ```
+
+## 2.3.0
+
+### Minor Changes
+
+- [#5056](https://github.com/statelyai/xstate/pull/5056) [`8c35da9a72`](https://github.com/statelyai/xstate/commit/8c35da9a72bf067a275335d0391ce9ab85ed8a12) Thanks [@steveadams](https://github.com/steveadams)! - You can now use the xstate/store package with SolidJS.
+
+  Import `useSelector` from `@xstate/store/solid`. Select the data you want via `useSelector(…)` and send events using `store.send(eventObject)`:
+
+  ```tsx
+  import { donutStore } from './donutStore.ts';
+  import { useSelector } from '@xstate/store/solid';
+
+  function DonutCounter() {
+    const donutCount = useSelector(donutStore, (state) => state.context.donuts);
+
+    return (
+      <div>
+        <button onClick={() => donutStore.send({ type: 'addDonut' })}>
+          Add donut ({donutCount()})
+        </button>
+      </div>
+    );
+  }
+  ```
+
+## 2.2.1
+
+### Patch Changes
+
+- [`b740aafdb1`](https://github.com/statelyai/xstate/commit/b740aafdb12ed6577ba31d0e07653bf99ebaca76) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed some small issues from #5027 regarding XState types being imported
+
+## 2.2.0
+
+### Minor Changes
+
+- [#5027](https://github.com/statelyai/xstate/pull/5027) [`758a78711d`](https://github.com/statelyai/xstate/commit/758a78711ddb35ce56951b551d48f9b6f54a37b5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now inspect XState stores using the `.inspect(inspector)` method:
+
+  ```ts
+  import { someStore } from './someStore';
+
+  someStore.inspect((inspEv) => {
+    console.log(inspEv);
+    // logs "@xstate.event" events and "@xstate.snapshot" events
+    // whenever an event is sent to the store
+  });
+  // The "@xstate.actor" event is immediately logged
+  ```
+
+## 2.1.0
+
+### Minor Changes
+
+- [#5020](https://github.com/statelyai/xstate/pull/5020) [`e974797b0`](https://github.com/statelyai/xstate/commit/e974797b0b8d4e8f5929cc01b674a5ff92fa2115) Thanks [@with-heart](https://github.com/with-heart)! - Added the `EventFromStore` utility type which extracts the type of events from a store:
+
+  ```ts
+  import { createStore, type EventFromStore } from '@xstate/store';
+
+  const store = createStore(
+    { count: 0 },
+    {
+      add: (context, event: { addend: number }) => ({
+        count: context.count + event.addend
+      }),
+      multiply: (context, event: { multiplier: number }) => ({
+        count: context.count * event.multiplier
+      })
+    }
+  );
+
+  type StoreEvent = EventFromStore<typeof store>;
+  //   ^? { type: 'add'; addend: number } | { type: 'multiply'; multiplier: number }
+  ```
+
+  ***
+
+  `EventFromStore` allows us to create our own utility types which operate on a store's event types.
+
+  For example, we could create a type `EventByType` which extracts the specific type of store event where `Type` matches the event's `type` property:
+
+  ```ts
+  import { type EventFromStore, type Store } from '@xstate/store';
+
+  /**
+   * Extract the event where `Type` matches the event's `type` from the given
+   * `Store`.
+   */
+  type EventByType<
+    TStore extends Store<any, any>,
+    // creates a type-safe relationship between `Type` and the `type` keys of the
+    // store's events
+    Type extends EventFromStore<TStore>['type']
+  > = Extract<EventFromStore<TStore>, { type: Type }>;
+  ```
+
+  Here's how the type works with the `store` we defined in the first example:
+
+  ```ts
+  // we get autocomplete listing the store's event `type` values on the second
+  // type parameter
+  type AddEvent = EventByType<typeof store, 'add'>;
+  //   ^? { type: 'add'; addend: number }
+
+  type MultiplyEvent = EventByType<typeof store, 'multiply'>;
+  //   ^? { type: 'multiply'; multiplier: number }
+
+  // the second type parameter is type-safe, meaning we get a type error if the
+  // value isn't a valid event `type`
+  type DivideEvent = EventByType<typeof store, 'divide'>;
+  // Type '"divide"' does not satisfy the constraint '"add" | "multiply"'.ts(2344)
+  ```
+
+  Building on that, we could create a type `EventInputByType` to extract a specific event's "input" type (the event type without the `type` property):
+
+  ```ts
+  import { type EventFromStore, type Store } from '@xstate/store';
+
+  /**
+   * Extract a specific store event's "input" type (the event type without the
+   * `type` property).
+   */
+  type EventInputByType<
+    TStore extends Store<any, any>,
+    Type extends EventFromStore<TStore>['type']
+  > = Omit<EventByType<TStore, Type>, 'type'>;
+  ```
+
+  And here's how `EventInputByType` works with our example `store`:
+
+  ```ts
+  type AddInput = EventInputByType<typeof store, 'add'>;
+  //   ^? { addend: number }
+
+  type MultiplyInput = EventInputByType<typeof store, 'multiply'>;
+  //   ^? { multiplier: number }
+
+  type DivideInput = EventInputByType<typeof store, 'divide'>;
+  // Type '"divide"' does not satisfy the constraint '"add" | "multiply"'.ts(2344)
+  ```
+
+  Putting it all together, we can use `EventInputByType` to create a type-safe transition function for each of our store's defined events:
+
+  ```ts
+  import { createStore, type EventFromStore, type Store } from '@xstate/store';
+
+  /**
+   * Extract the event where `Type` matches the event's `type` from the given
+   * `Store`.
+   */
+  type EventByType<
+    TStore extends Store<any, any>,
+    Type extends EventFromStore<TStore>['type']
+  > = Extract<EventFromStore<TStore>, { type: Type }>;
+
+  /**
+   * Extract a specific store event's "input" type (the event type without the
+   * `type` property).
+   */
+  type EventInputByType<
+    TStore extends Store<any, any>,
+    Type extends EventFromStore<TStore>['type']
+  > = Omit<EventByType<TStore, Type>, 'type'>;
+
+  const store = createStore(
+    { count: 0 },
+    {
+      add: (context, event: { addend: number }) => ({
+        count: context.count + event.addend
+      }),
+      multiply: (context, event: { multiplier: number }) => ({
+        count: context.count * event.multiplier
+      })
+    }
+  );
+
+  const add = (input: EventInputByType<typeof store, 'add'>) =>
+    store.send({ type: 'add', addend: input.addend });
+
+  add({ addend: 1 }); // sends { type: 'add', addend: 1 }
+
+  const multiply = (input: EventInputByType<typeof store, 'multiply'>) =>
+    store.send({ type: 'multiply', multiplier: input.multiplier });
+
+  multiply({ multiplier: 2 }); // sends { type: 'multiply', multiplier: 2 }
+  ```
+
+  Happy typing!
+
+## 2.0.0
+
+### Major Changes
+
+- [#5000](https://github.com/statelyai/xstate/pull/5000) [`eeadb7121`](https://github.com/statelyai/xstate/commit/eeadb7121e8523cf34fe3a299731ca085152c65d) Thanks [@TkDodo](https://github.com/TkDodo)! - - Replace `use-sync-external-store/shim` with `useSyncExternalStore` from React.
+  - Do not memoize `getSnapshot` in `useSyncExternalStore`.
+  - Implement `getServerSnapshot` in `useSyncExternalStore`.
+  - Expect `store` to always be defined in `useSelector`
+  - Update React types to v18 and testing library to v16.
+
 ## 1.0.0
 
 ### Major Changes

@@ -3,12 +3,16 @@ import {
   and,
   assign,
   cancel,
+  ContextFrom,
   createActor,
   createMachine,
+  emit,
   enqueueActions,
+  EventFrom,
   fromPromise,
   fromTransition,
   log,
+  matchesState,
   not,
   raise,
   sendParent,
@@ -796,6 +800,45 @@ describe('setup()', () => {
     });
   });
 
+  it('should accept an `emit` action that emits a known event', () => {
+    setup({
+      types: {} as {
+        emitted:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        emitFoo: emit({
+          type: 'FOO'
+        })
+      }
+    });
+  });
+
+  it('should not accept an `emit` action that emits an unknown event', () => {
+    setup({
+      types: {} as {
+        emitted:
+          | {
+              type: 'FOO';
+            }
+          | {
+              type: 'BAR';
+            };
+      },
+      actions: {
+        emitFoo: emit({
+          // @ts-expect-error
+          type: 'BAZ'
+        })
+      }
+    });
+  });
+
   it("should be able to use an output of specific actor in the `assign` within `invoke`'s `onDone` in the machine", () => {
     setup({
       actors: {
@@ -1437,10 +1480,13 @@ describe('setup()', () => {
 
     const snapshot = createActor(machine).getSnapshot();
 
-    type ExpectedType = {
-      a?: 'a1' | 'a2';
-      b?: 'b1' | 'b2';
-    };
+    type ExpectedType =
+      | {
+          a: 'a1' | 'a2';
+        }
+      | {
+          b: 'b1' | 'b2';
+        };
 
     snapshot.value satisfies ExpectedType;
     ({}) as ExpectedType satisfies typeof snapshot.value;
@@ -1530,15 +1576,177 @@ describe('setup()', () => {
     type ExpectedType =
       | 'a'
       | {
-          b?:
+          b:
             | 'b2'
             | {
-                b1?: 'b11' | 'b12';
+                b1: 'b11' | 'b12';
               };
         };
 
     snapshot.value satisfies ExpectedType;
     ({}) as ExpectedType satisfies typeof snapshot.value;
+  });
+
+  it('state.value from setup state machine actors should be strongly-typed', () => {
+    const machine = setup({}).createMachine({
+      initial: 'green',
+      states: {
+        green: {},
+        yellow: {},
+        red: {
+          initial: 'walk',
+          states: {
+            walk: {},
+            wait: {},
+            stop: {}
+          }
+        },
+        emergency: {
+          type: 'parallel',
+          states: {
+            main: {
+              initial: 'blinking',
+              states: {
+                blinking: {}
+              }
+            },
+            cross: {
+              initial: 'blinking',
+              states: {
+                blinking: {}
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    const stateValue = actor.getSnapshot().value;
+
+    'green' satisfies typeof stateValue;
+
+    'yellow' satisfies typeof stateValue;
+
+    // @ts-expect-error compound state
+    'red' satisfies typeof stateValue;
+
+    // @ts-expect-error parallel state
+    'emergency' satisfies typeof stateValue;
+
+    const _redWalk = { red: 'walk' } satisfies typeof stateValue;
+    const _redWait = { red: 'wait' } satisfies typeof stateValue;
+
+    const _redUnknown = {
+      // @ts-expect-error
+      red: 'unknown'
+    } satisfies typeof stateValue;
+
+    const _emergency0 = {
+      emergency: {
+        main: 'blinking',
+        cross: 'blinking'
+      }
+    } satisfies typeof stateValue;
+
+    const _emergency1 = {
+      // @ts-expect-error
+      emergency: 'main'
+    } satisfies typeof stateValue;
+
+    const _emergency2 = {
+      // @ts-expect-error
+      emergency: {
+        main: 'blinking'
+      }
+    } satisfies typeof stateValue;
+
+    const _emergency3 = {
+      emergency: {
+        // @ts-expect-error
+        main: 'unknown',
+        cross: 'blinking'
+      }
+    } satisfies typeof stateValue;
+  });
+
+  it('state.value is exhaustive', () => {
+    const machine = setup({}).createMachine({
+      initial: 'green',
+      states: {
+        green: {},
+        yellow: {},
+        red: {
+          initial: 'walk',
+          states: {
+            walk: {},
+            wait: {},
+            stop: {}
+          }
+        },
+        emergency: {
+          type: 'parallel',
+          states: {
+            main: {
+              initial: 'blinking',
+              states: {
+                blinking: {}
+              }
+            },
+            cross: {
+              initial: 'blinking',
+              states: {
+                blinking: {}
+              }
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine);
+    const { value } = actor.getSnapshot();
+    if (value === 'green') {
+      // ...
+    } else {
+      value satisfies 'yellow' | { red: any } | { emergency: any };
+      if (value === 'yellow') {
+        // ...
+      } else {
+        value satisfies { red: any } | { emergency: any };
+        if ('red' in value) {
+          value.red satisfies 'walk' | 'wait' | 'stop';
+          // @ts-expect-error
+          value.red satisfies 'other';
+        } else {
+          value satisfies {
+            emergency: {
+              main: 'blinking';
+              cross: 'blinking';
+            };
+          };
+        }
+      }
+    }
+    // Nested state exhaustiveness
+    if (typeof value === 'object' && 'red' in value) {
+      // @ts-expect-error
+      value satisfies 'green';
+      // @ts-expect-error
+      value satisfies 'red';
+      // @ts-expect-error
+      value.emergency;
+      value.red satisfies 'walk' | 'wait' | 'stop';
+    }
+    if (
+      value !== 'green' &&
+      value !== 'yellow' &&
+      !('red' in value) &&
+      !('emergency' in value)
+    ) {
+      // Exhaustive check
+      value satisfies never;
+    }
   });
 
   it('should accept `assign` when no actor and children types are provided', () => {
@@ -2107,7 +2315,7 @@ describe('setup()', () => {
     });
   });
 
-  it('should allow `cancel` action to be configured', () => {
+  it('should allow `log` action to be configured', () => {
     setup({
       actions: {
         writeDown: log('foo')
@@ -2131,65 +2339,64 @@ describe('setup()', () => {
     });
   });
 
-  it('should support typing meta properties', () => {
+  it('EventFrom should work with a machine that has transitions defined on a state', () => {
+    // https://github.com/statelyai/xstate/issues/5031
+
     const machine = setup({
-      types: {
-        meta: {} as {
-          layout: string;
-        }
+      types: {} as {
+        events: {
+          type: 'SOME_EVENT';
+        };
       }
     }).createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          meta: {
-            layout: 'a-layout'
-          }
-        },
-        b: {
-          meta: {
-            // @ts-expect-error
-            notLayout: 'uh oh'
-          }
-        },
-        c: {}, // no meta
-        d: {
-          meta: {
-            // @ts-expect-error
-            layout: 42
-          }
-        }
+      id: 'authorization',
+      initial: 'loading',
+      context: {
+        myVar: 'foo'
       },
-      on: {
-        e1: {
-          meta: {
-            layout: 'event-layout'
-          }
-        },
-        e2: {
-          meta: {
-            // @ts-expect-error
-            notLayout: 'uh oh'
-          }
-        },
-        e3: {}, // no meta
-        // @ts-expect-error (for some reason the error is here)
-        e4: {
-          meta: {
-            layout: 42
+      states: {
+        loaded: {},
+        loading: {
+          on: {
+            SOME_EVENT: {
+              target: 'loaded'
+            }
           }
         }
       }
     });
 
-    const actor = createActor(machine);
+    ((_accept: EventFrom<typeof machine>) => {})({ type: 'SOME_EVENT' });
+  });
 
-    actor.getSnapshot().getMeta()['(machine)'] satisfies
-      | { layout: string }
-      | undefined;
+  it('ContextFrom should work with a machine that has transitions defined on a state', () => {
+    // https://github.com/statelyai/xstate/issues/5031
 
-    // @ts-expect-error
-    actor.getSnapshot().getMeta().a?.whatever;
+    const machine = setup({
+      types: {} as {
+        context: {
+          myVar: string;
+        };
+      }
+    }).createMachine({
+      id: 'authorization',
+      initial: 'loading',
+      context: {
+        myVar: 'foo'
+      },
+      states: {
+        loaded: {},
+        loading: {
+          on: {
+            SOME_EVENT: {
+              target: 'loaded'
+            }
+          }
+        }
+      }
+    });
+
+    ((_accept: ContextFrom<typeof machine>) => {})({ myVar: 'whatever' });
   });
 
   it('should strongly type the state IDs in snapshot.getMeta()', () => {

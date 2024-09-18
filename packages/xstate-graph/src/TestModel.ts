@@ -354,7 +354,8 @@ function serializeMachineTransition(
     StateValue,
     string,
     unknown,
-    TODO // TMeta
+    TODO, // TMeta
+    TODO // TStateSchema
   >,
   event: AnyEventObject | undefined,
   previousSnapshot:
@@ -365,7 +366,8 @@ function serializeMachineTransition(
         StateValue,
         string,
         unknown,
-        TODO // TMeta
+        TODO, // TMeta
+        TODO // TStateSchema
       >
     | undefined,
   { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
@@ -454,7 +456,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
     },
     events: (state) => {
       const events =
-        typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
+        typeof getEvents === 'function' ? getEvents(state) : (getEvents ?? []);
 
       return __unsafe_getAllOwnEventDescriptors(state).flatMap(
         (eventType: string) => {

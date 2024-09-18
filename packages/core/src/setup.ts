@@ -7,7 +7,6 @@ import {
   AnyActorRef,
   AnyEventObject,
   Cast,
-  ConditionalRequired,
   DelayConfig,
   EventObject,
   Invert,
@@ -19,8 +18,8 @@ import {
   ParameterizedObject,
   RoutableStateId,
   SetupTypes,
-  StateSchema,
   ToChildren,
+  ToStateValue,
   UnknownActorLogic,
   Values
 } from './types';
@@ -68,46 +67,8 @@ type ToProvidedActor<
         };
       }>;
 
-type _GroupStateKeys<
-  T extends StateSchema,
-  S extends keyof T['states']
-> = S extends any
-  ? T['states'][S] extends { type: 'history' }
-    ? [never, never]
-    : T extends { type: 'parallel' }
-      ? [S, never]
-      : 'states' extends keyof T['states'][S]
-        ? [S, never]
-        : [never, S]
-  : never;
-
-type GroupStateKeys<T extends StateSchema, S extends keyof T['states']> = {
-  nonLeaf: _GroupStateKeys<T, S & string>[0];
-  leaf: _GroupStateKeys<T, S & string>[1];
-};
-
-type ToStateValue<T extends StateSchema> = T extends {
-  states: Record<infer S, any>;
-}
-  ? IsNever<S> extends true
-    ? {}
-    :
-        | GroupStateKeys<T, S>['leaf']
-        | (IsNever<GroupStateKeys<T, S>['nonLeaf']> extends false
-            ? ConditionalRequired<
-                {
-                  [K in GroupStateKeys<T, S>['nonLeaf']]?: ToStateValue<
-                    T['states'][K]
-                  >;
-                },
-                T extends { type: 'parallel' } ? true : false
-              >
-            : never)
-  : {};
-
-type RequiredSetupKeys<TChildrenMap> = IsNever<keyof TChildrenMap> extends true
-  ? never
-  : 'actors';
+type RequiredSetupKeys<TChildrenMap> =
+  IsNever<keyof TChildrenMap> extends true ? never : 'actors';
 
 export function setup<
   TContext extends MachineContext,

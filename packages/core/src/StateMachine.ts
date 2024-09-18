@@ -47,12 +47,12 @@ import type {
   StateValue,
   TransitionDefinition,
   ResolvedStateMachineTypes,
-  StateSchema
+  StateSchema,
+  SnapshotStatus
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
 
-export const STATE_IDENTIFIER = '#';
-export const WILDCARD = '*';
+const STATE_IDENTIFIER = '#';
 
 export class StateMachine<
   TContext extends MachineContext,
@@ -66,9 +66,9 @@ export class StateMachine<
   TTag extends string,
   TInput,
   TOutput,
-  TEmitted extends EventObject = EventObject, // TODO: remove default
-  TMeta extends MetaObject = MetaObject,
-  TConfig extends StateSchema = StateSchema
+  TEmitted extends EventObject,
+  TMeta extends MetaObject,
+  TConfig extends StateSchema
 > implements
     ActorLogic<
       MachineSnapshot<
@@ -79,7 +79,6 @@ export class StateMachine<
         TTag,
         TOutput,
         TMeta,
-        never,
         TConfig
       >,
       TEvent,
@@ -200,7 +199,8 @@ export class StateMachine<
     TInput,
     TOutput,
     TEmitted,
-    TMeta
+    TMeta,
+    TConfig
   > {
     const { actions, guards, actors, delays } = this.implementations;
 
@@ -217,7 +217,7 @@ export class StateMachine<
       value: StateValue;
       context?: TContext;
       historyValue?: HistoryValue<TContext, TEvent>;
-      status?: 'active' | 'done' | 'error' | 'stopped';
+      status?: SnapshotStatus;
       output?: TOutput;
       error?: unknown;
     } & (Equals<TContext, MachineContext> extends false
@@ -231,7 +231,6 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    never,
     TConfig
   > {
     const resolvedStateValue = resolveStateValue(this.root, config.value);
@@ -260,7 +259,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >;
   }
@@ -281,7 +279,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >,
     event: TEvent,
@@ -294,7 +291,6 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    never,
     TConfig
   > {
     return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
@@ -316,7 +312,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >,
     event: TEvent,
@@ -330,7 +325,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >
   > {
@@ -346,7 +340,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >,
     event: TEvent
@@ -370,7 +363,6 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    never,
     TConfig
   > {
     const { context } = this.config;
@@ -415,7 +407,6 @@ export class StateMachine<
         TTag,
         TOutput,
         TMeta,
-        never,
         TConfig
       >,
       TEvent,
@@ -431,7 +422,6 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    never,
     TConfig
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
@@ -478,7 +468,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >
   ): void {
@@ -524,7 +513,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >,
     options?: unknown
@@ -543,7 +531,6 @@ export class StateMachine<
         TTag,
         TOutput,
         TMeta,
-        never,
         TConfig
       >,
       TEvent,
@@ -558,7 +545,6 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    never,
     TConfig
   > {
     const children: Record<string, AnyActorRef> = {};
@@ -614,7 +600,6 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      never,
       TConfig
     >;
 

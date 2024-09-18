@@ -8,21 +8,40 @@ export type Recipe<T, TReturn> = (state: T) => TReturn;
 
 export type StoreAssigner<
   TContext extends StoreContext,
-  TEvent extends EventObject
-> = (context: TContext, event: TEvent) => Partial<TContext>;
-export type StoreCompleteAssigner<TContext, TEvent extends EventObject> = (
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = (
+  context: TContext,
+  event: TEvent,
+  enq: { emit: (ev: TEmitted) => void }
+) => Partial<TContext>;
+export type StoreCompleteAssigner<
+  TContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = (
   ctx: TContext,
-  ev: TEvent
+  ev: TEvent,
+  enq: { emit: (ev: TEmitted) => void }
 ) => TContext;
 export type StorePartialAssigner<
   TContext,
   TEvent extends EventObject,
-  K extends keyof TContext
-> = (ctx: TContext, ev: TEvent) => Partial<TContext>[K];
-export type StorePropertyAssigner<TContext, TEvent extends EventObject> = {
+  K extends keyof TContext,
+  TEmitted extends EventObject
+> = (
+  ctx: TContext,
+  ev: TEvent,
+  enq: { emit: (ev: TEmitted) => void }
+) => Partial<TContext>[K];
+export type StorePropertyAssigner<
+  TContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = {
   [K in keyof TContext]?:
     | TContext[K]
-    | StorePartialAssigner<TContext, TEvent, K>;
+    | StorePartialAssigner<TContext, TEvent, K, TEmitted>;
 };
 
 export type Snapshot<TOutput> =
@@ -58,16 +77,119 @@ export type StoreSnapshot<TContext> = Snapshot<undefined> & {
  * - Can receive events
  * - Is observable
  */
-export interface Store<TContext, Ev extends EventObject>
-  extends Subscribable<StoreSnapshot<TContext>>,
+export interface Store<
+  TContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> extends Subscribable<StoreSnapshot<TContext>>,
     InteropObservable<StoreSnapshot<TContext>> {
-  send: (event: Ev) => void;
+  send: (event: TEvent) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
   getInitialSnapshot: () => StoreSnapshot<TContext>;
+  /**
+   * Subscribes to [inspection events](https://stately.ai/docs/inspection) from
+   * the store.
+   *
+   * Inspectors that call `store.inspect(…)` will immediately receive an
+   * "@xstate.actor" inspection event.
+   */
+  inspect: (
+    observer:
+      | Observer<InspectionEvent>
+      | ((inspectionEvent: InspectionEvent) => void)
+  ) => Subscription;
+  sessionId: string;
+  on: <TEmittedType extends TEmitted['type']>(
+    eventType: TEmittedType,
+    emittedEventHandler: (
+      ev: Compute<TEmitted & { type: TEmittedType }>
+    ) => void
+  ) => Subscription;
 }
 
-export type SnapshotFromStore<TStore extends Store<any, any>> =
-  TStore extends Store<infer TContext, any> ? StoreSnapshot<TContext> : never;
+export type AnyStore = Store<any, any, any>;
+
+export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
+
+export type SnapshotFromStore<TStore extends Store<any, any, any>> =
+  TStore extends Store<infer TContext, any, any>
+    ? StoreSnapshot<TContext>
+    : never;
+
+/**
+ * Extract the type of events from a `Store`.
+ *
+ * @example
+ *
+ * ```ts
+ * const store = createStore(
+ *   { count: 0 },
+ *   {
+ *     inc: (context, event: { by: number }) => ({
+ *       count: context.count + event.by
+ *     }),
+ *     dec: (context, event: { by: number }) => ({
+ *       count: context.count - event.by
+ *     })
+ *   }
+ * );
+ * type StoreEvent = EventFromStore<typeof store>;
+ * //   ^? { type: 'inc', by: number } | { type: 'dec', by: number }
+ * ```
+ *
+ * @example
+ *
+ * Using utility types derived from `EventFromStore` to create individual
+ * type-safe event transition functions for a store:
+ *
+ * ```ts
+ * import {
+ *   createStore,
+ *   type EventFromStore,
+ *   type Store
+ * } from '@xstate/store';
+ *
+ * // Extract the event where `Type` matches the event's `type` from the given
+ * // `Store`.
+ * type EventByType<
+ *   TStore extends Store<any, any>,
+ *   Type extends EventFromStore<TStore>['type']
+ * > = Extract<EventFromStore<TStore>, { type: Type }>;
+ *
+ * // Extract a specific store event's "input" type (the event type without the
+ * // `type` property).
+ * type EventInputByType<
+ *   TStore extends Store<any, any>,
+ *   Type extends EventFromStore<TStore>['type']
+ * > = Omit<EventByType<TStore, Type>, 'type'>;
+ *
+ * const store = createStore(
+ *   { count: 0 },
+ *   {
+ *     add: (context, event: { addend: number }) => ({
+ *       count: context.count + event.addend
+ *     }),
+ *     multiply: (context, event: { multiplier: number }) => ({
+ *       count: context.count * event.multiplier
+ *     })
+ *   }
+ * );
+ *
+ * const add = (input: EventInputByType<typeof store, 'add'>) =>
+ *   store.send({ type: 'add', addend: input.addend });
+ *
+ * add({ addend: 1 }); // sends { type: 'add', addend: 1 }
+ *
+ * const multiply = (input: EventInputByType<typeof store, 'multiply'>) =>
+ *   store.send({ type: 'multiply', multiplier: input.multiplier });
+ *
+ * multiply({ multiplier: 2 }); // sends { type: 'multiply', multiplier: 2 }
+ * ```
+ */
+export type EventFromStore<TStore extends Store<any, any, any>> =
+  TStore extends Store<infer _TContext, infer TEvent, infer _TEmitted>
+    ? TEvent
+    : never;
 
 // Copied from XState core
 // -----------------------
@@ -109,3 +231,77 @@ export type EventObject = {
   type: string;
 };
 type Values<T> = T[keyof T];
+
+export type InspectionEvent =
+  | InspectedSnapshotEvent
+  | InspectedEventEvent
+  | InspectedActorEvent
+  | InspectedMicrostepEvent
+  | InspectedActionEvent;
+
+interface BaseInspectionEventProperties {
+  rootId: string; // the session ID of the root
+  /**
+   * The relevant actorRef for the inspection event.
+   *
+   * - For snapshot events, this is the `actorRef` of the snapshot.
+   * - For event events, this is the target `actorRef` (recipient of event).
+   * - For actor events, this is the `actorRef` of the registered actor.
+   */
+  actorRef: ActorRefLike;
+}
+
+export interface InspectedSnapshotEvent extends BaseInspectionEventProperties {
+  type: '@xstate.snapshot';
+  event: AnyEventObject; // { type: string, ... }
+  snapshot: Snapshot<unknown>;
+}
+
+interface InspectedMicrostepEvent extends BaseInspectionEventProperties {
+  type: '@xstate.microstep';
+  event: AnyEventObject; // { type: string, ... }
+  snapshot: Snapshot<unknown>;
+  _transitions: unknown[];
+}
+
+export interface InspectedActionEvent extends BaseInspectionEventProperties {
+  type: '@xstate.action';
+  action: {
+    type: string;
+    params: Record<string, unknown>;
+  };
+}
+
+export interface InspectedEventEvent extends BaseInspectionEventProperties {
+  type: '@xstate.event';
+  // The source might not exist, e.g. when:
+  // - root init events
+  // - events sent from external (non-actor) sources
+  sourceRef: ActorRefLike | undefined;
+  event: AnyEventObject; // { type: string, ... }
+}
+
+interface AnyEventObject {
+  type: string;
+  [key: string]: any;
+}
+
+export interface InspectedActorEvent extends BaseInspectionEventProperties {
+  type: '@xstate.actor';
+}
+
+// export type ActorRefLike = Pick<
+//   AnyActorRef,
+//   'sessionId' | 'send' | 'getSnapshot'
+// >;
+
+export type ActorRefLike = {
+  sessionId: string;
+  // https://github.com/statelyai/xstate/pull/5037/files#r1717036732
+  send: (...args: never) => void;
+  getSnapshot: () => any;
+};
+
+export type Prop<T, K> = K extends keyof T ? T[K] : never;
+
+export type Cast<A, B> = A extends B ? A : B;

@@ -1,5 +1,5 @@
 import { StateMachine } from './StateMachine.ts';
-import { ResolvedStateMachineTypes } from './types.ts';
+import { ResolvedStateMachineTypes, TODO } from './types.ts';
 import {
   AnyActorRef,
   EventObject,
@@ -38,13 +38,14 @@ type GroupTestValues<TTestValue extends string | TestValue> = {
 type FilterLeafValues<
   TLeafCandidate extends string,
   TNonLeaf extends { [k: string]: TestValue | undefined }
-> = IsNever<TNonLeaf> extends true
-  ? TLeafCandidate
-  : TLeafCandidate extends string
-    ? TLeafCandidate extends keyof TNonLeaf
-      ? never
-      : TLeafCandidate
-    : never;
+> =
+  IsNever<TNonLeaf> extends true
+    ? TLeafCandidate
+    : TLeafCandidate extends string
+      ? TLeafCandidate extends keyof TNonLeaf
+        ? never
+        : TLeafCandidate
+      : never;
 
 // this is not 100% accurate since we can't make parallel regions required in the result
 // `TTestValue` doesn't encode this information anyhow for us to be able to do that
@@ -174,7 +175,8 @@ export function createMachine<
   TInput,
   TOutput,
   TEmitted,
-  TMeta // TMeta
+  TMeta, // TMeta
+  TODO // TStateSchema
 > {
   return new StateMachine<
     any,
@@ -189,6 +191,7 @@ export function createMachine<
     any,
     any,
     any, // TEmitted
-    any // TMeta
+    any, // TMeta
+    any // TStateSchema
   >(config as any, implementations as any);
 }

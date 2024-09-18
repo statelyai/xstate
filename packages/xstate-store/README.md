@@ -74,9 +74,30 @@ function DonutCounter() {
 }
 ```
 
+## Usage with SolidJS
+
+Import `useSelector` from `@xstate/store/solid`. Select the data you want via `useSelector(…)` and send events using `store.send(eventObject)`:
+
+```tsx
+import { donutStore } from './donutStore.ts';
+import { useSelector } from '@xstate/store/solid';
+
+function DonutCounter() {
+  const donutCount = useSelector(donutStore, (state) => state.context.donuts);
+
+  return (
+    <div>
+      <button onClick={() => donutStore.send({ type: 'addDonut' })}>
+        Add donut ({donutCount()})
+      </button>
+    </div>
+  );
+}
+```
+
 ## Usage with Immer
 
-XState Store makes it really to integrate with immutable update libraries like [Immer](https://github.com/immerjs/immer) or [Mutative](https://github.com/unadlib/mutative). Pass the `produce` function into `createStoreWithProducer(producer, …)`, and update `context` in transition functions using the convenient pseudo-mutative API:
+XState Store makes it really easy to integrate with immutable update libraries like [Immer](https://github.com/immerjs/immer) or [Mutative](https://github.com/unadlib/mutative). Pass the `produce` function into `createStoreWithProducer(producer, …)`, and update `context` in transition functions using the convenient pseudo-mutative API:
 
 ```ts
 import { createStoreWithProducer } from '@xstate/store';

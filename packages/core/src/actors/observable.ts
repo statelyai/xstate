@@ -2,7 +2,7 @@ import { XSTATE_STOP } from '../constants';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
-  ActorRefFrom,
+  ActorRefFromLogic,
   EventObject,
   NonReducibleUnknown,
   Snapshot,
@@ -35,7 +35,39 @@ export type ObservableActorLogic<
   TEmitted
 >;
 
-export type ObservableActorRef<TContext> = ActorRefFrom<
+/**
+ * Represents an actor created by `fromObservable` or `fromEventObservable`.
+ *
+ * The type of `self` within the actor's logic.
+ *
+ * @example
+ *
+ * ```ts
+ * import { fromObservable, createActor } from 'xstate';
+ * import { interval } from 'rxjs';
+ *
+ * // The type of the value observed by the actor's logic.
+ * type Context = number;
+ * // The actor's input.
+ * type Input = { period?: number };
+ *
+ * // Actor logic that observes a number incremented every `input.period`
+ * // milliseconds (default: 1_000).
+ * const logic = fromObservable<Context, Input>(({ input, self }) => {
+ *   self;
+ *   // ^? ObservableActorRef<Event, Input>
+ *
+ *   return interval(input.period ?? 1_000);
+ * });
+ *
+ * const actor = createActor(logic, { input: { period: 2_000 } });
+ * //    ^? ObservableActorRef<Event, Input>
+ * ```
+ *
+ * @see {@link fromObservable}
+ * @see {@link fromEventObservable}
+ */
+export type ObservableActorRef<TContext> = ActorRefFromLogic<
   ObservableActorLogic<TContext, any>
 >;
 

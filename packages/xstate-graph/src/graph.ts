@@ -44,7 +44,7 @@ export function getStateNodes(
   return nodes;
 }
 
-export function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
+function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
   if (!stateNode.states) {
     return [];
   }
@@ -92,7 +92,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
     serializeEvent,
     events: (state) => {
       const events =
-        typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
+        typeof getEvents === 'function' ? getEvents(state) : (getEvents ?? []);
       return __unsafe_getAllOwnEventDescriptors(state).flatMap((type) => {
         const matchingEvents = events.filter((ev) => (ev as any).type === type);
         if (matchingEvents.length) {

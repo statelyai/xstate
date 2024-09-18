@@ -166,3 +166,136 @@ it('can be observed', () => {
 
   expect(counts).toEqual([1, 2, 3]);
 });
+
+it('can be inspected', () => {
+  const store = createStore(
+    {
+      count: 0
+    },
+    {
+      inc: {
+        count: (ctx) => ctx.count + 1
+      }
+    }
+  );
+
+  const evs: any[] = [];
+
+  store.inspect((ev) => evs.push(ev));
+
+  store.send({ type: 'inc' });
+
+  expect(evs).toEqual([
+    expect.objectContaining({
+      type: '@xstate.actor'
+    }),
+    expect.objectContaining({
+      type: '@xstate.snapshot',
+      snapshot: expect.objectContaining({ context: { count: 0 } })
+    }),
+    expect.objectContaining({
+      type: '@xstate.event',
+      event: { type: 'inc' }
+    }),
+    expect.objectContaining({
+      type: '@xstate.snapshot',
+      snapshot: expect.objectContaining({ context: { count: 1 } })
+    })
+  ]);
+});
+
+it('emitted events can be subscribed to', () => {
+  const store = createStore({
+    types: {
+      emitted: {} as
+        | { type: 'increased'; upBy: number }
+        | { type: 'decreased'; downBy: number }
+    },
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit({ type: 'increased', upBy: 1 });
+
+        return {
+          ...ctx,
+          count: ctx.count + 1
+        };
+      }
+    }
+  });
+
+  const spy = jest.fn();
+
+  store.on('increased', spy);
+
+  store.send({ type: 'inc' });
+
+  expect(spy).toHaveBeenCalledWith({ type: 'increased', upBy: 1 });
+});
+
+it('emitted events can be unsubscribed to', () => {
+  const store = createStore({
+    types: {
+      emitted: {} as
+        | { type: 'increased'; upBy: number }
+        | { type: 'decreased'; downBy: number }
+    },
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit({ type: 'increased', upBy: 1 });
+
+        return {
+          ...ctx,
+          count: ctx.count + 1
+        };
+      }
+    }
+  });
+
+  const spy = jest.fn();
+  const sub = store.on('increased', spy);
+  store.send({ type: 'inc' });
+
+  expect(spy).toHaveBeenCalledWith({ type: 'increased', upBy: 1 });
+
+  sub.unsubscribe();
+  store.send({ type: 'inc' });
+
+  expect(spy).toHaveBeenCalledTimes(1);
+});
+
+it('emitted events occur after the snapshot is updated', () => {
+  const store = createStore({
+    types: {
+      emitted: {} as { type: 'increased'; upBy: number }
+    },
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit({ type: 'increased', upBy: 1 });
+
+        return {
+          ...ctx,
+          count: ctx.count + 1
+        };
+      }
+    }
+  });
+
+  expect.assertions(1);
+
+  store.on('increased', () => {
+    const s = store.getSnapshot();
+
+    expect(s.context.count).toEqual(1);
+  });
+
+  store.send({ type: 'inc' });
+});

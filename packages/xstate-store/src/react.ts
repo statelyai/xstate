@@ -1,13 +1,22 @@
-import { useCallback } from 'react';
-import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
-import { Store, SnapshotFromStore } from './types';
+import { useCallback, useRef, useSyncExternalStore } from 'react';
+import { Store, SnapshotFromStore, AnyStore } from './types';
 
-type SyncExternalStoreSubscribe = Parameters<
-  typeof useSyncExternalStoreWithSelector
->[0];
-
-function defaultCompare<T>(a: T, b: T) {
+function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;
+}
+
+function useSelectorWithCompare<TStore extends AnyStore, T>(
+  selector: (snapshot: SnapshotFromStore<TStore>) => T,
+  compare: (a: T | undefined, b: T) => boolean
+): (snapshot: SnapshotFromStore<TStore>) => T {
+  const previous = useRef<T>();
+
+  return (state) => {
+    const next = selector(state);
+    return compare(previous.current, next)
+      ? (previous.current as T)
+      : (previous.current = next);
+  };
 }
 
 /**
@@ -31,36 +40,22 @@ function defaultCompare<T>(a: T, b: T) {
  *   previous value
  * @returns The selected value
  */
-export function useSelector<TStore extends Store<any, any> | undefined, T>(
+export function useSelector<TStore extends AnyStore, T>(
   store: TStore,
-  selector: (
-    snapshot: TStore extends Store<any, any>
-      ? SnapshotFromStore<TStore>
-      : undefined
-  ) => T,
-  compare: (a: T, b: T) => boolean = defaultCompare
+  selector: (snapshot: SnapshotFromStore<TStore>) => T,
+  compare: (a: T | undefined, b: T) => boolean = defaultCompare
 ): T {
-  const subscribe: SyncExternalStoreSubscribe = useCallback(
-    (handleStoreChange) => {
-      if (!store) {
-        return () => {};
-      }
-      const { unsubscribe } = store.subscribe(handleStoreChange);
-      return unsubscribe;
-    },
-    [store]
+  const selectorWithCompare = useSelectorWithCompare(selector, compare);
+
+  return useSyncExternalStore(
+    useCallback(
+      (handleStoreChange) => store.subscribe(handleStoreChange).unsubscribe,
+      [store]
+    ),
+    () => selectorWithCompare(store.getSnapshot() as SnapshotFromStore<TStore>),
+    () =>
+      selectorWithCompare(
+        store.getInitialSnapshot() as SnapshotFromStore<TStore>
+      )
   );
-
-  const boundGetSnapshot = useCallback(() => store?.getSnapshot(), [store]);
-
-  const selectedSnapshot = useSyncExternalStoreWithSelector(
-    subscribe,
-    // @ts-ignore
-    boundGetSnapshot,
-    boundGetSnapshot,
-    selector,
-    compare
-  );
-
-  return selectedSnapshot;
 }
