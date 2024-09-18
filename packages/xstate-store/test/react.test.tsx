@@ -1,5 +1,5 @@
 import { fireEvent, screen, render } from '@testing-library/react';
-import { createStore, fromStore } from '../src/index.ts';
+import { createStore, fromStore, shallowEqual } from '../src/index.ts';
 import { useSelector } from '../src/react.ts';
 import {
   useActor,
@@ -265,4 +265,24 @@ it('useActorRef (@xstate/react) should work', () => {
   fireEvent.click(countDiv);
 
   expect(countDiv.textContent).toEqual('1');
+});
+
+it('can use a comparator with useSelector', () => {
+  const store = createStore({
+    context: { items: [3, 2, 1] },
+    on: {}
+  });
+
+  const Component = () => {
+    const items = useSelector(
+      store,
+      (s) => s.context.items.slice(),
+      shallowEqual
+    );
+    return <div>{items.join(',')}</div>;
+  };
+
+  expect(() => {
+    render(<Component />);
+  }).not.toThrow();
 });
