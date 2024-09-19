@@ -12,6 +12,7 @@ import { symbolObservable } from './symbolObservable.ts';
 import { AnyActorSystem, Clock, createSystem } from './system.ts';
 
 import type {
+  ActorRefFrom,
   ActorScope,
   AnyActorLogic,
   AnyActorRef,
@@ -176,6 +177,21 @@ export class Actor<TLogic extends AnyActorLogic>
           );
         }
         (child as any)._stop();
+      },
+      spawnChild: <T extends AnyActorLogic>(
+        logic: T,
+        actorOptions?: ActorOptions<T>
+      ) => {
+        const actor = createActor(logic, {
+          parent: this,
+          ...actorOptions
+        });
+
+        if (this._processingStatus === ProcessingStatus.Running) {
+          actor.start();
+        }
+
+        return actor as ActorRefFrom<T>;
       },
       emit: (emittedEvent) => {
         const listeners = this.eventListeners.get(emittedEvent.type);

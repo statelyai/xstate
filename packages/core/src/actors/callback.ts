@@ -2,6 +2,8 @@ import { XSTATE_STOP } from '../constants.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
+  ActorRefFrom,
+  ActorScope,
   ActorRefFromLogic,
   AnyActorRef,
   AnyEventObject,
@@ -92,6 +94,7 @@ export type CallbackLogicFunction<
   self,
   sendBack,
   receive,
+  spawn,
   emit
 }: {
   /**
@@ -111,6 +114,7 @@ export type CallbackLogicFunction<
    * listener is then called whenever events are received by the callback actor
    */
   receive: Receiver<TEvent>;
+  spawn: ActorScope<any, any>['spawnChild'];
   emit: (emitted: TEmitted) => void;
 }) => (() => void) | void;
 
@@ -215,6 +219,7 @@ export function fromCallback<
           callbackState.receivers ??= new Set();
           callbackState.receivers.add(listener);
         },
+        spawn: actorScope.spawnChild,
         emit
       });
     },
@@ -240,6 +245,7 @@ export function fromCallback<
     },
     getInitialSnapshot: (_, input) => {
       return {
+        context: undefined,
         status: 'active',
         output: undefined,
         error: undefined,

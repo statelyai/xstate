@@ -2,6 +2,7 @@ import { XSTATE_STOP } from '../constants.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
+  ActorScope,
   ActorRefFromLogic,
   AnyActorRef,
   EventObject,
@@ -11,10 +12,12 @@ import {
 
 export type PromiseSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
   input: TInput | undefined;
+  children: Record<string, any>;
 };
 
 const XSTATE_PROMISE_RESOLVE = 'xstate.promise.resolve';
 const XSTATE_PROMISE_REJECT = 'xstate.promise.reject';
+const XSTATE_SPAWN_CHILD = 'xstate.spawn.child';
 
 export type PromiseActorLogic<
   TOutput,
@@ -135,19 +138,27 @@ export function fromPromise<
     system: AnyActorSystem;
     /** The parent actor of the promise actor */
     self: PromiseActorRef<TOutput>;
+    spawnChild: ActorScope<any, any, any>['spawnChild'];
     signal: AbortSignal;
     emit: (emitted: TEmitted) => void;
   }) => PromiseLike<TOutput>
 ): PromiseActorLogic<TOutput, TInput, TEmitted> {
   const logic: PromiseActorLogic<TOutput, TInput, TEmitted> = {
     config: promiseCreator,
-    transition: (state, event, scope) => {
+    transition: (state, event, actorScope) => {
       if (state.status !== 'active') {
         return state;
       }
 
+      const stopChildren = () => {
+        for (const child of Object.values(state.children)) {
+          actorScope.stopChild?.(child);
+        }
+      };
+
       switch (event.type) {
         case XSTATE_PROMISE_RESOLVE: {
+          stopChildren();
           const resolvedValue = (event as any).data;
           return {
             ...state,
@@ -157,30 +168,53 @@ export function fromPromise<
           };
         }
         case XSTATE_PROMISE_REJECT:
+          stopChildren();
           return {
             ...state,
             status: 'error',
             error: (event as any).data,
             input: undefined
           };
-        case XSTATE_STOP: {
-          controllerMap.get(scope.self)?.abort();
+        case XSTATE_STOP:
+          stopChildren();
+          controllerMap.get(actorScope.self)?.abort();
+
           return {
             ...state,
             status: 'stopped',
             input: undefined
+          };
+        case XSTATE_SPAWN_CHILD: {
+          return {
+            ...state,
+            children: {
+              ...state.children,
+              [(event as any).child.id]: (event as any).child
+            }
           };
         }
         default:
           return state;
       }
     },
-    start: (state, { self, system, emit }) => {
+    start: (state, { self, system, spawnChild, emit }) => {
       // TODO: determine how to allow customizing this so that promises
       // can be restarted if necessary
       if (state.status !== 'active') {
         return;
       }
+
+      const innerSpawnChild: typeof spawnChild<any> = (logic, actorOptions) => {
+        const child = spawnChild?.(logic, actorOptions) as AnyActorRef;
+
+        self.send({
+          type: XSTATE_SPAWN_CHILD,
+          child
+        });
+
+        return child;
+      };
+
       const controller = new AbortController();
       controllerMap.set(self, controller);
       const resolvedPromise = Promise.resolve(
@@ -188,6 +222,7 @@ export function fromPromise<
           input: state.input!,
           system,
           self,
+          spawnChild: innerSpawnChild as any,
           signal: controller.signal,
           emit
         })
@@ -218,10 +253,12 @@ export function fromPromise<
     },
     getInitialSnapshot: (_, input) => {
       return {
+        context: undefined,
         status: 'active',
         output: undefined,
         error: undefined,
-        input
+        input,
+        children: {}
       };
     },
     getPersistedSnapshot: (snapshot) => snapshot,

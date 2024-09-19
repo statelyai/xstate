@@ -3,7 +3,6 @@ import { isMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import { TARGETLESS_KEY } from './constants.ts';
 import type {
-  AnyActorLogic,
   AnyActorRef,
   AnyEventObject,
   AnyMachineSnapshot,
@@ -282,4 +281,8 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
 
 export function getAllOwnEventDescriptors(snapshot: AnyMachineSnapshot) {
   return [...new Set([...snapshot._nodes.flatMap((sn) => sn.ownEvents)])];
+}
+
+export function isActorRef(actorRef: unknown): actorRef is AnyActorRef {
+  return !!actorRef && typeof actorRef === 'object' && 'send' in actorRef;
 }
