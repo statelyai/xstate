@@ -8,9 +8,7 @@ import {
   Snapshot
 } from '../types.ts';
 
-export type TransitionSnapshot<TContext> = Snapshot<undefined> & {
-  context: TContext;
-};
+export type TransitionSnapshot<TContext> = Snapshot<undefined, TContext>;
 
 export type TransitionActorLogic<
   TContext,
@@ -211,7 +209,8 @@ export function fromTransition<
         context:
           typeof initialContext === 'function'
             ? (initialContext as any)({ input })
-            : initialContext
+            : initialContext,
+        children: {}
       };
     },
     getPersistedSnapshot: (snapshot) => snapshot,

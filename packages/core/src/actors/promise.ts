@@ -2,6 +2,8 @@ import { XSTATE_STOP } from '../constants.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
+  ActorRefFrom,
+  AnyActorScope,
   ActorRefFromLogic,
   AnyActorRef,
   EventObject,
@@ -135,6 +137,7 @@ export function fromPromise<
     system: AnyActorSystem;
     /** The parent actor of the promise actor */
     self: PromiseActorRef<TOutput>;
+    spawnChild: AnyActorScope['spawnChild'];
     signal: AbortSignal;
     emit: (emitted: TEmitted) => void;
   }) => PromiseLike<TOutput>
@@ -175,7 +178,7 @@ export function fromPromise<
           return state;
       }
     },
-    start: (state, { self, system, emit }) => {
+    start: (state, { self, system, spawnChild, emit }) => {
       // TODO: determine how to allow customizing this so that promises
       // can be restarted if necessary
       if (state.status !== 'active') {
@@ -189,6 +192,7 @@ export function fromPromise<
           system,
           self,
           signal: controller.signal,
+          spawnChild,
           emit
         })
       );
@@ -221,7 +225,9 @@ export function fromPromise<
         status: 'active',
         output: undefined,
         error: undefined,
-        input
+        input,
+        context: undefined,
+        children: {}
       };
     },
     getPersistedSnapshot: (snapshot) => snapshot,

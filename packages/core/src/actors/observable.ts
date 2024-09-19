@@ -2,6 +2,8 @@ import { XSTATE_STOP } from '../constants';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
+  ActorRefFrom,
+  AnyActorScope,
   ActorRefFromLogic,
   EventObject,
   NonReducibleUnknown,
@@ -128,6 +130,7 @@ export function fromObservable<
     input: TInput;
     system: AnyActorSystem;
     self: ObservableActorRef<TContext>;
+    spawnChild: AnyActorScope['spawnChild'];
     emit: (emitted: TEmitted) => void;
   }) => Subscribable<TContext>
 ): ObservableActorLogic<TContext, TInput, TEmitted> {
@@ -181,10 +184,11 @@ export function fromObservable<
         error: undefined,
         context: undefined,
         input,
-        _subscription: undefined
+        _subscription: undefined,
+        children: {}
       };
     },
-    start: (state, { self, system, emit }) => {
+    start: (state, { self, system, spawnChild, emit }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
         return;
@@ -193,6 +197,7 @@ export function fromObservable<
         input: state.input!,
         system,
         self,
+        spawnChild,
         emit
       }).subscribe({
         next: (value) => {
@@ -333,7 +338,8 @@ export function fromEventObservable<
         error: undefined,
         context: undefined,
         input,
-        _subscription: undefined
+        _subscription: undefined,
+        children: {}
       };
     },
     start: (state, { self, system, emit }) => {

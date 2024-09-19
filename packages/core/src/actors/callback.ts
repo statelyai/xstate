@@ -4,6 +4,7 @@ import {
   ActorLogic,
   ActorRefFromLogic,
   AnyActorRef,
+  AnyActorScope,
   AnyEventObject,
   EventObject,
   NonReducibleUnknown,
@@ -92,6 +93,7 @@ export type CallbackLogicFunction<
   self,
   sendBack,
   receive,
+  spawnChild,
   emit
 }: {
   /**
@@ -111,6 +113,7 @@ export type CallbackLogicFunction<
    * listener is then called whenever events are received by the callback actor
    */
   receive: Receiver<TEvent>;
+  spawnChild: AnyActorScope['spawnChild'];
   emit: (emitted: TEmitted) => void;
 }) => (() => void) | void;
 
@@ -190,7 +193,7 @@ export function fromCallback<
   const logic: CallbackActorLogic<TEvent, TInput, TEmitted> = {
     config: callback,
     start: (state, actorScope) => {
-      const { self, system, emit } = actorScope;
+      const { self, system, emit, spawnChild } = actorScope;
 
       const callbackState: CallbackInstanceState<TEvent> = {
         receivers: undefined,
@@ -215,6 +218,7 @@ export function fromCallback<
           callbackState.receivers ??= new Set();
           callbackState.receivers.add(listener);
         },
+        spawnChild,
         emit
       });
     },
@@ -243,7 +247,9 @@ export function fromCallback<
         status: 'active',
         output: undefined,
         error: undefined,
-        input
+        input,
+        context: undefined,
+        children: {}
       };
     },
     getPersistedSnapshot: (snapshot) => snapshot,

@@ -458,7 +458,7 @@ export function getPersistedSnapshot<
   const persisted = {
     ...jsonValues,
     context: persistContext(context) as any,
-    children: childrenJson
+    children: childrenJson as Record<string, AnyActorRef | undefined>
   };
 
   return persisted;
