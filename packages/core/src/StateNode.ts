@@ -144,6 +144,7 @@ export class StateNode<
   public tags: string[] = [];
   public transitions!: Map<string, TransitionDefinition<TContext, TEvent>[]>;
   public always?: Array<TransitionDefinition<TContext, TEvent>>;
+  public invariant?: ({ context }: { context: TContext }) => void;
 
   constructor(
     /** The raw config used to create the machine. */
@@ -216,6 +217,7 @@ export class StateNode<
     this.output =
       this.type === 'final' || !this.parent ? this.config.output : undefined;
     this.tags = toArray(config.tags).slice();
+    this.invariant = config.invariant;
   }
 
   /** @internal */
