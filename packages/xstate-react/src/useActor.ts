@@ -5,6 +5,7 @@ import {
   Actor,
   ActorOptions,
   AnyActorLogic,
+  Snapshot,
   SnapshotFrom,
   type ConditionalRequired,
   type IsNotNever,
@@ -43,7 +44,10 @@ export function useActor<TLogic extends AnyActorLogic>(
 
   const subscribe = useCallback(
     (handleStoreChange: () => void) => {
-      const { unsubscribe } = actorRef.subscribe(handleStoreChange);
+      const { unsubscribe } = actorRef.subscribe(
+        handleStoreChange,
+        handleStoreChange
+      );
       return unsubscribe;
     },
     [actorRef]
@@ -54,6 +58,10 @@ export function useActor<TLogic extends AnyActorLogic>(
     getSnapshot,
     getSnapshot
   );
+
+  if ((actorSnapshot as Snapshot<any>).status === 'error') {
+    throw (actorSnapshot as Snapshot<any>).error;
+  }
 
   useEffect(() => {
     actorRef.start();

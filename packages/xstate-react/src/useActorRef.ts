@@ -6,6 +6,7 @@ import {
   AnyActorLogic,
   AnyStateMachine,
   Observer,
+  Snapshot,
   SnapshotFrom,
   createActor,
   toObserver,
@@ -52,6 +53,8 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
   return actorRef;
 }
 
+const UNIQUE = {};
+
 export function useActorRef<TLogic extends AnyActorLogic>(
   machine: TLogic,
   ...[options, observerOrListener]: IsNotNever<
@@ -73,12 +76,23 @@ export function useActorRef<TLogic extends AnyActorLogic>(
       ]
 ): Actor<TLogic> {
   const actorRef = useIdleActorRef(machine, options);
+  const [reactError, setReactError] = useState(() => {
+    const initialSnapshot: Snapshot<any> = actorRef.getSnapshot();
+    return initialSnapshot.status === 'error' ? initialSnapshot.error : UNIQUE;
+  });
+
+  if (reactError !== UNIQUE) {
+    throw reactError;
+  }
 
   useEffect(() => {
-    if (!observerOrListener) {
-      return;
-    }
-    let sub = actorRef.subscribe(toObserver(observerOrListener));
+    const observer = toObserver(observerOrListener);
+    const errorListener = observer.error;
+    observer.error = (error) => {
+      setReactError(error);
+      errorListener?.(error);
+    };
+    let sub = actorRef.subscribe(observer);
     return () => {
       sub.unsubscribe();
     };
