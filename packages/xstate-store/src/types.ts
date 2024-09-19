@@ -109,7 +109,7 @@ export interface Store<
 
 export type AnyStore = Store<any, any, any>;
 
-export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
+export type Compute<A> = { [K in keyof A]: A[K] };
 
 export type SnapshotFromStore<TStore extends Store<any, any, any>> =
   TStore extends Store<infer TContext, any, any>

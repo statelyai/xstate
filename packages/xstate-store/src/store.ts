@@ -131,7 +131,7 @@ function createStoreCore<
 
       return {
         unsubscribe() {
-          eventListeners!.delete(wrappedHandler);
+          eventListeners.delete(wrappedHandler);
         }
       };
     },
@@ -434,16 +434,10 @@ export function createStoreTransition<
 
     if (typeof assigner === 'function') {
       currentContext = updater
-        ? updater(
-            currentContext,
-            (draftContext) =>
-              (
-                assigner as StoreCompleteAssigner<
-                  TContext,
-                  StoreEvent,
-                  TEmitted
-                >
-              )?.(draftContext, event, enqueue)
+        ? updater(currentContext, (draftContext) =>
+            (
+              assigner as StoreCompleteAssigner<TContext, StoreEvent, TEmitted>
+            )?.(draftContext, event, enqueue)
           )
         : setter(currentContext, (draftContext) =>
             Object.assign(
