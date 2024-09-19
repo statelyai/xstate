@@ -3,25 +3,25 @@ runs:
   using: 'composite'
   steps:
     - name: Build
-      run: yarn build
+      run: pnpm build
       shell: bash
 
     - name: ESLint
-      run: yarn lint --no-cache
+      run: pnpm lint --no-cache
       shell: bash
 
     - name: Typecheck
-      run: yarn typecheck
+      run: pnpm typecheck
       shell: bash
 
     - name: Test
-      run: yarn test --silent
+      run: pnpm test --silent
       shell: bash
 
     - name: Svelte Check
-      run: yarn --cwd packages/xstate-svelte svelte-check
+      run: pnpm --filter @xstate/svelte svelte-check
       shell: bash
 
     - name: Knip
-      run: yarn knip
+      run: pnpm knip
       shell: bash

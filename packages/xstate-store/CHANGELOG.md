@@ -1,5 +1,82 @@
 # @xstate/store
 
+## 2.5.0
+
+### Minor Changes
+
+- [#5085](https://github.com/statelyai/xstate/pull/5085) [`51437a4d036029ab4ff74cb52721178b3e525c48`](https://github.com/statelyai/xstate/commit/51437a4d036029ab4ff74cb52721178b3e525c48) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `shallowEqual` comparator has been added for selector comparison:
+
+  ```tsx
+  import { shallowEqual } from '@xstate/store';
+  import { useSelector } from '@xstate/store/react';
+
+  import { store } from './store';
+
+  function MyComponent() {
+    const state = useSelector(
+      store,
+      (s) => {
+        return s.items.filter(/* ... */);
+      },
+      shallowEqual
+    );
+
+    // ...
+  }
+  ```
+
+## 2.4.0
+
+### Minor Changes
+
+- [#5064](https://github.com/statelyai/xstate/pull/5064) [`84aca37d0b02cb9cd5a32c8fd09e487bd8fe2a47`](https://github.com/statelyai/xstate/commit/84aca37d0b02cb9cd5a32c8fd09e487bd8fe2a47) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is a new single-argument config API for `createStore(config)`:
+
+  ```ts
+  const store = createStore({
+    // Types (optional)
+    types: {
+      emitted: {} as { type: 'incremented' }
+    },
+
+    // Context
+    context: { count: 0 },
+
+    // Transitions
+    on: {
+      inc: (context, event: { by: number }, enq) => {
+        enq.emit({ type: 'incremented' });
+
+        return { count: context.count + event.by };
+      },
+      dec: (context, event: { by: number }) => ({
+        count: context.count - event.by
+      })
+    }
+  });
+  ```
+
+- [#5064](https://github.com/statelyai/xstate/pull/5064) [`84aca37d0b02cb9cd5a32c8fd09e487bd8fe2a47`](https://github.com/statelyai/xstate/commit/84aca37d0b02cb9cd5a32c8fd09e487bd8fe2a47) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now emit events from a store:
+
+  ```ts
+  import { createStore } from '@xstate/store';
+
+  const store = createStore({
+    context: {
+      count: 0
+    },
+    on: {
+      increment: (context, event, { emit }) => {
+        emit({ type: 'incremented' });
+        return { count: context.count + 1 };
+      }
+    }
+  });
+
+  store.on('incremented', () => {
+    console.log('incremented!');
+  });
+  ```
+
 ## 2.3.0
 
 ### Minor Changes
