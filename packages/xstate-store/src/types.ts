@@ -95,8 +95,8 @@ export interface Store<
    */
   inspect: (
     observer:
-      | Observer<InspectionEvent>
-      | ((inspectionEvent: InspectionEvent) => void)
+      | Observer<StoreInspectionEvent>
+      | ((inspectionEvent: StoreInspectionEvent) => void)
   ) => Subscription;
   sessionId: string;
   on: <TEmittedType extends TEmitted['type']>(
@@ -232,14 +232,12 @@ export type EventObject = {
 };
 type Values<T> = T[keyof T];
 
-export type InspectionEvent =
-  | InspectedSnapshotEvent
-  | InspectedEventEvent
-  | InspectedActorEvent
-  | InspectedMicrostepEvent
-  | InspectedActionEvent;
+export type StoreInspectionEvent =
+  | StoreInspectedSnapshotEvent
+  | StoreInspectedEventEvent
+  | StoreInspectedActorEvent;
 
-interface BaseInspectionEventProperties {
+interface StoreBaseInspectionEventProperties {
   rootId: string; // the session ID of the root
   /**
    * The relevant actorRef for the inspection event.
@@ -251,20 +249,15 @@ interface BaseInspectionEventProperties {
   actorRef: ActorRefLike;
 }
 
-export interface InspectedSnapshotEvent extends BaseInspectionEventProperties {
+export interface StoreInspectedSnapshotEvent
+  extends StoreBaseInspectionEventProperties {
   type: '@xstate.snapshot';
   event: AnyEventObject; // { type: string, ... }
   snapshot: Snapshot<unknown>;
 }
 
-interface InspectedMicrostepEvent extends BaseInspectionEventProperties {
-  type: '@xstate.microstep';
-  event: AnyEventObject; // { type: string, ... }
-  snapshot: Snapshot<unknown>;
-  _transitions: unknown[];
-}
-
-export interface InspectedActionEvent extends BaseInspectionEventProperties {
+export interface StoreInspectedActionEvent
+  extends StoreBaseInspectionEventProperties {
   type: '@xstate.action';
   action: {
     type: string;
@@ -272,12 +265,10 @@ export interface InspectedActionEvent extends BaseInspectionEventProperties {
   };
 }
 
-export interface InspectedEventEvent extends BaseInspectionEventProperties {
+export interface StoreInspectedEventEvent
+  extends StoreBaseInspectionEventProperties {
   type: '@xstate.event';
-  // The source might not exist, e.g. when:
-  // - root init events
-  // - events sent from external (non-actor) sources
-  sourceRef: ActorRefLike | undefined;
+  sourceRef: AnyStore | undefined;
   event: AnyEventObject; // { type: string, ... }
 }
 
@@ -286,7 +277,8 @@ interface AnyEventObject {
   [key: string]: any;
 }
 
-export interface InspectedActorEvent extends BaseInspectionEventProperties {
+export interface StoreInspectedActorEvent
+  extends StoreBaseInspectionEventProperties {
   type: '@xstate.actor';
 }
 

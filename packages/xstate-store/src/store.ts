@@ -4,7 +4,7 @@ import {
   EnqueueObject,
   EventPayloadMap,
   ExtractEventsFromPayloadMap,
-  InspectionEvent,
+  StoreInspectionEvent,
   InteropSubscribable,
   Observer,
   Recipe,
@@ -47,7 +47,7 @@ function setter<TContext extends StoreContext>(
 
 const inspectionObservers = new WeakMap<
   Store<any, any, any>,
-  Set<Observer<InspectionEvent>>
+  Set<Observer<StoreInspectionEvent>>
 >();
 
 function createStoreCore<
