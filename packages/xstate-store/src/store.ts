@@ -1,9 +1,10 @@
-import { EventObject } from 'xstate';
+import { EnqueueActionsAction, EventObject } from 'xstate';
 import {
   Cast,
+  EnqueueObject,
   EventPayloadMap,
   ExtractEventsFromPayloadMap,
-  InspectionEvent,
+  StoreInspectionEvent,
   InteropSubscribable,
   Observer,
   Recipe,
@@ -46,7 +47,7 @@ function setter<TContext extends StoreContext>(
 
 const inspectionObservers = new WeakMap<
   Store<any, any, any>,
-  Set<Observer<InspectionEvent>>
+  Set<Observer<StoreInspectionEvent>>
 >();
 
 function createStoreCore<
@@ -369,15 +370,59 @@ export function createStoreWithProducer<
   producer: NoInfer<
     (context: TContext, recipe: (context: TContext) => void) => TContext
   >,
+  config: {
+    context: TContext;
+    on: {
+      [K in keyof TEventPayloadMap & string]: (
+        context: NoInfer<TContext>,
+        event: { type: K } & TEventPayloadMap[K],
+        enqueue: EnqueueObject<TEmitted>
+      ) => void;
+    };
+  }
+): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TEmitted>;
+export function createStoreWithProducer<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject = EventObject
+>(
+  producer: NoInfer<
+    (context: TContext, recipe: (context: TContext) => void) => TContext
+  >,
   initialContext: TContext,
   transitions: {
     [K in keyof TEventPayloadMap & string]: (
       context: NoInfer<TContext>,
-      event: { type: K } & TEventPayloadMap[K]
+      event: { type: K } & TEventPayloadMap[K],
+      enqueue: EnqueueObject<TEmitted>
     ) => void;
   }
+): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TEmitted>;
+
+export function createStoreWithProducer<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject = EventObject
+>(
+  producer: (
+    context: TContext,
+    recipe: (context: TContext) => void
+  ) => TContext,
+  initialContextOrConfig: any,
+  transitions?: any
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TEmitted> {
-  return createStoreCore(initialContext, transitions as any, producer);
+  if (
+    typeof initialContextOrConfig === 'object' &&
+    'context' in initialContextOrConfig &&
+    'on' in initialContextOrConfig
+  ) {
+    return createStoreCore(
+      initialContextOrConfig.context,
+      initialContextOrConfig.on as any,
+      producer
+    );
+  }
+  return createStoreCore(initialContextOrConfig, transitions, producer);
 }
 
 declare global {
@@ -434,16 +479,10 @@ export function createStoreTransition<
 
     if (typeof assigner === 'function') {
       currentContext = updater
-        ? updater(
-            currentContext,
-            (draftContext) =>
-              (
-                assigner as StoreCompleteAssigner<
-                  TContext,
-                  StoreEvent,
-                  TEmitted
-                >
-              )?.(draftContext, event, enqueue)
+        ? updater(currentContext, (draftContext) =>
+            (
+              assigner as StoreCompleteAssigner<TContext, StoreEvent, TEmitted>
+            )?.(draftContext, event, enqueue)
           )
         : setter(currentContext, (draftContext) =>
             Object.assign(
