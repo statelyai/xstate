@@ -1,5 +1,6 @@
 import { produce } from 'immer';
 import { createStore, createStoreWithProducer } from '../src/index.ts';
+import { createBrowserInspector } from '@statelyai/inspect';
 
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
@@ -239,6 +240,19 @@ it('can be inspected', () => {
       snapshot: expect.objectContaining({ context: { count: 1 } })
     })
   ]);
+});
+
+it('inspection with @statelyai/inspect typechecks correctly', () => {
+  const store = createStore({
+    context: {},
+    on: {}
+  });
+
+  const inspector = createBrowserInspector({
+    autoStart: false
+  });
+
+  store.inspect(inspector.inspect);
 });
 
 it('emitted events can be subscribed to', () => {
