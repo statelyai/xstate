@@ -237,6 +237,9 @@ export type StoreInspectionEvent =
   | StoreInspectedEventEvent
   | StoreInspectedActorEvent;
 
+/** @deprecated Use `StoreInspectionEvent` instead. */
+export type InspectionEvent = StoreInspectionEvent;
+
 interface StoreBaseInspectionEventProperties {
   rootId: string; // the session ID of the root
   /**
