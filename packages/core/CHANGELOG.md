@@ -1,5 +1,11 @@
 # xstate
 
+## 5.18.2
+
+### Patch Changes
+
+- [#5079](https://github.com/statelyai/xstate/pull/5079) [`25963966c394fc904dc9b701a420b6e204ebe7f7`](https://github.com/statelyai/xstate/commit/25963966c394fc904dc9b701a420b6e204ebe7f7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The inspection event interfaces now expect `ActorRefLike` instead of `AnyActorRef`
+
 ## 5.18.1
 
 ### Patch Changes
