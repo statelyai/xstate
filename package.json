@@ -27,7 +27,7 @@
     "postinstall": "manypkg check && preconstruct dev",
     "build": "preconstruct build",
     "fix": "manypkg fix",
-    "typecheck": "tsc",
+    "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:core": "jest packages/core",
     "changeset": "changeset",
