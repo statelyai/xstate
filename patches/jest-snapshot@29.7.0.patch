@@ -1,7 +1,7 @@
-diff --git a/node_modules/jest-snapshot/build/InlineSnapshots.js b/node_modules/jest-snapshot/build/InlineSnapshots.js
-index 3481ad9..206b06b 100644
---- a/node_modules/jest-snapshot/build/InlineSnapshots.js
-+++ b/node_modules/jest-snapshot/build/InlineSnapshots.js
+diff --git a/build/InlineSnapshots.js b/build/InlineSnapshots.js
+index 3481ad99885c847156afdef148d3075dcc9c68ca..206b06b34406534a1840c0e6e667d17b907fa16c 100644
+--- a/build/InlineSnapshots.js
++++ b/build/InlineSnapshots.js
 @@ -1,17 +1,27 @@
 +// motivation: benefit from Prettier v3 support - https://github.com/jestjs/jest/pull/14566
 +// built from Jest `main` branch using https://github.com/jestjs/jest/commit/2c3d2409879952157433de215ae0eee5188a4384 commit
@@ -672,10 +672,10 @@ index 3481ad9..206b06b 100644
 +
    return 'babel';
  };
-diff --git a/node_modules/jest-snapshot/build/SnapshotResolver.js b/node_modules/jest-snapshot/build/SnapshotResolver.js
-index 351f7ea..b4692fe 100644
---- a/node_modules/jest-snapshot/build/SnapshotResolver.js
-+++ b/node_modules/jest-snapshot/build/SnapshotResolver.js
+diff --git a/build/SnapshotResolver.js b/build/SnapshotResolver.js
+index 351f7eabe9c6ba9e3c40eb93d14927155fe6b1d3..b4692fee82df7dfa7b20dc9078a0897d4bf4dec6 100644
+--- a/build/SnapshotResolver.js
++++ b/build/SnapshotResolver.js
 @@ -8,13 +8,19 @@ exports.isSnapshotPath =
    exports.EXTENSION =
    exports.DOT_EXTENSION =
@@ -794,10 +794,10 @@ index 351f7ea..b4692fe 100644
    if (resolvedTestPath !== custom.testPathForConsistencyCheck) {
      throw new Error(
        _chalk.default.bold(
-diff --git a/node_modules/jest-snapshot/build/State.js b/node_modules/jest-snapshot/build/State.js
-index 262e367..88ab392 100644
---- a/node_modules/jest-snapshot/build/State.js
-+++ b/node_modules/jest-snapshot/build/State.js
+diff --git a/build/State.js b/build/State.js
+index 262e3675934f1a6f92626518628ae3b24e554b16..88ab3920b4a389a03bf4246d69cbe18047c657d3 100644
+--- a/build/State.js
++++ b/build/State.js
 @@ -4,10 +4,15 @@ Object.defineProperty(exports, '__esModule', {
    value: true
  });
@@ -1108,10 +1108,10 @@ index 262e367..88ab392 100644
  }
 +
  exports.default = SnapshotState;
-diff --git a/node_modules/jest-snapshot/build/colors.js b/node_modules/jest-snapshot/build/colors.js
-index e729c37..897ea87 100644
---- a/node_modules/jest-snapshot/build/colors.js
-+++ b/node_modules/jest-snapshot/build/colors.js
+diff --git a/build/colors.js b/build/colors.js
+index e729c37e3637ac1a6ff330add79b7c279eca3c46..897ea879c157675bc158dd6368414f815d2c0f77 100644
+--- a/build/colors.js
++++ b/build/colors.js
 @@ -12,15 +12,14 @@ exports.bForeground3 =
    exports.aBackground3 =
    exports.aBackground2 =
@@ -1130,10 +1130,10 @@ index e729c37..897ea87 100644
  const aForeground2 = 90;
  exports.aForeground2 = aForeground2;
  const aBackground2 = 225;
-diff --git a/node_modules/jest-snapshot/build/dedentLines.js b/node_modules/jest-snapshot/build/dedentLines.js
-index 8185438..b860c4d 100644
---- a/node_modules/jest-snapshot/build/dedentLines.js
-+++ b/node_modules/jest-snapshot/build/dedentLines.js
+diff --git a/build/dedentLines.js b/build/dedentLines.js
+index 81854381323f695d0923a9937f7573104fed72f9..b860c4d9ddc9927f2ea2ad1a63cf6cad3655a334 100644
+--- a/build/dedentLines.js
++++ b/build/dedentLines.js
 @@ -4,49 +4,54 @@ Object.defineProperty(exports, '__esModule', {
    value: true
  });
@@ -1284,10 +1284,10 @@ index 8185438..b860c4d 100644
  };
 +
  exports.dedentLines = dedentLines;
-diff --git a/node_modules/jest-snapshot/build/index.d.ts b/node_modules/jest-snapshot/build/index.d.ts
-index 6a5cbcd..f930c1c 100644
---- a/node_modules/jest-snapshot/build/index.d.ts
-+++ b/node_modules/jest-snapshot/build/index.d.ts
+diff --git a/build/index.d.ts b/build/index.d.ts
+index 6a5cbcd5c96fdee17497cfaeb612030ffa0af0e8..f930c1cc2a9007ca71e548737222d96d4541c06d 100644
+--- a/build/index.d.ts
++++ b/build/index.d.ts
 @@ -4,12 +4,10 @@
   * This source code is licensed under the MIT license found in the
   * LICENSE file in the root directory of this source tree.
@@ -1329,10 +1329,10 @@ index 6a5cbcd..f930c1c 100644
    }: SnapshotMatchOptions): SnapshotReturnOptions;
    fail(testName: string, _received: unknown, key?: string): string;
  }
-diff --git a/node_modules/jest-snapshot/build/index.js b/node_modules/jest-snapshot/build/index.js
-index df9f897..c75706c 100644
---- a/node_modules/jest-snapshot/build/index.js
-+++ b/node_modules/jest-snapshot/build/index.js
+diff --git a/build/index.js b/build/index.js
+index df9f897bf467ba892b26ef63cc78649ae4d30686..c75706ce462c1f3f18cd25f93ffc9bc62e7e09a6 100644
+--- a/build/index.js
++++ b/build/index.js
 @@ -1,104 +1,1459 @@
 -'use strict';
 +/*!
@@ -3363,11 +3363,11 @@ index df9f897..c75706c 100644
 +/******/ })()
 +;
 \ No newline at end of file
-diff --git a/node_modules/jest-snapshot/build/index.mjs b/node_modules/jest-snapshot/build/index.mjs
+diff --git a/build/index.mjs b/build/index.mjs
 new file mode 100644
-index 0000000..e8d71e4
+index 0000000000000000000000000000000000000000..e8d71e40215852892c08bf750fe1627ed21812e3
 --- /dev/null
-+++ b/node_modules/jest-snapshot/build/index.mjs
++++ b/build/index.mjs
 @@ -0,0 +1,13 @@
 +import cjsModule from './index.js';
 +
@@ -3382,10 +3382,10 @@ index 0000000..e8d71e4
 +export const toMatchSnapshot = cjsModule.toMatchSnapshot;
 +export const toThrowErrorMatchingInlineSnapshot = cjsModule.toThrowErrorMatchingInlineSnapshot;
 +export const toThrowErrorMatchingSnapshot = cjsModule.toThrowErrorMatchingSnapshot;
-diff --git a/node_modules/jest-snapshot/build/mockSerializer.js b/node_modules/jest-snapshot/build/mockSerializer.js
-index dd10f77..bf1c78d 100644
---- a/node_modules/jest-snapshot/build/mockSerializer.js
-+++ b/node_modules/jest-snapshot/build/mockSerializer.js
+diff --git a/build/mockSerializer.js b/build/mockSerializer.js
+index dd10f7780ae4daf66f9b23c3959ce54ce6fd1882..bf1c78d62d4488d654f60c0eee15458caa8af74f 100644
+--- a/build/mockSerializer.js
++++ b/build/mockSerializer.js
 @@ -4,40 +4,45 @@ Object.defineProperty(exports, '__esModule', {
    value: true
  });
@@ -3451,10 +3451,10 @@ index dd10f77..bf1c78d 100644
  exports.test = test;
  const plugin = {
    serialize,
-diff --git a/node_modules/jest-snapshot/build/plugins.js b/node_modules/jest-snapshot/build/plugins.js
-index 3d4484d..6a3625b 100644
---- a/node_modules/jest-snapshot/build/plugins.js
-+++ b/node_modules/jest-snapshot/build/plugins.js
+diff --git a/build/plugins.js b/build/plugins.js
+index 3d4484d117043faddf1e833e76f3e98bf6a6d8c9..6a3625b86e7a822f28250ca0b47e14e31dddc08d 100644
+--- a/build/plugins.js
++++ b/build/plugins.js
 @@ -4,18 +4,21 @@ Object.defineProperty(exports, '__esModule', {
    value: true
  });
@@ -3496,10 +3496,10 @@ index 3d4484d..6a3625b 100644
  const getSerializers = () => PLUGINS;
 +
  exports.getSerializers = getSerializers;
-diff --git a/node_modules/jest-snapshot/build/printSnapshot.js b/node_modules/jest-snapshot/build/printSnapshot.js
-index 13f28f4..4293ca1 100644
---- a/node_modules/jest-snapshot/build/printSnapshot.js
-+++ b/node_modules/jest-snapshot/build/printSnapshot.js
+diff --git a/build/printSnapshot.js b/build/printSnapshot.js
+index 13f28f42a3c9ade8df8e39331e5373ebce8391b6..4293ca11ce90ac01122f202ebfa634520d36aade 100644
+--- a/build/printSnapshot.js
++++ b/build/printSnapshot.js
 @@ -17,27 +17,38 @@ exports.printSnapshotAndReceived =
    exports.PROPERTIES_ARG =
    exports.HINT_ARG =
@@ -3872,10 +3872,10 @@ index 13f28f4..4293ca1 100644
  };
 +
  exports.printSnapshotAndReceived = printSnapshotAndReceived;
-diff --git a/node_modules/jest-snapshot/build/utils.js b/node_modules/jest-snapshot/build/utils.js
-index 7c49470..3c6b4ba 100644
---- a/node_modules/jest-snapshot/build/utils.js
-+++ b/node_modules/jest-snapshot/build/utils.js
+diff --git a/build/utils.js b/build/utils.js
+index 7c494706e993428ec40d1a8f178225844075d0f6..3c6b4bad83d13690ba00561ff8702f53a79878b1 100644
+--- a/build/utils.js
++++ b/build/utils.js
 @@ -20,15 +20,23 @@ exports.testNameToKey =
    exports.SNAPSHOT_VERSION =
    exports.SNAPSHOT_GUIDE_LINK =
@@ -4319,11 +4319,11 @@ index 7c49470..3c6b4ba 100644
  };
 +
  exports.deepMerge = deepMerge;
-diff --git a/node_modules/jest-snapshot/build/worker.js b/node_modules/jest-snapshot/build/worker.js
+diff --git a/build/worker.js b/build/worker.js
 new file mode 100644
-index 0000000..d088c9a
+index 0000000000000000000000000000000000000000..d088c9a0a7886a1af042061132270cef0d22b3c7
 --- /dev/null
-+++ b/node_modules/jest-snapshot/build/worker.js
++++ b/build/worker.js
 @@ -0,0 +1,600 @@
 +/*!
 + * /**
@@ -4926,10 +4926,10 @@ index 0000000..d088c9a
 +/******/ })()
 +;
 \ No newline at end of file
-diff --git a/node_modules/jest-snapshot/package.json b/node_modules/jest-snapshot/package.json
-index 167dd93..290610c 100644
---- a/node_modules/jest-snapshot/package.json
-+++ b/node_modules/jest-snapshot/package.json
+diff --git a/package.json b/package.json
+index 167dd938295f7081331e53d3cfd639f306298aef..290610c63b1c23023215eaf9c12c9f76d3a009cf 100644
+--- a/package.json
++++ b/package.json
 @@ -12,6 +12,8 @@
    "exports": {
      ".": {

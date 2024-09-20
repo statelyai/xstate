@@ -119,10 +119,10 @@
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/core#readme",
   "devDependencies": {
     "@scion-scxml/test-framework": "^2.0.15",
-    "@xstate-repo/jest-utils": "*",
+    "@xstate-repo/jest-utils": "workspace:^",
     "ajv": "^8.12.0",
     "pkg-up": "^3.1.0",
-    "rxjs": "^7.8.0",
+    "rxjs": "^7.8.1",
     "xml-js": "^1.6.11"
   },
   "preconstruct": {

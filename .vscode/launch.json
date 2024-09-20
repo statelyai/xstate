@@ -5,6 +5,7 @@
       "type": "node",
       "request": "launch",
       "name": "Jest Current File",
+      "runtimeExecutable": "sh",
       "program": "${workspaceFolder}/node_modules/.bin/jest",
       "args": ["${file}", "--config", "jest.config.js", "--no-cache"],
       "console": "integratedTerminal",
@@ -17,6 +18,7 @@
       "type": "node",
       "request": "launch",
       "name": "Jest Current File (no timeout)",
+      "runtimeExecutable": "sh",
       "program": "${workspaceFolder}/node_modules/.bin/jest",
       "args": [
         "${file}",
