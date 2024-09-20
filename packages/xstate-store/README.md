@@ -55,6 +55,36 @@ donutStore.send({
 // => { donuts: 1, favoriteFlavor: 'chocolate' }
 ```
 
+<details>
+<summary>Note: Deprecated <code>createStore(context, transitions)</code> API
+
+</summary>
+
+The previous version of `createStore` took two arguments: an initial context and an object of event handlers. This API is still supported but deprecated. Here's an example of the old usage:
+
+```ts
+import { createStore } from '@xstate/store';
+
+const donutStore = createStore(
+  {
+    donuts: 0,
+    favoriteFlavor: 'chocolate'
+  },
+  {
+    addDonut: (context) => ({ ...context, donuts: context.donuts + 1 }),
+    changeFlavor: (context, event: { flavor: string }) => ({
+      ...context,
+      favoriteFlavor: event.flavor
+    }),
+    eatAllDonuts: (context) => ({ ...context, donuts: 0 })
+  }
+);
+```
+
+We recommend using the new API for better type inference and more explicit configuration.
+
+</details>
+
 ## Usage with React
 
 Import `useSelector` from `@xstate/store/react`. Select the data you want via `useSelector(…)` and send events using `store.send(eventObject)`:
@@ -178,7 +208,7 @@ const donutContext: DonutContext = {
   favoriteFlavor: 'chocolate'
 };
 
-const donutStore = createStore(donutContext, {
+const donutStore = createStore({
   context: donutContext,
   on: {
     // ... (transitions go here)

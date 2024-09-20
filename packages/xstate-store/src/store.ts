@@ -404,7 +404,10 @@ export function createStoreWithProducer<
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject = EventObject
 >(
-  producer: (context: TContext, recipe: (context: TContext) => void) => TContext,
+  producer: (
+    context: TContext,
+    recipe: (context: TContext) => void
+  ) => TContext,
   initialContextOrConfig: any,
   transitions?: any
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TEmitted> {
@@ -419,7 +422,7 @@ export function createStoreWithProducer<
       producer
     );
   }
-  return createStoreCore(initialContextOrConfig, transitions as any, producer);
+  return createStoreCore(initialContextOrConfig, transitions, producer);
 }
 
 declare global {
