@@ -53,24 +53,25 @@ function resolveSpawn(
       ? resolveReferencedActor(snapshot.machine, src)
       : src;
   const resolvedId = typeof id === 'function' ? id(actionArgs) : id;
-
   let actorRef: AnyActorRef | undefined;
+  let resolvedInput: unknown | undefined = undefined;
 
   if (logic) {
+    resolvedInput =
+      typeof input === 'function'
+        ? input({
+            context: snapshot.context,
+            event: actionArgs.event,
+            self: actorScope.self
+          })
+        : input;
     actorRef = createActor(logic, {
       id: resolvedId,
       src,
       parent: actorScope.self,
       syncSnapshot,
       systemId,
-      input:
-        typeof input === 'function'
-          ? input({
-              context: snapshot.context,
-              event: actionArgs.event,
-              self: actorScope.self
-            })
-          : input
+      input: resolvedInput
     });
   }
 
@@ -88,8 +89,10 @@ function resolveSpawn(
     }),
     {
       id,
+      systemId,
       actorRef,
-      src
+      src,
+      input: resolvedInput
     }
   ];
 }

@@ -8,14 +8,12 @@ import {
   createActor,
   fromTransition,
   waitFor,
-  EventObject,
-  fromCallback,
   fromPromise,
   EventFrom,
-  AnyActorRef
+  toPromise
 } from '../src';
 import { createDoneActorEvent } from '../src/eventUtils';
-import { ExecutableAction, MachineExecutableActions } from '../src/stateUtils';
+import { MachineExecutableActions } from '../src/stateUtils';
 import { initialTransition } from '../src/transition';
 
 describe('transition function', () => {
@@ -316,7 +314,9 @@ describe('transition function', () => {
       actors: {
         sendWelcomeEmail: fromPromise(async () => {
           calls.push('sendWelcomeEmail');
-          return {};
+          return {
+            status: 'sent'
+          };
         })
       }
     }).createMachine({
@@ -325,6 +325,13 @@ describe('transition function', () => {
         sendingWelcomeEmail: {
           invoke: {
             src: 'sendWelcomeEmail',
+            input: () => ({ message: 'hello world', subject: 'hi' }),
+            onDone: 'logSent'
+          }
+        },
+        logSent: {
+          invoke: {
+            src: fromPromise(async () => {}),
             onDone: 'finish'
           }
         },
@@ -340,16 +347,11 @@ describe('transition function', () => {
     async function execute(action: MachineExecutableActions) {
       switch (action.type) {
         case 'xstate.spawn': {
-          if (action.params.src === 'sendWelcomeEmail') {
-            await new Promise((resolve) => {
-              setTimeout(() => {
-                calls.push('sendWelcomeEmail');
-                resolve(null);
-              }, 100);
-            });
-
-            postEvent(createDoneActorEvent(action.params.id));
-          }
+          const logic = machine.implementations.actors[action.params.src];
+          const output = await toPromise(
+            createActor(logic as any, action.params).start()
+          );
+          postEvent(createDoneActorEvent(action.params.id, output));
         }
         default:
           break;
@@ -390,6 +392,11 @@ describe('transition function', () => {
 
     expect(calls).toEqual(['sendWelcomeEmail']);
 
-    expect(JSON.parse(db.state).value).toBe('finish');
+    await new Promise<void>((res) => {
+      setTimeout(() => {
+        expect(JSON.parse(db.state).value).toBe('finish');
+      }, 10);
+      res();
+    });
   });
 });
