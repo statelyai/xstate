@@ -5,11 +5,11 @@
       "type": "node",
       "request": "launch",
       "name": "Jest Current File",
-      "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
+      "runtimeExecutable": "sh",
+      "program": "${workspaceFolder}/node_modules/.bin/jest",
       "args": ["${file}", "--config", "jest.config.js", "--no-cache"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "runtimeExecutable": "node",
       "windows": {
         "program": "${workspaceFolder}/node_modules/jest/bin/jest.js"
       }
@@ -18,7 +18,8 @@
       "type": "node",
       "request": "launch",
       "name": "Jest Current File (no timeout)",
-      "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
+      "runtimeExecutable": "sh",
+      "program": "${workspaceFolder}/node_modules/.bin/jest",
       "args": [
         "${file}",
         "--config",
@@ -28,7 +29,6 @@
       ],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "runtimeExecutable": "node",
       "windows": {
         "program": "${workspaceFolder}/node_modules/jest/bin/jest.js"
       }

@@ -13,5 +13,5 @@
     "strict": true,
     "stripInternal": true
   },
-  "exclude": ["examples", "templates"]
+  "exclude": ["**/examples", "**/templates"]
 }
