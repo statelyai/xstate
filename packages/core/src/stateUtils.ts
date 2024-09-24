@@ -52,6 +52,7 @@ import {
 } from './utils.ts';
 import { ProcessingStatus } from './createActor.ts';
 import { createEmptyActor } from './actors/index.ts';
+import { ExecutableRaiseAction } from './actions/raise.ts';
 
 type StateNodeIterable<
   TContext extends MachineContext,
@@ -1527,9 +1528,8 @@ interface BuiltinAction {
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
-export interface ExecutableAction {
-  /** The action type */
-  type: unknown;
+export interface ExecutableActionObject {
+  type: string;
   info: ActionArgs<MachineContext, EventObject, EventObject>;
   params: NonReducibleUnknown;
   exec:
@@ -1537,7 +1537,7 @@ export interface ExecutableAction {
     | undefined;
 }
 
-export type MachineExecutableActions = {
+export interface ExecutableSpawnAction extends ExecutableActionObject {
   type: 'xstate.spawn';
   info: ActionArgs<MachineContext, EventObject, EventObject>;
   params: {
@@ -1545,10 +1545,20 @@ export type MachineExecutableActions = {
     actorRef: AnyActorRef | undefined;
     src: string;
   };
-};
+}
+
+export type ExecutableAction = ExecutableSpawnAction | ExecutableRaiseAction;
+// | {
+//     type: string & { _: unknown };
+//     info: ActionArgs<MachineContext, EventObject, EventObject>;
+//     params: NonReducibleUnknown;
+//     exec:
+//       | ((info: ActionArgs<any, any, any>, params: unknown) => void)
+//       | undefined;
+//   };
 
 export type ActionExecutor = (
-  actionToExecute: ExecutableAction,
+  actionToExecute: ExecutableActionObject,
   actorRef: AnyActorRef
 ) => void;
 
@@ -1958,7 +1968,7 @@ export function convertAction(
  * ```
  */
 export function executeAction(
-  action: ExecutableAction,
+  action: ExecutableActionObject,
   actor: AnyActorRef = createEmptyActor()
 ) {
   const resolvedAction = resolveSpecialAction(action);
@@ -1970,7 +1980,9 @@ export function executeAction(
   return resolvedAction.exec?.(resolvedInfo, action.params);
 }
 
-function resolveSpecialAction(action: ExecutableAction): ExecutableAction {
+function resolveSpecialAction(
+  action: ExecutableActionObject
+): ExecutableActionObject {
   const resolvedAction = { ...action };
   switch (action.type) {
     case 'xstate.raise':

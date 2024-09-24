@@ -116,7 +116,13 @@ function resolveSendTo(
 
   return [
     snapshot,
-    { to: targetActorRef, event: resolvedEvent, id, delay: resolvedDelay }
+    {
+      to: targetActorRef,
+      event: resolvedEvent,
+      id,
+      delay: resolvedDelay,
+      startedAt: resolvedDelay === undefined ? undefined : Date.now()
+    }
   ];
 }
 

@@ -9,7 +9,7 @@ import {
 } from './State.ts';
 import { StateNode } from './StateNode.ts';
 import {
-  ExecutableAction,
+  ExecutableActionObject,
   executeAction,
   getAllStateNodes,
   getInitialStateNodes,
@@ -636,7 +636,7 @@ export class StateMachine<
     return restoredSnapshot;
   }
 
-  public executeAction(action: ExecutableAction, actor?: AnyActorRef) {
+  public executeAction(action: ExecutableActionObject, actor?: AnyActorRef) {
     return executeAction(action, actor);
   }
 }

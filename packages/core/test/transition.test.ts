@@ -10,10 +10,15 @@ import {
   waitFor,
   fromPromise,
   EventFrom,
-  toPromise
+  toPromise,
+  SpawnAction
 } from '../src';
 import { createDoneActorEvent } from '../src/eventUtils';
-import { MachineExecutableActions } from '../src/stateUtils';
+import {
+  ExecutableAction,
+  ExecutableActionObject,
+  ExecutableSpawnAction
+} from '../src/stateUtils';
 import { initialTransition } from '../src/transition';
 
 describe('transition function', () => {
@@ -305,7 +310,81 @@ describe('transition function', () => {
     expect(nextSnapshot.value).toEqual('b');
   });
 
-  it('serverless workflow example', async () => {
+  it('delayed events example (experimental)', async () => {
+    const db = {
+      state: undefined as any
+    };
+
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            next: 'waiting'
+          }
+        },
+        waiting: {
+          after: {
+            10: 'done'
+          }
+        },
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    async function execute(action: ExecutableAction) {
+      if (action.type === 'xstate.raise' && action.params.delay) {
+        const currentTime = Date.now();
+        const startedAt = action.params.startedAt ?? currentTime;
+        const elapsed = currentTime - startedAt;
+        const timeRemaining = Math.max(0, action.params.delay - elapsed);
+
+        await new Promise((res) => setTimeout(res, timeRemaining));
+        postEvent(action.params.event);
+      }
+    }
+
+    // POST /workflow
+    async function postStart() {
+      const [state, actions] = initialTransition(machine);
+
+      db.state = JSON.stringify(state);
+
+      // execute actions
+      for (const action of actions) {
+        await execute(action);
+      }
+    }
+
+    // POST /workflow/{sessionId}
+    async function postEvent(event: EventFrom<typeof machine>) {
+      const [nextState, actions] = transition(
+        machine,
+        machine.resolveState(JSON.parse(db.state)),
+        event
+      );
+
+      db.state = JSON.stringify(nextState);
+
+      for (const action of actions) {
+        await execute(action);
+      }
+    }
+
+    await postStart();
+    postEvent({ type: 'next' });
+
+    await new Promise<void>((res) => {
+      setTimeout(() => {
+        expect(JSON.parse(db.state).status).toBe('done');
+      }, 15);
+      res();
+    });
+  });
+
+  it('serverless workflow example (experimental)', async () => {
     const db = {
       state: undefined as any
     };
@@ -344,14 +423,15 @@ describe('transition function', () => {
 
     const calls: string[] = [];
 
-    async function execute(action: MachineExecutableActions) {
+    async function execute(action: ExecutableActionObject) {
       switch (action.type) {
         case 'xstate.spawn': {
-          const logic = machine.implementations.actors[action.params.src];
+          const spawnAction = action as ExecutableSpawnAction;
+          const logic = machine.implementations.actors[spawnAction.params.src];
           const output = await toPromise(
-            createActor(logic as any, action.params).start()
+            createActor(logic as any, spawnAction.params).start()
           );
-          postEvent(createDoneActorEvent(action.params.id, output));
+          postEvent(createDoneActorEvent(spawnAction.params.id, output));
         }
         default:
           break;

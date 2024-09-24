@@ -1,5 +1,5 @@
 import { createInertActorScope } from './getNextSnapshot';
-import { ExecutableAction } from './stateUtils';
+import { ExecutableActionObject } from './stateUtils';
 import {
   AnyActorLogic,
   EventFrom,
@@ -18,8 +18,8 @@ export function transition<T extends AnyActorLogic>(
   logic: T,
   snapshot: SnapshotFrom<T>,
   event: EventFromLogic<T>
-): [nextSnapshot: SnapshotFrom<T>, actions: ExecutableAction[]] {
-  const executableActions = [] as ExecutableAction[];
+): [nextSnapshot: SnapshotFrom<T>, actions: ExecutableActionObject[]] {
+  const executableActions = [] as ExecutableActionObject[];
 
   const actorScope = createInertActorScope(logic);
   actorScope.actionExecutor = (action) => {
@@ -43,8 +43,8 @@ export function initialTransition<T extends AnyActorLogic>(
   ...[input]: undefined extends InputFrom<T>
     ? [input?: InputFrom<T>]
     : [input: InputFrom<T>]
-): [SnapshotFrom<T>, ExecutableAction[]] {
-  const executableActions = [] as ExecutableAction[];
+): [SnapshotFrom<T>, ExecutableActionObject[]] {
+  const executableActions = [] as ExecutableActionObject[];
 
   const actorScope = createInertActorScope(logic);
   actorScope.actionExecutor = (action) => {

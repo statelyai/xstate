@@ -1,5 +1,6 @@
 import isDevelopment from '#is-development';
 import { executingCustomAction } from '../createActor.ts';
+import { ExecutableActionObject } from '../stateUtils.ts';
 import {
   ActionArgs,
   ActionFunction,
@@ -74,7 +75,15 @@ function resolveRaise(
   if (typeof resolvedDelay !== 'number') {
     internalQueue.push(resolvedEvent);
   }
-  return [snapshot, { event: resolvedEvent, id, delay: resolvedDelay }];
+  return [
+    snapshot,
+    {
+      event: resolvedEvent,
+      id,
+      delay: resolvedDelay,
+      startedAt: resolvedDelay === undefined ? undefined : Date.now()
+    }
+  ];
 }
 
 function executeRaise(
@@ -83,6 +92,7 @@ function executeRaise(
     event: EventObject;
     id: string | undefined;
     delay: number | undefined;
+    startedAt: number; // timestamp
   }
 ) {
   const { event, delay, id } = params;
@@ -161,6 +171,7 @@ export function raise<
   raise.event = eventOrExpr;
   raise.id = options?.id;
   raise.delay = options?.delay;
+  raise.startedAt = options?.delay === undefined ? undefined : Date.now();
 
   raise.resolve = resolveRaise;
   raise.execute = executeRaise;
@@ -170,4 +181,14 @@ export function raise<
   });
 
   return raise;
+}
+
+export interface ExecutableRaiseAction extends ExecutableActionObject {
+  type: 'xstate.raise';
+  params: {
+    event: EventObject;
+    id: string | undefined;
+    delay: number | undefined;
+    startedAt: number | undefined;
+  };
 }
