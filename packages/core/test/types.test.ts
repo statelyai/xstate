@@ -3476,6 +3476,249 @@ describe('enqueueActions', () => {
   });
 });
 
+describe('inline actions (prev. enqueueActions)', () => {
+  it('should be able to enqueue a defined parameterized action with required params', () => {
+    setup({
+      actions: {
+        greet: (_, params: { name: string }) => {
+          console.log(`Hello ${params.name}!`);
+        },
+        poke: () => {}
+      }
+    }).createMachine({
+      entry: (_, _params, enq) => {
+        enq.action({
+          type: 'greet',
+          params: {
+            name: 'Anders'
+          }
+        });
+      }
+    });
+  });
+
+  it('should not allow to enqueue a defined parameterized action without all of its required params', () => {
+    setup({
+      actions: {
+        greet: (_, params: { name: string }) => {
+          console.log(`Hello ${params.name}!`);
+        },
+        poke: () => {}
+      }
+    }).createMachine({
+      entry: (_, _params, enq) => {
+        enq.action({
+          type: 'greet',
+          // @ts-expect-error
+          params: {}
+        });
+      }
+    });
+  });
+
+  it('should not be possible to enqueue a parameterized action outside of the defined ones', () => {
+    setup({
+      actions: {
+        greet: (_, params: { name: string }) => {
+          console.log(`Hello ${params.name}!`);
+        },
+        poke: () => {}
+      }
+    }).createMachine({
+      entry: (_, _params, enq) => {
+        enq.action(
+          // @ts-expect-error
+          {
+            type: 'other'
+          }
+        );
+      }
+    });
+  });
+
+  it('should be possible to enqueue a parameterized action with no required params using a string', () => {
+    setup({
+      actions: {
+        greet: (_, params: { name: string }) => {
+          console.log(`Hello ${params.name}!`);
+        },
+        poke: () => {}
+      }
+    }).createMachine({
+      entry: (_, _params, enq) => {
+        enq.action('poke');
+      }
+    });
+  });
+
+  it('should be possible to enqueue a parameterized action with no required params using an object', () => {
+    setup({
+      actions: {
+        greet: (_, params: { name: string }) => {
+          console.log(`Hello ${params.name}!`);
+        },
+        poke: () => {}
+      }
+    }).createMachine({
+      entry: (_, _params, enq) => {
+        enq.action({ type: 'poke' });
+      }
+    });
+  });
+
+  it('should be able to execute an inline custom action', () => {
+    setup({
+      actions: {
+        foo: (_, _params: any, enq) => {
+          enq.action(() => {});
+        }
+      }
+    });
+  });
+
+  it('should allow a defined simple guard to be checked', () => {
+    createMachine(
+      {
+        types: {
+          guards: {} as
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' }
+        }
+      },
+      {
+        actions: {
+          foo: enqueueActions(({ check }) => {
+            check('plainGuard');
+          })
+        }
+      }
+    );
+
+    setup({
+      guards: {
+        plainGuard: () => true,
+        isGreaterThan: (_, { count }: { count: number }) => count > 10
+      },
+      actions: {
+        foo: (_, _params, enq) => {
+          enq.check('plainGuard');
+        }
+      }
+    });
+  });
+
+  it('should allow a defined parameterized guard to be checked', () => {
+    setup({
+      guards: {
+        isGreaterThan: (_, { count }: { count: number }) => count > 10,
+        plainGuard: () => true
+      },
+      actions: {
+        foo: (_, _params, enq) => {
+          enq.check({
+            type: 'isGreaterThan',
+            params: {
+              count: 10
+            }
+          });
+        }
+      }
+    });
+  });
+
+  it('should allow a defined parameterized guard to be checked', () => {
+    setup({
+      guards: {
+        isGreaterThan: (_, { count }: { count: number }) => count > 10,
+        plainGuard: () => true
+      },
+      actions: {
+        foo: (_, _params, enq) => {
+          enq.check(
+            // @ts-expect-error
+            {
+              type: 'other'
+            }
+          );
+        }
+      }
+    });
+  });
+
+  it('should type guard params as undefined in inline custom guard when enqueueActions is used in the config', () => {
+    setup({
+      guards: {
+        isGreaterThan: (_, { count }: { count: number }) => count > 10,
+        plainGuard: () => true
+      },
+      actions: {
+        foo: (_, _params, enq) => {
+          enq.check((_, params) => {
+            params satisfies undefined;
+            undefined satisfies typeof params;
+            // @ts-expect-error
+            params satisfies 'not any';
+
+            return true;
+          });
+        }
+      }
+    });
+  });
+
+  it('should be able to enqueue `raise` using its bound action creator in a transition with one of the other accepted event types', () => {
+    setup({
+      types: {
+        events: {} as
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            }
+      }
+    }).createMachine({
+      on: {
+        SOMETHING: {
+          actions: (_, _params, enq) => {
+            enq.raise({ type: 'SOMETHING_ELSE' });
+          }
+        }
+      }
+    });
+  });
+
+  it('should not be able to enqueue `raise` using its bound action creator in a transition with an event type that is not defined', () => {
+    setup({
+      types: {
+        events: {} as
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            }
+      }
+    }).createMachine({
+      on: {
+        SOMETHING: {
+          actions: (_, _params, enq) => {
+            enq.raise({
+              // @ts-expect-error
+              type: 'OTHER'
+            });
+          }
+        }
+      }
+    });
+  });
+});
+
 describe('input', () => {
   it('should provide the input type to the context factory', () => {
     createMachine({
