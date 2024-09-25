@@ -24,6 +24,7 @@ import {
   AnyEventObject
 } from '../src/index.ts';
 import { sleep } from '@xstate-repo/jest-utils';
+import { createInvoke } from '../src/invoke.ts';
 
 const user = { name: 'David' };
 
@@ -3436,4 +3437,28 @@ describe('invoke input', () => {
 
     createActor(machine).start();
   });
+});
+
+const machine = createMachine({
+  context: { number: 42 },
+  invoke2: createInvoke({
+    id: 'double',
+    input: ({ context }) => ({
+      count: context.number
+    }),
+    src: fromPromise(async ({ input }: { input: { count: number } }) => {
+      return input.count * 2;
+    }),
+    onDone: {
+      actions: ({ context, event }) => {
+        context.number satisfies number;
+        // @ts-expect-error
+        context.number satisfies string;
+
+        event.output satisfies number;
+        // @ts-expect-error
+        event.output satisfies string;
+      }
+    }
+  })
 });
