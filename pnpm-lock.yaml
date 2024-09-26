@@ -54,7 +54,7 @@ importers:
         version: 2.8.7
       '@testing-library/vue':
         specifier: ^6.6.1
-        version: 6.6.1(@vue/compiler-sfc@3.4.32)(vue@3.4.32(typescript@5.5.4))
+        version: 6.6.1(@vue/compiler-sfc@3.4.32)(vue@3.4.32(typescript@5.6.2))
       '@types/jest':
         specifier: ^29.5.10
         version: 29.5.12
@@ -66,7 +66,7 @@ importers:
         version: 3.4.32
       '@vue/vue3-jest':
         specifier: ^29.2.6
-        version: 29.2.6(@babel/core@7.24.9)(babel-jest@29.7.0(@babel/core@7.24.9))(jest@29.7.0(@types/node@20.14.13))(typescript@5.5.4)(vue@3.4.32(typescript@5.5.4))
+        version: 29.2.6(@babel/core@7.24.9)(babel-jest@29.7.0(@babel/core@7.24.9))(jest@29.7.0(@types/node@20.14.13))(typescript@5.6.2)(vue@3.4.32(typescript@5.6.2))
       babel-jest:
         specifier: ^29.7.0
         version: 29.7.0(@babel/core@7.24.9)
@@ -96,7 +96,7 @@ importers:
         version: 2.2.2(jest@29.7.0(@types/node@20.14.13))
       knip:
         specifier: ^5.27.0
-        version: 5.27.0(@types/node@20.14.13)(typescript@5.5.4)
+        version: 5.27.0(@types/node@20.14.13)(typescript@5.6.2)
       lint-staged:
         specifier: ^8.2.1
         version: 8.2.1
@@ -113,11 +113,11 @@ importers:
         specifier: ^0.8.5
         version: 0.8.8
       typescript:
-        specifier: ^5.5.4
-        version: 5.5.4
+        specifier: ^5.6.2
+        version: 5.6.2
       vue:
         specifier: ^3.0.11
-        version: 3.4.32(typescript@5.5.4)
+        version: 3.4.32(typescript@5.6.2)
 
   docs:
     dependencies:
@@ -296,7 +296,7 @@ importers:
         version: 3.8.4(@babel/core@7.25.2)(postcss-load-config@2.1.2)(postcss@8.4.47)(svelte@3.59.2)
       svelte-preprocess:
         specifier: ^5.0.0
-        version: 5.1.4(@babel/core@7.25.2)(postcss-load-config@2.1.2)(postcss@8.4.47)(svelte@3.59.2)(typescript@5.5.4)
+        version: 5.1.4(@babel/core@7.25.2)(postcss-load-config@2.1.2)(postcss@8.4.47)(svelte@3.59.2)(typescript@5.6.2)
       xstate:
         specifier: workspace:^
         version: link:../core
@@ -7896,11 +7896,6 @@ packages:
   typedarray@0.0.6:
     resolution: {integrity: sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==, tarball: https://registry.npmjs.org/typedarray/-/typedarray-0.0.6.tgz}
 
-  typescript@5.5.4:
-    resolution: {integrity: sha512-Mtq29sKDAEYP7aljRgtPOpTvOfbwRWlS6dPRzwjdE+C0R4brX/GUyhHSecbHMFLNBLcJIPt9nl9yG5TZ1weH+Q==, tarball: https://registry.npmjs.org/typescript/-/typescript-5.5.4.tgz}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
   typescript@5.6.2:
     resolution: {integrity: sha512-NW8ByodCSNCwZeghjN3o+JX5OFH0Ojg6sadjEKY4huZ52TqbJTJnDo5+Tw98lSy63NZvi4n+ez5m2u5d4PkZyw==, tarball: https://registry.npmjs.org/typescript/-/typescript-5.6.2.tgz}
     engines: {node: '>=14.17'}
@@ -10121,14 +10116,6 @@ snapshots:
       '@testing-library/dom': 8.20.1
       svelte: 3.59.2
 
-  '@testing-library/vue@6.6.1(@vue/compiler-sfc@3.4.32)(vue@3.4.32(typescript@5.5.4))':
-    dependencies:
-      '@babel/runtime': 7.24.8
-      '@testing-library/dom': 8.20.1
-      '@vue/compiler-sfc': 3.4.32
-      '@vue/test-utils': 2.4.6(patch_hash=drgml7uwcocw5qdowdzbfcfg3e)
-      vue: 3.4.32(typescript@5.5.4)
-
   '@testing-library/vue@6.6.1(@vue/compiler-sfc@3.4.32)(vue@3.4.32(typescript@5.6.2))':
     dependencies:
       '@babel/runtime': 7.24.8
@@ -10662,12 +10649,6 @@ snapshots:
       '@vue/shared': 3.4.32
       csstype: 3.1.3
 
-  '@vue/server-renderer@3.4.32(vue@3.4.32(typescript@5.5.4))':
-    dependencies:
-      '@vue/compiler-ssr': 3.4.32
-      '@vue/shared': 3.4.32
-      vue: 3.4.32(typescript@5.5.4)
-
   '@vue/server-renderer@3.4.32(vue@3.4.32(typescript@5.6.2))':
     dependencies:
       '@vue/compiler-ssr': 3.4.32
@@ -10683,7 +10664,7 @@ snapshots:
       js-beautify: 1.15.1
       vue-component-type-helpers: 2.0.26
 
-  '@vue/vue3-jest@29.2.6(@babel/core@7.24.9)(babel-jest@29.7.0(@babel/core@7.24.9))(jest@29.7.0(@types/node@20.14.13))(typescript@5.5.4)(vue@3.4.32(typescript@5.5.4))':
+  '@vue/vue3-jest@29.2.6(@babel/core@7.24.9)(babel-jest@29.7.0(@babel/core@7.24.9))(jest@29.7.0(@types/node@20.14.13))(typescript@5.6.2)(vue@3.4.32(typescript@5.6.2))':
     dependencies:
       '@babel/core': 7.24.9
       '@babel/plugin-transform-modules-commonjs': 7.24.8(@babel/core@7.24.9)
@@ -10694,9 +10675,9 @@ snapshots:
       jest: 29.7.0(@types/node@20.14.13)
       source-map: 0.5.6
       tsconfig: 7.0.0
-      vue: 3.4.32(typescript@5.5.4)
+      vue: 3.4.32(typescript@5.6.2)
     optionalDependencies:
-      typescript: 5.5.4
+      typescript: 5.6.2
     transitivePeerDependencies:
       - supports-color
 
@@ -15083,7 +15064,7 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  knip@5.27.0(@types/node@20.14.13)(typescript@5.5.4):
+  knip@5.27.0(@types/node@20.14.13)(typescript@5.6.2):
     dependencies:
       '@nodelib/fs.walk': 1.2.8
       '@snyk/github-codeowners': 1.1.0
@@ -15100,7 +15081,7 @@ snapshots:
       smol-toml: 1.3.0
       strip-json-comments: 5.0.1
       summary: 2.1.0
-      typescript: 5.5.4
+      typescript: 5.6.2
       zod: 3.23.8
       zod-validation-error: 3.3.0(zod@3.23.8)
 
@@ -17663,8 +17644,8 @@ snapshots:
       picocolors: 1.0.1
       sade: 1.8.1
       svelte: 3.59.2
-      svelte-preprocess: 5.1.4(@babel/core@7.25.2)(postcss-load-config@2.1.2)(postcss@8.4.47)(svelte@3.59.2)(typescript@5.5.4)
-      typescript: 5.5.4
+      svelte-preprocess: 5.1.4(@babel/core@7.25.2)(postcss-load-config@2.1.2)(postcss@8.4.47)(svelte@3.59.2)(typescript@5.6.2)
+      typescript: 5.6.2
     transitivePeerDependencies:
       - '@babel/core'
       - coffeescript
@@ -17681,7 +17662,7 @@ snapshots:
       jest: 29.7.0(@types/node@20.14.13)
       svelte: 3.59.2
 
-  svelte-preprocess@5.1.4(@babel/core@7.25.2)(postcss-load-config@2.1.2)(postcss@8.4.47)(svelte@3.59.2)(typescript@5.5.4):
+  svelte-preprocess@5.1.4(@babel/core@7.25.2)(postcss-load-config@2.1.2)(postcss@8.4.47)(svelte@3.59.2)(typescript@5.6.2):
     dependencies:
       '@types/pug': 2.0.10
       detect-indent: 6.1.0
@@ -17693,7 +17674,7 @@ snapshots:
       '@babel/core': 7.25.2
       postcss: 8.4.47
       postcss-load-config: 2.1.2
-      typescript: 5.5.4
+      typescript: 5.6.2
 
   svelte@3.59.2: {}
 
@@ -17918,10 +17899,7 @@ snapshots:
 
   typedarray@0.0.6: {}
 
-  typescript@5.5.4: {}
-
-  typescript@5.6.2:
-    optional: true
+  typescript@5.6.2: {}
 
   uc.micro@1.0.6: {}
 
@@ -18243,16 +18221,6 @@ snapshots:
     dependencies:
       '@vue/compiler-sfc': 2.7.16
       csstype: 3.1.3
-
-  vue@3.4.32(typescript@5.5.4):
-    dependencies:
-      '@vue/compiler-dom': 3.4.32
-      '@vue/compiler-sfc': 3.4.32
-      '@vue/runtime-dom': 3.4.32
-      '@vue/server-renderer': 3.4.32(vue@3.4.32(typescript@5.5.4))
-      '@vue/shared': 3.4.32
-    optionalDependencies:
-      typescript: 5.5.4
 
   vue@3.4.32(typescript@5.6.2):
     dependencies:
