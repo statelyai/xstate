@@ -11,14 +11,11 @@ import {
   fromPromise,
   EventFrom,
   toPromise,
-  SpawnAction
+  ExecutableActionObject,
+  ExecutableSpawnAction,
+  ExecutableActionsFrom
 } from '../src';
 import { createDoneActorEvent } from '../src/eventUtils';
-import {
-  ExecutableAction,
-  ExecutableActionObject,
-  ExecutableSpawnAction
-} from '../src/stateUtils';
 import { initialTransition } from '../src/transition';
 
 describe('transition function', () => {
@@ -334,7 +331,7 @@ describe('transition function', () => {
       }
     });
 
-    async function execute(action: ExecutableAction) {
+    async function execute(action: ExecutableActionsFrom<typeof machine>) {
       if (action.type === 'xstate.raise' && action.params.delay) {
         const currentTime = Date.now();
         const startedAt = action.params.startedAt ?? currentTime;

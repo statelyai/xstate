@@ -38,9 +38,10 @@ import {
   AnyTransitionConfig,
   ProvidedActor,
   AnyActorScope,
-  NonReducibleUnknown,
   UnknownActionObject,
-  AnyActorRef
+  AnyActorRef,
+  ActionExecutor,
+  ExecutableActionObject
 } from './types.ts';
 import {
   resolveOutput,
@@ -1527,40 +1528,6 @@ interface BuiltinAction {
   ) => void;
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
-
-export interface ExecutableActionObject {
-  type: string;
-  info: ActionArgs<MachineContext, EventObject, EventObject>;
-  params: NonReducibleUnknown;
-  exec:
-    | ((info: ActionArgs<any, any, any>, params: unknown) => void)
-    | undefined;
-}
-
-export interface ExecutableSpawnAction extends ExecutableActionObject {
-  type: 'xstate.spawn';
-  info: ActionArgs<MachineContext, EventObject, EventObject>;
-  params: {
-    id: string;
-    actorRef: AnyActorRef | undefined;
-    src: string;
-  };
-}
-
-export type ExecutableAction = ExecutableSpawnAction | ExecutableRaiseAction;
-// | {
-//     type: string & { _: unknown };
-//     info: ActionArgs<MachineContext, EventObject, EventObject>;
-//     params: NonReducibleUnknown;
-//     exec:
-//       | ((info: ActionArgs<any, any, any>, params: unknown) => void)
-//       | undefined;
-//   };
-
-export type ActionExecutor = (
-  actionToExecute: ExecutableActionObject,
-  actorRef: AnyActorRef
-) => void;
 
 function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,

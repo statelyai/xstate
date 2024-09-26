@@ -1,11 +1,10 @@
 import { createInertActorScope } from './getNextSnapshot';
-import { ExecutableActionObject } from './stateUtils';
 import {
   AnyActorLogic,
-  EventFrom,
   EventFromLogic,
   InputFrom,
-  SnapshotFrom
+  SnapshotFrom,
+  ExecutableActionObject
 } from './types';
 
 /**
