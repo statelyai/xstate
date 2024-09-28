@@ -50,7 +50,7 @@ type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
 export type IsNever<T> = [T] extends [never] ? true : false;
 export type IsNotNever<T> = [T] extends [never] ? false : true;
 
-export type Compute<A> = { [K in keyof A]: A[K] };
+export type Compute<A> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export type Values<T> = T[keyof T];
 export type Elements<T> = T[keyof T & `${number}`];
