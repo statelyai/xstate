@@ -66,7 +66,8 @@ export default ts.config(
         {
           destructuring: 'all'
         }
-      ]
+      ],
+      '@typescript-eslint/no-redundant-type-constituents': 'off'
     }
   },
 
