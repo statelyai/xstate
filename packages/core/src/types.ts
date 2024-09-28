@@ -41,7 +41,7 @@ export type GetParameterizedParams<T extends ParameterizedObject | undefined> =
  * This type can be used to avoid this problem. This union represents the same
  * value space as `unknown`.
  */
-export type NonReducibleUnknown = NonNullable<unknown> | null | undefined;
+export type NonReducibleUnknown = {} | null | undefined;
 export type AnyFunction = (...args: any[]) => any;
 
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
@@ -803,8 +803,8 @@ export type InvokeConfig<
               >
             >;
         /**
-         * The transition to take upon the invoked child machine sending an error
-         * event.
+         * The transition to take upon the invoked child machine sending an
+         * error event.
          */
         onError?:
           | string
