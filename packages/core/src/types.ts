@@ -2633,6 +2633,13 @@ export interface ExecutableActionObject {
     | undefined;
 }
 
+export interface ToExecutableAction<T extends ParameterizedObject>
+  extends ExecutableActionObject {
+  type: T['type'];
+  params: T['params'];
+  exec: undefined;
+}
+
 export interface ExecutableSpawnAction extends ExecutableActionObject {
   type: 'xstate.spawn';
   info: ActionArgs<MachineContext, EventObject, EventObject>;
@@ -2647,7 +2654,7 @@ export type SpecialExecutableAction =
   | ExecutableSpawnAction
   | ExecutableRaiseAction;
 
-export type ExecutableActionsFrom<T extends AnyStateMachine> =
+export type ExecutableActionsFrom<T extends AnyActorLogic> =
   T extends StateMachine<
     infer _TContext,
     infer _TEvent,
@@ -2664,7 +2671,9 @@ export type ExecutableActionsFrom<T extends AnyStateMachine> =
     infer _TMeta,
     infer _TConfig
   >
-    ? SpecialExecutableAction | { type: unknown; params: unknown }
+    ?
+        | SpecialExecutableAction
+        | (string extends TAction['type'] ? never : ToExecutableAction<TAction>)
     : never;
 
 export type ActionExecutor = (

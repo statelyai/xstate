@@ -420,7 +420,7 @@ describe('transition function', () => {
 
     const calls: string[] = [];
 
-    async function execute(action: ExecutableActionObject) {
+    async function execute(action: ExecutableActionsFrom<typeof machine>) {
       switch (action.type) {
         case 'xstate.spawn': {
           const spawnAction = action as ExecutableSpawnAction;
