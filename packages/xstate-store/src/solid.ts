@@ -1,6 +1,6 @@
 /* @jsxImportSource solid-js */
 import { createEffect, createSignal, onCleanup } from 'solid-js';
-import type { Store, SnapshotFromStore, AnyStore } from './types';
+import type { SnapshotFromStore, AnyStore } from './types';
 
 function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;

@@ -32,11 +32,6 @@ function resolveEmit(
         >;
   }
 ) {
-  if (isDevelopment && typeof eventOrExpr === 'string') {
-    throw new Error(
-      `Only event objects may be used with emit; use emit({ type: "${eventOrExpr}" }) instead`
-    );
-  }
   const resolvedEvent =
     typeof eventOrExpr === 'function'
       ? eventOrExpr(args, actionParams)
@@ -137,8 +132,8 @@ export function emit<
   }
 
   function emit(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    _args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    _params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

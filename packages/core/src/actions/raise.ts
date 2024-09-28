@@ -52,6 +52,7 @@ function resolveRaise(
 
   if (typeof eventOrExpr === 'string') {
     throw new Error(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       `Only event objects may be used with raise; use raise({ type: "${eventOrExpr}" }) instead`
     );
   }
@@ -149,8 +150,8 @@ export function raise<
   }
 
   function raise(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    _args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    _params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
