@@ -485,7 +485,7 @@ export type StateTypes =
   | 'parallel'
   | 'final'
   | 'history'
-  | ({} & string); // TODO: remove once TS fixes this type-widening issue
+  | ({} & string);
 
 export type SingleOrArray<T> = readonly T[] | T;
 
