@@ -73,8 +73,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
         return;
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      const jsonMessage = JSON.parse(data.toString());
+      const jsonMessage = JSON.parse(String(data));
       inspectService.send({
         ...jsonMessage,
         client
