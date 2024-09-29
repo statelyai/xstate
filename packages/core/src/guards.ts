@@ -114,10 +114,7 @@ export function stateIn<
   TParams,
   any // TODO: recheck if we could replace this with something better here
 > {
-  function stateIn(
-    _args: GuardArgs<TContext, TExpressionEvent>,
-    _params: TParams
-  ) {
+  function stateIn() {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

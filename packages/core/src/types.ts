@@ -41,7 +41,7 @@ export type GetParameterizedParams<T extends ParameterizedObject | undefined> =
  * This type can be used to avoid this problem. This union represents the same
  * value space as `unknown`.
  */
-export type NonReducibleUnknown = NonNullable<unknown> | null | undefined;
+export type NonReducibleUnknown = {} | null | undefined;
 export type AnyFunction = (...args: any[]) => any;
 
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
@@ -61,11 +61,12 @@ export type IndexByProp<T extends Record<P, string>, P extends keyof T> = {
 
 export type IndexByType<T extends { type: string }> = IndexByProp<T, 'type'>;
 
-export type Equals<A1, A2> = (<A>() => A extends A2 ? true : false) extends <
-  A
->() => A extends A1 ? true : false
-  ? true
-  : false;
+export type Equals<A1, A2> =
+  (<A>() => A extends A2 ? true : false) extends <A>() => A extends A1
+    ? true
+    : false
+    ? true
+    : false;
 export type IsAny<T> = Equals<T, any>;
 export type Cast<A, B> = A extends B ? A : B;
 // @TODO: Replace with native `NoInfer` when TS issue gets fixed:
@@ -127,44 +128,46 @@ export interface ActionArgs<
   TEvent extends EventObject
 > extends UnifiedArg<TContext, TExpressionEvent, TEvent> {}
 
-export type InputFrom<T> = T extends StateMachine<
-  infer _TContext,
-  infer _TEvent,
-  infer _TChildren,
-  infer _TActor,
-  infer _TAction,
-  infer _TGuard,
-  infer _TDelay,
-  infer _TStateValue,
-  infer _TTag,
-  infer TInput,
-  infer _TOutput,
-  infer _TEmitted,
-  infer _TMeta,
-  infer _TStateSchema
->
-  ? TInput
-  : T extends ActorLogic<
-        infer _TSnapshot,
-        infer _TEvent,
-        infer TInput,
-        infer _TSystem,
-        infer _TEmitted
-      >
+export type InputFrom<T> =
+  T extends StateMachine<
+    infer _TContext,
+    infer _TEvent,
+    infer _TChildren,
+    infer _TActor,
+    infer _TAction,
+    infer _TGuard,
+    infer _TDelay,
+    infer _TStateValue,
+    infer _TTag,
+    infer TInput,
+    infer _TOutput,
+    infer _TEmitted,
+    infer _TMeta,
+    infer _TStateSchema
+  >
     ? TInput
-    : never;
+    : T extends ActorLogic<
+          infer _TSnapshot,
+          infer _TEvent,
+          infer TInput,
+          infer _TSystem,
+          infer _TEmitted
+        >
+      ? TInput
+      : never;
 
-export type OutputFrom<T> = T extends ActorLogic<
-  infer TSnapshot,
-  infer _TEvent,
-  infer _TInput,
-  infer _TSystem,
-  infer _TEmitted
->
-  ? (TSnapshot & { status: 'done' })['output']
-  : T extends ActorRef<infer TSnapshot, infer _TEvent, infer _TEmitted>
+export type OutputFrom<T> =
+  T extends ActorLogic<
+    infer TSnapshot,
+    infer _TEvent,
+    infer _TInput,
+    infer _TSystem,
+    infer _TEmitted
+  >
     ? (TSnapshot & { status: 'done' })['output']
-    : never;
+    : T extends ActorRef<infer TSnapshot, infer _TEvent, infer _TEmitted>
+      ? (TSnapshot & { status: 'done' })['output']
+      : never;
 
 export type ActionFunction<
   TContext extends MachineContext,
@@ -753,87 +756,88 @@ export type InvokeConfig<
   TDelay extends string,
   TEmitted extends EventObject,
   TMeta extends MetaObject
-> = IsLiteralString<TActor['src']> extends true
-  ? DistributeActors<
-      TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TEmitted,
-      TMeta,
-      TActor
-    >
-  : {
-      /**
-       * The unique identifier for the invoked machine. If not specified, this
-       * will be the machine's own `id`, or the URL (from `src`).
-       */
-      id?: string;
+> =
+  IsLiteralString<TActor['src']> extends true
+    ? DistributeActors<
+        TContext,
+        TEvent,
+        TActor,
+        TAction,
+        TGuard,
+        TDelay,
+        TEmitted,
+        TMeta,
+        TActor
+      >
+    : {
+        /**
+         * The unique identifier for the invoked machine. If not specified, this
+         * will be the machine's own `id`, or the URL (from `src`).
+         */
+        id?: string;
 
-      systemId?: string;
-      /** The source of the machine to be invoked, or the machine itself. */
-      src: AnyActorLogic | string; // TODO: fix types
+        systemId?: string;
+        /** The source of the machine to be invoked, or the machine itself. */
+        src: AnyActorLogic | string; // TODO: fix types
 
-      input?:
-        | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
-        | NonReducibleUnknown;
-      /**
-       * The transition to take upon the invoked child machine reaching its
-       * final top-level state.
-       */
-      onDone?:
-        | string
-        | SingleOrArray<
-            TransitionConfigOrTarget<
-              TContext,
-              DoneActorEvent<any>, // TODO: consider replacing with `unknown`
-              TEvent,
-              TActor,
-              TAction,
-              TGuard,
-              TDelay,
-              TEmitted,
-              TMeta
-            >
-          >;
-      /**
-       * The transition to take upon the invoked child machine sending an error
-       * event.
-       */
-      onError?:
-        | string
-        | SingleOrArray<
-            TransitionConfigOrTarget<
-              TContext,
-              ErrorActorEvent,
-              TEvent,
-              TActor,
-              TAction,
-              TGuard,
-              TDelay,
-              TEmitted,
-              TMeta
-            >
-          >;
+        input?:
+          | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
+          | NonReducibleUnknown;
+        /**
+         * The transition to take upon the invoked child machine reaching its
+         * final top-level state.
+         */
+        onDone?:
+          | string
+          | SingleOrArray<
+              TransitionConfigOrTarget<
+                TContext,
+                DoneActorEvent<any>, // TODO: consider replacing with `unknown`
+                TEvent,
+                TActor,
+                TAction,
+                TGuard,
+                TDelay,
+                TEmitted,
+                TMeta
+              >
+            >;
+        /**
+         * The transition to take upon the invoked child machine sending an
+         * error event.
+         */
+        onError?:
+          | string
+          | SingleOrArray<
+              TransitionConfigOrTarget<
+                TContext,
+                ErrorActorEvent,
+                TEvent,
+                TActor,
+                TAction,
+                TGuard,
+                TDelay,
+                TEmitted,
+                TMeta
+              >
+            >;
 
-      onSnapshot?:
-        | string
-        | SingleOrArray<
-            TransitionConfigOrTarget<
-              TContext,
-              SnapshotEvent,
-              TEvent,
-              TActor,
-              TAction,
-              TGuard,
-              TDelay,
-              TEmitted,
-              TMeta
-            >
-          >;
-    };
+        onSnapshot?:
+          | string
+          | SingleOrArray<
+              TransitionConfigOrTarget<
+                TContext,
+                SnapshotEvent,
+                TEvent,
+                TActor,
+                TAction,
+                TGuard,
+                TDelay,
+                TEmitted,
+                TMeta
+              >
+            >;
+      };
 
 export type AnyInvokeConfig = InvokeConfig<
   any,
@@ -1988,73 +1992,75 @@ export type ActorRefLike = Pick<
 
 export type UnknownActorRef = ActorRef<Snapshot<unknown>, EventObject>;
 
-export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any, // TMeta
-      any // TStateSchema
-    >
-    ? R
-    : R extends Promise<infer U>
-      ? PromiseActorLogic<U>
-      : never
-  : never;
+export type ActorLogicFrom<T> =
+  ReturnTypeOrValue<T> extends infer R
+    ? R extends StateMachine<
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any, // TMeta
+        any // TStateSchema
+      >
+      ? R
+      : R extends Promise<infer U>
+        ? PromiseActorLogic<U>
+        : never
+    : never;
 
 // TODO: in v6, this should only accept AnyActorLogic, like ActorRefFromLogic
-export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<
-      infer TContext,
-      infer TEvent,
-      infer TChildren,
-      infer _TActor,
-      infer _TAction,
-      infer _TGuard,
-      infer _TDelay,
-      infer TStateValue,
-      infer TTag,
-      infer _TInput,
-      infer TOutput,
-      infer TEmitted,
-      infer TMeta,
-      infer TStateSchema
-    >
-    ? ActorRef<
-        MachineSnapshot<
-          TContext,
-          TEvent,
-          TChildren,
-          TStateValue,
-          TTag,
-          TOutput,
-          TMeta,
-          TStateSchema
-        >,
-        TEvent,
-        TEmitted
+export type ActorRefFrom<T> =
+  ReturnTypeOrValue<T> extends infer R
+    ? R extends StateMachine<
+        infer TContext,
+        infer TEvent,
+        infer TChildren,
+        infer _TActor,
+        infer _TAction,
+        infer _TGuard,
+        infer _TDelay,
+        infer TStateValue,
+        infer TTag,
+        infer _TInput,
+        infer TOutput,
+        infer TEmitted,
+        infer TMeta,
+        infer TStateSchema
       >
-    : R extends Promise<infer U>
-      ? ActorRefFrom<PromiseActorLogic<U>>
-      : R extends ActorLogic<
-            infer TSnapshot,
-            infer TEvent,
-            infer _TInput,
-            infer _TSystem,
-            infer TEmitted
-          >
-        ? ActorRef<TSnapshot, TEvent, TEmitted>
-        : never
-  : never;
+      ? ActorRef<
+          MachineSnapshot<
+            TContext,
+            TEvent,
+            TChildren,
+            TStateValue,
+            TTag,
+            TOutput,
+            TMeta,
+            TStateSchema
+          >,
+          TEvent,
+          TEmitted
+        >
+      : R extends Promise<infer U>
+        ? ActorRefFrom<PromiseActorLogic<U>>
+        : R extends ActorLogic<
+              infer TSnapshot,
+              infer TEvent,
+              infer _TInput,
+              infer _TSystem,
+              infer TEmitted
+            >
+          ? ActorRef<TSnapshot, TEvent, TEmitted>
+          : never
+    : never;
 
 export type ActorRefFromLogic<T extends AnyActorLogic> = ActorRef<
   SnapshotFrom<T>,
@@ -2067,73 +2073,75 @@ export type DevToolsAdapter = (service: AnyActor) => void;
 /** @deprecated Use `Actor<T>` instead. */
 export type InterpreterFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
-> = ReturnTypeOrValue<T> extends StateMachine<
-  infer TContext,
-  infer TEvent,
-  infer TChildren,
-  infer _TActor,
-  infer _TAction,
-  infer _TGuard,
-  infer _TDelay,
-  infer TStateValue,
-  infer TTag,
-  infer TInput,
-  infer TOutput,
-  infer TEmitted,
-  infer TMeta,
-  infer TStateSchema
->
-  ? Actor<
-      ActorLogic<
-        MachineSnapshot<
-          TContext,
+> =
+  ReturnTypeOrValue<T> extends StateMachine<
+    infer TContext,
+    infer TEvent,
+    infer TChildren,
+    infer _TActor,
+    infer _TAction,
+    infer _TGuard,
+    infer _TDelay,
+    infer TStateValue,
+    infer TTag,
+    infer TInput,
+    infer TOutput,
+    infer TEmitted,
+    infer TMeta,
+    infer TStateSchema
+  >
+    ? Actor<
+        ActorLogic<
+          MachineSnapshot<
+            TContext,
+            TEvent,
+            TChildren,
+            TStateValue,
+            TTag,
+            TOutput,
+            TMeta,
+            TStateSchema
+          >,
           TEvent,
-          TChildren,
-          TStateValue,
-          TTag,
-          TOutput,
-          TMeta,
-          TStateSchema
-        >,
-        TEvent,
-        TInput,
-        AnyActorSystem,
-        TEmitted
+          TInput,
+          AnyActorSystem,
+          TEmitted
+        >
       >
-    >
-  : never;
+    : never;
 
 export type MachineImplementationsFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
-> = ReturnTypeOrValue<T> extends StateMachine<
-  infer TContext,
-  infer TEvent,
-  infer _TChildren,
-  infer TActor,
-  infer TAction,
-  infer TGuard,
-  infer TDelay,
-  infer _TStateValue,
-  infer TTag,
-  infer _TInput,
-  infer _TOutput,
-  infer TEmitted,
-  infer _TMeta,
-  infer _TStateSchema
->
-  ? InternalMachineImplementations<
-      ResolvedStateMachineTypes<
-        TContext,
-        TEvent,
-        TActor,
-        TAction,
-        TGuard,
-        TDelay,
-        TTag,
-        TEmitted
+> =
+  ReturnTypeOrValue<T> extends StateMachine<
+    infer TContext,
+    infer TEvent,
+    infer _TChildren,
+    infer TActor,
+    infer TAction,
+    infer TGuard,
+    infer TDelay,
+    infer _TStateValue,
+    infer TTag,
+    infer _TInput,
+    infer _TOutput,
+    infer TEmitted,
+    infer _TMeta,
+    infer _TStateSchema
+  >
+    ? InternalMachineImplementations<
+        ResolvedStateMachineTypes<
+          TContext,
+          TEvent,
+          TActor,
+          TAction,
+          TGuard,
+          TDelay,
+          TTag,
+          TEmitted
+        >
       >
-    >
-  : never;
+    : never;
 
 export interface ActorScope<
   TSnapshot extends Snapshot<unknown>,
@@ -2276,28 +2284,29 @@ export type UnknownActorLogic = ActorLogic<
   any // emitted
 >;
 
-export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends ActorRef<infer TSnapshot, infer _, infer __>
-    ? TSnapshot
-    : R extends Actor<infer TLogic>
-      ? SnapshotFrom<TLogic>
-      : R extends ActorLogic<
-            infer _TSnapshot,
-            infer _TEvent,
-            infer _TInput,
-            infer _TEmitted,
-            infer _TSystem
-          >
-        ? ReturnType<R['transition']>
-        : R extends ActorScope<
-              infer TSnapshot,
+export type SnapshotFrom<T> =
+  ReturnTypeOrValue<T> extends infer R
+    ? R extends ActorRef<infer TSnapshot, infer _, infer __>
+      ? TSnapshot
+      : R extends Actor<infer TLogic>
+        ? SnapshotFrom<TLogic>
+        : R extends ActorLogic<
+              infer _TSnapshot,
               infer _TEvent,
+              infer _TInput,
               infer _TEmitted,
               infer _TSystem
             >
-          ? TSnapshot
-          : never
-  : never;
+          ? ReturnType<R['transition']>
+          : R extends ActorScope<
+                infer TSnapshot,
+                infer _TEvent,
+                infer _TEmitted,
+                infer _TSystem
+              >
+            ? TSnapshot
+            : never
+    : never;
 
 export type EventFromLogic<TLogic extends AnyActorLogic> =
   TLogic extends ActorLogic<
@@ -2321,39 +2330,40 @@ export type EmittedFrom<TLogic extends AnyActorLogic> =
     ? TEmitted
     : never;
 
-type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<
-      infer _TContext,
-      infer TEvent,
-      infer _TChildren,
-      infer _TActor,
-      infer _TAction,
-      infer _TGuard,
-      infer _TDelay,
-      infer _TStateValue,
-      infer _TTag,
-      infer _TInput,
-      infer _TOutput,
-      infer _TEmitted,
-      infer _TMeta,
-      infer _TStateSchema
-    >
-    ? TEvent
-    : R extends MachineSnapshot<
-          infer _TContext,
-          infer TEvent,
-          infer _TChildren,
-          infer _TStateValue,
-          infer _TTag,
-          infer _TOutput,
-          infer _TMeta,
-          infer _TStateSchema
-        >
+type ResolveEventType<T> =
+  ReturnTypeOrValue<T> extends infer R
+    ? R extends StateMachine<
+        infer _TContext,
+        infer TEvent,
+        infer _TChildren,
+        infer _TActor,
+        infer _TAction,
+        infer _TGuard,
+        infer _TDelay,
+        infer _TStateValue,
+        infer _TTag,
+        infer _TInput,
+        infer _TOutput,
+        infer _TEmitted,
+        infer _TMeta,
+        infer _TStateSchema
+      >
       ? TEvent
-      : R extends ActorRef<infer _TSnapshot, infer TEvent, infer _TEmitted>
+      : R extends MachineSnapshot<
+            infer _TContext,
+            infer TEvent,
+            infer _TChildren,
+            infer _TStateValue,
+            infer _TTag,
+            infer _TOutput,
+            infer _TMeta,
+            infer _TStateSchema
+          >
         ? TEvent
-        : never
-  : never;
+        : R extends ActorRef<infer _TSnapshot, infer TEvent, infer _TEmitted>
+          ? TEvent
+          : never
+    : never;
 
 export type EventFrom<
   T,
@@ -2361,56 +2371,57 @@ export type EventFrom<
   TEvent extends EventObject = ResolveEventType<T>
 > = IsNever<K> extends true ? TEvent : ExtractEvent<TEvent, K>;
 
-export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<
-      infer TContext,
-      infer _TEvent,
-      infer _TChildren,
-      infer _TActor,
-      infer _TAction,
-      infer _TGuard,
-      infer _TDelay,
-      infer _TStateValue,
-      infer _TTag,
-      infer _TInput,
-      infer _TOutput,
-      infer _TEmitted,
-      infer _TMeta,
-      infer _TStateSchema
-    >
-    ? TContext
-    : R extends MachineSnapshot<
-          infer TContext,
-          infer _TEvent,
-          infer _TChildren,
-          infer _TStateValue,
-          infer _TTag,
-          infer _TOutput,
-          infer _TMeta,
-          infer _TStateSchema
-        >
+export type ContextFrom<T> =
+  ReturnTypeOrValue<T> extends infer R
+    ? R extends StateMachine<
+        infer TContext,
+        infer _TEvent,
+        infer _TChildren,
+        infer _TActor,
+        infer _TAction,
+        infer _TGuard,
+        infer _TDelay,
+        infer _TStateValue,
+        infer _TTag,
+        infer _TInput,
+        infer _TOutput,
+        infer _TEmitted,
+        infer _TMeta,
+        infer _TStateSchema
+      >
       ? TContext
-      : R extends Actor<infer TActorLogic>
-        ? TActorLogic extends StateMachine<
+      : R extends MachineSnapshot<
             infer TContext,
             infer _TEvent,
             infer _TChildren,
-            infer _TActor,
-            infer _TAction,
-            infer _TGuard,
-            infer _TDelay,
             infer _TStateValue,
             infer _TTag,
-            infer _TInput,
             infer _TOutput,
-            infer _TEmitted,
             infer _TMeta,
             infer _TStateSchema
           >
-          ? TContext
+        ? TContext
+        : R extends Actor<infer TActorLogic>
+          ? TActorLogic extends StateMachine<
+              infer TContext,
+              infer _TEvent,
+              infer _TChildren,
+              infer _TActor,
+              infer _TAction,
+              infer _TGuard,
+              infer _TDelay,
+              infer _TStateValue,
+              infer _TTag,
+              infer _TInput,
+              infer _TOutput,
+              infer _TEmitted,
+              infer _TMeta,
+              infer _TStateSchema
+            >
+            ? TContext
+            : never
           : never
-        : never
-  : never;
+    : never;
 
 export type InferEvent<E extends EventObject> = {
   [T in E['type']]: { type: T } & Extract<E, { type: T }>;

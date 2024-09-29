@@ -61,6 +61,7 @@ export default ts.config(
         }
       ],
       '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-redundant-type-constituents': 'off',
       'prefer-const': [
         'error',
         {
