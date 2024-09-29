@@ -132,7 +132,7 @@ function createStoreCore<
 
       return {
         unsubscribe() {
-          eventListeners!.delete(wrappedHandler);
+          eventListeners.delete(wrappedHandler);
         }
       };
     },

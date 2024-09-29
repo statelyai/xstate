@@ -78,7 +78,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     if (!observerOrListener) {
       return;
     }
-    let sub = actorRef.subscribe(toObserver(observerOrListener));
+    const sub = actorRef.subscribe(toObserver(observerOrListener));
     return () => {
       sub.unsubscribe();
     };

@@ -1,7 +1,6 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
 import { ProcessingStatus, createActor } from '../createActor.ts';
-import { executingCustomAction } from '../stateUtils.ts';
 import {
   ActionArgs,
   ActionFunction,
@@ -77,6 +76,7 @@ function resolveSpawn(
 
   if (isDevelopment && !actorRef) {
     console.warn(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions,@typescript-eslint/no-base-to-string
       `Actor type '${src}' not found in machine '${actorScope.id}'.`
     );
   }
@@ -96,7 +96,7 @@ function resolveSpawn(
 
 function executeSpawn(
   actorScope: AnyActorScope,
-  { id, actorRef }: { id: string; actorRef: AnyActorRef }
+  { actorRef }: { id: string; actorRef: AnyActorRef }
 ) {
   if (!actorRef) {
     return;
@@ -207,8 +207,8 @@ export function spawnChild<
   never
 > {
   function spawnChild(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    _args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    _params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
