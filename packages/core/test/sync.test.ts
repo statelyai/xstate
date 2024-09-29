@@ -7,9 +7,9 @@ import {
   waitFor
 } from '../src';
 
-describe('sync', () => {
+describe('synchronizers', () => {
   it('work with a synchronous synchronizer', () => {
-    let snapshotRef = {
+    const snapshotRef = {
       current: JSON.stringify({ value: 'b', children: {}, status: 'active' })
     };
     const pseudoStorage = {
