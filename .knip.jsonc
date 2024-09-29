@@ -32,7 +32,6 @@
   ],
   "ignoreBinaries": ["svelte-check", "docs:build"],
   "ignoreDependencies": [
-    "@xstate-repo/jest-utils",
     "@xstate-repo/jest-utils/setup",
     "synckit",
     // package.json#exports aren't added as entry points, because `dist/` is .gitignored
