@@ -1,6 +1,5 @@
 import {
   ActorRefLike,
-  AnyActorRef,
   AnyEventObject,
   AnyTransitionDefinition,
   Snapshot
@@ -51,7 +50,7 @@ export interface InspectedEventEvent extends BaseInspectionEventProperties {
   // The source might not exist, e.g. when:
   // - root init events
   // - events sent from external (non-actor) sources
-  sourceRef: AnyActorRef | undefined;
+  sourceRef: ActorRefLike | undefined;
   event: AnyEventObject; // { type: string, ... }
 }
 
