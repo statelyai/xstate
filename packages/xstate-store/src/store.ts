@@ -1,4 +1,4 @@
-import { EnqueueActionsAction, EventObject } from 'xstate';
+import { EventObject } from 'xstate';
 import {
   Cast,
   EnqueueObject,
@@ -132,7 +132,7 @@ function createStoreCore<
 
       return {
         unsubscribe() {
-          eventListeners!.delete(wrappedHandler);
+          eventListeners.delete(wrappedHandler);
         }
       };
     },
@@ -418,7 +418,7 @@ export function createStoreWithProducer<
   ) {
     return createStoreCore(
       initialContextOrConfig.context,
-      initialContextOrConfig.on as any,
+      initialContextOrConfig.on,
       producer
     );
   }

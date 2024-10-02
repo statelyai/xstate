@@ -1,5 +1,5 @@
 import { useCallback, useRef, useSyncExternalStore } from 'react';
-import { Store, SnapshotFromStore, AnyStore } from './types';
+import { SnapshotFromStore, AnyStore } from './types';
 
 function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;

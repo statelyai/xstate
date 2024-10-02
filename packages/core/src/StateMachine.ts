@@ -95,7 +95,7 @@ export class StateMachine<
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
   /** @internal */
-  public __xstatenode: true = true;
+  public __xstatenode = true as const;
 
   /** @internal */
   public idMap: Map<string, StateNode<TContext, TEvent>> = new Map();
@@ -561,8 +561,7 @@ export class StateMachine<
     > = (snapshot as any).children;
 
     Object.keys(snapshotChildren).forEach((actorId) => {
-      const actorData =
-        snapshotChildren[actorId as keyof typeof snapshotChildren];
+      const actorData = snapshotChildren[actorId];
       const childState = actorData.snapshot;
       const src = actorData.src;
 
@@ -605,7 +604,7 @@ export class StateMachine<
       TConfig
     >;
 
-    let seen = new Set();
+    const seen = new Set();
 
     function reviveContext(
       contextPart: Record<string, unknown>,
@@ -615,7 +614,7 @@ export class StateMachine<
         return;
       }
       seen.add(contextPart);
-      for (let key in contextPart) {
+      for (const key in contextPart) {
         const value: unknown = contextPart[key];
 
         if (value && typeof value === 'object') {

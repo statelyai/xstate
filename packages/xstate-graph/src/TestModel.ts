@@ -2,7 +2,6 @@ import {
   getPathsFromEvents,
   getAdjacencyMap,
   joinPaths,
-  AdjacencyValue,
   serializeSnapshot
 } from '@xstate/graph';
 import type {

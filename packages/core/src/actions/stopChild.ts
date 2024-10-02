@@ -3,7 +3,6 @@ import { cloneMachineSnapshot } from '../State.ts';
 import { ProcessingStatus } from '../createActor.ts';
 import {
   ActionArgs,
-  ActorRef,
   AnyActorRef,
   AnyActorScope,
   AnyMachineSnapshot,
@@ -102,8 +101,8 @@ export function stopChild<
   actorRef: ResolvableActorRef<TContext, TExpressionEvent, TParams, TEvent>
 ): StopAction<TContext, TExpressionEvent, TParams, TEvent> {
   function stop(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    _args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    _params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
