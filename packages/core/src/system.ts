@@ -4,10 +4,8 @@ import {
   ActorSystemInfo,
   AnyActorRef,
   Observer,
-  Snapshot,
   HomomorphicOmit,
   EventObject,
-  AnyTransitionDefinition,
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';

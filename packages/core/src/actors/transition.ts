@@ -198,7 +198,7 @@ export function fromTransition<
         ...snapshot,
         context: transition(
           snapshot.context,
-          event as TEvent,
+          event,
           actorScope as any
         )
       };

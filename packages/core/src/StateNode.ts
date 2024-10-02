@@ -186,7 +186,7 @@ export class StateNode<
             (stateConfig: AnyStateNodeConfig, key) => {
               const stateNode = new StateNode(stateConfig, {
                 _parent: this,
-                _key: key as string,
+                _key: key,
                 _machine: this.machine
               });
               return stateNode;
@@ -247,9 +247,9 @@ export class StateNode<
             eventType: null as any,
             reenter: false,
             toJSON: () => ({
-              target: this.initial!.target!.map((t) => `#${t.id}`),
+              target: this.initial.target.map((t) => `#${t.id}`),
               source: `#${this.id}`,
-              actions: this.initial!.actions.map(toSerializableAction),
+              actions: this.initial.actions.map(toSerializableAction),
               eventType: null as any
             })
           }
