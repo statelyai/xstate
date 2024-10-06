@@ -1,5 +1,6 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
+import { fromPromise } from '../actors/promise.ts';
 import { ProcessingStatus, createActor } from '../createActor.ts';
 import {
   ActionArgs,
@@ -10,6 +11,7 @@ import {
   AnyMachineSnapshot,
   ConditionalRequired,
   EventObject,
+  InlineActorLogic,
   InputFrom,
   IsLiteralString,
   IsNotNever,
@@ -43,7 +45,7 @@ function resolveSpawn(
   }: {
     id: ResolvableActorId<MachineContext, EventObject, EventObject, string>;
     systemId: string | undefined;
-    src: AnyActorLogic | string;
+    src: string | AnyActorLogic | InlineActorLogic<any>;
     input?: unknown;
     syncSnapshot: boolean;
   }
@@ -56,8 +58,15 @@ function resolveSpawn(
 
   let actorRef: AnyActorRef | undefined;
 
+  const resolvedLogic =
+    typeof logic === 'function'
+      ? fromPromise(() => {
+          return logic({ context: actorScope.self.getSnapshot().context });
+        })
+      : logic!;
+
   if (logic) {
-    actorRef = createActor(logic, {
+    actorRef = createActor(resolvedLogic, {
       id: resolvedId,
       src,
       parent: actorScope.self,
@@ -76,7 +85,6 @@ function resolveSpawn(
 
   if (isDevelopment && !actorRef) {
     console.warn(
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions,@typescript-eslint/no-base-to-string
       `Actor type '${src}' not found in machine '${actorScope.id}'.`
     );
   }
@@ -172,17 +180,18 @@ type SpawnArguments<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TActor extends ProvidedActor
-> = IsLiteralString<TActor['src']> extends true
-  ? DistributeActors<TContext, TExpressionEvent, TEvent, TActor>
-  : [
-      src: string | AnyActorLogic,
-      options?: {
-        id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
-        systemId?: string;
-        input?: unknown;
-        syncSnapshot?: boolean;
-      }
-    ];
+> =
+  IsLiteralString<TActor['src']> extends true
+    ? DistributeActors<TContext, TExpressionEvent, TEvent, TActor>
+    : [
+        src: string | AnyActorLogic,
+        options?: {
+          id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
+          systemId?: string;
+          input?: unknown;
+          syncSnapshot?: boolean;
+        }
+      ];
 
 export function spawnChild<
   TContext extends MachineContext,

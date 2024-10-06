@@ -3,6 +3,7 @@ import { isMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import { TARGETLESS_KEY } from './constants.ts';
 import type {
+  AnyActorLogic,
   AnyActorRef,
   AnyEventObject,
   AnyMachineSnapshot,
@@ -10,6 +11,7 @@ import type {
   AnyTransitionConfig,
   ErrorActorEvent,
   EventObject,
+  InlineActorLogic,
   InvokeConfig,
   MachineContext,
   Mapper,
@@ -252,7 +254,10 @@ export function createInvokeId(stateNodeId: string, index: number): string {
   return `${index}.${stateNodeId}`;
 }
 
-export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
+export function resolveReferencedActor<TContext>(
+  machine: AnyStateMachine,
+  src: string
+): InlineActorLogic<TContext> | AnyActorLogic | undefined {
   const match = src.match(/^xstate\.invoke\.(\d+)\.(.*)/)!;
   if (!match) {
     return machine.implementations.actors[src];

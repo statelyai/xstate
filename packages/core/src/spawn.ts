@@ -1,3 +1,4 @@
+import { fromPromise } from './actors/promise.ts';
 import { ProcessingStatus, createActor } from './createActor.ts';
 import {
   ActorRefFromLogic,
@@ -36,33 +37,34 @@ type SpawnOptions<
     >
   : never;
 
-export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
-  TActor['src']
-> extends true
-  ? {
-      <TSrc extends TActor['src']>(
-        logic: TSrc,
-        ...[options]: SpawnOptions<TActor, TSrc>
-      ): ActorRefFromLogic<GetConcreteByKey<TActor, 'src', TSrc>['logic']>;
-      <TLogic extends AnyActorLogic>(
+export type Spawner<TActor extends ProvidedActor> =
+  IsLiteralString<TActor['src']> extends true
+    ? {
+        <TSrc extends TActor['src']>(
+          logic: TSrc,
+          ...[options]: SpawnOptions<TActor, TSrc>
+        ): ActorRefFromLogic<GetConcreteByKey<TActor, 'src', TSrc>['logic']>;
+        <TLogic extends AnyActorLogic>(
+          src: TLogic,
+          options?: {
+            id?: never;
+            systemId?: string;
+            input?: InputFrom<TLogic>;
+            syncSnapshot?: boolean;
+          }
+        ): ActorRefFromLogic<TLogic>;
+      }
+    : <TLogic extends AnyActorLogic | string>(
         src: TLogic,
         options?: {
-          id?: never;
+          id?: string;
           systemId?: string;
-          input?: InputFrom<TLogic>;
+          input?: TLogic extends string ? unknown : InputFrom<TLogic>;
           syncSnapshot?: boolean;
         }
-      ): ActorRefFromLogic<TLogic>;
-    }
-  : <TLogic extends AnyActorLogic | string>(
-      src: TLogic,
-      options?: {
-        id?: string;
-        systemId?: string;
-        input?: TLogic extends string ? unknown : InputFrom<TLogic>;
-        syncSnapshot?: boolean;
-      }
-    ) => TLogic extends AnyActorLogic ? ActorRefFromLogic<TLogic> : AnyActorRef;
+      ) => TLogic extends AnyActorLogic
+        ? ActorRefFromLogic<TLogic>
+        : AnyActorRef;
 
 export function createSpawner(
   actorScope: AnyActorScope,
@@ -81,7 +83,14 @@ export function createSpawner(
         );
       }
 
-      const actorRef = createActor(logic, {
+      const resolvedLogic =
+        typeof logic === 'function'
+          ? fromPromise(() => {
+              return logic({ context: actorScope.self.getSnapshot().context });
+            })
+          : logic;
+
+      const actorRef = createActor(resolvedLogic, {
         id: options.id,
         parent: actorScope.self,
         syncSnapshot: options.syncSnapshot,

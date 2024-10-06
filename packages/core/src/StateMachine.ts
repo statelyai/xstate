@@ -1,5 +1,6 @@
 import isDevelopment from '#is-development';
 import { assign } from './actions.ts';
+import { fromPromise } from './actors/promise.ts';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import { createInitEvent } from './eventUtils.ts';
 import {
@@ -570,7 +571,14 @@ export class StateMachine<
         return;
       }
 
-      const actorRef = createActor(logic, {
+      const resolvedLogic =
+        typeof logic === 'function'
+          ? fromPromise(() => {
+              return logic({ context: (snapshot as any).context });
+            })
+          : logic;
+
+      const actorRef = createActor(resolvedLogic, {
         id: actorId,
         parent: _actorScope.self,
         syncSnapshot: actorData.syncSnapshot,

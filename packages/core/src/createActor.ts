@@ -19,6 +19,7 @@ import type {
   DoneActorEvent,
   EmittedFrom,
   EventFromLogic,
+  InlineActorLogic,
   InputFrom,
   IsNotNever,
   Snapshot,
@@ -117,7 +118,7 @@ export class Actor<TLogic extends AnyActorLogic>
   public system: AnyActorSystem;
   private _doneEvent?: DoneActorEvent;
 
-  public src: string | AnyActorLogic;
+  public src: string | AnyActorLogic | InlineActorLogic<any>;
 
   /**
    * Creates a new actor instance for the given logic with the provided options,

@@ -778,7 +778,7 @@ export type InvokeConfig<
 
         systemId?: string;
         /** The source of the machine to be invoked, or the machine itself. */
-        src: AnyActorLogic | string; // TODO: fix types
+        src: AnyActorLogic | string | InlineActorLogic<TContext>; // TODO: fix types
 
         input?:
           | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
@@ -1240,14 +1240,7 @@ export interface MachineImplementationsSimplified<
 > {
   guards: GuardMap<TContext, TEvent, TGuard>;
   actions: ActionFunctionMap<TContext, TEvent, TActor, TAction>;
-  actors: Record<
-    string,
-    | AnyActorLogic
-    | {
-        src: AnyActorLogic;
-        input: Mapper<TContext, TEvent, unknown, TEvent> | NonReducibleUnknown;
-      }
-  >;
+  actors: Record<string, AnyActorLogic>;
   delays: DelayFunctionMap<TContext, TEvent, TAction>;
 }
 
@@ -1798,7 +1791,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   state?: Snapshot<unknown>;
 
   /** The source actor logic. */
-  src?: string | AnyActorLogic;
+  src?: string | AnyActorLogic | InlineActorLogic<any>;
 
   /**
    * A callback function or observer object which can be used to inspect actor
@@ -1972,7 +1965,7 @@ export interface ActorRef<
   system: AnyActorSystem;
   /** @internal */
   _processingStatus: ProcessingStatus;
-  src: string | AnyActorLogic;
+  src: string | AnyActorLogic | InlineActorLogic<any>;
   // TODO: remove from ActorRef interface
   // (should only be available on Actor)
   on: <TType extends TEmitted['type'] | '*'>(
@@ -2604,3 +2597,8 @@ export type ToStateValue<T extends StateSchema> = T extends {
                 >
             : never)
   : {};
+
+export type InlineActorLogic<TContext> = {
+  ({ context }: { context: TContext }): Promise<void>;
+  _out_TContext?: TContext;
+};
