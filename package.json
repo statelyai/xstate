@@ -98,7 +98,6 @@
     "patchedDependencies": {
       "@vue/test-utils@2.4.6": "patches/@vue__test-utils@2.4.6.patch",
       "jest-snapshot@29.7.0": "patches/jest-snapshot@29.7.0.patch",
-      "solid-js@1.8.18": "patches/solid-js@1.8.18.patch",
       "solid-testing-library@0.3.0": "patches/solid-testing-library@0.3.0.patch"
     }
   },
