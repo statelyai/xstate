@@ -181,7 +181,7 @@ describe('transition function', () => {
     await waitFor(actor, (s) => s.matches('b'));
   });
 
-  it('Delayed transitions should be returned', async () => {
+  it('raise actions related to delayed transitions should be returned', async () => {
     const machine = createMachine({
       initial: 'a',
       states: {
