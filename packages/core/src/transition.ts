@@ -4,9 +4,7 @@ import {
   EventFromLogic,
   InputFrom,
   SnapshotFrom,
-  ExecutableActionObject,
-  ExecutableActionsFrom,
-  AnyStateMachine
+  ExecutableActionsFrom
 } from './types';
 
 /**

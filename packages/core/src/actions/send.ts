@@ -157,7 +157,7 @@ function executeSendTo(
   // this forms an outgoing events queue
   // thanks to that the recipient actors are able to read the *updated* snapshot value of the sender
   actorScope.defer(() => {
-    const { to, event, delay, id } = params;
+    const { to, event, delay, id: _id } = params;
     if (typeof delay === 'number') {
       return;
     }
