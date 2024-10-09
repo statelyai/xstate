@@ -15,11 +15,11 @@
     "express": "^4.21.0",
     "prettier": "^3.3.3",
     "ts-node": "^10.9.2",
-    "xstate": "^5.18.1"
+    "xstate": "^5.18.2"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
-    "@types/node": "^20.16.5",
+    "@types/node": "^20.16.10",
     "typescript": "^5.6.2"
   }
 }

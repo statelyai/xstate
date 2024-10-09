@@ -321,8 +321,8 @@ export function enqueueActions<
   TEmitted
 > {
   function enqueueActions(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: unknown
+    _args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    _params: unknown
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

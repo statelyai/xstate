@@ -12,7 +12,7 @@ export function stringify(
 ): string {
   try {
     return JSON.stringify(value, replacer);
-  } catch (e) {
+  } catch {
     return safeStringify(value, replacer);
   }
 }
@@ -30,7 +30,7 @@ export function isReceiverEvent(event: any): event is ReceiverEvent {
     ) {
       return true;
     }
-  } catch (e) {
+  } catch {
     return false;
   }
 

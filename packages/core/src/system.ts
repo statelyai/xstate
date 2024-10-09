@@ -4,10 +4,8 @@ import {
   ActorSystemInfo,
   AnyActorRef,
   Observer,
-  Snapshot,
   HomomorphicOmit,
   EventObject,
-  AnyTransitionDefinition,
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
@@ -177,8 +175,8 @@ export function createSystem<T extends ActorSystemInfo>(
       ...event,
       rootId: rootActor.sessionId
     };
-    inspectionObservers.forEach(
-      (observer) => observer.next?.(resolvedInspectionEvent)
+    inspectionObservers.forEach((observer) =>
+      observer.next?.(resolvedInspectionEvent)
     );
   };
 

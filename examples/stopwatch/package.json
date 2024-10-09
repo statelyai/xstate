@@ -10,9 +10,9 @@
   },
   "devDependencies": {
     "typescript": "^5.6.2",
-    "vite": "^5.4.5"
+    "vite": "^5.4.8"
   },
   "dependencies": {
-    "xstate": "^5.18.1"
+    "xstate": "^5.18.2"
   }
 }

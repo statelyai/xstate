@@ -3,7 +3,6 @@ import { isMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import { TARGETLESS_KEY } from './constants.ts';
 import type {
-  AnyActorLogic,
   AnyActorRef,
   AnyEventObject,
   AnyMachineSnapshot,
@@ -56,7 +55,7 @@ export function toStatePath(stateId: string | string[]): string[] {
     return stateId;
   }
 
-  let result: string[] = [];
+  const result: string[] = [];
   let segment = '';
 
   for (let i = 0; i < stateId.length; i++) {
@@ -181,7 +180,7 @@ export function resolveOutput<
       `Dynamically mapping values to individual properties is deprecated. Use a single function that returns the mapped object instead.\nFound object containing properties whose values are possibly mapping functions: ${Object.entries(
         mapper
       )
-        .filter(([key, value]) => typeof value === 'function')
+        .filter(([, value]) => typeof value === 'function')
         .map(
           ([key, value]) =>
             `\n - ${key}: ${(value as () => any)
@@ -205,10 +204,7 @@ export function isErrorActorEvent(
   return event.type.startsWith('xstate.error.actor');
 }
 
-export function toTransitionConfigArray<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
+export function toTransitionConfigArray(
   configLike: SingleOrArray<AnyTransitionConfig | TransitionConfigTarget>
 ): Array<AnyTransitionConfig> {
   return toArrayStrict(configLike).map((transitionLike) => {

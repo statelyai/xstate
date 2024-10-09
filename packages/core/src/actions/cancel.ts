@@ -86,8 +86,8 @@ export function cancel<
   sendId: ResolvableSendId<TContext, TExpressionEvent, TParams, TEvent>
 ): CancelAction<TContext, TExpressionEvent, TParams, TEvent> {
   function cancel(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    _args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    _params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

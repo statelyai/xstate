@@ -17,6 +17,7 @@ export function isWrappable(obj: any): obj is object {
  * @param valueRefs A WeakMap that stores a reference from the original
  *   object/array to the cloned object/array
  */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-constraint
 const clone = <T extends unknown>(
   value: T,
   valueRefs: WeakMap<any, any>
@@ -50,5 +51,6 @@ const clone = <T extends unknown>(
   return clonedValue;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-constraint
 export const deepClone = <T extends unknown>(value: T): T =>
   clone(value, new WeakMap());

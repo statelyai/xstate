@@ -53,7 +53,6 @@ import {
 } from './utils.ts';
 import { ProcessingStatus } from './createActor.ts';
 import { createEmptyActor } from './actors/index.ts';
-import { ExecutableRaiseAction } from './actions/raise.ts';
 
 type StateNodeIterable<
   TContext extends MachineContext,
@@ -296,7 +295,7 @@ export function getDelayedTransitions(
     return eventType;
   };
 
-  const delayedTransitions = Object.keys(afterConfig).flatMap((delay, i) => {
+  const delayedTransitions = Object.keys(afterConfig).flatMap((delay) => {
     const configTransition = afterConfig[delay];
     const resolvedTransition =
       typeof configTransition === 'string'
@@ -324,10 +323,7 @@ export function getDelayedTransitions(
   });
 }
 
-export function formatTransition<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
+export function formatTransition(
   stateNode: AnyStateNode,
   descriptor: string,
   transitionConfig: AnyTransitionConfig,
@@ -464,6 +460,7 @@ export function formatInitialTransition<
         : undefined;
   if (!resolvedTarget && _target) {
     throw new Error(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-base-to-string
       `Initial state node "${_target}" not found on parent state node #${stateNode.id}`
     );
   }
@@ -616,7 +613,7 @@ export function getStateNodeByPath(
   if (typeof statePath === 'string' && isStateId(statePath)) {
     try {
       return stateNode.machine.getStateNodeById(statePath);
-    } catch (e) {
+    } catch {
       // try individual paths
       // throw e;
     }
@@ -638,10 +635,10 @@ export function getStateNodeByPath(
  *
  * @param stateValue The state value or State instance
  */
-export function getStateNodes<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(stateNode: AnyStateNode, stateValue: StateValue): Array<AnyStateNode> {
+export function getStateNodes(
+  stateNode: AnyStateNode,
+  stateValue: StateValue
+): Array<AnyStateNode> {
   if (typeof stateValue === 'string') {
     const childStateNode = stateNode.states[stateValue];
     if (!childStateNode) {
@@ -832,18 +829,6 @@ function isDescendant(
   return marker.parent === parentStateNode;
 }
 
-function getPathFromRootToNode(stateNode: AnyStateNode): Array<AnyStateNode> {
-  const path: Array<AnyStateNode> = [];
-  let marker = stateNode.parent;
-
-  while (marker) {
-    path.unshift(marker);
-    marker = marker.parent;
-  }
-
-  return path;
-}
-
 function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
   const set1 = new Set(s1);
   const set2 = new Set(s2);
@@ -1001,8 +986,8 @@ function computeExitSet(
 }
 
 function areStateNodeCollectionsEqual(
-  prevStateNodes: StateNode<any, any>[],
-  nextStateNodeSet: Set<StateNode<any, any>>
+  prevStateNodes: StateNode[],
+  nextStateNodeSet: Set<StateNode>
 ) {
   if (prevStateNodes.length !== nextStateNodeSet.size) {
     return false;
@@ -1016,10 +1001,7 @@ function areStateNodeCollectionsEqual(
 }
 
 /** https://www.w3.org/TR/scxml/#microstepProcedure */
-export function microstep<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
+export function microstep(
   transitions: Array<AnyTransitionDefinition>,
   currentSnapshot: AnyMachineSnapshot,
   actorScope: AnyActorScope,
@@ -1092,6 +1074,7 @@ export function microstep<
     );
   }
 
+  // eslint-disable-next-line no-useless-catch
   try {
     if (
       historyValue === currentSnapshot.historyValue &&
@@ -1188,7 +1171,7 @@ function enterStates(
     }
 
     if (statesForDefaultEntry.has(stateNodeToEnter)) {
-      const initialActions = stateNodeToEnter.initial!.actions;
+      const initialActions = stateNodeToEnter.initial.actions;
       actions.push(...initialActions);
     }
 
@@ -1211,7 +1194,7 @@ function enterStates(
       if (parent?.type === 'compound') {
         internalQueue.push(
           createDoneStateEvent(
-            parent!.id,
+            parent.id,
             stateNodeToEnter.output !== undefined
               ? resolveOutput(
                   stateNodeToEnter.output,
@@ -1287,7 +1270,7 @@ function computeEntrySet(
     for (const s of targetStates) {
       const ancestors = getProperAncestors(s, domain);
       if (domain?.type === 'parallel') {
-        ancestors.push(domain!);
+        ancestors.push(domain);
       }
       addAncestorStatesToEnter(
         statesToEnter,
@@ -1325,7 +1308,7 @@ function addDescendantStatesToEnter<
       for (const s of historyStateNodes) {
         addProperAncestorStatesToEnter(
           s,
-          stateNode.parent!,
+          stateNode.parent,
           statesToEnter,
           historyValue,
           statesForDefaultEntry
@@ -1354,7 +1337,7 @@ function addDescendantStatesToEnter<
       for (const s of historyDefaultTransition.target) {
         addProperAncestorStatesToEnter(
           s,
-          stateNode.parent!,
+          stateNode.parent,
           statesToEnter,
           historyValue,
           statesForDefaultEntry
@@ -1456,7 +1439,7 @@ function exitStates(
   mutStateNodeSet: Set<AnyStateNode>,
   historyValue: HistoryValue<any, any>,
   internalQueue: AnyEventObject[],
-  actionExecutor: ActionExecutor
+  _actionExecutor: ActionExecutor
 ) {
   let nextSnapshot = currentSnapshot;
   const statesToExit = computeExitSet(
@@ -1871,31 +1854,6 @@ export function resolveStateValue(
   return getStateValue(rootNode, [...allStateNodes]);
 }
 
-function stateValuesEqual(
-  a: StateValue | undefined,
-  b: StateValue | undefined
-): boolean {
-  if (a === b) {
-    return true;
-  }
-
-  if (a === undefined || b === undefined) {
-    return false;
-  }
-
-  if (typeof a === 'string' || typeof b === 'string') {
-    return a === b;
-  }
-
-  const aKeys = Object.keys(a as StateValueMap);
-  const bKeys = Object.keys(b as StateValueMap);
-
-  return (
-    aKeys.length === bKeys.length &&
-    aKeys.every((key) => stateValuesEqual(a[key], b[key]))
-  );
-}
-
 export function convertAction(
   action: UnknownAction,
   stateNode: AnyStateNode,
@@ -1954,7 +1912,7 @@ function resolveSpecialAction(
   switch (action.type) {
     case 'xstate.raise':
       if ((action.params as any).delay !== undefined) {
-        resolvedAction.exec = (info, params) => {
+        resolvedAction.exec = (info, _params) => {
           info.system.scheduler.schedule(
             info.self,
             info.self,
@@ -1968,7 +1926,7 @@ function resolveSpecialAction(
       break;
     case 'xstate.sendTo':
       if ((action.params as any).delay !== undefined) {
-        resolvedAction.exec = (info, params) => {
+        resolvedAction.exec = (info, _params) => {
           info.system.scheduler.schedule(
             info.self,
             (action.params as any).to,
