@@ -11,7 +11,7 @@
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "windows": {
-        "program": "${workspaceFolder}/node_modules/jest/bin/jest"
+        "program": "${workspaceFolder}/node_modules/jest/bin/jest.js"
       }
     },
     {
@@ -30,7 +30,7 @@
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "windows": {
-        "program": "${workspaceFolder}/node_modules/jest/bin/jest"
+        "program": "${workspaceFolder}/node_modules/jest/bin/jest.js"
       }
     }
   ]

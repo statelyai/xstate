@@ -6,7 +6,8 @@ import {
   Observer,
   HomomorphicOmit,
   EventObject,
-  Subscription
+  Subscription,
+  AnyMachineSnapshot
 } from './types.ts';
 import { toObserver } from './utils.ts';
 
@@ -16,7 +17,12 @@ interface ScheduledEvent {
   startedAt: number; // timestamp
   delay: number;
   source: AnyActorRef;
-  target: AnyActorRef;
+  /**
+   * The target `ActorRef` of the event.
+   *
+   * Can be a `string` (references `snapshot.children[target]`) or an `ActorRef`
+   */
+  target: AnyActorRef | string;
 }
 
 export interface Clock {
@@ -27,7 +33,7 @@ export interface Clock {
 interface Scheduler {
   schedule(
     source: AnyActorRef,
-    target: AnyActorRef,
+    target: AnyActorRef | string,
     event: EventObject,
     delay: number,
     id: string | undefined
@@ -125,7 +131,18 @@ export function createSystem<T extends ActorSystemInfo>(
         delete timerMap[scheduledEventId];
         delete system._snapshot._scheduledEvents[scheduledEventId];
 
-        system._relay(source, target, event);
+        const resolvedTarget =
+          typeof target === 'string'
+            ? (source.getSnapshot() as AnyMachineSnapshot).children[target]
+            : target;
+
+        if (!resolvedTarget) {
+          throw new Error(
+            `Actor with id ${typeof target === 'string' ? target : target.sessionId} not found in the system.`
+          );
+        }
+
+        system._relay(source, resolvedTarget, event);
       }, delay);
 
       timerMap[scheduledEventId] = timeout;
@@ -161,8 +178,8 @@ export function createSystem<T extends ActorSystemInfo>(
       ...event,
       rootId: rootActor.sessionId
     };
-    inspectionObservers.forEach(
-      (observer) => observer.next?.(resolvedInspectionEvent)
+    inspectionObservers.forEach((observer) =>
+      observer.next?.(resolvedInspectionEvent)
     );
   };
 

@@ -37,7 +37,11 @@ import {
   ActionFunction,
   AnyTransitionConfig,
   ProvidedActor,
-  AnyActorScope
+  AnyActorScope,
+  UnknownActionObject,
+  AnyActorRef,
+  ActionExecutor,
+  ExecutableActionObject
 } from './types.ts';
 import {
   resolveOutput,
@@ -48,6 +52,7 @@ import {
   isErrorActorEvent
 } from './utils.ts';
 import { ProcessingStatus } from './createActor.ts';
+import { createEmptyActor } from './actors/index.ts';
 
 type StateNodeIterable<
   TContext extends MachineContext,
@@ -279,8 +284,14 @@ export function getDelayedTransitions(
   const mutateEntryExit = (delay: string | number) => {
     const afterEvent = createAfterEvent(delay, stateNode.id);
     const eventType = afterEvent.type;
-    stateNode.entry.push(raise(afterEvent, { id: eventType, delay }));
-    stateNode.exit.push(cancel(eventType));
+
+    stateNode.entry.push(
+      raise(afterEvent, {
+        id: eventType,
+        delay: delay as any // TODO: fix types
+      }) as unknown as UnknownActionObject
+    );
+    stateNode.exit.push(cancel(eventType) as unknown as UnknownActionObject);
     return eventType;
   };
 
@@ -298,13 +309,14 @@ export function getDelayedTransitions(
       delay: resolvedDelay
     }));
   });
-  return delayedTransitions.map((delayedTransition) => {
+  return delayedTransitions.map((delayedTransition, i) => {
     const { delay } = delayedTransition;
     return {
       ...formatTransition(
         stateNode,
         delayedTransition.event,
-        delayedTransition
+        delayedTransition,
+        i
       ),
       delay
     };
@@ -314,7 +326,8 @@ export function getDelayedTransitions(
 export function formatTransition(
   stateNode: AnyStateNode,
   descriptor: string,
-  transitionConfig: AnyTransitionConfig
+  transitionConfig: AnyTransitionConfig,
+  transitionIndex: number
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;
@@ -326,9 +339,19 @@ export function formatTransition(
       `State "${stateNode.id}" has declared \`cond\` for one of its transitions. This property has been renamed to \`guard\`. Please update your code.`
     );
   }
+
   const transition = {
     ...transitionConfig,
-    actions: toArray(transitionConfig.actions),
+    actions: toArray(transitionConfig.actions).map((action, actionIndex) => {
+      return convertAction(
+        action,
+        stateNode,
+        descriptor,
+        undefined,
+        transitionIndex,
+        actionIndex
+      );
+    }),
     guard: transitionConfig.guard as never,
     target,
     source: stateNode,
@@ -364,8 +387,8 @@ export function formatTransitions<
       const transitionsConfig = stateNode.config.on[descriptor];
       transitions.set(
         descriptor,
-        toTransitionConfigArray(transitionsConfig).map((t) =>
-          formatTransition(stateNode, descriptor, t)
+        toTransitionConfigArray(transitionsConfig).map((t, i) =>
+          formatTransition(stateNode, descriptor, t, i)
         )
       );
     }
@@ -374,8 +397,8 @@ export function formatTransitions<
     const descriptor = `xstate.done.state.${stateNode.id}`;
     transitions.set(
       descriptor,
-      toTransitionConfigArray(stateNode.config.onDone).map((t) =>
-        formatTransition(stateNode, descriptor, t)
+      toTransitionConfigArray(stateNode.config.onDone).map((t, i) =>
+        formatTransition(stateNode, descriptor, t, i)
       )
     );
   }
@@ -384,8 +407,8 @@ export function formatTransitions<
       const descriptor = `xstate.done.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onDone).map((t) =>
-          formatTransition(stateNode, descriptor, t)
+        toTransitionConfigArray(invokeDef.onDone).map((t, i) =>
+          formatTransition(stateNode, descriptor, t, i)
         )
       );
     }
@@ -393,8 +416,8 @@ export function formatTransitions<
       const descriptor = `xstate.error.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onError).map((t) =>
-          formatTransition(stateNode, descriptor, t)
+        toTransitionConfigArray(invokeDef.onError).map((t, i) =>
+          formatTransition(stateNode, descriptor, t, i)
         )
       );
     }
@@ -402,8 +425,8 @@ export function formatTransitions<
       const descriptor = `xstate.snapshot.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onSnapshot).map((t) =>
-          formatTransition(stateNode, descriptor, t)
+        toTransitionConfigArray(invokeDef.onSnapshot).map((t, i) =>
+          formatTransition(stateNode, descriptor, t, i)
         )
       );
     }
@@ -444,7 +467,11 @@ export function formatInitialTransition<
   const transition: InitialTransitionDefinition<TContext, TEvent> = {
     source: stateNode,
     actions:
-      !_target || typeof _target === 'string' ? [] : toArray(_target.actions),
+      !_target || typeof _target === 'string'
+        ? []
+        : toArray(_target.actions).map((action) =>
+            convertAction(action, stateNode, 'xstate.init', undefined, 0, 0)
+          ),
     eventType: null as any,
     reenter: false,
     target: resolvedTarget ? [resolvedTarget] : [],
@@ -1005,7 +1032,8 @@ export function microstep(
       filteredTransitions,
       mutStateNodeSet,
       historyValue,
-      internalQueue
+      internalQueue,
+      actorScope.actionExecutor
     );
   }
 
@@ -1015,7 +1043,8 @@ export function microstep(
     event,
     actorScope,
     filteredTransitions.flatMap((t) => t.actions),
-    internalQueue
+    internalQueue,
+    undefined
   );
 
   // Enter states
@@ -1040,7 +1069,8 @@ export function microstep(
       nextStateNodes
         .sort((a, b) => b.order - a.order)
         .flatMap((state) => state.exit),
-      internalQueue
+      internalQueue,
+      undefined
     );
   }
 
@@ -1126,7 +1156,7 @@ function enterStates(
     (a, b) => a.order - b.order
   )) {
     mutStateNodeSet.add(stateNodeToEnter);
-    const actions: UnknownAction[] = [];
+    const actions: UnknownActionObject[] = [];
 
     // Add entry actions
     actions.push(...stateNodeToEnter.entry);
@@ -1136,7 +1166,7 @@ function enterStates(
         spawnChild(invokeDef.src, {
           ...invokeDef,
           syncSnapshot: !!invokeDef.onSnapshot
-        })
+        }) as unknown as UnknownActionObject
       );
     }
 
@@ -1408,7 +1438,8 @@ function exitStates(
   transitions: AnyTransitionDefinition[],
   mutStateNodeSet: Set<AnyStateNode>,
   historyValue: HistoryValue<any, any>,
-  internalQueue: AnyEventObject[]
+  internalQueue: AnyEventObject[],
+  _actionExecutor: ActionExecutor
 ) {
   let nextSnapshot = currentSnapshot;
   const statesToExit = computeExitSet(
@@ -1444,8 +1475,14 @@ function exitStates(
       nextSnapshot,
       event,
       actorScope,
-      [...s.exit, ...s.invoke.map((def) => stopChild(def.id))],
-      internalQueue
+      [
+        ...s.exit,
+        ...(s.invoke.map((def) =>
+          stopChild(def.id)
+        ) as unknown as UnknownActionObject[])
+      ],
+      internalQueue,
+      undefined
     );
     mutStateNodeSet.delete(s);
   }
@@ -1454,6 +1491,7 @@ function exitStates(
 
 interface BuiltinAction {
   (): void;
+  type: `xstate.${string}`;
   resolve: (
     actorScope: AnyActorScope,
     snapshot: AnyMachineSnapshot,
@@ -1464,7 +1502,7 @@ interface BuiltinAction {
   ) => [
     newState: AnyMachineSnapshot,
     params: unknown,
-    actions?: UnknownAction[]
+    actions?: UnknownActionObject[]
   ];
   retryResolve: (
     actorScope: AnyActorScope,
@@ -1474,15 +1512,11 @@ interface BuiltinAction {
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
-export let executingCustomAction:
-  | ActionFunction<any, any, any, any, any, any, any, any, any>
-  | false = false;
-
 function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
-  actions: UnknownAction[],
+  actions: UnknownActionObject[],
   extra: {
     internalQueue: AnyEventObject[];
     deferredActorIds: string[] | undefined;
@@ -1516,10 +1550,6 @@ function resolveAndExecuteActionsWithContext(
           >
         )[typeof action === 'string' ? action : action.type];
 
-    if (!resolvedAction) {
-      continue;
-    }
-
     const actionArgs = {
       context: intermediateSnapshot.context,
       event,
@@ -1537,35 +1567,23 @@ function resolveAndExecuteActionsWithContext(
           : undefined;
 
     function executeAction() {
-      actorScope.system._sendInspectionEvent({
-        type: '@xstate.action',
-        actorRef: actorScope.self,
-        action: {
-          type:
-            typeof action === 'string'
-              ? action
-              : typeof action === 'object'
-                ? action.type
-                : action.name || '(anonymous)',
-          params: actionParams
-        }
-      });
-      try {
-        executingCustomAction = resolvedAction;
-        resolvedAction(actionArgs, actionParams);
-      } finally {
-        executingCustomAction = false;
-      }
+      actorScope.actionExecutor(
+        {
+          type: action.type,
+          info: actionArgs,
+          params: actionParams,
+          exec: resolvedAction
+        },
+        actorScope.self
+      );
     }
 
-    if (!('resolve' in resolvedAction)) {
-      if (actorScope.self._processingStatus === ProcessingStatus.Running) {
-        executeAction();
-      } else {
-        actorScope.defer(() => {
-          executeAction();
-        });
-      }
+    if (!resolvedAction || !('resolve' in resolvedAction)) {
+      executeAction();
+      continue;
+    }
+
+    if (!resolvedAction) {
       continue;
     }
 
@@ -1586,6 +1604,15 @@ function resolveAndExecuteActionsWithContext(
     }
 
     if ('execute' in builtinAction) {
+      actorScope.actionExecutor(
+        {
+          type: builtinAction.type,
+          info: actionArgs,
+          params,
+          exec: () => {} // noop
+        },
+        actorScope.self
+      );
       if (actorScope.self._processingStatus === ProcessingStatus.Running) {
         builtinAction.execute(actorScope, params);
       } else {
@@ -1612,9 +1639,9 @@ export function resolveActionsAndContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
-  actions: UnknownAction[],
+  actions: UnknownActionObject[],
   internalQueue: AnyEventObject[],
-  deferredActorIds?: string[]
+  deferredActorIds: string[] | undefined
 ): AnyMachineSnapshot {
   const retries: (readonly [BuiltinAction, unknown])[] | undefined =
     deferredActorIds ? [] : undefined;
@@ -1636,7 +1663,7 @@ export function macrostep(
   snapshot: AnyMachineSnapshot,
   event: EventObject,
   actorScope: AnyActorScope,
-  internalQueue: AnyEventObject[] = []
+  internalQueue: AnyEventObject[]
 ): {
   snapshot: typeof snapshot;
   microstates: Array<typeof snapshot>;
@@ -1765,8 +1792,11 @@ function stopChildren(
     nextState,
     event,
     actorScope,
-    Object.values(nextState.children).map((child: any) => stopChild(child)),
-    []
+    Object.values(nextState.children).map(
+      (child: any) => stopChild(child) as unknown as UnknownActionObject
+    ),
+    [],
+    undefined
   );
 }
 
@@ -1822,4 +1852,93 @@ export function resolveStateValue(
 ): StateValue {
   const allStateNodes = getAllStateNodes(getStateNodes(rootNode, stateValue));
   return getStateValue(rootNode, [...allStateNodes]);
+}
+
+export function convertAction(
+  action: UnknownAction,
+  stateNode: AnyStateNode,
+  descriptor: string | undefined,
+  kind: 'entry' | 'exit' | undefined,
+  transitionIndex: number,
+  actionIndex: number
+): UnknownActionObject {
+  if (typeof action === 'string') {
+    return { type: action };
+  }
+  if (typeof action === 'function' && !('resolve' in action)) {
+    const type = `${stateNode.id}|${
+      descriptor ?? kind
+    }:${transitionIndex}:${actionIndex}`;
+    stateNode.machine.implementations.actions[type] = action as any;
+    return {
+      type
+    };
+  }
+  return action as any;
+}
+
+/**
+ * Runs an executable action. Executable actions are returned from the
+ * `transition(…)` function.
+ *
+ * @example
+ *
+ * ```ts
+ * const [state, actions] = transition(someMachine, someState, someEvent);
+ *
+ * for (const action of actions) {
+ *   // Executes the action
+ *   executeAction(action);
+ * }
+ * ```
+ */
+export function executeAction(
+  action: ExecutableActionObject,
+  actor: AnyActorRef = createEmptyActor()
+) {
+  const resolvedAction = resolveSpecialAction(action);
+  const resolvedInfo = {
+    ...action.info,
+    self: actor,
+    system: actor.system
+  };
+  return resolvedAction.exec?.(resolvedInfo, action.params);
+}
+
+function resolveSpecialAction(
+  action: ExecutableActionObject
+): ExecutableActionObject {
+  const resolvedAction = { ...action };
+  switch (action.type) {
+    case 'xstate.raise':
+      if ((action.params as any).delay !== undefined) {
+        resolvedAction.exec = (info, _params) => {
+          info.system.scheduler.schedule(
+            info.self,
+            info.self,
+            (action.params as any).event,
+            (action.params as any).delay,
+            (action.params as any).id
+          );
+        };
+        return resolvedAction;
+      }
+      break;
+    case 'xstate.sendTo':
+      if ((action.params as any).delay !== undefined) {
+        resolvedAction.exec = (info, _params) => {
+          info.system.scheduler.schedule(
+            info.self,
+            (action.params as any).to,
+            (action.params as any).event,
+            (action.params as any).delay,
+            (action.params as any).id
+          );
+        };
+        return resolvedAction;
+      }
+      break;
+  }
+
+  return action;
 }

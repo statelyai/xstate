@@ -8,6 +8,7 @@ import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Spawner } from './spawn.ts';
 import { AnyActorSystem, Clock } from './system.js';
 import { InspectionEvent } from './inspection.ts';
+import { ExecutableRaiseAction } from './actions/raise.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -248,6 +249,23 @@ export type Action<
       TDelay,
       TEmitted
     >;
+
+export type ActionObject<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TAction extends ParameterizedObject
+> = {
+  type: string;
+} & ( // this way we could iterate over `TAction` (and `TGuard` in the `Guard` type) once and not twice // TODO: consider merging `NoRequiredParams` and `WithDynamicParams` into one
+  | NoRequiredParams<TAction>
+  | WithDynamicParams<TContext, TExpressionEvent, TAction>
+);
+
+export type UnknownActionObject = ActionObject<
+  MachineContext,
+  EventObject,
+  ParameterizedObject
+>;
 
 export type UnknownAction = Action<
   MachineContext,
@@ -1060,8 +1078,8 @@ export interface StateNodeDefinition<
   on: TransitionDefinitionMap<TContext, TEvent>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   // TODO: establish what a definition really is
-  entry: UnknownAction[];
-  exit: UnknownAction[];
+  entry: UnknownActionObject[];
+  exit: UnknownActionObject[];
   meta: any;
   order: number;
   output?: StateNodeConfig<
@@ -1666,14 +1684,14 @@ export interface TransitionDefinition<
   > {
   target: ReadonlyArray<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
-  actions: readonly UnknownAction[];
+  actions: readonly UnknownActionObject[];
   reenter: boolean;
   guard?: UnknownGuard;
   eventType: EventDescriptor<TEvent>;
   toJSON: () => {
     target: string[] | undefined;
     source: string;
-    actions: readonly UnknownAction[];
+    actions: readonly UnknownActionObject[];
     guard?: UnknownGuard;
     eventType: EventDescriptor<TEvent>;
     meta?: Record<string, any>;
@@ -2157,6 +2175,7 @@ export interface ActorScope<
   emit: (event: TEmitted) => void;
   system: TSystem;
   stopChild: (child: AnyActorRef) => void;
+  actionExecutor: ActionExecutor;
 }
 
 export type AnyActorScope = ActorScope<
@@ -2208,17 +2227,17 @@ export interface ActorLogic<
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
   /**
-   * Transition function that processes the current state and an incoming
-   * message to produce a new state.
+   * Transition function that processes the current state and an incoming event
+   * to produce a new state.
    *
    * @param snapshot - The current state.
-   * @param message - The incoming message.
+   * @param event - The incoming event.
    * @param actorScope - The actor scope.
    * @returns The new state.
    */
   transition: (
     snapshot: TSnapshot,
-    message: TEvent,
+    event: TEvent,
     actorScope: ActorScope<TSnapshot, TEvent, TSystem, TEmitted>
   ) => TSnapshot;
   /**
@@ -2604,3 +2623,60 @@ export type ToStateValue<T extends StateSchema> = T extends {
                 >
             : never)
   : {};
+
+export interface ExecutableActionObject {
+  type: string;
+  info: ActionArgs<MachineContext, EventObject, EventObject>;
+  params: NonReducibleUnknown;
+  exec:
+    | ((info: ActionArgs<any, any, any>, params: unknown) => void)
+    | undefined;
+}
+
+export interface ToExecutableAction<T extends ParameterizedObject>
+  extends ExecutableActionObject {
+  type: T['type'];
+  params: T['params'];
+  exec: undefined;
+}
+
+export interface ExecutableSpawnAction extends ExecutableActionObject {
+  type: 'xstate.spawn';
+  info: ActionArgs<MachineContext, EventObject, EventObject>;
+  params: {
+    id: string;
+    actorRef: AnyActorRef | undefined;
+    src: string;
+  };
+}
+
+export type SpecialExecutableAction =
+  | ExecutableSpawnAction
+  | ExecutableRaiseAction;
+
+export type ExecutableActionsFrom<T extends AnyActorLogic> =
+  T extends StateMachine<
+    infer _TContext,
+    infer _TEvent,
+    infer _TChildren,
+    infer _TActor,
+    infer TAction,
+    infer _TGuard,
+    infer _TDelay,
+    infer _TStateValue,
+    infer _TTag,
+    infer _TInput,
+    infer _TOutput,
+    infer _TEmitted,
+    infer _TMeta,
+    infer _TConfig
+  >
+    ?
+        | SpecialExecutableAction
+        | (string extends TAction['type'] ? never : ToExecutableAction<TAction>)
+    : never;
+
+export type ActionExecutor = (
+  actionToExecute: ExecutableActionObject,
+  actorRef: AnyActorRef
+) => void;
