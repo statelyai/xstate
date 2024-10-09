@@ -1,6 +1,5 @@
 import isDevelopment from '#is-development';
 import { executingCustomAction } from '../createActor.ts';
-import { ExecutableActionObject } from '../stateUtils.ts';
 import {
   ActionArgs,
   ActionFunction,
@@ -10,6 +9,7 @@ import {
   DelayExpr,
   DoNotInfer,
   EventObject,
+  ExecutableActionObject,
   MachineContext,
   ParameterizedObject,
   RaiseActionOptions,
@@ -88,22 +88,15 @@ function resolveRaise(
 }
 
 function executeRaise(
-  actorScope: AnyActorScope,
-  params: {
+  _clock: AnyActorScope,
+  _params: {
     event: EventObject;
     id: string | undefined;
     delay: number | undefined;
     startedAt: number; // timestamp
   }
 ) {
-  const { event, delay, id } = params;
-  if (typeof delay === 'number') {
-    // actorScope.defer(() => {
-    //   const self = actorScope.self;
-    //   actorScope.system.scheduler.schedule(self, self, event, delay, id);
-    // });
-    return;
-  }
+  return;
 }
 
 export interface RaiseAction<

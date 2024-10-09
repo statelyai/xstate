@@ -9,7 +9,6 @@ import {
 } from './State.ts';
 import { StateNode } from './StateNode.ts';
 import {
-  ExecutableActionObject,
   executeAction,
   getAllStateNodes,
   getInitialStateNodes,
@@ -51,7 +50,8 @@ import type {
   UnknownActionObject,
   ResolvedStateMachineTypes,
   StateSchema,
-  SnapshotStatus
+  SnapshotStatus,
+  ExecutableActionObject
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
 
