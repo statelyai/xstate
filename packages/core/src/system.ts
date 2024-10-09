@@ -6,7 +6,8 @@ import {
   Observer,
   HomomorphicOmit,
   EventObject,
-  Subscription
+  Subscription,
+  AnyMachineSnapshot
 } from './types.ts';
 import { toObserver } from './utils.ts';
 
@@ -132,11 +133,13 @@ export function createSystem<T extends ActorSystemInfo>(
 
         const resolvedTarget =
           typeof target === 'string'
-            ? source.getSnapshot().children[target]
+            ? (source.getSnapshot() as AnyMachineSnapshot).children[target]
             : target;
 
         if (!resolvedTarget) {
-          throw new Error(`Actor with id ${target} not found in the system.`);
+          throw new Error(
+            `Actor with id ${typeof target === 'string' ? target : target.sessionId} not found in the system.`
+          );
         }
 
         system._relay(source, resolvedTarget, event);

@@ -1122,7 +1122,7 @@ export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 export type AnyMachineSnapshot = MachineSnapshot<
   any,
   any,
-  any,
+  Record<string, AnyActorRef | undefined>,
   any,
   any,
   any,
