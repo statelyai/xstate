@@ -8,7 +8,8 @@ import {
   mergeProps,
   on,
   onCleanup,
-  onMount
+  onMount,
+  For
 } from 'solid-js';
 import { fireEvent, render, screen, waitFor } from 'solid-testing-library';
 import {
@@ -683,6 +684,132 @@ describe('useActor', () => {
 
     // Effect should only trigger once for the COUNT events:
     expect(countEl.textContent).toEqual('1');
+  });
+
+  it('Moving objects between arrays should not mutate context', () => {
+    const stackMachine = createMachine({
+      types: {} as {
+        context: { current: { value: string }[]; done: { value: string }[] };
+        events: { type: 'next' } | { type: 'prev' };
+      },
+      id: 'stack',
+      initial: 'active',
+      context: {
+        current: [
+          { value: 'Stack #1' },
+          { value: 'Stack #2' },
+          { value: 'Stack #3' }
+        ],
+        done: []
+      },
+      states: {
+        active: {
+          on: {
+            next: {
+              guard: ({ context }) => context.current.length > 0,
+              actions: assign(({ context }) => {
+                const [first, ...rest] = context.current;
+                return {
+                  current: rest,
+                  done: [...context.done, first]
+                };
+              })
+            },
+            prev: {
+              guard: ({ context }) => context.done.length > 0,
+              actions: assign(({ context }) => {
+                const rest = context.done.slice(0, -1);
+                const last = context.done.at(-1);
+                return {
+                  current: last ? [last, ...context.current] : context.current,
+                  done: rest
+                };
+              })
+            }
+          }
+        }
+      }
+    });
+
+    function App() {
+      const [snapshot, send] = useActor(stackMachine);
+
+      return (
+        <>
+          <div style={{ display: 'flex', gap: '24px' }}>
+            <div>
+              Current
+              <ul data-testid="current-list">
+                <For each={snapshot.context.current}>
+                  {(item) => {
+                    return <li>{item.value}</li>;
+                  }}
+                </For>
+              </ul>
+            </div>
+
+            <div>
+              Done
+              <ul data-testid="done-list">
+                <For each={snapshot.context.done}>
+                  {(item) => {
+                    return <li>{item.value}</li>;
+                  }}
+                </For>
+              </ul>
+            </div>
+          </div>
+          <div>
+            <button
+              data-testid="first-current-to-done-button"
+              onClick={() => send({ type: 'next' })}
+            >
+              Remove first
+            </button>{' '}
+            <button
+              data-testid="last-done-to-current-button"
+              onClick={() => send({ type: 'prev' })}
+            >
+              Return last
+            </button>
+          </div>
+        </>
+      );
+    }
+
+    render(() => <App />);
+
+    const firstToDoneButton = screen.getByTestId(
+      'first-current-to-done-button'
+    );
+    const lastToCurrentButton = screen.getByTestId(
+      'last-done-to-current-button'
+    );
+    const currentList = screen.getByTestId('current-list');
+    const doneList = screen.getByTestId('done-list');
+
+    expect(currentList.children.length).toBe(3);
+    expect(doneList.children.length).toBe(0);
+
+    fireEvent.click(firstToDoneButton);
+    fireEvent.click(firstToDoneButton);
+    fireEvent.click(firstToDoneButton);
+
+    expect(currentList.children.length).toBe(0);
+    expect(doneList.children.length).toBe(3);
+    expect(doneList.innerHTML).toBe(
+      '<li>Stack #1</li><li>Stack #2</li><li>Stack #3</li>'
+    );
+
+    fireEvent.click(lastToCurrentButton);
+    fireEvent.click(lastToCurrentButton);
+    fireEvent.click(lastToCurrentButton);
+
+    expect(currentList.children.length).toBe(3);
+    expect(doneList.children.length).toBe(0);
+    expect(currentList.innerHTML).toBe(
+      '<li>Stack #1</li><li>Stack #2</li><li>Stack #3</li>'
+    );
   });
 
   it('should capture initial actions', () => {
