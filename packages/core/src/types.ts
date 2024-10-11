@@ -9,6 +9,7 @@ import { Spawner } from './spawn.ts';
 import { AnyActorSystem, Clock } from './system.js';
 import { InspectionEvent } from './inspection.ts';
 import { ExecutableRaiseAction } from './actions/raise.ts';
+import { ExecutableSendToAction } from './actions/send.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -2652,7 +2653,8 @@ export interface ExecutableSpawnAction extends ExecutableActionObject {
 
 export type SpecialExecutableAction =
   | ExecutableSpawnAction
-  | ExecutableRaiseAction;
+  | ExecutableRaiseAction
+  | ExecutableSendToAction;
 
 export type ExecutableActionsFrom<T extends AnyActorLogic> =
   T extends StateMachine<

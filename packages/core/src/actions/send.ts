@@ -14,6 +14,7 @@ import {
   DoNotInfer,
   EventFrom,
   EventObject,
+  ExecutableActionObject,
   InferEvent,
   MachineContext,
   ParameterizedObject,
@@ -367,4 +368,15 @@ export function forwardTo<
     TDelay,
     TUsedDelay
   >(target, ({ event }: any) => event, options);
+}
+
+export interface ExecutableSendToAction extends ExecutableActionObject {
+  type: 'xstate.sendTo';
+  params: {
+    event: EventObject;
+    id: string | undefined;
+    delay: number | undefined;
+    to: AnyActorRef;
+    startedAt: number | undefined;
+  };
 }
