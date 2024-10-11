@@ -411,9 +411,6 @@ describe('transition function', () => {
       }
     });
 
-    // TODO: assigns and raises without timers should not be in the actions
-    // TODO: example with delayed event
-
     const calls: string[] = [];
 
     async function execute(action: ExecutableActionsFrom<typeof machine>) {
