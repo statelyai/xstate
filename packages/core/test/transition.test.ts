@@ -1,19 +1,19 @@
+import { sleep } from '@xstate-repo/jest-utils';
 import {
   assign,
+  createActor,
   createMachine,
   enqueueActions,
-  setup,
-  transition,
-  raise,
-  createActor,
-  fromTransition,
-  waitFor,
-  fromPromise,
   EventFrom,
-  toPromise,
-  ExecutableActionObject,
+  ExecutableActionsFrom,
   ExecutableSpawnAction,
-  ExecutableActionsFrom
+  fromPromise,
+  fromTransition,
+  raise,
+  setup,
+  toPromise,
+  transition,
+  waitFor
 } from '../src';
 import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
@@ -373,12 +373,8 @@ describe('transition function', () => {
     await postStart();
     postEvent({ type: 'next' });
 
-    await new Promise<void>((res) => {
-      setTimeout(() => {
-        expect(JSON.parse(db.state).status).toBe('done');
-      }, 15);
-      res();
-    });
+    await sleep(15);
+    expect(JSON.parse(db.state).status).toBe('done');
   });
 
   it('serverless workflow example (experimental)', async () => {
@@ -469,11 +465,7 @@ describe('transition function', () => {
 
     expect(calls).toEqual(['sendWelcomeEmail']);
 
-    await new Promise<void>((res) => {
-      setTimeout(() => {
-        expect(JSON.parse(db.state).value).toBe('finish');
-      }, 10);
-      res();
-    });
+    await sleep(10);
+    expect(JSON.parse(db.state).value).toBe('finish');
   });
 });
