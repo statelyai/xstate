@@ -81,8 +81,7 @@ function resolveRaise(
     {
       event: resolvedEvent,
       id,
-      delay: resolvedDelay,
-      startedAt: resolvedDelay === undefined ? undefined : Date.now()
+      delay: resolvedDelay
     }
   ];
 }
@@ -93,7 +92,6 @@ function executeRaise(
     event: EventObject;
     id: string | undefined;
     delay: number | undefined;
-    startedAt: number; // timestamp
   }
 ) {
   return;
@@ -165,7 +163,6 @@ export function raise<
   raise.event = eventOrExpr;
   raise.id = options?.id;
   raise.delay = options?.delay;
-  raise.startedAt = options?.delay === undefined ? undefined : Date.now();
 
   raise.resolve = resolveRaise;
   raise.execute = executeRaise;
@@ -183,6 +180,5 @@ export interface ExecutableRaiseAction extends ExecutableActionObject {
     event: EventObject;
     id: string | undefined;
     delay: number | undefined;
-    startedAt: number | undefined;
   };
 }

@@ -125,8 +125,7 @@ function resolveSendTo(
       to: targetActorRef,
       event: resolvedEvent,
       id,
-      delay: resolvedDelay,
-      startedAt: resolvedDelay === undefined ? undefined : Date.now()
+      delay: resolvedDelay
     }
   ];
 }
@@ -377,6 +376,5 @@ export interface ExecutableSendToAction extends ExecutableActionObject {
     id: string | undefined;
     delay: number | undefined;
     to: AnyActorRef;
-    startedAt: number | undefined;
   };
 }

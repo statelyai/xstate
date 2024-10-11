@@ -334,7 +334,7 @@ describe('transition function', () => {
     async function execute(action: ExecutableActionsFrom<typeof machine>) {
       if (action.type === 'xstate.raise' && action.params.delay) {
         const currentTime = Date.now();
-        const startedAt = action.params.startedAt ?? currentTime;
+        const startedAt = currentTime;
         const elapsed = currentTime - startedAt;
         const timeRemaining = Math.max(0, action.params.delay - elapsed);
 
