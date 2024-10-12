@@ -3179,7 +3179,7 @@ describe('sendTo', () => {
     `);
   });
 
-  it('a self-event "handler" sent using sendTo should be able to read updated snapshot of self', () => {
+  it('a self-event "handler" of an event sent using sendTo should be able to read updated snapshot of self', () => {
     const spy = jest.fn();
     const machine = createMachine({
       context: {
