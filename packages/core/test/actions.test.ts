@@ -7,6 +7,7 @@ import {
   raise,
   sendParent,
   sendTo,
+  spawnChild,
   stopChild
 } from '../src/actions.ts';
 import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
@@ -3220,6 +3221,129 @@ describe('sendTo', () => {
   ],
 ]
 `);
+  });
+
+  it("should not attempt to deliver a delayed event to the spawned actor's ID that was stopped since the event was scheduled", async () => {
+    const spy1 = jest.fn();
+
+    const child1 = createMachine({
+      on: {
+        PING: {
+          actions: spy1
+        }
+      }
+    });
+
+    const spy2 = jest.fn();
+
+    const child2 = createMachine({
+      on: {
+        PING: {
+          actions: spy2
+        }
+      }
+    });
+
+    const machine = setup({
+      actors: {
+        child1,
+        child2
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            START: 'b'
+          }
+        },
+        b: {
+          entry: [
+            spawnChild('child1', {
+              id: 'myChild'
+            }),
+            sendTo('myChild', { type: 'PING' }, { delay: 1 }),
+            stopChild('myChild'),
+            spawnChild('child2', {
+              id: 'myChild'
+            })
+          ]
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'START' });
+
+    await sleep(10);
+
+    expect(spy1).toHaveBeenCalledTimes(0);
+    expect(spy2).toHaveBeenCalledTimes(0);
+  });
+
+  it("should not attempt to deliver a delayed event to the invoked actor's ID that was stopped since the event was scheduled", async () => {
+    const spy1 = jest.fn();
+
+    const child1 = createMachine({
+      on: {
+        PING: {
+          actions: spy1
+        }
+      }
+    });
+
+    const spy2 = jest.fn();
+
+    const child2 = createMachine({
+      on: {
+        PING: {
+          actions: spy2
+        }
+      }
+    });
+
+    const machine = setup({
+      actors: {
+        child1,
+        child2
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            START: 'b'
+          }
+        },
+        b: {
+          entry: sendTo('myChild', { type: 'PING' }, { delay: 1 }),
+          invoke: {
+            src: 'child1',
+            id: 'myChild'
+          },
+          on: {
+            NEXT: 'c'
+          }
+        },
+        c: {
+          invoke: {
+            src: 'child2',
+            id: 'myChild'
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'START' });
+    actorRef.send({ type: 'NEXT' });
+
+    await sleep(10);
+
+    expect(spy1).toHaveBeenCalledTimes(0);
+    expect(spy2).toHaveBeenCalledTimes(0);
   });
 });
 
