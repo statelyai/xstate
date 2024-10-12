@@ -3178,6 +3178,49 @@ describe('sendTo', () => {
       ]
     `);
   });
+
+  it('a self-event "handler" sent using sendTo should be able to read updated snapshot of self', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      context: {
+        counter: 0
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          entry: [
+            assign({ counter: 1 }),
+            sendTo(({ self }) => self, { type: 'EVENT' })
+          ],
+          on: {
+            EVENT: {
+              actions: ({ self }) => spy(self.getSnapshot().context),
+              target: 'c'
+            }
+          }
+        },
+        c: {}
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'NEXT' });
+    actorRef.send({ type: 'EVENT' });
+
+    expect(spy).toMatchMockCallsInlineSnapshot(`
+[
+  [
+    {
+      "counter": 1,
+    },
+  ],
+]
+`);
+  });
 });
 
 describe('raise', () => {
@@ -3215,7 +3258,7 @@ describe('raise', () => {
     service.send({ type: 'TO_B' });
   });
 
-  it('should be able to send a delayed event to itself with delay = 0', (done) => {
+  it('should be able to send a delayed event to itself with delay = 0', async () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -3239,11 +3282,9 @@ describe('raise', () => {
     // The state should not be changed yet; `delay: 0` is equivalent to `setTimeout(..., 0)`
     expect(service.getSnapshot().value).toEqual('a');
 
-    setTimeout(() => {
-      // The state should be changed now
-      expect(service.getSnapshot().value).toEqual('b');
-      done();
-    });
+    await sleep(0);
+    // The state should be changed now
+    expect(service.getSnapshot().value).toEqual('b');
   });
 
   it('should be able to raise an event and respond to it in the same state', () => {
@@ -3383,6 +3424,46 @@ describe('raise', () => {
         ],
       ]
     `);
+  });
+
+  it('a raised event "handler" should be able to read updated snapshot of self', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      context: {
+        counter: 0
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          entry: [assign({ counter: 1 }), raise({ type: 'EVENT' })],
+          on: {
+            EVENT: {
+              actions: ({ self }) => spy(self.getSnapshot().context),
+              target: 'c'
+            }
+          }
+        },
+        c: {}
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'NEXT' });
+    actorRef.send({ type: 'EVENT' });
+
+    expect(spy).toMatchMockCallsInlineSnapshot(`
+[
+  [
+    {
+      "counter": 1,
+    },
+  ],
+]
+`);
   });
 });
 

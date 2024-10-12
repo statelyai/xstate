@@ -87,7 +87,7 @@ function resolveRaise(
 }
 
 function executeRaise(
-  _clock: AnyActorScope,
+  _actorScope: AnyActorScope,
   _params: {
     event: EventObject;
     id: string | undefined;
