@@ -12,6 +12,14 @@ const resolvePath = (path: any[], obj = {}): unknown => {
   return current;
 };
 
+const getWrappablePlaceholder = (value: any) => {
+  if (!isWrappable(value)) return value;
+  if (Array.isArray(value)) {
+    return [];
+  }
+  return {};
+};
+
 const updateStore = <Path extends unknown[]>(
   nextStore: Store<any>,
   prevStore: Store<any>,
@@ -56,7 +64,7 @@ const updateStore = <Path extends unknown[]>(
       // Update new or now undefined indexes
       if (newIndices !== 0) {
         for (let newEnd = smallestSize; newEnd <= largestSize - 1; newEnd++) {
-          set(...path, newEnd, deepClone(next[newEnd]));
+          set(...path, newEnd, getWrappablePlaceholder(next[newEnd]));
         }
       }
 

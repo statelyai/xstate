@@ -2,4 +2,4 @@
 '@xstate/solid': patch
 ---
 
-Deep clone values in new array indexes to prevent mutation of original machine context
+When setting new array indexes, if the value is an object/array, use placeholder empty value to prevent mutation of original machine context
