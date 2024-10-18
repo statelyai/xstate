@@ -9,6 +9,7 @@ import {
 } from './State.ts';
 import { StateNode } from './StateNode.ts';
 import {
+  executeAction,
   getAllStateNodes,
   getInitialStateNodes,
   getStateNodeByPath,
@@ -46,9 +47,11 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
+  UnknownActionObject,
   ResolvedStateMachineTypes,
   StateSchema,
-  SnapshotStatus
+  SnapshotStatus,
+  ExecutableActionObject
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
 
@@ -293,7 +296,8 @@ export class StateMachine<
     TMeta,
     TConfig
   > {
-    return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
+    return macrostep(snapshot, event, actorScope, [])
+      .snapshot as typeof snapshot;
   }
 
   /**
@@ -328,7 +332,7 @@ export class StateMachine<
       TConfig
     >
   > {
-    return macrostep(snapshot, event, actorScope).microstates;
+    return macrostep(snapshot, event, actorScope, []).microstates;
   }
 
   public getTransitionData(
@@ -385,8 +389,9 @@ export class StateMachine<
         preInitial,
         initEvent,
         actorScope,
-        [assign(assignment)],
-        internalQueue
+        [assign(assignment) as unknown as UnknownActionObject],
+        internalQueue,
+        undefined
       ) as SnapshotFrom<this>;
     }
 
@@ -628,5 +633,9 @@ export class StateMachine<
     reviveContext(restoredSnapshot.context, children);
 
     return restoredSnapshot;
+  }
+
+  public executeAction(action: ExecutableActionObject, actor?: AnyActorRef) {
+    return executeAction(action, actor);
   }
 }

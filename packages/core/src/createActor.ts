@@ -8,8 +8,11 @@ import {
   createInitEvent
 } from './eventUtils.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
+import { executeAction } from './stateUtils.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { AnyActorSystem, Clock, createSystem } from './system.ts';
+
+export let executingCustomAction: ((...args: any[]) => void) | false = false;
 
 import type {
   ActorScope,
@@ -189,6 +192,32 @@ export class Actor<TLogic extends AnyActorLogic>
         ]);
         for (const handler of Array.from(allListeners)) {
           handler(emittedEvent);
+        }
+      },
+      actionExecutor: (action) => {
+        const exec = () => {
+          this._actorScope.system._sendInspectionEvent({
+            type: '@xstate.action',
+            actorRef: this,
+            action: {
+              type: action.type,
+              params: action.params as any // TODO: fix types
+            }
+          });
+          if (!action.exec) {
+            return;
+          }
+          try {
+            executingCustomAction = action.exec;
+            executeAction(action, this);
+          } finally {
+            executingCustomAction = false;
+          }
+        };
+        if (this._processingStatus === ProcessingStatus.Running) {
+          exec();
+        } else {
+          this._deferred.push(exec);
         }
       }
     };

@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { XSTATE_ERROR } from '../constants.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
-import { executingCustomAction } from '../stateUtils.ts';
+import { executingCustomAction } from '../createActor.ts';
 import {
   ActionArgs,
   ActionFunction,
@@ -14,6 +14,7 @@ import {
   DoNotInfer,
   EventFrom,
   EventObject,
+  ExecutableActionObject,
   InferEvent,
   MachineContext,
   ParameterizedObject,
@@ -120,7 +121,12 @@ function resolveSendTo(
 
   return [
     snapshot,
-    { to: targetActorRef, event: resolvedEvent, id, delay: resolvedDelay }
+    {
+      to: targetActorRef,
+      event: resolvedEvent,
+      id,
+      delay: resolvedDelay
+    }
   ];
 }
 
@@ -151,15 +157,8 @@ function executeSendTo(
   // this forms an outgoing events queue
   // thanks to that the recipient actors are able to read the *updated* snapshot value of the sender
   actorScope.defer(() => {
-    const { to, event, delay, id } = params;
+    const { to, event, delay, id: _id } = params;
     if (typeof delay === 'number') {
-      actorScope.system.scheduler.schedule(
-        actorScope.self,
-        to,
-        event,
-        delay,
-        id
-      );
       return;
     }
     actorScope.system._relay(
@@ -254,7 +253,7 @@ export function sendTo<
     }
   }
 
-  sendTo.type = 'xsnapshot.sendTo';
+  sendTo.type = 'xstate.sendTo';
   sendTo.to = to;
   sendTo.event = eventOrExpr;
   sendTo.id = options?.id;
@@ -263,6 +262,10 @@ export function sendTo<
   sendTo.resolve = resolveSendTo;
   sendTo.retryResolve = retryResolveSendTo;
   sendTo.execute = executeSendTo;
+
+  sendTo.toJSON = () => ({
+    ...sendTo
+  });
 
   return sendTo;
 }
@@ -364,4 +367,14 @@ export function forwardTo<
     TDelay,
     TUsedDelay
   >(target, ({ event }: any) => event, options);
+}
+
+export interface ExecutableSendToAction extends ExecutableActionObject {
+  type: 'xstate.sendTo';
+  params: {
+    event: EventObject;
+    id: string | undefined;
+    delay: number | undefined;
+    to: AnyActorRef;
+  };
 }
