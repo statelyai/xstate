@@ -3384,6 +3384,46 @@ describe('raise', () => {
       ]
     `);
   });
+
+  it('a raised event "handler" should be able to read updated snapshot of self', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      context: {
+        counter: 0
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          entry: [assign({ counter: 1 }), raise({ type: 'EVENT' })],
+          on: {
+            EVENT: {
+              actions: ({ self }) => spy(self.getSnapshot().context),
+              target: 'c'
+            }
+          }
+        },
+        c: {}
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'NEXT' });
+    actorRef.send({ type: 'EVENT' });
+
+    expect(spy).toMatchMockCallsInlineSnapshot(`
+[
+  [
+    {
+      "counter": 1,
+    },
+  ],
+]
+`);
+  });
 });
 
 describe('cancel', () => {
