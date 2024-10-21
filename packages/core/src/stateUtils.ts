@@ -51,7 +51,6 @@ import {
   toTransitionConfigArray,
   isErrorActorEvent
 } from './utils.ts';
-import { ProcessingStatus } from './createActor.ts';
 import { createEmptyActor } from './actors/index.ts';
 
 type StateNodeIterable<
