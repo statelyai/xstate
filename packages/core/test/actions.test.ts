@@ -3280,6 +3280,15 @@ describe('sendTo', () => {
 
     expect(spy1).toHaveBeenCalledTimes(0);
     expect(spy2).toHaveBeenCalledTimes(0);
+
+    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+[
+  [
+    "Event "PING" was sent to stopped actor "myChild (x:113)". This actor has already reached its final state, and will not transition.
+Event: {"type":"PING"}",
+  ],
+]
+`);
   });
 
   it("should not attempt to deliver a delayed event to the invoked actor's ID that was stopped since the event was scheduled", async () => {
@@ -3344,6 +3353,15 @@ describe('sendTo', () => {
 
     expect(spy1).toHaveBeenCalledTimes(0);
     expect(spy2).toHaveBeenCalledTimes(0);
+
+    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+[
+  [
+    "Event "PING" was sent to stopped actor "myChild (x:116)". This actor has already reached its final state, and will not transition.
+Event: {"type":"PING"}",
+  ],
+]
+`);
   });
 });
 
