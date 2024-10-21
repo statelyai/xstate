@@ -8,11 +8,10 @@ import {
   createInitEvent
 } from './eventUtils.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
-import { executeAction } from './stateUtils.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { AnyActorSystem, Clock, createSystem } from './system.ts';
 
-export let executingCustomAction: ((...args: any[]) => void) | false = false;
+export let executingCustomAction: boolean = false;
 
 import type {
   ActorScope,
@@ -186,11 +185,11 @@ export class Actor<TLogic extends AnyActorLogic>
         if (!listeners && !wildcardListener) {
           return;
         }
-        const allListeners = new Set([
+        const allListeners = [
           ...(listeners ? listeners.values() : []),
           ...(wildcardListener ? wildcardListener.values() : [])
-        ]);
-        for (const handler of Array.from(allListeners)) {
+        ];
+        for (const handler of allListeners) {
           handler(emittedEvent);
         }
       },
@@ -207,11 +206,12 @@ export class Actor<TLogic extends AnyActorLogic>
           if (!action.exec) {
             return;
           }
+          const saveExecutingCustomAction = executingCustomAction;
           try {
-            executingCustomAction = action.exec;
-            executeAction(action, this);
+            executingCustomAction = true;
+            action.exec(action.info, action.params);
           } finally {
-            executingCustomAction = false;
+            executingCustomAction = saveExecutingCustomAction;
           }
         };
         if (this._processingStatus === ProcessingStatus.Running) {

@@ -1566,24 +1566,13 @@ function resolveAndExecuteActionsWithContext(
             : action.params
           : undefined;
 
-    function executeAction() {
-      actorScope.actionExecutor(
-        {
-          type: action.type,
-          info: actionArgs,
-          params: actionParams,
-          exec: resolvedAction
-        },
-        actorScope.self
-      );
-    }
-
     if (!resolvedAction || !('resolve' in resolvedAction)) {
-      executeAction();
-      continue;
-    }
-
-    if (!resolvedAction) {
+      actorScope.actionExecutor({
+        type: action.type,
+        info: actionArgs,
+        params: actionParams,
+        exec: resolvedAction
+      });
       continue;
     }
 
@@ -1604,20 +1593,12 @@ function resolveAndExecuteActionsWithContext(
     }
 
     if ('execute' in builtinAction) {
-      actorScope.actionExecutor(
-        {
-          type: builtinAction.type,
-          info: actionArgs,
-          params,
-          exec: () => {} // noop
-        },
-        actorScope.self
-      );
-      if (actorScope.self._processingStatus === ProcessingStatus.Running) {
-        builtinAction.execute(actorScope, params);
-      } else {
-        actorScope.defer(builtinAction.execute.bind(null, actorScope, params));
-      }
+      actorScope.actionExecutor({
+        type: builtinAction.type,
+        info: actionArgs,
+        params,
+        exec: builtinAction.execute.bind(null, actorScope, params)
+      });
     }
 
     if (actions) {

@@ -2678,7 +2678,4 @@ export type ExecutableActionsFrom<T extends AnyActorLogic> =
         | (string extends TAction['type'] ? never : ToExecutableAction<TAction>)
     : never;
 
-export type ActionExecutor = (
-  actionToExecute: ExecutableActionObject,
-  actorRef: AnyActorRef
-) => void;
+export type ActionExecutor = (actionToExecute: ExecutableActionObject) => void;

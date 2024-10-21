@@ -87,14 +87,21 @@ function resolveRaise(
 }
 
 function executeRaise(
-  _actorScope: AnyActorScope,
-  _params: {
+  actorScope: AnyActorScope,
+  params: {
     event: EventObject;
     id: string | undefined;
     delay: number | undefined;
   }
 ) {
-  return;
+  const { event, delay, id } = params;
+  if (typeof delay === 'number') {
+    actorScope.defer(() => {
+      const self = actorScope.self;
+      actorScope.system.scheduler.schedule(self, self, event, delay, id);
+    });
+    return;
+  }
 }
 
 export interface RaiseAction<

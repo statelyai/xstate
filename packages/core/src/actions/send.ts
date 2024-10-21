@@ -157,8 +157,15 @@ function executeSendTo(
   // this forms an outgoing events queue
   // thanks to that the recipient actors are able to read the *updated* snapshot value of the sender
   actorScope.defer(() => {
-    const { to, event, delay, id: _id } = params;
+    const { to, event, delay, id } = params;
     if (typeof delay === 'number') {
+      actorScope.system.scheduler.schedule(
+        actorScope.self,
+        to,
+        event,
+        delay,
+        id
+      );
       return;
     }
     actorScope.system._relay(
@@ -240,7 +247,7 @@ export function sendTo<
 > {
   if (isDevelopment && executingCustomAction) {
     console.warn(
-      'Custom actions should not call `raise()` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.'
+      'Custom actions should not call `sendTo()` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.'
     );
   }
 
