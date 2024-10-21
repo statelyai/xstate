@@ -471,13 +471,15 @@ export class StateMachine<
       TConfig
     >
   ): void {
-    Object.values(snapshot.children as Record<string, AnyActorRef>).forEach(
-      (child: any) => {
-        if (child.getSnapshot().status === 'active') {
-          child.start();
+    if (snapshot.children) {
+      Object.values(snapshot.children as Record<string, AnyActorRef>).forEach(
+        (child: any) => {
+          if (child.getSnapshot().status === 'active') {
+            child.start();
+          }
         }
-      }
-    );
+      );
+    }
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
