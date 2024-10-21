@@ -53,24 +53,25 @@ function resolveSpawn(
       ? resolveReferencedActor(snapshot.machine, src)
       : src;
   const resolvedId = typeof id === 'function' ? id(actionArgs) : id;
-
   let actorRef: AnyActorRef | undefined;
+  let resolvedInput: unknown | undefined = undefined;
 
   if (logic) {
+    resolvedInput =
+      typeof input === 'function'
+        ? input({
+            context: snapshot.context,
+            event: actionArgs.event,
+            self: actorScope.self
+          })
+        : input;
     actorRef = createActor(logic, {
       id: resolvedId,
       src,
       parent: actorScope.self,
       syncSnapshot,
       systemId,
-      input:
-        typeof input === 'function'
-          ? input({
-              context: snapshot.context,
-              event: actionArgs.event,
-              self: actorScope.self
-            })
-          : input
+      input: resolvedInput
     });
   }
 
@@ -89,7 +90,10 @@ function resolveSpawn(
     }),
     {
       id,
-      actorRef
+      systemId,
+      actorRef,
+      src,
+      input: resolvedInput
     }
   ];
 }
@@ -103,6 +107,8 @@ function executeSpawn(
   }
 
   actorScope.defer(() => {
+    actorRef._parent = actorScope.self;
+    actorRef.system = actorScope.system;
     if (actorRef._processingStatus === ProcessingStatus.Stopped) {
       return;
     }
@@ -172,17 +178,18 @@ type SpawnArguments<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TActor extends ProvidedActor
-> = IsLiteralString<TActor['src']> extends true
-  ? DistributeActors<TContext, TExpressionEvent, TEvent, TActor>
-  : [
-      src: string | AnyActorLogic,
-      options?: {
-        id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
-        systemId?: string;
-        input?: unknown;
-        syncSnapshot?: boolean;
-      }
-    ];
+> =
+  IsLiteralString<TActor['src']> extends true
+    ? DistributeActors<TContext, TExpressionEvent, TEvent, TActor>
+    : [
+        src: string | AnyActorLogic,
+        options?: {
+          id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
+          systemId?: string;
+          input?: unknown;
+          syncSnapshot?: boolean;
+        }
+      ];
 
 export function spawnChild<
   TContext extends MachineContext,
@@ -215,7 +222,7 @@ export function spawnChild<
     }
   }
 
-  spawnChild.type = 'snapshot.spawnChild';
+  spawnChild.type = 'xstate.spawn';
   spawnChild.id = id;
   spawnChild.systemId = systemId;
   spawnChild.src = src;
@@ -224,6 +231,10 @@ export function spawnChild<
 
   spawnChild.resolve = resolveSpawn;
   spawnChild.execute = executeSpawn;
+
+  spawnChild.toJSON = () => ({
+    ...spawnChild
+  });
 
   return spawnChild;
 }
