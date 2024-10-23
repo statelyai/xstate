@@ -3771,6 +3771,51 @@ describe('cancel', () => {
     await sleep(10);
     expect(spy.mock.calls.length).toBe(0);
   });
+
+  it('should not be able to cancel a just scheduled non-delayed event to a just invoked child', async () => {
+    const spy = jest.fn();
+
+    const child = createMachine({
+      on: {
+        PING: {
+          actions: spy
+        }
+      }
+    });
+
+    const machine = setup({
+      actors: {
+        child
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            START: 'b'
+          }
+        },
+        b: {
+          entry: [
+            sendTo('myChild', { type: 'PING' }, { id: 'myEvent' }),
+            cancel('myEvent')
+          ],
+          invoke: {
+            src: 'child',
+            id: 'myChild'
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({
+      type: 'START'
+    });
+
+    expect(spy.mock.calls.length).toBe(1);
+  });
 });
 
 describe('assign action order', () => {
