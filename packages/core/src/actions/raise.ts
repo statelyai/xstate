@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { executingCustomAction } from '../stateUtils.ts';
+import { executingCustomAction } from '../createActor.ts';
 import {
   ActionArgs,
   ActionFunction,
@@ -9,6 +9,7 @@ import {
   DelayExpr,
   DoNotInfer,
   EventObject,
+  ExecutableActionObject,
   MachineContext,
   ParameterizedObject,
   RaiseActionOptions,
@@ -75,7 +76,14 @@ function resolveRaise(
   if (typeof resolvedDelay !== 'number') {
     internalQueue.push(resolvedEvent);
   }
-  return [snapshot, { event: resolvedEvent, id, delay: resolvedDelay }];
+  return [
+    snapshot,
+    {
+      event: resolvedEvent,
+      id,
+      delay: resolvedDelay
+    }
+  ];
 }
 
 function executeRaise(
@@ -166,5 +174,18 @@ export function raise<
   raise.resolve = resolveRaise;
   raise.execute = executeRaise;
 
+  raise.toJSON = () => ({
+    ...raise
+  });
+
   return raise;
+}
+
+export interface ExecutableRaiseAction extends ExecutableActionObject {
+  type: 'xstate.raise';
+  params: {
+    event: EventObject;
+    id: string | undefined;
+    delay: number | undefined;
+  };
 }

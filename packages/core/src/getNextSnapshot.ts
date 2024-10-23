@@ -27,12 +27,14 @@ export function createInertActorScope<T extends AnyActorLogic>(
     sessionId: '',
     stopChild: () => {},
     system: self.system,
-    emit: () => {}
+    emit: () => {},
+    actionExecutor: () => {}
   };
 
   return inertActorScope;
 }
 
+/** @deprecated Use `initialTransition(…)` instead. */
 export function getInitialSnapshot<T extends AnyActorLogic>(
   actorLogic: T,
   ...[input]: undefined extends InputFrom<T>
@@ -50,6 +52,7 @@ export function getInitialSnapshot<T extends AnyActorLogic>(
  * If the `snapshot` is `undefined`, the initial snapshot of the `actorLogic` is
  * used.
  *
+ * @deprecated Use `transition(…)` instead.
  * @example
  *
  * ```ts
