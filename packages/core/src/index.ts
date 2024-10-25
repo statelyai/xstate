@@ -8,7 +8,6 @@ export {
   type Interpreter,
   type RequiredActorOptionsKeys as RequiredActorOptionsKeys
 } from './createActor.ts';
-// TODO: decide from where those should be exported
 export { createMachine } from './createMachine.ts';
 export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
 export { and, not, or, stateIn } from './guards.ts';
@@ -34,7 +33,7 @@ export {
   pathToStateValue,
   toObserver
 } from './utils.ts';
-export { transition } from './transition.ts';
+export { transition, initialTransition } from './transition.ts';
 export { waitFor } from './waitFor.ts';
 
 declare global {

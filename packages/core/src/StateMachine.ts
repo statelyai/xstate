@@ -47,7 +47,6 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
-  UnknownActionObject,
   ResolvedStateMachineTypes,
   StateSchema,
   SnapshotStatus,
@@ -389,7 +388,7 @@ export class StateMachine<
         preInitial,
         initEvent,
         actorScope,
-        [assign(assignment) as unknown as UnknownActionObject],
+        [assign(assignment)],
         internalQueue,
         undefined
       ) as SnapshotFrom<this>;

@@ -115,10 +115,6 @@ export function stopChild<
   stop.resolve = resolveStop;
   stop.execute = executeStop;
 
-  stop.toJSON = () => ({
-    ...stop
-  });
-
   return stop;
 }
 

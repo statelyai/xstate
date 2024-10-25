@@ -4323,4 +4323,19 @@ describe('actions', () => {
 ]
 `);
   });
+
+  it('inline actions should not leak into provided actions object', async () => {
+    const actions = {};
+
+    const machine = createMachine(
+      {
+        entry: () => {}
+      },
+      { actions }
+    );
+
+    createActor(machine).start();
+
+    expect(actions).toEqual({});
+  });
 });

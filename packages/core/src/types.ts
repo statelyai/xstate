@@ -251,23 +251,6 @@ export type Action<
       TEmitted
     >;
 
-export type ActionObject<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TAction extends ParameterizedObject
-> = {
-  type: string;
-} & ( // this way we could iterate over `TAction` (and `TGuard` in the `Guard` type) once and not twice // TODO: consider merging `NoRequiredParams` and `WithDynamicParams` into one
-  | NoRequiredParams<TAction>
-  | WithDynamicParams<TContext, TExpressionEvent, TAction>
-);
-
-export type UnknownActionObject = ActionObject<
-  MachineContext,
-  EventObject,
-  ParameterizedObject
->;
-
 export type UnknownAction = Action<
   MachineContext,
   EventObject,
@@ -1079,8 +1062,8 @@ export interface StateNodeDefinition<
   on: TransitionDefinitionMap<TContext, TEvent>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   // TODO: establish what a definition really is
-  entry: UnknownActionObject[];
-  exit: UnknownActionObject[];
+  entry: UnknownAction[];
+  exit: UnknownAction[];
   meta: any;
   order: number;
   output?: StateNodeConfig<
@@ -1685,14 +1668,14 @@ export interface TransitionDefinition<
   > {
   target: ReadonlyArray<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
-  actions: readonly UnknownActionObject[];
+  actions: readonly UnknownAction[];
   reenter: boolean;
   guard?: UnknownGuard;
   eventType: EventDescriptor<TEvent>;
   toJSON: () => {
     target: string[] | undefined;
     source: string;
-    actions: readonly UnknownActionObject[];
+    actions: readonly UnknownAction[];
     guard?: UnknownGuard;
     eventType: EventDescriptor<TEvent>;
     meta?: Record<string, any>;
@@ -2642,12 +2625,12 @@ export interface ToExecutableAction<T extends ParameterizedObject>
 }
 
 export interface ExecutableSpawnAction extends ExecutableActionObject {
-  type: 'xstate.spawn';
+  type: 'xstate.spawnChild';
   info: ActionArgs<MachineContext, EventObject, EventObject>;
   params: {
     id: string;
     actorRef: AnyActorRef | undefined;
-    src: string;
+    src: string | AnyActorLogic;
   };
 }
 

@@ -86,7 +86,7 @@ function resolveRaise(
   ];
 }
 
-function executeRaise(
+export function executeRaise(
   actorScope: AnyActorScope,
   params: {
     event: EventObject;
@@ -173,10 +173,6 @@ export function raise<
 
   raise.resolve = resolveRaise;
   raise.execute = executeRaise;
-
-  raise.toJSON = () => ({
-    ...raise
-  });
 
   return raise;
 }

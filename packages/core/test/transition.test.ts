@@ -17,6 +17,8 @@ import {
 } from '../src';
 import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
+import assert from 'node:assert';
+import { resolveReferencedActor } from '../src/utils';
 
 describe('transition function', () => {
   it('should capture actions', () => {
@@ -67,7 +69,7 @@ describe('transition function', () => {
     expect(stringAction).not.toHaveBeenCalled();
 
     // Execute actions
-    actions0.forEach((a) => machine.executeAction(a, {} as any));
+    actions0.forEach((a) => machine.executeAction(a));
 
     expect(actionWithParams).toHaveBeenCalledWith(expect.anything(), { a: 1 });
     expect(stringAction).toHaveBeenCalled();
@@ -88,7 +90,7 @@ describe('transition function', () => {
     expect(actionWithDynamicParams).not.toHaveBeenCalled();
 
     // Execute actions
-    actions1.forEach((a) => machine.executeAction(a, {} as any));
+    actions1.forEach((a) => machine.executeAction(a));
 
     expect(actionWithDynamicParams).toHaveBeenCalledWith({
       msg: 'hello'
@@ -415,11 +417,15 @@ describe('transition function', () => {
 
     async function execute(action: ExecutableActionsFrom<typeof machine>) {
       switch (action.type) {
-        case 'xstate.spawn': {
+        case 'xstate.spawnChild': {
           const spawnAction = action as ExecutableSpawnAction;
-          const logic = machine.implementations.actors[spawnAction.params.src];
+          const logic =
+            typeof spawnAction.params.src === 'string'
+              ? resolveReferencedActor(machine, spawnAction.params.src)
+              : spawnAction.params.src;
+          assert('transition' in logic);
           const output = await toPromise(
-            createActor(logic as any, spawnAction.params).start()
+            createActor(logic, spawnAction.params).start()
           );
           postEvent(createDoneActorEvent(spawnAction.params.id, output));
         }

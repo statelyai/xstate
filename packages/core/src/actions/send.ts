@@ -145,7 +145,7 @@ function retryResolveSendTo(
   }
 }
 
-function executeSendTo(
+export function executeSendTo(
   actorScope: AnyActorScope,
   params: {
     to: AnyActorRef;
@@ -269,10 +269,6 @@ export function sendTo<
   sendTo.resolve = resolveSendTo;
   sendTo.retryResolve = retryResolveSendTo;
   sendTo.execute = executeSendTo;
-
-  sendTo.toJSON = () => ({
-    ...sendTo
-  });
 
   return sendTo;
 }

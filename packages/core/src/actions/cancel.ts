@@ -102,9 +102,5 @@ export function cancel<
   cancel.resolve = resolveCancel;
   cancel.execute = executeCancel;
 
-  cancel.toJSON = () => ({
-    ...cancel
-  });
-
   return cancel;
 }

@@ -81,21 +81,15 @@ export function trackEntries(machine: AnyStateMachine) {
 
   let logs: string[] = [];
 
-  machine.implementations.actions['__log'] = function __logAction(_, params) {
-    logs.push((params as any).msg);
-  };
-
   function addTrackingActions(
     state: StateNode<any, any>,
     stateDescription: string
   ) {
-    state.entry.unshift({
-      type: '__log',
-      params: { msg: `enter: ${stateDescription}` }
+    state.entry.unshift(function __testEntryTracker() {
+      logs.push(`enter: ${stateDescription}`);
     });
-    state.exit.unshift({
-      type: '__log',
-      params: { msg: `exit: ${stateDescription}` }
+    state.exit.unshift(function __testExitTracker() {
+      logs.push(`exit: ${stateDescription}`);
     });
   }
 

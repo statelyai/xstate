@@ -38,7 +38,6 @@ import {
   AnyTransitionConfig,
   ProvidedActor,
   AnyActorScope,
-  UnknownActionObject,
   AnyActorRef,
   ActionExecutor,
   ExecutableActionObject
@@ -52,6 +51,8 @@ import {
   isErrorActorEvent
 } from './utils.ts';
 import { createEmptyActor } from './actors/index.ts';
+import { executeRaise } from './actions/raise.ts';
+import { executeSendTo } from './actions/send.ts';
 
 type StateNodeIterable<
   TContext extends MachineContext,
@@ -287,10 +288,10 @@ export function getDelayedTransitions(
     stateNode.entry.push(
       raise(afterEvent, {
         id: eventType,
-        delay: delay as any // TODO: fix types
-      }) as unknown as UnknownActionObject
+        delay
+      })
     );
-    stateNode.exit.push(cancel(eventType) as unknown as UnknownActionObject);
+    stateNode.exit.push(cancel(eventType));
     return eventType;
   };
 
@@ -308,14 +309,13 @@ export function getDelayedTransitions(
       delay: resolvedDelay
     }));
   });
-  return delayedTransitions.map((delayedTransition, i) => {
+  return delayedTransitions.map((delayedTransition) => {
     const { delay } = delayedTransition;
     return {
       ...formatTransition(
         stateNode,
         delayedTransition.event,
-        delayedTransition,
-        i
+        delayedTransition
       ),
       delay
     };
@@ -325,8 +325,7 @@ export function getDelayedTransitions(
 export function formatTransition(
   stateNode: AnyStateNode,
   descriptor: string,
-  transitionConfig: AnyTransitionConfig,
-  transitionIndex: number
+  transitionConfig: AnyTransitionConfig
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;
@@ -341,16 +340,7 @@ export function formatTransition(
 
   const transition = {
     ...transitionConfig,
-    actions: toArray(transitionConfig.actions).map((action, actionIndex) => {
-      return convertAction(
-        action,
-        stateNode,
-        descriptor,
-        undefined,
-        transitionIndex,
-        actionIndex
-      );
-    }),
+    actions: toArray(transitionConfig.actions),
     guard: transitionConfig.guard as never,
     target,
     source: stateNode,
@@ -386,8 +376,8 @@ export function formatTransitions<
       const transitionsConfig = stateNode.config.on[descriptor];
       transitions.set(
         descriptor,
-        toTransitionConfigArray(transitionsConfig).map((t, i) =>
-          formatTransition(stateNode, descriptor, t, i)
+        toTransitionConfigArray(transitionsConfig).map((t) =>
+          formatTransition(stateNode, descriptor, t)
         )
       );
     }
@@ -396,8 +386,8 @@ export function formatTransitions<
     const descriptor = `xstate.done.state.${stateNode.id}`;
     transitions.set(
       descriptor,
-      toTransitionConfigArray(stateNode.config.onDone).map((t, i) =>
-        formatTransition(stateNode, descriptor, t, i)
+      toTransitionConfigArray(stateNode.config.onDone).map((t) =>
+        formatTransition(stateNode, descriptor, t)
       )
     );
   }
@@ -406,8 +396,8 @@ export function formatTransitions<
       const descriptor = `xstate.done.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onDone).map((t, i) =>
-          formatTransition(stateNode, descriptor, t, i)
+        toTransitionConfigArray(invokeDef.onDone).map((t) =>
+          formatTransition(stateNode, descriptor, t)
         )
       );
     }
@@ -415,8 +405,8 @@ export function formatTransitions<
       const descriptor = `xstate.error.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onError).map((t, i) =>
-          formatTransition(stateNode, descriptor, t, i)
+        toTransitionConfigArray(invokeDef.onError).map((t) =>
+          formatTransition(stateNode, descriptor, t)
         )
       );
     }
@@ -424,8 +414,8 @@ export function formatTransitions<
       const descriptor = `xstate.snapshot.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onSnapshot).map((t, i) =>
-          formatTransition(stateNode, descriptor, t, i)
+        toTransitionConfigArray(invokeDef.onSnapshot).map((t) =>
+          formatTransition(stateNode, descriptor, t)
         )
       );
     }
@@ -466,11 +456,7 @@ export function formatInitialTransition<
   const transition: InitialTransitionDefinition<TContext, TEvent> = {
     source: stateNode,
     actions:
-      !_target || typeof _target === 'string'
-        ? []
-        : toArray(_target.actions).map((action) =>
-            convertAction(action, stateNode, 'xstate.init', undefined, 0, 0)
-          ),
+      !_target || typeof _target === 'string' ? [] : toArray(_target.actions),
     eventType: null as any,
     reenter: false,
     target: resolvedTarget ? [resolvedTarget] : [],
@@ -1155,7 +1141,7 @@ function enterStates(
     (a, b) => a.order - b.order
   )) {
     mutStateNodeSet.add(stateNodeToEnter);
-    const actions: UnknownActionObject[] = [];
+    const actions: UnknownAction[] = [];
 
     // Add entry actions
     actions.push(...stateNodeToEnter.entry);
@@ -1165,7 +1151,7 @@ function enterStates(
         spawnChild(invokeDef.src, {
           ...invokeDef,
           syncSnapshot: !!invokeDef.onSnapshot
-        }) as unknown as UnknownActionObject
+        })
       );
     }
 
@@ -1474,12 +1460,7 @@ function exitStates(
       nextSnapshot,
       event,
       actorScope,
-      [
-        ...s.exit,
-        ...(s.invoke.map((def) =>
-          stopChild(def.id)
-        ) as unknown as UnknownActionObject[])
-      ],
+      [...s.exit, ...s.invoke.map((def) => stopChild(def.id))],
       internalQueue,
       undefined
     );
@@ -1488,7 +1469,7 @@ function exitStates(
   return [nextSnapshot, changedHistory || historyValue] as const;
 }
 
-interface BuiltinAction {
+export interface BuiltinAction {
   (): void;
   type: `xstate.${string}`;
   resolve: (
@@ -1501,7 +1482,7 @@ interface BuiltinAction {
   ) => [
     newState: AnyMachineSnapshot,
     params: unknown,
-    actions?: UnknownActionObject[]
+    actions?: UnknownAction[]
   ];
   retryResolve: (
     actorScope: AnyActorScope,
@@ -1515,7 +1496,7 @@ function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
-  actions: UnknownActionObject[],
+  actions: UnknownAction[],
   extra: {
     internalQueue: AnyEventObject[];
     deferredActorIds: string[] | undefined;
@@ -1567,7 +1548,12 @@ function resolveAndExecuteActionsWithContext(
 
     if (!resolvedAction || !('resolve' in resolvedAction)) {
       actorScope.actionExecutor({
-        type: action.type,
+        type:
+          typeof action === 'string'
+            ? action
+            : typeof action === 'object'
+              ? action.type
+              : action.name || '(anonymous)',
         info: actionArgs,
         params: actionParams,
         exec: resolvedAction
@@ -1619,7 +1605,7 @@ export function resolveActionsAndContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
-  actions: UnknownActionObject[],
+  actions: UnknownAction[],
   internalQueue: AnyEventObject[],
   deferredActorIds: string[] | undefined
 ): AnyMachineSnapshot {
@@ -1772,9 +1758,7 @@ function stopChildren(
     nextState,
     event,
     actorScope,
-    Object.values(nextState.children).map(
-      (child: any) => stopChild(child) as unknown as UnknownActionObject
-    ),
+    Object.values(nextState.children).map((child: any) => stopChild(child)),
     [],
     undefined
   );
@@ -1834,29 +1818,6 @@ export function resolveStateValue(
   return getStateValue(rootNode, [...allStateNodes]);
 }
 
-export function convertAction(
-  action: UnknownAction,
-  stateNode: AnyStateNode,
-  descriptor: string | undefined,
-  kind: 'entry' | 'exit' | undefined,
-  transitionIndex: number,
-  actionIndex: number
-): UnknownActionObject {
-  if (typeof action === 'string') {
-    return { type: action };
-  }
-  if (typeof action === 'function' && !('resolve' in action)) {
-    const type = `${stateNode.id}|${
-      descriptor ?? kind
-    }:${transitionIndex}:${actionIndex}`;
-    stateNode.machine.implementations.actions[type] = action as any;
-    return {
-      type
-    };
-  }
-  return action as any;
-}
-
 /**
  * Runs an executable action. Executable actions are returned from the
  * `transition(…)` function.
@@ -1876,49 +1837,31 @@ export function executeAction(
   action: ExecutableActionObject,
   actor: AnyActorRef = createEmptyActor()
 ) {
-  const resolvedAction = resolveSpecialAction(action);
-  const resolvedInfo = {
-    ...action.info,
-    self: actor,
-    system: actor.system
-  };
-  return resolvedAction.exec?.(resolvedInfo, action.params);
-}
+  const actorScope = (actor as any)._actorScope as AnyActorScope;
+  const defer = actorScope.defer;
+  actorScope.defer = (fn) => fn();
+  try {
+    switch (action.type) {
+      case 'xstate.raise':
+        if (typeof (action as any).params.delay !== 'number') {
+          return;
+        }
+        executeRaise(actorScope, action.params as any);
+        return;
+      case 'xstate.sendTo':
+        executeSendTo(actorScope, action.params as any);
+        return;
+    }
 
-function resolveSpecialAction(
-  action: ExecutableActionObject
-): ExecutableActionObject {
-  const resolvedAction = { ...action };
-  switch (action.type) {
-    case 'xstate.raise':
-      if ((action.params as any).delay !== undefined) {
-        resolvedAction.exec = (info, _params) => {
-          info.system.scheduler.schedule(
-            info.self,
-            info.self,
-            (action.params as any).event,
-            (action.params as any).delay,
-            (action.params as any).id
-          );
-        };
-        return resolvedAction;
-      }
-      break;
-    case 'xstate.sendTo':
-      if ((action.params as any).delay !== undefined) {
-        resolvedAction.exec = (info, _params) => {
-          info.system.scheduler.schedule(
-            info.self,
-            (action.params as any).to,
-            (action.params as any).event,
-            (action.params as any).delay,
-            (action.params as any).id
-          );
-        };
-        return resolvedAction;
-      }
-      break;
+    action.exec?.(
+      {
+        ...action.info,
+        self: actor,
+        system: actor.system
+      },
+      action.params
+    );
+  } finally {
+    actorScope.defer = defer;
   }
-
-  return action;
 }

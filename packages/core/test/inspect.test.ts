@@ -1032,7 +1032,7 @@ describe('inspect', () => {
   {
     "action": {
       "params": undefined,
-      "type": "(machine).loading|event:0:2",
+      "type": "(anonymous)",
     },
     "type": "@xstate.action",
   },
