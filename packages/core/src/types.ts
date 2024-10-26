@@ -2612,6 +2612,9 @@ export interface ExecutableActionObject {
   type: string;
   info: ActionArgs<MachineContext, EventObject, EventObject>;
   params: NonReducibleUnknown;
+  exec:
+    | ((info: ActionArgs<any, any, any>, params: unknown) => void)
+    | undefined;
 }
 
 export interface ToExecutableAction<T extends ParameterizedObject>
