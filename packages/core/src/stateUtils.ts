@@ -34,13 +34,10 @@ import {
   TODO,
   UnknownAction,
   ParameterizedObject,
-  ActionFunction,
   AnyTransitionConfig,
-  ProvidedActor,
   AnyActorScope,
-  AnyActorRef,
   ActionExecutor,
-  ExecutableActionObject
+  AnyStateMachine
 } from './types.ts';
 import {
   resolveOutput,
@@ -50,9 +47,6 @@ import {
   toTransitionConfigArray,
   isErrorActorEvent
 } from './utils.ts';
-import { createEmptyActor } from './actors/index.ts';
-import { executeRaise } from './actions/raise.ts';
-import { executeSendTo } from './actions/send.ts';
 
 type StateNodeIterable<
   TContext extends MachineContext,
@@ -1492,6 +1486,13 @@ export interface BuiltinAction {
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
+export function resolveReferencedAction(
+  machine: AnyStateMachine,
+  actionType: string
+) {
+  return machine.implementations.actions[actionType];
+}
+
 function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
@@ -1513,23 +1514,11 @@ function resolveAndExecuteActionsWithContext(
       : // the existing type of `.actions` assumes non-nullable `TExpressionAction`
         // it's fine to cast this here to get a common type and lack of errors in the rest of the code
         // our logic below makes sure that we call those 2 "variants" correctly
-        (
-          machine.implementations.actions as Record<
-            string,
-            ActionFunction<
-              MachineContext,
-              EventObject,
-              EventObject,
-              ParameterizedObject['params'] | undefined,
-              ProvidedActor,
-              ParameterizedObject,
-              ParameterizedObject,
-              string,
-              EventObject
-            >
-          >
-        )[typeof action === 'string' ? action : action.type];
 
+        resolveReferencedAction(
+          machine,
+          typeof action === 'string' ? action : action.type
+        );
     const actionArgs = {
       context: intermediateSnapshot.context,
       event,
@@ -1816,52 +1805,4 @@ export function resolveStateValue(
 ): StateValue {
   const allStateNodes = getAllStateNodes(getStateNodes(rootNode, stateValue));
   return getStateValue(rootNode, [...allStateNodes]);
-}
-
-/**
- * Runs an executable action. Executable actions are returned from the
- * `transition(…)` function.
- *
- * @example
- *
- * ```ts
- * const [state, actions] = transition(someMachine, someState, someEvent);
- *
- * for (const action of actions) {
- *   // Executes the action
- *   executeAction(action);
- * }
- * ```
- */
-export function executeAction(
-  action: ExecutableActionObject,
-  actor: AnyActorRef = createEmptyActor()
-) {
-  const actorScope = (actor as any)._actorScope as AnyActorScope;
-  const defer = actorScope.defer;
-  actorScope.defer = (fn) => fn();
-  try {
-    switch (action.type) {
-      case 'xstate.raise':
-        if (typeof (action as any).params.delay !== 'number') {
-          return;
-        }
-        executeRaise(actorScope, action.params as any);
-        return;
-      case 'xstate.sendTo':
-        executeSendTo(actorScope, action.params as any);
-        return;
-    }
-
-    action.exec?.(
-      {
-        ...action.info,
-        self: actor,
-        system: actor.system
-      },
-      action.params
-    );
-  } finally {
-    actorScope.defer = defer;
-  }
 }

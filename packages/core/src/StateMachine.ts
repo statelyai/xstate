@@ -1,5 +1,8 @@
 import isDevelopment from '#is-development';
 import { assign } from './actions.ts';
+import { executeRaise } from './actions/raise.ts';
+import { executeSendTo } from './actions/send.ts';
+import { createEmptyActor } from './actors/index.ts';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import { createInitEvent } from './eventUtils.ts';
 import {
@@ -9,7 +12,6 @@ import {
 } from './State.ts';
 import { StateNode } from './StateNode.ts';
 import {
-  executeAction,
   getAllStateNodes,
   getInitialStateNodes,
   getStateNodeByPath,
@@ -19,6 +21,7 @@ import {
   macrostep,
   microstep,
   resolveActionsAndContext,
+  resolveReferencedAction,
   resolveStateValue,
   transitionNode
 } from './stateUtils.ts';
@@ -634,7 +637,63 @@ export class StateMachine<
     return restoredSnapshot;
   }
 
-  public executeAction(action: ExecutableActionObject, actor?: AnyActorRef) {
-    return executeAction(action, actor);
+  /**
+   * Runs an executable action. Executable actions are returned from the
+   * `transition(…)` function.
+   *
+   * @example
+   *
+   * ```ts
+   * const [state, actions] = transition(someMachine, someState, someEvent);
+   *
+   * for (const action of actions) {
+   *   // Executes the action
+   *   someMachine.executeAction(action);
+   * }
+   * ```
+   */
+  public executeAction(
+    action: ExecutableActionObject,
+    actor: AnyActorRef = createEmptyActor()
+  ) {
+    const actorScope = (actor as any)._actorScope as AnyActorScope;
+    const defer = actorScope.defer;
+    actorScope.defer = (fn) => fn();
+    try {
+      switch (action.type) {
+        case 'xstate.raise':
+          if (typeof (action as any).params.delay !== 'number') {
+            return;
+          }
+          executeRaise(actorScope, action.params as any);
+          return;
+        case 'xstate.sendTo':
+          executeSendTo(actorScope, action.params as any);
+          return;
+        default:
+      }
+      if (action.exec) {
+        action.exec?.(
+          {
+            ...action.info,
+            self: actor,
+            system: actor.system
+          },
+          action.params
+        );
+      } else {
+        const resolvedAction = resolveReferencedAction(this, action.type)!;
+        resolvedAction(
+          {
+            ...action.info,
+            self: actor,
+            system: actor.system
+          },
+          action.params
+        );
+      }
+    } finally {
+      actorScope.defer = defer;
+    }
   }
 }

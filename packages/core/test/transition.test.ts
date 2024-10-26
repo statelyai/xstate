@@ -97,6 +97,31 @@ describe('transition function', () => {
     });
   });
 
+  it('should be able to execute a referenced serialized action', () => {
+    const foo = jest.fn();
+
+    const machine = setup({
+      actions: {
+        foo
+      }
+    }).createMachine({
+      entry: 'foo',
+      context: { count: 0 }
+    });
+
+    const [, actions] = initialTransition(machine);
+
+    expect(foo).not.toHaveBeenCalled();
+
+    actions
+      .map((a) => JSON.stringify(a))
+      .forEach((a) => machine.executeAction(JSON.parse(a)));
+
+    expect(foo).toHaveBeenCalledTimes(1);
+    expect(foo.mock.calls[0][0].context).toEqual({ count: 0 });
+    expect(foo.mock.calls[0][0].event).toEqual({ type: 'xstate.init' });
+  });
+
   it('should capture enqueued actions', () => {
     const machine = createMachine({
       entry: [
@@ -144,7 +169,7 @@ describe('transition function', () => {
     expect(actor.getSnapshot().matches('b')).toBeTruthy();
   });
 
-  it('Delayed raise actions should be returned', async () => {
+  it('delayed raise actions should be returned', async () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -267,6 +292,7 @@ describe('transition function', () => {
 
     expect(s2.value).toEqual('c');
   });
+
   it('should not execute entry actions', () => {
     const fn = jest.fn();
 
