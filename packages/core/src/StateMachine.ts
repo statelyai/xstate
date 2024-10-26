@@ -670,27 +670,17 @@ export class StateMachine<
         case 'xstate.sendTo':
           executeSendTo(actorScope, action.params as any);
           return;
-        default:
       }
+      const resolvedInfo = {
+        ...action.info,
+        self: actor,
+        system: actor.system
+      };
       if (action.exec) {
-        action.exec?.(
-          {
-            ...action.info,
-            self: actor,
-            system: actor.system
-          },
-          action.params
-        );
+        action.exec?.(resolvedInfo, action.params);
       } else {
         const resolvedAction = resolveReferencedAction(this, action.type)!;
-        resolvedAction(
-          {
-            ...action.info,
-            self: actor,
-            system: actor.system
-          },
-          action.params
-        );
+        resolvedAction(resolvedInfo, action.params);
       }
     } finally {
       actorScope.defer = defer;
