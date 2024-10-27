@@ -6,6 +6,10 @@ runs:
       run: pnpm build
       shell: bash
 
+    - name: ESLint
+      run: pnpm lint --no-cache
+      shell: bash
+
     - name: Typecheck
       run: pnpm typecheck
       shell: bash

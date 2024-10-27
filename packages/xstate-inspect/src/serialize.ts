@@ -1,4 +1,4 @@
-import { AnyMachineSnapshot, AnyStateMachine } from 'xstate';
+import { AnyMachineSnapshot } from 'xstate';
 import { Replacer } from './types.ts';
 import { stringify } from './utils.ts';
 
