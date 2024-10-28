@@ -161,8 +161,8 @@ export function createSystem<T extends ActorSystemInfo>(
       ...event,
       rootId: rootActor.sessionId
     };
-    inspectionObservers.forEach(
-      (observer) => observer.next?.(resolvedInspectionEvent)
+    inspectionObservers.forEach((observer) =>
+      observer.next?.(resolvedInspectionEvent)
     );
   };
 

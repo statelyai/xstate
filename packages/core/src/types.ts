@@ -8,6 +8,7 @@ import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Spawner } from './spawn.ts';
 import { AnyActorSystem, Clock } from './system.js';
 import { InspectionEvent } from './inspection.ts';
+import { InvokeObject } from './invoke.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -916,6 +917,20 @@ export interface StateNodeConfig<
       TMeta
     >
   >;
+
+  invoke2?: SingleOrArray<
+    InvokeObject<
+      TContext,
+      TEvent,
+      TActor,
+      TAction,
+      TGuard,
+      TDelay,
+      TEmitted,
+      TMeta
+    >
+  >;
+
   /** The mapping of event types to their potential transition(s). */
   on?: TransitionsConfig<
     TContext,
