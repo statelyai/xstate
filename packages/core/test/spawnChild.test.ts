@@ -5,6 +5,7 @@ import {
   createMachine,
   fromObservable,
   fromPromise,
+  fromTransition,
   sendTo,
   spawnChild
 } from '../src';
@@ -111,5 +112,26 @@ describe('spawnChild action', () => {
     createActor(machine).start();
 
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('can restore from a persisted snapshot', () => {
+    const countLogic = fromTransition((s) => s, 0);
+
+    const actor = createActor(
+      createMachine({
+        entry: spawnChild(countLogic, {
+          id: 'child',
+          snapshot: {
+            context: 100
+          }
+        })
+      })
+    );
+
+    actor.start();
+
+    expect(actor.getSnapshot().children.child.getSnapshot().context).toEqual(
+      100
+    );
   });
 });
