@@ -8,13 +8,23 @@ import {
   Observer,
   SnapshotFrom,
   createActor,
-  toObserver
+  toObserver,
+  type ConditionalRequired,
+  type IsNotNever,
+  type RequiredActorOptionsKeys
 } from 'xstate';
 import { stopRootWithRehydration } from './stopRootWithRehydration';
 
 export function useIdleActorRef<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  options: Partial<ActorOptions<TLogic>>
+  ...[options]: ConditionalRequired<
+    [
+      options?: ActorOptions<TLogic> & {
+        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
+      }
+    ],
+    IsNotNever<RequiredActorOptionsKeys<TLogic>>
+  >
 ): Actor<TLogic> {
   let [[currentConfig, actorRef], setCurrent] = useState(() => {
     const actorRef = createActor(logic, options);
@@ -44,10 +54,23 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
 
 export function useActorRef<TLogic extends AnyActorLogic>(
   machine: TLogic,
-  options: ActorOptions<TLogic> = {},
-  observerOrListener?:
-    | Observer<SnapshotFrom<TLogic>>
-    | ((value: SnapshotFrom<TLogic>) => void)
+  ...[options, observerOrListener]: IsNotNever<
+    RequiredActorOptionsKeys<TLogic>
+  > extends true
+    ? [
+        options: ActorOptions<TLogic> & {
+          [K in RequiredActorOptionsKeys<TLogic>]: unknown;
+        },
+        observerOrListener?:
+          | Observer<SnapshotFrom<TLogic>>
+          | ((value: SnapshotFrom<TLogic>) => void)
+      ]
+    : [
+        options?: ActorOptions<TLogic>,
+        observerOrListener?:
+          | Observer<SnapshotFrom<TLogic>>
+          | ((value: SnapshotFrom<TLogic>) => void)
+      ]
 ): Actor<TLogic> {
   const actorRef = useIdleActorRef(machine, options);
 
@@ -55,7 +78,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     if (!observerOrListener) {
       return;
     }
-    let sub = actorRef.subscribe(toObserver(observerOrListener));
+    const sub = actorRef.subscribe(toObserver(observerOrListener));
     return () => {
       sub.unsubscribe();
     };

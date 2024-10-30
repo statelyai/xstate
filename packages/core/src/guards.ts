@@ -114,10 +114,7 @@ export function stateIn<
   TParams,
   any // TODO: recheck if we could replace this with something better here
 > {
-  function stateIn(
-    args: GuardArgs<TContext, TExpressionEvent>,
-    params: TParams
-  ) {
+  function stateIn() {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -179,7 +176,7 @@ export function not<
   unknown,
   NormalizeGuardArg<DoNotInfer<TArg>>
 > {
-  function not(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
+  function not(_args: GuardArgs<TContext, TExpressionEvent>, _params: unknown) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -252,7 +249,7 @@ export function and<
   unknown,
   NormalizeGuardArgArray<DoNotInfer<TArg>>
 > {
-  function and(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
+  function and(_args: GuardArgs<TContext, TExpressionEvent>, _params: unknown) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -323,7 +320,7 @@ export function or<
   unknown,
   NormalizeGuardArgArray<DoNotInfer<TArg>>
 > {
-  function or(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
+  function or(_args: GuardArgs<TContext, TExpressionEvent>, _params: unknown) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

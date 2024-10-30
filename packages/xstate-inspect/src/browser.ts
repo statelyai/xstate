@@ -12,7 +12,6 @@ import { stringifyState } from './serialize.ts';
 import type {
   Inspector,
   InspectorOptions,
-  InspectReceiver,
   ParsedReceiverEvent,
   ReceiverCommand,
   ServiceListener,

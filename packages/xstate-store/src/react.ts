@@ -1,11 +1,11 @@
 import { useCallback, useRef, useSyncExternalStore } from 'react';
-import { Store, SnapshotFromStore } from './types';
+import { SnapshotFromStore, AnyStore } from './types';
 
 function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;
 }
 
-function useSelectorWithCompare<TStore extends Store<any, any>, T>(
+function useSelectorWithCompare<TStore extends AnyStore, T>(
   selector: (snapshot: SnapshotFromStore<TStore>) => T,
   compare: (a: T | undefined, b: T) => boolean
 ): (snapshot: SnapshotFromStore<TStore>) => T {
@@ -40,7 +40,7 @@ function useSelectorWithCompare<TStore extends Store<any, any>, T>(
  *   previous value
  * @returns The selected value
  */
-export function useSelector<TStore extends Store<any, any>, T>(
+export function useSelector<TStore extends AnyStore, T>(
   store: TStore,
   selector: (snapshot: SnapshotFromStore<TStore>) => T,
   compare: (a: T | undefined, b: T) => boolean = defaultCompare

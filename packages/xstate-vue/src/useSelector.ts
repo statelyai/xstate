@@ -21,7 +21,7 @@ export function useSelector<
   ) => T,
   compare: (a: T, b: T) => boolean = defaultCompare
 ): Ref<T> {
-  const actorRefRef = isRef(actor) ? actor : shallowRef(actor);
+  const actorRefRef: Ref<TActor> = isRef(actor) ? actor : shallowRef(actor);
   const selected = shallowRef(selector(actorRefRef.value?.getSnapshot()));
 
   const updateSelectedIfChanged = (nextSelected: T) => {

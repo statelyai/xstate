@@ -12,6 +12,14 @@ const resolvePath = (path: any[], obj = {}): unknown => {
   return current;
 };
 
+const getWrappablePlaceholder = (value: any) => {
+  if (!isWrappable(value)) return value;
+  if (Array.isArray(value)) {
+    return [];
+  }
+  return {};
+};
+
 const updateStore = <Path extends unknown[]>(
   nextStore: Store<any>,
   prevStore: Store<any>,
@@ -19,6 +27,7 @@ const updateStore = <Path extends unknown[]>(
   store: Store<any>
 ) => {
   const valueRefs = new WeakMap<any, unknown>();
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-constraint
   const diff = <CompareValue extends unknown>(
     next: CompareValue,
     prev: CompareValue,
@@ -52,6 +61,13 @@ const updateStore = <Path extends unknown[]>(
       const smallestSize = Math.min(prev.length, next.length);
       const largestSize = Math.max(next.length, prev.length);
 
+      // Update new or now undefined indexes
+      if (newIndices !== 0) {
+        for (let newEnd = smallestSize; newEnd <= largestSize - 1; newEnd++) {
+          set(...path, newEnd, getWrappablePlaceholder(next[newEnd]));
+        }
+      }
+
       // Diff array
       for (let start = 0, end = largestSize - 1; start <= end; start++, end--) {
         diff(next[start], prev[start], [...path, start] as Path);
@@ -59,20 +75,15 @@ const updateStore = <Path extends unknown[]>(
         diff(next[end], prev[end], [...path, end] as Path);
       }
 
-      // Update new or now undefined indexes
-      if (newIndices !== 0) {
-        for (let newEnd = smallestSize; newEnd <= largestSize - 1; newEnd++) {
-          set(...path, newEnd, next[newEnd]);
-        }
-        if (prev.length > next.length) {
-          set(...path, 'length', next.length);
-        }
+      // Update length if it has changed
+      if (prev.length !== next.length) {
+        set(...path, 'length', next.length);
       }
     } else {
       // Update new values
       const targetKeys = Object.keys(next) as Array<keyof CompareValue>;
       for (let i = 0, len = targetKeys.length; i < len; i++) {
-        diff(next[targetKeys[i]!], prev[targetKeys[i]!], [
+        diff(next[targetKeys[i]], prev[targetKeys[i]], [
           ...path,
           targetKeys[i]
         ] as Path);
@@ -81,8 +92,8 @@ const updateStore = <Path extends unknown[]>(
       // Remove previous keys that are now undefined
       const previousKeys = Object.keys(prev) as Array<keyof CompareValue>;
       for (let i = 0, len = previousKeys.length; i < len; i++) {
-        if (next[previousKeys[i]!] === undefined) {
-          set(...path, previousKeys[i]!, undefined);
+        if (next[previousKeys[i]] === undefined) {
+          set(...path, previousKeys[i], undefined);
         }
       }
     }

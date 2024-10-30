@@ -196,11 +196,7 @@ export function fromTransition<
     transition: (snapshot, event, actorScope) => {
       return {
         ...snapshot,
-        context: transition(
-          snapshot.context,
-          event as TEvent,
-          actorScope as any
-        )
+        context: transition(snapshot.context, event, actorScope as any)
       };
     },
     getInitialSnapshot: (_, input) => {

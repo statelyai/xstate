@@ -1,0 +1,14 @@
+diff --git a/package.json b/package.json
+index f03807161632cb489eecf6514616f25436c043a5..c3760d607fed88b81f2989fb7e4b619e78597f3d 100644
+--- a/package.json
++++ b/package.json
+@@ -11,8 +11,8 @@
+       "types": "./dist/index.d.ts",
+       "node": "./dist/vue-test-utils.cjs.js",
+       "import": "./dist/vue-test-utils.esm-bundler.mjs",
+-      "browser": "./dist/vue-test-utils.browser.js",
+       "require": "./dist/vue-test-utils.cjs.js",
++      "browser": "./dist/vue-test-utils.browser.js",
+       "default": "./dist/vue-test-utils.cjs.js"
+     },
+     "./package.json": "./package.json"

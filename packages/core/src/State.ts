@@ -19,12 +19,11 @@ import type {
   MetaObject,
   StateSchema,
   StateId,
-  SnapshotStatus,
-  SnapshotFrom
+  SnapshotStatus
 } from './types.ts';
 import { matchesState } from './utils.ts';
 
-export type ToTestStateValue<TStateValue extends StateValue> =
+type ToTestStateValue<TStateValue extends StateValue> =
   TStateValue extends string
     ? TStateValue
     : IsNever<keyof TStateValue> extends true
@@ -37,10 +36,7 @@ export type ToTestStateValue<TStateValue extends StateValue> =
               >;
             };
 
-export function isMachineSnapshot<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(value: unknown): value is AnyMachineSnapshot {
+export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
   return (
     !!value &&
     typeof value === 'object' &&

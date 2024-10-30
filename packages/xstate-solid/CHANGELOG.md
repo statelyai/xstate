@@ -1,5 +1,59 @@
 # @xstate/solid
 
+## 0.2.3
+
+### Patch Changes
+
+- [#5100](https://github.com/statelyai/xstate/pull/5100) [`519188af785527195eea15972efbb260289c9979`](https://github.com/statelyai/xstate/commit/519188af785527195eea15972efbb260289c9979) Thanks [@GoldingAustin](https://github.com/GoldingAustin)! - When setting new array indexes, if the value is an object/array, use placeholder empty value to prevent mutation of original machine context
+
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies [[`25963966c394fc904dc9b701a420b6e204ebe7f7`](https://github.com/statelyai/xstate/commit/25963966c394fc904dc9b701a420b6e204ebe7f7)]:
+  - xstate@5.18.2
+
+## 0.2.1
+
+### Patch Changes
+
+- [#5055](https://github.com/statelyai/xstate/pull/5055) [`ad38c35c37`](https://github.com/statelyai/xstate/commit/ad38c35c377d4ec5c97710fda12512abbe5f7140) Thanks [@SandroMaglione](https://github.com/SandroMaglione)! - Updated types of `useActor`, `useMachine`, and `useActorRef` to require `input` when defined inside `types/input`.
+
+  Previously even when `input` was defined inside `types`, `useActor`, `useMachine`, and `useActorRef` would **not** make the input required:
+
+  ```tsx
+  const machine = setup({
+    types: {
+      input: {} as { value: number }
+    }
+  }).createMachine({});
+
+  function App() {
+    // Event if `input` is not defined, `useMachine` works at compile time, but risks crashing at runtime
+    const _ = useMachine(machine);
+    return <></>;
+  }
+  ```
+
+  With this change the above code will show a type error, since `input` is now required:
+
+  ```tsx
+  const machine = setup({
+    types: {
+      input: {} as { value: number }
+    }
+  }).createMachine({});
+
+  function App() {
+    const _ = useMachine(machine, {
+      input: { value: 1 } // Now input is required at compile time!
+    });
+    return <></>;
+  }
+  ```
+
+  This avoids runtime errors when forgetting to pass `input` when defined inside `types`.
+
 ## 0.2.0
 
 ### Minor Changes

@@ -10,28 +10,23 @@ import {
 } from '../src/actors';
 import {
   ActorRefFrom,
-  InputFrom,
+  ActorRefFromLogic,
+  AnyActorLogic,
   MachineContext,
   ProvidedActor,
   Spawner,
   StateMachine,
+  UnknownActorRef,
   assign,
   createActor,
   createMachine,
   enqueueActions,
   not,
   sendTo,
+  setup,
   spawnChild,
   stateIn,
-  setup,
-  toPromise,
-  UnknownActorRef,
-  AnyActorLogic,
-  ActorRef,
-  SnapshotFrom,
-  EmittedFrom,
-  EventFrom,
-  ActorRefFromLogic
+  toPromise
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -3768,6 +3763,27 @@ describe('input', () => {
         count: ''
       }
     });
+  });
+
+  it('should require input to be specified when defined', () => {
+    const machine = createMachine({
+      types: {
+        input: {} as {
+          count: number;
+        }
+      }
+    });
+
+    // @ts-expect-error
+    createActor(machine);
+  });
+
+  it('should not require input when not defined', () => {
+    const machine = createMachine({
+      types: {}
+    });
+
+    createActor(machine);
   });
 });
 
