@@ -1,6 +1,7 @@
 import { sleep } from '@xstate-repo/jest-utils';
 import {
   assign,
+  cancel,
   createActor,
   createMachine,
   enqueueActions,
@@ -242,6 +243,37 @@ describe('transition function', () => {
     });
 
     await waitFor(actor, (s) => s.matches('b'));
+  });
+
+  it('cancel action should be returned and can be executed', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          entry: raise({ type: 'NEXT' }, { delay: 10, id: 'myRaise' }),
+          on: {
+            NEXT: {
+              target: 'b',
+              actions: cancel('myRaise')
+            }
+          }
+        },
+        b: {}
+      }
+    });
+
+    const [state] = initialTransition(machine);
+
+    expect(state.value).toEqual('a');
+
+    const [, actions] = transition(machine, state, { type: 'NEXT' });
+
+    actions.forEach((action) => {
+      machine.executeAction(action);
+    });
+
+    // TODO: tweak the assertion
+    expect(actions.map((a) => a.type)).toEqual({});
   });
 
   // Copied from getSnapshot.test.ts

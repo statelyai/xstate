@@ -1,5 +1,6 @@
 import isDevelopment from '#is-development';
 import { assign } from './actions.ts';
+import { executeCancel } from './actions/cancel.ts';
 import { executeRaise } from './actions/raise.ts';
 import { executeSendTo } from './actions/send.ts';
 import { createEmptyActor } from './actors/index.ts';
@@ -661,6 +662,9 @@ export class StateMachine<
     actorScope.defer = (fn) => fn();
     try {
       switch (action.type) {
+        case 'xstate.cancel':
+          executeCancel(actorScope, action.params as any);
+          return;
         case 'xstate.raise':
           if (typeof (action as any).params.delay !== 'number') {
             return;

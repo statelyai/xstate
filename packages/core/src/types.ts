@@ -2634,6 +2634,7 @@ export interface ExecutableSpawnAction extends ExecutableActionObject {
   };
 }
 
+// TODO: cover all that can be actually returned
 export type SpecialExecutableAction =
   | ExecutableSpawnAction
   | ExecutableRaiseAction
