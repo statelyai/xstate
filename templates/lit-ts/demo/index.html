@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Vite + Lit + TS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <meta name="description" content="lit-ts" />
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        font-family: sans-serif;
+      }
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #eaeaea;
+      }
+      :not(:defined) {
+        visibility: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <lit-ts>
+      <a href="./lit-ts-counter.html">View counter demo</a>
+    </lit-ts>
+    <script type="module" src="../define/lit-ts.ts"></script>
+  </body>
+</html>
