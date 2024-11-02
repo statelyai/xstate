@@ -12,6 +12,7 @@ import {
   MachineContext,
   ParameterizedObject,
   ProvidedActor,
+  SpecialActionResolution,
   UnifiedArg
 } from '../types.ts';
 import { assign } from './assign.ts';
@@ -130,7 +131,7 @@ function resolveEnqueueActions(
       EventObject
     >;
   }
-) {
+): SpecialActionResolution {
   const actions: any[] = [];
   const enqueue: Parameters<typeof collect>[0]['enqueue'] = function enqueue(
     action

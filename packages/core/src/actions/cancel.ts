@@ -30,7 +30,7 @@ function resolveCancel(
 ): SpecialActionResolution {
   const resolvedSendId =
     typeof sendId === 'function' ? sendId(actionArgs, actionParams) : sendId;
-  return [snapshot, { sendId: resolvedSendId }];
+  return [snapshot, { sendId: resolvedSendId }, undefined];
 }
 
 export function executeCancel(

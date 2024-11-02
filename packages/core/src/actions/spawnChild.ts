@@ -18,6 +18,7 @@ import {
   ParameterizedObject,
   ProvidedActor,
   RequiredActorOptions,
+  SpecialActionResolution,
   UnifiedArg
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
@@ -47,7 +48,7 @@ function resolveSpawn(
     input?: unknown;
     syncSnapshot: boolean;
   }
-) {
+): SpecialActionResolution {
   const logic =
     typeof src === 'string'
       ? resolveReferencedActor(snapshot.machine, src)
@@ -94,7 +95,8 @@ function resolveSpawn(
       actorRef,
       src,
       input: resolvedInput
-    }
+    },
+    undefined
   ];
 }
 

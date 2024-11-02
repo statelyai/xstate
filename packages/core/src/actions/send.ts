@@ -20,6 +20,7 @@ import {
   ParameterizedObject,
   SendExpr,
   SendToActionOptions,
+  SpecialActionResolution,
   SpecialTargets,
   UnifiedArg
 } from '../types.ts';
@@ -64,7 +65,7 @@ function resolveSendTo(
       | undefined;
   },
   extra: { deferredActorIds: string[] | undefined }
-) {
+): SpecialActionResolution {
   const delaysMap = snapshot.machine.implementations.delays;
 
   if (typeof eventOrExpr === 'string') {
@@ -126,7 +127,8 @@ function resolveSendTo(
       event: resolvedEvent,
       id,
       delay: resolvedDelay
-    }
+    },
+    undefined
   ];
 }
 

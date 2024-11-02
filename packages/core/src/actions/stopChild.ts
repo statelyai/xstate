@@ -8,7 +8,8 @@ import {
   AnyMachineSnapshot,
   EventObject,
   MachineContext,
-  ParameterizedObject
+  ParameterizedObject,
+  SpecialActionResolution
 } from '../types.ts';
 
 type ResolvableActorRef<
@@ -30,7 +31,7 @@ function resolveStop(
   args: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   { actorRef }: { actorRef: ResolvableActorRef<any, any, any, any> }
-) {
+): SpecialActionResolution {
   const actorRefOrString =
     typeof actorRef === 'function' ? actorRef(args, actionParams) : actorRef;
   const resolvedActorRef: AnyActorRef | undefined =
@@ -47,7 +48,8 @@ function resolveStop(
     cloneMachineSnapshot(snapshot, {
       children
     }),
-    resolvedActorRef
+    resolvedActorRef,
+    undefined
   ];
 }
 function executeStop(
