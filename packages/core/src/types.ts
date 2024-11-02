@@ -2663,3 +2663,14 @@ export type ExecutableActionsFrom<T extends AnyActorLogic> =
     : never;
 
 export type ActionExecutor = (actionToExecute: ExecutableActionObject) => void;
+
+export type SpecialActionResolution =
+  | [
+      AnyMachineSnapshot,
+      NonReducibleUnknown // params
+    ]
+  | [
+      AnyMachineSnapshot,
+      NonReducibleUnknown, // params
+      UnknownAction[] | undefined
+    ];

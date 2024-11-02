@@ -273,7 +273,14 @@ describe('transition function', () => {
     });
 
     // TODO: tweak the assertion
-    expect(actions.map((a) => a.type)).toEqual({});
+    expect(actions).toContainEqual(
+      expect.objectContaining({
+        type: 'xstate.cancel',
+        params: expect.objectContaining({
+          sendId: 'myRaise'
+        })
+      })
+    );
   });
 
   // Copied from getSnapshot.test.ts
