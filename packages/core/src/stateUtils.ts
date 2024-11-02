@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
-import { raise } from './actions.ts';
+import { assign, raise, sendTo } from './actions.ts';
 import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
 import { spawnChild } from './actions/spawnChild.ts';
@@ -37,7 +37,9 @@ import {
   ActionFunction,
   AnyTransitionConfig,
   ProvidedActor,
-  AnyActorScope
+  AnyActorScope,
+  ActionFunctionEnqueuer,
+  AnyActorRef
 } from './types.ts';
 import {
   resolveOutput,
@@ -1550,16 +1552,62 @@ function resolveAndExecuteActionsWithContext(
           params: actionParams
         }
       });
+      const actions: UnknownAction[] = [];
+      const enq: ActionFunctionEnqueuer<
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any
+      > = {
+        assign: (...args) => {
+          actions.push(assign(...args) as UnknownAction);
+        },
+        action: (actionFn) => {
+          actions.push(actionFn);
+        },
+        raise: (...args) => {
+          actions.push(raise(...args) as UnknownAction);
+        },
+        sendTo: (...args) => {
+          actions.push(sendTo(...args) as UnknownAction);
+        },
+        check: (guard) =>
+          evaluateGuard(
+            guard,
+            intermediateSnapshot.context,
+            event,
+            intermediateSnapshot
+          )
+      };
       try {
         executingCustomAction = resolvedAction;
-        resolvedAction(actionArgs, actionParams);
+        resolvedAction(actionArgs, actionParams, enq);
       } finally {
         executingCustomAction = false;
+      }
+
+      if (actions.length) {
+        intermediateSnapshot = resolveAndExecuteActionsWithContext(
+          intermediateSnapshot,
+          event,
+          actorScope,
+          actions,
+          extra,
+          retries
+        );
+
+        return intermediateSnapshot;
       }
     }
 
     if (!('resolve' in resolvedAction)) {
       if (actorScope.self._processingStatus === ProcessingStatus.Running) {
+        executeAction();
+      } else if (resolvedAction.length === 3) {
         executeAction();
       } else {
         actorScope.defer(() => {

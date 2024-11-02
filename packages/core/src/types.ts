@@ -1,13 +1,14 @@
 import type { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
-import { AssignArgs } from './actions/assign.ts';
+import { AssignArgs, assign } from './actions/assign.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Spawner } from './spawn.ts';
 import { AnyActorSystem, Clock } from './system.js';
 import { InspectionEvent } from './inspection.ts';
+import type { raise, sendTo } from './actions.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -169,6 +170,57 @@ export type OutputFrom<T> =
       ? (TSnapshot & { status: 'done' })['output']
       : never;
 
+export interface ActionFunctionEnqueuer<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TEmitted extends EventObject
+> {
+  assign: (
+    ...args: Parameters<
+      typeof assign<TContext, TExpressionEvent, any, TEvent, any>
+    >
+  ) => void;
+  raise: (
+    ...args: Parameters<
+      typeof raise<
+        TContext,
+        TExpressionEvent,
+        TEvent,
+        undefined,
+        TDelay,
+        TDelay
+      >
+    >
+  ) => void;
+  action: (
+    actionFn:
+      | NoRequiredParams<TAction>
+      | WithDynamicParams<TContext, TExpressionEvent, TAction>
+      | ((args: ActionArgs<TContext, TExpressionEvent, TEvent>) => void)
+  ) => void;
+  check: (
+    guard: Guard<TContext, TExpressionEvent, undefined, TGuard>
+  ) => boolean;
+  sendTo: <TTargetActor extends AnyActorRef>(
+    ...args: Parameters<
+      typeof sendTo<
+        TContext,
+        TExpressionEvent,
+        undefined,
+        TTargetActor,
+        TEvent,
+        TDelay,
+        TDelay
+      >
+    >
+  ) => void;
+}
+
 export type ActionFunction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -180,7 +232,20 @@ export type ActionFunction<
   TDelay extends string,
   TEmitted extends EventObject
 > = {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  (
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams,
+    enqueue: ActionFunctionEnqueuer<
+      TContext,
+      TExpressionEvent,
+      TEvent,
+      TActor,
+      TAction,
+      TGuard,
+      TDelay,
+      TEmitted
+    >
+  ): void;
   _out_TEvent?: TEvent; // TODO: it feels like we should be able to remove this since now `TEvent` is "observable" by `self`
   _out_TActor?: TActor;
   _out_TAction?: TAction;

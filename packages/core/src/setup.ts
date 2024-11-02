@@ -75,7 +75,7 @@ export function setup<
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
   TActors extends Record<string, UnknownActorLogic> = {},
   TChildrenMap extends Record<string, string> = {},
-  TActions extends Record<
+  TActionParams extends Record<
     string,
     ParameterizedObject['params'] | undefined
   > = {},
@@ -115,13 +115,13 @@ export function setup<
       : never;
   };
   actions?: {
-    [K in keyof TActions]: ActionFunction<
+    [K in keyof TActionParams]: ActionFunction<
       TContext,
+      TEvent, // Expression event
       TEvent,
-      TEvent,
-      TActions[K],
+      TActionParams[K],
       ToProvidedActor<TChildrenMap, TActors>,
-      ToParameterizedObject<TActions>,
+      ToParameterizedObject<TActionParams>,
       ToParameterizedObject<TGuards>,
       TDelay,
       TEmitted
@@ -139,7 +139,7 @@ export function setup<
     [K in TDelay]: DelayConfig<
       TContext,
       TEvent,
-      ToParameterizedObject<TActions>['params'],
+      ToParameterizedObject<TActionParams>['params'],
       TEvent
     >;
   };
@@ -151,7 +151,7 @@ export function setup<
       TContext,
       TEvent,
       ToProvidedActor<TChildrenMap, TActors>,
-      ToParameterizedObject<TActions>,
+      ToParameterizedObject<TActionParams>,
       ToParameterizedObject<TGuards>,
       TDelay,
       TTag,
@@ -170,7 +170,7 @@ export function setup<
       Record<string, AnyActorRef | undefined>
     >,
     ToProvidedActor<TChildrenMap, TActors>,
-    ToParameterizedObject<TActions>,
+    ToParameterizedObject<TActionParams>,
     ToParameterizedObject<TGuards>,
     TDelay,
     ToStateValue<TConfig>,
