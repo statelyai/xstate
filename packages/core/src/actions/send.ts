@@ -124,6 +124,7 @@ function resolveSendTo(
     snapshot,
     {
       to: targetActorRef,
+      actorId: typeof resolvedTarget === 'string' ? resolvedTarget : undefined,
       event: resolvedEvent,
       id,
       delay: resolvedDelay

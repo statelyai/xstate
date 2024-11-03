@@ -1985,7 +1985,11 @@ export interface ActorRef<
   ) => Subscription;
 }
 
-export type AnyActorRef = ActorRef<any, any, any>;
+export type AnyActorRef = ActorRef<
+  any,
+  any, // TODO: shouldn't this be AnyEventObject?
+  any
+>;
 
 export type ActorRefLike = Pick<
   AnyActorRef,

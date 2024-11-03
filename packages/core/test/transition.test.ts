@@ -11,6 +11,7 @@ import {
   fromPromise,
   fromTransition,
   raise,
+  sendTo,
   setup,
   toPromise,
   transition,
@@ -20,6 +21,7 @@ import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
 import assert from 'node:assert';
 import { resolveReferencedActor } from '../src/utils';
+import { parseArgs } from 'node:util';
 
 describe('transition function', () => {
   it('should capture actions', () => {
@@ -268,16 +270,60 @@ describe('transition function', () => {
 
     const [, actions] = transition(machine, state, { type: 'NEXT' });
 
+    // This does nothing, since a delayed raise action should be handled
+    // by an external scheduler
     actions.forEach((action) => {
       machine.executeAction(action);
     });
 
-    // TODO: tweak the assertion
     expect(actions).toContainEqual(
       expect.objectContaining({
         type: 'xstate.cancel',
         params: expect.objectContaining({
           sendId: 'myRaise'
+        })
+      })
+    );
+  });
+
+  it('sendTo action should be returned and can be executed', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      invoke: {
+        src: createMachine({}),
+        id: 'someActor'
+      },
+      states: {
+        a: {
+          on: {
+            NEXT: {
+              actions: sendTo('someActor', { type: 'someEvent' })
+            }
+          }
+        }
+      }
+    });
+
+    const [state, actions0] = initialTransition(machine);
+
+    expect(state.value).toEqual('a');
+
+    expect(actions0).toContainEqual(
+      expect.objectContaining({
+        type: 'xstate.spawnChild',
+        params: expect.objectContaining({
+          id: 'someActor'
+        })
+      })
+    );
+
+    const [, actions] = transition(machine, state, { type: 'NEXT' });
+
+    expect(actions).toContainEqual(
+      expect.objectContaining({
+        type: 'xstate.sendTo',
+        params: expect.objectContaining({
+          actorId: 'someActor'
         })
       })
     );
