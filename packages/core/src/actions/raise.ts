@@ -14,7 +14,7 @@ import {
   ParameterizedObject,
   RaiseActionOptions,
   SendExpr,
-  SpecialActionResolution
+  BuiltinActionResolution
 } from '../types.ts';
 
 function resolveRaise(
@@ -49,7 +49,7 @@ function resolveRaise(
       | undefined;
   },
   { internalQueue }: { internalQueue: AnyEventObject[] }
-): SpecialActionResolution {
+): BuiltinActionResolution {
   const delaysMap = snapshot.machine.implementations.delays;
 
   if (typeof eventOrExpr === 'string') {

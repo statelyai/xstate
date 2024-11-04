@@ -2668,7 +2668,7 @@ export type ExecutableActionsFrom<T extends AnyActorLogic> =
 
 export type ActionExecutor = (actionToExecute: ExecutableActionObject) => void;
 
-export type SpecialActionResolution = [
+export type BuiltinActionResolution = [
   AnyMachineSnapshot,
   NonReducibleUnknown, // params
   UnknownAction[] | undefined

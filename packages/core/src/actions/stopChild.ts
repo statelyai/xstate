@@ -9,7 +9,7 @@ import {
   EventObject,
   MachineContext,
   ParameterizedObject,
-  SpecialActionResolution
+  BuiltinActionResolution
 } from '../types.ts';
 
 type ResolvableActorRef<
@@ -31,7 +31,7 @@ function resolveStop(
   args: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   { actorRef }: { actorRef: ResolvableActorRef<any, any, any, any> }
-): SpecialActionResolution {
+): BuiltinActionResolution {
   const actorRefOrString =
     typeof actorRef === 'function' ? actorRef(args, actionParams) : actorRef;
   const resolvedActorRef: AnyActorRef | undefined =

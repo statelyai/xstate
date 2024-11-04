@@ -18,7 +18,7 @@ import {
   ParameterizedObject,
   ProvidedActor,
   RequiredActorOptions,
-  SpecialActionResolution,
+  BuiltinActionResolution,
   UnifiedArg
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
@@ -48,7 +48,7 @@ function resolveSpawn(
     input?: unknown;
     syncSnapshot: boolean;
   }
-): SpecialActionResolution {
+): BuiltinActionResolution {
   const logic =
     typeof src === 'string'
       ? resolveReferencedActor(snapshot.machine, src)

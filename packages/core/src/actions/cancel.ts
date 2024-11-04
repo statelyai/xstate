@@ -6,7 +6,7 @@ import {
   MachineContext,
   ActionArgs,
   ParameterizedObject,
-  SpecialActionResolution
+  BuiltinActionResolution
 } from '../types.ts';
 
 type ResolvableSendId<
@@ -27,7 +27,7 @@ function resolveCancel(
   actionArgs: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   { sendId }: { sendId: ResolvableSendId<any, any, any, any> }
-): SpecialActionResolution {
+): BuiltinActionResolution {
   const resolvedSendId =
     typeof sendId === 'function' ? sendId(actionArgs, actionParams) : sendId;
   return [snapshot, { sendId: resolvedSendId }, undefined];

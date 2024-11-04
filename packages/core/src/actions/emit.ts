@@ -11,7 +11,7 @@ import {
   MachineContext,
   ParameterizedObject,
   SendExpr,
-  SpecialActionResolution
+  BuiltinActionResolution
 } from '../types.ts';
 
 function resolveEmit(
@@ -32,7 +32,7 @@ function resolveEmit(
           EventObject
         >;
   }
-): SpecialActionResolution {
+): BuiltinActionResolution {
   const resolvedEvent =
     typeof eventOrExpr === 'function'
       ? eventOrExpr(args, actionParams)
