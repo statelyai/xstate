@@ -4,12 +4,14 @@ import {
   cancel,
   createActor,
   createMachine,
+  emit,
   enqueueActions,
   EventFrom,
   ExecutableActionsFrom,
   ExecutableSpawnAction,
   fromPromise,
   fromTransition,
+  log,
   raise,
   sendTo,
   setup,
@@ -323,6 +325,71 @@ describe('transition function', () => {
         type: 'xstate.sendTo',
         params: expect.objectContaining({
           targetId: 'someActor'
+        })
+      })
+    );
+  });
+
+  it('emit actions should be returned', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      context: { count: 10 },
+      states: {
+        a: {
+          on: {
+            NEXT: {
+              actions: emit(({ context }) => ({
+                type: 'counted',
+                count: context.count
+              }))
+            }
+          }
+        }
+      }
+    });
+
+    const [state] = initialTransition(machine);
+
+    expect(state.value).toEqual('a');
+
+    const [, nextActions] = transition(machine, state, { type: 'NEXT' });
+
+    expect(nextActions).toContainEqual(
+      expect.objectContaining({
+        type: 'xstate.emit',
+        params: expect.objectContaining({
+          event: { type: 'counted', count: 10 }
+        })
+      })
+    );
+  });
+
+  it('log actions should be returned', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      context: { count: 10 },
+      states: {
+        a: {
+          on: {
+            NEXT: {
+              actions: log(({ context }) => `count: ${context.count}`)
+            }
+          }
+        }
+      }
+    });
+
+    const [state] = initialTransition(machine);
+
+    expect(state.value).toEqual('a');
+
+    const [, nextActions] = transition(machine, state, { type: 'NEXT' });
+
+    expect(nextActions).toContainEqual(
+      expect.objectContaining({
+        type: 'xstate.log',
+        params: expect.objectContaining({
+          value: 'count: 10'
         })
       })
     );
