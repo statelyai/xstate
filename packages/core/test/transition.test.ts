@@ -21,7 +21,6 @@ import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
 import assert from 'node:assert';
 import { resolveReferencedActor } from '../src/utils';
-import { parseArgs } from 'node:util';
 
 describe('transition function', () => {
   it('should capture actions', () => {
@@ -323,7 +322,7 @@ describe('transition function', () => {
       expect.objectContaining({
         type: 'xstate.sendTo',
         params: expect.objectContaining({
-          actorId: 'someActor'
+          targetId: 'someActor'
         })
       })
     );
