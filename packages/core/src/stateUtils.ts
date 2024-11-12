@@ -1486,7 +1486,7 @@ export interface BuiltinAction {
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
-export function getAction(machine: AnyStateMachine, actionType: string) {
+function getAction(machine: AnyStateMachine, actionType: string) {
   return machine.implementations.actions[actionType];
 }
 
