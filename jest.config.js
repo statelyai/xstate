@@ -3,7 +3,7 @@ const { constants } = require('jest-config');
 /** @type {import('@jest/types').Config.InitialOptions} */
 module.exports = {
   prettierPath: null,
-  setupFilesAfterEnv: ['@xstate-repo/jest-utils/setup'],
+  setupFilesAfterEnv: ['<rootDir>/scripts/jest-utils/setup'],
   transform: {
     [constants.DEFAULT_JS_PATTERN]: 'babel-jest',
     '^.+\\.vue$': '@vue/vue3-jest',

@@ -41,7 +41,7 @@ export interface InspectedActionEvent extends BaseInspectionEventProperties {
   type: '@xstate.action';
   action: {
     type: string;
-    params: Record<string, unknown>;
+    params: unknown;
   };
 }
 

@@ -4,6 +4,7 @@ import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
 import { evaluateGuard } from './guards.ts';
 import { memo } from './memo.ts';
 import {
+  BuiltinAction,
   formatInitialTransition,
   formatTransition,
   formatTransitions,
@@ -47,7 +48,7 @@ const toSerializableAction = (action: UnknownAction) => {
   }
   if (typeof action === 'function') {
     if ('resolve' in action) {
-      return { type: (action as any).type };
+      return { type: (action as BuiltinAction).type };
     }
     return {
       type: action.name
@@ -296,13 +297,14 @@ export class StateNode<
       toArray(this.config.invoke).map((invokeConfig, i) => {
         const { src, systemId } = invokeConfig;
         const resolvedId = invokeConfig.id ?? createInvokeId(this.id, i);
-        const resolvedSrc =
+        const sourceName =
           typeof src === 'string'
             ? src
             : `xstate.invoke.${createInvokeId(this.id, i)}`;
+
         return {
           ...invokeConfig,
-          src: resolvedSrc,
+          src: sourceName,
           id: resolvedId,
           systemId: systemId,
           toJSON() {
@@ -310,7 +312,7 @@ export class StateNode<
             return {
               ...invokeDefValues,
               type: 'xstate.invoke',
-              src: resolvedSrc,
+              src: sourceName,
               id: resolvedId
             };
           }

@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
+import { executingCustomAction } from '../createActor.ts';
 import { Spawner, createSpawner } from '../spawn.ts';
-import { executingCustomAction } from '../stateUtils.ts';
 import type {
   ActionArgs,
   AnyActorScope,
@@ -15,7 +15,8 @@ import type {
   ParameterizedObject,
   PropertyAssigner,
   ProvidedActor,
-  ActionFunction
+  ActionFunction,
+  BuiltinActionResolution
 } from '../types.ts';
 
 export interface AssignArgs<
@@ -39,7 +40,7 @@ function resolveAssign(
       | Assigner<any, any, any, any, any>
       | PropertyAssigner<any, any, any, any, any>;
   }
-) {
+): BuiltinActionResolution {
   if (!snapshot.context) {
     throw new Error(
       'Cannot assign to undefined `context`. Ensure that `context` is defined in the machine config.'
@@ -83,7 +84,9 @@ function resolveAssign(
             ...spawnedChildren
           }
         : snapshot.children
-    })
+    }),
+    undefined,
+    undefined
   ];
 }
 

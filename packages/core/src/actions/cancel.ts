@@ -5,7 +5,8 @@ import {
   EventObject,
   MachineContext,
   ActionArgs,
-  ParameterizedObject
+  ParameterizedObject,
+  BuiltinActionResolution
 } from '../types.ts';
 
 type ResolvableSendId<
@@ -26,15 +27,15 @@ function resolveCancel(
   actionArgs: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   { sendId }: { sendId: ResolvableSendId<any, any, any, any> }
-) {
+): BuiltinActionResolution {
   const resolvedSendId =
     typeof sendId === 'function' ? sendId(actionArgs, actionParams) : sendId;
-  return [snapshot, resolvedSendId];
+  return [snapshot, { sendId: resolvedSendId }, undefined];
 }
 
-function executeCancel(actorScope: AnyActorScope, resolvedSendId: string) {
+function executeCancel(actorScope: AnyActorScope, params: { sendId: string }) {
   actorScope.defer(() => {
-    actorScope.system.scheduler.cancel(actorScope.self, resolvedSendId);
+    actorScope.system.scheduler.cancel(actorScope.self, params.sendId);
   });
 }
 

@@ -6,7 +6,8 @@ import {
   EventObject,
   LogExpr,
   MachineContext,
-  ParameterizedObject
+  ParameterizedObject,
+  BuiltinActionResolution
 } from '../types.ts';
 
 type ResolvableLogValue<
@@ -28,14 +29,15 @@ function resolveLog(
     value: ResolvableLogValue<any, any, any, any>;
     label: string | undefined;
   }
-) {
+): BuiltinActionResolution {
   return [
     snapshot,
     {
       value:
         typeof value === 'function' ? value(actionArgs, actionParams) : value,
       label
-    }
+    },
+    undefined
   ];
 }
 

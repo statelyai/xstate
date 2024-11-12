@@ -181,16 +181,16 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 
 ## Packages
 
-| Package                                                                                       | Description                                                                  |
-| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| 🤖 `xstate`                                                                                   | Core finite state machine and statecharts library + interpreter              |
-| [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph)     | Graph traversal and model-based testing utilities using XState               |
-| [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react)     | React hooks and utilities for using XState in React applications             |
-| [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)         | Vue composition functions and utilities for using XState in Vue applications |
-| [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte)   | Svelte utilities for using XState in Svelte applications                     |
-| [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid)     | Solid hooks and utilities for using XState in Solid applications             |
-| [🔍 `@statelyai/inspect`](https://github.com/statelyai/inspect) | Inspection utilities for XState                                              |
-| [🏪 `@xstate/store`](https://github.com/statelyai/xstate/tree/main/packages/xstate-store) | Small library for simple state management |
+| Package                                                                                     | Description                                                                  |
+| ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 🤖 `xstate`                                                                                 | Core finite state machine and statecharts library + interpreter              |
+| [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph)   | Graph traversal and model-based testing utilities using XState               |
+| [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react)   | React hooks and utilities for using XState in React applications             |
+| [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)       | Vue composition functions and utilities for using XState in Vue applications |
+| [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) | Svelte utilities for using XState in Svelte applications                     |
+| [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid)   | Solid hooks and utilities for using XState in Solid applications             |
+| [🔍 `@statelyai/inspect`](https://github.com/statelyai/inspect)                             | Inspection utilities for XState                                              |
+| [🏪 `@xstate/store`](https://github.com/statelyai/xstate/tree/main/packages/xstate-store)   | Small library for simple state management                                    |
 
 ## Finite State Machines
 

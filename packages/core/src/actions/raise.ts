@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { executingCustomAction } from '../stateUtils.ts';
+import { executingCustomAction } from '../createActor.ts';
 import {
   ActionArgs,
   ActionFunction,
@@ -9,10 +9,12 @@ import {
   DelayExpr,
   DoNotInfer,
   EventObject,
+  ExecutableActionObject,
   MachineContext,
   ParameterizedObject,
   RaiseActionOptions,
-  SendExpr
+  SendExpr,
+  BuiltinActionResolution
 } from '../types.ts';
 
 function resolveRaise(
@@ -47,7 +49,7 @@ function resolveRaise(
       | undefined;
   },
   { internalQueue }: { internalQueue: AnyEventObject[] }
-) {
+): BuiltinActionResolution {
   const delaysMap = snapshot.machine.implementations.delays;
 
   if (typeof eventOrExpr === 'string') {
@@ -75,7 +77,15 @@ function resolveRaise(
   if (typeof resolvedDelay !== 'number') {
     internalQueue.push(resolvedEvent);
   }
-  return [snapshot, { event: resolvedEvent, id, delay: resolvedDelay }];
+  return [
+    snapshot,
+    {
+      event: resolvedEvent,
+      id,
+      delay: resolvedDelay
+    },
+    undefined
+  ];
 }
 
 function executeRaise(
@@ -167,4 +177,13 @@ export function raise<
   raise.execute = executeRaise;
 
   return raise;
+}
+
+export interface ExecutableRaiseAction extends ExecutableActionObject {
+  type: 'xstate.raise';
+  params: {
+    event: EventObject;
+    id: string | undefined;
+    delay: number | undefined;
+  };
 }

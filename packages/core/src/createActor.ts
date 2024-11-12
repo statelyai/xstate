@@ -11,6 +11,8 @@ import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { AnyActorSystem, Clock, createSystem } from './system.ts';
 
+export let executingCustomAction: boolean = false;
+
 import type {
   ActorScope,
   AnyActorLogic,
@@ -183,12 +185,39 @@ export class Actor<TLogic extends AnyActorLogic>
         if (!listeners && !wildcardListener) {
           return;
         }
-        const allListeners = new Set([
+        const allListeners = [
           ...(listeners ? listeners.values() : []),
           ...(wildcardListener ? wildcardListener.values() : [])
-        ]);
-        for (const handler of Array.from(allListeners)) {
+        ];
+        for (const handler of allListeners) {
           handler(emittedEvent);
+        }
+      },
+      actionExecutor: (action) => {
+        const exec = () => {
+          this._actorScope.system._sendInspectionEvent({
+            type: '@xstate.action',
+            actorRef: this,
+            action: {
+              type: action.type,
+              params: action.params
+            }
+          });
+          if (!action.exec) {
+            return;
+          }
+          const saveExecutingCustomAction = executingCustomAction;
+          try {
+            executingCustomAction = true;
+            action.exec(action.info, action.params);
+          } finally {
+            executingCustomAction = saveExecutingCustomAction;
+          }
+        };
+        if (this._processingStatus === ProcessingStatus.Running) {
+          exec();
+        } else {
+          this._deferred.push(exec);
         }
       }
     };

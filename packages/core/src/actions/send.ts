@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { XSTATE_ERROR } from '../constants.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
-import { executingCustomAction } from '../stateUtils.ts';
+import { executingCustomAction } from '../createActor.ts';
 import {
   ActionArgs,
   ActionFunction,
@@ -14,11 +14,13 @@ import {
   DoNotInfer,
   EventFrom,
   EventObject,
+  ExecutableActionObject,
   InferEvent,
   MachineContext,
   ParameterizedObject,
   SendExpr,
   SendToActionOptions,
+  BuiltinActionResolution,
   SpecialTargets,
   UnifiedArg
 } from '../types.ts';
@@ -63,7 +65,7 @@ function resolveSendTo(
       | undefined;
   },
   extra: { deferredActorIds: string[] | undefined }
-) {
+): BuiltinActionResolution {
   const delaysMap = snapshot.machine.implementations.delays;
 
   if (typeof eventOrExpr === 'string') {
@@ -120,7 +122,14 @@ function resolveSendTo(
 
   return [
     snapshot,
-    { to: targetActorRef, event: resolvedEvent, id, delay: resolvedDelay }
+    {
+      to: targetActorRef,
+      targetId: typeof resolvedTarget === 'string' ? resolvedTarget : undefined,
+      event: resolvedEvent,
+      id,
+      delay: resolvedDelay
+    },
+    undefined
   ];
 }
 
@@ -241,7 +250,7 @@ export function sendTo<
 > {
   if (isDevelopment && executingCustomAction) {
     console.warn(
-      'Custom actions should not call `raise()` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.'
+      'Custom actions should not call `sendTo()` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.'
     );
   }
 
@@ -254,7 +263,7 @@ export function sendTo<
     }
   }
 
-  sendTo.type = 'xsnapshot.sendTo';
+  sendTo.type = 'xstate.sendTo';
   sendTo.to = to;
   sendTo.event = eventOrExpr;
   sendTo.id = options?.id;
@@ -364,4 +373,14 @@ export function forwardTo<
     TDelay,
     TUsedDelay
   >(target, ({ event }: any) => event, options);
+}
+
+export interface ExecutableSendToAction extends ExecutableActionObject {
+  type: 'xstate.sendTo';
+  params: {
+    event: EventObject;
+    id: string | undefined;
+    delay: number | undefined;
+    to: AnyActorRef;
+  };
 }

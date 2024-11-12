@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { executingCustomAction } from '../stateUtils.ts';
+import { executingCustomAction } from '../createActor.ts';
 import {
   ActionArgs,
   ActionFunction,
@@ -10,7 +10,8 @@ import {
   EventObject,
   MachineContext,
   ParameterizedObject,
-  SendExpr
+  SendExpr,
+  BuiltinActionResolution
 } from '../types.ts';
 
 function resolveEmit(
@@ -31,12 +32,12 @@ function resolveEmit(
           EventObject
         >;
   }
-) {
+): BuiltinActionResolution {
   const resolvedEvent =
     typeof eventOrExpr === 'function'
       ? eventOrExpr(args, actionParams)
       : eventOrExpr;
-  return [snapshot, { event: resolvedEvent }];
+  return [snapshot, { event: resolvedEvent }, undefined];
 }
 
 function executeEmit(

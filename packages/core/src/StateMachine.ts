@@ -293,7 +293,8 @@ export class StateMachine<
     TMeta,
     TConfig
   > {
-    return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
+    return macrostep(snapshot, event, actorScope, [])
+      .snapshot as typeof snapshot;
   }
 
   /**
@@ -328,7 +329,7 @@ export class StateMachine<
       TConfig
     >
   > {
-    return macrostep(snapshot, event, actorScope).microstates;
+    return macrostep(snapshot, event, actorScope, []).microstates;
   }
 
   public getTransitionData(
@@ -386,7 +387,8 @@ export class StateMachine<
         initEvent,
         actorScope,
         [assign(assignment)],
-        internalQueue
+        internalQueue,
+        undefined
       ) as SnapshotFrom<this>;
     }
 
