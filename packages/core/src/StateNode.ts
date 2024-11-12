@@ -262,7 +262,7 @@ export class StateNode<
       on: this.on,
       transitions: [...this.transitions.values()].flat().map((t) => ({
         ...t,
-        actions: t.actions
+        actions: t.actions.map(toSerializableAction)
       })),
       entry: this.entry.map(toSerializableAction),
       exit: this.exit.map(toSerializableAction),
