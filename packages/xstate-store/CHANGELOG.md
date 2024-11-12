@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 2.6.1
+
+### Patch Changes
+
+- [#5109](https://github.com/statelyai/xstate/pull/5109) [`d67b71dd25d457a2a59f2c943db13f50fab7ec3d`](https://github.com/statelyai/xstate/commit/d67b71dd25d457a2a59f2c943db13f50fab7ec3d) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add React 19 as a peer dependency
+
 ## 2.6.0
 
 ### Minor Changes
