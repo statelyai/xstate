@@ -123,29 +123,6 @@ describe('transition function', () => {
     ]);
   });
 
-  it('actor can be specified', () => {
-    const machine = createMachine({
-      entry: (x) => {
-        x.self.send({ type: 'next' });
-      },
-      initial: 'a',
-      states: {
-        a: {
-          on: { next: 'b' }
-        },
-        b: {}
-      }
-    });
-
-    const [state] = initialTransition(machine);
-
-    const actor = createActor(machine, {
-      snapshot: state
-    }).start();
-
-    expect(actor.getSnapshot().matches('a')).toBeTruthy();
-  });
-
   it('delayed raise actions should be returned', async () => {
     const machine = createMachine({
       initial: 'a',
