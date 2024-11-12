@@ -1,6 +1,5 @@
 import isDevelopment from '#is-development';
 import { assign } from './actions.ts';
-import { createEmptyActor } from './actors/index.ts';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import { createInitEvent } from './eventUtils.ts';
 import {
@@ -19,7 +18,6 @@ import {
   macrostep,
   microstep,
   resolveActionsAndContext,
-  getAction,
   resolveStateValue,
   transitionNode
 } from './stateUtils.ts';
@@ -50,8 +48,7 @@ import type {
   TransitionDefinition,
   ResolvedStateMachineTypes,
   StateSchema,
-  SnapshotStatus,
-  ExecutableActionObject
+  SnapshotStatus
 } from './types.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
 
@@ -633,37 +630,5 @@ export class StateMachine<
     reviveContext(restoredSnapshot.context, children);
 
     return restoredSnapshot;
-  }
-
-  /**
-   * Runs an executable action. Executable actions are returned from the
-   * `transition(…)` function.
-   *
-   * @example
-   *
-   * ```ts
-   * const [state, actions] = transition(someMachine, someState, someEvent);
-   *
-   * for (const action of actions) {
-   *   // Executes the action
-   *   someMachine.executeAction(action);
-   * }
-   * ```
-   */
-  public executeAction(
-    action: ExecutableActionObject,
-    actor: AnyActorRef = createEmptyActor()
-  ) {
-    const resolvedInfo = {
-      ...action.info,
-      self: actor,
-      system: actor.system
-    };
-    if (action.exec) {
-      action.exec?.(resolvedInfo, action.params);
-    } else {
-      const resolvedAction = getAction(this, action.type)!;
-      resolvedAction(resolvedInfo, action.params);
-    }
   }
 }

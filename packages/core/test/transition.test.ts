@@ -72,12 +72,6 @@ describe('transition function', () => {
     expect(actionWithParams).not.toHaveBeenCalled();
     expect(stringAction).not.toHaveBeenCalled();
 
-    // Execute actions
-    actions0.forEach((a) => machine.executeAction(a));
-
-    expect(actionWithParams).toHaveBeenCalledWith(expect.anything(), { a: 1 });
-    expect(stringAction).toHaveBeenCalled();
-
     const [state1, actions1] = transition(machine, state0, {
       type: 'event',
       msg: 'hello'
@@ -92,13 +86,6 @@ describe('transition function', () => {
     ]);
 
     expect(actionWithDynamicParams).not.toHaveBeenCalled();
-
-    // Execute actions
-    actions1.forEach((a) => machine.executeAction(a));
-
-    expect(actionWithDynamicParams).toHaveBeenCalledWith({
-      msg: 'hello'
-    });
   });
 
   it('should be able to execute a referenced serialized action', () => {
@@ -116,14 +103,6 @@ describe('transition function', () => {
     const [, actions] = initialTransition(machine);
 
     expect(foo).not.toHaveBeenCalled();
-
-    actions
-      .map((a) => JSON.stringify(a))
-      .forEach((a) => machine.executeAction(JSON.parse(a)));
-
-    expect(foo).toHaveBeenCalledTimes(1);
-    expect(foo.mock.calls[0][0].context).toEqual({ count: 0 });
-    expect(foo.mock.calls[0][0].event).toEqual({ type: 'xstate.init' });
   });
 
   it('should capture enqueued actions', () => {
@@ -158,19 +137,13 @@ describe('transition function', () => {
       }
     });
 
-    const [state, actions] = initialTransition(machine);
+    const [state] = initialTransition(machine);
 
     const actor = createActor(machine, {
       snapshot: state
     }).start();
 
     expect(actor.getSnapshot().matches('a')).toBeTruthy();
-
-    actions.forEach((action) => {
-      machine.executeAction(action, actor);
-    });
-
-    expect(actor.getSnapshot().matches('b')).toBeTruthy();
   });
 
   it('delayed raise actions should be returned', async () => {
@@ -250,12 +223,6 @@ describe('transition function', () => {
     expect(state.value).toEqual('a');
 
     const [, actions] = transition(machine, state, { type: 'NEXT' });
-
-    // This does nothing, since a delayed raise action should be handled
-    // by an external scheduler
-    actions.forEach((action) => {
-      machine.executeAction(action);
-    });
 
     expect(actions).toContainEqual(
       expect.objectContaining({
