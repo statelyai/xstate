@@ -1,8 +1,5 @@
 import isDevelopment from '#is-development';
 import { assign } from './actions.ts';
-import { executeCancel } from './actions/cancel.ts';
-import { executeRaise } from './actions/raise.ts';
-import { executeSendTo } from './actions/send.ts';
 import { createEmptyActor } from './actors/index.ts';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import { createInitEvent } from './eventUtils.ts';
@@ -22,7 +19,7 @@ import {
   macrostep,
   microstep,
   resolveActionsAndContext,
-  resolveReferencedAction,
+  getAction,
   resolveStateValue,
   transitionNode
 } from './stateUtils.ts';
@@ -657,37 +654,16 @@ export class StateMachine<
     action: ExecutableActionObject,
     actor: AnyActorRef = createEmptyActor()
   ) {
-    const actorScope = (actor as any)._actorScope as AnyActorScope;
-    const defer = actorScope.defer;
-    actorScope.defer = (fn) => fn();
-    try {
-      switch (action.type) {
-        case 'xstate.cancel':
-          executeCancel(actorScope, action.params as any);
-          return;
-        case 'xstate.raise':
-          if (typeof (action as any).params.delay !== 'number') {
-            return;
-          }
-          executeRaise(actorScope, action.params as any);
-          return;
-        case 'xstate.sendTo':
-          executeSendTo(actorScope, action.params as any);
-          return;
-      }
-      const resolvedInfo = {
-        ...action.info,
-        self: actor,
-        system: actor.system
-      };
-      if (action.exec) {
-        action.exec?.(resolvedInfo, action.params);
-      } else {
-        const resolvedAction = resolveReferencedAction(this, action.type)!;
-        resolvedAction(resolvedInfo, action.params);
-      }
-    } finally {
-      actorScope.defer = defer;
+    const resolvedInfo = {
+      ...action.info,
+      self: actor,
+      system: actor.system
+    };
+    if (action.exec) {
+      action.exec?.(resolvedInfo, action.params);
+    } else {
+      const resolvedAction = getAction(this, action.type)!;
+      resolvedAction(resolvedInfo, action.params);
     }
   }
 }

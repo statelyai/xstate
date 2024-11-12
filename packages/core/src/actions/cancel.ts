@@ -33,10 +33,7 @@ function resolveCancel(
   return [snapshot, { sendId: resolvedSendId }, undefined];
 }
 
-export function executeCancel(
-  actorScope: AnyActorScope,
-  params: { sendId: string }
-) {
+function executeCancel(actorScope: AnyActorScope, params: { sendId: string }) {
   actorScope.defer(() => {
     actorScope.system.scheduler.cancel(actorScope.self, params.sendId);
   });

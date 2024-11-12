@@ -200,16 +200,6 @@ describe('transition function', () => {
         })
       })
     );
-
-    const actor = createActor(machine, {
-      snapshot: state
-    }).start();
-
-    actions.forEach((action) => {
-      machine.executeAction(action, actor);
-    });
-
-    await waitFor(actor, (s) => s.matches('b'));
   });
 
   it('raise actions related to delayed transitions should be returned', async () => {
@@ -236,16 +226,6 @@ describe('transition function', () => {
         })
       })
     );
-
-    const actor = createActor(machine, {
-      snapshot: state
-    }).start();
-
-    actions.forEach((action) => {
-      machine.executeAction(action, actor);
-    });
-
-    await waitFor(actor, (s) => s.matches('b'));
   });
 
   it('cancel action should be returned and can be executed', async () => {

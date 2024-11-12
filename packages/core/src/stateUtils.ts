@@ -1486,10 +1486,7 @@ export interface BuiltinAction {
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
-export function resolveReferencedAction(
-  machine: AnyStateMachine,
-  actionType: string
-) {
+export function getAction(machine: AnyStateMachine, actionType: string) {
   return machine.implementations.actions[actionType];
 }
 
@@ -1515,10 +1512,7 @@ function resolveAndExecuteActionsWithContext(
         // it's fine to cast this here to get a common type and lack of errors in the rest of the code
         // our logic below makes sure that we call those 2 "variants" correctly
 
-        resolveReferencedAction(
-          machine,
-          typeof action === 'string' ? action : action.type
-        );
+        getAction(machine, typeof action === 'string' ? action : action.type);
     const actionArgs = {
       context: intermediateSnapshot.context,
       event,

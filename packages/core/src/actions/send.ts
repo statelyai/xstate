@@ -148,7 +148,7 @@ function retryResolveSendTo(
   }
 }
 
-export function executeSendTo(
+function executeSendTo(
   actorScope: AnyActorScope,
   params: {
     to: AnyActorRef;

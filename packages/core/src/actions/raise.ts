@@ -88,7 +88,7 @@ function resolveRaise(
   ];
 }
 
-export function executeRaise(
+function executeRaise(
   actorScope: AnyActorScope,
   params: {
     event: EventObject;
