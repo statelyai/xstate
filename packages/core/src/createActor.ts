@@ -200,7 +200,7 @@ export class Actor<TLogic extends AnyActorLogic>
             actorRef: this,
             action: {
               type: action.type,
-              params: action.params as any // TODO: fix types
+              params: action.params
             }
           });
           if (!action.exec) {
