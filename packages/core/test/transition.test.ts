@@ -88,7 +88,7 @@ describe('transition function', () => {
     expect(actionWithDynamicParams).not.toHaveBeenCalled();
   });
 
-  it('should be able to execute a referenced serialized action', () => {
+  it('should not execute a referenced serialized action', () => {
     const foo = jest.fn();
 
     const machine = setup({
@@ -201,7 +201,7 @@ describe('transition function', () => {
     );
   });
 
-  it('cancel action should be returned and can be executed', async () => {
+  it('cancel action should be returned', async () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -234,7 +234,7 @@ describe('transition function', () => {
     );
   });
 
-  it('sendTo action should be returned and can be executed', async () => {
+  it('sendTo action should be returned', async () => {
     const machine = createMachine({
       initial: 'a',
       invoke: {
@@ -341,8 +341,6 @@ describe('transition function', () => {
       })
     );
   });
-
-  // Copied from getSnapshot.test.ts
 
   it('should calculate the next snapshot for transition logic', () => {
     const logic = fromTransition(
