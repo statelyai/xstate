@@ -16,8 +16,7 @@ import {
   sendTo,
   setup,
   toPromise,
-  transition,
-  waitFor
+  transition
 } from '../src';
 import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
@@ -413,7 +412,11 @@ describe('transition function', () => {
       state: undefined as any
     };
 
-    const machine = createMachine({
+    const machine = setup({
+      actions: {
+        foo: () => {}
+      }
+    }).createMachine({
       initial: 'start',
       states: {
         start: {

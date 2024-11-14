@@ -37,7 +37,8 @@ import {
   AnyTransitionConfig,
   AnyActorScope,
   ActionExecutor,
-  AnyStateMachine
+  AnyStateMachine,
+  NamedActionsFrom
 } from './types.ts';
 import {
   resolveOutput,
@@ -1486,7 +1487,11 @@ export interface BuiltinAction {
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
-function getAction(machine: AnyStateMachine, actionType: string) {
+export function getAction<
+  T extends AnyStateMachine,
+  A extends NamedActionsFrom<T>,
+  TActionType extends A['type']
+>(machine: T, actionType: TActionType): any {
   return machine.implementations.actions[actionType];
 }
 

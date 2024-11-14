@@ -2666,6 +2666,26 @@ export type ExecutableActionsFrom<T extends AnyActorLogic> =
         | (string extends TAction['type'] ? never : ToExecutableAction<TAction>)
     : never;
 
+export type NamedActionsFrom<T extends AnyActorLogic> =
+  T extends StateMachine<
+    infer _TContext,
+    infer _TEvent,
+    infer _TChildren,
+    infer _TActor,
+    infer TAction,
+    infer _TGuard,
+    infer _TDelay,
+    infer _TStateValue,
+    infer _TTag,
+    infer _TInput,
+    infer _TOutput,
+    infer _TEmitted,
+    infer _TMeta,
+    infer _TConfig
+  >
+    ? TAction
+    : never;
+
 export type ActionExecutor = (actionToExecute: ExecutableActionObject) => void;
 
 export type BuiltinActionResolution = [
