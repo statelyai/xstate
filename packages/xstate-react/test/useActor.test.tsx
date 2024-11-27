@@ -815,7 +815,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       return (
         <>
           <ChildTest send={send} />
-          {state.value}
+          {state.value as string}
         </>
       );
     };
@@ -1044,7 +1044,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     const App = () => {
       const [state] = useActor(machine);
-      return <>{state.value}</>;
+      return <>{state.value as string}</>;
     };
 
     const { container } = render(<App />);

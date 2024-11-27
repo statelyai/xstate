@@ -537,7 +537,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
       return (
         <>
-          {value}
+          {value as number}
           <button
             type="button"
             onClick={() => forceRerender((s) => s + 1)}
