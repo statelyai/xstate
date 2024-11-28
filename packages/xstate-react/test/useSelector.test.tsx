@@ -11,7 +11,8 @@ import {
   StateFrom,
   Snapshot,
   TransitionSnapshot,
-  AnyEventObject
+  AnyEventObject,
+  setup
 } from 'xstate';
 import {
   shallowEqual,
@@ -647,7 +648,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should work with initially deferred actors spawned in lazy context', () => {
-    const childMachine = createMachine({
+    const childMachine = setup({}).createMachine({
       initial: 'one',
       states: {
         one: {
@@ -657,10 +658,11 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const machine = createMachine({
+    const machine = setup({
       types: {} as {
         context: { ref: ActorRefFrom<typeof childMachine> };
-      },
+      }
+    }).createMachine({
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
       }),
@@ -682,7 +684,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
       return (
         <>
-          <div data-testid="child-state">{childState.value as string}</div>
+          <div data-testid="child-state">{childState.value}</div>
           <button
             data-testid="child-send"
             onClick={() => childRef.send({ type: 'NEXT' })}

@@ -73,7 +73,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
         return;
       }
 
-      const jsonMessage = JSON.parse(String(data as unknown));
+      const jsonMessage = JSON.parse(String(data));
       inspectService.send({
         ...jsonMessage,
         client
