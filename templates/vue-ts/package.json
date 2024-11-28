@@ -11,13 +11,13 @@
   "dependencies": {
     "@statelyai/inspect": "^0.2.5",
     "@xstate/vue": "^3.1.4",
-    "vue": "^3.5.10",
-    "xstate": "^5.18.2"
+    "vue": "^3.5.13",
+    "xstate": "^5.19.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.1.4",
-    "typescript": "^5.6.2",
-    "vite": "^5.4.8",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11",
     "vue-tsc": "^1.8.27"
   }
 }
