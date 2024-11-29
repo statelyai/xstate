@@ -68,7 +68,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   };
 
   server.on('connection', function connection(wsClient) {
-    wsClient.on('message', function incoming(data, isBinary) {
+    wsClient.on('message', function incoming(data: unknown, isBinary) {
       if (isBinary) {
         return;
       }
