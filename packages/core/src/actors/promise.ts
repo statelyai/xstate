@@ -5,24 +5,42 @@ import {
   ActorRefFromLogic,
   AnyActorRef,
   EventObject,
+  MachineContext,
   NonReducibleUnknown,
-  Snapshot
+  Snapshot,
+  StateValue
 } from '../types.ts';
 
-export type PromiseSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
-  input: TInput | undefined;
-};
+export interface PromiseState {
+  value?: StateValue;
+  context?: MachineContext;
+}
+
+export type PromiseSnapshot<
+  TOutput,
+  TInput,
+  TPromiseState extends PromiseState
+> = Snapshot<TOutput> &
+  TPromiseState & {
+    input: TInput | undefined;
+  };
 
 const XSTATE_PROMISE_RESOLVE = 'xstate.promise.resolve';
 const XSTATE_PROMISE_REJECT = 'xstate.promise.reject';
+const XSTATE_PROMISE_UPDATE = 'xstate.promise.update';
 
 export type PromiseActorLogic<
   TOutput,
   TInput = unknown,
-  TEmitted extends EventObject = EventObject
+  TEmitted extends EventObject = EventObject,
+  TPromiseState extends PromiseState = {}
 > = ActorLogic<
-  PromiseSnapshot<TOutput, TInput>,
-  { type: string; [k: string]: unknown },
+  PromiseSnapshot<TOutput, TInput, TPromiseState>,
+  // | { type: string; [k: string]: unknown }
+  | { type: typeof XSTATE_PROMISE_RESOLVE; data: TOutput }
+  | { type: typeof XSTATE_PROMISE_REJECT; data: unknown }
+  | { type: typeof XSTATE_STOP }
+  | { type: typeof XSTATE_PROMISE_UPDATE; state: TPromiseState },
   TInput, // input
   AnyActorSystem,
   TEmitted // TEmitted
@@ -61,9 +79,10 @@ export type PromiseActorLogic<
  *
  * @see {@link fromPromise}
  */
-export type PromiseActorRef<TOutput> = ActorRefFromLogic<
-  PromiseActorLogic<TOutput, unknown>
->;
+export type PromiseActorRef<
+  TOutput,
+  TPromiseState extends PromiseState = {}
+> = ActorRefFromLogic<PromiseActorLogic<TOutput, unknown, any, TPromiseState>>;
 
 const controllerMap = new WeakMap<AnyActorRef, AbortController>();
 
@@ -120,26 +139,29 @@ const controllerMap = new WeakMap<AnyActorRef, AbortController>();
 export function fromPromise<
   TOutput,
   TInput = NonReducibleUnknown,
-  TEmitted extends EventObject = EventObject
+  TEmitted extends EventObject = EventObject,
+  TPromiseState extends PromiseState = {}
 >(
   promiseCreator: ({
     input,
     system,
     self,
     signal,
-    emit
+    emit,
+    update
   }: {
     /** Data that was provided to the promise actor */
     input: TInput;
     /** The actor system to which the promise actor belongs */
     system: AnyActorSystem;
     /** The parent actor of the promise actor */
-    self: PromiseActorRef<TOutput>;
+    self: PromiseActorRef<TOutput, TPromiseState>;
     signal: AbortSignal;
     emit: (emitted: TEmitted) => void;
+    update: (state: TPromiseState) => void;
   }) => PromiseLike<TOutput>
-): PromiseActorLogic<TOutput, TInput, TEmitted> {
-  const logic: PromiseActorLogic<TOutput, TInput, TEmitted> = {
+): PromiseActorLogic<TOutput, TInput, TEmitted, TPromiseState> {
+  const logic: PromiseActorLogic<TOutput, TInput, TEmitted, TPromiseState> = {
     config: promiseCreator,
     transition: (state, event, scope) => {
       if (state.status !== 'active') {
@@ -148,7 +170,7 @@ export function fromPromise<
 
       switch (event.type) {
         case XSTATE_PROMISE_RESOLVE: {
-          const resolvedValue = (event as any).data;
+          const resolvedValue = event.data;
           return {
             ...state,
             status: 'done',
@@ -160,7 +182,7 @@ export function fromPromise<
           return {
             ...state,
             status: 'error',
-            error: (event as any).data,
+            error: event.data,
             input: undefined
           };
         case XSTATE_STOP: {
@@ -169,6 +191,16 @@ export function fromPromise<
             ...state,
             status: 'stopped',
             input: undefined
+          };
+        }
+        case XSTATE_PROMISE_UPDATE: {
+          const {
+            state: { context, value }
+          } = event;
+          return {
+            ...state,
+            context,
+            value
           };
         }
         default:
@@ -189,7 +221,12 @@ export function fromPromise<
           system,
           self,
           signal: controller.signal,
-          emit
+          emit,
+          update: (state) =>
+            self.send({
+              type: XSTATE_PROMISE_UPDATE,
+              state
+            })
         })
       );
 
