@@ -1753,4 +1753,53 @@ describe('actors', () => {
     actor.start();
     actor.send({ type: 'event' });
   });
+
+  it('same-position invokes should not leak between machines', async () => {
+    const spy = jest.fn();
+
+    const sharedActors = {};
+
+    const m1 = createMachine(
+      {
+        invoke: {
+          src: fromPromise(async () => 'foo'),
+          onDone: {
+            actions: ({ event }) => spy(event.output)
+          }
+        }
+      },
+      { actors: sharedActors }
+    );
+
+    createMachine(
+      {
+        invoke: { src: fromPromise(async () => 100) }
+      },
+      { actors: sharedActors }
+    );
+
+    createActor(m1).start();
+
+    await sleep(1);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith('foo');
+  });
+
+  it('inline invokes should not leak into provided actors object', async () => {
+    const actors = {};
+
+    const machine = createMachine(
+      {
+        invoke: {
+          src: fromPromise(async () => 'foo')
+        }
+      },
+      { actors }
+    );
+
+    createActor(machine).start();
+
+    expect(actors).toEqual({});
+  });
 });

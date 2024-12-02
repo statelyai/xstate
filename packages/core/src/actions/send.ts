@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { XSTATE_ERROR } from '../constants.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
-import { executingCustomAction } from '../stateUtils.ts';
+import { executingCustomAction } from '../createActor.ts';
 import {
   ActionArgs,
   ActionFunction,
@@ -14,11 +14,13 @@ import {
   DoNotInfer,
   EventFrom,
   EventObject,
+  ExecutableActionObject,
   InferEvent,
   MachineContext,
   ParameterizedObject,
   SendExpr,
   SendToActionOptions,
+  BuiltinActionResolution,
   SpecialTargets,
   UnifiedArg
 } from '../types.ts';
@@ -63,11 +65,12 @@ function resolveSendTo(
       | undefined;
   },
   extra: { deferredActorIds: string[] | undefined }
-) {
+): BuiltinActionResolution {
   const delaysMap = snapshot.machine.implementations.delays;
 
   if (typeof eventOrExpr === 'string') {
     throw new Error(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       `Only event objects may be used with sendTo; use sendTo({ type: "${eventOrExpr}" }) instead`
     );
   }
@@ -92,9 +95,12 @@ function resolveSendTo(
   let targetActorRef: AnyActorRef | string | undefined;
 
   if (typeof resolvedTarget === 'string') {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (resolvedTarget === SpecialTargets.Parent) {
       targetActorRef = actorScope.self._parent;
-    } else if (resolvedTarget === SpecialTargets.Internal) {
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    else if (resolvedTarget === SpecialTargets.Internal) {
       targetActorRef = actorScope.self;
     } else if (resolvedTarget.startsWith('#_')) {
       // SCXML compatibility: https://www.w3.org/TR/scxml/#SCXMLEventProcessor
@@ -116,7 +122,14 @@ function resolveSendTo(
 
   return [
     snapshot,
-    { to: targetActorRef, event: resolvedEvent, id, delay: resolvedDelay }
+    {
+      to: targetActorRef,
+      targetId: typeof resolvedTarget === 'string' ? resolvedTarget : undefined,
+      event: resolvedEvent,
+      id,
+      delay: resolvedDelay
+    },
+    undefined
   ];
 }
 
@@ -162,7 +175,7 @@ function executeSendTo(
       actorScope.self,
       // at this point, in a deferred task, it should already be mutated by retryResolveSendTo
       // if it initially started as a string
-      to as Exclude<typeof to, string>,
+      to,
       event.type === XSTATE_ERROR
         ? createErrorActorEvent(actorScope.self.id, (event as any).data)
         : event
@@ -237,20 +250,20 @@ export function sendTo<
 > {
   if (isDevelopment && executingCustomAction) {
     console.warn(
-      'Custom actions should not call `raise()` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.'
+      'Custom actions should not call `sendTo()` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.'
     );
   }
 
   function sendTo(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    _args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    _params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
   }
 
-  sendTo.type = 'xsnapshot.sendTo';
+  sendTo.type = 'xstate.sendTo';
   sendTo.to = to;
   sendTo.event = eventOrExpr;
   sendTo.id = options?.id;
@@ -360,4 +373,14 @@ export function forwardTo<
     TDelay,
     TUsedDelay
   >(target, ({ event }: any) => event, options);
+}
+
+export interface ExecutableSendToAction extends ExecutableActionObject {
+  type: 'xstate.sendTo';
+  params: {
+    event: EventObject;
+    id: string | undefined;
+    delay: number | undefined;
+    to: AnyActorRef;
+  };
 }

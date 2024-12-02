@@ -11,6 +11,8 @@ import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { AnyActorSystem, Clock, createSystem } from './system.ts';
 
+export let executingCustomAction: boolean = false;
+
 import type {
   ActorScope,
   AnyActorLogic,
@@ -183,12 +185,39 @@ export class Actor<TLogic extends AnyActorLogic>
         if (!listeners && !wildcardListener) {
           return;
         }
-        const allListeners = new Set([
+        const allListeners = [
           ...(listeners ? listeners.values() : []),
           ...(wildcardListener ? wildcardListener.values() : [])
-        ]);
-        for (const handler of Array.from(allListeners)) {
+        ];
+        for (const handler of allListeners) {
           handler(emittedEvent);
+        }
+      },
+      actionExecutor: (action) => {
+        const exec = () => {
+          this._actorScope.system._sendInspectionEvent({
+            type: '@xstate.action',
+            actorRef: this,
+            action: {
+              type: action.type,
+              params: action.params
+            }
+          });
+          if (!action.exec) {
+            return;
+          }
+          const saveExecutingCustomAction = executingCustomAction;
+          try {
+            executingCustomAction = true;
+            action.exec(action.info, action.params);
+          } finally {
+            executingCustomAction = saveExecutingCustomAction;
+          }
+        };
+        if (this._processingStatus === ProcessingStatus.Running) {
+          exec();
+        } else {
+          this._deferred.push(exec);
         }
       }
     };
@@ -196,6 +225,7 @@ export class Actor<TLogic extends AnyActorLogic>
     // Ensure that the send method is bound to this Actor instance
     // if destructured
     this.send = this.send.bind(this);
+
     this.system._sendInspectionEvent({
       type: '@xstate.actor',
       actorRef: this
@@ -423,7 +453,8 @@ export class Actor<TLogic extends AnyActorLogic>
   public on<TType extends EmittedFrom<TLogic>['type'] | '*'>(
     type: TType,
     handler: (
-      emitted: EmittedFrom<TLogic> & (TType extends '*' ? {} : { type: TType })
+      emitted: EmittedFrom<TLogic> &
+        (TType extends '*' ? unknown : { type: TType })
     ) => void
   ): Subscription {
     let listeners = this.eventListeners.get(type);
@@ -436,7 +467,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
     return {
       unsubscribe: () => {
-        listeners!.delete(wrappedHandler);
+        listeners.delete(wrappedHandler);
       }
     };
   }

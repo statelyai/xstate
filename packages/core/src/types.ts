@@ -8,6 +8,8 @@ import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Spawner } from './spawn.ts';
 import { AnyActorSystem, Clock } from './system.js';
 import { InspectionEvent } from './inspection.ts';
+import { ExecutableRaiseAction } from './actions/raise.ts';
+import { ExecutableSendToAction } from './actions/send.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -50,7 +52,7 @@ type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
 export type IsNever<T> = [T] extends [never] ? true : false;
 export type IsNotNever<T> = [T] extends [never] ? false : true;
 
-export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
+export type Compute<A> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export type Values<T> = T[keyof T];
 export type Elements<T> = T[keyof T & `${number}`];
@@ -61,7 +63,7 @@ export type IndexByProp<T extends Record<P, string>, P extends keyof T> = {
 
 export type IndexByType<T extends { type: string }> = IndexByProp<T, 'type'>;
 
-export type Equals<A1 extends any, A2 extends any> =
+export type Equals<A1, A2> =
   (<A>() => A extends A2 ? true : false) extends <A>() => A extends A1
     ? true
     : false
@@ -74,7 +76,7 @@ export type Cast<A, B> = A extends B ? A : B;
 export type DoNotInfer<T> = [T][T extends any ? 0 : any];
 /** @deprecated Use the built-in `NoInfer` type instead */
 export type NoInfer<T> = DoNotInfer<T>;
-export type LowInfer<T> = T & {};
+export type LowInfer<T> = T & NonNullable<unknown>;
 
 export type MetaObject = Record<string, any>;
 
@@ -488,7 +490,7 @@ export type StateTypes =
   | 'parallel'
   | 'final'
   | 'history'
-  | string; // TODO: remove once TS fixes this type-widening issue
+  | ({} & string);
 
 export type SingleOrArray<T> = readonly T[] | T;
 
@@ -858,7 +860,7 @@ export interface StateNodeConfig<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TTag extends string,
-  TOutput,
+  _TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject
 > {
@@ -2015,12 +2017,16 @@ export interface ActorRef<
   on: <TType extends TEmitted['type'] | '*'>(
     type: TType,
     handler: (
-      emitted: TEmitted & (TType extends '*' ? {} : { type: TType })
+      emitted: TEmitted & (TType extends '*' ? unknown : { type: TType })
     ) => void
   ) => Subscription;
 }
 
-export type AnyActorRef = ActorRef<any, any, any>;
+export type AnyActorRef = ActorRef<
+  any,
+  any, // TODO: shouldn't this be AnyEventObject?
+  any
+>;
 
 export type ActorRefLike = Pick<
   AnyActorRef,
@@ -2194,6 +2200,7 @@ export interface ActorScope<
   emit: (event: TEmitted) => void;
   system: TSystem;
   stopChild: (child: AnyActorRef) => void;
+  actionExecutor: ActionExecutor;
 }
 
 export type AnyActorScope = ActorScope<
@@ -2245,17 +2252,17 @@ export interface ActorLogic<
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
   /**
-   * Transition function that processes the current state and an incoming
-   * message to produce a new state.
+   * Transition function that processes the current state and an incoming event
+   * to produce a new state.
    *
    * @param snapshot - The current state.
-   * @param message - The incoming message.
+   * @param event - The incoming event.
    * @param actorScope - The actor scope.
    * @returns The new state.
    */
   transition: (
     snapshot: TSnapshot,
-    message: TEvent,
+    event: TEvent,
     actorScope: ActorScope<TSnapshot, TEvent, TSystem, TEmitted>
   ) => TSnapshot;
   /**
@@ -2509,7 +2516,7 @@ export type ToChildren<TActor extends ProvidedActor> =
                 ? ActorRefFromLogic<TActor['logic']> | undefined
                 : never;
             };
-            exclude: {};
+            exclude: unknown;
           }[undefined extends TActor['id'] // if not all actors have literal string IDs then we need to create an index signature containing all possible actor types
             ? 'include'
             : string extends TActor['id']
@@ -2686,3 +2693,65 @@ export type ToStateValue<T extends StateSchema> = T extends {
                 >
             : never)
   : {};
+
+export interface ExecutableActionObject {
+  type: string;
+  info: ActionArgs<MachineContext, EventObject, EventObject>;
+  params: NonReducibleUnknown;
+  exec:
+    | ((info: ActionArgs<any, any, any>, params: unknown) => void)
+    | undefined;
+}
+
+export interface ToExecutableAction<T extends ParameterizedObject>
+  extends ExecutableActionObject {
+  type: T['type'];
+  params: T['params'];
+  exec: undefined;
+}
+
+export interface ExecutableSpawnAction extends ExecutableActionObject {
+  type: 'xstate.spawnChild';
+  info: ActionArgs<MachineContext, EventObject, EventObject>;
+  params: {
+    id: string;
+    actorRef: AnyActorRef | undefined;
+    src: string | AnyActorLogic;
+  };
+}
+
+// TODO: cover all that can be actually returned
+export type SpecialExecutableAction =
+  | ExecutableSpawnAction
+  | ExecutableRaiseAction
+  | ExecutableSendToAction;
+
+export type ExecutableActionsFrom<T extends AnyActorLogic> =
+  T extends StateMachine<
+    infer _TContext,
+    infer _TEvent,
+    infer _TChildren,
+    infer _TActor,
+    infer TAction,
+    infer _TGuard,
+    infer _TDelay,
+    infer _TStateValue,
+    infer _TTag,
+    infer _TInput,
+    infer _TOutput,
+    infer _TEmitted,
+    infer _TMeta,
+    infer _TConfig
+  >
+    ?
+        | SpecialExecutableAction
+        | (string extends TAction['type'] ? never : ToExecutableAction<TAction>)
+    : never;
+
+export type ActionExecutor = (actionToExecute: ExecutableActionObject) => void;
+
+export type BuiltinActionResolution = [
+  AnyMachineSnapshot,
+  NonReducibleUnknown, // params
+  UnknownAction[] | undefined
+];

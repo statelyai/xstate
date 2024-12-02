@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { executingCustomAction } from '../stateUtils.ts';
+import { executingCustomAction } from '../createActor.ts';
 import {
   ActionArgs,
   ActionFunction,
@@ -10,7 +10,8 @@ import {
   EventObject,
   MachineContext,
   ParameterizedObject,
-  SendExpr
+  SendExpr,
+  BuiltinActionResolution
 } from '../types.ts';
 
 function resolveEmit(
@@ -31,17 +32,12 @@ function resolveEmit(
           EventObject
         >;
   }
-) {
-  if (isDevelopment && typeof eventOrExpr === 'string') {
-    throw new Error(
-      `Only event objects may be used with emit; use emit({ type: "${eventOrExpr}" }) instead`
-    );
-  }
+): BuiltinActionResolution {
   const resolvedEvent =
     typeof eventOrExpr === 'function'
       ? eventOrExpr(args, actionParams)
       : eventOrExpr;
-  return [snapshot, { event: resolvedEvent }];
+  return [snapshot, { event: resolvedEvent }, undefined];
 }
 
 function executeEmit(
@@ -137,8 +133,8 @@ export function emit<
   }
 
   function emit(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    _args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    _params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

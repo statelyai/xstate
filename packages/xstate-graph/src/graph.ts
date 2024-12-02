@@ -1,12 +1,8 @@
 import {
   EventObject,
   AnyStateMachine,
-  AnyMachineSnapshot,
-  StateFrom,
-  EventFrom,
   StateMachine,
   AnyActorLogic,
-  SnapshotFrom,
   EventFromLogic,
   Snapshot,
   __unsafe_getAllOwnEventDescriptors,
@@ -132,7 +128,7 @@ export function toDirectedGraph(
       return targets.map((target, targetIndex) => {
         const edge: DirectedGraphEdge = {
           id: `${stateNode.id}:${transitionIndex}:${targetIndex}`,
-          source: stateNode as AnyStateNode,
+          source: stateNode,
           target: target as AnyStateNode,
           transition: t,
           label: {
@@ -152,8 +148,8 @@ export function toDirectedGraph(
 
   const graph = {
     id: stateNode.id,
-    stateNode: stateNode as AnyStateNode,
-    children: getChildren(stateNode as AnyStateNode).map(toDirectedGraph),
+    stateNode: stateNode,
+    children: getChildren(stateNode).map(toDirectedGraph),
     edges,
     toJSON: () => {
       const { id, children, edges: graphEdges } = graph;

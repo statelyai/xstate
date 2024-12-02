@@ -1,5 +1,25 @@
 # @xstate/solid
 
+## 1.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`8c4b70652acaef2702f32435362e4755679a516d`](https://github.com/statelyai/xstate/commit/8c4b70652acaef2702f32435362e4755679a516d)]:
+  - xstate@5.19.0
+
+## 0.2.3
+
+### Patch Changes
+
+- [#5100](https://github.com/statelyai/xstate/pull/5100) [`519188af785527195eea15972efbb260289c9979`](https://github.com/statelyai/xstate/commit/519188af785527195eea15972efbb260289c9979) Thanks [@GoldingAustin](https://github.com/GoldingAustin)! - When setting new array indexes, if the value is an object/array, use placeholder empty value to prevent mutation of original machine context
+
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies [[`25963966c394fc904dc9b701a420b6e204ebe7f7`](https://github.com/statelyai/xstate/commit/25963966c394fc904dc9b701a420b6e204ebe7f7)]:
+  - xstate@5.18.2
+
 ## 0.2.1
 
 ### Patch Changes

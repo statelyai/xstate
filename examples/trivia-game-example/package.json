@@ -10,8 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@xstate/react": "^4.1.2",
-    "axios": "^1.7.7",
+    "@xstate/react": "^4.1.3",
+    "axios": "^1.7.8",
     "bootstrap": "^4.6.2",
     "jest": "^26.6.3",
     "jquery": "^3.7.1",
@@ -23,30 +23,30 @@
     "react-dom": "^18.3.1",
     "react-error-boundary": "^3.1.4",
     "react-loading-overlay-ts": "^2.0.2",
-    "react-router": "^6.26.2",
-    "react-router-dom": "^6.26.2",
+    "react-router": "^6.28.0",
+    "react-router-dom": "^6.28.0",
     "react-select": "^4.3.1",
     "sinon": "^9.2.4",
     "styled-components": "^5.3.11",
     "whatwg-fetch": "^3.6.20",
-    "xstate": "^5.18.1"
+    "xstate": "^5.19.0"
   },
   "devDependencies": {
     "@types/ramda": "^0.30.2",
-    "@types/react": "^18.3.5",
-    "@types/react-dom": "^18.3.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
     "@types/styled-components": "^5.1.34",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
-    "@vitejs/plugin-react": "^4.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
-    "eslint": "^8.57.0",
+    "eslint": "^8.57.1",
     "eslint-plugin-react-hooks": "^4.6.2",
-    "eslint-plugin-react-refresh": "^0.4.11",
-    "postcss": "^8.4.45",
-    "sass": "^1.78.0",
-    "tailwindcss": "^3.4.11",
-    "typescript": "^5.6.2",
-    "vite": "^5.4.5"
+    "eslint-plugin-react-refresh": "^0.4.14",
+    "postcss": "^8.4.49",
+    "sass": "^1.81.0",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11"
   }
 }

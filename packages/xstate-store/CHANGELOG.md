@@ -1,5 +1,44 @@
 # @xstate/store
 
+## 2.6.1
+
+### Patch Changes
+
+- [#5109](https://github.com/statelyai/xstate/pull/5109) [`d67b71dd25d457a2a59f2c943db13f50fab7ec3d`](https://github.com/statelyai/xstate/commit/d67b71dd25d457a2a59f2c943db13f50fab7ec3d) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add React 19 as a peer dependency
+
+## 2.6.0
+
+### Minor Changes
+
+- [#5079](https://github.com/statelyai/xstate/pull/5079) [`25963966c394fc904dc9b701a420b6e204ebe7f7`](https://github.com/statelyai/xstate/commit/25963966c394fc904dc9b701a420b6e204ebe7f7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createStoreWithProducer(…)` function now uses the new configuration API:
+
+  ```ts
+  import { createStoreWithProducer } from '@xstate/store';
+  // DEPRECATED API
+  // const store = createStoreWithProducer(
+  //   producer,
+  //   {
+  //     count: 0
+  //   },
+  //   {
+  //     inc: (context, event) => {
+  //       context.count++;
+  //     }
+  //   }
+  // );
+
+  const store = createStoreWithProducer(producer, {
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (context, event) => {
+        context.count++;
+      }
+    }
+  });
+  ```
+
 ## 2.5.0
 
 ### Minor Changes

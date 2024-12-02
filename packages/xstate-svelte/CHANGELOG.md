@@ -1,5 +1,19 @@
 # @xstate/svelte
 
+## 4.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`8c4b70652acaef2702f32435362e4755679a516d`](https://github.com/statelyai/xstate/commit/8c4b70652acaef2702f32435362e4755679a516d)]:
+  - xstate@5.19.0
+
+## 3.0.5
+
+### Patch Changes
+
+- Updated dependencies [[`25963966c394fc904dc9b701a420b6e204ebe7f7`](https://github.com/statelyai/xstate/commit/25963966c394fc904dc9b701a420b6e204ebe7f7)]:
+  - xstate@5.18.2
+
 ## 3.0.4
 
 ### Patch Changes

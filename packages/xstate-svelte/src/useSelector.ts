@@ -1,5 +1,5 @@
 import { readable } from 'svelte/store';
-import type { ActorRef, AnyActorRef, SnapshotFrom, Subscription } from 'xstate';
+import type { AnyActorRef, SnapshotFrom, Subscription } from 'xstate';
 
 function defaultCompare<T>(a: T, b: T) {
   return a === b;
