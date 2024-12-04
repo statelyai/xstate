@@ -36,7 +36,6 @@ export type PromiseActorLogic<
   TPromiseState extends PromiseState = {}
 > = ActorLogic<
   PromiseSnapshot<TOutput, TInput, TPromiseState>,
-  // | { type: string; [k: string]: unknown }
   | { type: typeof XSTATE_PROMISE_RESOLVE; data: TOutput }
   | { type: typeof XSTATE_PROMISE_REJECT; data: unknown }
   | { type: typeof XSTATE_STOP }
