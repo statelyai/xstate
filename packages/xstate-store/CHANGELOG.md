@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 2.6.2
+
+### Patch Changes
+
+- [#5136](https://github.com/statelyai/xstate/pull/5136) [`c051ff7ce7d09729ccc0630d684ef5168815f507`](https://github.com/statelyai/xstate/commit/c051ff7ce7d09729ccc0630d684ef5168815f507) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an accidental used reference of `xstate` types
+
 ## 2.6.1
 
 ### Patch Changes
