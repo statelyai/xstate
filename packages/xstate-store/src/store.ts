@@ -1,10 +1,9 @@
-import { EventObject } from 'xstate';
 import {
   Cast,
   EnqueueObject,
+  EventObject,
   EventPayloadMap,
   ExtractEventsFromPayloadMap,
-  StoreInspectionEvent,
   InteropSubscribable,
   Observer,
   Recipe,
@@ -12,6 +11,7 @@ import {
   StoreAssigner,
   StoreCompleteAssigner,
   StoreContext,
+  StoreInspectionEvent,
   StorePartialAssigner,
   StorePropertyAssigner,
   StoreSnapshot
