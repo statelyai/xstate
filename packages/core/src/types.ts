@@ -2,14 +2,14 @@ import type { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
 import { AssignArgs } from './actions/assign.ts';
-import { PromiseActorLogic } from './actors/promise.ts';
-import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
-import type { Actor, ProcessingStatus } from './createActor.ts';
-import { Spawner } from './spawn.ts';
-import { AnyActorSystem, Clock } from './system.js';
-import { InspectionEvent } from './inspection.ts';
 import { ExecutableRaiseAction } from './actions/raise.ts';
 import { ExecutableSendToAction } from './actions/send.ts';
+import { PromiseActorLogic } from './actors/promise.ts';
+import type { Actor, ProcessingStatus } from './createActor.ts';
+import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
+import { InspectionEvent } from './inspection.ts';
+import { Spawner } from './spawn.ts';
+import { AnyActorSystem, Clock } from './system.js';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -805,8 +805,8 @@ export type InvokeConfig<
               >
             >;
         /**
-         * The transition to take upon the invoked child machine sending an
-         * error event.
+         * The transition to take upon the invoked child machine sending an error
+         * event.
          */
         onError?:
           | string
@@ -2451,6 +2451,9 @@ export interface ActorSystemInfo {
 export type RequiredActorOptions<TActor extends ProvidedActor> =
   | (undefined extends TActor['id'] ? never : 'id')
   | (undefined extends InputFrom<TActor['logic']> ? never : 'input');
+
+export type RequiredLogicInput<TLogic extends AnyActorLogic> =
+  undefined extends InputFrom<TLogic> ? never : 'input';
 
 type ExtractLiteralString<T extends string | undefined> = T extends string
   ? string extends T
