@@ -27,13 +27,15 @@ export type CallbackSnapshot<TInput> = Snapshot<undefined> & {
 export type CallbackActorLogic<
   TEvent extends EventObject,
   TInput = NonReducibleUnknown,
-  TEmitted extends EventObject = EventObject
+  TEmitted extends EventObject = EventObject,
+  TSentEvent extends EventObject = AnyEventObject
 > = ActorLogic<
   CallbackSnapshot<TInput>,
   TEvent,
   TInput,
   AnyActorSystem,
-  TEmitted
+  TEmitted,
+  TSentEvent
 >;
 
 /**
@@ -183,11 +185,12 @@ export type CallbackLogicFunction<
 export function fromCallback<
   TEvent extends EventObject,
   TInput = NonReducibleUnknown,
-  TEmitted extends EventObject = EventObject
+  TEmitted extends EventObject = EventObject,
+  TSentEvent extends EventObject = AnyEventObject
 >(
-  callback: CallbackLogicFunction<TEvent, AnyEventObject, TInput, TEmitted>
-): CallbackActorLogic<TEvent, TInput, TEmitted> {
-  const logic: CallbackActorLogic<TEvent, TInput, TEmitted> = {
+  callback: CallbackLogicFunction<TEvent, TSentEvent, TInput, TEmitted>
+): CallbackActorLogic<TEvent, TInput, TEmitted, TSentEvent> {
+  const logic: CallbackActorLogic<TEvent, TInput, TEmitted, TSentEvent> = {
     config: callback,
     start: (state, actorScope) => {
       const { self, system, emit } = actorScope;
