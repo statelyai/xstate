@@ -2211,7 +2211,7 @@ export interface ActorLogic<
   in TInput = NonReducibleUnknown,
   TSystem extends AnyActorSystem = AnyActorSystem,
   in out TEmitted extends EventObject = EventObject, // it's invariant because it's also aprt of `ActorScope["self"]["on"]`
-  in _TSentEvent extends EventObject = AnyEventObject // currently unused at this level, but used by `CallbackActorLogic`
+  _TSentEvent extends EventObject = AnyEventObject // currently unused at this level, but used by `CallbackActorLogic`
 > {
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
