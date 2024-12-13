@@ -1649,6 +1649,8 @@ export function macrostep(
     );
     addMicrostate(nextSnapshot, event, []);
 
+    // No need to check invariant since the state is the same
+
     return {
       snapshot: nextSnapshot,
       microstates
@@ -1720,6 +1722,13 @@ export function macrostep(
     );
     shouldSelectEventlessTransitions = nextSnapshot !== previousState;
     addMicrostate(nextSnapshot, nextEvent, enabledTransitions);
+  }
+
+  // Check invariants
+  for (const sn of nextSnapshot._nodes) {
+    if (sn.invariant) {
+      sn.invariant({ context: nextSnapshot.context });
+    }
   }
 
   if (nextSnapshot.status !== 'active') {
