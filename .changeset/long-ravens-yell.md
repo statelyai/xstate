@@ -2,4 +2,4 @@
 '@xstate/svelte': patch
 ---
 
-Bump svelte version to include svelte 5
+Add Svelte 5 to the allowed peer dependency range
