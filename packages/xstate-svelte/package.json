@@ -44,7 +44,7 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "svelte": "^3.24.1 || ^4",
+    "svelte": "^3.24.1 || ^4 || ^5",
     "xstate": "workspace:^"
   },
   "peerDependenciesMeta": {
