@@ -1,5 +1,28 @@
 # xstate
 
+## 5.19.1
+
+### Patch Changes
+
+- [#5139](https://github.com/statelyai/xstate/pull/5139) [`bf6119a7310a878afbf4f5b01f5e24288f9a0f16`](https://github.com/statelyai/xstate/commit/bf6119a7310a878afbf4f5b01f5e24288f9a0f16) Thanks [@SandroMaglione](https://github.com/SandroMaglione)! - Make `spawn` input required when defined inside referenced actor:
+
+  ```ts
+  const childMachine = createMachine({
+    types: { input: {} as { value: number } }
+  });
+
+  const machine = createMachine({
+    types: {} as { context: { ref: ActorRefFrom<typeof childMachine> } },
+    context: ({ spawn }) => ({
+      ref: spawn(
+        childMachine,
+        // Input is now required!
+        { input: { value: 42 } }
+      )
+    })
+  });
+  ```
+
 ## 5.19.0
 
 ### Minor Changes
