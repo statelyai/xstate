@@ -350,3 +350,178 @@ it('emitted events occur after the snapshot is updated', () => {
 
   store.send({ type: 'inc' });
 });
+
+it('should allow listening to emitted events via addEventListener', () => {
+  const store = createStore({
+    context: { count: 0 },
+    types: {
+      emitted: {} as { type: 'incremented'; value: number }
+    },
+    on: {
+      increment: (context, _event, { emit }) => {
+        emit({ type: 'incremented', value: context.count + 1 });
+        return { count: context.count + 1 };
+      }
+    }
+  });
+
+  const listener = jest.fn();
+  store.addEventListener('incremented', ((e: CustomEvent) => {
+    listener(e.detail);
+  }) as EventListener);
+
+  store.send({ type: 'increment' });
+
+  expect(listener).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: 'incremented',
+      value: 1
+    })
+  );
+});
+
+it('should allow removing event listeners', () => {
+  const store = createStore({
+    context: { count: 0 },
+    types: {
+      emitted: {} as { type: 'incremented'; value: number }
+    },
+    on: {
+      increment: (context, _event, { emit }) => {
+        emit({ type: 'incremented', value: context.count + 1 });
+        return { count: context.count + 1 };
+      }
+    }
+  });
+
+  const listener = jest.fn();
+  const handler = ((e: CustomEvent) => {
+    listener(e.detail);
+  }) as EventListener;
+
+  store.addEventListener('incremented', handler);
+  store.removeEventListener('incremented', handler);
+
+  store.send({ type: 'increment' });
+
+  expect(listener).not.toHaveBeenCalled();
+});
+
+it('should support both addEventListener and .on() simultaneously', () => {
+  const store = createStore({
+    context: { count: 0 },
+    types: {
+      emitted: {} as { type: 'incremented'; value: number }
+    },
+    on: {
+      increment: (context, _event, { emit }) => {
+        emit({ type: 'incremented', value: context.count + 1 });
+        return { count: context.count + 1 };
+      }
+    }
+  });
+
+  const domListener = jest.fn();
+  const onListener = jest.fn();
+
+  store.addEventListener('incremented', ((e: CustomEvent) => {
+    domListener(e.detail);
+  }) as EventListener);
+
+  store.on('incremented', (event) => {
+    onListener(event);
+  });
+
+  store.send({ type: 'increment' });
+
+  expect(domListener).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: 'incremented',
+      value: 1
+    })
+  );
+  expect(onListener).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: 'incremented',
+      value: 1
+    })
+  );
+});
+
+it('should dispatch events with correct CustomEvent detail', () => {
+  const store = createStore({
+    context: { count: 0 },
+    types: {
+      emitted: {} as {
+        type: 'incremented';
+        value: number;
+        metadata: { timestamp: number };
+      }
+    },
+    on: {
+      increment: (context, _event, { emit }) => {
+        emit({
+          type: 'incremented',
+          value: context.count + 1,
+          metadata: { timestamp: 123 }
+        });
+        return { count: context.count + 1 };
+      }
+    }
+  });
+
+  const listener = jest.fn();
+  store.addEventListener('incremented', ((e: CustomEvent) => {
+    listener(e.type, e.detail);
+  }) as EventListener);
+
+  store.send({ type: 'increment' });
+
+  expect(listener).toHaveBeenCalledWith('incremented', {
+    type: 'incremented',
+    value: 1,
+    metadata: { timestamp: 123 }
+  });
+});
+
+it('should handle multiple event listeners for the same event type', () => {
+  const store = createStore({
+    context: { count: 0 },
+    types: {
+      emitted: {} as { type: 'incremented'; value: number }
+    },
+    on: {
+      increment: (context, _event, { emit }) => {
+        emit({ type: 'incremented', value: context.count + 1 });
+        return { count: context.count + 1 };
+      }
+    }
+  });
+
+  const listener1 = jest.fn();
+  const listener2 = jest.fn();
+
+  store.addEventListener('incremented', ((e: CustomEvent) => {
+    listener1(e.detail);
+  }) as EventListener);
+  store.addEventListener('incremented', ((e: CustomEvent) => {
+    listener2(e.detail);
+  }) as EventListener);
+
+  store.send({ type: 'increment' });
+
+  expect(listener1).toHaveBeenCalledTimes(1);
+  expect(listener2).toHaveBeenCalledTimes(1);
+  expect(listener1).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: 'incremented',
+      value: 1
+    })
+  );
+  expect(listener2).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: 'incremented',
+      value: 1
+    })
+  );
+});

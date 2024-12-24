@@ -74,130 +74,7 @@ function createStoreCore<
     recipe: (context: NoInfer<TContext>) => NoInfer<TContext>
   ) => NoInfer<TContext>
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TEmitted> {
-  type StoreEvent = ExtractEventsFromPayloadMap<TEventPayloadMap>;
-  let observers: Set<Observer<StoreSnapshot<TContext>>> | undefined;
-  let listeners: Map<TEmitted['type'], Set<any>> | undefined;
-  const initialSnapshot: StoreSnapshot<TContext> = {
-    context: initialContext,
-    status: 'active',
-    output: undefined,
-    error: undefined
-  };
-  let currentSnapshot: StoreSnapshot<TContext> = initialSnapshot;
-
-  const emit = (ev: TEmitted) => {
-    if (!listeners) {
-      return;
-    }
-    const type = ev.type;
-    const typeListeners = listeners.get(type);
-    if (typeListeners) {
-      typeListeners.forEach((listener) => listener(ev));
-    }
-  };
-
-  const transition = createStoreTransition(transitions, updater);
-
-  function receive(event: StoreEvent) {
-    let emitted: TEmitted[];
-    [currentSnapshot, emitted] = transition(currentSnapshot, event);
-
-    inspectionObservers.get(store)?.forEach((observer) => {
-      observer.next?.({
-        type: '@xstate.snapshot',
-        event,
-        snapshot: currentSnapshot,
-        actorRef: store,
-        rootId: store.sessionId
-      });
-    });
-
-    observers?.forEach((o) => o.next?.(currentSnapshot));
-
-    emitted.forEach(emit);
-  }
-
-  const store: Store<TContext, StoreEvent, TEmitted> = {
-    on(emittedEventType, handler) {
-      if (!listeners) {
-        listeners = new Map();
-      }
-      let eventListeners = listeners.get(emittedEventType);
-      if (!eventListeners) {
-        eventListeners = new Set();
-        listeners.set(emittedEventType, eventListeners);
-      }
-      const wrappedHandler = handler.bind(undefined);
-      eventListeners.add(wrappedHandler);
-
-      return {
-        unsubscribe() {
-          eventListeners.delete(wrappedHandler);
-        }
-      };
-    },
-    sessionId: uniqueId(),
-    send(event) {
-      inspectionObservers.get(store)?.forEach((observer) => {
-        observer.next?.({
-          type: '@xstate.event',
-          event,
-          sourceRef: undefined,
-          actorRef: store,
-          rootId: store.sessionId
-        });
-      });
-      receive(event as unknown as StoreEvent);
-    },
-    getSnapshot() {
-      return currentSnapshot;
-    },
-    getInitialSnapshot() {
-      return initialSnapshot;
-    },
-    subscribe(observerOrFn) {
-      const observer = toObserver(observerOrFn);
-      observers ??= new Set();
-      observers.add(observer);
-
-      return {
-        unsubscribe() {
-          return observers?.delete(observer);
-        }
-      };
-    },
-    [symbolObservable](): InteropSubscribable<StoreSnapshot<TContext>> {
-      return this;
-    },
-    inspect: (observerOrFn) => {
-      const observer = toObserver(observerOrFn);
-      inspectionObservers.set(
-        store,
-        inspectionObservers.get(store) ?? new Set()
-      );
-      inspectionObservers.get(store)!.add(observer);
-
-      observer.next?.({
-        type: '@xstate.actor',
-        actorRef: store,
-        rootId: store.sessionId
-      });
-
-      observer.next?.({
-        type: '@xstate.snapshot',
-        snapshot: initialSnapshot,
-        event: { type: '@xstate.init' },
-        actorRef: store,
-        rootId: store.sessionId
-      });
-
-      return {
-        unsubscribe() {
-          return inspectionObservers.get(store)?.delete(observer);
-        }
-      };
-    }
-  };
+  const store = new StoreImpl(initialContext, transitions, updater);
 
   return store;
 }
@@ -223,6 +100,155 @@ export type TransitionsFromEventPayloadMap<
         TEmitted
       >;
 };
+
+class StoreImpl<
+    TContext extends StoreContext,
+    TEventPayloadMap extends EventPayloadMap,
+    TEmitted extends EventObject
+  >
+  extends EventTarget
+  implements
+    Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TEmitted>
+{
+  public transition: (
+    snapshot: StoreSnapshot<TContext>,
+    event: ExtractEventsFromPayloadMap<TEventPayloadMap>
+  ) => [StoreSnapshot<TContext>, TEmitted[]];
+  constructor(
+    initialContext: TContext,
+    transitions: TransitionsFromEventPayloadMap<
+      TEventPayloadMap,
+      TContext,
+      TEmitted
+    >,
+    updater?: (
+      context: TContext,
+      recipe: (context: TContext) => TContext
+    ) => TContext
+  ) {
+    super();
+    this.transition = createStoreTransition(transitions, updater);
+    this.initialSnapshot = {
+      context: initialContext,
+      status: 'active',
+      output: undefined,
+      error: undefined
+    };
+    this.currentSnapshot = this.initialSnapshot;
+    this.observers = new Set();
+    this._emit = this._emit.bind(this);
+  }
+  private listeners: Map<TEmitted['type'], Set<any>> | undefined;
+  public sessionId: string = uniqueId();
+  public on<TEmittedType extends TEmitted['type']>(
+    emittedEventType: TEmittedType,
+    handler: (event: Extract<TEmitted, { type: TEmittedType }>) => void
+  ) {
+    const wrappedHandler = ((e: CustomEvent<TEmitted>) => {
+      handler(e.detail as Extract<TEmitted, { type: TEmittedType }>);
+    }) as EventListener;
+
+    this.addEventListener(emittedEventType, wrappedHandler);
+
+    return {
+      unsubscribe: () => {
+        this.removeEventListener(emittedEventType, wrappedHandler);
+      }
+    };
+  }
+
+  public initialSnapshot: StoreSnapshot<TContext>;
+  public currentSnapshot: StoreSnapshot<TContext>;
+  public observers: Set<Observer<StoreSnapshot<TContext>>>;
+  public send(event: ExtractEventsFromPayloadMap<TEventPayloadMap>) {
+    inspectionObservers.get(this)?.forEach((observer) => {
+      observer.next?.({
+        type: '@xstate.event',
+        event,
+        sourceRef: undefined,
+        actorRef: this,
+        rootId: this.sessionId
+      });
+    });
+    this.receive(
+      event as unknown as ExtractEventsFromPayloadMap<TEventPayloadMap>
+    );
+  }
+  private _emit(ev: TEmitted) {
+    super.dispatchEvent(new CustomEvent(ev.type, { detail: ev }));
+  }
+  public receive(event: ExtractEventsFromPayloadMap<TEventPayloadMap>) {
+    let emitted: TEmitted[];
+    [this.currentSnapshot, emitted] = this.transition(
+      this.currentSnapshot,
+      event
+    );
+
+    inspectionObservers.get(this)?.forEach((observer) => {
+      observer.next?.({
+        type: '@xstate.snapshot',
+        event,
+        snapshot: this.currentSnapshot,
+        actorRef: this,
+        rootId: this.sessionId
+      });
+    });
+
+    this.observers.forEach((o) => o.next?.(this.currentSnapshot));
+    emitted.forEach(this._emit);
+  }
+  public getSnapshot() {
+    return this.currentSnapshot;
+  }
+  public getInitialSnapshot() {
+    return this.initialSnapshot;
+  }
+  public subscribe(
+    observerOrFn:
+      | Observer<StoreSnapshot<TContext>>
+      | ((snapshot: StoreSnapshot<TContext>) => void)
+  ) {
+    const observer = toObserver(observerOrFn);
+    this.observers.add(observer);
+    return {
+      unsubscribe: () => {
+        this.observers.delete(observer);
+      }
+    };
+  }
+  [symbolObservable](): InteropSubscribable<StoreSnapshot<TContext>> {
+    return this;
+  }
+  public inspect(
+    observerOrFn:
+      | Observer<StoreInspectionEvent>
+      | ((event: StoreInspectionEvent) => void)
+  ) {
+    const observer = toObserver(observerOrFn);
+    inspectionObservers.set(this, inspectionObservers.get(this) ?? new Set());
+    inspectionObservers.get(this)!.add(observer);
+
+    observer.next?.({
+      type: '@xstate.actor',
+      actorRef: this,
+      rootId: this.sessionId
+    });
+
+    observer.next?.({
+      type: '@xstate.snapshot',
+      snapshot: this.initialSnapshot,
+      event: { type: '@xstate.init' },
+      actorRef: this,
+      rootId: this.sessionId
+    });
+
+    return {
+      unsubscribe: () => {
+        return inspectionObservers.get(this)?.delete(observer);
+      }
+    };
+  }
+}
 
 /**
  * Creates a **store** that has its own internal state and can be sent events
