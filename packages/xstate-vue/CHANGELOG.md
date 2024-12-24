@@ -1,5 +1,12 @@
 # @xstate/vue
 
+## 4.0.1
+
+### Patch Changes
+
+- Updated dependencies [[`bf6119a7310a878afbf4f5b01f5e24288f9a0f16`](https://github.com/statelyai/xstate/commit/bf6119a7310a878afbf4f5b01f5e24288f9a0f16)]:
+  - xstate@5.19.1
+
 ## 4.0.0
 
 ### Patch Changes
