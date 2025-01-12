@@ -805,8 +805,8 @@ export type InvokeConfig<
               >
             >;
         /**
-         * The transition to take upon the invoked child machine sending an error
-         * event.
+         * The transition to take upon the invoked child machine sending an
+         * error event.
          */
         onError?:
           | string
@@ -1032,7 +1032,7 @@ export interface StateNodeConfig<
   description?: string;
 
   /** A default target for a history state */
-  target?: string;
+  target?: string | undefined; // `| undefined` makes `HistoryStateNodeConfig` compatible with this interface (it extends it) under `exactOptionalPropertyTypes`
 }
 
 export type AnyStateNodeConfig = StateNodeConfig<
@@ -1380,7 +1380,7 @@ export type UnknownMachineConfig = MachineConfig<MachineContext, EventObject>;
 export interface ProvidedActor {
   src: string;
   logic: UnknownActorLogic;
-  id?: string;
+  id?: string | undefined; // `| undefined` is required here for compatibility with `exactOptionalPropertyTypes`, see #4613
 }
 
 export interface SetupTypes<
