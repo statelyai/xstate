@@ -1,5 +1,11 @@
 # xstate
 
+## 5.19.2
+
+### Patch Changes
+
+- [#5170](https://github.com/statelyai/xstate/pull/5170) [`d99df1d8f4fe49145c9974465b65028bf19b365f`](https://github.com/statelyai/xstate/commit/d99df1d8f4fe49145c9974465b65028bf19b365f) Thanks [@Andarist](https://github.com/Andarist)! - Improved compatibility of inferred types in projects with `exactOptionalPropertyTypes` enabled
+
 ## 5.19.1
 
 ### Patch Changes
