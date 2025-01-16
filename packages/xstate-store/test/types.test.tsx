@@ -10,11 +10,9 @@ describe('emitted', () => {
       },
       context: {},
       on: {
-        inc: {
-          count: (ctx, _: {}, enq) => {
-            enq.emit({ type: 'increased', upBy: 1 });
-            return ctx;
-          }
+        inc: (ctx, _, enq) => {
+          enq.emit({ type: 'increased', upBy: 1 });
+          return ctx;
         }
       }
     });
@@ -29,14 +27,12 @@ describe('emitted', () => {
       },
       context: {},
       on: {
-        inc: {
-          count: (ctx, _: {}, enq) => {
-            enq.emit({
-              // @ts-expect-error
-              type: 'unknown'
-            });
-            return ctx;
-          }
+        inc: (ctx, _, enq) => {
+          enq.emit({
+            // @ts-expect-error
+            type: 'unknown'
+          });
+          return ctx;
         }
       }
     });
@@ -51,15 +47,13 @@ describe('emitted', () => {
       },
       context: {},
       on: {
-        inc: {
-          count: (ctx, _: {}, enq) => {
-            enq.emit({
-              type: 'increased',
-              // @ts-expect-error
-              upBy: 'bazinga'
-            });
-            return ctx;
-          }
+        inc: (ctx, _, enq) => {
+          enq.emit({
+            type: 'increased',
+            // @ts-expect-error
+            upBy: 'bazinga'
+          });
+          return ctx;
         }
       }
     });
@@ -69,13 +63,11 @@ describe('emitted', () => {
     createStore({
       context: {},
       on: {
-        inc: {
-          count: (ctx, _: {}, enq) => {
-            enq.emit({
-              type: 'unknown'
-            });
-            return ctx;
-          }
+        inc: (ctx, _, enq) => {
+          enq.emit({
+            type: 'unknown'
+          });
+          return ctx;
         }
       }
     });

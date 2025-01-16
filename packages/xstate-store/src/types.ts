@@ -18,7 +18,7 @@ export type StoreAssigner<
   context: TContext,
   event: TEvent,
   enq: EnqueueObject<TEmitted>
-) => Partial<TContext>;
+) => TContext;
 export type StoreCompleteAssigner<
   TContext,
   TEvent extends EventObject,

@@ -27,13 +27,14 @@ it('can update context with a property assigner', () => {
   const store = createStore(
     { count: 0, greeting: 'hello' },
     {
-      inc: {
-        count: (ctx) => ctx.count + 1
-      },
-      updateBoth: {
-        count: () => 42,
+      inc: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      }),
+      updateBoth: (ctx) => ({
+        count: 42,
         greeting: 'hi'
-      }
+      })
     }
   );
 
@@ -52,9 +53,9 @@ it('handles unknown events (does not do anything)', () => {
   const store = createStore(
     { count: 0 },
     {
-      inc: {
-        count: (ctx) => ctx.count + 1
-      }
+      inc: (ctx) => ({
+        count: ctx.count + 1
+      })
     }
   );
 
@@ -165,7 +166,7 @@ it('createStoreWithProducer(…) infers the context type properly with a produce
       count: 0
     },
     on: {
-      inc: (ctx, ev: { by: number }, enq) => {
+      inc: (ctx, ev: { by: number }) => {
         ctx.count += ev.by;
       }
     }
@@ -180,9 +181,9 @@ it('can be observed', () => {
       count: 0
     },
     {
-      inc: {
-        count: (ctx) => ctx.count + 1
-      }
+      inc: (ctx) => ({
+        count: ctx.count + 1
+      })
     }
   );
 
@@ -211,9 +212,9 @@ it('can be inspected', () => {
       count: 0
     },
     {
-      inc: {
-        count: (ctx) => ctx.count + 1
-      }
+      inc: (ctx) => ({
+        count: ctx.count + 1
+      })
     }
   );
 

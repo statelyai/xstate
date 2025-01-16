@@ -4,11 +4,10 @@ import { fromStore } from '../src/index.ts';
 describe('fromStore', () => {
   it('creates an actor from store logic with input (2 args)', () => {
     const storeLogic = fromStore((count: number) => ({ count }), {
-      inc: {
-        count: (ctx, ev: { by: number }) => {
-          return ctx.count + ev.by;
-        }
-      }
+      inc: (ctx, ev: { by: number }) => ({
+        ...ctx,
+        count: ctx.count + ev.by
+      })
     });
 
     const actor = createActor(storeLogic, {

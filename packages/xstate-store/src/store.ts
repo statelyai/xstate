@@ -9,11 +9,8 @@ import {
   Recipe,
   Store,
   StoreAssigner,
-  StoreCompleteAssigner,
   StoreContext,
   StoreInspectionEvent,
-  StorePartialAssigner,
-  StorePropertyAssigner,
   StoreSnapshot
 } from './types';
 
@@ -57,17 +54,11 @@ function createStoreCore<
 >(
   initialContext: TContext,
   transitions: {
-    [K in keyof TEventPayloadMap & string]:
-      | StoreAssigner<
-          NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K],
-          TEmitted
-        >
-      | StorePropertyAssigner<
-          NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K],
-          TEmitted
-        >;
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      NoInfer<TContext>,
+      { type: K } & TEventPayloadMap[K],
+      TEmitted
+    >;
   },
   updater?: (
     context: NoInfer<TContext>,
@@ -207,21 +198,13 @@ export type TransitionsFromEventPayloadMap<
   TContext extends StoreContext,
   TEmitted extends EventObject
 > = {
-  [K in keyof TEventPayloadMap & string]:
-    | StoreAssigner<
-        TContext,
-        {
-          type: K;
-        } & TEventPayloadMap[K],
-        TEmitted
-      >
-    | StorePropertyAssigner<
-        TContext,
-        {
-          type: K;
-        } & TEventPayloadMap[K],
-        TEmitted
-      >;
+  [K in keyof TEventPayloadMap & string]: StoreAssigner<
+    TContext,
+    {
+      type: K;
+    } & TEventPayloadMap[K],
+    TEmitted
+  >;
 };
 
 /**
@@ -264,17 +247,11 @@ export function createStore<
 }: {
   context: TContext;
   on: {
-    [K in keyof TEventPayloadMap & string]:
-      | StoreAssigner<
-          NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K],
-          Cast<TTypes['emitted'], EventObject>
-        >
-      | StorePropertyAssigner<
-          NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K],
-          Cast<TTypes['emitted'], EventObject>
-        >;
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      NoInfer<TContext>,
+      { type: K } & TEventPayloadMap[K],
+      Cast<TTypes['emitted'], EventObject>
+    >;
   };
 } & { types?: TTypes }): Store<
   TContext,
@@ -445,13 +422,11 @@ export function createStoreTransition<
   TEmitted extends EventObject
 >(
   transitions: {
-    [K in keyof TEventPayloadMap & string]:
-      | StoreAssigner<TContext, { type: K } & TEventPayloadMap[K], TEmitted>
-      | StorePropertyAssigner<
-          TContext,
-          { type: K } & TEventPayloadMap[K],
-          TEmitted
-        >;
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      TContext,
+      { type: K } & TEventPayloadMap[K],
+      TEmitted
+    >;
   },
   updater?: (
     context: TContext,
@@ -480,9 +455,11 @@ export function createStoreTransition<
     if (typeof assigner === 'function') {
       currentContext = updater
         ? updater(currentContext, (draftContext) =>
-            (
-              assigner as StoreCompleteAssigner<TContext, StoreEvent, TEmitted>
-            )?.(draftContext, event, enqueue)
+            (assigner as StoreAssigner<TContext, StoreEvent, TEmitted>)?.(
+              draftContext,
+              event,
+              enqueue
+            )
           )
         : setter(currentContext, (draftContext) =>
             Object.assign(
@@ -501,14 +478,11 @@ export function createStoreTransition<
         const propAssignment = assigner[key];
         partialUpdate[key] =
           typeof propAssignment === 'function'
-            ? (
-                propAssignment as StorePartialAssigner<
-                  TContext,
-                  StoreEvent,
-                  typeof key,
-                  TEmitted
-                >
-              )(currentContext, event, enqueue)
+            ? (propAssignment as StoreAssigner<TContext, StoreEvent, TEmitted>)(
+                currentContext,
+                event,
+                enqueue
+              )
             : propAssignment;
       }
       currentContext = Object.assign({}, currentContext, partialUpdate);

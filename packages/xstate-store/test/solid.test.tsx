@@ -22,8 +22,14 @@ const createCounterStore = () =>
   createStore(
     { count: 0, other: 0 },
     {
-      increment: { count: ({ count }) => count + 1 },
-      other: { other: ({ other }) => other + 1 }
+      increment: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      }),
+      other: (ctx) => ({
+        ...ctx,
+        other: ctx.other + 1
+      })
     }
   );
 
@@ -75,8 +81,14 @@ describe('Solid.js integration', () => {
       const store = createStore(
         { items: INITIAL_ITEMS },
         {
-          same: { items: () => [...INITIAL_ITEMS] },
-          different: { items: () => DIFFERENT_ITEMS }
+          same: (ctx) => ({
+            ...ctx,
+            items: [...INITIAL_ITEMS]
+          }),
+          different: (ctx) => ({
+            ...ctx,
+            items: DIFFERENT_ITEMS
+          })
         }
       );
 

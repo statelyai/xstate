@@ -14,9 +14,10 @@ it('useSelector should work', () => {
       count: 0
     },
     {
-      inc: {
-        count: (ctx) => ctx.count + 1
-      }
+      inc: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      })
     }
   );
 
@@ -52,12 +53,14 @@ it('useSelector can take in a custom comparator', () => {
       items: [1, 2]
     },
     {
-      same: {
-        items: () => [1, 2] // different array, same items
-      },
-      different: {
-        items: () => [3, 4]
-      }
+      same: (ctx) => ({
+        ...ctx,
+        items: [1, 2] // different array, same items
+      }),
+      different: (ctx) => ({
+        ...ctx,
+        items: [3, 4]
+      })
     }
   );
 
@@ -117,9 +120,10 @@ it('can batch updates', () => {
       count: 0
     },
     {
-      inc: {
-        count: (ctx) => ctx.count + 1
-      }
+      inc: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      })
     }
   );
 
@@ -158,9 +162,10 @@ it('useSelector (@xstate/react) should work', () => {
       count: 0
     },
     {
-      inc: {
-        count: (ctx) => ctx.count + 1
-      }
+      inc: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      })
     }
   );
 
@@ -196,9 +201,10 @@ it('useActor (@xstate/react) should work', () => {
       count: 0
     },
     {
-      inc: {
-        count: (ctx) => ctx.count + 1
-      }
+      inc: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      })
     }
   );
 
@@ -234,9 +240,10 @@ it('useActorRef (@xstate/react) should work', () => {
       count: 0
     },
     {
-      inc: {
-        count: (ctx) => ctx.count + 1
-      }
+      inc: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      })
     }
   );
 
