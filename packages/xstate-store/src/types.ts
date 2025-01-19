@@ -18,31 +18,13 @@ export type StoreAssigner<
   context: TContext,
   event: TEvent,
   enq: EnqueueObject<TEmitted>
-) => TContext;
-export type StoreCompleteAssigner<
-  TContext,
+) => TContext | void;
+
+export type StoreProducerAssigner<
+  TContext extends StoreContext,
   TEvent extends EventObject,
   TEmitted extends EventObject
-> = (ctx: TContext, ev: TEvent, enq: EnqueueObject<TEmitted>) => TContext;
-export type StorePartialAssigner<
-  TContext,
-  TEvent extends EventObject,
-  K extends keyof TContext,
-  TEmitted extends EventObject
-> = (
-  ctx: TContext,
-  ev: TEvent,
-  enq: EnqueueObject<TEmitted>
-) => Partial<TContext>[K];
-export type StorePropertyAssigner<
-  TContext,
-  TEvent extends EventObject,
-  TEmitted extends EventObject
-> = {
-  [K in keyof TContext]?:
-    | TContext[K]
-    | StorePartialAssigner<TContext, TEvent, K, TEmitted>;
-};
+> = (context: TContext, event: TEvent, enq: EnqueueObject<TEmitted>) => void;
 
 export type Snapshot<TOutput> =
   | {

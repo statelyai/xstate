@@ -7,8 +7,7 @@ import {
   StoreSnapshot,
   EventObject,
   ExtractEventsFromPayloadMap,
-  StoreAssigner,
-  StorePropertyAssigner
+  StoreAssigner
 } from './types';
 
 type StoreLogic<
@@ -66,17 +65,11 @@ export function fromStore<
   config: {
     context: ((input: TInput) => TContext) | TContext;
     on: {
-      [K in keyof TEventPayloadMap & string]:
-        | StoreAssigner<
-            NoInfer<TContext>,
-            { type: K } & TEventPayloadMap[K],
-            Cast<TTypes['emitted'], EventObject>
-          >
-        | StorePropertyAssigner<
-            NoInfer<TContext>,
-            { type: K } & TEventPayloadMap[K],
-            Cast<TTypes['emitted'], EventObject>
-          >;
+      [K in keyof TEventPayloadMap & string]: StoreAssigner<
+        NoInfer<TContext>,
+        { type: K } & TEventPayloadMap[K],
+        Cast<TTypes['emitted'], EventObject>
+      >;
     };
   } & { types?: TTypes }
 ): StoreLogic<
@@ -97,17 +90,11 @@ export function fromStore<
     | ({
         context: ((input: TInput) => TContext) | TContext;
         on: {
-          [K in keyof TEventPayloadMap & string]:
-            | StoreAssigner<
-                NoInfer<TContext>,
-                { type: K } & TEventPayloadMap[K],
-                Cast<TTypes['emitted'], EventObject>
-              >
-            | StorePropertyAssigner<
-                NoInfer<TContext>,
-                { type: K } & TEventPayloadMap[K],
-                Cast<TTypes['emitted'], EventObject>
-              >;
+          [K in keyof TEventPayloadMap & string]: StoreAssigner<
+            NoInfer<TContext>,
+            { type: K } & TEventPayloadMap[K],
+            Cast<TTypes['emitted'], EventObject>
+          >;
         };
       } & { types?: TTypes }),
   transitions?: TransitionsFromEventPayloadMap<

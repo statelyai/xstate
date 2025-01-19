@@ -25,10 +25,16 @@ describe('fromStore', () => {
     const storeLogic = fromStore({
       context: (count: number) => ({ count }),
       on: {
-        inc: {
-          count: (ctx, ev: { by: number }) => {
-            return ctx.count + ev.by;
-          }
+        // inc: {
+        //   count: (ctx, ev: { by: number }) => {
+        //     return ctx.count + ev.by;
+        //   }
+        // }
+        inc: (ctx, ev: { by: number }) => {
+          return {
+            ...ctx,
+            count: ctx.count + ev.by
+          };
         }
       }
     });
@@ -53,11 +59,12 @@ describe('fromStore', () => {
       },
       context: (count: number) => ({ count }),
       on: {
-        inc: {
-          count: (ctx, ev: { by: number }, enq) => {
-            enq.emit({ type: 'increased', upBy: ev.by });
-            return ctx.count + ev.by;
-          }
+        inc: (ctx, ev: { by: number }, enq) => {
+          enq.emit({ type: 'increased', upBy: ev.by });
+          return {
+            ...ctx,
+            count: ctx.count + ev.by
+          };
         }
       }
     });

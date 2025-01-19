@@ -11,6 +11,7 @@ import {
   StoreAssigner,
   StoreContext,
   StoreInspectionEvent,
+  StoreProducerAssigner,
   StoreSnapshot
 } from './types';
 
@@ -60,9 +61,9 @@ function createStoreCore<
       TEmitted
     >;
   },
-  updater?: (
+  producer?: (
     context: NoInfer<TContext>,
-    recipe: (context: NoInfer<TContext>) => NoInfer<TContext>
+    recipe: (context: NoInfer<TContext>) => void
   ) => NoInfer<TContext>
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TEmitted> {
   type StoreEvent = ExtractEventsFromPayloadMap<TEventPayloadMap>;
@@ -87,7 +88,7 @@ function createStoreCore<
     }
   };
 
-  const transition = createStoreTransition(transitions, updater);
+  const transition = createStoreTransition(transitions, producer);
 
   function receive(event: StoreEvent) {
     let emitted: TEmitted[];
@@ -308,49 +309,8 @@ export function createStoreWithProducer<
       ) => void;
     };
   }
-): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TEmitted>;
-export function createStoreWithProducer<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends EventObject = EventObject
->(
-  producer: NoInfer<
-    (context: TContext, recipe: (context: TContext) => void) => TContext
-  >,
-  initialContext: TContext,
-  transitions: {
-    [K in keyof TEventPayloadMap & string]: (
-      context: NoInfer<TContext>,
-      event: { type: K } & TEventPayloadMap[K],
-      enqueue: EnqueueObject<TEmitted>
-    ) => void;
-  }
-): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TEmitted>;
-
-export function createStoreWithProducer<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends EventObject = EventObject
->(
-  producer: (
-    context: TContext,
-    recipe: (context: TContext) => void
-  ) => TContext,
-  initialContextOrConfig: any,
-  transitions?: any
 ): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TEmitted> {
-  if (
-    typeof initialContextOrConfig === 'object' &&
-    'context' in initialContextOrConfig &&
-    'on' in initialContextOrConfig
-  ) {
-    return createStoreCore(
-      initialContextOrConfig.context,
-      initialContextOrConfig.on,
-      producer
-    );
-  }
-  return createStoreCore(initialContextOrConfig, transitions, producer);
+  return createStoreCore(config.context, config.on, producer);
 }
 
 declare global {
@@ -364,7 +324,7 @@ declare global {
  * snapshot and an event and returns a new snapshot.
  *
  * @param transitions
- * @param updater
+ * @param producer
  * @returns
  */
 export function createStoreTransition<
@@ -379,9 +339,9 @@ export function createStoreTransition<
       TEmitted
     >;
   },
-  updater?: (
+  producer?: (
     context: TContext,
-    recipe: (context: TContext) => TContext
+    recipe: (context: TContext) => void
   ) => TContext
 ) {
   return (
@@ -404,9 +364,9 @@ export function createStoreTransition<
     }
 
     if (typeof assigner === 'function') {
-      currentContext = updater
-        ? updater(currentContext, (draftContext) =>
-            (assigner as StoreAssigner<TContext, StoreEvent, TEmitted>)?.(
+      currentContext = producer
+        ? producer(currentContext, (draftContext) =>
+            (assigner as StoreProducerAssigner<TContext, StoreEvent, TEmitted>)(
               draftContext,
               event,
               enqueue

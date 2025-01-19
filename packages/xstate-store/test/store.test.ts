@@ -147,17 +147,16 @@ it('createStoreWithProducer(…) works with an immer producer (object API)', () 
 });
 
 it('createStoreWithProducer(…) infers the context type properly with a producer', () => {
-  const store = createStoreWithProducer(
-    produce,
-    {
+  const store = createStoreWithProducer(produce, {
+    context: {
       count: 0
     },
-    {
+    on: {
       inc: (ctx, ev: { by: number }) => {
         ctx.count += ev.by;
       }
     }
-  );
+  });
 
   store.getSnapshot().context satisfies { count: number };
 });
