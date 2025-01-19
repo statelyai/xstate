@@ -242,8 +242,7 @@ export function createStore<
   TTypes extends { emitted?: EventObject }
 >({
   context,
-  on,
-  types
+  on
 }: {
   context: TContext;
   on: {
@@ -257,56 +256,8 @@ export function createStore<
   TContext,
   ExtractEventsFromPayloadMap<TEventPayloadMap>,
   Cast<TTypes['emitted'], EventObject>
->;
-
-/**
- * Creates a **store** that has its own internal state and can be sent events
- * that update its internal state based on transitions.
- *
- * @example
- *
- * ```ts
- * const store = createStore(
- *   // Initial context
- *   { count: 0 },
- *   // Transitions
- *   {
- *     inc: (context, event: { by: number }) => {
- *       return {
- *         count: context.count + event.by
- *       };
- *     }
- *   }
- * );
- *
- * store.subscribe((snapshot) => {
- *   console.log(snapshot);
- * });
- *
- * store.send({ type: 'inc', by: 5 });
- * // Logs { context: { count: 5 }, status: 'active', ... }
- * ```
- */
-export function createStore<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap
->(
-  initialContext: TContext,
-  transitions: TransitionsFromEventPayloadMap<
-    TEventPayloadMap,
-    TContext,
-    EventObject
-  >
-): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, EventObject>;
-
-export function createStore(initialContextOrObject: any, transitions?: any) {
-  if (transitions === undefined) {
-    return createStoreCore(
-      initialContextOrObject.context,
-      initialContextOrObject.on
-    );
-  }
-  return createStoreCore(initialContextOrObject, transitions);
+> {
+  return createStoreCore(context, on);
 }
 
 /**
