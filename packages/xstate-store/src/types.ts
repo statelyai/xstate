@@ -8,7 +8,10 @@ export type Recipe<T, TReturn> = (state: T) => TReturn;
 
 export type EnqueueObject<TEmitted extends EventObject> = {
   emit: (ev: TEmitted) => void;
+  effect: (fn: () => void) => void;
 };
+
+export type StoreEffect<TEmitted extends EventObject> = (() => void) | TEmitted;
 
 export type StoreAssigner<
   TContext extends StoreContext,

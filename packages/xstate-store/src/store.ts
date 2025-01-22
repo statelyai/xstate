@@ -10,6 +10,7 @@ import {
   Store,
   StoreAssigner,
   StoreContext,
+  StoreEffect,
   StoreInspectionEvent,
   StoreProducerAssigner,
   StoreSnapshot
@@ -91,8 +92,8 @@ function createStoreCore<
   const transition = createStoreTransition(transitions, producer);
 
   function receive(event: StoreEvent) {
-    let emitted: TEmitted[];
-    [currentSnapshot, emitted] = transition(currentSnapshot, event);
+    let effects: StoreEffect<TEmitted>[];
+    [currentSnapshot, effects] = transition(currentSnapshot, event);
 
     inspectionObservers.get(store)?.forEach((observer) => {
       observer.next?.({
@@ -106,7 +107,13 @@ function createStoreCore<
 
     observers?.forEach((o) => o.next?.(currentSnapshot));
 
-    emitted.forEach(emit);
+    for (const effect of effects) {
+      if (typeof effect === 'function') {
+        effect();
+      } else {
+        emit(effect);
+      }
+    }
   }
 
   const store: Store<TContext, StoreEvent, TEmitted> = {
@@ -347,20 +354,23 @@ export function createStoreTransition<
   return (
     snapshot: StoreSnapshot<TContext>,
     event: ExtractEventsFromPayloadMap<TEventPayloadMap>
-  ): [StoreSnapshot<TContext>, TEmitted[]] => {
+  ): [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]] => {
     type StoreEvent = ExtractEventsFromPayloadMap<TEventPayloadMap>;
     let currentContext = snapshot.context;
     const assigner = transitions?.[event.type as StoreEvent['type']];
-    const emitted: TEmitted[] = [];
+    const effects: StoreEffect<TEmitted>[] = [];
 
-    const enqueue = {
+    const enqueue: EnqueueObject<TEmitted> = {
       emit: (ev: TEmitted) => {
-        emitted.push(ev);
+        effects.push(ev);
+      },
+      effect: (fn) => {
+        effects.push(fn);
       }
     };
 
     if (!assigner) {
-      return [snapshot, emitted];
+      return [snapshot, effects];
     }
 
     if (typeof assigner === 'function') {
@@ -399,7 +409,7 @@ export function createStoreTransition<
       currentContext = Object.assign({}, currentContext, partialUpdate);
     }
 
-    return [{ ...snapshot, context: currentContext }, emitted];
+    return [{ ...snapshot, context: currentContext }, effects];
   };
 }
 

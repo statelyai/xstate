@@ -352,3 +352,37 @@ it('emitted events occur after the snapshot is updated', () => {
 
   store.send({ type: 'inc' });
 });
+
+it('effects can be enqueued', async () => {
+  const store = createStore({
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.effect(() => {
+          setTimeout(() => {
+            store.send({ type: 'dec' });
+          }, 5);
+        });
+
+        return {
+          ...ctx,
+          count: ctx.count + 1
+        };
+      },
+      dec: (ctx) => ({
+        ...ctx,
+        count: ctx.count - 1
+      })
+    }
+  });
+
+  store.send({ type: 'inc' });
+
+  expect(store.getSnapshot().context.count).toEqual(1);
+
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  expect(store.getSnapshot().context.count).toEqual(0);
+});
