@@ -215,6 +215,33 @@ export type TransitionsFromEventPayloadMap<
   >;
 };
 
+type CreateStoreParameterTypes<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TTypes extends { emitted?: EventObject }
+> = [
+  definition: {
+    context: TContext;
+    on: {
+      [K in keyof TEventPayloadMap & string]: StoreAssigner<
+        NoInfer<TContext>,
+        { type: K } & TEventPayloadMap[K],
+        Cast<TTypes['emitted'], EventObject>
+      >;
+    };
+  } & { types?: TTypes }
+];
+
+type CreateStoreReturnType<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TTypes extends { emitted?: EventObject }
+> = Store<
+  TContext,
+  ExtractEventsFromPayloadMap<TEventPayloadMap>,
+  Cast<TTypes['emitted'], EventObject>
+>;
+
 /**
  * Creates a **store** that has its own internal state and can be sent events
  * that update its internal state based on transitions.
@@ -244,29 +271,39 @@ export type TransitionsFromEventPayloadMap<
  * // Logs { context: { count: 5 }, status: 'active', ... }
  * ```
  */
-export function createStore<
+function _createStore<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
   TTypes extends { emitted?: EventObject }
->({
-  context,
-  on
-}: {
-  context: TContext;
-  on: {
-    [K in keyof TEventPayloadMap & string]: StoreAssigner<
-      NoInfer<TContext>,
-      { type: K } & TEventPayloadMap[K],
-      Cast<TTypes['emitted'], EventObject>
-    >;
-  };
-} & { types?: TTypes }): Store<
-  TContext,
-  ExtractEventsFromPayloadMap<TEventPayloadMap>,
-  Cast<TTypes['emitted'], EventObject>
-> {
+>(
+  ...[{ context, on }]: CreateStoreParameterTypes<
+    TContext,
+    TEventPayloadMap,
+    TTypes
+  >
+): CreateStoreReturnType<TContext, TEventPayloadMap, TTypes> {
   return createStoreCore(context, on);
 }
+
+export const createStore: {
+  // those overloads are exactly the same, we only duplicate them so TypeScript can:
+  // 1. assign contextual parameter types during inference attempt for the first overload when the source object is still context-sensitive and often non-inferrable
+  // 2. infer correctly during inference attempt for the second overload when the parameter types are already "known"
+  <
+    TContext extends StoreContext,
+    TEventPayloadMap extends EventPayloadMap,
+    TTypes extends { emitted?: EventObject }
+  >(
+    ...args: CreateStoreParameterTypes<TContext, TEventPayloadMap, TTypes>
+  ): CreateStoreReturnType<TContext, TEventPayloadMap, TTypes>;
+  <
+    TContext extends StoreContext,
+    TEventPayloadMap extends EventPayloadMap,
+    TTypes extends { emitted?: EventObject }
+  >(
+    ...args: CreateStoreParameterTypes<TContext, TEventPayloadMap, TTypes>
+  ): CreateStoreReturnType<TContext, TEventPayloadMap, TTypes>;
+} = _createStore;
 
 /**
  * Creates a `Store` with a provided producer (such as Immer's `producer(…)` A
