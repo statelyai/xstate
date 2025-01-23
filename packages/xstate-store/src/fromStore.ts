@@ -129,9 +129,15 @@ export function fromStore<
   const transition = createStoreTransition(transitionsObj);
   return {
     transition: (snapshot, event, actorScope) => {
-      const [nextSnapshot, emittedEvents] = transition(snapshot, event);
+      const [nextSnapshot, effects] = transition(snapshot, event);
 
-      emittedEvents.forEach(actorScope.emit);
+      for (const effect of effects) {
+        if (typeof effect === 'function') {
+          effect();
+        } else {
+          actorScope.emit(effect);
+        }
+      }
 
       return nextSnapshot;
     },
