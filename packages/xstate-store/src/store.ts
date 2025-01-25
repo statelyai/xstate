@@ -289,13 +289,18 @@ export const createStore: {
   // those overloads are exactly the same, we only duplicate them so TypeScript can:
   // 1. assign contextual parameter types during inference attempt for the first overload when the source object is still context-sensitive and often non-inferrable
   // 2. infer correctly during inference attempt for the second overload when the parameter types are already "known"
-  <
-    TContext extends StoreContext,
-    TEventPayloadMap extends EventPayloadMap,
-    TTypes extends { emitted?: EventObject }
-  >(
-    ...args: CreateStoreParameterTypes<TContext, TEventPayloadMap, TTypes>
-  ): CreateStoreReturnType<TContext, TEventPayloadMap, TTypes>;
+  <TContext extends StoreContext, TEvent extends EventObject>(definition: {
+    context: TContext;
+    on: {
+      [K in TEvent['type']]?: StoreAssigner<
+        NoInfer<TContext>,
+        { type: K } & TEvent,
+        TEvent
+      >;
+    };
+    types?: never;
+  }): Store<TContext, TEvent, any>;
+
   <
     TContext extends StoreContext,
     TEventPayloadMap extends EventPayloadMap,
