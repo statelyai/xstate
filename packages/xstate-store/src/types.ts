@@ -90,7 +90,30 @@ export interface Store<
       ev: Compute<TEmitted & { type: TEmittedType }>
     ) => void
   ) => Subscription;
+  /**
+   * A proxy object that allows you to send events to the store without manually
+   * constructing event objects.
+   *
+   * @example
+   *
+   * ```ts
+   * // Instead of:
+   * store.send({ type: 'increment', by: 1 });
+   *
+   * // You can trigger the event:
+   * store.trigger.increment({ by: 1 });
+   * ```
+   */
+  trigger: {
+    [K in TEvent['type'] & string]: IsEmptyObject<
+      Omit<{ type: K } & TEvent, 'type'>
+    > extends true
+      ? () => Omit<{ type: K } & TEvent, 'type'>
+      : (eventPayload: Omit<{ type: K } & TEvent, 'type'>) => void;
+  };
 }
+
+export type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
 
 export type AnyStore = Store<any, any, any>;
 

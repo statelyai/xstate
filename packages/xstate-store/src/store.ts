@@ -194,8 +194,23 @@ function createStoreCore<
           return inspectionObservers.get(store)?.delete(observer);
         }
       };
-    }
+    },
+    trigger: {} as any
   };
+
+  (store as any).trigger = new Proxy(
+    {} as Store<TContext, StoreEvent, TEmitted>['trigger'],
+    {
+      get: (_, eventType: string) => {
+        return (payload: any) => {
+          store.send({
+            type: eventType,
+            ...payload
+          });
+        };
+      }
+    }
+  );
 
   return store;
 }

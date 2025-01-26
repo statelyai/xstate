@@ -1,5 +1,5 @@
 import { produce } from 'immer';
-import { createStore, createStoreWithProducer } from '../src/index.ts';
+import { Compute, createStore, createStoreWithProducer } from '../src/index.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
 
 it('updates a store with an event without mutating original context', () => {
@@ -384,4 +384,68 @@ it('effects can be enqueued', async () => {
   await new Promise((resolve) => setTimeout(resolve, 10));
 
   expect(store.getSnapshot().context.count).toEqual(0);
+});
+
+describe('store.trigger', () => {
+  it('should allow triggering events with a fluent API', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        increment: (ctx, event: { by: number }) => ({
+          count: ctx.count + event.by
+        })
+      }
+    });
+
+    store.trigger.increment({ by: 5 });
+
+    expect(store.getSnapshot().context.count).toBe(5);
+  });
+
+  it('should provide type safety for event payloads', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        increment: (ctx, event: { by: number }) => ({
+          count: ctx.count + event.by
+        }),
+        reset: () => ({ count: 0 })
+      }
+    });
+
+    // @ts-expect-error - missing required 'by' property
+    store.trigger.increment({});
+
+    // @ts-expect-error - extra property not allowed
+    store.trigger.increment({ by: 1, extra: true });
+
+    // @ts-expect-error - unknown event
+    store.trigger.unknown({});
+
+    // Valid usage with no payload
+    store.trigger.reset();
+
+    // Valid usage with payload
+    store.trigger.increment({ by: 1 });
+  });
+
+  it('should be equivalent to store.send', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        increment: (ctx, event: { by: number }) => ({
+          count: ctx.count + event.by
+        })
+      }
+    });
+
+    const sendSpy = jest.spyOn(store, 'send');
+
+    store.trigger.increment({ by: 5 });
+
+    expect(sendSpy).toHaveBeenCalledWith({
+      type: 'increment',
+      by: 5
+    });
+  });
 });
