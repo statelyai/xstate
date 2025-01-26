@@ -2,12 +2,16 @@ import { createStore } from '../src/index';
 
 describe('emitted', () => {
   it('can emit a known event', () => {
-    createStore({
-      types: {
-        emitted: {} as
-          | { type: 'increased'; upBy: number }
-          | { type: 'decreased'; downBy: number }
+    createStore<
+      {},
+      {
+        inc: { upBy: number };
       },
+      {
+        increased: { upBy: number };
+        decreased: { downBy: number };
+      }
+    >({
       context: {},
       on: {
         inc: (ctx, _, enq) => {
@@ -19,12 +23,16 @@ describe('emitted', () => {
   });
 
   it("can't emit an unknown event", () => {
-    createStore({
-      types: {
-        emitted: {} as
-          | { type: 'increased'; upBy: number }
-          | { type: 'decreased'; downBy: number }
+    createStore<
+      {},
+      {
+        inc: { upBy: number };
       },
+      {
+        increased: { upBy: number };
+        decreased: { downBy: number };
+      }
+    >({
       context: {},
       on: {
         inc: (ctx, _, enq) => {
@@ -39,12 +47,16 @@ describe('emitted', () => {
   });
 
   it("can't emit a known event with wrong payload", () => {
-    createStore({
-      types: {
-        emitted: {} as
-          | { type: 'increased'; upBy: number }
-          | { type: 'decreased'; downBy: number }
+    createStore<
+      {},
+      {
+        inc: { upBy: number };
       },
+      {
+        increased: { upBy: number };
+        decreased: { downBy: number };
+      }
+    >({
       context: {},
       on: {
         inc: (ctx, _, enq) => {
@@ -74,12 +86,14 @@ describe('emitted', () => {
   });
 
   it('can subscribe to a known event', () => {
-    const store = createStore({
-      types: {
-        emitted: {} as
-          | { type: 'increased'; upBy: number }
-          | { type: 'decreased'; downBy: number }
-      },
+    const store = createStore<
+      {},
+      {},
+      {
+        increased: { upBy: number };
+        decreased: { downBy: number };
+      }
+    >({
       context: {},
       on: {}
     });
@@ -90,12 +104,14 @@ describe('emitted', () => {
   });
 
   it("can can't subscribe to a unknown event", () => {
-    const store = createStore({
-      types: {
-        emitted: {} as
-          | { type: 'increased'; upBy: number }
-          | { type: 'decreased'; downBy: number }
-      },
+    const store = createStore<
+      {},
+      {},
+      {
+        increased: { upBy: number };
+        decreased: { downBy: number };
+      }
+    >({
       context: {},
       on: {}
     });

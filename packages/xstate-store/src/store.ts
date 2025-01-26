@@ -1,5 +1,4 @@
 import {
-  Cast,
   EnqueueObject,
   EventObject,
   EventPayloadMap,
@@ -218,7 +217,7 @@ export type TransitionsFromEventPayloadMap<
 type CreateStoreParameterTypes<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
-  TTypes extends { emitted?: EventObject }
+  TEmitted extends EventPayloadMap
 > = [
   definition: {
     context: TContext;
@@ -226,20 +225,20 @@ type CreateStoreParameterTypes<
       [K in keyof TEventPayloadMap & string]: StoreAssigner<
         NoInfer<TContext>,
         { type: K } & TEventPayloadMap[K],
-        Cast<TTypes['emitted'], EventObject>
+        ExtractEventsFromPayloadMap<TEmitted>
       >;
     };
-  } & { types?: TTypes }
+  }
 ];
 
 type CreateStoreReturnType<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
-  TTypes extends { emitted?: EventObject }
+  TEmitted extends EventPayloadMap
 > = Store<
   TContext,
   ExtractEventsFromPayloadMap<TEventPayloadMap>,
-  Cast<TTypes['emitted'], EventObject>
+  ExtractEventsFromPayloadMap<TEmitted>
 >;
 
 /**
@@ -274,14 +273,14 @@ type CreateStoreReturnType<
 function _createStore<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
-  TTypes extends { emitted?: EventObject }
+  TEmitted extends EventPayloadMap
 >(
   ...[{ context, on }]: CreateStoreParameterTypes<
     TContext,
     TEventPayloadMap,
-    TTypes
+    TEmitted
   >
-): CreateStoreReturnType<TContext, TEventPayloadMap, TTypes> {
+): CreateStoreReturnType<TContext, TEventPayloadMap, TEmitted> {
   return createStoreCore(context, on);
 }
 
@@ -292,17 +291,17 @@ export const createStore: {
   <
     TContext extends StoreContext,
     TEventPayloadMap extends EventPayloadMap,
-    TTypes extends { emitted?: EventObject }
+    TEmitted extends EventPayloadMap
   >(
-    ...args: CreateStoreParameterTypes<TContext, TEventPayloadMap, TTypes>
-  ): CreateStoreReturnType<TContext, TEventPayloadMap, TTypes>;
+    ...args: CreateStoreParameterTypes<TContext, TEventPayloadMap, TEmitted>
+  ): CreateStoreReturnType<TContext, TEventPayloadMap, TEmitted>;
   <
     TContext extends StoreContext,
     TEventPayloadMap extends EventPayloadMap,
-    TTypes extends { emitted?: EventObject }
+    TEmitted extends EventObject
   >(
-    ...args: CreateStoreParameterTypes<TContext, TEventPayloadMap, TTypes>
-  ): CreateStoreReturnType<TContext, TEventPayloadMap, TTypes>;
+    ...args: CreateStoreParameterTypes<TContext, TEventPayloadMap, TEmitted>
+  ): CreateStoreReturnType<TContext, TEventPayloadMap, TEmitted>;
 } = _createStore;
 
 /**
@@ -338,7 +337,7 @@ export const createStore: {
 export function createStoreWithProducer<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends EventObject = EventObject
+  TEmittedPayloadMap extends EventPayloadMap
 >(
   producer: NoInfer<
     (context: TContext, recipe: (context: TContext) => void) => TContext
@@ -349,11 +348,15 @@ export function createStoreWithProducer<
       [K in keyof TEventPayloadMap & string]: (
         context: NoInfer<TContext>,
         event: { type: K } & TEventPayloadMap[K],
-        enqueue: EnqueueObject<TEmitted>
+        enqueue: EnqueueObject<ExtractEventsFromPayloadMap<TEmittedPayloadMap>>
       ) => void;
     };
   }
-): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>, TEmitted> {
+): Store<
+  TContext,
+  ExtractEventsFromPayloadMap<TEventPayloadMap>,
+  ExtractEventsFromPayloadMap<TEmittedPayloadMap>
+> {
   return createStoreCore(config.context, config.on, producer);
 }
 
