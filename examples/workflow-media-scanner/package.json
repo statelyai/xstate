@@ -7,13 +7,13 @@
     "start": "ts-node src/index.ts"
   },
   "dependencies": {
-    "@types/node": "^20.17.8",
-    "fs-extra": "^11.2.0",
+    "@types/node": "^20.17.16",
+    "fs-extra": "^11.3.0",
     "mv": "^2.1.1",
     "node-ffprobe": "^3.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.2",
+    "typescript": "^5.7.3",
     "winston": "^3.17.0",
-    "xstate": "^5.19.0"
+    "xstate": "^5.19.2"
   }
 }
