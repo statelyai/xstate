@@ -236,6 +236,9 @@ type CreateStoreParameterTypes<
 > = [
   definition: {
     context: TContext;
+    emits?: {
+      [K in keyof TEmitted & string]: (payload: TEmitted[K]) => void;
+    };
     on: {
       [K in keyof TEventPayloadMap & string]: StoreAssigner<
         NoInfer<TContext>,
@@ -313,7 +316,7 @@ export const createStore: {
   <
     TContext extends StoreContext,
     TEventPayloadMap extends EventPayloadMap,
-    TEmitted extends EventObject
+    TEmitted extends EventPayloadMap
   >(
     ...args: CreateStoreParameterTypes<TContext, TEventPayloadMap, TEmitted>
   ): CreateStoreReturnType<TContext, TEventPayloadMap, TEmitted>;
@@ -416,9 +419,16 @@ export function createStoreTransition<
     const effects: StoreEffect<TEmitted>[] = [];
 
     const enqueue: EnqueueObject<TEmitted> = {
-      emit: (ev: TEmitted) => {
-        effects.push(ev);
-      },
+      emit: new Proxy({} as any, {
+        get: (_, eventType: string) => {
+          return (payload: any) => {
+            effects.push({
+              type: eventType,
+              ...payload
+            });
+          };
+        }
+      }),
       effect: (fn) => {
         effects.push(fn);
       }

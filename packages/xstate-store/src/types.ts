@@ -6,8 +6,12 @@ export type ExtractEventsFromPayloadMap<T extends EventPayloadMap> = Values<{
 
 export type Recipe<T, TReturn> = (state: T) => TReturn;
 
-export type EnqueueObject<TEmitted extends EventObject> = {
-  emit: (ev: TEmitted) => void;
+export type EnqueueObject<TEmittedEvent extends EventObject> = {
+  emit: {
+    [K in TEmittedEvent['type']]: (
+      payload: Omit<TEmittedEvent & { type: K }, 'type'>
+    ) => void;
+  };
   effect: (fn: () => void) => void;
 };
 

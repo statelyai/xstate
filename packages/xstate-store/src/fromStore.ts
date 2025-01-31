@@ -60,23 +60,26 @@ export function fromStore<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
   TInput,
-  TTypes extends { emitted?: EventObject }
->(
-  config: {
-    context: ((input: TInput) => TContext) | TContext;
-    on: {
-      [K in keyof TEventPayloadMap & string]: StoreAssigner<
-        NoInfer<TContext>,
-        { type: K } & TEventPayloadMap[K],
-        Cast<TTypes['emitted'], EventObject>
-      >;
-    };
-  } & { types?: TTypes }
-): StoreLogic<
+  TEmitted extends EventPayloadMap
+>(config: {
+  context: ((input: TInput) => TContext) | TContext;
+  on: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      NoInfer<TContext>,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEventsFromPayloadMap<TEmitted>
+    >;
+  };
+  emits?: {
+    [K in keyof TEventPayloadMap & string]: (
+      payload: { type: K } & TEventPayloadMap[K]
+    ) => void;
+  };
+}): StoreLogic<
   TContext,
   ExtractEventsFromPayloadMap<TEventPayloadMap>,
   TInput,
-  TTypes['emitted'] extends EventObject ? TTypes['emitted'] : EventObject
+  ExtractEventsFromPayloadMap<TEmitted>
 >;
 export function fromStore<
   TContext extends StoreContext,

@@ -54,13 +54,13 @@ describe('fromStore', () => {
     const spy = jest.fn();
 
     const storeLogic = fromStore({
-      types: {
-        emitted: {} as { type: 'increased'; upBy: number }
-      },
       context: (count: number) => ({ count }),
+      emits: {
+        increased: (_: { upBy: number }) => {}
+      },
       on: {
         inc: (ctx, ev: { by: number }, enq) => {
-          enq.emit({ type: 'increased', upBy: ev.by });
+          enq.emit.increased({ upBy: ev.by });
           return {
             ...ctx,
             count: ctx.count + ev.by

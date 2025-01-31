@@ -2,20 +2,14 @@ import { createStore } from '../src/index';
 
 describe('emitted', () => {
   it('can emit a known event', () => {
-    createStore<
-      {},
-      {
-        inc: { upBy: number };
-      },
-      {
-        increased: { upBy: number };
-        decreased: { downBy: number };
-      }
-    >({
+    createStore({
       context: {},
+      emits: {
+        increased: (_: { upBy: number }) => {}
+      },
       on: {
         inc: (ctx, _, enq) => {
-          enq.emit({ type: 'increased', upBy: 1 });
+          enq.emit.increased({ upBy: 1 });
           return ctx;
         }
       }
@@ -23,23 +17,17 @@ describe('emitted', () => {
   });
 
   it("can't emit an unknown event", () => {
-    createStore<
-      {},
-      {
-        inc: { upBy: number };
-      },
-      {
-        increased: { upBy: number };
-        decreased: { downBy: number };
-      }
-    >({
+    createStore({
       context: {},
+      emits: {
+        increased: (_: { upBy: number }) => {},
+        decreased: (_: { downBy: number }) => {}
+      },
       on: {
         inc: (ctx, _, enq) => {
-          enq.emit({
+          enq.emit
             // @ts-expect-error
-            type: 'unknown'
-          });
+            .unknown();
           return ctx;
         }
       }
@@ -47,37 +35,17 @@ describe('emitted', () => {
   });
 
   it("can't emit a known event with wrong payload", () => {
-    createStore<
-      {},
-      {
-        inc: { upBy: number };
-      },
-      {
-        increased: { upBy: number };
-        decreased: { downBy: number };
-      }
-    >({
-      context: {},
-      on: {
-        inc: (ctx, _, enq) => {
-          enq.emit({
-            type: 'increased',
-            // @ts-expect-error
-            upBy: 'bazinga'
-          });
-          return ctx;
-        }
-      }
-    });
-  });
-
-  it('can emit an event when emitted events are unknown', () => {
     createStore({
       context: {},
+      emits: {
+        increased: (_: { upBy: number }) => {},
+        decreased: (_: { downBy: number }) => {}
+      },
       on: {
         inc: (ctx, _, enq) => {
-          enq.emit({
-            type: 'unknown'
+          enq.emit.increased({
+            // @ts-expect-error
+            upBy: 'bazinga'
           });
           return ctx;
         }

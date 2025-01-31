@@ -258,18 +258,16 @@ it('inspection with @statelyai/inspect typechecks correctly', () => {
 });
 
 it('emitted events can be subscribed to', () => {
-  const store = createStore<
-    { count: number },
-    { inc: {} },
-    { increased: { upBy: number } }
-  >({
+  const store = createStore({
     context: {
       count: 0
     },
+    emits: {
+      increased: (a: { upBy: number }) => {}
+    },
     on: {
       inc: (ctx, _, enq) => {
-        enq.emit({ type: 'increased', upBy: 1 });
-
+        enq.emit.increased({ upBy: 1 });
         return {
           ...ctx,
           count: ctx.count + 1
@@ -288,17 +286,16 @@ it('emitted events can be subscribed to', () => {
 });
 
 it('emitted events can be unsubscribed to', () => {
-  const store = createStore<
-    { count: number },
-    { inc: {} },
-    { increased: { upBy: number } }
-  >({
+  const store = createStore({
     context: {
       count: 0
     },
+    emits: {
+      increased: (_: { upBy: number }) => {}
+    },
     on: {
       inc: (ctx, _, enq) => {
-        enq.emit({ type: 'increased', upBy: 1 });
+        enq.emit.increased({ upBy: 1 });
 
         return {
           ...ctx,
@@ -321,17 +318,16 @@ it('emitted events can be unsubscribed to', () => {
 });
 
 it('emitted events occur after the snapshot is updated', () => {
-  const store = createStore<
-    { count: number },
-    { inc: {} },
-    { increased: { upBy: number } }
-  >({
+  const store = createStore({
     context: {
       count: 0
     },
+    emits: {
+      increased: (_: { upBy: number }) => {}
+    },
     on: {
       inc: (ctx, _, enq) => {
-        enq.emit({ type: 'increased', upBy: 1 });
+        enq.emit.increased({ upBy: 1 });
 
         return {
           ...ctx,
