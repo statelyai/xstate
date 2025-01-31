@@ -71,8 +71,10 @@ export type Equals<A1, A2> =
     : false;
 export type IsAny<T> = Equals<T, any>;
 export type Cast<A, B> = A extends B ? A : B;
-// @TODO: Replace with native `NoInfer` when TS issue gets fixed:
-// https://github.com/microsoft/TypeScript/pull/57673
+// @TODO: we can't use native `NoInfer` as we need those:
+// https://github.com/microsoft/TypeScript/pull/61092
+// https://github.com/microsoft/TypeScript/pull/61077
+// but even with those fixes native NoInfer still doesn't work - further issues have to be reproduced and fixed
 export type DoNotInfer<T> = [T][T extends any ? 0 : any];
 /** @deprecated Use the built-in `NoInfer` type instead */
 export type NoInfer<T> = DoNotInfer<T>;
