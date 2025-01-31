@@ -71,8 +71,8 @@ export function fromStore<
     >;
   };
   emits?: {
-    [K in keyof TEventPayloadMap & string]: (
-      payload: { type: K } & TEventPayloadMap[K]
+    [K in keyof TEmitted & string]: (
+      payload: { type: K } & TEmitted[K]
     ) => void;
   };
 }): StoreLogic<
