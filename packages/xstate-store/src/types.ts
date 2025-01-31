@@ -8,9 +8,7 @@ export type Recipe<T, TReturn> = (state: T) => TReturn;
 
 export type EnqueueObject<TEmittedEvent extends EventObject> = {
   emit: {
-    [K in TEmittedEvent['type']]: (
-      payload: Omit<TEmittedEvent & { type: K }, 'type'>
-    ) => void;
+    [E in TEmittedEvent as E['type']]: (payload: Omit<E, 'type'>) => void;
   };
   effect: (fn: () => void) => void;
 };
@@ -109,11 +107,11 @@ export interface Store<
    * ```
    */
   trigger: {
-    [K in TEvent['type'] & string]: IsEmptyObject<
-      Omit<{ type: K } & TEvent, 'type'>
+    [E in TEvent as E['type'] & string]: IsEmptyObject<
+      Omit<E, 'type'>
     > extends true
-      ? () => Omit<{ type: K } & TEvent, 'type'>
-      : (eventPayload: Omit<{ type: K } & TEvent, 'type'>) => void;
+      ? () => Omit<E, 'type'>
+      : (eventPayload: Omit<E, 'type'>) => void;
   };
 }
 
@@ -314,5 +312,5 @@ export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export type Cast<A, B> = A extends B ? A : B;
 
 export type EventMap<TEvent extends EventObject> = {
-  [K in TEvent['type']]: TEvent & { type: K };
+  [E in TEvent as E['type']]: E;
 };
