@@ -15,10 +15,10 @@ export type StoreAssigner<
   TEvent extends EventObject,
   TEmitted extends EventObject
 > = (
-  context: TContext,
+  context: NoInfer<TContext>,
   event: TEvent,
-  enq: EnqueueObject<TEmitted>
-) => Partial<TContext>;
+  enqueue: EnqueueObject<TEmitted>
+) => Partial<NoInfer<TContext>> | void;
 export type StoreCompleteAssigner<
   TContext,
   TEvent extends EventObject,
@@ -35,13 +35,17 @@ export type StorePartialAssigner<
   enq: EnqueueObject<TEmitted>
 ) => Partial<TContext>[K];
 export type StorePropertyAssigner<
-  TContext,
+  TContext extends StoreContext,
   TEvent extends EventObject,
   TEmitted extends EventObject
 > = {
   [K in keyof TContext]?:
     | TContext[K]
-    | StorePartialAssigner<TContext, TEvent, K, TEmitted>;
+    | ((
+        context: TContext,
+        event: TEvent,
+        enqueue: EnqueueObject<TEmitted>
+      ) => TContext[K]);
 };
 
 export type Snapshot<TOutput> =
@@ -66,8 +70,12 @@ export type Snapshot<TOutput> =
       error: undefined;
     };
 
-export type StoreSnapshot<TContext> = Snapshot<undefined> & {
+export type StoreSnapshot<TContext, TGetters = {}> = Snapshot<undefined> & {
   context: TContext;
+} & {
+  [K in keyof TGetters]: TGetters[K] extends (...args: any[]) => infer R
+    ? R
+    : never;
 };
 
 /**
@@ -80,12 +88,13 @@ export type StoreSnapshot<TContext> = Snapshot<undefined> & {
 export interface Store<
   TContext,
   TEvent extends EventObject,
-  TEmitted extends EventObject
-> extends Subscribable<StoreSnapshot<TContext>>,
-    InteropObservable<StoreSnapshot<TContext>> {
+  TEmitted extends EventObject,
+  TGetters extends Record<string, (context: TContext, getters: any) => any> = {}
+> extends Subscribable<StoreSnapshot<TContext, TGetters>>,
+    InteropObservable<StoreSnapshot<TContext, TGetters>> {
   send: (event: TEvent) => void;
-  getSnapshot: () => StoreSnapshot<TContext>;
-  getInitialSnapshot: () => StoreSnapshot<TContext>;
+  getSnapshot: () => StoreSnapshot<TContext, TGetters>;
+  getInitialSnapshot: () => StoreSnapshot<TContext, TGetters>;
   /**
    * Subscribes to [inspection events](https://stately.ai/docs/inspection) from
    * the store.
@@ -300,3 +309,26 @@ export type ActorRefLike = {
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
 
 export type Cast<A, B> = A extends B ? A : B;
+
+export type StoreGetter<
+  TContext,
+  TGetters extends Record<string, any>,
+  TValue
+> = (context: TContext, getters: TGetters) => TValue;
+
+export type StoreGetters<TContext, TGetters extends Record<string, any>> = {
+  [K in keyof TGetters]: StoreGetter<TContext, Omit<TGetters, K>, TGetters[K]>;
+};
+
+export type StoreTransition<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> =
+  | StoreAssigner<TContext, TEvent, TEmitted>
+  | StorePropertyAssigner<TContext, TEvent, TEmitted>;
+
+export type UpdaterFn<TContext extends StoreContext> = (
+  context: TContext,
+  recipe: (context: TContext) => TContext
+) => TContext;

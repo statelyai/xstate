@@ -27,13 +27,11 @@ it('can update context with a property assigner', () => {
   const store = createStore(
     { count: 0, greeting: 'hello' },
     {
-      inc: {
-        count: (ctx) => ctx.count + 1
-      },
-      updateBoth: {
-        count: () => 42,
+      inc: (ctx: { count: number }) => ({ count: ctx.count + 1 }),
+      updateBoth: () => ({
+        count: 42,
         greeting: 'hi'
-      }
+      })
     }
   );
 
@@ -59,7 +57,6 @@ it('handles unknown events (does not do anything)', () => {
   );
 
   store.send({
-    // @ts-expect-error
     type: 'unknown'
   });
   expect(store.getSnapshot().context).toEqual({ count: 0 });
@@ -349,4 +346,128 @@ it('emitted events occur after the snapshot is updated', () => {
   });
 
   store.send({ type: 'inc' });
+});
+
+it('computes getters from context', () => {
+  const store = createStore({
+    context: { count: 2 },
+    getters: {
+      double: (ctx: { count: number }) => ctx.count * 2,
+      squared: (ctx: { count: number }) => ctx.count ** 2
+    },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 })
+    }
+  });
+
+  expect(store.getSnapshot().double).toBe(4);
+  expect(store.getSnapshot().squared).toBe(4);
+
+  store.send({ type: 'inc' });
+
+  expect(store.getSnapshot().double).toBe(6);
+  expect(store.getSnapshot().squared).toBe(9);
+});
+
+it('updates getters when context changes', () => {
+  const store = createStore(
+    { count: 1 },
+    {
+      inc: (ctx: { count: number }) => ({ count: ctx.count + 1 })
+    },
+    {
+      triple: (ctx: { count: number }) => ctx.count * 3
+    }
+  );
+
+  expect(store.getSnapshot().triple).toBe(3);
+  store.send({ type: 'inc' });
+  expect(store.getSnapshot().triple).toBe(6);
+});
+
+it('works with immer producer and getters', () => {
+  const store = createStoreWithProducer(produce, {
+    context: { a: 1, b: 2 },
+    getters: {
+      sum: (ctx: { a: number; b: number }) => ctx.a + ctx.b,
+      product: (ctx: { a: number; b: number }) => ctx.a * ctx.b
+    },
+    on: {
+      update: (ctx, ev: { type: 'update'; a?: number; b?: number }) => {
+        if (ev.a !== undefined) ctx.a = ev.a;
+        if (ev.b !== undefined) ctx.b = ev.b;
+      }
+    }
+  });
+
+  expect(store.getSnapshot().sum).toBe(3);
+  expect(store.getSnapshot().product).toBe(2);
+
+  store.send({ type: 'update', a: 3 });
+  expect(store.getSnapshot().sum).toBe(5); // 3 + 2
+  expect(store.getSnapshot().product).toBe(6); // 3 * 2
+});
+
+it('handles getter dependencies', () => {
+  const store = createStore({
+    context: { price: 10, quantity: 5 },
+    getters: {
+      subtotal: (ctx: { price: number; quantity: number }) =>
+        ctx.price * ctx.quantity,
+      taxRate: () => 0.1,
+      total: (_ctx, getters) => getters.subtotal * (1 + getters.taxRate)
+    },
+    on: {
+      updatePrice: (_ctx, ev: { type: 'updatePrice'; price: number }) => ({
+        price: ev.price
+      })
+    }
+  });
+
+  expect(store.getSnapshot().total).toBeCloseTo(55); // 10*5*1.1 = 55
+
+  store.send({ type: 'updatePrice', price: 20 });
+  expect(store.getSnapshot().total).toBeCloseTo(110); // 20*5*1.1 = 110
+});
+
+it('includes getters in subscriptions', () => {
+  const store = createStore({
+    context: { count: 0 },
+    getters: {
+      doubled: (ctx) => ctx.count * 2
+    },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 })
+    }
+  });
+
+  const values: number[] = [];
+  store.subscribe((s) => values.push(s.doubled));
+
+  store.send({ type: 'inc' });
+  store.send({ type: 'inc' });
+  store.send({ type: 'inc' });
+
+  expect(values).toEqual([2, 4, 6]);
+});
+
+it('handles getters with no context dependencies', () => {
+  const store = createStore({
+    context: { count: 0 },
+    getters: {
+      random: () => Math.random(),
+      fixed: () => 42
+    },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 })
+    }
+  });
+
+  const initial = store.getSnapshot();
+  store.send({ type: 'inc' });
+  const next = store.getSnapshot();
+
+  expect(initial.fixed).toBe(42);
+  expect(next.fixed).toBe(42);
+  expect(initial.random).not.toBe(next.random);
 });
