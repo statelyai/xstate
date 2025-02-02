@@ -530,3 +530,117 @@ it('the emit type is not overridden by the payload', () => {
     drawer: { id: 'a' }
   });
 });
+
+describe('getters', () => {
+  it('computes values from context', () => {
+    const store = createStore({
+      context: { count: 2 },
+      getters: {
+        doubled: (ctx: { count: number }) => ctx.count * 2,
+        squared: (ctx: { count: number }) => ctx.count ** 2
+      } as const,
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    });
+
+    expect(store.getSnapshot().doubled).toBe(4);
+    expect(store.getSnapshot().squared).toBe(4);
+
+    store.send({ type: 'inc' });
+    expect(store.getSnapshot().doubled).toBe(6);
+    expect(store.getSnapshot().squared).toBe(9);
+  });
+
+  it('handles getter dependencies', () => {
+    const store = createStore({
+      context: { price: 10, quantity: 2 },
+      getters: {
+        subtotal: (ctx) => ctx.price * ctx.quantity,
+        tax: (_, getters: { subtotal: number }): number =>
+          getters.subtotal * 0.1,
+        total: (_, getters: { subtotal: number; tax: number }): number =>
+          getters.subtotal + getters.tax
+      },
+      on: {
+        updatePrice: (ctx, ev: { value: number }) => ({ price: ev.value })
+      }
+    });
+
+    expect(store.getSnapshot().total).toBeCloseTo(22); // 20 + 2 = 22
+
+    store.send({ type: 'updatePrice', value: 20 });
+    expect(store.getSnapshot().total).toBeCloseTo(44); // 40 + 4 = 44
+  });
+
+  it('updates getters when context changes', () => {
+    const store = createStore({
+      context: { items: [] as string[] },
+      getters: {
+        count: (ctx) => ctx.items.length,
+        hasItems: (_, getters: { count: number }): boolean => getters.count > 0
+      },
+      on: {
+        addItem: (ctx, ev: { item: string }) => ({
+          items: [...ctx.items, ev.item]
+        })
+      }
+    });
+
+    expect(store.getSnapshot().hasItems).toBe(false);
+
+    store.send({ type: 'addItem', item: 'test' });
+    expect(store.getSnapshot().hasItems).toBe(true);
+  });
+
+  it('works with immer producer', () => {
+    const store = createStoreWithProducer(produce, {
+      context: { a: 1, b: 2 },
+      getters: {
+        sum: (ctx) => ctx.a + ctx.b,
+        product: (ctx) => ctx.a * ctx.b
+      },
+      on: {
+        update: (ctx, ev: { a?: number; b?: number }) => {
+          if (ev.a !== undefined) ctx.a = ev.a;
+          if (ev.b !== undefined) ctx.b = ev.b;
+        }
+      }
+    });
+
+    expect(store.getSnapshot().sum).toBe(3);
+    expect(store.getSnapshot().product).toBe(2);
+
+    store.send({ type: 'update', a: 3 });
+    expect(store.getSnapshot().sum).toBe(5);
+    expect(store.getSnapshot().product).toBe(6);
+  });
+
+  it('includes getters in inspection snapshots', () => {
+    const store = createStore({
+      context: { value: 5 },
+      getters: {
+        squared: (ctx) => ctx.value ** 2
+      },
+      on: {
+        increment: (ctx) => ({ value: ctx.value + 1 })
+      }
+    });
+
+    const snapshots: any[] = [];
+    store.inspect((ev) => {
+      if (ev.type === '@xstate.snapshot') {
+        snapshots.push(ev.snapshot);
+      }
+    });
+
+    store.send({ type: 'increment' });
+    store.send({ type: 'increment' });
+
+    expect(snapshots).toEqual([
+      expect.objectContaining({ context: { value: 5 }, squared: 25 }),
+      expect.objectContaining({ context: { value: 6 }, squared: 36 }),
+      expect.objectContaining({ context: { value: 7 }, squared: 49 })
+    ]);
+  });
+});

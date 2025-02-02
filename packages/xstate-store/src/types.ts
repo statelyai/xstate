@@ -23,7 +23,7 @@ export type StoreAssigner<
   context: TContext,
   event: TEvent,
   enq: EnqueueObject<TEmitted>
-) => TContext | void;
+) => Partial<TContext> | void;
 
 export type StoreProducerAssigner<
   TContext extends StoreContext,
@@ -32,30 +32,33 @@ export type StoreProducerAssigner<
 > = (context: TContext, event: TEvent, enq: EnqueueObject<TEmitted>) => void;
 
 export type Snapshot<TOutput> =
-  | {
-      status: 'active';
-      output: undefined;
-      error: undefined;
-    }
-  | {
-      status: 'done';
-      output: TOutput;
-      error: undefined;
-    }
-  | {
-      status: 'error';
-      output: undefined;
-      error: unknown;
-    }
-  | {
-      status: 'stopped';
-      output: undefined;
-      error: undefined;
-    };
+  | { status: 'active'; output: undefined; error: undefined }
+  | { status: 'done'; output: TOutput; error: undefined }
+  | { status: 'error'; output: undefined; error: unknown }
+  | { status: 'stopped'; output: undefined; error: undefined };
 
-export type StoreSnapshot<TContext> = Snapshot<undefined> & {
-  context: TContext;
+export type ResolvedGetters<
+  TGetters extends Record<string, (...args: any[]) => any>
+> = {
+  [K in keyof TGetters]: ReturnType<TGetters[K]>;
 };
+
+export type StoreGetters<
+  TContext,
+  TGetters extends Record<string, (context: TContext, getters: any) => any>
+> = {
+  [K in keyof TGetters]: (
+    context: TContext,
+    getters: ResolvedGetters<TGetters>
+  ) => ReturnType<TGetters[K]>;
+};
+
+export type StoreSnapshot<
+  TContext,
+  TGetters extends Record<string, (context: TContext, getters: any) => any>
+> = Snapshot<unknown> & {
+  context: TContext;
+} & ResolvedGetters<TGetters>;
 
 /**
  * An actor-like object that:
@@ -67,12 +70,13 @@ export type StoreSnapshot<TContext> = Snapshot<undefined> & {
 export interface Store<
   TContext,
   TEvent extends EventObject,
-  TEmitted extends EventObject
-> extends Subscribable<StoreSnapshot<TContext>>,
-    InteropObservable<StoreSnapshot<TContext>> {
+  TEmitted extends EventObject,
+  TGetters extends Record<string, (context: TContext, getters: any) => any> = {}
+> extends Subscribable<StoreSnapshot<TContext, TGetters>>,
+    InteropObservable<StoreSnapshot<TContext, TGetters>> {
   send: (event: TEvent) => void;
-  getSnapshot: () => StoreSnapshot<TContext>;
-  getInitialSnapshot: () => StoreSnapshot<TContext>;
+  getSnapshot: () => StoreSnapshot<TContext, TGetters>;
+  getInitialSnapshot: () => StoreSnapshot<TContext, TGetters>;
   /**
    * Subscribes to [inspection events](https://stately.ai/docs/inspection) from
    * the store.
@@ -119,9 +123,12 @@ export type AnyStore = Store<any, any, any>;
 
 export type Compute<A> = { [K in keyof A]: A[K] };
 
-export type SnapshotFromStore<TStore extends Store<any, any, any>> =
-  TStore extends Store<infer TContext, any, any>
-    ? StoreSnapshot<TContext>
+export type SnapshotFromStore<
+  TStore extends Store<any, any, any>,
+  TGetters extends Record<string, (context: any, getters: any) => any>
+> =
+  TStore extends Store<infer TContext, any, any, TGetters>
+    ? StoreSnapshot<TContext, TGetters>
     : never;
 
 /**
@@ -312,3 +319,8 @@ export type Cast<A, B> = A extends B ? A : B;
 export type EventMap<TEvent extends EventObject> = {
   [E in TEvent as E['type']]: E;
 };
+
+export type Producer<TContext extends StoreContext> = (
+  context: TContext,
+  recipe: (context: TContext) => void
+) => TContext;
