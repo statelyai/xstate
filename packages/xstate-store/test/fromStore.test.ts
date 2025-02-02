@@ -25,11 +25,6 @@ describe('fromStore', () => {
     const storeLogic = fromStore({
       context: (count: number) => ({ count }),
       on: {
-        // inc: {
-        //   count: (ctx, ev: { by: number }) => {
-        //     return ctx.count + ev.by;
-        //   }
-        // }
         inc: (ctx, ev: { by: number }) => {
           return {
             ...ctx,
