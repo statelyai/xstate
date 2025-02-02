@@ -1,5 +1,13 @@
 import { useCallback, useRef, useSyncExternalStore } from 'react';
-import { SnapshotFromStore, AnyStore } from './types';
+import {
+  SnapshotFromStore,
+  AnyStore,
+  StoreContext,
+  EventPayloadMap,
+  StoreAssigner,
+  ExtractEventsFromPayloadMap
+} from './types';
+import { createStore } from './store';
 
 function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;
@@ -58,4 +66,30 @@ export function useSelector<TStore extends AnyStore, T>(
         store.getInitialSnapshot() as SnapshotFromStore<TStore>
       )
   );
+}
+
+export function useStore<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventPayloadMap
+>(definition: {
+  context: TContext;
+  emits?: {
+    [K in keyof TEmitted & string]: (payload: TEmitted[K]) => void;
+  };
+  on: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      NoInfer<TContext>,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEventsFromPayloadMap<TEmitted>
+    >;
+  };
+}) {
+  const storeRef = useRef<AnyStore>();
+
+  if (!storeRef.current) {
+    storeRef.current = createStore(definition);
+  }
+
+  return storeRef.current;
 }
