@@ -162,21 +162,6 @@ it('createStoreWithProducer(…) infers the context type properly with a produce
   store.getSnapshot().context satisfies { count: number };
 });
 
-it('createStoreWithProducer(…) infers the context type properly with a producer (object API)', () => {
-  const store = createStoreWithProducer(produce, {
-    context: {
-      count: 0
-    },
-    on: {
-      inc: (ctx, ev: { by: number }) => {
-        ctx.count += ev.by;
-      }
-    }
-  });
-
-  store.getSnapshot().context satisfies { count: number };
-});
-
 it('can be observed', () => {
   const store = createStore({
     context: {
