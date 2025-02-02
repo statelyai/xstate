@@ -1,6 +1,7 @@
 import { produce } from 'immer';
 import { Compute, createStore, createStoreWithProducer } from '../src/index.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
+import { sleep } from '../../../scripts/jest-utils/index';
 
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
@@ -377,7 +378,7 @@ it('effects can be enqueued', async () => {
 
   expect(store.getSnapshot().context.count).toEqual(1);
 
-  await new Promise((resolve) => setTimeout(resolve, 10));
+  await sleep(10);
 
   expect(store.getSnapshot().context.count).toEqual(0);
 });
