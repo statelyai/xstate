@@ -195,12 +195,7 @@ function createStoreCore<
         }
       };
     },
-    trigger: {} as any
-  };
-
-  (store as any).trigger = new Proxy(
-    {} as Store<TContext, StoreEvent, TEmitted>['trigger'],
-    {
+    trigger: new Proxy({} as Store<TContext, StoreEvent, TEmitted>['trigger'], {
       get: (_, eventType: string) => {
         return (payload: any) => {
           store.send({
@@ -209,8 +204,8 @@ function createStoreCore<
           });
         };
       }
-    }
-  );
+    })
+  };
 
   return store;
 }
@@ -267,9 +262,6 @@ type CreateStoreReturnType<
  *
  * ```ts
  * const store = createStore({
- *   types: {
- *     // ...
- *   },
  *   context: { count: 0 },
  *   on: {
  *     inc: (context, event: { by: number }) => {
