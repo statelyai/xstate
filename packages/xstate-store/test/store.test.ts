@@ -1,7 +1,6 @@
 import { produce } from 'immer';
 import { Compute, createStore, createStoreWithProducer } from '../src/index.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
-import { sleep } from '../../../scripts/jest-utils/index';
 
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
@@ -148,6 +147,21 @@ it('createStoreWithProducer(…) works with an immer producer (object API)', () 
 });
 
 it('createStoreWithProducer(…) infers the context type properly with a producer', () => {
+  const store = createStoreWithProducer(produce, {
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, ev: { by: number }) => {
+        ctx.count += ev.by;
+      }
+    }
+  });
+
+  store.getSnapshot().context satisfies { count: number };
+});
+
+it('createStoreWithProducer(…) infers the context type properly with a producer (object API)', () => {
   const store = createStoreWithProducer(produce, {
     context: {
       count: 0
@@ -363,7 +377,7 @@ it('effects can be enqueued', async () => {
 
   expect(store.getSnapshot().context.count).toEqual(1);
 
-  await sleep(10);
+  await new Promise((resolve) => setTimeout(resolve, 10));
 
   expect(store.getSnapshot().context.count).toEqual(0);
 });
@@ -429,5 +443,34 @@ describe('store.trigger', () => {
       type: 'increment',
       by: 5
     });
+  });
+});
+
+it('works with typestates', () => {
+  type ContextStates =
+    | {
+        status: 'loading';
+        data: null;
+      }
+    | {
+        status: 'success';
+        data: string;
+      };
+
+  const store = createStore({
+    context: {
+      status: 'loading',
+      data: null
+    } as ContextStates,
+    on: {
+      loaded: () => ({
+        status: 'success' as const,
+        data: 'hello'
+      }),
+      loading: () => ({
+        status: 'loading' as const,
+        data: null
+      })
+    }
   });
 });
