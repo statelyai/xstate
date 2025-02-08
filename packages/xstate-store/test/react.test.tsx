@@ -196,17 +196,17 @@ it('useSelector (@xstate/react) should work', () => {
 });
 
 it('useActor (@xstate/react) should work', () => {
-  const store = fromStore(
-    {
+  const store = fromStore({
+    context: {
       count: 0
     },
-    {
+    on: {
       inc: (ctx) => ({
         ...ctx,
         count: ctx.count + 1
       })
     }
-  );
+  });
 
   const Counter = () => {
     const [snapshot, send] = useActor(store);
@@ -235,17 +235,17 @@ it('useActor (@xstate/react) should work', () => {
 });
 
 it('useActorRef (@xstate/react) should work', () => {
-  const store = fromStore(
-    {
+  const store = fromStore({
+    context: {
       count: 0
     },
-    {
+    on: {
       inc: (ctx) => ({
         ...ctx,
         count: ctx.count + 1
       })
     }
-  );
+  });
 
   const Counter = () => {
     const actorRef = useActorRef(store);
