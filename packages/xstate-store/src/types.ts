@@ -1,6 +1,6 @@
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
-export type ExtractEventsFromPayloadMap<T extends EventPayloadMap> = Values<{
+export type ExtractEvents<T extends EventPayloadMap> = Values<{
   [K in keyof T & string]: T[K] & { type: K };
 }>;
 
