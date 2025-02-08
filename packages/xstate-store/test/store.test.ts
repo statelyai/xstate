@@ -1,5 +1,5 @@
 import { produce } from 'immer';
-import { Compute, createStore, createStoreWithProducer } from '../src/index.ts';
+import { createStore, createStoreWithProducer } from '../src/index.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
 
 it('updates a store with an event without mutating original context', () => {
@@ -26,7 +26,7 @@ it('updates a store with an event without mutating original context', () => {
   expect(context.count).toEqual(0);
 });
 
-it('can update context with a property assigner', () => {
+it('can update context', () => {
   const store = createStore({
     context: { count: 0, greeting: 'hello' },
     on: {
@@ -34,7 +34,7 @@ it('can update context with a property assigner', () => {
         ...ctx,
         count: ctx.count + 1
       }),
-      updateBoth: (ctx) => ({
+      updateBoth: () => ({
         count: 42,
         greeting: 'hi'
       })
@@ -153,21 +153,10 @@ it('createStoreWithProducer(…) infers the context type properly with a produce
     },
     on: {
       inc: (ctx, ev: { by: number }) => {
-        ctx.count += ev.by;
-      }
-    }
-  });
+        ctx satisfies { count: number };
+        // @ts-expect-error
+        ctx satisfies { count: string };
 
-  store.getSnapshot().context satisfies { count: number };
-});
-
-it('createStoreWithProducer(…) infers the context type properly with a producer (object API)', () => {
-  const store = createStoreWithProducer(produce, {
-    context: {
-      count: 0
-    },
-    on: {
-      inc: (ctx, ev: { by: number }) => {
         ctx.count += ev.by;
       }
     }
@@ -191,6 +180,8 @@ it('can be observed', () => {
   const counts: number[] = [];
 
   const sub = store.subscribe((s) => counts.push(s.context.count));
+
+  expect(counts).toEqual([]);
 
   store.send({ type: 'inc' }); // 1
   store.send({ type: 'inc' }); // 2
@@ -473,4 +464,20 @@ it('works with typestates', () => {
       })
     }
   });
+
+  const context = store.getSnapshot().context;
+
+  if (context.status === 'loading') {
+    context.data satisfies null;
+    // @ts-expect-error
+    context.data satisfies string;
+  } else {
+    context.status satisfies 'success';
+    // @ts-expect-error
+    context.status satisfies 'loading';
+
+    context.data satisfies string;
+    // @ts-expect-error
+    context.data satisfies null;
+  }
 });

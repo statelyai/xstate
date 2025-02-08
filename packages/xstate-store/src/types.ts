@@ -99,10 +99,8 @@ export interface Store<
    * @example
    *
    * ```ts
-   * // Instead of:
-   * store.send({ type: 'increment', by: 1 });
-   *
-   * // You can trigger the event:
+   * // Equivalent to:
+   * // store.send({ type: 'increment', by: 1 });
    * store.trigger.increment({ by: 1 });
    * ```
    */
