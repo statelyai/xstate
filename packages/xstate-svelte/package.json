@@ -1,6 +1,6 @@
 {
   "name": "@xstate/svelte",
-  "version": "4.0.0",
+  "version": "4.0.3",
   "description": "XState tools for Svelte",
   "keywords": [
     "state",
@@ -44,7 +44,7 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "svelte": "^3.24.1 || ^4",
+    "svelte": "^3.24.1 || ^4 || ^5",
     "xstate": "workspace:^"
   },
   "peerDependenciesMeta": {

@@ -1,5 +1,25 @@
 # @xstate/svelte
 
+## 4.0.3
+
+### Patch Changes
+
+- Updated dependencies [[`d99df1d8f4fe49145c9974465b65028bf19b365f`](https://github.com/statelyai/xstate/commit/d99df1d8f4fe49145c9974465b65028bf19b365f)]:
+  - xstate@5.19.2
+
+## 4.0.2
+
+### Patch Changes
+
+- Updated dependencies [[`bf6119a7310a878afbf4f5b01f5e24288f9a0f16`](https://github.com/statelyai/xstate/commit/bf6119a7310a878afbf4f5b01f5e24288f9a0f16)]:
+  - xstate@5.19.1
+
+## 4.0.1
+
+### Patch Changes
+
+- [#5131](https://github.com/statelyai/xstate/pull/5131) [`55ffd698419ea7259506bb0fa4bba9c7f592823e`](https://github.com/statelyai/xstate/commit/55ffd698419ea7259506bb0fa4bba9c7f592823e) Thanks [@lendle](https://github.com/lendle)! - Add Svelte 5 to the allowed peer dependency range
+
 ## 4.0.0
 
 ### Patch Changes
