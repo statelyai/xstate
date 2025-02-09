@@ -1,5 +1,159 @@
 # @xstate/store
 
+## 3.0.0
+
+### Major Changes
+
+- [#5175](https://github.com/statelyai/xstate/pull/5175) [`38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5`](https://github.com/statelyai/xstate/commit/38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createStore` function now only accepts a single configuration object argument. This is a breaking change that simplifies the API and aligns with the configuration pattern used throughout XState.
+
+  ```ts
+  // Before
+  // createStore(
+  //   {
+  //     count: 0
+  //   },
+  //   {
+  //     increment: (context) => ({ count: context.count + 1 })
+  //   }
+  // );
+
+  // After
+  createStore({
+    context: {
+      count: 0
+    },
+    on: {
+      increment: (context) => ({ count: context.count + 1 })
+    }
+  });
+  ```
+
+- [#5175](https://github.com/statelyai/xstate/pull/5175) [`38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5`](https://github.com/statelyai/xstate/commit/38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now enqueue effects in state transitions.
+
+  ```ts
+  const store = createStore({
+    context: {
+      count: 0
+    },
+    on: {
+      incrementDelayed: (context, event, enq) => {
+        enq.effect(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          store.send({ type: 'increment' });
+        });
+
+        return context;
+      },
+      increment: (context) => ({ count: context.count + 1 })
+    }
+  });
+  ```
+
+- [#5175](https://github.com/statelyai/xstate/pull/5175) [`38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5`](https://github.com/statelyai/xstate/commit/38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `fromStore(config)` function now only supports a single config object argument.
+
+  ```ts
+  const storeLogic = fromStore({
+    context: (input: { initialCount: number }) => ({
+      count: input.initialCount
+    }),
+    on: {
+      inc: (ctx, ev: { by: number }) => ({
+        ...ctx,
+        count: ctx.count + ev.by
+      })
+    }
+  });
+  ```
+
+- [#5175](https://github.com/statelyai/xstate/pull/5175) [`38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5`](https://github.com/statelyai/xstate/commit/38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createStoreWithProducer(…)` function now only accepts two arguments: a `producer` and a config (`{ context, on }`) object.
+
+  ```ts
+  // Before
+  // createStoreWithProducer(
+  //   producer,
+  //   {
+  //     count: 0
+  //   },
+  //   {
+  //     increment: (context) => {
+  //       context.count++;
+  //     }
+  //   }
+  // );
+
+  // After
+  createStoreWithProducer(producer, {
+    context: {
+      count: 0
+    },
+    on: {
+      increment: (context) => {
+        context.count++;
+      }
+    }
+  });
+  ```
+
+- [#5175](https://github.com/statelyai/xstate/pull/5175) [`38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5`](https://github.com/statelyai/xstate/commit/38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Only complete assigner functions that replace the `context` fully are supported. This is a breaking change that simplifies the API and provides more type safety.
+
+  ```diff
+  const store = createStore({
+    context: {
+      items: [],
+      count: 0
+    },
+    on: {
+  -   increment: { count: (context) => context.count + 1 }
+  -   increment: (context) => ({ count: context.count + 1 })
+  +   increment: (context) => ({ ...context, count: context.count + 1 })
+    }
+  })
+  ```
+
+- [#5175](https://github.com/statelyai/xstate/pull/5175) [`38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5`](https://github.com/statelyai/xstate/commit/38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Emitted event types are now specified in functions on the `emits` property of the store definition:
+
+  ```ts
+  const store = createStore({
+    // …
+    emits: {
+      increased: (payload: { upBy: number }) => {
+        // You can execute a side-effect here
+        // or leave it empty
+      }
+    },
+    on: {
+      inc: (ctx, ev: { by: number }, enq) => {
+        enq.emit.increased({ upBy: ev.by });
+
+        // …
+      }
+    }
+  });
+  ```
+
+### Minor Changes
+
+- [#5175](https://github.com/statelyai/xstate/pull/5175) [`38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5`](https://github.com/statelyai/xstate/commit/38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `store.trigger` API for sending events with a fluent interface:
+
+  ```ts
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      increment: (ctx, event: { by: number }) => ({
+        count: ctx.count + event.by
+      })
+    }
+  });
+
+  // Instead of manually constructing event objects:
+  store.send({ type: 'increment', by: 5 });
+
+  // You can now use the fluent trigger API:
+  store.trigger.increment({ by: 5 });
+  ```
+
+  The `trigger` API provides full type safety for event names and payloads, making it easier and safer to send events to the store.
+
 ## 2.6.2
 
 ### Patch Changes
