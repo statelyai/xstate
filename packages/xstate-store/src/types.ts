@@ -123,11 +123,8 @@ export type AnyStore = Store<any, any, any>;
 
 export type Compute<A> = { [K in keyof A]: A[K] };
 
-export type SnapshotFromStore<
-  TStore extends Store<any, any, any>,
-  TGetters extends Record<string, (context: any, getters: any) => any>
-> =
-  TStore extends Store<infer TContext, any, any, TGetters>
+export type SnapshotFromStore<TStore extends Store<any, any, any, any>> =
+  TStore extends Store<infer TContext, any, any, infer TGetters>
     ? StoreSnapshot<TContext, TGetters>
     : never;
 

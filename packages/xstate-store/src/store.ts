@@ -517,7 +517,7 @@ function uniqueId() {
   return Math.random().toString(36).slice(6);
 }
 
-const computeGetters = <
+export const computeGetters = <
   TContext extends StoreContext,
   TGetters extends Record<string, (context: TContext, getters: any) => any>
 >(
