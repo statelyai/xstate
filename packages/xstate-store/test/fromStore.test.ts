@@ -2,7 +2,7 @@ import { createActor } from 'xstate';
 import { fromStore } from '../src/index.ts';
 
 describe('fromStore', () => {
-  it('creates an actor from store logic with input (object API)', () => {
+  it('creates an actor from store logic with input', () => {
     const storeLogic = fromStore({
       context: (count: number) => ({ count }),
       on: {
