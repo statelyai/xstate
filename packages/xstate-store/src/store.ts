@@ -231,7 +231,7 @@ function createStoreCore<
   return store;
 }
 
-export type TransitionsFromEventPayloadMap<
+type TransitionsFromEventPayloadMap<
   TEventPayloadMap extends EventPayloadMap,
   TContext extends StoreContext,
   TEmitted extends EventObject
