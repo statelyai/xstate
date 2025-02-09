@@ -71,18 +71,16 @@ describe('emitted', () => {
     });
   });
 
-  it("can can't subscribe to a unknown event", () => {
-    const store = createStore<
-      {},
-      {},
-      {
-        increased: { upBy: number };
-        decreased: { downBy: number };
-      }
-    >({
+  it("can't subscribe to a unknown event", () => {
+    const store = createStore({
+      emits: {
+        increased: (_: { upBy: number }) => {}
+      },
       context: {},
       on: {}
     });
+
+    store.on('increased', (ev) => {});
 
     store.on(
       // @ts-expect-error

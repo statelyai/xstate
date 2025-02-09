@@ -36,6 +36,13 @@ function toObserver<T>(
   };
 }
 
+/**
+ * Updates a context object using a recipe function.
+ *
+ * @param context - The current context
+ * @param recipe - A function that describes how to update the context
+ * @returns The updated context
+ */
 function setter<TContext extends StoreContext>(
   context: TContext,
   recipe: Recipe<TContext, TContext>
@@ -260,11 +267,9 @@ type CreateStoreReturnType<
  * const store = createStore({
  *   context: { count: 0 },
  *   on: {
- *     inc: (context, event: { by: number }) => {
- *       return {
- *         count: context.count + event.by
- *       };
- *     }
+ *     inc: (context, event: { by: number }) => ({
+ *       count: context.count + event.by
+ *     })
  *   }
  * });
  *
@@ -275,6 +280,12 @@ type CreateStoreReturnType<
  * store.send({ type: 'inc', by: 5 });
  * // Logs { context: { count: 5 }, status: 'active', ... }
  * ```
+ *
+ * @param config - The store configuration object
+ * @param config.context - The initial state of the store
+ * @param config.on - An object mapping event types to transition functions
+ * @returns A store instance with methods to send events and subscribe to state
+ *   changes
  */
 function _createStore<
   TContext extends StoreContext,
@@ -320,14 +331,10 @@ export const createStore: {
  * import { produce } from 'immer';
  *
  * const store = createStoreWithProducer(produce, {
- *   // Initial context
- *   { count: 0 },
- *   // Transitions
- *   {
- *     on: {
- *       inc: (context, event: { by: number }) => {
- *         context.count += event.by;
- *       }
+ *   context: { count: 0 },
+ *   on: {
+ *     inc: (context, event: { by: number }) => {
+ *       context.count += event.by;
  *     }
  *   }
  * });
@@ -373,12 +380,14 @@ declare global {
 }
 
 /**
- * Creates a store function, which is a function that accepts the current
- * snapshot and an event and returns a new snapshot.
+ * Creates a store transition function that handles state updates based on
+ * events.
  *
- * @param transitions
- * @param producer
- * @returns
+ * @param transitions - An object mapping event types to transition functions
+ * @param producer - Optional producer function (e.g., Immer's produce) for
+ *   immutable updates
+ * @returns A transition function that takes a snapshot and event and returns a
+ *   new snapshot with effects
  */
 export function createStoreTransition<
   TContext extends StoreContext,
@@ -466,7 +475,11 @@ export function createStoreTransition<
   };
 }
 
-// create a unique 6-char id
+/**
+ * Generates a unique 6-character identifier.
+ *
+ * @returns A random string identifier
+ */
 function uniqueId() {
   return Math.random().toString(36).slice(6);
 }

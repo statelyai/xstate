@@ -12,7 +12,9 @@ The `createStoreWithProducer(…)` function now only accepts two arguments: a `p
 //     count: 0
 //   },
 //   {
-//     increment: (context) => ({ count: context.count + 1 })
+//     increment: (context) => {
+//       context.count++;
+//     }
 //   }
 // );
 
@@ -22,7 +24,9 @@ createStoreWithProducer(producer, {
     count: 0
   },
   on: {
-    increment: (context) => ({ count: context.count + 1 })
+    increment: (context) => {
+      context.count++;
+    }
   }
 });
 ```

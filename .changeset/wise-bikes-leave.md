@@ -8,7 +8,10 @@ Emitted event types are now specified in functions on the `emits` property of th
 const store = createStore({
   // …
   emits: {
-    increased: (payload: { upBy: number }) => {}
+    increased: (payload: { upBy: number }) => {
+      // You can execute a side-effect here
+      // or leave it empty
+    }
   },
   on: {
     inc: (ctx, ev: { by: number }, enq) => {
