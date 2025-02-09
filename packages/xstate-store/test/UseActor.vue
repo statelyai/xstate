@@ -15,14 +15,14 @@ export default defineComponent({
   emits: ['rerender'],
   setup() {
     const { snapshot, send } = useActor(
-      fromStore(
-        {
+      fromStore({
+        context: {
           count: 0
         },
-        {
+        on: {
           inc: (ctx) => ({ count: ctx.count + 1 })
         }
-      )
+      })
     );
 
     snapshot.value.context.count satisfies number;

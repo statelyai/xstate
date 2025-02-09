@@ -19,13 +19,19 @@ const useRenderTracker = (...accessors: Accessor<unknown>[]) => {
 
 /** A commonly reused store for testing selector behaviours. */
 const createCounterStore = () =>
-  createStore(
-    { count: 0, other: 0 },
-    {
-      increment: { count: ({ count }) => count + 1 },
-      other: { other: ({ other }) => other + 1 }
+  createStore({
+    context: { count: 0, other: 0 },
+    on: {
+      increment: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      }),
+      other: (ctx) => ({
+        ...ctx,
+        other: ctx.other + 1
+      })
     }
-  );
+  });
 
 describe('Solid.js integration', () => {
   describe('useSelector', () => {
@@ -72,13 +78,19 @@ describe('Solid.js integration', () => {
       const INITIAL_ITEMS_STRING = INITIAL_ITEMS.join(',');
       const DIFFERENT_ITEMS_STRING = DIFFERENT_ITEMS.join(',');
 
-      const store = createStore(
-        { items: INITIAL_ITEMS },
-        {
-          same: { items: () => [...INITIAL_ITEMS] },
-          different: { items: () => DIFFERENT_ITEMS }
+      const store = createStore({
+        context: { items: INITIAL_ITEMS },
+        on: {
+          same: (ctx) => ({
+            ...ctx,
+            items: [...INITIAL_ITEMS]
+          }),
+          different: (ctx) => ({
+            ...ctx,
+            items: DIFFERENT_ITEMS
+          })
         }
-      );
+      });
 
       const ItemList: Component<{
         itemStore: typeof store;

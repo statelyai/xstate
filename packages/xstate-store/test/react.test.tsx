@@ -9,16 +9,17 @@ import {
 import ReactDOM from 'react-dom';
 
 it('useSelector should work', () => {
-  const store = createStore(
-    {
+  const store = createStore({
+    context: {
       count: 0
     },
-    {
-      inc: {
-        count: (ctx) => ctx.count + 1
-      }
+    on: {
+      inc: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      })
     }
-  );
+  });
 
   const Counter = () => {
     const count = useSelector(store, (s) => s.context.count);
@@ -47,19 +48,21 @@ it('useSelector should work', () => {
 });
 
 it('useSelector can take in a custom comparator', () => {
-  const store = createStore(
-    {
+  const store = createStore({
+    context: {
       items: [1, 2]
     },
-    {
-      same: {
-        items: () => [1, 2] // different array, same items
-      },
-      different: {
-        items: () => [3, 4]
-      }
+    on: {
+      same: (ctx) => ({
+        ...ctx,
+        items: [1, 2] // different array, same items
+      }),
+      different: (ctx) => ({
+        ...ctx,
+        items: [3, 4]
+      })
     }
-  );
+  });
 
   let renderCount = 0;
   const Items = () => {
@@ -112,16 +115,17 @@ it('useSelector can take in a custom comparator', () => {
 });
 
 it('can batch updates', () => {
-  const store = createStore(
-    {
+  const store = createStore({
+    context: {
       count: 0
     },
-    {
-      inc: {
-        count: (ctx) => ctx.count + 1
-      }
+    on: {
+      inc: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      })
     }
-  );
+  });
 
   const Counter = () => {
     const count = useSelector(store, (s) => s.context.count);
@@ -153,16 +157,17 @@ it('can batch updates', () => {
 });
 
 it('useSelector (@xstate/react) should work', () => {
-  const store = createStore(
-    {
+  const store = createStore({
+    context: {
       count: 0
     },
-    {
-      inc: {
-        count: (ctx) => ctx.count + 1
-      }
+    on: {
+      inc: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      })
     }
-  );
+  });
 
   const Counter = () => {
     const count = useXStateSelector(store, (s) => s.context.count);
@@ -191,16 +196,17 @@ it('useSelector (@xstate/react) should work', () => {
 });
 
 it('useActor (@xstate/react) should work', () => {
-  const store = fromStore(
-    {
+  const store = fromStore({
+    context: {
       count: 0
     },
-    {
-      inc: {
-        count: (ctx) => ctx.count + 1
-      }
+    on: {
+      inc: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      })
     }
-  );
+  });
 
   const Counter = () => {
     const [snapshot, send] = useActor(store);
@@ -229,16 +235,17 @@ it('useActor (@xstate/react) should work', () => {
 });
 
 it('useActorRef (@xstate/react) should work', () => {
-  const store = fromStore(
-    {
+  const store = fromStore({
+    context: {
       count: 0
     },
-    {
-      inc: {
-        count: (ctx) => ctx.count + 1
-      }
+    on: {
+      inc: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      })
     }
-  );
+  });
 
   const Counter = () => {
     const actorRef = useActorRef(store);

@@ -1,14 +1,19 @@
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
-export type ExtractEventsFromPayloadMap<T extends EventPayloadMap> = Values<{
+export type ExtractEvents<T extends EventPayloadMap> = Values<{
   [K in keyof T & string]: T[K] & { type: K };
 }>;
 
 export type Recipe<T, TReturn> = (state: T) => TReturn;
 
-export type EnqueueObject<TEmitted extends EventObject> = {
-  emit: (ev: TEmitted) => void;
+export type EnqueueObject<TEmittedEvent extends EventObject> = {
+  emit: {
+    [E in TEmittedEvent as E['type']]: (payload: Omit<E, 'type'>) => void;
+  };
+  effect: (fn: () => void) => void;
 };
+
+export type StoreEffect<TEmitted extends EventObject> = (() => void) | TEmitted;
 
 export type StoreAssigner<
   TContext extends StoreContext,
@@ -18,31 +23,13 @@ export type StoreAssigner<
   context: TContext,
   event: TEvent,
   enq: EnqueueObject<TEmitted>
-) => Partial<TContext>;
-export type StoreCompleteAssigner<
-  TContext,
+) => TContext | void;
+
+export type StoreProducerAssigner<
+  TContext extends StoreContext,
   TEvent extends EventObject,
   TEmitted extends EventObject
-> = (ctx: TContext, ev: TEvent, enq: EnqueueObject<TEmitted>) => TContext;
-export type StorePartialAssigner<
-  TContext,
-  TEvent extends EventObject,
-  K extends keyof TContext,
-  TEmitted extends EventObject
-> = (
-  ctx: TContext,
-  ev: TEvent,
-  enq: EnqueueObject<TEmitted>
-) => Partial<TContext>[K];
-export type StorePropertyAssigner<
-  TContext,
-  TEvent extends EventObject,
-  TEmitted extends EventObject
-> = {
-  [K in keyof TContext]?:
-    | TContext[K]
-    | StorePartialAssigner<TContext, TEvent, K, TEmitted>;
-};
+> = (context: TContext, event: TEvent, enq: EnqueueObject<TEmitted>) => void;
 
 export type Snapshot<TOutput> =
   | {
@@ -105,7 +92,28 @@ export interface Store<
       ev: Compute<TEmitted & { type: TEmittedType }>
     ) => void
   ) => Subscription;
+  /**
+   * A proxy object that allows you to send events to the store without manually
+   * constructing event objects.
+   *
+   * @example
+   *
+   * ```ts
+   * // Equivalent to:
+   * // store.send({ type: 'increment', by: 1 });
+   * store.trigger.increment({ by: 1 });
+   * ```
+   */
+  trigger: {
+    [E in TEvent as E['type'] & string]: IsEmptyObject<
+      Omit<E, 'type'>
+    > extends true
+      ? () => Omit<E, 'type'>
+      : (eventPayload: Omit<E, 'type'>) => void;
+  };
 }
+
+export type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
 
 export type AnyStore = Store<any, any, any>;
 
@@ -300,3 +308,7 @@ export type ActorRefLike = {
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
 
 export type Cast<A, B> = A extends B ? A : B;
+
+export type EventMap<TEvent extends EventObject> = {
+  [E in TEvent as E['type']]: E;
+};
