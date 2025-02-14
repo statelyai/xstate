@@ -505,7 +505,6 @@ it('the emit type is not overridden by the payload', () => {
     context,
     on: {
       openDrawer: (context, event: { drawer: Drawer }, enqueue) => {
-        console.log('OPEN_DRAWER');
         enqueue.emit.drawerOpened(event);
 
         return {
