@@ -420,8 +420,8 @@ export function createStoreTransition<
         get: (_, eventType: string) => {
           return (payload: any) => {
             effects.push({
-              type: eventType,
-              ...payload
+              ...payload,
+              type: eventType
             });
           };
         }
