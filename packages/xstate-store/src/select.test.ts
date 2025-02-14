@@ -147,4 +147,93 @@ describe('select', () => {
 
     expect(callback).not.toHaveBeenCalled();
   });
+
+  it('should handle position updates with multiple subscribers', () => {
+    interface PositionContext {
+      position: {
+        x: number;
+        y: number;
+      };
+    }
+
+    const store = createStore({
+      context: {
+        position: { x: 0, y: 0 },
+        user: { name: 'John', age: 30 }
+      } as PositionContext,
+      on: {
+        SET_POSITION: (
+          context,
+          event: { position: { x: number; y: number } }
+        ) => ({
+          ...context,
+          position: event.position
+        }),
+        SET_USER: (
+          context,
+          event: { user: { name: string; age: number } }
+        ) => ({
+          ...context,
+          user: event.user
+        })
+      }
+    });
+
+    // Mock DOM manipulation callback
+    const renderCallback = jest.fn();
+    select(store, (state) => state.position).subscribe((position) => {
+      renderCallback(position);
+    });
+
+    // Mock logger callback for x position only
+    const loggerCallback = jest.fn();
+    select(store, (state) => state.position.x).subscribe((x) => {
+      loggerCallback(x);
+    });
+
+    // Simulate position update
+    store.trigger.SET_POSITION({
+      position: { x: 100, y: 200 }
+    });
+
+    // Verify render callback received full position update
+    expect(renderCallback).toHaveBeenCalledTimes(1);
+    expect(renderCallback).toHaveBeenCalledWith({ x: 100, y: 200 });
+
+    // Verify logger callback received only x position
+    expect(loggerCallback).toHaveBeenCalledTimes(1);
+    expect(loggerCallback).toHaveBeenCalledWith(100);
+
+    // Simulate another update
+    store.trigger.SET_POSITION({
+      position: { x: 150, y: 300 }
+    });
+
+    expect(renderCallback).toHaveBeenCalledTimes(2);
+    expect(renderCallback).toHaveBeenLastCalledWith({ x: 150, y: 300 });
+    expect(loggerCallback).toHaveBeenCalledTimes(2);
+    expect(loggerCallback).toHaveBeenLastCalledWith(150);
+
+    // Simulate changing only the y position
+    store.trigger.SET_POSITION({
+      position: { x: 150, y: 400 }
+    });
+
+    expect(renderCallback).toHaveBeenCalledTimes(3);
+    expect(renderCallback).toHaveBeenLastCalledWith({ x: 150, y: 400 });
+
+    // loggerCallback should not have been called
+    expect(loggerCallback).toHaveBeenCalledTimes(2);
+
+    // Simulate changing only the user
+    store.trigger.SET_USER({
+      user: { name: 'Jane', age: 25 }
+    });
+
+    // renderCallback should not have been called
+    expect(renderCallback).toHaveBeenCalledTimes(3);
+
+    // loggerCallback should not have been called
+    expect(loggerCallback).toHaveBeenCalledTimes(2);
+  });
 });
