@@ -19,7 +19,7 @@ const symbolObservable: typeof Symbol.observable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) ||
   '@@observable')() as any;
 
-function toObserver<T>(
+export function toObserver<T>(
   nextHandler?: Observer<T> | ((value: T) => void),
   errorHandler?: (error: any) => void,
   completionHandler?: () => void
@@ -231,25 +231,29 @@ export type TransitionsFromEventPayloadMap<
   >;
 };
 
+export interface StoreConfig<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventPayloadMap
+> {
+  context: TContext;
+  emits?: {
+    [K in keyof TEmitted & string]: (payload: TEmitted[K]) => void;
+  };
+  on: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      NoInfer<TContext>,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEvents<TEmitted>
+    >;
+  };
+}
+
 type CreateStoreParameterTypes<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventPayloadMap
-> = [
-  definition: {
-    context: TContext;
-    emits?: {
-      [K in keyof TEmitted & string]: (payload: TEmitted[K]) => void;
-    };
-    on: {
-      [K in keyof TEventPayloadMap & string]: StoreAssigner<
-        NoInfer<TContext>,
-        { type: K } & TEventPayloadMap[K],
-        ExtractEvents<TEmitted>
-      >;
-    };
-  }
-];
+> = [definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>];
 
 type CreateStoreReturnType<
   TContext extends StoreContext,
@@ -420,14 +424,18 @@ export function createStoreTransition<
         get: (_, eventType: string) => {
           return (payload: any) => {
             effects.push({
-              type: eventType,
-              ...payload
+              ...payload,
+              type: eventType
             });
           };
         }
       }),
       effect: (fn) => {
         effects.push(fn);
+      },
+      spawn: (config) => {
+        const childStore = createStore(config);
+        return childStore;
       }
     };
 

@@ -1,3 +1,5 @@
+import { StoreConfig } from './store';
+
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
 export type ExtractEvents<T extends EventPayloadMap> = Values<{
@@ -11,6 +13,9 @@ export type EnqueueObject<TEmittedEvent extends EventObject> = {
     [E in TEmittedEvent as E['type']]: (payload: Omit<E, 'type'>) => void;
   };
   effect: (fn: () => void) => void;
+  spawn: <T extends StoreConfig<any, any, any>>(
+    config: T
+  ) => Store<any, any, any>;
 };
 
 export type StoreEffect<TEmitted extends EventObject> = (() => void) | TEmitted;
