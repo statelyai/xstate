@@ -455,11 +455,11 @@ it('works with typestates', () => {
     } as ContextStates,
     on: {
       loaded: () => ({
-        status: 'success' as const,
+        status: 'success',
         data: 'hello'
       }),
       loading: () => ({
-        status: 'loading' as const,
+        status: 'loading',
         data: null
       })
     }
