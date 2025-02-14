@@ -58,7 +58,8 @@ export type StoreSnapshot<
   TGetters extends Record<string, (context: TContext, getters: any) => any>
 > = Snapshot<unknown> & {
   context: TContext;
-} & ResolvedGetters<TGetters>;
+  getters: StoreGetters<TContext, TGetters>;
+};
 
 /**
  * An actor-like object that:

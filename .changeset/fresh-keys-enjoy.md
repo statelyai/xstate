@@ -20,17 +20,17 @@ const store = createStore({
 });
 
 // Getters are available on store snapshots
-var snapshot = store.getSnapshot();
-assert.equal(snapshot.doubled, 4);
-assert.equal(snapshot.squared, 4);
-assert.equal(snapshot.sum, 8);
+var getters = store.getSnapshot().getters;
+assert.equal(getters.doubled, 4);
+assert.equal(getters.squared, 4);
+assert.equal(getters.sum, 8);
 
 // Automatically update when context changes
 store.send({ type: 'inc' });
-var snapshot = store.getSnapshot();
-assert.equal(snapshot.doubled, 6);
-assert.equal(snapshot.squared, 36);
-assert.equal(snapshot.sum, 42);
+var getters = store.getSnapshot().getters;
+assert.equal(getters.doubled, 6);
+assert.equal(getters.squared, 36);
+assert.equal(getters.sum, 42);
 ```
 
 Key features:

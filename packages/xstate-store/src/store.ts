@@ -82,7 +82,7 @@ function createStoreCore<
     status: 'active',
     output: undefined,
     error: undefined,
-    ...computeGetters(initialContext, getters)
+    getters: computeGetters(initialContext, getters)
   };
   let currentSnapshot: StoreSnapshot<TContext, TGetters> = initialSnapshot;
 
@@ -105,7 +105,7 @@ function createStoreCore<
     currentSnapshot = {
       ...currentSnapshot,
       context: newContext,
-      ...computeGetters(newContext, getters)
+      getters: computeGetters(newContext, getters)
     } as StoreSnapshot<TContext, TGetters>;
 
     inspectionObservers.get(store)?.forEach((observer) => {

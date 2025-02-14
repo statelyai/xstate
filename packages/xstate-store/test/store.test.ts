@@ -544,12 +544,12 @@ describe('getters', () => {
       }
     });
 
-    expect(store.getSnapshot().doubled).toBe(4);
-    expect(store.getSnapshot().squared).toBe(4);
+    expect(store.getSnapshot().getters.doubled).toBe(4);
+    expect(store.getSnapshot().getters.squared).toBe(4);
 
     store.send({ type: 'inc' });
-    expect(store.getSnapshot().doubled).toBe(6);
-    expect(store.getSnapshot().squared).toBe(9);
+    expect(store.getSnapshot().getters.doubled).toBe(6);
+    expect(store.getSnapshot().getters.squared).toBe(9);
   });
 
   it('handles getter dependencies', () => {
@@ -567,10 +567,10 @@ describe('getters', () => {
       }
     });
 
-    expect(store.getSnapshot().total).toBeCloseTo(22); // 20 + 2 = 22
+    expect(store.getSnapshot().getters.total).toBeCloseTo(22); // 20 + 2 = 22
 
     store.send({ type: 'updatePrice', value: 20 });
-    expect(store.getSnapshot().total).toBeCloseTo(44); // 40 + 4 = 44
+    expect(store.getSnapshot().getters.total).toBeCloseTo(44); // 40 + 4 = 44
   });
 
   it('updates getters when context changes', () => {
@@ -587,10 +587,10 @@ describe('getters', () => {
       }
     });
 
-    expect(store.getSnapshot().hasItems).toBe(false);
+    expect(store.getSnapshot().getters.hasItems).toBe(false);
 
     store.send({ type: 'addItem', item: 'test' });
-    expect(store.getSnapshot().hasItems).toBe(true);
+    expect(store.getSnapshot().getters.hasItems).toBe(true);
   });
 
   it('works with immer producer', () => {
@@ -608,12 +608,12 @@ describe('getters', () => {
       }
     });
 
-    expect(store.getSnapshot().sum).toBe(3);
-    expect(store.getSnapshot().product).toBe(2);
+    expect(store.getSnapshot().getters.sum).toBe(3);
+    expect(store.getSnapshot().getters.product).toBe(2);
 
     store.send({ type: 'update', a: 3 });
-    expect(store.getSnapshot().sum).toBe(5);
-    expect(store.getSnapshot().product).toBe(6);
+    expect(store.getSnapshot().getters.sum).toBe(5);
+    expect(store.getSnapshot().getters.product).toBe(6);
   });
 
   it('includes getters in inspection snapshots', () => {
@@ -638,9 +638,18 @@ describe('getters', () => {
     store.send({ type: 'increment' });
 
     expect(snapshots).toEqual([
-      expect.objectContaining({ context: { value: 5 }, squared: 25 }),
-      expect.objectContaining({ context: { value: 6 }, squared: 36 }),
-      expect.objectContaining({ context: { value: 7 }, squared: 49 })
+      expect.objectContaining({
+        context: { value: 5 },
+        getters: { squared: 25 }
+      }),
+      expect.objectContaining({
+        context: { value: 6 },
+        getters: { squared: 36 }
+      }),
+      expect.objectContaining({
+        context: { value: 7 },
+        getters: { squared: 49 }
+      })
     ]);
   });
 });

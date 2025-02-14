@@ -77,7 +77,7 @@ export function fromStore<
       const newSnapshot = {
         ...snapshot,
         context: newContext,
-        ...computeGetters(newContext, getters)
+        getters: computeGetters(newContext, getters)
       } as StoreSnapshot<TContext, TGetters>;
 
       for (const effect of effects) {
@@ -101,7 +101,7 @@ export function fromStore<
         context,
         output: undefined,
         error: undefined,
-        ...computeGetters(context, getters)
+        getters: computeGetters(context, getters)
       } satisfies StoreSnapshot<TContext, TGetters>;
     },
     getPersistedSnapshot: (s) => s,
