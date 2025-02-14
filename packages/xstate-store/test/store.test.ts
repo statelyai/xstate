@@ -481,3 +481,53 @@ it('works with typestates', () => {
     context.data satisfies null;
   }
 });
+
+it('the emit type is not overridden by the payload', () => {
+  const spy = jest.fn();
+  type Context = {
+    drawer?: Drawer | null;
+  };
+
+  type Drawer = {
+    id: string;
+  };
+
+  const context: Context = {
+    drawer: null
+  };
+
+  const drawersBridgeStore = createStore({
+    emits: {
+      drawerOpened: (_payload: { drawer: Drawer }) => {
+        // ...
+      }
+    },
+    context,
+    on: {
+      openDrawer: (context, event: { drawer: Drawer }, enqueue) => {
+        console.log('OPEN_DRAWER');
+        enqueue.emit.drawerOpened(event);
+
+        return {
+          ...context,
+          drawer: event.drawer
+        };
+      }
+    }
+  });
+
+  drawersBridgeStore.on('drawerOpened', (event) => {
+    // expect to be called here
+    spy(event);
+  });
+
+  drawersBridgeStore.send({
+    type: 'openDrawer',
+    drawer: { id: 'a' }
+  });
+
+  expect(spy).toHaveBeenCalledWith({
+    type: 'drawerOpened',
+    drawer: { id: 'a' }
+  });
+});
