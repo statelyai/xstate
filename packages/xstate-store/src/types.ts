@@ -312,3 +312,12 @@ export type Cast<A, B> = A extends B ? A : B;
 export type EventMap<TEvent extends EventObject> = {
   [E in TEvent as E['type']]: E;
 };
+
+export type Selector<TContext, TSelected> = (context: TContext) => TSelected;
+
+export interface Selection<TSelected> {
+  subscribe: (callback: (selected: TSelected) => void) => {
+    unsubscribe: () => void;
+  };
+  get: () => TSelected;
+}

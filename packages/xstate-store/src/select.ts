@@ -1,13 +1,10 @@
-import type { Store, StoreContext, EventObject } from './types';
-
-export type Selector<TContext, TSelected> = (context: TContext) => TSelected;
-
-export interface Selection<TSelected> {
-  subscribe: (callback: (selected: TSelected) => void) => {
-    unsubscribe: () => void;
-  };
-  get: () => TSelected;
-}
+import type {
+  Store,
+  StoreContext,
+  EventObject,
+  Selector,
+  Selection
+} from './types';
 
 export function select<
   TContext extends StoreContext,
