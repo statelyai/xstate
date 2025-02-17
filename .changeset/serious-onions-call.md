@@ -5,7 +5,7 @@
 There is now a `useStore()` hook that allows you to create a local component store from a config object.
 
 ```tsx
-import { useStore, useSelector } from '@xstate/store';
+import { useStore, useSelector } from '@xstate/store/react';
 
 function Counter() {
   const store = useStore({
