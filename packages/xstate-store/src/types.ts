@@ -113,6 +113,24 @@ export interface Store<
   };
 }
 
+export type StoreConfig<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventPayloadMap
+> = {
+  context: TContext;
+  emits?: {
+    [K in keyof TEmitted & string]: (payload: TEmitted[K]) => void;
+  };
+  on: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      NoInfer<TContext>,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEvents<TEmitted>
+    >;
+  };
+};
+
 export type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
 
 export type AnyStore = Store<any, any, any>;
