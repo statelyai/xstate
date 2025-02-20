@@ -1,3 +1,4 @@
+import { toObserver } from './toObserver';
 import type {
   Store,
   StoreContext,
@@ -5,7 +6,6 @@ import type {
   Selector,
   Selection
 } from './types';
-
 export function select<
   TContext extends StoreContext,
   TEvent extends EventObject,
@@ -17,14 +17,15 @@ export function select<
   equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
 ): Selection<TSelected> {
   return {
-    subscribe: (callback: (selected: TSelected) => void) => {
+    subscribe: (observerOrFn) => {
+      const observer = toObserver(observerOrFn);
       let previousSelected = selector(store.getSnapshot().context);
 
       return store.subscribe((snapshot) => {
         const nextSelected = selector(snapshot.context);
         if (!equalityFn(previousSelected, nextSelected)) {
           previousSelected = nextSelected;
-          callback(nextSelected);
+          observer.next?.(nextSelected);
         }
       });
     },

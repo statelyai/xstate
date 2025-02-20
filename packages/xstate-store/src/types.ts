@@ -315,9 +315,6 @@ export type EventMap<TEvent extends EventObject> = {
 
 export type Selector<TContext, TSelected> = (context: TContext) => TSelected;
 
-export interface Selection<TSelected> {
-  subscribe: (callback: (selected: TSelected) => void) => {
-    unsubscribe: () => void;
-  };
+export interface Selection<TSelected> extends Subscribable<TSelected> {
   get: () => TSelected;
 }
