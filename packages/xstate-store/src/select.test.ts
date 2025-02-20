@@ -1,4 +1,4 @@
-import { createStore, select } from './index';
+import { createStore } from './index';
 
 interface TestContext {
   user: {
@@ -30,7 +30,7 @@ describe('select', () => {
       }
     });
 
-    const name = select(store, (state) => state.user.name).get();
+    const name = store.select((state) => state.user.name).get();
     expect(name).toBe('John');
   });
 
@@ -53,7 +53,7 @@ describe('select', () => {
     });
 
     const callback = jest.fn();
-    select(store, (state) => state.user.name).subscribe(callback);
+    store.select((state) => state.user.name).subscribe(callback);
     store.send({ type: 'UPDATE_NAME', name: 'Jane' });
 
     expect(callback).toHaveBeenCalledTimes(1);
@@ -79,7 +79,7 @@ describe('select', () => {
     });
 
     const callback = jest.fn();
-    select(store, (state) => state.user.name).subscribe(callback);
+    store.select((state) => state.user.name).subscribe(callback);
     store.send({ type: 'UPDATE_THEME', theme: 'light' });
 
     expect(callback).not.toHaveBeenCalled();
@@ -111,7 +111,7 @@ describe('select', () => {
     const equalityFn = (a: { name: string }, b: { name: string }) =>
       a.name === b.name; // Only compare names
 
-    select(store, selector, equalityFn).subscribe(callback);
+    store.select(selector, equalityFn).subscribe(callback);
 
     store.send({ type: 'UPDATE_THEME', theme: 'light' });
     expect(callback).not.toHaveBeenCalled();
@@ -139,9 +139,9 @@ describe('select', () => {
     });
 
     const callback = jest.fn();
-    const subscription = select(store, (state) => state.user.name).subscribe(
-      callback
-    );
+    const subscription = store
+      .select((state) => state.user.name)
+      .subscribe(callback);
     subscription.unsubscribe();
     store.send({ type: 'UPDATE_NAME', name: 'Jane' });
 
@@ -181,15 +181,19 @@ describe('select', () => {
 
     // Mock DOM manipulation callback
     const renderCallback = jest.fn();
-    select(store, (state) => state.position).subscribe((position) => {
-      renderCallback(position);
-    });
+    store
+      .select((state) => state.position)
+      .subscribe((position) => {
+        renderCallback(position);
+      });
 
     // Mock logger callback for x position only
     const loggerCallback = jest.fn();
-    select(store, (state) => state.position.x).subscribe((x) => {
-      loggerCallback(x);
-    });
+    store
+      .select((state) => state.position.x)
+      .subscribe((x) => {
+        loggerCallback(x);
+      });
 
     // Simulate position update
     store.trigger.positionUpdated({

@@ -111,6 +111,10 @@ export interface Store<
       ? () => Omit<E, 'type'>
       : (eventPayload: Omit<E, 'type'>) => void;
   };
+  select<TSelected>(
+    selector: Selector<TContext, TSelected>,
+    equalityFn?: (a: TSelected, b: TSelected) => boolean
+  ): Selection<TSelected>;
 }
 
 export type IsEmptyObject<T> = T extends Record<string, never> ? true : false;

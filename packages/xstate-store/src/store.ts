@@ -13,7 +13,9 @@ import {
   StoreEffect,
   StoreInspectionEvent,
   StoreProducerAssigner,
-  StoreSnapshot
+  StoreSnapshot,
+  Selector,
+  Selection
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -195,7 +197,27 @@ function createStoreCore<
           });
         };
       }
-    })
+    }),
+    select<TSelected>(
+      selector: Selector<TContext, TSelected>,
+      equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
+    ): Selection<TSelected> {
+      return {
+        subscribe: (observerOrFn) => {
+          const observer = toObserver(observerOrFn);
+          let previousSelected = selector(this.getSnapshot().context);
+
+          return this.subscribe((snapshot) => {
+            const nextSelected = selector(snapshot.context);
+            if (!equalityFn(previousSelected, nextSelected)) {
+              previousSelected = nextSelected;
+              observer.next?.(nextSelected);
+            }
+          });
+        },
+        get: () => selector(this.getSnapshot().context)
+      };
+    }
   };
 
   return store;
