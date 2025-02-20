@@ -148,7 +148,7 @@ describe('select', () => {
     expect(callback).not.toHaveBeenCalled();
   });
 
-  it('should handle position updates with multiple subscribers', () => {
+  it('should handle updates with multiple subscribers', () => {
     interface PositionContext {
       position: {
         x: number;
@@ -162,14 +162,14 @@ describe('select', () => {
         user: { name: 'John', age: 30 }
       } as PositionContext,
       on: {
-        SET_POSITION: (
+        positionUpdated: (
           context,
           event: { position: { x: number; y: number } }
         ) => ({
           ...context,
           position: event.position
         }),
-        SET_USER: (
+        userUpdated: (
           context,
           event: { user: { name: string; age: number } }
         ) => ({
@@ -192,7 +192,7 @@ describe('select', () => {
     });
 
     // Simulate position update
-    store.trigger.SET_POSITION({
+    store.trigger.positionUpdated({
       position: { x: 100, y: 200 }
     });
 
@@ -205,7 +205,7 @@ describe('select', () => {
     expect(loggerCallback).toHaveBeenCalledWith(100);
 
     // Simulate another update
-    store.trigger.SET_POSITION({
+    store.trigger.positionUpdated({
       position: { x: 150, y: 300 }
     });
 
@@ -215,7 +215,7 @@ describe('select', () => {
     expect(loggerCallback).toHaveBeenLastCalledWith(150);
 
     // Simulate changing only the y position
-    store.trigger.SET_POSITION({
+    store.trigger.positionUpdated({
       position: { x: 150, y: 400 }
     });
 
@@ -226,7 +226,7 @@ describe('select', () => {
     expect(loggerCallback).toHaveBeenCalledTimes(2);
 
     // Simulate changing only the user
-    store.trigger.SET_USER({
+    store.trigger.userUpdated({
       user: { name: 'Jane', age: 25 }
     });
 
