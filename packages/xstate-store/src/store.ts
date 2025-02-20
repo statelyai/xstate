@@ -292,10 +292,42 @@ function _createStore<
   return createStoreCore(context, on, emits);
 }
 
+// those overloads are exactly the same, we only duplicate them so TypeScript can:
+// 1. assign contextual parameter types during inference attempt for the first overload when the source object is still context-sensitive and often non-inferrable
+// 2. infer correctly during inference attempt for the second overload when the parameter types are already "known"
 export const createStore: {
-  // those overloads are exactly the same, we only duplicate them so TypeScript can:
-  // 1. assign contextual parameter types during inference attempt for the first overload when the source object is still context-sensitive and often non-inferrable
-  // 2. infer correctly during inference attempt for the second overload when the parameter types are already "known"
+  /**
+   * Creates a **store** that has its own internal state and can be sent events
+   * that update its internal state based on transitions.
+   *
+   * @example
+   *
+   * ```ts
+   * const store = createStore({
+   *   context: { count: 0, name: 'Ada' },
+   *   on: {
+   *     inc: (context, event: { by: number }) => ({
+   *       ...context,
+   *       count: context.count + event.by
+   *     })
+   *   }
+   * });
+   *
+   * store.subscribe((snapshot) => {
+   *   console.log(snapshot);
+   * });
+   *
+   * store.send({ type: 'inc', by: 5 });
+   * // Logs { context: { count: 5, name: 'Ada' }, status: 'active', ... }
+   * ```
+   *
+   * @param config - The store configuration object
+   * @param config.context - The initial state of the store
+   * @param config.on - An object mapping event types to transition functions
+   * @param config.emits - An object mapping emitted event types to handlers
+   * @returns A store instance with methods to send events and subscribe to
+   *   state changes
+   */
   <
     TContext extends StoreContext,
     TEventPayloadMap extends EventPayloadMap,
