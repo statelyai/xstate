@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.0.1
+
+### Patch Changes
+
+- [#5197](https://github.com/statelyai/xstate/pull/5197) [`5e05d5908093bfd3435dc2243e066e4e91b3ebc5`](https://github.com/statelyai/xstate/commit/5e05d5908093bfd3435dc2243e066e4e91b3ebc5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The emitted event type can no longer be accidentally overridden in the emitted event payload. See #5196 for the issue.
+
 ## 3.0.0
 
 ### Major Changes
