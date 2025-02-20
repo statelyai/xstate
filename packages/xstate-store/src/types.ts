@@ -124,7 +124,7 @@ export type StoreConfig<
   };
   on: {
     [K in keyof TEventPayloadMap & string]: StoreAssigner<
-      NoInfer<TContext>,
+      TContext,
       { type: K } & TEventPayloadMap[K],
       ExtractEvents<TEmitted>
     >;
