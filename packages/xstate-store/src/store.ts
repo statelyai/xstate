@@ -9,6 +9,7 @@ import {
   Store,
   StoreAssigner,
   StoreContext,
+  StoreConfig,
   StoreEffect,
   StoreInspectionEvent,
   StoreProducerAssigner,
@@ -68,6 +69,7 @@ function createStoreCore<
       TEmitted
     >;
   },
+  emits?: Record<string, (payload: any) => void>, // TODO: improve this type
   producer?: (
     context: NoInfer<TContext>,
     recipe: (context: NoInfer<TContext>) => void
@@ -117,6 +119,8 @@ function createStoreCore<
       if (typeof effect === 'function') {
         effect();
       } else {
+        // handle the inherent effect first
+        emits?.[effect.type]?.(effect);
         emit(effect);
       }
     }
@@ -235,21 +239,7 @@ type CreateStoreParameterTypes<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventPayloadMap
-> = [
-  definition: {
-    context: TContext;
-    emits?: {
-      [K in keyof TEmitted & string]: (payload: TEmitted[K]) => void;
-    };
-    on: {
-      [K in keyof TEventPayloadMap & string]: StoreAssigner<
-        NoInfer<TContext>,
-        { type: K } & TEventPayloadMap[K],
-        ExtractEvents<TEmitted>
-      >;
-    };
-  }
-];
+> = [definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>];
 
 type CreateStoreReturnType<
   TContext extends StoreContext,
@@ -284,6 +274,7 @@ type CreateStoreReturnType<
  * @param config - The store configuration object
  * @param config.context - The initial state of the store
  * @param config.on - An object mapping event types to transition functions
+ * @param config.emits - An object mapping emitted event types to handlers
  * @returns A store instance with methods to send events and subscribe to state
  *   changes
  */
@@ -292,19 +283,51 @@ function _createStore<
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventPayloadMap
 >(
-  ...[{ context, on }]: CreateStoreParameterTypes<
+  ...[{ context, on, emits }]: CreateStoreParameterTypes<
     TContext,
     TEventPayloadMap,
     TEmitted
   >
 ): CreateStoreReturnType<TContext, TEventPayloadMap, TEmitted> {
-  return createStoreCore(context, on);
+  return createStoreCore(context, on, emits);
 }
 
+// those overloads are exactly the same, we only duplicate them so TypeScript can:
+// 1. assign contextual parameter types during inference attempt for the first overload when the source object is still context-sensitive and often non-inferrable
+// 2. infer correctly during inference attempt for the second overload when the parameter types are already "known"
 export const createStore: {
-  // those overloads are exactly the same, we only duplicate them so TypeScript can:
-  // 1. assign contextual parameter types during inference attempt for the first overload when the source object is still context-sensitive and often non-inferrable
-  // 2. infer correctly during inference attempt for the second overload when the parameter types are already "known"
+  /**
+   * Creates a **store** that has its own internal state and can be sent events
+   * that update its internal state based on transitions.
+   *
+   * @example
+   *
+   * ```ts
+   * const store = createStore({
+   *   context: { count: 0, name: 'Ada' },
+   *   on: {
+   *     inc: (context, event: { by: number }) => ({
+   *       ...context,
+   *       count: context.count + event.by
+   *     })
+   *   }
+   * });
+   *
+   * store.subscribe((snapshot) => {
+   *   console.log(snapshot);
+   * });
+   *
+   * store.send({ type: 'inc', by: 5 });
+   * // Logs { context: { count: 5, name: 'Ada' }, status: 'active', ... }
+   * ```
+   *
+   * @param config - The store configuration object
+   * @param config.context - The initial state of the store
+   * @param config.on - An object mapping event types to transition functions
+   * @param config.emits - An object mapping emitted event types to handlers
+   * @returns A store instance with methods to send events and subscribe to
+   *   state changes
+   */
   <
     TContext extends StoreContext,
     TEventPayloadMap extends EventPayloadMap,
@@ -320,6 +343,33 @@ export const createStore: {
     ...args: CreateStoreParameterTypes<TContext, TEventPayloadMap, TEmitted>
   ): CreateStoreReturnType<TContext, TEventPayloadMap, TEmitted>;
 } = _createStore;
+
+function _createStoreConfig<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventPayloadMap
+>(
+  definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
+): StoreConfig<TContext, TEventPayloadMap, TEmitted> {
+  return definition;
+}
+
+export const createStoreConfig: {
+  <
+    TContext extends StoreContext,
+    TEventPayloadMap extends EventPayloadMap,
+    TEmitted extends EventPayloadMap
+  >(
+    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
+  ): StoreConfig<TContext, TEventPayloadMap, TEmitted>;
+  <
+    TContext extends StoreContext,
+    TEventPayloadMap extends EventPayloadMap,
+    TEmitted extends EventPayloadMap
+  >(
+    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
+  ): StoreConfig<TContext, TEventPayloadMap, TEmitted>;
+} = _createStoreConfig;
 
 /**
  * Creates a `Store` with a provided producer (such as Immer's `producer(…)` A
@@ -364,13 +414,18 @@ export function createStoreWithProducer<
         enqueue: EnqueueObject<ExtractEvents<TEmittedPayloadMap>>
       ) => void;
     };
+    emits?: {
+      [K in keyof TEmittedPayloadMap & string]: (
+        payload: TEmittedPayloadMap[K]
+      ) => void;
+    };
   }
 ): Store<
   TContext,
   ExtractEvents<TEventPayloadMap>,
   ExtractEvents<TEmittedPayloadMap>
 > {
-  return createStoreCore(config.context, config.on, producer);
+  return createStoreCore(config.context, config.on, config.emits, producer);
 }
 
 declare global {
