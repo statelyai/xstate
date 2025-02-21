@@ -1,5 +1,73 @@
 # @xstate/store
 
+## 3.1.0
+
+### Minor Changes
+
+- [#5205](https://github.com/statelyai/xstate/pull/5205) [`65784aef746b6249a9c3d71d9e4a7c9b454698c8`](https://github.com/statelyai/xstate/commit/65784aef746b6249a9c3d71d9e4a7c9b454698c8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `createStoreConfig` to create a store config from an object. This is an identity function that returns the config unchanged, but is useful for type inference.
+
+  ```tsx
+  const storeConfig = createStoreConfig({
+    context: { count: 0 },
+    on: { inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }) }
+  });
+
+  // Reusable store config:
+
+  const store = createStore(storeConfig);
+
+  // ...
+  function Comp1() {
+    const store = useStore(storeConfig);
+
+    // ...
+  }
+
+  function Comp2() {
+    const store = useStore(storeConfig);
+
+    // ...
+  }
+  ```
+
+- [#5205](https://github.com/statelyai/xstate/pull/5205) [`65784aef746b6249a9c3d71d9e4a7c9b454698c8`](https://github.com/statelyai/xstate/commit/65784aef746b6249a9c3d71d9e4a7c9b454698c8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is now a `useStore()` hook that allows you to create a local component store from a config object.
+
+  ```tsx
+  import { useStore, useSelector } from '@xstate/store/react';
+
+  function Counter() {
+    const store = useStore({
+      context: {
+        name: 'David',
+        count: 0
+      },
+      on: {
+        inc: (ctx, { by }: { by: number }) => ({
+          ...ctx,
+          count: ctx.count + by
+        })
+      }
+    });
+    const count = useSelector(store, (state) => state.count);
+
+    return (
+      <div>
+        <div>Count: {count}</div>
+        <button onClick={() => store.trigger.inc({ by: 1 })}>
+          Increment by 1
+        </button>
+        <button onClick={() => store.trigger.inc({ by: 5 })}>
+          Increment by 5
+        </button>
+      </div>
+    );
+  }
+  ```
+
+### Patch Changes
+
+- [#5205](https://github.com/statelyai/xstate/pull/5205) [`65784aef746b6249a9c3d71d9e4a7c9b454698c8`](https://github.com/statelyai/xstate/commit/65784aef746b6249a9c3d71d9e4a7c9b454698c8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createStoreWithProducer(config)` function now accepts an `emits` object.
+
 ## 3.0.1
 
 ### Patch Changes
