@@ -1,3 +1,4 @@
+import { toObserver } from './toObserver';
 import {
   EnqueueObject,
   EventObject,
@@ -13,29 +14,14 @@ import {
   StoreEffect,
   StoreInspectionEvent,
   StoreProducerAssigner,
-  StoreSnapshot
+  StoreSnapshot,
+  Selector,
+  Selection
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) ||
   '@@observable')() as any;
-
-function toObserver<T>(
-  nextHandler?: Observer<T> | ((value: T) => void),
-  errorHandler?: (error: any) => void,
-  completionHandler?: () => void
-): Observer<T> {
-  const isObserver = typeof nextHandler === 'object';
-  const self = isObserver ? nextHandler : undefined;
-
-  return {
-    next: (isObserver ? nextHandler.next : nextHandler)?.bind(self),
-    error: (isObserver ? nextHandler.error : errorHandler)?.bind(self),
-    complete: (isObserver ? nextHandler.complete : completionHandler)?.bind(
-      self
-    )
-  };
-}
 
 /**
  * Updates a context object using a recipe function.
@@ -215,7 +201,27 @@ function createStoreCore<
           });
         };
       }
-    })
+    }),
+    select<TSelected>(
+      selector: Selector<TContext, TSelected>,
+      equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
+    ): Selection<TSelected> {
+      return {
+        subscribe: (observerOrFn) => {
+          const observer = toObserver(observerOrFn);
+          let previousSelected = selector(this.getSnapshot().context);
+
+          return this.subscribe((snapshot) => {
+            const nextSelected = selector(snapshot.context);
+            if (!equalityFn(previousSelected, nextSelected)) {
+              previousSelected = nextSelected;
+              observer.next?.(nextSelected);
+            }
+          });
+        },
+        get: () => selector(this.getSnapshot().context)
+      };
+    }
   };
 
   return store;
