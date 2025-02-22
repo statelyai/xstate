@@ -306,7 +306,7 @@ export interface StateValueMap {
  */
 export type StateValue = string | StateValueMap;
 
-export type TransitionTarget = SingleOrArray<string>;
+export type TransitionTarget<T extends string = string> = SingleOrArray<T>;
 
 export interface TransitionConfig<
   TContext extends MachineContext,
@@ -317,7 +317,9 @@ export interface TransitionConfig<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TEmitted extends EventObject = EventObject,
-  TMeta extends MetaObject = MetaObject
+  TMeta extends MetaObject = MetaObject,
+  TParent extends string = string,
+  TStrictType extends StrictType = undefined
 > {
   guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
   actions?: Actions<
@@ -332,7 +334,7 @@ export interface TransitionConfig<
     TEmitted
   >;
   reenter?: boolean;
-  target?: TransitionTarget | undefined;
+  target?: TransitionTarget<StrictSelect<TParent, TStrictType>> | undefined;
   meta?: TMeta;
   description?: string;
 }
@@ -513,9 +515,11 @@ export type StatesConfig<
   TTag extends string,
   TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TStates extends Record<string, any> = Record<string, any>,
+  TStrictType extends StrictType = undefined
 > = {
-  [K in string]: StateNodeConfig<
+  [K in keyof TStates]: StateNodeConfig<
     TContext,
     TEvent,
     TActor,
@@ -525,7 +529,10 @@ export type StatesConfig<
     TTag,
     TOutput,
     TEmitted,
-    TMeta
+    TMeta,
+    TStates[K],
+    Extract<keyof TStates, string>,
+    TStrictType
   >;
 };
 
@@ -536,7 +543,7 @@ export type StatesDefinition<
   [K in string]: StateNodeDefinition<TContext, TEvent>;
 };
 
-export type TransitionConfigTarget = string | undefined;
+export type TransitionConfigTarget<T extends string = string> = T | undefined;
 
 export type TransitionConfigOrTarget<
   TContext extends MachineContext,
@@ -547,9 +554,11 @@ export type TransitionConfigOrTarget<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TParent extends string = string,
+  TStrictType extends StrictType = undefined
 > = SingleOrArray<
-  | TransitionConfigTarget
+  | TransitionConfigTarget<StrictSelect<TParent, TStrictType>>
   | TransitionConfig<
       TContext,
       TExpressionEvent,
@@ -559,7 +568,9 @@ export type TransitionConfigOrTarget<
       TGuard,
       TDelay,
       TEmitted,
-      TMeta
+      TMeta,
+      TParent,
+      TStrictType
     >
 >;
 
@@ -571,7 +582,9 @@ export type TransitionsConfig<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TParent extends string = string,
+  TStrictType extends StrictType = undefined
 > = {
   [K in EventDescriptor<TEvent>]?: TransitionConfigOrTarget<
     TContext,
@@ -582,7 +595,9 @@ export type TransitionsConfig<
     TGuard,
     TDelay,
     TEmitted,
-    TMeta
+    TMeta,
+    TParent,
+    TStrictType
   >;
 };
 
@@ -864,12 +879,16 @@ export interface StateNodeConfig<
   TTag extends string,
   _TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TStates extends Record<string, any> = Record<string, any>,
+  TParent extends string = string,
+  TStrictType extends StrictType = undefined
 > {
   /** The initial state transition. */
+
   initial?:
     | InitialTransitionConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
-    | string
+    | StrictSelect<NoInfer<Extract<keyof TStates, string>>, TStrictType>
     | undefined;
   /**
    * The type of this state node:
@@ -901,7 +920,9 @@ export interface StateNodeConfig<
         TTag,
         NonReducibleUnknown,
         TEmitted,
-        TMeta
+        TMeta,
+        TStates,
+        TStrictType
       >
     | undefined;
   /**
@@ -929,7 +950,9 @@ export interface StateNodeConfig<
     TGuard,
     TDelay,
     TEmitted,
-    TMeta
+    TMeta,
+    TParent,
+    TStrictType
   >;
   /** The action(s) to be executed upon entering the state node. */
   entry?: Actions<
@@ -1351,7 +1374,10 @@ export type MachineConfig<
   TInput = any,
   TOutput = unknown,
   TEmitted extends EventObject = EventObject,
-  TMeta extends MetaObject = MetaObject
+  TMeta extends MetaObject = MetaObject,
+  TStates extends Record<string, any> = Record<string, any>,
+  TParent extends string = string,
+  TStrictType extends StrictType = undefined
 > = (Omit<
   StateNodeConfig<
     DoNotInfer<TContext>,
@@ -1363,13 +1389,17 @@ export type MachineConfig<
     DoNotInfer<TTag>,
     DoNotInfer<TOutput>,
     DoNotInfer<TEmitted>,
-    DoNotInfer<TMeta>
+    DoNotInfer<TMeta>,
+    TStates,
+    TParent,
+    TStrictType
   >,
   'output'
 > & {
   /** The initial context (extended state) */
   /** The machine's own version. */
   version?: string;
+
   // TODO: make it conditionally required
   output?: Mapper<TContext, DoneStateEvent, TOutput, TEvent> | TOutput;
 }) &
@@ -2678,3 +2708,14 @@ export type BuiltinActionResolution = [
   NonReducibleUnknown, // params
   UnknownAction[] | undefined
 ];
+
+export type StrictType = 'strict' | 'loose' | undefined;
+
+type StrictSelect<
+  elements extends string,
+  strict extends StrictType = undefined
+> = strict extends 'strict'
+  ? elements
+  : strict extends 'loose'
+    ? elements | (string & {})
+    : string;
