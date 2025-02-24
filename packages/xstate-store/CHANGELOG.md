@@ -1,5 +1,46 @@
 # @xstate/store
 
+## 3.2.0
+
+### Minor Changes
+
+- [#5200](https://github.com/statelyai/xstate/pull/5200) [`0332a16a42fb372eb614df74ff4cb7f003c31fc8`](https://github.com/statelyai/xstate/commit/0332a16a42fb372eb614df74ff4cb7f003c31fc8) Thanks [@{](https://github.com/{)! - Added selectors to @xstate/store that enable efficient state selection and subscription:
+
+  - `store.select(selector)` function to create a "selector" entity where you can:
+    - Get current value with `.get()`
+    - Subscribe to changes with `.subscribe(callback)`
+    - Only notify subscribers when selected value actually changes
+    - Support custom equality functions for fine-grained control over updates via `store.select(selector, equalityFn)`
+
+  ```ts
+  const store = createStore({
+    context: {
+      position: { x: 0, y: 0 },
+   name: 'John', age: 30 }
+    },
+    on: {
+      positionUpdated: (
+        context,
+        event: { position: { x: number; y: number } }
+      ) => ({
+        ...context,
+        position: event.position
+      })
+    }
+  });
+
+  const position = store.select((state) => state.context.position);
+
+  position.get(); // { x: 0, y: 0 }
+
+  position.subscribe((position) => {
+    console.log(position);
+  });
+
+  store.trigger.positionUpdated({ x: 100, y: 200 });
+  // Logs: { x: 100, y: 200 }
+  ```
+
 ## 3.1.0
 
 ### Minor Changes
