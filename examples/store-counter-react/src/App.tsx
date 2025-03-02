@@ -10,6 +10,9 @@ const store = createStore({
   context: {
     count: 0
   },
+  emits: {
+    reset: (_: {}) => {}
+  },
   on: {
     inc: (context, event: { by: number }) => {
       return {
@@ -17,7 +20,7 @@ const store = createStore({
       };
     },
     reset: (_context, _ev, { emit }) => {
-      emit({ type: 'reset' });
+      emit.reset({});
       return {
         count: 0
       };
