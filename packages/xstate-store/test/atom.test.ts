@@ -1,9 +1,9 @@
-import { createAtom, createAtomComputed } from '../src/atom';
+import { createAtom } from '../src/atom';
 
 it('create atom', () => {
   const nameAtom = createAtom('a');
   const numAtom = createAtom(3);
-  const combinedAtom = createAtomComputed((read) =>
+  const combinedAtom = createAtom((read) =>
     read(nameAtom).repeat(read(numAtom))
   );
 
