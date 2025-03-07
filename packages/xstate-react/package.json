@@ -54,7 +54,7 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0-0",
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
     "xstate": "workspace:^"
   },
   "peerDependenciesMeta": {
@@ -68,12 +68,12 @@
   },
   "devDependencies": {
     "@testing-library/react": "^16.0.0",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
     "@types/use-sync-external-store": "^0.0.3",
     "@xstate-repo/jest-utils": "workspace:^",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "rxjs": "^7.8.1",
     "xstate": "workspace:^"
   }

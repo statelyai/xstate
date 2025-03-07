@@ -18,7 +18,7 @@ function useSelectorWithCompare<TStore extends AnyStore, T>(
   selector: (snapshot: SnapshotFromStore<TStore>) => T,
   compare: (a: T | undefined, b: T) => boolean
 ): (snapshot: SnapshotFromStore<TStore>) => T {
-  const previous = useRef<T>();
+  const previous = useRef<T | undefined>(undefined);
 
   return (state) => {
     const next = selector(state);
@@ -89,7 +89,7 @@ export const useStore: {
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventPayloadMap
 >(definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>) {
-  const storeRef = useRef<AnyStore>();
+  const storeRef = useRef<AnyStore | undefined>(undefined);
 
   if (!storeRef.current) {
     storeRef.current = createStore(definition);
