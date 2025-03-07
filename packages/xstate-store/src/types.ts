@@ -111,9 +111,13 @@ export interface Store<
       ? () => Omit<E, 'type'>
       : (eventPayload: Omit<E, 'type'>) => void;
   };
+  /**
+   * Returns a store selector object that can be used to subscribe to changes in
+   * the store's context.
+   */
   select<TSelected>(
     selector: Selector<TContext, TSelected>,
-    equalityFn?: (a: TSelected, b: TSelected) => boolean
+    equalityFn?: (prev: TSelected, next: TSelected) => boolean
   ): Selection<TSelected>;
 }
 
