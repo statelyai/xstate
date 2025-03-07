@@ -116,7 +116,29 @@ export interface Store<
       ? () => Omit<E, 'type'>
       : (eventPayload: Omit<E, 'type'>) => void;
   };
+  select<TSelected>(
+    selector: Selector<TContext, TSelected>,
+    equalityFn?: (a: TSelected, b: TSelected) => boolean
+  ): Selection<TSelected>;
 }
+
+export type StoreConfig<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventPayloadMap
+> = {
+  context: TContext;
+  emits?: {
+    [K in keyof TEmitted & string]: (payload: TEmitted[K]) => void;
+  };
+  on: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      TContext,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEvents<TEmitted>
+    >;
+  };
+};
 
 export type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
 
@@ -317,3 +339,9 @@ export type Cast<A, B> = A extends B ? A : B;
 export type EventMap<TEvent extends EventObject> = {
   [E in TEvent as E['type']]: E;
 };
+
+export type Selector<TContext, TSelected> = (context: TContext) => TSelected;
+
+export interface Selection<TSelected> extends Subscribable<TSelected> {
+  get: () => TSelected;
+}

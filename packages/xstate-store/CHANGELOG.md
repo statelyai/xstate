@@ -1,5 +1,120 @@
 # @xstate/store
 
+## 3.2.0
+
+### Minor Changes
+
+- [#5200](https://github.com/statelyai/xstate/pull/5200) [`0332a16a42fb372eb614df74ff4cb7f003c31fc8`](https://github.com/statelyai/xstate/commit/0332a16a42fb372eb614df74ff4cb7f003c31fc8) Thanks [@{](https://github.com/{)! - Added selectors to @xstate/store that enable efficient state selection and subscription:
+
+  - `store.select(selector)` function to create a "selector" entity where you can:
+    - Get current value with `.get()`
+    - Subscribe to changes with `.subscribe(callback)`
+    - Only notify subscribers when selected value actually changes
+    - Support custom equality functions for fine-grained control over updates via `store.select(selector, equalityFn)`
+
+  ```ts
+  const store = createStore({
+    context: {
+      position: { x: 0, y: 0 },
+   name: 'John', age: 30 }
+    },
+    on: {
+      positionUpdated: (
+        context,
+        event: { position: { x: number; y: number } }
+      ) => ({
+        ...context,
+        position: event.position
+      })
+    }
+  });
+
+  const position = store.select((state) => state.context.position);
+
+  position.get(); // { x: 0, y: 0 }
+
+  position.subscribe((position) => {
+    console.log(position);
+  });
+
+  store.trigger.positionUpdated({ x: 100, y: 200 });
+  // Logs: { x: 100, y: 200 }
+  ```
+
+## 3.1.0
+
+### Minor Changes
+
+- [#5205](https://github.com/statelyai/xstate/pull/5205) [`65784aef746b6249a9c3d71d9e4a7c9b454698c8`](https://github.com/statelyai/xstate/commit/65784aef746b6249a9c3d71d9e4a7c9b454698c8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `createStoreConfig` to create a store config from an object. This is an identity function that returns the config unchanged, but is useful for type inference.
+
+  ```tsx
+  const storeConfig = createStoreConfig({
+    context: { count: 0 },
+    on: { inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }) }
+  });
+
+  // Reusable store config:
+
+  const store = createStore(storeConfig);
+
+  // ...
+  function Comp1() {
+    const store = useStore(storeConfig);
+
+    // ...
+  }
+
+  function Comp2() {
+    const store = useStore(storeConfig);
+
+    // ...
+  }
+  ```
+
+- [#5205](https://github.com/statelyai/xstate/pull/5205) [`65784aef746b6249a9c3d71d9e4a7c9b454698c8`](https://github.com/statelyai/xstate/commit/65784aef746b6249a9c3d71d9e4a7c9b454698c8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is now a `useStore()` hook that allows you to create a local component store from a config object.
+
+  ```tsx
+  import { useStore, useSelector } from '@xstate/store/react';
+
+  function Counter() {
+    const store = useStore({
+      context: {
+        name: 'David',
+        count: 0
+      },
+      on: {
+        inc: (ctx, { by }: { by: number }) => ({
+          ...ctx,
+          count: ctx.count + by
+        })
+      }
+    });
+    const count = useSelector(store, (state) => state.count);
+
+    return (
+      <div>
+        <div>Count: {count}</div>
+        <button onClick={() => store.trigger.inc({ by: 1 })}>
+          Increment by 1
+        </button>
+        <button onClick={() => store.trigger.inc({ by: 5 })}>
+          Increment by 5
+        </button>
+      </div>
+    );
+  }
+  ```
+
+### Patch Changes
+
+- [#5205](https://github.com/statelyai/xstate/pull/5205) [`65784aef746b6249a9c3d71d9e4a7c9b454698c8`](https://github.com/statelyai/xstate/commit/65784aef746b6249a9c3d71d9e4a7c9b454698c8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createStoreWithProducer(config)` function now accepts an `emits` object.
+
+## 3.0.1
+
+### Patch Changes
+
+- [#5197](https://github.com/statelyai/xstate/pull/5197) [`5e05d5908093bfd3435dc2243e066e4e91b3ebc5`](https://github.com/statelyai/xstate/commit/5e05d5908093bfd3435dc2243e066e4e91b3ebc5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The emitted event type can no longer be accidentally overridden in the emitted event payload. See #5196 for the issue.
+
 ## 3.0.0
 
 ### Major Changes

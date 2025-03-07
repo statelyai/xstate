@@ -481,3 +481,77 @@ it('works with typestates', () => {
     context.data satisfies null;
   }
 });
+
+it('the emit type is not overridden by the payload', () => {
+  const spy = jest.fn();
+  type Context = {
+    drawer?: Drawer | null;
+  };
+
+  type Drawer = {
+    id: string;
+  };
+
+  const context: Context = {
+    drawer: null
+  };
+
+  const drawersBridgeStore = createStore({
+    emits: {
+      drawerOpened: (_payload: { drawer: Drawer }) => {
+        // ...
+      }
+    },
+    context,
+    on: {
+      openDrawer: (context, event: { drawer: Drawer }, enqueue) => {
+        enqueue.emit.drawerOpened(event);
+
+        return {
+          ...context,
+          drawer: event.drawer
+        };
+      }
+    }
+  });
+
+  drawersBridgeStore.on('drawerOpened', (event) => {
+    // expect to be called here
+    spy(event);
+  });
+
+  drawersBridgeStore.send({
+    type: 'openDrawer',
+    drawer: { id: 'a' }
+  });
+
+  expect(spy).toHaveBeenCalledWith({
+    type: 'drawerOpened',
+    drawer: { id: 'a' }
+  });
+});
+
+it('can emit events from createStoreWithProducer', () => {
+  const store = createStoreWithProducer(produce, {
+    context: {
+      count: 0
+    },
+    emits: {
+      increased: (_: { by: number }) => {}
+    },
+    on: {
+      inc: (ctx, ev: { by: number }, enq) => {
+        enq.emit.increased({ by: ev.by });
+        ctx.count += ev.by;
+      }
+    }
+  });
+
+  const spy = jest.fn();
+  store.on('increased', spy);
+
+  store.send({ type: 'inc', by: 3 });
+
+  expect(spy).toHaveBeenCalledWith({ type: 'increased', by: 3 });
+  expect(store.getSnapshot().context).toEqual({ count: 3 });
+});
