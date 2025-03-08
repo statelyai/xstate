@@ -1,7 +1,56 @@
-import { createAtom } from '../src/atom';
-import { createStore } from '../src/store';
+import { createStore, createAtom } from '../src/';
 
-it('create atom', () => {
+it('creates an atom', () => {
+  const atom = createAtom(42);
+
+  expect(atom.get()).toBe(42);
+});
+
+it('sets the value of the atom using a function', () => {
+  const atom = createAtom(0);
+
+  atom.set((prev) => prev + 1);
+
+  expect(atom.get()).toBe(1);
+
+  atom.set((prev) => prev + 1);
+
+  expect(atom.get()).toBe(2);
+});
+
+it('can subscribe to atom changes', () => {
+  const log = jest.fn();
+  const atom = createAtom(0);
+
+  atom.subscribe(log);
+
+  atom.set(1);
+
+  expect(log).toHaveBeenCalledWith(1);
+
+  atom.set(2);
+
+  expect(log).toHaveBeenCalledWith(2);
+});
+
+it('can unsubscribe from atom changes', () => {
+  const log = jest.fn();
+  const atom = createAtom(0);
+
+  const sub = atom.subscribe(log);
+
+  atom.set(1);
+
+  expect(log).toHaveBeenCalledWith(1);
+
+  sub.unsubscribe();
+
+  atom.set(2);
+
+  expect(log).toHaveBeenCalledTimes(1);
+});
+
+it('can create a combined atom', () => {
   const nameAtom = createAtom('a');
   const numAtom = createAtom(3);
   const combinedAtom = createAtom((read) =>
