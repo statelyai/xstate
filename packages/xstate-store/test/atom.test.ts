@@ -126,3 +126,16 @@ it('works with stores', () => {
 
   expect(combinedAtom.get()).toBe('John 1');
 });
+
+it('combined atoms should be read-only', () => {
+  const atom1 = createAtom(0);
+  const atom2 = createAtom(1);
+  const combinedAtom = createAtom((read) => read(atom1) + read(atom2));
+
+  expect(combinedAtom.get()).toBe(1);
+
+  // @ts-expect-error
+  combinedAtom.set?.(2);
+
+  expect(combinedAtom.get()).toBe(1);
+});

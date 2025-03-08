@@ -10,13 +10,15 @@ interface Atom<T> extends Subscribable<T>, Readable<T> {
   set(value: T): void;
 }
 
+interface ReadOnlyAtom<T> extends Readable<T> {}
+
 export function createAtom<T>(
   getValue: (read: <U>(atom: Readable<U>) => U) => T
-): Atom<T>;
+): ReadOnlyAtom<T>;
 export function createAtom<T>(initialValue: T): Atom<T>;
 export function createAtom<T>(
   valueOrFn: T | ((read: <U>(atom: Readable<U>) => U) => T)
-): Atom<T> {
+): Atom<T> | ReadOnlyAtom<T> {
   const current = { value: undefined as T };
   let observers: Set<Observer<T>> | undefined;
   const subs = new Map<Atom<any>, Subscription>();
@@ -48,14 +50,17 @@ export function createAtom<T>(
 
   return {
     get: () => current.value,
-    set: (newValueOrFn) => {
-      let newValue = newValueOrFn;
-      if (typeof newValueOrFn === 'function') {
-        newValue = (newValueOrFn as any)(current.value);
-      }
-      current.value = newValue as T;
-      observers?.forEach((o) => o.next?.(current.value));
-    },
+    set:
+      typeof valueOrFn === 'function'
+        ? undefined
+        : (newValueOrFn) => {
+            let newValue = newValueOrFn;
+            if (typeof newValueOrFn === 'function') {
+              newValue = (newValueOrFn as any)(current.value);
+            }
+            current.value = newValue as T;
+            observers?.forEach((o) => o.next?.(current.value));
+          },
     subscribe: (observerOrFn: Observer<T> | ((value: T) => void)) => {
       const obs = toObserver(observerOrFn);
       observers ??= new Set();
