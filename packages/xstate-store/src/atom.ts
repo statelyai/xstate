@@ -1,19 +1,19 @@
 import { toObserver } from './toObserver';
-import { Observer, Subscribable, Subscription } from './types';
+import { Observer, Readable, Subscribable, Subscription } from './types';
 
-interface Atom<T> extends Subscribable<T> {
+interface Atom<T> extends Subscribable<T>, Readable<T> {
   get(): T;
   set(value: T): void;
   set(fn: (prevVal: T) => T): void;
 }
 
 // Function overloads
+export function createAtom<T>(
+  getValue: (read: <U>(atom: Readable<U>) => U) => T
+): Atom<T>;
 export function createAtom<T>(initialValue: T): Atom<T>;
 export function createAtom<T>(
-  getValue: (read: <U>(atom: Atom<U>) => U) => T
-): Atom<T>;
-export function createAtom<T>(
-  valueOrFn: T | ((read: <U>(atom: Atom<U>) => U) => T)
+  valueOrFn: T | ((read: <U>(atom: Readable<U>) => U) => T)
 ): Atom<T> {
   const current = { value: undefined as T };
   let observers: Set<Observer<T>> | undefined;

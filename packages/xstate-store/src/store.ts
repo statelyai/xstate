@@ -147,6 +147,9 @@ function createStoreCore<
     getSnapshot() {
       return currentSnapshot;
     },
+    get() {
+      return currentSnapshot;
+    },
     getInitialSnapshot() {
       return initialSnapshot;
     },
