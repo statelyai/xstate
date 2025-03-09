@@ -1,5 +1,10 @@
 import { fireEvent, screen, render } from '@testing-library/react';
-import { createStore, fromStore, createStoreConfig } from '../src/index.ts';
+import {
+  createStore,
+  fromStore,
+  createStoreConfig,
+  createAtom
+} from '../src/index.ts';
 import { useSelector } from '../src/react.ts';
 import {
   useActor,
@@ -9,270 +14,301 @@ import {
 import ReactDOM from 'react-dom';
 import { useStore } from '../src/react.ts';
 
-it('useSelector should work', () => {
-  const store = createStore({
-    context: {
-      count: 0
-    },
-    on: {
-      inc: (ctx) => ({
-        ...ctx,
-        count: ctx.count + 1
-      })
-    }
-  });
+describe('useSelector', () => {
+  it('useSelector should work', () => {
+    const store = createStore({
+      context: {
+        count: 0
+      },
+      on: {
+        inc: (ctx) => ({
+          ...ctx,
+          count: ctx.count + 1
+        })
+      }
+    });
 
-  const Counter = () => {
-    const count = useSelector(store, (s) => s.context.count);
+    const Counter = () => {
+      const count = useSelector(store, (s) => s.context.count);
 
-    return (
-      <div
-        data-testid="count"
-        onClick={() => {
-          store.send({ type: 'inc' });
-        }}
-      >
-        {count}
-      </div>
-    );
-  };
-
-  render(<Counter />);
-
-  const countDiv = screen.getByTestId('count');
-
-  expect(countDiv.textContent).toEqual('0');
-
-  fireEvent.click(countDiv);
-
-  expect(countDiv.textContent).toEqual('1');
-});
-
-it('useSelector can take in a custom comparator', () => {
-  const store = createStore({
-    context: {
-      items: [1, 2]
-    },
-    on: {
-      same: (ctx) => ({
-        ...ctx,
-        items: [1, 2] // different array, same items
-      }),
-      different: (ctx) => ({
-        ...ctx,
-        items: [3, 4]
-      })
-    }
-  });
-
-  let renderCount = 0;
-  const Items = () => {
-    renderCount++;
-    const items = useSelector(
-      store,
-      (s) => s.context.items,
-      (a, b) => JSON.stringify(a) === JSON.stringify(b)
-    );
-
-    return (
-      <>
+      return (
         <div
-          data-testid="items"
+          data-testid="count"
           onClick={() => {
-            store.send({ type: 'same' });
+            store.send({ type: 'inc' });
           }}
         >
-          {items.join(',')}
+          {count}
         </div>
-        <button
-          data-testid="different"
+      );
+    };
+
+    render(<Counter />);
+
+    const countDiv = screen.getByTestId('count');
+
+    expect(countDiv.textContent).toEqual('0');
+
+    fireEvent.click(countDiv);
+
+    expect(countDiv.textContent).toEqual('1');
+  });
+
+  it('useSelector can take in a custom comparator', () => {
+    const store = createStore({
+      context: {
+        items: [1, 2]
+      },
+      on: {
+        same: (ctx) => ({
+          ...ctx,
+          items: [1, 2] // different array, same items
+        }),
+        different: (ctx) => ({
+          ...ctx,
+          items: [3, 4]
+        })
+      }
+    });
+
+    let renderCount = 0;
+    const Items = () => {
+      renderCount++;
+      const items = useSelector(
+        store,
+        (s) => s.context.items,
+        (a, b) => JSON.stringify(a) === JSON.stringify(b)
+      );
+
+      return (
+        <>
+          <div
+            data-testid="items"
+            onClick={() => {
+              store.send({ type: 'same' });
+            }}
+          >
+            {items.join(',')}
+          </div>
+          <button
+            data-testid="different"
+            onClick={() => {
+              store.send({ type: 'different' });
+            }}
+          ></button>
+        </>
+      );
+    };
+
+    render(<Items />);
+
+    const itemsDiv = screen.getByTestId('items');
+
+    expect(itemsDiv.textContent).toEqual('1,2');
+
+    expect(renderCount).toBe(1);
+
+    fireEvent.click(itemsDiv);
+
+    expect(itemsDiv.textContent).toEqual('1,2');
+
+    expect(renderCount).toBe(1);
+
+    fireEvent.click(screen.getByTestId('different'));
+
+    expect(itemsDiv.textContent).toEqual('3,4');
+
+    expect(renderCount).toBe(2);
+  });
+
+  it('can batch updates', () => {
+    const store = createStore({
+      context: {
+        count: 0
+      },
+      on: {
+        inc: (ctx) => ({
+          ...ctx,
+          count: ctx.count + 1
+        })
+      }
+    });
+
+    const Counter = () => {
+      const count = useSelector(store, (s) => s.context.count);
+
+      return (
+        <div
+          data-testid="count"
           onClick={() => {
-            store.send({ type: 'different' });
+            ReactDOM.unstable_batchedUpdates(() => {
+              store.send({ type: 'inc' });
+              store.send({ type: 'inc' });
+            });
           }}
-        ></button>
-      </>
-    );
-  };
+        >
+          {count}
+        </div>
+      );
+    };
 
-  render(<Items />);
+    render(<Counter />);
 
-  const itemsDiv = screen.getByTestId('items');
+    const countDiv = screen.getByTestId('count');
 
-  expect(itemsDiv.textContent).toEqual('1,2');
+    expect(countDiv.textContent).toEqual('0');
 
-  expect(renderCount).toBe(1);
+    fireEvent.click(countDiv);
 
-  fireEvent.click(itemsDiv);
-
-  expect(itemsDiv.textContent).toEqual('1,2');
-
-  expect(renderCount).toBe(1);
-
-  fireEvent.click(screen.getByTestId('different'));
-
-  expect(itemsDiv.textContent).toEqual('3,4');
-
-  expect(renderCount).toBe(2);
-});
-
-it('can batch updates', () => {
-  const store = createStore({
-    context: {
-      count: 0
-    },
-    on: {
-      inc: (ctx) => ({
-        ...ctx,
-        count: ctx.count + 1
-      })
-    }
+    expect(countDiv.textContent).toEqual('2');
   });
 
-  const Counter = () => {
-    const count = useSelector(store, (s) => s.context.count);
+  it('useSelector should work with atoms', () => {
+    const atom = createAtom(0);
 
-    return (
-      <div
-        data-testid="count"
-        onClick={() => {
-          ReactDOM.unstable_batchedUpdates(() => {
+    const Counter = () => {
+      const count = useSelector(atom, (s) => s);
+
+      count satisfies number;
+
+      // @ts-expect-error
+      count satisfies string;
+
+      return (
+        <div data-testid="count" onClick={() => atom.set((prev) => prev + 1)}>
+          {count}
+        </div>
+      );
+    };
+
+    render(<Counter />);
+
+    expect(screen.getByTestId('count').textContent).toEqual('0');
+
+    fireEvent.click(screen.getByTestId('count'));
+
+    expect(screen.getByTestId('count').textContent).toEqual('1');
+  });
+});
+
+describe('XState React hooks', () => {
+  it('useSelector (@xstate/react) should work with stores', () => {
+    const store = createStore({
+      context: {
+        count: 0
+      },
+      on: {
+        inc: (ctx) => ({
+          ...ctx,
+          count: ctx.count + 1
+        })
+      }
+    });
+
+    const Counter = () => {
+      const count = useXStateSelector(store, (s) => s.context.count);
+
+      return (
+        <div
+          data-testid="count"
+          onClick={() => {
             store.send({ type: 'inc' });
-            store.send({ type: 'inc' });
-          });
-        }}
-      >
-        {count}
-      </div>
-    );
-  };
+          }}
+        >
+          {count}
+        </div>
+      );
+    };
 
-  render(<Counter />);
+    render(<Counter />);
 
-  const countDiv = screen.getByTestId('count');
+    const countDiv = screen.getByTestId('count');
 
-  expect(countDiv.textContent).toEqual('0');
+    expect(countDiv.textContent).toEqual('0');
 
-  fireEvent.click(countDiv);
+    fireEvent.click(countDiv);
 
-  expect(countDiv.textContent).toEqual('2');
-});
-
-it('useSelector (@xstate/react) should work', () => {
-  const store = createStore({
-    context: {
-      count: 0
-    },
-    on: {
-      inc: (ctx) => ({
-        ...ctx,
-        count: ctx.count + 1
-      })
-    }
+    expect(countDiv.textContent).toEqual('1');
   });
 
-  const Counter = () => {
-    const count = useXStateSelector(store, (s) => s.context.count);
+  it('useActor (@xstate/react) should work', () => {
+    const store = fromStore({
+      context: {
+        count: 0
+      },
+      on: {
+        inc: (ctx) => ({
+          ...ctx,
+          count: ctx.count + 1
+        })
+      }
+    });
 
-    return (
-      <div
-        data-testid="count"
-        onClick={() => {
-          store.send({ type: 'inc' });
-        }}
-      >
-        {count}
-      </div>
-    );
-  };
+    const Counter = () => {
+      const [snapshot, send] = useActor(store);
 
-  render(<Counter />);
+      return (
+        <div
+          data-testid="count"
+          onClick={() => {
+            send({ type: 'inc' });
+          }}
+        >
+          {snapshot.context.count}
+        </div>
+      );
+    };
 
-  const countDiv = screen.getByTestId('count');
+    render(<Counter />);
 
-  expect(countDiv.textContent).toEqual('0');
+    const countDiv = screen.getByTestId('count');
 
-  fireEvent.click(countDiv);
+    expect(countDiv.textContent).toEqual('0');
 
-  expect(countDiv.textContent).toEqual('1');
-});
+    fireEvent.click(countDiv);
 
-it('useActor (@xstate/react) should work', () => {
-  const store = fromStore({
-    context: {
-      count: 0
-    },
-    on: {
-      inc: (ctx) => ({
-        ...ctx,
-        count: ctx.count + 1
-      })
-    }
+    expect(countDiv.textContent).toEqual('1');
   });
 
-  const Counter = () => {
-    const [snapshot, send] = useActor(store);
+  it('useActorRef (@xstate/react) should work', () => {
+    const store = fromStore({
+      context: {
+        count: 0
+      },
+      on: {
+        inc: (ctx) => ({
+          ...ctx,
+          count: ctx.count + 1
+        })
+      }
+    });
 
-    return (
-      <div
-        data-testid="count"
-        onClick={() => {
-          send({ type: 'inc' });
-        }}
-      >
-        {snapshot.context.count}
-      </div>
-    );
-  };
+    const Counter = () => {
+      const actorRef = useActorRef(store);
+      const count = useXStateSelector(actorRef, (s) => s.context.count);
 
-  render(<Counter />);
+      return (
+        <div
+          data-testid="count"
+          onClick={() => {
+            actorRef.send({ type: 'inc' });
+          }}
+        >
+          {count}
+        </div>
+      );
+    };
 
-  const countDiv = screen.getByTestId('count');
+    render(<Counter />);
 
-  expect(countDiv.textContent).toEqual('0');
+    const countDiv = screen.getByTestId('count');
 
-  fireEvent.click(countDiv);
+    expect(countDiv.textContent).toEqual('0');
 
-  expect(countDiv.textContent).toEqual('1');
-});
+    fireEvent.click(countDiv);
 
-it('useActorRef (@xstate/react) should work', () => {
-  const store = fromStore({
-    context: {
-      count: 0
-    },
-    on: {
-      inc: (ctx) => ({
-        ...ctx,
-        count: ctx.count + 1
-      })
-    }
+    expect(countDiv.textContent).toEqual('1');
   });
-
-  const Counter = () => {
-    const actorRef = useActorRef(store);
-    const count = useXStateSelector(actorRef, (s) => s.context.count);
-
-    return (
-      <div
-        data-testid="count"
-        onClick={() => {
-          actorRef.send({ type: 'inc' });
-        }}
-      >
-        {count}
-      </div>
-    );
-  };
-
-  render(<Counter />);
-
-  const countDiv = screen.getByTestId('count');
-
-  expect(countDiv.textContent).toEqual('0');
-
-  fireEvent.click(countDiv);
-
-  expect(countDiv.textContent).toEqual('1');
 });
 
 describe('useStore', () => {

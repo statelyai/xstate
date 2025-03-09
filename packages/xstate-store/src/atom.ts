@@ -1,16 +1,5 @@
 import { toObserver } from './toObserver';
-import { Observer, Readable, Subscribable, Subscription } from './types';
-
-interface Atom<T> extends Subscribable<T>, Readable<T> {
-  /** Gets the current value of the atom. */
-  get(): T;
-  /** Sets the value of the atom using a function. */
-  set(fn: (prevVal: T) => T): void;
-  /** Sets the value of the atom. */
-  set(value: T): void;
-}
-
-interface ReadOnlyAtom<T> extends Readable<T> {}
+import { Atom, Observer, Readable, ReadOnlyAtom, Subscription } from './types';
 
 export function createAtom<T>(
   getValue: (read: <U>(atom: Readable<U>) => U) => T
