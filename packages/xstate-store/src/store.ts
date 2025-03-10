@@ -131,6 +131,7 @@ function createStoreCore<
         }
       };
     },
+    transition: (state, event) => transition(state, event),
     sessionId: uniqueId(),
     send(event) {
       inspectionObservers.get(store)?.forEach((observer) => {

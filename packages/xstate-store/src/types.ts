@@ -115,6 +115,23 @@ export interface Store<
     selector: Selector<TContext, TSelected>,
     equalityFn?: (a: TSelected, b: TSelected) => boolean
   ): Selection<TSelected>;
+  /**
+   * Returns the next state and effects for the given state and event, as a
+   * tuple.
+   *
+   * @example
+   *
+   * ```ts
+   * const [nextState, effects] = store.transition(store.getSnapshot(), {
+   *   type: 'increment',
+   *   by: 1
+   * });
+   * ```
+   */
+  transition: (
+    state: StoreSnapshot<TContext>,
+    event: TEvent
+  ) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
 }
 
 export type StoreConfig<
