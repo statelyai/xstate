@@ -17,12 +17,12 @@ function defaultCompare<T>(a: T | undefined, b: T) {
 function useSelectorWithCompare<TStore extends Readable<any>, T>(
   selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
   compare: (a: T | undefined, b: T) => boolean
-): (snapshot: TStore extends Readable<infer T> ? T : never) => T {
+): (snapshot: TStore extends Readable<infer TValue> ? TValue : never) => T {
   const previous = useRef<T | undefined>(undefined);
 
-  return (state) => {
-    const next = selector(state);
-    return compare(previous.current, next)
+  return (snapshot) => {
+    const next = selector(snapshot);
+    return previous.current && compare(previous.current, next)
       ? previous.current
       : (previous.current = next);
   };

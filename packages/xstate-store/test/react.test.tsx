@@ -444,3 +444,323 @@ describe('useStore', () => {
     expect(countDivs[1].textContent).toBe('0');
   });
 });
+
+describe('atom examples', () => {
+  it('first atom example', () => {
+    const counter = createAtom(0);
+
+    const Counter = () => {
+      const count = useSelector(counter, (s) => s);
+
+      // Type checking
+      count satisfies number;
+
+      return (
+        <div>
+          <h1 data-testid="count">{count}</h1>
+          <button
+            data-testid="increment"
+            onClick={() => counter.set((prev) => prev + 1)}
+          >
+            Click
+          </button>
+        </div>
+      );
+    };
+
+    render(<Counter />);
+
+    const countDisplay = screen.getByTestId('count');
+    const button = screen.getByTestId('increment');
+
+    // Initial state
+    expect(countDisplay.textContent).toBe('0');
+
+    // After one click
+    fireEvent.click(button);
+    expect(countDisplay.textContent).toBe('1');
+
+    // After another click
+    fireEvent.click(button);
+    expect(countDisplay.textContent).toBe('2');
+  });
+
+  it('theme switcher example', () => {
+    const theme = createAtom('light');
+
+    const ThemeSwitcher = () => {
+      const currentTheme = useSelector(theme, (s) => s);
+
+      // Type checking
+      currentTheme satisfies string;
+
+      return (
+        <div data-testid="themed-div" className={currentTheme}>
+          <h1>This is a theme switcher</h1>
+          <button
+            data-testid="theme-button"
+            onClick={() =>
+              theme.set(currentTheme === 'light' ? 'dark' : 'light')
+            }
+          >
+            {currentTheme === 'light' ? 'DARK' : 'LIGHT'}
+          </button>
+        </div>
+      );
+    };
+
+    render(<ThemeSwitcher />);
+
+    const button = screen.getByTestId('theme-button');
+    const themedDiv = screen.getByTestId('themed-div');
+
+    // Initial state
+    expect(button.textContent).toBe('DARK');
+    expect(themedDiv.className).toBe('light');
+
+    // After click
+    fireEvent.click(button);
+    expect(button.textContent).toBe('LIGHT');
+    expect(themedDiv.className).toBe('dark');
+
+    // Back to light
+    fireEvent.click(button);
+    expect(button.textContent).toBe('DARK');
+    expect(themedDiv.className).toBe('light');
+  });
+
+  it('read only atoms example', () => {
+    const textAtom = createAtom('readonly atoms');
+    const uppercaseAtom = createAtom((get) => get(textAtom).toUpperCase());
+
+    const DerivedAtomDemo = () => {
+      const text = useSelector(textAtom, (s) => s);
+      const uppercaseText = useSelector(uppercaseAtom, (s) => s);
+
+      // Type checking
+      text satisfies string;
+      uppercaseText satisfies string;
+
+      return (
+        <div className="app">
+          <input
+            data-testid="text-input"
+            value={text}
+            onChange={(e) => textAtom.set(e.target.value)}
+          />
+          <h1 data-testid="uppercase-text">{uppercaseText}</h1>
+        </div>
+      );
+    };
+
+    render(<DerivedAtomDemo />);
+
+    const input = screen.getByTestId('text-input');
+    const uppercaseDisplay = screen.getByTestId('uppercase-text');
+
+    // Initial state
+    expect((input as HTMLInputElement).value).toBe('readonly atoms');
+    expect(uppercaseDisplay.textContent).toBe('READONLY ATOMS');
+
+    // Update input
+    fireEvent.change(input, { target: { value: 'hello world' } });
+    expect((input as HTMLInputElement).value).toBe('hello world');
+    expect(uppercaseDisplay.textContent).toBe('HELLO WORLD');
+
+    // Another update
+    fireEvent.change(input, { target: { value: 'testing' } });
+    expect((input as HTMLInputElement).value).toBe('testing');
+    expect(uppercaseDisplay.textContent).toBe('TESTING');
+  });
+
+  it('write only atoms example', () => {
+    const dotsAtom = createAtom<[number, number][]>([]);
+    const drawingAtom = createAtom(false);
+
+    const handleMouseDown = () => {
+      drawingAtom.set(true);
+    };
+
+    const handleMouseUp = () => {
+      drawingAtom.set(false);
+    };
+
+    const handleMouseMove = (point: [number, number]) => {
+      const isDrawing = drawingAtom.get();
+      if (isDrawing) {
+        dotsAtom.set((prev) => [...prev, point]);
+      }
+    };
+
+    const SvgDots = () => {
+      const dots = useSelector(dotsAtom, (s) => s);
+
+      // Type checking
+      dots satisfies [number, number][];
+
+      return (
+        <g data-testid="dots-group">
+          {dots.map(([x, y], index) => (
+            <circle
+              data-testid={`dot-${index}`}
+              cx={x}
+              cy={y}
+              r="2"
+              fill="#aaa"
+              key={index}
+            />
+          ))}
+        </g>
+      );
+    };
+
+    const SvgRoot = () => {
+      return (
+        <svg
+          data-testid="svg-root"
+          width="100"
+          height="100"
+          viewBox="0 0 100 100"
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseMove={(e) => {
+            handleMouseMove([e.clientX, e.clientY]);
+          }}
+        >
+          <rect width="100" height="100" fill="#eee" />
+          <SvgDots />
+        </svg>
+      );
+    };
+
+    render(<SvgRoot />);
+
+    const svg = screen.getByTestId('svg-root');
+    const dotsGroup = screen.getByTestId('dots-group');
+
+    // Initially no dots
+    expect(dotsGroup.children.length).toBe(0);
+
+    // Simulate drawing action
+    fireEvent.mouseDown(svg);
+    fireEvent.mouseMove(svg, { clientX: 10, clientY: 20 });
+    fireEvent.mouseMove(svg, { clientX: 30, clientY: 40 });
+    fireEvent.mouseUp(svg);
+
+    // Should have created two dots
+    expect(dotsGroup.children.length).toBe(2);
+
+    // Verify dot positions
+    const firstDot = screen.getByTestId('dot-0');
+    const secondDot = screen.getByTestId('dot-1');
+    expect(firstDot.getAttribute('cx')).toBe('10');
+    expect(firstDot.getAttribute('cy')).toBe('20');
+    expect(secondDot.getAttribute('cx')).toBe('30');
+    expect(secondDot.getAttribute('cy')).toBe('40');
+
+    // Moving without mouse down shouldn't create dots
+    fireEvent.mouseMove(svg, { clientX: 50, clientY: 60 });
+    expect(dotsGroup.children.length).toBe(2);
+  });
+});
+
+describe('store examples', () => {
+  it('drawing example with store', () => {
+    type Point = [number, number];
+    type Status = 'idle' | 'drawing';
+
+    const drawingStore = createStore({
+      context: {
+        dots: [] as Point[],
+        status: 'idle' as Status
+      },
+      on: {
+        mouseDown: (ctx) => ({
+          ...ctx,
+          status: 'drawing' as Status
+        }),
+        mouseUp: (ctx) => ({
+          ...ctx,
+          status: 'idle' as Status
+        }),
+        mouseMove: (ctx, e: { point: Point }) => {
+          if (ctx.status !== 'drawing') return ctx;
+          return {
+            ...ctx,
+            dots: [...ctx.dots, e.point]
+          };
+        }
+      }
+    });
+
+    const SvgDots = () => {
+      const dots = useSelector(drawingStore, (s) => s.context.dots);
+
+      return (
+        <g data-testid="dots-group">
+          {dots.map(([x, y], index) => (
+            <circle
+              data-testid={`dot-${index}`}
+              cx={x}
+              cy={y}
+              r="2"
+              fill="#aaa"
+              key={index}
+            />
+          ))}
+        </g>
+      );
+    };
+
+    const SvgRoot = () => {
+      return (
+        <svg
+          data-testid="svg-root"
+          width="100"
+          height="100"
+          viewBox="0 0 100 100"
+          onMouseDown={() => drawingStore.send({ type: 'mouseDown' })}
+          onMouseUp={() => drawingStore.send({ type: 'mouseUp' })}
+          onMouseMove={(e) => {
+            drawingStore.send({
+              type: 'mouseMove',
+              point: [e.clientX, e.clientY]
+            });
+          }}
+        >
+          <rect width="100" height="100" fill="#eee" />
+          <SvgDots />
+        </svg>
+      );
+    };
+
+    render(<SvgRoot />);
+
+    const svg = screen.getByTestId('svg-root');
+    const dotsGroup = screen.getByTestId('dots-group');
+
+    // Initially no dots
+    expect(dotsGroup.children.length).toBe(0);
+
+    // Simulate drawing action
+    fireEvent.mouseDown(svg);
+    fireEvent.mouseMove(svg, { clientX: 10, clientY: 20 });
+    fireEvent.mouseMove(svg, { clientX: 30, clientY: 40 });
+    fireEvent.mouseUp(svg);
+
+    // Should have created two dots
+    expect(dotsGroup.children.length).toBe(2);
+
+    // Verify dot positions
+    const firstDot = screen.getByTestId('dot-0');
+    const secondDot = screen.getByTestId('dot-1');
+    expect(firstDot.getAttribute('cx')).toBe('10');
+    expect(firstDot.getAttribute('cy')).toBe('20');
+    expect(secondDot.getAttribute('cx')).toBe('30');
+    expect(secondDot.getAttribute('cy')).toBe('40');
+
+    // Moving without mouse down shouldn't create dots
+    fireEvent.mouseMove(svg, { clientX: 50, clientY: 60 });
+    expect(dotsGroup.children.length).toBe(2);
+  });
+});
