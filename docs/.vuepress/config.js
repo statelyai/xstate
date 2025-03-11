@@ -55,7 +55,7 @@ module.exports = {
         editLinkText: '在 GitHub 上编辑此页',
         lastUpdated: '上次更新',
         nav: [
-          { text: 'API', link: 'https://paka.dev/npm/xstate/' },
+          { text: 'API', link: 'https://tsdocs.dev/docs/xstate' },
           { text: '可视化工具', link: 'https://stately.ai/viz' },
           { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
           {
@@ -182,7 +182,7 @@ module.exports = {
         editLinkText: 'Modifier cette page sur GitHub',
         lastUpdated: 'Dernière mise à jour',
         nav: [
-          { text: 'API', link: 'https://paka.dev/npm/xstate/' },
+          { text: 'API', link: 'https://tsdocs.dev/docs/xstate' },
           { text: 'Visualiseur', link: 'https://stately.ai/viz' },
           { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
           {
@@ -305,7 +305,7 @@ module.exports = {
       }
     },
     nav: [
-      { text: 'API', link: 'https://paka.dev/npm/xstate/' },
+      { text: 'API', link: 'https://tsdocs.dev/docs/xstate' },
       { text: 'Visualizer', link: 'https://stately.ai/viz' },
       { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
       {

@@ -29,15 +29,18 @@ export const donutStore = createStore({
     favoriteFlavor: 'chocolate'
   },
   on: {
-    addDonut: {
-      donuts: (context) => context.donuts + 1
-    },
-    changeFlavor: {
-      favoriteFlavor: (context, event: { flavor: string }) => event.flavor
-    },
-    eatAllDonuts: {
+    addDonut: (context) => ({
+      ...context,
+      donuts: context.donuts + 1
+    }),
+    changeFlavor: (context, event: { flavor: string }) => ({
+      ...context,
+      favoriteFlavor: event.flavor
+    }),
+    eatAllDonuts: (context) => ({
+      ...context,
       donuts: 0
-    }
+    })
   }
 });
 
@@ -45,14 +48,17 @@ donutStore.subscribe((snapshot) => {
   console.log(snapshot.context);
 });
 
-donutStore.send({ type: 'addDonut' });
+// Equivalent to
+// donutStore.send({ type: 'addDonut' });
+donutStore.trigger.addDonut();
 // => { donuts: 1, favoriteFlavor: 'chocolate' }
 
-donutStore.send({
-  type: 'changeFlavor',
-  flavor: 'strawberry' // Strongly-typed!
-});
-// => { donuts: 1, favoriteFlavor: 'chocolate' }
+// donutStore.send({
+//   type: 'changeFlavor',
+//   flavor: 'strawberry' // Strongly-typed!
+// });
+donutStore.trigger.changeFlavor({ flavor: 'strawberry' });
+// => { donuts: 1, favoriteFlavor: 'strawberry' }
 ```
 
 <details>
@@ -213,5 +219,63 @@ const donutStore = createStore({
   on: {
     // ... (transitions go here)
   }
+});
+```
+
+## Effects and Side Effects
+
+You can enqueue effects in state transitions using the `enqueue` argument:
+
+```ts
+import { createStore } from '@xstate/store';
+
+const store = createStore({
+  context: { count: 0 },
+  on: {
+    incrementDelayed: (context, event, enqueue) => {
+      enqueue.effect(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        store.send({ type: 'increment' });
+      });
+
+      return context;
+    },
+    increment: (context) => ({
+      ...context,
+      count: context.count + 1
+    })
+  }
+});
+```
+
+## Emitting Events
+
+You can emit events from transitions by defining them in the `emits` property and using `enqueue.emit`:
+
+```ts
+import { createStore } from '@xstate/store';
+
+const store = createStore({
+  context: { count: 0 },
+  emits: {
+    increased: (payload: { by: number }) => {
+      // Optional side effects can go here
+    }
+  },
+  on: {
+    inc: (context, event: { by: number }, enqueue) => {
+      enqueue.emit.increased({ by: event.by });
+
+      return {
+        ...context,
+        count: context.count + event.by
+      };
+    }
+  }
+});
+
+// Listen for emitted events
+store.on('increased', (event) => {
+  console.log(`Count increased by ${event.by}`);
 });
 ```
