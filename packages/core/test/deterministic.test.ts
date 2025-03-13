@@ -3,7 +3,8 @@ import {
   createActor,
   transition,
   createMachine,
-  getInitialSnapshot
+  getInitialSnapshot,
+  initialTransition
 } from '../src/index.ts';
 
 describe('deterministic machine', () => {

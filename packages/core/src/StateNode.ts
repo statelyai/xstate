@@ -224,7 +224,7 @@ export class StateNode<
     this.transitions = formatTransitions(this);
     if (this.config.always) {
       this.always = toTransitionConfigArray(this.config.always).map((t) =>
-        formatTransition(this, NULL_EVENT, t)
+        typeof t === 'function' ? t : formatTransition(this, NULL_EVENT, t)
       );
     }
 

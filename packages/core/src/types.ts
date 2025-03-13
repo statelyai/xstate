@@ -333,6 +333,7 @@ export interface TransitionConfig<
   >;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
+  fn?: TransitionConfigFunction<TContext, TEvent>;
   meta?: TMeta;
   description?: string;
 }
@@ -561,7 +562,20 @@ export type TransitionConfigOrTarget<
       TEmitted,
       TMeta
     >
+  // | TransitionConfigFunction<TContext, TEvent>
 >;
+
+export type TransitionConfigFunction<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> = (obj: { context: TContext; event: TEvent; enqueue: (fn: any) => void }) =>
+  | {
+      target?: string;
+      context?: TContext;
+    }
+  | undefined;
+
+export type AnyTransitionConfigFunction = TransitionConfigFunction<any, any>;
 
 export type TransitionsConfig<
   TContext extends MachineContext,
