@@ -568,12 +568,10 @@ export type TransitionConfigOrTarget<
 export type TransitionConfigFunction<
   TContext extends MachineContext,
   TEvent extends EventObject
-> = (obj: { context: TContext; event: TEvent; enqueue: (fn: any) => void }) =>
-  | {
-      target?: string;
-      context?: TContext;
-    }
-  | undefined;
+> = (obj: { context: TContext; event: TEvent; enqueue: (fn: any) => void }) => {
+  target?: string;
+  context?: TContext;
+} | void;
 
 export type AnyTransitionConfigFunction = TransitionConfigFunction<any, any>;
 

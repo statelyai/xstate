@@ -1050,7 +1050,9 @@ export function microstep(
     nextState,
     event,
     actorScope,
-    filteredTransitions.flatMap((t) => t.actions),
+    filteredTransitions.flatMap((t) =>
+      getTransitionActions(t, currentSnapshot, event)
+    ),
     internalQueue,
     undefined
   );
@@ -1264,6 +1266,28 @@ function getTargets(
   }
 
   return transition.target as AnyStateNode[] | undefined;
+}
+
+function getTransitionActions(
+  transition: Pick<
+    AnyTransitionDefinition,
+    'target' | 'fn' | 'source' | 'actions'
+  >,
+  snapshot: AnyMachineSnapshot,
+  event: AnyEventObject
+): Readonly<UnknownAction[]> {
+  if (transition.fn) {
+    const actions = [];
+    transition.fn({
+      context: snapshot.context,
+      event,
+      enqueue: (action) => actions.push(action)
+    });
+
+    return actions;
+  }
+
+  return transition.actions;
 }
 
 function computeEntrySet(
