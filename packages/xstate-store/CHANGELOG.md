@@ -1,5 +1,20 @@
 # @xstate/store
 
+## 3.3.0
+
+### Minor Changes
+
+- [#5215](https://github.com/statelyai/xstate/pull/5215) [`13279166ed9fa3d3626a2129bd257f6cd663fd0e`](https://github.com/statelyai/xstate/commit/13279166ed9fa3d3626a2129bd257f6cd663fd0e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `store.transition(state, event)` method that returns the next state and effects for a given state and event as a tuple, without actually updating the store. This is useful for computing state changes before committing them, or controlling the execution of effects.
+
+  Example:
+
+  ```ts
+  const [nextState, effects] = store.transition(store.getSnapshot(), {
+    type: 'increment',
+    by: 1
+  });
+  ```
+
 ## 3.2.1
 
 ### Patch Changes
