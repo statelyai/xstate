@@ -5,4 +5,5 @@ export {
   createStoreWithProducer,
   createStoreConfig
 } from './store';
+export { createAtom } from './atom';
 export * from './types';

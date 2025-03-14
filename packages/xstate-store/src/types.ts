@@ -11,6 +11,9 @@ export type EnqueueObject<TEmittedEvent extends EventObject> = {
     [E in TEmittedEvent as E['type']]: (payload: Omit<E, 'type'>) => void;
   };
   effect: (fn: () => void) => void;
+  spawn: <T extends StoreConfig<any, any, any>>(
+    config: T
+  ) => Store<any, any, any>;
 };
 
 export type StoreEffect<TEmitted extends EventObject> = (() => void) | TEmitted;
@@ -69,9 +72,12 @@ export interface Store<
   TEvent extends EventObject,
   TEmitted extends EventObject
 > extends Subscribable<StoreSnapshot<TContext>>,
-    InteropObservable<StoreSnapshot<TContext>> {
+    InteropObservable<StoreSnapshot<TContext>>,
+    Readable<StoreSnapshot<TContext>> {
   send: (event: TEvent) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
+  /** @alias getSnapshot */
+  get: () => StoreSnapshot<TContext>;
   getInitialSnapshot: () => StoreSnapshot<TContext>;
   /**
    * Subscribes to [inspection events](https://stately.ai/docs/inspection) from
@@ -357,3 +363,18 @@ export type Selector<TContext, TSelected> = (context: TContext) => TSelected;
 export interface Selection<TSelected> extends Subscribable<TSelected> {
   get: () => TSelected;
 }
+
+export interface Readable<T> extends Subscribable<T> {
+  get(): T;
+}
+
+export interface Atom<T> extends Subscribable<T>, Readable<T> {
+  /** Gets the current value of the atom. */
+  get(): T;
+  /** Sets the value of the atom using a function. */
+  set(fn: (prevVal: T) => T): void;
+  /** Sets the value of the atom. */
+  set(value: T): void;
+}
+
+export interface ReadOnlyAtom<T> extends Readable<T> {}
