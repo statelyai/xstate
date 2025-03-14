@@ -555,3 +555,99 @@ it('can emit events from createStoreWithProducer', () => {
   expect(spy).toHaveBeenCalledWith({ type: 'increased', by: 3 });
   expect(store.getSnapshot().context).toEqual({ count: 3 });
 });
+
+describe('store.transition', () => {
+  it('returns next state and effects for a given state and event', () => {
+    const store = createStore({
+      context: { count: 0 },
+      emits: {
+        increased: (_: { by: number }) => {}
+      },
+      on: {
+        inc: (ctx, event: { by: number }, enq) => {
+          enq.emit.increased({ by: event.by });
+          return {
+            count: ctx.count + event.by
+          };
+        }
+      }
+    });
+
+    const [nextState, effects] = store.transition(store.getSnapshot(), {
+      type: 'inc',
+      by: 2
+    });
+
+    expect(nextState.context).toEqual({ count: 2 });
+    expect(effects).toHaveLength(1);
+    expect(effects[0]).toEqual({ type: 'increased', by: 2 });
+  });
+
+  it('returns unchanged state and empty effects for unknown events', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({
+          count: ctx.count + 1
+        })
+      }
+    });
+
+    const currentState = store.getSnapshot();
+    const [nextState, effects] = store.transition(currentState, {
+      // @ts-expect-error
+      type: 'unknown'
+    });
+
+    expect(nextState).toBe(currentState);
+    expect(effects).toEqual([]);
+  });
+
+  it('works with producer functions', () => {
+    const store = createStoreWithProducer(produce, {
+      context: { count: 0 },
+      emits: {
+        increased: (_: { by: number }) => {}
+      },
+      on: {
+        inc: (ctx, event: { by: number }, enq) => {
+          enq.emit.increased({ by: event.by });
+          ctx.count += event.by;
+        }
+      }
+    });
+
+    const [nextState, effects] = store.transition(store.getSnapshot(), {
+      type: 'inc',
+      by: 3
+    });
+
+    expect(nextState.context).toEqual({ count: 3 });
+    expect(effects).toHaveLength(1);
+    expect(effects[0]).toEqual({ type: 'increased', by: 3 });
+  });
+
+  it('collects enqueued effects', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx, _, enq) => {
+          enq.effect(() => {
+            // This effect function would normally do something
+          });
+          return {
+            count: ctx.count + 1
+          };
+        }
+      }
+    });
+
+    const [nextState, effects] = store.transition(store.getSnapshot(), {
+      type: 'inc'
+    });
+
+    expect(nextState.context).toEqual({ count: 1 });
+    expect(effects).toHaveLength(1);
+    expect(typeof effects[0]).toBe('function');
+  });
+});
