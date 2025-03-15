@@ -376,6 +376,26 @@ it('events can be emitted with no payload', () => {
   expect(spy).toHaveBeenCalledWith({ type: 'incremented' });
 });
 
+it('events can be emitted with optional payloads (type check)', () => {
+  createStore({
+    emits: {
+      optionalPayload: (_: { payload?: string }) => {}
+    },
+    context: {},
+    on: {
+      inc: (_ctx, _ev, enq) => {
+        enq.emit
+          // @ts-expect-error
+          .optionalPayload();
+
+        enq.emit.optionalPayload({ payload: 'hello' });
+
+        enq.emit.optionalPayload({});
+      }
+    }
+  });
+});
+
 it('effects can be enqueued', async () => {
   const store = createStore({
     context: {
