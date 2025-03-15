@@ -8,7 +8,11 @@ export type Recipe<T, TReturn> = (state: T) => TReturn;
 
 export type EnqueueObject<TEmittedEvent extends EventObject> = {
   emit: {
-    [E in TEmittedEvent as E['type']]: (payload: Omit<E, 'type'>) => void;
+    [E in TEmittedEvent as E['type']]: IsEmptyObject<
+      Omit<E, 'type'>
+    > extends true
+      ? () => void
+      : (payload: Omit<E, 'type'>) => void;
   };
   effect: (fn: () => void) => void;
 };
@@ -89,7 +93,7 @@ export interface Store<
   on: <TEmittedType extends TEmitted['type']>(
     eventType: TEmittedType,
     emittedEventHandler: (
-      ev: Compute<TEmitted & { type: TEmittedType }>
+      emittedEvent: Compute<TEmitted & { type: TEmittedType }>
     ) => void
   ) => Subscription;
   /**
