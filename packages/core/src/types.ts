@@ -333,7 +333,7 @@ export interface TransitionConfig<
   >;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
-  fn?: TransitionConfigFunction<TContext, TEvent>;
+  fn?: TransitionConfigFunction<TContext, TExpressionEvent>;
   meta?: TMeta;
   description?: string;
 }

@@ -1057,6 +1057,23 @@ export function microstep(
     undefined
   );
 
+  // Get context
+  let context = nextState.context;
+  for (const t of filteredTransitions) {
+    if (t.fn) {
+      const res = t.fn({
+        context,
+        event,
+        enqueue: () => void 0
+      });
+
+      if (res?.context) {
+        context = res.context;
+      }
+    }
+  }
+  nextState.context = context;
+
   // Enter states
   nextState = enterStates(
     nextState,

@@ -258,9 +258,7 @@ describe('guard conditions', () => {
       ]
     `);
   });
-});
 
-describe('guard conditions', () => {
   it('should guard against transition', () => {
     const machine = createMachine({
       type: 'parallel',
@@ -355,6 +353,301 @@ describe('guard conditions', () => {
   });
 
   it('should check guards with interim states', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A2',
+          states: {
+            A2: {
+              on: {
+                A: 'A3'
+              }
+            },
+            A3: {
+              always: 'A4'
+            },
+            A4: {
+              always: 'A5'
+            },
+            A5: {}
+          }
+        },
+        B: {
+          initial: 'B0',
+          states: {
+            B0: {
+              always: [
+                {
+                  target: 'B4',
+                  guard: stateIn('A.A4')
+                }
+              ]
+            },
+            B4: {}
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'A' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
+      A: 'A5',
+      B: 'B4'
+    });
+  });
+});
+
+describe('[function] guard conditions', () => {
+  interface LightMachineCtx {
+    elapsed: number;
+  }
+  type LightMachineEvents =
+    | { type: 'TIMER' }
+    | {
+        type: 'EMERGENCY';
+        isEmergency?: boolean;
+      }
+    | { type: 'TIMER_COND_OBJ' }
+    | { type: 'BAD_COND' };
+
+  const minTimeElapsed = (elapsed: number) => elapsed >= 100 && elapsed < 200;
+
+  const lightMachine = createMachine({
+    types: {} as {
+      input: { elapsed?: number };
+      context: LightMachineCtx;
+      events: LightMachineEvents;
+    },
+    context: ({ input = {} }) => ({
+      elapsed: input.elapsed ?? 0
+    }),
+    initial: 'green',
+    states: {
+      green: {
+        on: {
+          TIMER: {
+            fn: ({ context }) => {
+              if (context.elapsed < 100) {
+                return { target: 'green' };
+              }
+              if (context.elapsed >= 100 && context.elapsed < 200) {
+                return { target: 'yellow' };
+              }
+            }
+          },
+          EMERGENCY: {
+            fn: ({ event }) =>
+              event.isEmergency ? { target: 'red' } : undefined
+          }
+        }
+      },
+      yellow: {
+        on: {
+          TIMER: {
+            fn: ({ context }) =>
+              minTimeElapsed(context.elapsed) ? { target: 'red' } : undefined
+          },
+          TIMER_COND_OBJ: {
+            fn: ({ context }) =>
+              minTimeElapsed(context.elapsed) ? { target: 'red' } : undefined
+          }
+        }
+      },
+      red: {}
+    }
+  });
+
+  it('should transition only if condition is met', () => {
+    const actorRef1 = createActor(lightMachine, {
+      input: { elapsed: 50 }
+    }).start();
+    actorRef1.send({ type: 'TIMER' });
+    expect(actorRef1.getSnapshot().value).toEqual('green');
+
+    const actorRef2 = createActor(lightMachine, {
+      input: { elapsed: 120 }
+    }).start();
+    actorRef2.send({ type: 'TIMER' });
+    expect(actorRef2.getSnapshot().value).toEqual('yellow');
+  });
+
+  it('should transition if condition based on event is met', () => {
+    const actorRef = createActor(lightMachine, { input: {} }).start();
+    actorRef.send({
+      type: 'EMERGENCY',
+      isEmergency: true
+    });
+    expect(actorRef.getSnapshot().value).toEqual('red');
+  });
+
+  it('should not transition if condition based on event is not met', () => {
+    const actorRef = createActor(lightMachine, { input: {} }).start();
+    actorRef.send({
+      type: 'EMERGENCY'
+    });
+    expect(actorRef.getSnapshot().value).toEqual('green');
+  });
+
+  it('should not transition if no condition is met', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            TIMER: {
+              fn: ({ event }) => ({
+                target:
+                  event.elapsed > 200
+                    ? 'b'
+                    : event.elapsed > 100
+                      ? 'c'
+                      : undefined
+              })
+            }
+          }
+        },
+        b: {},
+        c: {}
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+    const actor = createActor(machine).start();
+    flushTracked();
+
+    actor.send({ type: 'TIMER', elapsed: 10 });
+
+    expect(actor.getSnapshot().value).toBe('a');
+    expect(flushTracked()).toEqual([]);
+  });
+
+  it('should work with defined string transitions', () => {
+    const actorRef = createActor(lightMachine, {
+      input: { elapsed: 120 }
+    }).start();
+    actorRef.send({
+      type: 'TIMER'
+    });
+    expect(actorRef.getSnapshot().value).toEqual('yellow');
+    actorRef.send({
+      type: 'TIMER'
+    });
+    expect(actorRef.getSnapshot().value).toEqual('red');
+  });
+
+  it('should work with guard objects', () => {
+    const actorRef = createActor(lightMachine, {
+      input: { elapsed: 150 }
+    }).start();
+    actorRef.send({
+      type: 'TIMER'
+    });
+    expect(actorRef.getSnapshot().value).toEqual('yellow');
+    actorRef.send({
+      type: 'TIMER_COND_OBJ'
+    });
+    expect(actorRef.getSnapshot().value).toEqual('red');
+  });
+
+  it('should work with defined string transitions (condition not met)', () => {
+    const machine = createMachine({
+      types: {} as { context: LightMachineCtx; events: LightMachineEvents },
+      context: {
+        elapsed: 10
+      },
+      initial: 'yellow',
+      states: {
+        green: {
+          on: {
+            TIMER: {
+              fn: ({ context }) => ({
+                target:
+                  context.elapsed < 100
+                    ? 'green'
+                    : context.elapsed >= 100 && context.elapsed < 200
+                      ? 'yellow'
+                      : undefined
+              })
+            },
+            EMERGENCY: {
+              fn: ({ event }) => ({
+                target: event.isEmergency ? 'red' : undefined
+              })
+            }
+          }
+        },
+        yellow: {
+          on: {
+            TIMER: {
+              fn: ({ context }) => ({
+                target: minTimeElapsed(context.elapsed) ? 'red' : undefined
+              })
+            }
+          }
+        },
+        red: {}
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({
+      type: 'TIMER'
+    });
+
+    expect(actorRef.getSnapshot().value).toEqual('yellow');
+  });
+
+  it.skip('should allow a matching transition', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A2',
+          states: {
+            A0: {},
+            A2: {}
+          }
+        },
+        B: {
+          initial: 'B0',
+          states: {
+            B0: {
+              always: [
+                {
+                  target: 'B4',
+                  guard: () => false
+                }
+              ],
+              on: {
+                T2: [
+                  {
+                    target: 'B2',
+                    guard: stateIn('A.A2')
+                  }
+                ]
+              }
+            },
+            B1: {},
+            B2: {},
+            B4: {}
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'T2' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
+      A: 'A2',
+      B: 'B2'
+    });
+  });
+
+  it.skip('should check guards with interim states', () => {
     const machine = createMachine({
       type: 'parallel',
       states: {

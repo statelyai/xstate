@@ -66,9 +66,8 @@ type ToProvidedActor<
         };
       }>;
 
-type RequiredSetupKeys<TChildrenMap> = IsNever<keyof TChildrenMap> extends true
-  ? never
-  : 'actors';
+type RequiredSetupKeys<TChildrenMap> =
+  IsNever<keyof TChildrenMap> extends true ? never : 'actors';
 
 export function setup<
   TContext extends MachineContext,
