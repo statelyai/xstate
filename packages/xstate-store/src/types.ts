@@ -348,7 +348,7 @@ export interface Selection<TSelected> extends Subscribable<TSelected> {
 }
 
 export interface Readable<T> extends Subscribable<T> {
-  get(): T;
+  get: () => T;
 }
 
 export interface Atom<T> extends Subscribable<T>, Readable<T> {
