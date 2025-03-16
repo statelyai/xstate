@@ -343,9 +343,7 @@ export type EventMap<TEvent extends EventObject> = {
 
 export type Selector<TContext, TSelected> = (context: TContext) => TSelected;
 
-export interface Selection<TSelected> extends Subscribable<TSelected> {
-  get: () => TSelected;
-}
+export type Selection<TSelected> = Readable<TSelected>;
 
 export interface Readable<T> extends Subscribable<T> {
   get: () => T;
