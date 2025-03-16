@@ -1,13 +1,13 @@
 import { toObserver } from './toObserver';
-import { Atom, Observer, Readable, ReadOnlyAtom, Subscription } from './types';
+import { Atom, Observer, Readable, ReadonlyAtom, Subscription } from './types';
 
 export function createAtom<T>(
   getValue: (read: <U>(atom: Readable<U>) => U) => T
-): ReadOnlyAtom<T>;
+): ReadonlyAtom<T>;
 export function createAtom<T>(initialValue: T): Atom<T>;
 export function createAtom<T>(
   valueOrFn: T | ((read: <U>(atom: Readable<U>) => U) => T)
-): Atom<T> | ReadOnlyAtom<T> {
+): Atom<T> | ReadonlyAtom<T> {
   const current = { value: undefined as T };
   let observers: Set<Observer<T>> | undefined;
   const subs = new Map<Atom<any>, Subscription>();

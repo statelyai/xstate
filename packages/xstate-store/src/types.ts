@@ -353,4 +353,15 @@ export interface Atom<T> extends Subscribable<T>, Readable<T> {
   set(value: T): void;
 }
 
-export interface ReadOnlyAtom<T> extends Readable<T> {}
+/**
+ * An atom that is read-only and cannot be set.
+ *
+ * @example
+ *
+ * ```ts
+ * const atom = createAtom(() => 42);
+ * // @ts-expect-error - Cannot set a readonly atom
+ * atom.set(43);
+ * ```
+ */
+export interface ReadonlyAtom<T> extends Readable<T> {}
