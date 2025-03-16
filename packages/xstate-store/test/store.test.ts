@@ -356,10 +356,7 @@ it('events can be emitted with no payload', () => {
         enq.emit.incremented();
       },
       dec: (_ctx, _ev, enq) => {
-        enq.emit.decremented(
-          // @ts-expect-error
-          {}
-        );
+        enq.emit.decremented({});
       },
       hasPayload: (_ctx, _ev, enq) => {
         enq.emit

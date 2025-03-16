@@ -11,7 +11,7 @@ export type EnqueueObject<TEmittedEvent extends EventObject> = {
     [E in TEmittedEvent as E['type']]: IsEmptyObject<
       Omit<E, 'type'>
     > extends true
-      ? () => void
+      ? (_?: {}) => void
       : (payload: Omit<E, 'type'>) => void;
   };
   effect: (fn: () => void) => void;
