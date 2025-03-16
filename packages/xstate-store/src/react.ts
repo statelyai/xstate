@@ -91,7 +91,9 @@ export const useStore: {
 >(definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>) {
   const storeRef = useRef<AnyStore | undefined>(undefined);
 
-  if (!storeRef.current) {
+  // Explicit undefined check for React compiler
+  // See: https://newsletter.daishikato.com/p/using-useref-for-lazy-initialization-with-react-compiler
+  if (storeRef.current === undefined) {
     storeRef.current = createStore(definition);
   }
 
