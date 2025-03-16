@@ -352,8 +352,6 @@ export interface Readable<T> extends Subscribable<T> {
 }
 
 export interface Atom<T> extends Subscribable<T>, Readable<T> {
-  /** Gets the current value of the atom. */
-  get(): T;
   /** Sets the value of the atom using a function. */
   set(fn: (prevVal: T) => T): void;
   /** Sets the value of the atom. */
