@@ -353,9 +353,9 @@ export interface Readable<T> extends Subscribable<T> {
 
 export interface Atom<T> extends Subscribable<T>, Readable<T> {
   /** Sets the value of the atom using a function. */
-  set(fn: (prevVal: T) => T): void;
+  set: (fn: (prevVal: T) => T) => void;
   /** Sets the value of the atom. */
-  set(value: T): void;
+  set: (value: T) => void;
 }
 
 export interface ReadOnlyAtom<T> extends Readable<T> {}
