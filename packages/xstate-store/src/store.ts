@@ -492,10 +492,6 @@ export function createStoreTransition<
       }),
       effect: (fn) => {
         effects.push(fn);
-      },
-      spawn: (config) => {
-        const childStore = createStore(config);
-        return childStore;
       }
     };
 
