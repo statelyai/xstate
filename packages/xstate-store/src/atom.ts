@@ -49,7 +49,7 @@ export function createAtom<T>(
               newValue = (newValueOrFn as (prev: T) => T)(current.value);
             }
             current.value = newValue as T;
-            observers?.forEach((o) => o.next?.(newValue));
+            observers?.forEach((o) => o.next?.(newValue as T));
           },
     subscribe: (observerOrFn: Observer<T> | ((value: T) => void)) => {
       const obs = toObserver(observerOrFn);
