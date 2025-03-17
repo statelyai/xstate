@@ -26,8 +26,9 @@ export function createAtom<T>(
     };
 
     function recompute() {
-      current.value = getValue(read);
-      observers?.forEach((o) => o.next?.(current.value));
+      const newValue = getValue(read);
+      current.value = newValue;
+      observers?.forEach((o) => o.next?.(newValue));
     }
 
     // Initialize computed value
