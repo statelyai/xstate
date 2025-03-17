@@ -58,10 +58,6 @@ export function createAtom<T>(
       return {
         unsubscribe() {
           observers?.delete(obs);
-          if (typeof valueOrFn === 'function') {
-            subs.forEach((sub) => sub.unsubscribe());
-            subs.clear();
-          }
         }
       };
     }
