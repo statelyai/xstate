@@ -46,7 +46,7 @@ export function createAtom<T>(
         : (newValueOrFn) => {
             let newValue = newValueOrFn;
             if (typeof newValueOrFn === 'function') {
-              newValue = (newValueOrFn as any)(current.value);
+              newValue = (newValueOrFn as (prev: T) => T)(current.value);
             }
             current.value = newValue as T;
             observers?.forEach((o) => o.next?.(current.value));
