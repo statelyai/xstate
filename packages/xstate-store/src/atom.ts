@@ -42,7 +42,6 @@ export function createAtom<T>(
 
       observedAtoms.prev.forEach((atom) => {
         if (!observedAtoms.current.has(atom)) {
-          console.log('unsubscribing', atom.get());
           subs.get(atom)?.unsubscribe();
           subs.delete(atom);
         }
