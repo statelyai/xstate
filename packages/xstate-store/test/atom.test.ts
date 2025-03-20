@@ -127,6 +127,25 @@ it('works with stores', () => {
   expect(combinedAtom.get()).toBe('John 1');
 });
 
+it('works with selectors', () => {
+  const store = createStore({
+    context: { name: 'David', count: 0 },
+    on: {
+      increment: (context) => ({ ...context, count: context.count + 1 })
+    }
+  });
+
+  const count = store.select((ctx) => ctx.count);
+
+  const combinedAtom = createAtom((read) => 2 * read(count));
+
+  expect(combinedAtom.get()).toBe(0);
+
+  store.trigger.increment();
+
+  expect(combinedAtom.get()).toBe(2);
+});
+
 it('combined atoms should be read-only', () => {
   const atom1 = createAtom(0);
   const atom2 = createAtom(1);
