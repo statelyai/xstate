@@ -1,5 +1,12 @@
 import { toObserver } from './toObserver';
-import { Atom, Observer, Readable, ReadonlyAtom, Subscription } from './types';
+import {
+  AnyAtom,
+  Atom,
+  Observer,
+  Readable,
+  ReadonlyAtom,
+  Subscription
+} from './types';
 
 export function createAtom<T>(
   getValue: (read: <U>(atom: Readable<U>) => U) => T
@@ -10,12 +17,17 @@ export function createAtom<T>(
 ): Atom<T> | ReadonlyAtom<T> {
   const current = { value: undefined as T };
   let observers: Set<Observer<T>> | undefined;
-  const subs = new Map<Atom<any>, Subscription>();
 
   // Handle computed case
   if (typeof valueOrFn === 'function') {
+    const subs = new WeakMap<AnyAtom, Subscription>();
+    const observedAtoms = {
+      prev: new Set<AnyAtom>(),
+      current: new Set<AnyAtom>()
+    };
     const getValue = valueOrFn as (read: <U>(atom: Atom<U>) => U) => T;
-    const read = (atom: Atom<any>) => {
+    const read = (atom: AnyAtom) => {
+      observedAtoms.current.add(atom);
       const val = atom.get();
       if (subs.get(atom)) {
         return val;
@@ -27,6 +39,18 @@ export function createAtom<T>(
 
     function recompute() {
       const newValue = getValue(read);
+
+      observedAtoms.prev.forEach((atom) => {
+        if (!observedAtoms.current.has(atom)) {
+          console.log('unsubscribing', atom.get());
+          subs.get(atom)?.unsubscribe();
+          subs.delete(atom);
+        }
+      });
+
+      observedAtoms.prev = observedAtoms.current;
+      observedAtoms.current = new Set();
+
       current.value = newValue;
       observers?.forEach((o) => o.next?.(newValue));
     }

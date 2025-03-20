@@ -139,3 +139,67 @@ it('combined atoms should be read-only', () => {
 
   expect(combinedAtom.get()).toBe(1);
 });
+
+it('conditionally read atoms are properly read in combined atoms', () => {
+  const atom1 = createAtom(true);
+  const atom2 = createAtom(false);
+  const activatorAtom = createAtom<'inactive' | 'active'>('inactive');
+  const combinedAtom = createAtom((read) =>
+    read(activatorAtom) === 'active' ? read(atom1) : read(atom2)
+  );
+
+  expect(combinedAtom.get()).toBe(false);
+
+  activatorAtom.set('active');
+
+  expect(combinedAtom.get()).toBe(true);
+
+  activatorAtom.set('inactive');
+
+  expect(combinedAtom.get()).toBe(false);
+});
+
+it('conditionally read atoms are properly unsubscribed when no longer needed', () => {
+  const atom1 = createAtom(true);
+  const activatorAtom = createAtom<'inactive' | 'active'>('active');
+  const combinedAtom = createAtom((read) =>
+    read(activatorAtom) === 'active' ? read(atom1) : {}
+  );
+
+  const vals: any[] = [];
+
+  combinedAtom.subscribe((val) => vals.push(val));
+
+  atom1.set(false);
+
+  expect(vals).toEqual([false]);
+
+  atom1.set(true);
+
+  expect(vals).toEqual([false, true]);
+
+  activatorAtom.set('inactive');
+
+  // From here, atom1 should no longer be subscribed to
+  // Without the unsubscribe logic, this would be [false, true, {}, {}, ...]
+
+  expect(vals).toEqual([false, true, {}]);
+
+  atom1.set(false);
+
+  expect(vals).toEqual([false, true, {}]);
+
+  atom1.set(true);
+
+  expect(vals).toEqual([false, true, {}]);
+
+  // Subscribing again should cause atom1 to be subscribed again
+
+  activatorAtom.set('active');
+
+  expect(vals).toEqual([false, true, {}, true]);
+
+  atom1.set(false);
+
+  expect(vals).toEqual([false, true, {}, true, false]);
+});

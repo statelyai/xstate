@@ -370,6 +370,8 @@ export interface Atom<T> extends Subscribable<T>, Readable<T> {
   set(value: T): void;
 }
 
+export type AnyAtom = Atom<any>;
+
 /**
  * An atom that is read-only and cannot be set.
  *
