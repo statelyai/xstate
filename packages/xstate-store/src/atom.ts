@@ -21,13 +21,11 @@ export function createAtom<T>(
   // Handle computed case
   if (typeof valueOrFn === 'function') {
     const subs = new WeakMap<AnyAtom, Subscription>();
-    const observedAtoms = {
-      prev: new Set<AnyAtom>(),
-      current: new Set<AnyAtom>()
-    };
+    let observedAtoms = new Set<AnyAtom>();
+
     const getValue = valueOrFn as (read: <U>(atom: Atom<U>) => U) => T;
     const read = (atom: AnyAtom) => {
-      observedAtoms.current.add(atom);
+      observedAtoms.add(atom);
       const val = atom.get();
       if (subs.get(atom)) {
         return val;
@@ -38,17 +36,18 @@ export function createAtom<T>(
     };
 
     function recompute() {
+      const previouslyObserved = observedAtoms;
+      observedAtoms = new Set();
+
       const newValue = getValue(read);
 
-      observedAtoms.prev.forEach((atom) => {
-        if (!observedAtoms.current.has(atom)) {
+      // Cleanup any atoms that weren't observed in this computation
+      previouslyObserved.forEach((atom) => {
+        if (!observedAtoms.has(atom)) {
           subs.get(atom)?.unsubscribe();
           subs.delete(atom);
         }
       });
-
-      observedAtoms.prev = observedAtoms.current;
-      observedAtoms.current = new Set();
 
       current.value = newValue;
       observers?.forEach((o) => o.next?.(newValue));
