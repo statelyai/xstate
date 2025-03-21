@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.4.1
+
+### Patch Changes
+
+- [#5237](https://github.com/statelyai/xstate/pull/5237) [`c68b39025179dd52fdaddb5599a606c5546dc214`](https://github.com/statelyai/xstate/commit/c68b39025179dd52fdaddb5599a606c5546dc214) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed a bug where conditional atoms were not properly unsubscribed when no longer needed.
+
 ## 3.4.0
 
 ### Minor Changes
