@@ -339,6 +339,60 @@ it('emitted events occur after the snapshot is updated', () => {
   store.send({ type: 'inc' });
 });
 
+it('events can be emitted with no payload', () => {
+  const spy = jest.fn();
+
+  const store = createStore({
+    emits: {
+      incremented: () => {},
+      decremented: () => {},
+      expectsPayload: (_: { payload: string }) => {}
+    },
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (_ctx, _ev, enq) => {
+        enq.emit.incremented();
+      },
+      dec: (_ctx, _ev, enq) => {
+        enq.emit.decremented({});
+      },
+      hasPayload: (_ctx, _ev, enq) => {
+        enq.emit
+          // @ts-expect-error
+          .expectsPayload();
+      }
+    }
+  });
+
+  store.on('incremented', spy);
+
+  store.send({ type: 'inc' });
+
+  expect(spy).toHaveBeenCalledWith({ type: 'incremented' });
+});
+
+it('events can be emitted with optional payloads (type check)', () => {
+  createStore({
+    emits: {
+      optionalPayload: (_: { payload?: string }) => {}
+    },
+    context: {},
+    on: {
+      inc: (_ctx, _ev, enq) => {
+        enq.emit
+          // @ts-expect-error
+          .optionalPayload();
+
+        enq.emit.optionalPayload({ payload: 'hello' });
+
+        enq.emit.optionalPayload({});
+      }
+    }
+  });
+});
+
 it('effects can be enqueued', async () => {
   const store = createStore({
     context: {
@@ -561,7 +615,8 @@ describe('store.transition', () => {
     const store = createStore({
       context: { count: 0 },
       emits: {
-        increased: (_: { by: number }) => {}
+        increased: (_: { by: number }) => {},
+        nothing: () => {}
       },
       on: {
         inc: (ctx, event: { by: number }, enq) => {
