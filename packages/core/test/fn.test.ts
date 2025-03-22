@@ -30,8 +30,8 @@ it('should work with fn actions', () => {
       active: {
         on: {
           toggle: {
-            fn: ({ enqueue }) => {
-              enqueue({ type: 'something' });
+            fn: (_, enq) => {
+              enq.emit({ type: 'something' });
             }
           }
         }
@@ -58,8 +58,8 @@ it('should work with both fn actions and target', () => {
       active: {
         on: {
           toggle: {
-            fn: ({ enqueue }) => {
-              enqueue({ type: 'something' });
+            fn: (_, enq) => {
+              enq.emit({ type: 'something' });
 
               return {
                 target: 'inactive'
@@ -105,14 +105,14 @@ it('should work with conditions', () => {
             })
           },
           toggle: {
-            fn: ({ context, enqueue }) => {
-              enqueue({ type: 'something' });
+            fn: ({ context }, enq) => {
+              enq.emit({ type: 'something' });
 
               if (context.count > 0) {
                 return { target: 'inactive' };
               }
 
-              enqueue({ type: 'invalid' });
+              enq.emit({ type: 'invalid' });
 
               return undefined;
             }

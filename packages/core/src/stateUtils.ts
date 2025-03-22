@@ -37,7 +37,8 @@ import {
   AnyTransitionConfig,
   AnyActorScope,
   ActionExecutor,
-  AnyStateMachine
+  AnyStateMachine,
+  EnqueueObj
 } from './types.ts';
 import {
   resolveOutput,
@@ -1061,11 +1062,13 @@ export function microstep(
   let context = nextState.context;
   for (const t of filteredTransitions) {
     if (t.fn) {
-      const res = t.fn({
-        context,
-        event,
-        enqueue: () => void 0
-      });
+      const res = t.fn(
+        {
+          context,
+          event
+        },
+        emptyEnqueueObj
+      );
 
       if (res?.context) {
         context = res.context;
@@ -1271,11 +1274,13 @@ function getTargets(
   event: AnyEventObject
 ): Readonly<AnyStateNode[]> | undefined {
   if (transition.fn) {
-    const res = transition.fn({
-      context: snapshot.context,
-      event,
-      enqueue: () => void 0
-    });
+    const res = transition.fn(
+      {
+        context: snapshot.context,
+        event
+      },
+      emptyEnqueueObj
+    );
 
     return res?.target
       ? resolveTarget(transition.source, [res.target])
@@ -1294,12 +1299,14 @@ function getTransitionActions(
   event: AnyEventObject
 ): Readonly<UnknownAction[]> {
   if (transition.fn) {
-    const actions = [];
-    transition.fn({
-      context: snapshot.context,
-      event,
-      enqueue: (action) => actions.push(action)
-    });
+    const actions: AnyEventObject[] = [];
+    transition.fn(
+      {
+        context: snapshot.context,
+        event
+      },
+      { ...emptyEnqueueObj, emit: (emittedEvent) => actions.push(emittedEvent) }
+    );
 
     return actions;
   }
@@ -1935,3 +1942,12 @@ export function resolveStateValue(
   const allStateNodes = getAllStateNodes(getStateNodes(rootNode, stateValue));
   return getStateValue(rootNode, [...allStateNodes]);
 }
+
+export const emptyEnqueueObj: EnqueueObj = {
+  action: () => {},
+  cancel: () => {},
+  emit: () => {},
+  log: () => {},
+  raise: () => {},
+  spawn: () => ({}) as any
+};

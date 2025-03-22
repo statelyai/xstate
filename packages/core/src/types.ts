@@ -331,6 +331,7 @@ export interface TransitionConfig<
     TDelay,
     TEmitted
   >;
+  actions2?: Action2<TContext, TEvent>;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
   fn?: TransitionConfigFunction<TContext, TExpressionEvent>;
@@ -568,7 +569,14 @@ export type TransitionConfigOrTarget<
 export type TransitionConfigFunction<
   TContext extends MachineContext,
   TEvent extends EventObject
-> = (obj: { context: TContext; event: TEvent; enqueue: (fn: any) => void }) => {
+> = (
+  obj: {
+    context: TContext;
+    event: TEvent;
+    parent?: UnknownActorRef;
+  },
+  enq: EnqueueObj
+) => {
   target?: string;
   context?: TContext;
 } | void;
@@ -955,6 +963,7 @@ export interface StateNodeConfig<
     TDelay,
     TEmitted
   >;
+  entry2?: Action2<TContext, TEvent>;
   /** The action(s) to be executed upon exiting the state node. */
   exit?: Actions<
     TContext,
@@ -967,6 +976,7 @@ export interface StateNodeConfig<
     TDelay,
     TEmitted
   >;
+  exit2?: Action2<TContext, TEvent>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state
    * node.
@@ -2690,3 +2700,25 @@ export type BuiltinActionResolution = [
   NonReducibleUnknown, // params
   UnknownAction[] | undefined
 ];
+
+export type EnqueueObj = {
+  cancel: () => void;
+  raise: (ev: AnyEventObject) => void;
+  spawn: (...args: any[]) => AnyActorRef;
+  emit: (emittedEvent: AnyEventObject) => void;
+  action: (fn: () => any) => void;
+  log: (...args: any[]) => void;
+};
+
+export type Action2<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> = (
+  _: {
+    context: TContext;
+    event: TEvent;
+    parent?: UnknownActorRef;
+    self: AnyActorRef;
+  },
+  enqueue: EnqueueObj
+) => { context: TContext } | void;
