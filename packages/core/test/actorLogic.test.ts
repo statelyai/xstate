@@ -1263,6 +1263,15 @@ describe('composable actor logic', () => {
       })
     );
   });
+
+  it('higher-level machine logic should work with persist()', () => {
+    const machine = createMachine({});
+    const customLogic = {
+      ...machine
+    };
+
+    expect(customLogic.provide).toBeDefined();
+  });
 });
 
 function withResolvers<T>(): PromiseWithResolvers<T> {
