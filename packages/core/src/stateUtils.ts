@@ -1653,6 +1653,14 @@ function resolveAndExecuteActionsWithContext(
         // our logic below makes sure that we call those 2 "variants" correctly
 
         getAction(machine, typeof action === 'string' ? action : action.type);
+
+    // if no action, emit it!
+    if (!resolvedAction && typeof action === 'object' && action !== null) {
+      actorScope.defer(() => {
+        actorScope.emit(action);
+      });
+    }
+
     const actionArgs = {
       context: intermediateSnapshot.context,
       event,
@@ -1943,7 +1951,7 @@ export function resolveStateValue(
   return getStateValue(rootNode, [...allStateNodes]);
 }
 
-export const emptyEnqueueObj: EnqueueObj = {
+export const emptyEnqueueObj: EnqueueObj<any, any> = {
   action: () => {},
   cancel: () => {},
   emit: () => {},

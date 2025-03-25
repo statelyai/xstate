@@ -331,10 +331,9 @@ export interface TransitionConfig<
     TDelay,
     TEmitted
   >;
-  actions2?: Action2<TContext, TEvent>;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
-  fn?: TransitionConfigFunction<TContext, TExpressionEvent>;
+  fn?: TransitionConfigFunction<TContext, TExpressionEvent, TEmitted>;
   meta?: TMeta;
   description?: string;
 }
@@ -568,20 +567,25 @@ export type TransitionConfigOrTarget<
 
 export type TransitionConfigFunction<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TEmitted extends EventObject
 > = (
   obj: {
     context: TContext;
     event: TEvent;
     parent?: UnknownActorRef;
   },
-  enq: EnqueueObj
+  enq: EnqueueObj<TEvent, TEmitted>
 ) => {
   target?: string;
   context?: TContext;
 } | void;
 
-export type AnyTransitionConfigFunction = TransitionConfigFunction<any, any>;
+export type AnyTransitionConfigFunction = TransitionConfigFunction<
+  any,
+  any,
+  any
+>;
 
 export type TransitionsConfig<
   TContext extends MachineContext,
@@ -963,7 +967,7 @@ export interface StateNodeConfig<
     TDelay,
     TEmitted
   >;
-  entry2?: Action2<TContext, TEvent>;
+  entry2?: Action2<TContext, TEvent, TEmitted>;
   /** The action(s) to be executed upon exiting the state node. */
   exit?: Actions<
     TContext,
@@ -976,7 +980,7 @@ export interface StateNodeConfig<
     TDelay,
     TEmitted
   >;
-  exit2?: Action2<TContext, TEvent>;
+  exit2?: Action2<TContext, TEvent, TEmitted>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state
    * node.
@@ -2701,24 +2705,29 @@ export type BuiltinActionResolution = [
   UnknownAction[] | undefined
 ];
 
-export type EnqueueObj = {
+export type EnqueueObj<
+  TMachineEvent extends EventObject,
+  TEmittedEvent extends EventObject
+> = {
   cancel: () => void;
-  raise: (ev: AnyEventObject) => void;
+  raise: (ev: TMachineEvent) => void;
   spawn: (...args: any[]) => AnyActorRef;
-  emit: (emittedEvent: AnyEventObject) => void;
+  emit: (emittedEvent: TEmittedEvent) => void;
   action: (fn: () => any) => void;
   log: (...args: any[]) => void;
 };
 
 export type Action2<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TEmittedEvent extends EventObject
 > = (
   _: {
     context: TContext;
     event: TEvent;
     parent?: UnknownActorRef;
     self: AnyActorRef;
+    children: Record<string, AnyActorRef>;
   },
-  enqueue: EnqueueObj
+  enqueue: EnqueueObj<TEvent, TEmittedEvent>
 ) => { context: TContext } | void;
