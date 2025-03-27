@@ -1,6 +1,7 @@
 {
   "name": "@xstate/svelte",
   "version": "4.0.3",
+  "type": "module",
   "description": "XState tools for Svelte",
   "keywords": [
     "state",
@@ -15,18 +16,8 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte#readme",
   "license": "MIT",
-  "main": "dist/xstate-svelte.cjs.js",
-  "module": "dist/xstate-svelte.esm.js",
   "exports": {
-    ".": {
-      "types": {
-        "import": "./dist/xstate-svelte.cjs.mjs",
-        "default": "./dist/xstate-svelte.cjs.js"
-      },
-      "module": "./dist/xstate-svelte.esm.js",
-      "import": "./dist/xstate-svelte.cjs.mjs",
-      "default": "./dist/xstate-svelte.cjs.js"
-    },
+    ".": "./dist/xstate-svelte.js",
     "./package.json": "./package.json"
   },
   "sideEffects": false,

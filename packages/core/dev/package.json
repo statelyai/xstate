@@ -1,7 +1,7 @@
 {
-  "main": "dist/xstate-dev.cjs.js",
-  "module": "dist/xstate-dev.esm.js",
-  "umd:main": "dist/xstate-dev.umd.min.js",
+  "main": "../dist/xstate-dev.cjs.js",
+  "module": "../dist/xstate-dev.esm.js",
+  "umd:main": "../dist/xstate-dev.umd.min.js",
   "preconstruct": {
     "umdName": "XStateDev"
   }
