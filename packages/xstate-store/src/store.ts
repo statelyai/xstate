@@ -131,6 +131,7 @@ function createStoreCore<
         }
       };
     },
+    transition,
     sessionId: uniqueId(),
     send(event) {
       inspectionObservers.get(store)?.forEach((observer) => {
@@ -145,6 +146,9 @@ function createStoreCore<
       receive(event as unknown as StoreEvent);
     },
     getSnapshot() {
+      return currentSnapshot;
+    },
+    get() {
       return currentSnapshot;
     },
     getInitialSnapshot() {
