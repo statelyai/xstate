@@ -31,7 +31,8 @@ import type {
   AnyStateNodeConfig,
   ProvidedActor,
   NonReducibleUnknown,
-  EventDescriptor
+  EventDescriptor,
+  Action2
 } from './types.ts';
 import {
   createInvokeId,
@@ -100,8 +101,10 @@ export class StateNode<
   public history: false | 'shallow' | 'deep';
   /** The action(s) to be executed upon entering the state node. */
   public entry: UnknownAction[];
+  public entry2: Action2<any, any, any> | undefined;
   /** The action(s) to be executed upon exiting the state node. */
   public exit: UnknownAction[];
+  public exit2: Action2<any, any, any> | undefined;
   /** The parent state node. */
   public parent?: StateNode<TContext, TEvent>;
   /** The root machine node. */
@@ -211,8 +214,15 @@ export class StateNode<
       this.config.history === true ? 'shallow' : this.config.history || false;
 
     this.entry = toArray(this.config.entry).slice();
+    this.entry2 = this.config.entry2;
+    if (this.entry2) {
+      this.entry2._special = true;
+    }
     this.exit = toArray(this.config.exit).slice();
-
+    this.exit2 = this.config.exit2;
+    if (this.exit2) {
+      this.exit2._special = true;
+    }
     this.meta = this.config.meta;
     this.output =
       this.type === 'final' || !this.parent ? this.config.output : undefined;

@@ -38,7 +38,9 @@ import {
   AnyActorScope,
   ActionExecutor,
   AnyStateMachine,
-  EnqueueObj
+  EnqueueObj,
+  Action2,
+  AnyActorRef
 } from './types.ts';
 import {
   resolveOutput,
@@ -1098,7 +1100,19 @@ export function microstep(
       actorScope,
       nextStateNodes
         .sort((a, b) => b.order - a.order)
-        .flatMap((state) => state.exit),
+        .flatMap((stateNode) => {
+          if (stateNode.exit2) {
+            const actions = getActionsFromAction2(stateNode.exit2, {
+              context: nextState.context,
+              event,
+              self: actorScope.self,
+              parent: actorScope.self._parent,
+              children: actorScope.self.getSnapshot().children
+            });
+            return [...stateNode.exit, ...actions];
+          }
+          return stateNode.exit;
+        }),
       internalQueue,
       undefined
     );
@@ -1202,6 +1216,18 @@ function enterStates(
       );
     }
 
+    if (stateNodeToEnter.entry2) {
+      actions.push(
+        ...getActionsFromAction2(stateNodeToEnter.entry2, {
+          context: nextSnapshot.context,
+          event,
+          self: actorScope.self,
+          parent: actorScope.self._parent,
+          children: currentSnapshot.children
+        })
+      );
+    }
+
     if (statesForDefaultEntry.has(stateNodeToEnter)) {
       const initialActions = stateNodeToEnter.initial.actions;
       actions.push(...initialActions);
@@ -1299,13 +1325,19 @@ function getTransitionActions(
   event: AnyEventObject
 ): Readonly<UnknownAction[]> {
   if (transition.fn) {
-    const actions: AnyEventObject[] = [];
+    const actions: any[] = [];
     transition.fn(
       {
         context: snapshot.context,
         event
       },
-      { ...emptyEnqueueObj, emit: (emittedEvent) => actions.push(emittedEvent) }
+      {
+        ...emptyEnqueueObj,
+        action: (fn) => {
+          actions.push(fn);
+        },
+        emit: (emittedEvent) => actions.push(emittedEvent)
+      }
     );
 
     return actions;
@@ -1590,11 +1622,20 @@ function exitStates(
   }
 
   for (const s of statesToExit) {
+    const exitActions = s.exit2
+      ? getActionsFromAction2(s.exit2, {
+          context: nextSnapshot.context,
+          event,
+          self: actorScope.self,
+          parent: actorScope.self._parent,
+          children: actorScope.self.getSnapshot().children
+        })
+      : [];
     nextSnapshot = resolveActionsAndContext(
       nextSnapshot,
       event,
       actorScope,
-      [...s.exit, ...s.invoke.map((def) => stopChild(def.id))],
+      [...s.exit, ...s.invoke.map((def) => stopChild(def.id)), ...exitActions],
       internalQueue,
       undefined
     );
@@ -1665,7 +1706,9 @@ function resolveAndExecuteActionsWithContext(
       context: intermediateSnapshot.context,
       event,
       self: actorScope.self,
-      system: actorScope.system
+      system: actorScope.system,
+      children: intermediateSnapshot.children,
+      parent: actorScope.self._parent
     };
 
     const actionParams =
@@ -1676,6 +1719,19 @@ function resolveAndExecuteActionsWithContext(
             ? action.params({ context: intermediateSnapshot.context, event })
             : action.params
           : undefined;
+
+    if (resolvedAction && '_special' in resolvedAction) {
+      const specialAction = resolvedAction as unknown as Action2<any, any, any>;
+
+      const res = specialAction(actionArgs, emptyEnqueueObj);
+
+      if (res?.context) {
+        intermediateSnapshot = cloneMachineSnapshot(intermediateSnapshot, {
+          context: res.context
+        });
+      }
+      continue;
+    }
 
     if (!resolvedAction || !('resolve' in resolvedAction)) {
       actorScope.actionExecutor({
@@ -1959,3 +2015,51 @@ export const emptyEnqueueObj: EnqueueObj<any, any> = {
   raise: () => {},
   spawn: () => ({}) as any
 };
+
+function getActionsFromAction2(
+  action2: Action2<any, any, any>,
+  {
+    context,
+    event,
+    parent,
+    self,
+    children
+  }: {
+    context: MachineContext;
+    event: EventObject;
+    self: AnyActorRef;
+    parent: AnyActorRef | undefined;
+    children: Record<string, AnyActorRef>;
+  }
+) {
+  if (action2.length === 2) {
+    // enqueue action; retrieve
+    const actions: any[] = [];
+
+    action2(
+      {
+        context,
+        event,
+        parent,
+        self,
+        children
+      },
+      {
+        action: (action) => {
+          actions.push(action);
+        },
+        cancel: () => {},
+        emit: (emittedEvent) => {
+          actions.push(emittedEvent);
+        },
+        log: () => {},
+        raise: () => {},
+        spawn: () => ({}) as any
+      }
+    );
+
+    return actions;
+  }
+
+  return [action2];
+}

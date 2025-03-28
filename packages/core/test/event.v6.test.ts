@@ -39,10 +39,7 @@ describe('events', () => {
             id: 'auth-server',
             src: authServerMachine
           },
-          entry: () => {
-            // here
-          },
-          entry2: ({ children }) => {
+          entry2: ({ children, self }) => {
             children['auth-server'].send({
               type: 'CODE',
               sender: self

@@ -130,7 +130,9 @@ export interface ActionArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject
-> extends UnifiedArg<TContext, TExpressionEvent, TEvent> {}
+> extends UnifiedArg<TContext, TExpressionEvent, TEvent> {
+  children: Record<string, AnyActorRef>;
+}
 
 export type InputFrom<T> =
   T extends StateMachine<
@@ -2725,7 +2727,7 @@ export type Action2<
   _: {
     context: TContext;
     event: TEvent;
-    parent?: UnknownActorRef;
+    parent: UnknownActorRef | undefined;
     self: AnyActorRef;
     children: Record<string, AnyActorRef>;
   },
