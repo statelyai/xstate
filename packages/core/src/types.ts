@@ -576,6 +576,7 @@ export type TransitionConfigFunction<
     context: TContext;
     event: TEvent;
     parent?: UnknownActorRef;
+    value: StateValue;
   },
   enq: EnqueueObj<TEvent, TEmitted>
 ) => {

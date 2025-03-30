@@ -1067,7 +1067,8 @@ export function microstep(
       const res = t.fn(
         {
           context,
-          event
+          event,
+          value: nextState.value
         },
         emptyEnqueueObj
       );
@@ -1303,7 +1304,8 @@ function getTargets(
     const res = transition.fn(
       {
         context: snapshot.context,
-        event
+        event,
+        value: snapshot.value
       },
       emptyEnqueueObj
     );
@@ -1329,7 +1331,8 @@ function getTransitionActions(
     transition.fn(
       {
         context: snapshot.context,
-        event
+        event,
+        value: snapshot.value
       },
       {
         ...emptyEnqueueObj,
@@ -2079,7 +2082,7 @@ export function evaluateCandidate(
         throw new Error('Effect triggered');
       };
       res = candidate.fn(
-        { context, event, parent: undefined },
+        { context, event, parent: undefined, value: snapshot.value },
         {
           action: triggerEffect,
           emit: triggerEffect,
