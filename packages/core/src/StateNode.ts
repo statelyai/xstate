@@ -1,10 +1,10 @@
 import { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
-import { evaluateGuard } from './guards.ts';
 import { memo } from './memo.ts';
 import {
   BuiltinAction,
+  evaluateCandidate,
   formatInitialTransition,
   formatTransition,
   formatTransitions,
@@ -404,14 +404,12 @@ export class StateNode<
       let guardPassed = false;
 
       try {
-        guardPassed =
-          !guard ||
-          evaluateGuard<TContext, TEvent>(
-            guard,
-            resolvedContext,
-            event,
-            snapshot
-          );
+        guardPassed = evaluateCandidate(
+          candidate,
+          resolvedContext,
+          event,
+          snapshot
+        );
       } catch (err: any) {
         const guardType =
           typeof guard === 'string'

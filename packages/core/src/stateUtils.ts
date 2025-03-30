@@ -1974,8 +1974,7 @@ function selectEventlessTransitions(
       }
       for (const transition of s.always) {
         if (
-          transition.guard === undefined ||
-          evaluateGuard(transition.guard, nextState.context, event, nextState)
+          evaluateCandidate(transition, nextState.context, event, nextState)
         ) {
           enabledTransitionSet.add(transition);
           break loop;
@@ -2062,4 +2061,45 @@ function getActionsFromAction2(
   }
 
   return [action2];
+}
+
+export function evaluateCandidate(
+  candidate: TransitionDefinition<any, any>,
+  context: MachineContext,
+  event: EventObject,
+  snapshot: AnyMachineSnapshot
+): boolean {
+  if (candidate.fn) {
+    let hasEffect = false;
+    let res;
+
+    try {
+      const triggerEffect = () => {
+        hasEffect = true;
+        throw new Error('Effect triggered');
+      };
+      res = candidate.fn(
+        { context, event, parent: undefined },
+        {
+          action: triggerEffect,
+          emit: triggerEffect,
+          cancel: triggerEffect,
+          log: triggerEffect,
+          raise: triggerEffect,
+          spawn: triggerEffect
+        }
+      );
+    } catch (err) {
+      if (hasEffect) {
+        return true;
+      }
+      throw err;
+    }
+
+    return res !== undefined;
+  }
+
+  return (
+    !candidate.guard || evaluateGuard(candidate.guard, context, event, snapshot)
+  );
 }
