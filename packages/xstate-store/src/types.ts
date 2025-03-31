@@ -8,7 +8,9 @@ export type Recipe<T, TReturn> = (state: T) => TReturn;
 
 export type EnqueueObject<TEmittedEvent extends EventObject> = {
   emit: {
-    [E in TEmittedEvent as E['type']]: (payload: Omit<E, 'type'>) => void;
+    [E in TEmittedEvent as E['type']]: (
+      payload: DistributiveOmit<E, 'type'>
+    ) => void;
   };
   effect: (fn: () => void) => void;
 };
