@@ -109,10 +109,10 @@ export interface Store<
    */
   trigger: {
     [E in TEvent as E['type'] & string]: IsEmptyObject<
-      Omit<E, 'type'>
+      DistributiveOmit<E, 'type'>
     > extends true
-      ? () => Omit<E, 'type'>
-      : (eventPayload: Omit<E, 'type'>) => void;
+      ? () => DistributiveOmit<E, 'type'>
+      : (eventPayload: DistributiveOmit<E, 'type'>) => void;
   };
   select<TSelected>(
     selector: Selector<TContext, TSelected>,
@@ -384,3 +384,8 @@ export type AnyAtom = Atom<any>;
  * ```
  */
 export interface ReadonlyAtom<T> extends Readable<T> {}
+
+/** A version of `Omit` that works with distributive types. */
+type DistributiveOmit<T, K extends PropertyKey> = T extends any
+  ? Omit<T, K>
+  : never;
