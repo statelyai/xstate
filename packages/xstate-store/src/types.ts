@@ -94,7 +94,7 @@ export interface Store<
   on: <TEmittedType extends TEmitted['type']>(
     eventType: TEmittedType,
     emittedEventHandler: (
-      ev: Compute<TEmitted & { type: TEmittedType }>
+      emittedEvent: Compute<TEmitted & { type: TEmittedType }>
     ) => void
   ) => Subscription;
   /**
