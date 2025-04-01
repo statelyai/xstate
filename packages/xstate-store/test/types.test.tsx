@@ -88,4 +88,56 @@ describe('emitted', () => {
       (ev) => {}
     );
   });
+
+  it('works with a discriminated union event payload', () => {
+    createStore({
+      context: {},
+      emits: {
+        log: (
+          _:
+            | { level: 'warn'; message: string }
+            | { level: 'error'; error: string }
+        ) => {}
+      },
+      on: {
+        log: (ctx, _ev, enq) => {
+          enq.emit.log({ level: 'warn', message: 'hmm' });
+          enq.emit.log({ level: 'error', error: 'uh oh' });
+          enq.emit.log({
+            level: 'error',
+            // @ts-expect-error
+            message: 'foo'
+          });
+          return ctx;
+        }
+      }
+    });
+  });
+});
+
+describe('trigger', () => {
+  it('works with a distributive event payload', () => {
+    const store = createStore({
+      context: {},
+      on: {
+        log: (
+          ctx,
+          _ev:
+            | { level: 'warn'; message: string }
+            | { level: 'error'; error: string }
+        ) => {
+          return ctx;
+        }
+      }
+    });
+
+    store.trigger.log({ level: 'warn', message: 'hmm' });
+    store.trigger.log({ level: 'error', error: 'uh oh' });
+
+    store.trigger.log({
+      level: 'error',
+      // @ts-expect-error
+      message: 'foo'
+    });
+  });
 });

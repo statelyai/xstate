@@ -1,5 +1,67 @@
 # @xstate/store
 
+## 3.4.2
+
+### Patch Changes
+
+- [#5247](https://github.com/statelyai/xstate/pull/5247) [`e8891030162214acc751a9f79a5d57ec916565ee`](https://github.com/statelyai/xstate/commit/e8891030162214acc751a9f79a5d57ec916565ee) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix type inference for discriminated union event types in the `trigger` and the `emit` object. Previously, using `Omit` with union types would incorrectly combine event types, breaking type inference for discriminated unions. This has been fixed by introducing a `DistributiveOmit` type that correctly preserves the relationship between discriminated properties.
+
+## 3.4.1
+
+### Patch Changes
+
+- [#5237](https://github.com/statelyai/xstate/pull/5237) [`c68b39025179dd52fdaddb5599a606c5546dc214`](https://github.com/statelyai/xstate/commit/c68b39025179dd52fdaddb5599a606c5546dc214) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed a bug where conditional atoms were not properly unsubscribed when no longer needed.
+
+## 3.4.0
+
+### Minor Changes
+
+- [#5221](https://github.com/statelyai/xstate/pull/5221) [`4635d3d8d3debcfeef5cddd78613e32891c10eac`](https://github.com/statelyai/xstate/commit/4635d3d8d3debcfeef5cddd78613e32891c10eac) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `createAtom()` for creating reactive atoms that can be combined with other atoms and stores:
+
+  - Create simple atoms with initial values:
+
+    ```ts
+    import { createAtom } from '@xstate/store';
+
+    const countAtom = createAtom(0);
+    countAtom.get(); // 0
+    countAtom.set(1); // or use setter function: (prev) => prev + 1
+    ```
+
+  - Subscribe to atom changes:
+
+    ```ts
+    countAtom.subscribe((value) => console.log(value));
+    ```
+
+  - Combine multiple atoms:
+
+    ```ts
+    const nameAtom = createAtom('hello');
+    const countAtom = createAtom(3);
+    const combinedAtom = createAtom((read) =>
+      read(nameAtom).repeat(read(countAtom))
+    );
+    combinedAtom.get(); // "hellohellohello"
+    ```
+
+  - Seamlessly combine atoms with stores:
+
+    ```ts
+    const countAtom = createAtom(0);
+    const nameStore = createStore({
+      context: { name: 'David' }
+      // ... store config
+    });
+
+    const combinedAtom = createAtom(
+      (read) => read(nameStore).context.name + ` ${read(countAtom)}`
+    );
+    combinedAtom.get(); // "David 0"
+    ```
+
+  Atoms automatically update when their dependencies change, making it easy to create derived state from both atoms and stores.
+
 ## 3.3.0
 
 ### Minor Changes

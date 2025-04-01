@@ -8,11 +8,9 @@ export type Recipe<T, TReturn> = (state: T) => TReturn;
 
 export type EnqueueObject<TEmittedEvent extends EventObject> = {
   emit: {
-    [E in TEmittedEvent as E['type']]: IsEmptyObject<
-      Omit<E, 'type'>
-    > extends true
-      ? (_?: {}) => void
-      : (payload: Omit<E, 'type'>) => void;
+    [E in TEmittedEvent as E['type']]: (
+      payload: DistributiveOmit<E, 'type'>
+    ) => void;
   };
   effect: (fn: () => void) => void;
 };
@@ -73,9 +71,12 @@ export interface Store<
   TEvent extends EventObject,
   TEmitted extends EventObject
 > extends Subscribable<StoreSnapshot<TContext>>,
-    InteropObservable<StoreSnapshot<TContext>> {
+    InteropObservable<StoreSnapshot<TContext>>,
+    Readable<StoreSnapshot<TContext>> {
   send: (event: TEvent) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
+  /** @alias getSnapshot */
+  get: () => StoreSnapshot<TContext>;
   getInitialSnapshot: () => StoreSnapshot<TContext>;
   /**
    * Subscribes to [inspection events](https://stately.ai/docs/inspection) from
@@ -110,10 +111,10 @@ export interface Store<
    */
   trigger: {
     [E in TEvent as E['type'] & string]: IsEmptyObject<
-      Omit<E, 'type'>
+      DistributiveOmit<E, 'type'>
     > extends true
-      ? () => Omit<E, 'type'>
-      : (eventPayload: Omit<E, 'type'>) => void;
+      ? () => void
+      : (eventPayload: DistributiveOmit<E, 'type'>) => void;
   };
   select<TSelected>(
     selector: Selector<TContext, TSelected>,
@@ -358,6 +359,35 @@ export type EventMap<TEvent extends EventObject> = {
 
 export type Selector<TContext, TSelected> = (context: TContext) => TSelected;
 
-export interface Selection<TSelected> extends Subscribable<TSelected> {
-  get: () => TSelected;
+export type Selection<TSelected> = Readable<TSelected>;
+
+export interface Readable<T> extends Subscribable<T> {
+  get: () => T;
 }
+
+export interface Atom<T> extends Subscribable<T>, Readable<T> {
+  /** Sets the value of the atom using a function. */
+  set(fn: (prevVal: T) => T): void;
+  /** Sets the value of the atom. */
+  set(value: T): void;
+}
+
+export type AnyAtom = Atom<any>;
+
+/**
+ * An atom that is read-only and cannot be set.
+ *
+ * @example
+ *
+ * ```ts
+ * const atom = createAtom(() => 42);
+ * // @ts-expect-error - Cannot set a readonly atom
+ * atom.set(43);
+ * ```
+ */
+export interface ReadonlyAtom<T> extends Readable<T> {}
+
+/** A version of `Omit` that works with distributive types. */
+type DistributiveOmit<T, K extends PropertyKey> = T extends any
+  ? Omit<T, K>
+  : never;
