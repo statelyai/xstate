@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.4.2
+
+### Patch Changes
+
+- [#5247](https://github.com/statelyai/xstate/pull/5247) [`e8891030162214acc751a9f79a5d57ec916565ee`](https://github.com/statelyai/xstate/commit/e8891030162214acc751a9f79a5d57ec916565ee) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix type inference for discriminated union event types in the `trigger` and the `emit` object. Previously, using `Omit` with union types would incorrectly combine event types, breaking type inference for discriminated unions. This has been fixed by introducing a `DistributiveOmit` type that correctly preserves the relationship between discriminated properties.
+
 ## 3.4.1
 
 ### Patch Changes
