@@ -113,7 +113,7 @@ export interface Store<
     [E in TEvent as E['type'] & string]: IsEmptyObject<
       DistributiveOmit<E, 'type'>
     > extends true
-      ? () => DistributiveOmit<E, 'type'>
+      ? () => void
       : (eventPayload: DistributiveOmit<E, 'type'>) => void;
   };
   select<TSelected>(
