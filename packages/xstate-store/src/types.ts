@@ -8,7 +8,9 @@ export type Recipe<T, TReturn> = (state: T) => TReturn;
 
 export type EnqueueObject<TEmittedEvent extends EventObject> = {
   emit: {
-    [E in TEmittedEvent as E['type']]: (payload: Omit<E, 'type'>) => void;
+    [E in TEmittedEvent as E['type']]: (
+      payload: DistributiveOmit<E, 'type'>
+    ) => void;
   };
   effect: (fn: () => void) => void;
 };
@@ -109,10 +111,10 @@ export interface Store<
    */
   trigger: {
     [E in TEvent as E['type'] & string]: IsEmptyObject<
-      Omit<E, 'type'>
+      DistributiveOmit<E, 'type'>
     > extends true
-      ? () => Omit<E, 'type'>
-      : (eventPayload: Omit<E, 'type'>) => void;
+      ? () => void
+      : (eventPayload: DistributiveOmit<E, 'type'>) => void;
   };
   select<TSelected>(
     selector: Selector<TContext, TSelected>,
@@ -384,3 +386,8 @@ export type AnyAtom = Atom<any>;
  * ```
  */
 export interface ReadonlyAtom<T> extends Readable<T> {}
+
+/** A version of `Omit` that works with distributive types. */
+type DistributiveOmit<T, K extends PropertyKey> = T extends any
+  ? Omit<T, K>
+  : never;
