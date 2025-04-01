@@ -23,21 +23,21 @@
     },
     "./react": {
       "types": {
-        "import": "./react/dist/xstate-store-react.cjs.mjs",
-        "default": "./react/dist/xstate-store-react.cjs.js"
+        "import": "./dist/xstate-store-react.cjs.mjs",
+        "default": "./dist/xstate-store-react.cjs.js"
       },
-      "module": "./react/dist/xstate-store-react.esm.js",
-      "import": "./react/dist/xstate-store-react.cjs.mjs",
-      "default": "./react/dist/xstate-store-react.cjs.js"
+      "module": "./dist/xstate-store-react.esm.js",
+      "import": "./dist/xstate-store-react.cjs.mjs",
+      "default": "./dist/xstate-store-react.cjs.js"
     },
     "./solid": {
       "types": {
-        "import": "./solid/dist/xstate-store-solid.cjs.mjs",
-        "default": "./solid/dist/xstate-store-solid.cjs.js"
+        "import": "./dist/xstate-store-solid.cjs.mjs",
+        "default": "./dist/xstate-store-solid.cjs.js"
       },
-      "module": "./solid/dist/xstate-store-solid.esm.js",
-      "import": "./solid/dist/xstate-store-solid.cjs.mjs",
-      "default": "./solid/dist/xstate-store-solid.cjs.js"
+      "module": "./dist/xstate-store-solid.esm.js",
+      "import": "./dist/xstate-store-solid.cjs.mjs",
+      "default": "./dist/xstate-store-solid.cjs.js"
     },
     "./package.json": "./package.json"
   },
