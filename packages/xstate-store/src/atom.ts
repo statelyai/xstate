@@ -1,12 +1,5 @@
 import { toObserver } from './toObserver';
-import {
-  AnyAtom,
-  Atom,
-  Observer,
-  Readable,
-  ReadonlyAtom,
-  Subscription
-} from './types';
+import { AnyAtom, Atom, Observer, Readable, ReadonlyAtom } from './types';
 
 interface AtomOptions<T> {
   compare?: (prev: T, next: T) => boolean;
@@ -84,13 +77,13 @@ export function createAtom<T>(
       typeof valueOrFn === 'function'
         ? undefined
         : (newValueOrFn) => {
-            let newValue = newValueOrFn;
-            if (typeof newValueOrFn === 'function') {
-              newValue = (newValueOrFn as (prev: T) => T)(current.value);
-            }
-            if (options?.compare?.(current.value, newValue)) {
-              return;
-            }
+            const newValue =
+              typeof newValueOrFn === 'function'
+                ? (newValueOrFn as (prev: T) => T)(current.value)
+                : newValueOrFn;
+
+            if (options?.compare?.(current.value, newValue)) return;
+
             current.value = newValue as T;
             markDependentsDirty(self);
             propagate(self);
