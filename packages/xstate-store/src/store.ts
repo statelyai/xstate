@@ -215,22 +215,9 @@ function createStoreCore<
       selector: Selector<TContext, TSelected>,
       equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
     ): Selection<TSelected> {
-      return createAtom((read) => selector(read(store).context));
-      return {
-        subscribe: (observerOrFn) => {
-          const observer = toObserver(observerOrFn);
-          let previousSelected = selector(this.getSnapshot().context);
-
-          return this.subscribe((snapshot) => {
-            const nextSelected = selector(snapshot.context);
-            if (!equalityFn(previousSelected, nextSelected)) {
-              previousSelected = nextSelected;
-              observer.next?.(nextSelected);
-            }
-          });
-        },
-        get: () => selector(this.getSnapshot().context)
-      };
+      return createAtom((read) => selector(read(store).context), {
+        compare: equalityFn
+      });
     },
     // TODO: add types for these
     dependents: new Set<AnyAtom>(),
