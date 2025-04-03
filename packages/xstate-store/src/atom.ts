@@ -34,7 +34,6 @@ export function createAtom<T>(
 
   // Handle computed case
   if (typeof valueOrFn === 'function') {
-    const subs = new Map<AnyAtom, Subscription>();
     const observedAtoms = new Set<AnyAtom>();
 
     const getValue = valueOrFn as (read: <U>(atom: Atom<U>) => U) => T;
@@ -42,11 +41,7 @@ export function createAtom<T>(
       observedAtoms.add(atom);
       self.dependencies.add(atom);
       atom.dependents.add(self);
-      const val = atom.get();
-      if (subs.has(atom)) {
-        return val;
-      }
-      return val;
+      return atom.get();
     };
 
     // Initialize computed value
@@ -57,12 +52,11 @@ export function createAtom<T>(
   }
 
   const recompute = () => {
-    if (typeof valueOrFn !== 'function') return;
+    if (typeof valueOrFn !== 'function' || self.state === 'clean') return;
 
-    // self.dependencies.clear();
-    self.dependencies.forEach((d) => {
-      d.dependents.delete(self);
-    });
+    for (const dep of self.dependencies) {
+      dep.dependents.delete(self);
+    }
     self.dependencies.clear();
     const read = (atom: AnyAtom) => {
       self.dependencies.add(atom);
@@ -120,22 +114,16 @@ export function createAtom<T>(
   return self;
 }
 
-export function markDependentsDirty(
-  atom: AnyAtom,
-  set: Set<AnyAtom> = new Set()
-) {
-  atom.dependents.forEach((d) => {
-    if (d.state === 'dirty') return;
-    d.state = 'dirty';
-    set.add(d);
-    markDependentsDirty(d, set);
-  });
-  return set;
+export function markDependentsDirty(atom: AnyAtom) {
+  for (const dependent of atom.dependents) {
+    if (dependent.state === 'dirty') continue;
+    dependent.state = 'dirty';
+    markDependentsDirty(dependent);
+  }
 }
 
 export function propagate(atom: AnyAtom) {
-  const deps = [...atom.dependents];
-  deps.forEach((d) => {
-    d.recompute();
-  });
+  for (const dependent of atom.dependents) {
+    dependent.recompute();
+  }
 }
