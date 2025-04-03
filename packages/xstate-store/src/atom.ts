@@ -16,18 +16,15 @@ export const graph: {
   dependencies: WeakMap<AnyAtom, Set<AnyAtom>>;
   dependents: WeakMap<AnyAtom, Set<AnyAtom>>;
   addDependency: (atom: AnyAtom, dependent: AnyAtom) => void;
-  // addDependent: (atom: AnyAtom, dependency: AnyAtom) => void;
 } = {
   dependencies: new WeakMap(),
   dependents: new WeakMap(),
   addDependency: (atom, dependent) => {
-    // add set if it doesn't exist
     if (!graph.dependencies.has(atom)) {
       graph.dependencies.set(atom, new Set());
     }
     graph.dependencies.get(atom)?.add(dependent);
 
-    // add set if it doesn't exist
     if (!graph.dependents.has(dependent)) {
       graph.dependents.set(dependent, new Set());
     }
