@@ -13,13 +13,13 @@ interface AtomOptions<T> {
 }
 
 export const graph: {
-  dependencies: Map<AnyAtom, Set<AnyAtom>>;
-  dependents: Map<AnyAtom, Set<AnyAtom>>;
+  dependencies: WeakMap<AnyAtom, Set<AnyAtom>>;
+  dependents: WeakMap<AnyAtom, Set<AnyAtom>>;
   addDependency: (atom: AnyAtom, dependent: AnyAtom) => void;
   // addDependent: (atom: AnyAtom, dependency: AnyAtom) => void;
 } = {
-  dependencies: new Map(),
-  dependents: new Map(),
+  dependencies: new WeakMap(),
+  dependents: new WeakMap(),
   addDependency: (atom, dependent) => {
     // add set if it doesn't exist
     if (!graph.dependencies.has(atom)) {
