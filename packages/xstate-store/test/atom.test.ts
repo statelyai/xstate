@@ -354,3 +354,86 @@ it('uses Object.is as default equality function', () => {
   objAtom.set(obj);
   expect(log).toHaveBeenCalledTimes(2);
 });
+
+// it('prevents reentrancy', () => {
+//   const log: number[] = [];
+//   const atomA = createAtom(0);
+//   const atomB = createAtom((read) => read(atomA) + 1);
+//   const atomC = createAtom((read) => read(atomB) + 1);
+
+//   // This subscription could cause infinite recursion without reentrancy protection
+//   atomC.subscribe((value) => {
+//     log.push(value);
+//     // Attempt to trigger another update cycle during an update
+//     atomA.set(atomA.get() + 1);
+//   });
+
+//   // Initial update
+//   atomA.set(1);
+
+//   // With proper reentrancy protection:
+//   // 1. atomA updates to 1
+//   // 2. atomB updates to 2
+//   // 3. atomC updates to 3
+//   // 4. subscription tries to update atomA but should be prevented/batched
+//   expect(atomA.get()).toBe(1); // Should stay at 1, not 2
+//   expect(atomB.get()).toBe(2);
+//   expect(atomC.get()).toBe(3);
+//   expect(log).toEqual([3]); // Should only trigger once
+// });
+
+// it('handles nested updates safely', () => {
+//   const atomA = createAtom(0);
+//   const updates: number[] = [];
+
+//   atomA.subscribe((value) => {
+//     updates.push(value);
+//     if (value < 2) {
+//       atomA.set(value + 1); // Attempt nested update
+//     }
+//   });
+
+//   atomA.set(1);
+
+//   // Should batch/prevent nested updates
+//   expect(updates).toEqual([1]);
+//   expect(atomA.get()).toBe(1);
+// });
+
+// it('maintains consistency during concurrent updates', () => {
+//   const atomA = createAtom(0);
+//   const atomB = createAtom((read) => read(atomA) * 2);
+//   const values: number[] = [];
+
+//   atomB.subscribe((value) => {
+//     values.push(value);
+//     atomA.set(2); // Attempt to modify during update
+//   });
+
+//   atomA.set(1);
+
+//   // Final state after all updates
+//   expect(atomA.get()).toBe(2); // atomA was set to 2 in subscription
+//   expect(atomB.get()).toBe(4); // atomB = atomA(2) * 2
+//   expect(values).toEqual([2, 4]); // First update (1*2), then second update (2*2)
+// });
+
+// it('prevents infinite loops from subscription updates', () => {
+//   const atomA = createAtom(0);
+//   const atomB = createAtom((read) => read(atomA) * 2);
+//   const values: number[] = [];
+
+//   atomB.subscribe((value) => {
+//     values.push(value);
+//     // This would cause infinite loop without reentrancy protection:
+//     // 1 -> 2 -> 4 -> 8 -> 16 -> ...
+//     atomA.set(value);
+//   });
+
+//   atomA.set(1);
+
+//   // Without reentrancy protection, this would never complete
+//   // With protection, we should see a finite number of updates
+//   expect(values.length).toBeLessThan(10);
+//   console.log('Update sequence:', values);
+// });

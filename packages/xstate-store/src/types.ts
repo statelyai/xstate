@@ -367,8 +367,8 @@ export interface Readable<T> extends Subscribable<T> {
 }
 
 interface BaseAtom<T> extends Subscribable<T>, Readable<T> {
-  dependencies: Set<BaseAtom<any>>;
-  dependents: Set<BaseAtom<any>>;
+  // dependencies: Set<BaseAtom<any>>;
+  // dependents: Set<BaseAtom<any>>;
   recompute: () => void;
   status: AtomStatus;
 }

@@ -12,6 +12,29 @@ interface AtomOptions<T> {
   compare?: (prev: T, next: T) => boolean;
 }
 
+export const graph: {
+  dependencies: Map<AnyAtom, Set<AnyAtom>>;
+  dependents: Map<AnyAtom, Set<AnyAtom>>;
+  addDependency: (atom: AnyAtom, dependent: AnyAtom) => void;
+  // addDependent: (atom: AnyAtom, dependency: AnyAtom) => void;
+} = {
+  dependencies: new Map(),
+  dependents: new Map(),
+  addDependency: (atom, dependent) => {
+    // add set if it doesn't exist
+    if (!graph.dependencies.has(atom)) {
+      graph.dependencies.set(atom, new Set());
+    }
+    graph.dependencies.get(atom)?.add(dependent);
+
+    // add set if it doesn't exist
+    if (!graph.dependents.has(dependent)) {
+      graph.dependents.set(dependent, new Set());
+    }
+    graph.dependents.get(dependent)?.add(atom);
+  }
+};
+
 export function createAtom<T>(
   getValue: (read: <U>(atom: Readable<U>) => U) => T,
   options?: AtomOptions<T>
@@ -43,8 +66,7 @@ export function createAtom<T>(
     const getValue = valueOrFn as (read: <U>(atom: Atom<U>) => U) => T;
     const read = (atom: AnyAtom) => {
       observedAtoms.add(atom);
-      self.dependencies.add(atom);
-      atom.dependents.add(self);
+      graph.addDependency(self, atom);
       return atom.get();
     };
 
@@ -59,13 +81,17 @@ export function createAtom<T>(
     if (typeof valueOrFn !== 'function' || self.status === AtomStatus.Clean)
       return;
 
-    for (const dep of self.dependencies) {
-      dep.dependents.delete(self);
+    const dependencies = graph.dependencies.get(self);
+    if (dependencies) {
+      for (const dep of dependencies) {
+        graph.dependents.get(dep)?.delete(self);
+      }
     }
-    self.dependencies.clear();
+
+    graph.dependencies.get(self)?.clear();
+
     const read = (atom: AnyAtom) => {
-      self.dependencies.add(atom);
-      atom.dependents.add(self);
+      graph.addDependency(self, atom);
       return atom.get();
     };
     const newValue = (valueOrFn as any)(read);
@@ -120,15 +146,21 @@ export function createAtom<T>(
 }
 
 export function markDependentsDirty(atom: AnyAtom) {
-  for (const dependent of atom.dependents) {
-    if (dependent.status === AtomStatus.Dirty) continue;
-    dependent.status = AtomStatus.Dirty;
-    markDependentsDirty(dependent);
+  const dependents = graph.dependents.get(atom);
+  if (dependents) {
+    for (const dependent of dependents) {
+      if (dependent.status === AtomStatus.Dirty) continue;
+      dependent.status = AtomStatus.Dirty;
+      markDependentsDirty(dependent);
+    }
   }
 }
 
 export function propagate(atom: AnyAtom) {
-  for (const dependent of atom.dependents) {
-    dependent.recompute();
+  const dependents = graph.dependents.get(atom);
+  if (dependents) {
+    for (const dependent of dependents) {
+      dependent.recompute();
+    }
   }
 }

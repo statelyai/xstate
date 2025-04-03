@@ -18,7 +18,6 @@ import {
   StoreSnapshot,
   Selector,
   Selection,
-  AnyAtom,
   AtomStatus
 } from './types';
 
@@ -220,9 +219,6 @@ function createStoreCore<
         compare: equalityFn
       });
     },
-    // TODO: add types for these
-    dependents: new Set<AnyAtom>(),
-    dependencies: new Set<AnyAtom>(),
     recompute: () => {},
     status: AtomStatus.Clean
   };
