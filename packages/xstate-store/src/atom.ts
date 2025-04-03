@@ -17,39 +17,31 @@ export function createAtom<T>(
 ): Atom<T> | ReadonlyAtom<T> {
   const current = { value: undefined as T };
   let observers: Set<Observer<T>> | undefined;
+  const dependencies = new Set<AnyAtom>();
+  const dependents = new Set<AnyAtom>();
+
+  const self = {
+    dependencies,
+    dependents,
+    state: 'clean' as const
+  } as unknown as Atom<T>;
 
   // Handle computed case
   if (typeof valueOrFn === 'function') {
     const subs = new Map<AnyAtom, Subscription>();
-    let observedAtoms = new Set<AnyAtom>();
+    const observedAtoms = new Set<AnyAtom>();
 
     const getValue = valueOrFn as (read: <U>(atom: Atom<U>) => U) => T;
     const read = (atom: AnyAtom) => {
       observedAtoms.add(atom);
+      self.dependencies.add(atom);
+      atom.dependents.add(self);
       const val = atom.get();
       if (subs.has(atom)) {
         return val;
       }
-      const sub = atom.subscribe(recompute);
-      subs.set(atom, sub);
       return val;
     };
-
-    function recompute() {
-      observedAtoms = new Set();
-      const newValue = getValue(read);
-
-      // Cleanup any atoms that are no longer observed
-      for (const [atom, sub] of subs) {
-        if (!observedAtoms.has(atom)) {
-          sub.unsubscribe();
-          subs.delete(atom);
-        }
-      }
-
-      current.value = newValue;
-      observers?.forEach((o) => o.next?.(newValue));
-    }
 
     // Initialize computed value
     current.value = getValue(read);
@@ -58,8 +50,31 @@ export function createAtom<T>(
     current.value = valueOrFn;
   }
 
-  return {
-    get: () => current.value,
+  const recompute = () => {
+    if (typeof valueOrFn !== 'function') return;
+
+    // self.dependencies.clear();
+    self.dependencies.forEach((d) => {
+      d.dependents.delete(self);
+    });
+    self.dependencies.clear();
+    const read = (atom: AnyAtom) => {
+      self.dependencies.add(atom);
+      atom.dependents.add(self);
+      return atom.get();
+    };
+    current.value = valueOrFn(read);
+    self.state = 'clean';
+    observers?.forEach((o) => o.next?.(current.value));
+  };
+
+  Object.assign(self, {
+    get: () => {
+      if (self.state === 'dirty') {
+        recompute();
+      }
+      return current.value;
+    },
     set:
       typeof valueOrFn === 'function'
         ? undefined
@@ -69,7 +84,9 @@ export function createAtom<T>(
               newValue = (newValueOrFn as (prev: T) => T)(current.value);
             }
             current.value = newValue as T;
-            observers?.forEach((o) => o.next?.(newValue as T));
+            markDependentsDirty(self);
+            propagate(self);
+            observers?.forEach((o) => o.next?.(newValue));
           },
     subscribe: (observerOrFn: Observer<T> | ((value: T) => void)) => {
       const obs = toObserver(observerOrFn);
@@ -80,6 +97,31 @@ export function createAtom<T>(
           observers?.delete(obs);
         }
       };
-    }
-  };
+    },
+    dependencies,
+    dependents,
+    recompute
+  });
+
+  return self;
+}
+
+export function markDependentsDirty(
+  atom: AnyAtom,
+  set: Set<AnyAtom> = new Set()
+) {
+  atom.dependents.forEach((d) => {
+    if (d.state === 'dirty') return;
+    d.state = 'dirty';
+    set.add(d);
+    markDependentsDirty(d, set);
+  });
+  return set;
+}
+
+export function propagate(atom: AnyAtom) {
+  const deps = [...atom.dependents];
+  deps.forEach((d) => {
+    d.recompute();
+  });
 }

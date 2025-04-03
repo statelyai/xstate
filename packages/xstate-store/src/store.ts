@@ -1,3 +1,4 @@
+import { createAtom, markDependentsDirty, propagate } from './atom';
 import { toObserver } from './toObserver';
 import {
   EnqueueObject,
@@ -16,7 +17,8 @@ import {
   StoreProducerAssigner,
   StoreSnapshot,
   Selector,
-  Selection
+  Selection,
+  AnyAtom
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -88,6 +90,9 @@ function createStoreCore<
   function receive(event: StoreEvent) {
     let effects: StoreEffect<TEmitted>[];
     [currentSnapshot, effects] = transition(currentSnapshot, event);
+
+    markDependentsDirty(store);
+    propagate(store);
 
     inspectionObservers.get(store)?.forEach((observer) => {
       observer.next?.({
@@ -210,6 +215,7 @@ function createStoreCore<
       selector: Selector<TContext, TSelected>,
       equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
     ): Selection<TSelected> {
+      return createAtom((read) => selector(read(store).context));
       return {
         subscribe: (observerOrFn) => {
           const observer = toObserver(observerOrFn);
@@ -225,7 +231,10 @@ function createStoreCore<
         },
         get: () => selector(this.getSnapshot().context)
       };
-    }
+    },
+    // TODO: add types for these
+    dependents: new Set<AnyAtom>(),
+    dependencies: new Set<AnyAtom>()
   };
 
   return store;

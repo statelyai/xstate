@@ -222,3 +222,33 @@ it('conditionally read atoms are properly unsubscribed when no longer needed', (
 
   expect(vals).toEqual([false, true, {}, true, false]);
 });
+
+it('handles diamond dependencies with single update', () => {
+  const log = jest.fn();
+  const sourceAtom = createAtom(1);
+
+  const pathA = createAtom((read) => read(sourceAtom) * 2);
+  const pathB = createAtom((read) => read(sourceAtom) * 3);
+
+  const bottomAtom = createAtom((read) => read(pathA) + read(pathB));
+
+  bottomAtom.subscribe((x) => {
+    log(x);
+  });
+
+  // Initial value: (1 * 2) + (1 * 3) = 5
+  expect(bottomAtom.get()).toBe(5);
+  expect(log).toHaveBeenCalledTimes(0);
+
+  // Update source: (2 * 2) + (2 * 3) = 10
+  sourceAtom.set(2);
+
+  const result = bottomAtom.get();
+
+  expect(result).toBe(10);
+
+  // Without proper diamond problem handling, log might be called multiple times
+  // as the update propagates through both paths
+  expect(log).toHaveBeenCalledTimes(1);
+  expect(log).toHaveBeenCalledWith(10);
+});
