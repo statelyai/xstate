@@ -1,5 +1,12 @@
 import { toObserver } from './toObserver';
-import { AnyAtom, Atom, Observer, Readable, ReadonlyAtom } from './types';
+import {
+  AnyAtom,
+  Atom,
+  AtomStatus,
+  Observer,
+  Readable,
+  ReadonlyAtom
+} from './types';
 
 interface AtomOptions<T> {
   compare?: (prev: T, next: T) => boolean;
@@ -45,7 +52,8 @@ export function createAtom<T>(
   }
 
   const recompute = () => {
-    if (typeof valueOrFn !== 'function' || self.state === 'clean') return;
+    if (typeof valueOrFn !== 'function' || self.status === AtomStatus.Clean)
+      return;
 
     for (const dep of self.dependencies) {
       dep.dependents.delete(self);
@@ -56,19 +64,19 @@ export function createAtom<T>(
       atom.dependents.add(self);
       return atom.get();
     };
-    const newValue = valueOrFn(read);
+    const newValue = (valueOrFn as any)(read);
     if (options?.compare?.(current.value, newValue)) {
-      self.state = 'clean';
+      self.status = AtomStatus.Clean;
       return;
     }
     current.value = newValue;
-    self.state = 'clean';
+    self.status = AtomStatus.Clean;
     observers?.forEach((o) => o.next?.(current.value));
   };
 
   Object.assign(self, {
     get: () => {
-      if (self.state === 'dirty') {
+      if (self.status === AtomStatus.Dirty) {
         recompute();
       }
       return current.value;
@@ -76,7 +84,7 @@ export function createAtom<T>(
     set:
       typeof valueOrFn === 'function'
         ? undefined
-        : (newValueOrFn) => {
+        : (newValueOrFn: any) => {
             const newValue =
               typeof newValueOrFn === 'function'
                 ? (newValueOrFn as (prev: T) => T)(current.value)
@@ -109,8 +117,8 @@ export function createAtom<T>(
 
 export function markDependentsDirty(atom: AnyAtom) {
   for (const dependent of atom.dependents) {
-    if (dependent.state === 'dirty') continue;
-    dependent.state = 'dirty';
+    if (dependent.status === AtomStatus.Dirty) continue;
+    dependent.status = AtomStatus.Dirty;
     markDependentsDirty(dependent);
   }
 }

@@ -18,7 +18,8 @@ import {
   StoreSnapshot,
   Selector,
   Selection,
-  AnyAtom
+  AnyAtom,
+  AtomStatus
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -221,7 +222,9 @@ function createStoreCore<
     },
     // TODO: add types for these
     dependents: new Set<AnyAtom>(),
-    dependencies: new Set<AnyAtom>()
+    dependencies: new Set<AnyAtom>(),
+    recompute: () => {},
+    status: AtomStatus.Clean
   };
 
   return store;

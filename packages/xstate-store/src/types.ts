@@ -72,7 +72,8 @@ export interface Store<
   TEmitted extends EventObject
 > extends Subscribable<StoreSnapshot<TContext>>,
     InteropObservable<StoreSnapshot<TContext>>,
-    Readable<StoreSnapshot<TContext>> {
+    Readable<StoreSnapshot<TContext>>,
+    BaseAtom<StoreSnapshot<TContext>> {
   send: (event: TEvent) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
   /** @alias getSnapshot */
@@ -369,7 +370,7 @@ interface BaseAtom<T> extends Subscribable<T>, Readable<T> {
   dependencies: Set<BaseAtom<any>>;
   dependents: Set<BaseAtom<any>>;
   recompute: () => void;
-  state: 'clean' | 'dirty';
+  status: AtomStatus;
 }
 
 export interface Atom<T> extends BaseAtom<T> {
@@ -398,3 +399,8 @@ export interface ReadonlyAtom<T> extends BaseAtom<T> {}
 type DistributiveOmit<T, K extends PropertyKey> = T extends any
   ? Omit<T, K>
   : never;
+
+export enum AtomStatus {
+  Dirty = 0,
+  Clean = 1
+}
