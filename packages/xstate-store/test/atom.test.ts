@@ -297,3 +297,60 @@ it('handles complex diamond dependencies correctly', () => {
   expect(atomC.get()).toBe(4);
   expect(atomD.get()).toBe(2);
 });
+
+it('supports custom equality functions through compare option', () => {
+  const log = jest.fn();
+
+  const coordAtom = createAtom(
+    { x: 0, y: 0 },
+    {
+      compare: (prev, next) => prev.x === next.x && prev.y === next.y
+    }
+  );
+
+  coordAtom.subscribe(log);
+
+  // Initial value
+  expect(coordAtom.get()).toEqual({ x: 0, y: 0 });
+  expect(log).not.toHaveBeenCalled();
+
+  // Setting same values shouldn't trigger update
+  coordAtom.set({ x: 0, y: 0 });
+  expect(log).not.toHaveBeenCalled();
+
+  // Different x value should trigger update
+  coordAtom.set({ x: 1, y: 0 });
+  expect(log).toHaveBeenCalledTimes(1);
+  expect(log).toHaveBeenCalledWith({ x: 1, y: 0 });
+
+  // Different y value should trigger update
+  coordAtom.set({ x: 1, y: 2 });
+  expect(log).toHaveBeenCalledTimes(2);
+  expect(log).toHaveBeenLastCalledWith({ x: 1, y: 2 });
+
+  // Setting same values should not trigger update
+  coordAtom.set({ x: 1, y: 2 });
+  expect(log).toHaveBeenCalledTimes(2);
+});
+
+it('uses Object.is as default equality function', () => {
+  const log = jest.fn();
+  const objAtom = createAtom({ value: 0 });
+
+  objAtom.subscribe(log);
+
+  // Initial value
+  expect(objAtom.get()).toEqual({ value: 0 });
+  expect(log).not.toHaveBeenCalled();
+
+  // Setting with same shape but new object should trigger update
+  objAtom.set({ value: 0 });
+  expect(log).toHaveBeenCalledTimes(1);
+
+  // Setting with same object reference shouldn't trigger update
+  const obj = { value: 1 };
+  objAtom.set(obj);
+  expect(log).toHaveBeenCalledTimes(2);
+  objAtom.set(obj);
+  expect(log).toHaveBeenCalledTimes(2);
+});

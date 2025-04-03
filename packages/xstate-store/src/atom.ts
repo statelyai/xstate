@@ -16,11 +16,15 @@ export function createAtom<T>(
   getValue: (read: <U>(atom: Readable<U>) => U) => T,
   options?: AtomOptions<T>
 ): ReadonlyAtom<T>;
-export function createAtom<T>(initialValue: T): Atom<T>;
+export function createAtom<T>(
+  initialValue: T,
+  options?: AtomOptions<T>
+): Atom<T>;
 export function createAtom<T>(
   valueOrFn: T | ((read: <U>(atom: Readable<U>) => U) => T),
   options?: AtomOptions<T>
 ): Atom<T> | ReadonlyAtom<T> {
+  const compare = options?.compare ?? Object.is;
   const current = { value: undefined as T };
   let observers: Set<Observer<T>> | undefined;
   const dependencies = new Set<AnyAtom>();
@@ -65,7 +69,7 @@ export function createAtom<T>(
       return atom.get();
     };
     const newValue = (valueOrFn as any)(read);
-    if (options?.compare?.(current.value, newValue)) {
+    if (compare(current.value, newValue)) {
       self.status = AtomStatus.Clean;
       return;
     }
@@ -90,7 +94,7 @@ export function createAtom<T>(
                 ? (newValueOrFn as (prev: T) => T)(current.value)
                 : newValueOrFn;
 
-            if (options?.compare?.(current.value, newValue)) return;
+            if (compare(current.value, newValue)) return;
 
             current.value = newValue as T;
             markDependentsDirty(self);
