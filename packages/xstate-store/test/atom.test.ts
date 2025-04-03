@@ -252,3 +252,48 @@ it('handles diamond dependencies with single update', () => {
   expect(log).toHaveBeenCalledTimes(1);
   expect(log).toHaveBeenCalledWith(10);
 });
+
+it('handles complex diamond dependencies correctly', () => {
+  const log = jest.fn();
+
+  // Base atom D
+  const atomD = createAtom(1);
+
+  // Level 1 - C depends on D
+  const atomC = createAtom((read) => read(atomD) * 2);
+
+  // Level 2 - B depends on C and D
+  const atomB = createAtom((read) => read(atomC) + read(atomD));
+
+  // Level 3 - A depends on B, C, and D
+  const atomA = createAtom((read) => read(atomB) + read(atomC) + read(atomD));
+
+  atomA.subscribe(log);
+
+  // Initial computation:
+  // D = 1
+  // C = D * 2 = 2
+  // B = C + D = 3
+  // A = B + C + D = 6
+  expect(atomA.get()).toBe(6);
+  expect(log).toHaveBeenCalledTimes(0);
+
+  // Update base atom D
+  atomD.set(2);
+
+  // After update:
+  // D = 2
+  // C = D * 2 = 4
+  // B = C + D = 6
+  // A = B + C + D = 12
+  expect(atomA.get()).toBe(12);
+
+  // Should only trigger one update despite multiple dependency paths
+  expect(log).toHaveBeenCalledTimes(1);
+  expect(log).toHaveBeenCalledWith(12);
+
+  // Verify intermediate values
+  expect(atomB.get()).toBe(6);
+  expect(atomC.get()).toBe(4);
+  expect(atomD.get()).toBe(2);
+});
