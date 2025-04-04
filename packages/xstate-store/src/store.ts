@@ -1,4 +1,9 @@
-import { createAtom, markDependentsDirty, propagate } from './atom';
+import {
+  createAtom,
+  flushPendingNotifications,
+  markDependentsDirty,
+  propagate
+} from './atom';
 import { toObserver } from './toObserver';
 import {
   EnqueueObject,
@@ -105,6 +110,8 @@ function createStoreCore<
     });
 
     observers?.forEach((o) => o.next?.(currentSnapshot));
+
+    flushPendingNotifications();
 
     for (const effect of effects) {
       if (typeof effect === 'function') {

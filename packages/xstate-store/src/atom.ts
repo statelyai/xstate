@@ -32,6 +32,13 @@ export const graph: {
   }
 };
 
+export const pendingNotifications = new Set<() => void>();
+
+export function flushPendingNotifications() {
+  pendingNotifications.forEach((notify) => notify());
+  pendingNotifications.clear();
+}
+
 export function createAtom<T>(
   getValue: (read: <U>(atom: Readable<U>) => U) => T,
   options?: AtomOptions<T>
@@ -98,7 +105,10 @@ export function createAtom<T>(
     }
     current.value = newValue;
     self.status = AtomStatus.Clean;
-    observers?.forEach((o) => o.next?.(current.value));
+    pendingNotifications.add(() => {
+      observers?.forEach((o) => o.next?.(current.value));
+    });
+    propagate(self);
   };
 
   Object.assign(self, {
@@ -123,6 +133,7 @@ export function createAtom<T>(
             markDependentsDirty(self);
             propagate(self);
             observers?.forEach((o) => o.next?.(newValue));
+            flushPendingNotifications();
           },
     subscribe: (observerOrFn: Observer<T> | ((value: T) => void)) => {
       const obs = toObserver(observerOrFn);
