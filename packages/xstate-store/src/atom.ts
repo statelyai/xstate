@@ -12,7 +12,7 @@ interface AtomOptions<T> {
   compare?: (prev: T, next: T) => boolean;
 }
 
-export const graph: {
+const graph: {
   dependencies: WeakMap<AnyAtom, Set<AnyAtom>>;
   dependents: WeakMap<AnyAtom, Set<AnyAtom>>;
   addDependency: (atom: AnyAtom, dependent: AnyAtom) => void;
