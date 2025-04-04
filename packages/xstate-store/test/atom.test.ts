@@ -222,3 +222,135 @@ it('conditionally read atoms are properly unsubscribed when no longer needed', (
 
   expect(vals).toEqual([false, true, {}, true, false]);
 });
+
+it('handles diamond dependencies with single update', () => {
+  const log = jest.fn();
+  const sourceAtom = createAtom(1);
+
+  const pathA = createAtom((read) => read(sourceAtom) * 2);
+  const pathB = createAtom((read) => read(sourceAtom) * 3);
+
+  const bottomAtom = createAtom((read) => read(pathA) + read(pathB));
+
+  bottomAtom.subscribe((x) => {
+    log(x);
+  });
+
+  // Initial value: (1 * 2) + (1 * 3) = 5
+  expect(bottomAtom.get()).toBe(5);
+  expect(log).toHaveBeenCalledTimes(0);
+
+  // Update source: (2 * 2) + (2 * 3) = 10
+  sourceAtom.set(2);
+
+  const result = bottomAtom.get();
+
+  expect(result).toBe(10);
+
+  // Without proper diamond problem handling, log might be called multiple times
+  // as the update propagates through both paths
+  expect(log).toHaveBeenCalledTimes(1);
+  expect(log).toHaveBeenCalledWith(10);
+});
+
+it('handles complex diamond dependencies correctly', () => {
+  const log = jest.fn();
+
+  // Base atom D
+  const atomD = createAtom(1);
+
+  // Level 1 - C depends on D
+  const atomC = createAtom((read) => read(atomD) * 2);
+
+  // Level 2 - B depends on C and D
+  const atomB = createAtom((read) => read(atomC) + read(atomD));
+
+  // Level 3 - A depends on B, C, and D
+  const atomA = createAtom((read) => read(atomB) + read(atomC) + read(atomD));
+
+  atomA.subscribe(log);
+
+  // Initial computation:
+  // D = 1
+  // C = D * 2 = 2
+  // B = C + D = 3
+  // A = B + C + D = 6
+  expect(atomA.get()).toBe(6);
+  expect(log).toHaveBeenCalledTimes(0);
+
+  // Update base atom D
+  atomD.set(2);
+
+  // After update:
+  // D = 2
+  // C = D * 2 = 4
+  // B = C + D = 6
+  // A = B + C + D = 12
+  expect(atomA.get()).toBe(12);
+
+  // Should only trigger one update despite multiple dependency paths
+  expect(log).toHaveBeenCalledTimes(1);
+  expect(log).toHaveBeenCalledWith(12);
+
+  // Verify intermediate values
+  expect(atomB.get()).toBe(6);
+  expect(atomC.get()).toBe(4);
+  expect(atomD.get()).toBe(2);
+});
+
+it('supports custom equality functions through compare option', () => {
+  const log = jest.fn();
+
+  const coordAtom = createAtom(
+    { x: 0, y: 0 },
+    {
+      compare: (prev, next) => prev.x === next.x && prev.y === next.y
+    }
+  );
+
+  coordAtom.subscribe(log);
+
+  // Initial value
+  expect(coordAtom.get()).toEqual({ x: 0, y: 0 });
+  expect(log).not.toHaveBeenCalled();
+
+  // Setting same values shouldn't trigger update
+  coordAtom.set({ x: 0, y: 0 });
+  expect(log).not.toHaveBeenCalled();
+
+  // Different x value should trigger update
+  coordAtom.set({ x: 1, y: 0 });
+  expect(log).toHaveBeenCalledTimes(1);
+  expect(log).toHaveBeenCalledWith({ x: 1, y: 0 });
+
+  // Different y value should trigger update
+  coordAtom.set({ x: 1, y: 2 });
+  expect(log).toHaveBeenCalledTimes(2);
+  expect(log).toHaveBeenLastCalledWith({ x: 1, y: 2 });
+
+  // Setting same values should not trigger update
+  coordAtom.set({ x: 1, y: 2 });
+  expect(log).toHaveBeenCalledTimes(2);
+});
+
+it('uses Object.is as default equality function', () => {
+  const log = jest.fn();
+  const objAtom = createAtom({ value: 0 });
+
+  objAtom.subscribe(log);
+
+  // Initial value
+  expect(objAtom.get()).toEqual({ value: 0 });
+  expect(log).not.toHaveBeenCalled();
+
+  // Setting with same shape but new object should trigger update
+  objAtom.set({ value: 0 });
+  expect(log).toHaveBeenCalledTimes(1);
+
+  // Setting with same object reference shouldn't trigger update
+  const obj = { value: 1 };
+  objAtom.set(obj);
+  expect(log).toHaveBeenCalledTimes(2);
+  objAtom.set(obj);
+  expect(log).toHaveBeenCalledTimes(2);
+});

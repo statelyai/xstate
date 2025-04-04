@@ -1,3 +1,9 @@
+import {
+  createAtom,
+  flushPendingNotifications,
+  markDependentsDirty,
+  propagate
+} from './atom';
 import { toObserver } from './toObserver';
 import {
   EnqueueObject,
@@ -16,7 +22,8 @@ import {
   StoreProducerAssigner,
   StoreSnapshot,
   Selector,
-  Selection
+  Selection,
+  AtomStatus
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -89,6 +96,9 @@ function createStoreCore<
     let effects: StoreEffect<TEmitted>[];
     [currentSnapshot, effects] = transition(currentSnapshot, event);
 
+    markDependentsDirty(store);
+    propagate(store);
+
     inspectionObservers.get(store)?.forEach((observer) => {
       observer.next?.({
         type: '@xstate.snapshot',
@@ -100,6 +110,8 @@ function createStoreCore<
     });
 
     observers?.forEach((o) => o.next?.(currentSnapshot));
+
+    flushPendingNotifications();
 
     for (const effect of effects) {
       if (typeof effect === 'function') {
@@ -210,22 +222,12 @@ function createStoreCore<
       selector: Selector<TContext, TSelected>,
       equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
     ): Selection<TSelected> {
-      return {
-        subscribe: (observerOrFn) => {
-          const observer = toObserver(observerOrFn);
-          let previousSelected = selector(this.getSnapshot().context);
-
-          return this.subscribe((snapshot) => {
-            const nextSelected = selector(snapshot.context);
-            if (!equalityFn(previousSelected, nextSelected)) {
-              previousSelected = nextSelected;
-              observer.next?.(nextSelected);
-            }
-          });
-        },
-        get: () => selector(this.getSnapshot().context)
-      };
-    }
+      return createAtom((read) => selector(read(store).context), {
+        compare: equalityFn
+      });
+    },
+    recompute: () => {},
+    status: AtomStatus.Clean
   };
 
   return store;
