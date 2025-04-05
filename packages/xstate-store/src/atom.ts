@@ -12,6 +12,8 @@ interface AtomOptions<T> {
   compare?: (prev: T, next: T) => boolean;
 }
 
+export const getScope = new Set<AnyAtom>();
+
 const graph: {
   dependencies: WeakMap<AnyAtom, Set<AnyAtom>>;
   dependents: WeakMap<AnyAtom, Set<AnyAtom>>;
@@ -75,7 +77,12 @@ export function createAtom<T>(
     };
 
     // Initialize computed value
+    getScope.clear();
     current.value = getValue(read);
+    getScope.forEach((atom) => {
+      graph.addDependency(self, atom);
+    });
+    getScope.clear();
   } else {
     // Handle static value case
     current.value = valueOrFn;
@@ -99,6 +106,11 @@ export function createAtom<T>(
       return atom.get();
     };
     const newValue = (valueOrFn as any)(read);
+    for (const dep of getScope) {
+      graph.addDependency(self, dep);
+    }
+    getScope.clear();
+
     if (compare(current.value, newValue)) {
       self.status = AtomStatus.Clean;
       return;
@@ -113,6 +125,7 @@ export function createAtom<T>(
 
   Object.assign(self, {
     get: () => {
+      getScope.add(self);
       if (self.status === AtomStatus.Dirty) {
         recompute();
       }

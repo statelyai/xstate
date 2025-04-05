@@ -1,6 +1,7 @@
 import {
   createAtom,
   flushPendingNotifications,
+  getScope,
   markDependentsDirty,
   propagate
 } from './atom';
@@ -161,6 +162,7 @@ function createStoreCore<
       return currentSnapshot;
     },
     get() {
+      getScope.add(store);
       return currentSnapshot;
     },
     getInitialSnapshot() {

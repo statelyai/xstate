@@ -66,6 +66,20 @@ it('can create a combined atom', () => {
   numAtom.set(5);
 });
 
+it('can create a combined atom (get API)', () => {
+  const nameAtom = createAtom('a');
+  const numAtom = createAtom(3);
+  const combinedAtom = createAtom(() => nameAtom.get().repeat(numAtom.get()));
+
+  expect(combinedAtom.get()).toBe('aaa');
+
+  nameAtom.set('b');
+
+  expect(combinedAtom.get()).toBe('bbb');
+
+  numAtom.set(5);
+});
+
 it('works with a mix of atoms and stores', () => {
   const countAtom = createAtom(0);
   const store = createStore({
@@ -90,6 +104,40 @@ it('works with a mix of atoms and stores', () => {
 
   countAtom.set(1);
 
+  expect(combinedAtom.get()).toBe('John 1');
+});
+
+it('works with a mix of atoms and stores (get API)', () => {
+  const countAtom = createAtom(0);
+  const store = createStore({
+    context: { name: 'David' },
+    on: {
+      nameUpdated: (context, event: { name: string }) => ({
+        ...context,
+        name: event.name
+      })
+    }
+  });
+
+  const log = jest.fn();
+
+  const combinedAtom = createAtom(
+    () => store.get().context.name + ` ${countAtom.get()}`
+  );
+
+  combinedAtom.subscribe(log);
+
+  expect(combinedAtom.get()).toBe('David 0');
+
+  store.send({ type: 'nameUpdated', name: 'John' });
+
+  expect(combinedAtom.get()).toBe('John 0');
+
+  countAtom.set(1);
+
+  expect(log).toHaveBeenCalledTimes(2);
+  expect(log).toHaveBeenCalledWith('John 1');
+  expect(countAtom.get()).toBe(1);
   expect(combinedAtom.get()).toBe('John 1');
 });
 
@@ -127,6 +175,39 @@ it('works with stores', () => {
   expect(combinedAtom.get()).toBe('John 1');
 });
 
+it('works with stores (get API)', () => {
+  const nameStore = createStore({
+    context: { name: 'David' },
+    on: {
+      nameUpdated: (context, event: { name: string }) => ({
+        ...context,
+        name: event.name
+      })
+    }
+  });
+
+  const countStore = createStore({
+    context: { count: 0 },
+    on: {
+      increment: (context) => ({ ...context, count: context.count + 1 })
+    }
+  });
+
+  const combinedAtom = createAtom(
+    () => nameStore.get().context.name + ` ${countStore.get().context.count}`
+  );
+
+  expect(combinedAtom.get()).toBe('David 0');
+
+  nameStore.trigger.nameUpdated({ name: 'John' });
+
+  expect(combinedAtom.get()).toBe('John 0');
+
+  countStore.trigger.increment();
+
+  expect(combinedAtom.get()).toBe('John 1');
+});
+
 it('works with selectors', () => {
   const store = createStore({
     context: { name: 'David', count: 0 },
@@ -138,6 +219,25 @@ it('works with selectors', () => {
   const count = store.select((ctx) => ctx.count);
 
   const combinedAtom = createAtom((read) => 2 * read(count));
+
+  expect(combinedAtom.get()).toBe(0);
+
+  store.trigger.increment();
+
+  expect(combinedAtom.get()).toBe(2);
+});
+
+it('works with selectors (get API)', () => {
+  const store = createStore({
+    context: { name: 'David', count: 0 },
+    on: {
+      increment: (context) => ({ ...context, count: context.count + 1 })
+    }
+  });
+
+  const count = store.select((ctx) => ctx.count);
+
+  const combinedAtom = createAtom(() => 2 * count.get());
 
   expect(combinedAtom.get()).toBe(0);
 
@@ -159,12 +259,44 @@ it('combined atoms should be read-only', () => {
   expect(combinedAtom.get()).toBe(1);
 });
 
+it('combined atoms should be read-only (get API)', () => {
+  const atom1 = createAtom(0);
+  const atom2 = createAtom(1);
+  const combinedAtom = createAtom(() => atom1.get() + atom2.get());
+
+  expect(combinedAtom.get()).toBe(1);
+
+  // @ts-expect-error
+  combinedAtom.set?.(2);
+
+  expect(combinedAtom.get()).toBe(1);
+});
+
 it('conditionally read atoms are properly read in combined atoms', () => {
   const atom1 = createAtom(true);
   const atom2 = createAtom(false);
   const activatorAtom = createAtom<'inactive' | 'active'>('inactive');
   const combinedAtom = createAtom((read) =>
     read(activatorAtom) === 'active' ? read(atom1) : read(atom2)
+  );
+
+  expect(combinedAtom.get()).toBe(false);
+
+  activatorAtom.set('active');
+
+  expect(combinedAtom.get()).toBe(true);
+
+  activatorAtom.set('inactive');
+
+  expect(combinedAtom.get()).toBe(false);
+});
+
+it('conditionally read atoms are properly read in combined atoms (get API)', () => {
+  const atom1 = createAtom(true);
+  const atom2 = createAtom(false);
+  const activatorAtom = createAtom<'inactive' | 'active'>('inactive');
+  const combinedAtom = createAtom(() =>
+    activatorAtom.get() === 'active' ? atom1.get() : atom2.get()
   );
 
   expect(combinedAtom.get()).toBe(false);
@@ -223,14 +355,59 @@ it('conditionally read atoms are properly unsubscribed when no longer needed', (
   expect(vals).toEqual([false, true, {}, true, false]);
 });
 
+it('conditionally read atoms are properly unsubscribed when no longer needed (get API)', () => {
+  const atom1 = createAtom(true);
+  const activatorAtom = createAtom<'inactive' | 'active'>('active');
+  const combinedAtom = createAtom(() =>
+    activatorAtom.get() === 'active' ? atom1.get() : {}
+  );
+
+  const vals: any[] = [];
+
+  combinedAtom.subscribe((val) => vals.push(val));
+
+  atom1.set(false);
+
+  expect(vals).toEqual([false]);
+
+  atom1.set(true);
+
+  expect(vals).toEqual([false, true]);
+
+  activatorAtom.set('inactive');
+
+  // From here, atom1 should no longer be subscribed to
+  // Without the unsubscribe logic, this would be [false, true, {}, {}, ...]
+
+  expect(vals).toEqual([false, true, {}]);
+
+  atom1.set(false);
+
+  expect(vals).toEqual([false, true, {}]);
+
+  atom1.set(true);
+
+  expect(vals).toEqual([false, true, {}]);
+
+  // Subscribing again should cause atom1 to be subscribed again
+
+  activatorAtom.set('active');
+
+  expect(vals).toEqual([false, true, {}, true]);
+
+  atom1.set(false);
+
+  expect(vals).toEqual([false, true, {}, true, false]);
+});
+
 it('handles diamond dependencies with single update', () => {
   const log = jest.fn();
   const sourceAtom = createAtom(1);
 
-  const pathA = createAtom((read) => read(sourceAtom) * 2);
-  const pathB = createAtom((read) => read(sourceAtom) * 3);
+  const pathA = createAtom(() => sourceAtom.get() * 2);
+  const pathB = createAtom(() => sourceAtom.get() * 3);
 
-  const bottomAtom = createAtom((read) => read(pathA) + read(pathB));
+  const bottomAtom = createAtom(() => pathA.get() + pathB.get());
 
   bottomAtom.subscribe((x) => {
     log(x);
@@ -260,13 +437,13 @@ it('handles complex diamond dependencies correctly', () => {
   const atomD = createAtom(1);
 
   // Level 1 - C depends on D
-  const atomC = createAtom((read) => read(atomD) * 2);
+  const atomC = createAtom(() => atomD.get() * 2);
 
   // Level 2 - B depends on C and D
-  const atomB = createAtom((read) => read(atomC) + read(atomD));
+  const atomB = createAtom(() => atomC.get() + atomD.get());
 
   // Level 3 - A depends on B, C, and D
-  const atomA = createAtom((read) => read(atomB) + read(atomC) + read(atomD));
+  const atomA = createAtom(() => atomB.get() + atomC.get() + atomD.get());
 
   atomA.subscribe(log);
 
