@@ -224,7 +224,7 @@ function createStoreCore<
       selector: Selector<TContext, TSelected>,
       equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
     ): Selection<TSelected> {
-      return createAtom((read) => selector(read(store).context), {
+      return createAtom(() => selector(store.get().context), {
         compare: equalityFn
       });
     },
