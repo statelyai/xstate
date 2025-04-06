@@ -366,18 +366,17 @@ export interface Readable<T> extends Subscribable<T> {
   get: () => T;
 }
 
-interface BaseAtom<T> extends Subscribable<T>, Readable<T> {
-  // dependencies: Set<BaseAtom<any>>;
-  // dependents: Set<BaseAtom<any>>;
-  recompute: () => void;
-  status: AtomStatus;
-}
+interface BaseAtom<T> extends Subscribable<T>, Readable<T> {}
 
 export interface Atom<T> extends BaseAtom<T> {
   /** Sets the value of the atom using a function. */
   set(fn: (prevVal: T) => T): void;
   /** Sets the value of the atom. */
   set(value: T): void;
+}
+
+export interface AtomOptions<T> {
+  compare?: (prev: T, next: T) => boolean;
 }
 
 export type AnyAtom = BaseAtom<any>;
@@ -399,8 +398,3 @@ export interface ReadonlyAtom<T> extends BaseAtom<T> {}
 type DistributiveOmit<T, K extends PropertyKey> = T extends any
   ? Omit<T, K>
   : never;
-
-export enum AtomStatus {
-  Dirty = 0,
-  Clean = 1
-}

@@ -364,7 +364,11 @@ it('conditionally read atoms are properly unsubscribed when no longer needed (ge
 
   const vals: any[] = [];
 
-  combinedAtom.subscribe((val) => vals.push(val));
+  combinedAtom.subscribe((val) => {
+    vals.push(val);
+  });
+
+  expect(vals).toEqual([]);
 
   atom1.set(false);
 

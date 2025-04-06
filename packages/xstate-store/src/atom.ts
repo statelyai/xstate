@@ -1,45 +1,39 @@
+import {
+  createReactiveSystem,
+  Dependency,
+  Link,
+  Subscriber,
+  SubscriberFlags
+} from './alien';
 import { toObserver } from './toObserver';
 import {
-  AnyAtom,
   Atom,
-  AtomStatus,
+  AtomOptions,
   Observer,
   Readable,
-  ReadonlyAtom
+  ReadonlyAtom,
+  Subscribable
 } from './types';
 
-interface AtomOptions<T> {
-  compare?: (prev: T, next: T) => boolean;
-}
-
-export const getScope = new Set<AnyAtom>();
-
-const graph: {
-  dependencies: WeakMap<AnyAtom, Set<AnyAtom>>;
-  dependents: WeakMap<AnyAtom, Set<AnyAtom>>;
-  addDependency: (atom: AnyAtom, dependent: AnyAtom) => void;
-} = {
-  dependencies: new WeakMap(),
-  dependents: new WeakMap(),
-  addDependency: (atom, dependent) => {
-    if (!graph.dependencies.has(atom)) {
-      graph.dependencies.set(atom, new Set());
-    }
-    graph.dependencies.get(atom)?.add(dependent);
-
-    if (!graph.dependents.has(dependent)) {
-      graph.dependents.set(dependent, new Set());
-    }
-    graph.dependents.get(dependent)?.add(atom);
+const {
+  link,
+  propagate,
+  endTracking,
+  startTracking,
+  updateDirtyFlag,
+  processComputedUpdate,
+  processEffectNotifications
+} = createReactiveSystem({
+  updateComputed(computed: Computed) {
+    return computed.update();
+  },
+  notifyEffect(effect: Effect) {
+    effect.notify();
+    return true;
   }
-};
+});
 
-export const pendingNotifications = new Set<() => void>();
-
-export function flushPendingNotifications() {
-  pendingNotifications.forEach((notify) => notify());
-  pendingNotifications.clear();
-}
+let activeSub: Subscriber | undefined = undefined;
 
 export function createAtom<T>(
   getValue: (read: <U>(atom: Readable<U>) => U) => T,
@@ -53,135 +47,183 @@ export function createAtom<T>(
   valueOrFn: T | ((read: <U>(atom: Readable<U>) => U) => T),
   options?: AtomOptions<T>
 ): Atom<T> | ReadonlyAtom<T> {
-  const compare = options?.compare ?? Object.is;
-  const current = { value: undefined as T };
-  let observers: Set<Observer<T>> | undefined;
-  const dependencies = new Set<AnyAtom>();
-  const dependents = new Set<AnyAtom>();
-
-  const self = {
-    dependencies,
-    dependents,
-    state: 'clean' as const
-  } as unknown as Atom<T>;
-
-  // Handle computed case
   if (typeof valueOrFn === 'function') {
-    const observedAtoms = new Set<AnyAtom>();
+    return computed(valueOrFn as () => T, options);
+  }
+  return new Signal(valueOrFn, options);
+}
 
-    const getValue = valueOrFn as (read: <U>(atom: Atom<U>) => U) => T;
-    const read = (atom: AnyAtom) => {
-      observedAtoms.add(atom);
-      graph.addDependency(self, atom);
-      return atom.get();
-    };
+class Signal<T = any> implements Dependency, Subscribable<T> {
+  // Dependency fields
+  subs: Link | undefined = undefined;
+  subsTail: Link | undefined = undefined;
+  observers: Set<Observer<T>> | undefined = undefined;
 
-    // Initialize computed value
-    getScope.clear();
-    current.value = getValue(read);
-    getScope.forEach((atom) => {
-      graph.addDependency(self, atom);
-    });
-    getScope.clear();
-  } else {
-    // Handle static value case
-    current.value = valueOrFn;
+  constructor(
+    public currentValue: T,
+    public options?: AtomOptions<T>
+  ) {}
+
+  get(): T {
+    if (activeSub !== undefined) {
+      link(this, activeSub);
+    }
+    return this.currentValue;
   }
 
-  const recompute = () => {
-    if (typeof valueOrFn !== 'function' || self.status === AtomStatus.Clean)
-      return;
-
-    const dependencies = graph.dependencies.get(self);
-    if (dependencies) {
-      for (const dep of dependencies) {
-        graph.dependents.get(dep)?.delete(self);
-      }
-    }
-
-    graph.dependencies.get(self)?.clear();
-
-    const read = (atom: AnyAtom) => {
-      graph.addDependency(self, atom);
-      return atom.get();
-    };
-    const newValue = (valueOrFn as any)(read);
-    for (const dep of getScope) {
-      graph.addDependency(self, dep);
-    }
-    getScope.clear();
-
-    if (compare(current.value, newValue)) {
-      self.status = AtomStatus.Clean;
-      return;
-    }
-    current.value = newValue;
-    self.status = AtomStatus.Clean;
-    pendingNotifications.add(() => {
-      observers?.forEach((o) => o.next?.(current.value));
-    });
-    propagate(self);
-  };
-
-  Object.assign(self, {
-    get: () => {
-      getScope.add(self);
-      if (self.status === AtomStatus.Dirty) {
-        recompute();
-      }
-      return current.value;
-    },
-    set:
+  set(valueOrFn: T | ((prev: T) => T)): void {
+    const compare = this.options?.compare ?? Object.is;
+    const value =
       typeof valueOrFn === 'function'
-        ? undefined
-        : (newValueOrFn: any) => {
-            const newValue =
-              typeof newValueOrFn === 'function'
-                ? (newValueOrFn as (prev: T) => T)(current.value)
-                : newValueOrFn;
-
-            if (compare(current.value, newValue)) return;
-
-            current.value = newValue as T;
-            markDependentsDirty(self);
-            propagate(self);
-            observers?.forEach((o) => o.next?.(newValue));
-            flushPendingNotifications();
-          },
-    subscribe: (observerOrFn: Observer<T> | ((value: T) => void)) => {
-      const obs = toObserver(observerOrFn);
-      observers ??= new Set();
-      observers.add(obs);
-      return {
-        unsubscribe() {
-          observers?.delete(obs);
-        }
-      };
-    },
-    dependencies,
-    dependents,
-    recompute
-  });
-
-  return self;
-}
-
-export function markDependentsDirty(atom: AnyAtom) {
-  const dependents = graph.dependents.get(atom);
-  if (dependents) {
-    for (const dependent of dependents) {
-      if (dependent.status === AtomStatus.Dirty) continue;
-      dependent.status = AtomStatus.Dirty;
-      markDependentsDirty(dependent);
+        ? (valueOrFn as (prev: T) => T)(this.currentValue)
+        : valueOrFn;
+    if (compare(this.currentValue, value)) return;
+    this.currentValue = value;
+    const subs = this.subs;
+    if (subs !== undefined) {
+      propagate(subs);
+      processEffectNotifications();
     }
+  }
+
+  subscribe(observerOrFn: Observer<T> | ((value: T) => void)) {
+    const obs = toObserver(observerOrFn);
+    const observed = { current: false };
+    const e = effect(() => {
+      this.get();
+      if (!observed.current) {
+        observed.current = true;
+      } else {
+        obs.next?.(this.currentValue);
+      }
+    });
+
+    return {
+      unsubscribe: () => {
+        e.stop();
+      }
+    };
   }
 }
 
-export function propagate(atom: AnyAtom) {
-  const dependents = graph.dependents.get(atom);
-  if (dependents) {
-    for (const dependent of dependents) {
-      dependent.recompute();
+function computed<T>(
+  getter: (read: <U>(atom: Readable<U>) => U) => T,
+  options?: AtomOptions<T>
+): Computed<T> {
+  return new Computed<T>(getter, options);
+}
+
+class Computed<T = any> implements Subscriber, Dependency, ReadonlyAtom<T> {
+  currentValue: T | undefined = undefined;
+
+  // Dependency fields
+  subs: Link | undefined = undefined;
+  subsTail: Link | undefined = undefined;
+
+  // Subscriber fields
+  deps: Link | undefined = undefined;
+  depsTail: Link | undefined = undefined;
+  flags: SubscriberFlags = SubscriberFlags.Computed | SubscriberFlags.Dirty;
+  observers: Set<Observer<T>> | undefined = undefined;
+
+  constructor(
+    public getter: (read: <U>(atom: Readable<U>) => U) => T,
+    public options?: AtomOptions<T>
+  ) {}
+
+  get(): T {
+    const flags = this.flags;
+    if (flags & (SubscriberFlags.PendingComputed | SubscriberFlags.Dirty)) {
+      processComputedUpdate(this, flags);
     }
+    if (activeSub !== undefined) {
+      link(this, activeSub);
+    }
+    return this.currentValue!;
+  }
+
+  update(): boolean {
+    const prevSub = activeSub;
+    const compare = this.options?.compare ?? Object.is;
+    // eslint-disable-next-line
+    activeSub = this;
+    startTracking(this);
+    try {
+      const oldValue = this.currentValue;
+      // TODO: deprecate this
+      const read = (atom: Readable<any>) => atom.get();
+      const newValue = this.getter(read);
+      if (oldValue === undefined || !compare(oldValue, newValue)) {
+        this.currentValue = newValue;
+        return true;
+      }
+      return false;
+    } finally {
+      activeSub = prevSub;
+      endTracking(this);
+    }
+  }
+  subscribe(observerOrFn: Observer<T> | ((value: T) => void)) {
+    const obs = toObserver(observerOrFn);
+    const observed = { current: false };
+    const e = effect(() => {
+      this.get();
+      if (!observed.current) {
+        observed.current = true;
+      } else {
+        obs.next?.(this.get());
+      }
+    });
+
+    return {
+      unsubscribe: () => {
+        e.stop();
+      }
+    };
+  }
+}
+
+function effect<T>(fn: () => T): Effect<T> {
+  const e = new Effect(fn);
+
+  e.run();
+
+  return e;
+}
+
+class Effect<T = any> implements Subscriber {
+  // Subscriber fields
+  deps: Link | undefined = undefined;
+  depsTail: Link | undefined = undefined;
+  flags: SubscriberFlags = SubscriberFlags.Effect;
+
+  constructor(public fn: () => T) {}
+
+  notify(): void {
+    const flags = this.flags;
+    if (
+      flags & SubscriberFlags.Dirty ||
+      (flags & SubscriberFlags.PendingComputed && updateDirtyFlag(this, flags))
+    ) {
+      this.run();
+    }
+  }
+
+  run(): T {
+    const prevSub = activeSub;
+    // eslint-disable-next-line
+    activeSub = this;
+    startTracking(this);
+    try {
+      return this.fn();
+    } finally {
+      activeSub = prevSub;
+      endTracking(this);
+    }
+  }
+
+  stop(): void {
+    startTracking(this);
+    endTracking(this);
   }
 }
