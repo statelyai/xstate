@@ -1,3 +1,5 @@
+import { Dependency, Subscriber } from './alien';
+
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
 export type ExtractEvents<T extends EventPayloadMap> = Values<{
@@ -392,7 +394,9 @@ export type AnyAtom = BaseAtom<any>;
  * atom.set(43);
  * ```
  */
-export interface ReadonlyAtom<T> extends BaseAtom<T> {}
+export interface ReadonlyAtom<T> extends BaseAtom<T>, Dependency, Subscriber {
+  update(): boolean;
+}
 
 /** A version of `Omit` that works with distributive types. */
 type DistributiveOmit<T, K extends PropertyKey> = T extends any
