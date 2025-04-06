@@ -172,47 +172,50 @@ function computed<T>(
   return computedAtom;
 }
 
-function effect<T>(fn: () => T): Effect<T> {
-  const e = new Effect(fn);
-
-  e.run();
-
-  return e;
+interface Effect extends Subscriber {
+  notify(): void;
+  stop(): void;
 }
 
-class Effect<T = any> implements Subscriber {
-  // Subscriber fields
-  deps: Link | undefined = undefined;
-  depsTail: Link | undefined = undefined;
-  flags: SubscriberFlags = SubscriberFlags.Effect;
+function effect<T>(fn: () => T): Effect {
+  const effectObj = {
+    // Subscriber fields
+    deps: undefined as Link | undefined,
+    depsTail: undefined as Link | undefined,
+    flags: SubscriberFlags.Effect,
+    fn,
 
-  constructor(public fn: () => T) {}
+    notify(): void {
+      const flags = this.flags;
+      if (
+        flags & SubscriberFlags.Dirty ||
+        (flags & SubscriberFlags.PendingComputed &&
+          updateDirtyFlag(this, flags))
+      ) {
+        this.run();
+      }
+    },
 
-  notify(): void {
-    const flags = this.flags;
-    if (
-      flags & SubscriberFlags.Dirty ||
-      (flags & SubscriberFlags.PendingComputed && updateDirtyFlag(this, flags))
-    ) {
-      this.run();
-    }
-  }
+    run(): T {
+      const prevSub = activeSub;
+      // eslint-disable-next-line
+      activeSub = this;
+      startTracking(this);
+      try {
+        return this.fn();
+      } finally {
+        activeSub = prevSub;
+        endTracking(this);
+      }
+    },
 
-  run(): T {
-    const prevSub = activeSub;
-    // eslint-disable-next-line
-    activeSub = this;
-    startTracking(this);
-    try {
-      return this.fn();
-    } finally {
-      activeSub = prevSub;
+    stop(): void {
+      startTracking(this);
       endTracking(this);
     }
-  }
+  };
 
-  stop(): void {
-    startTracking(this);
-    endTracking(this);
-  }
+  effectObj.run();
+
+  return effectObj;
 }
