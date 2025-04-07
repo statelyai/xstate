@@ -1,5 +1,27 @@
 # @xstate/store
 
+## 3.4.3
+
+### Patch Changes
+
+- [#5230](https://github.com/statelyai/xstate/pull/5230) [`86e6b58dd18337202df8e319a42f85523d5d0d30`](https://github.com/statelyai/xstate/commit/86e6b58dd18337202df8e319a42f85523d5d0d30) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The types for emitting events with no payload have been fixed so that the following code works:
+
+  ```ts
+  const store = createStore({
+    emits: {
+      incremented: () => {}
+    },
+    on: {
+      inc: (ctx, ev, enq) => {
+        // No payload is expected
+        enq.emit.incremented();
+      }
+    }
+  });
+  ```
+
+  Previously, this would have been an error because the `incremented` event was expected to have a payload.
+
 ## 3.4.2
 
 ### Patch Changes
