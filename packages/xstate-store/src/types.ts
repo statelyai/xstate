@@ -6,11 +6,19 @@ export type ExtractEvents<T extends EventPayloadMap> = Values<{
 
 export type Recipe<T, TReturn> = (state: T) => TReturn;
 
+type AllKeys<T> = T extends any ? keyof T : never;
+
+type EmitterFunction<TEmittedEvent extends EventObject> = (
+  ...args: { type: TEmittedEvent['type'] } extends TEmittedEvent
+    ? AllKeys<TEmittedEvent> extends 'type'
+      ? []
+      : [DistributiveOmit<TEmittedEvent, 'type'>?]
+    : [DistributiveOmit<TEmittedEvent, 'type'>]
+) => void;
+
 export type EnqueueObject<TEmittedEvent extends EventObject> = {
   emit: {
-    [E in TEmittedEvent as E['type']]: (
-      payload: DistributiveOmit<E, 'type'>
-    ) => void;
+    [E in TEmittedEvent as E['type']]: EmitterFunction<E>;
   };
   effect: (fn: () => void) => void;
 };
@@ -94,7 +102,7 @@ export interface Store<
   on: <TEmittedType extends TEmitted['type']>(
     eventType: TEmittedType,
     emittedEventHandler: (
-      ev: Compute<TEmitted & { type: TEmittedType }>
+      emittedEvent: Compute<TEmitted & { type: TEmittedType }>
     ) => void
   ) => Subscription;
   /**
