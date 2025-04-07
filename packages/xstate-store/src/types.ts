@@ -13,7 +13,6 @@ type HasNoPayload<T extends EventObject> = { type: T['type'] } extends T
   : false;
 
 type EmitterFunction<TEmittedEvent extends EventObject> = (
-  // payload: DistributiveOmit<TEmittedEvent, 'type'>
   ...args: HasNoPayload<TEmittedEvent> extends true
     ? []
     : [DistributiveOmit<TEmittedEvent, 'type'>]
