@@ -354,6 +354,10 @@ it('events can be emitted with no payload', () => {
     on: {
       inc: (_ctx, _ev, enq) => {
         enq.emit.incremented();
+        enq.emit.incremented(
+          // @ts-expect-error
+          'foo'
+        );
       },
       dec: (_ctx, _ev, enq) => {
         enq.emit.decremented(
@@ -384,13 +388,16 @@ it('events can be emitted with optional payloads (type check)', () => {
     context: {},
     on: {
       inc: (_ctx, _ev, enq) => {
-        enq.emit
-          // @ts-expect-error An object is still expected
-          .optionalPayload();
+        enq.emit.optionalPayload();
 
         enq.emit.optionalPayload({ payload: 'hello' });
 
         enq.emit.optionalPayload({});
+
+        enq.emit.optionalPayload(
+          // @ts-expect-error
+          'foo'
+        );
       }
     }
   });

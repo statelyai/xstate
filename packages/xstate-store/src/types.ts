@@ -6,15 +6,13 @@ export type ExtractEvents<T extends EventPayloadMap> = Values<{
 
 export type Recipe<T, TReturn> = (state: T) => TReturn;
 
-type HasNoPayload<T extends EventObject> = { type: T['type'] } extends T
-  ? keyof T extends 'type'
-    ? true
-    : false
-  : false;
+type AllKeys<T> = T extends any ? keyof T : never;
 
 type EmitterFunction<TEmittedEvent extends EventObject> = (
-  ...args: HasNoPayload<TEmittedEvent> extends true
-    ? []
+  ...args: { type: TEmittedEvent['type'] } extends TEmittedEvent
+    ? AllKeys<TEmittedEvent> extends 'type'
+      ? []
+      : [DistributiveOmit<TEmittedEvent, 'type'>?]
     : [DistributiveOmit<TEmittedEvent, 'type'>]
 ) => void;
 
