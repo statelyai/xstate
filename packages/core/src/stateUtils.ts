@@ -1977,7 +1977,7 @@ function selectEventlessTransitions(
       }
       for (const transition of s.always) {
         if (
-          evaluateCandidate(transition, nextState.context, event, nextState)
+          evaluateCandidate(transition, nextState.context, event, nextState, s)
         ) {
           enabledTransitionSet.add(transition);
           break loop;
@@ -2056,7 +2056,10 @@ function getActionsFromAction2(
         },
         log: () => {},
         raise: () => {},
-        spawn: () => ({}) as any
+        spawn: (logic, options) => {
+          actions.push(spawnChild(logic, options));
+          return {} as any;
+        }
       }
     );
 
@@ -2070,7 +2073,8 @@ export function evaluateCandidate(
   candidate: TransitionDefinition<any, any>,
   context: MachineContext,
   event: EventObject,
-  snapshot: AnyMachineSnapshot
+  snapshot: AnyMachineSnapshot,
+  stateNode: AnyStateNode
 ): boolean {
   if (candidate.fn) {
     let hasEffect = false;
@@ -2102,7 +2106,26 @@ export function evaluateCandidate(
     return res !== undefined;
   }
 
-  return (
-    !candidate.guard || evaluateGuard(candidate.guard, context, event, snapshot)
-  );
+  const { guard } = candidate;
+
+  let result: boolean;
+  try {
+    result = !guard || evaluateGuard(guard, context, event, snapshot);
+  } catch (err: any) {
+    const guardType =
+      typeof guard === 'string'
+        ? guard
+        : typeof guard === 'object'
+          ? guard.type
+          : undefined;
+    throw new Error(
+      `Unable to evaluate guard ${
+        guardType ? `'${guardType}' ` : ''
+      }in transition for event '${event.type}' in state node '${
+        stateNode.id
+      }':\n${err.message}`
+    );
+  }
+
+  return result;
 }

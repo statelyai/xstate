@@ -216,11 +216,13 @@ export class StateNode<
     this.entry = toArray(this.config.entry).slice();
     this.entry2 = this.config.entry2;
     if (this.entry2) {
+      // @ts-ignore
       this.entry2._special = true;
     }
     this.exit = toArray(this.config.exit).slice();
     this.exit2 = this.config.exit2;
     if (this.exit2) {
+      // @ts-ignore
       this.exit2._special = true;
     }
     this.meta = this.config.meta;
@@ -398,33 +400,15 @@ export class StateNode<
     );
 
     for (const candidate of candidates) {
-      const { guard } = candidate;
       const resolvedContext = snapshot.context;
 
-      let guardPassed = false;
-
-      try {
-        guardPassed = evaluateCandidate(
-          candidate,
-          resolvedContext,
-          event,
-          snapshot
-        );
-      } catch (err: any) {
-        const guardType =
-          typeof guard === 'string'
-            ? guard
-            : typeof guard === 'object'
-              ? guard.type
-              : undefined;
-        throw new Error(
-          `Unable to evaluate guard ${
-            guardType ? `'${guardType}' ` : ''
-          }in transition for event '${eventType}' in state node '${
-            this.id
-          }':\n${err.message}`
-        );
-      }
+      const guardPassed = evaluateCandidate(
+        candidate,
+        resolvedContext,
+        event,
+        snapshot,
+        this
+      );
 
       if (guardPassed) {
         actions.push(...candidate.actions);

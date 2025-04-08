@@ -2714,7 +2714,12 @@ export type EnqueueObj<
 > = {
   cancel: () => void;
   raise: (ev: TMachineEvent) => void;
-  spawn: (...args: any[]) => AnyActorRef;
+  spawn: <T extends AnyActorLogic>(
+    logic: T,
+    options?: {
+      input?: InputFrom<T>;
+    }
+  ) => AnyActorRef;
   emit: (emittedEvent: TEmittedEvent) => void;
   action: (fn: () => any) => void;
   log: (...args: any[]) => void;

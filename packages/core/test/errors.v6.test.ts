@@ -896,9 +896,8 @@ describe('error handling', () => {
 
     const snapshot = actorRef.getSnapshot();
     expect(snapshot.status).toBe('error');
-    expect(snapshot.error).toMatchInlineSnapshot(`
-[Error: Unable to evaluate guard in transition for event 'NEXT' in state node '(machine).a':
-error_thrown_in_guard_when_transitioning]
-`);
+    expect(snapshot.error).toMatchInlineSnapshot(
+      `[Error: error_thrown_in_guard_when_transitioning]`
+    );
   });
 });
