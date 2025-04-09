@@ -1,3 +1,5 @@
+import { Dependency, Subscriber } from './alien';
+
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
 export type ExtractEvents<T extends EventPayloadMap> = Values<{
@@ -80,7 +82,8 @@ export interface Store<
   TEmitted extends EventObject
 > extends Subscribable<StoreSnapshot<TContext>>,
     InteropObservable<StoreSnapshot<TContext>>,
-    Readable<StoreSnapshot<TContext>> {
+    Readable<StoreSnapshot<TContext>>,
+    BaseAtom<StoreSnapshot<TContext>> {
   send: (event: TEvent) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
   /** @alias getSnapshot */
@@ -373,14 +376,20 @@ export interface Readable<T> extends Subscribable<T> {
   get: () => T;
 }
 
-export interface Atom<T> extends Subscribable<T>, Readable<T> {
+interface BaseAtom<T> extends Subscribable<T>, Readable<T> {}
+
+export interface Atom<T> extends BaseAtom<T> {
   /** Sets the value of the atom using a function. */
   set(fn: (prevVal: T) => T): void;
   /** Sets the value of the atom. */
   set(value: T): void;
 }
 
-export type AnyAtom = Atom<any>;
+export interface AtomOptions<T> {
+  compare?: (prev: T, next: T) => boolean;
+}
+
+export type AnyAtom = BaseAtom<any>;
 
 /**
  * An atom that is read-only and cannot be set.
@@ -393,7 +402,9 @@ export type AnyAtom = Atom<any>;
  * atom.set(43);
  * ```
  */
-export interface ReadonlyAtom<T> extends Readable<T> {}
+export interface ReadonlyAtom<T> extends BaseAtom<T>, Dependency, Subscriber {
+  update(): boolean;
+}
 
 /** A version of `Omit` that works with distributive types. */
 type DistributiveOmit<T, K extends PropertyKey> = T extends any

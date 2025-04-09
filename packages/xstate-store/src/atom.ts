@@ -1,85 +1,221 @@
-import { toObserver } from './toObserver';
 import {
-  AnyAtom,
-  Atom,
-  Observer,
-  Readable,
-  ReadonlyAtom,
-  Subscription
-} from './types';
+  createReactiveSystem,
+  Link,
+  Subscriber,
+  SubscriberFlags
+} from './alien';
+import { toObserver } from './toObserver';
+import { Atom, AtomOptions, Observer, Readable, ReadonlyAtom } from './types';
+
+const {
+  link,
+  propagate,
+  endTracking,
+  startTracking,
+  updateDirtyFlag,
+  processComputedUpdate,
+  processEffectNotifications
+} = createReactiveSystem({
+  updateComputed(computed: ReadonlyAtom<any>) {
+    return computed.update();
+  },
+  notifyEffect(effect: Effect) {
+    effect.notify();
+    return true;
+  }
+});
+
+let activeSub: Subscriber | undefined = undefined;
 
 export function createAtom<T>(
-  getValue: (read: <U>(atom: Readable<U>) => U) => T
+  getValue: (read: <U>(atom: Readable<U>) => U) => T,
+  options?: AtomOptions<T>
 ): ReadonlyAtom<T>;
-export function createAtom<T>(initialValue: T): Atom<T>;
 export function createAtom<T>(
-  valueOrFn: T | ((read: <U>(atom: Readable<U>) => U) => T)
+  initialValue: T,
+  options?: AtomOptions<T>
+): Atom<T>;
+export function createAtom<T>(
+  valueOrFn: T | ((read: <U>(atom: Readable<U>) => U) => T),
+  options?: AtomOptions<T>
 ): Atom<T> | ReadonlyAtom<T> {
-  const current = { value: undefined as T };
-  let observers: Set<Observer<T>> | undefined;
-
-  // Handle computed case
   if (typeof valueOrFn === 'function') {
-    const subs = new Map<AnyAtom, Subscription>();
-    let observedAtoms = new Set<AnyAtom>();
-
-    const getValue = valueOrFn as (read: <U>(atom: Atom<U>) => U) => T;
-    const read = (atom: AnyAtom) => {
-      observedAtoms.add(atom);
-      const val = atom.get();
-      if (subs.has(atom)) {
-        return val;
-      }
-      const sub = atom.subscribe(recompute);
-      subs.set(atom, sub);
-      return val;
-    };
-
-    function recompute() {
-      observedAtoms = new Set();
-      const newValue = getValue(read);
-
-      // Cleanup any atoms that are no longer observed
-      for (const [atom, sub] of subs) {
-        if (!observedAtoms.has(atom)) {
-          sub.unsubscribe();
-          subs.delete(atom);
-        }
-      }
-
-      current.value = newValue;
-      observers?.forEach((o) => o.next?.(newValue));
-    }
-
-    // Initialize computed value
-    current.value = getValue(read);
-  } else {
-    // Handle static value case
-    current.value = valueOrFn;
+    return computed(valueOrFn as () => T, options);
   }
 
-  return {
-    get: () => current.value,
-    set:
-      typeof valueOrFn === 'function'
-        ? undefined
-        : (newValueOrFn) => {
-            let newValue = newValueOrFn;
-            if (typeof newValueOrFn === 'function') {
-              newValue = (newValueOrFn as (prev: T) => T)(current.value);
-            }
-            current.value = newValue as T;
-            observers?.forEach((o) => o.next?.(newValue as T));
-          },
-    subscribe: (observerOrFn: Observer<T> | ((value: T) => void)) => {
+  // Create plain object atom
+  const atom = {
+    currentValue: valueOrFn,
+    options,
+    // Dependency fields
+    subs: undefined as Link | undefined,
+    subsTail: undefined as Link | undefined,
+    observers: undefined as Set<Observer<T>> | undefined,
+
+    get(): T {
+      if (activeSub !== undefined) {
+        link(this, activeSub);
+      }
+      return this.currentValue;
+    },
+
+    set(valueOrFn: T | ((prev: T) => T)): void {
+      const compare = this.options?.compare ?? Object.is;
+      const value =
+        typeof valueOrFn === 'function'
+          ? (valueOrFn as (prev: T) => T)(this.currentValue)
+          : valueOrFn;
+      if (compare(this.currentValue, value)) return;
+      this.currentValue = value;
+      const subs = this.subs;
+      if (subs !== undefined) {
+        propagate(subs);
+        processEffectNotifications();
+      }
+    },
+
+    subscribe(observerOrFn: Observer<T> | ((value: T) => void)) {
       const obs = toObserver(observerOrFn);
-      observers ??= new Set();
-      observers.add(obs);
+      const observed = { current: false };
+      const e = effect(() => {
+        this.get();
+        if (!observed.current) {
+          observed.current = true;
+        } else {
+          obs.next?.(this.currentValue);
+        }
+      });
+
       return {
-        unsubscribe() {
-          observers?.delete(obs);
+        unsubscribe: () => {
+          e.stop();
         }
       };
     }
   };
+
+  return atom as Atom<T>;
+}
+
+function computed<T>(
+  getter: (read: <U>(atom: Readable<U>) => U) => T,
+  options?: AtomOptions<T>
+): ReadonlyAtom<T> {
+  const computedAtom = {
+    currentValue: undefined as T | undefined,
+
+    // Dependency fields
+    subs: undefined as Link | undefined,
+    subsTail: undefined as Link | undefined,
+
+    // Subscriber fields
+    deps: undefined as Link | undefined,
+    depsTail: undefined as Link | undefined,
+    flags: SubscriberFlags.Computed | SubscriberFlags.Dirty,
+    observers: undefined as Set<Observer<T>> | undefined,
+
+    getter,
+    options,
+
+    get(): T {
+      const flags = this.flags;
+      if (flags & (SubscriberFlags.PendingComputed | SubscriberFlags.Dirty)) {
+        processComputedUpdate(this, flags);
+      }
+      if (activeSub !== undefined) {
+        link(this, activeSub);
+      }
+      return this.currentValue!;
+    },
+
+    update(): boolean {
+      const prevSub = activeSub;
+      const compare = this.options?.compare ?? Object.is;
+      // eslint-disable-next-line
+      activeSub = this;
+      startTracking(this);
+      try {
+        const oldValue = this.currentValue;
+        const read = (atom: Readable<any>) => atom.get();
+        const newValue = this.getter(read);
+        if (oldValue === undefined || !compare(oldValue, newValue)) {
+          this.currentValue = newValue;
+          return true;
+        }
+        return false;
+      } finally {
+        activeSub = prevSub;
+        endTracking(this);
+      }
+    },
+
+    subscribe(observerOrFn: Observer<T> | ((value: T) => void)) {
+      const obs = toObserver(observerOrFn);
+      const observed = { current: false };
+      const e = effect(() => {
+        this.get();
+        if (!observed.current) {
+          observed.current = true;
+        } else {
+          obs.next?.(this.get());
+        }
+      });
+
+      return {
+        unsubscribe: () => {
+          e.stop();
+        }
+      };
+    }
+  };
+
+  return computedAtom;
+}
+
+interface Effect extends Subscriber {
+  notify(): void;
+  stop(): void;
+}
+
+function effect<T>(fn: () => T): Effect {
+  const effectObj = {
+    // Subscriber fields
+    deps: undefined as Link | undefined,
+    depsTail: undefined as Link | undefined,
+    flags: SubscriberFlags.Effect,
+    fn,
+
+    notify(): void {
+      const flags = this.flags;
+      if (
+        flags & SubscriberFlags.Dirty ||
+        (flags & SubscriberFlags.PendingComputed &&
+          updateDirtyFlag(this, flags))
+      ) {
+        this.run();
+      }
+    },
+
+    run(): T {
+      const prevSub = activeSub;
+      // eslint-disable-next-line
+      activeSub = this;
+      startTracking(this);
+      try {
+        return this.fn();
+      } finally {
+        activeSub = prevSub;
+        endTracking(this);
+      }
+    },
+
+    stop(): void {
+      startTracking(this);
+      endTracking(this);
+    }
+  };
+
+  effectObj.run();
+
+  return effectObj;
 }
