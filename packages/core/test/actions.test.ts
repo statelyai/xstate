@@ -3284,7 +3284,7 @@ describe('sendTo', () => {
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
 [
   [
-    "Event "PING" was sent to stopped actor "myChild (x:113)". This actor has already reached its final state, and will not transition.
+    "Event "PING" was sent to stopped actor "myChild (x:1)". This actor has already reached its final state, and will not transition.
 Event: {"type":"PING"}",
   ],
 ]
@@ -3357,7 +3357,7 @@ Event: {"type":"PING"}",
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
 [
   [
-    "Event "PING" was sent to stopped actor "myChild (x:116)". This actor has already reached its final state, and will not transition.
+    "Event "PING" was sent to stopped actor "myChild (x:1)". This actor has already reached its final state, and will not transition.
 Event: {"type":"PING"}",
   ],
 ]

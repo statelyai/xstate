@@ -1068,7 +1068,8 @@ export function microstep(
         {
           context,
           event,
-          value: nextState.value
+          value: nextState.value,
+          children: nextState.children
         },
         emptyEnqueueObj
       );
@@ -1305,7 +1306,8 @@ function getTargets(
       {
         context: snapshot.context,
         event,
-        value: snapshot.value
+        value: snapshot.value,
+        children: snapshot.children
       },
       emptyEnqueueObj
     );
@@ -1332,7 +1334,8 @@ function getTransitionActions(
       {
         context: snapshot.context,
         event,
-        value: snapshot.value
+        value: snapshot.value,
+        children: snapshot.children
       },
       {
         ...emptyEnqueueObj,
@@ -2055,7 +2058,9 @@ function getActionsFromAction2(
           actions.push(emittedEvent);
         },
         log: () => {},
-        raise: () => {},
+        raise: (raisedEvent) => {
+          actions.push(raise(raisedEvent));
+        },
         spawn: (logic, options) => {
           actions.push(spawnChild(logic, options));
           return {} as any;
@@ -2086,7 +2091,13 @@ export function evaluateCandidate(
         throw new Error('Effect triggered');
       };
       res = candidate.fn(
-        { context, event, parent: undefined, value: snapshot.value },
+        {
+          context,
+          event,
+          parent: undefined,
+          value: snapshot.value,
+          children: snapshot.children
+        },
         {
           action: triggerEffect,
           emit: triggerEffect,

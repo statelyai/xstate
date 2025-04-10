@@ -736,13 +736,13 @@ describe('interpreter', () => {
     }
 
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
-      [
-        [
-          "Event "TIMER" was sent to stopped actor "x:27 (x:27)". This actor has already reached its final state, and will not transition.
-      Event: {"type":"TIMER"}",
-        ],
-      ]
-    `);
+[
+  [
+    "Event "TIMER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
+Event: {"type":"TIMER"}",
+  ],
+]
+`);
   });
 
   it('should be able to log (log action)', () => {
@@ -1151,13 +1151,13 @@ describe('interpreter', () => {
       setTimeout(() => {
         expect(called).toBeFalsy();
         expect(console.warn).toMatchMockCallsInlineSnapshot(`
-          [
-            [
-              "Event "TRIGGER" was sent to stopped actor "x:43 (x:43)". This actor has already reached its final state, and will not transition.
-          Event: {"type":"TRIGGER"}",
-            ],
-          ]
-        `);
+[
+  [
+    "Event "TRIGGER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
+Event: {"type":"TRIGGER"}",
+  ],
+]
+`);
         done();
       }, 10);
     });
