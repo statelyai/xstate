@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from 'node:timers/promises';
 import {
   assign,
   cancel,
@@ -22,8 +23,6 @@ import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
 import assert from 'node:assert';
 import { resolveReferencedActor } from '../src/utils';
-
-const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 describe('transition function', () => {
   it('should capture actions', () => {

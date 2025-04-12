@@ -1890,25 +1890,6 @@ it('should not notify the completion observer for an active logic when it gets s
   expect(spy).not.toHaveBeenCalled();
 });
 
-it('should not notify the completion observer for an errored logic when it gets subscribed after it errors', () => {
-  const spy = vi.fn();
-
-  const machine = createMachine({
-    entry: () => {
-      throw new Error('error');
-    }
-  });
-  const actorRef = createActor(machine);
-  actorRef.subscribe({ error: () => {} });
-  actorRef.start();
-
-  actorRef.subscribe({
-    complete: spy
-  });
-
-  expect(spy).not.toHaveBeenCalled();
-});
-
 it('should notify the error observer for an errored logic when it gets subscribed after it errors', () => {
   const spy = vi.fn();
 

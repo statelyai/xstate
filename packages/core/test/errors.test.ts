@@ -919,4 +919,31 @@ describe('error handling', () => {
       error_thrown_in_guard_when_transitioning]
     `);
   });
+
+  it('should not notify the completion observer for an errored logic when it gets subscribed after it errors', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const spy = vi.fn();
+
+    const machine = createMachine({
+      entry: () => {
+        throw new Error('error');
+      }
+    });
+    const actorRef = createActor(machine);
+    actorRef.subscribe({ error: () => {} });
+    actorRef.start();
+
+    actorRef.subscribe({
+      complete: spy
+    });
+
+    expect(spy).not.toHaveBeenCalled();
+
+    installGlobalOnErrorHandler((ev) => {
+      ev.preventDefault();
+      resolve();
+    });
+
+    return promise;
+  });
 });
