@@ -13,7 +13,8 @@ import {
   assign,
   createActor,
   createMachine,
-  raise
+  raise,
+  setup
 } from 'xstate';
 import { fromCallback, fromObservable, fromPromise } from 'xstate/actors';
 import { useActor, useSelector } from '../src/index.ts';
@@ -667,37 +668,34 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should be able to use a delay provided outside of React', () => {
     vi.useFakeTimers();
 
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: 'b'
-            }
-          },
-          b: {
-            after: {
-              myDelay: 'c'
-            }
-          },
-          c: {}
-        }
-      },
-      {
-        delays: {
-          myDelay: () => {
-            return 300;
-          }
+    const machine = setup({
+      delays: {
+        myDelay: () => {
+          return 300;
         }
       }
-    );
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: 'b'
+          }
+        },
+        b: {
+          after: {
+            myDelay: 'c'
+          }
+        },
+        c: {}
+      }
+    });
 
     const App = () => {
       const [state, send] = useActor(machine);
       return (
         <>
-          <div data-testid="result">{state.value as string}</div>
+          <div data-testid="result">{state.value}</div>
           <button onClick={() => send({ type: 'EV' })} />
         </>
       );
@@ -718,7 +716,11 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should not use stale data in a guard', () => {
-    const machine = createMachine({
+    const machine = setup({
+      guards: {
+        isAwesome: () => false
+      }
+    }).createMachine({
       initial: 'a',
       states: {
         a: {
@@ -743,7 +745,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       );
       return (
         <>
-          <div data-testid="result">{state.value as string}</div>
+          <div data-testid="result">{state.value}</div>
           <button onClick={() => send({ type: 'EV' })} />
         </>
       );
@@ -787,7 +789,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('child component should be able to send an event to a parent immediately in an effect', () => {
-    const machine = createMachine({
+    const machine = setup({}).createMachine({
       types: {} as {
         events: {
           type: 'FINISH';
@@ -1033,7 +1035,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should execute a delayed transition of the initial state', async () => {
-    const machine = createMachine({
+    const machine = setup({}).createMachine({
       initial: 'one',
       states: {
         one: {

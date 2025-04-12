@@ -1,5 +1,33 @@
 # @xstate/graph
 
+## 3.0.2
+
+### Patch Changes
+
+- Updated dependencies [[`d99df1d8f4fe49145c9974465b65028bf19b365f`](https://github.com/statelyai/xstate/commit/d99df1d8f4fe49145c9974465b65028bf19b365f)]:
+  - xstate@5.19.2
+
+## 3.0.1
+
+### Patch Changes
+
+- Updated dependencies [[`bf6119a7310a878afbf4f5b01f5e24288f9a0f16`](https://github.com/statelyai/xstate/commit/bf6119a7310a878afbf4f5b01f5e24288f9a0f16)]:
+  - xstate@5.19.1
+
+## 3.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`8c4b70652acaef2702f32435362e4755679a516d`](https://github.com/statelyai/xstate/commit/8c4b70652acaef2702f32435362e4755679a516d)]:
+  - xstate@5.19.0
+
+## 2.0.1
+
+### Patch Changes
+
+- Updated dependencies [[`25963966c394fc904dc9b701a420b6e204ebe7f7`](https://github.com/statelyai/xstate/commit/25963966c394fc904dc9b701a420b6e204ebe7f7)]:
+  - xstate@5.18.2
+
 ## 2.0.0
 
 ### Major Changes

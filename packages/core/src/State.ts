@@ -19,8 +19,7 @@ import type {
   MetaObject,
   StateSchema,
   StateId,
-  SnapshotStatus,
-  SnapshotFrom
+  SnapshotStatus
 } from './types.ts';
 import { matchesState } from './utils.ts';
 
@@ -37,10 +36,7 @@ type ToTestStateValue<TStateValue extends StateValue> =
               >;
             };
 
-export function isMachineSnapshot<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(value: unknown): value is AnyMachineSnapshot {
+export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
   return (
     !!value &&
     typeof value === 'object' &&
@@ -57,7 +53,7 @@ interface MachineSnapshotBase<
   TTag extends string,
   TOutput,
   TMeta,
-  TConfig extends StateSchema
+  TStateSchema extends StateSchema = StateSchema
 > {
   /** The state machine that produced this state snapshot. */
   machine: StateMachine<
@@ -74,7 +70,7 @@ interface MachineSnapshotBase<
     TOutput,
     EventObject, // TEmitted
     any, // TMeta
-    TConfig
+    TStateSchema
   >;
   /** The tags of the active state nodes that represent the current state value. */
   tags: Set<string>;
@@ -137,7 +133,7 @@ interface MachineSnapshotBase<
   can: (event: TEvent) => boolean;
 
   getMeta: () => Record<
-    StateId<TConfig> & string,
+    StateId<TStateSchema> & string,
     TMeta | undefined // States might not have meta defined
   >;
 

@@ -1010,6 +1010,48 @@ describe('guards - other', () => {
 
     expect(service.getSnapshot().value).toBe('c');
   });
+
+  it('inline function guard should not leak into provided guards object', async () => {
+    const guards = {};
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: () => false,
+            actions: () => {}
+          }
+        }
+      },
+      { guards }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FOO' });
+
+    expect(guards).toEqual({});
+  });
+
+  it('inline builtin guard should not leak into provided guards object', async () => {
+    const guards = {};
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: not(() => false),
+            actions: () => {}
+          }
+        }
+      },
+      { guards }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FOO' });
+
+    expect(guards).toEqual({});
+  });
 });
 
 describe('not() guard', () => {

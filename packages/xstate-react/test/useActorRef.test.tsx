@@ -1,3 +1,8 @@
+import {
+  fireEvent,
+  screen,
+  waitFor as testWaitFor
+} from '@testing-library/react';
 import * as React from 'react';
 import {
   ActorRefFrom,
@@ -9,11 +14,6 @@ import {
   sendParent,
   sendTo
 } from 'xstate';
-import {
-  fireEvent,
-  screen,
-  waitFor as testWaitFor
-} from '@testing-library/react';
 import { useActorRef, useMachine, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
 
@@ -612,10 +612,10 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     fireEvent.click(screen.getByText('Reload machine'));
 
     // while those numbers might be a little bit surprising at first glance they are actually correct
-    // we are using the "derive state from props pattern" here and that involved 2 renders
+    // we are using the "derive state from props pattern" here and that involves 2 renders
     // so we have a first render and then two other renders when the machine changes
-    // and in strict mode every render is simply doubled
-    expect(rerenders).toBe(suiteKey === 'strict' ? 6 : 3);
+    // in strict mode only regular renders are doubled but the render scheduled by a state change in render is not
+    expect(rerenders).toBe(suiteKey === 'strict' ? 5 : 3);
   });
 
   it('all renders should be consistent - a value derived in render should be derived from the latest source', () => {

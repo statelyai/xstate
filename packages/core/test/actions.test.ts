@@ -13,7 +13,7 @@ import {
 import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import {
   ActorRef,
-  ActorRefFrom,
+  ActorRefFromLogic,
   AnyActorRef,
   EventObject,
   Snapshot,
@@ -1553,7 +1553,7 @@ describe('entry/exit actions', () => {
       const parent = createMachine({
         types: {} as {
           context: {
-            child: ActorRefFrom<typeof child>;
+            child: ActorRefFromLogic<typeof child>;
           };
         },
         id: 'parent',
@@ -1598,7 +1598,7 @@ describe('entry/exit actions', () => {
       const parent = createMachine({
         types: {} as {
           context: {
-            child: ActorRefFrom<typeof child>;
+            child: ActorRefFromLogic<typeof child>;
           };
         },
         id: 'parent',
@@ -2981,7 +2981,7 @@ describe('sendTo', () => {
       const parentMachine = createMachine({
         types: {} as {
           context: {
-            child: ActorRefFrom<typeof childMachine>;
+            child: ActorRefFromLogic<typeof childMachine>;
           };
         },
         context: ({ spawn }) => ({
@@ -3014,7 +3014,7 @@ describe('sendTo', () => {
       const parentMachine = createMachine({
         types: {} as {
           context: {
-            child: ActorRefFrom<typeof childMachine>;
+            child: ActorRefFromLogic<typeof childMachine>;
             count: number;
           };
         },
@@ -3051,7 +3051,7 @@ describe('sendTo', () => {
     createMachine({
       types: {} as {
         context: {
-          child: ActorRefFrom<typeof childMachine>;
+          child: ActorRefFromLogic<typeof childMachine>;
         };
       },
       context: ({ spawn }) => ({
@@ -3083,7 +3083,9 @@ describe('sendTo', () => {
       });
 
       const parentMachine = createMachine({
-        types: {} as { context: { child: ActorRefFrom<typeof childMachine> } },
+        types: {} as {
+          context: { child: ActorRefFromLogic<typeof childMachine> };
+        },
         context: ({ spawn }) => ({
           child: spawn(childMachine, { id: 'child' })
         }),
@@ -3113,7 +3115,9 @@ describe('sendTo', () => {
       });
 
       const parentMachine = createMachine({
-        types: {} as { context: { child: ActorRefFrom<typeof childMachine> } },
+        types: {} as {
+          context: { child: ActorRefFromLogic<typeof childMachine> };
+        },
         context: ({ spawn }) => ({
           child: spawn(childMachine)
         }),
@@ -3182,6 +3186,193 @@ describe('sendTo', () => {
         ],
       ]
     `);
+  });
+
+  it('a self-event "handler" of an event sent using sendTo should be able to read updated snapshot of self', () => {
+    const spy = vi.fn();
+    const machine = createMachine({
+      context: {
+        counter: 0
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          entry: [
+            assign({ counter: 1 }),
+            sendTo(({ self }) => self, { type: 'EVENT' })
+          ],
+          on: {
+            EVENT: {
+              actions: ({ self }) => spy(self.getSnapshot().context),
+              target: 'c'
+            }
+          }
+        },
+        c: {}
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'NEXT' });
+    actorRef.send({ type: 'EVENT' });
+
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+[
+  [
+    {
+      "counter": 1,
+    },
+  ],
+]
+`);
+  });
+
+  it("should not attempt to deliver a delayed event to the spawned actor's ID that was stopped since the event was scheduled", async () => {
+    const warnSpy = vi.spyOn(console, 'warn');
+
+    const spy1 = vi.fn();
+
+    const child1 = createMachine({
+      on: {
+        PING: {
+          actions: spy1
+        }
+      }
+    });
+
+    const spy2 = vi.fn();
+
+    const child2 = createMachine({
+      on: {
+        PING: {
+          actions: spy2
+        }
+      }
+    });
+
+    const machine = setup({
+      actors: {
+        child1,
+        child2
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            START: 'b'
+          }
+        },
+        b: {
+          entry: [
+            spawnChild('child1', {
+              id: 'myChild'
+            }),
+            sendTo('myChild', { type: 'PING' }, { delay: 1 }),
+            stopChild('myChild'),
+            spawnChild('child2', {
+              id: 'myChild'
+            })
+          ]
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'START' });
+
+    await sleep(10);
+
+    expect(spy1).toHaveBeenCalledTimes(0);
+    expect(spy2).toHaveBeenCalledTimes(0);
+
+    expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
+[
+  [
+    "Event "PING" was sent to stopped actor "myChild (x:113)". This actor has already reached its final state, and will not transition.
+Event: {"type":"PING"}",
+  ],
+]
+`);
+  });
+
+  it("should not attempt to deliver a delayed event to the invoked actor's ID that was stopped since the event was scheduled", async () => {
+    const warnSpy = vi.spyOn(console, 'warn');
+    const spy1 = vi.fn();
+
+    const child1 = createMachine({
+      on: {
+        PING: {
+          actions: spy1
+        }
+      }
+    });
+
+    const spy2 = vi.fn();
+
+    const child2 = createMachine({
+      on: {
+        PING: {
+          actions: spy2
+        }
+      }
+    });
+
+    const machine = setup({
+      actors: {
+        child1,
+        child2
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            START: 'b'
+          }
+        },
+        b: {
+          entry: sendTo('myChild', { type: 'PING' }, { delay: 1 }),
+          invoke: {
+            src: 'child1',
+            id: 'myChild'
+          },
+          on: {
+            NEXT: 'c'
+          }
+        },
+        c: {
+          invoke: {
+            src: 'child2',
+            id: 'myChild'
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'START' });
+    actorRef.send({ type: 'NEXT' });
+
+    await sleep(10);
+
+    expect(spy1).toHaveBeenCalledTimes(0);
+    expect(spy2).toHaveBeenCalledTimes(0);
+
+    expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
+[
+  [
+    "Event "PING" was sent to stopped actor "myChild (x:116)". This actor has already reached its final state, and will not transition.
+Event: {"type":"PING"}",
+  ],
+]
+`);
   });
 });
 
@@ -3550,6 +3741,97 @@ describe('cancel', () => {
 
     expect(spy.mock.calls.length).toBe(0);
   });
+
+  it('should be able to cancel a just scheduled delayed event to a just invoked child', async () => {
+    const spy = vi.fn();
+
+    const child = createMachine({
+      on: {
+        PING: {
+          actions: spy
+        }
+      }
+    });
+
+    const machine = setup({
+      actors: {
+        child
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            START: 'b'
+          }
+        },
+        b: {
+          entry: [
+            sendTo('myChild', { type: 'PING' }, { id: 'myEvent', delay: 0 }),
+            cancel('myEvent')
+          ],
+          invoke: {
+            src: 'child',
+            id: 'myChild'
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({
+      type: 'START'
+    });
+
+    await sleep(10);
+    expect(spy.mock.calls.length).toBe(0);
+  });
+
+  it('should not be able to cancel a just scheduled non-delayed event to a just invoked child', async () => {
+    const spy = vi.fn();
+
+    const child = createMachine({
+      on: {
+        PING: {
+          actions: spy
+        }
+      }
+    });
+
+    const machine = setup({
+      actors: {
+        child
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            START: 'b'
+          }
+        },
+        b: {
+          entry: [
+            sendTo('myChild', { type: 'PING' }, { id: 'myEvent' }),
+            cancel('myEvent')
+          ],
+          invoke: {
+            src: 'child',
+            id: 'myChild'
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({
+      type: 'START'
+    });
+
+    expect(spy.mock.calls.length).toBe(1);
+  });
 });
 
 describe('assign action order', () => {
@@ -3570,7 +3852,9 @@ describe('assign action order', () => {
       ]
     });
 
-    createActor(machine).start();
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().context).toEqual({ count: 2 });
 
     expect(captured).toEqual([0, 1, 2]);
   });
@@ -4049,12 +4333,27 @@ describe('actions', () => {
     "Custom actions should not call \`raise()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
   ],
   [
-    "Custom actions should not call \`raise()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
+    "Custom actions should not call \`sendTo()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
   ],
   [
     "Custom actions should not call \`emit()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
   ],
 ]
 `);
+  });
+
+  it('inline actions should not leak into provided actions object', async () => {
+    const actions = {};
+
+    const machine = createMachine(
+      {
+        entry: () => {}
+      },
+      { actions }
+    );
+
+    createActor(machine).start();
+
+    expect(actions).toEqual({});
   });
 });

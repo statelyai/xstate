@@ -6,12 +6,13 @@ These steps assume You've forked the repo and created a branch for your PR. For 
 
 ```bash
 pnpm create vite@latest my-example-react --template react-ts
+cd my-example-react
 ```
 
 2. Install `xstate` and the library-specific beta (e.g. `@xstate/react`):
 
 ```bash
-pnpm i xstate @xstate/react
+pnpm install xstate @xstate/react
 ```
 
 3. Add your XState-powered demo code ✨

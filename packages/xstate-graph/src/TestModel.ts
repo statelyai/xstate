@@ -2,7 +2,6 @@ import {
   getPathsFromEvents,
   getAdjacencyMap,
   joinPaths,
-  AdjacencyValue,
   serializeSnapshot
 } from '@xstate/graph';
 import type {
@@ -456,7 +455,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
     },
     events: (state) => {
       const events =
-        typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
+        typeof getEvents === 'function' ? getEvents(state) : (getEvents ?? []);
 
       return __unsafe_getAllOwnEventDescriptors(state).flatMap(
         (eventType: string) => {

@@ -697,64 +697,90 @@ describe('inspect', () => {
     }).start();
 
     expect(simplifyEvents(events)).toMatchInlineSnapshot(`
-      [
-        {
-          "actorId": "x:5",
-          "type": "@xstate.actor",
+[
+  {
+    "actorId": "x:5",
+    "type": "@xstate.actor",
+  },
+  {
+    "event": {
+      "type": "to_b",
+    },
+    "transitions": [
+      {
+        "eventType": "to_b",
+        "target": [
+          "(machine).b",
+        ],
+      },
+    ],
+    "type": "@xstate.microstep",
+    "value": "b",
+  },
+  {
+    "event": {
+      "type": "to_c",
+    },
+    "transitions": [
+      {
+        "eventType": "to_c",
+        "target": [
+          "(machine).c",
+        ],
+      },
+    ],
+    "type": "@xstate.microstep",
+    "value": "c",
+  },
+  {
+    "event": {
+      "input": undefined,
+      "type": "xstate.init",
+    },
+    "sourceId": undefined,
+    "targetId": "x:5",
+    "type": "@xstate.event",
+  },
+  {
+    "action": {
+      "params": {
+        "delay": undefined,
+        "event": {
+          "type": "to_b",
         },
-        {
-          "event": {
-            "type": "to_b",
-          },
-          "transitions": [
-            {
-              "eventType": "to_b",
-              "target": [
-                "(machine).b",
-              ],
-            },
-          ],
-          "type": "@xstate.microstep",
-          "value": "b",
+        "id": undefined,
+      },
+      "type": "xstate.raise",
+    },
+    "type": "@xstate.action",
+  },
+  {
+    "action": {
+      "params": {
+        "delay": undefined,
+        "event": {
+          "type": "to_c",
         },
-        {
-          "event": {
-            "type": "to_c",
-          },
-          "transitions": [
-            {
-              "eventType": "to_c",
-              "target": [
-                "(machine).c",
-              ],
-            },
-          ],
-          "type": "@xstate.microstep",
-          "value": "c",
-        },
-        {
-          "event": {
-            "input": undefined,
-            "type": "xstate.init",
-          },
-          "sourceId": undefined,
-          "targetId": "x:5",
-          "type": "@xstate.event",
-        },
-        {
-          "actorId": "x:5",
-          "event": {
-            "input": undefined,
-            "type": "xstate.init",
-          },
-          "snapshot": {
-            "value": "c",
-          },
-          "status": "active",
-          "type": "@xstate.snapshot",
-        },
-      ]
-    `);
+        "id": undefined,
+      },
+      "type": "xstate.raise",
+    },
+    "type": "@xstate.action",
+  },
+  {
+    "actorId": "x:5",
+    "event": {
+      "input": undefined,
+      "type": "xstate.init",
+    },
+    "snapshot": {
+      "value": "c",
+    },
+    "status": "active",
+    "type": "@xstate.snapshot",
+  },
+]
+`);
   });
 
   it('should inspect microsteps for normal transitions', () => {
@@ -979,46 +1005,46 @@ describe('inspect', () => {
 
     expect(simplifyEvents(events, (ev) => ev.type === '@xstate.action'))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "action": {
-            "params": undefined,
-            "type": "enter1",
-          },
-          "type": "@xstate.action",
-        },
-        {
-          "action": {
-            "params": undefined,
-            "type": "stringAction",
-          },
-          "type": "@xstate.action",
-        },
-        {
-          "action": {
-            "params": {
-              "foo": "bar",
-            },
-            "type": "namedAction",
-          },
-          "type": "@xstate.action",
-        },
-        {
-          "action": {
-            "params": undefined,
-            "type": "(anonymous)",
-          },
-          "type": "@xstate.action",
-        },
-        {
-          "action": {
-            "params": undefined,
-            "type": "exit1",
-          },
-          "type": "@xstate.action",
-        },
-      ]
-    `);
+[
+  {
+    "action": {
+      "params": undefined,
+      "type": "enter1",
+    },
+    "type": "@xstate.action",
+  },
+  {
+    "action": {
+      "params": undefined,
+      "type": "stringAction",
+    },
+    "type": "@xstate.action",
+  },
+  {
+    "action": {
+      "params": {
+        "foo": "bar",
+      },
+      "type": "namedAction",
+    },
+    "type": "@xstate.action",
+  },
+  {
+    "action": {
+      "params": undefined,
+      "type": "(anonymous)",
+    },
+    "type": "@xstate.action",
+  },
+  {
+    "action": {
+      "params": undefined,
+      "type": "exit1",
+    },
+    "type": "@xstate.action",
+  },
+]
+`);
   });
 
   it('@xstate.microstep inspection events should report no transitions if an unknown event was sent', () => {

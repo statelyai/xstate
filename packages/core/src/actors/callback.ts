@@ -2,7 +2,7 @@ import { XSTATE_STOP } from '../constants.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
-  ActorRefFrom,
+  ActorRefFromLogic,
   AnyActorRef,
   AnyEventObject,
   EventObject,
@@ -73,7 +73,7 @@ export type CallbackActorLogic<
 export type CallbackActorRef<
   TEvent extends EventObject,
   TInput = NonReducibleUnknown
-> = ActorRefFrom<CallbackActorLogic<TEvent, TInput>>;
+> = ActorRefFromLogic<CallbackActorLogic<TEvent, TInput>>;
 
 type Receiver<TEvent extends EventObject> = (
   listener: {
@@ -81,7 +81,7 @@ type Receiver<TEvent extends EventObject> = (
   }['bivarianceHack']
 ) => void;
 
-type InvokeCallback<
+export type CallbackLogicFunction<
   TEvent extends EventObject = AnyEventObject,
   TSentEvent extends EventObject = AnyEventObject,
   TInput = NonReducibleUnknown,
@@ -163,9 +163,8 @@ type InvokeCallback<
  * });
  * ```
  *
- * @param invokeCallback - The callback function used to describe the callback
- *   logic The callback function is passed an object with the following
- *   properties:
+ * @param callback - The callback function used to describe the callback logic
+ *   The callback function is passed an object with the following properties:
  *
  *   - `receive` - A function that can send events back to the parent actor; the
  *       listener is then called whenever events are received by the callback
@@ -178,7 +177,7 @@ type InvokeCallback<
  *       when the actor is stopped.
  *
  * @returns Callback logic
- * @see {@link InvokeCallback} for more information about the callback function and its object argument
+ * @see {@link CallbackLogicFunction} for more information about the callback function and its object argument
  * @see {@link https://stately.ai/docs/input | Input docs} for more information about how input is passed
  */
 export function fromCallback<
@@ -186,10 +185,10 @@ export function fromCallback<
   TInput = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
 >(
-  invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput, TEmitted>
+  callback: CallbackLogicFunction<TEvent, AnyEventObject, TInput, TEmitted>
 ): CallbackActorLogic<TEvent, TInput, TEmitted> {
   const logic: CallbackActorLogic<TEvent, TInput, TEmitted> = {
-    config: invokeCallback,
+    config: callback,
     start: (state, actorScope) => {
       const { self, system, emit } = actorScope;
 
@@ -200,7 +199,7 @@ export function fromCallback<
 
       instanceStates.set(self, callbackState);
 
-      callbackState.dispose = invokeCallback({
+      callbackState.dispose = callback({
         input: state.input,
         system,
         self,

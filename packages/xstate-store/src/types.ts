@@ -1,29 +1,45 @@
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
-export type ExtractEventsFromPayloadMap<T extends EventPayloadMap> = Values<{
+export type ExtractEvents<T extends EventPayloadMap> = Values<{
   [K in keyof T & string]: T[K] & { type: K };
 }>;
 
 export type Recipe<T, TReturn> = (state: T) => TReturn;
 
+type AllKeys<T> = T extends any ? keyof T : never;
+
+type EmitterFunction<TEmittedEvent extends EventObject> = (
+  ...args: { type: TEmittedEvent['type'] } extends TEmittedEvent
+    ? AllKeys<TEmittedEvent> extends 'type'
+      ? []
+      : [DistributiveOmit<TEmittedEvent, 'type'>?]
+    : [DistributiveOmit<TEmittedEvent, 'type'>]
+) => void;
+
+export type EnqueueObject<TEmittedEvent extends EventObject> = {
+  emit: {
+    [E in TEmittedEvent as E['type']]: EmitterFunction<E>;
+  };
+  effect: (fn: () => void) => void;
+};
+
+export type StoreEffect<TEmitted extends EventObject> = (() => void) | TEmitted;
+
 export type StoreAssigner<
   TContext extends StoreContext,
-  TEvent extends EventObject
-> = (context: TContext, event: TEvent) => Partial<TContext>;
-export type StoreCompleteAssigner<TContext, TEvent extends EventObject> = (
-  ctx: TContext,
-  ev: TEvent
-) => TContext;
-export type StorePartialAssigner<
-  TContext,
   TEvent extends EventObject,
-  K extends keyof TContext
-> = (ctx: TContext, ev: TEvent) => Partial<TContext>[K];
-export type StorePropertyAssigner<TContext, TEvent extends EventObject> = {
-  [K in keyof TContext]?:
-    | TContext[K]
-    | StorePartialAssigner<TContext, TEvent, K>;
-};
+  TEmitted extends EventObject
+> = (
+  context: TContext,
+  event: TEvent,
+  enq: EnqueueObject<TEmitted>
+) => TContext | void;
+
+export type StoreProducerAssigner<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = (context: TContext, event: TEvent, enq: EnqueueObject<TEmitted>) => void;
 
 export type Snapshot<TOutput> =
   | {
@@ -58,16 +74,107 @@ export type StoreSnapshot<TContext> = Snapshot<undefined> & {
  * - Can receive events
  * - Is observable
  */
-export interface Store<TContext, Ev extends EventObject>
-  extends Subscribable<StoreSnapshot<TContext>>,
-    InteropObservable<StoreSnapshot<TContext>> {
-  send: (event: Ev) => void;
+export interface Store<
+  TContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> extends Subscribable<StoreSnapshot<TContext>>,
+    InteropObservable<StoreSnapshot<TContext>>,
+    Readable<StoreSnapshot<TContext>> {
+  send: (event: TEvent) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
+  /** @alias getSnapshot */
+  get: () => StoreSnapshot<TContext>;
   getInitialSnapshot: () => StoreSnapshot<TContext>;
+  /**
+   * Subscribes to [inspection events](https://stately.ai/docs/inspection) from
+   * the store.
+   *
+   * Inspectors that call `store.inspect(…)` will immediately receive an
+   * "@xstate.actor" inspection event.
+   */
+  inspect: (
+    observer:
+      | Observer<StoreInspectionEvent>
+      | ((inspectionEvent: StoreInspectionEvent) => void)
+  ) => Subscription;
+  sessionId: string;
+  on: <TEmittedType extends TEmitted['type']>(
+    eventType: TEmittedType,
+    emittedEventHandler: (
+      emittedEvent: Compute<TEmitted & { type: TEmittedType }>
+    ) => void
+  ) => Subscription;
+  /**
+   * A proxy object that allows you to send events to the store without manually
+   * constructing event objects.
+   *
+   * @example
+   *
+   * ```ts
+   * // Equivalent to:
+   * // store.send({ type: 'increment', by: 1 });
+   * store.trigger.increment({ by: 1 });
+   * ```
+   */
+  trigger: {
+    [E in TEvent as E['type'] & string]: IsEmptyObject<
+      DistributiveOmit<E, 'type'>
+    > extends true
+      ? () => void
+      : (eventPayload: DistributiveOmit<E, 'type'>) => void;
+  };
+  select<TSelected>(
+    selector: Selector<TContext, TSelected>,
+    equalityFn?: (a: TSelected, b: TSelected) => boolean
+  ): Selection<TSelected>;
+  /**
+   * Returns the next state and effects for the given state and event, as a
+   * tuple.
+   *
+   * @example
+   *
+   * ```ts
+   * const [nextState, effects] = store.transition(store.getSnapshot(), {
+   *   type: 'increment',
+   *   by: 1
+   * });
+   * ```
+   */
+  transition: (
+    state: StoreSnapshot<TContext>,
+    event: TEvent
+  ) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
 }
 
-export type SnapshotFromStore<TStore extends Store<any, any>> =
-  TStore extends Store<infer TContext, any> ? StoreSnapshot<TContext> : never;
+export type StoreConfig<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventPayloadMap
+> = {
+  context: TContext;
+  emits?: {
+    [K in keyof TEmitted & string]: (payload: TEmitted[K]) => void;
+  };
+  on: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      TContext,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEvents<TEmitted>
+    >;
+  };
+};
+
+export type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
+
+export type AnyStore = Store<any, any, any>;
+
+export type Compute<A> = { [K in keyof A]: A[K] };
+
+export type SnapshotFromStore<TStore extends Store<any, any, any>> =
+  TStore extends Store<infer TContext, any, any>
+    ? StoreSnapshot<TContext>
+    : never;
 
 /**
  * Extract the type of events from a `Store`.
@@ -139,8 +246,10 @@ export type SnapshotFromStore<TStore extends Store<any, any>> =
  * multiply({ multiplier: 2 }); // sends { type: 'multiply', multiplier: 2 }
  * ```
  */
-export type EventFromStore<TStore extends Store<any, any>> =
-  TStore extends Store<infer _TContext, infer TEvent> ? TEvent : never;
+export type EventFromStore<TStore extends Store<any, any, any>> =
+  TStore extends Store<infer _TContext, infer TEvent, infer _TEmitted>
+    ? TEvent
+    : never;
 
 // Copied from XState core
 // -----------------------
@@ -182,3 +291,111 @@ export type EventObject = {
   type: string;
 };
 type Values<T> = T[keyof T];
+
+export type StoreInspectionEvent =
+  | StoreInspectedSnapshotEvent
+  | StoreInspectedEventEvent
+  | StoreInspectedActorEvent;
+
+/** @deprecated Use `StoreInspectionEvent` instead. */
+export type InspectionEvent = StoreInspectionEvent;
+
+interface StoreBaseInspectionEventProperties {
+  rootId: string; // the session ID of the root
+  /**
+   * The relevant actorRef for the inspection event.
+   *
+   * - For snapshot events, this is the `actorRef` of the snapshot.
+   * - For event events, this is the target `actorRef` (recipient of event).
+   * - For actor events, this is the `actorRef` of the registered actor.
+   */
+  actorRef: ActorRefLike;
+}
+
+export interface StoreInspectedSnapshotEvent
+  extends StoreBaseInspectionEventProperties {
+  type: '@xstate.snapshot';
+  event: AnyEventObject; // { type: string, ... }
+  snapshot: Snapshot<unknown>;
+}
+
+export interface StoreInspectedActionEvent
+  extends StoreBaseInspectionEventProperties {
+  type: '@xstate.action';
+  action: {
+    type: string;
+    params: Record<string, unknown>;
+  };
+}
+
+export interface StoreInspectedEventEvent
+  extends StoreBaseInspectionEventProperties {
+  type: '@xstate.event';
+  sourceRef: AnyStore | undefined;
+  event: AnyEventObject; // { type: string, ... }
+}
+
+interface AnyEventObject {
+  type: string;
+  [key: string]: any;
+}
+
+export interface StoreInspectedActorEvent
+  extends StoreBaseInspectionEventProperties {
+  type: '@xstate.actor';
+}
+
+// export type ActorRefLike = Pick<
+//   AnyActorRef,
+//   'sessionId' | 'send' | 'getSnapshot'
+// >;
+
+export type ActorRefLike = {
+  sessionId: string;
+  // https://github.com/statelyai/xstate/pull/5037/files#r1717036732
+  send: (event: any) => void;
+  getSnapshot: () => any;
+};
+
+export type Prop<T, K> = K extends keyof T ? T[K] : never;
+
+export type Cast<A, B> = A extends B ? A : B;
+
+export type EventMap<TEvent extends EventObject> = {
+  [E in TEvent as E['type']]: E;
+};
+
+export type Selector<TContext, TSelected> = (context: TContext) => TSelected;
+
+export type Selection<TSelected> = Readable<TSelected>;
+
+export interface Readable<T> extends Subscribable<T> {
+  get: () => T;
+}
+
+export interface Atom<T> extends Subscribable<T>, Readable<T> {
+  /** Sets the value of the atom using a function. */
+  set(fn: (prevVal: T) => T): void;
+  /** Sets the value of the atom. */
+  set(value: T): void;
+}
+
+export type AnyAtom = Atom<any>;
+
+/**
+ * An atom that is read-only and cannot be set.
+ *
+ * @example
+ *
+ * ```ts
+ * const atom = createAtom(() => 42);
+ * // @ts-expect-error - Cannot set a readonly atom
+ * atom.set(43);
+ * ```
+ */
+export interface ReadonlyAtom<T> extends Readable<T> {}
+
+/** A version of `Omit` that works with distributive types. */
+type DistributiveOmit<T, K extends PropertyKey> = T extends any
+  ? Omit<T, K>
+  : never;

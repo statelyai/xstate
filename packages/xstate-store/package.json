@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store",
-  "version": "2.1.0",
+  "version": "3.4.3",
   "description": "Simple stores",
   "keywords": [
     "store",
@@ -30,39 +30,56 @@
       "import": "./react/dist/xstate-store-react.cjs.mjs",
       "default": "./react/dist/xstate-store-react.cjs.js"
     },
+    "./solid": {
+      "types": {
+        "import": "./solid/dist/xstate-store-solid.cjs.mjs",
+        "default": "./solid/dist/xstate-store-solid.cjs.js"
+      },
+      "module": "./solid/dist/xstate-store-solid.esm.js",
+      "import": "./solid/dist/xstate-store-solid.cjs.mjs",
+      "default": "./solid/dist/xstate-store-solid.cjs.js"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": false,
   "files": [
     "dist",
-    "react"
+    "react",
+    "solid"
   ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
-  "scripts": {},
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "devDependencies": {
-    "@testing-library/react": "^16.0.0",
+    "@solidjs/testing-library": "^0.8.9",
+    "@statelyai/inspect": "^0.4.0",
+    "@testing-library/react": "^16.2.0",
     "@testing-library/vue": "^8.1.0",
-    "@types/react": "^18.3.3",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-vue": "^5.1.2",
-    "@xstate/react": "^4.1.1",
-    "@xstate/vue": "^3.1.2",
+    "@xstate/react": "workspace:^",
+    "@xstate/vue": "workspace:^",
     "immer": "^10.0.2",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "solid-js": "^1.7.6",
     "vue": "^3.4.35",
-    "xstate": "^5.17.0"
+    "xstate": "workspace:^"
   },
   "peerDependencies": {
-    "react": "^18.2.0"
+    "react": "^18.2.0 || ^19.0.0",
+    "solid-js": "^1.7.6"
   },
   "peerDependenciesMeta": {
     "react": {
+      "optional": true
+    },
+    "solid-js": {
       "optional": true
     }
   },
@@ -70,7 +87,8 @@
     "umdName": "XStateStore",
     "entrypoints": [
       "./index.ts",
-      "./react.ts"
+      "./react.ts",
+      "./solid.ts"
     ]
   }
 }

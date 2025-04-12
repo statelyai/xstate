@@ -1,5 +1,166 @@
 # xstate
 
+## 5.19.2
+
+### Patch Changes
+
+- [#5170](https://github.com/statelyai/xstate/pull/5170) [`d99df1d8f4fe49145c9974465b65028bf19b365f`](https://github.com/statelyai/xstate/commit/d99df1d8f4fe49145c9974465b65028bf19b365f) Thanks [@Andarist](https://github.com/Andarist)! - Improved compatibility of inferred types in projects with `exactOptionalPropertyTypes` enabled
+
+## 5.19.1
+
+### Patch Changes
+
+- [#5139](https://github.com/statelyai/xstate/pull/5139) [`bf6119a7310a878afbf4f5b01f5e24288f9a0f16`](https://github.com/statelyai/xstate/commit/bf6119a7310a878afbf4f5b01f5e24288f9a0f16) Thanks [@SandroMaglione](https://github.com/SandroMaglione)! - Make `spawn` input required when defined inside referenced actor:
+
+  ```ts
+  const childMachine = createMachine({
+    types: { input: {} as { value: number } }
+  });
+
+  const machine = createMachine({
+    types: {} as { context: { ref: ActorRefFrom<typeof childMachine> } },
+    context: ({ spawn }) => ({
+      ref: spawn(
+        childMachine,
+        // Input is now required!
+        { input: { value: 42 } }
+      )
+    })
+  });
+  ```
+
+## 5.19.0
+
+### Minor Changes
+
+- [#4954](https://github.com/statelyai/xstate/pull/4954) [`8c4b70652acaef2702f32435362e4755679a516d`](https://github.com/statelyai/xstate/commit/8c4b70652acaef2702f32435362e4755679a516d) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added a new `transition` function that takes an actor logic, a snapshot, and an event, and returns a tuple containing the next snapshot and the actions to execute. This function is a pure function and does not execute the actions itself. It can be used like this:
+
+  ```ts
+  import { transition } from 'xstate';
+
+  const [nextState, actions] = transition(actorLogic, currentState, event);
+  // Execute actions as needed
+  ```
+
+  Added a new `initialTransition` function that takes an actor logic and an optional input, and returns a tuple containing the initial snapshot and the actions to execute from the initial transition. This function is also a pure function and does not execute the actions itself. It can be used like this:
+
+  ```ts
+  import { initialTransition } from 'xstate';
+
+  const [initialState, actions] = initialTransition(actorLogic, input);
+  // Execute actions as needed
+  ```
+
+  These new functions provide a way to separate the calculation of the next snapshot and actions from the execution of those actions, allowing for more control and flexibility in the transition process.
+
+## 5.18.2
+
+### Patch Changes
+
+- [#5079](https://github.com/statelyai/xstate/pull/5079) [`25963966c394fc904dc9b701a420b6e204ebe7f7`](https://github.com/statelyai/xstate/commit/25963966c394fc904dc9b701a420b6e204ebe7f7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The inspection event interfaces now expect `ActorRefLike` instead of `AnyActorRef`
+
+## 5.18.1
+
+### Patch Changes
+
+- [#5055](https://github.com/statelyai/xstate/pull/5055) [`ad38c35c37`](https://github.com/statelyai/xstate/commit/ad38c35c377d4ec5c97710fda12512abbe5f7140) Thanks [@SandroMaglione](https://github.com/SandroMaglione)! - Exported `RequiredActorOptionsKeys` type meant to be used by integration packages like `@xstate/react`
+
+## 5.18.0
+
+### Minor Changes
+
+- [#5042](https://github.com/statelyai/xstate/pull/5042) [`54c9d9e6a4`](https://github.com/statelyai/xstate/commit/54c9d9e6a49ab8af8b58d700ed967536f9c06fb4) Thanks [@boneskull](https://github.com/boneskull)! - `waitFor()` now accepts a `{signal: AbortSignal}` in `WaitForOptions`
+
+- [#5006](https://github.com/statelyai/xstate/pull/5006) [`1ab974547f`](https://github.com/statelyai/xstate/commit/1ab974547f2e1f1b656279f144f6b88a4419d87e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The state value typings for setup state machine actors (`setup({}).createMachine({ ... })`) have been improved to represent the actual expected state values.
+
+  ```ts
+  const machine = setup({}).createMachine({
+    initial: 'green',
+    states: {
+      green: {},
+      yellow: {},
+      red: {
+        initial: 'walk',
+        states: {
+          walk: {},
+          wait: {},
+          stop: {}
+        }
+      },
+      emergency: {
+        type: 'parallel',
+        states: {
+          main: {
+            initial: 'blinking',
+            states: {
+              blinking: {}
+            }
+          },
+          cross: {
+            initial: 'blinking',
+            states: {
+              blinking: {}
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const actor = createActor(machine).start();
+
+  const stateValue = actor.getSnapshot().value;
+
+  if (stateValue === 'green') {
+    // ...
+  } else if (stateValue === 'yellow') {
+    // ...
+  } else if ('red' in stateValue) {
+    stateValue;
+    // {
+    //   red: "walk" | "wait" | "stop";
+    // }
+  } else {
+    stateValue;
+    // {
+    //   emergency: {
+    //     main: "blinking";
+    //     cross: "blinking";
+    //   };
+    // }
+  }
+  ```
+
+### Patch Changes
+
+- [#5054](https://github.com/statelyai/xstate/pull/5054) [`853f6daa0b`](https://github.com/statelyai/xstate/commit/853f6daa0b58bab6ea4153043f9efcfb18d18172) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `CallbackLogicFunction` type (previously `InvokeCallback`) is now exported. This is the callback function that you pass into `fromCallback(callbackLogicFn)` to create an actor from a callback function.
+
+  ```ts
+  import { type CallbackLogicFunction } from 'xstate';
+
+  // ...
+  ```
+
+## 5.17.4
+
+### Patch Changes
+
+- [#5039](https://github.com/statelyai/xstate/pull/5039) [`d6df8fb470`](https://github.com/statelyai/xstate/commit/d6df8fb470020a5798f27ed667432535a509712f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an inference issue that prevented `emit` used directly in `setup` (or bare `createMachine`) to benefit from `types.emitted` types.
+
+## 5.17.3
+
+### Patch Changes
+
+- [#5034](https://github.com/statelyai/xstate/pull/5034) [`7bed484c38`](https://github.com/statelyai/xstate/commit/7bed484c38f8028416c93656372f1463c47fdd58) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `EventFrom` and `ContextFrom` types
+
+## 5.17.2
+
+### Patch Changes
+
+- [#5029](https://github.com/statelyai/xstate/pull/5029) [`88bd87ab41`](https://github.com/statelyai/xstate/commit/88bd87ab412f22fb251a6060f45ba3b6f39ac208) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Revert `ActorRefFrom` change
+
+- [#5011](https://github.com/statelyai/xstate/pull/5011) [`a275d274de`](https://github.com/statelyai/xstate/commit/a275d274deb07ed17bb582e63d9428c5616067db) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is a new type helper: `ActorRefFromLogic<TLogic>`. This type is a stricter form of `ActorRefFrom<TLogic>` that only accepts actor logic types. See https://github.com/statelyai/xstate/issues/4997 for more details.
+
 ## 5.17.1
 
 ### Patch Changes

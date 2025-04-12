@@ -1,14 +1,17 @@
 import isDevelopment from '#is-development';
-import { executingCustomAction } from '../stateUtils.ts';
+import { executingCustomAction } from '../createActor.ts';
 import {
   ActionArgs,
+  ActionFunction,
   AnyActorScope,
+  AnyEventObject,
   AnyMachineSnapshot,
+  DoNotInfer,
   EventObject,
   MachineContext,
-  SendExpr,
   ParameterizedObject,
-  ActionFunction
+  SendExpr,
+  BuiltinActionResolution
 } from '../types.ts';
 
 function resolveEmit(
@@ -29,17 +32,12 @@ function resolveEmit(
           EventObject
         >;
   }
-) {
-  if (isDevelopment && typeof eventOrExpr === 'string') {
-    throw new Error(
-      `Only event objects may be used with emit; use emit({ type: "${eventOrExpr}" }) instead`
-    );
-  }
+): BuiltinActionResolution {
   const resolvedEvent =
     typeof eventOrExpr === 'function'
       ? eventOrExpr(args, actionParams)
       : eventOrExpr;
-  return [snapshot, { event: resolvedEvent }];
+  return [snapshot, { event: resolvedEvent }, undefined];
 }
 
 function executeEmit(
@@ -105,12 +103,18 @@ export function emit<
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
-  TEmitted extends EventObject
+  TEmitted extends AnyEventObject
 >(
   /** The event to emit, or an expression that returns an event to emit. */
   eventOrExpr:
-    | TEmitted
-    | SendExpr<TContext, TExpressionEvent, TParams, TEmitted, TEvent>
+    | DoNotInfer<TEmitted>
+    | SendExpr<
+        TContext,
+        TExpressionEvent,
+        TParams,
+        DoNotInfer<TEmitted>,
+        TEvent
+      >
 ): ActionFunction<
   TContext,
   TExpressionEvent,
@@ -129,8 +133,8 @@ export function emit<
   }
 
   function emit(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    _args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    _params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

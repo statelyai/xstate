@@ -1,6 +1,6 @@
 {
   "name": "@xstate/solid",
-  "version": "0.2.0",
+  "version": "1.0.2",
   "description": "XState tools for SolidJS",
   "keywords": [
     "state",
@@ -43,7 +43,7 @@
   },
   "peerDependencies": {
     "solid-js": "^1.6.0",
-    "xstate": "^5.17.1"
+    "xstate": "workspace:^"
   },
   "peerDependenciesMeta": {
     "xstate": {
@@ -54,6 +54,6 @@
     "@solidjs/testing-library": "^0.8.9",
     "solid-js": "^1.7.6",
     "vite-plugin-solid": "^2.10.2",
-    "xstate": "5.17.1"
+    "xstate": "workspace:^"
   }
 }

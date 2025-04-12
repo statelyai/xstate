@@ -1,7 +1,7 @@
 import {
   fromCallback,
   createActor,
-  getNextSnapshot,
+  transition,
   createMachine,
   getInitialSnapshot
 } from '../src/index.ts';
@@ -69,13 +69,13 @@ describe('deterministic machine', () => {
   describe('machine transitions', () => {
     it('should properly transition states based on event-like object', () => {
       expect(
-        getNextSnapshot(
+        transition(
           lightMachine,
           lightMachine.resolveState({ value: 'green' }),
           {
             type: 'TIMER'
           }
-        ).value
+        )[0].value
       ).toEqual('yellow');
     });
 
@@ -104,7 +104,7 @@ describe('deterministic machine', () => {
 
     it('should throw an error if not given an event', () => {
       expect(() =>
-        getNextSnapshot(
+        transition(
           lightMachine,
           testMachine.resolveState({ value: 'red' }),
           undefined as any
@@ -114,9 +114,9 @@ describe('deterministic machine', () => {
 
     it('should transition to nested states as target', () => {
       expect(
-        getNextSnapshot(testMachine, testMachine.resolveState({ value: 'a' }), {
+        transition(testMachine, testMachine.resolveState({ value: 'a' }), {
           type: 'T'
-        }).value
+        })[0].value
       ).toEqual({
         b: 'b1'
       });
@@ -124,37 +124,31 @@ describe('deterministic machine', () => {
 
     it('should throw an error for transitions from invalid states', () => {
       expect(() =>
-        getNextSnapshot(
-          testMachine,
-          testMachine.resolveState({ value: 'fake' }),
-          { type: 'T' }
-        )
+        transition(testMachine, testMachine.resolveState({ value: 'fake' }), {
+          type: 'T'
+        })
       ).toThrow();
     });
 
     it('should throw an error for transitions from invalid substates', () => {
       expect(() =>
-        getNextSnapshot(
-          testMachine,
-          testMachine.resolveState({ value: 'a.fake' }),
-          {
-            type: 'T'
-          }
-        )
+        transition(testMachine, testMachine.resolveState({ value: 'a.fake' }), {
+          type: 'T'
+        })
       ).toThrow();
     });
 
     it('should use the machine.initialState when an undefined state is given', () => {
       const init = getInitialSnapshot(lightMachine, undefined);
       expect(
-        getNextSnapshot(lightMachine, init, { type: 'TIMER' }).value
+        transition(lightMachine, init, { type: 'TIMER' })[0].value
       ).toEqual('yellow');
     });
 
     it('should use the machine.initialState when an undefined state is given (unhandled event)', () => {
       const init = getInitialSnapshot(lightMachine, undefined);
       expect(
-        getNextSnapshot(lightMachine, init, { type: 'TIMER' }).value
+        transition(lightMachine, init, { type: 'TIMER' })[0].value
       ).toEqual('yellow');
     });
   });
@@ -162,23 +156,19 @@ describe('deterministic machine', () => {
   describe('machine transition with nested states', () => {
     it('should properly transition a nested state', () => {
       expect(
-        getNextSnapshot(
+        transition(
           lightMachine,
           lightMachine.resolveState({ value: { red: 'walk' } }),
           { type: 'PED_COUNTDOWN' }
-        ).value
+        )[0].value
       ).toEqual({ red: 'wait' });
     });
 
     it('should transition from initial nested states', () => {
       expect(
-        getNextSnapshot(
-          lightMachine,
-          lightMachine.resolveState({ value: 'red' }),
-          {
-            type: 'PED_COUNTDOWN'
-          }
-        ).value
+        transition(lightMachine, lightMachine.resolveState({ value: 'red' }), {
+          type: 'PED_COUNTDOWN'
+        })[0].value
       ).toEqual({
         red: 'wait'
       });
@@ -186,13 +176,9 @@ describe('deterministic machine', () => {
 
     it('should transition from deep initial nested states', () => {
       expect(
-        getNextSnapshot(
-          lightMachine,
-          lightMachine.resolveState({ value: 'red' }),
-          {
-            type: 'PED_COUNTDOWN'
-          }
-        ).value
+        transition(lightMachine, lightMachine.resolveState({ value: 'red' }), {
+          type: 'PED_COUNTDOWN'
+        })[0].value
       ).toEqual({
         red: 'wait'
       });
@@ -200,11 +186,11 @@ describe('deterministic machine', () => {
 
     it('should bubble up events that nested states cannot handle', () => {
       expect(
-        getNextSnapshot(
+        transition(
           lightMachine,
           lightMachine.resolveState({ value: { red: 'stop' } }),
           { type: 'TIMER' }
-        ).value
+        )[0].value
       ).toEqual('green');
     });
 
@@ -238,13 +224,13 @@ describe('deterministic machine', () => {
 
     it('should transition to the deepest initial state', () => {
       expect(
-        getNextSnapshot(
+        transition(
           lightMachine,
           lightMachine.resolveState({ value: 'yellow' }),
           {
             type: 'TIMER'
           }
-        ).value
+        )[0].value
       ).toEqual({
         red: 'walk'
       });
@@ -252,10 +238,10 @@ describe('deterministic machine', () => {
 
     it('should return the same state if no transition occurs', () => {
       const init = getInitialSnapshot(lightMachine, undefined);
-      const initialState = getNextSnapshot(lightMachine, init, {
+      const [initialState] = transition(lightMachine, init, {
         type: 'NOTHING'
       });
-      const nextState = getNextSnapshot(lightMachine, initialState, {
+      const [nextState] = transition(lightMachine, initialState, {
         type: 'NOTHING'
       });
 
@@ -288,7 +274,7 @@ describe('deterministic machine', () => {
 
     it('should work with substate nodes that have the same key', () => {
       const init = getInitialSnapshot(machine, undefined);
-      expect(getNextSnapshot(machine, init, { type: 'NEXT' }).value).toEqual(
+      expect(transition(machine, init, { type: 'NEXT' })[0].value).toEqual(
         'test'
       );
     });
@@ -296,7 +282,7 @@ describe('deterministic machine', () => {
 
   describe('forbidden events', () => {
     it('undefined transitions should forbid events', () => {
-      const walkState = getNextSnapshot(
+      const [walkState] = transition(
         lightMachine,
         lightMachine.resolveState({ value: { red: 'walk' } }),
         { type: 'TIMER' }

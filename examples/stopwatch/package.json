@@ -1,5 +1,5 @@
 {
-  "name": "counter",
+  "name": "@xstate/example-stopwatch",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,10 +9,10 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "typescript": "^5.5.4",
-    "vite": "^5.3.5"
+    "typescript": "^5.7.3",
+    "vite": "^5.4.14"
   },
   "dependencies": {
-    "xstate": "^5.17.1"
+    "xstate": "^5.19.2"
   }
 }

@@ -61,50 +61,51 @@ describe('interpreter', () => {
       expect(service.getSnapshot().value).toEqual('foo');
     });
 
-    it('initially spawned actors should not be spawned when reading initial state', () =>
-      new Promise<void>((resolve) => {
-        let promiseSpawned = 0;
+    it('initially spawned actors should not be spawned when reading initial state', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
+      let promiseSpawned = 0;
 
-        const machine = createMachine({
-          initial: 'idle',
-          context: {
-            actor: undefined! as ActorRefFrom<PromiseActorLogic<unknown>>
-          },
-          states: {
-            idle: {
-              entry: assign({
-                actor: ({ spawn }) => {
-                  return spawn(
-                    fromPromise(
-                      () =>
-                        new Promise(() => {
-                          promiseSpawned++;
-                        })
-                    )
-                  );
-                }
-              })
-            }
+      const machine = createMachine({
+        initial: 'idle',
+        context: {
+          actor: undefined! as ActorRefFrom<PromiseActorLogic<unknown>>
+        },
+        states: {
+          idle: {
+            entry: assign({
+              actor: ({ spawn }) => {
+                return spawn(
+                  fromPromise(
+                    () =>
+                      new Promise(() => {
+                        promiseSpawned++;
+                      })
+                  )
+                );
+              }
+            })
           }
-        });
+        }
+      });
 
-        const service = createActor(machine);
+      const service = createActor(machine);
 
-        expect(promiseSpawned).toEqual(0);
+      expect(promiseSpawned).toEqual(0);
 
-        service.getSnapshot();
-        service.getSnapshot();
-        service.getSnapshot();
+      service.getSnapshot();
+      service.getSnapshot();
+      service.getSnapshot();
 
-        expect(promiseSpawned).toEqual(0);
+      expect(promiseSpawned).toEqual(0);
 
-        service.start();
+      service.start();
 
-        setTimeout(() => {
-          expect(promiseSpawned).toEqual(1);
-          resolve();
-        }, 100);
-      }));
+      setTimeout(() => {
+        expect(promiseSpawned).toEqual(1);
+        resolve();
+      }, 100);
+      return promise;
+    });
 
     it('does not execute actions from a restored state', () => {
       let called = false;
@@ -366,79 +367,81 @@ describe('interpreter', () => {
       expect(stopped).toBe(true);
     });
 
-    it('can send an event after a delay (delayed transitions)', () =>
-      new Promise<void>((resolve) => {
-        const clock = new SimulatedClock();
-        const letterMachine = createMachine(
-          {
-            types: {} as {
-              events: { type: 'FIRE_DELAY'; value: number };
-            },
-            id: 'letter',
-            context: {
-              delay: 100
-            },
-            initial: 'a',
-            states: {
-              a: {
-                after: {
-                  delayA: 'b'
-                }
-              },
-              b: {
-                after: {
-                  someDelay: 'c'
-                }
-              },
-              c: {
-                entry: raise({ type: 'FIRE_DELAY', value: 200 }, { delay: 20 }),
-                on: {
-                  FIRE_DELAY: 'd'
-                }
-              },
-              d: {
-                after: {
-                  delayD: 'e'
-                }
-              },
-              e: {
-                after: { someDelay: 'f' }
-              },
-              f: {
-                type: 'final'
-              }
-            }
+    it('can send an event after a delay (delayed transitions)', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
+      const clock = new SimulatedClock();
+      const letterMachine = createMachine(
+        {
+          types: {} as {
+            events: { type: 'FIRE_DELAY'; value: number };
           },
-          {
-            delays: {
-              someDelay: ({ context }) => {
-                return context.delay + 50;
-              },
-              delayA: ({ context }) => context.delay,
-              delayD: ({ context, event }) => context.delay + event.value
+          id: 'letter',
+          context: {
+            delay: 100
+          },
+          initial: 'a',
+          states: {
+            a: {
+              after: {
+                delayA: 'b'
+              }
+            },
+            b: {
+              after: {
+                someDelay: 'c'
+              }
+            },
+            c: {
+              entry: raise({ type: 'FIRE_DELAY', value: 200 }, { delay: 20 }),
+              on: {
+                FIRE_DELAY: 'd'
+              }
+            },
+            d: {
+              after: {
+                delayD: 'e'
+              }
+            },
+            e: {
+              after: { someDelay: 'f' }
+            },
+            f: {
+              type: 'final'
             }
           }
-        );
-
-        const actor = createActor(letterMachine, { clock });
-        actor.subscribe({
-          complete: () => {
-            resolve();
+        },
+        {
+          delays: {
+            someDelay: ({ context }) => {
+              return context.delay + 50;
+            },
+            delayA: ({ context }) => context.delay,
+            delayD: ({ context, event }) => context.delay + event.value
           }
-        });
-        actor.start();
+        }
+      );
 
-        expect(actor.getSnapshot().value).toEqual('a');
-        clock.increment(100);
-        expect(actor.getSnapshot().value).toEqual('b');
-        clock.increment(100 + 50);
-        expect(actor.getSnapshot().value).toEqual('c');
-        clock.increment(20);
-        expect(actor.getSnapshot().value).toEqual('d');
-        clock.increment(100 + 200);
-        expect(actor.getSnapshot().value).toEqual('e');
-        clock.increment(100 + 50);
-      }));
+      const actor = createActor(letterMachine, { clock });
+      actor.subscribe({
+        complete: () => {
+          resolve();
+        }
+      });
+      actor.start();
+
+      expect(actor.getSnapshot().value).toEqual('a');
+      clock.increment(100);
+      expect(actor.getSnapshot().value).toEqual('b');
+      clock.increment(100 + 50);
+      expect(actor.getSnapshot().value).toEqual('c');
+      clock.increment(20);
+      expect(actor.getSnapshot().value).toEqual('d');
+      clock.increment(100 + 200);
+      expect(actor.getSnapshot().value).toEqual('e');
+      clock.increment(100 + 50);
+
+      return promise;
+    });
   });
 
   describe('activities (deprecated)', () => {
@@ -606,51 +609,52 @@ describe('interpreter', () => {
     expect(service.getSnapshot().value).toEqual('green');
   });
 
-  it('can cancel a delayed event using expression to resolve send id', () =>
-    new Promise<void>((resolve) => {
-      const machine = createMachine({
-        initial: 'first',
-        states: {
-          first: {
-            entry: [
-              raise(
-                { type: 'FOO' },
-                {
-                  id: 'foo',
-                  delay: 100
-                }
-              ),
-              raise(
-                { type: 'BAR' },
-                {
-                  delay: 200
-                }
-              ),
-              cancel(() => 'foo')
-            ],
-            on: {
-              FOO: 'fail',
-              BAR: 'pass'
-            }
-          },
-          fail: {
-            type: 'final'
-          },
-          pass: {
-            type: 'final'
+  it('can cancel a delayed event using expression to resolve send id', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const machine = createMachine({
+      initial: 'first',
+      states: {
+        first: {
+          entry: [
+            raise(
+              { type: 'FOO' },
+              {
+                id: 'foo',
+                delay: 100
+              }
+            ),
+            raise(
+              { type: 'BAR' },
+              {
+                delay: 200
+              }
+            ),
+            cancel(() => 'foo')
+          ],
+          on: {
+            FOO: 'fail',
+            BAR: 'pass'
           }
+        },
+        fail: {
+          type: 'final'
+        },
+        pass: {
+          type: 'final'
         }
-      });
+      }
+    });
 
-      const service = createActor(machine).start();
+    const service = createActor(machine).start();
 
-      service.subscribe({
-        complete: () => {
-          expect(service.getSnapshot().value).toBe('pass');
-          resolve();
-        }
-      });
-    }));
+    service.subscribe({
+      complete: () => {
+        expect(service.getSnapshot().value).toBe('pass');
+        resolve();
+      }
+    });
+    return promise;
+  });
 
   it('should not throw an error if an event is sent to an uninitialized interpreter', () => {
     const actorRef = createActor(lightMachine);
@@ -658,43 +662,44 @@ describe('interpreter', () => {
     expect(() => actorRef.send({ type: 'SOME_EVENT' })).not.toThrow();
   });
 
-  it('should defer events sent to an uninitialized service', () =>
-    new Promise<void>((resolve) => {
-      const deferMachine = createMachine({
-        id: 'defer',
-        initial: 'a',
-        states: {
-          a: {
-            on: { NEXT_A: 'b' }
-          },
-          b: {
-            on: { NEXT_B: 'c' }
-          },
-          c: {
-            type: 'final'
-          }
-        }
-      });
-
-      let state: any;
-      const deferService = createActor(deferMachine);
-
-      deferService.subscribe({
-        next: (nextState) => {
-          state = nextState;
+  it('should defer events sent to an uninitialized service', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const deferMachine = createMachine({
+      id: 'defer',
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT_A: 'b' }
         },
-        complete: resolve
-      });
+        b: {
+          on: { NEXT_B: 'c' }
+        },
+        c: {
+          type: 'final'
+        }
+      }
+    });
 
-      // uninitialized
-      deferService.send({ type: 'NEXT_A' });
-      deferService.send({ type: 'NEXT_B' });
+    let state: any;
+    const deferService = createActor(deferMachine);
 
-      expect(state).not.toBeDefined();
+    deferService.subscribe({
+      next: (nextState) => {
+        state = nextState;
+      },
+      complete: resolve
+    });
 
-      // initialized
-      deferService.start();
-    }));
+    // uninitialized
+    deferService.send({ type: 'NEXT_A' });
+    deferService.send({ type: 'NEXT_B' });
+
+    expect(state).not.toBeDefined();
+
+    // initialized
+    deferService.start();
+    return promise;
+  });
 
   it('should throw an error if initial state sent to interpreter is invalid', () => {
     const invalidMachine = {
@@ -724,8 +729,7 @@ describe('interpreter', () => {
   });
 
   it('should not update when stopped', () => {
-    const spy = vi.spyOn(console, 'warn');
-
+    const warnSpy = vi.spyOn(console, 'warn');
     const service = createActor(lightMachine, {
       clock: new SimulatedClock()
     });
@@ -741,7 +745,7 @@ describe('interpreter', () => {
       expect(service.getSnapshot().value).toEqual('yellow');
     }
 
-    expect(spy.mock.calls).toMatchInlineSnapshot(`
+    expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           "Event "TIMER" was sent to stopped actor "x:27 (x:27)". This actor has already reached its final state, and will not transition.
@@ -850,78 +854,80 @@ describe('interpreter', () => {
       }
     });
 
-    it('should resolve send event expressions', () =>
-      new Promise<void>((resolve) => {
-        const actor = createActor(machine);
-        actor.subscribe({ complete: () => resolve() });
-        actor.start();
-      }));
+    it('should resolve send event expressions', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
+      const actor = createActor(machine);
+      actor.subscribe({ complete: () => resolve() });
+      actor.start();
+      return promise;
+    });
   });
 
   describe('sendParent() event expressions', () => {
-    it('should resolve sendParent event expressions', () =>
-      new Promise<void>((resolve) => {
-        const childMachine = createMachine({
-          types: {} as {
-            context: { password: string };
-            input: { password: string };
-          },
-          id: 'child',
-          initial: 'start',
-          context: ({ input }) => ({
-            password: input.password
-          }),
-          states: {
-            start: {
-              entry: sendParent(({ context }) => {
-                return { type: 'NEXT', password: context.password };
-              })
-            }
+    it('should resolve sendParent event expressions', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
+      const childMachine = createMachine({
+        types: {} as {
+          context: { password: string };
+          input: { password: string };
+        },
+        id: 'child',
+        initial: 'start',
+        context: ({ input }) => ({
+          password: input.password
+        }),
+        states: {
+          start: {
+            entry: sendParent(({ context }) => {
+              return { type: 'NEXT', password: context.password };
+            })
           }
-        });
+        }
+      });
 
-        const parentMachine = createMachine({
-          types: {} as {
-            events: {
-              type: 'NEXT';
-              password: string;
-            };
-          },
-          id: 'parent',
-          initial: 'start',
-          states: {
-            start: {
-              invoke: {
-                id: 'child',
-                src: childMachine,
-                input: { password: 'foo' }
-              },
-              on: {
-                NEXT: {
-                  target: 'finish',
-                  guard: ({ event }) => event.password === 'foo'
-                }
-              }
+      const parentMachine = createMachine({
+        types: {} as {
+          events: {
+            type: 'NEXT';
+            password: string;
+          };
+        },
+        id: 'parent',
+        initial: 'start',
+        states: {
+          start: {
+            invoke: {
+              id: 'child',
+              src: childMachine,
+              input: { password: 'foo' }
             },
-            finish: {
-              type: 'final'
-            }
-          }
-        });
-
-        const actor = createActor(parentMachine);
-        actor.subscribe({
-          next: (state) => {
-            if (state.matches('start')) {
-              const childActor = state.children.child;
-
-              expect(typeof childActor!.send).toBe('function');
+            on: {
+              NEXT: {
+                target: 'finish',
+                guard: ({ event }) => event.password === 'foo'
+              }
             }
           },
-          complete: () => resolve()
-        });
-        actor.start();
-      }));
+          finish: {
+            type: 'final'
+          }
+        }
+      });
+
+      const actor = createActor(parentMachine);
+      actor.subscribe({
+        next: (state) => {
+          if (state.matches('start')) {
+            const childActor = state.children.child;
+
+            expect(typeof childActor!.send).toBe('function');
+          }
+        },
+        complete: () => resolve()
+      });
+      actor.start();
+      return promise;
+    });
   });
 
   describe('.send()', () => {
@@ -944,68 +950,72 @@ describe('interpreter', () => {
       }
     });
 
-    it('can send events with a string', () =>
-      new Promise<void>((resolve) => {
-        const service = createActor(sendMachine);
-        service.subscribe({ complete: () => resolve() });
-        service.start();
+    it('can send events with a string', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
+      const service = createActor(sendMachine);
+      service.subscribe({ complete: () => resolve() });
+      service.start();
 
-        service.send({ type: 'ACTIVATE' });
-      }));
+      service.send({ type: 'ACTIVATE' });
+      return promise;
+    });
 
-    it('can send events with an object', () =>
-      new Promise<void>((resolve) => {
-        const service = createActor(sendMachine);
-        service.subscribe({ complete: () => resolve() });
-        service.start();
+    it('can send events with an object', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
+      const service = createActor(sendMachine);
+      service.subscribe({ complete: () => resolve() });
+      service.start();
 
-        service.send({ type: 'ACTIVATE' });
-      }));
+      service.send({ type: 'ACTIVATE' });
+      return promise;
+    });
 
-    it('can send events with an object with payload', () =>
-      new Promise<void>((resolve) => {
-        const service = createActor(sendMachine);
-        service.subscribe({ complete: () => resolve() });
-        service.start();
+    it('can send events with an object with payload', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
+      const service = createActor(sendMachine);
+      service.subscribe({ complete: () => resolve() });
+      service.start();
 
-        service.send({ type: 'EVENT', id: 42 });
-      }));
+      service.send({ type: 'EVENT', id: 42 });
+      return promise;
+    });
 
-    it('should receive and process all events sent simultaneously', () =>
-      new Promise<void>((resolve) => {
-        const toggleMachine = createMachine({
-          id: 'toggle',
-          initial: 'inactive',
-          states: {
-            fail: {},
-            inactive: {
-              on: {
-                INACTIVATE: 'fail',
-                ACTIVATE: 'active'
-              }
-            },
-            active: {
-              on: {
-                INACTIVATE: 'success'
-              }
-            },
-            success: {
-              type: 'final'
+    it('should receive and process all events sent simultaneously', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
+      const toggleMachine = createMachine({
+        id: 'toggle',
+        initial: 'inactive',
+        states: {
+          fail: {},
+          inactive: {
+            on: {
+              INACTIVATE: 'fail',
+              ACTIVATE: 'active'
             }
+          },
+          active: {
+            on: {
+              INACTIVATE: 'success'
+            }
+          },
+          success: {
+            type: 'final'
           }
-        });
+        }
+      });
 
-        const toggleService = createActor(toggleMachine);
-        toggleService.subscribe({
-          complete: () => {
-            resolve();
-          }
-        });
-        toggleService.start();
+      const toggleService = createActor(toggleMachine);
+      toggleService.subscribe({
+        complete: () => {
+          resolve();
+        }
+      });
+      toggleService.start();
 
-        toggleService.send({ type: 'ACTIVATE' });
-        toggleService.send({ type: 'INACTIVATE' });
-      }));
+      toggleService.send({ type: 'ACTIVATE' });
+      toggleService.send({ type: 'INACTIVATE' });
+      return promise;
+    });
   });
 
   describe('.start()', () => {
@@ -1105,68 +1115,68 @@ describe('interpreter', () => {
   });
 
   describe('.stop()', () => {
-    it('should cancel delayed events', () =>
-      new Promise<void>((resolve) => {
-        let called = false;
-        const delayedMachine = createMachine({
-          id: 'delayed',
-          initial: 'foo',
-          states: {
-            foo: {
-              after: {
-                50: {
-                  target: 'bar',
-                  actions: () => {
-                    called = true;
-                  }
+    it('should cancel delayed events', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
+      let called = false;
+      const delayedMachine = createMachine({
+        id: 'delayed',
+        initial: 'foo',
+        states: {
+          foo: {
+            after: {
+              50: {
+                target: 'bar',
+                actions: () => {
+                  called = true;
                 }
               }
-            },
-            bar: {}
-          }
-        });
+            }
+          },
+          bar: {}
+        }
+      });
 
-        const delayedService = createActor(delayedMachine).start();
+      const delayedService = createActor(delayedMachine).start();
 
-        delayedService.stop();
+      delayedService.stop();
 
-        setTimeout(() => {
-          expect(called).toBe(false);
-          resolve();
-        }, 60);
-      }));
+      setTimeout(() => {
+        expect(called).toBe(false);
+        resolve();
+      }, 60);
+      return promise;
+    });
 
-    it('should not execute transitions after being stopped', () =>
-      new Promise<void>((resolve) => {
-        const warnSpy = vi.spyOn(console, 'warn');
+    it('should not execute transitions after being stopped', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
+      const warnSpy = vi.spyOn(console, 'warn');
+      let called = false;
 
-        let called = false;
-
-        const testMachine = createMachine({
-          initial: 'waiting',
-          states: {
-            waiting: {
-              on: {
-                TRIGGER: 'active'
-              }
-            },
-            active: {
-              entry: () => {
-                called = true;
-              }
+      const testMachine = createMachine({
+        initial: 'waiting',
+        states: {
+          waiting: {
+            on: {
+              TRIGGER: 'active'
+            }
+          },
+          active: {
+            entry: () => {
+              called = true;
             }
           }
-        });
+        }
+      });
 
-        const service = createActor(testMachine).start();
+      const service = createActor(testMachine).start();
 
-        service.stop();
+      service.stop();
 
-        service.send({ type: 'TRIGGER' });
+      service.send({ type: 'TRIGGER' });
 
-        setTimeout(() => {
-          expect(called).toBeFalsy();
-          expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
+      setTimeout(() => {
+        expect(called).toBeFalsy();
+        expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
           [
             [
               "Event "TRIGGER" was sent to stopped actor "x:43 (x:43)". This actor has already reached its final state, and will not transition.
@@ -1174,9 +1184,10 @@ describe('interpreter', () => {
             ],
           ]
         `);
-          resolve();
-        }, 10);
-      }));
+        resolve();
+      }, 10);
+      return promise;
+    });
 
     it('stopping a not-started interpreter should not crash', () => {
       const service = createActor(
@@ -1325,88 +1336,93 @@ describe('interpreter', () => {
       }
     });
 
-    it('should be subscribable', () =>
-      new Promise<void>((resolve) => {
-        let count: number;
-        const intervalService = createActor(intervalMachine).start();
+    it('should be subscribable', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
+      let count: number;
+      const intervalService = createActor(intervalMachine).start();
 
-        expect(typeof intervalService.subscribe === 'function').toBeTruthy();
+      expect(typeof intervalService.subscribe === 'function').toBeTruthy();
 
-        intervalService.subscribe(
-          (state) => (count = state.context.count),
-          undefined,
-          () => {
-            expect(count).toEqual(5);
-            resolve();
-          }
-        );
-      }));
+      intervalService.subscribe(
+        (state) => {
+          count = state.context.count;
+        },
+        undefined,
+        () => {
+          expect(count).toEqual(5);
+          resolve();
+        }
+      );
+      return promise;
+    });
 
-    it('should be interoperable with RxJS, etc. via Symbol.observable', () =>
-      new Promise<void>((resolve) => {
-        let count = 0;
-        const intervalService = createActor(intervalMachine).start();
+    it('should be interoperable with RxJS, etc. via Symbol.observable', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
+      let count = 0;
+      const intervalService = createActor(intervalMachine).start();
 
-        const state$ = from(intervalService);
+      const state$ = from(intervalService);
 
-        state$.subscribe({
-          next: () => {
-            count += 1;
-          },
-          error: undefined,
-          complete: () => {
-            expect(count).toEqual(5);
-            resolve();
-          }
-        });
-      }));
+      state$.subscribe({
+        next: () => {
+          count += 1;
+        },
+        error: undefined,
+        complete: () => {
+          expect(count).toEqual(5);
+          resolve();
+        }
+      });
+      return promise;
+    });
 
-    it('should be unsubscribable', () =>
-      new Promise<void>((resolve) => {
-        const countContext = { count: 0 };
-        const machine = createMachine({
-          types: {} as { context: typeof countContext },
-          context: countContext,
-          initial: 'active',
-          states: {
-            active: {
-              always: {
-                target: 'finished',
-                guard: ({ context }) => context.count >= 5
-              },
-              on: {
-                INC: {
-                  actions: assign({ count: ({ context }) => context.count + 1 })
-                }
-              }
+    it('should be unsubscribable', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
+      const countContext = { count: 0 };
+      const machine = createMachine({
+        types: {} as { context: typeof countContext },
+        context: countContext,
+        initial: 'active',
+        states: {
+          active: {
+            always: {
+              target: 'finished',
+              guard: ({ context }) => context.count >= 5
             },
-            finished: {
-              type: 'final'
+            on: {
+              INC: {
+                actions: assign({ count: ({ context }) => context.count + 1 })
+              }
             }
+          },
+          finished: {
+            type: 'final'
           }
-        });
+        }
+      });
 
-        let count: number;
-        const service = createActor(machine);
-        service.subscribe({
-          complete: () => {
-            expect(count).toEqual(2);
-            resolve();
-          }
-        });
-        service.start();
+      let count: number;
+      const service = createActor(machine);
+      service.subscribe({
+        complete: () => {
+          expect(count).toEqual(2);
+          resolve();
+        }
+      });
+      service.start();
 
-        const subscription = service.subscribe(
-          (state) => (count = state.context.count)
-        );
+      const subscription = service.subscribe(
+        (state) => (count = state.context.count)
+      );
 
-        service.send({ type: 'INC' });
-        service.send({ type: 'INC' });
-        subscription.unsubscribe();
-        service.send({ type: 'INC' });
-        service.send({ type: 'INC' });
-        service.send({ type: 'INC' });
-      }));
+      service.send({ type: 'INC' });
+      service.send({ type: 'INC' });
+      subscription.unsubscribe();
+      service.send({ type: 'INC' });
+      service.send({ type: 'INC' });
+      service.send({ type: 'INC' });
+      return promise;
+    });
 
     it('should call complete() once a final state is reached', () => {
       const completeCb = vi.fn();
@@ -1525,134 +1541,136 @@ describe('interpreter', () => {
       expect(actor.getSnapshot().children).not.toHaveProperty('childActor');
     });
 
-    it('state.children should reference invoked child actors (promise)', () =>
-      new Promise<void>((resolve) => {
-        const parentMachine = createMachine(
-          {
-            initial: 'active',
-            types: {} as {
-              actors: {
-                src: 'num';
-                logic: PromiseActorLogic<number>;
-              };
-            },
-            states: {
-              active: {
-                invoke: {
-                  id: 'childActor',
-                  src: 'num',
-                  onDone: [
-                    {
-                      target: 'success',
-                      guard: ({ event }) => {
-                        return event.output === 42;
-                      }
-                    },
-                    { target: 'failure' }
-                  ]
-                }
-              },
-              success: {
-                type: 'final'
-              },
-              failure: {
-                type: 'final'
-              }
-            }
-          },
-          {
+    it('state.children should reference invoked child actors (promise)', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
+      const parentMachine = createMachine(
+        {
+          initial: 'active',
+          types: {} as {
             actors: {
-              num: fromPromise(
-                () =>
-                  new Promise<number>((res) => {
-                    setTimeout(() => {
-                      res(42);
-                    }, 100);
-                  })
-              )
-            }
-          }
-        );
-
-        const service = createActor(parentMachine);
-
-        service.subscribe({
-          next: (state) => {
-            if (state.matches('active')) {
-              const childActor = state.children.childActor;
-
-              expect(childActor).toHaveProperty('send');
-            }
+              src: 'num';
+              logic: PromiseActorLogic<number>;
+            };
           },
-          complete: () => {
-            expect(service.getSnapshot().matches('success')).toBeTruthy();
-            expect(service.getSnapshot().children).not.toHaveProperty(
-              'childActor'
-            );
-            resolve();
-          }
-        });
-
-        service.start();
-      }));
-
-    it('state.children should reference invoked child actors (observable)', () =>
-      new Promise<void>((resolve) => {
-        const interval$ = interval(10);
-        const intervalLogic = fromObservable(() => interval$);
-
-        const parentMachine = createMachine(
-          {
-            types: {} as {
-              actors: {
-                src: 'intervalLogic';
-                logic: typeof intervalLogic;
-              };
-            },
-            initial: 'active',
-            states: {
-              active: {
-                invoke: {
-                  id: 'childActor',
-                  src: 'intervalLogic',
-                  onSnapshot: {
+          states: {
+            active: {
+              invoke: {
+                id: 'childActor',
+                src: 'num',
+                onDone: [
+                  {
                     target: 'success',
                     guard: ({ event }) => {
-                      return event.snapshot.context === 3;
+                      return event.output === 42;
                     }
+                  },
+                  { target: 'failure' }
+                ]
+              }
+            },
+            success: {
+              type: 'final'
+            },
+            failure: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          actors: {
+            num: fromPromise(
+              () =>
+                new Promise<number>((res) => {
+                  setTimeout(() => {
+                    res(42);
+                  }, 100);
+                })
+            )
+          }
+        }
+      );
+
+      const service = createActor(parentMachine);
+
+      service.subscribe({
+        next: (state) => {
+          if (state.matches('active')) {
+            const childActor = state.children.childActor;
+
+            expect(childActor).toHaveProperty('send');
+          }
+        },
+        complete: () => {
+          expect(service.getSnapshot().matches('success')).toBeTruthy();
+          expect(service.getSnapshot().children).not.toHaveProperty(
+            'childActor'
+          );
+          resolve();
+        }
+      });
+
+      service.start();
+      return promise;
+    });
+
+    it('state.children should reference invoked child actors (observable)', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
+      const interval$ = interval(10);
+      const intervalLogic = fromObservable(() => interval$);
+
+      const parentMachine = createMachine(
+        {
+          types: {} as {
+            actors: {
+              src: 'intervalLogic';
+              logic: typeof intervalLogic;
+            };
+          },
+          initial: 'active',
+          states: {
+            active: {
+              invoke: {
+                id: 'childActor',
+                src: 'intervalLogic',
+                onSnapshot: {
+                  target: 'success',
+                  guard: ({ event }) => {
+                    return event.snapshot.context === 3;
                   }
                 }
-              },
-              success: {
-                type: 'final'
               }
-            }
-          },
-          {
-            actors: {
-              intervalLogic
+            },
+            success: {
+              type: 'final'
             }
           }
-        );
-
-        const service = createActor(parentMachine);
-        service.subscribe({
-          complete: () => {
-            expect(service.getSnapshot().children).not.toHaveProperty(
-              'childActor'
-            );
-            resolve();
+        },
+        {
+          actors: {
+            intervalLogic
           }
-        });
+        }
+      );
 
-        service.subscribe((state) => {
-          if (state.matches('active')) {
-            expect(state.children['childActor']).not.toBeUndefined();
-          }
-        });
+      const service = createActor(parentMachine);
+      service.subscribe({
+        complete: () => {
+          expect(service.getSnapshot().children).not.toHaveProperty(
+            'childActor'
+          );
+          resolve();
+        }
+      });
 
-        service.start();
-      }));
+      service.subscribe((state) => {
+        if (state.matches('active')) {
+          expect(state.children['childActor']).not.toBeUndefined();
+        }
+      });
+
+      service.start();
+      return promise;
+    });
 
     it('state.children should reference spawned actors', () => {
       const childMachine = createMachine({
@@ -1788,27 +1806,28 @@ describe('interpreter', () => {
     expect(actor.getSnapshot()).toBe(initialState);
   });
 
-  it('should call an onDone callback immediately if the service is already done', () =>
-    new Promise<void>((resolve) => {
-      const machine = createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            type: 'final'
-          }
+  it('should call an onDone callback immediately if the service is already done', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          type: 'final'
         }
-      });
+      }
+    });
 
-      const service = createActor(machine).start();
+    const service = createActor(machine).start();
 
-      expect(service.getSnapshot().status).toBe('done');
+    expect(service.getSnapshot().status).toBe('done');
 
-      service.subscribe({
-        complete: () => {
-          resolve();
-        }
-      });
-    }));
+    service.subscribe({
+      complete: () => {
+        resolve();
+      }
+    });
+    return promise;
+  });
 });
 
 it('should throw if an event is received', () => {
@@ -1872,9 +1891,6 @@ it('should not notify the completion observer for an active logic when it gets s
 });
 
 it('should not notify the completion observer for an errored logic when it gets subscribed after it errors', () => {
-  // use fake timers to avoid error being thrown in separate microtask
-  vi.useFakeTimers();
-
   const spy = vi.fn();
 
   const machine = createMachine({
@@ -1884,7 +1900,6 @@ it('should not notify the completion observer for an errored logic when it gets 
   });
   const actorRef = createActor(machine);
   actorRef.subscribe({ error: () => {} });
-
   actorRef.start();
 
   actorRef.subscribe({

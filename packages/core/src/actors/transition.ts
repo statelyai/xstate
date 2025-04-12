@@ -1,7 +1,7 @@
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
-  ActorRefFrom,
+  ActorRefFromLogic,
   ActorScope,
   EventObject,
   NonReducibleUnknown,
@@ -86,7 +86,7 @@ export type TransitionActorLogic<
 export type TransitionActorRef<
   TContext,
   TEvent extends EventObject
-> = ActorRefFrom<
+> = ActorRefFromLogic<
   TransitionActorLogic<TransitionSnapshot<TContext>, TEvent, unknown>
 >;
 
@@ -196,11 +196,7 @@ export function fromTransition<
     transition: (snapshot, event, actorScope) => {
       return {
         ...snapshot,
-        context: transition(
-          snapshot.context,
-          event as TEvent,
-          actorScope as any
-        )
+        context: transition(snapshot.context, event, actorScope as any)
       };
     },
     getInitialSnapshot: (_, input) => {

@@ -10,22 +10,23 @@ import {
 } from '../src/actors';
 import {
   ActorRefFrom,
-  InputFrom,
+  ActorRefFromLogic,
+  AnyActorLogic,
   MachineContext,
   ProvidedActor,
   Spawner,
   StateMachine,
+  UnknownActorRef,
   assign,
   createActor,
   createMachine,
   enqueueActions,
   not,
   sendTo,
+  setup,
   spawnChild,
   stateIn,
-  setup,
-  toPromise,
-  UnknownActorRef
+  toPromise
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -3520,6 +3521,27 @@ describe('input', () => {
       }
     });
   });
+
+  it('should require input to be specified when defined', () => {
+    const machine = createMachine({
+      types: {
+        input: {} as {
+          count: number;
+        }
+      }
+    });
+
+    // @ts-expect-error
+    createActor(machine);
+  });
+
+  it('should not require input when not defined', () => {
+    const machine = createMachine({
+      types: {}
+    });
+
+    createActor(machine);
+  });
 });
 
 describe('guards', () => {
@@ -4581,4 +4603,20 @@ it('UnknownActorRef should return a Snapshot-typed value from getSnapshot()', ()
 
   // @ts-expect-error
   actor.getSnapshot().status === 'FOO';
+});
+
+it('Actor<T> should be assignable to ActorRefFromLogic<T>', () => {
+  const logic = createMachine({});
+
+  class ActorThing<T extends AnyActorLogic> {
+    actorRef: ActorRefFromLogic<T>;
+    constructor(actorLogic: T) {
+      const actor = createActor(actorLogic);
+
+      actor satisfies ActorRefFromLogic<typeof actorLogic>;
+      this.actorRef = actor;
+    }
+  }
+
+  new ActorThing(logic);
 });

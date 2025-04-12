@@ -224,8 +224,6 @@ describe('createActorContext', () => {
   });
 
   it('useActorRef should throw when the actor was not provided', () => {
-    const spy = vi.spyOn(console, 'error');
-
     const SomeContext = createActorContext(createMachine({}));
 
     const App = () => {
@@ -234,18 +232,11 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `[Error: You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component.]`
-    );
-
-    expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy.mock.calls[0][0].split('\n')[0]).toMatchInlineSnapshot(
-      `"The above error occurred in the <App> component:"`
+      `"You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component."`
     );
   });
 
   it('useSelector should throw when the actor was not provided', () => {
-    const spy = vi.spyOn(console, 'error');
-
     const SomeContext = createActorContext(createMachine({}));
 
     const App = () => {
@@ -254,12 +245,7 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `[Error: You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component.]`
-    );
-
-    expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy.mock.calls[0][0].split('\n')[0]).toMatchInlineSnapshot(
-      `"The above error occurred in the <App> component:"`
+      `"You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component."`
     );
   });
 
