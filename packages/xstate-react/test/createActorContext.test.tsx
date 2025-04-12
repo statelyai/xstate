@@ -232,7 +232,7 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component."`
+      `[Error: You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component.]`
     );
   });
 
@@ -245,7 +245,7 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component."`
+      `[Error: You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component.]`
     );
   });
 
