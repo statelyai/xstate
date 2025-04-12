@@ -583,6 +583,7 @@ export type TransitionConfigFunction<
 ) => {
   target?: string;
   context?: TContext;
+  reenter?: boolean;
 } | void;
 
 export type AnyTransitionConfigFunction = TransitionConfigFunction<

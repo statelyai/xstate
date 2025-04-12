@@ -1094,6 +1094,11 @@ describe('not() guard', () => {
       "secret": 42,
     },
   ],
+  [
+    {
+      "secret": 42,
+    },
+  ],
 ]
 `);
   });

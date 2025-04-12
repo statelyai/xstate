@@ -892,7 +892,7 @@ function getEffectiveTargetStates(
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject
 ): Array<AnyStateNode> {
-  const targets = getTargets(transition, snapshot, event);
+  const { targets } = getTargets(transition, snapshot, event);
   if (!targets) {
     return [];
   }
@@ -940,8 +940,10 @@ function getTransitionDomain(
     return;
   }
 
+  const { reenter } = getTargets(transition, snapshot, event);
+
   if (
-    !transition.reenter &&
+    !reenter &&
     targetStates.every(
       (target) =>
         target === transition.source || isDescendant(target, transition.source)
@@ -957,7 +959,7 @@ function getTransitionDomain(
   }
 
   // at this point we know that it's a root transition since LCA couldn't be found
-  if (transition.reenter) {
+  if (reenter) {
     return;
   }
 
@@ -974,7 +976,7 @@ function computeExitSet(
   const statesToExit = new Set<AnyStateNode>();
 
   for (const t of transitions) {
-    const targets = getTargets(t, snapshot, event);
+    const { targets } = getTargets(t, snapshot, event);
 
     if (targets?.length) {
       const domain = getTransitionDomain(t, historyValue, snapshot, event);
@@ -1297,10 +1299,12 @@ function enterStates(
 }
 
 function getTargets(
-  transition: Pick<AnyTransitionDefinition, 'target' | 'fn' | 'source'>,
+  transition: Pick<AnyTransitionDefinition, 'target' | 'fn' | 'source'> & {
+    reenter?: AnyTransitionDefinition['reenter'];
+  },
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject
-): Readonly<AnyStateNode[]> | undefined {
+): { targets: Readonly<AnyStateNode[]> | undefined; reenter?: boolean } {
   if (transition.fn) {
     const res = transition.fn(
       {
@@ -1312,12 +1316,18 @@ function getTargets(
       emptyEnqueueObj
     );
 
-    return res?.target
-      ? resolveTarget(transition.source, [res.target])
-      : undefined;
+    return {
+      targets: res?.target
+        ? resolveTarget(transition.source, [res.target])
+        : undefined,
+      reenter: res?.reenter
+    };
   }
 
-  return transition.target as AnyStateNode[] | undefined;
+  return {
+    targets: transition.target as AnyStateNode[] | undefined,
+    reenter: transition.reenter
+  };
 }
 
 function getTransitionActions(
@@ -1363,7 +1373,7 @@ function computeEntrySet(
   for (const t of transitions) {
     const domain = getTransitionDomain(t, historyValue, snapshot, event);
 
-    const targets = getTargets(t, snapshot, event);
+    const { targets, reenter } = getTargets(t, snapshot, event);
 
     for (const s of targets ?? []) {
       if (
@@ -1374,7 +1384,7 @@ function computeEntrySet(
           // if it's different than the source then it's outside of it and it means that the target has to be entered as well
           t.source !== domain ||
           // reentering transitions always enter the target, even if it's the source itself
-          t.reenter)
+          reenter)
       ) {
         statesToEnter.add(s);
         statesForDefaultEntry.add(s);
@@ -1404,7 +1414,7 @@ function computeEntrySet(
         historyValue,
         statesForDefaultEntry,
         ancestors,
-        !t.source.parent && t.reenter ? undefined : domain,
+        !t.source.parent && reenter ? undefined : domain,
         snapshot,
         event
       );
@@ -1454,7 +1464,7 @@ function addDescendantStatesToEnter<
         TContext,
         TEvent
       >(stateNode);
-      const targets = getTargets(historyDefaultTransition, snapshot, event);
+      const { targets } = getTargets(historyDefaultTransition, snapshot, event);
       for (const s of targets ?? []) {
         statesToEnter.add(s);
 
