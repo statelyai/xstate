@@ -135,6 +135,6 @@ describe('toPromise', () => {
     expect(actor.getSnapshot().status).toBe('error');
     expect(actor.getSnapshot().error).toEqual(new Error('oh noes'));
 
-    expect(toPromise(actor)).rejects.toEqual(new Error('oh noes'));
+    await expect(toPromise(actor)).rejects.toEqual(new Error('oh noes'));
   });
 });

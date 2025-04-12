@@ -60,6 +60,7 @@
     "babel-preset-solid": "^1.8.4",
     "eslint": "^9.7.0",
     "globals": "^15.8.0",
+    "happy-dom": "^17.4.4",
     "husky": "^3.1.0",
     "knip": "^5.27.0",
     "lint-staged": "^8.2.1",
