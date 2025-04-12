@@ -2715,12 +2715,13 @@ export type EnqueueObj<
   TMachineEvent extends EventObject,
   TEmittedEvent extends EventObject
 > = {
-  cancel: () => void;
-  raise: (ev: TMachineEvent) => void;
+  cancel: (id: string) => void;
+  raise: (ev: TMachineEvent, options?: { id?: string; delay?: number }) => void;
   spawn: <T extends AnyActorLogic>(
     logic: T,
     options?: {
       input?: InputFrom<T>;
+      id?: string;
     }
   ) => AnyActorRef;
   emit: (emittedEvent: TEmittedEvent) => void;
@@ -2736,7 +2737,7 @@ export type Action2<
   _: {
     context: TContext;
     event: TEvent;
-    parent: UnknownActorRef | undefined;
+    parent: AnyActorRef | undefined;
     self: AnyActorRef;
     children: Record<string, AnyActorRef>;
   },
