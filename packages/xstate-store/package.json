@@ -67,7 +67,7 @@
     "immer": "^10.0.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "solid-js": "^1.7.6",
+    "solid-js": "^1.9.5",
     "vite-plugin-solid": "^2.11.6",
     "vue": "^3.4.35",
     "xstate": "workspace:^"
