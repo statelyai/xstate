@@ -1,4 +1,4 @@
-import { createStore, createAtom } from '../src/';
+import { createStore, createAtom } from '../src/index.ts';
 
 it('creates an atom', () => {
   const atom = createAtom(42);

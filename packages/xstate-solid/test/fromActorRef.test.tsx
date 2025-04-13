@@ -20,7 +20,7 @@ import {
   fromTransition,
   sendParent
 } from 'xstate';
-import { fromActorRef, useActor } from '../src';
+import { fromActorRef, useActor } from '../src/index.ts';
 
 const createSimpleActor = <T extends unknown>(value: T) =>
   createActor(fromTransition((s) => s, value));

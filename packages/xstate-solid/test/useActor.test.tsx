@@ -22,7 +22,7 @@ import {
   raise
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
-import { useActor } from '../src';
+import { useActor } from '../src/index.ts';
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
