@@ -156,12 +156,7 @@ function createStoreCore<
     getInitialSnapshot() {
       return initialSnapshot;
     },
-    subscribe(observerOrFn) {
-      return atom.subscribe(
-        // @ts-ignore help
-        observerOrFn
-      );
-    },
+    subscribe: atom.subscribe.bind(atom),
     [symbolObservable](): InteropSubscribable<StoreSnapshot<TContext>> {
       return this;
     },
