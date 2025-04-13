@@ -53,7 +53,7 @@
   "devDependencies": {
     "@solidjs/testing-library": "^0.8.9",
     "solid-js": "^1.7.6",
-    "vite-plugin-solid": "^2.10.2",
+    "vite-plugin-solid": "^2.11.6",
     "xstate": "workspace:^"
   }
 }
