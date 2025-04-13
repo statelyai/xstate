@@ -28,12 +28,12 @@
     },
     "./server": {
       "types": {
-        "import": "./server/dist/xstate-inspect-server.cjs.mjs",
-        "default": "./server/dist/xstate-inspect-server.cjs.js"
+        "import": "./dist/xstate-inspect-server.cjs.mjs",
+        "default": "./dist/xstate-inspect-server.cjs.js"
       },
-      "module": "./server/dist/xstate-inspect-server.esm.js",
-      "import": "./server/dist/xstate-inspect-server.cjs.mjs",
-      "default": "./server/dist/xstate-inspect-server.cjs.js"
+      "module": "./dist/xstate-inspect-server.esm.js",
+      "import": "./dist/xstate-inspect-server.cjs.mjs",
+      "default": "./dist/xstate-inspect-server.cjs.js"
     },
     "./package.json": "./package.json"
   },

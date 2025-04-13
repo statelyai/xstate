@@ -1,7 +1,7 @@
 {
-  "main": "dist/xstate-actors.cjs.js",
-  "module": "dist/xstate-actors.esm.js",
-  "umd:main": "dist/xstate-actors.umd.min.js",
+  "main": "../dist/xstate-actors.cjs.js",
+  "module": "../dist/xstate-actors.esm.js",
+  "umd:main": "../dist/xstate-actors.umd.min.js",
   "preconstruct": {
     "umdName": "XStateActors"
   }
