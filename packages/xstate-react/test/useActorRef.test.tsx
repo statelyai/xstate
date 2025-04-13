@@ -24,46 +24,47 @@ afterEach(() => {
 });
 
 describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
-  it('observer should be called with next state', () =>
-    new Promise<void>((resolve) => {
-      const machine = createMachine({
-        initial: 'inactive',
-        states: {
-          inactive: {
-            on: {
-              ACTIVATE: 'active'
-            }
-          },
-          active: {}
-        }
-      });
+  it('observer should be called with next state', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const machine = createMachine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: {
+            ACTIVATE: 'active'
+          }
+        },
+        active: {}
+      }
+    });
 
-      const App = () => {
-        const actorRef = useActorRef(machine);
+    const App = () => {
+      const actorRef = useActorRef(machine);
 
-        React.useEffect(() => {
-          actorRef.subscribe((state) => {
-            if (state.matches('active')) {
-              resolve();
-            }
-          });
-        }, [actorRef]);
+      React.useEffect(() => {
+        actorRef.subscribe((state) => {
+          if (state.matches('active')) {
+            resolve();
+          }
+        });
+      }, [actorRef]);
 
-        return (
-          <button
-            data-testid="button"
-            onClick={() => {
-              actorRef.send({ type: 'ACTIVATE' });
-            }}
-          ></button>
-        );
-      };
+      return (
+        <button
+          data-testid="button"
+          onClick={() => {
+            actorRef.send({ type: 'ACTIVATE' });
+          }}
+        ></button>
+      );
+    };
 
-      render(<App />);
-      const button = screen.getByTestId('button');
+    render(<App />);
+    const button = screen.getByTestId('button');
 
-      fireEvent.click(button);
-    }));
+    fireEvent.click(button);
+    return promise;
+  });
 
   it('actions created by a layout effect should access the latest closure values', () => {
     const actual: number[] = [];
