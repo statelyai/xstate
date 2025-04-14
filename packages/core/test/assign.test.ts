@@ -338,32 +338,34 @@ describe('assign meta', () => {
     expect(actor.getSnapshot().context.count).toEqual(11);
   });
 
-  it('a parameterized action that resolves to assign() should be provided the params', () =>
-    new Promise<void>((resolve) => {
-      const machine = createMachine(
-        {
-          on: {
-            EVENT: {
-              actions: {
-                type: 'inc',
-                params: { value: 5 }
-              }
+  it('a parameterized action that resolves to assign() should be provided the params', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const machine = createMachine(
+      {
+        on: {
+          EVENT: {
+            actions: {
+              type: 'inc',
+              params: { value: 5 }
             }
           }
-        },
-        {
-          actions: {
-            inc: assign(({ context }, params) => {
-              expect(params).toEqual({ value: 5 });
-              resolve();
-              return context;
-            })
-          }
         }
-      );
+      },
+      {
+        actions: {
+          inc: assign(({ context }, params) => {
+            expect(params).toEqual({ value: 5 });
+            resolve();
+            return context;
+          })
+        }
+      }
+    );
 
-      const service = createActor(machine).start();
+    const service = createActor(machine).start();
 
-      service.send({ type: 'EVENT' });
-    }));
+    service.send({ type: 'EVENT' });
+
+    return promise;
+  });
 });

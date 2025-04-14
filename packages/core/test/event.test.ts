@@ -7,64 +7,66 @@ import {
 import { sendTo } from '../src/actions/send';
 
 describe('events', () => {
-  it('should be able to respond to sender by sending self', () =>
-    new Promise<void>((resolve) => {
-      const authServerMachine = createMachine({
-        types: {
-          events: {} as { type: 'CODE'; sender: AnyActorRef }
+  it('should be able to respond to sender by sending self', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const authServerMachine = createMachine({
+      types: {
+        events: {} as { type: 'CODE'; sender: AnyActorRef }
+      },
+      id: 'authServer',
+      initial: 'waitingForCode',
+      states: {
+        waitingForCode: {
+          on: {
+            CODE: {
+              actions: sendTo(
+                ({ event }) => {
+                  expect(event.sender).toBeDefined();
+                  return event.sender;
+                },
+                { type: 'TOKEN' },
+                { delay: 10 }
+              )
+            }
+          }
+        }
+      }
+    });
+
+    const authClientMachine = createMachine({
+      id: 'authClient',
+      initial: 'idle',
+      states: {
+        idle: {
+          on: { AUTH: 'authorizing' }
         },
-        id: 'authServer',
-        initial: 'waitingForCode',
-        states: {
-          waitingForCode: {
-            on: {
-              CODE: {
-                actions: sendTo(
-                  ({ event }) => {
-                    expect(event.sender).toBeDefined();
-                    return event.sender;
-                  },
-                  { type: 'TOKEN' },
-                  { delay: 10 }
-                )
-              }
-            }
-          }
-        }
-      });
-
-      const authClientMachine = createMachine({
-        id: 'authClient',
-        initial: 'idle',
-        states: {
-          idle: {
-            on: { AUTH: 'authorizing' }
+        authorizing: {
+          invoke: {
+            id: 'auth-server',
+            src: authServerMachine
           },
-          authorizing: {
-            invoke: {
-              id: 'auth-server',
-              src: authServerMachine
-            },
-            entry: sendTo('auth-server', ({ self }) => ({
-              type: 'CODE',
-              sender: self
-            })),
-            on: {
-              TOKEN: 'authorized'
-            }
-          },
-          authorized: {
-            type: 'final'
+          entry: sendTo('auth-server', ({ self }) => ({
+            type: 'CODE',
+            sender: self
+          })),
+          on: {
+            TOKEN: 'authorized'
           }
+        },
+        authorized: {
+          type: 'final'
         }
-      });
+      }
+    });
 
-      const service = createActor(authClientMachine);
-      service.subscribe({ complete: () => resolve() });
-      service.start();
+    const service = createActor(authClientMachine);
+    service.subscribe({ complete: () => resolve() });
+    service.start();
 
-      service.send({ type: 'AUTH' });
-    }));
+    service.send({ type: 'AUTH' });
+
+    return promise;
+  });
 });
 
 describe('nested transitions', () => {

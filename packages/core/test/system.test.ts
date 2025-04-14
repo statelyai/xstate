@@ -21,104 +21,108 @@ import {
 import { ActorSystem } from '../src/system.ts';
 
 describe('system', () => {
-  it('should register an invoked actor', () =>
-    new Promise<void>((resolve) => {
-      type MySystem = ActorSystem<{
-        actors: {
-          receiver: ActorRef<Snapshot<unknown>, { type: 'HELLO' }>;
-        };
-      }>;
+  it('should register an invoked actor', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    type MySystem = ActorSystem<{
+      actors: {
+        receiver: ActorRef<Snapshot<unknown>, { type: 'HELLO' }>;
+      };
+    }>;
 
-      const machine = createMachine({
-        id: 'parent',
-        initial: 'a',
-        states: {
-          a: {
-            invoke: [
-              {
-                src: fromCallback(({ receive }) => {
-                  receive((event) => {
-                    expect(event.type).toBe('HELLO');
-                    resolve();
-                  });
-                }),
-                systemId: 'receiver'
-              },
-              {
-                src: createMachine({
+    const machine = createMachine({
+      id: 'parent',
+      initial: 'a',
+      states: {
+        a: {
+          invoke: [
+            {
+              src: fromCallback(({ receive }) => {
+                receive((event) => {
+                  expect(event.type).toBe('HELLO');
+                  resolve();
+                });
+              }),
+              systemId: 'receiver'
+            },
+            {
+              src: createMachine({
+                id: 'childmachine',
+                entry: ({ system }) => {
+                  const receiver = (system as MySystem)?.get('receiver');
+
+                  if (receiver) {
+                    receiver.send({ type: 'HELLO' });
+                  }
+                }
+              })
+            }
+          ]
+        }
+      }
+    });
+
+    createActor(machine).start();
+
+    return promise;
+  });
+
+  it('should register a spawned actor', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    type MySystem = ActorSystem<{
+      actors: {
+        receiver: ActorRef<Snapshot<unknown>, { type: 'HELLO' }>;
+      };
+    }>;
+
+    const machine = createMachine({
+      types: {} as {
+        context: {
+          ref: CallbackActorRef<EventObject, unknown>;
+          machineRef?: ActorRefFrom<AnyStateMachine>;
+        };
+      },
+      id: 'parent',
+      context: ({ spawn }) => ({
+        ref: spawn(
+          fromCallback(({ receive }) => {
+            receive((event) => {
+              expect(event.type).toBe('HELLO');
+              resolve();
+            });
+          }),
+          { systemId: 'receiver' }
+        )
+      }),
+      on: {
+        toggle: {
+          actions: assign({
+            machineRef: ({ spawn }) => {
+              return spawn(
+                createMachine({
                   id: 'childmachine',
                   entry: ({ system }) => {
                     const receiver = (system as MySystem)?.get('receiver');
 
                     if (receiver) {
                       receiver.send({ type: 'HELLO' });
+                    } else {
+                      throw new Error('no');
                     }
                   }
                 })
-              }
-            ]
-          }
+              );
+            }
+          })
         }
-      });
+      }
+    });
 
-      createActor(machine).start();
-    }));
+    const actor = createActor(machine).start();
 
-  it('should register a spawned actor', () =>
-    new Promise<void>((resolve) => {
-      type MySystem = ActorSystem<{
-        actors: {
-          receiver: ActorRef<Snapshot<unknown>, { type: 'HELLO' }>;
-        };
-      }>;
+    actor.send({ type: 'toggle' });
 
-      const machine = createMachine({
-        types: {} as {
-          context: {
-            ref: CallbackActorRef<EventObject, unknown>;
-            machineRef?: ActorRefFrom<AnyStateMachine>;
-          };
-        },
-        id: 'parent',
-        context: ({ spawn }) => ({
-          ref: spawn(
-            fromCallback(({ receive }) => {
-              receive((event) => {
-                expect(event.type).toBe('HELLO');
-                resolve();
-              });
-            }),
-            { systemId: 'receiver' }
-          )
-        }),
-        on: {
-          toggle: {
-            actions: assign({
-              machineRef: ({ spawn }) => {
-                return spawn(
-                  createMachine({
-                    id: 'childmachine',
-                    entry: ({ system }) => {
-                      const receiver = (system as MySystem)?.get('receiver');
-
-                      if (receiver) {
-                        receiver.send({ type: 'HELLO' });
-                      } else {
-                        throw new Error('no');
-                      }
-                    }
-                  })
-                );
-              }
-            })
-          }
-        }
-      });
-
-      const actor = createActor(machine).start();
-
-      actor.send({ type: 'toggle' });
-    }));
+    return promise;
+  });
 
   it('system can be immediately accessed outside the actor', () => {
     const machine = createMachine({

@@ -250,190 +250,199 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     await screen.findByTestId('success');
   });
 
-  it('actions should not use stale data in a builtin transition action', () =>
-    new Promise<void>((resolve) => {
-      const toggleMachine = createMachine({
-        types: {} as {
-          context: { latest: number };
-          events: { type: 'SET_LATEST' };
-        },
-        context: {
-          latest: 0
-        },
-        on: {
-          SET_LATEST: {
-            actions: 'setLatest'
-          }
+  it('actions should not use stale data in a builtin transition action', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
+    const toggleMachine = createMachine({
+      types: {} as {
+        context: { latest: number };
+        events: { type: 'SET_LATEST' };
+      },
+      context: {
+        latest: 0
+      },
+      on: {
+        SET_LATEST: {
+          actions: 'setLatest'
         }
-      });
+      }
+    });
 
-      const Component = () => {
-        const [ext, setExt] = useState(1);
+    const Component = () => {
+      const [ext, setExt] = useState(1);
 
-        const [, send] = useActor(
-          toggleMachine.provide({
-            actions: {
-              setLatest: assign({
-                latest: () => {
-                  expect(ext).toBe(2);
-                  resolve();
-                  return ext;
-                }
-              })
-            }
-          })
-        );
-
-        return (
-          <>
-            <button
-              data-testid="extbutton"
-              onClick={(_) => {
-                setExt(2);
-              }}
-            />
-            <button
-              data-testid="button"
-              onClick={(_) => {
-                send({ type: 'SET_LATEST' });
-              }}
-            />
-          </>
-        );
-      };
-
-      render(<Component />);
-
-      const button = screen.getByTestId('button');
-      const extButton = screen.getByTestId('extbutton');
-      fireEvent.click(extButton);
-
-      fireEvent.click(button);
-    }));
-
-  it('actions should not use stale data in a builtin entry action', () =>
-    new Promise<void>((resolve) => {
-      const toggleMachine = createMachine({
-        types: {} as { context: { latest: number }; events: { type: 'NEXT' } },
-        context: {
-          latest: 0
-        },
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              NEXT: 'b'
-            }
-          },
-          b: {
-            entry: 'setLatest'
+      const [, send] = useActor(
+        toggleMachine.provide({
+          actions: {
+            setLatest: assign({
+              latest: () => {
+                expect(ext).toBe(2);
+                resolve();
+                return ext;
+              }
+            })
           }
-        }
-      });
+        })
+      );
 
-      const Component = () => {
-        const [ext, setExt] = useState(1);
+      return (
+        <>
+          <button
+            data-testid="extbutton"
+            onClick={(_) => {
+              setExt(2);
+            }}
+          />
+          <button
+            data-testid="button"
+            onClick={(_) => {
+              send({ type: 'SET_LATEST' });
+            }}
+          />
+        </>
+      );
+    };
 
-        const [, send] = useActor(
-          toggleMachine.provide({
-            actions: {
-              setLatest: assign({
-                latest: () => {
-                  expect(ext).toBe(2);
-                  resolve();
-                  return ext;
-                }
-              })
-            }
-          })
-        );
+    render(<Component />);
 
-        return (
-          <>
-            <button
-              data-testid="extbutton"
-              onClick={(_) => {
-                setExt(2);
-              }}
-            />
-            <button
-              data-testid="button"
-              onClick={(_) => {
-                send({ type: 'NEXT' });
-              }}
-            />
-          </>
-        );
-      };
+    const button = screen.getByTestId('button');
+    const extButton = screen.getByTestId('extbutton');
+    fireEvent.click(extButton);
 
-      render(<Component />);
+    fireEvent.click(button);
 
-      const button = screen.getByTestId('button');
-      const extButton = screen.getByTestId('extbutton');
-      fireEvent.click(extButton);
+    return promise;
+  });
 
-      fireEvent.click(button);
-    }));
+  it('actions should not use stale data in a builtin entry action', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
 
-  it('actions should not use stale data in a custom entry action', () =>
-    new Promise<void>((resolve) => {
-      const toggleMachine = createMachine({
-        types: {} as {
-          events: { type: 'TOGGLE' };
-        },
-        initial: 'inactive',
-        states: {
-          inactive: {
-            on: { TOGGLE: 'active' }
-          },
-          active: {
-            entry: 'doAction'
+    const toggleMachine = createMachine({
+      types: {} as { context: { latest: number }; events: { type: 'NEXT' } },
+      context: {
+        latest: 0
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
           }
+        },
+        b: {
+          entry: 'setLatest'
         }
-      });
+      }
+    });
 
-      const Toggle = () => {
-        const [ext, setExt] = useState(false);
+    const Component = () => {
+      const [ext, setExt] = useState(1);
 
-        const doAction = React.useCallback(() => {
-          expect(ext).toBeTruthy();
-          resolve();
-        }, [ext]);
+      const [, send] = useActor(
+        toggleMachine.provide({
+          actions: {
+            setLatest: assign({
+              latest: () => {
+                expect(ext).toBe(2);
+                resolve();
+                return ext;
+              }
+            })
+          }
+        })
+      );
 
-        const [, send] = useActor(
-          toggleMachine.provide({
-            actions: {
-              doAction
-            }
-          })
-        );
+      return (
+        <>
+          <button
+            data-testid="extbutton"
+            onClick={(_) => {
+              setExt(2);
+            }}
+          />
+          <button
+            data-testid="button"
+            onClick={(_) => {
+              send({ type: 'NEXT' });
+            }}
+          />
+        </>
+      );
+    };
 
-        return (
-          <>
-            <button
-              data-testid="extbutton"
-              onClick={(_) => {
-                setExt(true);
-              }}
-            />
-            <button
-              data-testid="button"
-              onClick={(_) => {
-                send({ type: 'TOGGLE' });
-              }}
-            />
-          </>
-        );
-      };
+    render(<Component />);
 
-      render(<Toggle />);
+    const button = screen.getByTestId('button');
+    const extButton = screen.getByTestId('extbutton');
+    fireEvent.click(extButton);
 
-      const button = screen.getByTestId('button');
-      const extButton = screen.getByTestId('extbutton');
-      fireEvent.click(extButton);
+    fireEvent.click(button);
 
-      fireEvent.click(button);
-    }));
+    return promise;
+  });
+
+  it('actions should not use stale data in a custom entry action', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
+    const toggleMachine = createMachine({
+      types: {} as {
+        events: { type: 'TOGGLE' };
+      },
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: { TOGGLE: 'active' }
+        },
+        active: {
+          entry: 'doAction'
+        }
+      }
+    });
+
+    const Toggle = () => {
+      const [ext, setExt] = useState(false);
+
+      const doAction = React.useCallback(() => {
+        expect(ext).toBeTruthy();
+        resolve();
+      }, [ext]);
+
+      const [, send] = useActor(
+        toggleMachine.provide({
+          actions: {
+            doAction
+          }
+        })
+      );
+
+      return (
+        <>
+          <button
+            data-testid="extbutton"
+            onClick={(_) => {
+              setExt(true);
+            }}
+          />
+          <button
+            data-testid="button"
+            onClick={(_) => {
+              send({ type: 'TOGGLE' });
+            }}
+          />
+        </>
+      );
+    };
+
+    render(<Toggle />);
+
+    const button = screen.getByTestId('button');
+    const extButton = screen.getByTestId('extbutton');
+    fireEvent.click(extButton);
+
+    fireEvent.click(button);
+
+    return promise;
+  });
 
   it('should only render once when initial microsteps are involved', () => {
     let rerenders = 0;

@@ -270,68 +270,71 @@ describe('predictableExec', () => {
     expect(actual).toEqual([0, 1, 2]);
   });
 
-  it('parent should be able to read the updated state of a child when receiving an event from it', () =>
-    new Promise<void>((resolve) => {
-      const child = createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            // we need to clear the call stack before we send the event to the parent
-            after: {
-              1: 'b'
-            }
-          },
-          b: {
-            entry: sendParent({ type: 'CHILD_UPDATED' })
+  it('parent should be able to read the updated state of a child when receiving an event from it', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
+    const child = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          // we need to clear the call stack before we send the event to the parent
+          after: {
+            1: 'b'
           }
-        }
-      });
-
-      let service: AnyActor;
-
-      const machine = createMachine({
-        invoke: {
-          id: 'myChild',
-          src: child
         },
-        initial: 'initial',
-        states: {
-          initial: {
-            on: {
-              CHILD_UPDATED: [
-                {
-                  guard: () => {
-                    return (
-                      service.getSnapshot().children.myChild.getSnapshot()
-                        .value === 'b'
-                    );
-                  },
-                  target: 'success'
-                },
-                {
-                  target: 'fail'
-                }
-              ]
-            }
-          },
-          success: {
-            type: 'final'
-          },
-          fail: {
-            type: 'final'
-          }
+        b: {
+          entry: sendParent({ type: 'CHILD_UPDATED' })
         }
-      });
+      }
+    });
 
-      service = createActor(machine);
-      service.subscribe({
-        complete: () => {
-          expect(service.getSnapshot().value).toBe('success');
-          resolve();
+    let service: AnyActor;
+
+    const machine = createMachine({
+      invoke: {
+        id: 'myChild',
+        src: child
+      },
+      initial: 'initial',
+      states: {
+        initial: {
+          on: {
+            CHILD_UPDATED: [
+              {
+                guard: () => {
+                  return (
+                    service.getSnapshot().children.myChild.getSnapshot()
+                      .value === 'b'
+                  );
+                },
+                target: 'success'
+              },
+              {
+                target: 'fail'
+              }
+            ]
+          }
+        },
+        success: {
+          type: 'final'
+        },
+        fail: {
+          type: 'final'
         }
-      });
-      service.start();
-    }));
+      }
+    });
+
+    service = createActor(machine);
+    service.subscribe({
+      complete: () => {
+        expect(service.getSnapshot().value).toBe('success');
+        resolve();
+      }
+    });
+    service.start();
+
+    return promise;
+  });
 
   it('should be possible to send immediate events to initially invoked actors', () => {
     const child = createMachine({
@@ -366,38 +369,41 @@ describe('predictableExec', () => {
     expect(service.getSnapshot().value).toBe('done');
   });
 
-  it('should create invoke based on context updated by entry actions of the same state', () =>
-    new Promise<void>((resolve) => {
-      const machine = createMachine({
-        context: {
-          updated: false
+  it('should create invoke based on context updated by entry actions of the same state', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
+    const machine = createMachine({
+      context: {
+        updated: false
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
         },
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              NEXT: 'b'
-            }
-          },
-          b: {
-            entry: assign({ updated: true }),
-            invoke: {
-              src: fromPromise(({ input }) => {
-                expect(input.updated).toBe(true);
-                resolve();
-                return Promise.resolve();
-              }),
-              input: ({ context }: any) => ({
-                updated: context.updated
-              })
-            }
+        b: {
+          entry: assign({ updated: true }),
+          invoke: {
+            src: fromPromise(({ input }) => {
+              expect(input.updated).toBe(true);
+              resolve();
+              return Promise.resolve();
+            }),
+            input: ({ context }: any) => ({
+              updated: context.updated
+            })
           }
         }
-      });
+      }
+    });
 
-      const actorRef = createActor(machine).start();
-      actorRef.send({ type: 'NEXT' });
-    }));
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+
+    return promise;
+  });
 
   it('should deliver events sent from the entry actions to a service invoked in the same state', () => {
     let received: any;
@@ -437,65 +443,68 @@ describe('predictableExec', () => {
     expect(received).toEqual({ type: 'KNOCK_KNOCK' });
   });
 
-  it('parent should be able to read the updated state of a child when receiving an event from it', () =>
-    new Promise<void>((resolve) => {
-      const child = createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            // we need to clear the call stack before we send the event to the parent
-            after: {
-              1: 'b'
-            }
-          },
-          b: {
-            entry: sendParent({ type: 'CHILD_UPDATED' })
+  it('parent should be able to read the updated state of a child when receiving an event from it', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
+    const child = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          // we need to clear the call stack before we send the event to the parent
+          after: {
+            1: 'b'
           }
-        }
-      });
-
-      let service: AnyActor;
-
-      const machine = createMachine({
-        invoke: {
-          id: 'myChild',
-          src: child
         },
-        initial: 'initial',
-        states: {
-          initial: {
-            on: {
-              CHILD_UPDATED: [
-                {
-                  guard: () =>
-                    service.getSnapshot().children.myChild.getSnapshot()
-                      .value === 'b',
-                  target: 'success'
-                },
-                {
-                  target: 'fail'
-                }
-              ]
-            }
-          },
-          success: {
-            type: 'final'
-          },
-          fail: {
-            type: 'final'
-          }
+        b: {
+          entry: sendParent({ type: 'CHILD_UPDATED' })
         }
-      });
+      }
+    });
 
-      service = createActor(machine);
-      service.subscribe({
-        complete: () => {
-          expect(service.getSnapshot().value).toBe('success');
-          resolve();
+    let service: AnyActor;
+
+    const machine = createMachine({
+      invoke: {
+        id: 'myChild',
+        src: child
+      },
+      initial: 'initial',
+      states: {
+        initial: {
+          on: {
+            CHILD_UPDATED: [
+              {
+                guard: () =>
+                  service.getSnapshot().children.myChild.getSnapshot().value ===
+                  'b',
+                target: 'success'
+              },
+              {
+                target: 'fail'
+              }
+            ]
+          }
+        },
+        success: {
+          type: 'final'
+        },
+        fail: {
+          type: 'final'
         }
-      });
-      service.start();
-    }));
+      }
+    });
+
+    service = createActor(machine);
+    service.subscribe({
+      complete: () => {
+        expect(service.getSnapshot().value).toBe('success');
+        resolve();
+      }
+    });
+    service.start();
+
+    return promise;
+  });
 
   it('should be possible to send immediate events to initially invoked actors', () => {
     const child = createMachine({
@@ -531,33 +540,36 @@ describe('predictableExec', () => {
   });
 
   // https://github.com/statelyai/xstate/issues/3617
-  it('should deliver events sent from the exit actions to a service invoked in the same state', () =>
-    new Promise<void>((resolve) => {
-      const machine = createMachine({
-        initial: 'active',
-        states: {
-          active: {
-            invoke: {
-              id: 'my-service',
-              src: fromCallback(({ receive }) => {
-                receive((event) => {
-                  if (event.type === 'MY_EVENT') {
-                    resolve();
-                  }
-                });
-              })
-            },
-            exit: sendTo('my-service', { type: 'MY_EVENT' }),
-            on: {
-              TOGGLE: 'inactive'
-            }
+  it('should deliver events sent from the exit actions to a service invoked in the same state', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          invoke: {
+            id: 'my-service',
+            src: fromCallback(({ receive }) => {
+              receive((event) => {
+                if (event.type === 'MY_EVENT') {
+                  resolve();
+                }
+              });
+            })
           },
-          inactive: {}
-        }
-      });
+          exit: sendTo('my-service', { type: 'MY_EVENT' }),
+          on: {
+            TOGGLE: 'inactive'
+          }
+        },
+        inactive: {}
+      }
+    });
 
-      const actor = createActor(machine).start();
+    const actor = createActor(machine).start();
 
-      actor.send({ type: 'TOGGLE' });
-    }));
+    actor.send({ type: 'TOGGLE' });
+
+    return promise;
+  });
 });

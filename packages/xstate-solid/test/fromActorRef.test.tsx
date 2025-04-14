@@ -26,148 +26,153 @@ const createSimpleActor = <T extends unknown>(value: T) =>
   createActor(fromTransition((s) => s, value));
 
 describe('fromActorRef', () => {
-  it('initial invoked actor should be immediately available', () =>
-    new Promise<void>((resolve) => {
-      const childMachine = createMachine({
-        id: 'childMachine',
-        initial: 'active',
-        states: {
-          active: {}
+  it('initial invoked actor should be immediately available', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const childMachine = createMachine({
+      id: 'childMachine',
+      initial: 'active',
+      states: {
+        active: {}
+      }
+    });
+    const machine = createMachine({
+      initial: 'active',
+      invoke: {
+        id: 'child',
+        src: childMachine
+      },
+      states: {
+        active: {}
+      }
+    });
+
+    const ChildTest: Component<{ actor: ActorRefFrom<typeof childMachine> }> = (
+      props
+    ) => {
+      const state = fromActorRef(props.actor);
+
+      expect(state().value).toEqual('active');
+      resolve();
+
+      return null;
+    };
+
+    const Test = () => {
+      const [state] = useActor(machine);
+      return (
+        <ChildTest
+          actor={state.children.child as ActorRefFrom<typeof childMachine>}
+        />
+      );
+    };
+
+    render(() => <Test />);
+    return promise;
+  });
+
+  it('invoked actor should be able to receive (deferred) events that it replays when active', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const childMachine = createMachine({
+      id: 'childMachine',
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            FINISH: { actions: sendParent({ type: 'FINISH' }) }
+          }
         }
-      });
-      const machine = createMachine({
-        initial: 'active',
-        invoke: {
-          id: 'child',
-          src: childMachine
+      }
+    });
+    const machine = createMachine({
+      initial: 'active',
+      invoke: {
+        id: 'child',
+        src: childMachine
+      },
+      states: {
+        active: {
+          on: { FINISH: 'success' }
         },
-        states: {
-          active: {}
-        }
-      });
+        success: {}
+      }
+    });
 
-      const ChildTest: Component<{
-        actor: ActorRefFrom<typeof childMachine>;
-      }> = (props) => {
-        const state = fromActorRef(props.actor);
+    const ChildTest: Component<{ actor: ActorRefFrom<typeof childMachine> }> = (
+      props
+    ) => {
+      const state = fromActorRef(props.actor);
 
+      onMount(() => {
         expect(state().value).toEqual('active');
-        resolve();
+        props.actor.send({ type: 'FINISH' });
+      });
 
-        return null;
-      };
+      return null;
+    };
 
-      const Test = () => {
-        const [state] = useActor(machine);
-        return (
-          <ChildTest
-            actor={state.children.child as ActorRefFrom<typeof childMachine>}
-          />
-        );
-      };
-
-      render(() => <Test />);
-    }));
-
-  it('invoked actor should be able to receive (deferred) events that it replays when active', () =>
-    new Promise<void>((resolve) => {
-      const childMachine = createMachine({
-        id: 'childMachine',
-        initial: 'active',
-        states: {
-          active: {
-            on: {
-              FINISH: { actions: sendParent({ type: 'FINISH' }) }
-            }
-          }
+    const Test = () => {
+      const [state] = useActor(machine);
+      createEffect(() => {
+        if (state.matches('success')) {
+          resolve();
         }
       });
-      const machine = createMachine({
-        initial: 'active',
-        invoke: {
-          id: 'child',
-          src: childMachine
+
+      return (
+        <ChildTest
+          actor={state.children.child as ActorRefFrom<typeof childMachine>}
+        />
+      );
+    };
+
+    render(() => <Test />);
+
+    return promise;
+  });
+
+  it('send should update synchronously', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            done: 'success'
+          }
         },
-        states: {
-          active: {
-            on: { FINISH: 'success' }
-          },
-          success: {}
+        success: {
+          type: 'final'
         }
+      }
+    });
+
+    const Spawner = () => {
+      const [actorRef] = createSignal(createActor(machine).start());
+      const snapshot = fromActorRef(actorRef);
+
+      onMount(() => {
+        expect(snapshot().value).toBe('start');
+        actorRef().send({ type: 'done' });
+        expect(snapshot().value).toBe('success');
       });
 
-      const ChildTest: Component<{
-        actor: ActorRefFrom<typeof childMachine>;
-      }> = (props) => {
-        const state = fromActorRef(props.actor);
+      return (
+        <Switch fallback={null}>
+          <Match when={snapshot().value === 'start'}>
+            <span data-testid="start" />
+          </Match>
+          <Match when={snapshot().value === 'success'}>
+            <span data-testid="success" />
+          </Match>
+        </Switch>
+      );
+    };
 
-        onMount(() => {
-          expect(state().value).toEqual('active');
-          props.actor.send({ type: 'FINISH' });
-        });
+    render(() => <Spawner />);
+    waitFor(() => screen.getByTestId('success')).then(() => resolve());
 
-        return null;
-      };
-
-      const Test = () => {
-        const [state] = useActor(machine);
-        createEffect(() => {
-          if (state.matches('success')) {
-            resolve();
-          }
-        });
-
-        return (
-          <ChildTest
-            actor={state.children.child as ActorRefFrom<typeof childMachine>}
-          />
-        );
-      };
-
-      render(() => <Test />);
-    }));
-
-  it('send should update synchronously', () =>
-    new Promise<void>((resolve) => {
-      const machine = createMachine({
-        initial: 'start',
-        states: {
-          start: {
-            on: {
-              done: 'success'
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
-      });
-
-      const Spawner = () => {
-        const [actorRef] = createSignal(createActor(machine).start());
-        const snapshot = fromActorRef(actorRef);
-
-        onMount(() => {
-          expect(snapshot().value).toBe('start');
-          actorRef().send({ type: 'done' });
-          expect(snapshot().value).toBe('success');
-        });
-
-        return (
-          <Switch fallback={null}>
-            <Match when={snapshot().value === 'start'}>
-              <span data-testid="start" />
-            </Match>
-            <Match when={snapshot().value === 'success'}>
-              <span data-testid="success" />
-            </Match>
-          </Switch>
-        );
-      };
-
-      render(() => <Spawner />);
-      waitFor(() => screen.getByTestId('success')).then(() => resolve());
-    }));
+    return promise;
+  });
 
   it('should only trigger effects once for nested context values', () => {
     const childMachine = createMachine({
@@ -522,68 +527,68 @@ describe('fromActorRef', () => {
     expect(canDoSomethingEl.textContent).toEqual('true');
   });
 
-  it('spawned actor should be able to receive (deferred) events that it replays when active', () =>
-    new Promise<void>((resolve) => {
-      const childMachine = createMachine({
-        id: 'childMachine',
-        initial: 'active',
-        states: {
-          active: {
-            on: {
-              FINISH: { actions: sendParent({ type: 'FINISH' }) }
-            }
+  it('spawned actor should be able to receive (deferred) events that it replays when active', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const childMachine = createMachine({
+      id: 'childMachine',
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            FINISH: { actions: sendParent({ type: 'FINISH' }) }
           }
         }
-      });
-      const machine = createMachine({
-        types: {} as {
-          context: {
-            actorRef?: ActorRefFrom<typeof childMachine>;
-          };
-        },
-        initial: 'active',
+      }
+    });
+    const machine = createMachine({
+      types: {} as {
         context: {
-          actorRef: undefined
+          actorRef?: ActorRefFrom<typeof childMachine>;
+        };
+      },
+      initial: 'active',
+      context: {
+        actorRef: undefined
+      },
+      states: {
+        active: {
+          entry: assign({
+            actorRef: ({ spawn }) => spawn(childMachine)
+          }),
+          on: { FINISH: 'success' }
         },
-        states: {
-          active: {
-            entry: assign({
-              actorRef: ({ spawn }) => spawn(childMachine)
-            }),
-            on: { FINISH: 'success' }
-          },
-          success: {}
+        success: {}
+      }
+    });
+
+    const ChildTest = (props: { actor: ActorRefFrom<typeof childMachine> }) => {
+      const snapshot = fromActorRef(props.actor);
+      createEffect(() => {
+        expect(snapshot().value).toEqual('active');
+      });
+
+      onMount(() => {
+        props.actor.send({ type: 'FINISH' });
+      });
+
+      return null;
+    };
+
+    const Test = () => {
+      const [state] = useActor(machine);
+      createEffect(() => {
+        if (state.matches('success')) {
+          resolve();
         }
       });
 
-      const ChildTest = (props: {
-        actor: ActorRefFrom<typeof childMachine>;
-      }) => {
-        const snapshot = fromActorRef(props.actor);
-        createEffect(() => {
-          expect(snapshot().value).toEqual('active');
-        });
+      return <ChildTest actor={state.context.actorRef!} />;
+    };
 
-        onMount(() => {
-          props.actor.send({ type: 'FINISH' });
-        });
+    render(() => <Test />);
 
-        return null;
-      };
-
-      const Test = () => {
-        const [state] = useActor(machine);
-        createEffect(() => {
-          if (state.matches('success')) {
-            resolve();
-          }
-        });
-
-        return <ChildTest actor={state.context.actorRef!} />;
-      };
-
-      render(() => <Test />);
-    }));
+    return promise;
+  });
 
   it('should provide value from `actor.getSnapshot()` immediately', () => {
     const simpleActor = createActor(fromTransition((s) => s, 42));
@@ -1150,68 +1155,70 @@ describe('fromActorRef', () => {
     });
   });
 
-  it(`actor should not reevaluate a scope depending on state.matches when state.value doesn't change`, () =>
-    new Promise<void>((resolve) => {
-      vi.useFakeTimers();
+  it(`actor should not reevaluate a scope depending on state.matches when state.value doesn't change`, () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    vi.useFakeTimers();
 
-      interface MachineContext {
-        counter: number;
-      }
+    interface MachineContext {
+      counter: number;
+    }
 
-      const machine = createMachine({
-        types: {} as {
-          context: MachineContext;
-        },
-        context: {
-          counter: 0
-        },
-        initial: 'idle',
-        states: {
-          idle: {
-            on: {
-              INC: {
-                actions: assign({
-                  counter: ({ context }) => context.counter + 1
-                })
-              }
+    const machine = createMachine({
+      types: {} as {
+        context: MachineContext;
+      },
+      context: {
+        counter: 0
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            INC: {
+              actions: assign({
+                counter: ({ context }) => context.counter + 1
+              })
             }
           }
         }
+      }
+    });
+
+    const counterService = createActor(machine).start();
+
+    const Comp = () => {
+      let calls = 0;
+      const snapshot = fromActorRef(counterService);
+
+      createEffect(() => {
+        calls++;
+        snapshot().matches('foo');
       });
 
-      const counterService = createActor(machine).start();
-
-      const Comp = () => {
-        let calls = 0;
-        const snapshot = fromActorRef(counterService);
-
-        createEffect(() => {
-          calls++;
-          snapshot().matches('foo');
-        });
-
-        onMount(() => {
-          counterService.send({ type: 'INC' });
-          counterService.send({ type: 'INC' });
+      onMount(() => {
+        counterService.send({ type: 'INC' });
+        counterService.send({ type: 'INC' });
+        counterService.send({ type: 'INC' });
+        setTimeout(() => {
           counterService.send({ type: 'INC' });
           setTimeout(() => {
             counterService.send({ type: 'INC' });
             setTimeout(() => {
-              counterService.send({ type: 'INC' });
-              setTimeout(() => {
-                expect(calls).toBe(1);
-                resolve();
-              }, 100);
-            });
+              expect(calls).toBe(1);
+              resolve();
+            }, 100);
           });
         });
+      });
 
-        return null;
-      };
+      return null;
+    };
 
-      render(() => <Comp />);
-      vi.advanceTimersByTime(110);
-    }));
+    render(() => <Comp />);
+    vi.advanceTimersByTime(110);
+
+    return promise;
+  });
 
   it('actor should be updated when it changes shallow', () => {
     const counterMachine = createMachine({

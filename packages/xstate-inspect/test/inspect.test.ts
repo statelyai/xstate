@@ -220,48 +220,50 @@ describe('@xstate/inspect', () => {
   });
 
   // TODO: the value is still available on `machine.definition.initial` and that is not handled by the serializer
-  it.skip('should not crash when registering machine with very deep context when serializer manages to replace it', async () => {
-    await new Promise<void>((resolve) => {
-      type DeepObject = { nested?: DeepObject };
+  it.skip('should not crash when registering machine with very deep context when serializer manages to replace it', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
 
-      const deepObj: DeepObject = {};
+    type DeepObject = { nested?: DeepObject };
 
-      let current = deepObj;
-      for (let i = 0; i < 20_000; i += 1) {
-        current.nested = {};
-        current = current.nested;
+    const deepObj: DeepObject = {};
+
+    let current = deepObj;
+    for (let i = 0; i < 20_000; i += 1) {
+      current.nested = {};
+      current = current.nested;
+    }
+
+    const machine = createMachine({
+      initial: 'active',
+      context: deepObj,
+      states: {
+        active: {}
       }
-
-      const machine = createMachine({
-        initial: 'active',
-        context: deepObj,
-        states: {
-          active: {}
-        }
-      });
-
-      const devTools = createDevTools();
-
-      inspect({
-        iframe: false,
-        devTools,
-        serialize: (key, value) => {
-          if (key === 'nested') {
-            return '[very deep]';
-          }
-
-          return value;
-        }
-      });
-
-      const service = createActor(machine).start();
-
-      devTools.onRegister(() => {
-        resolve();
-      });
-
-      expect(() => devTools.register(service)).not.toThrow();
     });
+
+    const devTools = createDevTools();
+
+    inspect({
+      iframe: false,
+      devTools,
+      serialize: (key, value) => {
+        if (key === 'nested') {
+          return '[very deep]';
+        }
+
+        return value;
+      }
+    });
+
+    const service = createActor(machine).start();
+
+    devTools.onRegister(() => {
+      resolve();
+    });
+
+    expect(() => devTools.register(service)).not.toThrow();
+
+    return promise;
   });
 
   it('should successfully serialize value with unsafe toJSON when serializer manages to replace it', () => {

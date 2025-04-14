@@ -1051,73 +1051,76 @@ describe('parallel states', () => {
     });
   });
 
-  it('should raise a "xstate.done.state.*" event when all child states reach final state', () =>
-    new Promise<void>((resolve) => {
-      const machine = createMachine({
-        id: 'test',
-        initial: 'p',
-        states: {
-          p: {
-            type: 'parallel',
-            states: {
-              a: {
-                initial: 'idle',
-                states: {
-                  idle: {
-                    on: {
-                      FINISH: 'finished'
-                    }
-                  },
-                  finished: {
-                    type: 'final'
+  it('should raise a "xstate.done.state.*" event when all child states reach final state', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
+    const machine = createMachine({
+      id: 'test',
+      initial: 'p',
+      states: {
+        p: {
+          type: 'parallel',
+          states: {
+            a: {
+              initial: 'idle',
+              states: {
+                idle: {
+                  on: {
+                    FINISH: 'finished'
                   }
-                }
-              },
-              b: {
-                initial: 'idle',
-                states: {
-                  idle: {
-                    on: {
-                      FINISH: 'finished'
-                    }
-                  },
-                  finished: {
-                    type: 'final'
-                  }
-                }
-              },
-              c: {
-                initial: 'idle',
-                states: {
-                  idle: {
-                    on: {
-                      FINISH: 'finished'
-                    }
-                  },
-                  finished: {
-                    type: 'final'
-                  }
+                },
+                finished: {
+                  type: 'final'
                 }
               }
             },
-            onDone: 'success'
+            b: {
+              initial: 'idle',
+              states: {
+                idle: {
+                  on: {
+                    FINISH: 'finished'
+                  }
+                },
+                finished: {
+                  type: 'final'
+                }
+              }
+            },
+            c: {
+              initial: 'idle',
+              states: {
+                idle: {
+                  on: {
+                    FINISH: 'finished'
+                  }
+                },
+                finished: {
+                  type: 'final'
+                }
+              }
+            }
           },
-          success: {
-            type: 'final'
-          }
+          onDone: 'success'
+        },
+        success: {
+          type: 'final'
         }
-      });
+      }
+    });
 
-      const service = createActor(machine);
-      service.subscribe({
-        complete: () => {
-          resolve();
-        }
-      });
-      service.start();
+    const service = createActor(machine);
+    service.subscribe({
+      complete: () => {
+        resolve();
+      }
+    });
+    service.start();
 
-      service.send({ type: 'FINISH' });
-    }));
+    service.send({ type: 'FINISH' });
+
+    return promise;
+  });
 
   it('should raise a "xstate.done.state.*" event when a pseudostate of a history type is directly on a parallel state', () => {
     const machine = createMachine({

@@ -85,79 +85,82 @@ describe('delayed transitions', () => {
     `);
   });
 
-  it('should be able to transition with delay from nested initial state', () =>
-    new Promise<void>((resolve) => {
-      const machine = createMachine({
-        initial: 'nested',
-        states: {
-          nested: {
-            initial: 'wait',
-            states: {
-              wait: {
-                after: {
-                  10: '#end'
-                }
+  it('should be able to transition with delay from nested initial state', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
+    const machine = createMachine({
+      initial: 'nested',
+      states: {
+        nested: {
+          initial: 'wait',
+          states: {
+            wait: {
+              after: {
+                10: '#end'
               }
             }
-          },
-          end: {
-            id: 'end',
-            type: 'final'
           }
+        },
+        end: {
+          id: 'end',
+          type: 'final'
         }
-      });
+      }
+    });
 
-      const actor = createActor(machine);
-      actor.subscribe({
-        complete: () => {
-          resolve();
-        }
-      });
-      actor.start();
-    }));
+    const actor = createActor(machine);
+    actor.subscribe({
+      complete: () => {
+        resolve();
+      }
+    });
+    actor.start();
 
-  it('parent state should enter child state without re-entering self (relative target)', () =>
-    new Promise<void>((resolve) => {
-      const actual: string[] = [];
-      const machine = createMachine({
-        initial: 'one',
-        states: {
-          one: {
-            initial: 'two',
-            entry: () => actual.push('entered one'),
-            states: {
-              two: {
-                entry: () => actual.push('entered two')
-              },
-              three: {
-                entry: () => actual.push('entered three'),
-                always: '#end'
-              }
+    return promise;
+  });
+
+  it('parent state should enter child state without re-entering self (relative target)', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
+    const actual: string[] = [];
+
+    const machine = createMachine({
+      initial: 'one',
+      states: {
+        one: {
+          initial: 'two',
+          entry: () => actual.push('entered one'),
+          states: {
+            two: {
+              entry: () => actual.push('entered two')
             },
-            after: {
-              10: '.three'
+            three: {
+              entry: () => actual.push('entered three'),
+              always: '#end'
             }
           },
-          end: {
-            id: 'end',
-            type: 'final'
+          after: {
+            10: '.three'
           }
+        },
+        end: {
+          id: 'end',
+          type: 'final'
         }
-      });
+      }
+    });
 
-      const actor = createActor(machine);
-      actor.subscribe({
-        complete: () => {
-          expect(actual).toEqual([
-            'entered one',
-            'entered two',
-            'entered three'
-          ]);
-          resolve();
-        }
-      });
-      actor.start();
-    }));
+    const actor = createActor(machine);
+    actor.subscribe({
+      complete: () => {
+        expect(actual).toEqual(['entered one', 'entered two', 'entered three']);
+        resolve();
+      }
+    });
+    actor.start();
+
+    return promise;
+  });
 
   it('should defer a single send event for a delayed conditional transition (#886)', () => {
     vi.useFakeTimers();
@@ -196,73 +199,76 @@ describe('delayed transitions', () => {
   });
 
   // TODO: figure out correct behavior for restoring delayed transitions
-  it.skip('should execute an after transition after starting from a state resolved using `.getPersistedSnapshot`', () =>
-    new Promise<void>((resolve) => {
-      const machine = createMachine({
-        id: 'machine',
-        initial: 'a',
-        states: {
-          a: {
-            on: { next: 'withAfter' }
-          },
+  it.skip('should execute an after transition after starting from a state resolved using `.getPersistedSnapshot`', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
 
-          withAfter: {
-            after: {
-              1: { target: 'done' }
+    const machine = createMachine({
+      id: 'machine',
+      initial: 'a',
+      states: {
+        a: {
+          on: { next: 'withAfter' }
+        },
+
+        withAfter: {
+          after: {
+            1: { target: 'done' }
+          }
+        },
+
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actorRef1 = createActor(machine).start();
+    actorRef1.send({ type: 'next' });
+    const withAfterState = actorRef1.getPersistedSnapshot();
+
+    const actorRef2 = createActor(machine, { snapshot: withAfterState });
+    actorRef2.subscribe({ complete: () => resolve() });
+    actorRef2.start();
+
+    return promise;
+  });
+
+  it('should execute an after transition after starting from a persisted state', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const createMyMachine = () =>
+      createMachine({
+        initial: 'A',
+        states: {
+          A: {
+            on: {
+              NEXT: 'B'
             }
           },
-
-          done: {
+          B: {
+            after: {
+              1: 'C'
+            }
+          },
+          C: {
             type: 'final'
           }
         }
       });
 
-      const actorRef1 = createActor(machine).start();
-      actorRef1.send({ type: 'next' });
-      const withAfterState = actorRef1.getPersistedSnapshot();
+    let service = createActor(createMyMachine()).start();
 
-      const actorRef2 = createActor(machine, { snapshot: withAfterState });
-      actorRef2.subscribe({ complete: () => resolve() });
-      actorRef2.start();
-    }));
+    const persistedSnapshot = JSON.parse(JSON.stringify(service.getSnapshot()));
 
-  it('should execute an after transition after starting from a persisted state', () =>
-    new Promise<void>((resolve) => {
-      const createMyMachine = () =>
-        createMachine({
-          initial: 'A',
-          states: {
-            A: {
-              on: {
-                NEXT: 'B'
-              }
-            },
-            B: {
-              after: {
-                1: 'C'
-              }
-            },
-            C: {
-              type: 'final'
-            }
-          }
-        });
+    service = createActor(createMyMachine(), {
+      snapshot: persistedSnapshot
+    }).start();
 
-      let service = createActor(createMyMachine()).start();
+    service.send({ type: 'NEXT' });
 
-      const persistedSnapshot = JSON.parse(
-        JSON.stringify(service.getSnapshot())
-      );
+    service.subscribe({ complete: () => resolve() });
 
-      service = createActor(createMyMachine(), {
-        snapshot: persistedSnapshot
-      }).start();
-
-      service.send({ type: 'NEXT' });
-
-      service.subscribe({ complete: () => resolve() });
-    }));
+    return promise;
+  });
 
   describe('delay expressions', () => {
     it('should evaluate the expression (function) to determine the delay', () => {

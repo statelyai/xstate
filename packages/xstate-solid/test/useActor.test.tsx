@@ -214,151 +214,157 @@ describe('useActor', () => {
     render(() => <Test />);
   });
 
-  it('should not spawn actors until service is started', () =>
-    new Promise<void>((resolve) => {
-      const spawnMachine = createMachine({
-        types: {} as { context: any },
-        id: 'spawn',
-        initial: 'start',
-        context: { ref: undefined },
-        states: {
-          start: {
-            entry: assign({
-              ref: ({ spawn }) =>
-                spawn(
-                  fromPromise(() => new Promise((res) => res(42))),
-                  { id: 'my-promise' }
-                )
-            }),
-            on: {
-              'xstate.done.actor.my-promise': 'success'
-            }
-          },
-          success: {
-            type: 'final'
+  it('should not spawn actors until service is started', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const spawnMachine = createMachine({
+      types: {} as { context: any },
+      id: 'spawn',
+      initial: 'start',
+      context: { ref: undefined },
+      states: {
+        start: {
+          entry: assign({
+            ref: ({ spawn }) =>
+              spawn(
+                fromPromise(() => new Promise((res) => res(42))),
+                { id: 'my-promise' }
+              )
+          }),
+          on: {
+            'xstate.done.actor.my-promise': 'success'
           }
-        }
-      });
-
-      const Spawner = () => {
-        const [current] = useActor(spawnMachine);
-
-        return (
-          <Switch fallback={null}>
-            <Match when={current.value === 'start'}>
-              <span data-testid="start" />
-            </Match>
-            <Match when={current.value === 'success'}>
-              <span data-testid="success" />
-            </Match>
-          </Switch>
-        );
-      };
-
-      render(() => <Spawner />);
-      waitFor(() => screen.getByTestId('success')).then(() => resolve());
-    }));
-
-  it('send should update synchronously', () =>
-    new Promise<void>((resolve) => {
-      const machine = createMachine({
-        initial: 'start',
-        states: {
-          start: {
-            on: {
-              done: 'success'
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
-      });
-
-      const Spawner = () => {
-        const [current, send] = useActor(machine);
-
-        onMount(() => {
-          expect(current.value).toBe('start');
-          send({ type: 'done' });
-          expect(current.value).toBe('success');
-        });
-
-        return (
-          <Switch fallback={null}>
-            <Match when={current.value === 'start'}>
-              <span data-testid="start" />
-            </Match>
-            <Match when={current.value === 'success'}>
-              <span data-testid="success" />
-            </Match>
-          </Switch>
-        );
-      };
-
-      render(() => <Spawner />);
-      waitFor(() => screen.getByTestId('success')).then(() => resolve());
-    }));
-
-  it('actions should not have stale data', () =>
-    new Promise<void>((resolve) => {
-      const toggleMachine = createMachine({
-        types: {} as {
-          events: { type: 'TOGGLE' };
         },
-        initial: 'inactive',
-        states: {
-          inactive: {
-            on: { TOGGLE: 'active' }
-          },
-          active: {
-            entry: 'doAction'
-          }
+        success: {
+          type: 'final'
         }
+      }
+    });
+
+    const Spawner = () => {
+      const [current] = useActor(spawnMachine);
+
+      return (
+        <Switch fallback={null}>
+          <Match when={current.value === 'start'}>
+            <span data-testid="start" />
+          </Match>
+          <Match when={current.value === 'success'}>
+            <span data-testid="success" />
+          </Match>
+        </Switch>
+      );
+    };
+
+    render(() => <Spawner />);
+    waitFor(() => screen.getByTestId('success')).then(() => resolve());
+
+    return promise;
+  });
+
+  it('send should update synchronously', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            done: 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const Spawner = () => {
+      const [current, send] = useActor(machine);
+
+      onMount(() => {
+        expect(current.value).toBe('start');
+        send({ type: 'done' });
+        expect(current.value).toBe('success');
       });
 
-      const Toggle = () => {
-        const [ext, setExt] = createSignal(false);
+      return (
+        <Switch fallback={null}>
+          <Match when={current.value === 'start'}>
+            <span data-testid="start" />
+          </Match>
+          <Match when={current.value === 'success'}>
+            <span data-testid="success" />
+          </Match>
+        </Switch>
+      );
+    };
 
-        const doAction = () => {
-          expect(ext()).toBeTruthy();
-          resolve();
-        };
+    render(() => <Spawner />);
+    waitFor(() => screen.getByTestId('success')).then(() => resolve());
 
-        const [, send] = useActor(
-          toggleMachine.provide({
-            actions: {
-              doAction
-            }
-          })
-        );
+    return promise;
+  });
 
-        return (
-          <div>
-            <button
-              data-testid="extbutton"
-              onclick={(_) => {
-                setExt(true);
-              }}
-            />
-            <button
-              data-testid="button"
-              onclick={(_) => {
-                send({ type: 'TOGGLE' });
-              }}
-            />
-          </div>
-        );
+  it('actions should not have stale data', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const toggleMachine = createMachine({
+      types: {} as {
+        events: { type: 'TOGGLE' };
+      },
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: { TOGGLE: 'active' }
+        },
+        active: {
+          entry: 'doAction'
+        }
+      }
+    });
+
+    const Toggle = () => {
+      const [ext, setExt] = createSignal(false);
+
+      const doAction = () => {
+        expect(ext()).toBeTruthy();
+        resolve();
       };
 
-      render(() => <Toggle />);
+      const [, send] = useActor(
+        toggleMachine.provide({
+          actions: {
+            doAction
+          }
+        })
+      );
 
-      const button = screen.getByTestId('button');
-      const extButton = screen.getByTestId('extbutton');
-      fireEvent.click(extButton);
+      return (
+        <div>
+          <button
+            data-testid="extbutton"
+            onclick={(_) => {
+              setExt(true);
+            }}
+          />
+          <button
+            data-testid="button"
+            onclick={(_) => {
+              send({ type: 'TOGGLE' });
+            }}
+          />
+        </div>
+      );
+    };
 
-      fireEvent.click(button);
-    }));
+    render(() => <Toggle />);
+
+    const button = screen.getByTestId('button');
+    const extButton = screen.getByTestId('extbutton');
+    fireEvent.click(extButton);
+
+    fireEvent.click(button);
+
+    return promise;
+  });
 
   it('should capture all actions', () => {
     let count = 0;
@@ -1023,61 +1029,63 @@ describe('useActor', () => {
     expect(canDoSomethingEl.textContent).toEqual('true');
   });
 
-  it(`should not reevaluate a scope depending on state.matches when state.value doesn't change`, () =>
-    new Promise<void>((resolve) => {
-      interface MachineContext {
-        counter: number;
-      }
+  it(`should not reevaluate a scope depending on state.matches when state.value doesn't change`, () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    interface MachineContext {
+      counter: number;
+    }
 
-      const machine = createMachine({
-        types: {} as { context: MachineContext },
-        context: {
-          counter: 0
-        },
-        initial: 'idle',
-        states: {
-          idle: {
-            on: {
-              INC: {
-                actions: assign({
-                  counter: ({ context }) => context.counter + 1
-                })
-              }
+    const machine = createMachine({
+      types: {} as { context: MachineContext },
+      context: {
+        counter: 0
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            INC: {
+              actions: assign({
+                counter: ({ context }) => context.counter + 1
+              })
             }
           }
         }
+      }
+    });
+
+    const Comp = () => {
+      let calls = 0;
+      const [state, send] = useActor(machine);
+
+      createEffect(() => {
+        calls++;
+        state.matches('foo');
       });
 
-      const Comp = () => {
-        let calls = 0;
-        const [state, send] = useActor(machine);
-
-        createEffect(() => {
-          calls++;
-          state.matches('foo');
-        });
-
-        onMount(() => {
-          send({ type: 'INC' });
-          send({ type: 'INC' });
+      onMount(() => {
+        send({ type: 'INC' });
+        send({ type: 'INC' });
+        send({ type: 'INC' });
+        setTimeout(() => {
           send({ type: 'INC' });
           setTimeout(() => {
             send({ type: 'INC' });
             setTimeout(() => {
-              send({ type: 'INC' });
-              setTimeout(() => {
-                expect(calls).toBe(1);
-                resolve();
-              }, 100);
-            });
+              expect(calls).toBe(1);
+              resolve();
+            }, 100);
           });
         });
+      });
 
-        return null;
-      };
+      return null;
+    };
 
-      render(() => <Comp />);
-    }));
+    render(() => <Comp />);
+
+    return promise;
+  });
 
   it('should successfully spawn actors from the lazily declared context', () => {
     let childSpawned = false;
@@ -1520,40 +1528,42 @@ describe('useActor', () => {
     expect(machine2Value.textContent).toEqual('101');
   });
 
-  it('Service should stop on component cleanup', () =>
-    new Promise<void>((resolve) => {
-      vi.useFakeTimers();
-      const machine = createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: {
-                target: 'b'
-              }
+  it('Service should stop on component cleanup', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    vi.useFakeTimers();
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: {
+              target: 'b'
             }
-          },
-          b: {}
-        }
+          }
+        },
+        b: {}
+      }
+    });
+    const Display = () => {
+      onCleanup(() => {
+        expect(service.getSnapshot().status).toBe('stopped');
+        resolve();
       });
-      const Display = () => {
-        onCleanup(() => {
-          expect(service.getSnapshot().status).toBe('stopped');
-          resolve();
-        });
-        const [state, , service] = useActor(machine);
-        return <div>{state.toString()}</div>;
-      };
-      const Counter = () => {
-        const [show, setShow] = createSignal(true);
-        setTimeout(() => setShow(false), 100);
+      const [state, , service] = useActor(machine);
+      return <div>{state.toString()}</div>;
+    };
+    const Counter = () => {
+      const [show, setShow] = createSignal(true);
+      setTimeout(() => setShow(false), 100);
 
-        return <div>{show() ? <Display /> : null}</div>;
-      };
+      return <div>{show() ? <Display /> : null}</div>;
+    };
 
-      render(() => <Counter />);
-      vi.advanceTimersByTime(200);
-    }));
+    render(() => <Counter />);
+    vi.advanceTimersByTime(200);
+
+    return promise;
+  });
 
   it('.can should trigger on context change', () => {
     const machine = createMachine(
@@ -1673,43 +1683,45 @@ describe('useActor', () => {
     expect(activatedCount).toEqual(1);
   });
 
-  it('child component should be able to send an event to a parent immediately in an effect', () =>
-    new Promise<void>((resolve) => {
-      const machine = createMachine({
-        types: {} as {
-          events: { type: 'FINISH' };
+  it('child component should be able to send an event to a parent immediately in an effect', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FINISH' };
+      },
+      initial: 'active',
+      states: {
+        active: {
+          on: { FINISH: 'success' }
         },
-        initial: 'active',
-        states: {
-          active: {
-            on: { FINISH: 'success' }
-          },
-          success: {}
-        }
+        success: {}
+      }
+    });
+
+    const ChildTest = (props: { send: any }) => {
+      // This will send an event to the parent service
+      // BEFORE the service is ready.
+      onMount(() => {
+        props.send({ type: 'FINISH' });
       });
 
-      const ChildTest = (props: { send: any }) => {
-        // This will send an event to the parent service
-        // BEFORE the service is ready.
-        onMount(() => {
-          props.send({ type: 'FINISH' });
-        });
+      return null;
+    };
 
-        return null;
-      };
+    const Test = () => {
+      const [state, send] = useActor(machine);
+      createEffect(() => {
+        if (state.matches('success')) {
+          resolve();
+        }
+      });
+      return <ChildTest send={send} />;
+    };
 
-      const Test = () => {
-        const [state, send] = useActor(machine);
-        createEffect(() => {
-          if (state.matches('success')) {
-            resolve();
-          }
-        });
-        return <ChildTest send={send} />;
-      };
+    render(() => <Test />);
 
-      render(() => <Test />);
-    }));
+    return promise;
+  });
 
   it('custom data should be available right away for the invoked actor', () => {
     const childMachine = createMachine({
