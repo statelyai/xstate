@@ -24,7 +24,8 @@ afterEach(() => {
 });
 
 describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
-  it('observer should be called with next state', (done) => {
+  it('observer should be called with next state', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'inactive',
       states: {
@@ -43,7 +44,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       React.useEffect(() => {
         actorRef.subscribe((state) => {
           if (state.matches('active')) {
-            done();
+            resolve();
           }
         });
       }, [actorRef]);
@@ -62,6 +63,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     const button = screen.getByTestId('button');
 
     fireEvent.click(button);
+    return promise;
   });
 
   it('actions created by a layout effect should access the latest closure values', () => {
@@ -107,7 +109,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should rerender OK when only the provided machine implementations have changed', () => {
-    console.warn = jest.fn();
+    console.warn = vi.fn();
     const machine = createMachine({
       initial: 'foo',
       context: { id: 1 },
@@ -269,7 +271,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should deliver messages sent from an effect to the root actor registered in the system', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const m = createMachine({
       on: {
         PING: {
@@ -698,7 +700,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should be able to rehydrate an inline actor when changing machines', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const createSampleMachine = (counter: number) => {
       const child = createMachine({
@@ -766,8 +768,8 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it("should execute action bound to a specific machine's instance when the action is provided in render", () => {
-    const spy1 = jest.fn();
-    const spy2 = jest.fn();
+    const spy1 = vi.fn();
+    const spy2 = vi.fn();
 
     const machine = createMachine({
       on: {
@@ -816,7 +818,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should execute an initial entry action once', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       entry: spy

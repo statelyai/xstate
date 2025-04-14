@@ -1,6 +1,6 @@
 /* @jsxImportSource solid-js */
 import { createMemo, createSignal, from } from 'solid-js';
-import { fireEvent, render, screen } from 'solid-testing-library';
+import { fireEvent, render, screen } from '@solidjs/testing-library';
 import {
   ActorRefFrom,
   AnyMachineSnapshot,

@@ -4,34 +4,24 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Jest Current File",
-      "runtimeExecutable": "sh",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "args": ["${file}", "--config", "jest.config.js", "--no-cache"],
+      "name": "Vitest Current Test File",
+      "autoAttachChildProcesses": true,
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "program": "${workspaceRoot}/node_modules/vitest/vitest.mjs",
+      "args": ["run", "${relativeFile}"],
       "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
-      "windows": {
-        "program": "${workspaceFolder}/node_modules/jest/bin/jest.js"
-      }
+      "internalConsoleOptions": "neverOpen"
     },
     {
       "type": "node",
       "request": "launch",
-      "name": "Jest Current File (no timeout)",
-      "runtimeExecutable": "sh",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "args": [
-        "${file}",
-        "--config",
-        "jest.config.js",
-        "--no-cache",
-        "--testTimeout=2147483647"
-      ],
+      "name": "Vitest Current Test File (no timeout)",
+      "autoAttachChildProcesses": true,
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "program": "${workspaceRoot}/node_modules/vitest/vitest.mjs",
+      "args": ["run", "${relativeFile}", "--testTimeout=2147483647"],
       "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
-      "windows": {
-        "program": "${workspaceFolder}/node_modules/jest/bin/jest.js"
-      }
+      "internalConsoleOptions": "neverOpen"
     }
   ]
 }

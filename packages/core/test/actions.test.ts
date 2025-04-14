@@ -1,4 +1,4 @@
-import { sleep } from '@xstate-repo/jest-utils';
+import { setTimeout as sleep } from 'node:timers/promises';
 import {
   cancel,
   emit,
@@ -422,9 +422,9 @@ describe('entry/exit actions', () => {
     });
 
     it('should work with function actions', () => {
-      const entrySpy = jest.fn();
-      const exitSpy = jest.fn();
-      const transitionSpy = jest.fn();
+      const entrySpy = vi.fn();
+      const exitSpy = vi.fn();
+      const transitionSpy = vi.fn();
 
       const machine = createMachine({
         initial: 'a',
@@ -553,7 +553,7 @@ describe('entry/exit actions', () => {
     });
 
     it("shouldn't use a referenced custom action over a builtin one when there is a naming conflict", () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       const machine = createMachine(
         {
           context: {
@@ -580,7 +580,7 @@ describe('entry/exit actions', () => {
     });
 
     it("shouldn't use a referenced custom action over an inline one when there is a naming conflict", () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       let called = false;
 
       const machine = createMachine(
@@ -609,8 +609,8 @@ describe('entry/exit actions', () => {
     });
 
     it('root entry/exit actions should be called on root reentering transitions', () => {
-      let entrySpy = jest.fn();
-      let exitSpy = jest.fn();
+      let entrySpy = vi.fn();
+      let exitSpy = vi.fn();
 
       const machine = createMachine({
         id: 'root',
@@ -1387,7 +1387,7 @@ describe('entry/exit actions', () => {
       expect(flushTracked()).toEqual([]);
     });
 
-    it("shouldn't exit (and reenter) state on targetless delayed transition", (done) => {
+    it("shouldn't exit (and reenter) state on targetless delayed transition", async () => {
       const machine = createMachine({
         initial: 'one',
         states: {
@@ -1408,16 +1408,16 @@ describe('entry/exit actions', () => {
       createActor(machine).start();
       flushTracked();
 
-      setTimeout(() => {
-        expect(flushTracked()).toEqual([]);
-        done();
-      }, 50);
+      await sleep(50);
+
+      expect(flushTracked()).toEqual([]);
     });
   });
 
   describe('when reaching a final state', () => {
     // https://github.com/statelyai/xstate/issues/1109
-    it('exit actions should be called when invoked machine reaches its final state', (done) => {
+    it('exit actions should be called when invoked machine reaches its final state', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       let exitCalled = false;
       let childExitCalled = false;
       const childMachine = createMachine({
@@ -1455,17 +1455,18 @@ describe('entry/exit actions', () => {
         complete: () => {
           expect(exitCalled).toBeTruthy();
           expect(childExitCalled).toBeTruthy();
-          done();
+          resolve();
         }
       });
       actor.start();
+      return promise;
     });
   });
 
   describe('when stopped', () => {
     it('exit actions should not be called when stopping a machine', () => {
-      const rootSpy = jest.fn();
-      const childSpy = jest.fn();
+      const rootSpy = vi.fn();
+      const childSpy = vi.fn();
 
       const machine = createMachine({
         exit: rootSpy,
@@ -1622,7 +1623,7 @@ describe('entry/exit actions', () => {
     });
 
     it('sent events from exit handlers of a stopped child should not be received by its children', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
 
       const grandchild = createMachine({
         id: 'grandchild',
@@ -1665,7 +1666,7 @@ describe('entry/exit actions', () => {
     });
 
     it('sent events from exit handlers of a done child should be received by its children', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
 
       const grandchild = createMachine({
         id: 'grandchild',
@@ -1736,7 +1737,7 @@ describe('entry/exit actions', () => {
     });
 
     it('should note execute referenced custom actions correctly when stopping an interpreter', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       const parent = createMachine(
         {
           id: 'parent',
@@ -1947,7 +1948,7 @@ describe('initial actions', () => {
   });
 
   it('should execute actions of initial transitions only once when taking an explicit transition', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -1995,7 +1996,7 @@ describe('initial actions', () => {
   });
 
   it('should execute actions of all initial transitions resolving to the initial state value', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: {
         target: 'a',
@@ -2029,7 +2030,7 @@ describe('initial actions', () => {
   });
 
   it('should execute actions of the initial transition when taking a root reentering self-transition', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       id: 'root',
       initial: {
@@ -2066,7 +2067,7 @@ describe('initial actions', () => {
 
 describe('actions on invalid transition', () => {
   it('should not recall previous actions', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'idle',
       states: {
@@ -2104,7 +2105,7 @@ describe('actions config', () => {
   const definedAction = () => {};
 
   it('should reference actions defined in actions parameter of machine options (entry actions)', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -2133,7 +2134,7 @@ describe('actions config', () => {
   });
 
   it('should reference actions defined in actions parameter of machine options (initial state)', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine(
       {
         entry: ['definedAction', { type: 'definedAction' }, 'undefinedAction']
@@ -2235,7 +2236,7 @@ describe('actions config', () => {
 
 describe('action meta', () => {
   it('should provide the original params', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const testMachine = createMachine(
       {
@@ -2269,7 +2270,7 @@ describe('action meta', () => {
   });
 
   it('should provide undefined params when it was configured as string', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const testMachine = createMachine(
       {
@@ -2296,7 +2297,7 @@ describe('action meta', () => {
   });
 
   it('should provide the action with resolved params when they are dynamic', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -2322,7 +2323,7 @@ describe('action meta', () => {
   });
 
   it('should resolve dynamic params using context value', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -2351,7 +2352,7 @@ describe('action meta', () => {
   });
 
   it('should resolve dynamic params using event value', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -2384,7 +2385,8 @@ describe('action meta', () => {
 });
 
 describe('forwardTo()', () => {
-  it('should forward an event to a service', (done) => {
+  it('should forward an event to a service', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const child = createMachine({
       types: {} as {
         events: {
@@ -2436,13 +2438,16 @@ describe('forwardTo()', () => {
     });
 
     const service = createActor(parent);
-    service.subscribe({ complete: () => done() });
+    service.subscribe({ complete: () => resolve() });
     service.start();
 
     service.send({ type: 'EVENT', value: 42 });
+    return promise;
   });
 
-  it('should forward an event to a service (dynamic)', (done) => {
+  it('should forward an event to a service (dynamic)', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
     const child = createMachine({
       types: {} as {
         events: {
@@ -2493,10 +2498,11 @@ describe('forwardTo()', () => {
     });
 
     const service = createActor(parent);
-    service.subscribe({ complete: () => done() });
+    service.subscribe({ complete: () => resolve() });
     service.start();
 
     service.send({ type: 'EVENT', value: 42 });
+    return promise;
   });
 
   it('should not cause an infinite loop when forwarding to undefined', () => {
@@ -2506,7 +2512,7 @@ describe('forwardTo()', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -2515,7 +2521,7 @@ describe('forwardTo()', () => {
     actorRef.start();
     actorRef.send({ type: 'TEST' });
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: Attempted to forward event to undefined actor. This risks an infinite loop in the sender.],
@@ -2527,7 +2533,7 @@ describe('forwardTo()', () => {
 
 describe('log()', () => {
   it('should log a string', () => {
-    const consoleSpy = jest.fn();
+    const consoleSpy = vi.fn();
     console.log = consoleSpy;
     const machine = createMachine({
       entry: log('some string', 'string label')
@@ -2545,7 +2551,7 @@ describe('log()', () => {
   });
 
   it('should log an expression', () => {
-    const consoleSpy = jest.fn();
+    const consoleSpy = vi.fn();
     console.log = consoleSpy;
     const machine = createMachine({
       context: {
@@ -2568,7 +2574,7 @@ describe('log()', () => {
 
 describe('enqueueActions', () => {
   it('should execute a simple referenced action', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -2589,8 +2595,8 @@ describe('enqueueActions', () => {
   });
 
   it('should execute multiple different referenced actions', () => {
-    const spy1 = jest.fn();
-    const spy2 = jest.fn();
+    const spy1 = vi.fn();
+    const spy2 = vi.fn();
 
     const machine = createMachine(
       {
@@ -2614,7 +2620,7 @@ describe('enqueueActions', () => {
   });
 
   it('should execute multiple same referenced actions', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -2636,7 +2642,7 @@ describe('enqueueActions', () => {
   });
 
   it('should execute a parameterized action', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -2656,7 +2662,7 @@ describe('enqueueActions', () => {
 
     createActor(machine).start();
 
-    expect(spy).toMatchMockCallsInlineSnapshot(`
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           {
@@ -2668,7 +2674,7 @@ describe('enqueueActions', () => {
   });
 
   it('should execute a function', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       entry: enqueueActions(({ enqueue }) => {
@@ -2682,7 +2688,7 @@ describe('enqueueActions', () => {
   });
 
   it('should execute a builtin action using its own action creator', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       on: {
@@ -2709,7 +2715,7 @@ describe('enqueueActions', () => {
   });
 
   it('should execute a builtin action using its bound action creator', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       on: {
@@ -2751,7 +2757,7 @@ describe('enqueueActions', () => {
   });
 
   it('should be able to check a simple referenced guard', () => {
-    const spy = jest.fn().mockImplementation(() => true);
+    const spy = vi.fn().mockImplementation(() => true);
     const machine = createMachine(
       {
         context: {
@@ -2774,7 +2780,7 @@ describe('enqueueActions', () => {
   });
 
   it('should be able to check a parameterized guard', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -2802,7 +2808,7 @@ describe('enqueueActions', () => {
 
     createActor(machine);
 
-    expect(spy).toMatchMockCallsInlineSnapshot(`
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           {
@@ -2860,7 +2866,7 @@ describe('enqueueActions', () => {
       }
     });
 
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const parentMachine = setup({
       types: {} as { events: ParentEvent },
@@ -2906,7 +2912,7 @@ describe('enqueueActions', () => {
       entry: 'sendToParent'
     });
 
-    const parentSpy = jest.fn();
+    const parentSpy = vi.fn();
 
     const parentMachine = setup({
       types: {} as { events: ParentEvent },
@@ -2956,7 +2962,8 @@ describe('sendParent', () => {
 });
 
 describe('sendTo', () => {
-  it('should be able to send an event to an actor', (done) => {
+  it('should be able to send an event to an actor', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
       types: {} as {
         events: { type: 'EVENT' };
@@ -2966,7 +2973,7 @@ describe('sendTo', () => {
         waiting: {
           on: {
             EVENT: {
-              actions: () => done()
+              actions: () => resolve()
             }
           }
         }
@@ -2986,9 +2993,11 @@ describe('sendTo', () => {
     });
 
     createActor(parentMachine).start();
+    return promise;
   });
 
-  it('should be able to send an event from expression to an actor', (done) => {
+  it('should be able to send an event from expression to an actor', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
       types: {} as {
         events: { type: 'EVENT'; count: number };
@@ -2998,7 +3007,7 @@ describe('sendTo', () => {
         waiting: {
           on: {
             EVENT: {
-              actions: () => done()
+              actions: () => resolve()
             }
           }
         }
@@ -3025,6 +3034,7 @@ describe('sendTo', () => {
     });
 
     createActor(parentMachine).start();
+    return promise;
   });
 
   it('should report a type error for an invalid event', () => {
@@ -3058,7 +3068,8 @@ describe('sendTo', () => {
     });
   });
 
-  it('should be able to send an event to a named actor', (done) => {
+  it('should be able to send an event to a named actor', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
       types: {} as {
         events: { type: 'EVENT' };
@@ -3068,7 +3079,7 @@ describe('sendTo', () => {
         waiting: {
           on: {
             EVENT: {
-              actions: () => done()
+              actions: () => resolve()
             }
           }
         }
@@ -3087,9 +3098,11 @@ describe('sendTo', () => {
     });
 
     createActor(parentMachine).start();
+    return promise;
   });
 
-  it('should be able to send an event directly to an ActorRef', (done) => {
+  it('should be able to send an event directly to an ActorRef', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
       types: {} as {
         events: { type: 'EVENT' };
@@ -3099,7 +3112,7 @@ describe('sendTo', () => {
         waiting: {
           on: {
             EVENT: {
-              actions: () => done()
+              actions: () => resolve()
             }
           }
         }
@@ -3117,6 +3130,7 @@ describe('sendTo', () => {
     });
 
     createActor(parentMachine).start();
+    return promise;
   });
 
   it('should be able to read from event', () => {
@@ -3163,7 +3177,7 @@ describe('sendTo', () => {
       entry: sendTo('child', 'a string')
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -3171,7 +3185,7 @@ describe('sendTo', () => {
     });
     actorRef.start();
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: Only event objects may be used with sendTo; use sendTo({ type: "a string" }) instead],
@@ -3181,7 +3195,7 @@ describe('sendTo', () => {
   });
 
   it('a self-event "handler" of an event sent using sendTo should be able to read updated snapshot of self', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       context: {
         counter: 0
@@ -3212,7 +3226,7 @@ describe('sendTo', () => {
     actorRef.send({ type: 'NEXT' });
     actorRef.send({ type: 'EVENT' });
 
-    expect(spy).toMatchMockCallsInlineSnapshot(`
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
 [
   [
     {
@@ -3224,7 +3238,8 @@ describe('sendTo', () => {
   });
 
   it("should not attempt to deliver a delayed event to the spawned actor's ID that was stopped since the event was scheduled", async () => {
-    const spy1 = jest.fn();
+    const warnSpy = vi.spyOn(console, 'warn');
+    const spy1 = vi.fn();
 
     const child1 = createMachine({
       on: {
@@ -3234,7 +3249,7 @@ describe('sendTo', () => {
       }
     });
 
-    const spy2 = jest.fn();
+    const spy2 = vi.fn();
 
     const child2 = createMachine({
       on: {
@@ -3281,7 +3296,7 @@ describe('sendTo', () => {
     expect(spy1).toHaveBeenCalledTimes(0);
     expect(spy2).toHaveBeenCalledTimes(0);
 
-    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+    expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
 [
   [
     "Event "PING" was sent to stopped actor "myChild (x:113)". This actor has already reached its final state, and will not transition.
@@ -3292,7 +3307,8 @@ Event: {"type":"PING"}",
   });
 
   it("should not attempt to deliver a delayed event to the invoked actor's ID that was stopped since the event was scheduled", async () => {
-    const spy1 = jest.fn();
+    const warnSpy = vi.spyOn(console, 'warn');
+    const spy1 = vi.fn();
 
     const child1 = createMachine({
       on: {
@@ -3302,7 +3318,7 @@ Event: {"type":"PING"}",
       }
     });
 
-    const spy2 = jest.fn();
+    const spy2 = vi.fn();
 
     const child2 = createMachine({
       on: {
@@ -3354,7 +3370,7 @@ Event: {"type":"PING"}",
     expect(spy1).toHaveBeenCalledTimes(0);
     expect(spy2).toHaveBeenCalledTimes(0);
 
-    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+    expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
 [
   [
     "Event "PING" was sent to stopped actor "myChild (x:116)". This actor has already reached its final state, and will not transition.
@@ -3366,7 +3382,8 @@ Event: {"type":"PING"}",
 });
 
 describe('raise', () => {
-  it('should be able to send a delayed event to itself', (done) => {
+  it('should be able to send a delayed event to itself', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -3394,10 +3411,11 @@ describe('raise', () => {
 
     const service = createActor(machine).start();
 
-    service.subscribe({ complete: () => done() });
+    service.subscribe({ complete: () => resolve() });
 
     // Ensures that the delayed self-event is sent when in the `b` state
     service.send({ type: 'TO_B' });
+    return promise;
   });
 
   it('should be able to send a delayed event to itself with delay = 0', async () => {
@@ -3450,7 +3468,8 @@ describe('raise', () => {
     expect(service.getSnapshot().value).toEqual('b');
   });
 
-  it('should be able to raise a delayed event and respond to it in the same state', (done) => {
+  it('should be able to raise a delayed event and respond to it in the same state', async () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -3473,12 +3492,14 @@ describe('raise', () => {
 
     const service = createActor(machine).start();
 
-    service.subscribe({ complete: () => done() });
+    service.subscribe({ complete: () => resolve() });
 
-    setTimeout(() => {
-      // didn't transition yet
-      expect(service.getSnapshot().value).toEqual('a');
-    }, 50);
+    await sleep(50);
+
+    // didn't transition yet
+    expect(service.getSnapshot().value).toEqual('a');
+
+    return promise;
   });
 
   it('should accept event expression', () => {
@@ -3551,7 +3572,7 @@ describe('raise', () => {
       )
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -3559,7 +3580,7 @@ describe('raise', () => {
     });
     actorRef.start();
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: Only event objects may be used with raise; use raise({ type: "a string" }) instead],
@@ -3597,17 +3618,13 @@ describe('cancel', () => {
     // This should cancel the 'RAISED' event
     actor.send({ type: 'CANCEL' });
 
-    await new Promise<void>((res) => {
-      setTimeout(() => {
-        expect(actor.getSnapshot().value).toBe('a');
-        res();
-      }, 10);
-    });
+    await sleep(10);
+    expect(actor.getSnapshot().value).toBe('a');
   });
 
   it('should cancel only the delayed event in the machine that scheduled it when canceling the event with the same ID in the machine that sent it first', async () => {
-    const fooSpy = jest.fn();
-    const barSpy = jest.fn();
+    const fooSpy = vi.fn();
+    const barSpy = vi.fn();
 
     const machine = createMachine({
       invoke: [
@@ -3654,8 +3671,8 @@ describe('cancel', () => {
   });
 
   it('should cancel only the delayed event in the machine that scheduled it when canceling the event with the same ID in the machine that sent it second', async () => {
-    const fooSpy = jest.fn();
-    const barSpy = jest.fn();
+    const fooSpy = vi.fn();
+    const barSpy = vi.fn();
 
     const machine = createMachine({
       invoke: [
@@ -3702,7 +3719,7 @@ describe('cancel', () => {
   });
 
   it('should not try to clear an undefined timeout when canceling an unscheduled timer', async () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       on: {
@@ -3727,7 +3744,7 @@ describe('cancel', () => {
   });
 
   it('should be able to cancel a just scheduled delayed event to a just invoked child', async () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const child = createMachine({
       on: {
@@ -3773,7 +3790,7 @@ describe('cancel', () => {
   });
 
   it('should not be able to cancel a just scheduled non-delayed event to a just invoked child', async () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const child = createMachine({
       on: {
@@ -4037,7 +4054,7 @@ describe('actions', () => {
   });
 
   it('should call an inline action responding to an initial raise with the raised event', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       entry: raise({ type: 'HELLO' }),
@@ -4056,7 +4073,7 @@ describe('actions', () => {
   });
 
   it('should call a referenced action responding to an initial raise with the raised event', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -4082,7 +4099,7 @@ describe('actions', () => {
   });
 
   it('should call an inline action responding to an initial raise with updated (non-initial) context', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       context: { count: 0 },
@@ -4102,7 +4119,7 @@ describe('actions', () => {
   });
 
   it('should call a referenced action responding to an initial raise with updated (non-initial) context', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -4129,7 +4146,7 @@ describe('actions', () => {
   });
 
   it('should call inline entry custom action with undefined parametrized action object', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     createActor(
       createMachine({
         entry: (_, params) => {
@@ -4142,7 +4159,7 @@ describe('actions', () => {
   });
 
   it('should call inline entry builtin action with undefined parametrized action object', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     createActor(
       createMachine({
         entry: assign((_, params) => {
@@ -4156,7 +4173,7 @@ describe('actions', () => {
   });
 
   it('should call inline transition custom action with undefined parametrized action object', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const actorRef = createActor(
       createMachine({
@@ -4175,7 +4192,7 @@ describe('actions', () => {
   });
 
   it('should call inline transition builtin action with undefined parameters', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const actorRef = createActor(
       createMachine({
@@ -4195,7 +4212,7 @@ describe('actions', () => {
   });
 
   it('should call a referenced custom action with undefined params when it has no params and it is referenced using a string', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     createActor(
       createMachine(
@@ -4216,7 +4233,7 @@ describe('actions', () => {
   });
 
   it('should call a referenced builtin action with undefined params when it has no params and it is referenced using a string', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     createActor(
       createMachine(
@@ -4238,7 +4255,7 @@ describe('actions', () => {
   });
 
   it('should call a referenced custom action with the provided parametrized action object', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     createActor(
       createMachine(
@@ -4266,7 +4283,7 @@ describe('actions', () => {
   });
 
   it('should call a referenced builtin action with the provided parametrized action object', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     createActor(
       createMachine(
@@ -4295,6 +4312,7 @@ describe('actions', () => {
   });
 
   it('should warn if called in custom action', () => {
+    const warnSpy = vi.spyOn(console, 'warn');
     const machine = createMachine({
       entry: () => {
         assign({});
@@ -4306,7 +4324,7 @@ describe('actions', () => {
 
     createActor(machine).start();
 
-    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+    expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
 [
   [
     "Custom actions should not call \`assign()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",

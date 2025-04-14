@@ -1,4 +1,4 @@
-import { createStore, createAtom } from '../src/';
+import { createStore, createAtom } from '../src/index.ts';
 
 it('creates an atom', () => {
   const atom = createAtom(42);
@@ -19,7 +19,7 @@ it('sets the value of the atom using a function', () => {
 });
 
 it('can subscribe to atom changes', () => {
-  const log = jest.fn();
+  const log = vi.fn();
   const atom = createAtom(0);
 
   atom.subscribe(log);
@@ -34,7 +34,7 @@ it('can subscribe to atom changes', () => {
 });
 
 it('can unsubscribe from atom changes', () => {
-  const log = jest.fn();
+  const log = vi.fn();
   const atom = createAtom(0);
 
   const sub = atom.subscribe(log);
