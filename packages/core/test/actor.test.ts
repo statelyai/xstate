@@ -231,8 +231,6 @@ describe('spawning machines', () => {
   });
 });
 
-const aaa = 'dadasda';
-
 describe('spawning promises', () => {
   it('should be able to spawn a promise', (done) => {
     const promiseMachine = createMachine({

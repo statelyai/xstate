@@ -335,7 +335,7 @@ export interface TransitionConfig<
   >;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
-  fn?: TransitionConfigFunction<TContext, TExpressionEvent, TEmitted>;
+  fn?: TransitionConfigFunction<TContext, TExpressionEvent, TEvent, TEmitted>;
   meta?: TMeta;
   description?: string;
 }
@@ -569,13 +569,14 @@ export type TransitionConfigOrTarget<
 
 export type TransitionConfigFunction<
   TContext extends MachineContext,
+  TCurrentEvent extends EventObject,
   TEvent extends EventObject,
   TEmitted extends EventObject
 > = (
   obj: {
     context: TContext;
-    event: TEvent;
-    parent?: UnknownActorRef;
+    event: TCurrentEvent;
+    parent: UnknownActorRef | undefined;
     value: StateValue;
     children: Record<string, AnyActorRef>;
   },
@@ -587,6 +588,7 @@ export type TransitionConfigFunction<
 } | void;
 
 export type AnyTransitionConfigFunction = TransitionConfigFunction<
+  any,
   any,
   any,
   any
@@ -2712,11 +2714,11 @@ export type BuiltinActionResolution = [
 ];
 
 export type EnqueueObj<
-  TMachineEvent extends EventObject,
+  TEvent extends EventObject,
   TEmittedEvent extends EventObject
 > = {
   cancel: (id: string) => void;
-  raise: (ev: TMachineEvent, options?: { id?: string; delay?: number }) => void;
+  raise: (ev: TEvent, options?: { id?: string; delay?: number }) => void;
   spawn: <T extends AnyActorLogic>(
     logic: T,
     options?: {

@@ -30,7 +30,6 @@ const lightMachine = createMachine({
       on: {
         TIMER: 'yellow',
         KEEP_GOING: {
-          // actions: [cancel('TIMER1')],
           fn: (_, enq) => {
             enq.cancel('TIMER1');
           }
@@ -773,11 +772,12 @@ Event: {"type":"TIMER"}",
           on: {
             LOG: {
               fn: ({ context }, enq) => {
-                enq.log('hello');
+                const nextContext = {
+                  count: context.count + 1
+                };
+                enq.log(nextContext);
                 return {
-                  context: {
-                    count: context.count + 1
-                  }
+                  context: nextContext
                 };
               }
             }
@@ -807,7 +807,6 @@ Event: {"type":"TIMER"}",
         foo: {
           on: {
             EXTERNAL_EVENT: {
-              actions: [raise({ type: 'RAISED_EVENT' }), logAction],
               fn: ({ event }, enq) => {
                 enq.raise({ type: 'RAISED_EVENT' });
                 enq.log(event.type);
@@ -963,7 +962,8 @@ Event: {"type":"TIMER"}",
                   return { target: 'active' };
                 }
               }
-            }
+            },
+            ACTIVATE: 'active'
           }
         },
         active: {
@@ -1522,8 +1522,8 @@ Event: {"type":"TRIGGER"}",
           active: {
             on: {
               FIRE: {
-                fn: ({ parent }) => {
-                  parent?.send({ type: 'FIRED' });
+                fn: ({ parent }, enq) => {
+                  enq.action(() => parent?.send({ type: 'FIRED' }));
                 }
               }
             }
@@ -1753,8 +1753,7 @@ Event: {"type":"TRIGGER"}",
           present: {
             on: {
               NEXT: {
-                target: 'gone',
-                fn: ({ context }, enq) => {
+                fn: ({ context, children }, enq) => {
                   enq.cancel(context.machineRef.id);
                   enq.cancel(context.promiseRef.id);
                   enq.cancel(context.observableRef.id);

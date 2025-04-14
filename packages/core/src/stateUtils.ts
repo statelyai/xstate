@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
-import { raise } from './actions.ts';
+import { assign, log, raise } from './actions.ts';
 import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
 import { spawnChild } from './actions/spawnChild.ts';
@@ -1056,7 +1056,7 @@ export function microstep(
     event,
     actorScope,
     filteredTransitions.flatMap((t) =>
-      getTransitionActions(t, currentSnapshot, event)
+      getTransitionActions(t, currentSnapshot, event, actorScope)
     ),
     internalQueue,
     undefined
@@ -1071,7 +1071,8 @@ export function microstep(
           context,
           event,
           value: nextState.value,
-          children: nextState.children
+          children: nextState.children,
+          parent: actorScope.self._parent
         },
         emptyEnqueueObj
       );
@@ -1311,7 +1312,8 @@ function getTargets(
         context: snapshot.context,
         event,
         value: snapshot.value,
-        children: snapshot.children
+        children: snapshot.children,
+        parent: undefined
       },
       emptyEnqueueObj
     );
@@ -1336,7 +1338,8 @@ function getTransitionActions(
     'target' | 'fn' | 'source' | 'actions'
   >,
   snapshot: AnyMachineSnapshot,
-  event: AnyEventObject
+  event: AnyEventObject,
+  actorScope: AnyActorScope
 ): Readonly<UnknownAction[]> {
   if (transition.fn) {
     const actions: any[] = [];
@@ -1345,14 +1348,29 @@ function getTransitionActions(
         context: snapshot.context,
         event,
         value: snapshot.value,
-        children: snapshot.children
+        children: snapshot.children,
+        parent: actorScope.self._parent
       },
       {
-        ...emptyEnqueueObj,
         action: (fn) => {
           actions.push(fn);
         },
-        emit: (emittedEvent) => actions.push(emittedEvent)
+        cancel: (id) => {
+          actions.push(cancel(id));
+        },
+        raise: (event, options) => {
+          actions.push(raise(event, options));
+        },
+        emit: (emittedEvent) => {
+          actions.push(emittedEvent);
+        },
+        log: (...args) => {
+          actions.push(log(...args));
+        },
+        spawn: (src, options) => {
+          actions.push(spawnChild(src, options));
+          return {} as any;
+        }
       }
     );
 
@@ -2051,7 +2069,7 @@ function getActionsFromAction2(
     // enqueue action; retrieve
     const actions: any[] = [];
 
-    action2(
+    const res = action2(
       {
         context,
         event,
@@ -2063,20 +2081,28 @@ function getActionsFromAction2(
         action: (action) => {
           actions.push(action);
         },
-        cancel: () => {},
+        cancel: (id: string) => {
+          actions.push(cancel(id));
+        },
         emit: (emittedEvent) => {
           actions.push(emittedEvent);
         },
-        log: () => {},
-        raise: (raisedEvent) => {
-          actions.push(raise(raisedEvent));
+        log: (...args) => {
+          actions.push(log(...args));
+        },
+        raise: (raisedEvent, options) => {
+          actions.push(raise(raisedEvent, options));
         },
         spawn: (logic, options) => {
           actions.push(spawnChild(logic, options));
-          return {} as any;
+          return {} as any; // TODO
         }
       }
     );
+
+    if (res?.context) {
+      actions.push(assign(res.context));
+    }
 
     return actions;
   }
