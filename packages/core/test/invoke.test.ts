@@ -884,24 +884,25 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: fromPromise(() => Promise.reject(new Error('test'))),
-                onError: {
-                  target: 'giveUp',
-                  guard: ({ event }) => {
-                    return event.error.message === 'test';
-                  }
-                }
+                src: fromPromise(() =>
+                  createPromise(() => {
+                    throw new Error('test');
+                  })
+                ),
+                onDone: 'success'
               }
             },
-            giveUp: {
+            success: {
               type: 'final'
             }
           }
         });
 
         const actor = createActor(promiseMachine);
+
         actor.subscribe({
           error: (err) => {
+            expect(err).toBeInstanceOf(Error);
             expect((err as any).message).toBe('test');
             expect(completeSpy).not.toHaveBeenCalled();
             resolve();
@@ -912,22 +913,28 @@ describe('invoke', () => {
         return promise;
       });
 
-      it('should be invoked with a promise factory and resolve on onDone target', () => {
+      it('should be invoked with a promise factory and resolve through onDone for compound state nodes', () => {
         const { resolve, promise } = Promise.withResolvers<void>();
         const promiseMachine = createMachine({
-          id: 'invokePromise',
-          initial: 'pending',
+          id: 'promise',
+          initial: 'parent',
           states: {
-            pending: {
-              invoke: {
-                src: fromPromise(() => Promise.resolve(42)),
-                onDone: {
-                  target: 'success',
-                  guard: ({ event }) => {
-                    return event.output === 42;
+            parent: {
+              initial: 'pending',
+              states: {
+                pending: {
+                  invoke: {
+                    src: fromPromise(() =>
+                      createPromise((resolve) => resolve())
+                    ),
+                    onDone: 'success'
                   }
+                },
+                success: {
+                  type: 'final'
                 }
-              }
+              },
+              onDone: 'success'
             },
             success: {
               type: 'final'
@@ -940,141 +947,73 @@ describe('invoke', () => {
         return promise;
       });
 
+      it('should be invoked with a promise service and resolve through onDone for compound state nodes', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
+        const promiseMachine = createMachine(
+          {
+            id: 'promise',
+            initial: 'parent',
+            states: {
+              parent: {
+                initial: 'pending',
+                states: {
+                  pending: {
+                    invoke: {
+                      src: 'somePromise',
+                      onDone: 'success'
+                    }
+                  },
+                  success: {
+                    type: 'final'
+                  }
+                },
+                onDone: 'success'
+              },
+              success: {
+                type: 'final'
+              }
+            }
+          },
+          {
+            actors: {
+              somePromise: fromPromise(() =>
+                createPromise((resolve) => resolve())
+              )
+            }
+          }
+        );
+        const actor = createActor(promiseMachine);
+        actor.subscribe({ complete: () => resolve() });
+        actor.start();
+        return promise;
+      });
       it('should assign the resolved data when invoked with a promise factory', () => {
         const { resolve, promise } = Promise.withResolvers<void>();
         const promiseMachine = createMachine({
-          types: {} as {
-            context: { count: number | undefined };
-          },
-          id: 'invokePromise',
-          context: { count: undefined },
+          types: {} as { context: { count: number } },
+          id: 'promise',
+          context: { count: 0 },
           initial: 'pending',
           states: {
             pending: {
               invoke: {
-                src: fromPromise(() => Promise.resolve(1)),
-                onDone: {
-                  actions: assign({
-                    count: ({ event }) => event.output
-                  })
-                }
-              }
-            }
-          }
-        });
-        const actor = createActor(promiseMachine);
-        actor.subscribe({
-          complete: () => {
-            expect(actor.getSnapshot().context.count).toEqual(1);
-            resolve();
-          }
-        });
-        actor.start();
-        return promise;
-      });
-
-      it('should assign the resolved data when invoked with a promise factory (with input)', () => {
-        const { resolve, promise } = Promise.withResolvers<void>();
-        const promiseMachine = createMachine({
-          types: {} as {
-            context: { count: number | undefined };
-          },
-          id: 'invokePromise',
-          context: { count: undefined },
-          initial: 'pending',
-          states: {
-            pending: {
-              invoke: {
-                src: fromPromise(({ input }) => Promise.resolve(input)),
-                input: 1,
-                onDone: {
-                  actions: assign({
-                    count: ({ event }) => event.output
-                  })
-                }
-              }
-            }
-          }
-        });
-        const actor = createActor(promiseMachine);
-        actor.subscribe({
-          complete: () => {
-            expect(actor.getSnapshot().context.count).toEqual(1);
-            resolve();
-          }
-        });
-        actor.start();
-        return promise;
-      });
-
-      it('should assign the resolved data when invoked with a promise factory (with context)', () => {
-        const { resolve, promise } = Promise.withResolvers<void>();
-        const promiseMachine = createMachine({
-          types: {} as {
-            context: { count: number | undefined };
-          },
-          id: 'invokePromise',
-          context: { count: undefined },
-          initial: 'pending',
-          states: {
-            pending: {
-              invoke: {
-                src: fromPromise(({ context }) =>
-                  Promise.resolve(context.count)
+                src: fromPromise(() =>
+                  createPromise((resolve) => resolve({ count: 1 }))
                 ),
                 onDone: {
+                  target: 'success',
                   actions: assign({
-                    count: ({ event }) => event.output
-                  })
-                }
-              }
-            }
-          }
-        });
-        const actor = createActor(promiseMachine);
-        actor.subscribe({
-          complete: () => {
-            expect(actor.getSnapshot().context.count).toEqual(undefined);
-            resolve();
-          }
-        });
-        actor.start();
-        return promise;
-      });
-
-      it('should assign the resolved data when invoked with a promise factory (with event)', () => {
-        const { resolve, promise } = Promise.withResolvers<void>();
-        const promiseMachine = createMachine({
-          types: {} as {
-            context: { count: number | undefined };
-            events: { type: 'BEGIN'; payload: boolean };
-          },
-          id: 'invokePromise',
-          context: { count: undefined },
-          initial: 'pending',
-          states: {
-            pending: {
-              on: {
-                BEGIN: {
-                  target: 'invoking',
-                  actions: assign({
-                    count: ({ event }) => (event.payload ? 1 : 0)
+                    count: ({ event }) => event.output.count
                   })
                 }
               }
             },
-            invoking: {
-              invoke: {
-                src: fromPromise(({ event }) => Promise.resolve(event.payload)),
-                onDone: {
-                  actions: assign({
-                    count: ({ event }) => event.output
-                  })
-                }
-              }
+            success: {
+              type: 'final'
             }
           }
         });
+
         const actor = createActor(promiseMachine);
         actor.subscribe({
           complete: () => {
@@ -1083,10 +1022,135 @@ describe('invoke', () => {
           }
         });
         actor.start();
-        actor.send({
-          type: 'BEGIN',
-          payload: true
+        return promise;
+      });
+
+      it('should assign the resolved data when invoked with a promise service', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
+        const promiseMachine = createMachine(
+          {
+            types: {} as { context: { count: number } },
+            id: 'promise',
+            context: { count: 0 },
+            initial: 'pending',
+            states: {
+              pending: {
+                invoke: {
+                  src: 'somePromise',
+                  onDone: {
+                    target: 'success',
+                    actions: assign({
+                      count: ({ event }) => event.output.count
+                    })
+                  }
+                }
+              },
+              success: {
+                type: 'final'
+              }
+            }
+          },
+          {
+            actors: {
+              somePromise: fromPromise(() =>
+                createPromise((resolve) => resolve({ count: 1 }))
+              )
+            }
+          }
+        );
+
+        const actor = createActor(promiseMachine);
+        actor.subscribe({
+          complete: () => {
+            expect(actor.getSnapshot().context.count).toEqual(1);
+            resolve();
+          }
         });
+        actor.start();
+        return promise;
+      });
+
+      it('should provide the resolved data when invoked with a promise factory', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
+        let count = 0;
+
+        const promiseMachine = createMachine({
+          id: 'promise',
+          context: { count: 0 },
+          initial: 'pending',
+          states: {
+            pending: {
+              invoke: {
+                src: fromPromise(() =>
+                  createPromise((resolve) => resolve({ count: 1 }))
+                ),
+                onDone: {
+                  target: 'success',
+                  actions: ({ event }) => {
+                    count = (event.output as any).count;
+                  }
+                }
+              }
+            },
+            success: {
+              type: 'final'
+            }
+          }
+        });
+
+        const actor = createActor(promiseMachine);
+        actor.subscribe({
+          complete: () => {
+            expect(count).toEqual(1);
+            resolve();
+          }
+        });
+        actor.start();
+        return promise;
+      });
+
+      it('should provide the resolved data when invoked with a promise service', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
+        let count = 0;
+
+        const promiseMachine = createMachine(
+          {
+            id: 'promise',
+            initial: 'pending',
+            states: {
+              pending: {
+                invoke: {
+                  src: 'somePromise',
+                  onDone: {
+                    target: 'success',
+                    actions: ({ event }) => {
+                      count = event.output.count;
+                    }
+                  }
+                }
+              },
+              success: {
+                type: 'final'
+              }
+            }
+          },
+          {
+            actors: {
+              somePromise: fromPromise(() =>
+                createPromise((resolve) => resolve({ count: 1 }))
+              )
+            }
+          }
+        );
+
+        const actor = createActor(promiseMachine);
+        actor.subscribe({
+          complete: () => {
+            expect(count).toEqual(1);
+            resolve();
+          }
+        });
+        actor.start();
         return promise;
       });
 
@@ -1296,153 +1360,6 @@ describe('invoke', () => {
         }, 10);
         return promise;
       });
-
-      it('should be invoked with a promise factory and resolve through onDone for compound state nodes', () => {
-        const { resolve, promise } = Promise.withResolvers<void>();
-        const promiseMachine = createMachine({
-          id: 'promise',
-          initial: 'parent',
-          states: {
-            parent: {
-              initial: 'pending',
-              states: {
-                pending: {
-                  invoke: {
-                    src: fromPromise(() => Promise.resolve()),
-                    onDone: 'success'
-                  }
-                },
-                success: {
-                  type: 'final'
-                }
-              },
-              onDone: 'success'
-            },
-            success: {
-              type: 'final'
-            }
-          }
-        });
-        const actor = createActor(promiseMachine);
-        actor.subscribe({ complete: () => resolve() });
-        actor.start();
-        return promise;
-      });
-
-      it('should be invoked with a promise service and resolve through onDone for compound state nodes', () => {
-        const { resolve, promise } = Promise.withResolvers<void>();
-        const promiseMachine = createMachine(
-          {
-            id: 'promise',
-            initial: 'parent',
-            states: {
-              parent: {
-                initial: 'pending',
-                states: {
-                  pending: {
-                    invoke: {
-                      src: 'somePromise',
-                      onDone: 'success'
-                    }
-                  },
-                  success: {
-                    type: 'final'
-                  }
-                },
-                onDone: 'success'
-              },
-              success: {
-                type: 'final'
-              }
-            }
-          },
-          {
-            actors: {
-              somePromise: fromPromise(() => Promise.resolve())
-            }
-          }
-        );
-        const actor = createActor(promiseMachine);
-        actor.subscribe({ complete: () => resolve() });
-        actor.start();
-        return promise;
-      });
-
-      it('should provide the resolved data when invoked with a promise factory', () => {
-        const { resolve, promise } = Promise.withResolvers<void>();
-        let count = 0;
-        const promiseMachine = createMachine({
-          id: 'promise',
-          context: { count: 0 },
-          initial: 'pending',
-          states: {
-            pending: {
-              invoke: {
-                src: fromPromise(() => Promise.resolve({ count: 1 })),
-                onDone: {
-                  target: 'success',
-                  actions: ({ event }) => {
-                    count = (event.output as any).count;
-                  }
-                }
-              }
-            },
-            success: {
-              type: 'final'
-            }
-          }
-        });
-        const actor = createActor(promiseMachine);
-        actor.subscribe({
-          complete: () => {
-            expect(count).toEqual(1);
-            resolve();
-          }
-        });
-        actor.start();
-        return promise;
-      });
-
-      it('should provide the resolved data when invoked with a promise service', () => {
-        const { resolve, promise } = Promise.withResolvers<void>();
-        let count = 0;
-        const promiseMachine = createMachine(
-          {
-            id: 'promise',
-            initial: 'pending',
-            states: {
-              pending: {
-                invoke: {
-                  src: 'somePromise',
-                  onDone: {
-                    target: 'success',
-                    actions: ({ event }) => {
-                      count = event.output.count;
-                    }
-                  }
-                }
-              },
-              success: {
-                type: 'final'
-              }
-            }
-          },
-          {
-            actors: {
-              somePromise: fromPromise(() => Promise.resolve({ count: 1 }))
-            }
-          }
-        );
-        const actor = createActor(promiseMachine);
-        actor.subscribe({
-          complete: () => {
-            expect(count).toEqual(1);
-            resolve();
-          }
-        });
-        actor.start();
-        return promise;
-      });
     });
   });
 
@@ -1538,7 +1455,6 @@ describe('invoke', () => {
         type: 'BEGIN',
         payload: true
       });
-
       return promise;
     });
 
@@ -1714,7 +1630,6 @@ describe('invoke', () => {
       const actor = createActor(intervalMachine);
       actor.subscribe({ complete: () => resolve() });
       actor.start();
-
       return promise;
     });
 
@@ -1773,7 +1688,6 @@ describe('invoke', () => {
       const actor = createActor(pingPongMachine);
       actor.subscribe({ complete: () => resolve() });
       actor.start();
-
       return promise;
     });
 
@@ -1807,7 +1721,6 @@ describe('invoke', () => {
       const actor = createActor(errorMachine);
       actor.subscribe({ complete: () => resolve() });
       actor.start();
-
       return promise;
     });
 
@@ -2058,7 +1971,6 @@ describe('invoke', () => {
         }
       });
       service.start();
-
       return promise;
     });
 
@@ -2106,7 +2018,6 @@ describe('invoke', () => {
         }
       });
       actor.start();
-
       return promise;
     });
 
@@ -2168,7 +2079,6 @@ describe('invoke', () => {
         }
       });
       actor.start();
-
       return promise;
     });
 
@@ -2256,7 +2166,6 @@ describe('invoke', () => {
         }
       });
       service.start();
-
       return promise;
     });
 
@@ -2311,6 +2220,7 @@ describe('invoke', () => {
         }
       });
       actor.start();
+      return promise;
     });
 
     it('should receive an emitted error', () => {
@@ -2371,7 +2281,6 @@ describe('invoke', () => {
         }
       });
       actor.start();
-
       return promise;
     });
 
@@ -2454,7 +2363,6 @@ describe('invoke', () => {
 
       countService.send({ type: 'INC' });
       countService.send({ type: 'INC' });
-
       return promise;
     });
 
@@ -2502,7 +2410,6 @@ describe('invoke', () => {
         }
       });
       pingService.start();
-
       return promise;
     });
   });
@@ -2544,7 +2451,6 @@ describe('invoke', () => {
 
       countService.send({ type: 'INC' });
       countService.send({ type: 'INC' });
-
       return promise;
     });
 
@@ -2589,7 +2495,6 @@ describe('invoke', () => {
       countService.start();
 
       countService.send({ type: 'INC' });
-
       return promise;
     });
 
@@ -2625,7 +2530,6 @@ describe('invoke', () => {
       );
 
       createActor(machine).start();
-
       return promise;
     });
   });
@@ -2785,7 +2689,6 @@ describe('invoke', () => {
       });
 
       service.start();
-
       return promise;
     });
 
@@ -2863,7 +2766,6 @@ describe('invoke', () => {
       });
 
       service.start();
-
       return promise;
     });
 
@@ -2995,7 +2897,6 @@ describe('invoke', () => {
       service.start();
 
       service.send({ type: 'NEXT' });
-
       return promise;
     });
 
@@ -3079,7 +2980,6 @@ describe('invoke', () => {
     const actor = createActor(machine);
     actor.subscribe({ complete: () => resolve() });
     actor.start();
-
     return promise;
   });
 
@@ -3172,7 +3072,6 @@ describe('invoke', () => {
       }
     });
     actor.start();
-
     return promise;
   });
 
@@ -3275,6 +3174,7 @@ describe('invoke', () => {
   });
 
   it('xstate.done.actor events should have unique names when invokee is a machine with an id property', async () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const actual: AnyEventObject[] = [];
 
     const childMachine = createMachine({
@@ -3552,153 +3452,6 @@ describe('invoke', () => {
     await sleep(3);
     expect(actorRef.getSnapshot().status).toBe('done');
   });
-
-  it('should be invoked with a promise factory and resolve through onDone for compound state nodes', () => {
-    const { resolve, promise } = Promise.withResolvers<void>();
-    const promiseMachine = createMachine({
-      id: 'promise',
-      initial: 'parent',
-      states: {
-        parent: {
-          initial: 'pending',
-          states: {
-            pending: {
-              invoke: {
-                src: fromPromise(() => Promise.resolve()),
-                onDone: 'success'
-              }
-            },
-            success: {
-              type: 'final'
-            }
-          },
-          onDone: 'success'
-        },
-        success: {
-          type: 'final'
-        }
-      }
-    });
-    const actor = createActor(promiseMachine);
-    actor.subscribe({ complete: () => resolve() });
-    actor.start();
-    return promise;
-  });
-
-  it('should be invoked with a promise service and resolve through onDone for compound state nodes', () => {
-    const { resolve, promise } = Promise.withResolvers<void>();
-    const promiseMachine = createMachine(
-      {
-        id: 'promise',
-        initial: 'parent',
-        states: {
-          parent: {
-            initial: 'pending',
-            states: {
-              pending: {
-                invoke: {
-                  src: 'somePromise',
-                  onDone: 'success'
-                }
-              },
-              success: {
-                type: 'final'
-              }
-            },
-            onDone: 'success'
-          },
-          success: {
-            type: 'final'
-          }
-        }
-      },
-      {
-        actors: {
-          somePromise: fromPromise(() => Promise.resolve())
-        }
-      }
-    );
-    const actor = createActor(promiseMachine);
-    actor.subscribe({ complete: () => resolve() });
-    actor.start();
-    return promise;
-  });
-
-  it('should provide the resolved data when invoked with a promise factory', () => {
-    const { resolve, promise } = Promise.withResolvers<void>();
-    let count = 0;
-    const promiseMachine = createMachine({
-      id: 'promise',
-      context: { count: 0 },
-      initial: 'pending',
-      states: {
-        pending: {
-          invoke: {
-            src: fromPromise(() => Promise.resolve({ count: 1 })),
-            onDone: {
-              target: 'success',
-              actions: ({ event }) => {
-                count = (event.output as any).count;
-              }
-            }
-          }
-        },
-        success: {
-          type: 'final'
-        }
-      }
-    });
-    const actor = createActor(promiseMachine);
-    actor.subscribe({
-      complete: () => {
-        expect(count).toEqual(1);
-        resolve();
-      }
-    });
-    actor.start();
-    return promise;
-  });
-
-  it('should provide the resolved data when invoked with a promise service', () => {
-    const { resolve, promise } = Promise.withResolvers<void>();
-    let count = 0;
-    const promiseMachine = createMachine(
-      {
-        id: 'promise',
-        initial: 'pending',
-        states: {
-          pending: {
-            invoke: {
-              src: 'somePromise',
-              onDone: {
-                target: 'success',
-                actions: ({ event }) => {
-                  count = event.output.count;
-                }
-              }
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
-      },
-      {
-        actors: {
-          somePromise: fromPromise(() => Promise.resolve({ count: 1 }))
-        }
-      }
-    );
-    const actor = createActor(promiseMachine);
-    actor.subscribe({
-      complete: () => {
-        expect(count).toEqual(1);
-        resolve();
-      }
-    });
-    actor.start();
-    return promise;
-  });
 });
 
 describe('invoke input', () => {
@@ -3758,7 +3511,6 @@ describe('invoke input', () => {
     });
 
     service.start();
-
     return promise;
   });
 
@@ -3777,7 +3529,6 @@ describe('invoke input', () => {
     });
 
     createActor(machine).start();
-
     return promise;
   });
 });
