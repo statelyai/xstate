@@ -294,7 +294,7 @@ describe('promise logic (fromPromise)', () => {
 
   it('should not reuse the same signal for different actors with same logic', async () => {
     let deferredMap: Map<string, PromiseWithResolvers<number>> = new Map();
-    let signalListenerMap: Map<string, jest.Mock> = new Map();
+    let signalListenerMap: Map<string, Mock> = new Map();
     const p = fromPromise(({ self, signal }) => {
       const deferred = Promise.withResolvers<number>();
       const signalListener = vi.fn();
@@ -354,7 +354,7 @@ describe('promise logic (fromPromise)', () => {
 
   it('should not reuse the same signal for different actors with same logic and id', async () => {
     let deferredList: PromiseWithResolvers<number>[] = [];
-    let signalListenerList: jest.Mock[] = [];
+    let signalListenerList: Mock[] = [];
     const p = fromPromise(({ signal }) => {
       const deferred = Promise.withResolvers<number>();
       const fn = vi.fn();
@@ -418,7 +418,7 @@ describe('promise logic (fromPromise)', () => {
 
   it('should not reuse the same signal for the same actor when restarted', async () => {
     let deferredList: PromiseWithResolvers<number>[] = [];
-    let signalListenerList: jest.Mock[] = [];
+    let signalListenerList: Mock[] = [];
     const p = fromPromise(({ signal }) => {
       const deferred = Promise.withResolvers<number>();
       const fn = vi.fn();
