@@ -121,9 +121,6 @@ describe('toPromise', () => {
   });
 
   it('should immediately reject for an actor that had an error', async () => {
-    // use fake timers to avoid error being thrown in separate microtask
-    vi.useFakeTimers();
-
     const machine = createMachine({
       entry: () => {
         throw new Error('oh noes');

@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from 'node:timers/promises';
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
 import {
@@ -102,8 +103,7 @@ describe('promise logic (fromPromise)', () => {
     expect(called).toBe(false);
   });
 
-  it('should persist an unresolved promise', () => {
-    const { resolve, promise } = Promise.withResolvers<void>();
+  it('should persist an unresolved promise', async () => {
     const promiseLogic = fromPromise(
       () =>
         new Promise<number>((res) => {
@@ -121,11 +121,8 @@ describe('promise logic (fromPromise)', () => {
       snapshot: resolvedPersistedState
     }).start();
 
-    setTimeout(() => {
-      expect(restoredActor.getSnapshot().output).toBe(42);
-      resolve();
-    }, 20);
-    return promise;
+    await sleep(20);
+    expect(restoredActor.getSnapshot().output).toBe(42);
   });
 
   it('should persist a resolved promise', () => {
