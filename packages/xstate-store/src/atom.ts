@@ -1,9 +1,4 @@
-import {
-  createReactiveSystem,
-  Link,
-  Subscriber,
-  SubscriberFlags
-} from './alien';
+import { createReactiveSystem, Subscriber, SubscriberFlags } from './alien';
 import { toObserver } from './toObserver';
 import { Atom, AtomOptions, Observer, Readable, ReadonlyAtom } from './types';
 
@@ -106,11 +101,11 @@ function computed<T>(
 
     // Dependency fields
     subs: undefined,
-    subsTail: undefined as Link | undefined,
+    subsTail: undefined,
 
     // Subscriber fields
-    deps: undefined as Link | undefined,
-    depsTail: undefined as Link | undefined,
+    deps: undefined,
+    depsTail: undefined,
     flags: SubscriberFlags.Computed | SubscriberFlags.Dirty,
 
     get(): T {
@@ -176,8 +171,8 @@ interface Effect extends Subscriber {
 function effect<T>(fn: () => T): Effect {
   const effectObj = {
     // Subscriber fields
-    deps: undefined as Link | undefined,
-    depsTail: undefined as Link | undefined,
+    deps: undefined,
+    depsTail: undefined,
     flags: SubscriberFlags.Effect,
     fn,
 
