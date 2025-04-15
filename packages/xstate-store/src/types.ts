@@ -370,7 +370,8 @@ export interface Readable<T> extends Subscribable<T> {
 
 interface BaseAtom<T> extends Subscribable<T>, Readable<T> {}
 
-export interface Atom<T> extends BaseAtom<T> {
+export interface Atom<T> extends BaseAtom<T>, Dependency {
+  currentValue: T;
   /** Sets the value of the atom using a function. */
   set(fn: (prevVal: T) => T): void;
   /** Sets the value of the atom. */

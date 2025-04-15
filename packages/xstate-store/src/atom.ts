@@ -44,13 +44,12 @@ export function createAtom<T>(
   }
 
   // Create plain object atom
-  const atom = {
+  const atom: Atom<T> = {
     currentValue: valueOrFn,
-    options,
+
     // Dependency fields
     subs: undefined as Link | undefined,
     subsTail: undefined as Link | undefined,
-    observers: undefined as Set<Observer<T>> | undefined,
 
     get(): T {
       if (activeSub !== undefined) {
@@ -60,7 +59,7 @@ export function createAtom<T>(
     },
 
     set(valueOrFn: T | ((prev: T) => T)): void {
-      const compare = this.options?.compare ?? Object.is;
+      const compare = options?.compare ?? Object.is;
       const value =
         typeof valueOrFn === 'function'
           ? (valueOrFn as (prev: T) => T)(this.currentValue)
@@ -94,7 +93,7 @@ export function createAtom<T>(
     }
   };
 
-  return atom as Atom<T>;
+  return atom;
 }
 
 function computed<T>(
