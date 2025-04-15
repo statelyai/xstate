@@ -63,7 +63,6 @@ function createStoreCore<
   ) => NoInfer<TContext>
 ): Store<TContext, ExtractEvents<TEventPayloadMap>, TEmitted> {
   type StoreEvent = ExtractEvents<TEventPayloadMap>;
-  // let observers: Set<Observer<StoreSnapshot<TContext>>> | undefined;
   let listeners: Map<TEmitted['type'], Set<any>> | undefined;
   const initialSnapshot: StoreSnapshot<TContext> = {
     context: initialContext,
