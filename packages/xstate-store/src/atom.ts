@@ -1,6 +1,18 @@
-import { createReactiveSystem, Subscriber, SubscriberFlags } from './alien';
+import {
+  createReactiveSystem,
+  Dependency,
+  Subscriber,
+  SubscriberFlags
+} from './alien';
 import { toObserver } from './toObserver';
-import { Atom, AtomOptions, Observer, Readable, ReadonlyAtom } from './types';
+import {
+  Atom,
+  AtomOptions,
+  BaseAtom,
+  Observer,
+  Readable,
+  ReadonlyAtom
+} from './types';
 
 const {
   link,
@@ -34,13 +46,12 @@ export function createAtom<T>(
   valueOrFn: T | ((read: <U>(atom: Readable<U>) => U) => T),
   options?: AtomOptions<T>
 ): Atom<T> | ReadonlyAtom<T> {
-  if (typeof valueOrFn === 'function') {
-    return computed(valueOrFn as () => T, options);
-  }
+  const isComputed = typeof valueOrFn === 'function';
+  const getter = valueOrFn as (read: <U>(atom: Readable<U>) => U) => T;
 
   // Create plain object atom
-  const atom: Atom<T> = {
-    currentValue: valueOrFn,
+  const atom: BaseAtom<T> & Dependency = {
+    snapshot: isComputed ? (undefined as T) : valueOrFn,
 
     // Dependency fields
     subs: undefined,
@@ -48,35 +59,20 @@ export function createAtom<T>(
 
     get(): T {
       if (activeSub !== undefined) {
-        link(this, activeSub);
+        link(atom as Atom<T>, activeSub);
       }
-      return this.currentValue;
-    },
-
-    set(valueOrFn: T | ((prev: T) => T)): void {
-      const compare = options?.compare ?? Object.is;
-      const value =
-        typeof valueOrFn === 'function'
-          ? (valueOrFn as (prev: T) => T)(this.currentValue)
-          : valueOrFn;
-      if (compare(this.currentValue, value)) return;
-      this.currentValue = value;
-      const subs = this.subs;
-      if (subs !== undefined) {
-        propagate(subs);
-        processEffectNotifications();
-      }
+      return atom.snapshot;
     },
 
     subscribe(observerOrFn: Observer<T> | ((value: T) => void)) {
       const obs = toObserver(observerOrFn);
       const observed = { current: false };
       const e = effect(() => {
-        this.get();
+        atom.get();
         if (!observed.current) {
           observed.current = true;
         } else {
-          obs.next?.(this.currentValue);
+          obs.next?.(atom.snapshot);
         }
       });
 
@@ -88,79 +84,62 @@ export function createAtom<T>(
     }
   };
 
-  return atom;
-}
-
-function computed<T>(
-  getter: (read: <U>(atom: Readable<U>) => U) => T,
-  options?: AtomOptions<T>
-): ReadonlyAtom<T> {
-  const computedAtom: ReadonlyAtom<T> = {
-    // Starts as undefined, but will be set by the computed getter (lazy)
-    currentValue: undefined as T,
-
-    // Dependency fields
-    subs: undefined,
-    subsTail: undefined,
-
-    // Subscriber fields
-    deps: undefined,
-    depsTail: undefined,
-    flags: SubscriberFlags.Computed | SubscriberFlags.Dirty,
-
-    get(): T {
-      const flags = this.flags;
-      if (flags & (SubscriberFlags.PendingComputed | SubscriberFlags.Dirty)) {
-        processComputedUpdate(this, flags);
-      }
-      if (activeSub !== undefined) {
-        link(this, activeSub);
-      }
-      return this.currentValue;
-    },
-
-    update(): boolean {
-      const prevSub = activeSub;
-      const compare = options?.compare ?? Object.is;
-      // eslint-disable-next-line
-      activeSub = this;
-      startTracking(this);
-      try {
-        const oldValue = this.currentValue;
-        const read = (atom: Readable<any>) => atom.get();
-        const newValue = getter(read);
-        if (oldValue === undefined || !compare(oldValue, newValue)) {
-          this.currentValue = newValue;
-          return true;
+  if (isComputed) {
+    Object.assign(atom, {
+      deps: undefined,
+      depsTail: undefined,
+      flags: SubscriberFlags.Computed | SubscriberFlags.Dirty,
+      get(): T {
+        const flags = (this as ReadonlyAtom<T>).flags;
+        if (flags & (SubscriberFlags.PendingComputed | SubscriberFlags.Dirty)) {
+          processComputedUpdate(atom as ReadonlyAtom<T>, flags);
         }
-        return false;
-      } finally {
-        activeSub = prevSub;
-        endTracking(this);
+
+        if (activeSub !== undefined) {
+          link(atom as ReadonlyAtom<T>, activeSub);
+        }
+        return atom.snapshot;
+      },
+      update(): boolean {
+        const prevSub = activeSub;
+        const compare = options?.compare ?? Object.is;
+        activeSub = atom as ReadonlyAtom<T>;
+        startTracking(atom as ReadonlyAtom<T>);
+        try {
+          const oldValue = atom.snapshot;
+          const read = (atom: Readable<any>) => atom.get();
+          const newValue = getter(read);
+          if (oldValue === undefined || !compare(oldValue, newValue)) {
+            atom.snapshot = newValue;
+            return true;
+          }
+          return false;
+        } finally {
+          activeSub = prevSub;
+          endTracking(atom as ReadonlyAtom<T>);
+        }
       }
-    },
-
-    subscribe(observerOrFn: Observer<T> | ((value: T) => void)) {
-      const obs = toObserver(observerOrFn);
-      const observed = { current: false };
-      const e = effect(() => {
-        this.get();
-        if (!observed.current) {
-          observed.current = true;
-        } else {
-          obs.next?.(this.get());
+    });
+  } else {
+    Object.assign(atom as Atom<T>, {
+      set(valueOrFn: T | ((prev: T) => T)): void {
+        const compare = options?.compare ?? Object.is;
+        const value =
+          typeof valueOrFn === 'function'
+            ? (valueOrFn as (prev: T) => T)(atom.snapshot)
+            : valueOrFn;
+        if (compare(atom.snapshot, value)) return;
+        atom.snapshot = value;
+        const subs = (atom as Atom<T>).subs;
+        if (subs !== undefined) {
+          propagate(subs);
+          processEffectNotifications();
         }
-      });
+      }
+    });
+  }
 
-      return {
-        unsubscribe: () => {
-          e.stop();
-        }
-      };
-    }
-  };
-
-  return computedAtom;
+  return atom as Atom<T> | ReadonlyAtom<T>;
 }
 
 interface Effect extends Subscriber {

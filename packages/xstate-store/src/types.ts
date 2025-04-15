@@ -368,8 +368,8 @@ export interface Readable<T> extends Subscribable<T> {
   get: () => T;
 }
 
-interface BaseAtom<T> extends Subscribable<T>, Readable<T> {
-  currentValue: T;
+export interface BaseAtom<T> extends Subscribable<T>, Readable<T> {
+  snapshot: T;
 }
 
 export interface Atom<T> extends BaseAtom<T>, Dependency {
