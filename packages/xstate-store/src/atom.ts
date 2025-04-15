@@ -48,8 +48,8 @@ export function createAtom<T>(
     currentValue: valueOrFn,
 
     // Dependency fields
-    subs: undefined as Link | undefined,
-    subsTail: undefined as Link | undefined,
+    subs: undefined,
+    subsTail: undefined,
 
     get(): T {
       if (activeSub !== undefined) {
@@ -100,21 +100,18 @@ function computed<T>(
   getter: (read: <U>(atom: Readable<U>) => U) => T,
   options?: AtomOptions<T>
 ): ReadonlyAtom<T> {
-  const computedAtom = {
-    currentValue: undefined as T | undefined,
+  const computedAtom: ReadonlyAtom<T> = {
+    // Starts as undefined, but will be set by the computed getter (lazy)
+    currentValue: undefined as T,
 
     // Dependency fields
-    subs: undefined as Link | undefined,
+    subs: undefined,
     subsTail: undefined as Link | undefined,
 
     // Subscriber fields
     deps: undefined as Link | undefined,
     depsTail: undefined as Link | undefined,
     flags: SubscriberFlags.Computed | SubscriberFlags.Dirty,
-    observers: undefined as Set<Observer<T>> | undefined,
-
-    getter,
-    options,
 
     get(): T {
       const flags = this.flags;
@@ -124,19 +121,19 @@ function computed<T>(
       if (activeSub !== undefined) {
         link(this, activeSub);
       }
-      return this.currentValue!;
+      return this.currentValue;
     },
 
     update(): boolean {
       const prevSub = activeSub;
-      const compare = this.options?.compare ?? Object.is;
+      const compare = options?.compare ?? Object.is;
       // eslint-disable-next-line
       activeSub = this;
       startTracking(this);
       try {
         const oldValue = this.currentValue;
         const read = (atom: Readable<any>) => atom.get();
-        const newValue = this.getter(read);
+        const newValue = getter(read);
         if (oldValue === undefined || !compare(oldValue, newValue)) {
           this.currentValue = newValue;
           return true;
