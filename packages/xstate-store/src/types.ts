@@ -74,7 +74,6 @@ export interface Store<
   TEmitted extends EventObject
 > extends Subscribable<StoreSnapshot<TContext>>,
     InteropObservable<StoreSnapshot<TContext>>,
-    Readable<StoreSnapshot<TContext>>,
     BaseAtom<StoreSnapshot<TContext>> {
   send: (event: TEvent) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
