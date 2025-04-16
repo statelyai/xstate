@@ -12,7 +12,7 @@ export interface Subscriber {
   depsTail: Link | undefined;
 }
 
-export interface Link {
+interface Link {
   dep: Dependency | (Dependency & Subscriber);
   sub: Subscriber | (Dependency & Subscriber);
   prevSub: Link | undefined;
