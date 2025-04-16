@@ -381,6 +381,44 @@ describe('inspect', () => {
   },
   {
     "event": {
+      "type": "toParent",
+    },
+    "sourceId": undefined,
+    "targetId": "x:0",
+    "type": "@xstate.event",
+  },
+  {
+    "actorId": "x:0",
+    "event": {
+      "type": "toParent",
+    },
+    "snapshot": {
+      "value": "waiting",
+    },
+    "status": "active",
+    "type": "@xstate.snapshot",
+  },
+  {
+    "event": {
+      "type": "toParent",
+    },
+    "sourceId": undefined,
+    "targetId": "x:0",
+    "type": "@xstate.event",
+  },
+  {
+    "actorId": "x:0",
+    "event": {
+      "type": "toParent",
+    },
+    "snapshot": {
+      "value": "waiting",
+    },
+    "status": "active",
+    "type": "@xstate.snapshot",
+  },
+  {
+    "event": {
       "actorId": "child",
       "output": undefined,
       "type": "xstate.done.actor.child",
