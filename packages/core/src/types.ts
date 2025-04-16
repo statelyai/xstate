@@ -792,88 +792,87 @@ export type InvokeConfig<
   TEmitted extends EventObject,
   TMeta extends MetaObject
 > =
-  | (IsLiteralString<TActor['src']> extends true
-      ? DistributeActors<
-          TContext,
-          TEvent,
-          TActor,
-          TAction,
-          TGuard,
-          TDelay,
-          TEmitted,
-          TMeta,
-          TActor
-        >
-      : never)
-  | {
-      /**
-       * The unique identifier for the invoked machine. If not specified, this
-       * will be the machine's own `id`, or the URL (from `src`).
-       */
-      id?: string;
+  IsLiteralString<TActor['src']> extends true
+    ? DistributeActors<
+        TContext,
+        TEvent,
+        TActor,
+        TAction,
+        TGuard,
+        TDelay,
+        TEmitted,
+        TMeta,
+        TActor
+      >
+    : {
+        /**
+         * The unique identifier for the invoked machine. If not specified, this
+         * will be the machine's own `id`, or the URL (from `src`).
+         */
+        id?: string;
 
-      systemId?: string;
-      /** The source of the machine to be invoked, or the machine itself. */
-      src: AnyActorLogic | string; // TODO: fix types
+        systemId?: string;
+        /** The source of the machine to be invoked, or the machine itself. */
+        src: AnyActorLogic | string; // TODO: fix types
 
-      input?:
-        | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
-        | NonReducibleUnknown;
-      /**
-       * The transition to take upon the invoked child machine reaching its
-       * final top-level state.
-       */
-      onDone?:
-        | string
-        | SingleOrArray<
-            TransitionConfigOrTarget<
-              TContext,
-              DoneActorEvent<any>, // TODO: consider replacing with `unknown`
-              TEvent,
-              TActor,
-              TAction,
-              TGuard,
-              TDelay,
-              TEmitted,
-              TMeta
-            >
-          >;
-      /**
-       * The transition to take upon the invoked child machine sending an error
-       * event.
-       */
-      onError?:
-        | string
-        | SingleOrArray<
-            TransitionConfigOrTarget<
-              TContext,
-              ErrorActorEvent,
-              TEvent,
-              TActor,
-              TAction,
-              TGuard,
-              TDelay,
-              TEmitted,
-              TMeta
-            >
-          >;
+        input?:
+          | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
+          | NonReducibleUnknown;
+        /**
+         * The transition to take upon the invoked child machine reaching its
+         * final top-level state.
+         */
+        onDone?:
+          | string
+          | SingleOrArray<
+              TransitionConfigOrTarget<
+                TContext,
+                DoneActorEvent<any>, // TODO: consider replacing with `unknown`
+                TEvent,
+                TActor,
+                TAction,
+                TGuard,
+                TDelay,
+                TEmitted,
+                TMeta
+              >
+            >;
+        /**
+         * The transition to take upon the invoked child machine sending an
+         * error event.
+         */
+        onError?:
+          | string
+          | SingleOrArray<
+              TransitionConfigOrTarget<
+                TContext,
+                ErrorActorEvent,
+                TEvent,
+                TActor,
+                TAction,
+                TGuard,
+                TDelay,
+                TEmitted,
+                TMeta
+              >
+            >;
 
-      onSnapshot?:
-        | string
-        | SingleOrArray<
-            TransitionConfigOrTarget<
-              TContext,
-              SnapshotEvent,
-              TEvent,
-              TActor,
-              TAction,
-              TGuard,
-              TDelay,
-              TEmitted,
-              TMeta
-            >
-          >;
-    };
+        onSnapshot?:
+          | string
+          | SingleOrArray<
+              TransitionConfigOrTarget<
+                TContext,
+                SnapshotEvent,
+                TEvent,
+                TActor,
+                TAction,
+                TGuard,
+                TDelay,
+                TEmitted,
+                TMeta
+              >
+            >;
+      };
 
 export type AnyInvokeConfig = InvokeConfig<
   any,
@@ -951,6 +950,16 @@ export interface StateNodeConfig<
       TEmitted,
       TMeta
     >
+  >;
+  invoke2?: InvokeConfig<
+    TContext,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TEmitted,
+    TMeta
   >;
   /** The mapping of event types to their potential transition(s). */
   on?: TransitionsConfig<
@@ -2729,6 +2738,11 @@ export type EnqueueObj<
   emit: (emittedEvent: TEmittedEvent) => void;
   action: (fn: () => any) => void;
   log: (...args: any[]) => void;
+  sendTo: <T extends AnyActorRef>(
+    actorRef: T,
+    event: EventFrom<T>,
+    options?: { delay?: number }
+  ) => void;
 };
 
 export type Action2<

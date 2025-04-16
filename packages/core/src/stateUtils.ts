@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
-import { assign, log, raise } from './actions.ts';
+import { assign, log, raise, sendTo } from './actions.ts';
 import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
 import { spawnChild } from './actions/spawnChild.ts';
@@ -1370,6 +1370,9 @@ function getTransitionActions(
         spawn: (src, options) => {
           actions.push(spawnChild(src, options));
           return {} as any;
+        },
+        sendTo: (actorRef, event, options) => {
+          actions.push(sendTo(actorRef, event, options));
         }
       }
     );
@@ -2046,7 +2049,8 @@ export const emptyEnqueueObj: EnqueueObj<any, any> = {
   emit: () => {},
   log: () => {},
   raise: () => {},
-  spawn: () => ({}) as any
+  spawn: () => ({}) as any,
+  sendTo: () => {}
 };
 
 function getActionsFromAction2(
@@ -2096,6 +2100,9 @@ function getActionsFromAction2(
         spawn: (logic, options) => {
           actions.push(spawnChild(logic, options));
           return {} as any; // TODO
+        },
+        sendTo: (actorRef, event, options) => {
+          actions.push(sendTo(actorRef, event, options));
         }
       }
     );
@@ -2130,7 +2137,9 @@ export function evaluateCandidate(
         {
           context,
           event,
-          parent: undefined,
+          parent: {
+            send: triggerEffect
+          },
           value: snapshot.value,
           children: snapshot.children
         },

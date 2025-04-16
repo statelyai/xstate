@@ -58,7 +58,8 @@ function resolveAssign(
       spawnedChildren
     ),
     self: actorScope.self,
-    system: actorScope.system
+    system: actorScope.system,
+    children: snapshot.children
   };
   let partialUpdate: Record<string, unknown> = {};
   if (typeof assignment === 'function') {
