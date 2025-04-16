@@ -367,12 +367,21 @@ export interface Readable<T> extends Subscribable<T> {
   get: () => T;
 }
 
-export interface BaseAtom<T> extends Subscribable<T>, Readable<T> {
+export interface BaseAtom<T> extends Subscribable<T>, Readable<T> {}
+
+export interface InternalBaseAtom<T> extends Subscribable<T>, Readable<T> {
   /** @internal */
   _snapshot: T;
 }
 
-export interface Atom<T> extends BaseAtom<T>, Dependency {
+export interface InternalAtom<T> extends BaseAtom<T>, Dependency {
+  /** Sets the value of the atom using a function. */
+  set(fn: (prevVal: T) => T): void;
+  /** Sets the value of the atom. */
+  set(value: T): void;
+}
+
+export interface Atom<T> extends BaseAtom<T> {
   /** Sets the value of the atom using a function. */
   set(fn: (prevVal: T) => T): void;
   /** Sets the value of the atom. */
@@ -385,6 +394,14 @@ export interface AtomOptions<T> {
 
 export type AnyAtom = BaseAtom<any>;
 
+export interface InternalReadonlyAtom<T>
+  extends InternalBaseAtom<T>,
+    Dependency,
+    Subscriber {
+  /** @internal */
+  _update(): boolean;
+}
+
 /**
  * An atom that is read-only and cannot be set.
  *
@@ -396,10 +413,7 @@ export type AnyAtom = BaseAtom<any>;
  * atom.set(43);
  * ```
  */
-export interface ReadonlyAtom<T> extends BaseAtom<T>, Dependency, Subscriber {
-  /** @internal */
-  _update(): boolean;
-}
+export interface ReadonlyAtom<T> extends BaseAtom<T> {}
 
 /** A version of `Omit` that works with distributive types. */
 type DistributiveOmit<T, K extends PropertyKey> = T extends any

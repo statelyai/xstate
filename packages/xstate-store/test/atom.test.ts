@@ -535,3 +535,53 @@ it('uses Object.is as default equality function', () => {
   objAtom.set(obj);
   expect(log).toHaveBeenCalledTimes(2);
 });
+
+it('Atom-specific properties should not be exposed', () => {
+  const atom = createAtom(0);
+
+  // @ts-expect-error
+  atom._subs;
+  // @ts-expect-error
+  atom._subsTail;
+  // @ts-expect-error
+  atom._snapshot;
+  // @ts-expect-error
+  atom._flags;
+  // @ts-expect-error
+  atom._deps;
+  // @ts-expect-error
+  atom._depsTail;
+
+  const computed = createAtom(() => atom.get());
+
+  // @ts-expect-error
+  computed._subs;
+  // @ts-expect-error
+  computed._subsTail;
+  // @ts-expect-error
+  computed._snapshot;
+  // @ts-expect-error
+  computed._flags;
+  // @ts-expect-error
+  computed._deps;
+  // @ts-expect-error
+  computed._depsTail;
+
+  const store = createStore({
+    context: {},
+    on: {}
+  });
+
+  // @ts-expect-error
+  store._subs;
+  // @ts-expect-error
+  store._subsTail;
+  // @ts-expect-error
+  store._snapshot;
+  // @ts-expect-error
+  store._flags;
+  // @ts-expect-error
+  store._deps;
+  // @ts-expect-error
+  store._depsTail;
+});

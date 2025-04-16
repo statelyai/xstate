@@ -9,6 +9,8 @@ import {
   Atom,
   AtomOptions,
   BaseAtom,
+  InternalBaseAtom,
+  InternalReadonlyAtom,
   Observer,
   Readable,
   ReadonlyAtom
@@ -23,7 +25,7 @@ const {
   processComputedUpdate,
   processEffectNotifications
 } = createReactiveSystem({
-  updateComputed(computed: ReadonlyAtom<any>) {
+  updateComputed(computed: InternalReadonlyAtom<any>) {
     return computed._update();
   },
   notifyEffect(effect: Effect) {
@@ -50,16 +52,16 @@ export function createAtom<T>(
   const getter = valueOrFn as (read: <U>(atom: Readable<U>) => U) => T;
 
   // Create plain object atom
-  const atom: BaseAtom<T> & Dependency = {
+  const atom: InternalBaseAtom<T> & Dependency = {
     _snapshot: isComputed ? (undefined as T) : valueOrFn,
 
     // Dependency fields
-    subs: undefined,
-    subsTail: undefined,
+    _subs: undefined,
+    _subsTail: undefined,
 
     get(): T {
       if (activeSub !== undefined) {
-        link(atom as Atom<T>, activeSub);
+        link(atom as Dependency, activeSub);
       }
       return atom._snapshot;
     },
@@ -88,7 +90,7 @@ export function createAtom<T>(
     Object.assign<
       BaseAtom<T>,
       Pick<
-        ReadonlyAtom<T>,
+        InternalReadonlyAtom<T>,
         '_deps' | '_depsTail' | '_flags' | 'get' | '_update'
       >
     >(atom, {
@@ -96,21 +98,21 @@ export function createAtom<T>(
       _depsTail: undefined,
       _flags: SubscriberFlags.Computed | SubscriberFlags.Dirty,
       get(): T {
-        const flags = (this as unknown as ReadonlyAtom<T>)._flags;
+        const flags = (this as unknown as InternalReadonlyAtom<T>)._flags;
         if (flags & (SubscriberFlags.PendingComputed | SubscriberFlags.Dirty)) {
-          processComputedUpdate(atom as ReadonlyAtom<T>, flags);
+          processComputedUpdate(atom as InternalReadonlyAtom<T>, flags);
         }
 
         if (activeSub !== undefined) {
-          link(atom as ReadonlyAtom<T>, activeSub);
+          link(atom as Dependency, activeSub);
         }
         return atom._snapshot;
       },
       _update(): boolean {
         const prevSub = activeSub;
         const compare = options?.compare ?? Object.is;
-        activeSub = atom as ReadonlyAtom<T>;
-        startTracking(atom as ReadonlyAtom<T>);
+        activeSub = atom as InternalReadonlyAtom<T>;
+        startTracking(atom as InternalReadonlyAtom<T>);
         try {
           const oldValue = atom._snapshot;
           const read = (atom: Readable<any>) => atom.get();
@@ -122,7 +124,7 @@ export function createAtom<T>(
           return false;
         } finally {
           activeSub = prevSub;
-          endTracking(atom as ReadonlyAtom<T>);
+          endTracking(atom as InternalReadonlyAtom<T>);
         }
       }
     });
@@ -136,7 +138,7 @@ export function createAtom<T>(
             : valueOrFn;
         if (compare(atom._snapshot, value)) return;
         atom._snapshot = value;
-        const subs = (atom as Atom<T>).subs;
+        const { _subs: subs } = atom;
         if (subs !== undefined) {
           propagate(subs);
           processEffectNotifications();

@@ -2,8 +2,10 @@
 // https://github.com/stackblitz/alien-signals/
 
 export interface Dependency {
-  subs: Link | undefined;
-  subsTail: Link | undefined;
+  /** @internal */
+  _subs: Link | undefined;
+  /** @internal */
+  _subsTail: Link | undefined;
 }
 
 export interface Subscriber {
@@ -97,20 +99,16 @@ export function createReactiveSystem({
    */
   function link(dep: Dependency, sub: Subscriber): Link | undefined {
     const currentDep = sub._depsTail;
-    if (currentDep !== undefined && currentDep.dep === dep) {
+    if (currentDep?.dep === dep) {
       return;
     }
     const nextDep = currentDep !== undefined ? currentDep.nextDep : sub._deps;
-    if (nextDep !== undefined && nextDep.dep === dep) {
+    if (nextDep?.dep === dep) {
       sub._depsTail = nextDep;
       return;
     }
-    const depLastSub = dep.subsTail;
-    if (
-      depLastSub !== undefined &&
-      depLastSub.sub === sub &&
-      isValidLink(depLastSub, sub)
-    ) {
+    const depLastSub = dep._subsTail;
+    if (depLastSub?.sub === sub && isValidLink(depLastSub, sub)) {
       return;
     }
     return linkNewDep(dep, sub, nextDep, currentDep);
@@ -165,11 +163,11 @@ export function createReactiveSystem({
           SubscriberFlags.Recursed |
           targetFlag |
           SubscriberFlags.Notified;
-        shouldNotify = (sub as Dependency).subs !== undefined;
+        shouldNotify = (sub as Dependency)._subs !== undefined;
       }
 
       if (shouldNotify) {
-        const subSubs = (sub as Dependency).subs;
+        const subSubs = (sub as Dependency)._subs;
         if (subSubs !== undefined) {
           current = subSubs;
           if (subSubs.nextSub !== undefined) {
@@ -310,7 +308,7 @@ export function createReactiveSystem({
   ): void {
     if (flags & SubscriberFlags.Dirty || checkDirty(computed._deps!)) {
       if (updateComputed(computed)) {
-        const subs = computed.subs;
+        const subs = computed._subs;
         if (subs !== undefined) {
           shallowPropagate(subs);
         }
@@ -405,15 +403,15 @@ export function createReactiveSystem({
     } else {
       depsTail.nextDep = newLink;
     }
-    if (dep.subs === undefined) {
-      dep.subs = newLink;
+    if (dep._subs === undefined) {
+      dep._subs = newLink;
     } else {
-      const oldTail = dep.subsTail!;
+      const oldTail = dep._subsTail!;
       newLink.prevSub = oldTail;
       oldTail.nextSub = newLink;
     }
     sub._depsTail = newLink;
-    dep.subsTail = newLink;
+    dep._subsTail = newLink;
     return newLink;
   }
 
@@ -447,7 +445,7 @@ export function createReactiveSystem({
           (SubscriberFlags.Computed | SubscriberFlags.Dirty)
         ) {
           if (updateComputed(dep)) {
-            const subs = dep.subs!;
+            const subs = dep._subs!;
             if (subs.nextSub !== undefined) {
               shallowPropagate(subs);
             }
@@ -475,7 +473,7 @@ export function createReactiveSystem({
       while (checkDepth) {
         --checkDepth;
         const sub = current.sub as Dependency & Subscriber;
-        const firstSub = sub.subs!;
+        const firstSub = sub._subs!;
         if (dirty) {
           if (updateComputed(sub)) {
             if (firstSub.nextSub !== undefined) {
@@ -589,16 +587,16 @@ export function createReactiveSystem({
       if (nextSub !== undefined) {
         nextSub.prevSub = prevSub;
       } else {
-        dep.subsTail = prevSub;
+        dep._subsTail = prevSub;
       }
 
       if (prevSub !== undefined) {
         prevSub.nextSub = nextSub;
       } else {
-        dep.subs = nextSub;
+        dep._subs = nextSub;
       }
 
-      if (dep.subs === undefined && '_deps' in dep) {
+      if (dep._subs === undefined && '_deps' in dep) {
         const depFlags = dep._flags;
         if (!(depFlags & SubscriberFlags.Dirty)) {
           dep._flags = depFlags | SubscriberFlags.Dirty;

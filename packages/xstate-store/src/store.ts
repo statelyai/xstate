@@ -17,7 +17,8 @@ import {
   StoreProducerAssigner,
   StoreSnapshot,
   Selector,
-  Selection
+  Selection,
+  InternalBaseAtom
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -113,9 +114,10 @@ function createStoreCore<
     }
   }
 
-  const store: Store<TContext, StoreEvent, TEmitted> = {
+  const store: Store<TContext, StoreEvent, TEmitted> &
+    Pick<InternalBaseAtom<any>, '_snapshot'> = {
     get _snapshot() {
-      return atom._snapshot;
+      return (atom as unknown as InternalBaseAtom<any>)._snapshot;
     },
     on(emittedEventType, handler) {
       if (!listeners) {
