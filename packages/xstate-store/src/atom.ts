@@ -24,7 +24,7 @@ const {
   processEffectNotifications
 } = createReactiveSystem({
   updateComputed(computed: ReadonlyAtom<any>) {
-    return computed.update();
+    return computed._update();
   },
   notifyEffect(effect: Effect) {
     effect.notify();
@@ -51,7 +51,7 @@ export function createAtom<T>(
 
   // Create plain object atom
   const atom: BaseAtom<T> & Dependency = {
-    snapshot: isComputed ? (undefined as T) : valueOrFn,
+    _snapshot: isComputed ? (undefined as T) : valueOrFn,
 
     // Dependency fields
     subs: undefined,
@@ -61,7 +61,7 @@ export function createAtom<T>(
       if (activeSub !== undefined) {
         link(atom as Atom<T>, activeSub);
       }
-      return atom.snapshot;
+      return atom._snapshot;
     },
 
     subscribe(observerOrFn: Observer<T> | ((value: T) => void)) {
@@ -72,7 +72,7 @@ export function createAtom<T>(
         if (!observed.current) {
           observed.current = true;
         } else {
-          obs.next?.(atom.snapshot);
+          obs.next?.(atom._snapshot);
         }
       });
 
@@ -85,12 +85,18 @@ export function createAtom<T>(
   };
 
   if (isComputed) {
-    Object.assign(atom, {
-      deps: undefined,
-      depsTail: undefined,
-      flags: SubscriberFlags.Computed | SubscriberFlags.Dirty,
+    Object.assign<
+      BaseAtom<T>,
+      Pick<
+        ReadonlyAtom<T>,
+        '_deps' | '_depsTail' | '_flags' | 'get' | '_update'
+      >
+    >(atom, {
+      _deps: undefined,
+      _depsTail: undefined,
+      _flags: SubscriberFlags.Computed | SubscriberFlags.Dirty,
       get(): T {
-        const flags = (this as ReadonlyAtom<T>).flags;
+        const flags = (this as unknown as ReadonlyAtom<T>)._flags;
         if (flags & (SubscriberFlags.PendingComputed | SubscriberFlags.Dirty)) {
           processComputedUpdate(atom as ReadonlyAtom<T>, flags);
         }
@@ -98,19 +104,19 @@ export function createAtom<T>(
         if (activeSub !== undefined) {
           link(atom as ReadonlyAtom<T>, activeSub);
         }
-        return atom.snapshot;
+        return atom._snapshot;
       },
-      update(): boolean {
+      _update(): boolean {
         const prevSub = activeSub;
         const compare = options?.compare ?? Object.is;
         activeSub = atom as ReadonlyAtom<T>;
         startTracking(atom as ReadonlyAtom<T>);
         try {
-          const oldValue = atom.snapshot;
+          const oldValue = atom._snapshot;
           const read = (atom: Readable<any>) => atom.get();
           const newValue = getter(read);
           if (oldValue === undefined || !compare(oldValue, newValue)) {
-            atom.snapshot = newValue;
+            atom._snapshot = newValue;
             return true;
           }
           return false;
@@ -121,15 +127,15 @@ export function createAtom<T>(
       }
     });
   } else {
-    Object.assign(atom as Atom<T>, {
+    Object.assign<BaseAtom<T>, Pick<Atom<T>, 'set'>>(atom, {
       set(valueOrFn: T | ((prev: T) => T)): void {
         const compare = options?.compare ?? Object.is;
         const value =
           typeof valueOrFn === 'function'
-            ? (valueOrFn as (prev: T) => T)(atom.snapshot)
+            ? (valueOrFn as (prev: T) => T)(atom._snapshot)
             : valueOrFn;
-        if (compare(atom.snapshot, value)) return;
-        atom.snapshot = value;
+        if (compare(atom._snapshot, value)) return;
+        atom._snapshot = value;
         const subs = (atom as Atom<T>).subs;
         if (subs !== undefined) {
           propagate(subs);
@@ -148,34 +154,31 @@ interface Effect extends Subscriber {
 }
 
 function effect<T>(fn: () => T): Effect {
-  const effectObj = {
+  const run = (): T => {
+    const prevSub = activeSub;
+    activeSub = effectObj;
+    startTracking(effectObj);
+    try {
+      return fn();
+    } finally {
+      activeSub = prevSub;
+      endTracking(effectObj);
+    }
+  };
+  const effectObj: Effect = {
     // Subscriber fields
-    deps: undefined,
-    depsTail: undefined,
-    flags: SubscriberFlags.Effect,
-    fn,
+    _deps: undefined,
+    _depsTail: undefined,
+    _flags: SubscriberFlags.Effect,
 
     notify(): void {
-      const flags = this.flags;
+      const flags = this._flags;
       if (
         flags & SubscriberFlags.Dirty ||
         (flags & SubscriberFlags.PendingComputed &&
           updateDirtyFlag(this, flags))
       ) {
-        this.run();
-      }
-    },
-
-    run(): T {
-      const prevSub = activeSub;
-      // eslint-disable-next-line
-      activeSub = this;
-      startTracking(this);
-      try {
-        return this.fn();
-      } finally {
-        activeSub = prevSub;
-        endTracking(this);
+        run();
       }
     },
 
@@ -185,7 +188,7 @@ function effect<T>(fn: () => T): Effect {
     }
   };
 
-  effectObj.run();
+  run();
 
   return effectObj;
 }

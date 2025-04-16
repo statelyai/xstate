@@ -7,9 +7,12 @@ export interface Dependency {
 }
 
 export interface Subscriber {
-  flags: SubscriberFlags;
-  deps: Link | undefined;
-  depsTail: Link | undefined;
+  /** @internal */
+  _flags: SubscriberFlags;
+  /** @internal */
+  _deps: Link | undefined;
+  /** @internal */
+  _depsTail: Link | undefined;
 }
 
 interface Link {
@@ -93,13 +96,13 @@ export function createReactiveSystem({
    *   otherwise `undefined`.
    */
   function link(dep: Dependency, sub: Subscriber): Link | undefined {
-    const currentDep = sub.depsTail;
+    const currentDep = sub._depsTail;
     if (currentDep !== undefined && currentDep.dep === dep) {
       return;
     }
-    const nextDep = currentDep !== undefined ? currentDep.nextDep : sub.deps;
+    const nextDep = currentDep !== undefined ? currentDep.nextDep : sub._deps;
     if (nextDep !== undefined && nextDep.dep === dep) {
-      sub.depsTail = nextDep;
+      sub._depsTail = nextDep;
       return;
     }
     const depLastSub = dep.subsTail;
@@ -130,7 +133,7 @@ export function createReactiveSystem({
 
     top: do {
       const sub = current.sub;
-      const subFlags = sub.flags;
+      const subFlags = sub._flags;
 
       let shouldNotify = false;
 
@@ -142,13 +145,13 @@ export function createReactiveSystem({
             SubscriberFlags.Propagated)
         )
       ) {
-        sub.flags = subFlags | targetFlag | SubscriberFlags.Notified;
+        sub._flags = subFlags | targetFlag | SubscriberFlags.Notified;
         shouldNotify = true;
       } else if (
         subFlags & SubscriberFlags.Recursed &&
         !(subFlags & SubscriberFlags.Tracking)
       ) {
-        sub.flags =
+        sub._flags =
           (subFlags & ~SubscriberFlags.Recursed) |
           targetFlag |
           SubscriberFlags.Notified;
@@ -157,7 +160,7 @@ export function createReactiveSystem({
         !(subFlags & SubscriberFlags.Propagated) &&
         isValidLink(current, sub)
       ) {
-        sub.flags =
+        sub._flags =
           subFlags |
           SubscriberFlags.Recursed |
           targetFlag |
@@ -186,7 +189,7 @@ export function createReactiveSystem({
           notifyBuffer[notifyBufferLength++] = sub;
         }
       } else if (!(subFlags & (SubscriberFlags.Tracking | targetFlag))) {
-        sub.flags = subFlags | targetFlag | SubscriberFlags.Notified;
+        sub._flags = subFlags | targetFlag | SubscriberFlags.Notified;
         if (
           // eslint-disable-next-line
           (subFlags & (SubscriberFlags.Effect | SubscriberFlags.Notified)) ===
@@ -199,7 +202,7 @@ export function createReactiveSystem({
         subFlags & SubscriberFlags.Propagated &&
         isValidLink(current, sub)
       ) {
-        sub.flags = subFlags | targetFlag;
+        sub._flags = subFlags | targetFlag;
       }
 
       if ((current = next!) !== undefined) {
@@ -236,9 +239,9 @@ export function createReactiveSystem({
    * @param sub - The subscriber to start tracking.
    */
   function startTracking(sub: Subscriber): void {
-    sub.depsTail = undefined;
-    sub.flags =
-      (sub.flags &
+    sub._depsTail = undefined;
+    sub._flags =
+      (sub._flags &
         ~(
           SubscriberFlags.Notified |
           SubscriberFlags.Recursed |
@@ -256,18 +259,18 @@ export function createReactiveSystem({
    * @param sub - The subscriber whose tracking is ending.
    */
   function endTracking(sub: Subscriber): void {
-    const depsTail = sub.depsTail;
+    const depsTail = sub._depsTail;
     if (depsTail !== undefined) {
       const nextDep = depsTail.nextDep;
       if (nextDep !== undefined) {
         clearTracking(nextDep);
         depsTail.nextDep = undefined;
       }
-    } else if (sub.deps !== undefined) {
-      clearTracking(sub.deps);
-      sub.deps = undefined;
+    } else if (sub._deps !== undefined) {
+      clearTracking(sub._deps);
+      sub._deps = undefined;
     }
-    sub.flags &= ~SubscriberFlags.Tracking;
+    sub._flags &= ~SubscriberFlags.Tracking;
   }
 
   /**
@@ -282,11 +285,11 @@ export function createReactiveSystem({
    * @returns `true` if the subscriber is marked as Dirty; otherwise `false`.
    */
   function updateDirtyFlag(sub: Subscriber, flags: SubscriberFlags): boolean {
-    if (checkDirty(sub.deps!)) {
-      sub.flags = flags | SubscriberFlags.Dirty;
+    if (checkDirty(sub._deps!)) {
+      sub._flags = flags | SubscriberFlags.Dirty;
       return true;
     } else {
-      sub.flags = flags & ~SubscriberFlags.PendingComputed;
+      sub._flags = flags & ~SubscriberFlags.PendingComputed;
       return false;
     }
   }
@@ -305,7 +308,7 @@ export function createReactiveSystem({
     computed: Dependency & Subscriber,
     flags: SubscriberFlags
   ): void {
-    if (flags & SubscriberFlags.Dirty || checkDirty(computed.deps!)) {
+    if (flags & SubscriberFlags.Dirty || checkDirty(computed._deps!)) {
       if (updateComputed(computed)) {
         const subs = computed.subs;
         if (subs !== undefined) {
@@ -313,7 +316,7 @@ export function createReactiveSystem({
         }
       }
     } else {
-      computed.flags = flags & ~SubscriberFlags.PendingComputed;
+      computed._flags = flags & ~SubscriberFlags.PendingComputed;
     }
   }
 
@@ -335,14 +338,14 @@ export function createReactiveSystem({
     flags: SubscriberFlags
   ): void {
     if (flags & SubscriberFlags.PendingEffect) {
-      sub.flags = flags & ~SubscriberFlags.PendingEffect;
-      let link = sub.deps!;
+      sub._flags = flags & ~SubscriberFlags.PendingEffect;
+      let link = sub._deps!;
       do {
         const dep = link.dep;
         if (
-          'flags' in dep &&
-          dep.flags & SubscriberFlags.Effect &&
-          dep.flags & SubscriberFlags.Propagated
+          '_flags' in dep &&
+          dep._flags & SubscriberFlags.Effect &&
+          dep._flags & SubscriberFlags.Propagated
         ) {
           notifyEffect(dep);
         }
@@ -363,7 +366,7 @@ export function createReactiveSystem({
       const effect = notifyBuffer[notifyIndex]!;
       notifyBuffer[notifyIndex++] = undefined;
       if (!notifyEffect(effect)) {
-        effect.flags &= ~SubscriberFlags.Notified;
+        effect._flags &= ~SubscriberFlags.Notified;
       }
     }
     notifyIndex = 0;
@@ -398,7 +401,7 @@ export function createReactiveSystem({
       nextSub: undefined
     };
     if (depsTail === undefined) {
-      sub.deps = newLink;
+      sub._deps = newLink;
     } else {
       depsTail.nextDep = newLink;
     }
@@ -409,7 +412,7 @@ export function createReactiveSystem({
       newLink.prevSub = oldTail;
       oldTail.nextSub = newLink;
     }
-    sub.depsTail = newLink;
+    sub._depsTail = newLink;
     dep.subsTail = newLink;
     return newLink;
   }
@@ -435,10 +438,10 @@ export function createReactiveSystem({
       dirty = false;
       const dep = current.dep;
 
-      if (current.sub.flags & SubscriberFlags.Dirty) {
+      if (current.sub._flags & SubscriberFlags.Dirty) {
         dirty = true;
-      } else if ('flags' in dep) {
-        const depFlags = dep.flags;
+      } else if ('_flags' in dep) {
+        const depFlags = dep._flags;
         if (
           (depFlags & (SubscriberFlags.Computed | SubscriberFlags.Dirty)) ===
           (SubscriberFlags.Computed | SubscriberFlags.Dirty)
@@ -458,7 +461,7 @@ export function createReactiveSystem({
           if (current.nextSub !== undefined || current.prevSub !== undefined) {
             prevLinks = { target: current, linked: prevLinks };
           }
-          current = dep.deps!;
+          current = dep._deps!;
           ++checkDepth;
           continue;
         }
@@ -485,7 +488,7 @@ export function createReactiveSystem({
             continue;
           }
         } else {
-          sub.flags &= ~SubscriberFlags.PendingComputed;
+          sub._flags &= ~SubscriberFlags.PendingComputed;
         }
         if (firstSub.nextSub !== undefined) {
           current = prevLinks!.target;
@@ -517,14 +520,15 @@ export function createReactiveSystem({
   function shallowPropagate(link: Link): void {
     do {
       const sub = link.sub;
-      const subFlags = sub.flags;
+      const subFlags = sub._flags;
       if (
         // eslint-disable-next-line
         (subFlags &
           (SubscriberFlags.PendingComputed | SubscriberFlags.Dirty)) ===
         SubscriberFlags.PendingComputed
       ) {
-        sub.flags = subFlags | SubscriberFlags.Dirty | SubscriberFlags.Notified;
+        sub._flags =
+          subFlags | SubscriberFlags.Dirty | SubscriberFlags.Notified;
         if (
           // eslint-disable-next-line
           (subFlags & (SubscriberFlags.Effect | SubscriberFlags.Notified)) ===
@@ -550,9 +554,9 @@ export function createReactiveSystem({
    *   `false`.
    */
   function isValidLink(checkLink: Link, sub: Subscriber): boolean {
-    const depsTail = sub.depsTail;
+    const depsTail = sub._depsTail;
     if (depsTail !== undefined) {
-      let link = sub.deps!;
+      let link = sub._deps!;
       do {
         if (link === checkLink) {
           return true;
@@ -594,17 +598,17 @@ export function createReactiveSystem({
         dep.subs = nextSub;
       }
 
-      if (dep.subs === undefined && 'deps' in dep) {
-        const depFlags = dep.flags;
+      if (dep.subs === undefined && '_deps' in dep) {
+        const depFlags = dep._flags;
         if (!(depFlags & SubscriberFlags.Dirty)) {
-          dep.flags = depFlags | SubscriberFlags.Dirty;
+          dep._flags = depFlags | SubscriberFlags.Dirty;
         }
-        const depDeps = dep.deps;
+        const depDeps = dep._deps;
         if (depDeps !== undefined) {
           link = depDeps;
-          dep.depsTail!.nextDep = nextDep;
-          dep.deps = undefined;
-          dep.depsTail = undefined;
+          dep._depsTail!.nextDep = nextDep;
+          dep._deps = undefined;
+          dep._depsTail = undefined;
           continue;
         }
       }
@@ -664,7 +668,7 @@ const {
 let activeSub: Subscriber | undefined;
 
 function notifyEffect(e: Effect): boolean {
-  const flags = e.flags;
+  const flags = e._flags;
   if (
     flags & SubscriberFlags.Dirty ||
     (flags & SubscriberFlags.PendingComputed && updateDirtyFlag(e, flags))
@@ -679,15 +683,15 @@ function notifyEffect(e: Effect): boolean {
       endTracking(e);
     }
   } else {
-    processPendingInnerEffects(e, e.flags);
+    processPendingInnerEffects(e, e._flags);
   }
   return true;
 }
 
 function notifyEffectScope(e: EffectScope): boolean {
-  const flags = e.flags;
+  const flags = e._flags;
   if (flags & SubscriberFlags.PendingEffect) {
-    processPendingInnerEffects(e, e.flags);
+    processPendingInnerEffects(e, e._flags);
     return true;
   }
   return false;

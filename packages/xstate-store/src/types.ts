@@ -368,7 +368,8 @@ export interface Readable<T> extends Subscribable<T> {
 }
 
 export interface BaseAtom<T> extends Subscribable<T>, Readable<T> {
-  snapshot: T;
+  /** @internal */
+  _snapshot: T;
 }
 
 export interface Atom<T> extends BaseAtom<T>, Dependency {
@@ -396,7 +397,8 @@ export type AnyAtom = BaseAtom<any>;
  * ```
  */
 export interface ReadonlyAtom<T> extends BaseAtom<T>, Dependency, Subscriber {
-  update(): boolean;
+  /** @internal */
+  _update(): boolean;
 }
 
 /** A version of `Omit` that works with distributive types. */

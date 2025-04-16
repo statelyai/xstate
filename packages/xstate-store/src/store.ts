@@ -114,8 +114,8 @@ function createStoreCore<
   }
 
   const store: Store<TContext, StoreEvent, TEmitted> = {
-    get snapshot() {
-      return atom.snapshot;
+    get _snapshot() {
+      return atom._snapshot;
     },
     on(emittedEventType, handler) {
       if (!listeners) {
