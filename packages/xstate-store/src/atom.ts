@@ -53,7 +53,7 @@ export function createAtom<T>(
 
   // Create plain object atom
   const atom: InternalBaseAtom<T> & Dependency = {
-    _snapshot: isComputed ? (undefined as T) : valueOrFn,
+    _snapshot: isComputed ? undefined! : valueOrFn,
 
     // Dependency fields
     _subs: undefined,
