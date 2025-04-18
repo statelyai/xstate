@@ -2,18 +2,13 @@
 // https://github.com/stackblitz/alien-signals/
 
 export interface Dependency {
-  /** @internal */
   _subs: Link | undefined;
-  /** @internal */
   _subsTail: Link | undefined;
 }
 
 export interface Subscriber {
-  /** @internal */
   _flags: SubscriberFlags;
-  /** @internal */
   _deps: Link | undefined;
-  /** @internal */
   _depsTail: Link | undefined;
 }
 

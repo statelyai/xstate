@@ -61,7 +61,7 @@ export function createAtom<T>(
 
     get(): T {
       if (activeSub !== undefined) {
-        link(atom as Dependency, activeSub);
+        link(atom, activeSub);
       }
       return atom._snapshot;
     },
@@ -104,7 +104,7 @@ export function createAtom<T>(
         }
 
         if (activeSub !== undefined) {
-          link(atom as Dependency, activeSub);
+          link(atom, activeSub);
         }
         return atom._snapshot;
       },
