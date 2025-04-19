@@ -1,3 +1,5 @@
+import { Dependency, Subscriber } from './alien';
+
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
 export type ExtractEvents<T extends EventPayloadMap> = Values<{
@@ -80,7 +82,7 @@ export interface Store<
   TEmitted extends EventObject
 > extends Subscribable<StoreSnapshot<TContext>>,
     InteropObservable<StoreSnapshot<TContext>>,
-    Readable<StoreSnapshot<TContext>> {
+    BaseAtom<StoreSnapshot<TContext>> {
   send: (event: TEvent) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
   /** @alias getSnapshot */
@@ -165,11 +167,11 @@ export type StoreConfig<
   };
 };
 
-export type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
+type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
 
 export type AnyStore = Store<any, any, any>;
 
-export type Compute<A> = { [K in keyof A]: A[K] };
+type Compute<A> = { [K in keyof A]: A[K] };
 
 export type SnapshotFromStore<TStore extends Store<any, any, any>> =
   TStore extends Store<infer TContext, any, any>
@@ -297,9 +299,6 @@ export type StoreInspectionEvent =
   | StoreInspectedEventEvent
   | StoreInspectedActorEvent;
 
-/** @deprecated Use `StoreInspectionEvent` instead. */
-export type InspectionEvent = StoreInspectionEvent;
-
 interface StoreBaseInspectionEventProperties {
   rootId: string; // the session ID of the root
   /**
@@ -357,14 +356,6 @@ export type ActorRefLike = {
   getSnapshot: () => any;
 };
 
-export type Prop<T, K> = K extends keyof T ? T[K] : never;
-
-export type Cast<A, B> = A extends B ? A : B;
-
-export type EventMap<TEvent extends EventObject> = {
-  [E in TEvent as E['type']]: E;
-};
-
 export type Selector<TContext, TSelected> = (context: TContext) => TSelected;
 
 export type Selection<TSelected> = Readable<TSelected>;
@@ -373,14 +364,33 @@ export interface Readable<T> extends Subscribable<T> {
   get: () => T;
 }
 
-export interface Atom<T> extends Subscribable<T>, Readable<T> {
+export interface BaseAtom<T> extends Subscribable<T>, Readable<T> {}
+
+export interface InternalBaseAtom<T> extends Subscribable<T>, Readable<T> {
+  /** @internal */
+  _snapshot: T;
+}
+
+export interface Atom<T> extends BaseAtom<T> {
   /** Sets the value of the atom using a function. */
   set(fn: (prevVal: T) => T): void;
   /** Sets the value of the atom. */
   set(value: T): void;
 }
 
-export type AnyAtom = Atom<any>;
+export interface AtomOptions<T> {
+  compare?: (prev: T, next: T) => boolean;
+}
+
+export type AnyAtom = BaseAtom<any>;
+
+export interface InternalReadonlyAtom<T>
+  extends InternalBaseAtom<T>,
+    Dependency,
+    Subscriber {
+  /** @internal */
+  _update(): boolean;
+}
 
 /**
  * An atom that is read-only and cannot be set.
@@ -393,7 +403,7 @@ export type AnyAtom = Atom<any>;
  * atom.set(43);
  * ```
  */
-export interface ReadonlyAtom<T> extends Readable<T> {}
+export interface ReadonlyAtom<T> extends BaseAtom<T> {}
 
 /** A version of `Omit` that works with distributive types. */
 type DistributiveOmit<T, K extends PropertyKey> = T extends any
