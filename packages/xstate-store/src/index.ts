@@ -6,4 +6,33 @@ export {
   createStoreConfig
 } from './store';
 export { createAtom } from './atom';
-export * from './types';
+export type {
+  EventPayloadMap,
+  ExtractEvents,
+  StoreEffect,
+  StoreAssigner,
+  StoreSnapshot,
+  Store,
+  StoreConfig,
+  AnyStore,
+  SnapshotFromStore,
+  EventFromStore,
+  Observer,
+  Subscription,
+  Subscribable,
+  EventObject,
+  StoreInspectionEvent,
+  StoreInspectedSnapshotEvent,
+  StoreInspectedActionEvent,
+  StoreInspectedEventEvent,
+  StoreInspectedActorEvent,
+  ActorRefLike,
+  Selector,
+  Selection,
+  Readable,
+  BaseAtom,
+  Atom,
+  AtomOptions,
+  AnyAtom,
+  ReadonlyAtom
+} from './types';
