@@ -1,10 +1,10 @@
 import { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
-import { evaluateGuard } from './guards.ts';
 import { memo } from './memo.ts';
 import {
   BuiltinAction,
+  evaluateCandidate,
   formatInitialTransition,
   formatTransition,
   formatTransitions,
@@ -31,7 +31,8 @@ import type {
   AnyStateNodeConfig,
   ProvidedActor,
   NonReducibleUnknown,
-  EventDescriptor
+  EventDescriptor,
+  Action2
 } from './types.ts';
 import {
   createInvokeId,
@@ -100,8 +101,10 @@ export class StateNode<
   public history: false | 'shallow' | 'deep';
   /** The action(s) to be executed upon entering the state node. */
   public entry: UnknownAction[];
+  public entry2: Action2<any, any, any> | undefined;
   /** The action(s) to be executed upon exiting the state node. */
   public exit: UnknownAction[];
+  public exit2: Action2<any, any, any> | undefined;
   /** The parent state node. */
   public parent?: StateNode<TContext, TEvent>;
   /** The root machine node. */
@@ -211,8 +214,17 @@ export class StateNode<
       this.config.history === true ? 'shallow' : this.config.history || false;
 
     this.entry = toArray(this.config.entry).slice();
+    this.entry2 = this.config.entry2;
+    if (this.entry2) {
+      // @ts-ignore
+      this.entry2._special = true;
+    }
     this.exit = toArray(this.config.exit).slice();
-
+    this.exit2 = this.config.exit2;
+    if (this.exit2) {
+      // @ts-ignore
+      this.exit2._special = true;
+    }
     this.meta = this.config.meta;
     this.output =
       this.type === 'final' || !this.parent ? this.config.output : undefined;
@@ -224,7 +236,7 @@ export class StateNode<
     this.transitions = formatTransitions(this);
     if (this.config.always) {
       this.always = toTransitionConfigArray(this.config.always).map((t) =>
-        formatTransition(this, NULL_EVENT, t)
+        typeof t === 'function' ? t : formatTransition(this, NULL_EVENT, t)
       );
     }
 
@@ -388,35 +400,15 @@ export class StateNode<
     );
 
     for (const candidate of candidates) {
-      const { guard } = candidate;
       const resolvedContext = snapshot.context;
 
-      let guardPassed = false;
-
-      try {
-        guardPassed =
-          !guard ||
-          evaluateGuard<TContext, TEvent>(
-            guard,
-            resolvedContext,
-            event,
-            snapshot
-          );
-      } catch (err: any) {
-        const guardType =
-          typeof guard === 'string'
-            ? guard
-            : typeof guard === 'object'
-              ? guard.type
-              : undefined;
-        throw new Error(
-          `Unable to evaluate guard ${
-            guardType ? `'${guardType}' ` : ''
-          }in transition for event '${eventType}' in state node '${
-            this.id
-          }':\n${err.message}`
-        );
-      }
+      const guardPassed = evaluateCandidate(
+        candidate,
+        resolvedContext,
+        event,
+        snapshot,
+        this
+      );
 
       if (guardPassed) {
         actions.push(...candidate.actions);
