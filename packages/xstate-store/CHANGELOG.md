@@ -1,5 +1,24 @@
 # @xstate/store
 
+## 3.5.0
+
+### Minor Changes
+
+- [#5250](https://github.com/statelyai/xstate/pull/5250) [`a1bffb55b2029bde82e542d5936c51d961909a37`](https://github.com/statelyai/xstate/commit/a1bffb55b2029bde82e542d5936c51d961909a37) Thanks [@davidkpiano](https://github.com/davidkpiano)! - - Improved atom architecture with better dependency management (the diamond problem is solved!)
+
+  - Optimized recomputation logic to prevent unnecessary updates
+  - Added support for custom equality functions through `compare` option in `createAtom`, allowing fine-grained control over when atoms update:
+
+    ```ts
+    const coordinateAtom = createAtom(
+      { x: 0, y: 0 },
+      {
+        // only update when x and y change
+        compare: (prev, next) => prev.x === next.x && prev.y === next.y
+      }
+    );
+    ```
+
 ## 3.4.3
 
 ### Patch Changes
