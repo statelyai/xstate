@@ -159,11 +159,11 @@ export type StoreConfig<
   };
 };
 
-export type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
+type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
 
 export type AnyStore = Store<any, any, any>;
 
-export type Compute<A> = { [K in keyof A]: A[K] };
+type Compute<A> = { [K in keyof A]: A[K] };
 
 export type SnapshotFromStore<TStore extends Store<any, any, any>> =
   TStore extends Store<infer TContext, any, any>
@@ -291,9 +291,6 @@ export type StoreInspectionEvent =
   | StoreInspectedEventEvent
   | StoreInspectedActorEvent;
 
-/** @deprecated Use `StoreInspectionEvent` instead. */
-export type InspectionEvent = StoreInspectionEvent;
-
 interface StoreBaseInspectionEventProperties {
   rootId: string; // the session ID of the root
   /**
@@ -351,10 +348,6 @@ export type ActorRefLike = {
   getSnapshot: () => any;
 };
 
-export type Prop<T, K> = K extends keyof T ? T[K] : never;
-
-export type Cast<A, B> = A extends B ? A : B;
-
 export type Selector<TContext, TSelected> = (context: TContext) => TSelected;
 
 export type Selection<TSelected> = Readable<TSelected>;
@@ -368,13 +361,6 @@ export interface BaseAtom<T> extends Subscribable<T>, Readable<T> {}
 export interface InternalBaseAtom<T> extends Subscribable<T>, Readable<T> {
   /** @internal */
   _snapshot: T;
-}
-
-export interface InternalAtom<T> extends BaseAtom<T>, Dependency {
-  /** Sets the value of the atom using a function. */
-  set(fn: (prevVal: T) => T): void;
-  /** Sets the value of the atom. */
-  set(value: T): void;
 }
 
 export interface Atom<T> extends BaseAtom<T> {
