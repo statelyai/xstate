@@ -2,7 +2,10 @@ import {
   createReactiveSystem,
   Dependency,
   Subscriber,
-  SubscriberFlags
+  SubscriberFlagsComputed,
+  SubscriberFlagsDirty,
+  SubscriberFlagsEffect,
+  SubscriberFlagsPendingComputed
 } from './alien';
 import { toObserver } from './toObserver';
 import {
@@ -16,15 +19,15 @@ import {
   ReadonlyAtom
 } from './types';
 
-const {
+const [
   link,
   propagate,
-  endTracking,
-  startTracking,
   updateDirtyFlag,
-  processComputedUpdate,
-  processEffectNotifications
-} = createReactiveSystem({
+  startTracking,
+  endTracking,
+  processEffectNotifications,
+  processComputedUpdate
+] = createReactiveSystem({
   updateComputed(computed: InternalReadonlyAtom<any>) {
     return computed._update();
   },
@@ -96,10 +99,10 @@ export function createAtom<T>(
     >(atom, {
       _deps: undefined,
       _depsTail: undefined,
-      _flags: SubscriberFlags.Computed | SubscriberFlags.Dirty,
+      _flags: SubscriberFlagsComputed | SubscriberFlagsDirty,
       get(): T {
         const flags = (this as unknown as InternalReadonlyAtom<T>)._flags;
-        if (flags & (SubscriberFlags.PendingComputed | SubscriberFlags.Dirty)) {
+        if (flags & (SubscriberFlagsPendingComputed | SubscriberFlagsDirty)) {
           processComputedUpdate(atom as InternalReadonlyAtom<T>, flags);
         }
 
@@ -171,14 +174,13 @@ function effect<T>(fn: () => T): Effect {
     // Subscriber fields
     _deps: undefined,
     _depsTail: undefined,
-    _flags: SubscriberFlags.Effect,
+    _flags: SubscriberFlagsEffect,
 
     notify(): void {
       const flags = this._flags;
       if (
-        flags & SubscriberFlags.Dirty ||
-        (flags & SubscriberFlags.PendingComputed &&
-          updateDirtyFlag(this, flags))
+        flags & SubscriberFlagsDirty ||
+        (flags & SubscriberFlagsPendingComputed && updateDirtyFlag(this, flags))
       ) {
         run();
       }
