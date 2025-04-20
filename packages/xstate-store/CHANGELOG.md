@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.5.1
+
+### Patch Changes
+
+- [#5261](https://github.com/statelyai/xstate/pull/5261) [`986c5c86e15efe6d219bd6a0bb2130917c1db50e`](https://github.com/statelyai/xstate/commit/986c5c86e15efe6d219bd6a0bb2130917c1db50e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Reduced the bundle size for the atom implementation
+
 ## 3.5.0
 
 ### Minor Changes
