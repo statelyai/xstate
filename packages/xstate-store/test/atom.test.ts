@@ -1,4 +1,5 @@
 import { createStore, createAtom } from '../src/';
+import { createAsyncAtom } from '../src/atom';
 
 it('creates an atom', () => {
   const atom = createAtom(42);
@@ -584,4 +585,26 @@ it('Atom-specific properties should not be exposed', () => {
   store._deps;
   // @ts-expect-error
   store._depsTail;
+});
+
+it('async atoms should work (fulfilled)', async () => {
+  const atom = createAsyncAtom(async () => 'hello');
+
+  expect(atom.get()).toEqual({ status: 'pending' });
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(atom.get()).toEqual({ status: 'fulfilled', data: 'hello' });
+});
+
+it('async atoms should work (rejected)', async () => {
+  const atom = createAsyncAtom(async () => {
+    throw new Error('test');
+  });
+
+  expect(atom.get()).toEqual({ status: 'pending' });
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(atom.get()).toEqual({ status: 'rejected', error: expect.any(Error) });
 });

@@ -369,6 +369,8 @@ export interface BaseAtom<T> extends Subscribable<T>, Readable<T> {}
 export interface InternalBaseAtom<T> extends Subscribable<T>, Readable<T> {
   /** @internal */
   _snapshot: T;
+  /** @internal */
+  _update(getter: () => T): boolean;
 }
 
 export interface Atom<T> extends BaseAtom<T> {
@@ -382,6 +384,10 @@ export interface AtomOptions<T> {
   compare?: (prev: T, next: T) => boolean;
 }
 
+export interface AsyncAtomOptions<T> extends AtomOptions<T> {
+  signal?: AbortSignal;
+}
+
 export type AnyAtom = BaseAtom<any>;
 
 export interface InternalReadonlyAtom<T>
@@ -389,7 +395,7 @@ export interface InternalReadonlyAtom<T>
     Dependency,
     Subscriber {
   /** @internal */
-  _update(): boolean;
+  _update(getValue?: () => T): boolean;
 }
 
 /**

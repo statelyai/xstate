@@ -6,6 +6,7 @@ import {
 } from './alien';
 import { toObserver } from './toObserver';
 import {
+  AsyncAtomOptions,
   Atom,
   AtomOptions,
   BaseAtom,
@@ -35,6 +36,30 @@ const {
 });
 
 let activeSub: Subscriber | undefined = undefined;
+
+type AsyncAtomState<Data, Error = unknown> =
+  | { status: 'pending' }
+  | { status: 'fulfilled'; data: Data }
+  | { status: 'rejected'; error: Error };
+
+export function createAsyncAtom<T>(
+  getValue: () => Promise<T>,
+  options?: AsyncAtomOptions<AsyncAtomState<T>>
+): ReadonlyAtom<AsyncAtomState<T>> {
+  const atom = createAtom<AsyncAtomState<T>>(() => {
+    getValue()
+      .then((value) => {
+        atom._update(() => ({ status: 'fulfilled', data: value }));
+      })
+      .catch((error) => {
+        atom._update(() => ({ status: 'rejected', error }));
+      });
+
+    return { status: 'pending' };
+  }, options) as InternalReadonlyAtom<AsyncAtomState<T>>;
+
+  return atom;
+}
 
 export function createAtom<T>(
   getValue: (read: <U>(atom: Readable<U>) => U) => T,
@@ -83,16 +108,32 @@ export function createAtom<T>(
           e.stop();
         }
       };
+    },
+    _update(getValue?: () => T): boolean {
+      const prevSub = activeSub;
+      const compare = options?.compare ?? Object.is;
+      activeSub = atom as InternalReadonlyAtom<T>;
+      startTracking(atom as InternalReadonlyAtom<T>);
+      try {
+        const oldValue = atom._snapshot;
+        const read = (atom: Readable<any>) => atom.get();
+        const newValue = getValue ? getValue() : getter(read);
+        if (oldValue === undefined || !compare(oldValue, newValue)) {
+          atom._snapshot = newValue;
+          return true;
+        }
+        return false;
+      } finally {
+        activeSub = prevSub;
+        endTracking(atom as InternalReadonlyAtom<T>);
+      }
     }
   };
 
   if (isComputed) {
     Object.assign<
       BaseAtom<T>,
-      Pick<
-        InternalReadonlyAtom<T>,
-        '_deps' | '_depsTail' | '_flags' | 'get' | '_update'
-      >
+      Pick<InternalReadonlyAtom<T>, '_deps' | '_depsTail' | '_flags' | 'get'>
     >(atom, {
       _deps: undefined,
       _depsTail: undefined,
@@ -107,37 +148,20 @@ export function createAtom<T>(
           link(atom, activeSub);
         }
         return atom._snapshot;
-      },
-      _update(): boolean {
-        const prevSub = activeSub;
-        const compare = options?.compare ?? Object.is;
-        activeSub = atom as InternalReadonlyAtom<T>;
-        startTracking(atom as InternalReadonlyAtom<T>);
-        try {
-          const oldValue = atom._snapshot;
-          const read = (atom: Readable<any>) => atom.get();
-          const newValue = getter(read);
-          if (oldValue === undefined || !compare(oldValue, newValue)) {
-            atom._snapshot = newValue;
-            return true;
-          }
-          return false;
-        } finally {
-          activeSub = prevSub;
-          endTracking(atom as InternalReadonlyAtom<T>);
-        }
       }
     });
   } else {
     Object.assign<BaseAtom<T>, Pick<Atom<T>, 'set'>>(atom, {
       set(valueOrFn: T | ((prev: T) => T)): void {
-        const compare = options?.compare ?? Object.is;
-        const value =
+        const prevValue = atom._snapshot;
+        const fn =
           typeof valueOrFn === 'function'
-            ? (valueOrFn as (prev: T) => T)(atom._snapshot)
-            : valueOrFn;
-        if (compare(atom._snapshot, value)) return;
-        atom._snapshot = value;
+            ? () => valueOrFn(atom._snapshot)
+            : () => valueOrFn;
+        atom._update(fn);
+        const nextValue = atom._snapshot;
+        const compare = options?.compare ?? Object.is;
+        if (compare(prevValue, nextValue)) return;
         const { _subs: subs } = atom;
         if (subs !== undefined) {
           propagate(subs);
