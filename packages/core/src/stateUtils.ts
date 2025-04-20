@@ -36,7 +36,6 @@ import {
   ParameterizedObject,
   AnyTransitionConfig,
   AnyActorScope,
-  ActionExecutor,
   AnyStateMachine
 } from './types.ts';
 import {
@@ -1004,16 +1003,7 @@ export function microstep(
 
   // Exit states
   if (!isInitial) {
-    [nextState, historyValue] = exitStates(
-      nextState,
-      event,
-      actorScope,
-      filteredTransitions,
-      mutStateNodeSet,
-      historyValue,
-      internalQueue,
-      actorScope.actionExecutor
-    );
+    [nextState, historyValue] = exitStates();
   }
 
   // Execute transition content
@@ -1051,6 +1041,50 @@ export function microstep(
       internalQueue,
       undefined
     );
+  }
+
+  function exitStates() {
+    let nextSnapshot = nextState;
+    const statesToExit = computeExitSet(
+      filteredTransitions,
+      mutStateNodeSet,
+      historyValue
+    );
+
+    statesToExit.sort((a, b) => b.order - a.order);
+
+    let changedHistory: HistoryValue<any, any> | undefined;
+
+    // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
+    for (const exitStateNode of statesToExit) {
+      for (const historyNode of getHistoryNodes(exitStateNode)) {
+        let predicate: (sn: AnyStateNode) => boolean;
+        if (historyNode.history === 'deep') {
+          predicate = (sn) =>
+            isAtomicStateNode(sn) && isDescendant(sn, exitStateNode);
+        } else {
+          predicate = (sn) => {
+            return sn.parent === exitStateNode;
+          };
+        }
+        changedHistory ??= { ...historyValue };
+        changedHistory[historyNode.id] =
+          Array.from(mutStateNodeSet).filter(predicate);
+      }
+    }
+
+    for (const s of statesToExit) {
+      nextSnapshot = resolveActionsAndContext(
+        nextSnapshot,
+        event,
+        actorScope,
+        [...s.exit, ...s.invoke.map((def) => stopChild(def.id))],
+        internalQueue,
+        undefined
+      );
+      mutStateNodeSet.delete(s);
+    }
+    return [nextSnapshot, changedHistory || historyValue] as const;
   }
 
   // eslint-disable-next-line no-useless-catch
@@ -1410,59 +1444,6 @@ function addProperAncestorStatesToEnter(
   );
 }
 
-function exitStates(
-  currentSnapshot: AnyMachineSnapshot,
-  event: AnyEventObject,
-  actorScope: AnyActorScope,
-  transitions: AnyTransitionDefinition[],
-  mutStateNodeSet: Set<AnyStateNode>,
-  historyValue: HistoryValue<any, any>,
-  internalQueue: AnyEventObject[],
-  _actionExecutor: ActionExecutor
-) {
-  let nextSnapshot = currentSnapshot;
-  const statesToExit = computeExitSet(
-    transitions,
-    mutStateNodeSet,
-    historyValue
-  );
-
-  statesToExit.sort((a, b) => b.order - a.order);
-
-  let changedHistory: typeof historyValue | undefined;
-
-  // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
-  for (const exitStateNode of statesToExit) {
-    for (const historyNode of getHistoryNodes(exitStateNode)) {
-      let predicate: (sn: AnyStateNode) => boolean;
-      if (historyNode.history === 'deep') {
-        predicate = (sn) =>
-          isAtomicStateNode(sn) && isDescendant(sn, exitStateNode);
-      } else {
-        predicate = (sn) => {
-          return sn.parent === exitStateNode;
-        };
-      }
-      changedHistory ??= { ...historyValue };
-      changedHistory[historyNode.id] =
-        Array.from(mutStateNodeSet).filter(predicate);
-    }
-  }
-
-  for (const s of statesToExit) {
-    nextSnapshot = resolveActionsAndContext(
-      nextSnapshot,
-      event,
-      actorScope,
-      [...s.exit, ...s.invoke.map((def) => stopChild(def.id))],
-      internalQueue,
-      undefined
-    );
-    mutStateNodeSet.delete(s);
-  }
-  return [nextSnapshot, changedHistory || historyValue] as const;
-}
-
 export interface BuiltinAction {
   (): void;
   type: `xstate.${string}`;
@@ -1609,6 +1590,7 @@ export function resolveActionsAndContext(
 }
 
 export function macrostep(
+  machine: AnyStateMachine,
   snapshot: AnyMachineSnapshot,
   event: EventObject,
   actorScope: AnyActorScope,
@@ -1726,6 +1708,13 @@ export function macrostep(
     stopChildren(nextSnapshot, nextEvent, actorScope);
   }
 
+  function selectTransitions(
+    event: AnyEventObject,
+    nextState: AnyMachineSnapshot
+  ): AnyTransitionDefinition[] {
+    return machine.getTransitionData(nextState as any, event);
+  }
+
   return {
     snapshot: nextSnapshot,
     microstates
@@ -1745,13 +1734,6 @@ function stopChildren(
     [],
     undefined
   );
-}
-
-function selectTransitions(
-  event: AnyEventObject,
-  nextState: AnyMachineSnapshot
-): AnyTransitionDefinition[] {
-  return nextState.machine.getTransitionData(nextState as any, event);
 }
 
 function selectEventlessTransitions(
