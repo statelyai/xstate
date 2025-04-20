@@ -27,13 +27,13 @@ interface OneWayLink<T> {
 
 export const SubscriberFlagsComputed = 1 << 0;
 export const SubscriberFlagsEffect = 1 << 1;
-export const SubscriberFlagsTracking = 1 << 2;
-export const SubscriberFlagsNotified = 1 << 3;
-export const SubscriberFlagsRecursed = 1 << 4;
+const SubscriberFlagsTracking = 1 << 2;
+const SubscriberFlagsNotified = 1 << 3;
+const SubscriberFlagsRecursed = 1 << 4;
 export const SubscriberFlagsDirty = 1 << 5;
 export const SubscriberFlagsPendingComputed = 1 << 6;
-export const SubscriberFlagsPendingEffect = 1 << 7;
-export const SubscriberFlagsPropagated =
+const SubscriberFlagsPendingEffect = 1 << 7;
+const SubscriberFlagsPropagated =
   SubscriberFlagsDirty |
   SubscriberFlagsPendingComputed |
   SubscriberFlagsPendingEffect;
