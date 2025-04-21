@@ -1332,7 +1332,7 @@ function getTargets(
   };
 }
 
-function getTransitionActions(
+export function getTransitionActions(
   transition: Pick<
     AnyTransitionDefinition,
     'target' | 'fn' | 'source' | 'actions'
