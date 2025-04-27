@@ -37,7 +37,8 @@ import {
   AnyTransitionConfig,
   AnyActorScope,
   ActionExecutor,
-  AnyStateMachine
+  AnyStateMachine,
+  AnyActorRef
 } from './types.ts';
 import {
   resolveOutput,
@@ -694,7 +695,8 @@ function transitionCompoundNode<
     any, // TMeta
     any // TStateSchema
   >,
-  event: TEvent
+  event: TEvent,
+  self: AnyActorRef
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const subStateKeys = Object.keys(stateValue);
 
@@ -703,7 +705,8 @@ function transitionCompoundNode<
     childStateNode,
     stateValue[subStateKeys[0]]!,
     snapshot,
-    event
+    event,
+    self
   );
 
   if (!next || !next.length) {
@@ -729,7 +732,8 @@ function transitionParallelNode<
     any, // TMeta
     any // TStateSchema
   >,
-  event: TEvent
+  event: TEvent,
+  self: AnyActorRef
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
 
@@ -745,7 +749,8 @@ function transitionParallelNode<
       subStateNode,
       subStateValue,
       snapshot,
-      event
+      event,
+      self
     );
     if (innerTransitions) {
       allInnerTransitions.push(...innerTransitions);
@@ -774,7 +779,8 @@ export function transitionNode<
     any,
     any // TStateSchema
   >,
-  event: TEvent
+  event: TEvent,
+  self: AnyActorRef
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
   if (typeof stateValue === 'string') {
@@ -783,11 +789,11 @@ export function transitionNode<
 
   // compound node
   if (Object.keys(stateValue).length === 1) {
-    return transitionCompoundNode(stateNode, stateValue, snapshot, event);
+    return transitionCompoundNode(stateNode, stateValue, snapshot, event, self);
   }
 
   // parallel node
-  return transitionParallelNode(stateNode, stateValue, snapshot, event);
+  return transitionParallelNode(stateNode, stateValue, snapshot, event, self);
 }
 
 function getHistoryNodes(stateNode: AnyStateNode): Array<AnyStateNode> {
@@ -1663,7 +1669,11 @@ export function macrostep(
     const currentEvent = nextEvent;
     const isErr = isErrorActorEvent(currentEvent);
 
-    const transitions = selectTransitions(currentEvent, nextSnapshot);
+    const transitions = selectTransitions(
+      currentEvent,
+      nextSnapshot,
+      actorScope.self
+    );
 
     if (isErr && !transitions.length) {
       // TODO: we should likely only allow transitions selected by very explicit descriptors
@@ -1707,7 +1717,11 @@ export function macrostep(
         break;
       }
       nextEvent = internalQueue.shift()!;
-      enabledTransitions = selectTransitions(nextEvent, nextSnapshot);
+      enabledTransitions = selectTransitions(
+        nextEvent,
+        nextSnapshot,
+        actorScope.self
+      );
     }
 
     nextSnapshot = microstep(
@@ -1749,9 +1763,10 @@ function stopChildren(
 
 function selectTransitions(
   event: AnyEventObject,
-  nextState: AnyMachineSnapshot
+  nextState: AnyMachineSnapshot,
+  self: AnyActorRef
 ): AnyTransitionDefinition[] {
-  return nextState.machine.getTransitionData(nextState as any, event);
+  return nextState.machine.getTransitionData(nextState as any, event, self);
 }
 
 function selectEventlessTransitions(

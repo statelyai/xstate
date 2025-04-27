@@ -52,6 +52,7 @@ export interface GuardArgs<
 > {
   context: TContext;
   event: TExpressionEvent;
+  value: StateValue;
 }
 
 export type Guard<
@@ -366,7 +367,8 @@ export function evaluateGuard<
 
   const guardArgs = {
     context,
-    event
+    event,
+    value: snapshot.value
   };
 
   const guardParams =

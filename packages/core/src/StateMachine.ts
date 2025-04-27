@@ -1,5 +1,6 @@
 import isDevelopment from '#is-development';
 import { assign } from './actions.ts';
+import { createEmptyActor } from './actors/index.ts';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import { createInitEvent } from './eventUtils.ts';
 import {
@@ -343,9 +344,12 @@ export class StateMachine<
       TMeta,
       TConfig
     >,
-    event: TEvent
+    event: TEvent,
+    self: AnyActorRef = createEmptyActor()
   ): Array<TransitionDefinition<TContext, TEvent>> {
-    return transitionNode(this.root, snapshot.value, snapshot, event) || [];
+    return (
+      transitionNode(this.root, snapshot.value, snapshot, event, self) || []
+    );
   }
 
   /**

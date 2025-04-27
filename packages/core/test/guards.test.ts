@@ -1552,3 +1552,27 @@ describe('or() guard', () => {
     `);
   });
 });
+
+it('should evaluate guard with value', () => {
+  const machine = createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        on: {
+          NEXT: {
+            guard: ({ value }) => {
+              return value === 'a';
+            },
+            target: 'b'
+          }
+        }
+      },
+      b: {}
+    }
+  });
+
+  const actorRef = createActor(machine).start();
+  actorRef.send({ type: 'NEXT' });
+
+  expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
+});
