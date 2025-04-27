@@ -253,7 +253,11 @@ export type Action<
       TGuard,
       TDelay,
       TEmitted
-    >;
+    >
+  | {
+      action: (...args: any[]) => any;
+      args: unknown[];
+    };
 
 export type UnknownAction = Action<
   MachineContext,
@@ -2664,6 +2668,7 @@ export interface ExecutableActionObject {
   type: string;
   info: ActionArgs<MachineContext, EventObject, EventObject>;
   params: NonReducibleUnknown;
+  args: unknown[];
   exec:
     | ((info: ActionArgs<any, any, any>, params: unknown) => void)
     | undefined;
@@ -2736,7 +2741,10 @@ export type EnqueueObj<
     }
   ) => AnyActorRef;
   emit: (emittedEvent: TEmittedEvent) => void;
-  action: (fn: () => any) => void;
+  action: <T extends (...args: any[]) => any>(
+    fn: T,
+    ...args: Parameters<T>
+  ) => void;
   log: (...args: any[]) => void;
   sendTo: <T extends AnyActorRef>(
     actorRef: T,

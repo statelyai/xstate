@@ -1342,7 +1342,7 @@ export function getTransitionActions(
   actorScope: AnyActorScope
 ): Readonly<UnknownAction[]> {
   if (transition.fn) {
-    const actions: any[] = [];
+    const actions: UnknownAction[] = [];
     transition.fn(
       {
         context: snapshot.context,
@@ -1352,8 +1352,11 @@ export function getTransitionActions(
         parent: actorScope.self._parent
       },
       {
-        action: (fn) => {
-          actions.push(fn);
+        action: (fn, ...args) => {
+          actions.push({
+            action: fn,
+            args
+          });
         },
         cancel: (id) => {
           actions.push(cancel(id));
@@ -1726,11 +1729,13 @@ function resolveAndExecuteActionsWithContext(
     const isInline = typeof action === 'function';
     const resolvedAction = isInline
       ? action
-      : // the existing type of `.actions` assumes non-nullable `TExpressionAction`
-        // it's fine to cast this here to get a common type and lack of errors in the rest of the code
-        // our logic below makes sure that we call those 2 "variants" correctly
+      : typeof action === 'object' && 'action' in action
+        ? action.action.bind(null, ...action.args)
+        : // the existing type of `.actions` assumes non-nullable `TExpressionAction`
+          // it's fine to cast this here to get a common type and lack of errors in the rest of the code
+          // our logic below makes sure that we call those 2 "variants" correctly
 
-        getAction(machine, typeof action === 'string' ? action : action.type);
+          getAction(machine, typeof action === 'string' ? action : action.type);
 
     // if no action, emit it!
     if (!resolvedAction && typeof action === 'object' && action !== null) {
@@ -1748,14 +1753,21 @@ function resolveAndExecuteActionsWithContext(
       parent: actorScope.self._parent
     };
 
-    const actionParams =
+    let actionParams =
       isInline || typeof action === 'string'
         ? undefined
         : 'params' in action
           ? typeof action.params === 'function'
             ? action.params({ context: intermediateSnapshot.context, event })
             : action.params
-          : undefined;
+          : // Emitted event
+            undefined;
+
+    // Emitted events
+    if (!actionParams && typeof action === 'object' && action !== null) {
+      const { type: _, ...emittedEventParams } = action as any;
+      actionParams = emittedEventParams;
+    }
 
     if (resolvedAction && '_special' in resolvedAction) {
       const specialAction = resolvedAction as unknown as Action2<any, any, any>;
@@ -1776,10 +1788,14 @@ function resolveAndExecuteActionsWithContext(
           typeof action === 'string'
             ? action
             : typeof action === 'object'
-              ? action.type
+              ? 'action' in action
+                ? (action.action.name ?? '(anonymous)')
+                : action.type
               : action.name || '(anonymous)',
         info: actionArgs,
         params: actionParams,
+        args:
+          typeof action === 'object' && 'action' in action ? action.args : [],
         exec: resolvedAction
       });
       continue;
@@ -1806,6 +1822,7 @@ function resolveAndExecuteActionsWithContext(
         type: builtinAction.type,
         info: actionArgs,
         params,
+        args: [],
         exec: builtinAction.execute.bind(null, actorScope, params)
       });
     }
@@ -2082,8 +2099,11 @@ function getActionsFromAction2(
         children
       },
       {
-        action: (action) => {
-          actions.push(action);
+        action: (action, ...args) => {
+          actions.push({
+            action,
+            args
+          });
         },
         cancel: (id: string) => {
           actions.push(cancel(id));
@@ -2149,7 +2169,8 @@ export function evaluateCandidate(
           cancel: triggerEffect,
           log: triggerEffect,
           raise: triggerEffect,
-          spawn: triggerEffect
+          spawn: triggerEffect,
+          sendTo: triggerEffect
         }
       );
     } catch (err) {
