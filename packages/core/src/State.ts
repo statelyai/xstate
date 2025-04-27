@@ -356,7 +356,7 @@ export function createMachineSnapshot<
   TMeta extends MetaObject,
   TStateSchema extends StateSchema
 >(
-  config: StateConfig<TContext, TEvent>,
+  config: Omit<StateConfig<TContext, TEvent>, 'value'>,
   machine: AnyStateMachine
 ): MachineSnapshot<
   TContext,

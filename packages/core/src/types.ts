@@ -1720,6 +1720,7 @@ export interface StateConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
+  value: StateValue;
   context: TContext;
   historyValue?: HistoryValue<TContext, TEvent>;
   /** @internal */
