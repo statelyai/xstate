@@ -553,6 +553,114 @@ describe('inspect', () => {
     "type": "@xstate.microstep",
   },
   {
+    "_transitions": [
+      {
+        "actions": [],
+        "eventType": "",
+        "fn": [Function],
+        "guard": undefined,
+        "reenter": false,
+        "source": "#(machine).counting",
+        "target": undefined,
+        "toJSON": [Function],
+      },
+    ],
+    "actorRef": {
+      "id": "x:0",
+      "xstate$$type": 1,
+    },
+    "event": {
+      "input": undefined,
+      "type": "xstate.init",
+    },
+    "rootId": "x:0",
+    "snapshot": {
+      "children": {},
+      "context": {
+        "count": 2,
+      },
+      "error": undefined,
+      "historyValue": {},
+      "output": undefined,
+      "status": "active",
+      "tags": [],
+      "value": "counting",
+    },
+    "type": "@xstate.microstep",
+  },
+  {
+    "_transitions": [
+      {
+        "actions": [],
+        "eventType": "",
+        "fn": [Function],
+        "guard": undefined,
+        "reenter": false,
+        "source": "#(machine).counting",
+        "target": undefined,
+        "toJSON": [Function],
+      },
+    ],
+    "actorRef": {
+      "id": "x:0",
+      "xstate$$type": 1,
+    },
+    "event": {
+      "input": undefined,
+      "type": "xstate.init",
+    },
+    "rootId": "x:0",
+    "snapshot": {
+      "children": {},
+      "context": {
+        "count": 3,
+      },
+      "error": undefined,
+      "historyValue": {},
+      "output": undefined,
+      "status": "active",
+      "tags": [],
+      "value": "counting",
+    },
+    "type": "@xstate.microstep",
+  },
+  {
+    "_transitions": [
+      {
+        "actions": [],
+        "eventType": "",
+        "fn": [Function],
+        "guard": undefined,
+        "reenter": false,
+        "source": "#(machine).counting",
+        "target": undefined,
+        "toJSON": [Function],
+      },
+    ],
+    "actorRef": {
+      "id": "x:0",
+      "xstate$$type": 1,
+    },
+    "event": {
+      "input": undefined,
+      "type": "xstate.init",
+    },
+    "rootId": "x:0",
+    "snapshot": {
+      "children": {},
+      "context": {
+        "count": 3,
+      },
+      "error": undefined,
+      "historyValue": {},
+      "output": undefined,
+      "status": "active",
+      "tags": [],
+      "value": "done",
+    },
+    "type": "@xstate.microstep",
+  },
+  {
     "actorRef": {
       "id": "x:0",
       "xstate$$type": 1,
@@ -578,14 +686,14 @@ describe('inspect', () => {
     "snapshot": {
       "children": {},
       "context": {
-        "count": 1,
+        "count": 3,
       },
       "error": undefined,
       "historyValue": {},
       "output": undefined,
       "status": "active",
       "tags": [],
-      "value": "counting",
+      "value": "done",
     },
     "type": "@xstate.snapshot",
   },

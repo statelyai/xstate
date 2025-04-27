@@ -209,7 +209,11 @@ export class Actor<TLogic extends AnyActorLogic>
           const saveExecutingCustomAction = executingCustomAction;
           try {
             executingCustomAction = true;
-            action.exec(action.info, action.params);
+            // v6
+            const actionArgs = action.args.length
+              ? [] // already bound
+              : [action.info, action.params];
+            action.exec(...actionArgs);
           } finally {
             executingCustomAction = saveExecutingCustomAction;
           }

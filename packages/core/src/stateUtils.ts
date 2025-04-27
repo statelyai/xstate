@@ -1063,7 +1063,7 @@ export function microstep(
   );
 
   // Get context
-  let context = nextState.context;
+  const context = nextState.context;
   for (const t of filteredTransitions) {
     if (t.fn) {
       const res = t.fn(
@@ -1078,11 +1078,13 @@ export function microstep(
       );
 
       if (res?.context) {
-        context = res.context;
+        nextState = {
+          ...nextState,
+          context: res.context
+        };
       }
     }
   }
-  nextState.context = context;
 
   // Enter states
   nextState = enterStates(
