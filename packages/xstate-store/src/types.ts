@@ -149,6 +149,14 @@ export interface Store<
   ) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
 }
 
+export type InternalStore<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = Store<TContext, TEvent, TEmitted> & {
+  ['~atom']: AnyAtom;
+};
+
 export type StoreConfig<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,

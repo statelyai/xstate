@@ -18,7 +18,8 @@ import {
   StoreSnapshot,
   Selector,
   Selection,
-  InternalBaseAtom
+  InternalBaseAtom,
+  InternalStore
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -71,8 +72,7 @@ function createStoreCore<
     output: undefined,
     error: undefined
   };
-  let currentSnapshot: StoreSnapshot<TContext> = initialSnapshot;
-  const atom = createAtom<StoreSnapshot<TContext>>(currentSnapshot);
+  const atom = createAtom<StoreSnapshot<TContext>>(initialSnapshot);
 
   const emit = (ev: TEmitted) => {
     if (!listeners) {
@@ -88,8 +88,8 @@ function createStoreCore<
   const transition = createStoreTransition(transitions, producer);
 
   function receive(event: StoreEvent) {
-    let effects: StoreEffect<TEmitted>[];
-    [currentSnapshot, effects] = transition(currentSnapshot, event);
+    // let effects: StoreEffect<TEmitted>[];
+    const [currentSnapshot, effects] = transition(atom.get(), event);
 
     inspectionObservers.get(store)?.forEach((observer) => {
       observer.next?.({
@@ -114,8 +114,9 @@ function createStoreCore<
     }
   }
 
-  const store: Store<TContext, StoreEvent, TEmitted> &
+  const store: InternalStore<TContext, StoreEvent, TEmitted> &
     Pick<InternalBaseAtom<any>, '_snapshot'> = {
+    ['~atom']: atom,
     get _snapshot() {
       return (atom as unknown as InternalBaseAtom<any>)._snapshot;
     },
@@ -152,7 +153,7 @@ function createStoreCore<
       receive(event as unknown as StoreEvent);
     },
     getSnapshot() {
-      return currentSnapshot;
+      return atom.get();
     },
     get() {
       return atom.get();
