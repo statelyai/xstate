@@ -2738,6 +2738,7 @@ export type EnqueueObj<
     options?: {
       input?: InputFrom<T>;
       id?: string;
+      syncSnapshot?: boolean;
     }
   ) => AnyActorRef;
   emit: (emittedEvent: TEmittedEvent) => void;
