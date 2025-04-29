@@ -88,6 +88,7 @@ export class Actor<TLogic extends AnyActorLogic>
     string,
     Set<(emittedEvent: EmittedFrom<TLogic>) => void>
   > = new Map();
+  private stopListeners: Set<() => void> = new Set();
   private logger: (...args: any[]) => void;
 
   /** @internal */
@@ -339,10 +340,10 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 
   /**
-   * Subscribe an observer to an actor’s snapshot values.
+   * Subscribe an observer to an actor's snapshot values.
    *
    * @remarks
-   * The observer will receive the actor’s snapshot value when it is emitted.
+   * The observer will receive the actor's snapshot value when it is emitted.
    * The observer can be:
    *
    * - A plain function that receives the latest snapshot, or
@@ -681,6 +682,16 @@ export class Actor<TLogic extends AnyActorLogic>
     this._processingStatus = ProcessingStatus.Stopped;
     this.system._unregister(this);
 
+    // Execute stop listeners
+    for (const listener of this.stopListeners) {
+      try {
+        listener();
+      } catch (err) {
+        this._reportError(err);
+      }
+    }
+    this.stopListeners.clear();
+
     return this;
   }
 
@@ -754,7 +765,7 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 
   /**
-   * Read an actor’s snapshot synchronously.
+   * Read an actor's snapshot synchronously.
    *
    * @remarks
    * The snapshot represent an actor's last emitted value.
@@ -764,7 +775,7 @@ export class Actor<TLogic extends AnyActorLogic>
    *
    * Note that some actors, such as callback actors generated with
    * `fromCallback`, will not emit snapshots.
-   * @see {@link Actor.subscribe} to subscribe to an actor’s snapshot values.
+   * @see {@link Actor.subscribe} to subscribe to an actor's snapshot values.
    * @see {@link Actor.getPersistedSnapshot} to persist the internal state of an actor (which is more than just a snapshot).
    */
   public getSnapshot(): SnapshotFrom<TLogic> {
@@ -774,6 +785,21 @@ export class Actor<TLogic extends AnyActorLogic>
       );
     }
     return this._snapshot;
+  }
+
+  public onStop(callback: () => void): Subscription {
+    if (this._processingStatus === ProcessingStatus.Stopped) {
+      callback();
+      return {
+        unsubscribe: () => {}
+      };
+    }
+    this.stopListeners.add(callback);
+    return {
+      unsubscribe: () => {
+        this.stopListeners.delete(callback);
+      }
+    };
   }
 }
 
