@@ -6,7 +6,18 @@ import {
 } from '../src/index.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
 import { AnyEventObject } from 'xstate';
-import { EventFromStore, InternalStore } from '../src/types.ts';
+import {
+  AnyStoreConfig,
+  EventFromStore,
+  EventFromStoreConfig,
+  InternalStore,
+  StoreConfig
+} from '../src/types.ts';
+import {
+  createStoreCore,
+  createStoreTransition,
+  StoreFromConfig
+} from '../src/store.ts';
 
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
@@ -724,28 +735,50 @@ describe('store.transition', () => {
 });
 
 describe('undo redo', () => {
-  type UndoEvent = {
+  type UndoEvent<T extends AnyStore> = {
     event: EventFromStore<T>;
     transactionId?: string;
   };
 
-  function createStoreWithUndoRedo<T extends AnyStore>(
-    store: T,
+  function undoRedo<T extends AnyStoreConfig>(
+    storeConfig: T,
     options?: {
-      getTransactionId?: (event: EventFromStore<T>) => string;
+      getTransactionId?: (event: EventFromStoreConfig<T>) => string;
     }
-  ) {
-    const events: UndoEvent[] = [];
-    const undoStack: UndoEvent[] = [];
+  ): StoreFromConfig<T> & { undo: () => void; redo: () => void } {
+    // const events: UndoEvent[] = [];
+    // const undoStack: UndoEvent[] = [];
 
-    const newStore: AnyStore = {
-      ...store,
-      send(event) {
-        const transactionId = options?.getTransactionId?.(event);
-        events.push({ event, transactionId });
-        store.send(event);
+    const transition = createStoreTransition(storeConfig.on);
+    const newStore = createStoreCore(
+      storeConfig.context,
+      storeConfig.on,
+      storeConfig.emits,
+      undefined,
+      (snapshot, event) => {
+        const [state, effects] = transition(snapshot, event);
+        state.events = snapshot.events?.concat({
+          event,
+          transactionId: options?.getTransactionId?.(event)
+        });
+        state.undoStack = snapshot.undoStack;
+
+        return [state, effects];
       },
+      () => ({
+        events: [],
+        undoStack: [],
+        context: storeConfig.context,
+        status: 'active',
+        output: undefined,
+        error: undefined
+      })
+    );
+
+    Object.assign(newStore, {
       undo() {
+        const events = newStore.getSnapshot().events.slice();
+        const undoStack = newStore.getSnapshot().undoStack.slice();
         if (!events.length) {
           return;
         }
@@ -765,13 +798,19 @@ describe('undo redo', () => {
         }
 
         // Replay remaining events to get to the new state
-        let state = store.getInitialSnapshot();
+        let state = newStore.getInitialSnapshot();
         for (const { event } of events) {
-          state = store.transition(state, event)[0];
+          state = newStore.transition(state, event)[0];
         }
-        (store as unknown as InternalStore<any, any, any>)['~atom'].set(state);
+        state.events = events;
+        state.undoStack = undoStack;
+        (newStore as unknown as InternalStore<any, any, any>)['~atom'].set(
+          state
+        );
       },
       redo() {
+        const events = newStore.getSnapshot().events.slice();
+        const undoStack = newStore.getSnapshot().undoStack.slice();
         if (!undoStack.length) {
           return;
         }
@@ -780,32 +819,34 @@ describe('undo redo', () => {
         const lastTransactionId = undoStack[undoStack.length - 1].transactionId;
 
         // Apply all events with the same transaction ID
-        let state = store.getSnapshot();
+        let state = newStore.getSnapshot();
         while (
           undoStack.length > 0 &&
           undoStack[undoStack.length - 1].transactionId === lastTransactionId
         ) {
           const undoEvent = undoStack.pop()!;
           events.push(undoEvent);
-          state = store.transition(state, undoEvent.event)[0];
+          state = newStore.transition(state, undoEvent.event)[0];
         }
+        state.events = events;
+        state.undoStack = undoStack;
 
-        (store as unknown as InternalStore<any, any, any>)['~atom'].set(state);
+        (newStore as unknown as InternalStore<any, any, any>)['~atom'].set(
+          state
+        );
       }
-    };
+    });
 
     return newStore;
   }
 
-  it.only('works', () => {
-    const store = createStore({
+  it('works', () => {
+    const newStore = undoRedo({
       context: { count: 0 },
       on: {
         inc: (ctx) => ({ count: ctx.count + 1 })
       }
     });
-
-    const newStore = createStoreWithUndoRedo(store);
 
     newStore.send({ type: 'inc' });
     newStore.send({ type: 'inc' });
@@ -823,18 +864,19 @@ describe('undo redo', () => {
     expect(newStore.getSnapshot().context.count).toBe(2);
   });
 
-  it.only('works with transaction ids', () => {
-    const store = createStore({
-      context: { count: 0 },
-      on: {
-        inc: (ctx) => ({ count: ctx.count + 1 }),
-        dec: (ctx) => ({ count: ctx.count - 1 })
+  it('works with transaction ids', () => {
+    const newStore = undoRedo(
+      {
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 }),
+          dec: (ctx) => ({ count: ctx.count - 1 })
+        }
+      },
+      {
+        getTransactionId: (event) => event.type
       }
-    });
-
-    const newStore = createStoreWithUndoRedo(store, {
-      getTransactionId: (event) => event.type
-    });
+    );
 
     expect(newStore.getSnapshot().context.count).toBe(0);
     newStore.send({ type: 'inc' });

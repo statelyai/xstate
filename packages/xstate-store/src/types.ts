@@ -154,7 +154,7 @@ export type InternalStore<
   TEvent extends EventObject,
   TEmitted extends EventObject
 > = Store<TContext, TEvent, TEmitted> & {
-  ['~atom']: AnyAtom;
+  ['~atom']: UnknownAtom;
 };
 
 export type StoreConfig<
@@ -174,6 +174,8 @@ export type StoreConfig<
     >;
   };
 };
+
+export type AnyStoreConfig = StoreConfig<any, any, any>;
 
 type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
 
@@ -259,6 +261,15 @@ export type SnapshotFromStore<TStore extends Store<any, any, any>> =
 export type EventFromStore<TStore extends Store<any, any, any>> =
   TStore extends Store<infer _TContext, infer TEvent, infer _TEmitted>
     ? TEvent
+    : never;
+
+export type EventFromStoreConfig<TStoreConfig extends AnyStoreConfig> =
+  TStoreConfig extends StoreConfig<
+    infer _TContext,
+    infer TEventPayloadMap,
+    infer _TEmitted
+  >
+    ? ExtractEvents<TEventPayloadMap>
     : never;
 
 // Copied from XState core
@@ -390,7 +401,8 @@ export interface AtomOptions<T> {
   compare?: (prev: T, next: T) => boolean;
 }
 
-export type AnyAtom = BaseAtom<any>;
+export type AnyAtom = Atom<any>;
+export type UnknownAtom = Atom<unknown>;
 
 export interface InternalReadonlyAtom<T>
   extends InternalBaseAtom<T>,

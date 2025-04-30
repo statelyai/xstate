@@ -45,7 +45,7 @@ const inspectionObservers = new WeakMap<
   Set<Observer<StoreInspectionEvent>>
 >();
 
-function createStoreCore<
+export function createStoreCore<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject
@@ -62,16 +62,24 @@ function createStoreCore<
   producer?: (
     context: NoInfer<TContext>,
     recipe: (context: NoInfer<TContext>) => void
-  ) => NoInfer<TContext>
-): Store<TContext, ExtractEvents<TEventPayloadMap>, TEmitted> {
-  type StoreEvent = ExtractEvents<TEventPayloadMap>;
-  let listeners: Map<TEmitted['type'], Set<any>> | undefined;
-  const initialSnapshot: StoreSnapshot<TContext> = {
+  ) => NoInfer<TContext>,
+  transition: (
+    snapshot: StoreSnapshot<TContext>,
+    event: ExtractEvents<TEventPayloadMap>
+  ) => [
+    StoreSnapshot<TContext>,
+    StoreEffect<TEmitted>[]
+  ] = createStoreTransition(transitions, producer),
+  getInitialSnapshot: () => StoreSnapshot<TContext> = () => ({
     context: initialContext,
     status: 'active',
     output: undefined,
     error: undefined
-  };
+  })
+): Store<TContext, ExtractEvents<TEventPayloadMap>, TEmitted> {
+  type StoreEvent = ExtractEvents<TEventPayloadMap>;
+  let listeners: Map<TEmitted['type'], Set<any>> | undefined;
+  const initialSnapshot = getInitialSnapshot();
   const atom = createAtom<StoreSnapshot<TContext>>(initialSnapshot);
 
   const emit = (ev: TEmitted) => {
@@ -84,8 +92,6 @@ function createStoreCore<
       typeListeners.forEach((listener) => listener(ev));
     }
   };
-
-  const transition = createStoreTransition(transitions, producer);
 
   function receive(event: StoreEvent) {
     // let effects: StoreEffect<TEmitted>[];
@@ -241,6 +247,11 @@ type CreateStoreReturnType<
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventPayloadMap
 > = Store<TContext, ExtractEvents<TEventPayloadMap>, ExtractEvents<TEmitted>>;
+
+export type StoreFromConfig<T extends StoreConfig<any, any, any>> =
+  T extends StoreConfig<infer TContext, infer TEventPayloadMap, infer TEmitted>
+    ? Store<TContext, ExtractEvents<TEventPayloadMap>, ExtractEvents<TEmitted>>
+    : never;
 
 /**
  * Creates a **store** that has its own internal state and can be sent events
