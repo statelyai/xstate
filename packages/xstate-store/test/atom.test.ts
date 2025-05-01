@@ -587,24 +587,29 @@ it('Atom-specific properties should not be exposed', () => {
   store._depsTail;
 });
 
-it('async atoms should work (fulfilled)', async () => {
-  const atom = createAsyncAtom(async () => 'hello');
+describe('async atoms', () => {
+  it('async atoms should work (fulfilled)', async () => {
+    const atom = createAsyncAtom(async () => 'hello');
 
-  expect(atom.get()).toEqual({ status: 'pending' });
+    expect(atom.get()).toEqual({ status: 'pending' });
 
-  await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
-  expect(atom.get()).toEqual({ status: 'fulfilled', data: 'hello' });
-});
-
-it('async atoms should work (rejected)', async () => {
-  const atom = createAsyncAtom(async () => {
-    throw new Error('test');
+    expect(atom.get()).toEqual({ status: 'fulfilled', data: 'hello' });
   });
 
-  expect(atom.get()).toEqual({ status: 'pending' });
+  it('async atoms should work (rejected)', async () => {
+    const atom = createAsyncAtom(async () => {
+      throw new Error('test');
+    });
 
-  await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(atom.get()).toEqual({ status: 'pending' });
 
-  expect(atom.get()).toEqual({ status: 'rejected', error: expect.any(Error) });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(atom.get()).toEqual({
+      status: 'rejected',
+      error: expect.any(Error)
+    });
+  });
 });
