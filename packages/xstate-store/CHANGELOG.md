@@ -1,5 +1,410 @@
 # @xstate/store
 
+## 3.5.1
+
+### Patch Changes
+
+- [#5261](https://github.com/statelyai/xstate/pull/5261) [`986c5c86e15efe6d219bd6a0bb2130917c1db50e`](https://github.com/statelyai/xstate/commit/986c5c86e15efe6d219bd6a0bb2130917c1db50e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Reduced the bundle size for the atom implementation
+
+## 3.5.0
+
+### Minor Changes
+
+- [#5250](https://github.com/statelyai/xstate/pull/5250) [`a1bffb55b2029bde82e542d5936c51d961909a37`](https://github.com/statelyai/xstate/commit/a1bffb55b2029bde82e542d5936c51d961909a37) Thanks [@davidkpiano](https://github.com/davidkpiano)! - - Improved atom architecture with better dependency management (the diamond problem is solved!)
+
+  - Optimized recomputation logic to prevent unnecessary updates
+  - Added support for custom equality functions through `compare` option in `createAtom`, allowing fine-grained control over when atoms update:
+
+    ```ts
+    const coordinateAtom = createAtom(
+      { x: 0, y: 0 },
+      {
+        // only update when x and y change
+        compare: (prev, next) => prev.x === next.x && prev.y === next.y
+      }
+    );
+    ```
+
+## 3.4.3
+
+### Patch Changes
+
+- [#5230](https://github.com/statelyai/xstate/pull/5230) [`86e6b58dd18337202df8e319a42f85523d5d0d30`](https://github.com/statelyai/xstate/commit/86e6b58dd18337202df8e319a42f85523d5d0d30) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The types for emitting events with no payload have been fixed so that the following code works:
+
+  ```ts
+  const store = createStore({
+    emits: {
+      incremented: () => {}
+    },
+    on: {
+      inc: (ctx, ev, enq) => {
+        // No payload is expected
+        enq.emit.incremented();
+      }
+    }
+  });
+  ```
+
+  Previously, this would have been an error because the `incremented` event was expected to have a payload.
+
+## 3.4.2
+
+### Patch Changes
+
+- [#5247](https://github.com/statelyai/xstate/pull/5247) [`e8891030162214acc751a9f79a5d57ec916565ee`](https://github.com/statelyai/xstate/commit/e8891030162214acc751a9f79a5d57ec916565ee) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix type inference for discriminated union event types in the `trigger` and the `emit` object. Previously, using `Omit` with union types would incorrectly combine event types, breaking type inference for discriminated unions. This has been fixed by introducing a `DistributiveOmit` type that correctly preserves the relationship between discriminated properties.
+
+## 3.4.1
+
+### Patch Changes
+
+- [#5237](https://github.com/statelyai/xstate/pull/5237) [`c68b39025179dd52fdaddb5599a606c5546dc214`](https://github.com/statelyai/xstate/commit/c68b39025179dd52fdaddb5599a606c5546dc214) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed a bug where conditional atoms were not properly unsubscribed when no longer needed.
+
+## 3.4.0
+
+### Minor Changes
+
+- [#5221](https://github.com/statelyai/xstate/pull/5221) [`4635d3d8d3debcfeef5cddd78613e32891c10eac`](https://github.com/statelyai/xstate/commit/4635d3d8d3debcfeef5cddd78613e32891c10eac) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `createAtom()` for creating reactive atoms that can be combined with other atoms and stores:
+
+  - Create simple atoms with initial values:
+
+    ```ts
+    import { createAtom } from '@xstate/store';
+
+    const countAtom = createAtom(0);
+    countAtom.get(); // 0
+    countAtom.set(1); // or use setter function: (prev) => prev + 1
+    ```
+
+  - Subscribe to atom changes:
+
+    ```ts
+    countAtom.subscribe((value) => console.log(value));
+    ```
+
+  - Combine multiple atoms:
+
+    ```ts
+    const nameAtom = createAtom('hello');
+    const countAtom = createAtom(3);
+    const combinedAtom = createAtom((read) =>
+      read(nameAtom).repeat(read(countAtom))
+    );
+    combinedAtom.get(); // "hellohellohello"
+    ```
+
+  - Seamlessly combine atoms with stores:
+
+    ```ts
+    const countAtom = createAtom(0);
+    const nameStore = createStore({
+      context: { name: 'David' }
+      // ... store config
+    });
+
+    const combinedAtom = createAtom(
+      (read) => read(nameStore).context.name + ` ${read(countAtom)}`
+    );
+    combinedAtom.get(); // "David 0"
+    ```
+
+  Atoms automatically update when their dependencies change, making it easy to create derived state from both atoms and stores.
+
+## 3.3.0
+
+### Minor Changes
+
+- [#5215](https://github.com/statelyai/xstate/pull/5215) [`13279166ed9fa3d3626a2129bd257f6cd663fd0e`](https://github.com/statelyai/xstate/commit/13279166ed9fa3d3626a2129bd257f6cd663fd0e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `store.transition(state, event)` method that returns the next state and effects for a given state and event as a tuple, without actually updating the store. This is useful for computing state changes before committing them, or controlling the execution of effects.
+
+  Example:
+
+  ```ts
+  const [nextState, effects] = store.transition(store.getSnapshot(), {
+    type: 'increment',
+    by: 1
+  });
+  ```
+
+## 3.2.1
+
+### Patch Changes
+
+- [#5223](https://github.com/statelyai/xstate/pull/5223) [`9e1de554c4ebf49997b717fada540951d01f511c`](https://github.com/statelyai/xstate/commit/9e1de554c4ebf49997b717fada540951d01f511c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added React 19 as a peer dependency.
+
+## 3.2.0
+
+### Minor Changes
+
+- [#5200](https://github.com/statelyai/xstate/pull/5200) [`0332a16a42fb372eb614df74ff4cb7f003c31fc8`](https://github.com/statelyai/xstate/commit/0332a16a42fb372eb614df74ff4cb7f003c31fc8) Thanks [@{](https://github.com/{)! - Added selectors to @xstate/store that enable efficient state selection and subscription:
+
+  - `store.select(selector)` function to create a "selector" entity where you can:
+    - Get current value with `.get()`
+    - Subscribe to changes with `.subscribe(callback)`
+    - Only notify subscribers when selected value actually changes
+    - Support custom equality functions for fine-grained control over updates via `store.select(selector, equalityFn)`
+
+  ```ts
+  const store = createStore({
+    context: {
+      position: { x: 0, y: 0 },
+   name: 'John', age: 30 }
+    },
+    on: {
+      positionUpdated: (
+        context,
+        event: { position: { x: number; y: number } }
+      ) => ({
+        ...context,
+        position: event.position
+      })
+    }
+  });
+
+  const position = store.select((state) => state.context.position);
+
+  position.get(); // { x: 0, y: 0 }
+
+  position.subscribe((position) => {
+    console.log(position);
+  });
+
+  store.trigger.positionUpdated({ x: 100, y: 200 });
+  // Logs: { x: 100, y: 200 }
+  ```
+
+## 3.1.0
+
+### Minor Changes
+
+- [#5205](https://github.com/statelyai/xstate/pull/5205) [`65784aef746b6249a9c3d71d9e4a7c9b454698c8`](https://github.com/statelyai/xstate/commit/65784aef746b6249a9c3d71d9e4a7c9b454698c8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `createStoreConfig` to create a store config from an object. This is an identity function that returns the config unchanged, but is useful for type inference.
+
+  ```tsx
+  const storeConfig = createStoreConfig({
+    context: { count: 0 },
+    on: { inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }) }
+  });
+
+  // Reusable store config:
+
+  const store = createStore(storeConfig);
+
+  // ...
+  function Comp1() {
+    const store = useStore(storeConfig);
+
+    // ...
+  }
+
+  function Comp2() {
+    const store = useStore(storeConfig);
+
+    // ...
+  }
+  ```
+
+- [#5205](https://github.com/statelyai/xstate/pull/5205) [`65784aef746b6249a9c3d71d9e4a7c9b454698c8`](https://github.com/statelyai/xstate/commit/65784aef746b6249a9c3d71d9e4a7c9b454698c8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is now a `useStore()` hook that allows you to create a local component store from a config object.
+
+  ```tsx
+  import { useStore, useSelector } from '@xstate/store/react';
+
+  function Counter() {
+    const store = useStore({
+      context: {
+        name: 'David',
+        count: 0
+      },
+      on: {
+        inc: (ctx, { by }: { by: number }) => ({
+          ...ctx,
+          count: ctx.count + by
+        })
+      }
+    });
+    const count = useSelector(store, (state) => state.count);
+
+    return (
+      <div>
+        <div>Count: {count}</div>
+        <button onClick={() => store.trigger.inc({ by: 1 })}>
+          Increment by 1
+        </button>
+        <button onClick={() => store.trigger.inc({ by: 5 })}>
+          Increment by 5
+        </button>
+      </div>
+    );
+  }
+  ```
+
+### Patch Changes
+
+- [#5205](https://github.com/statelyai/xstate/pull/5205) [`65784aef746b6249a9c3d71d9e4a7c9b454698c8`](https://github.com/statelyai/xstate/commit/65784aef746b6249a9c3d71d9e4a7c9b454698c8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createStoreWithProducer(config)` function now accepts an `emits` object.
+
+## 3.0.1
+
+### Patch Changes
+
+- [#5197](https://github.com/statelyai/xstate/pull/5197) [`5e05d5908093bfd3435dc2243e066e4e91b3ebc5`](https://github.com/statelyai/xstate/commit/5e05d5908093bfd3435dc2243e066e4e91b3ebc5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The emitted event type can no longer be accidentally overridden in the emitted event payload. See #5196 for the issue.
+
+## 3.0.0
+
+### Major Changes
+
+- [#5175](https://github.com/statelyai/xstate/pull/5175) [`38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5`](https://github.com/statelyai/xstate/commit/38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createStore` function now only accepts a single configuration object argument. This is a breaking change that simplifies the API and aligns with the configuration pattern used throughout XState.
+
+  ```ts
+  // Before
+  // createStore(
+  //   {
+  //     count: 0
+  //   },
+  //   {
+  //     increment: (context) => ({ count: context.count + 1 })
+  //   }
+  // );
+
+  // After
+  createStore({
+    context: {
+      count: 0
+    },
+    on: {
+      increment: (context) => ({ count: context.count + 1 })
+    }
+  });
+  ```
+
+- [#5175](https://github.com/statelyai/xstate/pull/5175) [`38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5`](https://github.com/statelyai/xstate/commit/38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now enqueue effects in state transitions.
+
+  ```ts
+  const store = createStore({
+    context: {
+      count: 0
+    },
+    on: {
+      incrementDelayed: (context, event, enq) => {
+        enq.effect(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          store.send({ type: 'increment' });
+        });
+
+        return context;
+      },
+      increment: (context) => ({ count: context.count + 1 })
+    }
+  });
+  ```
+
+- [#5175](https://github.com/statelyai/xstate/pull/5175) [`38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5`](https://github.com/statelyai/xstate/commit/38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `fromStore(config)` function now only supports a single config object argument.
+
+  ```ts
+  const storeLogic = fromStore({
+    context: (input: { initialCount: number }) => ({
+      count: input.initialCount
+    }),
+    on: {
+      inc: (ctx, ev: { by: number }) => ({
+        ...ctx,
+        count: ctx.count + ev.by
+      })
+    }
+  });
+  ```
+
+- [#5175](https://github.com/statelyai/xstate/pull/5175) [`38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5`](https://github.com/statelyai/xstate/commit/38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createStoreWithProducer(…)` function now only accepts two arguments: a `producer` and a config (`{ context, on }`) object.
+
+  ```ts
+  // Before
+  // createStoreWithProducer(
+  //   producer,
+  //   {
+  //     count: 0
+  //   },
+  //   {
+  //     increment: (context) => {
+  //       context.count++;
+  //     }
+  //   }
+  // );
+
+  // After
+  createStoreWithProducer(producer, {
+    context: {
+      count: 0
+    },
+    on: {
+      increment: (context) => {
+        context.count++;
+      }
+    }
+  });
+  ```
+
+- [#5175](https://github.com/statelyai/xstate/pull/5175) [`38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5`](https://github.com/statelyai/xstate/commit/38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Only complete assigner functions that replace the `context` fully are supported. This is a breaking change that simplifies the API and provides more type safety.
+
+  ```diff
+  const store = createStore({
+    context: {
+      items: [],
+      count: 0
+    },
+    on: {
+  -   increment: { count: (context) => context.count + 1 }
+  -   increment: (context) => ({ count: context.count + 1 })
+  +   increment: (context) => ({ ...context, count: context.count + 1 })
+    }
+  })
+  ```
+
+- [#5175](https://github.com/statelyai/xstate/pull/5175) [`38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5`](https://github.com/statelyai/xstate/commit/38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Emitted event types are now specified in functions on the `emits` property of the store definition:
+
+  ```ts
+  const store = createStore({
+    // …
+    emits: {
+      increased: (payload: { upBy: number }) => {
+        // You can execute a side-effect here
+        // or leave it empty
+      }
+    },
+    on: {
+      inc: (ctx, ev: { by: number }, enq) => {
+        enq.emit.increased({ upBy: ev.by });
+
+        // …
+      }
+    }
+  });
+  ```
+
+### Minor Changes
+
+- [#5175](https://github.com/statelyai/xstate/pull/5175) [`38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5`](https://github.com/statelyai/xstate/commit/38aa9f518ee2f9a5f481306a1dc68c0ad47d28d5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `store.trigger` API for sending events with a fluent interface:
+
+  ```ts
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      increment: (ctx, event: { by: number }) => ({
+        count: ctx.count + event.by
+      })
+    }
+  });
+
+  // Instead of manually constructing event objects:
+  store.send({ type: 'increment', by: 5 });
+
+  // You can now use the fluent trigger API:
+  store.trigger.increment({ by: 5 });
+  ```
+
+  The `trigger` API provides full type safety for event names and payloads, making it easier and safer to send events to the store.
+
+## 2.6.2
+
+### Patch Changes
+
+- [#5136](https://github.com/statelyai/xstate/pull/5136) [`c051ff7ce7d09729ccc0630d684ef5168815f507`](https://github.com/statelyai/xstate/commit/c051ff7ce7d09729ccc0630d684ef5168815f507) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an accidental used reference of `xstate` types
+
 ## 2.6.1
 
 ### Patch Changes

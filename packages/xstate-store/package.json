@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store",
-  "version": "2.6.1",
+  "version": "3.5.1",
   "description": "Simple stores",
   "keywords": [
     "store",
@@ -56,20 +56,20 @@
   },
   "devDependencies": {
     "@statelyai/inspect": "^0.4.0",
-    "@testing-library/react": "^16.0.0",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
+    "@testing-library/react": "^16.2.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
     "@xstate/react": "workspace:^",
     "@xstate/vue": "workspace:^",
     "immer": "^10.0.2",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "solid-js": "^1.7.6",
     "solid-testing-library": "^0.3.0",
     "xstate": "workspace:^"
   },
   "peerDependencies": {
-    "react": "^18.2.0 || ^19.0.0-0",
+    "react": "^18.2.0 || ^19.0.0",
     "solid-js": "^1.7.6"
   },
   "peerDependenciesMeta": {

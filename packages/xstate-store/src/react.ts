@@ -1,20 +1,29 @@
 import { useCallback, useRef, useSyncExternalStore } from 'react';
-import { SnapshotFromStore, AnyStore } from './types';
+import {
+  AnyStore,
+  StoreContext,
+  EventPayloadMap,
+  StoreConfig,
+  Store,
+  ExtractEvents,
+  Readable
+} from './types';
+import { createStore } from './store';
 
 function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;
 }
 
-function useSelectorWithCompare<TStore extends AnyStore, T>(
-  selector: (snapshot: SnapshotFromStore<TStore>) => T,
+function useSelectorWithCompare<TStore extends Readable<any>, T>(
+  selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
   compare: (a: T | undefined, b: T) => boolean
-): (snapshot: SnapshotFromStore<TStore>) => T {
-  const previous = useRef<T>();
+): (snapshot: TStore extends Readable<infer TValue> ? TValue : never) => T {
+  const previous = useRef<T | undefined>(undefined);
 
-  return (state) => {
-    const next = selector(state);
-    return compare(previous.current, next)
-      ? (previous.current as T)
+  return (snapshot) => {
+    const next = selector(snapshot);
+    return previous.current && compare(previous.current, next)
+      ? previous.current
       : (previous.current = next);
   };
 }
@@ -40,9 +49,9 @@ function useSelectorWithCompare<TStore extends AnyStore, T>(
  *   previous value
  * @returns The selected value
  */
-export function useSelector<TStore extends AnyStore, T>(
+export function useSelector<TStore extends Readable<any>, T>(
   store: TStore,
-  selector: (snapshot: SnapshotFromStore<TStore>) => T,
+  selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
   compare: (a: T | undefined, b: T) => boolean = defaultCompare
 ): T {
   const selectorWithCompare = useSelectorWithCompare(selector, compare);
@@ -52,10 +61,36 @@ export function useSelector<TStore extends AnyStore, T>(
       (handleStoreChange) => store.subscribe(handleStoreChange).unsubscribe,
       [store]
     ),
-    () => selectorWithCompare(store.getSnapshot() as SnapshotFromStore<TStore>),
-    () =>
-      selectorWithCompare(
-        store.getInitialSnapshot() as SnapshotFromStore<TStore>
-      )
+    () => selectorWithCompare(store.get()),
+    () => selectorWithCompare(store.get())
   );
 }
+
+export const useStore: {
+  <
+    TContext extends StoreContext,
+    TEventPayloadMap extends EventPayloadMap,
+    TEmitted extends EventPayloadMap
+  >(
+    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
+  ): Store<TContext, ExtractEvents<TEventPayloadMap>, ExtractEvents<TEmitted>>;
+  <
+    TContext extends StoreContext,
+    TEventPayloadMap extends EventPayloadMap,
+    TEmitted extends EventPayloadMap
+  >(
+    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
+  ): Store<TContext, ExtractEvents<TEventPayloadMap>, ExtractEvents<TEmitted>>;
+} = function useStoreImpl<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventPayloadMap
+>(definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>) {
+  const storeRef = useRef<AnyStore | undefined>(undefined);
+
+  if (!storeRef.current) {
+    storeRef.current = createStore(definition);
+  }
+
+  return storeRef.current;
+};

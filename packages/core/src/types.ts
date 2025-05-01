@@ -2,14 +2,14 @@ import type { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
 import { AssignArgs } from './actions/assign.ts';
-import { PromiseActorLogic } from './actors/promise.ts';
-import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
-import type { Actor, ProcessingStatus } from './createActor.ts';
-import { Spawner } from './spawn.ts';
-import { AnyActorSystem, Clock } from './system.js';
-import { InspectionEvent } from './inspection.ts';
 import { ExecutableRaiseAction } from './actions/raise.ts';
 import { ExecutableSendToAction } from './actions/send.ts';
+import { PromiseActorLogic } from './actors/promise.ts';
+import type { Actor, ProcessingStatus } from './createActor.ts';
+import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
+import { InspectionEvent } from './inspection.ts';
+import { Spawner } from './spawn.ts';
+import { AnyActorSystem, Clock } from './system.js';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -71,8 +71,10 @@ export type Equals<A1, A2> =
     : false;
 export type IsAny<T> = Equals<T, any>;
 export type Cast<A, B> = A extends B ? A : B;
-// @TODO: Replace with native `NoInfer` when TS issue gets fixed:
-// https://github.com/microsoft/TypeScript/pull/57673
+// @TODO: we can't use native `NoInfer` as we need those:
+// https://github.com/microsoft/TypeScript/pull/61092
+// https://github.com/microsoft/TypeScript/pull/61077
+// but even with those fixes native NoInfer still doesn't work - further issues have to be reproduced and fixed
 export type DoNotInfer<T> = [T][T extends any ? 0 : any];
 /** @deprecated Use the built-in `NoInfer` type instead */
 export type NoInfer<T> = DoNotInfer<T>;
@@ -1032,7 +1034,7 @@ export interface StateNodeConfig<
   description?: string;
 
   /** A default target for a history state */
-  target?: string;
+  target?: string | undefined; // `| undefined` makes `HistoryStateNodeConfig` compatible with this interface (it extends it) under `exactOptionalPropertyTypes`
   route?: RouteTransitionConfig<
     TContext,
     TEvent,
@@ -1417,7 +1419,7 @@ export type UnknownMachineConfig = MachineConfig<MachineContext, EventObject>;
 export interface ProvidedActor {
   src: string;
   logic: UnknownActorLogic;
-  id?: string;
+  id?: string | undefined; // `| undefined` is required here for compatibility with `exactOptionalPropertyTypes`, see #4613
 }
 
 export interface SetupTypes<
@@ -2489,6 +2491,9 @@ export type RequiredActorOptions<TActor extends ProvidedActor> =
   | (undefined extends TActor['id'] ? never : 'id')
   | (undefined extends InputFrom<TActor['logic']> ? never : 'input');
 
+export type RequiredLogicInput<TLogic extends AnyActorLogic> =
+  undefined extends InputFrom<TLogic> ? never : 'input';
+
 type ExtractLiteralString<T extends string | undefined> = T extends string
   ? string extends T
     ? never
@@ -2595,24 +2600,6 @@ export type RoutableStateId<
           >;
         }>
       : never);
-
-type Test = Compute<
-  StateId<{
-    id: 'root';
-    states: {
-      green: {};
-      yellow: {};
-      red: {
-        states: {
-          walk: {
-            id: 'walk';
-          };
-          wait: {};
-        };
-      };
-    };
-  }>
->;
 
 export interface StateMachineTypes {
   context: MachineContext;

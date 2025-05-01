@@ -3,18 +3,14 @@ import { createStore } from '../src/index';
 describe('emitted', () => {
   it('can emit a known event', () => {
     createStore({
-      types: {
-        emitted: {} as
-          | { type: 'increased'; upBy: number }
-          | { type: 'decreased'; downBy: number }
-      },
       context: {},
+      emits: {
+        increased: (_: { upBy: number }) => {}
+      },
       on: {
-        inc: {
-          count: (ctx, _: {}, enq) => {
-            enq.emit({ type: 'increased', upBy: 1 });
-            return ctx;
-          }
+        inc: (ctx, _, enq) => {
+          enq.emit.increased({ upBy: 1 });
+          return ctx;
         }
       }
     });
@@ -22,21 +18,17 @@ describe('emitted', () => {
 
   it("can't emit an unknown event", () => {
     createStore({
-      types: {
-        emitted: {} as
-          | { type: 'increased'; upBy: number }
-          | { type: 'decreased'; downBy: number }
-      },
       context: {},
+      emits: {
+        increased: (_: { upBy: number }) => {},
+        decreased: (_: { downBy: number }) => {}
+      },
       on: {
-        inc: {
-          count: (ctx, _: {}, enq) => {
-            enq.emit({
-              // @ts-expect-error
-              type: 'unknown'
-            });
-            return ctx;
-          }
+        inc: (ctx, _, enq) => {
+          enq.emit
+            // @ts-expect-error
+            .unknown();
+          return ctx;
         }
       }
     });
@@ -44,50 +36,32 @@ describe('emitted', () => {
 
   it("can't emit a known event with wrong payload", () => {
     createStore({
-      types: {
-        emitted: {} as
-          | { type: 'increased'; upBy: number }
-          | { type: 'decreased'; downBy: number }
+      context: {},
+      emits: {
+        increased: (_: { upBy: number }) => {},
+        decreased: (_: { downBy: number }) => {}
       },
-      context: {},
       on: {
-        inc: {
-          count: (ctx, _: {}, enq) => {
-            enq.emit({
-              type: 'increased',
-              // @ts-expect-error
-              upBy: 'bazinga'
-            });
-            return ctx;
-          }
-        }
-      }
-    });
-  });
-
-  it('can emit an event when emitted events are unknown', () => {
-    createStore({
-      context: {},
-      on: {
-        inc: {
-          count: (ctx, _: {}, enq) => {
-            enq.emit({
-              type: 'unknown'
-            });
-            return ctx;
-          }
+        inc: (ctx, _, enq) => {
+          enq.emit.increased({
+            // @ts-expect-error
+            upBy: 'bazinga'
+          });
+          return ctx;
         }
       }
     });
   });
 
   it('can subscribe to a known event', () => {
-    const store = createStore({
-      types: {
-        emitted: {} as
-          | { type: 'increased'; upBy: number }
-          | { type: 'decreased'; downBy: number }
-      },
+    const store = createStore<
+      {},
+      {},
+      {
+        increased: { upBy: number };
+        decreased: { downBy: number };
+      }
+    >({
       context: {},
       on: {}
     });
@@ -97,21 +71,73 @@ describe('emitted', () => {
     });
   });
 
-  it("can can't subscribe to a unknown event", () => {
+  it("can't subscribe to a unknown event", () => {
     const store = createStore({
-      types: {
-        emitted: {} as
-          | { type: 'increased'; upBy: number }
-          | { type: 'decreased'; downBy: number }
+      emits: {
+        increased: (_: { upBy: number }) => {}
       },
       context: {},
       on: {}
     });
+
+    store.on('increased', (ev) => {});
 
     store.on(
       // @ts-expect-error
       'unknown',
       (ev) => {}
     );
+  });
+
+  it('works with a discriminated union event payload', () => {
+    createStore({
+      context: {},
+      emits: {
+        log: (
+          _:
+            | { level: 'warn'; message: string }
+            | { level: 'error'; error: string }
+        ) => {}
+      },
+      on: {
+        log: (ctx, _ev, enq) => {
+          enq.emit.log({ level: 'warn', message: 'hmm' });
+          enq.emit.log({ level: 'error', error: 'uh oh' });
+          enq.emit.log({
+            level: 'error',
+            // @ts-expect-error
+            message: 'foo'
+          });
+          return ctx;
+        }
+      }
+    });
+  });
+});
+
+describe('trigger', () => {
+  it('works with a distributive event payload', () => {
+    const store = createStore({
+      context: {},
+      on: {
+        log: (
+          ctx,
+          _ev:
+            | { level: 'warn'; message: string }
+            | { level: 'error'; error: string }
+        ) => {
+          return ctx;
+        }
+      }
+    });
+
+    store.trigger.log({ level: 'warn', message: 'hmm' });
+    store.trigger.log({ level: 'error', error: 'uh oh' });
+
+    store.trigger.log({
+      level: 'error',
+      // @ts-expect-error
+      message: 'foo'
+    });
   });
 });
