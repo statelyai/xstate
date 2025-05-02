@@ -53,10 +53,9 @@ export function createAsyncAtom<T>(
     getValue()
       .then((value) => {
         atom._update(() => ({ status: 'fulfilled', data: value }));
-      })
-      .catch((error) => {
+      }, (error) => {
         atom._update(() => ({ status: 'rejected', error }));
-      });
+      })
 
     return { status: 'pending' };
   }, options) as InternalReadonlyAtom<AsyncAtomState<T>>;
