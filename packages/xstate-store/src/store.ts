@@ -466,7 +466,10 @@ export function createStoreTransition<
     context: TContext,
     recipe: (context: TContext) => void
   ) => TContext
-) {
+): (
+  snapshot: StoreSnapshot<TContext>,
+  event: ExtractEvents<TEventPayloadMap>
+) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]] {
   return (
     snapshot: StoreSnapshot<TContext>,
     event: ExtractEvents<TEventPayloadMap>

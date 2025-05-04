@@ -1,4 +1,5 @@
 import { createStore, createAtom } from '../src/';
+import { createAsyncAtom, createBaseAtom } from '../src/atom';
 
 it('creates an atom', () => {
   const atom = createAtom(42);
@@ -584,4 +585,105 @@ it('Atom-specific properties should not be exposed', () => {
   store._deps;
   // @ts-expect-error
   store._depsTail;
+});
+
+describe('async atoms', () => {
+  it('async atoms should work (fulfilled)', async () => {
+    const atom = createAsyncAtom(async () => 'hello');
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(atom.get()).toEqual({ status: 'done', data: 'hello' });
+  });
+
+  it('async atoms should work (rejected)', async () => {
+    const atom = createAsyncAtom(async () => {
+      throw new Error('test');
+    });
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(atom.get()).toEqual({
+      status: 'error',
+      error: expect.any(Error)
+    });
+  });
+
+  it('should only call getValue once for multiple concurrent reads', async () => {
+    let getValueCallCount = 0;
+    const RESOLVED_VALUE = 'test-value';
+
+    const myAsyncAtom = createAsyncAtom(async () => {
+      getValueCallCount++;
+      return RESOLVED_VALUE;
+    });
+
+    // Initial reads should show pending status
+    expect(myAsyncAtom.get()).toEqual({ status: 'pending' });
+    expect(myAsyncAtom.get()).toEqual({ status: 'pending' });
+
+    // Let the promise resolve
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Both reads should now show the resolved value
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'done',
+      data: RESOLVED_VALUE
+    });
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'done',
+      data: RESOLVED_VALUE
+    });
+
+    // getValue should have only been called once
+    expect(getValueCallCount).toBe(1);
+
+    // Additional reads after resolution should still use cached value
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'done',
+      data: RESOLVED_VALUE
+    });
+    expect(getValueCallCount).toBe(1);
+  });
+
+  it('should only call getValue once even when error occurs', async () => {
+    let getValueCallCount = 0;
+    const ERROR_MESSAGE = 'test error';
+
+    const myAsyncAtom = createAsyncAtom(async () => {
+      getValueCallCount++;
+      throw new Error(ERROR_MESSAGE);
+    });
+
+    // Initial reads should show pending status
+    expect(myAsyncAtom.get()).toEqual({ status: 'pending' });
+    expect(myAsyncAtom.get()).toEqual({ status: 'pending' });
+
+    // Let the promise reject
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Both reads should now show the error
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'error',
+      error: expect.any(Error)
+    });
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'error',
+      error: expect.any(Error)
+    });
+
+    // getValue should have only been called once
+    expect(getValueCallCount).toBe(1);
+
+    // Additional reads after rejection should still use cached error
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'error',
+      error: expect.any(Error)
+    });
+    expect(getValueCallCount).toBe(1);
+  });
 });
