@@ -156,19 +156,18 @@ export function createAtom<T>(
   } else {
     Object.assign<BaseAtom<T>, Pick<Atom<T>, 'set'>>(atom, {
       set(valueOrFn: T | ((prev: T) => T)): void {
-        const prevValue = atom._snapshot;
-        const fn =
-          typeof valueOrFn === 'function'
-            ? () => (valueOrFn as (prev: T) => T)(atom._snapshot)
-            : () => valueOrFn;
-        atom._update(fn);
-        const nextValue = atom._snapshot;
-        const compare = options?.compare ?? Object.is;
-        if (compare(prevValue, nextValue)) return;
-        const { _subs: subs } = atom;
-        if (subs !== undefined) {
-          propagate(subs);
-          processEffectNotifications();
+        if (
+          atom._update(
+            typeof valueOrFn === 'function'
+              ? () => (valueOrFn as (prev: T) => T)(atom._snapshot)
+              : () => valueOrFn
+          )
+        ) {
+          const { _subs: subs } = atom;
+          if (subs) {
+            propagate(subs);
+            processEffectNotifications();
+          }
         }
       }
     });
