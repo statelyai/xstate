@@ -595,7 +595,7 @@ describe('async atoms', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(atom.get()).toEqual({ status: 'fulfilled', data: 'hello' });
+    expect(atom.get()).toEqual({ status: 'done', data: 'hello' });
   });
 
   it('async atoms should work (rejected)', async () => {
@@ -608,7 +608,7 @@ describe('async atoms', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(atom.get()).toEqual({
-      status: 'rejected',
+      status: 'error',
       error: expect.any(Error)
     });
   });

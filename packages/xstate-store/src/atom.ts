@@ -42,20 +42,22 @@ let activeSub: Subscriber | undefined = undefined;
 
 type AsyncAtomState<Data, Error = unknown> =
   | { status: 'pending' }
-  | { status: 'fulfilled'; data: Data }
-  | { status: 'rejected'; error: Error };
+  | { status: 'done'; data: Data }
+  | { status: 'error'; error: Error };
 
 export function createAsyncAtom<T>(
   getValue: () => Promise<T>,
   options?: AsyncAtomOptions<AsyncAtomState<T>>
 ): ReadonlyAtom<AsyncAtomState<T>> {
   const atom = createAtom<AsyncAtomState<T>>(() => {
-    getValue()
-      .then((value) => {
-        atom._update(() => ({ status: 'fulfilled', data: value }));
-      }, (error) => {
-        atom._update(() => ({ status: 'rejected', error }));
-      })
+    getValue().then(
+      (value) => {
+        atom._update(() => ({ status: 'done', data: value }));
+      },
+      (error) => {
+        atom._update(() => ({ status: 'error', error }));
+      }
+    );
 
     return { status: 'pending' };
   }, options) as InternalReadonlyAtom<AsyncAtomState<T>>;
@@ -158,7 +160,7 @@ export function createAtom<T>(
         const prevValue = atom._snapshot;
         const fn =
           typeof valueOrFn === 'function'
-            ? () => valueOrFn(atom._snapshot)
+            ? () => (valueOrFn as (prev: T) => T)(atom._snapshot)
             : () => valueOrFn;
         atom._update(fn);
         const nextValue = atom._snapshot;
