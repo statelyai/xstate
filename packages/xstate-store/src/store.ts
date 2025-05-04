@@ -84,7 +84,7 @@ function createStoreCore<
     if (!listeners) {
       return;
     }
-    const type = ev.type;
+    const { type } = ev;
     const typeListeners = listeners.get(type);
     if (typeListeners) {
       typeListeners.forEach((listener) => listener(ev));
@@ -94,7 +94,7 @@ function createStoreCore<
   const transition = createStoreTransition(transitions, producer);
 
   function receive(event: StoreEvent) {
-    internalAtom.send(event);
+    (internalAtom as InternalBaseAtom<any, StoreEvent>).send(event);
     const [currentSnapshot, effects] = internalAtom.get();
 
     inspectionObservers.get(store)?.forEach((observer) => {

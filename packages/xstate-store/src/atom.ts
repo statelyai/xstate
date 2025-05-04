@@ -114,26 +114,6 @@ export function createAtom<T>(
     options
   ) as InternalBaseAtom<T, T> & Dependency;
 
-  Object.assign<
-    BaseAtom<T>,
-    Pick<InternalReadonlyAtom<T>, '_deps' | '_depsTail' | '_flags' | 'get'>
-  >(atom, {
-    _deps: undefined,
-    _depsTail: undefined,
-    _flags: SubscriberFlagsComputed | SubscriberFlagsDirty,
-    get(): T {
-      const flags = (this as unknown as InternalReadonlyAtom<T>)._flags;
-      if (flags & (SubscriberFlagsPendingComputed | SubscriberFlagsDirty)) {
-        processComputedUpdate(atom as InternalReadonlyAtom<T>, flags);
-      }
-
-      if (activeSub !== undefined) {
-        link(atom, activeSub);
-      }
-      return atom._snapshot;
-    }
-  });
-
   return atom;
 }
 
@@ -144,6 +124,9 @@ export function createBaseAtom<T, TEvent>(
 ): Atom<T> | ReadonlyAtom<T> {
   // Create plain object atom
   const atom: InternalBaseAtom<T, TEvent> & Dependency = {
+    _deps: undefined,
+    _depsTail: undefined,
+    _flags: SubscriberFlagsComputed | SubscriberFlagsDirty,
     _snapshot:
       typeof getInitialState === 'function' ? undefined! : getInitialState,
 
@@ -195,7 +178,7 @@ export function createBaseAtom<T, TEvent>(
             ? (getInitialState as (read?: <U>(atom: Readable<U>) => U) => T)(
                 read
               )
-            : getInitialState;
+            : oldValue;
         if (oldValue === undefined || !compare(oldValue, newValue)) {
           atom._snapshot = newValue;
           return true;
