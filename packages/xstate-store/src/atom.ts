@@ -9,7 +9,6 @@ import {
 } from './alien';
 import { toObserver } from './toObserver';
 import {
-  AsyncAtomOptions,
   Atom,
   AtomOptions,
   BaseAtom,
@@ -47,7 +46,7 @@ type AsyncAtomState<Data, Error = unknown> =
 
 export function createAsyncAtom<T>(
   getValue: () => Promise<T>,
-  options?: AsyncAtomOptions<AsyncAtomState<T>>
+  options?: AtomOptions<AsyncAtomState<T>>
 ): ReadonlyAtom<AsyncAtomState<T>> {
   const atom = createAtom<AsyncAtomState<T>>(() => {
     getValue().then(

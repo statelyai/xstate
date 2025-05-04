@@ -384,10 +384,6 @@ export interface AtomOptions<T> {
   compare?: (prev: T, next: T) => boolean;
 }
 
-export interface AsyncAtomOptions<T> extends AtomOptions<T> {
-  signal?: AbortSignal;
-}
-
 export type AnyAtom = BaseAtom<any>;
 
 export interface InternalReadonlyAtom<T>
