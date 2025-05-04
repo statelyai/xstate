@@ -170,7 +170,14 @@ export function createBaseAtom<T, TEvent>(
       };
     },
     send(event) {
-      atom._update(() => transition(atom._snapshot, event));
+      const updated = atom._update(() => transition(atom._snapshot, event));
+      if (updated) {
+        const { _subs: subs } = atom;
+        if (subs) {
+          propagate(subs);
+          processEffectNotifications();
+        }
+      }
     },
     _update(getValue?: () => T): boolean {
       const prevSub = activeSub;

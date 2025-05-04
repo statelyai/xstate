@@ -1,5 +1,5 @@
 import { createStore, createAtom } from '../src/';
-import { createAsyncAtom } from '../src/atom';
+import { createAsyncAtom, createBaseAtom } from '../src/atom';
 
 it('creates an atom', () => {
   const atom = createAtom(42);

@@ -1,4 +1,4 @@
-import { createAtom } from './atom';
+import { createAtom, createBaseAtom } from './atom';
 import { toObserver } from './toObserver';
 import {
   EnqueueObject,
@@ -71,8 +71,14 @@ function createStoreCore<
     output: undefined,
     error: undefined
   };
-  let currentSnapshot: StoreSnapshot<TContext> = initialSnapshot;
-  const atom = createAtom<StoreSnapshot<TContext>>(currentSnapshot);
+  const internalAtom = createBaseAtom<
+    [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]],
+    StoreEvent
+  >([initialSnapshot, []], ([state], event) => {
+    return transition(state, event);
+  });
+
+  const storeAtom = createAtom(() => internalAtom.get()[0]);
 
   const emit = (ev: TEmitted) => {
     if (!listeners) {
@@ -88,8 +94,8 @@ function createStoreCore<
   const transition = createStoreTransition(transitions, producer);
 
   function receive(event: StoreEvent) {
-    let effects: StoreEffect<TEmitted>[];
-    [currentSnapshot, effects] = transition(currentSnapshot, event);
+    internalAtom.send(event);
+    const [currentSnapshot, effects] = internalAtom.get();
 
     inspectionObservers.get(store)?.forEach((observer) => {
       observer.next?.({
@@ -100,8 +106,6 @@ function createStoreCore<
         rootId: store.sessionId
       });
     });
-
-    atom.set(currentSnapshot);
 
     for (const effect of effects) {
       if (typeof effect === 'function') {
@@ -117,7 +121,7 @@ function createStoreCore<
   const store: Store<TContext, StoreEvent, TEmitted> &
     Pick<InternalBaseAtom<any>, '_snapshot'> = {
     get _snapshot() {
-      return (atom as unknown as InternalBaseAtom<any>)._snapshot;
+      return (internalAtom as unknown as InternalBaseAtom<any>)._snapshot[0];
     },
     on(emittedEventType, handler) {
       if (!listeners) {
@@ -152,15 +156,15 @@ function createStoreCore<
       receive(event as unknown as StoreEvent);
     },
     getSnapshot() {
-      return currentSnapshot;
+      return storeAtom.get();
     },
     get() {
-      return atom.get();
+      return storeAtom.get();
     },
     getInitialSnapshot() {
       return initialSnapshot;
     },
-    subscribe: atom.subscribe.bind(atom),
+    subscribe: storeAtom.subscribe.bind(storeAtom),
     [symbolObservable](): InteropSubscribable<StoreSnapshot<TContext>> {
       return this;
     },
@@ -206,7 +210,7 @@ function createStoreCore<
       selector: Selector<TContext, TSelected>,
       equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
     ): Selection<TSelected> {
-      return createAtom(() => selector(store.get().context), {
+      return createAtom(() => selector(storeAtom.get().context), {
         compare: equalityFn
       });
     }
