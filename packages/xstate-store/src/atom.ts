@@ -48,19 +48,23 @@ export function createAsyncAtom<T>(
   getValue: () => Promise<T>,
   options?: AtomOptions<AsyncAtomState<T>>
 ): ReadonlyAtom<AsyncAtomState<T>> {
-  const atom = createAtom<AsyncAtomState<T>>(() => {
-    getValue().then(
-      (value) => {
-        atom._update(() => ({ status: 'done', data: value }));
-      },
-      (error) => {
-        atom._update(() => ({ status: 'error', error }));
-      }
-    );
+  const atom = createBaseAtom<AsyncAtomState<T>, AsyncAtomState<T>>(
+    () => {
+      getValue().then(
+        (value) => {
+          atom._update(() => ({ status: 'done', data: value }));
+        },
+        (error) => {
+          atom._update(() => ({ status: 'error', error }));
+        }
+      );
 
-    return { status: 'pending' };
-  }, options) as InternalReadonlyAtom<AsyncAtomState<T>>;
-
+      return { status: 'pending' };
+    },
+    // TODO: actual promise logic, like cancelation (stopping/aborting the promise)
+    (_state, nextState) => nextState,
+    options
+  ) as InternalBaseAtom<AsyncAtomState<T>, AsyncAtomState<T>> & Dependency;
   return atom;
 }
 
@@ -76,23 +80,76 @@ export function createAtom<T>(
   valueOrFn: T | ((read: <U>(atom: Readable<U>) => U) => T),
   options?: AtomOptions<T>
 ): Atom<T> | ReadonlyAtom<T> {
-  const isComputed = typeof valueOrFn === 'function';
-  const getter = valueOrFn as (read: <U>(atom: Readable<U>) => U) => T;
+  if (typeof valueOrFn !== 'function') {
+    const atom = createBaseAtom<T, T>(
+      typeof valueOrFn === 'function' ? (valueOrFn as () => T) : valueOrFn,
+      (_state, nextState) => nextState,
+      options
+    ) as InternalBaseAtom<T, T> & Dependency;
 
-  // Create plain object atom
-  const atom: InternalBaseAtom<T> & Dependency = {
-    _snapshot: isComputed ? undefined! : valueOrFn,
+    Object.assign<BaseAtom<T>, Pick<Atom<T>, 'set'>>(atom, {
+      set(valueOrFn: T | ((prev: T) => T)): void {
+        if (
+          atom._update(
+            typeof valueOrFn === 'function'
+              ? () => (valueOrFn as (prev: T) => T)(atom._snapshot)
+              : () => valueOrFn
+          )
+        ) {
+          const { _subs: subs } = atom;
+          if (subs) {
+            propagate(subs);
+            processEffectNotifications();
+          }
+        }
+      }
+    });
 
-    // Dependency fields
-    _subs: undefined,
-    _subsTail: undefined,
+    return atom;
+  }
 
+  const atom = createBaseAtom<T, T>(
+    valueOrFn as (read?: <U>(atom: Readable<U>) => U) => T,
+    (_state, nextState) => nextState,
+    options
+  ) as InternalBaseAtom<T, T> & Dependency;
+
+  Object.assign<
+    BaseAtom<T>,
+    Pick<InternalReadonlyAtom<T>, '_deps' | '_depsTail' | '_flags' | 'get'>
+  >(atom, {
+    _deps: undefined,
+    _depsTail: undefined,
+    _flags: SubscriberFlagsComputed | SubscriberFlagsDirty,
     get(): T {
+      const flags = (this as unknown as InternalReadonlyAtom<T>)._flags;
+      if (flags & (SubscriberFlagsPendingComputed | SubscriberFlagsDirty)) {
+        processComputedUpdate(atom as InternalReadonlyAtom<T>, flags);
+      }
+
       if (activeSub !== undefined) {
         link(atom, activeSub);
       }
       return atom._snapshot;
-    },
+    }
+  });
+
+  return atom;
+}
+
+export function createBaseAtom<T, TEvent>(
+  getInitialState: T | ((read?: <U>(atom: Readable<U>) => U) => T),
+  transition: (state: T, event: TEvent) => T,
+  options?: AtomOptions<T>
+): Atom<T> | ReadonlyAtom<T> {
+  // Create plain object atom
+  const atom: InternalBaseAtom<T, TEvent> & Dependency = {
+    _snapshot:
+      typeof getInitialState === 'function' ? undefined! : getInitialState,
+
+    // Dependency fields
+    _subs: undefined,
+    _subsTail: undefined,
 
     subscribe(observerOrFn: Observer<T> | ((value: T) => void)) {
       const obs = toObserver(observerOrFn);
@@ -112,15 +169,26 @@ export function createAtom<T>(
         }
       };
     },
+    send(event) {
+      atom._update(() => transition(atom._snapshot, event));
+    },
     _update(getValue?: () => T): boolean {
       const prevSub = activeSub;
       const compare = options?.compare ?? Object.is;
+      // TODO: deprecate
+      const read = (atom: Readable<any>) => atom.get();
+
       activeSub = atom as InternalReadonlyAtom<T>;
       startTracking(atom as InternalReadonlyAtom<T>);
       try {
         const oldValue = atom._snapshot;
-        const read = (atom: Readable<any>) => atom.get();
-        const newValue = getValue ? getValue() : getter(read);
+        const newValue = getValue
+          ? getValue()
+          : typeof getInitialState === 'function'
+            ? (getInitialState as (read?: <U>(atom: Readable<U>) => U) => T)(
+                read
+              )
+            : getInitialState;
         if (oldValue === undefined || !compare(oldValue, newValue)) {
           atom._snapshot = newValue;
           return true;
@@ -130,48 +198,22 @@ export function createAtom<T>(
         activeSub = prevSub;
         endTracking(atom as InternalReadonlyAtom<T>);
       }
+    },
+    _deps: undefined,
+    _depsTail: undefined,
+    _flags: SubscriberFlagsComputed | SubscriberFlagsDirty,
+    get(): T {
+      const flags = (this as unknown as InternalReadonlyAtom<T>)._flags;
+      if (flags & (SubscriberFlagsPendingComputed | SubscriberFlagsDirty)) {
+        processComputedUpdate(atom as InternalReadonlyAtom<T>, flags);
+      }
+
+      if (activeSub !== undefined) {
+        link(atom, activeSub);
+      }
+      return atom._snapshot;
     }
   };
-
-  if (isComputed) {
-    Object.assign<
-      BaseAtom<T>,
-      Pick<InternalReadonlyAtom<T>, '_deps' | '_depsTail' | '_flags' | 'get'>
-    >(atom, {
-      _deps: undefined,
-      _depsTail: undefined,
-      _flags: SubscriberFlagsComputed | SubscriberFlagsDirty,
-      get(): T {
-        const flags = (this as unknown as InternalReadonlyAtom<T>)._flags;
-        if (flags & (SubscriberFlagsPendingComputed | SubscriberFlagsDirty)) {
-          processComputedUpdate(atom as InternalReadonlyAtom<T>, flags);
-        }
-
-        if (activeSub !== undefined) {
-          link(atom, activeSub);
-        }
-        return atom._snapshot;
-      }
-    });
-  } else {
-    Object.assign<BaseAtom<T>, Pick<Atom<T>, 'set'>>(atom, {
-      set(valueOrFn: T | ((prev: T) => T)): void {
-        if (
-          atom._update(
-            typeof valueOrFn === 'function'
-              ? () => (valueOrFn as (prev: T) => T)(atom._snapshot)
-              : () => valueOrFn
-          )
-        ) {
-          const { _subs: subs } = atom;
-          if (subs) {
-            propagate(subs);
-            processEffectNotifications();
-          }
-        }
-      }
-    });
-  }
 
   return atom as Atom<T> | ReadonlyAtom<T>;
 }

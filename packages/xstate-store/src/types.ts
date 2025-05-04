@@ -366,11 +366,16 @@ export interface Readable<T> extends Subscribable<T> {
 
 export interface BaseAtom<T> extends Subscribable<T>, Readable<T> {}
 
-export interface InternalBaseAtom<T> extends Subscribable<T>, Readable<T> {
+export interface InternalBaseAtom<T, TEvent = never>
+  extends Subscribable<T>,
+    Readable<T>,
+    Dependency,
+    Subscriber {
   /** @internal */
   _snapshot: T;
   /** @internal */
   _update(getter?: () => T): boolean;
+  send: (event: TEvent) => void;
 }
 
 export interface Atom<T> extends BaseAtom<T> {
@@ -387,7 +392,7 @@ export interface AtomOptions<T> {
 export type AnyAtom = BaseAtom<any>;
 
 export interface InternalReadonlyAtom<T>
-  extends InternalBaseAtom<T>,
+  extends InternalBaseAtom<T, any>,
     Dependency,
     Subscriber {}
 
