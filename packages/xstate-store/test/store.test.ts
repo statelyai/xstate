@@ -18,7 +18,6 @@ import {
   createStoreTransition,
   StoreFromConfig
 } from '../src/store.ts';
-import { createUndoRedoMiddleware } from '../src/undo.ts';
 
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
@@ -735,7 +734,12 @@ describe('store.transition', () => {
   });
 });
 
-describe.only('undo redo', () => {
+describe('undo redo', () => {
+  type UndoEvent<T extends AnyStore> = {
+    event: EventFromStore<T>;
+    transactionId?: string;
+  };
+
   function undoRedo<T extends AnyStoreConfig>(
     storeConfig: T,
     options?: {
@@ -836,35 +840,26 @@ describe.only('undo redo', () => {
     return newStore;
   }
 
-  it.only('works', () => {
-    const newStore = createStore(
-      {
-        context: { count: 0 },
-        on: {
-          inc: (ctx) => ({ count: ctx.count + 1 })
-        }
-      },
-      createUndoRedoMiddleware()
-    );
+  it('works', () => {
+    const newStore = undoRedo({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    });
 
     newStore.send({ type: 'inc' });
     newStore.send({ type: 'inc' });
 
     expect(newStore.getSnapshot().context.count).toBe(2);
 
-    // newStore.undo();
-    // newStore.undo();
-    newStore.send({ type: 'undo' });
-    newStore.send({ type: 'undo' });
-
-    expect(newStore.getSnapshot().undoStack.length).toBe(2);
+    newStore.undo();
+    newStore.undo();
 
     expect(newStore.getSnapshot().context.count).toBe(0);
 
-    // newStore.redo();
-    // newStore.redo();
-    newStore.send({ type: 'redo' });
-    newStore.send({ type: 'redo' });
+    newStore.redo();
+    newStore.redo();
 
     expect(newStore.getSnapshot().context.count).toBe(2);
   });

@@ -1,5 +1,5 @@
 import { AnyStore, EventFromStore, InternalStore } from './types';
-import { createStoreCore, StoreMiddleware } from './store';
+import { createStoreCore } from './store';
 import { createStoreTransition } from './store';
 import { StoreFromConfig } from './store';
 import { AnyStoreConfig, EventFromStoreConfig } from './types';
@@ -104,76 +104,3 @@ export function undoRedo<T extends AnyStoreConfig>(
 
   return newStore;
 }
-
-export const createUndoRedoMiddleware = (options?: {
-  getTransactionId?: (event: EventFromStoreConfig<any>) => string;
-}): StoreMiddleware<any, any, any> => ({
-  getInitialSnapshot: (prevInitialSnapshot) => {
-    return {
-      ...prevInitialSnapshot,
-      events: [],
-      undoStack: []
-    };
-  },
-  transition: (snapshot, event, previousTransition, initialSnapshot) => {
-    if (event.type === 'undo') {
-      const events = snapshot.events?.slice() as UndoEvent[];
-      const undoStack = snapshot.undoStack?.slice() as UndoEvent[];
-      if (!events.length) {
-        return [snapshot, []];
-      }
-
-      const lastTransactionId = events[events.length - 1].transactionId;
-      const eventsToUndo: UndoEvent[] = [];
-      while (
-        events.length > 0 &&
-        events[events.length - 1].transactionId === lastTransactionId
-      ) {
-        const event = events.pop()!;
-        eventsToUndo.unshift(event);
-        undoStack.push(event);
-      }
-      let state = initialSnapshot;
-      for (const { event } of events) {
-        state = previousTransition(state, event.event)[0];
-      }
-      const newSnapshot = {
-        ...state,
-        events,
-        undoStack
-      };
-      return [newSnapshot, []];
-    }
-    if (event.type === 'redo') {
-      const events = snapshot.events?.slice() as UndoEvent[];
-      const undoStack = snapshot.undoStack?.slice() as UndoEvent[];
-      if (!undoStack.length) {
-        return [snapshot, []];
-      }
-      const lastTransactionId = undoStack[undoStack.length - 1].transactionId;
-      let state = snapshot;
-      while (
-        undoStack.length > 0 &&
-        undoStack[undoStack.length - 1].transactionId === lastTransactionId
-      ) {
-        const undoEvent = undoStack.pop()!;
-        events.push(undoEvent);
-        state = previousTransition(state, undoEvent.event)[0];
-      }
-      const newSnapshot = {
-        ...state,
-        events,
-        undoStack
-      };
-
-      return [newSnapshot, []];
-    }
-    const [state, effects] = previousTransition(snapshot, event);
-    state.events = snapshot.events?.concat({
-      event,
-      transactionId: options?.getTransactionId?.(event)
-    });
-    state.undoStack = snapshot.undoStack;
-    return [state, effects];
-  }
-});

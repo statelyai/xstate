@@ -45,25 +45,6 @@ const inspectionObservers = new WeakMap<
   Set<Observer<StoreInspectionEvent>>
 >();
 
-export type StoreMiddleware<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends EventObject
-> = Readonly<{
-  transition?: (
-    snapshot: StoreSnapshot<TContext>,
-    event: ExtractEvents<TEventPayloadMap>,
-    previousTransition: (
-      snapshot: StoreSnapshot<TContext>,
-      event: ExtractEvents<TEventPayloadMap>
-    ) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]],
-    initialSnapshot: StoreSnapshot<TContext>
-  ) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
-  getInitialSnapshot?: (
-    prevInitialSnapshot: StoreSnapshot<TContext>
-  ) => StoreSnapshot<TContext>;
-}>;
-
 export function createStoreCore<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
@@ -82,49 +63,23 @@ export function createStoreCore<
     context: NoInfer<TContext>,
     recipe: (context: NoInfer<TContext>) => void
   ) => NoInfer<TContext>,
-  middleware?: StoreMiddleware<
-    TContext,
-    ExtractEvents<TEventPayloadMap>,
-    TEmitted
-  >,
-  _transition: (
+  transition: (
     snapshot: StoreSnapshot<TContext>,
     event: ExtractEvents<TEventPayloadMap>
   ) => [
     StoreSnapshot<TContext>,
     StoreEffect<TEmitted>[]
   ] = createStoreTransition(transitions, producer),
-  _getInitialSnapshot: () => StoreSnapshot<TContext> = () => ({
+  getInitialSnapshot: () => StoreSnapshot<TContext> = () => ({
     context: initialContext,
     status: 'active',
     output: undefined,
     error: undefined
   })
 ): Store<TContext, ExtractEvents<TEventPayloadMap>, TEmitted> {
-  const originalTransition = createStoreTransition(transitions, producer);
-  let transition = originalTransition;
-  let initialSnapshot: StoreSnapshot<TContext> = {
-    context: initialContext,
-    status: 'active',
-    output: undefined,
-    error: undefined
-  };
-  if (middleware?.getInitialSnapshot) {
-    initialSnapshot = middleware.getInitialSnapshot(initialSnapshot);
-  }
-  if (middleware?.transition) {
-    transition = (snapshot, event) => {
-      return middleware.transition!(
-        snapshot,
-        event,
-        originalTransition,
-        initialSnapshot
-      );
-    };
-  }
-
   type StoreEvent = ExtractEvents<TEventPayloadMap>;
   let listeners: Map<TEmitted['type'], Set<any>> | undefined;
+  const initialSnapshot = getInitialSnapshot();
   const atom = createAtom<StoreSnapshot<TContext>>(initialSnapshot);
 
   const emit = (ev: TEmitted) => {
@@ -285,14 +240,7 @@ type CreateStoreParameterTypes<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventPayloadMap
-> = [
-  definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>,
-  middleware?: StoreMiddleware<
-    TContext,
-    ExtractEvents<TEventPayloadMap>,
-    ExtractEvents<TEmitted>
-  >
-];
+> = [definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>];
 
 type CreateStoreReturnType<
   TContext extends StoreContext,
@@ -341,13 +289,13 @@ function _createStore<
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventPayloadMap
 >(
-  ...[{ context, on, emits }, middleware]: CreateStoreParameterTypes<
+  ...[{ context, on, emits }]: CreateStoreParameterTypes<
     TContext,
     TEventPayloadMap,
     TEmitted
   >
 ): CreateStoreReturnType<TContext, TEventPayloadMap, TEmitted> {
-  return createStoreCore(context, on, emits, undefined, middleware);
+  return createStoreCore(context, on, emits);
 }
 
 // those overloads are exactly the same, we only duplicate them so TypeScript can:
