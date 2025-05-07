@@ -584,13 +584,71 @@ export class StateMachine<
       children[actorId] = actorRef;
     });
 
+    function resolveStateNodeFromIdOrPath(
+      idOrPath: string,
+      root: StateNode<TContext, TEvent>
+    ) {
+      try {
+        return root.machine.getStateNodeById(idOrPath);
+      } catch {
+        try {
+          return getStateNodeByPath(root, idOrPath.split('.'));
+        } catch {
+          if (isDevelopment) {
+            console.warn(
+              `Could not resolve StateNode for id/path: ${idOrPath}`
+            );
+          }
+          return idOrPath;
+        }
+      }
+    }
+
+    function reviveHistoryValue(
+      historyValue: HistoryValue<TContext, TEvent>,
+      root: StateNode<TContext, TEvent>
+    ): HistoryValue<TContext, TEvent> {
+      if (!historyValue || typeof historyValue !== 'object') return {};
+      const revived: HistoryValue<TContext, TEvent> = {};
+      for (const key in historyValue) {
+        const arr = historyValue[key];
+        revived[key] = arr
+          .map((item) => {
+            if (item instanceof StateNode) return item;
+            if (
+              typeof item === 'object' &&
+              'id' in item &&
+              typeof (item as any).id === 'string'
+            ) {
+              const resolved = resolveStateNodeFromIdOrPath(
+                (item as any).id,
+                root
+              );
+              if (resolved instanceof StateNode) return resolved;
+            }
+            return undefined;
+          })
+          .filter((item) => item !== undefined);
+        if (revived[key].length === 0) {
+          delete revived[key];
+        }
+      }
+      return revived;
+    }
+
+    const revivedHistoryValue = reviveHistoryValue(
+      (snapshot as any).historyValue,
+      this.root
+    );
+
     const restoredSnapshot = createMachineSnapshot(
       {
         ...(snapshot as any),
         children,
         _nodes: Array.from(
           getAllStateNodes(getStateNodes(this.root, (snapshot as any).value))
-        )
+        ),
+        historyValue: revivedHistoryValue
       },
       this
     ) as MachineSnapshot<

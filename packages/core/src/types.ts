@@ -1447,6 +1447,8 @@ export type HistoryValue<
   TEvent extends EventObject
 > = Record<string, Array<StateNode<TContext, TEvent>>>;
 
+export type PersistedHistoryValue = Record<string, Array<{ id: string }>>;
+
 export type AnyHistoryValue = HistoryValue<any, any>;
 
 export type StateFrom<
