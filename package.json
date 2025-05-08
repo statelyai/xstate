@@ -19,7 +19,9 @@
       "importConditionDefaultExport": "default"
     },
     "___experimentalFlags_WILL_CHANGE_IN_PATCH": {
-      "importsConditions": true
+      "importsConditions": true,
+      "typeModule": true,
+      "distInRoot": true
     }
   },
   "scripts": {
@@ -56,7 +58,7 @@
     "@eslint/js": "^9.7.0",
     "@jest/types": "^29.6.3",
     "@manypkg/cli": "^0.21.4",
-    "@preconstruct/cli": "^2.8.1",
+    "@preconstruct/cli": "^2.8.12",
     "@testing-library/vue": "^6.6.1",
     "@types/jest": "^29.5.10",
     "@types/node": "^20.14.13",

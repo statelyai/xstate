@@ -5,7 +5,7 @@ import {
   type IsNotNever,
   type RequiredActorOptionsKeys
 } from 'xstate';
-import { useActor } from './useActor';
+import { useActor } from './useActor.ts';
 
 /** @alias useActor */
 export function useMachine<TMachine extends AnyStateMachine>(

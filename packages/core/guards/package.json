@@ -1,7 +1,7 @@
 {
-  "main": "dist/xstate-guards.cjs.js",
-  "module": "dist/xstate-guards.esm.js",
-  "umd:main": "dist/xstate-guards.umd.min.js",
+  "main": "../dist/xstate-guards.cjs.js",
+  "module": "../dist/xstate-guards.esm.js",
+  "umd:main": "../dist/xstate-guards.umd.min.js",
   "preconstruct": {
     "umdName": "XStateGuards"
   }

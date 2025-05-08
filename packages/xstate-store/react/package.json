@@ -1,4 +1,4 @@
 {
-  "main": "dist/xstate-store-react.cjs.js",
-  "module": "dist/xstate-store-react.esm.js"
+  "main": "../dist/xstate-store-react.cjs.js",
+  "module": "../dist/xstate-store-react.esm.js"
 }
