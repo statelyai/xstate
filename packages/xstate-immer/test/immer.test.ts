@@ -158,7 +158,7 @@ describe('@xstate/immer', () => {
     expect(actorRef.getSnapshot().context.foo.bar.baz).toEqual([1, 2, 3, 4]);
   });
 
-  it('should create updates (form example)', (done) => {
+  it('should create updates (form example)', () => {
     interface FormContext {
       name: string;
       age: number | undefined;
@@ -173,6 +173,8 @@ describe('@xstate/immer', () => {
       | {
           type: 'SUBMIT';
         };
+
+    const { resolve, promise } = Promise.withResolvers<void>();
 
     const nameUpdater = createUpdater<FormContext, NameUpdateEvent, FormEvent>(
       'UPDATE_NAME',
@@ -220,7 +222,7 @@ describe('@xstate/immer', () => {
     const service = createActor(formMachine);
     service.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
     service.start();
@@ -229,5 +231,6 @@ describe('@xstate/immer', () => {
     service.send(ageUpdater.update(0));
 
     service.send({ type: 'SUBMIT' });
+    return promise;
   });
 });

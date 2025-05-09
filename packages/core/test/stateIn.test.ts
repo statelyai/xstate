@@ -466,7 +466,7 @@ describe('transition "in" check', () => {
   });
 
   it('should be possible to check an ID with a path', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       type: 'parallel',
       states: {

@@ -165,7 +165,7 @@ describe('event emitter', () => {
   });
 
   it('listener should be able to read the updated snapshot of the emitting actor', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'a',
@@ -195,7 +195,7 @@ describe('event emitter', () => {
   });
 
   it('wildcard listeners should be able to receive all emitted events', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = setup({
       types: {
@@ -228,7 +228,7 @@ describe('event emitter', () => {
   });
 
   it('events can be emitted from promise logic', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const logic = fromPromise<any, any, { type: 'emitted'; msg: string }>(
       async ({ emit }) => {
@@ -263,7 +263,7 @@ describe('event emitter', () => {
   });
 
   it('events can be emitted from transition logic', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const logic = fromTransition<
       any,
@@ -307,7 +307,7 @@ describe('event emitter', () => {
   });
 
   it('events can be emitted from observable logic', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const logic = fromObservable<any, any, { type: 'emitted'; msg: string }>(
       ({ emit }) => {
@@ -350,7 +350,7 @@ describe('event emitter', () => {
   });
 
   it('events can be emitted from event observable logic', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const logic = fromEventObservable<
       any,
@@ -395,7 +395,7 @@ describe('event emitter', () => {
   });
 
   it('events can be emitted from callback logic', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const logic = fromCallback<any, any, { type: 'emitted'; msg: string }>(
       ({ emit }) => {
@@ -430,7 +430,7 @@ describe('event emitter', () => {
   });
 
   it('events can be emitted from callback logic (restored root)', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const logic = fromCallback<any, any, { type: 'emitted'; msg: string }>(
       ({ emit }) => {

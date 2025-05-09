@@ -115,7 +115,7 @@ describe('waitFor', () => {
     const machine = createMachine({});
 
     const actorRef = createActor(machine).start();
-    const spy = jest.fn();
+    const spy = vi.fn();
     actorRef.subscribe = spy;
 
     waitFor(actorRef, () => true).then(() => {});
@@ -218,11 +218,11 @@ describe('waitFor', () => {
     const controller = new AbortController();
     const { signal } = controller;
     controller.abort(new Error('Aborted!'));
-    const spy = jest.fn();
+    const spy = vi.fn();
     service.subscribe = spy;
     try {
       await waitFor(service, (state) => state.matches('b'), { signal });
-      fail('should have rejected');
+      throw new Error('Should not be reached');
     } catch {
       expect(spy).not.toHaveBeenCalled();
     }
@@ -250,12 +250,12 @@ describe('waitFor', () => {
     const { signal } = controller;
     controller.abort(new Error('Aborted!'));
 
-    const spy = jest.fn();
+    const spy = vi.fn();
     signal.addEventListener = spy;
 
     try {
       await waitFor(service, (state) => state.matches('b'), { signal });
-      fail('should have rejected');
+      throw new Error('Should not be reached');
     } catch {
       expect(spy).not.toHaveBeenCalled();
     }
@@ -282,7 +282,7 @@ describe('waitFor', () => {
     const controller = new AbortController();
     const { signal } = controller;
 
-    const spy = jest.fn();
+    const spy = vi.fn();
     signal.addEventListener = spy;
 
     await waitFor(service, (state) => state.matches('b'), { signal });
@@ -359,7 +359,7 @@ describe('waitFor', () => {
 
     const controller = new AbortController();
     const { signal } = controller;
-    const spy = jest.fn();
+    const spy = vi.fn();
     signal.removeEventListener = spy;
 
     await waitFor(service, (state) => state.matches('b'), { signal });
@@ -367,7 +367,7 @@ describe('waitFor', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('should stop listening for the "abort" event upon failure', async () => {
+  it('should stop listening for the "abort" event upon failure', async (ctx) => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -388,12 +388,12 @@ describe('waitFor', () => {
 
     const controller = new AbortController();
     const { signal } = controller;
-    const spy = jest.fn();
+    const spy = vi.fn();
     signal.removeEventListener = spy;
 
     try {
       await waitFor(service, (state) => state.matches('never'), { signal });
-      fail('should have rejected');
+      throw new Error('Should not be reached');
     } catch {
       expect(spy).toHaveBeenCalledTimes(1);
     }

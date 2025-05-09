@@ -48,7 +48,8 @@ describe('spawnChild action', () => {
     expect(actor.getSnapshot().children.child).toBeDefined();
   });
 
-  it('should accept `syncSnapshot` option', (done) => {
+  it('should accept `syncSnapshot` option', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const observableLogic = fromObservable(() => interval(10));
     const observableMachine = createMachine({
       id: 'observable',
@@ -78,15 +79,17 @@ describe('spawnChild action', () => {
     const observableService = createActor(observableMachine);
     observableService.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
 
     observableService.start();
+
+    return promise;
   });
 
   it('should handle a dynamic id', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const child = createMachine({
       on: {

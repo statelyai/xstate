@@ -270,7 +270,7 @@ describe('history states', () => {
   });
 
   it('should execute actions of the initial transition when a history state without a default target is targeted and its parent state was never visited yet', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'a',
@@ -301,7 +301,7 @@ describe('history states', () => {
   });
 
   it('should not execute actions of the initial transition when a history state with a default target is targeted and its parent state was never visited yet', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -333,7 +333,7 @@ describe('history states', () => {
   });
 
   it('should execute entry actions of a parent of the targeted history state when its parent state was never visited yet', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -363,7 +363,7 @@ describe('history states', () => {
   });
 
   it('should execute actions of the initial transition when it select a history state as the initial state of its parent', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -394,7 +394,7 @@ describe('history states', () => {
   });
 
   it('should execute actions of the initial transition when a history state without a default target is targeted and its parent state was already visited', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'a',
@@ -432,7 +432,7 @@ describe('history states', () => {
   });
 
   it('should not execute actions of the initial transition when a history state with a default target is targeted and its parent state was already visited', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -471,7 +471,7 @@ describe('history states', () => {
   });
 
   it('should execute entry actions of a parent of the targeted history state when its parent state was already visited', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -508,7 +508,7 @@ describe('history states', () => {
   });
 
   it('should invoke an actor when reentering the stored configuration through the history state', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'running',

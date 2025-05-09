@@ -7,7 +7,8 @@ import {
 import { sendTo } from '../src/actions/send';
 
 describe('events', () => {
-  it('should be able to respond to sender by sending self', (done) => {
+  it('should be able to respond to sender by sending self', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const authServerMachine = createMachine({
       types: {
         events: {} as { type: 'CODE'; sender: AnyActorRef }
@@ -59,10 +60,12 @@ describe('events', () => {
     });
 
     const service = createActor(authClientMachine);
-    service.subscribe({ complete: () => done() });
+    service.subscribe({ complete: () => resolve() });
     service.start();
 
     service.send({ type: 'AUTH' });
+
+    return promise;
   });
 });
 

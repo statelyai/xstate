@@ -200,7 +200,7 @@ it('prevents infinite recursion based on a provided limit', () => {
 
   expect(() => {
     model.getShortestPaths({ limit: 100 });
-  }).toThrowErrorMatchingInlineSnapshot(`"Traversal limit exceeded"`);
+  }).toThrowErrorMatchingInlineSnapshot(`[Error: Traversal limit exceeded]`);
 });
 
 describe('test model options', () => {

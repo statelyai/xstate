@@ -232,7 +232,7 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component."`
+      `[Error: You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component.]`
     );
   });
 
@@ -245,7 +245,7 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component."`
+      `[Error: You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component.]`
     );
   });
 
@@ -258,7 +258,7 @@ describe('createActorContext', () => {
         }
       }
     });
-    const stubFn = jest.fn();
+    const stubFn = vi.fn();
     const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
@@ -319,7 +319,7 @@ describe('createActorContext', () => {
         }
       }
     });
-    const stubFn = jest.fn();
+    const stubFn = vi.fn();
     const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
