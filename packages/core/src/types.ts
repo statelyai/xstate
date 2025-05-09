@@ -1035,6 +1035,43 @@ export interface StateNodeConfig<
 
   /** A default target for a history state */
   target?: string | undefined; // `| undefined` makes `HistoryStateNodeConfig` compatible with this interface (it extends it) under `exactOptionalPropertyTypes`
+  route?: RouteTransitionConfig<
+    TContext,
+    TEvent,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TEmitted
+  >;
+}
+
+export interface RouteTransitionConfig<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TEmitted extends EventObject
+> {
+  guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
+  actions?: Actions<
+    TContext,
+    TExpressionEvent,
+    TEvent,
+    undefined,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TEmitted
+  >;
+  reenter?: boolean;
+  meta?: Record<string, any>;
+  description?: string;
 }
 
 export type AnyStateNodeConfig = StateNodeConfig<
@@ -2494,6 +2531,7 @@ export type ToChildren<TActor extends ProvidedActor> =
 
 export type StateSchema = {
   id?: string;
+  route?: any;
   states?: Record<string, StateSchema>;
 
   // Other types
@@ -2526,6 +2564,32 @@ export type StateId<
   | (TSchema['states'] extends Record<string, any>
       ? Values<{
           [K in keyof TSchema['states'] & string]: StateId<
+            TSchema['states'][K],
+            K,
+            TParentKey extends string
+              ? `${TParentKey}.${TKey}`
+              : TSchema['id'] extends string
+                ? TSchema['id']
+                : TKey
+          >;
+        }>
+      : never);
+
+export type RoutableStateId<
+  TSchema extends StateSchema,
+  TKey extends string = '(machine)',
+  TParentKey extends string | null = null
+> =
+  | (TSchema extends { route: any }
+      ? TSchema extends { id: string }
+        ? TSchema['id']
+        : TParentKey extends null
+          ? TKey
+          : `${TParentKey}.${TKey}`
+      : never)
+  | (TSchema['states'] extends Record<string, any>
+      ? Values<{
+          [K in keyof TSchema['states'] & string]: RoutableStateId<
             TSchema['states'][K],
             K,
             TParentKey extends string
