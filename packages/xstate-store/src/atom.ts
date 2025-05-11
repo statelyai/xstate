@@ -189,9 +189,6 @@ export function createBaseAtom<T, TEvent>(
         endTracking(atom as InternalReadonlyAtom<T>);
       }
     },
-    _deps: undefined,
-    _depsTail: undefined,
-    _flags: SubscriberFlagsComputed | SubscriberFlagsDirty,
     get(): T {
       const flags = (this as unknown as InternalReadonlyAtom<T>)._flags;
       if (flags & (SubscriberFlagsPendingComputed | SubscriberFlagsDirty)) {
