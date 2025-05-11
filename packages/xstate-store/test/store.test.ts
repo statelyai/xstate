@@ -1,6 +1,7 @@
 import { produce } from 'immer';
 import { createStore, createStoreWithProducer } from '../src/index.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
+import { undoRedo } from '../src/undo.ts';
 
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
@@ -747,5 +748,84 @@ describe('store with logic', () => {
 
     expect(nextState.context).toEqual({ count: 2 });
     expect(effects).toEqual([]);
+  });
+});
+
+describe('undo redo', () => {
+  it('works', () => {
+    const newStore = createStore(
+      undoRedo({
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      })
+    );
+
+    newStore.send({ type: 'inc' });
+    newStore.send({ type: 'inc' });
+
+    expect(newStore.getSnapshot().context.count).toBe(2);
+
+    newStore.trigger.undo();
+    newStore.trigger.undo();
+
+    expect(newStore.getSnapshot().context.count).toBe(0);
+
+    newStore.trigger.redo();
+    newStore.trigger.redo();
+
+    expect(newStore.getSnapshot().context.count).toBe(2);
+  });
+
+  it('works with transaction ids', () => {
+    const newStore = createStore(
+      undoRedo(
+        {
+          context: { count: 0 },
+          on: {
+            inc: (ctx) => ({ count: ctx.count + 1 }),
+            dec: (ctx) => ({ count: ctx.count - 1 })
+          }
+        },
+        {
+          getTransactionId: (event) => event.type
+        }
+      )
+    );
+
+    expect(newStore.getSnapshot().context.count).toBe(0);
+    newStore.send({ type: 'inc' });
+    newStore.send({ type: 'inc' });
+    newStore.send({ type: 'inc' });
+
+    expect(newStore.getSnapshot().context.count).toBe(3);
+
+    newStore.send({ type: 'dec' });
+    newStore.send({ type: 'dec' });
+
+    expect(newStore.getSnapshot().context.count).toBe(1);
+
+    newStore.send({ type: 'inc' });
+    newStore.send({ type: 'inc' });
+    newStore.send({ type: 'inc' });
+
+    expect(newStore.getSnapshot().context.count).toBe(4);
+
+    newStore.trigger.undo();
+
+    expect(newStore.getSnapshot().context.count).toBe(1);
+
+    newStore.trigger.undo();
+
+    expect(newStore.getSnapshot().context.count).toBe(3);
+
+    newStore.trigger.redo();
+
+    expect(newStore.getSnapshot().context.count).toBe(1);
+
+    newStore.trigger.redo();
+
+    expect(newStore.getSnapshot().context.count).toBe(4);
   });
 });

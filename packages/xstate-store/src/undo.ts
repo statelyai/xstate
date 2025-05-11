@@ -15,7 +15,7 @@ export function undoRedo<T extends AnyStoreConfig>(
     getTransactionId?: (event: EventFromStoreConfig<T>) => string;
   }
 ): StoreFromConfig<T> & { undo: () => void; redo: () => void } {
-  const logic = {
+  const logic: StoreLogic<any, any, any> = {
     getInitialSnapshot: () => ({
       status: 'active',
       context: storeConfig.context,
@@ -57,7 +57,7 @@ export function undoRedo<T extends AnyStoreConfig>(
         }
 
         // Replay remaining events to get to the new state
-        let state = snapshot;
+        let state = logic.getInitialSnapshot();
         for (const { event } of events) {
           state = logic.transition(state, event)[0];
         }
@@ -70,7 +70,7 @@ export function undoRedo<T extends AnyStoreConfig>(
         const events = snapshot.events.slice();
         const undoStack = snapshot.undoStack.slice();
         if (!undoStack.length) {
-          return;
+          return [snapshot, []];
         }
 
         const lastTransactionId = undoStack[undoStack.length - 1].transactionId;
