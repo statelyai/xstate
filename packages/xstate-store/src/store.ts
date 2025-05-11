@@ -46,25 +46,25 @@ const inspectionObservers = new WeakMap<
 >();
 
 export type StoreLogic<
-  TContext extends StoreContext,
+  TSnapshot extends StoreSnapshot<any>,
   TEvent extends EventObject,
   TEmitted extends EventObject
 > = {
-  getInitialSnapshot: () => StoreSnapshot<TContext>;
+  getInitialSnapshot: () => TSnapshot;
   transition: (
-    snapshot: StoreSnapshot<TContext>,
+    snapshot: TSnapshot,
     event: TEvent
-  ) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
+  ) => [TSnapshot, StoreEffect<TEmitted>[]];
 };
 
 function createStoreCore<
-  TContext extends StoreContext,
+  TSnapshot extends StoreSnapshot<any>,
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject
 >(
-  logic: StoreLogic<TContext, ExtractEvents<TEventPayloadMap>, TEmitted>,
+  logic: StoreLogic<TSnapshot, ExtractEvents<TEventPayloadMap>, TEmitted>,
   emits?: Record<string, (payload: any) => void> // TODO: improve this type
-): Store<TContext, ExtractEvents<TEventPayloadMap>, TEmitted> {
+): Store<TSnapshot['context'], ExtractEvents<TEventPayloadMap>, TEmitted> {
   type StoreEvent = ExtractEvents<TEventPayloadMap>;
   let listeners: Map<TEmitted['type'], Set<any>> | undefined;
   // const initialSnapshot: StoreSnapshot<TContext> = {
@@ -75,7 +75,7 @@ function createStoreCore<
   // };
   const initialSnapshot = logic.getInitialSnapshot();
   const internalAtom = createBaseAtom<
-    [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]],
+    [TSnapshot, StoreEffect<TEmitted>[]],
     StoreEvent
   >([initialSnapshot, []], ([state], event) => {
     return logic.transition(state, event);
@@ -119,7 +119,7 @@ function createStoreCore<
     }
   }
 
-  const store: Store<TContext, StoreEvent, TEmitted> &
+  const store: Store<TSnapshot['context'], StoreEvent, TEmitted> &
     Pick<InternalBaseAtom<any>, '_snapshot'> = {
     get _snapshot() {
       return (internalAtom as unknown as InternalBaseAtom<any>)._snapshot[0];
@@ -143,7 +143,7 @@ function createStoreCore<
       };
     },
     transition: logic.transition as StoreTransition<
-      TContext,
+      TSnapshot['context'],
       StoreEvent,
       TEmitted
     >,
@@ -170,7 +170,7 @@ function createStoreCore<
       return initialSnapshot;
     },
     subscribe: storeAtom.subscribe.bind(storeAtom),
-    [symbolObservable](): InteropSubscribable<StoreSnapshot<TContext>> {
+    [symbolObservable](): InteropSubscribable<TSnapshot> {
       return this;
     },
     inspect: (observerOrFn) => {
@@ -201,18 +201,21 @@ function createStoreCore<
         }
       };
     },
-    trigger: new Proxy({} as Store<TContext, StoreEvent, TEmitted>['trigger'], {
-      get: (_, eventType: string) => {
-        return (payload: any) => {
-          store.send({
-            type: eventType,
-            ...payload
-          });
-        };
+    trigger: new Proxy(
+      {} as Store<TSnapshot['context'], StoreEvent, TEmitted>['trigger'],
+      {
+        get: (_, eventType: string) => {
+          return (payload: any) => {
+            store.send({
+              type: eventType,
+              ...payload
+            });
+          };
+        }
       }
-    }),
+    ),
     select<TSelected>(
-      selector: Selector<TContext, TSelected>,
+      selector: Selector<TSnapshot['context'], TSelected>,
       equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
     ): Selection<TSelected> {
       return createAtom(() => selector(storeAtom.get().context), {
@@ -299,7 +302,7 @@ export function createStore(
   const transition = createStoreTransition(definitionOrLogic.on);
   const logic = {
     getInitialSnapshot: () => ({
-      status: 'active',
+      status: 'active' as const,
       context: definitionOrLogic.context,
       output: undefined,
       error: undefined
@@ -394,12 +397,12 @@ export function createStoreWithProducer<
     config.on,
     producer
   ) as StoreTransition<
-    TContext,
+    StoreSnapshot<TContext>,
     ExtractEvents<TEventPayloadMap>,
     ExtractEvents<TEmittedPayloadMap>
   >;
   const logic: StoreLogic<
-    TContext,
+    StoreSnapshot<TContext>,
     ExtractEvents<TEventPayloadMap>,
     ExtractEvents<TEmittedPayloadMap>
   > = {

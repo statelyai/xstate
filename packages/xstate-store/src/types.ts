@@ -143,17 +143,14 @@ export interface Store<
    * });
    * ```
    */
-  transition: StoreTransition<TContext, TEvent, TEmitted>;
+  transition: StoreTransition<StoreSnapshot<TContext>, TEvent, TEmitted>;
 }
 
 export type StoreTransition<
-  TContext extends StoreContext,
+  TSnapshot extends StoreSnapshot<any>,
   TEvent extends EventObject,
   TEmitted extends EventObject
-> = (
-  state: StoreSnapshot<TContext>,
-  event: TEvent
-) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
+> = (state: TSnapshot, event: TEvent) => [TSnapshot, StoreEffect<TEmitted>[]];
 
 export type StoreConfig<
   TContext extends StoreContext,
