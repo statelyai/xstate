@@ -892,7 +892,7 @@ function getEffectiveTargetStates(
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject
 ): Array<AnyStateNode> {
-  const { targets } = getTargets(transition, snapshot, event);
+  const { targets } = getTransitionResult(transition, snapshot, event);
   if (!targets) {
     return [];
   }
@@ -940,7 +940,7 @@ function getTransitionDomain(
     return;
   }
 
-  const { reenter } = getTargets(transition, snapshot, event);
+  const { reenter } = getTransitionResult(transition, snapshot, event);
 
   if (
     !reenter &&
@@ -976,7 +976,7 @@ function computeExitSet(
   const statesToExit = new Set<AnyStateNode>();
 
   for (const t of transitions) {
-    const { targets } = getTargets(t, snapshot, event);
+    const { targets } = getTransitionResult(t, snapshot, event);
 
     if (targets?.length) {
       const domain = getTransitionDomain(t, historyValue, snapshot, event);
@@ -1301,14 +1301,20 @@ function enterStates(
   return nextSnapshot;
 }
 
-function getTargets(
+export function getTransitionResult(
   transition: Pick<AnyTransitionDefinition, 'target' | 'fn' | 'source'> & {
     reenter?: AnyTransitionDefinition['reenter'];
   },
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject
-): { targets: Readonly<AnyStateNode[]> | undefined; reenter?: boolean } {
+): {
+  targets: Readonly<AnyStateNode[]> | undefined;
+  context: MachineContext | undefined;
+  actions: UnknownAction[];
+  reenter?: boolean;
+} {
   if (transition.fn) {
+    const actions: UnknownAction[] = [];
     const res = transition.fn(
       {
         context: snapshot.context,
@@ -1317,20 +1323,50 @@ function getTargets(
         children: snapshot.children,
         parent: undefined
       },
-      emptyEnqueueObj
+      {
+        action: (fn, ...args) => {
+          actions.push({
+            action: fn,
+            args
+          });
+        },
+        cancel: (id) => {
+          actions.push(cancel(id));
+        },
+        raise: (event, options) => {
+          actions.push(raise(event, options));
+        },
+        emit: (emittedEvent) => {
+          actions.push(emittedEvent);
+        },
+        log: (...args) => {
+          actions.push(log(...args));
+        },
+        spawn: (src, options) => {
+          actions.push(spawnChild(src, options));
+          return {} as any;
+        },
+        sendTo: (actorRef, event, options) => {
+          actions.push(sendTo(actorRef, event, options));
+        }
+      }
     );
 
     return {
       targets: res?.target
         ? resolveTarget(transition.source, [res.target])
         : undefined,
-      reenter: res?.reenter
+      context: res?.context,
+      reenter: res?.reenter,
+      actions
     };
   }
 
   return {
     targets: transition.target as AnyStateNode[] | undefined,
-    reenter: transition.reenter
+    context: undefined,
+    reenter: transition.reenter,
+    actions: []
   };
 }
 
@@ -1399,7 +1435,7 @@ function computeEntrySet(
   for (const t of transitions) {
     const domain = getTransitionDomain(t, historyValue, snapshot, event);
 
-    const { targets, reenter } = getTargets(t, snapshot, event);
+    const { targets, reenter } = getTransitionResult(t, snapshot, event);
 
     for (const s of targets ?? []) {
       if (
@@ -1490,7 +1526,11 @@ function addDescendantStatesToEnter<
         TContext,
         TEvent
       >(stateNode);
-      const { targets } = getTargets(historyDefaultTransition, snapshot, event);
+      const { targets } = getTransitionResult(
+        historyDefaultTransition,
+        snapshot,
+        event
+      );
       for (const s of targets ?? []) {
         statesToEnter.add(s);
 

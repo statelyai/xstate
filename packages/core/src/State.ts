@@ -2,7 +2,11 @@ import isDevelopment from '#is-development';
 import { $$ACTOR_TYPE } from './createActor.ts';
 import type { StateNode } from './StateNode.ts';
 import type { StateMachine } from './StateMachine.ts';
-import { getStateValue, getTransitionActions } from './stateUtils.ts';
+import {
+  getStateValue,
+  getTransitionResult,
+  getTransitionActions
+} from './stateUtils.ts';
 import type {
   ProvidedActor,
   AnyMachineSnapshot,
@@ -316,11 +320,15 @@ const machineSnapshotCan = function can(
   return (
     !!transitionData?.length &&
     // Check that at least one transition is not forbidden
-    transitionData.some(
-      (t) =>
+    transitionData.some((t) => {
+      const res = getTransitionResult(t, this, event);
+      return (
         t.target !== undefined ||
+        res.targets?.length ||
+        res.context ||
         getTransitionActions(t, this, event, { self: {} }).length
-    )
+      );
+    })
   );
 };
 
