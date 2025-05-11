@@ -716,3 +716,36 @@ describe('store.transition', () => {
     expect(typeof effects[0]).toBe('function');
   });
 });
+
+describe('store with logic', () => {
+  it('should work with a logic object', () => {
+    const store = createStore({
+      getInitialSnapshot: () => ({
+        status: 'active',
+        context: { count: 0 },
+        output: undefined,
+        error: undefined
+      }),
+      transition: (snapshot, event: { type: 'inc'; by: number }) => {
+        if (event.type === 'inc') {
+          return [
+            {
+              ...snapshot,
+              context: { count: snapshot.context.count + event.by }
+            },
+            []
+          ];
+        }
+        return [snapshot, []];
+      }
+    });
+
+    const [nextState, effects] = store.transition(store.getSnapshot(), {
+      type: 'inc',
+      by: 2
+    });
+
+    expect(nextState.context).toEqual({ count: 2 });
+    expect(effects).toEqual([]);
+  });
+});

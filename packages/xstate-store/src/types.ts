@@ -77,7 +77,7 @@ export type StoreSnapshot<TContext> = Snapshot<undefined> & {
  * - Is observable
  */
 export interface Store<
-  TContext,
+  TContext extends StoreContext,
   TEvent extends EventObject,
   TEmitted extends EventObject
 > extends Subscribable<StoreSnapshot<TContext>>,
@@ -143,26 +143,34 @@ export interface Store<
    * });
    * ```
    */
-  transition: (
-    state: StoreSnapshot<TContext>,
-    event: TEvent
-  ) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
+  transition: StoreTransition<TContext, TEvent, TEmitted>;
 }
+
+export type StoreTransition<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = (
+  state: StoreSnapshot<TContext>,
+  event: TEvent
+) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
 
 export type StoreConfig<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends EventPayloadMap
+  TEmittedPayloadMap extends EventPayloadMap
 > = {
   context: TContext;
   emits?: {
-    [K in keyof TEmitted & string]: (payload: TEmitted[K]) => void;
+    [K in keyof TEmittedPayloadMap & string]: (
+      payload: TEmittedPayloadMap[K]
+    ) => void;
   };
   on: {
     [K in keyof TEventPayloadMap & string]: StoreAssigner<
       TContext,
       { type: K } & TEventPayloadMap[K],
-      ExtractEvents<TEmitted>
+      ExtractEvents<TEmittedPayloadMap>
     >;
   };
 };
