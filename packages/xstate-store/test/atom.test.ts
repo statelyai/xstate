@@ -699,9 +699,6 @@ describe('async atoms', () => {
   it('async atoms should not have a .set() method', () => {
     const atom = createAsyncAtom(async () => 'hello');
 
-    expect(
-      // @ts-expect-error
-      atom.set
-    ).toBeUndefined();
+    expect('set' in atom).toBe(false);
   });
 });
