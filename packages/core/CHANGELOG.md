@@ -1,5 +1,11 @@
 # xstate
 
+## 5.19.3
+
+### Patch Changes
+
+- [#5269](https://github.com/statelyai/xstate/pull/5269) [`b453b2d72ba12d0fe46a995f9ccced8000fd0cc9`](https://github.com/statelyai/xstate/commit/b453b2d72ba12d0fe46a995f9ccced8000fd0cc9) Thanks [@chladog](https://github.com/chladog)! - Add proper history value persistence and restoration
+
 ## 5.19.2
 
 ### Patch Changes
