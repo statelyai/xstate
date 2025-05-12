@@ -1,3 +1,4 @@
+import { sleep } from '../../../scripts/jest-utils';
 import { createStore, createAtom } from '../src/';
 import { createAsyncAtom } from '../src/atom';
 
@@ -593,7 +594,7 @@ describe('async atoms', () => {
 
     expect(atom.get()).toEqual({ status: 'pending' });
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await sleep(0);
 
     expect(atom.get()).toEqual({ status: 'done', data: 'hello' });
   });
@@ -605,7 +606,7 @@ describe('async atoms', () => {
 
     expect(atom.get()).toEqual({ status: 'pending' });
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await sleep(0);
 
     expect(atom.get()).toEqual({
       status: 'error',
