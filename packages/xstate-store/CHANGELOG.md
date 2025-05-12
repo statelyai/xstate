@@ -1,5 +1,25 @@
 # @xstate/store
 
+## 3.6.0
+
+### Minor Changes
+
+- [#5266](https://github.com/statelyai/xstate/pull/5266) [`42bfd0a30d74e1c5820728220a00db692023f1f8`](https://github.com/statelyai/xstate/commit/42bfd0a30d74e1c5820728220a00db692023f1f8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added async atoms:
+
+  ```typescript
+  const atom = createAsyncAtom(async () => {
+    const response = await fetch(`/api/something`);
+    return response.json();
+  });
+
+  atom.subscribe((state) => {
+    // Status can be 'pending', 'done', or 'error'
+    if (state.status === 'done') {
+      console.log(state.data);
+    }
+  });
+  ```
+
 ## 3.5.1
 
 ### Patch Changes
