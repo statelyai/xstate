@@ -369,6 +369,8 @@ export interface BaseAtom<T> extends Subscribable<T>, Readable<T> {}
 export interface InternalBaseAtom<T> extends Subscribable<T>, Readable<T> {
   /** @internal */
   _snapshot: T;
+  /** @internal */
+  _update(getValue?: T | ((snapshot: T) => T)): boolean;
 }
 
 export interface Atom<T> extends BaseAtom<T> {
@@ -387,10 +389,7 @@ export type AnyAtom = BaseAtom<any>;
 export interface InternalReadonlyAtom<T>
   extends InternalBaseAtom<T>,
     Dependency,
-    Subscriber {
-  /** @internal */
-  _update(): boolean;
-}
+    Subscriber {}
 
 /**
  * An atom that is read-only and cannot be set.
