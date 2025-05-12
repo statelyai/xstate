@@ -20,6 +20,14 @@ it('sets the value of the atom using a function', () => {
   expect(atom.get()).toBe(2);
 });
 
+it('can set the value to undefined', () => {
+  const atom = createAtom<number | undefined>(1);
+  expect(atom.get()).toBe(1);
+
+  atom.set(undefined);
+  expect(atom.get()).toBe(undefined);
+});
+
 it('can subscribe to atom changes', () => {
   const log = jest.fn();
   const atom = createAtom(0);

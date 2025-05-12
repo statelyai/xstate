@@ -123,9 +123,9 @@ export function createAtom<T>(
         const newValue =
           typeof getValue === 'function'
             ? (getValue as (snapshot: T) => T)(oldValue)
-            : getValue === undefined
+            : getValue === undefined && isComputed
               ? getter(read)
-              : getValue;
+              : getValue!;
         if (oldValue === undefined || !compare(oldValue, newValue)) {
           atom._snapshot = newValue;
           return true;
