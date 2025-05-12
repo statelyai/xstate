@@ -599,38 +599,34 @@ export class StateMachine<
               `Could not resolve StateNode for id/path: ${idOrPath}`
             );
           }
-          return idOrPath;
         }
       }
     }
 
     function reviveHistoryValue(
-      historyValue: HistoryValue<TContext, TEvent>,
+      historyValue: Record<
+        string,
+        ({ id: string } | StateNode<TContext, TEvent>)[]
+      >,
       root: StateNode<TContext, TEvent>
     ): HistoryValue<TContext, TEvent> {
       if (!historyValue || typeof historyValue !== 'object') return {};
       const revived: HistoryValue<TContext, TEvent> = {};
       for (const key in historyValue) {
         const arr = historyValue[key];
-        revived[key] = arr
-          .map((item) => {
-            if (item instanceof StateNode) return item;
-            if (
-              typeof item === 'object' &&
-              'id' in item &&
-              typeof (item as any).id === 'string'
-            ) {
-              const resolved = resolveStateNodeFromIdOrPath(
-                (item as any).id,
-                root
-              );
-              if (resolved instanceof StateNode) return resolved;
-            }
-            return undefined;
-          })
-          .filter((item) => item !== undefined);
-        if (revived[key].length === 0) {
-          delete revived[key];
+
+        for (const item of arr) {
+          const resolved =
+            item instanceof StateNode
+              ? item
+              : resolveStateNodeFromIdOrPath(item.id, root);
+
+          if (!resolved) {
+            continue;
+          }
+
+          revived[key] ??= [];
+          revived[key].push(resolved);
         }
       }
       return revived;

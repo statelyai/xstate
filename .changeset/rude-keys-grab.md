@@ -2,4 +2,4 @@
 'xstate': patch
 ---
 
-[core]: bugfix restoring historyValue | feature reviveHistoryValue
+Add proper history value persistence and restoration
