@@ -686,4 +686,13 @@ describe('async atoms', () => {
     });
     expect(getValueCallCount).toBe(1);
   });
+
+  it('async atoms should not have a .set() method', () => {
+    const atom = createAsyncAtom(async () => 'hello');
+
+    expect(
+      // @ts-expect-error
+      atom.set
+    ).toBeUndefined();
+  });
 });
