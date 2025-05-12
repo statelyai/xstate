@@ -51,10 +51,10 @@ export function createAsyncAtom<T>(
   const atom = createAtom<AsyncAtomState<T>>(() => {
     getValue().then(
       (data) => {
-        atom._update(() => ({ status: 'done', data }));
+        atom._update({ status: 'done', data });
       },
       (error) => {
-        atom._update(() => ({ status: 'error', error }));
+        atom._update({ status: 'error', error });
       }
     );
 
@@ -120,7 +120,6 @@ export function createAtom<T>(
       try {
         const oldValue = atom._snapshot;
         const read = (atom: Readable<any>) => atom.get();
-        // const newValue = getValue ? getValue() : getter(read);
         const newValue =
           typeof getValue === 'function'
             ? (getValue as (snapshot: T) => T)(oldValue)
