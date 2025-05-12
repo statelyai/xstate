@@ -112,7 +112,7 @@ export function createAtom<T>(
         }
       };
     },
-    _update(getValue?: () => T): boolean {
+    _update(getValue?: T | ((snapshot: T) => T)): boolean {
       const prevSub = activeSub;
       const compare = options?.compare ?? Object.is;
       activeSub = atom as InternalReadonlyAtom<T>;
@@ -120,7 +120,13 @@ export function createAtom<T>(
       try {
         const oldValue = atom._snapshot;
         const read = (atom: Readable<any>) => atom.get();
-        const newValue = getValue ? getValue() : getter(read);
+        // const newValue = getValue ? getValue() : getter(read);
+        const newValue =
+          typeof getValue === 'function'
+            ? (getValue as (snapshot: T) => T)(oldValue)
+            : getValue === undefined
+              ? getter(read)
+              : getValue;
         if (oldValue === undefined || !compare(oldValue, newValue)) {
           atom._snapshot = newValue;
           return true;
@@ -156,13 +162,7 @@ export function createAtom<T>(
   } else {
     Object.assign<BaseAtom<T>, Pick<Atom<T>, 'set'>>(atom, {
       set(valueOrFn: T | ((prev: T) => T)): void {
-        if (
-          atom._update(
-            typeof valueOrFn === 'function'
-              ? () => (valueOrFn as (prev: T) => T)(atom._snapshot)
-              : () => valueOrFn
-          )
-        ) {
+        if (atom._update(valueOrFn)) {
           const { _subs: subs } = atom;
           if (subs) {
             propagate(subs);
