@@ -11,8 +11,8 @@ const atom = createAsyncAtom(async () => {
 });
 
 atom.subscribe((state) => {
-  // Status can be 'pending', 'fulfilled', or 'rejected'
-  if (state.status === 'fulfilled') {
+  // Status can be 'pending', 'done', or 'error'
+  if (state.status === 'done') {
     console.log(state.data);
   }
 });
