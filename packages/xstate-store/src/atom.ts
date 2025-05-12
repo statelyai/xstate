@@ -50,8 +50,8 @@ export function createAsyncAtom<T>(
 ): ReadonlyAtom<AsyncAtomState<T>> {
   const atom = createAtom<AsyncAtomState<T>>(() => {
     getValue().then(
-      (value) => {
-        atom._update(() => ({ status: 'done', data: value }));
+      (data) => {
+        atom._update(() => ({ status: 'done', data }));
       },
       (error) => {
         atom._update(() => ({ status: 'error', error }));
