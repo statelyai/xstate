@@ -1433,7 +1433,7 @@ describe('revive history states', () => {
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
     [
       [
-        "Could not resolve StateNode for id/path: nonexistent",
+        "Could not resolve StateNode for id: nonexistent",
       ],
     ]
     `);

@@ -584,42 +584,38 @@ export class StateMachine<
       children[actorId] = actorRef;
     });
 
-    function resolveStateNodeFromIdOrPath(
-      idOrPath: string,
-      root: StateNode<TContext, TEvent>
+    function resolveHistoryReferencedState(
+      root: StateNode<TContext, TEvent>,
+      referenced: { id: string } | StateNode<TContext, TEvent>
     ) {
+      if (referenced instanceof StateNode) {
+        return referenced;
+      }
       try {
-        return root.machine.getStateNodeById(idOrPath);
+        return root.machine.getStateNodeById(referenced.id);
       } catch {
-        try {
-          return getStateNodeByPath(root, idOrPath.split('.'));
-        } catch {
-          if (isDevelopment) {
-            console.warn(
-              `Could not resolve StateNode for id/path: ${idOrPath}`
-            );
-          }
+        if (isDevelopment) {
+          console.warn(`Could not resolve StateNode for id: ${referenced.id}`);
         }
       }
     }
 
     function reviveHistoryValue(
+      root: StateNode<TContext, TEvent>,
       historyValue: Record<
         string,
         ({ id: string } | StateNode<TContext, TEvent>)[]
-      >,
-      root: StateNode<TContext, TEvent>
+      >
     ): HistoryValue<TContext, TEvent> {
-      if (!historyValue || typeof historyValue !== 'object') return {};
+      if (!historyValue || typeof historyValue !== 'object') {
+        return {};
+      }
       const revived: HistoryValue<TContext, TEvent> = {};
       for (const key in historyValue) {
         const arr = historyValue[key];
 
         for (const item of arr) {
-          const resolved =
-            item instanceof StateNode
-              ? item
-              : resolveStateNodeFromIdOrPath(item.id, root);
+          const resolved = resolveHistoryReferencedState(root, item);
 
           if (!resolved) {
             continue;
@@ -633,8 +629,8 @@ export class StateMachine<
     }
 
     const revivedHistoryValue = reviveHistoryValue(
-      (snapshot as any).historyValue,
-      this.root
+      this.root,
+      (snapshot as any).historyValue
     );
 
     const restoredSnapshot = createMachineSnapshot(
