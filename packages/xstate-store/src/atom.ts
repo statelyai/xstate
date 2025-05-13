@@ -16,7 +16,7 @@ import {
 } from './types';
 
 const queuedEffects: (Effect | undefined)[] = [];
-export const {
+const {
   link,
   unlink,
   propagate,
