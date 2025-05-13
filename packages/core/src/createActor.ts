@@ -11,6 +11,16 @@ import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { AnyActorSystem, Clock, createSystem } from './system.ts';
 
+// those are needed to make JSDoc `@link` work properly
+import type {
+  fromObservable,
+  fromEventObservable
+} from './actors/observable.ts';
+import type { fromCallback } from './actors/callback.ts';
+import type { fromPromise } from './actors/promise.ts';
+import type { fromTransition } from './actors/transition.ts';
+import type { createMachine } from './createMachine.ts';
+
 export let executingCustomAction: boolean = false;
 
 import type {

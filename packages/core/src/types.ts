@@ -9,7 +9,10 @@ import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import { InspectionEvent } from './inspection.ts';
 import { Spawner } from './spawn.ts';
-import { AnyActorSystem, Clock } from './system.js';
+import { AnyActorSystem, Clock } from './system.ts';
+
+// this is needed to make JSDoc `@link` work properly
+import type { SimulatedClock } from './SimulatedClock.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
