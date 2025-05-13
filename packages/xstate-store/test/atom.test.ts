@@ -1,5 +1,6 @@
+import { sleep } from '../../../scripts/jest-utils';
 import { createStore, createAtom } from '../src/';
-import { createAsyncAtom, createBaseAtom } from '../src/atom';
+import { createAsyncAtom } from '../src/atom';
 
 it('creates an atom', () => {
   const atom = createAtom(42);
@@ -17,6 +18,14 @@ it('sets the value of the atom using a function', () => {
   atom.set((prev) => prev + 1);
 
   expect(atom.get()).toBe(2);
+});
+
+it('can set the value to undefined', () => {
+  const atom = createAtom<number | undefined>(1);
+  expect(atom.get()).toBe(1);
+
+  atom.set(undefined);
+  expect(atom.get()).toBe(undefined);
 });
 
 it('can subscribe to atom changes', () => {
@@ -593,7 +602,7 @@ describe('async atoms', () => {
 
     expect(atom.get()).toEqual({ status: 'pending' });
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await sleep(0);
 
     expect(atom.get()).toEqual({ status: 'done', data: 'hello' });
   });
@@ -605,7 +614,7 @@ describe('async atoms', () => {
 
     expect(atom.get()).toEqual({ status: 'pending' });
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await sleep(0);
 
     expect(atom.get()).toEqual({
       status: 'error',
@@ -685,5 +694,11 @@ describe('async atoms', () => {
       error: expect.any(Error)
     });
     expect(getValueCallCount).toBe(1);
+  });
+
+  it('async atoms should not have a .set() method', () => {
+    const atom = createAsyncAtom(async () => 'hello');
+
+    expect('set' in atom).toBe(false);
   });
 });
