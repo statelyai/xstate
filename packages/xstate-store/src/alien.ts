@@ -10,7 +10,7 @@ export interface ReactiveNode {
   _flags: ReactiveFlags;
 }
 
-export interface Link {
+interface Link {
   dep: ReactiveNode;
   sub: ReactiveNode;
   prevSub: Link | undefined;
