@@ -584,13 +584,63 @@ export class StateMachine<
       children[actorId] = actorRef;
     });
 
+    function resolveHistoryReferencedState(
+      root: StateNode<TContext, TEvent>,
+      referenced: { id: string } | StateNode<TContext, TEvent>
+    ) {
+      if (referenced instanceof StateNode) {
+        return referenced;
+      }
+      try {
+        return root.machine.getStateNodeById(referenced.id);
+      } catch {
+        if (isDevelopment) {
+          console.warn(`Could not resolve StateNode for id: ${referenced.id}`);
+        }
+      }
+    }
+
+    function reviveHistoryValue(
+      root: StateNode<TContext, TEvent>,
+      historyValue: Record<
+        string,
+        ({ id: string } | StateNode<TContext, TEvent>)[]
+      >
+    ): HistoryValue<TContext, TEvent> {
+      if (!historyValue || typeof historyValue !== 'object') {
+        return {};
+      }
+      const revived: HistoryValue<TContext, TEvent> = {};
+      for (const key in historyValue) {
+        const arr = historyValue[key];
+
+        for (const item of arr) {
+          const resolved = resolveHistoryReferencedState(root, item);
+
+          if (!resolved) {
+            continue;
+          }
+
+          revived[key] ??= [];
+          revived[key].push(resolved);
+        }
+      }
+      return revived;
+    }
+
+    const revivedHistoryValue = reviveHistoryValue(
+      this.root,
+      (snapshot as any).historyValue
+    );
+
     const restoredSnapshot = createMachineSnapshot(
       {
         ...(snapshot as any),
         children,
         _nodes: Array.from(
           getAllStateNodes(getStateNodes(this.root, (snapshot as any).value))
-        )
+        ),
+        historyValue: revivedHistoryValue
       },
       this
     ) as MachineSnapshot<

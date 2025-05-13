@@ -52,10 +52,10 @@ export function createAsyncAtom<T>(
     () => {
       getValue().then(
         (value) => {
-          atom._update(() => ({ status: 'done', data: value }));
+          atom._update({ status: 'done', data: value });
         },
         (error) => {
-          atom._update(() => ({ status: 'error', error }));
+          atom._update({ status: 'error', error });
         }
       );
 
@@ -89,13 +89,7 @@ export function createAtom<T>(
 
     Object.assign<BaseAtom<T>, Pick<Atom<T>, 'set'>>(atom, {
       set(valueOrFn: T | ((prev: T) => T)): void {
-        if (
-          atom._update(
-            typeof valueOrFn === 'function'
-              ? () => (valueOrFn as (prev: T) => T)(atom._snapshot)
-              : () => valueOrFn
-          )
-        ) {
+        if (atom._update(valueOrFn)) {
           const { _subs: subs } = atom;
           if (subs) {
             propagate(subs);
@@ -162,7 +156,7 @@ export function createBaseAtom<T, TEvent>(
         }
       }
     },
-    _update(getValue?: () => T): boolean {
+    _update(getValue?: T | ((snapshot: T) => T)): boolean {
       const prevSub = activeSub;
       const compare = options?.compare ?? Object.is;
       // TODO: deprecate
@@ -172,13 +166,16 @@ export function createBaseAtom<T, TEvent>(
       startTracking(atom as InternalReadonlyAtom<T>);
       try {
         const oldValue = atom._snapshot;
-        const newValue = getValue
-          ? getValue()
-          : typeof getInitialState === 'function'
-            ? (getInitialState as (read?: <U>(atom: Readable<U>) => U) => T)(
-                read
-              )
-            : oldValue;
+        const newValue =
+          typeof getValue === 'function'
+            ? (getValue as (snapshot: T) => T)(oldValue)
+            : arguments.length === 0
+              ? typeof getInitialState === 'function'
+                ? (
+                    getInitialState as (read?: <U>(atom: Readable<U>) => U) => T
+                  )(read)
+                : oldValue
+              : (getValue as T);
         if (oldValue === undefined || !compare(oldValue, newValue)) {
           atom._snapshot = newValue;
           return true;

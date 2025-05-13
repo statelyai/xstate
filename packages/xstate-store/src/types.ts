@@ -379,8 +379,8 @@ export interface InternalBaseAtom<T, TEvent = never>
   /** @internal */
   _snapshot: T;
   /** @internal */
-  _update(getter?: () => T): boolean;
   send: (event: TEvent) => void;
+  _update(getValue?: T | ((snapshot: T) => T)): boolean;
 }
 
 export interface Atom<T> extends BaseAtom<T> {
