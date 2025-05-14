@@ -5,7 +5,7 @@ export {
   createStoreWithProducer,
   createStoreConfig
 } from './store';
-export { createAtom } from './atom';
+export { createAtom, createAsyncAtom } from './atom';
 export type {
   EventPayloadMap,
   ExtractEvents,
