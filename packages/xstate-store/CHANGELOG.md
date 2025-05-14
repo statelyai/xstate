@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.6.1
+
+### Patch Changes
+
+- [#5282](https://github.com/statelyai/xstate/pull/5282) [`42b1565cfdd6635754a4de63800d63ca74886a70`](https://github.com/statelyai/xstate/commit/42b1565cfdd6635754a4de63800d63ca74886a70) Thanks [@lucioreyli](https://github.com/lucioreyli)! - Add missing `createAsyncAtom` export
+
 ## 3.6.0
 
 ### Minor Changes
