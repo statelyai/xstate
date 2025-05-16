@@ -6,7 +6,8 @@ import {
   createActor,
   AnyActorLogic,
   Snapshot,
-  ActorLogic
+  ActorLogic,
+  toPromise
 } from '../src/index.ts';
 import {
   fromCallback,
@@ -463,6 +464,44 @@ describe('promise logic (fromPromise)', () => {
     await deferred2.promise;
     const fn2 = signalListenerList[1];
     expect(fn2).toHaveBeenCalled();
+  });
+
+  it('can emit updates', async () => {
+    const p = fromPromise(async ({ update }) => {
+      update({ value: 'starting' });
+      update({ value: 'loading', context: { progress: 0.6 } });
+      update({ value: 'finished' });
+      return 'done data';
+    });
+
+    const stuff: Array<{}> = [];
+
+    const actor = createActor(p);
+    actor.subscribe((s) => {
+      stuff.push(s);
+    });
+    actor.start();
+
+    const res = await toPromise(actor);
+
+    expect(res).toEqual('done data');
+
+    expect(stuff).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({}),
+        expect.objectContaining({ value: 'starting', context: undefined }),
+        expect.objectContaining({
+          value: 'loading',
+          context: { progress: 0.6 }
+        }),
+        expect.objectContaining({ value: 'finished', context: undefined }),
+        expect.objectContaining({
+          status: 'done',
+          output: 'done data',
+          value: 'finished'
+        })
+      ])
+    );
   });
 });
 
