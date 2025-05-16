@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.6.2
+
+### Patch Changes
+
+- [#5280](https://github.com/statelyai/xstate/pull/5280) [`d8a3456bc82af5e4d176990093ba4e649e7ce286`](https://github.com/statelyai/xstate/commit/d8a3456bc82af5e4d176990093ba4e649e7ce286) Thanks [@johnsoncodehk](https://github.com/johnsoncodehk)! - Synchronize the [`alien-signals`](https://github.com/stackblitz/alien-signals/) algorithm to 2.0.4
+
 ## 3.6.1
 
 ### Patch Changes
