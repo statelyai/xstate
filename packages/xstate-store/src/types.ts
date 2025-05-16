@@ -1,4 +1,4 @@
-import { Dependency, Subscriber } from './alien';
+import type { ReactiveNode } from './alien';
 
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
@@ -388,8 +388,7 @@ export type AnyAtom = BaseAtom<any>;
 
 export interface InternalReadonlyAtom<T>
   extends InternalBaseAtom<T>,
-    Dependency,
-    Subscriber {}
+    ReactiveNode {}
 
 /**
  * An atom that is read-only and cannot be set.
