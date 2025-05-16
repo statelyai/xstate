@@ -1803,3 +1803,99 @@ describe('actors', () => {
     expect(actors).toEqual({});
   });
 });
+
+describe('onStop', () => {
+  it('should call onStop callback when actor is stopped', () => {
+    const spy = jest.fn();
+    const machine = createMachine({});
+    const actor = createActor(machine).start();
+
+    actor.onStop(spy);
+    actor.stop();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call onStop callback immediately if actor is already stopped', () => {
+    const spy = jest.fn();
+    const machine = createMachine({});
+    const actor = createActor(machine).start();
+
+    actor.stop();
+    actor.onStop(spy);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not call unsubscribed onStop callbacks', () => {
+    const spy = jest.fn();
+    const machine = createMachine({});
+    const actor = createActor(machine).start();
+
+    const subscription = actor.onStop(spy);
+    subscription.unsubscribe();
+    actor.stop();
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('should call multiple onStop callbacks', () => {
+    const spy1 = jest.fn();
+    const spy2 = jest.fn();
+    const machine = createMachine({});
+    const actor = createActor(machine).start();
+
+    actor.onStop(spy1);
+    actor.onStop(spy2);
+    actor.stop();
+
+    expect(spy1).toHaveBeenCalledTimes(1);
+    expect(spy2).toHaveBeenCalledTimes(1);
+  });
+
+  it('should handle errors in onStop callbacks gracefully', () => {
+    const errorSpy = jest.fn();
+    const successSpy = jest.fn();
+    const machine = createMachine({});
+    const actor = createActor(machine).start();
+
+    actor.onStop(() => {
+      throw new Error('Test error');
+    });
+    actor.onStop(successSpy);
+    actor.subscribe({
+      error: errorSpy
+    });
+
+    actor.stop();
+
+    expect(successSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  it('should call onStop callbacks when child actor is stopped by parent', () => {
+    const spy = jest.fn();
+    const childMachine = createMachine({});
+    const parentMachine = createMachine({
+      types: {} as {
+        context: { child: ActorRefFrom<typeof childMachine> };
+      },
+      context: ({ spawn }) => ({
+        child: spawn(childMachine)
+      }),
+      on: {
+        STOP_CHILD: {
+          actions: stopChild(({ context }) => context.child)
+        }
+      }
+    });
+
+    const parent = createActor(parentMachine).start();
+    const child = parent.getSnapshot().context.child;
+
+    child.onStop(spy);
+    parent.send({ type: 'STOP_CHILD' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+});
