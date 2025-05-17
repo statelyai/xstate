@@ -1,3 +1,4 @@
+import { createAtom } from './atom';
 import { toObserver } from './toObserver';
 import {
   EnqueueObject,
@@ -16,7 +17,8 @@ import {
   StoreProducerAssigner,
   StoreSnapshot,
   Selector,
-  Selection
+  Selection,
+  InternalBaseAtom
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -62,7 +64,6 @@ function createStoreCore<
   ) => NoInfer<TContext>
 ): Store<TContext, ExtractEvents<TEventPayloadMap>, TEmitted> {
   type StoreEvent = ExtractEvents<TEventPayloadMap>;
-  let observers: Set<Observer<StoreSnapshot<TContext>>> | undefined;
   let listeners: Map<TEmitted['type'], Set<any>> | undefined;
   const initialSnapshot: StoreSnapshot<TContext> = {
     context: initialContext,
@@ -71,6 +72,7 @@ function createStoreCore<
     error: undefined
   };
   let currentSnapshot: StoreSnapshot<TContext> = initialSnapshot;
+  const atom = createAtom<StoreSnapshot<TContext>>(currentSnapshot);
 
   const emit = (ev: TEmitted) => {
     if (!listeners) {
@@ -99,7 +101,7 @@ function createStoreCore<
       });
     });
 
-    observers?.forEach((o) => o.next?.(currentSnapshot));
+    atom.set(currentSnapshot);
 
     for (const effect of effects) {
       if (typeof effect === 'function') {
@@ -112,7 +114,11 @@ function createStoreCore<
     }
   }
 
-  const store: Store<TContext, StoreEvent, TEmitted> = {
+  const store: Store<TContext, StoreEvent, TEmitted> &
+    Pick<InternalBaseAtom<any>, '_snapshot'> = {
+    get _snapshot() {
+      return (atom as unknown as InternalBaseAtom<any>)._snapshot;
+    },
     on(emittedEventType, handler) {
       if (!listeners) {
         listeners = new Map();
@@ -149,22 +155,12 @@ function createStoreCore<
       return currentSnapshot;
     },
     get() {
-      return currentSnapshot;
+      return atom.get();
     },
     getInitialSnapshot() {
       return initialSnapshot;
     },
-    subscribe(observerOrFn) {
-      const observer = toObserver(observerOrFn);
-      observers ??= new Set();
-      observers.add(observer);
-
-      return {
-        unsubscribe() {
-          return observers?.delete(observer);
-        }
-      };
-    },
+    subscribe: atom.subscribe.bind(atom),
     [symbolObservable](): InteropSubscribable<StoreSnapshot<TContext>> {
       return this;
     },
@@ -210,21 +206,9 @@ function createStoreCore<
       selector: Selector<TContext, TSelected>,
       equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
     ): Selection<TSelected> {
-      return {
-        subscribe: (observerOrFn) => {
-          const observer = toObserver(observerOrFn);
-          let previousSelected = selector(this.getSnapshot().context);
-
-          return this.subscribe((snapshot) => {
-            const nextSelected = selector(snapshot.context);
-            if (!equalityFn(previousSelected, nextSelected)) {
-              previousSelected = nextSelected;
-              observer.next?.(nextSelected);
-            }
-          });
-        },
-        get: () => selector(this.getSnapshot().context)
-      };
+      return createAtom(() => selector(store.get().context), {
+        compare: equalityFn
+      });
     }
   };
 

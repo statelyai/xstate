@@ -2,12 +2,13 @@
 import globals from 'globals';
 import js from '@eslint/js';
 import ts from 'typescript-eslint';
+import jsdoc from 'eslint-plugin-jsdoc';
 
 export default ts.config(
   // plugins
   js.configs.recommended,
   ...ts.configs.recommendedTypeChecked,
-
+  { plugins: { jsdoc } },
   // global ignore
   {
     ignores: [
@@ -67,7 +68,8 @@ export default ts.config(
         {
           destructuring: 'all'
         }
-      ]
+      ],
+      'jsdoc/no-undefined-types': 'error'
     }
   },
 

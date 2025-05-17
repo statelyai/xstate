@@ -1,5 +1,90 @@
 # @xstate/store
 
+## 3.6.2
+
+### Patch Changes
+
+- [#5280](https://github.com/statelyai/xstate/pull/5280) [`d8a3456bc82af5e4d176990093ba4e649e7ce286`](https://github.com/statelyai/xstate/commit/d8a3456bc82af5e4d176990093ba4e649e7ce286) Thanks [@johnsoncodehk](https://github.com/johnsoncodehk)! - Synchronize the [`alien-signals`](https://github.com/stackblitz/alien-signals/) algorithm to 2.0.4
+
+## 3.6.1
+
+### Patch Changes
+
+- [#5282](https://github.com/statelyai/xstate/pull/5282) [`42b1565cfdd6635754a4de63800d63ca74886a70`](https://github.com/statelyai/xstate/commit/42b1565cfdd6635754a4de63800d63ca74886a70) Thanks [@lucioreyli](https://github.com/lucioreyli)! - Add missing `createAsyncAtom` export
+
+## 3.6.0
+
+### Minor Changes
+
+- [#5266](https://github.com/statelyai/xstate/pull/5266) [`42bfd0a30d74e1c5820728220a00db692023f1f8`](https://github.com/statelyai/xstate/commit/42bfd0a30d74e1c5820728220a00db692023f1f8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added async atoms:
+
+  ```typescript
+  const atom = createAsyncAtom(async () => {
+    const response = await fetch(`/api/something`);
+    return response.json();
+  });
+
+  atom.subscribe((state) => {
+    // Status can be 'pending', 'done', or 'error'
+    if (state.status === 'done') {
+      console.log(state.data);
+    }
+  });
+  ```
+
+## 3.5.1
+
+### Patch Changes
+
+- [#5261](https://github.com/statelyai/xstate/pull/5261) [`986c5c86e15efe6d219bd6a0bb2130917c1db50e`](https://github.com/statelyai/xstate/commit/986c5c86e15efe6d219bd6a0bb2130917c1db50e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Reduced the bundle size for the atom implementation
+
+## 3.5.0
+
+### Minor Changes
+
+- [#5250](https://github.com/statelyai/xstate/pull/5250) [`a1bffb55b2029bde82e542d5936c51d961909a37`](https://github.com/statelyai/xstate/commit/a1bffb55b2029bde82e542d5936c51d961909a37) Thanks [@davidkpiano](https://github.com/davidkpiano)! - - Improved atom architecture with better dependency management (the diamond problem is solved!)
+
+  - Optimized recomputation logic to prevent unnecessary updates
+  - Added support for custom equality functions through `compare` option in `createAtom`, allowing fine-grained control over when atoms update:
+
+    ```ts
+    const coordinateAtom = createAtom(
+      { x: 0, y: 0 },
+      {
+        // only update when x and y change
+        compare: (prev, next) => prev.x === next.x && prev.y === next.y
+      }
+    );
+    ```
+
+## 3.4.3
+
+### Patch Changes
+
+- [#5230](https://github.com/statelyai/xstate/pull/5230) [`86e6b58dd18337202df8e319a42f85523d5d0d30`](https://github.com/statelyai/xstate/commit/86e6b58dd18337202df8e319a42f85523d5d0d30) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The types for emitting events with no payload have been fixed so that the following code works:
+
+  ```ts
+  const store = createStore({
+    emits: {
+      incremented: () => {}
+    },
+    on: {
+      inc: (ctx, ev, enq) => {
+        // No payload is expected
+        enq.emit.incremented();
+      }
+    }
+  });
+  ```
+
+  Previously, this would have been an error because the `incremented` event was expected to have a payload.
+
+## 3.4.2
+
+### Patch Changes
+
+- [#5247](https://github.com/statelyai/xstate/pull/5247) [`e8891030162214acc751a9f79a5d57ec916565ee`](https://github.com/statelyai/xstate/commit/e8891030162214acc751a9f79a5d57ec916565ee) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix type inference for discriminated union event types in the `trigger` and the `emit` object. Previously, using `Omit` with union types would incorrectly combine event types, breaking type inference for discriminated unions. This has been fixed by introducing a `DistributiveOmit` type that correctly preserves the relationship between discriminated properties.
+
 ## 3.4.1
 
 ### Patch Changes
