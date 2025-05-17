@@ -2,17 +2,11 @@ import {
   createActor,
   createMachine,
   fromPromise,
-  sendParent,
-  sendTo,
   waitFor,
   InspectionEvent,
   isMachineSnapshot,
-  assign,
-  ContextFrom,
-  EventObject,
-  AnyTransitionDefinition,
-  raise,
-  setup
+  setup,
+  fromCallback
 } from '../src';
 import { InspectedActionEvent } from '../src/inspection';
 
@@ -93,7 +87,8 @@ describe('inspect', () => {
     const events: InspectionEvent[] = [];
 
     const actor = createActor(machine, {
-      inspect: (ev) => events.push(ev)
+      inspect: (ev) => events.push(ev),
+      id: 'parent'
     });
     actor.start();
 
@@ -195,8 +190,12 @@ describe('inspect', () => {
                   return Promise.resolve(42);
                 }),
                 onDone: {
-                  target: 'loaded',
-                  actions: sendParent({ type: 'toParent' })
+                  fn: ({ parent }) => {
+                    parent?.send({ type: 'toParent' });
+                    return {
+                      target: 'loaded'
+                    };
+                  }
                 }
               }
             },
@@ -207,15 +206,19 @@ describe('inspect', () => {
         }),
         id: 'child',
         onDone: {
-          target: '.success',
-          actions: () => {
-            events;
+          fn: (_, enq) => {
+            enq.action(() => {});
+            return {
+              target: '.success'
+            };
           }
         }
       },
       on: {
         load: {
-          actions: sendTo('child', { type: 'loadChild' })
+          fn: ({ children }) => {
+            children.child.send({ type: 'loadChild' });
+          }
         }
       }
     });
@@ -303,7 +306,7 @@ describe('inspect', () => {
     "event": {
       "type": "loadChild",
     },
-    "sourceId": "x:0",
+    "sourceId": undefined,
     "targetId": "x:1",
     "type": "@xstate.event",
   },
@@ -380,7 +383,26 @@ describe('inspect', () => {
     "event": {
       "type": "toParent",
     },
-    "sourceId": "x:1",
+    "sourceId": undefined,
+    "targetId": "x:0",
+    "type": "@xstate.event",
+  },
+  {
+    "actorId": "x:0",
+    "event": {
+      "type": "toParent",
+    },
+    "snapshot": {
+      "value": "waiting",
+    },
+    "status": "active",
+    "type": "@xstate.snapshot",
+  },
+  {
+    "event": {
+      "type": "toParent",
+    },
+    "sourceId": undefined,
     "targetId": "x:0",
     "type": "@xstate.event",
   },
@@ -456,10 +478,21 @@ describe('inspect', () => {
       initial: 'counting',
       states: {
         counting: {
-          always: [
-            { guard: ({ context }) => context.count === 3, target: 'done' },
-            { actions: assign({ count: ({ context }) => context.count + 1 }) }
-          ]
+          always: {
+            fn: ({ context }) => {
+              if (context.count === 3) {
+                return {
+                  target: 'done'
+                };
+              }
+              return {
+                context: {
+                  ...context,
+                  count: context.count + 1
+                }
+              };
+            }
+          }
         },
         done: {}
       }
@@ -486,10 +519,9 @@ describe('inspect', () => {
   {
     "_transitions": [
       {
-        "actions": [
-          [Function],
-        ],
+        "actions": [],
         "eventType": "",
+        "fn": [Function],
         "guard": undefined,
         "reenter": false,
         "source": "#(machine).counting",
@@ -523,10 +555,9 @@ describe('inspect', () => {
   {
     "_transitions": [
       {
-        "actions": [
-          [Function],
-        ],
+        "actions": [],
         "eventType": "",
+        "fn": [Function],
         "guard": undefined,
         "reenter": false,
         "source": "#(machine).counting",
@@ -560,10 +591,9 @@ describe('inspect', () => {
   {
     "_transitions": [
       {
-        "actions": [
-          [Function],
-        ],
+        "actions": [],
         "eventType": "",
+        "fn": [Function],
         "guard": undefined,
         "reenter": false,
         "source": "#(machine).counting",
@@ -599,12 +629,11 @@ describe('inspect', () => {
       {
         "actions": [],
         "eventType": "",
-        "guard": [Function],
+        "fn": [Function],
+        "guard": undefined,
         "reenter": false,
         "source": "#(machine).counting",
-        "target": [
-          "#(machine).done",
-        ],
+        "target": undefined,
         "toJSON": [Function],
       },
     ],
@@ -677,11 +706,15 @@ describe('inspect', () => {
       initial: 'a',
       states: {
         a: {
-          entry: raise({ type: 'to_b' }),
+          entry2: (_, enq) => {
+            enq.raise({ type: 'to_b' });
+          },
           on: { to_b: 'b' }
         },
         b: {
-          entry: raise({ type: 'to_c' }),
+          entry2: (_, enq) => {
+            enq.raise({ type: 'to_c' });
+          },
           on: { to_c: 'c' }
         },
         c: {}
@@ -690,11 +723,13 @@ describe('inspect', () => {
 
     const events: InspectionEvent[] = [];
 
-    createActor(machine, {
+    const actor = createActor(machine, {
       inspect: (ev) => {
         events.push(ev);
       }
     }).start();
+
+    expect(actor.getSnapshot().matches('c')).toBe(true);
 
     expect(simplifyEvents(events)).toMatchInlineSnapshot(`
 [

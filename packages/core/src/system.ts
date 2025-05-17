@@ -86,7 +86,6 @@ export interface ActorSystem<T extends ActorSystemInfo> {
 
 export type AnyActorSystem = ActorSystem<any>;
 
-let idCounter = 0;
 export function createSystem<T extends ActorSystemInfo>(
   rootActor: AnyActorRef,
   options: {
@@ -95,6 +94,7 @@ export function createSystem<T extends ActorSystemInfo>(
     snapshot?: unknown;
   }
 ): ActorSystem<T> {
+  let idCounter = 0;
   const children = new Map<string, AnyActorRef>();
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
