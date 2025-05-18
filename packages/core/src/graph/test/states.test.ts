@@ -1,5 +1,5 @@
-import { StateValue, createMachine } from '../../src';
-import { createTestModel } from '../../graph';
+import { StateValue, createMachine } from '../..';
+import { createTestModel } from '..';
 import { testUtils } from './testUtils';
 
 describe('states', () => {

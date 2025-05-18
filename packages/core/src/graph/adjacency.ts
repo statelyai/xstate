@@ -1,10 +1,4 @@
-import {
-  ActorScope,
-  ActorLogic,
-  ActorSystem,
-  EventObject,
-  Snapshot
-} from '../src';
+import { ActorScope, ActorLogic, ActorSystem, EventObject, Snapshot } from '..';
 import {
   SerializedEvent,
   SerializedSnapshot,

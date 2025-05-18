@@ -1,5 +1,5 @@
-import { createMachine } from '../../src';
-import { createTestModel } from '../../graph';
+import { createMachine } from '../..';
+import { createTestModel } from '..';
 import { testUtils } from './testUtils';
 
 describe('events', () => {

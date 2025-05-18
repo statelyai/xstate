@@ -1,5 +1,5 @@
-import { fromTransition } from '../../src';
-import { TestModel } from '../../graph';
+import { fromTransition } from '../..';
+import { TestModel } from '..';
 import { testUtils } from './testUtils';
 
 describe('custom test models', () => {

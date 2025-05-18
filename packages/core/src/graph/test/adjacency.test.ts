@@ -1,10 +1,10 @@
-import { createMachine, EventObject, SnapshotFrom } from '../../src';
+import { createMachine, EventObject, SnapshotFrom } from '../..';
 import {
   AdjacencyMap,
   adjacencyMapToArray,
   createTestModel,
   TestModel
-} from '../../graph';
+} from '..';
 
 describe('adjacency maps', () => {
   it('model generates an adjacency map (converted to an array)', () => {

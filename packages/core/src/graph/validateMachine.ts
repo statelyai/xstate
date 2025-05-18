@@ -1,4 +1,4 @@
-import { AnyStateMachine, AnyStateNode } from '../src';
+import { AnyStateMachine, AnyStateNode } from '..';
 
 const validateState = (state: AnyStateNode) => {
   if (state.invoke.length > 0) {

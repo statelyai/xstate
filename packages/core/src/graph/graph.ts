@@ -7,7 +7,7 @@ import {
   Snapshot,
   __unsafe_getAllOwnEventDescriptors,
   InputFrom
-} from '../src';
+} from '../index.ts';
 import type {
   SerializedEvent,
   SerializedSnapshot,

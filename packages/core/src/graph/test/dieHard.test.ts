@@ -1,5 +1,5 @@
-import { assign, createMachine } from '../../src';
-import { createTestModel } from '../../graph';
+import { assign, createMachine } from '../..';
+import { createTestModel } from '..';
 import { getDescription } from '../utils';
 
 describe('die hard example', () => {

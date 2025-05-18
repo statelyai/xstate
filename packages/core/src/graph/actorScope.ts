@@ -1,4 +1,4 @@
-import { AnyActorScope, createEmptyActor } from '../src';
+import { AnyActorScope, createEmptyActor } from '..';
 
 export function createMockActorScope(): AnyActorScope {
   const emptyActor = createEmptyActor();

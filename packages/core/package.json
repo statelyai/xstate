@@ -62,20 +62,6 @@
       "import": "./dev/dist/xstate-dev.cjs.mjs",
       "default": "./dev/dist/xstate-dev.cjs.js"
     },
-    "./actors": {
-      "types": {
-        "import": "./actors/dist/xstate-actors.cjs.mjs",
-        "default": "./actors/dist/xstate-actors.cjs.js"
-      },
-      "development": {
-        "module": "./actors/dist/xstate-actors.development.esm.js",
-        "import": "./actors/dist/xstate-actors.development.cjs.mjs",
-        "default": "./actors/dist/xstate-actors.development.cjs.js"
-      },
-      "module": "./actors/dist/xstate-actors.esm.js",
-      "import": "./actors/dist/xstate-actors.cjs.mjs",
-      "default": "./actors/dist/xstate-actors.cjs.js"
-    },
     "./graph": {
       "types": {
         "import": "./graph/dist/xstate-graph.cjs.mjs",
@@ -89,6 +75,20 @@
       "module": "./graph/dist/xstate-graph.esm.js",
       "import": "./graph/dist/xstate-graph.cjs.mjs",
       "default": "./graph/dist/xstate-graph.cjs.js"
+    },
+    "./actors": {
+      "types": {
+        "import": "./actors/dist/xstate-actors.cjs.mjs",
+        "default": "./actors/dist/xstate-actors.cjs.js"
+      },
+      "development": {
+        "module": "./actors/dist/xstate-actors.development.esm.js",
+        "import": "./actors/dist/xstate-actors.development.cjs.mjs",
+        "default": "./actors/dist/xstate-actors.development.cjs.js"
+      },
+      "module": "./actors/dist/xstate-actors.esm.js",
+      "import": "./actors/dist/xstate-actors.cjs.mjs",
+      "default": "./actors/dist/xstate-actors.cjs.js"
     },
     "./package.json": "./package.json"
   },
@@ -109,7 +109,8 @@
     "actions",
     "invoke",
     "guards",
-    "dev"
+    "dev",
+    "graph"
   ],
   "keywords": [
     "statechart",
@@ -118,7 +119,8 @@
     "finite automata",
     "scxml",
     "state",
-    "interpreter"
+    "interpreter",
+    "graph"
   ],
   "scripts": {},
   "repository": {
@@ -146,7 +148,8 @@
       "./actions.ts",
       "./actors/index.ts",
       "./guards.ts",
-      "./dev/index.ts"
+      "./dev/index.ts",
+      "./graph/index.ts"
     ]
   }
 }

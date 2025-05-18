@@ -3,7 +3,7 @@ import {
   getAdjacencyMap,
   joinPaths,
   serializeSnapshot
-} from './';
+} from './index.ts';
 import type {
   AdjacencyMap,
   SerializedEvent,
@@ -11,7 +11,7 @@ import type {
   StatePath,
   Step,
   TraversalOptions
-} from './types';
+} from './types.ts';
 import {
   EventObject,
   ActorLogic,
@@ -28,7 +28,7 @@ import {
   StateValue,
   TODO,
   InputFrom
-} from '../src';
+} from '../index.ts';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
   createShortestPathsGen,

@@ -11,7 +11,7 @@ import {
   StateNodeConfig,
   TODO,
   TransitionConfig
-} from '../src';
+} from '..';
 
 export type AnyStateNode = StateNode<any, any>;
 

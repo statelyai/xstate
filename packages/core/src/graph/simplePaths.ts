@@ -1,4 +1,4 @@
-import { AnyActorLogic, EventFromLogic, InputFrom } from '../src';
+import { AnyActorLogic, EventFromLogic, InputFrom } from '..';
 import {
   SerializedEvent,
   SerializedSnapshot,

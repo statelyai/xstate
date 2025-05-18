@@ -6,7 +6,7 @@ import {
   fromTransition,
   Snapshot,
   isMachineSnapshot
-} from '../../src';
+} from '../..';
 import {
   getStateNodes,
   getPathsFromEvents,
@@ -14,9 +14,9 @@ import {
   toDirectedGraph,
   StatePath,
   getSimplePaths
-} from '../../graph';
-import { joinPaths } from '../../graph/';
-import { createMockActorScope } from '../../graph/actorScope';
+} from '..';
+import { joinPaths } from '..';
+import { createMockActorScope } from '../actorScope';
 
 function getPathsSnapshot(
   paths: Array<StatePath<Snapshot<unknown>, EventObject>>

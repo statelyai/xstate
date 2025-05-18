@@ -1,5 +1,5 @@
-import { createMachine } from '../src';
-import { createTestModel, getShortestPaths } from '../graph';
+import { createMachine } from '..';
+import { createTestModel, getShortestPaths } from '.';
 
 describe('getShortestPath types', () => {
   it('`getEvents` should be allowed to return a mutable array', () => {

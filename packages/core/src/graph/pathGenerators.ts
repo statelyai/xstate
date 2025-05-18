@@ -1,5 +1,5 @@
-import { getShortestPaths, getSimplePaths } from './';
-import { EventObject, Snapshot } from '../src';
+import { getShortestPaths, getSimplePaths } from './index.ts';
+import { EventObject, Snapshot } from '../index.ts';
 import { PathGenerator } from './types.ts';
 
 export const createShortestPathsGen =

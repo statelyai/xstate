@@ -1,6 +1,6 @@
-import { EventObject, Snapshot } from '../../src';
-import { TestModel } from '../';
-import { TestParam, TestPath } from '../';
+import { EventObject, Snapshot } from '../..';
+import { TestModel } from '..';
+import { TestParam, TestPath } from '..';
 
 async function testModel<
   TSnapshot extends Snapshot<unknown>,

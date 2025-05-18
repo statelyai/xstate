@@ -1,4 +1,4 @@
-import { AnyActorLogic, EventFromLogic, InputFrom } from '../src';
+import { AnyActorLogic, EventFromLogic, InputFrom } from '..';
 import { getAdjacencyMap } from './adjacency';
 import { alterPath } from './alterPath';
 import { resolveTraversalOptions } from './graph';

@@ -1,5 +1,5 @@
-import { StatePath } from '../graph';
-import { EventObject, Snapshot } from '../src';
+import { StatePath } from './index.ts';
+import { EventObject, Snapshot } from '../index.ts';
 import { simpleStringify } from './utils.ts';
 
 /**

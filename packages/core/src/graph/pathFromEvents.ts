@@ -5,7 +5,7 @@ import {
   AnyStateMachine,
   EventObject,
   Snapshot
-} from '../src';
+} from '..';
 import { getAdjacencyMap } from './adjacency';
 import {
   SerializedEvent,

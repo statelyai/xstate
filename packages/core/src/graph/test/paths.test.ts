@@ -1,5 +1,5 @@
-import { createMachine, getInitialSnapshot, getNextSnapshot } from '../../src';
-import { createTestModel } from '../../graph';
+import { createMachine, getInitialSnapshot, getNextSnapshot } from '../..';
+import { createTestModel } from '..';
 import { testUtils } from './testUtils';
 
 const multiPathMachine = createMachine({
