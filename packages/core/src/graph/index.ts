@@ -3,7 +3,6 @@ export { adjacencyMapToArray, getAdjacencyMap } from './adjacency.ts';
 export {
   getStateNodes,
   joinPaths,
-  serializeEvent,
   serializeSnapshot,
   toDirectedGraph
 } from './graph.ts';

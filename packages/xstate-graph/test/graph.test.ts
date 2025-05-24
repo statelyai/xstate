@@ -15,7 +15,7 @@ import {
   StatePath,
   getSimplePaths
 } from '../src';
-import { joinPaths } from '../src/graph';
+import { joinPaths, serializeEvent } from '../src/graph';
 import { createMockActorScope } from '../src/actorScope';
 
 function getPathsSnapshot(

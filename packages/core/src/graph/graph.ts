@@ -60,7 +60,7 @@ export function serializeSnapshot(snapshot: Snapshot<any>): SerializedSnapshot {
   }) as SerializedSnapshot;
 }
 
-export function serializeEvent<TEvent extends EventObject>(
+function serializeEvent<TEvent extends EventObject>(
   event: TEvent
 ): SerializedEvent {
   return JSON.stringify(event) as SerializedEvent;

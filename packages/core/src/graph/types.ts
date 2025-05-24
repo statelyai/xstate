@@ -1,29 +1,20 @@
 import {
   EventObject,
-  StateValue,
   StateNode,
   TransitionDefinition,
   Snapshot,
   MachineContext,
   ActorLogic,
-  MachineSnapshot,
-  ParameterizedObject,
-  StateNodeConfig,
-  TODO,
-  TransitionConfig
+  MachineSnapshot
 } from '..';
 
 export type AnyStateNode = StateNode<any, any>;
 
-export interface TransitionMap {
-  state: StateValue | undefined;
-}
-
-export type JSONSerializable<T extends object, U> = T & {
+type JSONSerializable<T extends object, U> = T & {
   toJSON: () => U;
 };
 
-export type DirectedGraphLabel = JSONSerializable<
+type DirectedGraphLabel = JSONSerializable<
   {
     text: string;
   },
@@ -62,17 +53,7 @@ export type DirectedGraphNode = JSONSerializable<
   }
 >;
 
-export interface ValueAdjacencyMap<TState, TEvent extends EventObject> {
-  [stateId: SerializedSnapshot]: Record<
-    SerializedSnapshot,
-    {
-      state: TState;
-      event: TEvent;
-    }
-  >;
-}
-
-export interface StatePlan<
+interface StatePlan<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
@@ -119,21 +100,10 @@ export type Steps<
   TEvent extends EventObject
 > = Array<Step<TSnapshot, TEvent>>;
 
-export type ExtractEvent<
+type ExtractEvent<
   TEvent extends EventObject,
   TType extends TEvent['type']
 > = TEvent extends { type: TType } ? TEvent : never;
-
-export interface ValueAdjacencyMapOptions<TState, TEvent extends EventObject> {
-  events?: {
-    [K in TEvent['type']]?:
-      | Array<ExtractEvent<TEvent, K>>
-      | ((state: TState) => Array<ExtractEvent<TEvent, K>>);
-  };
-  filter?: (state: TState) => boolean;
-  serializeState?: (state: TState) => string;
-  serializeEvent?: (event: TEvent) => string;
-}
 
 export interface VisitedContext<TState, TEvent> {
   vertices: Set<SerializedSnapshot>;
@@ -153,7 +123,7 @@ export interface SerializationConfig<
   serializeEvent: (event: TEvent) => string;
 }
 
-export type SerializationOptions<
+type SerializationOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > = Partial<
@@ -199,51 +169,6 @@ type Brand<T, Tag extends string> = T & { __tag: Tag };
 
 export type SerializedSnapshot = Brand<string, 'state'>;
 export type SerializedEvent = Brand<string, 'event'>;
-
-// XState Test
-
-export type GetPathsOptions<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject,
-  TInput
-> = Partial<
-  TraversalOptions<TSnapshot, TEvent, TInput> & {
-    pathGenerator?: PathGenerator<TSnapshot, TEvent, TInput>;
-  }
->;
-
-export interface TestStateNodeConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> extends Pick<
-    StateNodeConfig<
-      TContext,
-      TEvent,
-      TODO,
-      TODO,
-      ParameterizedObject,
-      TODO,
-      TODO,
-      TODO,
-      TODO, // emitted
-      TODO // meta
-    >,
-    | 'type'
-    | 'history'
-    | 'on'
-    | 'onDone'
-    | 'entry'
-    | 'exit'
-    | 'meta'
-    | 'always'
-    | 'output'
-    | 'id'
-    | 'tags'
-    | 'description'
-  > {
-  initial?: string;
-  states?: Record<string, TestStateNodeConfig<TContext, TEvent>>;
-}
 
 export interface TestMeta<T, TContext extends MachineContext> {
   test?: (
@@ -317,7 +242,6 @@ export interface TestPathResult {
   state: TestStateResult;
 }
 
-export type StatePredicate<TState> = (state: TState) => boolean;
 /**
  * Executes an effect using the `testContext` and `event` that triggers the
  * represented `event`.
@@ -343,48 +267,6 @@ export interface TestModelOptions<
     prevState?: TSnapshot
   ) => string;
 }
-
-export interface TestTransitionConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TTestContext
-> extends TransitionConfig<
-    TContext,
-    TEvent,
-    TEvent,
-    TODO,
-    TODO,
-    TODO,
-    string,
-    TODO, // TEmitted
-    TODO // TMeta
-  > {
-  test?: (
-    state: MachineSnapshot<
-      TContext,
-      TEvent,
-      any,
-      any,
-      any,
-      any,
-      any, // TMeta
-      any // TStateSchema
-    >,
-    testContext: TTestContext
-  ) => void;
-}
-
-export type TestTransitionsConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TTestContext
-> = {
-  [K in TEvent['type'] | '' | '*']?: K extends '' | '*'
-    ? TestTransitionConfig<TContext, TEvent, TTestContext> | string
-    :
-        | TestTransitionConfig<TContext, ExtractEvent<TEvent, K>, TTestContext>
-        | string;
-};
 
 export type PathGenerator<
   TSnapshot extends Snapshot<unknown>,
