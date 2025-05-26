@@ -1,6 +1,6 @@
-import { StateValue, createMachine } from '../..';
-import { createTestModel } from '..';
-import { testUtils } from './testUtils';
+import { StateValue, createMachine } from '../../index.ts';
+import { createTestModel } from '../index.ts';
+import { testUtils } from './testUtils.ts';
 
 describe('states', () => {
   it('should test states by key', async () => {

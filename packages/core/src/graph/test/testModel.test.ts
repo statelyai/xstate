@@ -1,6 +1,6 @@
-import { fromTransition } from '../..';
-import { TestModel } from '..';
-import { testUtils } from './testUtils';
+import { fromTransition } from '../../index.ts';
+import { TestModel } from '../index.ts';
+import { testUtils } from './testUtils.ts';
 
 describe('custom test models', () => {
   it('tests any logic', async () => {

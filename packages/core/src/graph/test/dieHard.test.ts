@@ -1,6 +1,6 @@
-import { assign, createMachine } from '../..';
-import { createTestModel } from '..';
-import { getDescription } from '../utils';
+import { assign, createMachine } from '../../index.ts';
+import { createTestModel } from '../index.ts';
+import { getDescription } from '../utils.ts';
 
 describe('die hard example', () => {
   interface DieHardContext {

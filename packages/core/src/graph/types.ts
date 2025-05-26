@@ -11,7 +11,7 @@ import {
   StateNodeConfig,
   TODO,
   TransitionConfig
-} from '..';
+} from '../index.ts';
 
 export type AnyStateNode = StateNode<any, any>;
 

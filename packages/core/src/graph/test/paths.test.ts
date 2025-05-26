@@ -1,6 +1,10 @@
-import { createMachine, getInitialSnapshot, getNextSnapshot } from '../..';
-import { createTestModel } from '..';
-import { testUtils } from './testUtils';
+import {
+  createMachine,
+  getInitialSnapshot,
+  getNextSnapshot
+} from '../../index.ts';
+import { createTestModel } from '../index.ts';
+import { testUtils } from './testUtils.ts';
 
 const multiPathMachine = createMachine({
   initial: 'a',

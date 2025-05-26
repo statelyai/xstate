@@ -1,10 +1,5 @@
-import { createMachine, EventObject, SnapshotFrom } from '../..';
-import {
-  AdjacencyMap,
-  adjacencyMapToArray,
-  createTestModel,
-  TestModel
-} from '..';
+import { createMachine } from '../../index.ts';
+import { adjacencyMapToArray, createTestModel } from '../index.ts';
 
 describe('adjacency maps', () => {
   it('model generates an adjacency map (converted to an array)', () => {

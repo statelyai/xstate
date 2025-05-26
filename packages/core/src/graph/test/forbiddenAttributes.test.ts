@@ -1,5 +1,5 @@
-import { createMachine, raise } from '../..';
-import { createTestModel } from '..';
+import { createMachine, raise } from '../../index.ts';
+import { createTestModel } from '../index.ts';
 
 describe('Forbidden attributes', () => {
   it('Should not let you declare invocations on your test machine', () => {

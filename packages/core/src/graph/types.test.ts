@@ -1,5 +1,5 @@
-import { createMachine } from '..';
-import { createTestModel, getShortestPaths } from '.';
+import { createMachine } from '../index.ts';
+import { createTestModel, getShortestPaths } from './index.ts';
 
 describe('getShortestPath types', () => {
   it('`getEvents` should be allowed to return a mutable array', () => {
