@@ -490,16 +490,14 @@ describe('[function] guard conditions', () => {
       states: {
         a: {
           on: {
-            TIMER: {
-              fn: ({ event }) => ({
-                target:
-                  event.elapsed > 200
-                    ? 'b'
-                    : event.elapsed > 100
-                      ? 'c'
-                      : undefined
-              })
-            }
+            TIMER: ({ event }) => ({
+              target:
+                event.elapsed > 200
+                  ? 'b'
+                  : event.elapsed > 100
+                    ? 'c'
+                    : undefined
+            })
           }
         },
         b: {},
@@ -555,30 +553,24 @@ describe('[function] guard conditions', () => {
       states: {
         green: {
           on: {
-            TIMER: {
-              fn: ({ context }) => ({
-                target:
-                  context.elapsed < 100
-                    ? 'green'
-                    : context.elapsed >= 100 && context.elapsed < 200
-                      ? 'yellow'
-                      : undefined
-              })
-            },
-            EMERGENCY: {
-              fn: ({ event }) => ({
-                target: event.isEmergency ? 'red' : undefined
-              })
-            }
+            TIMER: ({ context }) => ({
+              target:
+                context.elapsed < 100
+                  ? 'green'
+                  : context.elapsed >= 100 && context.elapsed < 200
+                    ? 'yellow'
+                    : undefined
+            }),
+            EMERGENCY: ({ event }) => ({
+              target: event.isEmergency ? 'red' : undefined
+            })
           }
         },
         yellow: {
           on: {
-            TIMER: {
-              fn: ({ context }) => ({
-                target: minTimeElapsed(context.elapsed) ? 'red' : undefined
-              })
-            }
+            TIMER: ({ context }) => ({
+              target: minTimeElapsed(context.elapsed) ? 'red' : undefined
+            })
           }
         },
         red: {}
