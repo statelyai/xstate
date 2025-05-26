@@ -74,7 +74,7 @@
     "jest-resolve": "^29.7.0",
     "jest-snapshot": "^29.7.0",
     "jest-watch-typeahead": "^2.2.2",
-    "knip": "^5.58.0",
+    "knip": "^5.27.0",
     "lint-staged": "^8.2.1",
     "prettier": "^3.1.0",
     "prettier-plugin-jsdoc": "^1.3.0",
