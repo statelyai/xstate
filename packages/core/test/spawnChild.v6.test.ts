@@ -104,9 +104,16 @@ describe('spawnChild action', () => {
       context: {
         childId: 'myChild'
       },
-      entry2: ({ context }, enq) => {
-        // TODO: this should return a ref
-        const child = enq.spawn(childMachine, { id: context.childId });
+      entry2: ({ context, self }, enq) => {
+        // TODO: This should all be abstracted in enq.spawn(…)
+        const child = createActor(childMachine, {
+          id: context.childId,
+          parent: self
+        });
+        enq.action(() => {
+          child.start();
+        });
+
         enq.sendTo(child, {
           type: 'FOO'
         });
