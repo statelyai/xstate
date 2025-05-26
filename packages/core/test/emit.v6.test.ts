@@ -32,13 +32,11 @@ describe('event emitter', () => {
       },
 
       on: {
-        someEvent: {
-          fn: (_, enq) => {
-            enq.emit({
-              type: 'greet',
-              message: 'hello'
-            });
-          }
+        someEvent: (_, enq) => {
+          enq.emit({
+            type: 'greet',
+            message: 'hello'
+          });
         }
       }
     });
@@ -60,14 +58,12 @@ describe('event emitter', () => {
         });
       },
       on: {
-        someEvent: {
-          fn: (_, enq) => {
-            enq.emit({
-              type: 'greet',
-              // @ts-ignore
-              message: 'hello'
-            });
-          }
+        someEvent: (_, enq) => {
+          enq.emit({
+            type: 'greet',
+            // @ts-ignore
+            message: 'hello'
+          });
         }
       }
     });
@@ -80,14 +76,12 @@ describe('event emitter', () => {
       }
     }).createMachine({
       on: {
-        someEvent: {
-          fn: (_, enq) => {
-            enq.action(() => {});
-            enq.emit({
-              type: 'emitted',
-              foo: 'bar'
-            });
-          }
+        someEvent: (_, enq) => {
+          enq.action(() => {});
+          enq.emit({
+            type: 'emitted',
+            foo: 'bar'
+          });
         }
       }
     });
@@ -112,18 +106,16 @@ describe('event emitter', () => {
       }
     }).createMachine({
       on: {
-        someEvent: {
-          fn: (_, enq) => {
-            enq.emit({
-              type: 'emitted',
-              foo: 'bar'
-            });
+        someEvent: (_, enq) => {
+          enq.emit({
+            type: 'emitted',
+            foo: 'bar'
+          });
 
-            enq.emit({
-              // @ts-expect-error
-              type: 'unknown'
-            });
-          }
+          enq.emit({
+            // @ts-expect-error
+            type: 'unknown'
+          });
         }
       }
     });
@@ -148,13 +140,11 @@ describe('event emitter', () => {
       }
     }).createMachine({
       on: {
-        someEvent: {
-          fn: (_, enq) => {
-            enq.emit({
-              type: 'emitted',
-              foo: 'bar'
-            });
-          }
+        someEvent: (_, enq) => {
+          enq.emit({
+            type: 'emitted',
+            foo: 'bar'
+          });
         }
       }
     });
@@ -182,14 +172,12 @@ describe('event emitter', () => {
     const machine = createMachine({
       context: { count: 10 },
       on: {
-        someEvent: {
-          fn: ({ context }, enq) => {
-            enq.emit({
-              type: 'emitted',
-              // @ts-ignore
-              count: context.count
-            });
-          }
+        someEvent: ({ context }, enq) => {
+          enq.emit({
+            type: 'emitted',
+            // @ts-ignore
+            count: context.count
+          });
         }
       }
     });
@@ -218,16 +206,14 @@ describe('event emitter', () => {
       states: {
         a: {
           on: {
-            ev: {
-              fn: (_, enq) => {
-                enq.emit({
-                  type: 'someEvent'
-                });
+            ev: (_, enq) => {
+              enq.emit({
+                type: 'someEvent'
+              });
 
-                return {
-                  target: 'b'
-                };
-              }
+              return {
+                target: 'b'
+              };
             }
           }
         },
@@ -257,12 +243,10 @@ describe('event emitter', () => {
       }
     }).createMachine({
       on: {
-        event: {
-          fn: (_, enq) => {
-            enq.emit({
-              type: 'emitted'
-            });
-          }
+        event: (_, enq) => {
+          enq.emit({
+            type: 'emitted'
+          });
         }
       }
     });

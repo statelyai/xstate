@@ -34,12 +34,10 @@ describe('invoke', () => {
       states: {
         init: {
           on: {
-            FORWARD_DEC: {
-              fn: ({ parent }) => {
-                parent?.send({ type: 'DEC' });
-                parent?.send({ type: 'DEC' });
-                parent?.send({ type: 'DEC' });
-              }
+            FORWARD_DEC: ({ parent }) => {
+              parent?.send({ type: 'DEC' });
+              parent?.send({ type: 'DEC' });
+              parent?.send({ type: 'DEC' });
             }
           }
         }
@@ -65,26 +63,20 @@ describe('invoke', () => {
               src: 'child',
               id: 'someService'
             },
-            always: {
-              fn: ({ context }) => {
-                if (context.count === -3) {
-                  return { target: 'stop' };
-                }
+            always: ({ context }) => {
+              if (context.count === -3) {
+                return { target: 'stop' };
               }
             },
             on: {
-              DEC: {
-                fn: ({ context }) => ({
-                  context: {
-                    ...context,
-                    count: context.count - 1
-                  }
-                })
-              },
-              FORWARD_DEC: {
-                fn: ({ children }) => {
-                  children.someService.send({ type: 'FORWARD_DEC' });
+              DEC: ({ context }) => ({
+                context: {
+                  ...context,
+                  count: context.count - 1
                 }
+              }),
+              FORWARD_DEC: ({ children }) => {
+                children.someService.send({ type: 'FORWARD_DEC' });
               }
             }
           },
@@ -131,11 +123,9 @@ describe('invoke', () => {
             enq.raise({ type: 'RESOLVE', user });
           },
           on: {
-            RESOLVE: {
-              fn: ({ context }) => {
-                if (context.userId !== undefined) {
-                  return { target: 'success' };
-                }
+            RESOLVE: ({ context }) => {
+              if (context.userId !== undefined) {
+                return { target: 'success' };
               }
             }
           }
@@ -183,12 +173,10 @@ describe('invoke', () => {
             input: ({ context }: any) => ({
               userId: context.selectedUserId
             }),
-            onDone: {
-              fn: ({ event }) => {
-                // Should receive { user: { name: 'David' } } as event data
-                if ((event.output as any).user.name === 'David') {
-                  return { target: 'received' };
-                }
+            onDone: ({ event }) => {
+              // Should receive { user: { name: 'David' } } as event data
+              if ((event.output as any).user.name === 'David') {
+                return { target: 'received' };
               }
             }
           }
@@ -288,11 +276,9 @@ describe('invoke', () => {
             })
           },
           on: {
-            SUCCESS: {
-              fn: ({ event }) => {
-                if (event.data === 42) {
-                  return { target: 'success' };
-                }
+            SUCCESS: ({ event }) => {
+              if (event.data === 42) {
+                return { target: 'success' };
               }
             }
           }
@@ -344,11 +330,9 @@ describe('invoke', () => {
         }
       },
       on: {
-        SUCCESS: {
-          fn: ({ event }) => {
-            if (event.data === 42) {
-              return { target: '.success' };
-            }
+        SUCCESS: ({ event }) => {
+          if (event.data === 42) {
+            return { target: '.success' };
           }
         }
       }
@@ -569,11 +553,9 @@ describe('invoke', () => {
                 invoke: {
                   id: 'pong',
                   src: pongMachine,
-                  onDone: {
-                    fn: ({ event }) => {
-                      if (event.output.secret === 'pingpong') {
-                        return { target: 'success' };
-                      }
+                  onDone: ({ event }) => {
+                    if (event.output.secret === 'pingpong') {
+                      return { target: 'success' };
                     }
                   }
                 }
@@ -619,12 +601,10 @@ describe('invoke', () => {
           });
         },
         on: {
-          UPDATE: {
-            fn: (_, enq) => {
-              enq.action(() => {
-                actionsCount++;
-              });
-            }
+          UPDATE: (_, enq) => {
+            enq.action(() => {
+              actionsCount++;
+            });
           }
         }
       });
@@ -709,11 +689,9 @@ describe('invoke', () => {
               })
             },
             on: {
-              STOPPED: {
-                target: 'idle',
-                fn: ({ parent, event }) => {
-                  parent?.send(event);
-                }
+              STOPPED: ({ parent, event }) => {
+                parent?.send(event);
+                return { target: 'idle' };
               }
             }
           }
@@ -809,11 +787,9 @@ describe('invoke', () => {
                 })
               ),
               input: ({ context }: any) => context,
-              onDone: {
-                fn: ({ context, event }) => {
-                  if (event.output === context.id) {
-                    return { target: 'success' };
-                  }
+              onDone: ({ context, event }) => {
+                if (event.output === context.id) {
+                  return { target: 'success' };
                 }
               },
               onError: 'failure'
@@ -1015,15 +991,13 @@ describe('invoke', () => {
                 src: fromPromise(() =>
                   createPromise((resolve) => resolve({ count: 1 }))
                 ),
-                onDone: {
-                  fn: ({ context, event }) => ({
-                    context: {
-                      ...context,
-                      count: event.output.count
-                    },
-                    target: 'success'
-                  })
-                }
+                onDone: ({ context, event }) => ({
+                  context: {
+                    ...context,
+                    count: event.output.count
+                  },
+                  target: 'success'
+                })
               }
             },
             success: {
@@ -1053,15 +1027,13 @@ describe('invoke', () => {
               pending: {
                 invoke: {
                   src: 'somePromise',
-                  onDone: {
-                    fn: ({ context, event }) => ({
-                      context: {
-                        ...context,
-                        count: event.output.count
-                      },
-                      target: 'success'
-                    })
-                  }
+                  onDone: ({ context, event }) => ({
+                    context: {
+                      ...context,
+                      count: event.output.count
+                    },
+                    target: 'success'
+                  })
                 }
               },
               success: {
@@ -1101,17 +1073,15 @@ describe('invoke', () => {
                 src: fromPromise(() =>
                   createPromise((resolve) => resolve({ count: 1 }))
                 ),
-                onDone: {
-                  fn: ({ context, event }) => {
-                    count = (event.output as any).count;
-                    return {
-                      context: {
-                        ...context,
-                        count: (event.output as any).count
-                      },
-                      target: 'success'
-                    };
-                  }
+                onDone: ({ context, event }) => {
+                  count = (event.output as any).count;
+                  return {
+                    context: {
+                      ...context,
+                      count: (event.output as any).count
+                    },
+                    target: 'success'
+                  };
                 }
               }
             },
@@ -1142,15 +1112,13 @@ describe('invoke', () => {
               pending: {
                 invoke: {
                   src: 'somePromise',
-                  onDone: {
-                    fn: ({ event }, enq) => {
-                      enq.action(() => {
-                        count = event.output.count;
-                      });
-                      return {
-                        target: 'success'
-                      };
-                    }
+                  onDone: ({ event }, enq) => {
+                    enq.action(() => {
+                      count = event.output.count;
+                    });
+                    return {
+                      target: 'success'
+                    };
                   }
                 }
               },
@@ -1272,17 +1240,15 @@ describe('invoke', () => {
                       active: {
                         invoke: {
                           src: 'getRandomNumber',
-                          onDone: {
+                          onDone: ({ context, event }) => {
                             // TODO: we get DoneInvokeEvent<any> here, this gets fixed with https://github.com/microsoft/TypeScript/pull/48838
-                            fn: ({ context, event }) => {
-                              return {
-                                context: {
-                                  ...context,
-                                  result1: event.output.result
-                                },
-                                target: 'success'
-                              };
-                            }
+                            return {
+                              context: {
+                                ...context,
+                                result1: event.output.result
+                              },
+                              target: 'success'
+                            };
                           }
                         }
                       },
@@ -1297,15 +1263,13 @@ describe('invoke', () => {
                       active: {
                         invoke: {
                           src: 'getRandomNumber',
-                          onDone: {
-                            fn: ({ context, event }) => ({
-                              context: {
-                                ...context,
-                                result2: event.output.result
-                              },
-                              target: 'success'
-                            })
-                          }
+                          onDone: ({ context, event }) => ({
+                            context: {
+                              ...context,
+                              result2: event.output.result
+                            },
+                            target: 'success'
+                          })
                         }
                       },
                       success: {
@@ -1365,13 +1329,9 @@ describe('invoke', () => {
             },
             inactive: {
               on: {
-                '*': {
-                  fn: ({ event }) => {
-                    if (event.snapshot) {
-                      throw new Error(
-                        `Received unexpected event: ${event.type}`
-                      );
-                    }
+                '*': ({ event }) => {
+                  if (event.snapshot) {
+                    throw new Error(`Received unexpected event: ${event.type}`);
                   }
                 }
               }
@@ -1455,11 +1415,9 @@ describe('invoke', () => {
                 })
               },
               on: {
-                CALLBACK: {
-                  fn: ({ event }) => {
-                    if (event.data === 42) {
-                      return { target: 'last' };
-                    }
+                CALLBACK: ({ event }) => {
+                  if (event.data === 42) {
+                    return { target: 'last' };
                   }
                 }
               }
@@ -1638,21 +1596,17 @@ describe('invoke', () => {
                 return () => clearInterval(ivl);
               })
             },
-            always: {
-              fn: ({ context }) => {
-                if (context.count === 3) {
-                  return { target: 'finished' };
-                }
+            always: ({ context }) => {
+              if (context.count === 3) {
+                return { target: 'finished' };
               }
             },
             on: {
-              INC: {
-                fn: ({ context }) => ({
-                  context: {
-                    count: context.count + 1
-                  }
-                })
-              }
+              INC: ({ context }) => ({
+                context: {
+                  count: context.count + 1
+                }
+              })
             }
           },
           finished: {
@@ -1733,14 +1687,12 @@ describe('invoke', () => {
               src: fromCallback(() => {
                 throw new Error('test');
               }),
-              onError: {
-                fn: ({ event }) => {
-                  if (
-                    event.error instanceof Error &&
-                    event.error.message === 'test'
-                  ) {
-                    return { target: 'failed' };
-                  }
+              onError: ({ event }) => {
+                if (
+                  event.error instanceof Error &&
+                  event.error.message === 'test'
+                ) {
+                  return { target: 'failed' };
                 }
               }
             }
@@ -1942,10 +1894,8 @@ describe('invoke', () => {
               onDone: 'completed'
             },
             on: {
-              STOPCHILD: {
-                fn: ({ children }) => {
-                  children['invoked.child'].send({ type: 'STOP' });
-                }
+              STOPCHILD: ({ children }) => {
+                children['invoked.child'].send({ type: 'STOP' });
               }
             }
           },
@@ -1977,19 +1927,15 @@ describe('invoke', () => {
           counting: {
             invoke: {
               src: fromObservable(() => interval(10)),
-              onSnapshot: {
-                fn: ({ event }) => ({
-                  context: {
-                    count: event.snapshot.context
-                  }
-                })
-              }
-            },
-            always: {
-              fn: ({ context }) => {
-                if (context.count === 5) {
-                  return { target: 'counted' };
+              onSnapshot: ({ event }) => ({
+                context: {
+                  count: event.snapshot.context
                 }
+              })
+            },
+            always: ({ context }) => {
+              if (context.count === 5) {
+                return { target: 'counted' };
               }
             }
           },
@@ -2027,18 +1973,14 @@ describe('invoke', () => {
           counting: {
             invoke: {
               src: fromObservable(() => interval(10).pipe(take(5))),
-              onSnapshot: {
-                fn: ({ event }) => ({
-                  context: {
-                    count: event.snapshot.context
-                  }
-                })
-              },
-              onDone: {
-                fn: ({ context }) => {
-                  if (context.count === 4) {
-                    return { target: 'counted' };
-                  }
+              onSnapshot: ({ event }) => ({
+                context: {
+                  count: event.snapshot.context
+                }
+              }),
+              onDone: ({ context }) => {
+                if (context.count === 4) {
+                  return { target: 'counted' };
                 }
               }
             }
@@ -2085,22 +2027,18 @@ describe('invoke', () => {
                   })
                 )
               ),
-              onSnapshot: {
-                fn: ({ event }) => ({
-                  context: {
-                    count: event.snapshot.context
-                  }
-                })
-              },
-              onError: {
-                fn: ({ context, event }) => {
-                  expect((event.error as any).message).toEqual('some error');
-                  if (
-                    context.count === 4 &&
-                    (event.error as any).message === 'some error'
-                  ) {
-                    return { target: 'success' };
-                  }
+              onSnapshot: ({ event }) => ({
+                context: {
+                  count: event.snapshot.context
+                }
+              }),
+              onError: ({ context, event }) => {
+                expect((event.error as any).message).toEqual('some error');
+                if (
+                  context.count === 4 &&
+                  (event.error as any).message === 'some error'
+                ) {
+                  return { target: 'success' };
                 }
               }
             }
@@ -2137,16 +2075,14 @@ describe('invoke', () => {
           invoke: {
             src: 'childLogic',
             input: 42,
-            onSnapshot: {
-              fn: ({ event }, enq) => {
-                if (
-                  event.snapshot.status === 'active' &&
-                  event.snapshot.context === 42
-                ) {
-                  enq.action(() => {
-                    done();
-                  });
-                }
+            onSnapshot: ({ event }, enq) => {
+              if (
+                event.snapshot.status === 'active' &&
+                event.snapshot.context === 42
+              ) {
+                enq.action(() => {
+                  done();
+                });
               }
             }
           }
@@ -2181,20 +2117,16 @@ describe('invoke', () => {
               )
             },
             on: {
-              COUNT: {
-                fn: ({ context, event }) => ({
-                  context: {
-                    ...context,
-                    count: event.value
-                  }
-                })
-              }
-            },
-            always: {
-              fn: ({ context }) => {
-                if (context.count === 5) {
-                  return { target: 'counted' };
+              COUNT: ({ context, event }) => ({
+                context: {
+                  ...context,
+                  count: event.value
                 }
+              })
+            },
+            always: ({ context }) => {
+              if (context.count === 5) {
+                return { target: 'counted' };
               }
             }
           },
@@ -2237,23 +2169,19 @@ describe('invoke', () => {
                   map((value) => ({ type: 'COUNT', value }))
                 )
               ),
-              onDone: {
-                fn: ({ context }) => {
-                  if (context.count === 4) {
-                    return { target: 'counted' };
-                  }
+              onDone: ({ context }) => {
+                if (context.count === 4) {
+                  return { target: 'counted' };
                 }
               }
             },
             on: {
-              COUNT: {
-                fn: ({ context, event }) => ({
-                  context: {
-                    ...context,
-                    count: event.value
-                  }
-                })
-              }
+              COUNT: ({ context, event }) => ({
+                context: {
+                  ...context,
+                  count: event.value
+                }
+              })
             }
           },
           counted: {
@@ -2298,27 +2226,23 @@ describe('invoke', () => {
                   })
                 )
               ),
-              onError: {
-                fn: ({ context, event }) => {
-                  expect((event.error as any).message).toEqual('some error');
-                  if (
-                    context.count === 4 &&
-                    (event.error as any).message === 'some error'
-                  ) {
-                    return { target: 'success' };
-                  }
+              onError: ({ context, event }) => {
+                expect((event.error as any).message).toEqual('some error');
+                if (
+                  context.count === 4 &&
+                  (event.error as any).message === 'some error'
+                ) {
+                  return { target: 'success' };
                 }
               }
             },
             on: {
-              COUNT: {
-                fn: ({ context, event }) => ({
-                  context: {
-                    ...context,
-                    count: event.value
-                  }
-                })
-              }
+              COUNT: ({ context, event }) => ({
+                context: {
+                  ...context,
+                  count: event.value
+                }
+              })
             }
           },
           success: {
@@ -2348,13 +2272,11 @@ describe('invoke', () => {
           input: 42
         },
         on: {
-          'obs.event': {
-            fn: ({ event }, enq) => {
-              expect(event.value).toEqual(42);
-              enq.action(() => {
-                done();
-              });
-            }
+          'obs.event': ({ event }, enq) => {
+            expect(event.value).toEqual(42);
+            enq.action(() => {
+              done();
+            });
           }
         }
       });
@@ -2398,10 +2320,8 @@ describe('invoke', () => {
           src: countLogic
         },
         on: {
-          INC: {
-            fn: ({ children, event }) => {
-              children['count'].send(event);
-            }
+          INC: ({ children, event }) => {
+            children['count'].send(event);
           }
         }
       });
@@ -2486,10 +2406,8 @@ describe('invoke', () => {
           src: fromTransition(countReducer, 0)
         },
         on: {
-          INC: {
-            fn: ({ children, event }) => {
-              children['count'].send(event);
-            }
+          INC: ({ children, event }) => {
+            children['count'].send(event);
           }
         }
       });
@@ -2531,10 +2449,8 @@ describe('invoke', () => {
           src: fromTransition(countReducer, 0)
         },
         on: {
-          INC: {
-            fn: ({ children, event }) => {
-              children['count'].send(event);
-            }
+          INC: ({ children, event }) => {
+            children['count'].send(event);
           }
         }
       });
@@ -2563,13 +2479,11 @@ describe('invoke', () => {
           invoke: {
             id: 'doubler',
             src: 'doublerLogic',
-            onSnapshot: {
-              fn: ({ event }, enq) => {
-                if (event.snapshot.context === 42) {
-                  enq.action(() => {
-                    done();
-                  });
-                }
+            onSnapshot: ({ event }, enq) => {
+              if (event.snapshot.context === 42) {
+                enq.action(() => {
+                  done();
+                });
               }
             }
           },
@@ -2595,11 +2509,9 @@ describe('invoke', () => {
       states: {
         active: {
           on: {
-            PING: {
+            PING: ({ parent }) => {
               // Sends 'PONG' event to parent machine
-              fn: ({ parent }) => {
-                parent?.send({ type: 'PONG' });
-              }
+              parent?.send({ type: 'PONG' });
             }
           }
         }
@@ -2662,13 +2574,11 @@ describe('invoke', () => {
           },
           invoke: {
             src: 'childMachine',
-            onSnapshot: {
-              fn: ({ event }, enq) => {
-                if (event.snapshot.value === 'b') {
-                  enq.action(() => {
-                    done();
-                  });
-                }
+            onSnapshot: ({ event }, enq) => {
+              if (event.snapshot.value === 'b') {
+                enq.action(() => {
+                  done();
+                });
               }
             }
           }
@@ -2691,24 +2601,20 @@ describe('invoke', () => {
       initial: 'one',
       context: {},
       on: {
-        ONE: {
-          fn: ({ context }) => ({
-            context: {
-              ...context,
-              one: 'one'
-            }
-          })
-        },
+        ONE: ({ context }) => ({
+          context: {
+            ...context,
+            one: 'one'
+          }
+        }),
 
-        TWO: {
-          fn: ({ context }) => ({
-            context: {
-              ...context,
-              two: 'two'
-            },
-            target: '.three'
-          })
-        }
+        TWO: ({ context }) => ({
+          context: {
+            ...context,
+            two: 'two'
+          },
+          target: '.three'
+        })
       },
 
       states: {
@@ -2758,23 +2664,19 @@ describe('invoke', () => {
       context: {},
 
       on: {
-        ONE: {
-          fn: ({ context }) => ({
-            context: {
-              ...context,
-              one: 'one'
-            }
-          })
-        },
+        ONE: ({ context }) => ({
+          context: {
+            ...context,
+            one: 'one'
+          }
+        }),
 
-        TWO: {
-          fn: ({ context }) => ({
-            context: {
-              ...context,
-              two: 'two'
-            }
-          })
-        }
+        TWO: ({ context }) => ({
+          context: {
+            ...context,
+            two: 'two'
+          }
+        })
       },
 
       after: {
@@ -2921,10 +2823,8 @@ describe('invoke', () => {
                       })
                     },
                     on: {
-                      NEXT: {
-                        fn: (_, enq) => {
-                          enq.raise({ type: 'STOP_ONE' });
-                        }
+                      NEXT: (_, enq) => {
+                        enq.raise({ type: 'STOP_ONE' });
                       }
                     }
                   }
@@ -2976,11 +2876,9 @@ describe('invoke', () => {
                 actorStartedCount++;
               })
             },
-            always: {
-              fn: ({ context }) => {
-                if (context.counter === 0) {
-                  return { target: 'inactive' };
-                }
+            always: ({ context }) => {
+              if (context.counter === 0) {
+                return { target: 'inactive' };
               }
             }
           },
@@ -3107,14 +3005,12 @@ describe('invoke', () => {
           a: {
             invoke: {
               src: 'someSrc',
-              onDone: {
-                fn: ({ event }) => {
-                  // invoke ID should not be 'someSrc'
-                  const expectedType = 'xstate.done.actor.0.(machine).a';
-                  expect(event.type).toEqual(expectedType);
-                  if (event.type === expectedType) {
-                    return { target: 'b' };
-                  }
+              onDone: ({ event }) => {
+                // invoke ID should not be 'someSrc'
+                const expectedType = 'xstate.done.actor.0.(machine).a';
+                expect(event.type).toEqual(expectedType);
+                if (event.type === expectedType) {
+                  return { target: 'b' };
                 }
               }
             }
@@ -3198,10 +3094,8 @@ describe('invoke', () => {
         fetch: {
           invoke: {
             src: 'fetchSmth',
-            onDone: {
-              fn: (_, enq) => {
-                enq.action(handleSuccess);
-              }
+            onDone: (_, enq) => {
+              enq.action(handleSuccess);
             }
           }
         }
@@ -3280,12 +3174,10 @@ describe('invoke', () => {
         second: createSingleState()
       },
       on: {
-        '*': {
-          fn: ({ event }, enq) => {
-            enq.action(() => {
-              actual.push(event);
-            });
-          }
+        '*': ({ event }, enq) => {
+          enq.action(() => {
+            actual.push(event);
+          });
         }
       }
     });
@@ -3487,10 +3379,8 @@ describe('invoke', () => {
         };
       },
       on: {
-        PING: {
-          fn: ({ event }) => {
-            event.origin.send({ type: 'PONG' });
-          }
+        PING: ({ event }) => {
+          event.origin.send({ type: 'PONG' });
         }
       }
     });

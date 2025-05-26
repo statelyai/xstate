@@ -44,10 +44,8 @@ describe('transition function', () => {
       },
       context: { count: 0 },
       on: {
-        event: {
-          fn: ({ event }, enq) => {
-            enq.action(actionWithDynamicParams, { msg: event.msg });
-          }
+        event: ({ event }, enq) => {
+          enq.action(actionWithDynamicParams, { msg: event.msg });
         }
       }
     });
@@ -177,11 +175,9 @@ describe('transition function', () => {
             enq.raise({ type: 'NEXT' }, { delay: 10, id: 'myRaise' });
           },
           on: {
-            NEXT: {
-              fn: (_, enq) => {
-                enq.cancel('myRaise');
-                return { target: 'b' };
-              }
+            NEXT: (_, enq) => {
+              enq.cancel('myRaise');
+              return { target: 'b' };
             }
           }
         },
@@ -215,10 +211,8 @@ describe('transition function', () => {
       states: {
         a: {
           on: {
-            NEXT: {
-              fn: ({ children }, enq) => {
-                enq.sendTo(children.someActor, { type: 'someEvent' });
-              }
+            NEXT: ({ children }, enq) => {
+              enq.sendTo(children.someActor, { type: 'someEvent' });
             }
           }
         }
@@ -261,13 +255,11 @@ describe('transition function', () => {
       states: {
         a: {
           on: {
-            NEXT: {
-              fn: ({ context }, enq) => {
-                enq.emit({
-                  type: 'counted',
-                  count: context.count
-                });
-              }
+            NEXT: ({ context }, enq) => {
+              enq.emit({
+                type: 'counted',
+                count: context.count
+              });
             }
           }
         }
@@ -297,10 +289,8 @@ describe('transition function', () => {
       states: {
         a: {
           on: {
-            NEXT: {
-              fn: ({ context }, enq) => {
-                enq.log(`count: ${context.count}`);
-              }
+            NEXT: ({ context }, enq) => {
+              enq.log(`count: ${context.count}`);
             }
           }
         }

@@ -94,8 +94,8 @@ describe('spawnChild action', () => {
 
     const childMachine = createMachine({
       on: {
-        FOO: {
-          actions: spy
+        FOO: (_, enq) => {
+          enq.action(spy);
         }
       }
     });

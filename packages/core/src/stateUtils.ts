@@ -40,7 +40,8 @@ import {
   AnyStateMachine,
   EnqueueObj,
   Action2,
-  AnyActorRef
+  AnyActorRef,
+  TransitionConfigFunction
 } from './types.ts';
 import {
   resolveOutput,
@@ -297,7 +298,9 @@ export function getDelayedTransitions(
     const resolvedTransition =
       typeof configTransition === 'string'
         ? { target: configTransition }
-        : configTransition;
+        : typeof configTransition === 'function'
+          ? { fn: configTransition }
+          : configTransition;
     const resolvedDelay = Number.isNaN(+delay) ? delay : +delay;
     const eventType = mutateEntryExit(resolvedDelay);
     return toArray(resolvedTransition).map((transition) => ({
@@ -464,12 +467,7 @@ export function formatInitialTransition<
       !_target || typeof _target === 'string' ? [] : toArray(_target.actions),
     eventType: null as any,
     reenter: false,
-    target: resolvedTarget ? [resolvedTarget] : [],
-    toJSON: () => ({
-      ...transition,
-      source: `#${stateNode.id}`,
-      target: resolvedTarget ? [`#${resolvedTarget.id}`] : []
-    })
+    target: resolvedTarget ? [resolvedTarget] : []
   };
 
   return transition;
@@ -1064,9 +1062,9 @@ export function microstep(
 
   // Get context
   const context = nextState.context;
-  for (const t of filteredTransitions) {
-    if (t.fn) {
-      const res = t.fn(
+  for (const transitionDef of filteredTransitions) {
+    if (transitionDef.fn) {
+      const res = transitionDef.fn(
         {
           context,
           event,
@@ -1301,6 +1299,10 @@ function enterStates(
   return nextSnapshot;
 }
 
+/**
+ * Gets the transition result for a given transition without executing the
+ * transition.
+ */
 export function getTransitionResult(
   transition: Pick<AnyTransitionDefinition, 'target' | 'fn' | 'source'> & {
     reenter?: AnyTransitionDefinition['reenter'];

@@ -167,20 +167,16 @@ describe('delayed transitions', () => {
       states: {
         X: {
           after: {
-            1: {
-              fn: () => {
-                return {
-                  target: true ? 'Y' : 'Z'
-                };
-              }
+            1: () => {
+              return {
+                target: true ? 'Y' : 'Z'
+              };
             }
           }
         },
         Y: {
           on: {
-            '*': {
-              fn: spy
-            }
+            '*': spy
           }
         },
         Z: {}

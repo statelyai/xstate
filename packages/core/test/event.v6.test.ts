@@ -11,16 +11,14 @@ describe('events', () => {
       states: {
         waitingForCode: {
           on: {
-            CODE: {
-              fn: ({ event }, enq) => {
-                expect(event.sender).toBeDefined();
+            CODE: ({ event }, enq) => {
+              expect(event.sender).toBeDefined();
 
-                enq.action(() => {
-                  setTimeout(() => {
-                    event.sender.send({ type: 'TOKEN' });
-                  }, 10);
-                });
-              }
+              enq.action(() => {
+                setTimeout(() => {
+                  event.sender.send({ type: 'TOKEN' });
+                }, 10);
+              });
             }
           }
         }
@@ -95,32 +93,28 @@ describe('nested transitions', () => {
               on: {
                 // We want to assign the new password but remain in the hidden
                 // state
-                changePassword: {
-                  fn: ({ context, event }) => ({
-                    context: assignPassword(context, event.password)
-                  })
-                }
+                changePassword: ({ context, event }) => ({
+                  context: assignPassword(context, event.password)
+                })
               }
             },
             valid: {},
             invalid: {}
           },
           on: {
-            changePassword: {
-              fn: ({ context, event }, enq) => {
-                const ctx = assignPassword(context, event.password);
-                if (event.password.length >= 10) {
-                  return {
-                    target: '.invalid',
-                    context: ctx
-                  };
-                }
-
+            changePassword: ({ context, event }, enq) => {
+              const ctx = assignPassword(context, event.password);
+              if (event.password.length >= 10) {
                 return {
-                  target: '.valid',
+                  target: '.invalid',
                   context: ctx
                 };
               }
+
+              return {
+                target: '.valid',
+                context: ctx
+              };
             }
           }
         }

@@ -440,8 +440,7 @@ export class StateMachine<
           source: this.root,
           reenter: true,
           actions: [],
-          eventType: null as any,
-          toJSON: null as any // TODO: fix
+          eventType: null as any
         }
       ],
       preInitialState,

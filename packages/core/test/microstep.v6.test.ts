@@ -77,11 +77,9 @@ describe('machine.microstep()', () => {
       states: {
         first: {
           on: {
-            TRIGGER: {
-              fn: (_, enq) => {
-                enq.raise({ type: 'RAISED' });
-                return { target: 'second' };
-              }
+            TRIGGER: (_, enq) => {
+              enq.raise({ type: 'RAISED' });
+              return { target: 'second' };
             }
           }
         },
@@ -133,12 +131,10 @@ describe('machine.microstep()', () => {
       states: {
         first: {
           on: {
-            TRIGGER: {
-              fn: (_, enq) => {
-                enq.raise({ type: 'FOO' });
-                enq.raise({ type: 'BAR' });
-                return { target: 'second' };
-              }
+            TRIGGER: (_, enq) => {
+              enq.raise({ type: 'FOO' });
+              enq.raise({ type: 'BAR' });
+              return { target: 'second' };
             }
           }
         },

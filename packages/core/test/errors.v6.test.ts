@@ -70,10 +70,8 @@ describe('error handling', () => {
         },
         active: {
           on: {
-            do: {
-              fn: (_, enq) => {
-                enq.action(spy);
-              }
+            do: (_, enq) => {
+              enq.action(spy);
             }
           }
         }
@@ -562,10 +560,8 @@ describe('error handling', () => {
         },
         failed: {
           on: {
-            do: {
-              fn: (_, enq) => {
-                enq.action(spy);
-              }
+            do: (_, enq) => {
+              enq.action(spy);
             }
           }
         }
@@ -867,18 +863,16 @@ describe('error handling', () => {
       states: {
         a: {
           on: {
-            NEXT: {
-              fn: () => {
-                // this is a bit silly, but just here to show the equivalence
-                if (
-                  (() => {
-                    throw new Error('error_thrown_in_guard_when_transitioning');
-                  })()
-                ) {
-                  return {
-                    target: 'b'
-                  };
-                }
+            NEXT: () => {
+              // this is a bit silly, but just here to show the equivalence
+              if (
+                (() => {
+                  throw new Error('error_thrown_in_guard_when_transitioning');
+                })()
+              ) {
+                return {
+                  target: 'b'
+                };
               }
             }
           }

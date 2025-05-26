@@ -22,15 +22,11 @@ describe('assertion helpers', () => {
         events: {} as TestEvent
       },
       on: {
-        greet: {
-          fn: ({ event }, enq) => {
-            enq.action(() => greet(event));
-          }
+        greet: ({ event }, enq) => {
+          enq.action(() => greet(event));
         },
-        count: {
-          fn: ({ event }) => {
-            greet(event);
-          }
+        count: ({ event }) => {
+          greet(event);
         }
       }
     });
@@ -79,15 +75,11 @@ describe('assertion helpers', () => {
         events: {} as TestEvent
       },
       on: {
-        greet: {
-          fn: ({ event }, enq) => {
-            enq.action(() => greet(event));
-          }
+        greet: ({ event }, enq) => {
+          enq.action(() => greet(event));
         },
-        count: {
-          fn: ({ event }, enq) => {
-            enq.action(() => greet(event));
-          }
+        count: ({ event }, enq) => {
+          enq.action(() => greet(event));
         }
       }
     });

@@ -29,10 +29,8 @@ const lightMachine = createMachine({
       },
       on: {
         TIMER: 'yellow',
-        KEEP_GOING: {
-          fn: (_, enq) => {
-            enq.cancel('TIMER1');
-          }
+        KEEP_GOING: (_, enq) => {
+          enq.cancel('TIMER1');
         }
       }
     },
@@ -131,11 +129,9 @@ describe('interpreter', () => {
         states: {
           green: {
             on: {
-              TIMER: {
-                fn: (_, enq) => {
-                  enq.action(() => (called = true));
-                  return { target: 'yellow' };
-                }
+              TIMER: (_, enq) => {
+                enq.action(() => (called = true));
+                return { target: 'yellow' };
               }
             }
           },
@@ -770,16 +766,14 @@ Event: {"type":"TIMER"}",
       states: {
         x: {
           on: {
-            LOG: {
-              fn: ({ context }, enq) => {
-                const nextContext = {
-                  count: context.count + 1
-                };
-                enq.log(nextContext);
-                return {
-                  context: nextContext
-                };
-              }
+            LOG: ({ context }, enq) => {
+              const nextContext = {
+                count: context.count + 1
+              };
+              enq.log(nextContext);
+              return {
+                context: nextContext
+              };
             }
           }
         }
@@ -806,21 +800,17 @@ Event: {"type":"TIMER"}",
       states: {
         foo: {
           on: {
-            EXTERNAL_EVENT: {
-              fn: ({ event }, enq) => {
-                enq.raise({ type: 'RAISED_EVENT' });
-                enq.log(event.type);
-              }
+            EXTERNAL_EVENT: ({ event }, enq) => {
+              enq.raise({ type: 'RAISED_EVENT' });
+              enq.log(event.type);
             }
           }
         }
       },
       on: {
-        '*': {
+        '*': ({ event }, enq) => {
           // actions: [logAction]
-          fn: ({ event }, enq) => {
-            enq.log(event.type);
-          }
+          enq.log(event.type);
         }
       }
     });
@@ -856,11 +846,9 @@ Event: {"type":"TIMER"}",
             enq.raise({ type: 'NEXT', password: context.password });
           },
           on: {
-            NEXT: {
-              fn: ({ event }) => {
-                if (event.password === 'foo') {
-                  return { target: 'finish' };
-                }
+            NEXT: ({ event }) => {
+              if (event.password === 'foo') {
+                return { target: 'finish' };
               }
             }
           }
@@ -919,11 +907,9 @@ Event: {"type":"TIMER"}",
               input: { password: 'foo' }
             },
             on: {
-              NEXT: {
-                fn: ({ event }) => {
-                  if (event.password === 'foo') {
-                    return { target: 'finish' };
-                  }
+              NEXT: ({ event }) => {
+                if (event.password === 'foo') {
+                  return { target: 'finish' };
                 }
               }
             }
@@ -956,11 +942,9 @@ Event: {"type":"TIMER"}",
       states: {
         inactive: {
           on: {
-            EVENT: {
-              fn: ({ event }) => {
-                if (event.id === 42) {
-                  return { target: 'active' };
-                }
+            EVENT: ({ event }) => {
+              if (event.id === 42) {
+                return { target: 'active' };
               }
             },
             ACTIVATE: 'active'
@@ -1137,11 +1121,9 @@ Event: {"type":"TIMER"}",
         states: {
           foo: {
             after: {
-              50: {
-                fn: (_, enq) => {
-                  enq.action(() => (called = true));
-                  return { target: 'bar' };
-                }
+              50: (_, enq) => {
+                enq.action(() => (called = true));
+                return { target: 'bar' };
               }
             }
           },
@@ -1286,13 +1268,11 @@ Event: {"type":"TRIGGER"}",
         states: {
           idle: { on: { START: 'transient' } },
           transient: {
-            always: {
-              fn: (_) => {
-                if (alwaysFalse()) {
-                  return { target: 'end' };
-                }
-                return { target: 'next' };
+            always: (_) => {
+              if (alwaysFalse()) {
+                return { target: 'end' };
               }
+              return { target: 'next' };
             }
           },
           next: { on: { FINISH: 'end' } },
@@ -1324,21 +1304,17 @@ Event: {"type":"TRIGGER"}",
       states: {
         active: {
           after: {
-            10: {
-              fn: ({ context }) => ({
-                target: 'active',
-                reenter: true,
-                context: {
-                  count: context.count + 1
-                }
-              })
-            }
-          },
-          always: {
-            fn: ({ context }) => {
-              if (context.count >= 5) {
-                return { target: 'finished' };
+            10: ({ context }) => ({
+              target: 'active',
+              reenter: true,
+              context: {
+                count: context.count + 1
               }
+            })
+          },
+          always: ({ context }) => {
+            if (context.count >= 5) {
+              return { target: 'finished' };
             }
           }
         },
@@ -1350,11 +1326,11 @@ Event: {"type":"TRIGGER"}",
 
     it('should be subscribable', (done) => {
       let count: number;
-      const intervalService = createActor(intervalMachine).start();
+      const intervalActor = createActor(intervalMachine).start();
 
-      expect(typeof intervalService.subscribe === 'function').toBeTruthy();
+      expect(typeof intervalActor.subscribe === 'function').toBeTruthy();
 
-      intervalService.subscribe(
+      intervalActor.subscribe(
         (state) => {
           count = state.context.count;
         },
@@ -1368,9 +1344,9 @@ Event: {"type":"TRIGGER"}",
 
     it('should be interoperable with RxJS, etc. via Symbol.observable', (done) => {
       let count = 0;
-      const intervalService = createActor(intervalMachine).start();
+      const intervalActor = createActor(intervalMachine).start();
 
-      const state$ = from(intervalService);
+      const state$ = from(intervalActor);
 
       state$.subscribe({
         next: () => {
@@ -1392,21 +1368,17 @@ Event: {"type":"TRIGGER"}",
         initial: 'active',
         states: {
           active: {
-            always: {
-              fn: ({ context }) => {
-                if (context.count >= 5) {
-                  return { target: 'finished' };
-                }
+            always: ({ context }) => {
+              if (context.count >= 5) {
+                return { target: 'finished' };
               }
             },
             on: {
-              INC: {
-                fn: ({ context }) => ({
-                  context: {
-                    count: context.count + 1
-                  }
-                })
-              }
+              INC: ({ context }) => ({
+                context: {
+                  count: context.count + 1
+                }
+              })
             }
           },
           finished: {
@@ -1521,10 +1493,8 @@ Event: {"type":"TRIGGER"}",
         states: {
           active: {
             on: {
-              FIRE: {
-                fn: ({ parent }, enq) => {
-                  enq.action(() => parent?.send({ type: 'FIRED' }));
-                }
+              FIRE: ({ parent }, enq) => {
+                enq.action(() => parent?.send({ type: 'FIRED' }));
               }
             }
           }
@@ -1571,13 +1541,11 @@ Event: {"type":"TRIGGER"}",
               invoke: {
                 id: 'childActor',
                 src: 'num',
-                onDone: {
-                  fn: ({ event }) => {
-                    if (event.output === 42) {
-                      return { target: 'success' };
-                    }
-                    return { target: 'failure' };
+                onDone: ({ event }) => {
+                  if (event.output === 42) {
+                    return { target: 'success' };
                   }
+                  return { target: 'failure' };
                 }
               }
             },
@@ -1643,11 +1611,9 @@ Event: {"type":"TRIGGER"}",
               invoke: {
                 id: 'childActor',
                 src: 'intervalLogic',
-                onSnapshot: {
-                  fn: ({ event }) => {
-                    if (event.snapshot.context === 3) {
-                      return { target: 'success' };
-                    }
+                onSnapshot: ({ event }) => {
+                  if (event.snapshot.context === 3) {
+                    return { target: 'success' };
                   }
                 }
               }
@@ -1753,13 +1719,11 @@ Event: {"type":"TRIGGER"}",
         states: {
           present: {
             on: {
-              NEXT: {
-                fn: ({ context, children }, enq) => {
-                  enq.cancel(context.machineRef.id);
-                  enq.cancel(context.promiseRef.id);
-                  enq.cancel(context.observableRef.id);
-                  return { target: 'gone' };
-                }
+              NEXT: ({ context }, enq) => {
+                enq.cancel(context.machineRef.id);
+                enq.cancel(context.promiseRef.id);
+                enq.cancel(context.observableRef.id);
+                return { target: 'gone' };
               }
             }
           },
@@ -1873,10 +1837,8 @@ it('should not process events sent directly to own actor ref before initial entr
       actual.push('initial root entry end');
     },
     on: {
-      EV: {
-        fn: (_, enq) => {
-          enq.action(() => actual.push('EV transition'));
-        }
+      EV: (_, enq) => {
+        enq.action(() => actual.push('EV transition'));
       }
     },
     initial: 'a',

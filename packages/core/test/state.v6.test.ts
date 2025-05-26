@@ -36,11 +36,9 @@ const exampleMachine = createMachine({
           // actions: ['doSomething']
         },
         TO_TWO: 'two',
-        TO_TWO_MAYBE: {
-          fn: () => {
-            if (true) {
-              return { target: 'two' };
-            }
+        TO_TWO_MAYBE: () => {
+          if (true) {
+            return { target: 'two' };
           }
         },
         TO_THREE: 'three',
@@ -181,14 +179,12 @@ describe('State', () => {
         states: {
           a: {
             on: {
-              NEXT: {
-                fn: () => {
-                  return {
-                    context: {
-                      count: 1
-                    }
-                  };
-                }
+              NEXT: () => {
+                return {
+                  context: {
+                    count: 1
+                  }
+                };
               }
             }
           }
@@ -237,11 +233,9 @@ describe('State', () => {
         states: {
           a: {
             on: {
-              EV: {
-                fn: (_, enq) => {
-                  enq.action(() => {});
-                  return { target: 'a' };
-                }
+              EV: (_, enq) => {
+                enq.action(() => {});
+                return { target: 'a' };
               }
             }
           }
@@ -257,10 +251,8 @@ describe('State', () => {
         states: {
           a: {
             on: {
-              EV: {
-                fn: (_, enq) => {
-                  enq.action(() => {});
-                }
+              EV: (_, enq) => {
+                enq.action(() => {});
               }
             }
           }
@@ -311,11 +303,9 @@ describe('State', () => {
         states: {
           a: {
             on: {
-              CHECK: {
-                fn: () => {
-                  if (true) {
-                    return { target: 'b' };
-                  }
+              CHECK: () => {
+                if (true) {
+                  return { target: 'b' };
                 }
               }
             }
@@ -337,11 +327,9 @@ describe('State', () => {
         states: {
           a: {
             on: {
-              CHECK: {
-                fn: () => {
-                  if (1 + 1 !== 2) {
-                    return { target: 'b' };
-                  }
+              CHECK: () => {
+                if (1 + 1 !== 2) {
+                  return { target: 'b' };
                 }
               }
             }
@@ -365,18 +353,16 @@ describe('State', () => {
         states: {
           a: {
             on: {
-              SPAWN: {
-                fn: (_, enq) => {
-                  return {
-                    context: {
-                      ref: enq.spawn(
-                        fromCallback(() => {
-                          spawned = true;
-                        })
-                      )
-                    }
-                  };
-                }
+              SPAWN: (_, enq) => {
+                return {
+                  context: {
+                    ref: enq.spawn(
+                      fromCallback(() => {
+                        spawned = true;
+                      })
+                    )
+                  }
+                };
               }
             }
           },
@@ -394,10 +380,8 @@ describe('State', () => {
       const machine = createMachine({
         context: {},
         on: {
-          EVENT: {
-            fn: (_, enq) => {
-              enq.action(() => (executed = true));
-            }
+          EVENT: (_, enq) => {
+            enq.action(() => (executed = true));
           }
         }
       });
@@ -414,10 +398,8 @@ describe('State', () => {
       const machine = createMachine({
         context: {},
         on: {
-          EVENT: {
-            fn: (_, enq) => {
-              enq.action(() => (executed = true));
-            }
+          EVENT: (_, enq) => {
+            enq.action(() => (executed = true));
           }
         }
       });

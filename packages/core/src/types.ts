@@ -493,6 +493,12 @@ export type DelayedTransitions<
           TODO, // TEmitted
           TODO // TMeta
         >
+      >
+    | TransitionConfigFunction<
+        TContext,
+        TEvent,
+        TEvent,
+        TODO // TEmitted
       >;
 };
 
@@ -571,7 +577,7 @@ export type TransitionConfigOrTarget<
       TEmitted,
       TMeta
     >
-  // | TransitionConfigFunction<TContext, TEvent>
+  | TransitionConfigFunction<TContext, TExpressionEvent, TEvent, TEmitted>
 >;
 
 export type TransitionConfigFunction<
@@ -907,6 +913,7 @@ export interface StateNodeConfig<
   /** The initial state transition. */
   initial?:
     | InitialTransitionConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
+    | TransitionConfigFunction<TContext, TEvent, TEvent, TEmitted>
     | string
     | undefined;
   /**
@@ -1726,14 +1733,6 @@ export interface TransitionDefinition<
   reenter: boolean;
   guard?: UnknownGuard;
   eventType: EventDescriptor<TEvent>;
-  toJSON: () => {
-    target: string[] | undefined;
-    source: string;
-    actions: readonly UnknownAction[];
-    guard?: UnknownGuard;
-    eventType: EventDescriptor<TEvent>;
-    meta?: Record<string, any>;
-  };
 }
 
 export type AnyTransitionDefinition = TransitionDefinition<any, any>;

@@ -8,15 +8,13 @@ const greetingMachine = createMachine({
   context: greetingContext,
   states: {
     pending: {
-      always: {
-        fn: ({ context }) => {
-          if (context.hour < 12) {
-            return { target: 'morning' };
-          } else if (context.hour < 18) {
-            return { target: 'afternoon' };
-          } else {
-            return { target: 'evening' };
-          }
+      always: ({ context }) => {
+        if (context.hour < 12) {
+          return { target: 'morning' };
+        } else if (context.hour < 18) {
+          return { target: 'afternoon' };
+        } else {
+          return { target: 'evening' };
         }
       }
     },
@@ -25,13 +23,11 @@ const greetingMachine = createMachine({
     evening: {}
   },
   on: {
-    CHANGE: {
-      fn: () => ({
-        context: {
-          hour: 20
-        }
-      })
-    },
+    CHANGE: () => ({
+      context: {
+        hour: 20
+      }
+    }),
     RECHECK: '#greeting'
   }
 });
@@ -47,13 +43,11 @@ describe('transient states (eventless transitions)', () => {
           on: { UPDATE_BUTTON_CLICKED: 'E' }
         },
         E: {
-          always: {
-            fn: ({ context }) => {
-              if (!context.data) {
-                return { target: 'D' };
-              } else {
-                return { target: 'F' };
-              }
+          always: ({ context }) => {
+            if (!context.data) {
+              return { target: 'D' };
+            } else {
+              return { target: 'F' };
             }
           }
         },
@@ -78,13 +72,11 @@ describe('transient states (eventless transitions)', () => {
           on: { UPDATE_BUTTON_CLICKED: 'E' }
         },
         E: {
-          always: {
-            fn: ({ context }) => {
-              if (!context.data) {
-                return { target: 'D' };
-              } else {
-                return { target: 'F' };
-              }
+          always: ({ context }) => {
+            if (!context.data) {
+              return { target: 'D' };
+            } else {
+              return { target: 'F' };
             }
           }
         },
@@ -109,13 +101,11 @@ describe('transient states (eventless transitions)', () => {
           on: { UPDATE_BUTTON_CLICKED: 'E' }
         },
         E: {
-          always: {
-            fn: ({ context }) => {
-              if (!context.data) {
-                return { target: 'D' };
-              } else {
-                return { target: 'F' };
-              }
+          always: ({ context }) => {
+            if (!context.data) {
+              return { target: 'D' };
+            } else {
+              return { target: 'F' };
             }
           }
         },
@@ -139,11 +129,9 @@ describe('transient states (eventless transitions)', () => {
             enq.action(() => void actual.push('exit_A'));
           },
           on: {
-            TIMER: {
-              fn: (_, enq) => {
-                enq.action(() => void actual.push('timer'));
-                return { target: 'T' };
-              }
+            TIMER: (_, enq) => {
+              enq.action(() => void actual.push('timer'));
+              return { target: 'T' };
             }
           }
         },
@@ -248,11 +236,9 @@ describe('transient states (eventless transitions)', () => {
               always: 'A3'
             },
             A3: {
-              always: {
-                fn: ({ value }) => {
-                  if (matchesState({ B: 'B3' }, value)) {
-                    return { target: 'A4' };
-                  }
+              always: ({ value }) => {
+                if (matchesState({ B: 'B3' }, value)) {
+                  return { target: 'A4' };
                 }
               }
             },
@@ -269,20 +255,16 @@ describe('transient states (eventless transitions)', () => {
               }
             },
             B2: {
-              always: {
-                fn: ({ value }) => {
-                  if (matchesState({ A: 'A2' }, value)) {
-                    return { target: 'B3' };
-                  }
+              always: ({ value }) => {
+                if (matchesState({ A: 'A2' }, value)) {
+                  return { target: 'B3' };
                 }
               }
             },
             B3: {
-              always: {
-                fn: ({ value }) => {
-                  if (matchesState({ A: 'A3' }, value)) {
-                    return { target: 'B4' };
-                  }
+              always: ({ value }) => {
+                if (matchesState({ A: 'A3' }, value)) {
+                  return { target: 'B4' };
                 }
               }
             },
@@ -317,11 +299,9 @@ describe('transient states (eventless transitions)', () => {
           initial: 'B1',
           states: {
             B1: {
-              always: {
-                fn: ({ value }) => {
-                  if (matchesState({ A: 'A2' }, value)) {
-                    return { target: 'B2' };
-                  }
+              always: ({ value }) => {
+                if (matchesState({ A: 'A2' }, value)) {
+                  return { target: 'B2' };
                 }
               }
             },
@@ -332,11 +312,9 @@ describe('transient states (eventless transitions)', () => {
           initial: 'C1',
           states: {
             C1: {
-              always: {
-                fn: ({ value }) => {
-                  if (matchesState({ A: 'A2' }, value)) {
-                    return { target: 'C2' };
-                  }
+              always: ({ value }) => {
+                if (matchesState({ A: 'A2' }, value)) {
+                  return { target: 'C2' };
                 }
               }
             },
@@ -433,13 +411,11 @@ describe('transient states (eventless transitions)', () => {
       states: {
         first: {
           on: {
-            ADD: {
-              fn: ({ context }) => ({
-                context: {
-                  count: context.count + 1
-                }
-              })
-            }
+            ADD: ({ context }) => ({
+              context: {
+                count: context.count + 1
+              }
+            })
           }
         },
         success: {
@@ -447,11 +423,9 @@ describe('transient states (eventless transitions)', () => {
         }
       },
 
-      always: {
-        fn: ({ context }) => {
-          if (context.count > 0) {
-            return { target: '.success' };
-          }
+      always: ({ context }) => {
+        if (context.count > 0) {
+          return { target: '.success' };
         }
       }
     });
@@ -473,13 +447,11 @@ describe('transient states (eventless transitions)', () => {
       },
       states: {
         initial: {
-          always: {
-            fn: ({ context }) => {
-              if (context.duration < 1000) {
-                return { target: 'finished' };
-              } else {
-                return { target: 'active' };
-              }
+          always: ({ context }) => {
+            if (context.duration < 1000) {
+              return { target: 'finished' };
+            } else {
+              return { target: 'active' };
             }
           }
         },
@@ -514,11 +486,9 @@ describe('transient states (eventless transitions)', () => {
       initial: 'a',
       states: {
         a: {
-          always: {
-            fn: ({ event }) => {
-              if (event.type === 'WHATEVER') {
-                return { target: 'b' };
-              }
+          always: ({ event }) => {
+            if (event.type === 'WHATEVER') {
+              return { target: 'b' };
             }
           }
         },
@@ -537,20 +507,16 @@ describe('transient states (eventless transitions)', () => {
       initial: 'a',
       states: {
         a: {
-          always: {
-            fn: ({ event }) => {
-              if (event.type === 'WHATEVER') {
-                return { target: 'b' };
-              }
+          always: ({ event }) => {
+            if (event.type === 'WHATEVER') {
+              return { target: 'b' };
             }
           }
         },
         b: {
-          always: {
-            fn: () => {
-              if (true) {
-                return { target: 'c' };
-              }
+          always: () => {
+            if (true) {
+              return { target: 'c' };
             }
           }
         },
@@ -578,12 +544,10 @@ describe('transient states (eventless transitions)', () => {
           always: 'c'
         },
         c: {
-          always: {
-            fn: ({ event }) => {
-              expect(event.type).toEqual('EVENT');
-              if (event.type === 'EVENT') {
-                return { target: 'd' };
-              }
+          always: ({ event }) => {
+            expect(event.type).toEqual('EVENT');
+            if (event.type === 'EVENT') {
+              return { target: 'd' };
             }
           }
         },
@@ -609,13 +573,11 @@ describe('transient states (eventless transitions)', () => {
           }
         },
         b: {
-          always: {
-            fn: ({ event }, enq) => {
-              enq.action(
-                () => void expect(event).toEqual({ type: 'EVENT', value: 42 })
-              );
-              return { target: 'c' };
-            }
+          always: ({ event }, enq) => {
+            enq.action(
+              () => void expect(event).toEqual({ type: 'EVENT', value: 42 })
+            );
+            return { target: 'c' };
           }
         },
         c: {
@@ -647,13 +609,11 @@ describe('transient states (eventless transitions)', () => {
             a: {},
             b: {}
           },
-          always: {
-            fn: () => {
-              if (1 + 1 === 3) {
-                return { target: '.a' };
-              } else {
-                return { target: '.b' };
-              }
+          always: () => {
+            if (1 + 1 === 3) {
+              return { target: '.a' };
+            } else {
+              return { target: '.b' };
             }
           }
         }
@@ -682,13 +642,11 @@ describe('transient states (eventless transitions)', () => {
             a: {},
             b: {}
           },
-          always: {
-            fn: () => {
-              if (true) {
-                return { target: '.a' };
-              } else {
-                return { target: '.b' };
-              }
+          always: () => {
+            if (true) {
+              return { target: '.a' };
+            } else {
+              return { target: '.b' };
             }
           }
         }
@@ -717,16 +675,14 @@ describe('transient states (eventless transitions)', () => {
           states: {
             a: {}
           },
-          always: {
-            fn: (_, enq) => {
-              enq.action(() => {
-                count++;
-                if (count > 5) {
-                  throw new Error('Infinite loop detected');
-                }
-              });
-              return { target: '.a' };
-            }
+          always: (_, enq) => {
+            enq.action(() => {
+              count++;
+              if (count > 5) {
+                throw new Error('Infinite loop detected');
+              }
+            });
+            return { target: '.a' };
           }
         }
       }
@@ -749,15 +705,13 @@ describe('transient states (eventless transitions)', () => {
       initial: 'counting',
       states: {
         counting: {
-          always: {
-            fn: ({ context }) => {
-              if (context.count < 5) {
-                return {
-                  context: {
-                    count: context.count + 1
-                  }
-                };
-              }
+          always: ({ context }) => {
+            if (context.count < 5) {
+              return {
+                context: {
+                  count: context.count + 1
+                }
+              };
             }
           }
         }
@@ -773,25 +727,19 @@ describe('transient states (eventless transitions)', () => {
     const spy = jest.fn();
     let counter = 0;
     const machine = createMachine({
-      always: {
-        fn: (_, enq) => {
-          enq.action((...args) => {
-            spy(...args);
-          }, counter);
-        }
+      always: (_, enq) => {
+        enq.action((...args) => {
+          spy(...args);
+        }, counter);
       },
       on: {
-        EV: {
-          fn: (_, enq) => {
-            enq.raise({ type: 'RAISED' });
-          }
+        EV: (_, enq) => {
+          enq.raise({ type: 'RAISED' });
         },
-        RAISED: {
-          fn: (_, enq) => {
-            enq.action(() => {
-              ++counter;
-            });
-          }
+        RAISED: (_, enq) => {
+          enq.action(() => {
+            ++counter;
+          });
         }
       }
     });

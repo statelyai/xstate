@@ -14,69 +14,55 @@ const createCounterMachine = (context: Partial<CounterContext> = {}) =>
     states: {
       counting: {
         on: {
-          INC: {
-            fn: ({ context }) => ({
-              target: 'counting',
-              context: { ...context, count: context.count + 1 }
-            })
-          },
-          DEC: {
-            fn: ({ context }) => ({
-              target: 'counting',
-              context: {
-                ...context,
-                count: context.count - 1
-              }
-            })
-          },
-          WIN_PROP: {
-            fn: ({ context }) => ({
-              target: 'counting',
-              context: {
-                ...context,
-                count: 100,
-                foo: 'win'
-              }
-            })
-          },
-          WIN_STATIC: {
-            fn: ({ context }) => ({
-              target: 'counting',
-              context: {
-                ...context,
-                count: 100,
-                foo: 'win'
-              }
-            })
-          },
-          WIN_MIX: {
-            fn: ({ context }) => ({
-              target: 'counting',
-              context: {
-                ...context,
-                count: 100,
-                foo: 'win'
-              }
-            })
-          },
-          WIN: {
-            fn: ({ context }) => ({
-              target: 'counting',
-              context: {
-                ...context,
-                count: 100,
-                foo: 'win'
-              }
-            })
-          },
-          SET_MAYBE: {
-            fn: ({ context }) => ({
-              context: {
-                ...context,
-                maybe: 'defined'
-              }
-            })
-          }
+          INC: ({ context }) => ({
+            target: 'counting',
+            context: { ...context, count: context.count + 1 }
+          }),
+          DEC: ({ context }) => ({
+            target: 'counting',
+            context: {
+              ...context,
+              count: context.count - 1
+            }
+          }),
+          WIN_PROP: ({ context }) => ({
+            target: 'counting',
+            context: {
+              ...context,
+              count: 100,
+              foo: 'win'
+            }
+          }),
+          WIN_STATIC: ({ context }) => ({
+            target: 'counting',
+            context: {
+              ...context,
+              count: 100,
+              foo: 'win'
+            }
+          }),
+          WIN_MIX: ({ context }) => ({
+            target: 'counting',
+            context: {
+              ...context,
+              count: 100,
+              foo: 'win'
+            }
+          }),
+          WIN: ({ context }) => ({
+            target: 'counting',
+            context: {
+              ...context,
+              count: 100,
+              foo: 'win'
+            }
+          }),
+          SET_MAYBE: ({ context }) => ({
+            context: {
+              ...context,
+              maybe: 'defined'
+            }
+          })
         }
       }
     }
@@ -255,14 +241,12 @@ describe('assign', () => {
       states: {
         active: {
           on: {
-            INC: {
-              fn: ({ context, event }) => ({
-                context: {
-                  ...context,
-                  count: event.value
-                }
-              })
-            }
+            INC: ({ context, event }) => ({
+              context: {
+                ...context,
+                count: event.value
+              }
+            })
           }
         }
       }

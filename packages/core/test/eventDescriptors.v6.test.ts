@@ -87,13 +87,11 @@ describe('event descriptors', () => {
       states: {
         A: {
           on: {
-            'foo.bar.*': {
-              fn: () => {
-                if (false) {
-                  return {
-                    target: 'fail'
-                  };
-                }
+            'foo.bar.*': () => {
+              if (1 + 1 === 3) {
+                return {
+                  target: 'fail'
+                };
               }
             },
             'foo.*': 'pass'

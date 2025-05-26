@@ -42,12 +42,10 @@ describe('internal transitions', () => {
             right: {}
           },
           on: {
-            NEXT: {
-              fn: () => ({
-                target: '.right',
-                reenter: true
-              })
-            }
+            NEXT: () => ({
+              target: '.right',
+              reenter: true
+            })
           }
         }
       }
@@ -177,7 +175,7 @@ describe('internal transitions', () => {
       states: {
         foo: {
           on: {
-            TARGETLESS_ARRAY: { fn: (_, enq) => void enq.action(spy) }
+            TARGETLESS_ARRAY: (_, enq) => void enq.action(spy)
           }
         }
       }
@@ -196,7 +194,7 @@ describe('internal transitions', () => {
       states: {
         foo: {
           on: {
-            TARGETLESS_OBJECT: { fn: (_, enq) => void enq.action(spy) }
+            TARGETLESS_OBJECT: (_, enq) => void enq.action(spy)
           }
         }
       }
@@ -212,7 +210,7 @@ describe('internal transitions', () => {
     const spy = jest.fn();
     const machine = createMachine({
       on: {
-        TARGETLESS_ARRAY: { fn: (_, enq) => void enq.action(spy) }
+        TARGETLESS_ARRAY: (_, enq) => void enq.action(spy)
       },
       initial: 'foo',
       states: { foo: {} }
@@ -228,7 +226,7 @@ describe('internal transitions', () => {
     const spy = jest.fn();
     const machine = createMachine({
       on: {
-        TARGETLESS_OBJECT: { fn: (_, enq) => void enq.action(spy) }
+        TARGETLESS_OBJECT: (_, enq) => void enq.action(spy)
       },
       initial: 'foo',
       states: { foo: {} }
@@ -244,7 +242,7 @@ describe('internal transitions', () => {
     const machine = createMachine({
       initial: 'foo',
       on: {
-        PARENT_EVENT: { fn: (_, enq) => void enq.action(() => {}) }
+        PARENT_EVENT: (_, enq) => void enq.action(() => {})
       },
       states: {
         foo: {}

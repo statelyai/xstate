@@ -7,9 +7,7 @@ it('should work with fn targets', () => {
     states: {
       active: {
         on: {
-          toggle: {
-            fn: () => ({ target: 'inactive' })
-          }
+          toggle: () => ({ target: 'inactive' })
         }
       },
       inactive: {}
@@ -29,10 +27,8 @@ it('should work with fn actions', () => {
     states: {
       active: {
         on: {
-          toggle: {
-            fn: (_, enq) => {
-              enq.emit({ type: 'something' });
-            }
+          toggle: (_, enq) => {
+            enq.emit({ type: 'something' });
           }
         }
       },
@@ -57,14 +53,12 @@ it('should work with both fn actions and target', () => {
     states: {
       active: {
         on: {
-          toggle: {
-            fn: (_, enq) => {
-              enq.emit({ type: 'something' });
+          toggle: (_, enq) => {
+            enq.emit({ type: 'something' });
 
-              return {
-                target: 'inactive'
-              };
-            }
+            return {
+              target: 'inactive'
+            };
           }
         }
       },
@@ -96,26 +90,22 @@ it('should work with conditions', () => {
     states: {
       active: {
         on: {
-          increment: {
-            fn: ({ context }) => ({
-              context: {
-                ...context,
-                count: context.count + 1
-              }
-            })
-          },
-          toggle: {
-            fn: ({ context }, enq) => {
-              enq.emit({ type: 'something' });
-
-              if (context.count > 0) {
-                return { target: 'inactive' };
-              }
-
-              enq.emit({ type: 'invalid' });
-
-              return undefined;
+          increment: ({ context }) => ({
+            context: {
+              ...context,
+              count: context.count + 1
             }
+          }),
+          toggle: ({ context }, enq) => {
+            enq.emit({ type: 'something' });
+
+            if (context.count > 0) {
+              return { target: 'inactive' };
+            }
+
+            enq.emit({ type: 'invalid' });
+
+            return undefined;
           }
         }
       },

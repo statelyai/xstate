@@ -189,13 +189,11 @@ describe('inspect', () => {
                 src: fromPromise(() => {
                   return Promise.resolve(42);
                 }),
-                onDone: {
-                  fn: ({ parent }) => {
-                    parent?.send({ type: 'toParent' });
-                    return {
-                      target: 'loaded'
-                    };
-                  }
+                onDone: ({ parent }) => {
+                  parent?.send({ type: 'toParent' });
+                  return {
+                    target: 'loaded'
+                  };
                 }
               }
             },
@@ -205,20 +203,16 @@ describe('inspect', () => {
           }
         }),
         id: 'child',
-        onDone: {
-          fn: (_, enq) => {
-            enq.action(() => {});
-            return {
-              target: '.success'
-            };
-          }
+        onDone: (_, enq) => {
+          enq.action(() => {});
+          return {
+            target: '.success'
+          };
         }
       },
       on: {
-        load: {
-          fn: ({ children }) => {
-            children.child.send({ type: 'loadChild' });
-          }
+        load: ({ children }) => {
+          children.child.send({ type: 'loadChild' });
         }
       }
     });
@@ -478,20 +472,18 @@ describe('inspect', () => {
       initial: 'counting',
       states: {
         counting: {
-          always: {
-            fn: ({ context }) => {
-              if (context.count === 3) {
-                return {
-                  target: 'done'
-                };
-              }
+          always: ({ context }) => {
+            if (context.count === 3) {
               return {
-                context: {
-                  ...context,
-                  count: context.count + 1
-                }
+                target: 'done'
               };
             }
+            return {
+              context: {
+                ...context,
+                count: context.count + 1
+              }
+            };
           }
         },
         done: {}

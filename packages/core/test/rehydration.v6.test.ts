@@ -60,10 +60,8 @@ describe('rehydration', () => {
     it('should get correct result back from `can` immediately', () => {
       const machine = createMachine({
         on: {
-          FOO: {
-            fn: (_, enq) => {
-              enq.action(() => {});
-            }
+          FOO: (_, enq) => {
+            enq.action(() => {});
           }
         }
       });
@@ -288,10 +286,8 @@ describe('rehydration', () => {
           return {};
         },
         on: {
-          '*': {
-            fn: (_, enq) => {
-              enq.action(spy);
-            }
+          '*': (_, enq) => {
+            enq.action(spy);
           }
         }
       },
@@ -408,10 +404,8 @@ describe('rehydration', () => {
       {
         invoke: {
           src: 'failure',
-          onError: {
-            fn: (_, enq) => {
-              enq.action(spy);
-            }
+          onError: (_, enq) => {
+            enq.action(spy);
           }
         }
       },
@@ -452,16 +446,12 @@ describe('rehydration', () => {
           };
         },
 
-        invoke: [
-          {
-            src: 'service',
-            onSnapshot: {
-              fn: ({ event }, enq) => {
-                enq.action(() => spy(event.snapshot.context));
-              }
-            }
+        invoke: {
+          src: 'service',
+          onSnapshot: ({ event }, enq) => {
+            enq.action(() => spy(event.snapshot.context));
           }
-        ]
+        }
       },
       {
         actors: {
@@ -488,13 +478,11 @@ describe('rehydration', () => {
         count: 0
       },
       on: {
-        INC: {
-          fn: ({ context }) => ({
-            context: {
-              count: context.count + 1
-            }
-          })
-        }
+        INC: ({ context }) => ({
+          context: {
+            count: context.count + 1
+          }
+        })
       }
     });
     const child = createMachine(
@@ -504,10 +492,8 @@ describe('rehydration', () => {
           id: 'grandchild'
         },
         on: {
-          INC: {
-            fn: ({ children }) => {
-              children.grandchild?.send({ type: 'INC' });
-            }
+          INC: ({ children }) => {
+            children.grandchild?.send({ type: 'INC' });
           }
         }
       },
@@ -524,10 +510,8 @@ describe('rehydration', () => {
           id: 'child'
         },
         on: {
-          INC: {
-            fn: ({ children }) => {
-              children.child?.send({ type: 'INC' });
-            }
+          INC: ({ children }) => {
+            children.child?.send({ type: 'INC' });
           }
         }
       },

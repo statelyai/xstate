@@ -80,11 +80,9 @@ describe('predictableExec', () => {
         },
         b: {
           on: {
-            RAISED: {
-              fn: ({ event }, enq) => {
-                enq.action(() => (eventArg = event));
-                return { target: 'c' };
-              }
+            RAISED: ({ event }, enq) => {
+              enq.action(() => (eventArg = event));
+              return { target: 'c' };
             }
           },
           entry2: (_, enq) => {
@@ -114,11 +112,9 @@ describe('predictableExec', () => {
         },
         b: {
           on: {
-            RAISED: {
-              fn: ({ event }, enq) => {
-                enq.action(() => (eventArg = event));
-                return { target: 'c' };
-              }
+            RAISED: ({ event }, enq) => {
+              enq.action(() => (eventArg = event));
+              return { target: 'c' };
             }
           },
           entry2: (_, enq) => {
@@ -313,13 +309,11 @@ describe('predictableExec', () => {
       states: {
         initial: {
           on: {
-            CHILD_UPDATED: {
-              fn: ({ children }) => {
-                if (children.myChild?.getSnapshot().value === 'b') {
-                  return { target: 'success' };
-                }
-                return { target: 'fail' };
+            CHILD_UPDATED: ({ children }) => {
+              if (children.myChild?.getSnapshot().value === 'b') {
+                return { target: 'success' };
               }
+              return { target: 'fail' };
             }
           }
         },
@@ -345,10 +339,8 @@ describe('predictableExec', () => {
   it('should be possible to send immediate events to initially invoked actors', () => {
     const child = createMachine({
       on: {
-        PING: {
-          fn: ({ parent }) => {
-            parent?.send({ type: 'PONG' });
-          }
+        PING: ({ parent }) => {
+          parent?.send({ type: 'PONG' });
         }
       }
     });
@@ -487,13 +479,11 @@ describe('predictableExec', () => {
       states: {
         initial: {
           on: {
-            CHILD_UPDATED: {
-              fn: ({ children }) => {
-                if (children.myChild?.getSnapshot().value === 'b') {
-                  return { target: 'success' };
-                }
-                return { target: 'fail' };
+            CHILD_UPDATED: ({ children }) => {
+              if (children.myChild?.getSnapshot().value === 'b') {
+                return { target: 'success' };
               }
+              return { target: 'fail' };
             }
           }
         },
@@ -519,10 +509,8 @@ describe('predictableExec', () => {
   it('should be possible to send immediate events to initially invoked actors', async () => {
     const child = createMachine({
       on: {
-        PING: {
-          fn: ({ parent }) => {
-            parent?.send({ type: 'PONG' });
-          }
+        PING: ({ parent }) => {
+          parent?.send({ type: 'PONG' });
         }
       }
     });

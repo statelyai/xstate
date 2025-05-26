@@ -1,6 +1,5 @@
 import { createMachine, createActor, StateValue } from '../src/index.ts';
-import { assign } from '../src/actions/assign.ts';
-import { raise } from '../src/actions/raise.ts';
+
 import { testMultiTransition, trackEntries } from './utils.ts';
 
 const composerMachine = createMachine({
@@ -718,14 +717,12 @@ describe('parallel states', () => {
       states: {
         editing: {
           on: {
-            CHANGE: {
-              fn: ({ context, event }) => ({
-                context: {
-                  ...context,
-                  value: event.value
-                }
-              })
-            }
+            CHANGE: ({ context, event }) => ({
+              context: {
+                ...context,
+                value: event.value
+              }
+            })
           }
         },
         status: {
@@ -775,11 +772,9 @@ describe('parallel states', () => {
       type: 'parallel',
       states: {
         a: {
-          initial: {
-            fn: (_, enq) => {
-              enq.action(spy);
-              return { target: 'a1' };
-            }
+          initial: (_, enq) => {
+            enq.action(spy);
+            return { target: 'a1' };
           },
           states: {
             a1: {}
@@ -812,13 +807,9 @@ describe('parallel states', () => {
           type: 'parallel',
           states: {
             c: {
-              initial: {
-                fn: (_, enq) => {
-                  enq.action(spy);
-                  return { target: 'c1' };
-                }
-                // target: 'c1',
-                // actions: spy
+              initial: (_, enq) => {
+                enq.action(spy);
+                return { target: 'c1' };
               },
               states: {
                 c1: {}
@@ -953,11 +944,7 @@ describe('parallel states', () => {
         states: {
           foo: {
             on: {
-              UPDATE: {
-                fn: () => {
-                  // do nothing
-                }
-              }
+              UPDATE: () => {}
             }
           },
           bar: {
@@ -1323,10 +1310,8 @@ describe('parallel states', () => {
         second: {}
       },
       on: {
-        MY_EVENT: {
-          fn: (_, enq) => {
-            enq.action(() => {});
-          }
+        MY_EVENT: (_, enq) => {
+          enq.action(() => {});
         }
       }
     });
@@ -1354,10 +1339,8 @@ describe('parallel states', () => {
             enabled: {}
           },
           on: {
-            MY_EVENT: {
-              fn: (_, enq) => {
-                enq.action(() => {});
-              }
+            MY_EVENT: (_, enq) => {
+              enq.action(() => {});
             }
           }
         },

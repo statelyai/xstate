@@ -326,11 +326,9 @@ describe('guard conditions', () => {
                 }
               ],
               on: {
-                T2: {
-                  fn: ({ value }) => {
-                    if (matchesState('A.A2', value)) {
-                      return { target: 'B2' };
-                    }
+                T2: ({ value }) => {
+                  if (matchesState('A.A2', value)) {
+                    return { target: 'B2' };
                   }
                 }
               }
@@ -377,11 +375,9 @@ describe('guard conditions', () => {
           initial: 'B0',
           states: {
             B0: {
-              always: {
-                fn: ({ value }) => {
-                  if (matchesState('A.A4', value)) {
-                    return { target: 'B4' };
-                  }
+              always: ({ value }) => {
+                if (matchesState('A.A4', value)) {
+                  return { target: 'B4' };
                 }
               }
             },
@@ -429,32 +425,24 @@ describe('[function] guard conditions', () => {
     states: {
       green: {
         on: {
-          TIMER: {
-            fn: ({ context }) => {
-              if (context.elapsed < 100) {
-                return { target: 'green' };
-              }
-              if (context.elapsed >= 100 && context.elapsed < 200) {
-                return { target: 'yellow' };
-              }
+          TIMER: ({ context }) => {
+            if (context.elapsed < 100) {
+              return { target: 'green' };
+            }
+            if (context.elapsed >= 100 && context.elapsed < 200) {
+              return { target: 'yellow' };
             }
           },
-          EMERGENCY: {
-            fn: ({ event }) =>
-              event.isEmergency ? { target: 'red' } : undefined
-          }
+          EMERGENCY: ({ event }) =>
+            event.isEmergency ? { target: 'red' } : undefined
         }
       },
       yellow: {
         on: {
-          TIMER: {
-            fn: ({ context }) =>
-              minTimeElapsed(context.elapsed) ? { target: 'red' } : undefined
-          },
-          TIMER_COND_OBJ: {
-            fn: ({ context }) =>
-              minTimeElapsed(context.elapsed) ? { target: 'red' } : undefined
-          }
+          TIMER: ({ context }) =>
+            minTimeElapsed(context.elapsed) ? { target: 'red' } : undefined,
+          TIMER_COND_OBJ: ({ context }) =>
+            minTimeElapsed(context.elapsed) ? { target: 'red' } : undefined
         }
       },
       red: {}
@@ -498,16 +486,14 @@ describe('[function] guard conditions', () => {
       states: {
         a: {
           on: {
-            TIMER: {
-              fn: ({ event }) => ({
-                target:
-                  event.elapsed > 200
-                    ? 'b'
-                    : event.elapsed > 100
-                      ? 'c'
-                      : undefined
-              })
-            }
+            TIMER: ({ event }) => ({
+              target:
+                event.elapsed > 200
+                  ? 'b'
+                  : event.elapsed > 100
+                    ? 'c'
+                    : undefined
+            })
           }
         },
         b: {},
@@ -563,30 +549,24 @@ describe('[function] guard conditions', () => {
       states: {
         green: {
           on: {
-            TIMER: {
-              fn: ({ context }) => ({
-                target:
-                  context.elapsed < 100
-                    ? 'green'
-                    : context.elapsed >= 100 && context.elapsed < 200
-                      ? 'yellow'
-                      : undefined
-              })
-            },
-            EMERGENCY: {
-              fn: ({ event }) => ({
-                target: event.isEmergency ? 'red' : undefined
-              })
-            }
+            TIMER: ({ context }) => ({
+              target:
+                context.elapsed < 100
+                  ? 'green'
+                  : context.elapsed >= 100 && context.elapsed < 200
+                    ? 'yellow'
+                    : undefined
+            }),
+            EMERGENCY: ({ event }) => ({
+              target: event.isEmergency ? 'red' : undefined
+            })
           }
         },
         yellow: {
           on: {
-            TIMER: {
-              fn: ({ context }) => ({
-                target: minTimeElapsed(context.elapsed) ? 'red' : undefined
-              })
-            }
+            TIMER: ({ context }) => ({
+              target: minTimeElapsed(context.elapsed) ? 'red' : undefined
+            })
           }
         },
         red: {}
@@ -623,15 +603,11 @@ describe('[function] guard conditions', () => {
                 }
               ],
               on: {
-                T2: [
-                  {
-                    fn: ({ value }) => {
-                      if (matchesState('A.A2', value)) {
-                        return { target: 'B2' };
-                      }
-                    }
+                T2: ({ value }) => {
+                  if (matchesState('A.A2', value)) {
+                    return { target: 'B2' };
                   }
-                ]
+                }
               }
             },
             B1: {},
@@ -676,15 +652,11 @@ describe('[function] guard conditions', () => {
           initial: 'B0',
           states: {
             B0: {
-              always: [
-                {
-                  fn: ({ value }) => {
-                    if (matchesState('A.A4', value)) {
-                      return { target: 'B4' };
-                    }
-                  }
+              always: ({ value }) => {
+                if (matchesState('A.A4', value)) {
+                  return { target: 'B4' };
                 }
-              ]
+              }
             },
             B4: {}
           }
@@ -903,12 +875,10 @@ describe('guards - other', () => {
       states: {
         a: {
           on: {
-            EVENT: {
-              fn: () => {
-                return {
-                  target: false ? 'b' : 'c'
-                };
-              }
+            EVENT: () => {
+              return {
+                target: false ? 'b' : 'c'
+              };
             }
           }
         },
@@ -931,12 +901,10 @@ describe('not() guard', () => {
       states: {
         a: {
           on: {
-            EVENT: {
-              fn: () => {
-                return {
-                  target: !false ? 'b' : undefined
-                };
-              }
+            EVENT: () => {
+              return {
+                target: !false ? 'b' : undefined
+              };
             }
           }
         },
@@ -958,12 +926,10 @@ describe('not() guard', () => {
       states: {
         a: {
           on: {
-            EVENT: {
-              fn: () => {
-                return {
-                  target: !falsyGuard() ? 'b' : undefined
-                };
-              }
+            EVENT: () => {
+              return {
+                target: !falsyGuard() ? 'b' : undefined
+              };
             }
           }
         },
@@ -987,12 +953,10 @@ describe('not() guard', () => {
       states: {
         a: {
           on: {
-            EVENT: {
-              fn: () => {
-                return {
-                  target: !greaterThan10(5) ? 'b' : undefined
-                };
-              }
+            EVENT: () => {
+              return {
+                target: !greaterThan10(5) ? 'b' : undefined
+              };
             }
           }
         },
@@ -1013,12 +977,10 @@ describe('not() guard', () => {
       states: {
         a: {
           on: {
-            EVENT: {
-              fn: () => {
-                return {
-                  target: !(!truthy() && truthy()) ? 'b' : undefined
-                };
-              }
+            EVENT: () => {
+              return {
+                target: !(!truthy() && truthy()) ? 'b' : undefined
+              };
             }
           }
         },
@@ -1041,14 +1003,11 @@ describe('not() guard', () => {
 
     const machine = createMachine({
       on: {
-        EV: {
-          actions: () => {},
-          fn: ({ event }) => {
-            if (myGuard({ secret: event.secret })) {
-              return {
-                target: undefined
-              };
-            }
+        EV: ({ event }) => {
+          if (myGuard({ secret: event.secret })) {
+            return {
+              target: undefined
+            };
           }
         }
       }
@@ -1111,12 +1070,10 @@ describe('and() guard', () => {
       states: {
         a: {
           on: {
-            EVENT: {
-              fn: () => {
-                return {
-                  target: !(!true && 1 + 1 === 2) ? 'b' : undefined
-                };
-              }
+            EVENT: () => {
+              return {
+                target: !(!true && 1 + 1 === 2) ? 'b' : undefined
+              };
             }
           }
         },
@@ -1137,12 +1094,10 @@ describe('and() guard', () => {
       states: {
         a: {
           on: {
-            EVENT: {
-              fn: () => {
-                return {
-                  target: !(!truthy() && truthy()) ? 'b' : undefined
-                };
-              }
+            EVENT: () => {
+              return {
+                target: !(!truthy() && truthy()) ? 'b' : undefined
+              };
             }
           }
         },
@@ -1169,14 +1124,12 @@ describe('and() guard', () => {
       states: {
         a: {
           on: {
-            EVENT: {
-              fn: () => {
-                return {
-                  target: !(!greaterThan10(11) && greaterThan10(50))
-                    ? 'b'
-                    : undefined
-                };
-              }
+            EVENT: () => {
+              return {
+                target: !(!greaterThan10(11) && greaterThan10(50))
+                  ? 'b'
+                  : undefined
+              };
             }
           }
         },
@@ -1198,13 +1151,11 @@ describe('and() guard', () => {
       states: {
         a: {
           on: {
-            EVENT: {
-              fn: () => {
-                return {
-                  target:
-                    true && !falsy() && !falsy() && truthy() ? 'b' : undefined
-                };
-              }
+            EVENT: () => {
+              return {
+                target:
+                  true && !falsy() && !falsy() && truthy() ? 'b' : undefined
+              };
             }
           }
         },
@@ -1228,13 +1179,10 @@ describe('and() guard', () => {
 
     const machine = createMachine({
       on: {
-        EV: {
-          fn: ({ event }) => {
-            return {
-              target:
-                myGuard({ secret: event.secret }) && true ? 'b' : undefined
-            };
-          }
+        EV: ({ event }) => {
+          return {
+            target: myGuard({ secret: event.secret }) && true ? 'b' : undefined
+          };
         }
       }
     });
@@ -1266,12 +1214,10 @@ describe('or() guard', () => {
       states: {
         a: {
           on: {
-            EVENT: {
-              fn: () => {
-                return {
-                  target: false || 1 + 1 === 2 ? 'b' : undefined
-                };
-              }
+            EVENT: () => {
+              return {
+                target: false || 1 + 1 === 2 ? 'b' : undefined
+              };
             }
           }
         },
@@ -1293,12 +1239,10 @@ describe('or() guard', () => {
       states: {
         a: {
           on: {
-            EVENT: {
-              fn: () => {
-                return {
-                  target: falsy() || truthy() ? 'b' : undefined
-                };
-              }
+            EVENT: () => {
+              return {
+                target: falsy() || truthy() ? 'b' : undefined
+              };
             }
           }
         },
@@ -1325,13 +1269,10 @@ describe('or() guard', () => {
       states: {
         a: {
           on: {
-            EVENT: {
-              fn: () => {
-                return {
-                  target:
-                    greaterThan10(4) || greaterThan10(50) ? 'b' : undefined
-                };
-              }
+            EVENT: () => {
+              return {
+                target: greaterThan10(4) || greaterThan10(50) ? 'b' : undefined
+              };
             }
           }
         },
@@ -1353,12 +1294,10 @@ describe('or() guard', () => {
       states: {
         a: {
           on: {
-            EVENT: {
-              fn: () => {
-                return {
-                  target: falsy() || (!falsy() && truthy()) ? 'b' : undefined
-                };
-              }
+            EVENT: () => {
+              return {
+                target: falsy() || (!falsy() && truthy()) ? 'b' : undefined
+              };
             }
           }
         },
@@ -1382,13 +1321,10 @@ describe('or() guard', () => {
 
     const machine = createMachine({
       on: {
-        EV: {
-          fn: ({ event }) => {
-            return {
-              target:
-                myGuard({ secret: event.secret }) || true ? 'b' : undefined
-            };
-          }
+        EV: ({ event }) => {
+          return {
+            target: myGuard({ secret: event.secret }) || true ? 'b' : undefined
+          };
         }
       }
     });

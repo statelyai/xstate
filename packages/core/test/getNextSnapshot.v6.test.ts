@@ -59,11 +59,9 @@ describe('transition', () => {
       states: {
         a: {
           on: {
-            event: {
-              fn: (_, enq) => {
-                enq.action(fn);
-                return { target: 'b' };
-              }
+            event: (_, enq) => {
+              enq.action(fn);
+              return { target: 'b' };
             }
           }
         },

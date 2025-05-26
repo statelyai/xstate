@@ -3486,10 +3486,8 @@ describe('raise', () => {
       states: {
         a: {
           on: {
-            NEXT: {
-              fn: (_, enq) => {
-                enq.raise({ type: 'RAISED' });
-              }
+            NEXT: (_, enq) => {
+              enq.raise({ type: 'RAISED' });
             },
             RAISED: 'b'
           }
@@ -3525,10 +3523,8 @@ describe('raise', () => {
       states: {
         a: {
           on: {
-            NEXT: {
-              fn: ({ context }, enq) => {
-                enq.raise({ type: context.eventType });
-              }
+            NEXT: ({ context }, enq) => {
+              enq.raise({ type: context.eventType });
             },
             RAISED: 'b'
           }

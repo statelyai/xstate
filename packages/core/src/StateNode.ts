@@ -258,13 +258,7 @@ export class StateNode<
             source: this,
             actions: this.initial.actions.map(toSerializableAction),
             eventType: null as any,
-            reenter: false,
-            toJSON: () => ({
-              target: this.initial.target.map((t) => `#${t.id}`),
-              source: `#${this.id}`,
-              actions: this.initial.actions.map(toSerializableAction),
-              eventType: null as any
-            })
+            reenter: false
           }
         : undefined,
       history: this.history,

@@ -428,32 +428,25 @@ describe('[function] guard conditions', () => {
     states: {
       green: {
         on: {
-          TIMER: {
-            fn: ({ context }) => {
-              if (context.elapsed < 100) {
-                return { target: 'green' };
-              }
-              if (context.elapsed >= 100 && context.elapsed < 200) {
-                return { target: 'yellow' };
-              }
+          TIMER: ({ context }) => {
+            if (context.elapsed < 100) {
+              return { target: 'green' };
+            }
+            if (context.elapsed >= 100 && context.elapsed < 200) {
+              return { target: 'yellow' };
             }
           },
-          EMERGENCY: {
-            fn: ({ event }) =>
-              event.isEmergency ? { target: 'red' } : undefined
-          }
+          EMERGENCY: ({ event }) =>
+            event.isEmergency ? { target: 'red' } : undefined
         }
       },
       yellow: {
         on: {
-          TIMER: {
-            fn: ({ context }) =>
-              minTimeElapsed(context.elapsed) ? { target: 'red' } : undefined
-          },
-          TIMER_COND_OBJ: {
-            fn: ({ context }) =>
-              minTimeElapsed(context.elapsed) ? { target: 'red' } : undefined
-          }
+          TIMER: ({ context }) =>
+            minTimeElapsed(context.elapsed) ? { target: 'red' } : undefined,
+
+          TIMER_COND_OBJ: ({ context }) =>
+            minTimeElapsed(context.elapsed) ? { target: 'red' } : undefined
         }
       },
       red: {}
