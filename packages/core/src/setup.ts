@@ -1,6 +1,7 @@
 import { StateMachine } from './StateMachine';
 import { createMachine } from './createMachine';
 import { GuardPredicate } from './guards';
+import { SetupReturn } from './setup2';
 
 import {
   ActionFunction,
@@ -66,9 +67,8 @@ type ToProvidedActor<
         };
       }>;
 
-type RequiredSetupKeys<TChildrenMap> = IsNever<keyof TChildrenMap> extends true
-  ? never
-  : 'actors';
+type RequiredSetupKeys<TChildrenMap> =
+  IsNever<keyof TChildrenMap> extends true ? never : 'actors';
 
 export function setup<
   TContext extends MachineContext,
@@ -145,43 +145,20 @@ export function setup<
   };
 } & {
   [K in RequiredSetupKeys<TChildrenMap>]: unknown;
-}): {
-  createMachine: <
-    const TConfig extends MachineConfig<
-      TContext,
-      TEvent,
-      ToProvidedActor<TChildrenMap, TActors>,
-      ToParameterizedObject<TActions>,
-      ToParameterizedObject<TGuards>,
-      TDelay,
-      TTag,
-      TInput,
-      TOutput,
-      TEmitted,
-      TMeta
-    >
-  >(
-    config: TConfig
-  ) => StateMachine<
-    TContext,
-    TEvent,
-    Cast<
-      ToChildren<ToProvidedActor<TChildrenMap, TActors>>,
-      Record<string, AnyActorRef | undefined>
-    >,
-    ToProvidedActor<TChildrenMap, TActors>,
-    ToParameterizedObject<TActions>,
-    ToParameterizedObject<TGuards>,
-    TDelay,
-    ToStateValue<TConfig>,
-    TTag,
-    TInput,
-    TOutput,
-    TEmitted,
-    TMeta,
-    TConfig
-  >;
-} {
+}): SetupReturn<
+  TContext,
+  TEvent,
+  TChildrenMap,
+  TActors,
+  TActions,
+  TGuards,
+  TDelay,
+  TTag,
+  TInput,
+  TOutput,
+  TEmitted,
+  TMeta
+> {
   return {
     createMachine: (config) =>
       (createMachine as any)(

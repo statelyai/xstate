@@ -2398,4 +2398,20 @@ describe('setup()', () => {
 
     ((_accept: ContextFrom<typeof machine>) => {})({ myVar: 'whatever' });
   });
+
+  it('yes', () => {
+    const s = setup({
+      actions: {
+        doStuff: (_, params: { count: number }) => {}
+      }
+    });
+
+    s.extend({
+      actions: {
+        foo: enqueueActions((x) => {
+          x;
+        })
+      }
+    });
+  });
 });

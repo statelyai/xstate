@@ -195,7 +195,7 @@ export interface EnqueueActionsAction<
 > {
   (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TEvent?: TEvent;
-  _out_TActor?: TActor;
+  // _out_TActor?: TActor;
   _out_TAction?: TAction;
   _out_TGuard?: TGuard;
   _out_TDelay?: TDelay;
@@ -300,17 +300,7 @@ export function enqueueActions<
     TDelay,
     TEmitted
   >
-): ActionFunction<
-  TContext,
-  TExpressionEvent,
-  TEvent,
-  TParams,
-  TActor,
-  TAction,
-  TGuard,
-  TDelay,
-  TEmitted
-> {
+) {
   function enqueueActions(
     _args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     _params: unknown
