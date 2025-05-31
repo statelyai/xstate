@@ -1,6 +1,6 @@
 {
   "name": "@xstate/svelte",
-  "version": "4.0.4",
+  "version": "4.0.5",
   "description": "XState tools for Svelte",
   "keywords": [
     "state",
