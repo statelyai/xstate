@@ -95,7 +95,8 @@
     "actions",
     "invoke",
     "guards",
-    "dev"
+    "dev",
+    "graph"
   ],
   "keywords": [
     "statechart",
@@ -104,7 +105,8 @@
     "finite automata",
     "scxml",
     "state",
-    "interpreter"
+    "interpreter",
+    "graph"
   ],
   "scripts": {},
   "repository": {
@@ -132,7 +134,8 @@
       "./actions.ts",
       "./actors/index.ts",
       "./guards.ts",
-      "./dev/index.ts"
+      "./dev/index.ts",
+      "./graph/index.ts"
     ]
   }
 }

@@ -1,4 +1,4 @@
-import { AnyActorScope, createEmptyActor } from 'xstate';
+import { AnyActorScope, createEmptyActor } from '../index.ts';
 
 export function createMockActorScope(): AnyActorScope {
   const emptyActor = createEmptyActor();

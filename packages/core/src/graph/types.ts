@@ -11,7 +11,7 @@ import {
   StateNodeConfig,
   TODO,
   TransitionConfig
-} from 'xstate';
+} from '../index.ts';
 
 export type AnyStateNode = StateNode<any, any>;
 
@@ -394,3 +394,17 @@ export type PathGenerator<
   behavior: ActorLogic<TSnapshot, TEvent, TInput>,
   options: TraversalOptions<TSnapshot, TEvent, TInput>
 ) => Array<StatePath<TSnapshot, TEvent>>;
+
+export interface AdjacencyValue<TState, TEvent> {
+  state: TState;
+  transitions: {
+    [key: SerializedEvent]: {
+      event: TEvent;
+      state: TState;
+    };
+  };
+}
+
+export interface AdjacencyMap<TState, TEvent> {
+  [key: SerializedSnapshot]: AdjacencyValue<TState, TEvent>;
+}

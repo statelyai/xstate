@@ -1,5 +1,5 @@
-import { createMachine } from 'xstate';
-import { adjacencyMapToArray, createTestModel } from '../src';
+import { createMachine } from '../../index.ts';
+import { adjacencyMapToArray, createTestModel } from '../index.ts';
 
 describe('adjacency maps', () => {
   it('model generates an adjacency map (converted to an array)', () => {

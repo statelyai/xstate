@@ -1,6 +1,6 @@
-import { StateFrom, assign, createMachine } from 'xstate';
-import { createTestModel } from '../src/index.ts';
-import { getDescription } from '../src/utils';
+import { assign, createMachine } from '../../index.ts';
+import { createTestModel } from '../index.ts';
+import { getDescription } from '../utils.ts';
 
 describe('die hard example', () => {
   interface DieHardContext {

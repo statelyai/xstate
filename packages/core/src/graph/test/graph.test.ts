@@ -1,22 +1,22 @@
 import {
-  StateNode,
-  createMachine,
   EventObject,
-  assign,
-  fromTransition,
   Snapshot,
+  StateNode,
+  assign,
+  createMachine,
+  fromTransition,
   isMachineSnapshot
-} from 'xstate';
+} from '../../index.ts';
+import { createMockActorScope } from '../actorScope.ts';
 import {
-  getStateNodes,
+  StatePath,
   getPathsFromEvents,
   getShortestPaths,
-  toDirectedGraph,
-  StatePath,
-  getSimplePaths
-} from '../src';
-import { joinPaths } from '../src/graph';
-import { createMockActorScope } from '../src/actorScope';
+  getSimplePaths,
+  getStateNodes,
+  joinPaths,
+  toDirectedGraph
+} from '../index.ts';
 
 function getPathsSnapshot(
   paths: Array<StatePath<Snapshot<unknown>, EventObject>>

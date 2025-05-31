@@ -1,5 +1,5 @@
-import { createMachine, raise } from 'xstate';
-import { createTestModel } from '../src/index.ts';
+import { createMachine, raise } from '../../index.ts';
+import { createTestModel } from '../index.ts';
 
 describe('Forbidden attributes', () => {
   it('Should not let you declare invocations on your test machine', () => {

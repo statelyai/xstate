@@ -7,7 +7,7 @@ import {
   Snapshot,
   __unsafe_getAllOwnEventDescriptors,
   InputFrom
-} from 'xstate';
+} from '../index.ts';
 import type {
   SerializedEvent,
   SerializedSnapshot,
@@ -158,20 +158,6 @@ export function toDirectedGraph(
   };
 
   return graph;
-}
-
-export interface AdjacencyValue<TState, TEvent> {
-  state: TState;
-  transitions: {
-    [key: SerializedEvent]: {
-      event: TEvent;
-      state: TState;
-    };
-  };
-}
-
-export interface AdjacencyMap<TState, TEvent> {
-  [key: SerializedSnapshot]: AdjacencyValue<TState, TEvent>;
 }
 
 function isMachineLogic(logic: AnyActorLogic): logic is AnyStateMachine {

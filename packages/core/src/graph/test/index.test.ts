@@ -1,6 +1,6 @@
-import { assign, createMachine, setup } from 'xstate';
-import { createTestModel } from '../src/index.ts';
-import { testUtils } from './testUtils';
+import { assign, createMachine, setup } from '../../index.ts';
+import { createTestModel } from '../index.ts';
+import { testUtils } from './testUtils.ts';
 
 describe('events', () => {
   it('should allow for representing many cases', async () => {
