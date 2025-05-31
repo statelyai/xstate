@@ -48,10 +48,10 @@ type ToProvidedActor<
   // it shouldn't be observable but here we are
   // we don't want to lock inner inferences for our actions with types containing this type
   // it's used in inner inference contexts when the outer one context doesn't have inference candidates for a type parameter
-  // because it leaks here, without this condition it manages to create an inferrable type that contains it
-  // the `silentNeverType` is non-inferrable itself and that usually means that a containing object is non-inferrable too
+  // because it leaks here, without this condition it manages to create an inferable type that contains it
+  // the `silentNeverType` is non-inferable itself and that usually means that a containing object is non-inferable too
   // that doesn't happen here though. However, we actually want to infer a true `never` here so our actions can't use unknown actors
-  // for that reason it's important to do the conversion here because we want to map it to something that is actually inferrable
+  // for that reason it's important to do the conversion here because we want to map it to something that is actually inferable
   IsNever<TActors> extends true
     ? never
     : Values<{
@@ -66,9 +66,8 @@ type ToProvidedActor<
         };
       }>;
 
-type RequiredSetupKeys<TChildrenMap> = IsNever<keyof TChildrenMap> extends true
-  ? never
-  : 'actors';
+type RequiredSetupKeys<TChildrenMap> =
+  IsNever<keyof TChildrenMap> extends true ? never : 'actors';
 
 export function setup<
   TContext extends MachineContext,
