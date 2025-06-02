@@ -3434,7 +3434,9 @@ describe('raise', () => {
       initial: 'a',
       states: {
         a: {
-          entry: raise({ type: 'TO_B' }),
+          entry2: (_, enq) => {
+            enq.raise({ type: 'TO_B' });
+          },
           on: {
             TO_B: 'b'
           }
@@ -3455,12 +3457,9 @@ describe('raise', () => {
       initial: 'a',
       states: {
         a: {
-          entry: raise(
-            { type: 'TO_B' },
-            {
-              delay: 100
-            }
-          ),
+          entry2: (_, enq) => {
+            enq.raise({ type: 'TO_B' }, { delay: 100 });
+          },
           on: {
             TO_B: 'b'
           }
@@ -3487,8 +3486,8 @@ describe('raise', () => {
       states: {
         a: {
           on: {
-            NEXT: {
-              actions: raise(() => ({ type: 'RAISED' }))
+            NEXT: (_, enq) => {
+              enq.raise({ type: 'RAISED' });
             },
             RAISED: 'b'
           }
@@ -3524,10 +3523,8 @@ describe('raise', () => {
       states: {
         a: {
           on: {
-            NEXT: {
-              actions: raise(({ context }) => ({
-                type: context.eventType
-              }))
+            NEXT: ({ context }, enq) => {
+              enq.raise({ type: context.eventType });
             },
             RAISED: 'b'
           }
