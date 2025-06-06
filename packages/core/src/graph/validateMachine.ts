@@ -1,4 +1,4 @@
-import { AnyStateMachine, AnyStateNode } from 'xstate';
+import { AnyStateMachine, AnyStateNode } from '../index.ts';
 
 const validateState = (state: AnyStateNode) => {
   if (state.invoke.length > 0) {

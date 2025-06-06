@@ -3,7 +3,7 @@ import {
   getAdjacencyMap,
   joinPaths,
   serializeSnapshot
-} from '@xstate/graph';
+} from './index.ts';
 import type {
   AdjacencyMap,
   SerializedEvent,
@@ -11,7 +11,7 @@ import type {
   StatePath,
   Step,
   TraversalOptions
-} from '@xstate/graph';
+} from './types.ts';
 import {
   EventObject,
   ActorLogic,
@@ -28,7 +28,7 @@ import {
   StateValue,
   TODO,
   InputFrom
-} from 'xstate';
+} from '../index.ts';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
   createShortestPathsGen,

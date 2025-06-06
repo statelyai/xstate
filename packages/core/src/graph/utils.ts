@@ -1,5 +1,5 @@
-import { SerializationConfig, StatePath } from '@xstate/graph';
-import { AnyMachineSnapshot, MachineContext } from 'xstate';
+import { SerializationConfig, StatePath } from './types.ts';
+import { AnyMachineSnapshot, MachineContext } from '../index.ts';
 import { TestMeta, TestPathResult } from './types.ts';
 
 interface TestResultStringOptions extends SerializationConfig<any, any> {
