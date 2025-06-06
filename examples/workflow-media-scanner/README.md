@@ -1,4 +1,4 @@
-# Workflow Example: Scanning and spliting Media
+# Workflow Example: Scanning and splitting Media
 
 This is a small example of a back-end workflow that uses a state machine to execute long running tasks. This project crawls a directory full of movies and separates out videos over 1080p for potential processing down the line.
 
