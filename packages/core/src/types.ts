@@ -1362,7 +1362,7 @@ export type InternalMachineImplementations<TTypes extends StateMachineTypes> = {
   guards?: MachineImplementationsGuards<TTypes>;
 };
 
-type InitialContext<
+export type InitialContext<
   TContext extends MachineContext,
   TActor extends ProvidedActor,
   TInput,

@@ -1,4 +1,4 @@
-import { createActor, createMachine, assertEvent } from '../src';
+import { createActor, next_createMachine, assertEvent } from '../src';
 
 describe('assertion helpers', () => {
   it('assertEvent asserts the correct event type', (done) => {
@@ -17,10 +17,7 @@ describe('assertion helpers', () => {
       event.count;
     };
 
-    const machine = createMachine({
-      types: {
-        events: {} as TestEvent
-      },
+    const machine = next_createMachine({
       on: {
         greet: ({ event }, enq) => {
           enq.action(() => greet(event));
@@ -70,10 +67,7 @@ describe('assertion helpers', () => {
       event.count;
     };
 
-    const machine = createMachine({
-      types: {
-        events: {} as TestEvent
-      },
+    const machine = next_createMachine({
       on: {
         greet: ({ event }, enq) => {
           enq.action(() => greet(event));

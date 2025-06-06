@@ -1,4 +1,9 @@
-import { createActor, createMachine, assign, setup } from '../src/index.ts';
+import {
+  createActor,
+  next_createMachine,
+  assign,
+  setup
+} from '../src/index.ts';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -17,7 +22,7 @@ const pedestrianStates = {
   }
 };
 
-const lightMachine = createMachine({
+const lightMachine = next_createMachine({
   initial: 'green',
   states: {
     green: {
@@ -66,7 +71,7 @@ describe('machine', () => {
 
   describe('machine.config', () => {
     it('state node config should reference original machine config', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'one',
         states: {
           one: {
@@ -98,7 +103,7 @@ describe('machine', () => {
     // https://github.com/davidkpiano/xstate/issues/674
     it('should throw if initial state is missing in a compound state', () => {
       expect(() => {
-        createMachine({
+        next_createMachine({
           initial: 'first',
           states: {
             first: {
@@ -113,11 +118,13 @@ describe('machine', () => {
     });
 
     it('machines defined without context should have a default empty object for context', () => {
-      expect(createActor(createMachine({})).getSnapshot().context).toEqual({});
+      expect(createActor(next_createMachine({})).getSnapshot().context).toEqual(
+        {}
+      );
     });
 
     it('should lazily create context for all interpreter instances created from the same machine template created by `provide`', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         types: {} as { context: { foo: { prop: string } } },
         context: () => ({
           foo: { prop: 'baz' }
@@ -144,8 +151,8 @@ describe('machine', () => {
           active: {}
         }
       };
-      const testMachine1 = createMachine(config);
-      const testMachine2 = createMachine(config);
+      const testMachine1 = next_createMachine(config);
+      const testMachine2 = next_createMachine(config);
 
       const initialState1 = createActor(testMachine1).getSnapshot();
       const initialState2 = createActor(testMachine2).getSnapshot();
@@ -163,7 +170,7 @@ describe('machine', () => {
   });
 
   describe('machine.resolveState()', () => {
-    const resolveMachine = createMachine({
+    const resolveMachine = next_createMachine({
       id: 'resolve',
       initial: 'foo',
       states: {
@@ -211,7 +218,7 @@ describe('machine', () => {
     });
 
     it('should resolve `status: done`', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'foo',
         states: {
           foo: {
@@ -231,7 +238,7 @@ describe('machine', () => {
 
   describe('initial state', () => {
     it('should follow always transition', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: {
@@ -247,7 +254,7 @@ describe('machine', () => {
 
   describe('versioning', () => {
     it('should allow a version to be specified', () => {
-      const versionMachine = createMachine({
+      const versionMachine = next_createMachine({
         id: 'version',
         version: '1.0.4',
         states: {}
@@ -259,7 +266,7 @@ describe('machine', () => {
 
   describe('id', () => {
     it('should represent the ID', () => {
-      const idMachine = createMachine({
+      const idMachine = next_createMachine({
         id: 'some-id',
         initial: 'idle',
         states: { idle: {} }
@@ -269,7 +276,7 @@ describe('machine', () => {
     });
 
     it('should represent the ID (state node)', () => {
-      const idMachine = createMachine({
+      const idMachine = next_createMachine({
         id: 'some-id',
         initial: 'idle',
         states: {
@@ -283,7 +290,7 @@ describe('machine', () => {
     });
 
     it('should use the key as the ID if no ID is provided (state node)', () => {
-      const noStateNodeIDMachine = createMachine({
+      const noStateNodeIDMachine = next_createMachine({
         id: 'some-id',
         initial: 'idle',
         states: { idle: {} }
@@ -295,13 +302,15 @@ describe('machine', () => {
 
   describe('combinatorial machines', () => {
     it('should support combinatorial machines (single-state)', () => {
-      const testMachine = createMachine({
+      const testMachine = next_createMachine({
         types: {} as { context: { value: number } },
         context: { value: 42 },
         on: {
-          INC: {
-            actions: assign({ value: ({ context }) => context.value + 1 })
-          }
+          INC: ({ context }) => ({
+            context: {
+              value: context.value + 1
+            }
+          })
         }
       });
 

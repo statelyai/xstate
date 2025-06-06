@@ -1,13 +1,13 @@
-import { createActor, createMachine, SimulatedClock } from '../src';
+import { createActor, next_createMachine, SimulatedClock } from '../src';
 
 describe('clock', () => {
   it('system clock should be default clock for actors (invoked from machine)', () => {
     const clock = new SimulatedClock();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       invoke: {
         id: 'child',
-        src: createMachine({
+        src: next_createMachine({
           initial: 'a',
           states: {
             a: {

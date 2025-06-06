@@ -1,4 +1,4 @@
-import { createActor, createMachine } from '../src/index.ts';
+import { createActor, next_createMachine } from '../src/index.ts';
 
 interface CounterContext {
   count: number;
@@ -7,7 +7,7 @@ interface CounterContext {
 }
 
 const createCounterMachine = (context: Partial<CounterContext> = {}) =>
-  createMachine({
+  next_createMachine({
     types: {} as { context: CounterContext },
     initial: 'counting',
     context: { count: 0, foo: 'bar', ...context },
@@ -229,7 +229,7 @@ describe('assign', () => {
   });
 
   it('can assign from event', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       types: {} as {
         context: { count: number };
         events: { type: 'INC'; value: number };

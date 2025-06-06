@@ -1,7 +1,7 @@
 import { sleep } from '@xstate-repo/jest-utils';
-import { createMachine, createActor, cancel } from '../src/index.ts';
+import { next_createMachine, createActor } from '../src/index.ts';
 
-const lightMachine = createMachine({
+const lightMachine = next_createMachine({
   id: 'light',
   initial: 'green',
   context: {
@@ -15,7 +15,7 @@ const lightMachine = createMachine({
     },
     yellow: {
       after: {
-        1000: [{ target: 'red' }]
+        1000: 'red'
       }
     },
     red: {
@@ -48,7 +48,7 @@ describe('delayed transitions', () => {
     // https://github.com/statelyai/xstate/issues/5001
     const spy = jest.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'green',
       states: {
         green: {
@@ -86,7 +86,7 @@ describe('delayed transitions', () => {
   });
 
   it('should be able to transition with delay from nested initial state', (done) => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'nested',
       states: {
         nested: {
@@ -117,7 +117,7 @@ describe('delayed transitions', () => {
 
   it('parent state should enter child state without re-entering self (relative target)', (done) => {
     const actual: string[] = [];
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'one',
       states: {
         one: {
@@ -162,7 +162,7 @@ describe('delayed transitions', () => {
   it('should defer a single send event for a delayed conditional transition (#886)', () => {
     jest.useFakeTimers();
     const spy = jest.fn();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'X',
       states: {
         X: {
@@ -191,7 +191,7 @@ describe('delayed transitions', () => {
 
   // TODO: figure out correct behavior for restoring delayed transitions
   it.skip('should execute an after transition after starting from a state resolved using `.getPersistedSnapshot`', (done) => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       id: 'machine',
       initial: 'a',
       states: {
@@ -222,7 +222,7 @@ describe('delayed transitions', () => {
 
   it('should execute an after transition after starting from a persisted state', (done) => {
     const createMyMachine = () =>
-      createMachine({
+      next_createMachine({
         initial: 'A',
         states: {
           A: {
@@ -261,7 +261,7 @@ describe('delayed transitions', () => {
       const context = {
         delay: 500
       };
-      const machine = createMachine(
+      const machine = next_createMachine(
         {
           initial: 'inactive',
           context,
@@ -297,7 +297,7 @@ describe('delayed transitions', () => {
     it('should evaluate the expression (string) to determine the delay', () => {
       jest.useFakeTimers();
       const spy = jest.fn();
-      const machine = createMachine(
+      const machine = next_createMachine(
         {
           initial: 'inactive',
           states: {

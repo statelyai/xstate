@@ -175,6 +175,9 @@ importers:
       xml-js:
         specifier: ^1.6.11
         version: 1.6.11
+      zod:
+        specifier: ^3.25.51
+        version: 3.25.51
 
   packages/xstate-graph:
     devDependencies:
@@ -9004,11 +9007,11 @@ packages:
     peerDependencies:
       zod: ^3.18.0
 
-  zod@3.23.8:
-    resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
-
   zod@3.24.4:
     resolution: {integrity: sha512-OdqJE9UDRPwWsrHjLN2F8bPxvwJBK22EHLWtanu0LSYr5YqzsaaW3RMgmjwr8Rypg5k+meEJdSPXJZXE/yqOMg==}
+
+  zod@3.25.51:
+    resolution: {integrity: sha512-TQSnBldh+XSGL+opiSIq0575wvDPqu09AqWe1F7JhUMKY+M91/aGlK4MhpVNO7MgYfHcVCB1ffwAUTJzllKJqg==}
 
 snapshots:
 
@@ -10655,7 +10658,7 @@ snapshots:
       semver: 7.6.3
       terser: 5.31.3
       v8-compile-cache: 2.4.0
-      zod: 3.23.8
+      zod: 3.24.4
     transitivePeerDependencies:
       - supports-color
 
@@ -16154,8 +16157,8 @@ snapshots:
       strip-json-comments: 5.0.1
       summary: 2.1.0
       typescript: 5.7.3
-      zod: 3.23.8
-      zod-validation-error: 3.3.0(zod@3.23.8)
+      zod: 3.24.4
+      zod-validation-error: 3.3.0(zod@3.24.4)
 
   last-call-webpack-plugin@3.0.0:
     dependencies:
@@ -19927,10 +19930,10 @@ snapshots:
     dependencies:
       zod: 3.24.4
 
-  zod-validation-error@3.3.0(zod@3.23.8):
+  zod-validation-error@3.3.0(zod@3.24.4):
     dependencies:
-      zod: 3.23.8
-
-  zod@3.23.8: {}
+      zod: 3.24.4
 
   zod@3.24.4: {}
+
+  zod@3.25.51: {}

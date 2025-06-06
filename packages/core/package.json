@@ -123,7 +123,8 @@
     "ajv": "^8.12.0",
     "pkg-up": "^3.1.0",
     "rxjs": "^7.8.1",
-    "xml-js": "^1.6.11"
+    "xml-js": "^1.6.11",
+    "zod": "^3.25.51"
   },
   "preconstruct": {
     "umdName": "XState",
