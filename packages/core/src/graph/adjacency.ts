@@ -1,4 +1,10 @@
-import { ActorScope, ActorLogic, ActorSystem, EventObject, Snapshot } from '..';
+import {
+  ActorScope,
+  ActorLogic,
+  ActorSystem,
+  EventObject,
+  Snapshot
+} from '../index.ts';
 import {
   SerializedEvent,
   SerializedSnapshot,
@@ -6,8 +12,8 @@ import {
   AdjacencyMap,
   AdjacencyValue
 } from './types';
-import { resolveTraversalOptions } from './graph';
-import { createMockActorScope } from './actorScope';
+import { resolveTraversalOptions } from './graph.ts';
+import { createMockActorScope } from './actorScope.ts';
 
 export function getAdjacencyMap<
   TSnapshot extends Snapshot<unknown>,

@@ -3025,7 +3025,7 @@ describe('invoke', () => {
   );
 
   // https://github.com/statelyai/xstate/issues/464
-  it('xstate.done.actor events should only select onDone transition on the invoking state when invokee is referenced using a string', (done) => {
+  it('xstate.done.actor events should only select onDone transition on the invoking state when invoke is referenced using a string', (done) => {
     let counter = 0;
     let invoked = false;
 
@@ -3081,7 +3081,7 @@ describe('invoke', () => {
     }, 0);
   });
 
-  it('xstate.done.actor events should have unique names when invokee is a machine with an id property', (done) => {
+  it('xstate.done.actor events should have unique names when invoke is a machine with an id property', (done) => {
     const actual: AnyEventObject[] = [];
 
     const childMachine = createMachine({

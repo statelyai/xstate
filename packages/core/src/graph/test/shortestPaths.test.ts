@@ -1,6 +1,6 @@
-import { assign, createMachine } from '../..';
-import { joinPaths } from '../graph';
-import { getShortestPaths } from '../shortestPaths';
+import { assign, createMachine } from '../../index.ts';
+import { joinPaths } from '../graph.ts';
+import { getShortestPaths } from '../shortestPaths.ts';
 
 describe('getShortestPaths', () => {
   it('finds the shortest paths to a state without continuing traversal from that state', () => {

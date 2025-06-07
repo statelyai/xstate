@@ -1,6 +1,6 @@
-import { createMachine } from '../..';
-import { createTestModel } from '..';
-import { testUtils } from './testUtils';
+import { createMachine } from '../../index.ts';
+import { createTestModel } from '../index.ts';
+import { testUtils } from './testUtils.ts';
 
 describe('events', () => {
   it('should execute events (`exec` property)', async () => {

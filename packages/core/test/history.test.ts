@@ -573,7 +573,7 @@ describe('history states', () => {
     ]);
   });
 
-  it('should not enter ancestors of the entered history state that lie outside of the transition domain when retoring the stored history configuration', () => {
+  it('should not enter ancestors of the entered history state that lie outside of the transition domain when restoring the stored history configuration', () => {
     const machine = createMachine({
       initial: 'closed',
       states: {

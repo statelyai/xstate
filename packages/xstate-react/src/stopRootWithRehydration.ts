@@ -23,7 +23,7 @@ export function stopRootWithRehydration(actorRef: AnyActorRef) {
     persistedSnapshots.push([ref, ref.getSnapshot()]);
     // muting observers allow us to avoid `useSelector` from being notified about the stopped snapshot
     // React reconnects its subscribers (from the useSyncExternalStore) on its own
-    // and userland subscibers should basically always do the same anyway
+    // and userland subscribers should basically always do the same anyway
     // as each subscription should have its own cleanup logic and that should be called each such reconnect
     (ref as any).observers = new Set();
   });

@@ -1,4 +1,4 @@
-import { AnyActorLogic, EventFromLogic, InputFrom } from '..';
+import { AnyActorLogic, EventFromLogic, InputFrom } from '../index.ts';
 import {
   SerializedEvent,
   SerializedSnapshot,
@@ -6,11 +6,11 @@ import {
   Steps,
   TraversalOptions,
   VisitedContext
-} from './types';
-import { resolveTraversalOptions } from './graph';
-import { getAdjacencyMap } from './adjacency';
-import { alterPath } from './alterPath';
-import { createMockActorScope } from './actorScope';
+} from './types.ts';
+import { resolveTraversalOptions } from './graph.ts';
+import { getAdjacencyMap } from './adjacency.ts';
+import { alterPath } from './alterPath.ts';
+import { createMockActorScope } from './actorScope.ts';
 
 export function getSimplePaths<TLogic extends AnyActorLogic>(
   logic: TLogic,

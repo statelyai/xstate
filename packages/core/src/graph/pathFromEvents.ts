@@ -5,22 +5,22 @@ import {
   AnyStateMachine,
   EventObject,
   Snapshot
-} from '..';
-import { getAdjacencyMap } from './adjacency';
+} from '../index.ts';
+import { getAdjacencyMap } from './adjacency.ts';
 import {
   SerializedEvent,
   SerializedSnapshot,
   StatePath,
   Steps,
   TraversalOptions
-} from './types';
+} from './types.ts';
 import {
   resolveTraversalOptions,
   createDefaultMachineOptions,
   createDefaultLogicOptions
-} from './graph';
-import { alterPath } from './alterPath';
-import { createMockActorScope } from './actorScope';
+} from './graph.ts';
+import { alterPath } from './alterPath.ts';
+import { createMockActorScope } from './actorScope.ts';
 
 function isMachine(value: any): value is AnyStateMachine {
   return !!value && '__xstatenode' in value;

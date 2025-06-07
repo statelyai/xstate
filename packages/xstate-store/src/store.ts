@@ -287,7 +287,7 @@ function _createStore<
 }
 
 // those overloads are exactly the same, we only duplicate them so TypeScript can:
-// 1. assign contextual parameter types during inference attempt for the first overload when the source object is still context-sensitive and often non-inferrable
+// 1. assign contextual parameter types during inference attempt for the first overload when the source object is still context-sensitive and often non-inferable
 // 2. infer correctly during inference attempt for the second overload when the parameter types are already "known"
 export const createStore: {
   /**
