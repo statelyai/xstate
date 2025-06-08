@@ -3,7 +3,7 @@ import { svelteTesting } from '@testing-library/svelte/vite';
 import { defineProject } from 'vitest/config';
 
 export default defineProject({
-  plugins: [svelte(), svelteTesting()],
+  plugins: [svelte() as any, svelteTesting() as any],
   test: {
     globals: true,
     environment: 'happy-dom'
