@@ -17,12 +17,6 @@ import {
 import { useActorRef, useMachine, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
 
-const originalConsoleWarn = console.warn;
-
-afterEach(() => {
-  console.warn = originalConsoleWarn;
-});
-
 describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('observer should be called with next state', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
@@ -109,7 +103,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should rerender OK when only the provided machine implementations have changed', () => {
-    console.warn = vi.fn();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const machine = createMachine({
       initial: 'foo',
       context: { id: 1 },
@@ -155,6 +149,8 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     fireEvent.click(screen.getByRole('button'));
 
     expect(screen.getByText('2')).toBeTruthy();
+
+    warnSpy.mockRestore();
   });
 
   it('should change state when started', async () => {
