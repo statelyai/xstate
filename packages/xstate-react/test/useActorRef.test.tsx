@@ -17,6 +17,10 @@ import {
 import { useActorRef, useMachine, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('observer should be called with next state', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
@@ -149,8 +153,6 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     fireEvent.click(screen.getByRole('button'));
 
     expect(screen.getByText('2')).toBeTruthy();
-
-    warnSpy.mockRestore();
   });
 
   it('should change state when started', async () => {
