@@ -267,7 +267,7 @@ it('emitted events can be subscribed to', () => {
     }
   });
 
-  const spy = jest.fn();
+  const spy = vi.fn();
 
   store.on('increased', spy);
 
@@ -296,7 +296,7 @@ it('emitted events can be unsubscribed to', () => {
     }
   });
 
-  const spy = jest.fn();
+  const spy = vi.fn();
   const sub = store.on('increased', spy);
   store.send({ type: 'inc' });
 
@@ -340,7 +340,7 @@ it('emitted events occur after the snapshot is updated', () => {
 });
 
 it('events can be emitted with no payload', () => {
-  const spy = jest.fn();
+  const spy = vi.fn();
 
   const store = createStore({
     emits: {
@@ -490,7 +490,7 @@ describe('store.trigger', () => {
       }
     });
 
-    const sendSpy = jest.spyOn(store, 'send');
+    const sendSpy = vi.spyOn(store, 'send');
 
     store.trigger.increment({ by: 5 });
 
@@ -547,7 +547,7 @@ it('works with typestates', () => {
 });
 
 it('the emit type is not overridden by the payload', () => {
-  const spy = jest.fn();
+  const spy = vi.fn();
   type Context = {
     drawer?: Drawer | null;
   };
@@ -611,7 +611,7 @@ it('can emit events from createStoreWithProducer', () => {
     }
   });
 
-  const spy = jest.fn();
+  const spy = vi.fn();
   store.on('increased', spy);
 
   store.send({ type: 'inc', by: 3 });

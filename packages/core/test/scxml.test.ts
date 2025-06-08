@@ -1,4 +1,3 @@
-import { clearConsoleMocks } from '@xstate-repo/jest-utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
@@ -354,35 +353,35 @@ interface SCIONTest {
 }
 
 async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    let nextState: AnyMachineSnapshot;
-    let prevState: AnyMachineSnapshot;
+  const { resolve, reject, promise } = Promise.withResolvers<void>();
+  let nextState: AnyMachineSnapshot;
+  let prevState: AnyMachineSnapshot;
 
-    const actor = createActor(machine, {
-      logger: () => void 0
-    });
-    actor.subscribe({
-      next: (state) => {
-        prevState = nextState;
-        nextState = state;
-      },
-      complete: () => {
-        // Add 'final' for test230.txml which does not have a 'pass' state
-        if (['final', 'pass'].includes(nextState.value as string)) {
-          resolve();
-        } else {
-          reject(
-            new Error(
-              `Reached "fail" state from state ${JSON.stringify(
-                prevState?.value
-              )}`
-            )
-          );
-        }
-      }
-    });
-    actor.start();
+  const actor = createActor(machine, {
+    logger: () => void 0
   });
+  actor.subscribe({
+    next: (state) => {
+      prevState = nextState;
+      nextState = state;
+    },
+    complete: () => {
+      // Add 'final' for test230.txml which does not have a 'pass' state
+      if (['final', 'pass'].includes(nextState.value as string)) {
+        resolve();
+      } else {
+        reject(
+          new Error(
+            `Reached "fail" state from state ${JSON.stringify(
+              prevState?.value
+            )}`
+          )
+        );
+      }
+    }
+  });
+  actor.start();
+  return promise;
 }
 
 async function runTestToCompletion(
@@ -478,8 +477,6 @@ describe('scxml', () => {
         } catch (e) {
           console.log(JSON.stringify(machine.config, null, 2));
           throw e;
-        } finally {
-          clearConsoleMocks();
         }
       });
     });

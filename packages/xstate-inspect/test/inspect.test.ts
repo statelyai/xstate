@@ -1,9 +1,6 @@
 import { assign, createMachine, createActor } from 'xstate';
 import { createDevTools, inspect } from '../src/index.ts';
 
-// mute the warning about this not being implemented by jsdom
-window.open = () => null;
-
 const windowListenersUsedArguments: Array<any> = [];
 const windowAddEventListener = window.addEventListener;
 window.addEventListener = function (...args: any) {
@@ -223,7 +220,9 @@ describe('@xstate/inspect', () => {
   });
 
   // TODO: the value is still available on `machine.definition.initial` and that is not handled by the serializer
-  it.skip('should not crash when registering machine with very deep context when serializer manages to replace it', (done) => {
+  it.skip('should not crash when registering machine with very deep context when serializer manages to replace it', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
     type DeepObject = { nested?: DeepObject };
 
     const deepObj: DeepObject = {};
@@ -259,10 +258,12 @@ describe('@xstate/inspect', () => {
     const service = createActor(machine).start();
 
     devTools.onRegister(() => {
-      done();
+      resolve();
     });
 
     expect(() => devTools.register(service)).not.toThrow();
+
+    return promise;
   });
 
   it('should successfully serialize value with unsafe toJSON when serializer manages to replace it', () => {
@@ -385,11 +386,11 @@ describe('@xstate/inspect', () => {
   });
 
   it('browser inspector should use targetWindow if provided', () => {
-    const windowMock = jest.fn() as unknown as Window;
-    const windowSpy = jest.spyOn(window, 'open');
+    const windowMock = vi.fn() as unknown as Window;
+    const windowSpy = vi.spyOn(window, 'open');
     windowSpy.mockImplementation(() => windowMock);
 
-    const localWindowMock = jest.fn() as unknown as Window;
+    const localWindowMock = vi.fn() as unknown as Window;
     const devTools = createDevTools();
 
     inspect({

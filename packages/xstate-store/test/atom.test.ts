@@ -1,6 +1,4 @@
-import { sleep } from '../../../scripts/jest-utils';
-import { createStore, createAtom } from '../src/';
-import { createAsyncAtom } from '../src/atom';
+import { createStore, createAtom, createAsyncAtom } from '../src/index.ts';
 
 it('creates an atom', () => {
   const atom = createAtom(42);
@@ -29,7 +27,7 @@ it('can set the value to undefined', () => {
 });
 
 it('can subscribe to atom changes', () => {
-  const log = jest.fn();
+  const log = vi.fn();
   const atom = createAtom(0);
 
   atom.subscribe(log);
@@ -44,7 +42,7 @@ it('can subscribe to atom changes', () => {
 });
 
 it('can unsubscribe from atom changes', () => {
-  const log = jest.fn();
+  const log = vi.fn();
   const atom = createAtom(0);
 
   const sub = atom.subscribe(log);
@@ -129,7 +127,7 @@ it('works with a mix of atoms and stores (get API)', () => {
     }
   });
 
-  const log = jest.fn();
+  const log = vi.fn();
 
   const combinedAtom = createAtom(
     () => store.get().context.name + ` ${countAtom.get()}`
@@ -415,7 +413,7 @@ it('conditionally read atoms are properly unsubscribed when no longer needed (ge
 });
 
 it('handles diamond dependencies with single update', () => {
-  const log = jest.fn();
+  const log = vi.fn();
   const sourceAtom = createAtom(1);
 
   const pathA = createAtom(() => sourceAtom.get() * 2);
@@ -445,7 +443,7 @@ it('handles diamond dependencies with single update', () => {
 });
 
 it('handles complex diamond dependencies correctly', () => {
-  const log = jest.fn();
+  const log = vi.fn();
 
   // Base atom D
   const atomD = createAtom(1);
@@ -490,7 +488,7 @@ it('handles complex diamond dependencies correctly', () => {
 });
 
 it('supports custom equality functions through compare option', () => {
-  const log = jest.fn();
+  const log = vi.fn();
 
   const coordAtom = createAtom(
     { x: 0, y: 0 },
@@ -525,7 +523,7 @@ it('supports custom equality functions through compare option', () => {
 });
 
 it('uses Object.is as default equality function', () => {
-  const log = jest.fn();
+  const log = vi.fn();
   const objAtom = createAtom({ value: 0 });
 
   objAtom.subscribe(log);
@@ -602,7 +600,7 @@ describe('async atoms', () => {
 
     expect(atom.get()).toEqual({ status: 'pending' });
 
-    await sleep(0);
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(atom.get()).toEqual({ status: 'done', data: 'hello' });
   });
@@ -614,7 +612,7 @@ describe('async atoms', () => {
 
     expect(atom.get()).toEqual({ status: 'pending' });
 
-    await sleep(0);
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(atom.get()).toEqual({
       status: 'error',
