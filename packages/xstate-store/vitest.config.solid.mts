@@ -4,7 +4,7 @@ import { defineProject } from 'vitest/config';
 export const include = ['test/solid.test.tsx'];
 
 export default defineProject({
-  plugins: [solid()],
+  plugins: [solid() as any],
   test: {
     name: 'xstate-store-solid',
     include,

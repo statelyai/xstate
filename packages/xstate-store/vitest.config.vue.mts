@@ -4,7 +4,7 @@ import { defineProject } from 'vitest/config';
 export const include = ['test/vue.test.ts'];
 
 export default defineProject({
-  plugins: [vue()],
+  plugins: [vue() as any],
   test: {
     name: 'xstate-store-vue',
     include,
