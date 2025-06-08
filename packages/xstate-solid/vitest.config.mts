@@ -1,8 +1,8 @@
-import { defineConfig } from 'vitest/config';
+import { defineProject } from 'vitest/config';
 import solid from 'vite-plugin-solid';
 
-export default defineConfig({
-  plugins: [solid() as any],
+export default defineProject({
+  plugins: [solid()],
   test: {
     globals: true,
     environment: 'happy-dom',
