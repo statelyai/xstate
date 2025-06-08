@@ -1,5 +1,11 @@
 # xstate
 
+## 5.19.4
+
+### Patch Changes
+
+- [#5289](https://github.com/statelyai/xstate/pull/5289) [`479c74b83fa77c57c48f54cf0e9dcfab5fe6cae5`](https://github.com/statelyai/xstate/commit/479c74b83fa77c57c48f54cf0e9dcfab5fe6cae5) Thanks [@ebadyz](https://github.com/ebadyz)! - Removed outdated `context` parameter reference from `provide` method documentation.
+
 ## 5.19.3
 
 ### Patch Changes

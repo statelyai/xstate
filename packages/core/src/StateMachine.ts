@@ -166,11 +166,10 @@ export class StateMachine<
   }
 
   /**
-   * Clones this state machine with the provided implementations and merges the
-   * `context` (if provided).
+   * Clones this state machine with the provided implementations.
    *
-   * @param implementations Options (`actions`, `guards`, `actors`, `delays`,
-   *   `context`) to recursively merge with the existing options.
+   * @param implementations Options (`actions`, `guards`, `actors`, `delays`) to
+   *   recursively merge with the existing options.
    * @returns A new `StateMachine` instance with the provided implementations.
    */
   public provide(
