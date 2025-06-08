@@ -11,7 +11,8 @@
         "src/actions.ts",
         "src/actors/index.ts",
         "src/guards.ts",
-        "src/dev/index.ts"
+        "src/dev/index.ts",
+        "src/graph/index.ts"
       ]
     },
     "packages/xstate-inspect": {
