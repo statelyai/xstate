@@ -55,7 +55,7 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "devDependencies": {
-    "@solidjs/testing-library": "^0.8.9",
+    "@solidjs/testing-library": "^0.8.10",
     "@statelyai/inspect": "^0.4.0",
     "@testing-library/react": "^16.2.0",
     "@testing-library/vue": "^8.1.0",
@@ -67,7 +67,7 @@
     "immer": "^10.0.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "solid-js": "^1.9.5",
+    "solid-js": "^1.9.7",
     "vite-plugin-solid": "^2.11.6",
     "vue": "^3.4.35",
     "xstate": "workspace:^"
