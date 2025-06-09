@@ -1,11 +1,12 @@
 /* @jsxImportSource solid-js */
 import { createMachine } from 'xstate';
-import { render, fireEvent, screen } from 'solid-testing-library';
+import { render, fireEvent, screen } from '@solidjs/testing-library';
 import { useActorRef } from '../src/index.ts';
 import { createEffect } from 'solid-js';
 
 describe('useActorRef', () => {
-  it('observer should be called with next state', (done) => {
+  it('observer should be called with next state', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'inactive',
       states: {
@@ -24,7 +25,7 @@ describe('useActorRef', () => {
       createEffect(() => {
         service.subscribe((state) => {
           if (state.matches('active')) {
-            done();
+            resolve();
           }
         });
       });
@@ -43,9 +44,12 @@ describe('useActorRef', () => {
     const button = screen.getByTestId('button');
 
     fireEvent.click(button);
+
+    return promise;
   });
 
-  it('service should work with from SolidJS utility', (done) => {
+  it('service should work with from SolidJS utility', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'inactive',
       states: {
@@ -64,7 +68,7 @@ describe('useActorRef', () => {
       createEffect(() => {
         service.subscribe((state) => {
           if (state.matches('active')) {
-            done();
+            resolve();
           }
         });
       });
@@ -83,5 +87,7 @@ describe('useActorRef', () => {
     const button = screen.getByTestId('button');
 
     fireEvent.click(button);
+
+    return promise;
   });
 });

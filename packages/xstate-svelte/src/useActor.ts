@@ -9,7 +9,7 @@ import {
   type IsNotNever,
   type RequiredActorOptionsKeys
 } from 'xstate';
-import { useActorRef } from './useActorRef';
+import { useActorRef } from './useActorRef.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,

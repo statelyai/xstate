@@ -27,7 +27,7 @@ describe('fromStore', () => {
   });
 
   it('emits events', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const storeLogic = fromStore({
       context: (count: number) => ({ count }),

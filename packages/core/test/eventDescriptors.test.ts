@@ -239,6 +239,8 @@ describe('event descriptors', () => {
   });
 
   it('should not match infix wildcards', () => {
+    const warnSpy = vi.spyOn(console, 'warn');
+
     const machine = createMachine({
       initial: 'start',
       states: {
@@ -260,7 +262,7 @@ describe('event descriptors', () => {
 
     expect(actorRef1.getSnapshot().matches('success')).toBeFalsy();
 
-    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+    expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event.*.bar.*" event.",
@@ -276,6 +278,7 @@ describe('event descriptors', () => {
         ],
       ]
     `);
+    warnSpy.mockClear();
 
     const actorRef2 = createActor(machine).start();
 
@@ -283,7 +286,7 @@ describe('event descriptors', () => {
 
     expect(actorRef2.getSnapshot().matches('success')).toBeFalsy();
 
-    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+    expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event.*.bar.*" event.",
@@ -299,6 +302,8 @@ describe('event descriptors', () => {
   });
 
   it('should not match wildcards as part of tokens', () => {
+    const warnSpy = vi.spyOn(console, 'warn');
+
     const machine = createMachine({
       initial: 'start',
       states: {
@@ -320,7 +325,7 @@ describe('event descriptors', () => {
 
     expect(actorRef1.getSnapshot().matches('success')).toBeFalsy();
 
-    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+    expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event*.bar.*" event.",
@@ -330,6 +335,7 @@ describe('event descriptors', () => {
         ],
       ]
     `);
+    warnSpy.mockClear();
 
     const actorRef2 = createActor(machine).start();
 
@@ -337,7 +343,7 @@ describe('event descriptors', () => {
 
     expect(actorRef2.getSnapshot().matches('success')).toBeFalsy();
 
-    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+    expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event*.bar.*" event.",

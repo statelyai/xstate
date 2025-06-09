@@ -221,7 +221,7 @@ describe('@xstate/graph', () => {
       ).toHaveLength(1);
     });
 
-    xit('should not throw when a condition is present', () => {
+    it.skip('should not throw when a condition is present', () => {
       expect(() => getShortestPaths(condMachine)).not.toThrow();
     });
 

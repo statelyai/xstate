@@ -355,7 +355,7 @@ describe('useStore', () => {
   });
 
   it('should handle emitted events', () => {
-    const onEmit = jest.fn();
+    const onEmit = vi.fn();
 
     const Counter = () => {
       const store = useStore({
