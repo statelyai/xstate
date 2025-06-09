@@ -1,5 +1,12 @@
 # @xstate/solid
 
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`e07a7cd8462473188a0fb646a965e61be1ce6ae3`](https://github.com/statelyai/xstate/commit/e07a7cd8462473188a0fb646a965e61be1ce6ae3)]:
+  - xstate@5.20.0
+
 ## 1.0.4
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@xstate/solid",
-  "version": "1.0.4",
+  "version": "2.0.0",
   "description": "XState tools for SolidJS",
   "keywords": [
     "state",
