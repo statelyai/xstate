@@ -1,5 +1,25 @@
 # xstate
 
+## 5.20.0
+
+### Minor Changes
+
+- [#5287](https://github.com/statelyai/xstate/pull/5287) [`e07a7cd8462473188a0fb646a965e61be1ce6ae3`](https://github.com/statelyai/xstate/commit/e07a7cd8462473188a0fb646a965e61be1ce6ae3) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The graph and model-based testing utilities from @xstate/graph (and @xstate/test previously) were moved to the core `xstate` package.
+
+  ```ts
+  import { createMachine } from 'xstate';
+  import { getShortestPaths } from 'xstate/graph';
+
+  const machine = createMachine({
+    // ...
+  });
+
+  const paths = getShortestPaths(machine, {
+    fromState: 'a',
+    toState: 'b'
+  });
+  ```
+
 ## 5.19.4
 
 ### Patch Changes
