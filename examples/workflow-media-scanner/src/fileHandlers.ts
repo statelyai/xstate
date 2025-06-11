@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises';
 import * as fsExtra from 'fs-extra';
-import path, { dirname, resolve } from 'path';
+import path from 'path';
 import probe from 'node-ffprobe';
 import winston from 'winston';
 

@@ -1,7 +1,6 @@
 import { setup, assign, assertEvent, fromPromise } from 'xstate';
 import { createActorContext } from '@xstate/react';
-import { TODAY, TOMORROW } from '../utils';
-import { sleep } from '../utils';
+import { TODAY, TOMORROW, sleep } from '../utils';
 
 export const flightBookerMachine = setup({
   types: {

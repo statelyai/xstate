@@ -6,7 +6,6 @@ import {
   StateValue,
   createMachine,
   ActorRefFrom,
-  ActorRef,
   cancel,
   raise,
   stopChild,
