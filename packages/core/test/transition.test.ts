@@ -16,8 +16,7 @@ import {
   sendTo,
   setup,
   toPromise,
-  transition,
-  waitFor
+  transition
 } from '../src';
 import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';

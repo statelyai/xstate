@@ -5,14 +5,13 @@ import {
   createStoreConfig,
   createAtom
 } from '../src/index.ts';
-import { useSelector } from '../src/react.ts';
+import { useSelector, useStore } from '../src/react.ts';
 import {
   useActor,
   useActorRef,
   useSelector as useXStateSelector
 } from '@xstate/react';
 import ReactDOM from 'react-dom';
-import { useStore } from '../src/react.ts';
 
 describe('useSelector', () => {
   it('useSelector should work', () => {

@@ -1,6 +1,7 @@
 import { StateMachine } from './StateMachine.ts';
-import { ResolvedStateMachineTypes, TODO } from './types.ts';
 import {
+  ResolvedStateMachineTypes,
+  TODO,
   AnyActorRef,
   EventObject,
   AnyEventObject,

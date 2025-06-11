@@ -3,12 +3,10 @@ import {
   assign,
   createMachine,
   createActor,
-  sendTo,
-  waitFor
+  sendTo
 } from '../src/index.ts';
-import { raise, sendParent, stopChild } from '../src/actions.ts';
-import { fromCallback } from '../src/actors/index.ts';
-import { fromPromise } from '../src/actors/index.ts';
+import { raise, sendParent } from '../src/actions.ts';
+import { fromCallback, fromPromise } from '../src/actors/index.ts';
 
 describe('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {

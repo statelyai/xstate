@@ -1,4 +1,4 @@
-import { InputFrom, createActor, createMachine, raise } from '../src/index.ts';
+import { createActor, createMachine } from '../src/index.ts';
 import { and, not, or, stateIn } from '../src/guards';
 import { trackEntries } from './utils.ts';
 

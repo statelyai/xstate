@@ -1,5 +1,5 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import { createMachine, createActor, cancel } from '../src/index.ts';
+import { createMachine, createActor } from '../src/index.ts';
 
 const lightMachine = createMachine({
   id: 'light',

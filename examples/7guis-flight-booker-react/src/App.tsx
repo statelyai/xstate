@@ -1,6 +1,5 @@
 import FlightContext from './machines/flightMachine';
-import { BookButton, Header } from './components';
-import { DateSelector, TripSelector } from './components';
+import { BookButton, Header, DateSelector, TripSelector } from './components';
 import { TODAY } from './utils';
 
 export default function App() {

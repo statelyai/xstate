@@ -1,10 +1,6 @@
 import './style.css';
 import { feedbackMachine } from './feedbackMachine';
-import {
-  AnyMachineSnapshot,
-  __unsafe_getAllOwnEventDescriptors,
-  createActor
-} from 'xstate';
+import { AnyMachineSnapshot, createActor } from 'xstate';
 import { createBrowserInspector } from '@statelyai/inspect';
 
 const { inspect } = createBrowserInspector({
