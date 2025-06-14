@@ -1,10 +1,9 @@
-import { createMachine } from '../src/index.ts';
-import { raise } from '../src/actions/raise';
+import { next_createMachine } from '../src/index.ts';
 import { createInertActorScope } from '../src/getNextSnapshot.ts';
 
 describe('machine.microstep()', () => {
   it('should return an array of states from all microsteps', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'start',
       states: {
         start: {
@@ -13,7 +12,7 @@ describe('machine.microstep()', () => {
           }
         },
         a: {
-          entry2: (_, enq) => {
+          entry: (_, enq) => {
             enq.raise({ type: 'NEXT' });
           },
           on: {
@@ -24,7 +23,7 @@ describe('machine.microstep()', () => {
           always: 'c'
         },
         c: {
-          entry2: (_, enq) => {
+          entry: (_, enq) => {
             enq.raise({ type: 'NEXT' });
           },
           on: {
@@ -46,7 +45,7 @@ describe('machine.microstep()', () => {
   });
 
   it('should return the states from microstep (transient)', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'first',
       states: {
         first: {
@@ -72,7 +71,7 @@ describe('machine.microstep()', () => {
   });
 
   it('should return the states from microstep (raised event)', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'first',
       states: {
         first: {
@@ -103,7 +102,7 @@ describe('machine.microstep()', () => {
   });
 
   it('should return a single-item array for normal transitions', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'first',
       states: {
         first: {
@@ -126,7 +125,7 @@ describe('machine.microstep()', () => {
   });
 
   it('each state should preserve their internal queue', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'first',
       states: {
         first: {

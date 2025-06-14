@@ -1,3 +1,4 @@
+import z from 'zod';
 import { createActor, next_createMachine } from '../src/index.ts';
 
 interface CounterContext {
@@ -8,7 +9,6 @@ interface CounterContext {
 
 const createCounterMachine = (context: Partial<CounterContext> = {}) =>
   next_createMachine({
-    types: {} as { context: CounterContext },
     initial: 'counting',
     context: { count: 0, foo: 'bar', ...context },
     states: {
@@ -230,9 +230,11 @@ describe('assign', () => {
 
   it('can assign from event', () => {
     const machine = next_createMachine({
-      types: {} as {
-        context: { count: number };
-        events: { type: 'INC'; value: number };
+      schemas: {
+        event: z.object({
+          type: z.literal('INC'),
+          value: z.number()
+        })
       },
       initial: 'active',
       context: {

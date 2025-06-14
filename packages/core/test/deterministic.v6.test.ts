@@ -2,12 +2,12 @@ import {
   fromCallback,
   createActor,
   transition,
-  createMachine,
+  next_createMachine,
   initialTransition
 } from '../src/index.ts';
 
 describe('deterministic machine', () => {
-  const lightMachine = createMachine({
+  const lightMachine = next_createMachine({
     initial: 'green',
     states: {
       green: {
@@ -47,7 +47,7 @@ describe('deterministic machine', () => {
     }
   });
 
-  const testMachine = createMachine({
+  const testMachine = next_createMachine({
     initial: 'a',
     states: {
       a: {
@@ -80,7 +80,7 @@ describe('deterministic machine', () => {
     });
 
     it('should not transition states for illegal transitions', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: {
@@ -195,7 +195,7 @@ describe('deterministic machine', () => {
     });
 
     it('should not transition from illegal events', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: {
@@ -251,25 +251,25 @@ describe('deterministic machine', () => {
   });
 
   describe('state key names', () => {
-    const machine = createMachine(
+    const machine = next_createMachine(
       {
         initial: 'test',
         states: {
           test: {
             invoke: [{ src: 'activity' }],
-            entry: ['onEntry'],
+            entry: () => {},
             on: {
               NEXT: 'test'
             },
-            exit: ['onExit']
+            exit: () => {}
           }
         }
-      },
-      {
-        actors: {
-          activity: fromCallback(() => () => {})
-        }
       }
+      // {
+      //   actors: {
+      //     activity: fromCallback(() => () => {})
+      //   }
+      // }
     );
 
     it('should work with substate nodes that have the same key', () => {

@@ -1,3 +1,4 @@
+import { StandardSchemaV1 } from '../../xstate-store/src/schema.ts';
 import { StateMachine } from './StateMachine.ts';
 import { ResolvedStateMachineTypes, TODO } from './types.ts';
 import {
@@ -165,8 +166,10 @@ export function createMachine<
 }
 
 export function next_createMachine<
+  TContextSchema extends StandardSchemaV1,
+  TEventSchema extends StandardSchemaV1,
   TContext extends MachineContext,
-  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
@@ -181,9 +184,9 @@ export function next_createMachine<
   // we should be able to remove this when we start inferring TConfig, with it we'll always have an inference candidate
   _ = any
 >(
-  config: {
-    schemas?: unknown;
-  } & Next_MachineConfig<
+  config: Next_MachineConfig<
+    TContextSchema,
+    TEventSchema,
     TContext,
     TEvent,
     TDelay,
@@ -192,18 +195,6 @@ export function next_createMachine<
     TOutput,
     TEmitted,
     TMeta
-  >,
-  implementations?: InternalMachineImplementations<
-    ResolvedStateMachineTypes<
-      TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TTag,
-      TEmitted
-    >
   >
 ): StateMachine<
   TContext,
@@ -236,5 +227,5 @@ export function next_createMachine<
     any, // TEmitted
     any, // TMeta
     any // TStateSchema
-  >(config as any, implementations as any);
+  >(config as any);
 }

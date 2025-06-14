@@ -1,9 +1,9 @@
 import { createActor, waitFor } from '../src/index.ts';
-import { createMachine } from '../src/index.ts';
+import { next_createMachine } from '../src/index.ts';
 
 describe('waitFor', () => {
   it('should wait for a condition to be true and return the emitted value', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -23,7 +23,7 @@ describe('waitFor', () => {
   });
 
   it('should throw an error after a timeout', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -46,7 +46,7 @@ describe('waitFor', () => {
   });
 
   it('should not reject immediately when passing Infinity as timeout', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -71,7 +71,7 @@ describe('waitFor', () => {
   });
 
   it('should throw an error when reaching a final state that does not match the predicate', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -97,7 +97,7 @@ describe('waitFor', () => {
   });
 
   it('should resolve correctly when the predicate immediately matches the current state', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {}
@@ -112,7 +112,7 @@ describe('waitFor', () => {
   });
 
   it('should not subscribe when the predicate immediately matches', () => {
-    const machine = createMachine({});
+    const machine = next_createMachine({});
 
     const actorRef = createActor(machine).start();
     const spy = jest.fn();
@@ -125,7 +125,7 @@ describe('waitFor', () => {
 
   it('should internally unsubscribe when the predicate immediately matches the current state', async () => {
     let count = 0;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -150,7 +150,7 @@ describe('waitFor', () => {
   });
 
   it('should immediately resolve for an actor in its final state that matches the predicate', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -173,7 +173,7 @@ describe('waitFor', () => {
   });
 
   it('should immediately reject for an actor in its final state that does not match the predicate', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -198,7 +198,7 @@ describe('waitFor', () => {
   });
 
   it('should not subscribe to the actor when it receives an aborted signal', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -229,7 +229,7 @@ describe('waitFor', () => {
   });
 
   it('should not listen for the "abort" event when it receives an aborted signal', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -262,7 +262,7 @@ describe('waitFor', () => {
   });
 
   it('should not listen for the "abort" event for actor in its final state that matches the predicate', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -290,7 +290,7 @@ describe('waitFor', () => {
   });
 
   it('should immediately reject when it receives an aborted signal', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -317,7 +317,7 @@ describe('waitFor', () => {
   });
 
   it('should reject when the signal is aborted while waiting', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -338,7 +338,7 @@ describe('waitFor', () => {
   });
 
   it('should stop listening for the "abort" event upon successful completion', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -368,7 +368,7 @@ describe('waitFor', () => {
   });
 
   it('should stop listening for the "abort" event upon failure', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {

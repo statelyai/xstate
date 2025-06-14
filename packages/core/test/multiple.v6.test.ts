@@ -1,26 +1,26 @@
-import { createMachine, createActor } from '../src/index';
+import { next_createMachine, createActor } from '../src/index';
 
 describe('multiple', () => {
-  const machine = createMachine({
+  const machine = next_createMachine({
     initial: 'simple',
     states: {
       simple: {
         on: {
           DEEP_M: 'para.K.M',
-          DEEP_CM: [{ target: ['para.A.C', 'para.K.M'] }],
-          DEEP_MR: [{ target: ['para.K.M', 'para.P.R'] }],
-          DEEP_CMR: [{ target: ['para.A.C', 'para.K.M', 'para.P.R'] }],
-          BROKEN_SAME_REGION: [{ target: ['para.A.C', 'para.A.B'] }],
-          BROKEN_DIFFERENT_REGIONS: [
-            { target: ['para.A.C', 'para.K.M', 'other'] }
-          ],
-          BROKEN_DIFFERENT_REGIONS_2: [{ target: ['para.A.C', 'para2.K2.M2'] }],
-          BROKEN_DIFFERENT_REGIONS_3: [
-            { target: ['para2.K2.L2.L2A', 'other'] }
-          ],
-          BROKEN_DIFFERENT_REGIONS_4: [
-            { target: ['para2.K2.L2.L2A.L2C', 'para2.K2.M2'] }
-          ],
+          DEEP_CM: { target: ['para.A.C', 'para.K.M'] },
+          DEEP_MR: { target: ['para.K.M', 'para.P.R'] },
+          DEEP_CMR: { target: ['para.A.C', 'para.K.M', 'para.P.R'] },
+          BROKEN_SAME_REGION: { target: ['para.A.C', 'para.A.B'] },
+          BROKEN_DIFFERENT_REGIONS: {
+            target: ['para.A.C', 'para.K.M', 'other']
+          },
+          BROKEN_DIFFERENT_REGIONS_2: { target: ['para.A.C', 'para2.K2.M2'] },
+          BROKEN_DIFFERENT_REGIONS_3: {
+            target: ['para2.K2.L2.L2A', 'other']
+          },
+          BROKEN_DIFFERENT_REGIONS_4: {
+            target: ['para2.K2.L2.L2A.L2C', 'para2.K2.M2']
+          },
           INITIAL: 'para'
         }
       },

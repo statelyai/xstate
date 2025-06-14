@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { createActor, next_createMachine, assertEvent } from '../src';
 
 describe('assertion helpers', () => {
@@ -18,6 +19,13 @@ describe('assertion helpers', () => {
     };
 
     const machine = next_createMachine({
+      schemas: {
+        event: z.union([
+          z.object({ type: z.literal('greet'), message: z.string() }),
+          z.object({ type: z.literal('count'), value: z.number() })
+        ])
+      },
+
       on: {
         greet: ({ event }, enq) => {
           enq.action(() => greet(event));
@@ -68,6 +76,18 @@ describe('assertion helpers', () => {
     };
 
     const machine = next_createMachine({
+      schemas: {
+        event: z.union([
+          z.object({ type: z.literal('greet'), message: z.string() }),
+          z.object({
+            type: z.literal('notify'),
+            message: z.string(),
+            level: z.enum(['info', 'error'])
+          }),
+          z.object({ type: z.literal('count'), value: z.number() })
+        ])
+      },
+
       on: {
         greet: ({ event }, enq) => {
           enq.action(() => greet(event));

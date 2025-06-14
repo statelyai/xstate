@@ -4,6 +4,7 @@ import {
   assign,
   setup
 } from '../src/index.ts';
+import z from 'zod';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -125,7 +126,6 @@ describe('machine', () => {
 
     it('should lazily create context for all interpreter instances created from the same machine template created by `provide`', () => {
       const machine = next_createMachine({
-        types: {} as { context: { foo: { prop: string } } },
         context: () => ({
           foo: { prop: 'baz' }
         })
@@ -303,7 +303,7 @@ describe('machine', () => {
   describe('combinatorial machines', () => {
     it('should support combinatorial machines (single-state)', () => {
       const testMachine = next_createMachine({
-        types: {} as { context: { value: number } },
+        // types: {} as { context: { value: number } },
         context: { value: 42 },
         on: {
           INC: ({ context }) => ({

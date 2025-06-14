@@ -1,3 +1,4 @@
+import { StandardSchemaV1 } from '../../xstate-store/src/schema';
 import { StateNode } from './StateNode';
 import {
   Action2,
@@ -8,8 +9,6 @@ import {
   InitialContext,
   MetaObject,
   NonReducibleUnknown,
-  ParameterizedObject,
-  ProvidedActor,
   TODO,
   TransitionConfigFunction
 } from './types';
@@ -18,8 +17,11 @@ import { LowInfer } from './types';
 import { DoneStateEvent } from './types';
 
 export type Next_MachineConfig<
+  _TContextSchema extends StandardSchemaV1,
+  TEventSchema extends StandardSchemaV1,
   TContext extends MachineContext,
-  TEvent extends EventObject,
+  TEvent extends EventObject = StandardSchemaV1.InferOutput<TEventSchema> &
+    EventObject,
   TDelay extends string = string,
   TTag extends string = string,
   TInput = any,
@@ -28,8 +30,8 @@ export type Next_MachineConfig<
   TMeta extends MetaObject = MetaObject
 > = (Omit<
   Next_StateNodeConfig<
-    DoNotInfer<TContext>,
-    DoNotInfer<TEvent>,
+    TContext,
+    DoNotInfer<StandardSchemaV1.InferOutput<TEventSchema> & EventObject>,
     DoNotInfer<TDelay>,
     DoNotInfer<TTag>,
     DoNotInfer<TOutput>,
@@ -38,6 +40,10 @@ export type Next_MachineConfig<
   >,
   'output'
 > & {
+  schemas?: {
+    event?: TEventSchema;
+    context?: TContext;
+  };
   /** The initial context (extended state) */
   /** The machine's own version. */
   version?: string;
@@ -107,8 +113,8 @@ export interface Next_StateNodeConfig<
       TEmitted
     >;
   };
-  entry2?: Action2<TContext, TEvent, TEmitted>;
-  exit2?: Action2<TContext, TEvent, TEmitted>;
+  entry?: Action2<TContext, TEvent, TEmitted>;
+  exit?: Action2<TContext, TEvent, TEmitted>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state
    * node.
@@ -193,7 +199,7 @@ export type Next_TransitionConfigOrTarget<
 > =
   | string
   | undefined
-  | { target: string }
+  | { target?: string | string[]; description?: string; reenter?: boolean }
   | TransitionConfigFunction<TContext, TExpressionEvent, TEvent, TEmitted>;
 
 export interface Next_MachineTypes<

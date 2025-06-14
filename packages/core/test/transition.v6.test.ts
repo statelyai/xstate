@@ -1,13 +1,12 @@
 import { sleep } from '@xstate-repo/jest-utils';
 import {
   createActor,
-  createMachine,
+  next_createMachine,
   EventFrom,
   ExecutableActionsFrom,
   ExecutableSpawnAction,
   fromPromise,
   fromTransition,
-  setup,
   toPromise,
   transition
 } from '../src';
@@ -15,6 +14,7 @@ import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
 import assert from 'node:assert';
 import { resolveReferencedActor } from '../src/utils';
+import z from 'zod';
 
 describe('transition function', () => {
   it('should capture actions', () => {
@@ -22,33 +22,41 @@ describe('transition function', () => {
     const actionWithDynamicParams = jest.fn();
     const stringAction = jest.fn();
 
-    const machine = setup({
-      types: {
-        context: {} as { count: number },
-        events: {} as { type: 'event'; msg: string }
-      },
-      actions: {
-        actionWithParams,
-        actionWithDynamicParams: (_, params: { msg: string }) => {
-          actionWithDynamicParams(params);
+    const machine =
+      // setup({
+      //   types: {
+      //     context: {} as { count: number },
+      //     events: {} as { type: 'event'; msg: string }
+      //   },
+      //   actions: {
+      //     actionWithParams,
+      //     actionWithDynamicParams: (_, params: { msg: string }) => {
+      //       actionWithDynamicParams(params);
+      //     },
+      //     stringAction
+      //   }
+      // }).
+      next_createMachine({
+        schemas: {
+          event: z.union([
+            z.object({ type: z.literal('event'), msg: z.string() }),
+            z.object({ type: z.literal('event2'), msg: z.string() })
+          ])
         },
-        stringAction
-      }
-    }).createMachine({
-      entry2: (_, enq) => {
-        enq.action(actionWithParams, { a: 1 });
-        enq.action(stringAction);
-        return {
-          context: { count: 100 }
-        };
-      },
-      context: { count: 0 },
-      on: {
-        event: ({ event }, enq) => {
-          enq.action(actionWithDynamicParams, { msg: event.msg });
+        entry: (_, enq) => {
+          enq.action(actionWithParams, { a: 1 });
+          enq.action(stringAction);
+          return {
+            context: { count: 100 }
+          };
+        },
+        context: { count: 0 },
+        on: {
+          event: ({ event }, enq) => {
+            enq.action(actionWithDynamicParams, { msg: event.msg });
+          }
         }
-      }
-    });
+      });
 
     const [state0, actions0] = initialTransition(machine);
 
@@ -79,14 +87,16 @@ describe('transition function', () => {
   it('should not execute a referenced serialized action', () => {
     const foo = jest.fn();
 
-    const machine = setup({
-      actions: {
-        foo
-      }
-    }).createMachine({
-      entry: 'foo',
-      context: { count: 0 }
-    });
+    const machine =
+      // setup({
+      //   actions: {
+      //     foo
+      //   }
+      // }).
+      next_createMachine({
+        entry: foo,
+        context: { count: 0 }
+      });
 
     const [, actions] = initialTransition(machine);
 
@@ -94,8 +104,8 @@ describe('transition function', () => {
   });
 
   it('should capture enqueued actions', () => {
-    const machine = createMachine({
-      entry2: (_, enq) => {
+    const machine = next_createMachine({
+      entry: (_, enq) => {
         enq.emit({ type: 'stringAction' });
         enq.emit({ type: 'objectAction' });
       }
@@ -110,11 +120,11 @@ describe('transition function', () => {
   });
 
   it('delayed raise actions should be returned', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
-          entry2: (_, enq) => {
+          entry: (_, enq) => {
             enq.raise({ type: 'NEXT' }, { delay: 10 });
           },
           on: {
@@ -141,7 +151,7 @@ describe('transition function', () => {
   });
 
   it('raise actions related to delayed transitions should be returned', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -167,11 +177,11 @@ describe('transition function', () => {
   });
 
   it('cancel action should be returned', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
-          entry2: (_, enq) => {
+          entry: (_, enq) => {
             enq.raise({ type: 'NEXT' }, { delay: 10, id: 'myRaise' });
           },
           on: {
@@ -202,10 +212,10 @@ describe('transition function', () => {
   });
 
   it('sendTo action should be returned', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       invoke: {
-        src: createMachine({}),
+        src: next_createMachine({}),
         id: 'someActor'
       },
       states: {
@@ -246,10 +256,10 @@ describe('transition function', () => {
   });
 
   it('emit actions should be returned', async () => {
-    const machine = createMachine({
-      types: {
-        emitted: {} as { type: 'counted'; count: number }
-      },
+    const machine = next_createMachine({
+      // types: {
+      //   emitted: {} as { type: 'counted'; count: number }
+      // },
       initial: 'a',
       context: { count: 10 },
       states: {
@@ -283,7 +293,7 @@ describe('transition function', () => {
   });
 
   it('log actions should be returned', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       context: { count: 10 },
       states: {
@@ -333,7 +343,7 @@ describe('transition function', () => {
   });
 
   it('should calculate the next snapshot for machine logic', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -363,7 +373,7 @@ describe('transition function', () => {
   it('should not execute entry actions', () => {
     const fn = jest.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       entry: fn,
       states: {
@@ -380,14 +390,14 @@ describe('transition function', () => {
   it('should not execute transition actions', () => {
     const fn = jest.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
           on: {
-            event: {
-              target: 'b',
-              actions: fn
+            event: (_, enq) => {
+              enq.action(fn);
+              return { target: 'b' };
             }
           }
         },
@@ -407,7 +417,7 @@ describe('transition function', () => {
       state: undefined as any
     };
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'start',
       states: {
         start: {
@@ -477,34 +487,36 @@ describe('transition function', () => {
       state: undefined as any
     };
 
-    const machine = setup({
-      actors: {
-        sendWelcomeEmail: fromPromise(async () => {
-          calls.push('sendWelcomeEmail');
-          return {
-            status: 'sent'
-          };
-        })
-      }
-    }).createMachine({
-      initial: 'sendingWelcomeEmail',
-      states: {
-        sendingWelcomeEmail: {
-          invoke: {
-            src: 'sendWelcomeEmail',
-            input: () => ({ message: 'hello world', subject: 'hi' }),
-            onDone: 'logSent'
-          }
-        },
-        logSent: {
-          invoke: {
-            src: fromPromise(async () => {}),
-            onDone: 'finish'
-          }
-        },
-        finish: {}
-      }
-    });
+    const machine =
+      // setup({
+      //   actors: {
+      //     sendWelcomeEmail: fromPromise(async () => {
+      //       calls.push('sendWelcomeEmail');
+      //       return {
+      //         status: 'sent'
+      //       };
+      //     })
+      //   }
+      // }).
+      next_createMachine({
+        initial: 'sendingWelcomeEmail',
+        states: {
+          sendingWelcomeEmail: {
+            invoke: {
+              src: 'sendWelcomeEmail',
+              input: () => ({ message: 'hello world', subject: 'hi' }),
+              onDone: 'logSent'
+            }
+          },
+          logSent: {
+            invoke: {
+              src: fromPromise(async () => {}),
+              onDone: 'finish'
+            }
+          },
+          finish: {}
+        }
+      });
 
     const calls: string[] = [];
 

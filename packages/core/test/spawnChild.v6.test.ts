@@ -2,7 +2,7 @@ import { interval } from 'rxjs';
 import {
   ActorRefFrom,
   createActor,
-  createMachine,
+  next_createMachine,
   fromObservable,
   fromPromise
 } from '../src';
@@ -10,8 +10,8 @@ import {
 describe('spawnChild action', () => {
   it('can spawn', () => {
     const actor = createActor(
-      createMachine({
-        entry2: (_, enq) => {
+      next_createMachine({
+        entry: (_, enq) => {
           enq.spawn(
             fromPromise(() => Promise.resolve(42)),
             { id: 'child' }
@@ -30,14 +30,14 @@ describe('spawnChild action', () => {
       Promise.resolve(input * 2)
     );
     const actor = createActor(
-      createMachine({
-        types: {
-          actors: {} as {
-            src: 'fetchNum';
-            logic: typeof fetchNum;
-          }
-        },
-        entry2: (_, enq) => {
+      next_createMachine({
+        // types: {
+        //   actors: {} as {
+        //     src: 'fetchNum';
+        //     logic: typeof fetchNum;
+        //   }
+        // },
+        entry: (_, enq) => {
           enq.spawn(fetchNum, { id: 'child', input: 21 });
         }
       }).provide({
@@ -52,7 +52,7 @@ describe('spawnChild action', () => {
 
   it('should accept `syncSnapshot` option', (done) => {
     const observableLogic = fromObservable(() => interval(10));
-    const observableMachine = createMachine({
+    const observableMachine = next_createMachine({
       id: 'observable',
       initial: 'idle',
       context: {
@@ -60,16 +60,19 @@ describe('spawnChild action', () => {
       },
       states: {
         idle: {
-          entry2: (_, enq) => {
+          entry: (_, enq) => {
             enq.spawn(observableLogic, {
               id: 'int',
               syncSnapshot: true
             });
           },
           on: {
-            'xstate.snapshot.int': {
-              target: 'success',
-              guard: ({ event }) => event.snapshot.context === 5
+            'xstate.snapshot.int': ({ event }) => {
+              if (event.snapshot.context === 5) {
+                return {
+                  target: 'success'
+                };
+              }
             }
           }
         },
@@ -92,7 +95,7 @@ describe('spawnChild action', () => {
   it('should handle a dynamic id', () => {
     const spy = jest.fn();
 
-    const childMachine = createMachine({
+    const childMachine = next_createMachine({
       on: {
         FOO: (_, enq) => {
           enq.action(spy);
@@ -100,11 +103,11 @@ describe('spawnChild action', () => {
       }
     });
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       context: {
         childId: 'myChild'
       },
-      entry2: ({ context, self }, enq) => {
+      entry: ({ context, self }, enq) => {
         // TODO: This should all be abstracted in enq.spawn(…)
         const child = createActor(childMachine, {
           id: context.childId,

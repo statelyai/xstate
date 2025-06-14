@@ -1,6 +1,6 @@
 import { BehaviorSubject } from 'rxjs';
 import {
-  createMachine,
+  next_createMachine,
   createActor,
   fromPromise,
   fromObservable
@@ -10,11 +10,11 @@ import { sleep } from '@xstate-repo/jest-utils';
 describe('rehydration', () => {
   describe('using persisted state', () => {
     it('should be able to use `hasTag` immediately', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: {
-            tags: 'foo'
+            tags: ['foo']
           }
         }
       });
@@ -32,14 +32,14 @@ describe('rehydration', () => {
 
     it('should not call exit actions when machine gets stopped immediately', () => {
       const actual: string[] = [];
-      const machine = createMachine({
-        exit2: (_, enq) => {
+      const machine = next_createMachine({
+        exit: (_, enq) => {
           enq.action(() => actual.push('root'));
         },
         initial: 'a',
         states: {
           a: {
-            exit2: (_, enq) => {
+            exit: (_, enq) => {
               enq.action(() => actual.push('a'));
             }
           }
@@ -58,7 +58,7 @@ describe('rehydration', () => {
     });
 
     it('should get correct result back from `can` immediately', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         on: {
           FOO: (_, enq) => {
             enq.action(() => {});
@@ -80,14 +80,14 @@ describe('rehydration', () => {
 
   describe('using state value', () => {
     it('should be able to use `hasTag` immediately', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'inactive',
         states: {
           inactive: {
             on: { NEXT: 'active' }
           },
           active: {
-            tags: 'foo'
+            tags: ['foo']
           }
         }
       });
@@ -104,8 +104,8 @@ describe('rehydration', () => {
 
     it('should not call exit actions when machine gets stopped immediately', () => {
       const actual: string[] = [];
-      const machine = createMachine({
-        exit2: (_, enq) => {
+      const machine = next_createMachine({
+        exit: (_, enq) => {
           enq.action(() => actual.push('root'));
         },
         initial: 'inactive',
@@ -114,7 +114,7 @@ describe('rehydration', () => {
             on: { NEXT: 'active' }
           },
           active: {
-            exit2: (_, enq) => {
+            exit: (_, enq) => {
               enq.action(() => actual.push('active'));
             }
           }
@@ -131,7 +131,7 @@ describe('rehydration', () => {
     });
 
     it('should error on incompatible state value (shallow)', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'valid',
         states: {
           valid: {}
@@ -140,11 +140,11 @@ describe('rehydration', () => {
 
       expect(() => {
         machine.resolveState({ value: 'invalid' });
-      }).toThrowError(/invalid/);
+      }).toThrow(/invalid/);
     });
 
     it('should error on incompatible state value (deep)', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'parent',
         states: {
           parent: {
@@ -164,8 +164,8 @@ describe('rehydration', () => {
 
   it('should not replay actions when starting from a persisted state', () => {
     const entrySpy = jest.fn();
-    const machine = createMachine({
-      entry2: (_, enq) => {
+    const machine = next_createMachine({
+      entry: (_, enq) => {
         enq.action(entrySpy);
       }
     });
@@ -184,7 +184,7 @@ describe('rehydration', () => {
   });
 
   it('should be able to stop a rehydrated child', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -219,7 +219,7 @@ describe('rehydration', () => {
   });
 
   it('a rehydrated active child should be registered in the system', () => {
-    const machine = createMachine(
+    const machine = next_createMachine(
       {
         context: ({ spawn }) => {
           spawn('foo', {
@@ -227,12 +227,12 @@ describe('rehydration', () => {
           });
           return {};
         }
-      },
-      {
-        actors: {
-          foo: createMachine({})
-        }
       }
+      // {
+      //   actors: {
+      //     foo: next_createMachine({})
+      //   }
+      // }
     );
 
     const actor = createActor(machine).start();
@@ -247,7 +247,7 @@ describe('rehydration', () => {
   });
 
   it('a rehydrated done child should not be registered in the system', () => {
-    const machine = createMachine(
+    const machine = next_createMachine(
       {
         context: ({ spawn }) => {
           spawn('foo', {
@@ -255,12 +255,12 @@ describe('rehydration', () => {
           });
           return {};
         }
-      },
-      {
-        actors: {
-          foo: createMachine({ type: 'final' })
-        }
       }
+      // {
+      //   actors: {
+      //     foo: next_createMachine({ type: 'final' })
+      //   }
+      // }
     );
 
     const actor = createActor(machine).start();
@@ -277,7 +277,7 @@ describe('rehydration', () => {
   it('a rehydrated done child should not re-notify the parent about its completion', () => {
     const spy = jest.fn();
 
-    const machine = createMachine(
+    const machine = next_createMachine(
       {
         context: ({ spawn }) => {
           spawn('foo', {
@@ -290,12 +290,12 @@ describe('rehydration', () => {
             enq.action(spy);
           }
         }
-      },
-      {
-        actors: {
-          foo: createMachine({ type: 'final' })
-        }
       }
+      // {
+      //   actors: {
+      //     foo: next_createMachine({ type: 'final' })
+      //   }
+      // }
     );
 
     const actor = createActor(machine).start();
@@ -312,17 +312,17 @@ describe('rehydration', () => {
   });
 
   it('should be possible to persist a rehydrated actor that got its children rehydrated', () => {
-    const machine = createMachine(
+    const machine = next_createMachine(
       {
         invoke: {
           src: 'foo'
         }
-      },
-      {
-        actors: {
-          foo: fromPromise(() => Promise.resolve(42))
-        }
       }
+      // {
+      //   actors: {
+      //     foo: fromPromise(() => Promise.resolve(42))
+      //   }
+      // }
     );
 
     const actor = createActor(machine).start();
@@ -338,7 +338,7 @@ describe('rehydration', () => {
   });
 
   it('should complete on a rehydrated final state', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -365,17 +365,17 @@ describe('rehydration', () => {
   });
 
   it('should error on a rehydrated error state', async () => {
-    const machine = createMachine(
+    const machine = next_createMachine(
       {
         invoke: {
           src: 'failure'
         }
-      },
-      {
-        actors: {
-          failure: fromPromise(() => Promise.reject(new Error('failure')))
-        }
       }
+      // {
+      //   actors: {
+      //     failure: fromPromise(() => Promise.reject(new Error('failure')))
+      //   }
+      // }
     );
 
     const actorRef = createActor(machine);
@@ -400,7 +400,7 @@ describe('rehydration', () => {
   it(`shouldn't re-notify the parent about the error when rehydrating`, async () => {
     const spy = jest.fn();
 
-    const machine = createMachine(
+    const machine = next_createMachine(
       {
         invoke: {
           src: 'failure',
@@ -408,12 +408,12 @@ describe('rehydration', () => {
             enq.action(spy);
           }
         }
-      },
-      {
-        actors: {
-          failure: fromPromise(() => Promise.reject(new Error('failure')))
-        }
       }
+      // {
+      //   actors: {
+      //     failure: fromPromise(() => Promise.reject(new Error('failure')))
+      //   }
+      // }
     );
 
     const actorRef = createActor(machine);
@@ -437,14 +437,14 @@ describe('rehydration', () => {
 
     const spy = jest.fn();
 
-    const machine = createMachine(
+    const machine = next_createMachine(
       {
-        types: {} as {
-          actors: {
-            src: 'service';
-            logic: typeof subjectLogic;
-          };
-        },
+        // types: {} as {
+        //   actors: {
+        //     src: 'service';
+        //     logic: typeof subjectLogic;
+        //   };
+        // },
 
         invoke: {
           src: 'service',
@@ -452,12 +452,12 @@ describe('rehydration', () => {
             enq.action(() => spy(event.snapshot.context));
           }
         }
-      },
-      {
-        actors: {
-          service: subjectLogic
-        }
       }
+      // {
+      //   actors: {
+      //     service: subjectLogic
+      //   }
+      // }
     );
 
     createActor(machine, {
@@ -473,7 +473,7 @@ describe('rehydration', () => {
   });
 
   it('should be able to rehydrate an actor deep in the tree', () => {
-    const grandchild = createMachine({
+    const grandchild = next_createMachine({
       context: {
         count: 0
       },
@@ -485,7 +485,7 @@ describe('rehydration', () => {
         })
       }
     });
-    const child = createMachine(
+    const child = next_createMachine(
       {
         invoke: {
           src: 'grandchild',
@@ -496,14 +496,14 @@ describe('rehydration', () => {
             children.grandchild?.send({ type: 'INC' });
           }
         }
-      },
-      {
-        actors: {
-          grandchild
-        }
       }
+      // {
+      //   actors: {
+      //     grandchild
+      //   }
+      // }
     );
-    const machine = createMachine(
+    const machine = next_createMachine(
       {
         invoke: {
           src: 'child',
@@ -514,12 +514,12 @@ describe('rehydration', () => {
             children.child?.send({ type: 'INC' });
           }
         }
-      },
-      {
-        actors: {
-          child
-        }
       }
+      // {
+      //   actors: {
+      //     child
+      //   }
+      // }
     );
 
     const actorRef = createActor(machine).start();

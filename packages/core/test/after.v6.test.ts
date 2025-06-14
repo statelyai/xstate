@@ -122,17 +122,17 @@ describe('delayed transitions', () => {
       states: {
         one: {
           initial: 'two',
-          entry2: () => {
+          entry: () => {
             actual.push('entered one');
           },
           states: {
             two: {
-              entry2: () => {
+              entry: () => {
                 actual.push('entered two');
               }
             },
             three: {
-              entry2: () => {
+              entry: () => {
                 actual.push('entered three');
               },
               always: '#end'
