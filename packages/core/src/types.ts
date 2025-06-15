@@ -1911,6 +1911,12 @@ export interface Subscription {
   unsubscribe(): void;
 }
 
+export type Selection<TSelected> = Readable<TSelected>;
+
+export interface Readable<T> extends Subscribable<T> {
+  get: () => T;
+}
+
 export interface InteropObservable<T> {
   [Symbol.observable]: () => InteropSubscribable<T>;
 }
