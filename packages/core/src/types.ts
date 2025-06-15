@@ -1911,6 +1911,12 @@ export interface Subscription {
   unsubscribe(): void;
 }
 
+export type Selection<TSelected> = Readable<TSelected>;
+
+export interface Readable<T> extends Subscribable<T> {
+  get: () => T;
+}
+
 export interface InteropObservable<T> {
   [Symbol.observable]: () => InteropSubscribable<T>;
 }
@@ -1990,6 +1996,10 @@ export interface ActorRef<
       emitted: TEmitted & (TType extends '*' ? unknown : { type: TType })
     ) => void
   ) => Subscription;
+  select<TSelected, TSnapshot>(
+    selector: (snapshot: TSnapshot) => TSelected,
+    equalityFn?: (a: TSelected, b: TSelected) => boolean
+  ): Readable<TSelected>;
 }
 
 export type AnyActorRef = ActorRef<
