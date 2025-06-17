@@ -2,7 +2,8 @@ import { z } from 'zod';
 import { createActor, next_createMachine, assertEvent } from '../src';
 
 describe('assertion helpers', () => {
-  it('assertEvent asserts the correct event type', (done) => {
+  it('assertEvent asserts the correct event type', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     type TestEvent =
       | { type: 'greet'; message: string }
       | { type: 'count'; value: number };
@@ -43,16 +44,19 @@ describe('assertion helpers', () => {
         expect(err).toMatchInlineSnapshot(
           `[Error: Expected event {"type":"count","value":42} to have type "greet"]`
         );
-        done();
+        resolve();
       }
     });
 
     actor.start();
 
     actor.send({ type: 'count', value: 42 });
+
+    return promise;
   });
 
-  it('assertEvent asserts multiple event types', (done) => {
+  it('assertEvent asserts multiple event types', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     type TestEvent =
       | { type: 'greet'; message: string }
       | { type: 'notify'; message: string; level: 'info' | 'error' }
@@ -105,12 +109,14 @@ describe('assertion helpers', () => {
         expect(err).toMatchInlineSnapshot(
           `[Error: Expected event {"type":"count","value":42} to have one of types "greet", "notify"]`
         );
-        done();
+        resolve();
       }
     });
 
     actor.start();
 
     actor.send({ type: 'count', value: 42 });
+
+    return promise;
   });
 });
