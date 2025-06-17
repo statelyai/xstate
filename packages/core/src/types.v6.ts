@@ -1,5 +1,4 @@
 import { StandardSchemaV1 } from '../../xstate-store/src/schema';
-import { StateNode } from './StateNode';
 import {
   Action2,
   DoNotInfer,
@@ -66,7 +65,6 @@ export interface Next_StateNodeConfig<
   /** The initial state transition. */
   initial?:
     | Next_InitialTransitionConfig<TContext, TEvent, TEmitted>
-    | TransitionConfigFunction<TContext, TEvent, TEvent, TEmitted>
     | string
     | undefined;
   /**
@@ -148,7 +146,6 @@ export interface Next_StateNodeConfig<
    * active.
    */
   always?: Next_TransitionConfigOrTarget<TContext, TEvent, TEvent, TEmitted>;
-  parent?: StateNode<TContext, TEvent>;
   /**
    * The meta data associated with this state node, which will be returned in
    * State instances.

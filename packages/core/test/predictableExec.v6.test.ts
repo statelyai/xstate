@@ -2,10 +2,8 @@ import {
   AnyActor,
   next_createMachine,
   createActor,
-  sendTo,
   waitFor
 } from '../src/index.ts';
-import { sendParent } from '../src/actions.ts';
 import { fromCallback } from '../src/actors/index.ts';
 import { fromPromise } from '../src/actors/index.ts';
 
@@ -293,8 +291,8 @@ describe('predictableExec', () => {
         },
         b: {
           // entry: sendParent({ type: 'CHILD_UPDATED' })
-          entry: ({ parent }) => {
-            parent?.send({ type: 'CHILD_UPDATED' });
+          entry: ({ parent }, enq) => {
+            enq.sendTo(parent, { type: 'CHILD_UPDATED' });
           }
         }
       }
@@ -462,9 +460,11 @@ describe('predictableExec', () => {
         b: {
           entry: ({ parent }, enq) => {
             // TODO: this should be deferred
-            setTimeout(() => {
-              parent?.send({ type: 'CHILD_UPDATED' });
-            }, 1);
+            enq.action(() => {
+              setTimeout(() => {
+                parent?.send({ type: 'CHILD_UPDATED' });
+              }, 1);
+            });
           }
         }
       }
@@ -562,7 +562,9 @@ describe('predictableExec', () => {
               });
             })
           },
-          exit: sendTo('my-service', { type: 'MY_EVENT' }),
+          exit: ({ children }, enq) => {
+            enq.sendTo(children['my-service'], { type: 'MY_EVENT' });
+          },
           on: {
             TOGGLE: 'inactive'
           }

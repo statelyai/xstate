@@ -589,6 +589,7 @@ export type TransitionConfigFunction<
   obj: {
     context: TContext;
     event: TCurrentEvent;
+    self: AnyActorRef;
     parent: UnknownActorRef | undefined;
     value: StateValue;
     children: Record<string, AnyActorRef>;
@@ -2040,7 +2041,7 @@ export interface ActorRef<
 
 export type AnyActorRef = ActorRef<
   any,
-  any, // TODO: shouldn't this be AnyEventObject?
+  AnyEventObject, // TODO: shouldn't this be AnyEventObject?
   any
 >;
 
@@ -2752,10 +2753,11 @@ export type EnqueueObj<
   ) => void;
   log: (...args: any[]) => void;
   sendTo: <T extends AnyActorRef>(
-    actorRef: T,
+    actorRef: T | undefined,
     event: EventFrom<T>,
-    options?: { delay?: number }
+    options?: { id?: string; delay?: number }
   ) => void;
+  stop: (actorRef?: AnyActorRef) => void;
 };
 
 export type Action2<

@@ -212,6 +212,7 @@ export function next_createMachine<
   TMeta, // TMeta
   TODO // TStateSchema
 > {
+  config._special = true;
   return new StateMachine<
     any,
     any,

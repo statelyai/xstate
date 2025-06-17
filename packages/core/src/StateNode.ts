@@ -32,7 +32,8 @@ import type {
   ProvidedActor,
   NonReducibleUnknown,
   EventDescriptor,
-  Action2
+  Action2,
+  AnyActorRef
 } from './types.ts';
 import {
   createInvokeId,
@@ -213,14 +214,20 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
+    if (this.machine.config._special) {
+      this.entry2 = this.config.entry;
+      this.exit2 = this.config.exit;
+    }
+
     this.entry = toArray(this.config.entry).slice();
-    this.entry2 = this.config.entry2;
+    this.exit = toArray(this.config.exit).slice();
+    this.entry2 ??= this.config.entry2;
+    this.exit2 ??= this.config.exit2;
     if (this.entry2) {
       // @ts-ignore
       this.entry2._special = true;
     }
-    this.exit = toArray(this.config.exit).slice();
-    this.exit2 = this.config.exit2;
+
     if (this.exit2) {
       // @ts-ignore
       this.exit2._special = true;
@@ -380,7 +387,8 @@ export class StateNode<
       any, // TMeta
       any // TStateSchema
     >,
-    event: TEvent
+    event: TEvent,
+    self: AnyActorRef
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;
     const actions: UnknownAction[] = [];
@@ -401,7 +409,8 @@ export class StateNode<
         resolvedContext,
         event,
         snapshot,
-        this
+        this,
+        self
       );
 
       if (guardPassed) {
