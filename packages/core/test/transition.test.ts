@@ -1,4 +1,4 @@
-import { sleep } from '@xstate-repo/jest-utils';
+import { setTimeout as sleep } from 'node:timers/promises';
 import {
   assign,
   cancel,
@@ -26,9 +26,9 @@ import { resolveReferencedActor } from '../src/utils';
 
 describe('transition function', () => {
   it('should capture actions', () => {
-    const actionWithParams = jest.fn();
-    const actionWithDynamicParams = jest.fn();
-    const stringAction = jest.fn();
+    const actionWithParams = vi.fn();
+    const actionWithDynamicParams = vi.fn();
+    const stringAction = vi.fn();
 
     const machine = setup({
       types: {
@@ -89,7 +89,7 @@ describe('transition function', () => {
   });
 
   it('should not execute a referenced serialized action', () => {
-    const foo = jest.fn();
+    const foo = vi.fn();
 
     const machine = setup({
       actions: {
@@ -367,7 +367,7 @@ describe('transition function', () => {
   });
 
   it('should not execute entry actions', () => {
-    const fn = jest.fn();
+    const fn = vi.fn();
 
     const machine = createMachine({
       initial: 'a',
@@ -384,7 +384,7 @@ describe('transition function', () => {
   });
 
   it('should not execute transition actions', () => {
-    const fn = jest.fn();
+    const fn = vi.fn();
 
     const machine = createMachine({
       initial: 'a',

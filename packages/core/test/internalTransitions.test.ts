@@ -169,7 +169,7 @@ describe('internal transitions', () => {
   });
 
   it('should work with targetless transitions (in conditional array)', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'foo',
       states: {
@@ -188,7 +188,7 @@ describe('internal transitions', () => {
   });
 
   it('should work with targetless transitions (in object)', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'foo',
       states: {
@@ -207,7 +207,7 @@ describe('internal transitions', () => {
   });
 
   it('should work on parent with targetless transitions (in conditional array)', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       on: {
         TARGETLESS_ARRAY: [{ actions: [spy] }]
@@ -223,7 +223,7 @@ describe('internal transitions', () => {
   });
 
   it('should work on parent with targetless transitions (in object)', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       on: {
         TARGETLESS_OBJECT: { actions: [spy] }

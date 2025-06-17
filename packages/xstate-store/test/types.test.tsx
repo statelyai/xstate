@@ -1,4 +1,4 @@
-import { createStore } from '../src/index';
+import { createStore } from '../src/index.ts';
 
 describe('emitted', () => {
   it('can emit a known event', () => {

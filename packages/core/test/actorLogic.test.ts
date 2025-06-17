@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from 'node:timers/promises';
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
 import {
@@ -17,6 +18,7 @@ import {
 } from '../src/actors/index.ts';
 import { waitFor } from '../src/waitFor.ts';
 import { raise, sendTo } from '../src/actions.ts';
+import type { Mock } from 'vitest';
 
 describe('promise logic (fromPromise)', () => {
   it('should interpret a promise', async () => {
@@ -33,43 +35,49 @@ describe('promise logic (fromPromise)', () => {
 
     expect(snapshot.output).toBe('hello');
   });
-  it('should resolve', (done) => {
+  it('should resolve', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const actor = createActor(fromPromise(() => Promise.resolve(42)));
 
     actor.subscribe((state) => {
       if (state.output === 42) {
-        done();
+        resolve();
       }
     });
 
     actor.start();
+    return promise;
   });
 
-  it('should resolve (observer .next)', (done) => {
+  it('should resolve (observer .next)', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const actor = createActor(fromPromise(() => Promise.resolve(42)));
 
     actor.subscribe({
       next: (state) => {
         if (state.output === 42) {
-          done();
+          resolve();
         }
       }
     });
 
     actor.start();
+    return promise;
   });
 
-  it('should reject (observer .error)', (done) => {
+  it('should reject (observer .error)', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const actor = createActor(fromPromise(() => Promise.reject('Error')));
 
     actor.subscribe({
       error: (data) => {
         expect(data).toBe('Error');
-        done();
+        resolve();
       }
     });
 
     actor.start();
+    return promise;
   });
 
   it('should complete (observer .complete)', async () => {
@@ -95,7 +103,7 @@ describe('promise logic (fromPromise)', () => {
     expect(called).toBe(false);
   });
 
-  it('should persist an unresolved promise', (done) => {
+  it('should persist an unresolved promise', async () => {
     const promiseLogic = fromPromise(
       () =>
         new Promise<number>((res) => {
@@ -113,13 +121,12 @@ describe('promise logic (fromPromise)', () => {
       snapshot: resolvedPersistedState
     }).start();
 
-    setTimeout(() => {
-      expect(restoredActor.getSnapshot().output).toBe(42);
-      done();
-    }, 20);
+    await sleep(20);
+    expect(restoredActor.getSnapshot().output).toBe(42);
   });
 
-  it('should persist a resolved promise', (done) => {
+  it('should persist a resolved promise', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const promiseLogic = fromPromise(
       () =>
         new Promise<number>((res) => {
@@ -146,8 +153,9 @@ describe('promise logic (fromPromise)', () => {
         snapshot: resolvedPersistedState
       }).start();
       expect(restoredActor.getSnapshot().output).toBe(42);
-      done();
+      resolve();
     }, 5);
+    return promise;
   });
 
   it('should not invoke a resolved promise again', async () => {
@@ -234,8 +242,8 @@ describe('promise logic (fromPromise)', () => {
   });
 
   it('should abort when stopping', async () => {
-    const deferred = withResolvers<number>();
-    const fn = jest.fn();
+    const deferred = Promise.withResolvers<number>();
+    const fn = vi.fn();
     const promiseLogic = fromPromise((ctx) => {
       return new Promise((res) => {
         ctx.signal.addEventListener('abort', fn);
@@ -252,15 +260,15 @@ describe('promise logic (fromPromise)', () => {
   });
 
   it('should not abort when stopped if promise is resolved/rejected', async () => {
-    const resolvedDeferred = withResolvers<number>();
-    const resolvedSignalListener = jest.fn();
+    const resolvedDeferred = Promise.withResolvers<number>();
+    const resolvedSignalListener = vi.fn();
     const resolvedPromiseLogic = fromPromise((ctx) => {
       ctx.signal.addEventListener('abort', resolvedSignalListener);
       return resolvedDeferred.promise;
     });
 
-    const rejectedDeferred = withResolvers<number>();
-    const rejectedSignalListener = jest.fn();
+    const rejectedDeferred = Promise.withResolvers<number>();
+    const rejectedSignalListener = vi.fn();
     const rejectedPromiseLogic = fromPromise((ctx) => {
       ctx.signal.addEventListener('abort', rejectedSignalListener);
       return rejectedDeferred.promise.catch(() => {});
@@ -283,10 +291,10 @@ describe('promise logic (fromPromise)', () => {
 
   it('should not reuse the same signal for different actors with same logic', async () => {
     let deferredMap: Map<string, PromiseWithResolvers<number>> = new Map();
-    let signalListenerMap: Map<string, jest.Mock> = new Map();
+    let signalListenerMap: Map<string, Mock> = new Map();
     const p = fromPromise(({ self, signal }) => {
-      const deferred = withResolvers<number>();
-      const signalListener = jest.fn();
+      const deferred = Promise.withResolvers<number>();
+      const signalListener = vi.fn();
       deferredMap.set(self.id, deferred);
       signalListenerMap.set(self.id, signalListener);
       signal.addEventListener('abort', signalListener);
@@ -343,10 +351,10 @@ describe('promise logic (fromPromise)', () => {
 
   it('should not reuse the same signal for different actors with same logic and id', async () => {
     let deferredList: PromiseWithResolvers<number>[] = [];
-    let signalListenerList: jest.Mock[] = [];
+    let signalListenerList: Mock[] = [];
     const p = fromPromise(({ signal }) => {
-      const deferred = withResolvers<number>();
-      const fn = jest.fn();
+      const deferred = Promise.withResolvers<number>();
+      const fn = vi.fn();
       deferredList.push(deferred);
       signalListenerList.push(fn);
       signal.addEventListener('abort', fn);
@@ -407,10 +415,10 @@ describe('promise logic (fromPromise)', () => {
 
   it('should not reuse the same signal for the same actor when restarted', async () => {
     let deferredList: PromiseWithResolvers<number>[] = [];
-    let signalListenerList: jest.Mock[] = [];
+    let signalListenerList: Mock[] = [];
     const p = fromPromise(({ signal }) => {
-      const deferred = withResolvers<number>();
-      const fn = jest.fn();
+      const deferred = Promise.withResolvers<number>();
+      const fn = vi.fn();
       deferredList.push(deferred);
       signalListenerList.push(fn);
       signal.addEventListener('abort', fn);
@@ -561,7 +569,7 @@ describe('observable logic (fromObservable)', () => {
 
   it('should resolve', () => {
     const actor = createActor(fromObservable(() => of(42)));
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     actor.subscribe((snapshot) => spy(snapshot.context));
 
@@ -572,7 +580,7 @@ describe('observable logic (fromObservable)', () => {
 
   it('should resolve (observer .next)', () => {
     const actor = createActor(fromObservable(() => of(42)));
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     actor.subscribe({
       next: (snapshot) => spy(snapshot.context)
@@ -586,14 +594,14 @@ describe('observable logic (fromObservable)', () => {
     const actor = createActor(
       fromObservable(() => throwError(() => 'Observable error.'))
     );
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     actor.subscribe({
       error: spy
     });
 
     actor.start();
-    expect(spy).toMatchMockCallsInlineSnapshot(`
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           "Observable error.",
@@ -604,7 +612,7 @@ describe('observable logic (fromObservable)', () => {
 
   it('should complete (observer .complete)', () => {
     const actor = createActor(fromObservable(() => EMPTY));
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     actor.subscribe({
       complete: spy
@@ -705,7 +713,8 @@ describe('callback logic (fromCallback)', () => {
     createActor(callbackLogic).start();
   });
 
-  it('can send self reference in an event to parent', (done) => {
+  it('can send self reference in an event to parent', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       types: {} as {
         events: { type: 'PING'; ref: AnyActorRef };
@@ -715,7 +724,7 @@ describe('callback logic (fromCallback)', () => {
           receive((event) => {
             switch (event.type) {
               case 'PONG': {
-                done();
+                resolve();
               }
             }
           });
@@ -737,10 +746,11 @@ describe('callback logic (fromCallback)', () => {
     });
 
     createActor(machine).start();
+    return promise;
   });
 
   it('should persist the input of a callback', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine(
       {
         types: {} as { events: { type: 'EV'; data: number } },
@@ -1080,7 +1090,7 @@ describe('machine logic', () => {
     expect(() =>
       actorRef.getPersistedSnapshot()
     ).toThrowErrorMatchingInlineSnapshot(
-      `"An inline child actor cannot be persisted."`
+      `[Error: An inline child actor cannot be persisted.]`
     );
   });
 
@@ -1186,7 +1196,8 @@ describe('composable actor logic', () => {
     expect(logs).toEqual([42]);
   });
 
-  it('should work with observables', (done) => {
+  it('should work with observables', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const logs: any[] = [];
 
     function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
@@ -1211,9 +1222,10 @@ describe('composable actor logic', () => {
     actor.subscribe({
       complete: () => {
         expect(logs).toEqual([0, 1, 2, 3]);
-        done();
+        resolve();
       }
     });
+    return promise;
   });
 
   it('higher-level logic wrapping a machine should be able to persist a snapshot', () => {
@@ -1264,19 +1276,3 @@ describe('composable actor logic', () => {
     );
   });
 });
-
-function withResolvers<T>(): PromiseWithResolvers<T> {
-  let resolve: (value: T | PromiseLike<T>) => void;
-  let reject: (reason: any) => void;
-
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-
-  return {
-    resolve: resolve!,
-    reject: reject!,
-    promise
-  };
-}

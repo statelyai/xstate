@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createActor, createMachine, assign } from 'xstate';
-  import { useActorRef, useSelector } from '@xstate/svelte';
+  import { useActorRef, useSelector } from '../src/index.ts';
 
   const machine = createMachine({
     types: {} as {

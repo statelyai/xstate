@@ -10,7 +10,7 @@ import {
   onMount
 } from 'solid-js';
 import { createStore, reconcile } from 'solid-js/store';
-import { fireEvent, render, screen, waitFor } from 'solid-testing-library';
+import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
 import {
   ActorRef,
   ActorRefFrom,
@@ -20,13 +20,14 @@ import {
   fromTransition,
   sendParent
 } from 'xstate';
-import { fromActorRef, useActor } from '../src';
+import { fromActorRef, useActor } from '../src/index.ts';
 
 const createSimpleActor = <T extends unknown>(value: T) =>
   createActor(fromTransition((s) => s, value));
 
 describe('fromActorRef', () => {
-  it('initial invoked actor should be immediately available', (done) => {
+  it('initial invoked actor should be immediately available', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
@@ -51,7 +52,7 @@ describe('fromActorRef', () => {
       const state = fromActorRef(props.actor);
 
       expect(state().value).toEqual('active');
-      done();
+      resolve();
 
       return null;
     };
@@ -66,9 +67,11 @@ describe('fromActorRef', () => {
     };
 
     render(() => <Test />);
+    return promise;
   });
 
-  it('invoked actor should be able to receive (deferred) events that it replays when active', (done) => {
+  it('invoked actor should be able to receive (deferred) events that it replays when active', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
@@ -111,7 +114,7 @@ describe('fromActorRef', () => {
       const [state] = useActor(machine);
       createEffect(() => {
         if (state.matches('success')) {
-          done();
+          resolve();
         }
       });
 
@@ -123,9 +126,12 @@ describe('fromActorRef', () => {
     };
 
     render(() => <Test />);
+
+    return promise;
   });
 
-  it('send should update synchronously', (done) => {
+  it('send should update synchronously', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'start',
       states: {
@@ -163,7 +169,9 @@ describe('fromActorRef', () => {
     };
 
     render(() => <Spawner />);
-    waitFor(() => screen.getByTestId('success')).then(() => done());
+    waitFor(() => screen.getByTestId('success')).then(() => resolve());
+
+    return promise;
   });
 
   it('should only trigger effects once for nested context values', () => {
@@ -519,7 +527,8 @@ describe('fromActorRef', () => {
     expect(canDoSomethingEl.textContent).toEqual('true');
   });
 
-  it('spawned actor should be able to receive (deferred) events that it replays when active', (done) => {
+  it('spawned actor should be able to receive (deferred) events that it replays when active', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
@@ -569,7 +578,7 @@ describe('fromActorRef', () => {
       const [state] = useActor(machine);
       createEffect(() => {
         if (state.matches('success')) {
-          done();
+          resolve();
         }
       });
 
@@ -577,6 +586,8 @@ describe('fromActorRef', () => {
     };
 
     render(() => <Test />);
+
+    return promise;
   });
 
   it('should provide value from `actor.getSnapshot()` immediately', () => {
@@ -1144,8 +1155,9 @@ describe('fromActorRef', () => {
     });
   });
 
-  it(`actor should not reevaluate a scope depending on state.matches when state.value doesn't change`, (done) => {
-    jest.useFakeTimers();
+  it(`actor should not reevaluate a scope depending on state.matches when state.value doesn't change`, () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    vi.useFakeTimers();
 
     interface MachineContext {
       counter: number;
@@ -1193,7 +1205,7 @@ describe('fromActorRef', () => {
             counterService.send({ type: 'INC' });
             setTimeout(() => {
               expect(calls).toBe(1);
-              done();
+              resolve();
             }, 100);
           });
         });
@@ -1203,7 +1215,9 @@ describe('fromActorRef', () => {
     };
 
     render(() => <Comp />);
-    jest.advanceTimersByTime(110);
+    vi.advanceTimersByTime(110);
+
+    return promise;
   });
 
   it('actor should be updated when it changes shallow', () => {
