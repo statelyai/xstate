@@ -178,6 +178,9 @@ export type SnapshotFromStore<TStore extends Store<any, any, any>> =
     ? StoreSnapshot<TContext>
     : never;
 
+export type SnapshotFromAtom<TAtom extends AnyAtom> =
+  TAtom extends Readable<infer T> ? T : never;
+
 /**
  * Extract the type of events from a `Store`.
  *

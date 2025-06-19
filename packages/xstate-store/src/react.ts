@@ -6,12 +6,18 @@ import {
   StoreConfig,
   Store,
   ExtractEvents,
-  Readable
+  Readable,
+  AnyAtom,
+  SnapshotFromAtom
 } from './types';
 import { createStore } from './store';
 
 function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;
+}
+
+function identity<T>(snapshot: T): T {
+  return snapshot;
 }
 
 function useSelectorWithCompare<TStore extends Readable<any>, T>(
@@ -94,3 +100,48 @@ export const useStore: {
 
   return storeRef.current;
 };
+
+/**
+ * A React hook that subscribes to the `atom` and returns the current value of
+ * the atom.
+ *
+ * @example
+ *
+ * ```ts
+ * const atom = createAtom(0);
+ *
+ * const Component = () => {
+ *   const count = useAtom(atom);
+ *
+ *   return (
+ *     <div>
+ *       <div>{count}</div>
+ *       <button onClick={() => atom.set((c) => c + 1)}>Increment</button>
+ *     </div>
+ *   );
+ * };
+ * ```
+ *
+ * @param atom The atom, created from `createAtom(…)`
+ * @param selector An optional function which takes in the `snapshot` and
+ *   returns a selected value
+ * @param compare An optional function which compares the selected value to the
+ *   previous value
+ */
+export function useAtom<TAtom extends AnyAtom>(
+  atom: TAtom
+): SnapshotFromAtom<TAtom>;
+export function useAtom<TAtom extends AnyAtom, T>(
+  atom: TAtom,
+  selector: (snapshot: SnapshotFromAtom<TAtom>) => T,
+  compare?: (a: T | undefined, b: T) => boolean
+): T;
+export function useAtom<TAtom extends AnyAtom, T>(
+  atom: TAtom,
+  selector = identity,
+  compare = defaultCompare
+): T {
+  const state = useSelector(atom, selector, compare);
+
+  return state;
+}
