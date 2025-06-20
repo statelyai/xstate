@@ -1,4 +1,4 @@
-import { Ref, isRef, shallowRef, watch } from 'vue';
+import { Ref, isRef, shallowRef, triggerRef, watch } from 'vue';
 import { AnyActorRef } from 'xstate';
 
 function defaultCompare<T>(a: T, b: T) {
@@ -27,7 +27,9 @@ export function useSelector<
   const updateSelectedIfChanged = (nextSelected: T) => {
     if (!compare(selected.value, nextSelected)) {
       selected.value = nextSelected;
-    }
+    } else {
+			triggerRef(selected)
+		}
   };
 
   watch(
