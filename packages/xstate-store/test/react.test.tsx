@@ -13,6 +13,10 @@ import {
 } from '@xstate/react';
 import ReactDOM from 'react-dom';
 import { useStore } from '../src/react.ts';
+import { useAtom } from '../src/react.ts';
+import { act } from '@testing-library/react';
+import { vi } from 'vitest';
+import { useEffect } from 'react';
 
 describe('useSelector', () => {
   it('useSelector should work', () => {
@@ -762,5 +766,153 @@ describe('store examples', () => {
     // Moving without mouse down shouldn't create dots
     fireEvent.mouseMove(svg, { clientX: 50, clientY: 60 });
     expect(dotsGroup.children.length).toBe(2);
+  });
+});
+
+describe('useAtom', () => {
+  it('should return the full atom snapshot when used without selector', () => {
+    const atom = createAtom(0);
+
+    const TestComponent = () => {
+      const count = useAtom(atom);
+      return <div data-testid="value">{count}</div>;
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('value').textContent).toBe('0');
+  });
+
+  it('should return selected value when used with selector', () => {
+    const atom = createAtom({ count: 0, name: 'test' });
+
+    const TestComponent = () => {
+      const count = useAtom(atom, (state) => state.count);
+      return <div data-testid="value">{count}</div>;
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('value').textContent).toBe('0');
+  });
+
+  it('should update when atom value changes', () => {
+    const atom = createAtom({ count: 0 });
+
+    const TestComponent = () => {
+      const snapshot = useAtom(atom);
+      return (
+        <div>
+          <div data-testid="value">{snapshot.count}</div>
+          <button
+            data-testid="increment"
+            onClick={() => atom.set({ count: snapshot.count + 1 })}
+          >
+            Increment
+          </button>
+        </div>
+      );
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('value').textContent).toBe('0');
+
+    act(() => {
+      fireEvent.click(getByTestId('increment'));
+    });
+
+    expect(getByTestId('value').textContent).toBe('1');
+  });
+
+  it('should use custom compare function when provided', () => {
+    const renderCount = vi.fn();
+    const atom = createAtom({ user: { name: 'test', age: 25 } });
+
+    const TestComponent = () => {
+      const userName = useAtom(
+        atom,
+        (state) => state.user.name,
+        (a, b) => a?.toLowerCase() === b?.toLowerCase()
+      );
+
+      renderCount();
+      return <div data-testid="value">{userName}</div>;
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('value').textContent).toBe('test');
+    expect(renderCount).toHaveBeenCalledTimes(1);
+
+    // Update with same value but different case - should not trigger re-render
+    act(() => {
+      atom.set({ user: { name: 'TEST', age: 25 } });
+    });
+
+    expect(renderCount).toHaveBeenCalledTimes(1);
+    expect(getByTestId('value').textContent).toBe('test');
+
+    // Update with actually different value - should trigger re-render
+    act(() => {
+      atom.set({ user: { name: 'john', age: 25 } });
+    });
+
+    expect(renderCount).toHaveBeenCalledTimes(2);
+    expect(getByTestId('value').textContent).toBe('john');
+  });
+
+  it('should handle undefined values correctly', () => {
+    const atom = createAtom<{ value: string | undefined }>({
+      value: undefined
+    });
+
+    const TestComponent = () => {
+      const value = useAtom(atom, (state) => state.value);
+      return <div data-testid="value">{value ?? 'empty'}</div>;
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('value').textContent).toBe('empty');
+
+    act(() => {
+      atom.set({ value: 'defined' });
+    });
+
+    expect(getByTestId('value').textContent).toBe('defined');
+
+    act(() => {
+      atom.set({ value: undefined });
+    });
+
+    expect(getByTestId('value').textContent).toBe('empty');
+  });
+
+  it('should work with updater functions', () => {
+    const atom = createAtom(0);
+
+    const TestComponent = () => {
+      const count = useAtom(atom);
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button
+            data-testid="increment"
+            onClick={() => atom.set((c) => c + 1)}
+          >
+            Increment
+          </button>
+        </div>
+      );
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('count').textContent).toBe('0');
+
+    act(() => {
+      fireEvent.click(getByTestId('increment'));
+    });
+    expect(getByTestId('count').textContent).toBe('1');
+
+    act(() => {
+      fireEvent.click(getByTestId('increment'));
+    });
+    expect(getByTestId('count').textContent).toBe('2');
   });
 });
