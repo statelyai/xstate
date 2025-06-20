@@ -8,7 +8,7 @@ import {
   ExtractEvents,
   Readable,
   AnyAtom,
-  SnapshotFromAtom
+  Atom
 } from './types';
 import { createStore } from './store';
 
@@ -128,19 +128,17 @@ export const useStore: {
  * @param compare An optional function which compares the selected value to the
  *   previous value
  */
-export function useAtom<TAtom extends AnyAtom>(
-  atom: TAtom
-): SnapshotFromAtom<TAtom>;
-export function useAtom<TAtom extends AnyAtom, T>(
-  atom: TAtom,
-  selector: (snapshot: SnapshotFromAtom<TAtom>) => T,
-  compare?: (a: T | undefined, b: T) => boolean
-): T;
-export function useAtom<TAtom extends AnyAtom, T>(
-  atom: TAtom,
+export function useAtom<T>(atom: Atom<T>): T;
+export function useAtom<T, S>(
+  atom: Atom<T>,
+  selector: (snapshot: T) => S,
+  compare?: (a: S, b: S) => boolean
+): S;
+export function useAtom(
+  atom: AnyAtom,
   selector = identity,
   compare = defaultCompare
-): T {
+) {
   const state = useSelector(atom, selector, compare);
 
   return state;
