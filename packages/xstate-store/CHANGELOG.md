@@ -1,5 +1,38 @@
 # @xstate/store
 
+## 3.7.0
+
+### Minor Changes
+
+- [#5302](https://github.com/statelyai/xstate/pull/5302) [`809d8b5`](https://github.com/statelyai/xstate/commit/809d8b53869ac7d664ec1b1d634eb8286a0d4cd2) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useAtom` hook is now available for reading the value of an atom or selecting a value from the atom.
+
+  ```tsx
+  const atom = createAtom(0);
+
+  const Component = () => {
+    const count = useAtom(atom);
+
+    return (
+      <>
+        <div onClick={() => atom.set((c) => c + 1)}>{count}</div>
+        <button onClick={() => atom.set(0)}>Reset</button>
+      </>
+    );
+  };
+  ```
+
+  With selectors:
+
+  ```tsx
+  const atom = createAtom({ count: 0 });
+
+  const Component = () => {
+    const count = useAtom(atom, (s) => s.count);
+
+    return <div>{count}</div>;
+  };
+  ```
+
 ## 3.6.2
 
 ### Patch Changes
