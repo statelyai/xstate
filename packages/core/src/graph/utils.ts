@@ -1,6 +1,10 @@
-import { SerializationConfig, StatePath } from './types.ts';
+import {
+  SerializationConfig,
+  StatePath,
+  TestMeta,
+  TestPathResult
+} from './types.ts';
 import { AnyMachineSnapshot, MachineContext } from '../index.ts';
-import { TestMeta, TestPathResult } from './types.ts';
 
 interface TestResultStringOptions extends SerializationConfig<any, any> {
   formatColor: (color: string, string: string) => string;

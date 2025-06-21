@@ -1,20 +1,17 @@
-import { fireEvent, screen, render } from '@testing-library/react';
+import { fireEvent, screen, render, act } from '@testing-library/react';
 import {
   createStore,
   fromStore,
   createStoreConfig,
   createAtom
 } from '../src/index.ts';
-import { useSelector } from '../src/react.ts';
+import { useSelector, useStore, useAtom } from '../src/react.ts';
 import {
   useActor,
   useActorRef,
   useSelector as useXStateSelector
 } from '@xstate/react';
 import ReactDOM from 'react-dom';
-import { useStore } from '../src/react.ts';
-import { useAtom } from '../src/react.ts';
-import { act } from '@testing-library/react';
 import { vi } from 'vitest';
 import { useEffect } from 'react';
 
