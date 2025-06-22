@@ -215,126 +215,6 @@ export type TransitionsFromEventPayloadMap<
   >;
 };
 
-type CreateStoreParameterTypes<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends EventPayloadMap
-> = [definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>];
-
-type CreateStoreReturnType<
-  TContext extends StoreContext,
-  TEvent extends EventObject,
-  TEmitted extends EventPayloadMap
-> = Store<TContext, TEvent, ExtractEvents<TEmitted>>;
-
-/**
- * Creates a **store** that has its own internal state and can be sent events
- * that update its internal state based on transitions.
- *
- * @example
- *
- * ```ts
- * const store = createStore({
- *   context: { count: 0 },
- *   on: {
- *     inc: (context, event: { by: number }) => ({
- *       count: context.count + event.by
- *     })
- *   }
- * });
- *
- * store.subscribe((snapshot) => {
- *   console.log(snapshot);
- * });
- *
- * store.send({ type: 'inc', by: 5 });
- * // Logs { context: { count: 5 }, status: 'active', ... }
- * ```
- *
- * @param config - The store configuration object
- * @param config.context - The initial state of the store
- * @param config.on - An object mapping event types to transition functions
- * @param config.emits - An object mapping emitted event types to handlers
- * @returns A store instance with methods to send events and subscribe to state
- *   changes
- */
-function _createStore<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends EventPayloadMap
->(
-  ...[{ context, on, emits }]: CreateStoreParameterTypes<
-    TContext,
-    TEventPayloadMap,
-    TEmitted
-  >
-): CreateStoreReturnType<TContext, TEventPayloadMap, TEmitted> {
-  const transition = createStoreTransition(on);
-  const logic = {
-    getInitialSnapshot: () => ({
-      status: 'active' as const,
-      context: context,
-      output: undefined,
-      error: undefined
-    }),
-    transition
-  } satisfies StoreLogic<any, any, any>;
-
-  return createStoreCore(logic, emits);
-}
-
-// those overloads are exactly the same, we only duplicate them so TypeScript can:
-// 1. assign contextual parameter types during inference attempt for the first overload when the source object is still context-sensitive and often non-inferable
-// 2. infer correctly during inference attempt for the second overload when the parameter types are already "known"
-// export const createStore: {
-//   /**
-//    * Creates a **store** that has its own internal state and can be sent events
-//    * that update its internal state based on transitions.
-//    *
-//    * @example
-//    *
-//    * ```ts
-//    * const store = createStore({
-//    *   context: { count: 0, name: 'Ada' },
-//    *   on: {
-//    *     inc: (context, event: { by: number }) => ({
-//    *       ...context,
-//    *       count: context.count + event.by
-//    *     })
-//    *   }
-//    * });
-//    *
-//    * store.subscribe((snapshot) => {
-//    *   console.log(snapshot);
-//    * });
-//    *
-//    * store.send({ type: 'inc', by: 5 });
-//    * // Logs { context: { count: 5, name: 'Ada' }, status: 'active', ... }
-//    * ```
-//    *
-//    * @param config - The store configuration object
-//    * @param config.context - The initial state of the store
-//    * @param config.on - An object mapping event types to transition functions
-//    * @param config.emits - An object mapping emitted event types to handlers
-//    * @returns A store instance with methods to send events and subscribe to
-//    *   state changes
-//    */
-//   <
-//     TContext extends StoreContext,
-//     TEventPayloadMap extends EventPayloadMap,
-//     TEmitted extends EventPayloadMap
-//   >(
-//     ...args: CreateStoreParameterTypes<TContext, TEventPayloadMap, TEmitted>
-//   ): CreateStoreReturnType<TContext, TEventPayloadMap, TEmitted>;
-//   <
-//     TContext extends StoreContext,
-//     TEventPayloadMap extends EventPayloadMap,
-//     TEmitted extends EventPayloadMap
-//   >(
-//     ...args: CreateStoreParameterTypes<TContext, TEventPayloadMap, TEmitted>
-//   ): CreateStoreReturnType<TContext, TEventPayloadMap, TEmitted>;
-// } = _createStore;
-
 /**
  * Creates a **store** that has its own internal state and can be sent events
  * that update its internal state based on transitions.
@@ -373,10 +253,10 @@ export function createStore<
   TEmittedPayloadMap extends EventPayloadMap
 >(
   definition: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap>
-): CreateStoreReturnType<
+): Store<
   TContext,
   ExtractEvents<TEventPayloadMap>,
-  TEmittedPayloadMap
+  ExtractEvents<TEmittedPayloadMap>
 >;
 export function createStore<
   TContext extends StoreContext,
@@ -388,7 +268,7 @@ export function createStore<
     TEvent,
     ExtractEvents<TEmittedPayloadMap>
   >
-): CreateStoreReturnType<TContext, TEvent, TEmittedPayloadMap>;
+): Store<TContext, TEvent, ExtractEvents<TEmittedPayloadMap>>;
 export function createStore(
   definitionOrLogic: StoreConfig<any, any, any> | StoreLogic<any, any, any>
 ) {
