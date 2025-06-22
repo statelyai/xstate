@@ -77,7 +77,7 @@ export type StoreSnapshot<TContext> = Snapshot<undefined> & {
  * - Is observable
  */
 export interface Store<
-  TContext,
+  TContext extends StoreContext,
   TEvent extends EventObject,
   TEmitted extends EventObject
 > extends Subscribable<StoreSnapshot<TContext>>,
@@ -143,11 +143,17 @@ export interface Store<
    * });
    * ```
    */
-  transition: (
-    state: StoreSnapshot<TContext>,
-    event: TEvent
-  ) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
+  transition: StoreTransition<TContext, TEvent, TEmitted>;
 }
+
+export type StoreTransition<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = (
+  state: StoreSnapshot<TContext>,
+  event: TEvent
+) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
 
 export type StoreConfig<
   TContext extends StoreContext,
@@ -407,3 +413,15 @@ export interface ReadonlyAtom<T> extends BaseAtom<T> {}
 type DistributiveOmit<T, K extends PropertyKey> = T extends any
   ? Omit<T, K>
   : never;
+
+export type StoreLogic<
+  TSnapshot extends StoreSnapshot<any>,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = {
+  getInitialSnapshot: () => TSnapshot;
+  transition: (
+    snapshot: TSnapshot,
+    event: TEvent
+  ) => [TSnapshot, StoreEffect<TEmitted>[]];
+};
