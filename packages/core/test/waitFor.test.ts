@@ -1,5 +1,4 @@
-import { createActor, waitFor } from '../src/index.ts';
-import { createMachine } from '../src/index.ts';
+import { createActor, waitFor, createMachine } from '../src/index.ts';
 
 describe('waitFor', () => {
   it('should wait for a condition to be true and return the emitted value', async () => {

@@ -4,7 +4,7 @@ import { include as includeVue } from './vitest.config.vue.mts';
 
 export default defineProject({
   test: {
-    include: ['tests/**/*.test.{ts,tsx}'],
+    include: ['test/**/*.test.{ts,tsx}'],
     exclude: [...includeSolid, ...includeVue],
     globals: true,
     environment: 'happy-dom'

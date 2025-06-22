@@ -12,7 +12,6 @@ import {
   fromPromise,
   fromTransition,
   log,
-  matchesState,
   not,
   raise,
   sendParent,
