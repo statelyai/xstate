@@ -50,34 +50,59 @@ export function undoRedo<
       undoStack: []
     }),
     transition: (snapshot, event) => {
-      const events = snapshot.events.slice();
       if (event.type === 'undo') {
+        const events = snapshot.events.slice();
         const undoStack = snapshot.undoStack.slice();
         if (!events.length) {
-          return [snapshot, []];
+          return [
+            {
+              ...snapshot,
+              events,
+              undoStack
+            },
+            []
+          ];
         }
 
         // Get the transaction ID of the last event
         const lastTransactionId = events[events.length - 1].transactionId;
 
         // Remove all events with the same transaction ID
+        // If transactionId is undefined, only remove the last event
         const eventsToUndo: UndoEvent<TEvent>[] = [];
-        while (
-          events.length > 0 &&
-          events[events.length - 1].transactionId === lastTransactionId
-        ) {
+        if (lastTransactionId === undefined) {
+          // When no transaction ID is provided, each event is its own transaction
           const event = events.pop()!;
           eventsToUndo.unshift(event);
           undoStack.push(event);
+        } else {
+          // Remove all events with the same transaction ID
+          while (
+            events.length > 0 &&
+            events[events.length - 1].transactionId === lastTransactionId
+          ) {
+            const event = events.pop()!;
+            eventsToUndo.unshift(event);
+            undoStack.push(event);
+          }
         }
 
         // Replay remaining events to get to the new state
-        let state = logic.getInitialSnapshot();
+        let state = {
+          ...logic.getInitialSnapshot(),
+          events,
+          undoStack
+        };
+
         for (const { event } of events) {
-          state = logic.transition(state, event)[0];
+          const [newState, _effects] = logic.transition(state, event);
+          state = {
+            ...newState,
+            events,
+            undoStack
+          };
         }
-        state.events = events;
-        state.undoStack = undoStack;
+
         return [state, []];
       }
 
@@ -85,31 +110,54 @@ export function undoRedo<
         const events = snapshot.events.slice();
         const undoStack = snapshot.undoStack.slice();
         if (!undoStack.length) {
-          return [snapshot, []];
+          return [
+            {
+              ...snapshot,
+              events,
+              undoStack
+            },
+            []
+          ];
         }
 
         const lastTransactionId = undoStack[undoStack.length - 1].transactionId;
-        let state = snapshot;
+        let state = {
+          ...snapshot,
+          events,
+          undoStack
+        };
+
         while (
           undoStack.length > 0 &&
           undoStack[undoStack.length - 1].transactionId === lastTransactionId
         ) {
           const undoEvent = undoStack.pop()!;
           events.push(undoEvent);
-          state = logic.transition(state, undoEvent.event)[0];
+          const [newState] = logic.transition(state, undoEvent.event);
+          state = {
+            ...newState,
+            events,
+            undoStack
+          };
         }
-        state.events = events;
-        state.undoStack = undoStack;
+
         return [state, []];
       }
 
+      const events = snapshot.events.slice();
       const [state, effects] = logic.transition(snapshot, event);
-      state.events = events.concat({
-        event,
-        transactionId: options?.getTransactionId?.(event)
-      });
-      state.undoStack = snapshot.undoStack;
-      return [state, effects];
+      return [
+        {
+          ...state,
+          events: events.concat({
+            event,
+            transactionId: options?.getTransactionId?.(event)
+          }),
+          // Clear the undo stack when new events occur
+          undoStack: []
+        },
+        effects
+      ];
     }
   };
 
