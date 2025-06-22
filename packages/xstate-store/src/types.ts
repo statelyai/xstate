@@ -439,9 +439,3 @@ export type EmitsFromStoreConfig<TStore extends AnyStoreConfig> =
 
 export type ContextFromStoreConfig<TStore extends AnyStoreConfig> =
   TStore extends StoreConfig<infer TContext, any, any> ? TContext : never;
-
-export type StoreFromConfig<TConfig extends AnyStoreConfig> = Store<
-  ContextFromStoreConfig<TConfig>,
-  EventFromStoreConfig<TConfig>,
-  EmitsFromStoreConfig<TConfig>
->;

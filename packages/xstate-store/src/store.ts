@@ -19,7 +19,8 @@ import {
   Selector,
   Selection,
   InternalBaseAtom,
-  StoreLogic
+  StoreLogic,
+  StoreTransition
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -415,7 +416,7 @@ export function createStoreTransition<
     context: TContext,
     recipe: (context: TContext) => void
   ) => TContext
-) {
+): StoreTransition<TContext, ExtractEvents<TEventPayloadMap>, TEmitted> {
   return (
     snapshot: StoreSnapshot<TContext>,
     event: ExtractEvents<TEventPayloadMap>

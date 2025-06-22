@@ -1,7 +1,16 @@
 import { produce } from 'immer';
-import { createStore, createStoreWithProducer } from '../src/index.ts';
+import {
+  createStore,
+  createStoreConfig,
+  createStoreWithProducer
+} from '../src/index.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
 import { undoRedo } from '../src/undo.ts';
+import {
+  AnyStoreConfig,
+  ContextFromStoreConfig,
+  EventFromStoreConfig
+} from '../src/types.ts';
 
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
@@ -755,4 +764,60 @@ it('can be created with a logic object', () => {
 
   // @ts-expect-error
   store.getSnapshot().context.count satisfies string;
+});
+
+describe('types', () => {
+  it('AnyStoreConfig', () => {
+    function transformStoreConfig(_config: AnyStoreConfig): void {}
+
+    transformStoreConfig({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    });
+
+    // @ts-expect-error
+    transformStoreConfig({});
+  });
+
+  it('EventFromStoreConfig', () => {
+    const storeConfig = createStoreConfig({
+      context: { count: 0 },
+      on: {
+        inc: (ctx, event: { by: number }) => ({ count: ctx.count + event.by })
+      }
+    });
+
+    let ev: EventFromStoreConfig<typeof storeConfig> = {
+      type: 'inc',
+      by: 1
+    };
+
+    ev satisfies {
+      type: 'inc';
+      by: number;
+    };
+
+    // @ts-expect-error
+    ev satisfies { type: 'unknown' };
+  });
+
+  it('ContextFromStoreConfig', () => {
+    const storeConfig = createStoreConfig({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    });
+
+    type Context = ContextFromStoreConfig<typeof storeConfig>;
+
+    const context: Context = { count: 0 };
+
+    context.count satisfies number;
+
+    // @ts-expect-error
+    context.count satisfies string;
+  });
 });
