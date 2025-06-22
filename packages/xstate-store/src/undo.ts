@@ -126,6 +126,7 @@ export function undoRedo<
           events,
           undoStack
         };
+        const allEffects: any[] = [];
 
         while (
           undoStack.length > 0 &&
@@ -133,15 +134,16 @@ export function undoRedo<
         ) {
           const undoEvent = undoStack.pop()!;
           events.push(undoEvent);
-          const [newState] = logic.transition(state, undoEvent.event);
+          const [newState, effects] = logic.transition(state, undoEvent.event);
           state = {
             ...newState,
             events,
             undoStack
           };
+          allEffects.push(...effects);
         }
 
-        return [state, []];
+        return [state, allEffects];
       }
 
       const events = snapshot.events.slice();
