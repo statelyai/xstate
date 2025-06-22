@@ -425,3 +425,23 @@ export type StoreLogic<
     event: TEvent
   ) => [TSnapshot, StoreEffect<TEmitted>[]];
 };
+
+export type AnyStoreConfig = StoreConfig<any, any, any>;
+export type EventFromStoreConfig<TStore extends AnyStoreConfig> =
+  TStore extends StoreConfig<any, infer TEventPayloadMap, any>
+    ? ExtractEvents<TEventPayloadMap>
+    : never;
+
+export type EmitsFromStoreConfig<TStore extends AnyStoreConfig> =
+  TStore extends StoreConfig<any, any, infer TEmitted>
+    ? ExtractEvents<TEmitted>
+    : never;
+
+export type ContextFromStoreConfig<TStore extends AnyStoreConfig> =
+  TStore extends StoreConfig<infer TContext, any, any> ? TContext : never;
+
+export type StoreFromConfig<TConfig extends AnyStoreConfig> = Store<
+  ContextFromStoreConfig<TConfig>,
+  EventFromStoreConfig<TConfig>,
+  EmitsFromStoreConfig<TConfig>
+>;

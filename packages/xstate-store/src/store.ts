@@ -223,9 +223,9 @@ type CreateStoreParameterTypes<
 
 type CreateStoreReturnType<
   TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
+  TEvent extends EventObject,
   TEmitted extends EventPayloadMap
-> = Store<TContext, ExtractEvents<TEventPayloadMap>, ExtractEvents<TEmitted>>;
+> = Store<TContext, TEvent, ExtractEvents<TEmitted>>;
 
 /**
  * Creates a **store** that has its own internal state and can be sent events
@@ -373,18 +373,22 @@ export function createStore<
   TEmittedPayloadMap extends EventPayloadMap
 >(
   definition: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap>
-): CreateStoreReturnType<TContext, TEventPayloadMap, TEmittedPayloadMap>;
+): CreateStoreReturnType<
+  TContext,
+  ExtractEvents<TEventPayloadMap>,
+  TEmittedPayloadMap
+>;
 export function createStore<
   TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
+  TEvent extends EventObject,
   TEmittedPayloadMap extends EventPayloadMap
 >(
   logic: StoreLogic<
     StoreSnapshot<TContext>,
-    ExtractEvents<TEventPayloadMap>,
+    TEvent,
     ExtractEvents<TEmittedPayloadMap>
   >
-): CreateStoreReturnType<TContext, TEventPayloadMap, TEmittedPayloadMap>;
+): CreateStoreReturnType<TContext, TEvent, TEmittedPayloadMap>;
 export function createStore(
   definitionOrLogic: StoreConfig<any, any, any> | StoreLogic<any, any, any>
 ) {
