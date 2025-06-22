@@ -1994,7 +1994,7 @@ export interface ActorRef<
       emitted: TEmitted & (TType extends '*' ? unknown : { type: TType })
     ) => void
   ) => Subscription;
-  select<TSelected>(
+  select<TSelected, TSnapshot>(
     selector: (snapshot: TSnapshot) => TSelected,
     equalityFn?: (a: TSelected, b: TSelected) => boolean
   ): Readable<TSelected>;
