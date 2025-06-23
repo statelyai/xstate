@@ -912,4 +912,20 @@ describe('useAtom', () => {
     });
     expect(getByTestId('count').textContent).toBe('2');
   });
+
+  // https://github.com/statelyai/xstate/issues/5306
+  it('should work with readonly atoms', () => {
+    const booleanTestAtom = createAtom(() => 13 > 12);
+
+    const TestComponent = () => {
+      const booleanValue = useAtom(booleanTestAtom);
+
+      expect(booleanValue).toBe(true);
+      expect(typeof booleanValue).toBe('boolean');
+
+      return <div>{booleanValue.toString()}</div>;
+    };
+
+    render(<TestComponent />);
+  });
 });
