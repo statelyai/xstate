@@ -1,4 +1,4 @@
-import { onBeforeUnmount, onMounted } from 'vue';
+import { onBeforeUnmount } from 'vue';
 import {
   Actor,
   ActorOptions,
