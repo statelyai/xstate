@@ -35,12 +35,12 @@ export function useActorRef<TLogic extends AnyActorLogic>(
   const actorRef = createActor(actorLogic, options);
 
   let sub: Subscription;
-  onMounted(() => {
-    if (observerOrListener) {
-      sub = actorRef.subscribe(toObserver(observerOrListener));
-    }
-    actorRef.start();
-  });
+
+  if (observerOrListener) {
+    sub = actorRef.subscribe(toObserver(observerOrListener));
+  }
+
+  actorRef.start();
 
   onBeforeUnmount(() => {
     actorRef.stop();
