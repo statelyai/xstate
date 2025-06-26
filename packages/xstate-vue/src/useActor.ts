@@ -4,7 +4,6 @@ import {
   Actor,
   ActorOptions,
   AnyActorLogic,
-  Snapshot,
   SnapshotFrom,
   type ConditionalRequired,
   type IsNotNever,
