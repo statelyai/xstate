@@ -13,7 +13,6 @@ import {
 } from '@xstate/react';
 import ReactDOM from 'react-dom';
 import { vi } from 'vitest';
-import { useEffect } from 'react';
 
 describe('useSelector', () => {
   it('useSelector should work', () => {
@@ -911,5 +910,24 @@ describe('useAtom', () => {
       fireEvent.click(getByTestId('increment'));
     });
     expect(getByTestId('count').textContent).toBe('2');
+  });
+
+  // https://github.com/statelyai/xstate/issues/5306
+  it('should work with readonly atoms', () => {
+    const booleanTestAtom = createAtom(() => 13 > 12);
+
+    const TestComponent = () => {
+      const booleanValue = useAtom(booleanTestAtom);
+
+      booleanValue satisfies boolean;
+
+      // @ts-expect-error
+      booleanValue satisfies number;
+
+      return <div data-testid="value">{booleanValue.toString()}</div>;
+    };
+
+    render(<TestComponent />);
+    expect(screen.getByTestId('value').textContent).toBe('true');
   });
 });
