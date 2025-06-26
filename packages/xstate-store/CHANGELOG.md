@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.7.1
+
+### Patch Changes
+
+- [#5307](https://github.com/statelyai/xstate/pull/5307) [`b269485`](https://github.com/statelyai/xstate/commit/b269485e47b95fa57bbc75e34352f107ef2c37c3) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix the types for `useAtom` to accept `ReadonlyAtom` values.
+
 ## 3.7.0
 
 ### Minor Changes
