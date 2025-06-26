@@ -42,11 +42,7 @@ export function useActor(
     );
   }
 
-  function listener(nextSnapshot: Snapshot<unknown>) {
-    snapshot.value = nextSnapshot;
-  }
-
-  const actorRef = useActorRef(actorLogic, options, listener);
+  const actorRef = useActorRef(actorLogic, options);
   const snapshot = useSelector(actorRef, (s) => s);
 
   return {
