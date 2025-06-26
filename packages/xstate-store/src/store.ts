@@ -18,7 +18,8 @@ import {
   StoreSnapshot,
   Selector,
   Selection,
-  InternalBaseAtom
+  InternalBaseAtom,
+  StoreConfig2
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -329,6 +330,13 @@ export const createStore: {
   >(
     ...args: CreateStoreParameterTypes<TContext, TEventPayloadMap, TEmitted>
   ): CreateStoreReturnType<TContext, TEventPayloadMap, TEmitted>;
+  <
+    TContext extends StoreContext,
+    TEvent extends EventObject,
+    TEmitted extends EventObject
+  >(
+    definition: StoreConfig2<TContext, TEvent, TEmitted>
+  ): Store<TContext, TEvent, TEmitted>;
   <
     TContext extends StoreContext,
     TEventPayloadMap extends EventPayloadMap,

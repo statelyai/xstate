@@ -716,3 +716,23 @@ describe('store.transition', () => {
     expect(typeof effects[0]).toBe('function');
   });
 });
+
+it('manually providing types', () => {
+  const store = createStore<
+    { count: number },
+    { type: 'inc'; by: number } | { type: 'reset' },
+    { type: 'increased'; by: number }
+  >({
+    context: { count: 0 },
+    on: {
+      inc: (ctx, event) => {
+        event.by satisfies number;
+        // @ts-expect-error
+        event.by satisfies string;
+
+        return { count: ctx.count + event.by };
+      },
+      reset: () => ({ count: 0 })
+    }
+  });
+});
