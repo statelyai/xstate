@@ -4,7 +4,8 @@ export {
   getStateNodes,
   joinPaths,
   serializeSnapshot,
-  toDirectedGraph
+  toDirectedGraph,
+  toGraph
 } from './graph.ts';
 export type { AdjacencyMap, AdjacencyValue } from './types.ts';
 export { getPathsFromEvents } from './pathFromEvents.ts';
