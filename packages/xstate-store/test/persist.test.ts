@@ -100,7 +100,8 @@ describe('persist', () => {
 
     const persistedStore = persist(storeConfig, {
       name: 'test-store',
-      serializer: customSerializer
+      serialize: customSerializer.serialize,
+      deserialize: customSerializer.deserialize
     });
     const store = createStore(persistedStore);
 
