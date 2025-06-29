@@ -20,6 +20,8 @@ interface PersistOptions {
     serialize: (value: any) => string;
     deserialize: (value: string) => any;
   };
+  /** Custom storage */
+  storage?: Storage;
 }
 
 // Default serializer using JSON
@@ -29,29 +31,26 @@ const defaultSerializer = {
 };
 
 // Check if localStorage is available
-function isLocalStorageAvailable(): boolean {
-  try {
-    const test = '__localStorage_test__';
-    localStorage.setItem(test, test);
-    localStorage.removeItem(test);
-    return true;
-  } catch {
-    return false;
+function getLocalStorage(): Storage | undefined {
+  if (typeof window === 'undefined') {
+    return undefined;
   }
+  return window.localStorage;
 }
 
 // Load persisted state from localStorage
 function loadPersistedState<TContext extends StoreContext>(
   key: string,
+  storage: Storage,
   serializer: PersistOptions['serializer'],
   fallbackContext: TContext
 ): TContext {
-  if (!isLocalStorageAvailable()) {
+  if (!getLocalStorage()) {
     return fallbackContext;
   }
 
   try {
-    const serialized = localStorage.getItem(key);
+    const serialized = storage.getItem(key);
     if (!serialized) {
       return fallbackContext;
     }
@@ -75,16 +74,17 @@ function loadPersistedState<TContext extends StoreContext>(
 function savePersistedState<TContext extends StoreContext>(
   key: string,
   snapshot: StoreSnapshot<TContext>,
-  serializer: PersistOptions['serializer']
+  serializer: PersistOptions['serializer'],
+  storage: Storage
 ): void {
-  if (!isLocalStorageAvailable()) {
+  if (!getLocalStorage()) {
     return;
   }
 
   try {
     const { serialize } = serializer || defaultSerializer;
     const serialized = serialize(snapshot);
-    localStorage.setItem(key, serialized);
+    storage.setItem(key, serialized);
   } catch (error) {
     console.warn(`Failed to save persisted state for key "${key}":`, error);
   }
@@ -114,13 +114,29 @@ export function persist(
   storeConfigOrLogic: AnyStoreConfig | AnyStoreLogic,
   options: PersistOptions
 ): AnyStoreLogic {
+  const resolvedStorage = options.storage ?? getLocalStorage();
+  if (!resolvedStorage) {
+    throw new Error('No storage provided');
+  }
+  const initialContext =
+    'context' in storeConfigOrLogic
+      ? storeConfigOrLogic.context
+      : storeConfigOrLogic.getInitialSnapshot().context;
+  const resolvedContext = resolvedStorage
+    ? loadPersistedState(
+        options.name,
+        resolvedStorage,
+        options.serializer,
+        initialContext
+      )
+    : initialContext;
   const logic =
     'transition' in storeConfigOrLogic
       ? storeConfigOrLogic
       : {
           getInitialSnapshot: () => ({
             status: 'active',
-            context: storeConfigOrLogic.context,
+            context: resolvedContext,
             output: undefined,
             error: undefined
           }),
@@ -131,6 +147,7 @@ export function persist(
   const originalGetInitialSnapshot = logic.getInitialSnapshot;
   const persistedContext = loadPersistedState(
     options.name,
+    resolvedStorage,
     options.serializer,
     originalGetInitialSnapshot().context
   );
@@ -145,8 +162,16 @@ export function persist(
   const transition = (snapshot: any, event: any): [any, any[]] => {
     const [nextSnapshot, effects] = originalTransition(snapshot, event);
 
-    // Save the new state to localStorage
-    savePersistedState(options.name, nextSnapshot, options.serializer);
+    const storage = options.storage ?? getLocalStorage();
+
+    if (storage) {
+      savePersistedState(
+        options.name,
+        nextSnapshot,
+        options.serializer,
+        storage
+      );
+    }
 
     return [nextSnapshot, effects];
   };
