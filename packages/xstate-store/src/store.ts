@@ -20,7 +20,8 @@ import {
   Selection,
   InternalBaseAtom,
   StoreLogic,
-  StoreTransition
+  StoreTransition,
+  AnyStoreLogic
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -271,13 +272,13 @@ export function createStore<
   >
 ): Store<TContext, TEvent, ExtractEvents<TEmittedPayloadMap>>;
 export function createStore(
-  definitionOrLogic: StoreConfig<any, any, any> | StoreLogic<any, any, any>
+  definitionOrLogic: StoreConfig<any, any, any> | AnyStoreLogic
 ) {
   if ('transition' in definitionOrLogic) {
     return createStoreCore(definitionOrLogic);
   }
   const transition = createStoreTransition(definitionOrLogic.on);
-  const logic: StoreLogic<any, any, any> = {
+  const logic: AnyStoreLogic = {
     getInitialSnapshot: () => ({
       status: 'active' as const,
       context: definitionOrLogic.context,
@@ -285,7 +286,7 @@ export function createStore(
       error: undefined
     }),
     transition
-  } satisfies StoreLogic<any, any, any>;
+  } satisfies AnyStoreLogic;
   return createStoreCore(logic, definitionOrLogic.emits);
 }
 
@@ -379,7 +380,7 @@ export function createStoreWithProducer<
       error: undefined
     }),
     transition
-  } satisfies StoreLogic<any, any, any>;
+  } satisfies AnyStoreLogic;
 
   return createStoreCore(logic, config.emits);
 }

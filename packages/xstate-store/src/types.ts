@@ -425,6 +425,7 @@ export type StoreLogic<
     event: TEvent
   ) => [TSnapshot, StoreEffect<TEmitted>[]];
 };
+export type AnyStoreLogic = StoreLogic<any, any, any>;
 
 export type AnyStoreConfig = StoreConfig<any, any, any>;
 export type EventFromStoreConfig<TStore extends AnyStoreConfig> =

@@ -1,4 +1,5 @@
 import {
+  AnyStoreLogic,
   EmitsFromStoreConfig,
   EventObject,
   EventPayloadMap,
@@ -30,7 +31,7 @@ export function undoRedo<
   EmitsFromStoreConfig<any>
 > {
   type TEvent = ExtractEvents<TEventPayloadMap>;
-  const logic: StoreLogic<any, any, any> = {
+  const logic: AnyStoreLogic = {
     getInitialSnapshot: () => ({
       status: 'active',
       context: storeConfig.context,
@@ -40,7 +41,7 @@ export function undoRedo<
     transition: createStoreTransition(storeConfig.on)
   };
 
-  const newLogic: StoreLogic<any, any, any> = {
+  const enhancedLogic: AnyStoreLogic = {
     getInitialSnapshot: () => ({
       status: 'active',
       context: storeConfig.context,
@@ -77,13 +78,17 @@ export function undoRedo<
           undoStack.push(event);
         } else {
           // Remove all events with the same transaction ID
-          while (
-            events.length > 0 &&
-            events[events.length - 1].transactionId === lastTransactionId
-          ) {
+          while (true) {
             const event = events.pop()!;
             eventsToUndo.unshift(event);
             undoStack.push(event);
+            if (
+              lastTransactionId === undefined ||
+              !events.length ||
+              events[events.length - 1].transactionId !== lastTransactionId
+            ) {
+              break;
+            }
           }
         }
 
@@ -163,5 +168,5 @@ export function undoRedo<
     }
   };
 
-  return newLogic;
+  return enhancedLogic;
 }
