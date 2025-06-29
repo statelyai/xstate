@@ -16,6 +16,62 @@ type UndoEvent<TEvent extends EventObject> = {
   transactionId?: string;
 };
 
+/**
+ * Creates store logic with undo/redo functionality.
+ *
+ * It maintains an event history and allows reverting to previous states by
+ * replaying events from the beginning up to a certain point.
+ *
+ * @example
+ *
+ * ```ts
+ * // Basic usage - each event is its own transaction
+ * const store = createStore(
+ *   undoRedo({
+ *     context: { count: 0 },
+ *     on: {
+ *       inc: (ctx) => ({ count: ctx.count + 1 }),
+ *       dec: (ctx) => ({ count: ctx.count - 1 })
+ *     }
+ *   })
+ * );
+ *
+ * store.trigger.inc(); // count = 1
+ * store.trigger.inc(); // count = 2
+ * store.trigger.undo(); // count = 1 (undoes last inc)
+ * store.trigger.redo(); // count = 2 (redoes the inc)
+ * ```
+ *
+ * @example
+ *
+ * ```ts
+ * // Grouped events by transaction ID
+ * const store = createStore(
+ *   undoRedo(
+ *     {
+ *       context: { count: 0 },
+ *       on: {
+ *         inc: (ctx) => ({ count: ctx.count + 1 }),
+ *         dec: (ctx) => ({ count: ctx.count - 1 })
+ *       }
+ *     },
+ *     {
+ *       getTransactionId: (event) => event.type
+ *     }
+ *   )
+ * );
+ *
+ * store.send({ type: 'inc' }); // count = 1 (1st transaction)
+ * store.send({ type: 'inc' }); // count = 2 (1st transaction)
+ * store.send({ type: 'dec' }); // count = 1 (2nd transaction)
+ * store.send({ type: 'dec' }); // count = 0 (2nd transaction)
+ *
+ * store.trigger.undo(); // count = 1 (undoes both dec events)
+ * store.trigger.undo(); // count = 0 (undoes both inc events)
+ * ```
+ *
+ * @returns Store logic with additional `undo` and `redo` event handlers
+ */
 export function undoRedo<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
