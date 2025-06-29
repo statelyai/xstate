@@ -3,7 +3,7 @@ import {
   assign,
   cancel,
   createActor,
-  createMachine,
+  next_createMachine as createMachine,
   emit,
   enqueueActions,
   EventFrom,
@@ -106,12 +106,10 @@ describe('transition function', () => {
 
   it('should capture enqueued actions', () => {
     const machine = createMachine({
-      entry: [
-        enqueueActions((x) => {
-          x.enqueue('stringAction');
-          x.enqueue({ type: 'objectAction' });
-        })
-      ]
+      entry: (_, enq) => {
+        enq.emit({ type: 'stringAction' });
+        enq.emit({ type: 'objectAction' });
+      }
     });
 
     const [_state, actions] = initialTransition(machine);
@@ -127,7 +125,9 @@ describe('transition function', () => {
       initial: 'a',
       states: {
         a: {
-          entry: raise({ type: 'NEXT' }, { delay: 10 }),
+          entry: (_, enq) => {
+            enq.raise({ type: 'NEXT' }, { delay: 10 });
+          },
           on: {
             NEXT: 'b'
           }
@@ -182,11 +182,13 @@ describe('transition function', () => {
       initial: 'a',
       states: {
         a: {
-          entry: raise({ type: 'NEXT' }, { delay: 10, id: 'myRaise' }),
+          entry: (_, enq) => {
+            enq.raise({ type: 'NEXT' }, { delay: 10, id: 'myRaise' });
+          },
           on: {
-            NEXT: {
-              target: 'b',
-              actions: cancel('myRaise')
+            NEXT: (_, enq) => {
+              enq.cancel('myRaise');
+              return { target: 'b' };
             }
           }
         },
@@ -220,8 +222,8 @@ describe('transition function', () => {
       states: {
         a: {
           on: {
-            NEXT: {
-              actions: sendTo('someActor', { type: 'someEvent' })
+            NEXT: ({ children }, enq) => {
+              enq.sendTo(children.someActor, { type: 'someEvent' });
             }
           }
         }
@@ -255,16 +257,19 @@ describe('transition function', () => {
 
   it('emit actions should be returned', async () => {
     const machine = createMachine({
+      // types: {
+      //   emitted: {} as { type: 'counted'; count: number }
+      // },
       initial: 'a',
       context: { count: 10 },
       states: {
         a: {
           on: {
-            NEXT: {
-              actions: emit(({ context }) => ({
+            NEXT: ({ context }, enq) => {
+              enq.emit({
                 type: 'counted',
                 count: context.count
-              }))
+              });
             }
           }
         }
@@ -294,8 +299,8 @@ describe('transition function', () => {
       states: {
         a: {
           on: {
-            NEXT: {
-              actions: log(({ context }) => `count: ${context.count}`)
+            NEXT: ({ context }, enq) => {
+              enq.log(`count: ${context.count}`);
             }
           }
         }
@@ -390,9 +395,9 @@ describe('transition function', () => {
       states: {
         a: {
           on: {
-            event: {
-              target: 'b',
-              actions: fn
+            event: (_, enq) => {
+              enq.action(fn);
+              return { target: 'b' };
             }
           }
         },

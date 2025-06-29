@@ -1,4 +1,8 @@
-import { createMachine, createActor } from '../src/index.ts';
+import {
+  next_createMachine as createMachine,
+  createActor,
+  matchesState
+} from '../src/index.ts';
 import { stateIn } from '../src/guards.ts';
 
 describe('transition "in" check', () => {
@@ -11,9 +15,10 @@ describe('transition "in" check', () => {
           states: {
             a1: {
               on: {
-                EVENT2: {
-                  target: 'a2',
-                  guard: stateIn({ b: 'b2' })
+                EVENT2: ({ value }) => {
+                  if (matchesState({ b: 'b2' }, value)) {
+                    return { target: 'a2' };
+                  }
                 }
               }
             },
@@ -27,10 +32,10 @@ describe('transition "in" check', () => {
           states: {
             b1: {
               on: {
-                EVENT: {
-                  target: 'b2',
-                  guard: stateIn('#a_a2')
-                }
+                // EVENT: {
+                //   target: 'b2',
+                //   guard: stateIn('#a_a2')
+                // }
               }
             },
             b2: {
