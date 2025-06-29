@@ -1,11 +1,12 @@
 import { createStore, createStoreConfig } from '../src/store.ts';
 import { persist } from '../src/persist.ts';
+import { vi } from 'vitest';
 
 // Mock localStorage for testing
 const mockLocalStorage = {
   data: {} as Record<string, string>,
   getItem: function (key: string) {
-    return this.data[key] || null;
+    return this.data[key] ?? null;
   },
   setItem: function (key: string, value: string) {
     this.data[key] = value;
@@ -15,14 +16,12 @@ const mockLocalStorage = {
   },
   clear: function () {
     this.data = {};
-  }
+  },
+  get length() {
+    return Object.keys(this.data).length;
+  },
+  key: (index: number) => Object.keys(mockLocalStorage.data)[index] ?? null
 };
-
-// Mock global localStorage
-Object.defineProperty(global, 'localStorage', {
-  value: mockLocalStorage,
-  writable: true
-});
 
 // Custom storage implementation for testing
 const createCustomStorage = (): Storage => {
@@ -47,7 +46,13 @@ const createCustomStorage = (): Storage => {
 
 describe('persist', () => {
   beforeEach(() => {
+    // Use Vitest's built-in global stubbing
+    vi.stubGlobal('localStorage', mockLocalStorage);
     mockLocalStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('should persist store state to localStorage', () => {
@@ -148,11 +153,12 @@ describe('persist', () => {
       }
     });
 
-    const persistedStore = persist(storeConfig, {
-      name: 'test-store',
-      storage: customStorage
-    });
-    const store = createStore(persistedStore);
+    const store = createStore(
+      persist(storeConfig, {
+        name: 'test-store',
+        storage: customStorage
+      })
+    );
 
     // Initial state should be loaded from custom storage (empty initially)
     expect(store.getSnapshot().context).toEqual({ count: 0 });
