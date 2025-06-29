@@ -12,12 +12,14 @@ import {
 } from './types';
 import { createStoreTransition } from './store';
 
-interface PersistOptions<T> {
+interface PersistOptions {
   /** The local storage key to use for persisting the store. */
   name: string;
-  /** Custom serialization for storing/retrieving data from localStorage */
-  serialize?: (value: T) => string;
-  deserialize?: (value: string) => T;
+  /** Custom serializer for storing/retrieving data from localStorage */
+  serializer?: {
+    serialize: (value: any) => string;
+    deserialize: (value: string) => any;
+  };
 }
 
 // Default serializer using JSON
@@ -41,7 +43,7 @@ function isLocalStorageAvailable(): boolean {
 // Load persisted state from localStorage
 function loadPersistedState<TContext extends StoreContext>(
   key: string,
-  deserialize: PersistOptions<any>['deserialize'],
+  serializer: PersistOptions['serializer'],
   fallbackContext: TContext
 ): TContext {
   if (!isLocalStorageAvailable()) {
@@ -54,9 +56,8 @@ function loadPersistedState<TContext extends StoreContext>(
       return fallbackContext;
     }
 
-    const resolvedDeserialize = deserialize ?? defaultSerializer.deserialize;
-
-    const persisted = resolvedDeserialize(serialized);
+    const { deserialize } = serializer || defaultSerializer;
+    const persisted = deserialize(serialized);
 
     // Validate that the persisted data has the expected structure
     if (persisted && typeof persisted === 'object' && 'context' in persisted) {
@@ -74,15 +75,15 @@ function loadPersistedState<TContext extends StoreContext>(
 function savePersistedState<TContext extends StoreContext>(
   key: string,
   snapshot: StoreSnapshot<TContext>,
-  serialize: PersistOptions<any>['serialize']
+  serializer: PersistOptions['serializer']
 ): void {
   if (!isLocalStorageAvailable()) {
     return;
   }
 
   try {
-    const resolvedSerialize = serialize ?? defaultSerializer.serialize;
-    const serialized = resolvedSerialize(snapshot);
+    const { serialize } = serializer || defaultSerializer;
+    const serialized = serialize(snapshot);
     localStorage.setItem(key, serialized);
   } catch (error) {
     console.warn(`Failed to save persisted state for key "${key}":`, error);
@@ -95,7 +96,7 @@ export function persist<
   TEmittedPayloadMap extends EventPayloadMap
 >(
   storeConfig: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap>,
-  options: PersistOptions<TContext>
+  options: PersistOptions
 ): StoreLogic<
   StoreSnapshot<TContext>,
   ExtractEvents<TEventPayloadMap>,
@@ -107,11 +108,11 @@ export function persist<
   TEmitted extends EventObject
 >(
   storeLogic: StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>,
-  options: PersistOptions<TContext>
+  options: PersistOptions
 ): StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>;
 export function persist(
   storeConfigOrLogic: AnyStoreConfig | AnyStoreLogic,
-  options: PersistOptions<any>
+  options: PersistOptions
 ): AnyStoreLogic {
   const logic =
     'transition' in storeConfigOrLogic
@@ -130,7 +131,7 @@ export function persist(
   const originalGetInitialSnapshot = logic.getInitialSnapshot;
   const persistedContext = loadPersistedState(
     options.name,
-    options.deserialize,
+    options.serializer,
     originalGetInitialSnapshot().context
   );
 
@@ -145,7 +146,7 @@ export function persist(
     const [nextSnapshot, effects] = originalTransition(snapshot, event);
 
     // Save the new state to localStorage
-    savePersistedState(options.name, nextSnapshot, options.serialize);
+    savePersistedState(options.name, nextSnapshot, options.serializer);
 
     return [nextSnapshot, effects];
   };
