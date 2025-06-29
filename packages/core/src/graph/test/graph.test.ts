@@ -8,6 +8,7 @@ import {
   isMachineSnapshot
 } from '../../index.ts';
 import { createMockActorScope } from '../actorScope.ts';
+import { toGraph } from '../graph.ts';
 import {
   StatePath,
   getPathsFromEvents,
@@ -509,6 +510,72 @@ describe('@xstate/graph', () => {
 
       expect(digraph).toMatchSnapshot();
     });
+  });
+});
+
+describe('toGraph', () => {
+  it('should represent a statechart as a graph', () => {
+    const machine = createMachine({
+      id: 'light',
+      initial: 'green',
+      states: {
+        green: { on: { TIMER: 'yellow' } },
+        yellow: { on: { TIMER: 'red' } },
+        red: { on: { TIMER: 'green' } }
+      }
+    });
+
+    const graph = toGraph(machine);
+
+    expect(graph.rootNodeId).toEqual('light');
+
+    expect(graph.nodes.map((n) => ({ id: n.id, parentNodeId: n.parentNodeId })))
+      .toMatchInlineSnapshot(`
+      [
+        {
+          "id": "light",
+          "parentNodeId": null,
+        },
+        {
+          "id": "light.green",
+          "parentNodeId": "light",
+        },
+        {
+          "id": "light.yellow",
+          "parentNodeId": "light",
+        },
+        {
+          "id": "light.red",
+          "parentNodeId": "light",
+        },
+      ]
+    `);
+
+    expect(
+      graph.edges.map((e) => ({
+        id: e.id,
+        sourceNodeId: e.sourceNodeId,
+        targetNodeId: e.targetNodeId
+      }))
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "light.green:0",
+          "sourceNodeId": "light.green",
+          "targetNodeId": "light.yellow",
+        },
+        {
+          "id": "light.yellow:0",
+          "sourceNodeId": "light.yellow",
+          "targetNodeId": "light.red",
+        },
+        {
+          "id": "light.red:0",
+          "sourceNodeId": "light.red",
+          "targetNodeId": "light.green",
+        },
+      ]
+    `);
   });
 });
 

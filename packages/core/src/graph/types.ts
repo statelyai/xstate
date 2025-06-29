@@ -38,6 +38,25 @@ export type DirectedGraphEdge = JSONSerializable<
   }
 >;
 
+export interface GraphNode<TNode> {
+  id: string;
+  data: TNode;
+  parentNodeId: string | null;
+}
+
+export interface GraphEdge<TEdge> {
+  id: string;
+  sourceNodeId: string;
+  targetNodeId: string | null;
+  data: TEdge;
+}
+
+export interface Graph<TNode, TEdge> {
+  rootNodeId: string;
+  nodes: GraphNode<TNode>[];
+  edges: GraphEdge<TEdge>[];
+}
+
 // Based on https://www.eclipse.org/elk/documentation/tooldevelopers/graphdatastructure/jsonformat.html
 export type DirectedGraphNode = JSONSerializable<
   {

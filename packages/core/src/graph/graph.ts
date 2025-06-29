@@ -16,7 +16,10 @@ import type {
   DirectedGraphNode,
   TraversalOptions,
   AnyStateNode,
-  TraversalConfig
+  TraversalConfig,
+  Graph,
+  GraphNode,
+  GraphEdge
 } from './types.ts';
 import { createMockActorScope } from './actorScope.ts';
 
@@ -114,6 +117,54 @@ export function createDefaultLogicOptions(): TraversalOptions<any, any, any> {
   };
 }
 
+export function toGraph(
+  stateMachine: AnyStateMachine
+): Graph<AnyStateNode, any> {
+  const stateNode = stateMachine.root;
+
+  const graph: Graph<AnyStateNode, any> = {
+    rootNodeId: stateNode.id,
+    nodes: [],
+    edges: []
+  };
+
+  function walk(stateNode: AnyStateNode) {
+    const children = getChildren(stateNode);
+
+    const node: GraphNode<AnyStateNode> = {
+      id: stateNode.id,
+      data: stateNode,
+      parentNodeId: stateNode.parent?.id ?? null
+    };
+
+    graph.nodes.push(node);
+
+    const edges: GraphEdge<any>[] = [...stateNode.transitions.values()]
+      .flat()
+      .flatMap((t, transitionIndex) => {
+        return t.target
+          ? {
+              id: `${stateNode.id}:${transitionIndex}`,
+              sourceNodeId: stateNode.id,
+              targetNodeId: t.target[0]?.id,
+              data: t
+            }
+          : [];
+      });
+
+    graph.edges.push(...edges);
+
+    children.forEach((child) => {
+      walk(child);
+    });
+  }
+
+  walk(stateNode);
+
+  return graph;
+}
+
+/** @deprecated Use `toGraph` instead */
 export function toDirectedGraph(
   stateMachine: AnyStateNode | AnyStateMachine
 ): DirectedGraphNode {
