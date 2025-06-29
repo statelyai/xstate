@@ -10,7 +10,14 @@ import type {
   SerializedSnapshot,
   StatePath,
   Step,
-  TraversalOptions
+  TraversalOptions,
+  EventExecutor,
+  PathGenerator,
+  TestModelOptions,
+  TestParam,
+  TestPath,
+  TestPathResult,
+  TestStepResult
 } from './types.ts';
 import {
   EventObject,
@@ -34,15 +41,6 @@ import {
   createShortestPathsGen,
   createSimplePathsGen
 } from './pathGenerators.ts';
-import type {
-  EventExecutor,
-  PathGenerator,
-  TestModelOptions,
-  TestParam,
-  TestPath,
-  TestPathResult,
-  TestStepResult
-} from './types.ts';
 import {
   formatPathTestResult,
   getDescription,

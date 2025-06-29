@@ -1,7 +1,8 @@
 import { StandardSchemaV1 } from '../../xstate-store/src/schema.ts';
 import { StateMachine } from './StateMachine.ts';
-import { ResolvedStateMachineTypes, TODO } from './types.ts';
 import {
+  ResolvedStateMachineTypes,
+  TODO,
   AnyActorRef,
   EventObject,
   AnyEventObject,

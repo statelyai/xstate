@@ -9,9 +9,7 @@ import {
   fromTransition,
   createActor,
   StateFrom,
-  Snapshot,
   TransitionSnapshot,
-  AnyEventObject,
   setup
 } from 'xstate';
 import {
