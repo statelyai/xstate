@@ -1,4 +1,5 @@
 import { createStore } from '../src/index.ts';
+import { persist } from '../src/persist.ts';
 import { undoRedo } from '../src/undo.ts';
 
 it('should undo a single event', () => {
@@ -183,4 +184,57 @@ it('should preserve emitted events during undo/redo', () => {
     { type: 'changed', value: 1 },
     { type: 'changed', value: 1 }
   ]);
+});
+
+it('should work with store logic', () => {
+  const mockLocalStorage = {
+    data: {} as Record<string, string>,
+    getItem: function (key: string) {
+      return this.data[key] ?? null;
+    },
+    setItem: function (key: string, value: string) {
+      this.data[key] = value;
+    },
+    removeItem: function (key: string) {
+      delete this.data[key];
+    },
+    clear: function () {
+      this.data = {};
+    },
+    get length() {
+      return Object.keys(this.data).length;
+    },
+    key: (index: number) => Object.keys(mockLocalStorage.data)[index] ?? null
+  };
+
+  const store = createStore(
+    undoRedo(
+      persist(
+        {
+          context: { count: 0 },
+          on: {
+            inc: (ctx) => ({ count: ctx.count + 1 })
+          }
+        },
+        {
+          name: 'test-store',
+          storage: mockLocalStorage
+        }
+      )
+    )
+  );
+
+  store.trigger.inc();
+  expect(store.getSnapshot().context.count).toBe(1);
+  store.trigger.undo();
+  expect(store.getSnapshot().context.count).toBe(0);
+  store.trigger.redo();
+  expect(store.getSnapshot().context.count).toBe(1);
+
+  expect(JSON.parse(mockLocalStorage.getItem('test-store')!)).toEqual(
+    expect.objectContaining({
+      context: { count: 1 },
+      status: 'active'
+    })
+  );
 });

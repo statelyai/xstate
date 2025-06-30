@@ -10,7 +10,7 @@ import {
   AnyStoreConfig,
   AnyStoreLogic
 } from './types';
-import { createStoreTransition } from './store';
+import { storeConfigToLogic } from './utils';
 
 interface PersistOptions {
   /** The local storage key to use for persisting the store. */
@@ -118,10 +118,11 @@ export function persist(
   if (!resolvedStorage) {
     throw new Error('No storage provided');
   }
-  const initialContext =
-    'context' in storeConfigOrLogic
-      ? storeConfigOrLogic.context
-      : storeConfigOrLogic.getInitialSnapshot().context;
+  const logic =
+    'transition' in storeConfigOrLogic
+      ? storeConfigOrLogic
+      : storeConfigToLogic(storeConfigOrLogic);
+  const initialContext = logic.getInitialSnapshot().context;
   const resolvedContext = resolvedStorage
     ? loadPersistedState(
         options.name,
@@ -130,18 +131,13 @@ export function persist(
         initialContext
       )
     : initialContext;
-  const logic =
-    'transition' in storeConfigOrLogic
-      ? storeConfigOrLogic
-      : {
-          getInitialSnapshot: () => ({
-            status: 'active',
-            context: resolvedContext,
-            output: undefined,
-            error: undefined
-          }),
-          transition: createStoreTransition(storeConfigOrLogic.on)
-        };
+
+  const initialSnapshot = logic.getInitialSnapshot();
+
+  logic.getInitialSnapshot = () => ({
+    ...initialSnapshot,
+    context: resolvedContext
+  });
 
   // Load persisted state for initial snapshot
   const originalGetInitialSnapshot = logic.getInitialSnapshot;

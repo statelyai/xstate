@@ -1,4 +1,5 @@
 import {
+  AnyStoreConfig,
   AnyStoreLogic,
   EmitsFromStoreConfig,
   EventObject,
@@ -9,7 +10,7 @@ import {
   StoreLogic,
   StoreSnapshot
 } from './types';
-import { createStoreTransition } from './store';
+import { storeConfigToLogic } from './utils';
 
 type UndoEvent<TEvent extends EventObject> = {
   event: TEvent;
@@ -85,22 +86,39 @@ export function undoRedo<
   StoreSnapshot<TContext>,
   ExtractEvents<TEventPayloadMap> | { type: 'undo' } | { type: 'redo' },
   EmitsFromStoreConfig<any>
-> {
-  type TEvent = ExtractEvents<TEventPayloadMap>;
-  const logic: AnyStoreLogic = {
-    getInitialSnapshot: () => ({
-      status: 'active',
-      context: storeConfig.context,
-      output: undefined,
-      error: undefined
-    }),
-    transition: createStoreTransition(storeConfig.on)
-  };
+>;
+export function undoRedo<
+  TContext extends StoreContext,
+  TEvent extends EventObject
+>(
+  storeLogic: StoreLogic<
+    StoreSnapshot<TContext>,
+    TEvent,
+    EmitsFromStoreConfig<any>
+  >,
+  options?: {
+    getTransactionId?: (event: TEvent) => string;
+  }
+): StoreLogic<
+  StoreSnapshot<TContext>,
+  TEvent | { type: 'undo' } | { type: 'redo' },
+  EmitsFromStoreConfig<any>
+>;
+export function undoRedo(
+  storeConfigOrLogic: AnyStoreConfig | AnyStoreLogic,
+  options?: {
+    getTransactionId?: (event: any) => string;
+  }
+): AnyStoreLogic {
+  const logic =
+    'transition' in storeConfigOrLogic
+      ? storeConfigOrLogic
+      : storeConfigToLogic(storeConfigOrLogic);
 
   const enhancedLogic: AnyStoreLogic = {
     getInitialSnapshot: () => ({
       status: 'active',
-      context: storeConfig.context,
+      context: logic.getInitialSnapshot().context,
       output: undefined,
       error: undefined,
       events: [],
@@ -126,7 +144,7 @@ export function undoRedo<
 
         // Remove all events with the same transaction ID
         // If transactionId is undefined, only remove the last event
-        const eventsToUndo: UndoEvent<TEvent>[] = [];
+        const eventsToUndo: UndoEvent<EventObject>[] = [];
         if (lastTransactionId === undefined) {
           // When no transaction ID is provided, each event is its own transaction
           const event = events.pop()!;
