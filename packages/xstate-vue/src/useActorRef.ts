@@ -40,7 +40,9 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     sub = actorRef.subscribe(toObserver(observerOrListener));
   }
 
-  actorRef.start();
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    actorRef.start();
+  }
 
   onBeforeUnmount(() => {
     actorRef.stop();
