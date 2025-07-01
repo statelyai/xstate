@@ -15,6 +15,7 @@ export type {
   InspectedActionEvent,
   InspectedActorEvent,
   InspectedEventEvent,
+  InspectedMicrostepEvent,
   InspectedSnapshotEvent,
   InspectionEvent
 } from './inspection.ts';
