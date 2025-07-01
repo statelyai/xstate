@@ -30,7 +30,7 @@ export interface InspectedSnapshotEvent extends BaseInspectionEventProperties {
   snapshot: Snapshot<unknown>;
 }
 
-interface InspectedMicrostepEvent extends BaseInspectionEventProperties {
+export interface InspectedMicrostepEvent extends BaseInspectionEventProperties {
   type: '@xstate.microstep';
   event: AnyEventObject; // { type: string, ... }
   snapshot: Snapshot<unknown>;
