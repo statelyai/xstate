@@ -1,5 +1,11 @@
 # xstate
 
+## 5.20.1
+
+### Patch Changes
+
+- [#5315](https://github.com/statelyai/xstate/pull/5315) [`9a0ae82`](https://github.com/statelyai/xstate/commit/9a0ae82d460131d864be4deafeaffc18b42d3bda) Thanks [@sfc-gh-dperezalvarez](https://github.com/sfc-gh-dperezalvarez)! - Exported `InspectedActionEvent` type
+
 ## 5.20.0
 
 ### Minor Changes
