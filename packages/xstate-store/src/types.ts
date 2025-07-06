@@ -6,8 +6,6 @@ export type ExtractEvents<T extends EventPayloadMap> = Values<{
   [K in keyof T & string]: T[K] & { type: K };
 }>;
 
-export type Recipe<T, TReturn> = (state: T) => TReturn;
-
 type AllKeys<T> = T extends any ? keyof T : never;
 
 type EmitterFunction<TEmittedEvent extends EventObject> = (
