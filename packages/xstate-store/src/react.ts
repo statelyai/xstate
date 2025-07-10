@@ -8,7 +8,11 @@ import {
   ExtractEvents,
   Readable,
   AnyAtom,
-  BaseAtom
+  BaseAtom,
+  StoreLogic,
+  AnyStoreLogic,
+  EventObject,
+  StoreSnapshot
 } from './types';
 import { createStore } from './store';
 
@@ -82,20 +86,18 @@ export const useStore: {
   ): Store<TContext, ExtractEvents<TEventPayloadMap>, ExtractEvents<TEmitted>>;
   <
     TContext extends StoreContext,
-    TEventPayloadMap extends EventPayloadMap,
+    TEvent extends EventObject,
     TEmitted extends EventPayloadMap
   >(
-    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
-  ): Store<TContext, ExtractEvents<TEventPayloadMap>, ExtractEvents<TEmitted>>;
-} = function useStoreImpl<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends EventPayloadMap
->(definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>) {
+    logic: StoreLogic<StoreSnapshot<TContext>, TEvent, ExtractEvents<TEmitted>>
+  ): Store<TContext, TEvent, ExtractEvents<TEmitted>>;
+} = function useStoreImpl(
+  definitionOrLogic: StoreConfig<any, any, any> | AnyStoreLogic
+) {
   const storeRef = useRef<AnyStore | undefined>(undefined);
 
   if (!storeRef.current) {
-    storeRef.current = createStore(definition);
+    storeRef.current = createStore(definitionOrLogic as any);
   }
 
   return storeRef.current;

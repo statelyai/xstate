@@ -6,6 +6,7 @@ import {
   createAtom
 } from '../src/index.ts';
 import { useSelector, useStore, useAtom } from '../src/react.ts';
+import { undoRedo } from '../src/undo.ts';
 import {
   useActor,
   useActorRef,
@@ -442,6 +443,210 @@ describe('useStore', () => {
     fireEvent.click(countDivs[0]);
     expect(countDivs[0].textContent).toBe('1');
     expect(countDivs[1].textContent).toBe('0');
+  });
+
+  it('should work with store logic', () => {
+    const storeLogic = {
+      getInitialSnapshot: () => ({
+        context: { count: 0 },
+        status: 'active' as const,
+        output: undefined,
+        error: undefined
+      }),
+      transition: (
+        snapshot: any,
+        event: { type: 'inc' } | { type: 'dec' }
+      ): [any, any[]] => {
+        if (event.type === 'inc') {
+          return [
+            {
+              ...snapshot,
+              context: { count: snapshot.context.count + 1 }
+            },
+            []
+          ];
+        }
+        if (event.type === 'dec') {
+          return [
+            {
+              ...snapshot,
+              context: { count: snapshot.context.count - 1 }
+            },
+            []
+          ];
+        }
+        return [snapshot, []];
+      }
+    };
+
+    const Counter = () => {
+      const store = useStore(storeLogic);
+      const count = useSelector(store, (s) => s.context.count);
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button
+            data-testid="increment"
+            onClick={() => store.send({ type: 'inc' })}
+          >
+            Increment
+          </button>
+          <button
+            data-testid="decrement"
+            onClick={() => store.send({ type: 'dec' })}
+          >
+            Decrement
+          </button>
+        </div>
+      );
+    };
+
+    render(<Counter />);
+
+    const countDisplay = screen.getByTestId('count');
+    const incrementButton = screen.getByTestId('increment');
+    const decrementButton = screen.getByTestId('decrement');
+
+    // Initial state
+    expect(countDisplay.textContent).toBe('0');
+
+    // Increment
+    fireEvent.click(incrementButton);
+    expect(countDisplay.textContent).toBe('1');
+
+    // Increment again
+    fireEvent.click(incrementButton);
+    expect(countDisplay.textContent).toBe('2');
+
+    // Decrement
+    fireEvent.click(decrementButton);
+    expect(countDisplay.textContent).toBe('1');
+  });
+
+  it('should work with undo/redo functionality', () => {
+    const storeLogic = undoRedo({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({
+          ...ctx,
+          count: ctx.count + 1
+        }),
+        dec: (ctx) => ({
+          ...ctx,
+          count: ctx.count - 1
+        })
+      }
+    });
+
+    const Counter = () => {
+      const store = useStore(storeLogic);
+      const count = useSelector(store, (s) => s.context.count);
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button
+            data-testid="increment"
+            onClick={() => store.send({ type: 'inc' })}
+          >
+            Increment
+          </button>
+          <button
+            data-testid="decrement"
+            onClick={() => store.send({ type: 'dec' })}
+          >
+            Decrement
+          </button>
+          <button
+            data-testid="undo"
+            onClick={() => store.send({ type: 'undo' })}
+          >
+            Undo
+          </button>
+          <button
+            data-testid="redo"
+            onClick={() => store.send({ type: 'redo' })}
+          >
+            Redo
+          </button>
+        </div>
+      );
+    };
+
+    render(<Counter />);
+
+    const countDisplay = screen.getByTestId('count');
+    const incrementButton = screen.getByTestId('increment');
+    const decrementButton = screen.getByTestId('decrement');
+    const undoButton = screen.getByTestId('undo');
+    const redoButton = screen.getByTestId('redo');
+
+    // Initial state
+    expect(countDisplay.textContent).toBe('0');
+
+    // Perform some actions
+    fireEvent.click(incrementButton); // count = 1
+    fireEvent.click(decrementButton); // count = 0
+
+    expect(countDisplay.textContent).toBe('0');
+
+    // Undo the last action (decrement)
+    fireEvent.click(undoButton);
+    expect(countDisplay.textContent).toBe('1');
+
+    // Redo the last undone action (decrement)
+    fireEvent.click(redoButton);
+    expect(countDisplay.textContent).toBe('0');
+  });
+
+  it('should maintain stable store reference with store logic', () => {
+    let storeRefs: any[] = [];
+
+    const storeLogic = {
+      getInitialSnapshot: () => ({
+        context: { count: 0 },
+        status: 'active' as const,
+        output: undefined,
+        error: undefined
+      }),
+      transition: (snapshot: any, event: { type: 'inc' }): [any, any[]] => {
+        if (event.type === 'inc') {
+          return [
+            {
+              ...snapshot,
+              context: { count: snapshot.context.count + 1 }
+            },
+            []
+          ];
+        }
+        return [snapshot, []];
+      }
+    };
+
+    const Counter = () => {
+      const store = useStore(storeLogic);
+      storeRefs.push(store);
+      const count = useSelector(store, (s) => s.context.count);
+
+      return (
+        <div data-testid="count" onClick={() => store.send({ type: 'inc' })}>
+          {count}
+        </div>
+      );
+    };
+
+    render(<Counter />);
+    const countDiv = screen.getByTestId('count');
+
+    // Initial render
+    expect(countDiv.textContent).toBe('0');
+
+    // Store reference should be stable across renders
+    const initialStoreRef = storeRefs[0];
+    fireEvent.click(countDiv);
+    expect(countDiv.textContent).toBe('1');
+    expect(storeRefs.every((ref) => ref === initialStoreRef)).toBe(true);
   });
 });
 
