@@ -1,11 +1,34 @@
 # @xstate/store
 
+## 3.8.1
+
+### Patch Changes
+
+- [#5326](https://github.com/statelyai/xstate/pull/5326) [`68ab6fb`](https://github.com/statelyai/xstate/commit/68ab6fb72d20c5bd2eb8d1d6249dc3046da79010) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The XState Store undo/redo package can now be imported as `@xstate/store/undo`.
+
+  ```ts
+  import { createStore } from '@xstate/store';
+  import { undoRedo } from '@xstate/store/undo';
+
+  const store = createStore(
+    undoRedo({
+      context: {
+        count: 0
+      },
+      on: {
+        // ...
+      }
+    })
+  );
+
+  // ...
+  ```
+
 ## 3.8.0
 
 ### Minor Changes
 
 - [#5305](https://github.com/statelyai/xstate/pull/5305) [`725530f`](https://github.com/statelyai/xstate/commit/725530fd462c4300319fad82efc545ff44cf3e22) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added undo/redo functionality to XState Store via the `undoRedo` higher-order store logic:
-
   - Adds `undo` and `redo` events to stores
   - Supports grouping related events into transactions using `transactionId`
   - Maintains event history for precise state reconstruction
@@ -121,7 +144,6 @@
 ### Minor Changes
 
 - [#5250](https://github.com/statelyai/xstate/pull/5250) [`a1bffb55b2029bde82e542d5936c51d961909a37`](https://github.com/statelyai/xstate/commit/a1bffb55b2029bde82e542d5936c51d961909a37) Thanks [@davidkpiano](https://github.com/davidkpiano)! - - Improved atom architecture with better dependency management (the diamond problem is solved!)
-
   - Optimized recomputation logic to prevent unnecessary updates
   - Added support for custom equality functions through `compare` option in `createAtom`, allowing fine-grained control over when atoms update:
 
@@ -174,7 +196,6 @@
 ### Minor Changes
 
 - [#5221](https://github.com/statelyai/xstate/pull/5221) [`4635d3d8d3debcfeef5cddd78613e32891c10eac`](https://github.com/statelyai/xstate/commit/4635d3d8d3debcfeef5cddd78613e32891c10eac) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `createAtom()` for creating reactive atoms that can be combined with other atoms and stores:
-
   - Create simple atoms with initial values:
 
     ```ts
@@ -245,7 +266,6 @@
 ### Minor Changes
 
 - [#5200](https://github.com/statelyai/xstate/pull/5200) [`0332a16a42fb372eb614df74ff4cb7f003c31fc8`](https://github.com/statelyai/xstate/commit/0332a16a42fb372eb614df74ff4cb7f003c31fc8) Thanks [@{](https://github.com/{)! - Added selectors to @xstate/store that enable efficient state selection and subscription:
-
   - `store.select(selector)` function to create a "selector" entity where you can:
     - Get current value with `.get()`
     - Subscribe to changes with `.subscribe(callback)`
