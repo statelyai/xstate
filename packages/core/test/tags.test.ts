@@ -1,4 +1,7 @@
-import { createMachine, createActor } from '../src/index.ts';
+import {
+  next_createMachine as createMachine,
+  createActor
+} from '../src/index.ts';
 
 describe('tags', () => {
   it('supports tagging states', () => {
@@ -70,10 +73,10 @@ describe('tags', () => {
           initial: 'active',
           states: {
             active: {
-              tags: 'yes'
+              tags: ['yes']
             },
             inactive: {
-              tags: 'no'
+              tags: ['no']
             }
           }
         },
@@ -81,13 +84,13 @@ describe('tags', () => {
           initial: 'active',
           states: {
             active: {
-              tags: 'yes',
+              tags: ['yes'],
               on: {
                 DEACTIVATE: 'inactive'
               }
             },
             inactive: {
-              tags: 'no'
+              tags: ['no']
             }
           }
         }
@@ -106,7 +109,7 @@ describe('tags', () => {
       initial: 'a',
       states: {
         a: {
-          tags: 'myTag'
+          tags: ['myTag']
         }
       }
     });
@@ -123,7 +126,7 @@ describe('tags', () => {
       initial: 'green',
       states: {
         green: {
-          tags: 'go'
+          tags: ['go']
         }
       }
     });

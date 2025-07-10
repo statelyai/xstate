@@ -1,10 +1,10 @@
 import { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
-import { evaluateGuard } from './guards.ts';
 import { memo } from './memo.ts';
 import {
   BuiltinAction,
+  evaluateCandidate,
   formatInitialTransition,
   formatTransition,
   formatTransitions,
@@ -31,7 +31,9 @@ import type {
   AnyStateNodeConfig,
   ProvidedActor,
   NonReducibleUnknown,
-  EventDescriptor
+  EventDescriptor,
+  Action2,
+  AnyActorRef
 } from './types.ts';
 import {
   createInvokeId,
@@ -100,8 +102,10 @@ export class StateNode<
   public history: false | 'shallow' | 'deep';
   /** The action(s) to be executed upon entering the state node. */
   public entry: UnknownAction[];
+  public entry2: Action2<any, any, any> | undefined;
   /** The action(s) to be executed upon exiting the state node. */
   public exit: UnknownAction[];
+  public exit2: Action2<any, any, any> | undefined;
   /** The parent state node. */
   public parent?: StateNode<TContext, TEvent>;
   /** The root machine node. */
@@ -210,9 +214,24 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
+    if (this.machine.config._special) {
+      this.entry2 = this.config.entry;
+      this.exit2 = this.config.exit;
+    }
+
     this.entry = toArray(this.config.entry).slice();
     this.exit = toArray(this.config.exit).slice();
+    this.entry2 ??= this.config.entry2;
+    this.exit2 ??= this.config.exit2;
+    if (this.entry2) {
+      // @ts-ignore
+      this.entry2._special = true;
+    }
 
+    if (this.exit2) {
+      // @ts-ignore
+      this.exit2._special = true;
+    }
     this.meta = this.config.meta;
     this.output =
       this.type === 'final' || !this.parent ? this.config.output : undefined;
@@ -224,7 +243,7 @@ export class StateNode<
     this.transitions = formatTransitions(this);
     if (this.config.always) {
       this.always = toTransitionConfigArray(this.config.always).map((t) =>
-        formatTransition(this, NULL_EVENT, t)
+        typeof t === 'function' ? t : formatTransition(this, NULL_EVENT, t)
       );
     }
 
@@ -246,13 +265,7 @@ export class StateNode<
             source: this,
             actions: this.initial.actions.map(toSerializableAction),
             eventType: null as any,
-            reenter: false,
-            toJSON: () => ({
-              target: this.initial.target.map((t) => `#${t.id}`),
-              source: `#${this.id}`,
-              actions: this.initial.actions.map(toSerializableAction),
-              eventType: null as any
-            })
+            reenter: false
           }
         : undefined,
       history: this.history,
@@ -374,7 +387,8 @@ export class StateNode<
       any, // TMeta
       any // TStateSchema
     >,
-    event: TEvent
+    event: TEvent,
+    self: AnyActorRef
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;
     const actions: UnknownAction[] = [];
@@ -388,35 +402,16 @@ export class StateNode<
     );
 
     for (const candidate of candidates) {
-      const { guard } = candidate;
       const resolvedContext = snapshot.context;
 
-      let guardPassed = false;
-
-      try {
-        guardPassed =
-          !guard ||
-          evaluateGuard<TContext, TEvent>(
-            guard,
-            resolvedContext,
-            event,
-            snapshot
-          );
-      } catch (err: any) {
-        const guardType =
-          typeof guard === 'string'
-            ? guard
-            : typeof guard === 'object'
-              ? guard.type
-              : undefined;
-        throw new Error(
-          `Unable to evaluate guard ${
-            guardType ? `'${guardType}' ` : ''
-          }in transition for event '${eventType}' in state node '${
-            this.id
-          }':\n${err.message}`
-        );
-      }
+      const guardPassed = evaluateCandidate(
+        candidate,
+        resolvedContext,
+        event,
+        snapshot,
+        this,
+        self
+      );
 
       if (guardPassed) {
         actions.push(...candidate.actions);

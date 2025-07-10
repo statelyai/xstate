@@ -18,10 +18,12 @@ import {
   ParameterizedObject,
   SetupTypes,
   ToChildren,
+  TODO,
   ToStateValue,
   UnknownActorLogic,
   Values
 } from './types';
+import { Next_MachineConfig, Next_SetupTypes } from './types.v6';
 
 type ToParameterizedObject<
   TParameterizedMap extends Record<
@@ -189,6 +191,74 @@ export function setup<
           actors,
           actions,
           guards,
+          delays
+        }
+      )
+  };
+}
+
+export function next_setup<
+  TContext extends MachineContext,
+  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TDelay extends string = never,
+  TTag extends string = string,
+  TInput = NonReducibleUnknown,
+  TOutput extends NonReducibleUnknown = NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject,
+  TMeta extends MetaObject = MetaObject
+>({
+  schemas,
+  delays
+}: {
+  schemas?: unknown;
+  types?: Next_SetupTypes<
+    TContext,
+    TEvent,
+    TTag,
+    TInput,
+    TOutput,
+    TEmitted,
+    TMeta
+  >;
+  delays?: {
+    [K in TDelay]: TODO;
+  };
+}): {
+  createMachine: <
+    const TConfig extends Next_MachineConfig<
+      TContext,
+      TEvent,
+      TDelay,
+      TTag,
+      TInput,
+      TOutput,
+      TEmitted,
+      TMeta
+    >
+  >(
+    config: TConfig
+  ) => StateMachine<
+    TContext,
+    TEvent,
+    TODO,
+    TODO,
+    TODO,
+    TODO,
+    TDelay,
+    ToStateValue<TConfig>,
+    TTag,
+    TInput,
+    TOutput,
+    TEmitted,
+    TMeta,
+    TConfig
+  >;
+} {
+  return {
+    createMachine: (config) =>
+      (createMachine as any)(
+        { ...config, schemas },
+        {
           delays
         }
       )

@@ -1,3 +1,4 @@
+import { StandardSchemaV1 } from '../../xstate-store/src/schema.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
   ResolvedStateMachineTypes,
@@ -17,6 +18,7 @@ import {
   ToChildren,
   MetaObject
 } from './types.ts';
+import { Next_MachineConfig } from './types.v6.ts';
 
 type TestValue =
   | string
@@ -162,4 +164,70 @@ export function createMachine<
     any, // TMeta
     any // TStateSchema
   >(config as any, implementations as any);
+}
+
+export function next_createMachine<
+  TContextSchema extends StandardSchemaV1,
+  TEventSchema extends StandardSchemaV1,
+  TContext extends MachineContext,
+  TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TTag extends string,
+  TInput,
+  TOutput extends NonReducibleUnknown,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject,
+  // it's important to have at least one default type parameter here
+  // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
+  // we should be able to remove this when we start inferring TConfig, with it we'll always have an inference candidate
+  _ = any
+>(
+  config: Next_MachineConfig<
+    TContextSchema,
+    TEventSchema,
+    TContext,
+    TEvent,
+    TDelay,
+    TTag,
+    TInput,
+    TOutput,
+    TEmitted,
+    TMeta
+  >
+): StateMachine<
+  TContext,
+  TEvent,
+  Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
+  TActor,
+  TAction,
+  TGuard,
+  TDelay,
+  StateValue,
+  TTag & string,
+  TInput,
+  TOutput,
+  TEmitted,
+  TMeta, // TMeta
+  TODO // TStateSchema
+> {
+  config._special = true;
+  return new StateMachine<
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any, // TEmitted
+    any, // TMeta
+    any // TStateSchema
+  >(config as any);
 }

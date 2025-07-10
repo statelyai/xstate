@@ -8,6 +8,7 @@ import type {
   AnyMachineSnapshot,
   AnyStateMachine,
   AnyTransitionConfig,
+  AnyTransitionConfigFunction,
   ErrorActorEvent,
   EventObject,
   InvokeConfig,
@@ -205,7 +206,9 @@ export function isErrorActorEvent(
 }
 
 export function toTransitionConfigArray(
-  configLike: SingleOrArray<AnyTransitionConfig | TransitionConfigTarget>
+  configLike: SingleOrArray<
+    AnyTransitionConfig | TransitionConfigTarget | AnyTransitionConfigFunction
+  >
 ): Array<AnyTransitionConfig> {
   return toArrayStrict(configLike).map((transitionLike) => {
     if (
@@ -213,6 +216,10 @@ export function toTransitionConfigArray(
       typeof transitionLike === 'string'
     ) {
       return { target: transitionLike };
+    }
+
+    if (typeof transitionLike === 'function') {
+      return { fn: transitionLike };
     }
 
     return transitionLike;

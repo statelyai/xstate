@@ -342,9 +342,12 @@ export class StateMachine<
       TMeta,
       TConfig
     >,
-    event: TEvent
+    event: TEvent,
+    self: AnyActorRef
   ): Array<TransitionDefinition<TContext, TEvent>> {
-    return transitionNode(this.root, snapshot.value, snapshot, event) || [];
+    return (
+      transitionNode(this.root, snapshot.value, snapshot, event, self) || []
+    );
   }
 
   /**
@@ -439,8 +442,7 @@ export class StateMachine<
           source: this.root,
           reenter: true,
           actions: [],
-          eventType: null as any,
-          toJSON: null as any // TODO: fix
+          eventType: null as any
         }
       ],
       preInitialState,
