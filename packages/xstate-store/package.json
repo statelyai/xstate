@@ -12,6 +12,15 @@
   "main": "dist/xstate-store.cjs.js",
   "module": "dist/xstate-store.esm.js",
   "exports": {
+    "./undo": {
+      "types": {
+        "import": "./undo/dist/xstate-store-undo.cjs.mjs",
+        "default": "./undo/dist/xstate-store-undo.cjs.js"
+      },
+      "module": "./undo/dist/xstate-store-undo.esm.js",
+      "import": "./undo/dist/xstate-store-undo.cjs.mjs",
+      "default": "./undo/dist/xstate-store-undo.cjs.js"
+    },
     ".": {
       "types": {
         "import": "./dist/xstate-store.cjs.mjs",
@@ -39,22 +48,14 @@
       "import": "./solid/dist/xstate-store-solid.cjs.mjs",
       "default": "./solid/dist/xstate-store-solid.cjs.js"
     },
-    "./undo": {
-      "types": {
-        "import": "./undo/dist/xstate-store-undo.cjs.mjs",
-        "default": "./undo/dist/xstate-store-undo.cjs.js"
-      },
-      "module": "./undo/dist/xstate-store-undo.esm.js",
-      "import": "./undo/dist/xstate-store-undo.cjs.mjs",
-      "default": "./undo/dist/xstate-store-undo.cjs.js"
-    },
     "./package.json": "./package.json"
   },
   "sideEffects": false,
   "files": [
     "dist",
     "react",
-    "solid"
+    "solid",
+    "undo"
   ],
   "repository": {
     "type": "git",
@@ -72,6 +73,7 @@
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-vue": "^5.1.2",
     "@xstate/react": "workspace:^",
+    "@xstate/store": "workspace:^",
     "@xstate/vue": "workspace:^",
     "immer": "^10.0.2",
     "react": "^19.0.0",
@@ -98,7 +100,8 @@
     "entrypoints": [
       "./index.ts",
       "./react.ts",
-      "./solid.ts"
+      "./solid.ts",
+      "./undo.ts"
     ]
   }
 }
