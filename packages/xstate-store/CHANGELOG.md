@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.8.2
+
+### Patch Changes
+
+- [#5329](https://github.com/statelyai/xstate/pull/5329) [`8a27bc4`](https://github.com/statelyai/xstate/commit/8a27bc43f975b03dc82a7e381a3956af49fb0633) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix: `createAsyncAtom` now properly propagates status updates after promise resolves/rejects.
+
 ## 3.8.1
 
 ### Patch Changes
