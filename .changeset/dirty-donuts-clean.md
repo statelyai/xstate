@@ -2,4 +2,4 @@
 '@xstate/store': patch
 ---
 
-Fix: `createAsyncAtom` does not propagate status updates after promise resolves
+Fix: `createAsyncAtom` now properly propagates status updates after promise resolves/rejects.
