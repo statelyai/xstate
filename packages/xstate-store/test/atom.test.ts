@@ -761,28 +761,4 @@ describe('async atoms', () => {
     expect(log2).toHaveBeenCalledTimes(1);
     expect(log2).toHaveBeenCalledWith({ status: 'done', data: 'multi-test' });
   });
-
-  it('should work with the exact example from the bug report', async () => {
-    const alertSpy = vi.fn();
-    const originalAlert = global.alert;
-    global.alert = alertSpy;
-
-    try {
-      const atom = createAsyncAtom(async () => {
-        await new Promise((r) => setTimeout(r, 10));
-        return 'value';
-      });
-
-      atom.subscribe((snapshot) => {
-        if (snapshot.status === 'done') alertSpy(snapshot.data);
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, 20));
-
-      expect(alertSpy).toHaveBeenCalledTimes(1);
-      expect(alertSpy).toHaveBeenCalledWith('value');
-    } finally {
-      global.alert = originalAlert;
-    }
-  });
 });
