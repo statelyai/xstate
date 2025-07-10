@@ -228,9 +228,6 @@ importers:
       '@xstate/react':
         specifier: workspace:^
         version: link:../xstate-react
-      '@xstate/store':
-        specifier: workspace:^
-        version: 'link:'
       '@xstate/vue':
         specifier: workspace:^
         version: link:../xstate-vue
