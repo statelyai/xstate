@@ -5,7 +5,7 @@ import {
   createStoreConfig,
   createAtom
 } from '../src/index.ts';
-import { useSelector, useStore, useAtom } from '../src/react.ts';
+import { useSelector, useStore, useAtom } from '@xstate/store/react';
 import {
   useActor,
   useActorRef,

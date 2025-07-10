@@ -39,6 +39,15 @@
       "import": "./solid/dist/xstate-store-solid.cjs.mjs",
       "default": "./solid/dist/xstate-store-solid.cjs.js"
     },
+    "./undo": {
+      "types": {
+        "import": "./undo/dist/xstate-store-undo.cjs.mjs",
+        "default": "./undo/dist/xstate-store-undo.cjs.js"
+      },
+      "module": "./undo/dist/xstate-store-undo.esm.js",
+      "import": "./undo/dist/xstate-store-undo.cjs.mjs",
+      "default": "./undo/dist/xstate-store-undo.cjs.js"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": false,
