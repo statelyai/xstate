@@ -68,10 +68,24 @@ export function createAsyncAtom<T>(
   const atom = createAtom<AsyncAtomState<T>>(() => {
     getValue().then(
       (data) => {
-        atom._update({ status: 'done', data });
+        if (atom._update({ status: 'done', data })) {
+          const subs = atom._subs;
+          if (subs !== undefined) {
+            propagate(subs);
+            shallowPropagate(subs);
+            flush();
+          }
+        }
       },
       (error) => {
-        atom._update({ status: 'error', error });
+        if (atom._update({ status: 'error', error })) {
+          const subs = atom._subs;
+          if (subs !== undefined) {
+            propagate(subs);
+            shallowPropagate(subs);
+            flush();
+          }
+        }
       }
     );
 
