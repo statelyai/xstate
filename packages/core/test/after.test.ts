@@ -1,9 +1,5 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import {
-  createMachine,
-  next_createMachine,
-  createActor
-} from '../src/index.ts';
+import { next_createMachine, createActor } from '../src/index.ts';
 import z from 'zod';
 
 const lightMachine = next_createMachine({
