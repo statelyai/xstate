@@ -21,7 +21,7 @@ export type Next_MachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject = StandardSchemaV1.InferOutput<TEventSchema> &
     EventObject,
-  TDelay extends string = string,
+  TDelayMap extends DelayMap<TContext> = DelayMap<TContext>,
   TTag extends string = string,
   TInput = any,
   TOutput = unknown,
@@ -31,7 +31,7 @@ export type Next_MachineConfig<
   Next_StateNodeConfig<
     TContext,
     DoNotInfer<StandardSchemaV1.InferOutput<TEventSchema> & EventObject>,
-    DoNotInfer<TDelay>,
+    DoNotInfer<TDelayMap>,
     DoNotInfer<TTag>,
     DoNotInfer<TOutput>,
     DoNotInfer<TEmitted>,
@@ -48,15 +48,25 @@ export type Next_MachineConfig<
   version?: string;
   // TODO: make it conditionally required
   output?: Mapper<TContext, DoneStateEvent, TOutput, TEvent> | TOutput;
+  delays?: {
+    [K in keyof TDelayMap | number]?:
+      | number
+      | (({ context, event }: { context: TContext; event: TEvent }) => number);
+  };
 }) &
   (MachineContext extends TContext
     ? { context?: InitialContext<LowInfer<TContext>, TODO, TInput, TEvent> }
     : { context: InitialContext<LowInfer<TContext>, TODO, TInput, TEvent> });
 
+export type DelayMap<TContext> = Record<
+  string,
+  number | ((context: TContext) => number)
+>;
+
 export interface Next_StateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TDelay extends string,
+  TDelayMap extends DelayMap<TContext>,
   TTag extends string,
   _TOutput,
   TEmitted extends EventObject,
@@ -90,7 +100,7 @@ export interface Next_StateNodeConfig<
     [K in string]: Next_StateNodeConfig<
       TContext,
       TEvent,
-      TDelay,
+      TDelayMap,
       TTag,
       any, // TOutput,
       TEmitted,
@@ -130,7 +140,7 @@ export interface Next_StateNodeConfig<
    * in an interpreter.
    */
   after?: {
-    [K in TDelay | number]?:
+    [K in keyof TDelayMap | number]?:
       | string
       | { target: string }
       | TransitionConfigFunction<

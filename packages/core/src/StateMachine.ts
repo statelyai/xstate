@@ -35,7 +35,6 @@ import type {
   EventObject,
   HistoryValue,
   InternalMachineImplementations,
-  MachineConfig,
   MachineContext,
   MachineImplementationsSimplified,
   MetaObject,
@@ -50,6 +49,7 @@ import type {
   StateSchema,
   SnapshotStatus
 } from './types.ts';
+import { Next_MachineConfig } from './types.v6.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
 
 const STATE_IDENTIFIER = '#';
@@ -109,9 +109,8 @@ export class StateMachine<
 
   constructor(
     /** The raw config used to create the machine. */
-    public config: MachineConfig<
-      TContext,
-      TEvent,
+    public config: Next_MachineConfig<
+      any,
       any,
       any,
       any,
@@ -130,7 +129,7 @@ export class StateMachine<
     this.implementations = {
       actors: implementations?.actors ?? {},
       actions: implementations?.actions ?? {},
-      delays: implementations?.delays ?? {},
+      delays: config.delays ?? implementations?.delays ?? {},
       guards: implementations?.guards ?? {}
     };
     this.version = this.config.version;

@@ -18,7 +18,7 @@ import {
   ToChildren,
   MetaObject
 } from './types.ts';
-import { Next_MachineConfig } from './types.v6.ts';
+import { DelayMap, Next_MachineConfig } from './types.v6.ts';
 
 type TestValue =
   | string
@@ -174,7 +174,7 @@ export function next_createMachine<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string,
+  TDelayMap extends DelayMap<TContext>,
   TTag extends string,
   TInput,
   TOutput extends NonReducibleUnknown,
@@ -190,7 +190,7 @@ export function next_createMachine<
     TEventSchema,
     TContext,
     TEvent,
-    TDelay,
+    TDelayMap,
     TTag,
     TInput,
     TOutput,
@@ -204,7 +204,7 @@ export function next_createMachine<
   TActor,
   TAction,
   TGuard,
-  TDelay,
+  keyof TDelayMap & string,
   StateValue,
   TTag & string,
   TInput,
