@@ -26,6 +26,7 @@ export type Next_MachineConfig<
   TContextSchema extends StandardSchemaV1,
   TEventSchema extends StandardSchemaV1,
   TEmittedSchema extends StandardSchemaV1,
+  TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
   TContext extends MachineContext = InferOutput<TContextSchema, MachineContext>,
   TEvent extends EventObject = StandardSchemaV1.InferOutput<TEventSchema> &
@@ -34,7 +35,6 @@ export type Next_MachineConfig<
     InferOutput<TContextSchema, MachineContext>
   > = DelayMap<InferOutput<TContextSchema, MachineContext>>,
   TTag extends string = string,
-  TInput = any,
   TMeta extends MetaObject = MetaObject
 > = (Omit<
   Next_StateNodeConfig<
@@ -52,6 +52,7 @@ export type Next_MachineConfig<
     event?: TEventSchema;
     context?: TContextSchema;
     emitted?: TEmittedSchema;
+    input?: TInputSchema;
     output?: TOutputSchema;
   };
   /** The initial context (extended state) */
@@ -73,8 +74,22 @@ export type Next_MachineConfig<
   };
 }) &
   (MachineContext extends TContext
-    ? { context?: InitialContext<LowInfer<TContext>, TODO, TInput, TEvent> }
-    : { context: InitialContext<LowInfer<TContext>, TODO, TInput, TEvent> });
+    ? {
+        context?: InitialContext<
+          LowInfer<TContext>,
+          TODO,
+          InferOutput<TInputSchema, unknown>,
+          TEvent
+        >;
+      }
+    : {
+        context: InitialContext<
+          LowInfer<TContext>,
+          TODO,
+          InferOutput<TInputSchema, unknown>,
+          TEvent
+        >;
+      });
 
 export type DelayMap<TContext> = Record<
   string,

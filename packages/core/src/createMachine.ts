@@ -170,6 +170,7 @@ export function next_createMachine<
   TContextSchema extends StandardSchemaV1,
   TEventSchema extends StandardSchemaV1,
   TEmittedSchema extends StandardSchemaV1,
+  TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
   TContext extends MachineContext,
   TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
@@ -189,12 +190,12 @@ export function next_createMachine<
     TContextSchema,
     TEventSchema,
     TEmittedSchema,
+    TInputSchema,
     TOutputSchema,
     TContext,
     TEvent,
     TDelayMap,
     TTag,
-    TInput,
     TMeta
   >
 ): StateMachine<
