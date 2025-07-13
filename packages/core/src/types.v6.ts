@@ -1,6 +1,7 @@
 import { StandardSchemaV1 } from '../../xstate-store/src/schema';
 import {
   Action2,
+  Compute,
   DoNotInfer,
   EventDescriptor,
   EventObject,
@@ -15,25 +16,33 @@ import { MachineContext, Mapper } from './types';
 import { LowInfer } from './types';
 import { DoneStateEvent } from './types';
 
+export type InferOutput<T extends StandardSchemaV1, U> = Compute<
+  StandardSchemaV1.InferOutput<T> extends U
+    ? StandardSchemaV1.InferOutput<T>
+    : never
+>;
+
 export type Next_MachineConfig<
-  _TContextSchema extends StandardSchemaV1,
+  TContextSchema extends StandardSchemaV1,
   TEventSchema extends StandardSchemaV1,
   TEmittedSchema extends StandardSchemaV1,
-  TContext extends MachineContext,
+  TOutputSchema extends StandardSchemaV1,
+  TContext extends MachineContext = InferOutput<TContextSchema, MachineContext>,
   TEvent extends EventObject = StandardSchemaV1.InferOutput<TEventSchema> &
     EventObject,
-  TDelayMap extends DelayMap<TContext> = DelayMap<TContext>,
+  TDelayMap extends DelayMap<
+    InferOutput<TContextSchema, MachineContext>
+  > = DelayMap<InferOutput<TContextSchema, MachineContext>>,
   TTag extends string = string,
   TInput = any,
-  TOutput = unknown,
   TMeta extends MetaObject = MetaObject
 > = (Omit<
   Next_StateNodeConfig<
-    TContext,
+    InferOutput<TContextSchema, MachineContext>,
     DoNotInfer<StandardSchemaV1.InferOutput<TEventSchema> & EventObject>,
     DoNotInfer<TDelayMap>,
     DoNotInfer<TTag>,
-    DoNotInfer<TOutput>,
+    DoNotInfer<StandardSchemaV1.InferOutput<TOutputSchema>>,
     DoNotInfer<StandardSchemaV1.InferOutput<TEmittedSchema> & EventObject>,
     DoNotInfer<TMeta>
   >,
@@ -41,14 +50,22 @@ export type Next_MachineConfig<
 > & {
   schemas?: {
     event?: TEventSchema;
-    context?: TContext;
+    context?: TContextSchema;
     emitted?: TEmittedSchema;
+    output?: TOutputSchema;
   };
   /** The initial context (extended state) */
   /** The machine's own version. */
   version?: string;
   // TODO: make it conditionally required
-  output?: Mapper<TContext, DoneStateEvent, TOutput, TEvent> | TOutput;
+  output?:
+    | Mapper<
+        TContext,
+        DoneStateEvent,
+        InferOutput<TOutputSchema, unknown>,
+        TEvent
+      >
+    | InferOutput<TOutputSchema, unknown>;
   delays?: {
     [K in keyof TDelayMap | number]?:
       | number

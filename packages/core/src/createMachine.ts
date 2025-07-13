@@ -18,7 +18,7 @@ import {
   ToChildren,
   MetaObject
 } from './types.ts';
-import { DelayMap, Next_MachineConfig } from './types.v6.ts';
+import { DelayMap, InferOutput, Next_MachineConfig } from './types.v6.ts';
 
 type TestValue =
   | string
@@ -170,6 +170,7 @@ export function next_createMachine<
   TContextSchema extends StandardSchemaV1,
   TEventSchema extends StandardSchemaV1,
   TEmittedSchema extends StandardSchemaV1,
+  TOutputSchema extends StandardSchemaV1,
   TContext extends MachineContext,
   TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
   TActor extends ProvidedActor,
@@ -178,7 +179,6 @@ export function next_createMachine<
   TDelayMap extends DelayMap<TContext>,
   TTag extends string,
   TInput,
-  TOutput extends NonReducibleUnknown,
   TMeta extends MetaObject,
   // it's important to have at least one default type parameter here
   // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
@@ -189,12 +189,12 @@ export function next_createMachine<
     TContextSchema,
     TEventSchema,
     TEmittedSchema,
+    TOutputSchema,
     TContext,
     TEvent,
     TDelayMap,
     TTag,
     TInput,
-    TOutput,
     TMeta
   >
 ): StateMachine<
@@ -208,7 +208,7 @@ export function next_createMachine<
   StateValue,
   TTag & string,
   TInput,
-  TOutput,
+  InferOutput<TOutputSchema, unknown>,
   StandardSchemaV1.InferOutput<TEmittedSchema> & EventObject,
   TMeta, // TMeta
   TODO // TStateSchema

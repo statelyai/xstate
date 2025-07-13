@@ -1,8 +1,8 @@
-import { createMachine, createActor } from '../src/index';
+import { next_createMachine, createActor } from '../src/index';
 
 describe('event descriptors', () => {
   it('should fallback to using wildcard transition definition (if specified)', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'A',
       states: {
         A: {
@@ -22,7 +22,7 @@ describe('event descriptors', () => {
   });
 
   it('should prioritize explicit descriptor even if wildcard comes first', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'A',
       states: {
         A: {
@@ -42,7 +42,7 @@ describe('event descriptors', () => {
   });
 
   it('should prioritize explicit descriptor even if a partial one comes first', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'A',
       states: {
         A: {
@@ -62,7 +62,7 @@ describe('event descriptors', () => {
   });
 
   it('should prioritize a longer descriptor even if the shorter one comes first', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'A',
       states: {
         A: {
@@ -82,14 +82,15 @@ describe('event descriptors', () => {
   });
 
   it(`should use a shorter descriptor if the longer one doesn't match`, () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'A',
       states: {
         A: {
           on: {
-            'foo.bar.*': {
-              target: 'fail',
-              guard: () => false
+            'foo.bar.*': () => {
+              if (1 + 1 !== 2) {
+                return { target: 'fail' };
+              }
             },
             'foo.*': 'pass'
           }
@@ -105,7 +106,7 @@ describe('event descriptors', () => {
   });
 
   it('should NOT support non-tokenized wildcards', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'start',
       states: {
         start: {
@@ -133,7 +134,7 @@ describe('event descriptors', () => {
   });
 
   it('should support prefix matching with wildcards (+0)', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'start',
       states: {
         start: {
@@ -161,7 +162,7 @@ describe('event descriptors', () => {
   });
 
   it('should support prefix matching with wildcards (+1)', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'start',
       states: {
         start: {
@@ -195,7 +196,7 @@ describe('event descriptors', () => {
   });
 
   it('should support prefix matching with wildcards (+n)', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'start',
       states: {
         start: {
@@ -217,7 +218,7 @@ describe('event descriptors', () => {
   });
 
   it('should support prefix matching with wildcards (+n, multi-prefix)', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'start',
       states: {
         start: {
@@ -241,7 +242,7 @@ describe('event descriptors', () => {
   it('should not match infix wildcards', () => {
     const warnSpy = vi.spyOn(console, 'warn');
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'start',
       states: {
         start: {
@@ -304,7 +305,7 @@ describe('event descriptors', () => {
   it('should not match wildcards as part of tokens', () => {
     const warnSpy = vi.spyOn(console, 'warn');
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'start',
       states: {
         start: {

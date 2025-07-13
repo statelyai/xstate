@@ -2770,7 +2770,7 @@ export type Action2<
     event: TEvent;
     parent: AnyActorRef | undefined;
     self: AnyActorRef;
-    children: Record<string, AnyActorRef>;
+    children: Record<string, AnyActorRef | undefined>;
   },
   enqueue: EnqueueObj<TEvent, TEmittedEvent>
 ) => { context: TContext } | void;
