@@ -18,6 +18,7 @@ import { DoneStateEvent } from './types';
 export type Next_MachineConfig<
   _TContextSchema extends StandardSchemaV1,
   TEventSchema extends StandardSchemaV1,
+  TEmittedSchema extends StandardSchemaV1,
   TContext extends MachineContext,
   TEvent extends EventObject = StandardSchemaV1.InferOutput<TEventSchema> &
     EventObject,
@@ -25,7 +26,6 @@ export type Next_MachineConfig<
   TTag extends string = string,
   TInput = any,
   TOutput = unknown,
-  TEmitted extends EventObject = EventObject,
   TMeta extends MetaObject = MetaObject
 > = (Omit<
   Next_StateNodeConfig<
@@ -34,7 +34,7 @@ export type Next_MachineConfig<
     DoNotInfer<TDelayMap>,
     DoNotInfer<TTag>,
     DoNotInfer<TOutput>,
-    DoNotInfer<TEmitted>,
+    DoNotInfer<StandardSchemaV1.InferOutput<TEmittedSchema> & EventObject>,
     DoNotInfer<TMeta>
   >,
   'output'
@@ -42,6 +42,7 @@ export type Next_MachineConfig<
   schemas?: {
     event?: TEventSchema;
     context?: TContext;
+    emitted?: TEmittedSchema;
   };
   /** The initial context (extended state) */
   /** The machine's own version. */

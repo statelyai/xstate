@@ -169,6 +169,7 @@ export function createMachine<
 export function next_createMachine<
   TContextSchema extends StandardSchemaV1,
   TEventSchema extends StandardSchemaV1,
+  TEmittedSchema extends StandardSchemaV1,
   TContext extends MachineContext,
   TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
   TActor extends ProvidedActor,
@@ -178,7 +179,6 @@ export function next_createMachine<
   TTag extends string,
   TInput,
   TOutput extends NonReducibleUnknown,
-  TEmitted extends EventObject,
   TMeta extends MetaObject,
   // it's important to have at least one default type parameter here
   // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
@@ -188,13 +188,13 @@ export function next_createMachine<
   config: Next_MachineConfig<
     TContextSchema,
     TEventSchema,
+    TEmittedSchema,
     TContext,
     TEvent,
     TDelayMap,
     TTag,
     TInput,
     TOutput,
-    TEmitted,
     TMeta
   >
 ): StateMachine<
@@ -209,7 +209,7 @@ export function next_createMachine<
   TTag & string,
   TInput,
   TOutput,
-  TEmitted,
+  StandardSchemaV1.InferOutput<TEmittedSchema> & EventObject,
   TMeta, // TMeta
   TODO // TStateSchema
 > {
