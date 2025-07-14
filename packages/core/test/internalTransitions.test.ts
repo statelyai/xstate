@@ -369,12 +369,15 @@ describe('internal transitions', () => {
               }),
               states: {
                 a111: {
-                  exit: ({ context }) => ({
-                    context: {
-                      ...context,
-                      deepDescendantExits: context.deepDescendantExits + 1
-                    }
-                  })
+                  exit: ({ context }) => {
+                    console.log('a111 exit');
+                    return {
+                      context: {
+                        ...context,
+                        deepDescendantExits: context.deepDescendantExits + 1
+                      }
+                    };
+                  }
                 }
               }
             }

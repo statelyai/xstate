@@ -1784,12 +1784,12 @@ function exitStates(
           parent: actorScope.self._parent,
           children: actorScope.self.getSnapshot().children
         })
-      : [];
+      : s.exit;
     nextSnapshot = resolveActionsAndContext(
       nextSnapshot,
       event,
       actorScope,
-      [...s.exit, ...exitActions, ...s.invoke.map((def) => stopChild(def.id))],
+      [...exitActions, ...s.invoke.map((def) => stopChild(def.id))],
       internalQueue,
       undefined
     );

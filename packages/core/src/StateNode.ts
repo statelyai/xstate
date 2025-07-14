@@ -216,7 +216,9 @@ export class StateNode<
 
     if (this.machine.config._special) {
       this.entry2 = this.config.entry;
+      this.config.entry = undefined;
       this.exit2 = this.config.exit;
+      this.config.exit = undefined;
     }
 
     this.entry = toArray(this.config.entry).slice();
