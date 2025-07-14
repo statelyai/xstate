@@ -2,7 +2,8 @@ import {
   createActor,
   transition,
   next_createMachine,
-  initialTransition
+  initialTransition,
+  fromCallback
 } from '../src/index.ts';
 
 describe('deterministic machine', () => {
@@ -250,12 +251,13 @@ describe('deterministic machine', () => {
   });
 
   describe('state key names', () => {
+    const activity = fromCallback(() => () => {});
     const machine = next_createMachine(
       {
         initial: 'test',
         states: {
           test: {
-            invoke: [{ src: 'activity' }],
+            invoke: { src: activity },
             entry: () => {},
             on: {
               NEXT: 'test'

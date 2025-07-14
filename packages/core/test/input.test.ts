@@ -1,27 +1,35 @@
 import { of } from 'rxjs';
-import { assign, createActor, spawnChild } from '../src';
-import { createMachine } from '../src/createMachine';
+import { assign, createActor, next_createMachine, spawnChild } from '../src';
 import {
   fromCallback,
   fromObservable,
   fromPromise,
   fromTransition
 } from '../src/actors';
+import z from 'zod';
 
 describe('input', () => {
   it('should create a machine with input', () => {
     const spy = vi.fn();
 
-    const machine = createMachine({
-      types: {} as {
-        context: { count: number };
-        input: { startCount: number };
+    const machine = next_createMachine({
+      // types: {} as {
+      //   context: { count: number };
+      //   input: { startCount: number };
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        }),
+        input: z.object({
+          startCount: z.number()
+        })
       },
       context: ({ input }) => ({
         count: input.startCount
       }),
-      entry: ({ context }) => {
-        spy(context.count);
+      entry: ({ context }, enq) => {
+        enq.action(spy, context.count);
       }
     });
 
@@ -32,7 +40,7 @@ describe('input', () => {
 
   it('initial event should have input property', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       entry: ({ event }) => {
         expect(event.input.greeting).toBe('hello');
         resolve();
@@ -45,10 +53,18 @@ describe('input', () => {
   });
 
   it('should error if input is expected but not provided', () => {
-    const machine = createMachine({
-      types: {} as {
-        input: { greeting: string };
-        context: { message: string };
+    const machine = next_createMachine({
+      // types: {} as {
+      //   input: { greeting: string };
+      //   context: { message: string };
+      // },
+      schemas: {
+        input: z.object({
+          greeting: z.string()
+        }),
+        context: z.object({
+          message: z.string()
+        })
       },
       context: ({ input }) => {
         return { message: `Hello, ${input.greeting}` };
@@ -62,7 +78,7 @@ describe('input', () => {
   });
 
   it('should be a type error if input is not expected yet provided', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       context: { count: 42 }
     });
 
@@ -74,10 +90,19 @@ describe('input', () => {
 
   it('should provide input data to invoked machines', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const invokedMachine = createMachine({
-      types: {} as {
-        input: { greeting: string };
-        context: { greeting: string };
+
+    const invokedMachine = next_createMachine({
+      // types: {} as {
+      //   input: { greeting: string };
+      //   context: { greeting: string };
+      // },
+      schemas: {
+        input: z.object({
+          greeting: z.string()
+        }),
+        context: z.object({
+          greeting: z.string()
+        })
       },
       context: ({ input }) => input,
       entry: ({ context, event }) => {
@@ -87,7 +112,7 @@ describe('input', () => {
       }
     });
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       invoke: {
         src: invokedMachine,
         input: { greeting: 'hello' }
@@ -101,10 +126,18 @@ describe('input', () => {
 
   it('should provide input data to spawned machines', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const spawnedMachine = createMachine({
-      types: {} as {
-        input: { greeting: string };
-        context: { greeting: string };
+    const spawnedMachine = next_createMachine({
+      // types: {} as {
+      //   input: { greeting: string };
+      //   context: { greeting: string };
+      // },
+      schemas: {
+        input: z.object({
+          greeting: z.string()
+        }),
+        context: z.object({
+          greeting: z.string()
+        })
       },
       context({ input }) {
         return input;
@@ -116,11 +149,21 @@ describe('input', () => {
       }
     });
 
-    const machine = createMachine({
-      entry: assign(({ spawn }) => {
-        return {
-          ref: spawn(spawnedMachine, { input: { greeting: 'hello' } })
-        };
+    const machine = next_createMachine({
+      // entry: assign(({ spawn }) => {
+      //   return {
+      //     ref: spawn(spawnedMachine, { input: { greeting: 'hello' } })
+      //   };
+      // })
+      schemas: {
+        context: z.object({
+          ref: z.any()
+        })
+      },
+      entry: (_, enq) => ({
+        context: {
+          ref: enq.spawn(spawnedMachine, { input: { greeting: 'hello' } })
+        }
       })
     });
 
@@ -196,29 +239,22 @@ describe('input', () => {
   it('should provide a static inline input to the referenced actor', () => {
     const spy = vi.fn();
 
-    const child = createMachine({
+    const child = next_createMachine({
       context: ({ input }: { input: number }) => {
         spy(input);
         return {};
       }
     });
 
-    const machine = createMachine(
-      {
-        types: {} as {
-          actors: { src: 'child'; logic: typeof child };
-        },
-        invoke: {
-          src: 'child',
-          input: 42
-        }
-      },
-      {
-        actors: {
-          child
-        }
+    const machine = next_createMachine({
+      // types: {} as {
+      //   actors: { src: 'child'; logic: typeof child };
+      // },
+      invoke: {
+        src: child,
+        input: 42
       }
-    );
+    });
 
     createActor(machine).start();
 
@@ -228,40 +264,46 @@ describe('input', () => {
   it('should provide a dynamic inline input to the referenced actor', () => {
     const spy = vi.fn();
 
-    const child = createMachine({
+    const child = next_createMachine({
       context: ({ input }: { input: number }) => {
         spy(input);
         return {};
       }
     });
 
-    const machine = createMachine(
+    const machine = next_createMachine(
       {
-        types: {} as {
-          actors: {
-            src: 'child';
-            logic: typeof child;
-          };
-          input: number;
-          context: {
-            count: number;
-          };
+        // types: {} as {
+        //   actors: {
+        //     src: 'child';
+        //     logic: typeof child;
+        //   };
+        //   input: number;
+        //   context: {
+        //     count: number;
+        //   };
+        // },
+        schemas: {
+          context: z.object({
+            count: z.number()
+          }),
+          input: z.number()
         },
         context: ({ input }) => ({
           count: input
         }),
         invoke: {
-          src: 'child',
+          src: child,
           input: ({ context }) => {
             return context.count + 100;
           }
         }
-      },
-      {
-        actors: {
-          child
-        }
       }
+      // {
+      //   actors: {
+      //     child
+      //   }
+      // }
     );
 
     createActor(machine, { input: 42 }).start();
@@ -272,9 +314,9 @@ describe('input', () => {
   it('should call the input factory with self when invoking', () => {
     const spy = vi.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       invoke: {
-        src: createMachine({}),
+        src: next_createMachine({}),
         input: ({ self }: any) => spy(self)
       }
     });
@@ -284,24 +326,29 @@ describe('input', () => {
     expect(spy).toHaveBeenCalledWith(actor);
   });
 
-  it('should call the input factory with self when spawning', () => {
+  it('should call the input factory with self when spawning', async () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const spy = vi.fn();
 
-    const machine = createMachine(
-      {
-        entry: spawnChild('child', {
-          input: ({ self }: any) => spy(self)
-        })
-      },
-      {
-        actors: {
-          child: createMachine({})
-        }
+    const child = next_createMachine({});
+
+    const machine = next_createMachine({
+      // entry: spawnChild(child, {
+      //   input: ({ self }: any) => spy(self)
+      // })
+      entry: (_, enq) => {
+        enq.spawn(child, {
+          input: ({ self }) => {
+            // TODO: input isn't called as a function yet
+            expect(self).toBe(actor);
+            resolve();
+          }
+        });
       }
-    );
+    });
 
     const actor = createActor(machine).start();
 
-    expect(spy).toHaveBeenCalledWith(actor);
+    return promise;
   });
 });

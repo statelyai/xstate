@@ -1,6 +1,7 @@
 import { StandardSchemaV1 } from '../../xstate-store/src/schema';
 import {
   Action2,
+  AnyActorLogic,
   Compute,
   DoNotInfer,
   EventDescriptor,
@@ -144,7 +145,23 @@ export interface Next_StateNodeConfig<
    * The services to invoke upon entering this state node. These services will
    * be stopped upon exiting this state node.
    */
-  invoke?: TODO;
+  invoke?: {
+    src: AnyActorLogic;
+    id?: string;
+    input?: TODO;
+    onDone?: Next_TransitionConfigOrTarget<
+      TContext,
+      DoneStateEvent,
+      TEvent,
+      TEmitted
+    >;
+    onError?: Next_TransitionConfigOrTarget<
+      TContext,
+      ErrorEvent,
+      TEvent,
+      TEmitted
+    >;
+  };
   /** The mapping of event types to their potential transition(s). */
   on?: {
     [K in EventDescriptor<TEvent>]?: Next_TransitionConfigOrTarget<
