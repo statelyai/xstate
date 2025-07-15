@@ -10,6 +10,7 @@ import {
   InitialContext,
   MetaObject,
   NonReducibleUnknown,
+  SnapshotEvent,
   TODO,
   TransitionConfigFunction
 } from './types';
@@ -158,6 +159,12 @@ export interface Next_StateNodeConfig<
     onError?: Next_TransitionConfigOrTarget<
       TContext,
       ErrorEvent,
+      TEvent,
+      TEmitted
+    >;
+    onSnapshot?: Next_TransitionConfigOrTarget<
+      TContext,
+      SnapshotEvent<any>,
       TEvent,
       TEmitted
     >;

@@ -1776,7 +1776,7 @@ export interface StateConfig<
   historyValue?: HistoryValue<TContext, TEvent>;
   /** @internal */
   _nodes: Array<StateNode<TContext, TEvent>>;
-  children: Record<string, AnyActorRef>;
+  children: Record<string, AnyActorRef | undefined>;
   status: SnapshotStatus;
   output?: any;
   error?: unknown;
@@ -2773,4 +2773,7 @@ export type Action2<
     children: Record<string, AnyActorRef | undefined>;
   },
   enqueue: EnqueueObj<TEvent, TEmittedEvent>
-) => { context: TContext } | void;
+) => {
+  context?: TContext;
+  children?: Record<string, AnyActorRef | undefined>;
+} | void;

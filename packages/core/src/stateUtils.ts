@@ -1888,9 +1888,10 @@ function resolveAndExecuteActionsWithContext(
 
       const res = specialAction(actionArgs, emptyEnqueueObj);
 
-      if (res?.context) {
+      if (res?.context || res?.children) {
         intermediateSnapshot = cloneMachineSnapshot(intermediateSnapshot, {
-          context: res.context
+          context: res.context,
+          children: res.children
         });
       }
       continue;
