@@ -820,4 +820,60 @@ describe('types', () => {
     // @ts-expect-error
     context.count satisfies string;
   });
+
+  it('generics can be provided', () => {
+    type Context = {
+      coffeeBeans: number;
+      water: number;
+    };
+
+    type Events =
+      | {
+          type: 'addWater';
+          amount: number;
+        }
+      | {
+          type: 'grindBeans';
+        };
+
+    type Emitted =
+      | { type: 'brewing' }
+      | { type: 'beansGround'; amount: number };
+
+    const store = createStore<Context, Events, Emitted>({
+      context: {
+        coffeeBeans: 0,
+        water: 0
+      },
+      on: {
+        addWater: (ctx, event) => ({
+          ...ctx,
+          water: ctx.water + event.amount
+        }),
+        grindBeans: (ctx, _, enq) => {
+          enq.emit.brewing();
+
+          enq.emit.beansGround({ amount: 1 });
+
+          // @ts-expect-error
+          enq.emit.beansGround();
+
+          // @ts-expect-error
+          enq.emit.brewing({ foo: 'bar' });
+
+          return {
+            ...ctx,
+            coffeeBeans: ctx.coffeeBeans + 1
+          };
+        }
+      }
+    });
+
+    store.trigger.addWater({ amount: 1 });
+
+    store.trigger.grindBeans();
+
+    // @ts-expect-error
+    store.trigger.unknown();
+  });
 });
