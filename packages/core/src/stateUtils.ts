@@ -1383,7 +1383,7 @@ export function getTransitionResult(
           actions.push(log(...args));
         },
         spawn: (src, options) => {
-          const actorRef = createActor(src, options);
+          const actorRef = createActor(src, { ...options, parent: self });
           actions.push(() => actorRef.start());
           return actorRef;
         },
@@ -2254,7 +2254,7 @@ function getActionsFromAction2(
           actions.push(raise(raisedEvent, options));
         },
         spawn: (logic, options) => {
-          const actorRef = createActor(logic, options);
+          const actorRef = createActor(logic, { ...options, parent: self });
           actions.push(() => actorRef.start());
           return actorRef;
         },
