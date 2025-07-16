@@ -244,7 +244,7 @@ describe('transition function', () => {
       expect.objectContaining({
         type: 'xstate.sendTo',
         params: expect.objectContaining({
-          targetId: 'someActor'
+          event: { type: 'someEvent' }
         })
       })
     );

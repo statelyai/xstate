@@ -6,6 +6,7 @@ import {
   fromObservable,
   fromPromise
 } from '../src';
+import { z } from 'zod';
 
 // TODO: deprecate syncSnapshot
 describe.skip('spawnChild action', () => {
@@ -51,7 +52,8 @@ describe.skip('spawnChild action', () => {
     expect(actor.getSnapshot().children.child).toBeDefined();
   });
 
-  it('should accept `syncSnapshot` option', (done) => {
+  it('should accept `syncSnapshot` option', async () => {
+    const { promise, resolve } = Promise.withResolvers<void>();
     const observableLogic = fromObservable(() => interval(10));
     const observableMachine = next_createMachine({
       id: 'observable',
@@ -86,15 +88,16 @@ describe.skip('spawnChild action', () => {
     const observableService = createActor(observableMachine);
     observableService.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
 
     observableService.start();
+    await promise;
   });
 
   it('should handle a dynamic id', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const childMachine = next_createMachine({
       on: {
@@ -105,6 +108,11 @@ describe.skip('spawnChild action', () => {
     });
 
     const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          childId: z.string()
+        })
+      },
       context: {
         childId: 'myChild'
       },

@@ -1501,7 +1501,9 @@ export function getTransitionActions(
           return {} as any;
         },
         sendTo: (actorRef, event, options) => {
-          actions.push(sendTo(actorRef, event, options));
+          if (actorRef) {
+            actions.push(sendTo(actorRef, event, options));
+          }
         },
         stop: (actorRef) => {
           if (actorRef) {
@@ -2342,7 +2344,9 @@ function getActionsFromAction2(
           return actorRef;
         },
         sendTo: (actorRef, event, options) => {
-          actions.push(sendTo(actorRef, event, options));
+          if (actorRef) {
+            actions.push(sendTo(actorRef, event, options));
+          }
         },
         stop: (actorRef) => {
           if (actorRef) {
