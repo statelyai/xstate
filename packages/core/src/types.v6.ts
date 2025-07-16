@@ -3,6 +3,7 @@ import {
   Action2,
   AnyActorLogic,
   Compute,
+  DoneActorEvent,
   DoNotInfer,
   EventDescriptor,
   EventObject,
@@ -10,6 +11,7 @@ import {
   InitialContext,
   MetaObject,
   NonReducibleUnknown,
+  SingleOrArray,
   SnapshotEvent,
   TODO,
   TransitionConfigFunction
@@ -146,13 +148,13 @@ export interface Next_StateNodeConfig<
    * The services to invoke upon entering this state node. These services will
    * be stopped upon exiting this state node.
    */
-  invoke?: {
+  invoke?: SingleOrArray<{
     src: AnyActorLogic;
     id?: string;
     input?: TODO;
     onDone?: Next_TransitionConfigOrTarget<
       TContext,
-      DoneStateEvent,
+      DoneActorEvent,
       TEvent,
       TEmitted
     >;
@@ -168,7 +170,7 @@ export interface Next_StateNodeConfig<
       TEvent,
       TEmitted
     >;
-  };
+  }>;
   /** The mapping of event types to their potential transition(s). */
   on?: {
     [K in EventDescriptor<TEvent>]?: Next_TransitionConfigOrTarget<

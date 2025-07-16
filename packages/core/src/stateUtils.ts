@@ -2103,7 +2103,7 @@ export function macrostep(
     addMicrostate(nextSnapshot, nextEvent, enabledTransitions);
   }
 
-  if (nextSnapshot.status !== 'active') {
+  if (nextSnapshot.status !== 'active' && nextSnapshot.children) {
     stopChildren(nextSnapshot, nextEvent, actorScope);
   }
 
@@ -2122,7 +2122,9 @@ function stopChildren(
     nextState,
     event,
     actorScope,
-    Object.values(nextState.children).map((child: any) => stopChild(child)),
+    Object.values(nextState.children)
+      .filter(Boolean)
+      .map((child: any) => stopChild(child)),
     [],
     undefined
   );
