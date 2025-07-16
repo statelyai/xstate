@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
-import { assign, log, raise, sendTo } from './actions.ts';
+import { assign, raise, sendTo } from './actions.ts';
 import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
 import { spawnChild } from './actions/spawnChild.ts';
@@ -847,7 +847,8 @@ function removeConflictingTransitions(
   historyValue: AnyHistoryValue,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef
+  self: AnyActorRef,
+  actorScope: AnyActorScope
 ): Array<AnyTransitionDefinition> {
   const filteredTransitions = new Set<AnyTransitionDefinition>();
 
@@ -863,7 +864,8 @@ function removeConflictingTransitions(
             historyValue,
             snapshot,
             event,
-            self
+            self,
+            actorScope
           ),
           computeExitSet(
             [t2],
@@ -871,7 +873,8 @@ function removeConflictingTransitions(
             historyValue,
             snapshot,
             event,
-            self
+            self,
+            actorScope
           )
         )
       ) {
@@ -910,9 +913,16 @@ function getEffectiveTargetStates(
   historyValue: AnyHistoryValue,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef
+  self: AnyActorRef,
+  actorScope: AnyActorScope
 ): Array<AnyStateNode> {
-  const { targets } = getTransitionResult(transition, snapshot, event, self);
+  const { targets } = getTransitionResult(
+    transition,
+    snapshot,
+    event,
+    self,
+    actorScope
+  );
   if (!targets) {
     return [];
   }
@@ -931,7 +941,8 @@ function getEffectiveTargetStates(
           historyValue,
           snapshot,
           event,
-          self
+          self,
+          actorScope
         )) {
           targetSet.add(node);
         }
@@ -949,21 +960,29 @@ function getTransitionDomain(
   historyValue: AnyHistoryValue,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef
+  self: AnyActorRef,
+  actorScope: AnyActorScope
 ): AnyStateNode | undefined {
   const targetStates = getEffectiveTargetStates(
     transition,
     historyValue,
     snapshot,
     event,
-    self
+    self,
+    actorScope
   );
 
   if (!targetStates) {
     return;
   }
 
-  const { reenter } = getTransitionResult(transition, snapshot, event, self);
+  const { reenter } = getTransitionResult(
+    transition,
+    snapshot,
+    event,
+    self,
+    actorScope
+  );
 
   if (
     !reenter &&
@@ -995,12 +1014,19 @@ function computeExitSet(
   historyValue: AnyHistoryValue,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef
+  self: AnyActorRef,
+  actorScope: AnyActorScope
 ): Array<AnyStateNode> {
   const statesToExit = new Set<AnyStateNode>();
 
   for (const t of transitions) {
-    const { targets } = getTransitionResult(t, snapshot, event, self);
+    const { targets } = getTransitionResult(
+      t,
+      snapshot,
+      event,
+      self,
+      actorScope
+    );
 
     if (targets?.length) {
       const domain = getTransitionDomain(
@@ -1008,7 +1034,8 @@ function computeExitSet(
         historyValue,
         snapshot,
         event,
-        self
+        self,
+        actorScope
       );
 
       if (t.reenter && t.source === domain) {
@@ -1062,7 +1089,8 @@ export function microstep(
     historyValue,
     currentSnapshot,
     event,
-    actorScope.self
+    actorScope.self,
+    actorScope
   );
 
   let nextState = currentSnapshot;
@@ -1147,7 +1175,8 @@ export function microstep(
               self: actorScope.self,
               parent: actorScope.self._parent,
               // children: actorScope.self.getSnapshot().children
-              children: {}
+              children: {},
+              actorScope
             });
             return [...stateNode.exit, ...actions];
           }
@@ -1229,7 +1258,8 @@ function enterStates(
     statesToEnter,
     currentSnapshot,
     event,
-    actorScope.self
+    actorScope.self,
+    actorScope
   );
 
   // In the initial state, the root state node is "entered".
@@ -1264,7 +1294,8 @@ function enterStates(
           event,
           self: actorScope.self,
           parent: actorScope.self._parent,
-          children: currentSnapshot.children
+          children: currentSnapshot.children,
+          actorScope
         })
       );
     }
@@ -1345,7 +1376,8 @@ export function getTransitionResult(
   },
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef
+  self: AnyActorRef,
+  actorScope: AnyActorScope
 ): {
   targets: Readonly<AnyStateNode[]> | undefined;
   context: MachineContext | undefined;
@@ -1380,7 +1412,11 @@ export function getTransitionResult(
           actions.push(emittedEvent);
         },
         log: (...args) => {
-          actions.push(log(...args));
+          // actions.push(log(...args));
+          actions.push({
+            action: actorScope.logger,
+            args
+          });
         },
         spawn: (src, options) => {
           const actorRef = createActor(src, { ...options, parent: self });
@@ -1455,7 +1491,10 @@ export function getTransitionActions(
           actions.push(emittedEvent);
         },
         log: (...args) => {
-          actions.push(log(...args));
+          actions.push({
+            action: actorScope.logger,
+            args
+          });
         },
         spawn: (src, options) => {
           actions.push(spawnChild(src, options));
@@ -1485,12 +1524,26 @@ function computeEntrySet(
   statesToEnter: Set<AnyStateNode>,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef
+  self: AnyActorRef,
+  actorScope: AnyActorScope
 ) {
   for (const t of transitions) {
-    const domain = getTransitionDomain(t, historyValue, snapshot, event, self);
+    const domain = getTransitionDomain(
+      t,
+      historyValue,
+      snapshot,
+      event,
+      self,
+      actorScope
+    );
 
-    const { targets, reenter } = getTransitionResult(t, snapshot, event, self);
+    const { targets, reenter } = getTransitionResult(
+      t,
+      snapshot,
+      event,
+      self,
+      actorScope
+    );
 
     for (const s of targets ?? []) {
       if (
@@ -1513,7 +1566,8 @@ function computeEntrySet(
         statesToEnter,
         snapshot,
         event,
-        self
+        self,
+        actorScope
       );
     }
     const targetStates = getEffectiveTargetStates(
@@ -1521,7 +1575,8 @@ function computeEntrySet(
       historyValue,
       snapshot,
       event,
-      self
+      self,
+      actorScope
     );
     for (const s of targetStates) {
       const ancestors = getProperAncestors(s, domain);
@@ -1536,7 +1591,8 @@ function computeEntrySet(
         !t.source.parent && reenter ? undefined : domain,
         snapshot,
         event,
-        self
+        self,
+        actorScope
       );
     }
   }
@@ -1552,7 +1608,8 @@ function addDescendantStatesToEnter<
   statesToEnter: Set<AnyStateNode>,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef
+  self: AnyActorRef,
+  actorScope: AnyActorScope
 ) {
   if (isHistoryNode(stateNode)) {
     if (historyValue[stateNode.id]) {
@@ -1567,7 +1624,8 @@ function addDescendantStatesToEnter<
           statesToEnter,
           snapshot,
           event,
-          self
+          self,
+          actorScope
         );
       }
       for (const s of historyStateNodes) {
@@ -1579,7 +1637,8 @@ function addDescendantStatesToEnter<
           statesForDefaultEntry,
           snapshot,
           event,
-          self
+          self,
+          actorScope
         );
       }
     } else {
@@ -1591,7 +1650,8 @@ function addDescendantStatesToEnter<
         historyDefaultTransition,
         snapshot,
         event,
-        self
+        self,
+        actorScope
       );
       for (const s of targets ?? []) {
         statesToEnter.add(s);
@@ -1607,7 +1667,8 @@ function addDescendantStatesToEnter<
           statesToEnter,
           snapshot,
           event,
-          self
+          self,
+          actorScope
         );
       }
 
@@ -1620,7 +1681,8 @@ function addDescendantStatesToEnter<
           statesForDefaultEntry,
           snapshot,
           event,
-          self
+          self,
+          actorScope
         );
       }
     }
@@ -1639,7 +1701,8 @@ function addDescendantStatesToEnter<
         statesToEnter,
         snapshot,
         event,
-        self
+        self,
+        actorScope
       );
 
       addProperAncestorStatesToEnter(
@@ -1650,7 +1713,8 @@ function addDescendantStatesToEnter<
         statesForDefaultEntry,
         snapshot,
         event,
-        self
+        self,
+        actorScope
       );
     } else {
       if (stateNode.type === 'parallel') {
@@ -1669,7 +1733,8 @@ function addDescendantStatesToEnter<
               statesToEnter,
               snapshot,
               event,
-              self
+              self,
+              actorScope
             );
           }
         }
@@ -1686,7 +1751,8 @@ function addAncestorStatesToEnter(
   reentrancyDomain: AnyStateNode | undefined,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef
+  self: AnyActorRef,
+  actorScope: AnyActorScope
 ) {
   for (const anc of ancestors) {
     if (!reentrancyDomain || isDescendant(anc, reentrancyDomain)) {
@@ -1703,7 +1769,8 @@ function addAncestorStatesToEnter(
             statesToEnter,
             snapshot,
             event,
-            self
+            self,
+            actorScope
           );
         }
       }
@@ -1719,7 +1786,8 @@ function addProperAncestorStatesToEnter(
   statesForDefaultEntry: Set<AnyStateNode>,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef
+  self: AnyActorRef,
+  actorScope: AnyActorScope
 ) {
   addAncestorStatesToEnter(
     statesToEnter,
@@ -1729,7 +1797,8 @@ function addProperAncestorStatesToEnter(
     undefined,
     snapshot,
     event,
-    self
+    self,
+    actorScope
   );
 }
 
@@ -1750,7 +1819,8 @@ function exitStates(
     historyValue,
     currentSnapshot,
     event,
-    actorScope.self
+    actorScope.self,
+    actorScope
   );
 
   statesToExit.sort((a, b) => b.order - a.order);
@@ -1782,7 +1852,8 @@ function exitStates(
           event,
           self: actorScope.self,
           parent: actorScope.self._parent,
-          children: actorScope.self.getSnapshot().children
+          children: actorScope.self.getSnapshot().children,
+          actorScope
         })
       : s.exit;
     nextSnapshot = resolveActionsAndContext(
@@ -2072,7 +2143,12 @@ export function macrostep(
   while (nextSnapshot.status === 'active') {
     let enabledTransitions: AnyTransitionDefinition[] =
       shouldSelectEventlessTransitions
-        ? selectEventlessTransitions(nextSnapshot, nextEvent, actorScope.self)
+        ? selectEventlessTransitions(
+            nextSnapshot,
+            nextEvent,
+            actorScope.self,
+            actorScope
+          )
         : [];
 
     // eventless transitions should always be selected after selecting *regular* transitions
@@ -2141,7 +2217,8 @@ function selectTransitions(
 function selectEventlessTransitions(
   nextState: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef
+  self: AnyActorRef,
+  actorScope: AnyActorScope
 ): AnyTransitionDefinition[] {
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
   const atomicStates = nextState._nodes.filter(isAtomicStateNode);
@@ -2177,7 +2254,8 @@ function selectEventlessTransitions(
     nextState.historyValue,
     nextState,
     event,
-    self
+    self,
+    actorScope
   );
 }
 
@@ -2213,13 +2291,15 @@ function getActionsFromAction2(
     event,
     parent,
     self,
-    children
+    children,
+    actorScope
   }: {
     context: MachineContext;
     event: EventObject;
     self: AnyActorRef;
     parent: AnyActorRef | undefined;
     children: Record<string, AnyActorRef>;
+    actorScope: AnyActorScope;
   }
 ) {
   if (action2.length === 2) {
@@ -2248,7 +2328,10 @@ function getActionsFromAction2(
           actions.push(emittedEvent);
         },
         log: (...args) => {
-          actions.push(log(...args));
+          actions.push({
+            action: actorScope.logger,
+            args
+          });
         },
         raise: (raisedEvent, options) => {
           actions.push(raise(raisedEvent, options));

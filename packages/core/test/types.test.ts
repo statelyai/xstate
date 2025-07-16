@@ -1,5 +1,4 @@
 import { from } from 'rxjs';
-import { log } from '../src/actions/log';
 import { raise } from '../src/actions/raise';
 import { stopChild } from '../src/actions/stopChild';
 import {
@@ -28,6 +27,7 @@ import {
   stateIn,
   toPromise
 } from '../src/index';
+import { z } from 'zod';
 
 function noop(_x: unknown) {
   return;
@@ -122,25 +122,6 @@ describe('Raise events', () => {
       },
       // @ts-expect-error
       entry: raise(() => event)
-    });
-  });
-});
-
-describe('log', () => {
-  it('should narrow down the event type in the expression', () => {
-    createMachine({
-      types: {
-        events: {} as { type: 'FOO' } | { type: 'BAR' }
-      },
-      on: {
-        FOO: {
-          actions: log(({ event }) => {
-            ((_arg: 'FOO') => {})(event.type);
-            // @ts-expect-error
-            ((_arg: 'BAR') => {})(event.type);
-          })
-        }
-      }
     });
   });
 });

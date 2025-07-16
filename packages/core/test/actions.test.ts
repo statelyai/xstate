@@ -3,7 +3,6 @@ import {
   cancel,
   emit,
   enqueueActions,
-  log,
   raise,
   sendParent,
   sendTo,
@@ -21,9 +20,11 @@ import {
   createActor,
   createMachine,
   forwardTo,
+  next_createMachine,
   setup
 } from '../src/index.ts';
 import { trackEntries } from './utils.ts';
+import { z } from 'zod';
 
 const originalConsoleLog = console.log;
 
@@ -2535,16 +2536,19 @@ describe('log()', () => {
   it('should log a string', () => {
     const consoleSpy = vi.fn();
     console.log = consoleSpy;
-    const machine = createMachine({
-      entry: log('some string', 'string label')
+    const machine = next_createMachine({
+      // entry: log('some string', 'string label')
+      entry: (_, enq) => {
+        enq.log('some string', 'string label');
+      }
     });
     createActor(machine, { logger: consoleSpy }).start();
 
     expect(consoleSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
-          "string label",
           "some string",
+          "string label",
         ],
       ]
     `);
@@ -2553,19 +2557,27 @@ describe('log()', () => {
   it('should log an expression', () => {
     const consoleSpy = vi.fn();
     console.log = consoleSpy;
-    const machine = createMachine({
+    const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 42
       },
-      entry: log(({ context }) => `expr ${context.count}`, 'expr label')
+      // entry: log(({ context }) => `expr ${context.count}`, 'expr label')
+      entry: ({ context }, enq) => {
+        enq.log(`expr ${context.count}`, 'expr label');
+      }
     });
     createActor(machine, { logger: consoleSpy }).start();
 
     expect(consoleSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
-          "expr label",
           "expr 42",
+          "expr label",
         ],
       ]
     `);
