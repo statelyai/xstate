@@ -9,6 +9,7 @@ import {
   EventObject,
   ExtractEvent,
   InitialContext,
+  IsNever,
   MetaObject,
   NonReducibleUnknown,
   SingleOrArray,
@@ -36,15 +37,13 @@ export type Next_MachineConfig<
   TContext extends MachineContext = InferOutput<TContextSchema, MachineContext>,
   TEvent extends EventObject = StandardSchemaV1.InferOutput<TEventSchema> &
     EventObject,
-  TDelayMap extends DelayMap<
-    InferOutput<TContextSchema, MachineContext>
-  > = DelayMap<InferOutput<TContextSchema, MachineContext>>,
+  TDelays extends string = string,
   TTag extends string = string
 > = (Omit<
   Next_StateNodeConfig<
     InferOutput<TContextSchema, MachineContext>,
     DoNotInfer<StandardSchemaV1.InferOutput<TEventSchema> & EventObject>,
-    DoNotInfer<TDelayMap>,
+    DoNotInfer<TDelays>,
     DoNotInfer<TTag>,
     DoNotInfer<StandardSchemaV1.InferOutput<TOutputSchema>>,
     DoNotInfer<StandardSchemaV1.InferOutput<TEmittedSchema> & EventObject>,
@@ -73,7 +72,7 @@ export type Next_MachineConfig<
       >
     | InferOutput<TOutputSchema, unknown>;
   delays?: {
-    [K in keyof TDelayMap | number]?:
+    [K in TDelays | number]?:
       | number
       | (({ context, event }: { context: TContext; event: TEvent }) => number);
   };
@@ -104,7 +103,7 @@ export type DelayMap<TContext> = Record<
 export interface Next_StateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TDelayMap extends DelayMap<TContext>,
+  TDelays extends string,
   TTag extends string,
   _TOutput,
   TEmitted extends EventObject,
@@ -138,7 +137,7 @@ export interface Next_StateNodeConfig<
     [K in string]: Next_StateNodeConfig<
       TContext,
       TEvent,
-      TDelayMap,
+      TDelays,
       TTag,
       any, // TOutput,
       TEmitted,
@@ -200,7 +199,7 @@ export interface Next_StateNodeConfig<
    * in an interpreter.
    */
   after?: {
-    [K in keyof TDelayMap | number]?:
+    [K in TDelays | number]?:
       | string
       | { target: string }
       | TransitionConfigFunction<
@@ -307,3 +306,5 @@ export interface Next_SetupTypes<
   emitted?: TEmitted;
   meta?: TMeta;
 }
+
+export type WithDefault<T, Default> = IsNever<T> extends true ? Default : T;

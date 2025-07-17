@@ -18,7 +18,7 @@ import {
   ToChildren,
   MetaObject
 } from './types.ts';
-import { DelayMap, InferOutput, Next_MachineConfig } from './types.v6.ts';
+import { InferOutput, Next_MachineConfig, WithDefault } from './types.v6.ts';
 
 type TestValue =
   | string
@@ -178,7 +178,7 @@ export function next_createMachine<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelayMap extends DelayMap<TContext>,
+  TDelays extends string,
   TTag extends string,
   TInput,
   // it's important to have at least one default type parameter here
@@ -195,7 +195,7 @@ export function next_createMachine<
     TMetaSchema,
     TContext,
     TEvent,
-    TDelayMap,
+    TDelays,
     TTag
   >
 ): StateMachine<
@@ -205,15 +205,17 @@ export function next_createMachine<
   TActor,
   TAction,
   TGuard,
-  keyof TDelayMap & string,
+  TDelays,
   StateValue,
   TTag & string,
   TInput,
   InferOutput<TOutputSchema, unknown>,
-  InferOutput<TEmittedSchema, EventObject>,
+  WithDefault<InferOutput<TEmittedSchema, EventObject>, AnyEventObject>,
   InferOutput<TMetaSchema, MetaObject>, // TMeta
   TODO // TStateSchema
-> {
+> & {
+  emits: InferOutput<TEmittedSchema, EventObject>;
+} {
   config._special = true;
   return new StateMachine<
     any,
