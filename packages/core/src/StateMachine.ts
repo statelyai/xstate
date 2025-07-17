@@ -117,9 +117,9 @@ export class StateMachine<
       any,
       any,
       any,
+      any,
       TOutput,
-      any, // TEmitted
-      any // TMeta
+      any // TEmitted
     > & {
       schemas?: unknown;
     },

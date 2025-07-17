@@ -232,8 +232,7 @@ export function next_setup<
       TTag,
       TInput,
       TOutput,
-      TEmitted,
-      TMeta
+      TEmitted
     >
   >(
     config: TConfig

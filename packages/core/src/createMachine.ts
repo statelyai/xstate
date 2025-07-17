@@ -172,6 +172,7 @@ export function next_createMachine<
   TEmittedSchema extends StandardSchemaV1,
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
+  TMetaSchema extends StandardSchemaV1,
   TContext extends MachineContext,
   TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
   TActor extends ProvidedActor,
@@ -180,7 +181,6 @@ export function next_createMachine<
   TDelayMap extends DelayMap<TContext>,
   TTag extends string,
   TInput,
-  TMeta extends MetaObject,
   // it's important to have at least one default type parameter here
   // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
   // we should be able to remove this when we start inferring TConfig, with it we'll always have an inference candidate
@@ -192,11 +192,11 @@ export function next_createMachine<
     TEmittedSchema,
     TInputSchema,
     TOutputSchema,
+    TMetaSchema,
     TContext,
     TEvent,
     TDelayMap,
-    TTag,
-    TMeta
+    TTag
   >
 ): StateMachine<
   TContext,
@@ -210,8 +210,8 @@ export function next_createMachine<
   TTag & string,
   TInput,
   InferOutput<TOutputSchema, unknown>,
-  StandardSchemaV1.InferOutput<TEmittedSchema> & EventObject,
-  TMeta, // TMeta
+  InferOutput<TEmittedSchema, EventObject>,
+  InferOutput<TMetaSchema, MetaObject>, // TMeta
   TODO // TStateSchema
 > {
   config._special = true;
