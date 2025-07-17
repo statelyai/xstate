@@ -1,11 +1,8 @@
-import {
-  next_createMachine as createMachine,
-  createActor
-} from '../src/index.ts';
+import { next_createMachine, createActor } from '../src/index.ts';
 
 describe('tags', () => {
   it('supports tagging states', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'green',
       states: {
         green: {
@@ -35,7 +32,7 @@ describe('tags', () => {
   });
 
   it('supports tags in compound states', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'red',
       states: {
         green: {
@@ -66,7 +63,7 @@ describe('tags', () => {
   });
 
   it('supports tags in parallel states', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       type: 'parallel',
       states: {
         foo: {
@@ -105,7 +102,7 @@ describe('tags', () => {
   });
 
   it('sets tags correctly after not selecting any transition', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -122,7 +119,7 @@ describe('tags', () => {
   });
 
   it('tags can be single (not array)', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'green',
       states: {
         green: {
@@ -135,7 +132,7 @@ describe('tags', () => {
   });
 
   it('stringifies to an array', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'green',
       states: {
         green: {
