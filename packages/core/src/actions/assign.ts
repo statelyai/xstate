@@ -25,7 +25,7 @@ export interface AssignArgs<
   TEvent extends EventObject,
   TActor extends ProvidedActor
 > extends ActionArgs<TContext, TExpressionEvent, TEvent> {
-  spawn: Spawner<TActor>;
+  spawn: Spawner;
 }
 
 function resolveAssign(

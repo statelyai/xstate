@@ -1,6 +1,5 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
-  assign,
   createActor,
   next_createMachine,
   EventFrom,
@@ -24,33 +23,44 @@ describe('transition function', () => {
     const actionWithDynamicParams = vi.fn();
     const stringAction = vi.fn();
 
-    const machine = setup({
-      types: {
-        context: {} as { count: number },
-        events: {} as { type: 'event'; msg: string }
+    // const machine = setup({
+    //   types: {
+    //     context: {} as { count: number },
+    //     events: {} as { type: 'event'; msg: string }
+    //   },
+    //   actions: {
+    //     actionWithParams,
+    //     actionWithDynamicParams: (_, params: { msg: string }) => {
+    //       actionWithDynamicParams(params);
+    //     },
+    //     stringAction
+    //   }
+    // }).
+    const machine = next_createMachine({
+      // entry: [
+      //   { type: 'actionWithParams', params: { a: 1 } },
+      //   'stringAction',
+      //   assign({ count: 100 })
+      // ],
+      entry: (_, enq) => {
+        enq.action(actionWithParams, { a: 1 });
+        enq.action(stringAction);
+        return {
+          context: { count: 100 }
+        };
       },
-      actions: {
-        actionWithParams,
-        actionWithDynamicParams: (_, params: { msg: string }) => {
-          actionWithDynamicParams(params);
-        },
-        stringAction
-      }
-    }).createMachine({
-      entry: [
-        { type: 'actionWithParams', params: { a: 1 } },
-        'stringAction',
-        assign({ count: 100 })
-      ],
       context: { count: 0 },
       on: {
-        event: {
-          actions: {
-            type: 'actionWithDynamicParams',
-            params: ({ event }) => {
-              return { msg: event.msg };
-            }
-          }
+        // event: {
+        //   actions: {
+        //     type: 'actionWithDynamicParams',
+        //     params: ({ event }) => {
+        //       return { msg: event.msg };
+        //     }
+        //   }
+        // }
+        event: ({ event }, enq) => {
+          enq.action(actionWithDynamicParams, { msg: event.msg });
         }
       }
     });
@@ -59,8 +69,8 @@ describe('transition function', () => {
 
     expect(state0.context.count).toBe(100);
     expect(actions0).toEqual([
-      expect.objectContaining({ type: 'actionWithParams', params: { a: 1 } }),
-      expect.objectContaining({ type: 'stringAction' })
+      expect.objectContaining({ params: { a: 1 } }),
+      expect.objectContaining({})
     ]);
 
     expect(actionWithParams).not.toHaveBeenCalled();

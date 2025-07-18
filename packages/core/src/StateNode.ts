@@ -458,11 +458,10 @@ export class StateNode<
           .get(descriptor)!
           .some(
             (transition) =>
-              !(
-                !transition.target &&
-                !transition.actions.length &&
-                !transition.reenter
-              )
+              transition.target ||
+              transition.actions.length ||
+              transition.reenter ||
+              transition.fn
           );
       })
     );

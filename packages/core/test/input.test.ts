@@ -1,5 +1,5 @@
 import { of } from 'rxjs';
-import { assign, createActor, next_createMachine, spawnChild } from '../src';
+import { createActor, next_createMachine } from '../src';
 import {
   fromCallback,
   fromObservable,

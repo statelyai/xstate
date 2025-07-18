@@ -5,7 +5,7 @@ import {
   fromPromise,
   fromObservable
 } from '../src/index.ts';
-import { sleep } from '@xstate-repo/jest-utils';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {
@@ -163,7 +163,7 @@ describe('rehydration', () => {
   });
 
   it('should not replay actions when starting from a persisted state', () => {
-    const entrySpy = jest.fn();
+    const entrySpy = vi.fn();
     const machine = next_createMachine({
       entry: (_, enq) => {
         enq.action(entrySpy);
@@ -219,10 +219,11 @@ describe('rehydration', () => {
   });
 
   it('a rehydrated active child should be registered in the system', () => {
+    const foo = next_createMachine({});
     const machine = next_createMachine(
       {
         context: ({ spawn }) => {
-          spawn('foo', {
+          spawn(foo, {
             systemId: 'mySystemId'
           });
           return {};
@@ -247,10 +248,11 @@ describe('rehydration', () => {
   });
 
   it('a rehydrated done child should not be registered in the system', () => {
+    const foo = next_createMachine({ type: 'final' });
     const machine = next_createMachine(
       {
         context: ({ spawn }) => {
-          spawn('foo', {
+          spawn(foo, {
             systemId: 'mySystemId'
           });
           return {};
@@ -275,12 +277,14 @@ describe('rehydration', () => {
   });
 
   it('a rehydrated done child should not re-notify the parent about its completion', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
+
+    const foo = next_createMachine({ type: 'final' });
 
     const machine = next_createMachine(
       {
         context: ({ spawn }) => {
-          spawn('foo', {
+          spawn(foo, {
             systemId: 'mySystemId'
           });
           return {};
@@ -312,10 +316,11 @@ describe('rehydration', () => {
   });
 
   it('should be possible to persist a rehydrated actor that got its children rehydrated', () => {
+    const foo = fromPromise(() => Promise.resolve(42));
     const machine = next_createMachine(
       {
         invoke: {
-          src: 'foo'
+          src: foo
         }
       }
       // {
@@ -354,7 +359,7 @@ describe('rehydration', () => {
     actorRef.send({ type: 'NEXT' });
     const persistedState = actorRef.getPersistedSnapshot();
 
-    const spy = jest.fn();
+    const spy = vi.fn();
     const actorRef2 = createActor(machine, { snapshot: persistedState });
     actorRef2.subscribe({
       complete: spy
@@ -365,10 +370,11 @@ describe('rehydration', () => {
   });
 
   it('should error on a rehydrated error state', async () => {
+    const failure = fromPromise(() => Promise.reject(new Error('failure')));
     const machine = next_createMachine(
       {
         invoke: {
-          src: 'failure'
+          src: failure
         }
       }
       // {
@@ -387,7 +393,7 @@ describe('rehydration', () => {
 
     const persistedState = actorRef.getPersistedSnapshot();
 
-    const spy = jest.fn();
+    const spy = vi.fn();
     const actorRef2 = createActor(machine, { snapshot: persistedState });
     actorRef2.subscribe({
       error: spy
@@ -398,12 +404,12 @@ describe('rehydration', () => {
   });
 
   it(`shouldn't re-notify the parent about the error when rehydrating`, async () => {
-    const spy = jest.fn();
-
+    const spy = vi.fn();
+    const failure = fromPromise(() => Promise.reject(new Error('failure')));
     const machine = next_createMachine(
       {
         invoke: {
-          src: 'failure',
+          src: failure,
           onError: (_, enq) => {
             enq.action(spy);
           }
@@ -435,7 +441,7 @@ describe('rehydration', () => {
     const subject = new BehaviorSubject(0);
     const subjectLogic = fromObservable(() => subject);
 
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = next_createMachine(
       {
@@ -447,7 +453,7 @@ describe('rehydration', () => {
         // },
 
         invoke: {
-          src: 'service',
+          src: subjectLogic,
           onSnapshot: ({ event }, enq) => {
             enq.action(() => spy(event.snapshot.context));
           }
@@ -488,7 +494,7 @@ describe('rehydration', () => {
     const child = next_createMachine(
       {
         invoke: {
-          src: 'grandchild',
+          src: grandchild,
           id: 'grandchild'
         },
         on: {
@@ -506,7 +512,7 @@ describe('rehydration', () => {
     const machine = next_createMachine(
       {
         invoke: {
-          src: 'child',
+          src: child,
           id: 'child'
         },
         on: {

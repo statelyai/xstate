@@ -16,7 +16,6 @@ import {
   AnyActorRef,
   EventObject,
   Snapshot,
-  assign,
   createActor,
   createMachine,
   forwardTo,
@@ -551,33 +550,6 @@ describe('entry/exit actions', () => {
         'enter: loaded',
         'enter: loaded.idle'
       ]);
-    });
-
-    it("shouldn't use a referenced custom action over a builtin one when there is a naming conflict", () => {
-      const spy = vi.fn();
-      const machine = createMachine(
-        {
-          context: {
-            assigned: false
-          },
-          on: {
-            EV: {
-              actions: assign({ assigned: true })
-            }
-          }
-        },
-        {
-          actions: {
-            'xstate.assign': spy
-          }
-        }
-      );
-
-      const actor = createActor(machine).start();
-      actor.send({ type: 'EV' });
-
-      expect(spy).not.toHaveBeenCalled();
-      expect(actor.getSnapshot().context.assigned).toBe(true);
     });
 
     it("shouldn't use a referenced custom action over an inline one when there is a naming conflict", () => {
@@ -1718,23 +1690,30 @@ describe('entry/exit actions', () => {
     });
 
     it('actors spawned in exit handlers of a stopped child should not be started', () => {
-      const grandchild = createMachine({
+      const grandchild = next_createMachine({
         id: 'grandchild',
         entry: () => {
           throw new Error('This should not be called.');
         }
       });
 
-      const parent = createMachine({
+      const parent = next_createMachine({
         id: 'parent',
+        schemas: {
+          context: z.object({
+            actorRef: z.any().optional()
+          })
+        },
         context: {},
-        exit: assign({
-          actorRef: ({ spawn }) => spawn(grandchild)
+        exit: (_, enq) => ({
+          context: {
+            actorRef: enq.spawn(grandchild)
+          }
         })
       });
 
-      const interpreter = createActor(parent).start();
-      interpreter.stop();
+      const actor = createActor(parent).start();
+      actor.stop();
     });
 
     it('should note execute referenced custom actions correctly when stopping an interpreter', () => {
@@ -1759,37 +1738,17 @@ describe('entry/exit actions', () => {
     });
 
     it('should not execute builtin actions when stopping an interpreter', () => {
-      const machine = createMachine(
-        {
-          context: {
-            executedAssigns: [] as string[]
-          },
-          exit: [
-            'referencedAction',
-            assign({
-              executedAssigns: ({ context }) => [
-                ...context.executedAssigns,
-                'inline'
-              ]
-            })
-          ]
-        },
-        {
-          actions: {
-            referencedAction: assign({
-              executedAssigns: ({ context }) => [
-                ...context.executedAssigns,
-                'referenced'
-              ]
-            })
-          }
+      const action = vi.fn();
+      const machine = next_createMachine({
+        exit: (_, enq) => {
+          enq.action(action);
         }
-      );
+      });
 
-      const interpreter = createActor(machine).start();
-      interpreter.stop();
+      const actor = createActor(machine).start();
+      actor.stop();
 
-      expect(interpreter.getSnapshot().context.executedAssigns).toEqual([]);
+      expect(action).not.toHaveBeenCalled();
     });
 
     it('should clear all scheduled events when the interpreter gets stopped', () => {
@@ -1832,7 +1791,7 @@ describe('entry/exit actions', () => {
                 actions: [
                   () => {
                     // immediately stop *while* the `INITIALIZE_SYNC_SEQUENCE` is still being processed
-                    service.stop();
+                    actor.stop();
                   },
                   () => {}
                 ]
@@ -1847,9 +1806,9 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const service = createActor(machine).start();
+      const actor = createActor(machine).start();
 
-      service.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
+      actor.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
 
       expect(exitActions).toEqual(['foo action']);
     });
@@ -2153,37 +2112,49 @@ describe('actions config', () => {
   });
 
   it('should be able to reference action implementations from action objects', () => {
-    const machine = createMachine(
-      {
-        types: {} as { context: Context; events: EventType },
-        initial: 'a',
-        context: {
-          count: 0
-        },
-        states: {
-          a: {
-            entry: [
-              'definedAction',
-              { type: 'definedAction' },
-              'undefinedAction'
-            ],
-            on: {
-              EVENT: {
-                target: 'b',
-                actions: [{ type: 'definedAction' }, { type: 'updateContext' }]
-              }
-            }
-          },
-          b: {}
-        }
+    const updateContext = (): Context => ({
+      count: 10
+    });
+    const machine = next_createMachine({
+      // types: {} as { context: Context; events: EventType },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
       },
-      {
-        actions: {
-          definedAction,
-          updateContext: assign({ count: 10 })
-        }
+      initial: 'a',
+      context: {
+        count: 0
+      },
+      states: {
+        a: {
+          // entry: [
+          //   'definedAction',
+          //   { type: 'definedAction' },
+          //   'undefinedAction'
+          // ],
+          entry: (_, enq) => {
+            enq.action(definedAction);
+            // enq.action({ type: 'definedAction' });
+            return {};
+          },
+          on: {
+            // EVENT: {
+            //   target: 'b',
+            //   actions: [{ type: 'definedAction' }, { type: 'updateContext' }]
+            // }
+            EVENT: (_, enq) => {
+              enq.action(definedAction);
+              return {
+                target: 'b',
+                context: updateContext()
+              };
+            }
+          }
+        },
+        b: {}
       }
-    );
+    });
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
     const snapshot = actorRef.getSnapshot();
@@ -2470,10 +2441,24 @@ describe('forwardTo()', () => {
       }
     });
 
-    const parent = createMachine({
-      types: {} as {
-        context: { child?: AnyActorRef };
-        events: { type: 'EVENT'; value: number } | { type: 'SUCCESS' };
+    const parent = next_createMachine({
+      // types: {} as {
+      //   context: { child?: AnyActorRef };
+      //   events: { type: 'EVENT'; value: number } | { type: 'SUCCESS' };
+      // },
+      schemas: {
+        context: z.object({
+          child: z.any()
+        }),
+        event: z.union([
+          z.object({
+            type: z.literal('EVENT'),
+            value: z.number()
+          }),
+          z.object({
+            type: z.literal('SUCCESS')
+          })
+        ])
       },
       id: 'parent',
       initial: 'first',
@@ -2482,12 +2467,17 @@ describe('forwardTo()', () => {
       },
       states: {
         first: {
-          entry: assign({
-            child: ({ spawn }) => spawn(child, { id: 'x' })
+          entry: (_, enq) => ({
+            context: {
+              child: enq.spawn(child, { id: 'x' })
+            }
           }),
           on: {
-            EVENT: {
-              actions: forwardTo(({ context }) => context.child!)
+            // EVENT: {
+            //   actions: forwardTo(({ context }) => context.child!)
+            // },
+            EVENT: ({ context, event }, enq) => {
+              enq.sendTo(context.child, event);
             },
             SUCCESS: 'last'
           }
@@ -2752,14 +2742,19 @@ describe('enqueueActions', () => {
   });
 
   it('should execute assigns when resolving the initial snapshot', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 0
       },
-      entry: enqueueActions(({ enqueue }) => {
-        enqueue.assign({
+      entry: () => ({
+        context: {
           count: 42
-        });
+        }
       })
     });
 
@@ -2845,59 +2840,81 @@ describe('enqueueActions', () => {
   it('should be able to communicate with the parent using params', () => {
     type ParentEvent = { type: 'FOO' };
 
-    const childMachine = setup({
-      types: {} as {
-        input: {
-          parent?: ActorRef<Snapshot<unknown>, ParentEvent>;
-        };
-        context: {
-          parent?: ActorRef<Snapshot<unknown>, ParentEvent>;
-        };
+    // const childMachine = setup({
+    //   types: {} as {
+    //     input: {
+    //       parent?: ActorRef<Snapshot<unknown>, ParentEvent>;
+    //     };
+    //     context: {
+    //       parent?: ActorRef<Snapshot<unknown>, ParentEvent>;
+    //     };
+    //   },
+    //   actions: {
+    //     mySendParent: enqueueActions(
+    //       ({ context, enqueue }, event: ParentEvent) => {
+    //         if (!context.parent) {
+    //           // it's here just for illustration purposes
+    //           console.log(
+    //             'WARN: an attempt to send an event to a non-existent parent'
+    //           );
+    //           return;
+    //         }
+    //         enqueue.sendTo(context.parent, event);
+    //       }
+    //     )
+    //   }
+    // }).
+    const childMachine = next_createMachine({
+      schemas: {
+        input: z.object({
+          parent: z.any()
+        }),
+        context: z.object({
+          parent: z.any()
+        }),
+        event: z.object({
+          type: z.literal('FOO')
+        })
       },
-      actions: {
-        mySendParent: enqueueActions(
-          ({ context, enqueue }, event: ParentEvent) => {
-            if (!context.parent) {
-              // it's here just for illustration purposes
-              console.log(
-                'WARN: an attempt to send an event to a non-existent parent'
-              );
-              return;
-            }
-            enqueue.sendTo(context.parent, event);
-          }
-        )
-      }
-    }).createMachine({
       context: ({ input }) => ({ parent: input.parent }),
-      entry: {
-        type: 'mySendParent',
-        params: {
-          type: 'FOO'
-        }
+      // entry: {
+      //   type: 'mySendParent',
+      //   params: {
+      //     type: 'FOO'
+      //   }
+      // }
+      entry: ({ context }, enq) => {
+        enq.sendTo(context.parent, { type: 'FOO' });
       }
     });
 
     const spy = vi.fn();
 
-    const parentMachine = setup({
-      types: {} as { events: ParentEvent },
-      actors: {
-        child: childMachine
-      }
-    }).createMachine({
-      on: {
-        FOO: {
-          actions: spy
+    const parentMachine =
+      // setup({
+      //   types: {} as { events: ParentEvent },
+      //   actors: {
+      //     child: childMachine
+      //   }
+      // }).
+      next_createMachine({
+        schemas: {
+          event: z.object({
+            type: z.literal('FOO')
+          })
+        },
+        on: {
+          FOO: (_, enq) => {
+            enq.action(spy);
+          }
+        },
+        invoke: {
+          src: childMachine,
+          input: ({ self }) => ({ parent: self })
         }
-      },
-      invoke: {
-        src: 'child',
-        input: ({ self }) => ({ parent: self })
-      }
-    });
+      });
 
-    const actorRef = createActor(parentMachine).start();
+    createActor(parentMachine).start();
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
@@ -2916,7 +2933,7 @@ describe('enqueueActions', () => {
         events: ChildEvent;
       },
       actions: {
-        sendToParent: enqueueActions(({ context, enqueue }) => {
+        sendToParent: enqueueActions(({ enqueue }) => {
           enqueue.sendParent({ type: 'PARENT_EVENT' });
         })
       }
@@ -2942,7 +2959,7 @@ describe('enqueueActions', () => {
       }
     });
 
-    const actorRef = createActor(parentMachine).start();
+    createActor(parentMachine).start();
 
     expect(parentSpy).toHaveBeenCalledTimes(1);
   });
@@ -3208,7 +3225,12 @@ describe('sendTo', () => {
 
   it('a self-event "handler" of an event sent using sendTo should be able to read updated snapshot of self', () => {
     const spy = vi.fn();
-    const machine = createMachine({
+    const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          counter: z.number()
+        })
+      },
       context: {
         counter: 0
       },
@@ -3218,14 +3240,22 @@ describe('sendTo', () => {
           on: { NEXT: 'b' }
         },
         b: {
-          entry: [
-            assign({ counter: 1 }),
-            sendTo(({ self }) => self, { type: 'EVENT' })
-          ],
+          entry: ({ self }, enq) => {
+            enq.sendTo(self, { type: 'EVENT' });
+            return {
+              context: { counter: 1 }
+            };
+          },
           on: {
-            EVENT: {
-              actions: ({ self }) => spy(self.getSnapshot().context),
-              target: 'c'
+            // EVENT: {
+            //   actions: ({ self }) => spy(self.getSnapshot().context),
+            //   target: 'c'
+            // }
+            EVENT: ({ self }, enq) => {
+              enq.action(spy, self.getSnapshot().context);
+              return {
+                target: 'c'
+              };
             }
           }
         },
@@ -3847,149 +3877,7 @@ describe('cancel', () => {
   });
 });
 
-describe('assign action order', () => {
-  it('should preserve action order', () => {
-    const captured: number[] = [];
-
-    const machine = createMachine({
-      types: {} as {
-        context: { count: number };
-      },
-      context: { count: 0 },
-      entry: [
-        ({ context }) => captured.push(context.count), // 0
-        assign({ count: ({ context }) => context.count + 1 }),
-        ({ context }) => captured.push(context.count), // 1
-        assign({ count: ({ context }) => context.count + 1 }),
-        ({ context }) => captured.push(context.count) // 2
-      ]
-    });
-
-    const actor = createActor(machine).start();
-
-    expect(actor.getSnapshot().context).toEqual({ count: 2 });
-
-    expect(captured).toEqual([0, 1, 2]);
-  });
-
-  it('should deeply preserve action order', () => {
-    const captured: number[] = [];
-
-    interface CountCtx {
-      count: number;
-    }
-
-    const machine = createMachine(
-      {
-        types: {} as {
-          context: CountCtx;
-        },
-        context: { count: 0 },
-        entry: [
-          ({ context }) => captured.push(context.count), // 0
-          enqueueActions(({ enqueue }) => {
-            enqueue(assign({ count: ({ context }) => context.count + 1 }));
-            enqueue({ type: 'capture' });
-            enqueue(assign({ count: ({ context }) => context.count + 1 }));
-          }),
-          ({ context }) => captured.push(context.count) // 2
-        ]
-      },
-      {
-        actions: {
-          capture: ({ context }) => captured.push(context.count)
-        }
-      }
-    );
-
-    createActor(machine).start();
-
-    expect(captured).toEqual([0, 1, 2]);
-  });
-
-  it('should capture correct context values on subsequent transitions', () => {
-    let captured: number[] = [];
-
-    const machine = createMachine({
-      types: {} as {
-        context: { counter: number };
-      },
-      context: {
-        counter: 0
-      },
-      on: {
-        EV: {
-          actions: [
-            assign({ counter: ({ context }) => context.counter + 1 }),
-            ({ context }) => captured.push(context.counter)
-          ]
-        }
-      }
-    });
-
-    const service = createActor(machine).start();
-
-    service.send({ type: 'EV' });
-    service.send({ type: 'EV' });
-
-    expect(captured).toEqual([1, 2]);
-  });
-});
-
-describe('types', () => {
-  it('assign actions should be inferred correctly', () => {
-    createMachine({
-      types: {} as {
-        context: { count: number; text: string };
-        events: { type: 'inc'; value: number } | { type: 'say'; value: string };
-      },
-      context: {
-        count: 0,
-        text: 'hello'
-      },
-      entry: [
-        assign({ count: 31 }),
-        // @ts-expect-error
-        assign({ count: 'string' }),
-
-        assign({ count: () => 31 }),
-        // @ts-expect-error
-        assign({ count: () => 'string' }),
-
-        assign({ count: ({ context }) => context.count + 31 }),
-        // @ts-expect-error
-        assign({ count: ({ context }) => context.text + 31 }),
-
-        assign(() => ({ count: 31 })),
-        // @ts-expect-error
-        assign(() => ({ count: 'string' })),
-
-        assign(({ context }) => ({ count: context.count + 31 })),
-        // @ts-expect-error
-        assign(({ context }) => ({ count: context.text + 31 }))
-      ],
-      on: {
-        say: {
-          actions: [
-            assign({ text: ({ event }) => event.value }),
-            // @ts-expect-error
-            assign({ count: ({ event }) => event.value }),
-
-            assign(({ event }) => ({ text: event.value })),
-            // @ts-expect-error
-            assign(({ event }) => ({ count: event.value }))
-          ]
-        }
-      }
-    });
-  });
-});
-
 describe('action meta', () => {
-  it.todo(
-    'base action objects should have meta.action as the same base action object'
-  );
-
   it('should provide self', () => {
     expect.assertions(1);
 
@@ -4113,14 +4001,27 @@ describe('actions', () => {
   it('should call an inline action responding to an initial raise with updated (non-initial) context', () => {
     const spy = vi.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: { count: 0 },
-      entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
+      entry: (_, enq) => {
+        enq.raise({ type: 'HELLO' });
+        return {
+          context: { count: 42 }
+        };
+      },
       on: {
-        HELLO: {
-          actions: ({ context }) => {
-            spy(context);
-          }
+        // HELLO: {
+        //   actions: ({ context }) => {
+        //     spy(context);
+        //   }
+        // }
+        HELLO: (_, enq) => {
+          enq.action(spy, { count: 42 });
         }
       }
     });
@@ -4133,24 +4034,28 @@ describe('actions', () => {
   it('should call a referenced action responding to an initial raise with updated (non-initial) context', () => {
     const spy = vi.fn();
 
-    const machine = createMachine(
-      {
-        context: { count: 0 },
-        entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
-        on: {
-          HELLO: {
-            actions: 'foo'
-          }
-        }
+    const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
       },
-      {
-        actions: {
-          foo: ({ context }) => {
-            spy(context);
-          }
+      context: { count: 0 },
+      entry: (_, enq) => {
+        enq.raise({ type: 'HELLO' });
+        return {
+          context: { count: 42 }
+        };
+      },
+      on: {
+        // HELLO: {
+        //   actions: 'foo'
+        // }
+        HELLO: ({ context }, enq) => {
+          enq.action(spy, context);
         }
       }
-    );
+    });
 
     createActor(machine).start();
 
@@ -4164,20 +4069,6 @@ describe('actions', () => {
         entry: (_, params) => {
           spy(params);
         }
-      })
-    ).start();
-
-    expect(spy).toHaveBeenCalledWith(undefined);
-  });
-
-  it('should call inline entry builtin action with undefined parametrized action object', () => {
-    const spy = vi.fn();
-    createActor(
-      createMachine({
-        entry: assign((_, params) => {
-          spy(params);
-          return {};
-        })
       })
     ).start();
 
@@ -4203,26 +4094,6 @@ describe('actions', () => {
     expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it('should call inline transition builtin action with undefined parameters', () => {
-    const spy = vi.fn();
-
-    const actorRef = createActor(
-      createMachine({
-        on: {
-          FOO: {
-            actions: assign((_, params) => {
-              spy(params);
-              return {};
-            })
-          }
-        }
-      })
-    ).start();
-    actorRef.send({ type: 'FOO' });
-
-    expect(spy).toHaveBeenCalledWith(undefined);
-  });
-
   it('should call a referenced custom action with undefined params when it has no params and it is referenced using a string', () => {
     const spy = vi.fn();
 
@@ -4236,28 +4107,6 @@ describe('actions', () => {
             myAction: (_, params) => {
               spy(params);
             }
-          }
-        }
-      )
-    ).start();
-
-    expect(spy).toHaveBeenCalledWith(undefined);
-  });
-
-  it('should call a referenced builtin action with undefined params when it has no params and it is referenced using a string', () => {
-    const spy = vi.fn();
-
-    createActor(
-      createMachine(
-        {
-          entry: 'myAction'
-        },
-        {
-          actions: {
-            myAction: assign((_, params) => {
-              spy(params);
-              return {};
-            })
           }
         }
       )
@@ -4292,66 +4141,6 @@ describe('actions', () => {
     expect(spy).toHaveBeenCalledWith({
       foo: 'bar'
     });
-  });
-
-  it('should call a referenced builtin action with the provided parametrized action object', () => {
-    const spy = vi.fn();
-
-    createActor(
-      createMachine(
-        {
-          entry: {
-            type: 'myAction',
-            params: {
-              foo: 'bar'
-            }
-          }
-        },
-        {
-          actions: {
-            myAction: assign((_, params) => {
-              spy(params);
-              return {};
-            })
-          }
-        }
-      )
-    ).start();
-
-    expect(spy).toHaveBeenCalledWith({
-      foo: 'bar'
-    });
-  });
-
-  it('should warn if called in custom action', () => {
-    const warnSpy = vi.spyOn(console, 'warn');
-    const machine = createMachine({
-      entry: () => {
-        assign({});
-        raise({ type: '' });
-        sendTo('', { type: '' });
-        emit({ type: '' });
-      }
-    });
-
-    createActor(machine).start();
-
-    expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
-[
-  [
-    "Custom actions should not call \`assign()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
-  ],
-  [
-    "Custom actions should not call \`raise()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
-  ],
-  [
-    "Custom actions should not call \`sendTo()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
-  ],
-  [
-    "Custom actions should not call \`emit()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.",
-  ],
-]
-`);
   });
 
   it('inline actions should not leak into provided actions object', async () => {

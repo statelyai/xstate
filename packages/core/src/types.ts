@@ -1372,7 +1372,7 @@ export type InitialContext<
 
 export type ContextFactory<
   TContext extends MachineContext,
-  TActor extends ProvidedActor,
+  _TActor extends ProvidedActor, // DELETE
   TInput,
   TEvent extends EventObject = EventObject
 > = ({
@@ -1380,7 +1380,7 @@ export type ContextFactory<
   input,
   self
 }: {
-  spawn: Spawner<TActor>;
+  spawn: Spawner;
   input: TInput;
   self: ActorRef<
     MachineSnapshot<

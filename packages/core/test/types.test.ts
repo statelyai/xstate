@@ -1197,7 +1197,7 @@ describe('spawner in assign', () => {
 
     function createParent(_deps: {
       spawnChild: (
-        spawn: Spawner<ProvidedActor>
+        spawn: Spawner
       ) => ActorRefFrom<ReturnType<typeof createChild>>;
     }) {}
 

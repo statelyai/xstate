@@ -173,7 +173,7 @@ export function next_createMachine<
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
-  TContext extends MachineContext,
+  // TContext extends MachineContext,
   TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
@@ -193,13 +193,13 @@ export function next_createMachine<
     TInputSchema,
     TOutputSchema,
     TMetaSchema,
-    TContext,
+    InferOutput<TContextSchema, MachineContext>,
     TEvent,
     TDelays,
     TTag
   >
 ): StateMachine<
-  TContext,
+  InferOutput<TContextSchema, MachineContext>,
   TEvent,
   Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
   TActor,

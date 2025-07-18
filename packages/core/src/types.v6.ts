@@ -77,7 +77,7 @@ export type Next_MachineConfig<
       | (({ context, event }: { context: TContext; event: TEvent }) => number);
   };
 }) &
-  (MachineContext extends TContext
+  (IsNever<TContext> extends true
     ? {
         context?: InitialContext<
           LowInfer<TContext>,
