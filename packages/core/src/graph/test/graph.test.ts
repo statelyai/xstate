@@ -1,11 +1,12 @@
+import z from 'zod';
 import {
   EventObject,
   Snapshot,
   StateNode,
-  assign,
   createMachine,
   fromTransition,
-  isMachineSnapshot
+  isMachineSnapshot,
+  next_createMachine
 } from '../../index.ts';
 import { createMockActorScope } from '../actorScope.ts';
 import {
@@ -409,8 +410,20 @@ describe('@xstate/graph', () => {
         type: 'INC';
         value: number;
       }
-      const countMachine = createMachine({
-        types: {} as { context: Ctx; events: Events },
+      const countMachine = next_createMachine({
+        // types: {} as { context: Ctx; events: Events },
+        schemas: {
+          context: z.object({
+            count: z.number()
+          }),
+          event: z.union([
+            z.object({
+              type: z.literal('INC'),
+              value: z.number()
+            }),
+            z.object({ type: z.literal('FINISH') })
+          ])
+        },
         id: 'count',
         initial: 'start',
         context: {
@@ -418,16 +431,23 @@ describe('@xstate/graph', () => {
         },
         states: {
           start: {
-            always: {
-              target: 'finish',
-              guard: ({ context }) => context.count === 3
+            // always: {
+            //   target: 'finish',
+            //   guard: ({ context }) => context.count === 3
+            // },
+            always: ({ context }) => {
+              if (context.count === 3) {
+                return {
+                  target: 'finish'
+                };
+              }
             },
             on: {
-              INC: {
-                actions: assign({
-                  count: ({ context }) => context.count + 1
-                })
-              }
+              INC: ({ context }) => ({
+                context: {
+                  count: context.count + 1
+                }
+              })
             }
           },
           finish: {}
@@ -556,18 +576,22 @@ it('shortest paths for transition functions', () => {
 
 describe('filtering', () => {
   it('should not traverse past filtered states', () => {
-    const machine = createMachine({
-      types: {} as { context: { count: number } },
+    const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       initial: 'counting',
       context: { count: 0 },
       states: {
         counting: {
           on: {
-            INC: {
-              actions: assign({
-                count: ({ context }) => context.count + 1
-              })
-            }
+            INC: ({ context }) => ({
+              context: {
+                count: context.count + 1
+              }
+            })
           }
         }
       }

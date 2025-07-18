@@ -25,7 +25,7 @@ export interface AssignArgs<
   TEvent extends EventObject,
   TActor extends ProvidedActor
 > extends ActionArgs<TContext, TExpressionEvent, TEvent> {
-  spawn: Spawner<TActor>;
+  spawn: Spawner;
 }
 
 function resolveAssign(
@@ -58,7 +58,8 @@ function resolveAssign(
       spawnedChildren
     ),
     self: actorScope.self,
-    system: actorScope.system
+    system: actorScope.system,
+    children: snapshot.children
   };
   let partialUpdate: Record<string, unknown> = {};
   if (typeof assignment === 'function') {

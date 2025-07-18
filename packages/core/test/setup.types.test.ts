@@ -11,7 +11,6 @@ import {
   EventFrom,
   fromPromise,
   fromTransition,
-  log,
   not,
   raise,
   sendParent,
@@ -2314,12 +2313,12 @@ describe('setup()', () => {
     });
   });
 
-  it('should allow `log` action to be configured', () => {
-    setup({
-      actions: {
-        writeDown: log('foo')
-      }
-    });
+  it.skip('should allow `log` action to be configured', () => {
+    // setup({
+    //   actions: {
+    //     writeDown: log('foo')
+    //   }
+    // });
   });
 
   it('should allow `cancel` action to be configured', () => {

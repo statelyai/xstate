@@ -1,5 +1,10 @@
 import { fromCallback } from '../src/actors/index.ts';
-import { createActor, createMachine, assign } from '../src/index.ts';
+import {
+  createActor,
+  createMachine,
+  assign,
+  next_createMachine
+} from '../src/index.ts';
 import { setup } from '../src/setup.ts';
 
 // TODO: remove this file but before doing that ensure that things tested here are covered by other tests
@@ -402,7 +407,7 @@ describe('invocations (activities)', () => {
 
   it('should have stopped after automatic transitions', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       context: {
         counter: 0
       },
@@ -415,26 +420,36 @@ describe('invocations (activities)', () => {
               return () => (active = false);
             })
           },
-          always: {
-            guard: ({ context }) => context.counter !== 0,
-            target: 'b'
+          // always: {
+          //   guard: ({ context }) => context.counter !== 0,
+          //   target: 'b'
+          // },
+          always: ({ context }) => {
+            if (context.counter !== 0) {
+              return { target: 'b' };
+            }
           },
           on: {
-            INC: {
-              actions: assign(({ context }) => ({
+            // INC: {
+            //   actions: assign(({ context }) => ({
+            //     counter: context.counter + 1
+            //   }))
+            // }
+            INC: ({ context }) => ({
+              context: {
                 counter: context.counter + 1
-              }))
-            }
+              }
+            })
           }
         },
         b: {}
       }
     });
-    const service = createActor(machine).start();
+    const actor = createActor(machine).start();
 
     expect(active).toBe(true);
 
-    service.send({ type: 'INC' });
+    actor.send({ type: 'INC' });
 
     expect(active).toBe(false);
   });

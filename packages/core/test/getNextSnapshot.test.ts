@@ -1,11 +1,11 @@
 import {
-  createMachine,
+  next_createMachine,
   fromTransition,
-  getNextSnapshot,
-  getInitialSnapshot
+  transition,
+  initialTransition
 } from '../src';
 
-describe('getNextSnapshot', () => {
+describe('transition', () => {
   it('should calculate the next snapshot for transition logic', () => {
     const logic = fromTransition(
       (state, event) => {
@@ -18,14 +18,14 @@ describe('getNextSnapshot', () => {
       { count: 0 }
     );
 
-    const init = getInitialSnapshot(logic, undefined);
-    const s1 = getNextSnapshot(logic, init, { type: 'next' });
+    const [init] = initialTransition(logic, undefined);
+    const [s1] = transition(logic, init, { type: 'next' });
     expect(s1.context.count).toEqual(1);
-    const s2 = getNextSnapshot(logic, s1, { type: 'next' });
+    const [s2] = transition(logic, s1, { type: 'next' });
     expect(s2.context.count).toEqual(2);
   });
   it('should calculate the next snapshot for machine logic', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -42,26 +42,26 @@ describe('getNextSnapshot', () => {
       }
     });
 
-    const init = getInitialSnapshot(machine, undefined);
-    const s1 = getNextSnapshot(machine, init, { type: 'NEXT' });
+    const [init] = initialTransition(machine, undefined);
+    const [s1] = transition(machine, init, { type: 'NEXT' });
 
     expect(s1.value).toEqual('b');
 
-    const s2 = getNextSnapshot(machine, s1, { type: 'NEXT' });
+    const [s2] = transition(machine, s1, { type: 'NEXT' });
 
     expect(s2.value).toEqual('c');
   });
   it('should not execute actions', () => {
     const fn = vi.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
           on: {
-            event: {
-              target: 'b',
-              actions: fn
+            event: (_, enq) => {
+              enq.action(fn);
+              return { target: 'b' };
             }
           }
         },
@@ -69,8 +69,8 @@ describe('getNextSnapshot', () => {
       }
     });
 
-    const init = getInitialSnapshot(machine, undefined);
-    const nextSnapshot = getNextSnapshot(machine, init, { type: 'event' });
+    const [init] = initialTransition(machine, undefined);
+    const [nextSnapshot] = transition(machine, init, { type: 'event' });
 
     expect(fn).not.toHaveBeenCalled();
     expect(nextSnapshot.value).toEqual('b');

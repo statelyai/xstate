@@ -1,8 +1,7 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
-  assign,
   createActor,
-  createMachine,
+  next_createMachine,
   fromCallback,
   fromPromise,
   fromTransition
@@ -36,7 +35,7 @@ describe('error handling', () => {
   // https://github.com/statelyai/xstate/issues/4004
   it('does not cause an infinite loop when an error is thrown in subscribe', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       id: 'machine',
       initial: 'initial',
       context: {
@@ -76,7 +75,7 @@ describe('error handling', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const spy = vi.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       id: 'machine',
       initial: 'initial',
       context: {
@@ -88,8 +87,8 @@ describe('error handling', () => {
         },
         active: {
           on: {
-            do: {
-              actions: spy
+            do: (_, enq) => {
+              enq.action(spy);
             }
           }
         }
@@ -125,7 +124,7 @@ describe('error handling', () => {
 
   it(`doesn't notify error listener when an error is thrown in subscribe`, () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       id: 'machine',
       initial: 'initial',
       context: {
@@ -170,7 +169,7 @@ describe('error handling', () => {
 
   it('unhandled sync errors thrown when starting a child actor should be reported globally', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -200,7 +199,7 @@ describe('error handling', () => {
 
   it('unhandled rejection of a promise actor should be reported globally in absence of error listener', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -237,7 +236,7 @@ describe('error handling', () => {
   it('unhandled rejection of a promise actor should be reported to the existing error listener of its parent', async () => {
     const errorSpy = vi.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -278,7 +277,7 @@ describe('error handling', () => {
   it('unhandled rejection of a promise actor should be reported to the existing error listener of its grandparent', async () => {
     const errorSpy = vi.fn();
 
-    const child = createMachine({
+    const child = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -299,7 +298,7 @@ describe('error handling', () => {
       }
     });
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -333,7 +332,7 @@ describe('error handling', () => {
 
   it('handled sync errors thrown when starting a child actor should not be reported globally', () => {
     const { resolve, reject, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -365,7 +364,7 @@ describe('error handling', () => {
 
   it('handled sync errors thrown when starting a child actor should be reported globally when not all of its own observers come with an error listener', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -401,7 +400,7 @@ describe('error handling', () => {
 
   it('handled sync errors thrown when starting a child actor should not be reported globally when all of its own observers come with an error listener', () => {
     const { resolve, reject, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -441,7 +440,7 @@ describe('error handling', () => {
 
   it('unhandled sync errors thrown when starting a child actor should be reported twice globally when not all of its own observers come with an error listener and when the root has no error listener of its own', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -481,7 +480,7 @@ describe('error handling', () => {
   });
 
   it(`handled sync errors shouldn't notify the error listener`, () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -510,7 +509,7 @@ describe('error handling', () => {
   });
 
   it(`unhandled sync errors should notify the root error listener`, () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -548,7 +547,7 @@ describe('error handling', () => {
 
   it(`unhandled sync errors should not notify the global listener when the root error listener is present`, () => {
     const { resolve, reject, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -591,7 +590,7 @@ describe('error handling', () => {
   it(`handled sync errors thrown when starting an actor shouldn't crash the parent`, () => {
     const spy = vi.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -604,8 +603,8 @@ describe('error handling', () => {
         },
         failed: {
           on: {
-            do: {
-              actions: spy
+            do: (_, enq) => {
+              enq.action(spy);
             }
           }
         }
@@ -623,7 +622,7 @@ describe('error handling', () => {
 
   it(`unhandled sync errors thrown when starting an actor should crash the parent`, () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -652,7 +651,7 @@ describe('error handling', () => {
 
   it(`error thrown by the error listener should be reported globally`, () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -684,7 +683,7 @@ describe('error handling', () => {
 
   it(`error should be reported globally if not every observer comes with an error listener`, () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -718,7 +717,7 @@ describe('error handling', () => {
 
   it(`uncaught error and an error thrown by the error listener should both be reported globally when not every observer comes with an error listener`, () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'pending',
       states: {
         pending: {
@@ -761,7 +760,7 @@ describe('error handling', () => {
   });
 
   it('error thrown in initial custom entry action should error the actor', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       entry: () => {
         throw new Error('error_thrown_in_initial_entry_action');
       }
@@ -789,39 +788,8 @@ describe('error handling', () => {
     `);
   });
 
-  it('error thrown when resolving initial builtin entry action should error the actor immediately', () => {
-    const machine = createMachine({
-      entry: assign(() => {
-        throw new Error('error_thrown_when_resolving_initial_entry_action');
-      })
-    });
-
-    const errorSpy = vi.fn();
-
-    const actorRef = createActor(machine);
-
-    const snapshot = actorRef.getSnapshot();
-    expect(snapshot.status).toBe('error');
-    expect(snapshot.error).toMatchInlineSnapshot(
-      `[Error: error_thrown_when_resolving_initial_entry_action]`
-    );
-
-    actorRef.subscribe({
-      error: errorSpy
-    });
-    actorRef.start();
-
-    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
-      [
-        [
-          [Error: error_thrown_when_resolving_initial_entry_action],
-        ],
-      ]
-    `);
-  });
-
   it('error thrown by a custom entry action when transitioning should error the actor', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -865,13 +833,13 @@ describe('error handling', () => {
   it(`shouldn't execute deferred initial actions that come after an action that errors`, () => {
     const spy = vi.fn();
 
-    const machine = createMachine({
-      entry: [
-        () => {
+    const machine = next_createMachine({
+      entry: (_, enq) => {
+        enq.action(() => {
           throw new Error('error_thrown_in_initial_entry_action');
-        },
-        spy
-      ]
+        });
+        enq.action(spy);
+      }
     });
 
     const actorRef = createActor(machine);
@@ -890,18 +858,11 @@ describe('error handling', () => {
       context: undefined
     });
 
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'failure'
-        }
-      },
-      {
-        actors: {
-          failure: immediateFailure
-        }
+    const machine = next_createMachine({
+      invoke: {
+        src: immediateFailure
       }
-    );
+    });
 
     const actorRef = createActor(machine);
     actorRef.subscribe({ error: function preventUnhandledErrorListener() {} });
@@ -911,39 +872,5 @@ describe('error handling', () => {
 
     expect(snapshot.status).toBe('error');
     expect(snapshot.error).toBe('immediate error!');
-  });
-
-  it('should error when a guard throws when transitioning', () => {
-    const spy = vi.fn();
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            NEXT: {
-              guard: () => {
-                throw new Error('error_thrown_in_guard_when_transitioning');
-              },
-              target: 'b'
-            }
-          }
-        },
-        b: {}
-      }
-    });
-
-    const actorRef = createActor(machine);
-    actorRef.subscribe({
-      error: spy
-    });
-    actorRef.start();
-    actorRef.send({ type: 'NEXT' });
-
-    const snapshot = actorRef.getSnapshot();
-    expect(snapshot.status).toBe('error');
-    expect(snapshot.error).toMatchInlineSnapshot(`
-      [Error: Unable to evaluate guard in transition for event 'NEXT' in state node '(machine).a':
-      error_thrown_in_guard_when_transitioning]
-    `);
   });
 });

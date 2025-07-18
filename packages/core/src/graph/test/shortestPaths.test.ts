@@ -1,11 +1,17 @@
-import { assign, createMachine } from '../../index.ts';
+import { z } from 'zod';
+import { next_createMachine } from '../../index.ts';
 import { joinPaths } from '../graph.ts';
 import { getShortestPaths } from '../shortestPaths.ts';
 
 describe('getShortestPaths', () => {
   it('finds the shortest paths to a state without continuing traversal from that state', () => {
-    const m = createMachine({
-      types: {} as { context: { count: number } },
+    const m = next_createMachine({
+      // types: {} as { context: { count: number } },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       initial: 'a',
       context: { count: 0 },
       states: {
@@ -28,12 +34,12 @@ describe('getShortestPaths', () => {
           // If we reach this state, this will cause an infinite loop
           // if the stop condition does not stop the algorithm
           on: {
-            NEXT: {
-              target: 'd',
-              actions: assign({
-                count: ({ context }) => context.count + 1
-              })
-            }
+            NEXT: ({ context }) => ({
+              context: {
+                count: context.count + 1
+              },
+              target: 'd'
+            })
           }
         }
       }
@@ -48,9 +54,14 @@ describe('getShortestPaths', () => {
   });
 
   it('finds the shortest paths from a state to another state', () => {
-    const m = createMachine({
-      types: {} as {
-        context: { count: number };
+    const m = next_createMachine({
+      // types: {} as {
+      //   context: { count: number };
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
       },
       initial: 'a',
       context: { count: 0 },
@@ -101,22 +112,32 @@ describe('getShortestPaths', () => {
   });
 
   it('handles event cases', () => {
-    const machine = createMachine({
-      types: {
-        events: {} as { type: 'todo.add'; todo: string },
-        context: {} as { todos: string[] }
+    const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          todos: z.array(z.string())
+        }),
+        event: z.object({
+          type: z.literal('todo.add'),
+          todo: z.string()
+        })
       },
       context: {
         todos: []
       },
       on: {
-        'todo.add': {
-          actions: assign({
-            todos: ({ context, event }) => {
-              return context.todos.concat(event.todo);
-            }
-          })
-        }
+        // 'todo.add': {
+        //   actions: assign({
+        //     todos: ({ context, event }) => {
+        //       return context.todos.concat(event.todo);
+        //     }
+        //   })
+        // }
+        'todo.add': ({ context, event }) => ({
+          context: {
+            todos: context.todos.concat(event.todo)
+          }
+        })
       }
     });
 
@@ -144,7 +165,7 @@ describe('getShortestPaths', () => {
   });
 
   it('should work for machines with delays', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {

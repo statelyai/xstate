@@ -1,19 +1,26 @@
-import { assign, createMachine, setup } from '../../index.ts';
+import z from 'zod';
+import { AnyStateMachine, next_createMachine, setup } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 import { testUtils } from './testUtils.ts';
 
 describe('events', () => {
   it('should allow for representing many cases', async () => {
-    type Events =
-      | { type: 'CLICK_BAD' }
-      | { type: 'CLICK_GOOD' }
-      | { type: 'CLOSE' }
-      | { type: 'ESC' }
-      | { type: 'SUBMIT'; value: string };
-    const feedbackMachine = createMachine({
+    const feedbackMachine = next_createMachine({
       id: 'feedback',
-      types: {
-        events: {} as Events
+      // types: {
+      //   events: {} as Events
+      // },
+      schemas: {
+        event: z.union([
+          z.object({ type: z.literal('CLICK_BAD') }),
+          z.object({ type: z.literal('CLICK_GOOD') }),
+          z.object({
+            type: z.literal('SUBMIT'),
+            value: z.string()
+          }),
+          z.object({ type: z.literal('CLOSE') }),
+          z.object({ type: z.literal('ESC') })
+        ])
       },
       initial: 'question',
       states: {
@@ -27,15 +34,21 @@ describe('events', () => {
         },
         form: {
           on: {
-            SUBMIT: [
-              {
-                target: 'thanks',
-                guard: ({ event }) => !!event.value.length
-              },
-              {
-                target: '.invalid'
+            // SUBMIT: [
+            //   {
+            //     target: 'thanks',
+            //     guard: ({ event }) => !!event.value.length
+            //   },
+            //   {
+            //     target: '.invalid'
+            //   }
+            // ],
+            SUBMIT: ({ event }) => {
+              if (event.value.length > 0) {
+                return { target: 'thanks' };
               }
-            ],
+              return { target: '.invalid' };
+            },
             CLOSE: 'closed',
             ESC: 'closed'
           },
@@ -68,7 +81,7 @@ describe('events', () => {
   });
 
   it('should not throw an error for unimplemented events', () => {
-    const testMachine = createMachine({
+    const testMachine = next_createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -87,10 +100,19 @@ describe('events', () => {
 
   it('should allow for dynamic generation of cases based on state', async () => {
     const values = [1, 2, 3];
-    const testMachine = createMachine({
-      types: {} as {
-        context: { values: number[] };
-        events: { type: 'EVENT'; value: number };
+    const testMachine = next_createMachine({
+      // types: {} as {
+      //   context: { values: number[] };
+      //   events: { type: 'EVENT'; value: number };
+      // },
+      schemas: {
+        context: z.object({
+          values: z.array(z.number())
+        }),
+        event: z.object({
+          type: z.literal('EVENT'),
+          value: z.number()
+        })
       },
       initial: 'a',
       context: {
@@ -99,11 +121,20 @@ describe('events', () => {
       states: {
         a: {
           on: {
-            EVENT: [
-              { guard: ({ event }) => event.value === 1, target: 'b' },
-              { guard: ({ event }) => event.value === 2, target: 'c' },
-              { guard: ({ event }) => event.value === 3, target: 'd' }
-            ]
+            // EVENT: [
+            //   { guard: ({ event }) => event.value === 1, target: 'b' },
+            //   { guard: ({ event }) => event.value === 2, target: 'c' },
+            //   { guard: ({ event }) => event.value === 3, target: 'd' }
+            // ]
+            EVENT: ({ event }) => {
+              if (event.value === 1) {
+                return { target: 'b' };
+              }
+              if (event.value === 2) {
+                return { target: 'c' };
+              }
+              return { target: 'd' };
+            }
           }
         },
         b: {},
@@ -152,17 +183,24 @@ describe('events', () => {
 
 describe('state limiting', () => {
   it('should limit states with filter option', () => {
-    const machine = createMachine({
-      types: {} as { context: { count: number } },
+    const machine = next_createMachine({
+      // types: {} as { context: { count: number } },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       initial: 'counting',
       context: { count: 0 },
       states: {
         counting: {
           on: {
-            INC: {
-              actions: assign({
-                count: ({ context }) => context.count + 1
-              })
+            INC: ({ context }) => {
+              return {
+                context: {
+                  count: context.count + 1
+                }
+              };
             }
           }
         }
@@ -183,16 +221,23 @@ describe('state limiting', () => {
 
 // https://github.com/statelyai/xstate/issues/1935
 it('prevents infinite recursion based on a provided limit', () => {
-  const machine = createMachine({
-    types: {} as { context: { count: number } },
+  const machine = next_createMachine({
+    // types: {} as { context: { count: number } },
+    schemas: {
+      context: z.object({
+        count: z.number()
+      })
+    },
     id: 'machine',
     context: {
       count: 0
     },
     on: {
-      TOGGLE: {
-        actions: assign({ count: ({ context }) => context.count + 1 })
-      }
+      TOGGLE: ({ context }) => ({
+        context: {
+          count: context.count + 1
+        }
+      })
     }
   });
 
@@ -208,7 +253,7 @@ describe('test model options', () => {
     const testedStates: any[] = [];
 
     const model = createTestModel(
-      createMachine({
+      next_createMachine({
         initial: 'inactive',
         states: {
           inactive: {
@@ -236,7 +281,7 @@ describe('test model options', () => {
 // https://github.com/statelyai/xstate/issues/1538
 it('tests transitions', async () => {
   expect.assertions(2);
-  const machine = createMachine({
+  const machine = next_createMachine({
     initial: 'first',
     states: {
       first: {
@@ -264,7 +309,7 @@ it('tests transitions', async () => {
 
 // https://github.com/statelyai/xstate/issues/982
 it('Event in event executor should contain payload from case', async () => {
-  const machine = createMachine({
+  const machine = next_createMachine({
     initial: 'first',
     states: {
       first: {
@@ -309,7 +354,7 @@ describe('state tests', () => {
     // a -> b (2)
     expect.assertions(2);
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -339,7 +384,7 @@ describe('state tests', () => {
     // a -> c (2)
     expect.assertions(4);
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -370,7 +415,7 @@ describe('state tests', () => {
   it('should test nested states', async () => {
     const testedStateValues: any[] = [];
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -413,26 +458,31 @@ describe('state tests', () => {
   });
 
   it('should test with input', () => {
-    const machine = setup({
-      types: {
-        input: {} as {
-          name: string;
-        },
-        context: {} as {
-          name: string;
-        }
-      }
-    }).createMachine({
+    const machine = next_createMachine({
+      schemas: {
+        input: z.object({
+          name: z.string()
+        }),
+        context: z.object({
+          name: z.string()
+        })
+      },
       context: (x) => ({
         name: x.input.name
       }),
       initial: 'checking',
       states: {
         checking: {
-          always: [
-            { guard: (x) => x.context.name.length > 3, target: 'longName' },
-            { target: 'shortName' }
-          ]
+          // always: [
+          //   { guard: (x) => x.context.name.length > 3, target: 'longName' },
+          //   { target: 'shortName' }
+          // ]
+          always: ({ context }) => {
+            if (context.name.length > 3) {
+              return { target: 'longName' };
+            }
+            return { target: 'shortName' };
+          }
         },
         longName: {},
         shortName: {}

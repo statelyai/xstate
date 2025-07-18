@@ -1,39 +1,39 @@
-import {
-  createMachine,
-  createActor,
-  assign,
-  AnyActorRef
-} from '../src/index.ts';
-import { sendTo } from '../src/actions/send';
+import { z } from 'zod';
+import { next_createMachine, createActor, AnyActorRef } from '../src/index.ts';
 
 describe('events', () => {
-  it('should be able to respond to sender by sending self', () => {
+  it('should be able to respond to sender by sending self', async () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const authServerMachine = createMachine({
-      types: {
-        events: {} as { type: 'CODE'; sender: AnyActorRef }
+    const authServerMachine = next_createMachine({
+      // types: {
+      //   events: {} as { type: 'CODE'; sender: AnyActorRef }
+      // },
+      schemas: {
+        event: z.object({
+          type: z.literal('CODE'),
+          sender: z.any() // TODO: AnyActorRef
+        })
       },
       id: 'authServer',
       initial: 'waitingForCode',
       states: {
         waitingForCode: {
           on: {
-            CODE: {
-              actions: sendTo(
-                ({ event }) => {
-                  expect(event.sender).toBeDefined();
-                  return event.sender;
-                },
-                { type: 'TOKEN' },
-                { delay: 10 }
-              )
+            CODE: ({ event }, enq) => {
+              expect(event.sender).toBeDefined();
+
+              enq.action(() => {
+                setTimeout(() => {
+                  event.sender.send({ type: 'TOKEN' });
+                }, 10);
+              });
             }
           }
         }
       }
     });
 
-    const authClientMachine = createMachine({
+    const authClientMachine = next_createMachine({
       id: 'authClient',
       initial: 'idle',
       states: {
@@ -45,10 +45,12 @@ describe('events', () => {
             id: 'auth-server',
             src: authServerMachine
           },
-          entry: sendTo('auth-server', ({ self }) => ({
-            type: 'CODE',
-            sender: self
-          })),
+          entry: ({ children, self }) => {
+            children['auth-server']?.send({
+              type: 'CODE',
+              sender: self
+            });
+          },
           on: {
             TOKEN: 'authorized'
           }
@@ -81,51 +83,63 @@ describe('nested transitions', () => {
       password: string;
     }
 
-    const authMachine = createMachine(
-      {
-        types: {} as { context: SignInContext; events: ChangePassword },
-        context: { email: '', password: '' },
-        initial: 'passwordField',
-        states: {
-          passwordField: {
-            initial: 'hidden',
-            states: {
-              hidden: {
-                on: {
-                  // We want to assign the new password but remain in the hidden
-                  // state
-                  changePassword: {
-                    actions: 'assignPassword'
-                  }
-                }
-              },
-              valid: {},
-              invalid: {}
+    const assignPassword = (
+      context: SignInContext,
+      password: string
+    ): SignInContext => ({
+      ...context,
+      password
+    });
+
+    const authMachine = next_createMachine({
+      // types: {} as { context: SignInContext; events: ChangePassword },
+      schemas: {
+        context: z.object({
+          email: z.string(),
+          password: z.string()
+        }),
+        event: z.object({
+          type: z.literal('changePassword'),
+          password: z.string()
+        })
+      },
+      context: { email: '', password: '' },
+      initial: 'passwordField',
+      states: {
+        passwordField: {
+          initial: 'hidden',
+          states: {
+            hidden: {
+              on: {
+                // We want to assign the new password but remain in the hidden
+                // state
+                changePassword: ({ context, event }) => ({
+                  context: assignPassword(context, event.password)
+                })
+              }
             },
-            on: {
-              changePassword: [
-                {
-                  guard: ({ event }) => event.password.length >= 10,
+            valid: {},
+            invalid: {}
+          },
+          on: {
+            changePassword: ({ context, event }, enq) => {
+              const ctx = assignPassword(context, event.password);
+              if (event.password.length >= 10) {
+                return {
                   target: '.invalid',
-                  actions: ['assignPassword']
-                },
-                {
-                  target: '.valid',
-                  actions: ['assignPassword']
-                }
-              ]
+                  context: ctx
+                };
+              }
+
+              return {
+                target: '.valid',
+                context: ctx
+              };
             }
           }
         }
-      },
-      {
-        actions: {
-          assignPassword: assign({
-            password: ({ event }) => event.password
-          })
-        }
       }
-    );
+    });
     const password = 'xstate123';
     const actorRef = createActor(authMachine).start();
     actorRef.send({ type: 'changePassword', password });
