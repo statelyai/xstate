@@ -34,5 +34,8 @@ export type {
   Atom,
   AtomOptions,
   AnyAtom,
-  ReadonlyAtom
+  ReadonlyAtom,
+  EventFromStoreConfig,
+  EmitsFromStoreConfig,
+  ContextFromStoreConfig
 } from './types';
