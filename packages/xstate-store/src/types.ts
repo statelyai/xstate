@@ -180,14 +180,10 @@ export type SpecificStoreConfig<
 > = {
   context: TContext;
   emits?: {
-    [K in TEmitted['type']]: (payload: TEmitted & { type: K }) => void;
+    [E in TEmitted as E['type']]: (payload: E) => void;
   };
   on: {
-    [K in TEvent['type']]: StoreAssigner<
-      TContext,
-      { type: K } & TEvent,
-      TEmitted
-    >;
+    [E in TEvent as E['type']]: StoreAssigner<TContext, E, TEmitted>;
   };
 };
 
