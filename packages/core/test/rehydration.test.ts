@@ -1,22 +1,20 @@
 import { BehaviorSubject } from 'rxjs';
 import {
-  createMachine,
+  next_createMachine,
   createActor,
   fromPromise,
-  fromObservable,
-  assign,
-  sendTo
+  fromObservable
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {
     it('should be able to use `hasTag` immediately', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: {
-            tags: 'foo'
+            tags: ['foo']
           }
         }
       });
@@ -34,12 +32,14 @@ describe('rehydration', () => {
 
     it('should not call exit actions when machine gets stopped immediately', () => {
       const actual: string[] = [];
-      const machine = createMachine({
-        exit: () => actual.push('root'),
+      const machine = next_createMachine({
+        // exit: () => actual.push('root'),
+        exit: (_, enq) => enq.action(() => actual.push('root')),
         initial: 'a',
         states: {
           a: {
-            exit: () => actual.push('a')
+            // exit: () => actual.push('a')
+            exit: (_, enq) => enq.action(() => actual.push('a'))
           }
         }
       });
@@ -56,11 +56,12 @@ describe('rehydration', () => {
     });
 
     it('should get correct result back from `can` immediately', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         on: {
-          FOO: {
-            actions: () => {}
-          }
+          // FOO: {
+          //   actions: () => {}
+          // }
+          FOO: (_, enq) => enq.action(() => {})
         }
       });
 
@@ -78,14 +79,14 @@ describe('rehydration', () => {
 
   describe('using state value', () => {
     it('should be able to use `hasTag` immediately', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'inactive',
         states: {
           inactive: {
             on: { NEXT: 'active' }
           },
           active: {
-            tags: 'foo'
+            tags: ['foo']
           }
         }
       });
@@ -102,15 +103,17 @@ describe('rehydration', () => {
 
     it('should not call exit actions when machine gets stopped immediately', () => {
       const actual: string[] = [];
-      const machine = createMachine({
-        exit: () => actual.push('root'),
+      const machine = next_createMachine({
+        // exit: () => actual.push('root'),
+        exit: (_, enq) => enq.action(() => actual.push('root')),
         initial: 'inactive',
         states: {
           inactive: {
             on: { NEXT: 'active' }
           },
           active: {
-            exit: () => actual.push('active')
+            // exit: () => actual.push('active')
+            exit: (_, enq) => enq.action(() => actual.push('active'))
           }
         }
       });
@@ -125,7 +128,7 @@ describe('rehydration', () => {
     });
 
     it('should error on incompatible state value (shallow)', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'valid',
         states: {
           valid: {}
@@ -138,7 +141,7 @@ describe('rehydration', () => {
     });
 
     it('should error on incompatible state value (deep)', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'parent',
         states: {
           parent: {
@@ -158,7 +161,7 @@ describe('rehydration', () => {
 
   it('should not replay actions when starting from a persisted state', () => {
     const entrySpy = vi.fn();
-    const machine = createMachine({
+    const machine = next_createMachine({
       entry: entrySpy
     });
 
@@ -176,7 +179,7 @@ describe('rehydration', () => {
   });
 
   it('should be able to stop a rehydrated child', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -211,20 +214,21 @@ describe('rehydration', () => {
   });
 
   it('a rehydrated active child should be registered in the system', () => {
-    const machine = createMachine(
+    const foo = next_createMachine({});
+    const machine = next_createMachine(
       {
         context: ({ spawn }) => {
-          spawn('foo', {
+          spawn(foo, {
             systemId: 'mySystemId'
           });
           return {};
         }
-      },
-      {
-        actors: {
-          foo: createMachine({})
-        }
       }
+      // {
+      //   actors: {
+      //     foo: next_createMachine({})
+      //   }
+      // }
     );
 
     const actor = createActor(machine).start();
@@ -239,21 +243,15 @@ describe('rehydration', () => {
   });
 
   it('a rehydrated done child should not be registered in the system', () => {
-    const machine = createMachine(
-      {
-        context: ({ spawn }) => {
-          spawn('foo', {
-            systemId: 'mySystemId'
-          });
-          return {};
-        }
-      },
-      {
-        actors: {
-          foo: createMachine({ type: 'final' })
-        }
+    const foo = next_createMachine({ type: 'final' });
+    const machine = next_createMachine({
+      context: ({ spawn }) => {
+        spawn(foo, {
+          systemId: 'mySystemId'
+        });
+        return {};
       }
-    );
+    });
 
     const actor = createActor(machine).start();
     const persistedState = actor.getPersistedSnapshot();
@@ -268,27 +266,22 @@ describe('rehydration', () => {
 
   it('a rehydrated done child should not re-notify the parent about its completion', () => {
     const spy = vi.fn();
+    const foo = next_createMachine({ type: 'final' });
 
-    const machine = createMachine(
-      {
-        context: ({ spawn }) => {
-          spawn('foo', {
-            systemId: 'mySystemId'
-          });
-          return {};
-        },
-        on: {
-          '*': {
-            actions: spy
-          }
-        }
+    const machine = next_createMachine({
+      context: ({ spawn }) => {
+        spawn(foo, {
+          systemId: 'mySystemId'
+        });
+        return {};
       },
-      {
-        actors: {
-          foo: createMachine({ type: 'final' })
-        }
+      on: {
+        // '*': {
+        //   actions: spy
+        // }
+        '*': (_, enq) => enq.action(spy)
       }
-    );
+    });
 
     const actor = createActor(machine).start();
     const persistedState = actor.getPersistedSnapshot();
@@ -304,18 +297,12 @@ describe('rehydration', () => {
   });
 
   it('should be possible to persist a rehydrated actor that got its children rehydrated', () => {
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'foo'
-        }
-      },
-      {
-        actors: {
-          foo: fromPromise(() => Promise.resolve(42))
-        }
+    const foo = fromPromise(() => Promise.resolve(42));
+    const machine = next_createMachine({
+      invoke: {
+        src: foo
       }
-    );
+    });
 
     const actor = createActor(machine).start();
 
@@ -330,7 +317,7 @@ describe('rehydration', () => {
   });
 
   it('should complete on a rehydrated final state', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -357,18 +344,12 @@ describe('rehydration', () => {
   });
 
   it('should error on a rehydrated error state', async () => {
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'failure'
-        }
-      },
-      {
-        actors: {
-          failure: fromPromise(() => Promise.reject(new Error('failure')))
-        }
+    const failure = fromPromise(() => Promise.reject(new Error('failure')));
+    const machine = next_createMachine({
+      invoke: {
+        src: failure
       }
-    );
+    });
 
     const actorRef = createActor(machine);
     actorRef.subscribe({ error: function preventUnhandledErrorListener() {} });
@@ -391,22 +372,13 @@ describe('rehydration', () => {
 
   it(`shouldn't re-notify the parent about the error when rehydrating`, async () => {
     const spy = vi.fn();
-
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'failure',
-          onError: {
-            actions: spy
-          }
-        }
-      },
-      {
-        actors: {
-          failure: fromPromise(() => Promise.reject(new Error('failure')))
-        }
+    const failure = fromPromise(() => Promise.reject(new Error('failure')));
+    const machine = next_createMachine({
+      invoke: {
+        src: failure,
+        onError: (_, enq) => enq.action(spy)
       }
-    );
+    });
 
     const actorRef = createActor(machine);
     actorRef.start();
@@ -429,30 +401,19 @@ describe('rehydration', () => {
 
     const spy = vi.fn();
 
-    const machine = createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'service';
-            logic: typeof subjectLogic;
-          };
-        },
-
-        invoke: [
-          {
-            src: 'service',
-            onSnapshot: {
-              actions: [({ event }) => spy(event.snapshot.context)]
-            }
+    const machine = next_createMachine({
+      invoke: [
+        {
+          src: subjectLogic,
+          // onSnapshot: {
+          //   actions: [({ event }) => spy(event.snapshot.context)]
+          // }
+          onSnapshot: ({ event }, enq) => {
+            enq.action(spy, event.snapshot.context);
           }
-        ]
-      },
-      {
-        actors: {
-          service: subjectLogic
         }
-      }
-    );
+      ]
+    });
 
     createActor(machine, {
       snapshot: createActor(machine).getPersistedSnapshot()
@@ -467,58 +428,56 @@ describe('rehydration', () => {
   });
 
   it('should be able to rehydrate an actor deep in the tree', () => {
-    const grandchild = createMachine({
+    const grandchild = next_createMachine({
       context: {
         count: 0
       },
       on: {
-        INC: {
-          actions: assign({
-            count: ({ context }) => context.count + 1
-          })
+        // INC: {
+        //   actions: assign({
+        //     count: ({ context }) => context.count + 1
+        //   })
+        // }
+        INC: ({ context }) => ({
+          context: {
+            ...context,
+            count: context.count + 1
+          }
+        })
+      }
+    });
+    const child = next_createMachine({
+      invoke: {
+        src: grandchild,
+        id: 'grandchild'
+      },
+      on: {
+        // INC: {
+        //   actions: sendTo('grandchild', {
+        //     type: 'INC'
+        //   })
+        // }
+        INC: ({ children }, enq) => {
+          enq.sendTo(children.grandchild, { type: 'INC' });
         }
       }
     });
-    const child = createMachine(
-      {
-        invoke: {
-          src: 'grandchild',
-          id: 'grandchild'
-        },
-        on: {
-          INC: {
-            actions: sendTo('grandchild', {
-              type: 'INC'
-            })
-          }
-        }
+    const machine = next_createMachine({
+      invoke: {
+        src: child,
+        id: 'child'
       },
-      {
-        actors: {
-          grandchild
+      on: {
+        // INC: {
+        //   actions: sendTo('child', {
+        //     type: 'INC'
+        //   })
+        // }
+        INC: ({ children }, enq) => {
+          enq.sendTo(children.child, { type: 'INC' });
         }
       }
-    );
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'child',
-          id: 'child'
-        },
-        on: {
-          INC: {
-            actions: sendTo('child', {
-              type: 'INC'
-            })
-          }
-        }
-      },
-      {
-        actors: {
-          child
-        }
-      }
-    );
+    });
 
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'INC' });
