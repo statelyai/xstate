@@ -1,5 +1,47 @@
 # @xstate/store
 
+## 3.8.3
+
+### Patch Changes
+
+- [#5334](https://github.com/statelyai/xstate/pull/5334) [`c4adf25`](https://github.com/statelyai/xstate/commit/c4adf25331faeb15004d449b35799c53bd069b1b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createStore` function now supports explicit generic type parameters for better type control when needed. This allows you to specify the exact types for context, events, and emitted events instead of relying solely on type inference if desired.
+
+  ```ts
+  type CoffeeContext = {
+    beans: number;
+    cups: number;
+  };
+
+  type CoffeeEvents =
+    | { type: 'addBeans'; amount: number }
+    | { type: 'brewCup' };
+
+  type CoffeeEmitted =
+    | { type: 'beansAdded'; amount: number }
+    | { type: 'cupBrewed' };
+
+  const coffeeStore = createStore<CoffeeContext, CoffeeEvents, CoffeeEmitted>({
+    context: {
+      beans: 0,
+      cups: 0
+    },
+    on: {
+      addBeans: (ctx, event, enq) => {
+        enq.emit.beansAdded({ amount: event.amount });
+        return { ...ctx, beans: ctx.beans + event.amount };
+      },
+      brewCup: (ctx, _, enq) => {
+        if (ctx.beans > 0) {
+          enq.emit.cupBrewed();
+          return { ...ctx, beans: ctx.beans - 1, cups: ctx.cups + 1 };
+        }
+
+        return ctx;
+      }
+    }
+  });
+  ```
+
 ## 3.8.2
 
 ### Patch Changes
