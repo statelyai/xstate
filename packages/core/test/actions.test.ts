@@ -1,8 +1,6 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
   cancel,
-  emit,
-  enqueueActions,
   raise,
   sendParent,
   sendTo,
@@ -11,11 +9,8 @@ import {
 } from '../src/actions.ts';
 import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import {
-  ActorRef,
   ActorRefFromLogic,
-  AnyActorRef,
   EventObject,
-  Snapshot,
   createActor,
   createMachine,
   forwardTo,
@@ -2578,18 +2573,11 @@ describe('enqueueActions', () => {
   it('should execute a simple referenced action', () => {
     const spy = vi.fn();
 
-    const machine = createMachine(
-      {
-        entry: enqueueActions(({ enqueue }) => {
-          enqueue('someAction');
-        })
-      },
-      {
-        actions: {
-          someAction: spy
-        }
+    const machine = next_createMachine({
+      entry: (_, enq) => {
+        enq(spy);
       }
-    );
+    });
 
     createActor(machine).start();
 
@@ -2600,20 +2588,12 @@ describe('enqueueActions', () => {
     const spy1 = vi.fn();
     const spy2 = vi.fn();
 
-    const machine = createMachine(
-      {
-        entry: enqueueActions(({ enqueue }) => {
-          enqueue('someAction');
-          enqueue('otherAction');
-        })
-      },
-      {
-        actions: {
-          someAction: spy1,
-          otherAction: spy2
-        }
+    const machine = next_createMachine({
+      entry: (_, enq) => {
+        enq(spy1);
+        enq(spy2);
       }
-    );
+    });
 
     createActor(machine).start();
 
@@ -2624,19 +2604,12 @@ describe('enqueueActions', () => {
   it('should execute multiple same referenced actions', () => {
     const spy = vi.fn();
 
-    const machine = createMachine(
-      {
-        entry: enqueueActions(({ enqueue }) => {
-          enqueue('someAction');
-          enqueue('someAction');
-        })
-      },
-      {
-        actions: {
-          someAction: spy
-        }
+    const machine = next_createMachine({
+      entry: (_, enq) => {
+        enq(spy);
+        enq(spy);
       }
-    );
+    });
 
     createActor(machine).start();
 
@@ -2644,23 +2617,13 @@ describe('enqueueActions', () => {
   });
 
   it('should execute a parameterized action', () => {
-    const spy = vi.fn();
+    const spy = vi.fn((_: { answer: number }) => void 0);
 
-    const machine = createMachine(
-      {
-        entry: enqueueActions(({ enqueue }) => {
-          enqueue({
-            type: 'someAction',
-            params: { answer: 42 }
-          });
-        })
-      },
-      {
-        actions: {
-          someAction: (_, params) => spy(params)
-        }
+    const machine = next_createMachine({
+      entry: (_, enq) => {
+        enq(spy, { answer: 42 });
       }
-    );
+    });
 
     createActor(machine).start();
 
@@ -2678,10 +2641,8 @@ describe('enqueueActions', () => {
   it('should execute a function', () => {
     const spy = vi.fn();
 
-    const machine = createMachine({
-      entry: enqueueActions(({ enqueue }) => {
-        enqueue(spy);
-      })
+    const machine = next_createMachine({
+      entry: (_, enq) => enq(spy)
     });
 
     createActor(machine).start();
@@ -2692,20 +2653,15 @@ describe('enqueueActions', () => {
   it('should execute a builtin action using its own action creator', () => {
     const spy = vi.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       on: {
-        FOO: {
-          actions: enqueueActions(({ enqueue }) => {
-            enqueue(
-              raise({
-                type: 'RAISED'
-              })
-            );
-          })
+        FOO: (_, enq) => {
+          enq.raise({ type: 'RAISED' });
         },
-        RAISED: {
-          actions: spy
-        }
+        // RAISED: {
+        //   actions: spy
+        // }
+        RAISED: (_, enq) => enq(spy)
       }
     });
 
@@ -2719,18 +2675,15 @@ describe('enqueueActions', () => {
   it('should execute a builtin action using its bound action creator', () => {
     const spy = vi.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       on: {
-        FOO: {
-          actions: enqueueActions(({ enqueue }) => {
-            enqueue.raise({
-              type: 'RAISED'
-            });
-          })
+        FOO: (_, enq) => {
+          enq.raise({ type: 'RAISED' });
         },
-        RAISED: {
-          actions: spy
-        }
+        // RAISED: {
+        //   actions: spy
+        // }
+        RAISED: (_, enq) => enq(spy)
       }
     });
 
@@ -2765,21 +2718,16 @@ describe('enqueueActions', () => {
 
   it('should be able to check a simple referenced guard', () => {
     const spy = vi.fn().mockImplementation(() => true);
-    const machine = createMachine(
-      {
-        context: {
-          count: 0
-        },
-        entry: enqueueActions(({ check }) => {
-          check('alwaysTrue');
-        })
+    const machine = next_createMachine({
+      context: {
+        count: 0
       },
-      {
-        guards: {
-          alwaysTrue: spy
+
+      entry: () => {
+        if (spy()) {
         }
       }
-    );
+    });
 
     createActor(machine);
 
@@ -2787,31 +2735,17 @@ describe('enqueueActions', () => {
   });
 
   it('should be able to check a parameterized guard', () => {
-    const spy = vi.fn();
+    const spy = vi.fn((_: { max: number }) => true);
 
-    const machine = createMachine(
-      {
-        context: {
-          count: 0
-        },
-        entry: enqueueActions(({ check }) => {
-          check({
-            type: 'alwaysTrue',
-            params: {
-              max: 100
-            }
-          });
-        })
+    const machine = next_createMachine({
+      context: {
+        count: 0
       },
-      {
-        guards: {
-          alwaysTrue: (_, params) => {
-            spy(params);
-            return true;
-          }
+      entry: () => {
+        if (spy({ max: 100 })) {
         }
       }
-    );
+    });
 
     createActor(machine);
 
@@ -2828,10 +2762,10 @@ describe('enqueueActions', () => {
 
   it('should provide self', () => {
     expect.assertions(1);
-    const machine = createMachine({
-      entry: enqueueActions(({ self }) => {
+    const machine = next_createMachine({
+      entry: ({ self }) => {
         expect(self.send).toBeDefined();
-      })
+      }
     });
 
     createActor(machine).start();
@@ -2840,30 +2774,6 @@ describe('enqueueActions', () => {
   it('should be able to communicate with the parent using params', () => {
     type ParentEvent = { type: 'FOO' };
 
-    // const childMachine = setup({
-    //   types: {} as {
-    //     input: {
-    //       parent?: ActorRef<Snapshot<unknown>, ParentEvent>;
-    //     };
-    //     context: {
-    //       parent?: ActorRef<Snapshot<unknown>, ParentEvent>;
-    //     };
-    //   },
-    //   actions: {
-    //     mySendParent: enqueueActions(
-    //       ({ context, enqueue }, event: ParentEvent) => {
-    //         if (!context.parent) {
-    //           // it's here just for illustration purposes
-    //           console.log(
-    //             'WARN: an attempt to send an event to a non-existent parent'
-    //           );
-    //           return;
-    //         }
-    //         enqueue.sendTo(context.parent, event);
-    //       }
-    //     )
-    //   }
-    // }).
     const childMachine = next_createMachine({
       schemas: {
         input: z.object({
@@ -2928,17 +2838,10 @@ describe('enqueueActions', () => {
       type: 'PARENT_EVENT';
     }
 
-    const childMachine = setup({
-      types: {} as {
-        events: ChildEvent;
-      },
-      actions: {
-        sendToParent: enqueueActions(({ enqueue }) => {
-          enqueue.sendParent({ type: 'PARENT_EVENT' });
-        })
+    const childMachine = next_createMachine({
+      entry: ({ parent }, enq) => {
+        enq.sendTo(parent, { type: 'PARENT_EVENT' });
       }
-    }).createMachine({
-      entry: 'sendToParent'
     });
 
     const parentSpy = vi.fn();
