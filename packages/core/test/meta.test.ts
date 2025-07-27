@@ -529,7 +529,7 @@ describe('transition description', () => {
   it('state node should have its description', () => {
     const machine = next_createMachine({
       schemas: {
-        event: z.object({
+        events: z.object({
           type: z.literal('EVENT')
         })
       },

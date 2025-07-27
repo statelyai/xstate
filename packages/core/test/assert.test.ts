@@ -26,7 +26,7 @@ describe('assertion helpers', () => {
       //     | { type: 'count'; value: number }
       // },
       schemas: {
-        event: events
+        events: events
       },
       on: {
         greet: ({ event }, enq) => enq.action(greet, event),
@@ -81,7 +81,7 @@ describe('assertion helpers', () => {
     };
     const machine = next_createMachine({
       schemas: {
-        event: events
+        events: events
       },
       on: {
         greet: ({ event }, enq) => enq.action(greet, event),

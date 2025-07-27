@@ -21,7 +21,7 @@ describe('assertion helpers', () => {
 
     const machine = next_createMachine({
       schemas: {
-        event: z.union([
+        events: z.union([
           z.object({ type: z.literal('greet'), message: z.string() }),
           z.object({ type: z.literal('count'), value: z.number() })
         ])
@@ -81,7 +81,7 @@ describe('assertion helpers', () => {
 
     const machine = next_createMachine({
       schemas: {
-        event: z.union([
+        events: z.union([
           z.object({ type: z.literal('greet'), message: z.string() }),
           z.object({
             type: z.literal('notify'),

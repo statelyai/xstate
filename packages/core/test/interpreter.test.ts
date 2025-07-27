@@ -263,7 +263,7 @@ describe('interpreter', () => {
           context: z.object({
             initialDelay: z.number()
           }),
-          event: z.union([
+          events: z.union([
             z.object({
               type: z.literal('ACTIVATE'),
               wait: z.number()
@@ -360,7 +360,7 @@ describe('interpreter', () => {
           context: z.object({
             initialDelay: z.number()
           }),
-          event: z.union([
+          events: z.union([
             z.object({
               type: z.literal('ACTIVATE'),
               wait: z.number()
@@ -447,7 +447,7 @@ describe('interpreter', () => {
           //   events: { type: 'FIRE_DELAY'; value: number };
           // },
           schemas: {
-            event: z.object({
+            events: z.object({
               type: z.literal('FIRE_DELAY'),
               value: z.number()
             })
@@ -940,7 +940,7 @@ describe('interpreter', () => {
         context: z.object({
           password: z.string()
         }),
-        event: z.object({
+        events: z.object({
           type: z.literal('NEXT'),
           password: z.string()
         })
@@ -1033,7 +1033,7 @@ describe('interpreter', () => {
         //   };
         // },
         schemas: {
-          event: z.object({
+          events: z.object({
             type: z.literal('NEXT'),
             password: z.string()
           })
@@ -1084,7 +1084,7 @@ describe('interpreter', () => {
   describe('.send()', () => {
     const sendMachine = next_createMachine({
       schemas: {
-        event: z.union([
+        events: z.union([
           z.object({
             type: z.literal('EVENT'),
             id: z.number()

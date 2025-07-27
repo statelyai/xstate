@@ -9,7 +9,7 @@ describe('events', () => {
       //   events: {} as { type: 'CODE'; sender: AnyActorRef }
       // },
       schemas: {
-        event: z.object({
+        events: z.object({
           type: z.literal('CODE'),
           sender: z.any() // TODO: AnyActorRef
         })
@@ -98,7 +98,7 @@ describe('nested transitions', () => {
           email: z.string(),
           password: z.string()
         }),
-        event: z.object({
+        events: z.object({
           type: z.literal('changePassword'),
           password: z.string()
         })

@@ -2450,7 +2450,7 @@ describe('forwardTo()', () => {
         context: z.object({
           child: z.any()
         }),
-        event: z.union([
+        events: z.union([
           z.object({
             type: z.literal('EVENT'),
             value: z.number()
@@ -2872,7 +2872,7 @@ describe('enqueueActions', () => {
         context: z.object({
           parent: z.any()
         }),
-        event: z.object({
+        events: z.object({
           type: z.literal('FOO')
         })
       },
@@ -2899,7 +2899,7 @@ describe('enqueueActions', () => {
       // }).
       next_createMachine({
         schemas: {
-          event: z.object({
+          events: z.object({
             type: z.literal('FOO')
           })
         },

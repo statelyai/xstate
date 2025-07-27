@@ -124,7 +124,7 @@ describe('invoke', () => {
           userId: z.string().optional(),
           user: z.object({ name: z.string() }).optional()
         }),
-        event: z.object({
+        events: z.object({
           type: z.literal('RESOLVE'),
           user: z.object({ name: z.string() })
         }),
@@ -229,7 +229,7 @@ describe('invoke', () => {
       //   input: { userId: string };
       // },
       schemas: {
-        event: z.object({
+        events: z.object({
           type: z.literal('RESOLVE')
         }),
         input: z.object({ userId: z.string() })
@@ -292,7 +292,7 @@ describe('invoke', () => {
       //   };
       // },
       schemas: {
-        event: z.object({
+        events: z.object({
           type: z.literal('SUCCESS'),
           data: z.number()
         })
@@ -343,7 +343,7 @@ describe('invoke', () => {
       //   };
       // },
       schemas: {
-        event: z.object({
+        events: z.object({
           type: z.literal('SUCCESS'),
           data: z.number()
         })
@@ -1254,7 +1254,7 @@ describe('invoke', () => {
               context: z.object({
                 foo: z.boolean()
               }),
-              event: z.object({
+              events: z.object({
                 type: z.literal('BEGIN'),
                 payload: z.any()
               })
@@ -1503,7 +1503,7 @@ describe('invoke', () => {
             context: z.object({
               foo: z.boolean()
             }),
-            event: z.union([
+            events: z.union([
               z.object({
                 type: z.literal('BEGIN'),
                 payload: z.any()
@@ -2259,7 +2259,7 @@ describe('invoke', () => {
           context: z.object({
             count: z.number().optional()
           }),
-          event: z.object({
+          events: z.object({
             type: z.literal('COUNT'),
             value: z.number()
           })
@@ -2312,7 +2312,7 @@ describe('invoke', () => {
           context: z.object({
             count: z.number().optional()
           }),
-          event: z.object({
+          events: z.object({
             type: z.literal('COUNT'),
             value: z.number()
           })
@@ -2370,7 +2370,7 @@ describe('invoke', () => {
           context: z.object({
             count: z.number().optional()
           }),
-          event: z.object({
+          events: z.object({
             type: z.literal('COUNT'),
             value: z.number()
           })
@@ -2431,7 +2431,7 @@ describe('invoke', () => {
       const { promise, resolve } = Promise.withResolvers<void>();
       const machine = next_createMachine({
         schemas: {
-          event: z.object({
+          events: z.object({
             type: z.literal('obs.event'),
             value: z.number()
           })

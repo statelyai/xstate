@@ -117,7 +117,7 @@ describe('@xstate/graph', () => {
       context: z.object({
         id: z.string().optional()
       }),
-      event: z.union([
+      events: z.union([
         z.object({
           type: z.literal('EVENT'),
           id: z.string()
@@ -266,7 +266,7 @@ describe('@xstate/graph', () => {
           context: z.object({
             id: z.string().optional()
           }),
-          event: z.union([
+          events: z.union([
             z.object({
               type: z.literal('EVENT'),
               id: z.string()
@@ -475,7 +475,7 @@ describe('@xstate/graph', () => {
           context: z.object({
             count: z.number()
           }),
-          event: z.union([
+          events: z.union([
             z.object({
               type: z.literal('INC'),
               value: z.number()

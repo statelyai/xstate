@@ -670,7 +670,7 @@ describe('parallel states', () => {
   it('should handle simultaneous orthogonal transitions', () => {
     const simultaneousMachine = next_createMachine({
       schemas: {
-        event: z.union([
+        events: z.union([
           z.object({
             type: z.literal('CHANGE'),
             value: z.string()

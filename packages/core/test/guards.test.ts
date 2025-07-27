@@ -15,7 +15,7 @@ describe('guard conditions', () => {
       context: z.object({
         elapsed: z.number()
       }),
-      event: z.union([
+      events: z.union([
         z.object({
           type: z.literal('TIMER')
         }),
@@ -135,7 +135,7 @@ describe('guard conditions', () => {
   it('should not transition if no condition is met', () => {
     const machine = next_createMachine({
       schemas: {
-        event: z.object({
+        events: z.object({
           type: z.literal('TIMER'),
           elapsed: z.number()
         })
@@ -216,7 +216,7 @@ describe('guard conditions', () => {
         context: z.object({
           elapsed: z.number()
         }),
-        event: z.union([
+        events: z.union([
           z.object({
             type: z.literal('TIMER')
           }),
@@ -470,7 +470,7 @@ describe('[function] guard conditions', () => {
       context: z.object({
         elapsed: z.number()
       }),
-      event: z.union([
+      events: z.union([
         z.object({
           type: z.literal('TIMER')
         }),
@@ -550,7 +550,7 @@ describe('[function] guard conditions', () => {
   it('should not transition if no condition is met', () => {
     const machine = next_createMachine({
       schemas: {
-        event: z.object({
+        events: z.object({
           type: z.literal('TIMER'),
           elapsed: z.number()
         })
@@ -619,7 +619,7 @@ describe('[function] guard conditions', () => {
         context: z.object({
           elapsed: z.number()
         }),
-        event: z.union([
+        events: z.union([
           z.object({
             type: z.literal('TIMER')
           }),
@@ -819,7 +819,7 @@ describe('custom guards', () => {
       // },
       schemas: {
         context: contextSchema,
-        event: eventSchema
+        events: eventSchema
       },
       initial: 'inactive',
       context: {

@@ -117,7 +117,7 @@ describe('getShortestPaths', () => {
         context: z.object({
           todos: z.array(z.string())
         }),
-        event: z.object({
+        events: z.object({
           type: z.literal('todo.add'),
           todo: z.string()
         })

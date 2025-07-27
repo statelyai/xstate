@@ -5,7 +5,7 @@ import {
   cancel,
   ContextFrom,
   createActor,
-  createMachine,
+  next_createMachine,
   emit,
   enqueueActions,
   EventFrom,
@@ -940,7 +940,7 @@ describe('setup()', () => {
   it('should allow actors to be defined without children', () => {
     setup({
       actors: {
-        foo: createMachine({})
+        foo: next_createMachine({})
       }
     });
   });
@@ -954,8 +954,8 @@ describe('setup()', () => {
         };
       },
       actors: {
-        foo: createMachine({}),
-        bar: createMachine({})
+        foo: next_createMachine({}),
+        bar: next_createMachine({})
       }
     });
   });
@@ -970,7 +970,7 @@ describe('setup()', () => {
       },
       // @ts-expect-error
       actors: {
-        foo: createMachine({})
+        foo: next_createMachine({})
       }
     });
   });
@@ -998,9 +998,9 @@ describe('setup()', () => {
         };
       },
       actors: {
-        foo: createMachine({}),
-        bar: createMachine({}),
-        baz: createMachine({})
+        foo: next_createMachine({}),
+        bar: next_createMachine({}),
+        baz: next_createMachine({})
       }
     });
   });
@@ -1252,7 +1252,7 @@ describe('setup()', () => {
   });
 
   it('should return the correct child type on the available snapshot when the child ID for the actor was configured', () => {
-    const child = createMachine({
+    const child = next_createMachine({
       types: {} as {
         context: {
           foo: string;
@@ -1291,7 +1291,7 @@ describe('setup()', () => {
   });
 
   it('should have an optional child on the available snapshot when the child ID for the actor was configured', () => {
-    const child = createMachine({
+    const child = next_createMachine({
       context: {
         counter: 0
       }
@@ -1316,7 +1316,7 @@ describe('setup()', () => {
   });
 
   it('should have an optional child on the available snapshot when the child ID for the actor was not configured', () => {
-    const child = createMachine({
+    const child = next_createMachine({
       context: {
         counter: 0
       }
@@ -1336,13 +1336,13 @@ describe('setup()', () => {
   });
 
   it('should not have an index signature on the available snapshot when child IDs were configured for all actors', () => {
-    const child1 = createMachine({
+    const child1 = next_createMachine({
       context: {
         counter: 0
       }
     });
 
-    const child2 = createMachine({
+    const child2 = next_createMachine({
       context: {
         answer: ''
       }
@@ -1368,13 +1368,13 @@ describe('setup()', () => {
   });
 
   it('should have an index signature on the available snapshot when child IDs were configured only for some actors', () => {
-    const child1 = createMachine({
+    const child1 = next_createMachine({
       context: {
         counter: 0
       }
     });
 
-    const child2 = createMachine({
+    const child2 = next_createMachine({
       context: {
         answer: ''
       }

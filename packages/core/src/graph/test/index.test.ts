@@ -11,7 +11,7 @@ describe('events', () => {
       //   events: {} as Events
       // },
       schemas: {
-        event: z.union([
+        events: z.union([
           z.object({ type: z.literal('CLICK_BAD') }),
           z.object({ type: z.literal('CLICK_GOOD') }),
           z.object({
@@ -109,7 +109,7 @@ describe('events', () => {
         context: z.object({
           values: z.array(z.number())
         }),
-        event: z.object({
+        events: z.object({
           type: z.literal('EVENT'),
           value: z.number()
         })

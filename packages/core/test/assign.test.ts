@@ -231,7 +231,7 @@ describe('assigning to context', () => {
   it('can assign from event', () => {
     const machine = next_createMachine({
       schemas: {
-        event: z.object({
+        events: z.object({
           type: z.literal('INC'),
           value: z.number()
         })

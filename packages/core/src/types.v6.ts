@@ -52,7 +52,7 @@ export type Next_MachineConfig<
   'output'
 > & {
   schemas?: {
-    event?: TEventSchema;
+    events?: TEventSchema;
     context?: TContextSchema;
     emitted?: TEmittedSchema;
     input?: TInputSchema;

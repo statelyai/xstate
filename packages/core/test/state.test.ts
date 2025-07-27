@@ -7,7 +7,7 @@ const exampleMachine = next_createMachine({
   //   events: Events;
   // },
   schemas: {
-    event: z.union([
+    events: z.union([
       z.object({ type: z.literal('BAR_EVENT') }),
       z.object({ type: z.literal('DEEP_EVENT') }),
       z.object({ type: z.literal('EXTERNAL') }),
