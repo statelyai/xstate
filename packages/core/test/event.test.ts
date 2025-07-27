@@ -22,7 +22,7 @@ describe('events', () => {
             CODE: ({ event }, enq) => {
               expect(event.sender).toBeDefined();
 
-              enq.action(() => {
+              enq(() => {
                 setTimeout(() => {
                   event.sender.send({ type: 'TOKEN' });
                 }, 10);

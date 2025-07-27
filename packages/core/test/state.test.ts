@@ -163,7 +163,7 @@ describe('State', () => {
           a: {
             on: {
               NEXT: (_, enq) => {
-                enq.action(newAction);
+                enq(newAction);
               }
             }
           }
@@ -242,7 +242,7 @@ describe('State', () => {
           a: {
             on: {
               EV: (_, enq) => {
-                enq.action(() => {});
+                enq(() => {});
                 return { target: 'a' };
               }
             }
@@ -260,7 +260,7 @@ describe('State', () => {
           a: {
             on: {
               EV: (_, enq) => {
-                enq.action(() => {});
+                enq(() => {});
               }
             }
           }
@@ -394,7 +394,7 @@ describe('State', () => {
         context: {},
         on: {
           EVENT: (_, enq) => {
-            enq.action(() => (executed = true));
+            enq(() => (executed = true));
           }
         }
       });
@@ -412,7 +412,7 @@ describe('State', () => {
         context: {},
         on: {
           EVENT: (_, enq) => {
-            enq.action(() => (executed = true));
+            enq(() => (executed = true));
           }
         }
       });

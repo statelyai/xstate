@@ -203,7 +203,7 @@ describe('inspect', () => {
         }),
         id: 'child',
         onDone: (_, enq) => {
-          enq.action(() => {});
+          enq(() => {});
           return {
             target: '.success'
           };
@@ -998,8 +998,8 @@ describe('inspect', () => {
     const namedAction = (_params: { foo: string }) => {};
 
     const machine = next_createMachine({
-      entry: (_, enq) => enq.action(enter1),
-      exit: (_, enq) => enq.action(exit1),
+      entry: (_, enq) => enq(enter1),
+      exit: (_, enq) => enq(exit1),
       initial: 'loading',
       states: {
         loading: {
@@ -1015,9 +1015,9 @@ describe('inspect', () => {
             //   ]
             // }
             event: (_, enq) => {
-              enq.action(stringAction);
-              enq.action(namedAction, { foo: 'bar' });
-              enq.action(() => {});
+              enq(stringAction);
+              enq(namedAction, { foo: 'bar' });
+              enq(() => {});
               return { target: 'done' };
             }
           }

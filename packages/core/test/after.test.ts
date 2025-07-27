@@ -130,13 +130,13 @@ describe('delayed transitions', () => {
       states: {
         one: {
           initial: 'two',
-          entry: (_, enq) => enq.action(() => actual.push('entered one')),
+          entry: (_, enq) => enq(() => actual.push('entered one')),
           states: {
             two: {
-              entry: (_, enq) => enq.action(() => actual.push('entered two'))
+              entry: (_, enq) => enq(() => actual.push('entered two'))
             },
             three: {
-              entry: (_, enq) => enq.action(() => actual.push('entered three')),
+              entry: (_, enq) => enq(() => actual.push('entered three')),
               always: '#end'
             }
           },
@@ -194,7 +194,7 @@ describe('delayed transitions', () => {
             // '*': {
             //   actions: spy
             // }
-            '*': (_, enq) => enq.action(spy)
+            '*': (_, enq) => enq(spy)
           }
         },
         Z: {}

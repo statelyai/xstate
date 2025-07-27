@@ -28,11 +28,11 @@ const composerMachine = next_createMachine({
               initial: 'SelectedNone',
               on: {
                 singleClickActivity: (_, enq) => {
-                  enq.action(selectActivity);
+                  enq(selectActivity);
                   return { target: '.SelectedActivity' };
                 },
                 singleClickLink: (_, enq) => {
-                  enq.action(selectLink);
+                  enq(selectLink);
                   return { target: '.SelectedLink' };
                 }
               },
@@ -44,7 +44,7 @@ const composerMachine = next_createMachine({
                   entry: redraw,
                   on: {
                     singleClickCanvas: (_, enq) => {
-                      enq.action(selectNone);
+                      enq(selectNone);
                       return { target: 'SelectedNone' };
                     }
                   }
@@ -53,7 +53,7 @@ const composerMachine = next_createMachine({
                   entry: redraw,
                   on: {
                     singleClickCanvas: (_, enq) => {
-                      enq.action(selectNone);
+                      enq(selectNone);
                       return { target: 'SelectedNone' };
                     }
                   }
@@ -99,11 +99,11 @@ const composerMachine = next_createMachine({
               initial: 'SelectedNone',
               on: {
                 singleClickActivity: (_, enq) => {
-                  enq.action(selectActivity);
+                  enq(selectActivity);
                   return { target: '.SelectedActivity' };
                 },
                 singleClickLink: (_, enq) => {
-                  enq.action(selectLink);
+                  enq(selectLink);
                   return { target: '.SelectedLink' };
                 }
               },
@@ -121,7 +121,7 @@ const composerMachine = next_createMachine({
                   entry: redraw,
                   on: {
                     singleClickCanvas: (_, enq) => {
-                      enq.action(selectNone);
+                      enq(selectNone);
                       return { target: 'SelectedNone' };
                     }
                   }
@@ -743,7 +743,7 @@ describe('parallel states', () => {
       states: {
         a: {
           initial: (_, enq) => {
-            enq.action(spy);
+            enq(spy);
             return { target: 'a1' };
           },
           states: {
@@ -778,7 +778,7 @@ describe('parallel states', () => {
           states: {
             c: {
               initial: (_, enq) => {
-                enq.action(spy);
+                enq(spy);
                 return { target: 'c1' };
               },
               states: {
@@ -1284,7 +1284,7 @@ describe('parallel states', () => {
       },
       on: {
         MY_EVENT: (_, enq) => {
-          enq.action(() => {});
+          enq(() => {});
         }
       }
     });
@@ -1313,7 +1313,7 @@ describe('parallel states', () => {
           },
           on: {
             MY_EVENT: (_, enq) => {
-              enq.action(() => {});
+              enq(() => {});
             }
           }
         },

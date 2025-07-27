@@ -11,12 +11,12 @@ describe('internal transitions', () => {
           initial: 'a',
           states: {
             a: {
-              entry: (_, enq) => enq.action(() => tracked.push('enter: foo.a')),
-              exit: (_, enq) => enq.action(() => tracked.push('exit: foo.a'))
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.a')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.a'))
             },
             b: {
-              entry: (_, enq) => enq.action(() => tracked.push('enter: foo.b')),
-              exit: (_, enq) => enq.action(() => tracked.push('exit: foo.b'))
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.b')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.b'))
             }
           },
           on: {
@@ -45,20 +45,17 @@ describe('internal transitions', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: (_, enq) => enq.action(() => tracked.push('enter: foo')),
-          exit: (_, enq) => enq.action(() => tracked.push('exit: foo')),
+          entry: (_, enq) => enq(() => tracked.push('enter: foo')),
+          exit: (_, enq) => enq(() => tracked.push('exit: foo')),
           initial: 'left',
           states: {
             left: {
-              entry: (_, enq) =>
-                enq.action(() => tracked.push('enter: foo.left')),
-              exit: (_, enq) => enq.action(() => tracked.push('exit: foo.left'))
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.left')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.left'))
             },
             right: {
-              entry: (_, enq) =>
-                enq.action(() => tracked.push('enter: foo.right')),
-              exit: (_, enq) =>
-                enq.action(() => tracked.push('exit: foo.right'))
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.right')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.right'))
             }
           },
           on: {
@@ -93,20 +90,20 @@ describe('internal transitions', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: (_, enq) => enq.action(() => tracked.push('enter: foo')),
-          exit: (_, enq) => enq.action(() => tracked.push('exit: foo')),
+          entry: (_, enq) => enq(() => tracked.push('enter: foo')),
+          exit: (_, enq) => enq(() => tracked.push('exit: foo')),
           initial: 'a',
           states: {
             a: {
-              entry: (_, enq) => enq.action(() => tracked.push('enter: foo.a')),
-              exit: (_, enq) => enq.action(() => tracked.push('exit: foo.a')),
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.a')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.a')),
               on: {
                 NEXT: 'b'
               }
             },
             b: {
-              entry: (_, enq) => enq.action(() => tracked.push('enter: foo.b')),
-              exit: (_, enq) => enq.action(() => tracked.push('exit: foo.b'))
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.b')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.b'))
             }
           },
           on: {
@@ -144,17 +141,17 @@ describe('internal transitions', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: (_, enq) => enq.action(() => tracked.push('enter: foo')),
-          exit: (_, enq) => enq.action(() => tracked.push('exit: foo')),
+          entry: (_, enq) => enq(() => tracked.push('enter: foo')),
+          exit: (_, enq) => enq(() => tracked.push('exit: foo')),
           initial: 'a',
           states: {
             a: {
-              entry: (_, enq) => enq.action(() => tracked.push('enter: foo.a')),
-              exit: (_, enq) => enq.action(() => tracked.push('exit: foo.a'))
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.a')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.a'))
             },
             b: {
-              entry: (_, enq) => enq.action(() => tracked.push('enter: foo.b')),
-              exit: (_, enq) => enq.action(() => tracked.push('exit: foo.b'))
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.b')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.b'))
             }
           },
           on: {
@@ -209,7 +206,7 @@ describe('internal transitions', () => {
       states: {
         foo: {
           on: {
-            TARGETLESS_ARRAY: (_, enq) => void enq.action(spy)
+            TARGETLESS_ARRAY: (_, enq) => void enq(spy)
           }
         }
       }
@@ -228,7 +225,7 @@ describe('internal transitions', () => {
       states: {
         foo: {
           on: {
-            TARGETLESS_OBJECT: (_, enq) => void enq.action(spy)
+            TARGETLESS_OBJECT: (_, enq) => void enq(spy)
           }
         }
       }
@@ -244,7 +241,7 @@ describe('internal transitions', () => {
     const spy = vi.fn();
     const machine = next_createMachine({
       on: {
-        TARGETLESS_ARRAY: (_, enq) => void enq.action(spy)
+        TARGETLESS_ARRAY: (_, enq) => void enq(spy)
       },
       initial: 'foo',
       states: { foo: {} }
@@ -260,7 +257,7 @@ describe('internal transitions', () => {
     const spy = vi.fn();
     const machine = next_createMachine({
       on: {
-        TARGETLESS_OBJECT: (_, enq) => void enq.action(spy)
+        TARGETLESS_OBJECT: (_, enq) => void enq(spy)
       },
       initial: 'foo',
       states: { foo: {} }
@@ -276,7 +273,7 @@ describe('internal transitions', () => {
     const machine = next_createMachine({
       initial: 'foo',
       on: {
-        PARENT_EVENT: (_, enq) => void enq.action(() => {})
+        PARENT_EVENT: (_, enq) => void enq(() => {})
       },
       states: {
         foo: {}

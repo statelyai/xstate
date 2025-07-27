@@ -80,7 +80,7 @@ describe('event emitter', () => {
       },
       on: {
         someEvent: (_, enq) => {
-          enq.action(() => {});
+          enq(() => {});
           enq.emit({
             type: 'emitted',
             foo: 'bar'

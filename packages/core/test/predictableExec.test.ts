@@ -16,8 +16,8 @@ describe('predictableExec', () => {
         },
         b: {
           entry: (_, enq) => {
-            enq.action(() => actual.push('custom'));
-            enq.action(() => actual.push('assign'));
+            enq(() => actual.push('custom'));
+            enq(() => actual.push('assign'));
           }
         }
       }
@@ -33,7 +33,7 @@ describe('predictableExec', () => {
     let called = false;
     const machine = next_createMachine({
       entry: (_, enq) => {
-        enq.action(() => {
+        enq(() => {
           called = true;
         });
       }
@@ -79,7 +79,7 @@ describe('predictableExec', () => {
         b: {
           on: {
             RAISED: ({ event }, enq) => {
-              enq.action(() => (eventArg = event));
+              enq(() => (eventArg = event));
               return { target: 'c' };
             }
           },
@@ -111,7 +111,7 @@ describe('predictableExec', () => {
         b: {
           on: {
             RAISED: ({ event }, enq) => {
-              enq.action(() => (eventArg = event));
+              enq(() => (eventArg = event));
               return { target: 'c' };
             }
           },
@@ -241,7 +241,7 @@ describe('predictableExec', () => {
         b: {
           entry: (_, enq) => {
             const context1 = { counter: 1 };
-            enq.action(() => {
+            enq(() => {
               calledWith = context1.counter;
             });
             return {
@@ -272,11 +272,11 @@ describe('predictableExec', () => {
       context: { count: 0 },
       entry: ({ context }, enq) => {
         const count0 = context.count;
-        enq.action(() => actual.push(count0));
+        enq(() => actual.push(count0));
         const count1 = count0 + 1;
-        enq.action(() => actual.push(count1));
+        enq(() => actual.push(count1));
         const count2 = count1 + 1;
-        enq.action(() => actual.push(count2));
+        enq(() => actual.push(count2));
         return {
           context: {
             count: count2
@@ -451,7 +451,7 @@ describe('predictableExec', () => {
                 //   }
                 // }
                 '*': ({ event }, enq) => {
-                  enq.action(() => (received = event));
+                  enq(() => (received = event));
                 }
               }
             })
@@ -479,7 +479,7 @@ describe('predictableExec', () => {
         b: {
           entry: ({ parent }, enq) => {
             // TODO: this should be deferred
-            enq.action(() => {
+            enq(() => {
               setTimeout(() => {
                 parent?.send({ type: 'CHILD_UPDATED' });
               }, 1);

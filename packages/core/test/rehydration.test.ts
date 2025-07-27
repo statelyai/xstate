@@ -34,12 +34,12 @@ describe('rehydration', () => {
       const actual: string[] = [];
       const machine = next_createMachine({
         // exit: () => actual.push('root'),
-        exit: (_, enq) => enq.action(() => actual.push('root')),
+        exit: (_, enq) => enq(() => actual.push('root')),
         initial: 'a',
         states: {
           a: {
             // exit: () => actual.push('a')
-            exit: (_, enq) => enq.action(() => actual.push('a'))
+            exit: (_, enq) => enq(() => actual.push('a'))
           }
         }
       });
@@ -61,7 +61,7 @@ describe('rehydration', () => {
           // FOO: {
           //   actions: () => {}
           // }
-          FOO: (_, enq) => enq.action(() => {})
+          FOO: (_, enq) => enq(() => {})
         }
       });
 
@@ -105,7 +105,7 @@ describe('rehydration', () => {
       const actual: string[] = [];
       const machine = next_createMachine({
         // exit: () => actual.push('root'),
-        exit: (_, enq) => enq.action(() => actual.push('root')),
+        exit: (_, enq) => enq(() => actual.push('root')),
         initial: 'inactive',
         states: {
           inactive: {
@@ -113,7 +113,7 @@ describe('rehydration', () => {
           },
           active: {
             // exit: () => actual.push('active')
-            exit: (_, enq) => enq.action(() => actual.push('active'))
+            exit: (_, enq) => enq(() => actual.push('active'))
           }
         }
       });
@@ -279,7 +279,7 @@ describe('rehydration', () => {
         // '*': {
         //   actions: spy
         // }
-        '*': (_, enq) => enq.action(spy)
+        '*': (_, enq) => enq(spy)
       }
     });
 
@@ -376,7 +376,7 @@ describe('rehydration', () => {
     const machine = next_createMachine({
       invoke: {
         src: failure,
-        onError: (_, enq) => enq.action(spy)
+        onError: (_, enq) => enq(spy)
       }
     });
 
@@ -409,7 +409,7 @@ describe('rehydration', () => {
           //   actions: [({ event }) => spy(event.snapshot.context)]
           // }
           onSnapshot: ({ event }, enq) => {
-            enq.action(spy, event.snapshot.context);
+            enq(spy, event.snapshot.context);
           }
         }
       ]

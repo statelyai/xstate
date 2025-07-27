@@ -594,7 +594,7 @@ export type TransitionConfigFunction<
     value: StateValue;
     children: Record<string, AnyActorRef>;
   },
-  enq: EnqueueObj<TEvent, TEmitted>
+  enq: EnqueueObject<TEvent, TEmitted>
 ) => {
   target?: string;
   context?: TContext;
@@ -2732,7 +2732,7 @@ export type BuiltinActionResolution = [
   UnknownAction[] | undefined
 ];
 
-export type EnqueueObj<
+export type EnqueueObject<
   TEvent extends EventObject,
   TEmittedEvent extends EventObject
 > = {
@@ -2747,10 +2747,7 @@ export type EnqueueObj<
     }
   ) => AnyActorRef;
   emit: (emittedEvent: TEmittedEvent) => void;
-  action: <T extends (...args: any[]) => any>(
-    fn: T,
-    ...args: Parameters<T>
-  ) => void;
+  <T extends (...args: any[]) => any>(fn: T, ...args: Parameters<T>): void;
   log: (...args: any[]) => void;
   sendTo: <T extends AnyActorRef>(
     actorRef: T | undefined,
@@ -2772,7 +2769,7 @@ export type Action2<
     self: AnyActorRef;
     children: Record<string, AnyActorRef | undefined>;
   },
-  enqueue: EnqueueObj<TEvent, TEmittedEvent>
+  enqueue: EnqueueObject<TEvent, TEmittedEvent>
 ) => {
   context?: TContext;
   children?: Record<string, AnyActorRef | undefined>;

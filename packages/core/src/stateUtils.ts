@@ -38,7 +38,7 @@ import {
   AnyActorScope,
   ActionExecutor,
   AnyStateMachine,
-  EnqueueObj,
+  EnqueueObject,
   Action2,
   AnyActorRef
 } from './types.ts';
@@ -1134,7 +1134,7 @@ export function microstep(
           parent: actorScope.self._parent,
           self: actorScope.self
         },
-        emptyEnqueueObj
+        emptyEnqueueObject
       );
 
       if (res?.context) {
@@ -1386,22 +1386,9 @@ export function getTransitionResult(
 } {
   if (transition.fn) {
     const actions: UnknownAction[] = [];
-    const res = transition.fn(
+
+    const enqueue = createEnqueueObject(
       {
-        context: snapshot.context,
-        event,
-        value: snapshot.value,
-        children: snapshot.children,
-        parent: undefined,
-        self
-      },
-      {
-        action: (fn, ...args) => {
-          actions.push({
-            action: fn,
-            args
-          });
-        },
         cancel: (id) => {
           actions.push(cancel(id));
         },
@@ -1433,7 +1420,25 @@ export function getTransitionResult(
             actions.push(stopChild(actorRef));
           }
         }
+      },
+      (fn, ...args) => {
+        actions.push({
+          action: fn,
+          args
+        });
       }
+    );
+
+    const res = transition.fn(
+      {
+        context: snapshot.context,
+        event,
+        value: snapshot.value,
+        children: snapshot.children,
+        parent: undefined,
+        self
+      },
+      enqueue
     );
 
     return {
@@ -1465,22 +1470,8 @@ export function getTransitionActions(
 ): Readonly<UnknownAction[]> {
   if (transition.fn) {
     const actions: UnknownAction[] = [];
-    transition.fn(
+    const enqueue = createEnqueueObject(
       {
-        context: snapshot.context,
-        event,
-        value: snapshot.value,
-        children: snapshot.children,
-        parent: actorScope.self._parent,
-        self: actorScope.self
-      },
-      {
-        action: (fn, ...args) => {
-          actions.push({
-            action: fn,
-            args
-          });
-        },
         cancel: (id) => {
           actions.push(cancel(id));
         },
@@ -1510,7 +1501,25 @@ export function getTransitionActions(
             actions.push(stopChild(actorRef));
           }
         }
+      },
+      (fn, ...args) => {
+        actions.push({
+          action: fn,
+          args
+        });
       }
+    );
+
+    transition.fn(
+      {
+        context: snapshot.context,
+        event,
+        value: snapshot.value,
+        children: snapshot.children,
+        parent: actorScope.self._parent,
+        self: actorScope.self
+      },
+      enqueue
     );
 
     return actions;
@@ -1959,7 +1968,7 @@ function resolveAndExecuteActionsWithContext(
     if (resolvedAction && '_special' in resolvedAction) {
       const specialAction = resolvedAction as unknown as Action2<any, any, any>;
 
-      const res = specialAction(actionArgs, emptyEnqueueObj);
+      const res = specialAction(actionArgs, emptyEnqueueObject);
 
       if (res?.context || res?.children) {
         intermediateSnapshot = cloneMachineSnapshot(intermediateSnapshot, {
@@ -2275,16 +2284,35 @@ export function resolveStateValue(
   return getStateValue(rootNode, [...allStateNodes]);
 }
 
-export const emptyEnqueueObj: EnqueueObj<any, any> = {
-  action: () => {},
-  cancel: () => {},
-  emit: () => {},
-  log: () => {},
-  raise: () => {},
-  spawn: () => ({}) as any,
-  sendTo: () => {},
-  stop: () => {}
-};
+function createEnqueueObject(
+  props: Partial<EnqueueObject<any, any>>,
+  action: <T extends (...args: any[]) => any>(
+    fn: T,
+    ...args: Parameters<T>
+  ) => void
+): EnqueueObject<any, any> {
+  const enqueueFn = (
+    fn: (...args: any[]) => any,
+    ...args: Parameters<typeof fn>
+  ) => {
+    action(fn, ...args);
+  };
+
+  Object.assign(enqueueFn, {
+    cancel: () => {},
+    emit: () => {},
+    log: () => {},
+    raise: () => {},
+    spawn: () => ({}) as any,
+    sendTo: () => {},
+    stop: () => {},
+    ...props
+  });
+
+  return enqueueFn as any;
+}
+
+export const emptyEnqueueObject = createEnqueueObject({}, () => {});
 
 function getActionsFromAction2(
   action2: Action2<any, any, any>,
@@ -2308,21 +2336,8 @@ function getActionsFromAction2(
     // enqueue action; retrieve
     const actions: any[] = [];
 
-    const res = action2(
+    const enqueue = createEnqueueObject(
       {
-        context,
-        event,
-        parent,
-        self,
-        children
-      },
-      {
-        action: (action, ...args) => {
-          actions.push({
-            action,
-            args
-          });
-        },
         cancel: (id: string) => {
           actions.push(cancel(id));
         },
@@ -2353,7 +2368,24 @@ function getActionsFromAction2(
             actions.push(stopChild(actorRef));
           }
         }
+      },
+      (action, ...args) => {
+        actions.push({
+          action,
+          args
+        });
       }
+    );
+
+    const res = action2(
+      {
+        context,
+        event,
+        parent,
+        self,
+        children
+      },
+      enqueue
     );
 
     if (res?.context) {
@@ -2395,15 +2427,17 @@ export function evaluateCandidate(
           value: snapshot.value,
           children: snapshot.children
         },
-        {
-          action: triggerEffect,
-          emit: triggerEffect,
-          cancel: triggerEffect,
-          log: triggerEffect,
-          raise: triggerEffect,
-          spawn: triggerEffect,
-          sendTo: triggerEffect
-        }
+        createEnqueueObject(
+          {
+            emit: triggerEffect,
+            cancel: triggerEffect,
+            log: triggerEffect,
+            raise: triggerEffect,
+            spawn: triggerEffect,
+            sendTo: triggerEffect
+          },
+          triggerEffect
+        )
       );
     } catch (err) {
       if (hasEffect) {

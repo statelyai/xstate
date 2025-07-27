@@ -18,7 +18,7 @@ describe.skip('Forbidden attributes', () => {
     const machine = next_createMachine({
       after: {
         5000: (_, enq) => {
-          enq.action(() => {});
+          enq(() => {});
         }
       }
     });

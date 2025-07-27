@@ -43,8 +43,8 @@ describe('transition function', () => {
       //   assign({ count: 100 })
       // ],
       entry: (_, enq) => {
-        enq.action(actionWithParams, { a: 1 });
-        enq.action(stringAction);
+        enq(actionWithParams, { a: 1 });
+        enq(stringAction);
         return {
           context: { count: 100 }
         };
@@ -60,7 +60,7 @@ describe('transition function', () => {
         //   }
         // }
         event: ({ event }, enq) => {
-          enq.action(actionWithDynamicParams, { msg: event.msg });
+          enq(actionWithDynamicParams, { msg: event.msg });
         }
       }
     });
@@ -69,7 +69,7 @@ describe('transition function', () => {
 
     expect(state0.context.count).toBe(100);
     expect(actions0).toEqual([
-      expect.objectContaining({ params: { a: 1 } }),
+      expect.objectContaining({ args: [{ a: 1 }] }),
       expect.objectContaining({})
     ]);
 
@@ -84,8 +84,7 @@ describe('transition function', () => {
     expect(state1.context.count).toBe(100);
     expect(actions1).toEqual([
       expect.objectContaining({
-        type: 'actionWithDynamicParams',
-        params: { msg: 'hello' }
+        args: [{ msg: 'hello' }]
       })
     ]);
 
@@ -389,7 +388,7 @@ describe('transition function', () => {
 
     const machine = next_createMachine({
       initial: 'a',
-      entry: (_, enq) => enq.action(fn),
+      entry: (_, enq) => enq(fn),
       states: {
         a: {},
         b: {}
@@ -410,7 +409,7 @@ describe('transition function', () => {
         a: {
           on: {
             event: (_, enq) => {
-              enq.action(fn);
+              enq(fn);
               return { target: 'b' };
             }
           }

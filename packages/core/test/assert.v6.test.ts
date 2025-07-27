@@ -29,7 +29,7 @@ describe('assertion helpers', () => {
 
       on: {
         greet: ({ event }, enq) => {
-          enq.action(() => greet(event));
+          enq(() => greet(event));
         },
         count: ({ event }) => {
           greet(event);
@@ -94,10 +94,10 @@ describe('assertion helpers', () => {
 
       on: {
         greet: ({ event }, enq) => {
-          enq.action(() => greet(event));
+          enq(() => greet(event));
         },
         count: ({ event }, enq) => {
-          enq.action(() => greet(event));
+          enq(() => greet(event));
         }
       }
     });

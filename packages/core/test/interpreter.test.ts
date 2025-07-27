@@ -133,7 +133,7 @@ describe('interpreter', () => {
               //   actions: () => (called = true)
               // }
               TIMER: (_, enq) => {
-                enq.action(() => {
+                enq(() => {
                   called = true;
                 });
                 return { target: 'yellow' };
@@ -173,7 +173,7 @@ describe('interpreter', () => {
           a: {
             entry: (_, enq) => {
               // this should not be called when starting from a different state
-              enq.action(() => {
+              enq(() => {
                 called = true;
               });
             },
@@ -1298,7 +1298,7 @@ describe('interpreter', () => {
               //   }
               // }
               50: (_, enq) => {
-                enq.action(() => {
+                enq(() => {
                   called = true;
                 });
                 return { target: 'bar' };
@@ -1335,7 +1335,7 @@ describe('interpreter', () => {
           },
           active: {
             entry: (_, enq) => {
-              enq.action(() => {
+              enq(() => {
                 called = true;
               });
             }
@@ -2015,7 +2015,7 @@ describe('interpreter', () => {
     const spy = vi.fn();
     const actorRef = createActor(
       next_createMachine({
-        entry: (_, enq) => enq.action(spy)
+        entry: (_, enq) => enq(spy)
       })
     );
 
@@ -2029,7 +2029,7 @@ describe('interpreter', () => {
 
     const actorRef = createActor(
       next_createMachine({
-        entry: (_, enq) => enq.action(spy)
+        entry: (_, enq) => enq(spy)
       })
     );
 
@@ -2092,15 +2092,15 @@ it('should not process events sent directly to own actor ref before initial entr
   const actual: string[] = [];
   const machine = next_createMachine({
     entry: (_, enq) => {
-      enq.action(() => actual.push('initial root entry start'));
-      // enq.action(() =>
+      enq(() => actual.push('initial root entry start'));
+      // enq(() =>
       //   actorRef.send({
       //     type: 'EV'
       //   })
       // );
       enq.raise({ type: 'EV' });
 
-      enq.action(() => actual.push('initial root entry end'));
+      enq(() => actual.push('initial root entry end'));
     },
     on: {
       // EV: {
@@ -2109,14 +2109,14 @@ it('should not process events sent directly to own actor ref before initial entr
       //   }
       // }
       EV: (_, enq) => {
-        enq.action(() => actual.push('EV transition'));
+        enq(() => actual.push('EV transition'));
       }
     },
     initial: 'a',
     states: {
       a: {
         entry: (_, enq) => {
-          enq.action(() => actual.push('initial nested entry'));
+          enq(() => actual.push('initial nested entry'));
         }
       }
     }

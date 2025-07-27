@@ -88,7 +88,7 @@ describe('error handling', () => {
         active: {
           on: {
             do: (_, enq) => {
-              enq.action(spy);
+              enq(spy);
             }
           }
         }
@@ -604,7 +604,7 @@ describe('error handling', () => {
         failed: {
           on: {
             do: (_, enq) => {
-              enq.action(spy);
+              enq(spy);
             }
           }
         }
@@ -835,10 +835,10 @@ describe('error handling', () => {
 
     const machine = next_createMachine({
       entry: (_, enq) => {
-        enq.action(() => {
+        enq(() => {
           throw new Error('error_thrown_in_initial_entry_action');
         });
-        enq.action(spy);
+        enq(spy);
       }
     });
 

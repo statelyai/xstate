@@ -102,7 +102,7 @@ describe.skip('spawnChild action', () => {
     const childMachine = next_createMachine({
       on: {
         FOO: (_, enq) => {
-          enq.action(spy);
+          enq(spy);
         }
       }
     });
@@ -122,7 +122,7 @@ describe.skip('spawnChild action', () => {
           id: context.childId,
           parent: self
         });
-        enq.action(() => {
+        enq(() => {
           child.start();
         });
 

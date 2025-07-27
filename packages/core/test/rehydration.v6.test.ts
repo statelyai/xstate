@@ -34,13 +34,13 @@ describe('rehydration', () => {
       const actual: string[] = [];
       const machine = next_createMachine({
         exit: (_, enq) => {
-          enq.action(() => actual.push('root'));
+          enq(() => actual.push('root'));
         },
         initial: 'a',
         states: {
           a: {
             exit: (_, enq) => {
-              enq.action(() => actual.push('a'));
+              enq(() => actual.push('a'));
             }
           }
         }
@@ -61,7 +61,7 @@ describe('rehydration', () => {
       const machine = next_createMachine({
         on: {
           FOO: (_, enq) => {
-            enq.action(() => {});
+            enq(() => {});
           }
         }
       });
@@ -106,7 +106,7 @@ describe('rehydration', () => {
       const actual: string[] = [];
       const machine = next_createMachine({
         exit: (_, enq) => {
-          enq.action(() => actual.push('root'));
+          enq(() => actual.push('root'));
         },
         initial: 'inactive',
         states: {
@@ -115,7 +115,7 @@ describe('rehydration', () => {
           },
           active: {
             exit: (_, enq) => {
-              enq.action(() => actual.push('active'));
+              enq(() => actual.push('active'));
             }
           }
         }
@@ -166,7 +166,7 @@ describe('rehydration', () => {
     const entrySpy = vi.fn();
     const machine = next_createMachine({
       entry: (_, enq) => {
-        enq.action(entrySpy);
+        enq(entrySpy);
       }
     });
 
@@ -291,7 +291,7 @@ describe('rehydration', () => {
         },
         on: {
           '*': (_, enq) => {
-            enq.action(spy);
+            enq(spy);
           }
         }
       }
@@ -411,7 +411,7 @@ describe('rehydration', () => {
         invoke: {
           src: failure,
           onError: (_, enq) => {
-            enq.action(spy);
+            enq(spy);
           }
         }
       }
@@ -455,7 +455,7 @@ describe('rehydration', () => {
         invoke: {
           src: subjectLogic,
           onSnapshot: ({ event }, enq) => {
-            enq.action(() => spy(event.snapshot.context));
+            enq(() => spy(event.snapshot.context));
           }
         }
       }

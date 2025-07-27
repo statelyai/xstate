@@ -56,7 +56,7 @@ describe('@xstate/graph', () => {
           //   actions: ['startCountdown']
           // }
           PED_COUNTDOWN: (_, enq) => {
-            enq.action(function startCountdown() {});
+            enq(function startCountdown() {});
 
             return { target: 'wait' };
           }
@@ -86,7 +86,7 @@ describe('@xstate/graph', () => {
           //   }
           // ]
           PUSH_BUTTON: (_, enq) => {
-            enq.action(function doNothing() {});
+            enq(function doNothing() {});
           }
         }
       },

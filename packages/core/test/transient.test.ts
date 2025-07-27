@@ -130,11 +130,11 @@ describe('transient states (eventless transitions)', () => {
       states: {
         A: {
           exit: (_, enq) => {
-            enq.action(() => void actual.push('exit_A'));
+            enq(() => void actual.push('exit_A'));
           },
           on: {
             TIMER: (_, enq) => {
-              enq.action(() => void actual.push('timer'));
+              enq(() => void actual.push('timer'));
               return { target: 'T' };
             }
           }
@@ -144,7 +144,7 @@ describe('transient states (eventless transitions)', () => {
         },
         B: {
           entry: (_, enq) => {
-            enq.action(() => void actual.push('enter_B'));
+            enq(() => void actual.push('enter_B'));
           }
         }
       }
@@ -578,17 +578,13 @@ describe('transient states (eventless transitions)', () => {
         },
         b: {
           always: ({ event }, enq) => {
-            enq.action(
-              () => void expect(event).toEqual({ type: 'EVENT', value: 42 })
-            );
+            enq(() => void expect(event).toEqual({ type: 'EVENT', value: 42 }));
             return { target: 'c' };
           }
         },
         c: {
           entry: ({ event }, enq) => {
-            enq.action(
-              () => void expect(event).toEqual({ type: 'EVENT', value: 42 })
-            );
+            enq(() => void expect(event).toEqual({ type: 'EVENT', value: 42 }));
           }
         }
       }
@@ -680,7 +676,7 @@ describe('transient states (eventless transitions)', () => {
             a: {}
           },
           always: (_, enq) => {
-            enq.action(() => {
+            enq(() => {
               count++;
               if (count > 5) {
                 throw new Error('Infinite loop detected');
@@ -732,7 +728,7 @@ describe('transient states (eventless transitions)', () => {
     let counter = 0;
     const machine = createMachine({
       always: (_, enq) => {
-        enq.action((...args) => {
+        enq((...args) => {
           spy(...args);
         }, counter);
       },
@@ -741,7 +737,7 @@ describe('transient states (eventless transitions)', () => {
           enq.raise({ type: 'RAISED' });
         },
         RAISED: (_, enq) => {
-          enq.action(() => {
+          enq(() => {
             ++counter;
           });
         }

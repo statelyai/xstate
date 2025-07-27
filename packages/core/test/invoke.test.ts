@@ -636,13 +636,13 @@ describe('invoke', () => {
           })
         },
         entry: (_, enq) => {
-          enq.action(() => {
+          enq(() => {
             entryActionsCount++;
           });
         },
         on: {
           UPDATE: (_, enq) => {
-            enq.action(() => {
+            enq(() => {
               actionsCount++;
             });
           }
@@ -1202,7 +1202,7 @@ describe('invoke', () => {
                 invoke: {
                   src: somePromise,
                   onDone: ({ event }, enq) => {
-                    enq.action(() => {
+                    enq(() => {
                       count = event.output.count;
                     });
                     return {
@@ -2231,7 +2231,7 @@ describe('invoke', () => {
                 event.snapshot.status === 'active' &&
                 event.snapshot.context === 42
               ) {
-                enq.action(() => {
+                enq(() => {
                   resolve();
                 });
               }
@@ -2448,7 +2448,7 @@ describe('invoke', () => {
         on: {
           'obs.event': ({ event }, enq) => {
             expect(event.value).toEqual(42);
-            enq.action(() => {
+            enq(() => {
               resolve();
             });
           }
@@ -2661,7 +2661,7 @@ describe('invoke', () => {
           src: doublerLogic,
           onSnapshot: ({ event }, enq) => {
             if (event.snapshot.context === 42) {
-              enq.action(() => {
+              enq(() => {
                 resolve();
               });
             }
@@ -2750,7 +2750,7 @@ describe('invoke', () => {
           src: childMachine,
           onSnapshot: ({ event }, enq) => {
             if (event.snapshot.value === 'b') {
-              enq.action(() => {
+              enq(() => {
                 resolve();
               });
             }
@@ -3255,7 +3255,7 @@ describe('invoke', () => {
               return Promise.resolve(42);
             }),
             onDone: (_, enq) => {
-              enq.action(handleSuccess);
+              enq(handleSuccess);
             }
           }
         }
@@ -3321,7 +3321,7 @@ describe('invoke', () => {
       },
       on: {
         '*': ({ event }, enq) => {
-          enq.action(() => {
+          enq(() => {
             actual.push(event);
           });
         }

@@ -29,7 +29,7 @@ describe('input', () => {
         count: input.startCount
       }),
       entry: ({ context }, enq) => {
-        enq.action(spy, context.count);
+        enq(spy, context.count);
       }
     });
 

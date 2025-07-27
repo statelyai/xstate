@@ -1741,7 +1741,7 @@ describe('entry/exit actions', () => {
       const action = vi.fn();
       const machine = next_createMachine({
         exit: (_, enq) => {
-          enq.action(action);
+          enq(action);
         }
       });
 
@@ -2134,8 +2134,8 @@ describe('actions config', () => {
           //   'undefinedAction'
           // ],
           entry: (_, enq) => {
-            enq.action(definedAction);
-            // enq.action({ type: 'definedAction' });
+            enq(definedAction);
+            // enq({ type: 'definedAction' });
             return {};
           },
           on: {
@@ -2144,7 +2144,7 @@ describe('actions config', () => {
             //   actions: [{ type: 'definedAction' }, { type: 'updateContext' }]
             // }
             EVENT: (_, enq) => {
-              enq.action(definedAction);
+              enq(definedAction);
               return {
                 target: 'b',
                 context: updateContext()
@@ -2905,7 +2905,7 @@ describe('enqueueActions', () => {
         },
         on: {
           FOO: (_, enq) => {
-            enq.action(spy);
+            enq(spy);
           }
         },
         invoke: {
@@ -3252,7 +3252,7 @@ describe('sendTo', () => {
             //   target: 'c'
             // }
             EVENT: ({ self }, enq) => {
-              enq.action(spy, self.getSnapshot().context);
+              enq(spy, self.getSnapshot().context);
               return {
                 target: 'c'
               };
@@ -4021,7 +4021,7 @@ describe('actions', () => {
         //   }
         // }
         HELLO: (_, enq) => {
-          enq.action(spy, { count: 42 });
+          enq(spy, { count: 42 });
         }
       }
     });
@@ -4052,7 +4052,7 @@ describe('actions', () => {
         //   actions: 'foo'
         // }
         HELLO: ({ context }, enq) => {
-          enq.action(spy, context);
+          enq(spy, context);
         }
       }
     });

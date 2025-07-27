@@ -64,7 +64,7 @@ describe('final states', () => {
             }
           },
           onDone: ({ event }, enq) => {
-            enq.action(() => {
+            enq(() => {
               onDoneSpy(event.type);
             });
             return {
@@ -97,7 +97,7 @@ describe('final states', () => {
         foo: {
           initial: 'bar',
           onDone: (_, enq) => {
-            enq.action(() => actual.push('fooAction'));
+            enq(() => actual.push('fooAction'));
           },
           states: {
             bar: {
@@ -106,13 +106,13 @@ describe('final states', () => {
               states: {
                 baz: {
                   type: 'final',
-                  entry: (_, enq) => enq.action(() => actual.push('bazAction'))
+                  entry: (_, enq) => enq(() => actual.push('bazAction'))
                 }
               }
             },
             barFinal: {
               type: 'final',
-              entry: (_, enq) => enq.action(() => actual.push('barAction'))
+              entry: (_, enq) => enq(() => actual.push('barAction'))
             }
           }
         }
@@ -263,7 +263,7 @@ describe('final states', () => {
               output: ({ context }) => context.count
             }
           },
-          onDone: ({ event }, enq) => enq.action(spy, event.output)
+          onDone: ({ event }, enq) => enq(spy, event.output)
         }
       }
     });
@@ -709,7 +709,7 @@ describe('final states', () => {
               }
             }
           },
-          onDone: ({ event }, enq) => enq.action(spy, event)
+          onDone: ({ event }, enq) => enq(spy, event)
         }
       }
     });
@@ -742,13 +742,13 @@ describe('final states', () => {
                   type: 'final'
                 }
               },
-              onDone: (_, enq) => enq.action(spy)
+              onDone: (_, enq) => enq(spy)
             }
           },
-          onDone: (_, enq) => enq.action(spy)
+          onDone: (_, enq) => enq(spy)
         }
       },
-      onDone: (_, enq) => enq.action(spy)
+      onDone: (_, enq) => enq(spy)
     });
     createActor(machine).start();
 
@@ -817,7 +817,7 @@ describe('final states', () => {
               type: 'final'
             }
           },
-          onDone: (_, enq) => enq.action(spy)
+          onDone: (_, enq) => enq(spy)
         }
       }
     });
@@ -1115,7 +1115,7 @@ describe('final states', () => {
 
     const child = next_createMachine({
       initial: 'start',
-      exit: (_, enq) => enq.action(spy),
+      exit: (_, enq) => enq(spy),
       states: {
         start: {
           on: {

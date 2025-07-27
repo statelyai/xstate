@@ -194,8 +194,8 @@ describe('history states', () => {
               }
             },
             a2: {
-              entry: (_, enq) => enq.action(actual.push, 'a2 entered'),
-              exit: (_, enq) => enq.action(actual.push, 'a2 exited')
+              entry: (_, enq) => enq(actual.push, 'a2 entered'),
+              exit: (_, enq) => enq(actual.push, 'a2 exited')
             },
             a3: {
               type: 'history',
@@ -279,7 +279,7 @@ describe('history states', () => {
           //   actions: spy
           // },
           initial: (_, enq) => {
-            enq.action(spy);
+            enq(spy);
             return { target: 'b1' };
           },
           states: {
@@ -313,7 +313,7 @@ describe('history states', () => {
           //   actions: spy
           // },
           initial: (_, enq) => {
-            enq.action(spy);
+            enq(spy);
             return { target: 'b1' };
           },
           states: {
@@ -379,7 +379,7 @@ describe('history states', () => {
           //   actions: spy
           // },
           initial: (_, enq) => {
-            enq.action(spy);
+            enq(spy);
             return { target: 'b1' };
           },
           states: {
@@ -415,7 +415,7 @@ describe('history states', () => {
           //   actions: spy
           // },
           initial: (_, enq) => {
-            enq.action(spy);
+            enq(spy);
             return { target: 'b1' };
           },
           states: {
@@ -456,7 +456,7 @@ describe('history states', () => {
           //   actions: spy
           // },
           initial: (_, enq) => {
-            enq.action(spy);
+            enq(spy);
             return { target: 'b1' };
           },
           states: {

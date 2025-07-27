@@ -60,7 +60,7 @@ describe('transition', () => {
         a: {
           on: {
             event: (_, enq) => {
-              enq.action(fn);
+              enq(fn);
               return { target: 'b' };
             }
           }
