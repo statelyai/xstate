@@ -1,11 +1,18 @@
-import { createMachine } from '../index.ts';
+import z from 'zod';
+import { next_createMachine } from '../index.ts';
 import { createTestModel, getShortestPaths } from './index.ts';
 
 describe('getShortestPath types', () => {
   it('`getEvents` should be allowed to return a mutable array', () => {
-    const machine = createMachine({
-      types: {} as {
-        events: { type: 'FOO' } | { type: 'BAR' };
+    const machine = next_createMachine({
+      // types: {} as {
+      //   events: { type: 'FOO' } | { type: 'BAR' };
+      // }
+      schemas: {
+        event: z.union([
+          z.object({ type: z.literal('FOO') }),
+          z.object({ type: z.literal('BAR') })
+        ])
       }
     });
 
@@ -19,9 +26,15 @@ describe('getShortestPath types', () => {
   });
 
   it('`getEvents` should be allowed to return a readonly array', () => {
-    const machine = createMachine({
-      types: {} as {
-        events: { type: 'FOO' } | { type: 'BAR' };
+    const machine = next_createMachine({
+      // types: {} as {
+      //   events: { type: 'FOO' } | { type: 'BAR' };
+      // }
+      schemas: {
+        event: z.union([
+          z.object({ type: z.literal('FOO') }),
+          z.object({ type: z.literal('BAR') })
+        ])
       }
     });
 
@@ -35,9 +48,12 @@ describe('getShortestPath types', () => {
   });
 
   it('`events` should allow known event', () => {
-    const machine = createMachine({
-      types: {} as {
-        events: { type: 'FOO'; value: number };
+    const machine = next_createMachine({
+      // types: {} as {
+      //   events: { type: 'FOO'; value: number };
+      // }
+      schemas: {
+        event: z.object({ type: z.literal('FOO'), value: z.number() })
       }
     });
 
@@ -52,9 +68,15 @@ describe('getShortestPath types', () => {
   });
 
   it('`events` should not require all event types (array literal expression)', () => {
-    const machine = createMachine({
-      types: {} as {
-        events: { type: 'FOO'; value: number } | { type: 'BAR'; value: number };
+    const machine = next_createMachine({
+      // types: {} as {
+      //   events: { type: 'FOO'; value: number } | { type: 'BAR'; value: number };
+      // }
+      schemas: {
+        event: z.union([
+          z.object({ type: z.literal('FOO'), value: z.number() }),
+          z.object({ type: z.literal('BAR'), value: z.number() })
+        ])
       }
     });
 
@@ -64,9 +86,12 @@ describe('getShortestPath types', () => {
   });
 
   it('`events` should not require all event types (tuple)', () => {
-    const machine = createMachine({
-      types: {} as {
-        events: { type: 'FOO'; value: number } | { type: 'BAR'; value: number };
+    const machine = next_createMachine({
+      schemas: {
+        event: z.union([
+          z.object({ type: z.literal('FOO'), value: z.number() }),
+          z.object({ type: z.literal('BAR'), value: z.number() })
+        ])
       }
     });
 
@@ -78,9 +103,12 @@ describe('getShortestPath types', () => {
   });
 
   it('`events` should not require all event types (function)', () => {
-    const machine = createMachine({
-      types: {} as {
-        events: { type: 'FOO'; value: number } | { type: 'BAR'; value: number };
+    const machine = next_createMachine({
+      schemas: {
+        event: z.union([
+          z.object({ type: z.literal('FOO'), value: z.number() }),
+          z.object({ type: z.literal('BAR'), value: z.number() })
+        ])
       }
     });
 
@@ -90,8 +118,11 @@ describe('getShortestPath types', () => {
   });
 
   it('`events` should not allow unknown events', () => {
-    const machine = createMachine({
-      types: { events: {} as { type: 'FOO'; value: number } }
+    const machine = next_createMachine({
+      // types: { events: {} as { type: 'FOO'; value: number } }
+      schemas: {
+        event: z.object({ type: z.literal('FOO'), value: z.number() })
+      }
     });
 
     getShortestPaths(machine, {
@@ -106,9 +137,15 @@ describe('getShortestPath types', () => {
   });
 
   it('`events` should only allow props of a specific event', () => {
-    const machine = createMachine({
-      types: {} as {
-        events: { type: 'FOO'; value: number } | { type: 'BAR'; other: string };
+    const machine = next_createMachine({
+      // types: {} as {
+      //   events: { type: 'FOO'; value: number } | { type: 'BAR'; other: string };
+      // }
+      schemas: {
+        event: z.union([
+          z.object({ type: z.literal('FOO'), value: z.number() }),
+          z.object({ type: z.literal('BAR'), other: z.string() })
+        ])
       }
     });
 
@@ -124,7 +161,7 @@ describe('getShortestPath types', () => {
   });
 
   it('`serializeEvent` should be allowed to return plain string', () => {
-    const machine = createMachine({});
+    const machine = next_createMachine({});
 
     getShortestPaths(machine, {
       serializeEvent: () => ''
@@ -132,7 +169,7 @@ describe('getShortestPath types', () => {
   });
 
   it('`serializeState` should be allowed to return plain string', () => {
-    const machine = createMachine({});
+    const machine = next_createMachine({});
 
     getShortestPaths(machine, {
       serializeState: () => ''
@@ -142,12 +179,18 @@ describe('getShortestPath types', () => {
 
 describe('createTestModel types', () => {
   it('`EventExecutor` should be passed event with type that corresponds to its key', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       id: 'test',
-      types: {
-        events: {} as
-          | { type: 'a'; valueA: boolean }
-          | { type: 'b'; valueB: number }
+      // types: {
+      //   events: {} as
+      //     | { type: 'a'; valueA: boolean }
+      //     | { type: 'b'; valueB: number }
+      // },
+      schemas: {
+        event: z.union([
+          z.object({ type: z.literal('a'), valueA: z.boolean() }),
+          z.object({ type: z.literal('b'), valueB: z.number() })
+        ])
       },
       initial: 'a',
       states: {

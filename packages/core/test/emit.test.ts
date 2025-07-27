@@ -2,7 +2,6 @@ import { z } from 'zod';
 import {
   AnyEventObject,
   createActor,
-  createMachine,
   next_createMachine,
   fromCallback,
   fromEventObservable,
@@ -177,7 +176,12 @@ describe('event emitter', () => {
   });
 
   it('dynamically emits events that can be listened to on actorRef.on(…)', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: { count: 10 },
       on: {
         someEvent: ({ context }, enq) => {
@@ -209,7 +213,7 @@ describe('event emitter', () => {
   it('listener should be able to read the updated snapshot of the emitting actor', () => {
     const spy = vi.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {

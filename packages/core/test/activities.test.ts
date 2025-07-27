@@ -1,10 +1,5 @@
 import { fromCallback } from '../src/actors/index.ts';
-import {
-  createActor,
-  createMachine,
-  assign,
-  next_createMachine
-} from '../src/index.ts';
+import { createActor, next_createMachine } from '../src/index.ts';
 import { setup } from '../src/setup.ts';
 
 // TODO: remove this file but before doing that ensure that things tested here are covered by other tests
@@ -12,7 +7,7 @@ import { setup } from '../src/setup.ts';
 describe('invocations (activities)', () => {
   it('identifies initial root invocations', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       invoke: {
         src: fromCallback(() => {
           active = true;
@@ -26,7 +21,7 @@ describe('invocations (activities)', () => {
 
   it('identifies initial invocations', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -45,7 +40,7 @@ describe('invocations (activities)', () => {
 
   it('identifies initial deep invocations', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -69,7 +64,7 @@ describe('invocations (activities)', () => {
 
   it('identifies start invocations', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -96,7 +91,7 @@ describe('invocations (activities)', () => {
 
   it('identifies start invocations for child states and active invocations', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -134,7 +129,7 @@ describe('invocations (activities)', () => {
 
   it('identifies stop invocations for child states', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -179,7 +174,7 @@ describe('invocations (activities)', () => {
     let active1 = false;
     let active2 = false;
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -223,7 +218,7 @@ describe('invocations (activities)', () => {
 
   it('should activate even if there are subsequent always but blocked transition', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'A',
       states: {
         A: {
@@ -253,7 +248,7 @@ describe('invocations (activities)', () => {
   it('should remember the invocations even after an ignored event', () => {
     let cleanupSpy = vi.fn();
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'A',
       states: {
         A: {
@@ -286,7 +281,7 @@ describe('invocations (activities)', () => {
   it('should remember the invocations when transitioning within the invoking state', () => {
     let cleanupSpy = vi.fn();
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'A',
       states: {
         A: {

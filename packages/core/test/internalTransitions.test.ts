@@ -1,17 +1,23 @@
 import { z } from 'zod';
-import { next_createMachine, createActor, createMachine } from '../src/index';
-import { trackEntries } from './utils';
+import { next_createMachine, createActor } from '../src/index';
 
 describe('internal transitions', () => {
   it('parent state should enter child state without re-entering self', () => {
+    const tracked: string[] = [];
     const machine = next_createMachine({
       initial: 'foo',
       states: {
         foo: {
           initial: 'a',
           states: {
-            a: {},
-            b: {}
+            a: {
+              entry: (_, enq) => enq.action(() => tracked.push('enter: foo.a')),
+              exit: (_, enq) => enq.action(() => tracked.push('exit: foo.a'))
+            },
+            b: {
+              entry: (_, enq) => enq.action(() => tracked.push('enter: foo.b')),
+              exit: (_, enq) => enq.action(() => tracked.push('exit: foo.b'))
+            }
           },
           on: {
             CLICK: '.b'
@@ -20,27 +26,40 @@ describe('internal transitions', () => {
       }
     });
 
-    const flushTracked = trackEntries(machine);
+    // const flushTracked = trackEntries(machine);
     const actor = createActor(machine).start();
-    flushTracked();
+    // flushTracked();
+    tracked.length = 0;
 
     actor.send({
       type: 'CLICK'
     });
 
     expect(actor.getSnapshot().value).toEqual({ foo: 'b' });
-    expect(flushTracked()).toEqual(['exit: foo.a', 'enter: foo.b']);
+    expect(tracked).toEqual(['exit: foo.a', 'enter: foo.b']);
   });
 
   it('parent state should re-enter self upon transitioning to child state if transition is reentering', () => {
+    const tracked: string[] = [];
     const machine = next_createMachine({
       initial: 'foo',
       states: {
         foo: {
+          entry: (_, enq) => enq.action(() => tracked.push('enter: foo')),
+          exit: (_, enq) => enq.action(() => tracked.push('exit: foo')),
           initial: 'left',
           states: {
-            left: {},
-            right: {}
+            left: {
+              entry: (_, enq) =>
+                enq.action(() => tracked.push('enter: foo.left')),
+              exit: (_, enq) => enq.action(() => tracked.push('exit: foo.left'))
+            },
+            right: {
+              entry: (_, enq) =>
+                enq.action(() => tracked.push('enter: foo.right')),
+              exit: (_, enq) =>
+                enq.action(() => tracked.push('exit: foo.right'))
+            }
           },
           on: {
             NEXT: () => ({
@@ -52,16 +71,15 @@ describe('internal transitions', () => {
       }
     });
 
-    const flushTracked = trackEntries(machine);
     const actor = createActor(machine).start();
-    flushTracked();
+    tracked.length = 0;
 
     actor.send({
       type: 'NEXT'
     });
 
     expect(actor.getSnapshot().value).toEqual({ foo: 'right' });
-    expect(flushTracked()).toEqual([
+    expect(tracked).toEqual([
       'exit: foo.left',
       'exit: foo',
       'enter: foo',
@@ -70,18 +88,26 @@ describe('internal transitions', () => {
   });
 
   it('parent state should only exit/reenter if there is an explicit self-transition', () => {
+    const tracked: string[] = [];
     const machine = next_createMachine({
       initial: 'foo',
       states: {
         foo: {
+          entry: (_, enq) => enq.action(() => tracked.push('enter: foo')),
+          exit: (_, enq) => enq.action(() => tracked.push('exit: foo')),
           initial: 'a',
           states: {
             a: {
+              entry: (_, enq) => enq.action(() => tracked.push('enter: foo.a')),
+              exit: (_, enq) => enq.action(() => tracked.push('exit: foo.a')),
               on: {
                 NEXT: 'b'
               }
             },
-            b: {}
+            b: {
+              entry: (_, enq) => enq.action(() => tracked.push('enter: foo.b')),
+              exit: (_, enq) => enq.action(() => tracked.push('exit: foo.b'))
+            }
           },
           on: {
             RESET: {
@@ -93,19 +119,18 @@ describe('internal transitions', () => {
       }
     });
 
-    const flushTracked = trackEntries(machine);
     const actor = createActor(machine).start();
     actor.send({
       type: 'NEXT'
     });
-    flushTracked();
+    tracked.length = 0;
 
     actor.send({
       type: 'RESET'
     });
 
     expect(actor.getSnapshot().value).toEqual({ foo: 'a' });
-    expect(flushTracked()).toEqual([
+    expect(tracked).toEqual([
       'exit: foo.b',
       'exit: foo',
       'enter: foo',
@@ -114,14 +139,23 @@ describe('internal transitions', () => {
   });
 
   it('parent state should only exit/reenter if there is an explicit self-transition (to child)', () => {
+    const tracked: string[] = [];
     const machine = next_createMachine({
       initial: 'foo',
       states: {
         foo: {
+          entry: (_, enq) => enq.action(() => tracked.push('enter: foo')),
+          exit: (_, enq) => enq.action(() => tracked.push('exit: foo')),
           initial: 'a',
           states: {
-            a: {},
-            b: {}
+            a: {
+              entry: (_, enq) => enq.action(() => tracked.push('enter: foo.a')),
+              exit: (_, enq) => enq.action(() => tracked.push('exit: foo.a'))
+            },
+            b: {
+              entry: (_, enq) => enq.action(() => tracked.push('enter: foo.b')),
+              exit: (_, enq) => enq.action(() => tracked.push('exit: foo.b'))
+            }
           },
           on: {
             RESET_TO_B: {
@@ -133,16 +167,15 @@ describe('internal transitions', () => {
       }
     });
 
-    const flushTracked = trackEntries(machine);
     const actor = createActor(machine).start();
-    flushTracked();
+    tracked.length = 0;
 
     actor.send({
       type: 'RESET_TO_B'
     });
 
     expect(actor.getSnapshot().value).toEqual({ foo: 'b' });
-    expect(flushTracked()).toEqual([
+    expect(tracked).toEqual([
       'exit: foo.a',
       'exit: foo',
       'enter: foo',

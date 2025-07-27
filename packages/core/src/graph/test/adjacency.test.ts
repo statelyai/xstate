@@ -1,9 +1,9 @@
-import { createMachine } from '../../index.ts';
+import { next_createMachine } from '../../index.ts';
 import { adjacencyMapToArray, createTestModel } from '../index.ts';
 
 describe('adjacency maps', () => {
   it('model generates an adjacency map (converted to an array)', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'standing',
       states: {
         standing: {
@@ -69,7 +69,7 @@ describe('adjacency maps', () => {
   });
 
   it('function generates an adjacency map (converted to an array)', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'green',
       states: {
         green: {

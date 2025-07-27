@@ -1,8 +1,8 @@
-import { createActor, createMachine } from '../src/index.ts';
+import { createActor, next_createMachine } from '../src/index.ts';
 
 describe('Initial states', () => {
   it('should return the correct initial state', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -25,7 +25,7 @@ describe('Initial states', () => {
   });
 
   it('should return the correct initial state (parallel)', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       type: 'parallel',
       states: {
         foo: {
@@ -71,7 +71,7 @@ describe('Initial states', () => {
   });
 
   it('should return the correct initial state (deep parallel)', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'one',
       states: {
         one: {

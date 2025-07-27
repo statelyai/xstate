@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createMachine, next_createMachine } from '../../index.ts';
+import { next_createMachine } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 import { getDescription } from '../utils.ts';
 
@@ -264,7 +264,7 @@ describe('die hard example', () => {
 });
 describe('error path trace', () => {
   describe('should return trace for failed state', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'first',
       states: {
         first: {
