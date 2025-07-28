@@ -38,7 +38,8 @@ export type Next_MachineConfig<
   TEvent extends EventObject = StandardSchemaV1.InferOutput<TEventSchema> &
     EventObject,
   TDelays extends string = string,
-  TTag extends string = string
+  TTag extends string = string,
+  TActionMap extends Implementations['actions'] = Implementations['actions']
 > = (Omit<
   Next_StateNodeConfig<
     InferOutput<TContextSchema, MachineContext>,
@@ -47,7 +48,8 @@ export type Next_MachineConfig<
     DoNotInfer<TTag>,
     DoNotInfer<StandardSchemaV1.InferOutput<TOutputSchema>>,
     DoNotInfer<StandardSchemaV1.InferOutput<TEmittedSchema> & EventObject>,
-    DoNotInfer<InferOutput<TMetaSchema, MetaObject>>
+    DoNotInfer<InferOutput<TMetaSchema, MetaObject>>,
+    DoNotInfer<TActionMap>
   >,
   'output'
 > & {
@@ -59,6 +61,9 @@ export type Next_MachineConfig<
     output?: TOutputSchema;
     meta?: TMetaSchema;
   };
+  actions?: TActionMap;
+  guards?: Implementations['guards'];
+  actors?: Implementations['actors'];
   /** The initial context (extended state) */
   /** The machine's own version. */
   version?: string;
@@ -107,11 +112,12 @@ export interface Next_StateNodeConfig<
   TTag extends string,
   _TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions']
 > {
   /** The initial state transition. */
   initial?:
-    | Next_InitialTransitionConfig<TContext, TEvent, TEmitted>
+    | Next_InitialTransitionConfig<TContext, TEvent, TEmitted, TActionMap>
     | string
     | undefined;
   /**
@@ -141,7 +147,8 @@ export interface Next_StateNodeConfig<
       TTag,
       any, // TOutput,
       TEmitted,
-      TMeta
+      TMeta,
+      TActionMap
     >;
   };
   /**
@@ -156,19 +163,22 @@ export interface Next_StateNodeConfig<
       TContext,
       DoneActorEvent,
       TEvent,
-      TEmitted
+      TEmitted,
+      TActionMap
     >;
     onError?: Next_TransitionConfigOrTarget<
       TContext,
       ErrorEvent,
       TEvent,
-      TEmitted
+      TEmitted,
+      TActionMap
     >;
     onSnapshot?: Next_TransitionConfigOrTarget<
       TContext,
       SnapshotEvent<any>,
       TEvent,
-      TEmitted
+      TEmitted,
+      TActionMap
     >;
   }>;
   /** The mapping of event types to their potential transition(s). */
@@ -177,11 +187,12 @@ export interface Next_StateNodeConfig<
       TContext,
       ExtractEvent<TEvent, K>,
       TEvent,
-      TEmitted
+      TEmitted,
+      TActionMap
     >;
   };
-  entry?: Action2<TContext, TEvent, TEmitted>;
-  exit?: Action2<TContext, TEvent, TEmitted>;
+  entry?: Action2<TContext, TEvent, TEmitted, TActionMap>;
+  exit?: Action2<TContext, TEvent, TEmitted, TActionMap>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state
    * node.
@@ -191,7 +202,13 @@ export interface Next_StateNodeConfig<
    */
   onDone?:
     | string
-    | TransitionConfigFunction<TContext, DoneStateEvent, TEvent, TEmitted>
+    | TransitionConfigFunction<
+        TContext,
+        DoneStateEvent,
+        TEvent,
+        TEmitted,
+        TActionMap
+      >
     | undefined;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential
@@ -206,7 +223,8 @@ export interface Next_StateNodeConfig<
           TContext,
           TEvent,
           TEvent,
-          TODO // TEmitted
+          TODO, // TEmitted
+          TActionMap
         >;
   };
 
@@ -214,7 +232,13 @@ export interface Next_StateNodeConfig<
    * An eventless transition that is always taken when this state node is
    * active.
    */
-  always?: Next_TransitionConfigOrTarget<TContext, TEvent, TEvent, TEmitted>;
+  always?: Next_TransitionConfigOrTarget<
+    TContext,
+    TEvent,
+    TEvent,
+    TEmitted,
+    TActionMap
+  >;
   /**
    * The meta data associated with this state node, which will be returned in
    * State instances.
@@ -254,19 +278,27 @@ export interface Next_StateNodeConfig<
 export type Next_InitialTransitionConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TEmitted extends EventObject
-> = TransitionConfigFunction<TContext, TEvent, TEvent, TEmitted>;
+  TEmitted extends EventObject,
+  TActionMap extends Implementations['actions']
+> = TransitionConfigFunction<TContext, TEvent, TEvent, TEmitted, TActionMap>;
 
 export type Next_TransitionConfigOrTarget<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TEmitted extends EventObject
+  TEmitted extends EventObject,
+  TActionMap extends Implementations['actions']
 > =
   | string
   | undefined
   | { target?: string | string[]; description?: string; reenter?: boolean }
-  | TransitionConfigFunction<TContext, TExpressionEvent, TEvent, TEmitted>;
+  | TransitionConfigFunction<
+      TContext,
+      TExpressionEvent,
+      TEvent,
+      TEmitted,
+      TActionMap
+    >;
 
 export interface Next_MachineTypes<
   TContext extends MachineContext,
@@ -308,3 +340,10 @@ export interface Next_SetupTypes<
 }
 
 export type WithDefault<T, Default> = IsNever<T> extends true ? Default : T;
+
+export interface Implementations {
+  actions: Record<string, (...args: any[]) => void>;
+  guards: Record<string, (...args: any[]) => boolean>;
+  delays: Record<string, number | ((...args: any[]) => number)>;
+  actors: Record<string, AnyActorLogic>;
+}

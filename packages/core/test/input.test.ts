@@ -137,6 +137,12 @@ describe('input', () => {
         }),
         context: z.object({
           greeting: z.string()
+        }),
+        events: z.object({
+          type: z.literal('greeting'),
+          input: z.object({
+            greeting: z.string()
+          })
         })
       },
       context({ input }) {
@@ -150,15 +156,13 @@ describe('input', () => {
     });
 
     const machine = next_createMachine({
-      // entry: assign(({ spawn }) => {
-      //   return {
-      //     ref: spawn(spawnedMachine, { input: { greeting: 'hello' } })
-      //   };
-      // })
       schemas: {
         context: z.object({
-          ref: z.any()
+          ref: z.object({}).optional()
         })
+      },
+      context: {
+        ref: undefined
       },
       entry: (_, enq) => ({
         context: {

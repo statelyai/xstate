@@ -18,7 +18,12 @@ import {
   ToChildren,
   MetaObject
 } from './types.ts';
-import { InferOutput, Next_MachineConfig, WithDefault } from './types.v6.ts';
+import {
+  Implementations,
+  InferOutput,
+  Next_MachineConfig,
+  WithDefault
+} from './types.v6.ts';
 
 type TestValue =
   | string
@@ -176,7 +181,7 @@ export function next_createMachine<
   // TContext extends MachineContext,
   TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
   TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
+  TActionMap extends Implementations['actions'],
   TGuard extends ParameterizedObject,
   TDelays extends string,
   TTag extends string,
@@ -196,14 +201,15 @@ export function next_createMachine<
     InferOutput<TContextSchema, MachineContext>,
     TEvent,
     TDelays,
-    TTag
+    TTag,
+    TActionMap
   >
 ): StateMachine<
   InferOutput<TContextSchema, MachineContext>,
   TEvent,
   Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
   TActor,
-  TAction,
+  any, // TODO: TAction
   TGuard,
   TDelays,
   StateValue,

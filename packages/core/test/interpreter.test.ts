@@ -74,18 +74,6 @@ describe('interpreter', () => {
         },
         states: {
           idle: {
-            // entry: assign({
-            //   actor: ({ spawn }) => {
-            //     return spawn(
-            //       fromPromise(
-            //         () =>
-            //           new Promise(() => {
-            //             promiseSpawned++;
-            //           })
-            //       )
-            //     );
-            //   }
-            // })
             entry: (_, enq) => ({
               context: {
                 actor: enq.spawn(
@@ -1504,13 +1492,6 @@ describe('interpreter', () => {
       states: {
         active: {
           after: {
-            // 10: {
-            //   target: 'active',
-            //   reenter: true,
-            //   actions: assign({
-            //     count: ({ context }) => context.count + 1
-            //   })
-            // }
             10: ({ context }) => {
               return {
                 target: 'active',
@@ -1601,9 +1582,6 @@ describe('interpreter', () => {
               }
             },
             on: {
-              // INC: {
-              //   actions: assign({ count: ({ context }) => context.count + 1 })
-              // }
               INC: ({ context }) => ({
                 context: {
                   count: context.count + 1
@@ -1910,14 +1888,11 @@ describe('interpreter', () => {
         id: 'form',
         initial: 'idle',
         schemas: {
-          // context: z.object({
-          //   firstNameRef: z.any()
-          // })
+          context: z.object({
+            firstNameRef: z.object({}).optional()
+          })
         },
         context: {},
-        // entry: assign({
-        //   firstNameRef: ({ spawn }) => spawn(childMachine, { id: 'child' })
-        // }),
         entry: (_, enq) => ({
           children: {
             child: enq.spawn(childMachine)

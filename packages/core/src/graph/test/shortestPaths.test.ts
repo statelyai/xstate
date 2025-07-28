@@ -126,13 +126,6 @@ describe('getShortestPaths', () => {
         todos: []
       },
       on: {
-        // 'todo.add': {
-        //   actions: assign({
-        //     todos: ({ context, event }) => {
-        //       return context.todos.concat(event.todo);
-        //     }
-        //   })
-        // }
         'todo.add': ({ context, event }) => ({
           context: {
             todos: context.todos.concat(event.todo)

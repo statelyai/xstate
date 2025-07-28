@@ -1713,21 +1713,17 @@ describe('entry/exit actions', () => {
 
     it('should note execute referenced custom actions correctly when stopping an interpreter', () => {
       const spy = vi.fn();
-      const parent = createMachine(
-        {
-          id: 'parent',
-          context: {},
-          exit: 'referencedAction'
-        },
-        {
-          actions: {
-            referencedAction: spy
-          }
+      const parent = next_createMachine({
+        actions: { referencedAction: spy },
+        id: 'parent',
+        context: {},
+        exit: ({ actions }, enq) => {
+          enq(actions.referencedAction);
         }
-      );
+      });
 
-      const interpreter = createActor(parent).start();
-      interpreter.stop();
+      const actor = createActor(parent).start();
+      actor.stop();
 
       expect(spy).not.toHaveBeenCalled();
     });
@@ -2061,16 +2057,27 @@ describe('actions config', () => {
 
   it('should reference actions defined in actions parameter of machine options (entry actions)', () => {
     const spy = vi.fn();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
+      actions: {
+        definedAction: spy
+      },
       states: {
         a: {
           on: {
-            EVENT: 'b'
+            EVENT: () => {
+              return { target: 'b' };
+            }
           }
         },
         b: {
-          entry: ['definedAction', { type: 'definedAction' }, 'undefinedAction']
+          entry: ({ actions }, enq) => {
+            enq(actions.definedAction);
+            enq(
+              // @ts-expect-error
+              actions.undefinedAction
+            );
+          }
         }
       },
       on: {
@@ -2085,7 +2092,7 @@ describe('actions config', () => {
     const actor = createActor(machine).start();
     actor.send({ type: 'EVENT' });
 
-    expect(spy).toHaveBeenCalledTimes(2);
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it('should reference actions defined in actions parameter of machine options (initial state)', () => {
@@ -2749,13 +2756,11 @@ describe('enqueueActions', () => {
 
     createActor(machine);
 
-    expect(spy.mock.calls).toMatchInlineSnapshot(`
+    expect(spy.mock.calls[0]).toMatchInlineSnapshot(`
       [
-        [
-          {
-            "max": 100,
-          },
-        ],
+        {
+          "max": 100,
+        },
       ]
     `);
   });

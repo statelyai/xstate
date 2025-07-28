@@ -992,9 +992,13 @@ describe('parallel states', () => {
     // https://github.com/statelyai/xstate/issues/531
     it('should calculate the entry set for reentering transitions in parallel states', () => {
       const testMachine = next_createMachine({
-        // types: {} as { context: { log: string[] } },
         id: 'test',
-        context: { log: [] as string[] },
+        schemas: {
+          context: z.object({
+            log: z.array(z.string())
+          })
+        },
+        context: { log: [] },
         type: 'parallel',
         states: {
           foo: {
@@ -1006,9 +1010,6 @@ describe('parallel states', () => {
                 }
               },
               foobaz: {
-                // entry: assign({
-                //   log: ({ context }) => [...context.log, 'entered foobaz']
-                // }),
                 entry: ({ context }) => ({
                   context: {
                     log: [...context.log, 'entered foobaz']

@@ -5,7 +5,8 @@ import type { StateMachine } from './StateMachine.ts';
 import {
   getStateValue,
   getTransitionResult,
-  getTransitionActions
+  getTransitionActions,
+  hasEffect
 } from './stateUtils.ts';
 import type {
   ProvidedActor,
@@ -322,12 +323,12 @@ const machineSnapshotCan = function can(
     !!transitionData?.length &&
     // Check that at least one transition is not forbidden
     transitionData.some((t) => {
-      const res = getTransitionResult(t, this, event);
+      const res = getTransitionResult(t, this, event, {} as any);
       return (
         t.target !== undefined ||
         res.targets?.length ||
         res.context ||
-        getTransitionActions(t, this, event, { self: {} }).length
+        hasEffect(t, this.context, event, this, {} as any)
       );
     })
   );

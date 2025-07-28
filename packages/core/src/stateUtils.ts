@@ -1109,42 +1109,34 @@ export function microstep(
     );
   }
 
+  const { context, actions } = filteredTransitions
+    .flatMap((t) =>
+      getTransitionResult(
+        t,
+        currentSnapshot,
+        event,
+        actorScope.self,
+        actorScope
+      )
+    )
+    .reduce(
+      (acc, res) => {
+        acc.context = res.context;
+        acc.actions = [...acc.actions, ...res.actions];
+        return acc;
+      },
+      { context: nextState.context, actions: [] as UnknownAction[] }
+    );
   // Execute transition content
   nextState = resolveActionsAndContext(
     nextState,
     event,
     actorScope,
-    filteredTransitions.flatMap((t) =>
-      getTransitionActions(t, currentSnapshot, event, actorScope)
-    ),
+    actions,
     internalQueue,
     undefined
   );
-
-  // Get context
-  const context = nextState.context;
-  for (const transitionDef of filteredTransitions) {
-    if (transitionDef.fn) {
-      const res = transitionDef.fn(
-        {
-          context,
-          event,
-          value: nextState.value,
-          children: nextState.children,
-          parent: actorScope.self._parent,
-          self: actorScope.self
-        },
-        emptyEnqueueObject
-      );
-
-      if (res?.context) {
-        nextState = {
-          ...nextState,
-          context: res.context
-        };
-      }
-    }
-  }
+  if (context) nextState.context = context;
 
   // Enter states
   nextState = enterStates(
@@ -1176,7 +1168,8 @@ export function microstep(
               parent: actorScope.self._parent,
               // children: actorScope.self.getSnapshot().children
               children: {},
-              actorScope
+              actorScope,
+              machine: currentSnapshot.machine
             });
             return [...stateNode.exit, ...actions];
           }
@@ -1295,7 +1288,8 @@ function enterStates(
           self: actorScope.self,
           parent: actorScope.self._parent,
           children: currentSnapshot.children,
-          actorScope
+          actorScope,
+          machine: currentSnapshot.machine
         })
       );
     }
@@ -1417,7 +1411,9 @@ export function getTransitionResult(
         },
         stop: (actorRef) => {
           if (actorRef) {
-            actions.push(stopChild(actorRef));
+            actions.push(() => {
+              actorScope.stopChild(actorRef);
+            });
           }
         }
       },
@@ -1436,7 +1432,8 @@ export function getTransitionResult(
         value: snapshot.value,
         children: snapshot.children,
         parent: undefined,
-        self
+        self,
+        actions: snapshot.machine.implementations.actions
       },
       enqueue
     );
@@ -1487,9 +1484,13 @@ export function getTransitionActions(
             args
           });
         },
-        spawn: (src, options) => {
-          actions.push(spawnChild(src, options));
-          return {} as any;
+        spawn: (logic, options) => {
+          const actorRef = createActor(logic, {
+            ...options,
+            parent: actorScope.self
+          });
+          actions.push(() => actorRef.start());
+          return actorRef;
         },
         sendTo: (actorRef, event, options) => {
           if (actorRef) {
@@ -1517,7 +1518,8 @@ export function getTransitionActions(
         value: snapshot.value,
         children: snapshot.children,
         parent: actorScope.self._parent,
-        self: actorScope.self
+        self: actorScope.self,
+        actions: snapshot.machine.implementations.actions
       },
       enqueue
     );
@@ -1864,7 +1866,8 @@ function exitStates(
           self: actorScope.self,
           parent: actorScope.self._parent,
           children: actorScope.self.getSnapshot().children,
-          actorScope
+          actorScope,
+          machine: currentSnapshot.machine
         })
       : s.exit;
     nextSnapshot = resolveActionsAndContext(
@@ -1923,9 +1926,12 @@ function resolveAndExecuteActionsWithContext(
 
   for (const action of actions) {
     const isInline = typeof action === 'function';
+
     const resolvedAction = isInline
       ? action
-      : typeof action === 'object' && 'action' in action
+      : typeof action === 'object' &&
+          'action' in action &&
+          typeof action.action === 'function'
         ? action.action.bind(null, ...action.args)
         : // the existing type of `.actions` assumes non-nullable `TExpressionAction`
           // it's fine to cast this here to get a common type and lack of errors in the rest of the code
@@ -1946,7 +1952,8 @@ function resolveAndExecuteActionsWithContext(
       self: actorScope.self,
       system: actorScope.system,
       children: intermediateSnapshot.children,
-      parent: actorScope.self._parent
+      parent: actorScope.self._parent,
+      actions: currentSnapshot.machine.implementations.actions
     };
 
     let actionParams =
@@ -1966,7 +1973,12 @@ function resolveAndExecuteActionsWithContext(
     }
 
     if (resolvedAction && '_special' in resolvedAction) {
-      const specialAction = resolvedAction as unknown as Action2<any, any, any>;
+      const specialAction = resolvedAction as unknown as Action2<
+        any,
+        any,
+        any,
+        any
+      >;
 
       const res = specialAction(actionArgs, emptyEnqueueObject);
 
@@ -1985,7 +1997,7 @@ function resolveAndExecuteActionsWithContext(
           typeof action === 'string'
             ? action
             : typeof action === 'object'
-              ? 'action' in action
+              ? 'action' in action && typeof action.action === 'function'
                 ? (action.action.name ?? '(anonymous)')
                 : action.type
               : action.name || '(anonymous)',
@@ -2315,14 +2327,15 @@ function createEnqueueObject(
 export const emptyEnqueueObject = createEnqueueObject({}, () => {});
 
 function getActionsFromAction2(
-  action2: Action2<any, any, any>,
+  action2: Action2<any, any, any, any>,
   {
     context,
     event,
     parent,
     self,
     children,
-    actorScope
+    actorScope,
+    machine
   }: {
     context: MachineContext;
     event: EventObject;
@@ -2330,6 +2343,7 @@ function getActionsFromAction2(
     parent: AnyActorRef | undefined;
     children: Record<string, AnyActorRef>;
     actorScope: AnyActorScope;
+    machine: AnyStateMachine;
   }
 ) {
   if (action2.length === 2) {
@@ -2383,7 +2397,8 @@ function getActionsFromAction2(
         event,
         parent,
         self,
-        children
+        children,
+        actions: machine.implementations.actions // TODO!!!!
       },
       enqueue
     );
@@ -2396,6 +2411,60 @@ function getActionsFromAction2(
   }
 
   return [action2];
+}
+
+export function hasEffect(
+  transition: AnyTransitionDefinition,
+  context: MachineContext,
+  event: EventObject,
+  snapshot: AnyMachineSnapshot,
+  self: AnyActorRef
+): boolean {
+  if (transition.fn) {
+    let hasEffect = false;
+    let res;
+
+    try {
+      const triggerEffect = () => {
+        hasEffect = true;
+        throw new Error('Effect triggered');
+      };
+      res = transition.fn(
+        {
+          context,
+          event,
+          self,
+          value: snapshot.value,
+          children: snapshot.children,
+          parent: {
+            send: triggerEffect
+          },
+          actions: snapshot.machine.implementations.actions
+        },
+        createEnqueueObject(
+          {
+            emit: triggerEffect,
+            cancel: triggerEffect,
+            log: triggerEffect,
+            raise: triggerEffect,
+            spawn: triggerEffect,
+            sendTo: triggerEffect,
+            stop: triggerEffect
+          },
+          triggerEffect
+        )
+      );
+    } catch (err) {
+      if (hasEffect) {
+        return true;
+      }
+      throw err;
+    }
+
+    return res !== undefined;
+  }
+
+  return false;
 }
 
 export function evaluateCandidate(

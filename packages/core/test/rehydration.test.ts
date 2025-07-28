@@ -6,6 +6,7 @@ import {
   fromObservable
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { z } from 'zod';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {
@@ -429,15 +430,15 @@ describe('rehydration', () => {
 
   it('should be able to rehydrate an actor deep in the tree', () => {
     const grandchild = next_createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 0
       },
       on: {
-        // INC: {
-        //   actions: assign({
-        //     count: ({ context }) => context.count + 1
-        //   })
-        // }
         INC: ({ context }) => ({
           context: {
             ...context,

@@ -36,7 +36,6 @@ import type {
   HistoryValue,
   InternalMachineImplementations,
   MachineContext,
-  MachineImplementationsSimplified,
   MetaObject,
   ParameterizedObject,
   ProvidedActor,
@@ -49,7 +48,7 @@ import type {
   StateSchema,
   SnapshotStatus
 } from './types.ts';
-import { Next_MachineConfig } from './types.v6.ts';
+import { Implementations, Next_MachineConfig } from './types.v6.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
 
 const STATE_IDENTIFIER = '#';
@@ -92,7 +91,7 @@ export class StateMachine<
 
   public schemas: unknown;
 
-  public implementations: MachineImplementationsSimplified<TContext, TEvent>;
+  public implementations: Implementations;
 
   /** @internal */
   public __xstatenode = true as const;
@@ -123,14 +122,15 @@ export class StateMachine<
     > & {
       schemas?: unknown;
     },
-    implementations?: MachineImplementationsSimplified<TContext, TEvent>
+    implementations?: Implementations
   ) {
     this.id = config.id || '(machine)';
     this.implementations = {
-      actors: implementations?.actors ?? {},
-      actions: implementations?.actions ?? {},
-      delays: config.delays ?? implementations?.delays ?? {},
-      guards: implementations?.guards ?? {}
+      actors: config.actors ?? {},
+      actions: config.actions ?? {},
+      delays: config.delays ?? {},
+      guards: config.guards ?? {},
+      ...implementations
     };
     this.version = this.config.version;
     this.schemas = this.config.schemas;

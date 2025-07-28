@@ -415,21 +415,12 @@ describe('invocations (activities)', () => {
               return () => (active = false);
             })
           },
-          // always: {
-          //   guard: ({ context }) => context.counter !== 0,
-          //   target: 'b'
-          // },
           always: ({ context }) => {
             if (context.counter !== 0) {
               return { target: 'b' };
             }
           },
           on: {
-            // INC: {
-            //   actions: assign(({ context }) => ({
-            //     counter: context.counter + 1
-            //   }))
-            // }
             INC: ({ context }) => ({
               context: {
                 counter: context.counter + 1

@@ -13,6 +13,7 @@ import { AnyActorSystem, Clock } from './system.ts';
 
 // this is needed to make JSDoc `@link` work properly
 import type { SimulatedClock } from './SimulatedClock.ts';
+import { Implementations } from './types.v6.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -342,7 +343,13 @@ export interface TransitionConfig<
   >;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
-  fn?: TransitionConfigFunction<TContext, TExpressionEvent, TEvent, TEmitted>;
+  fn?: TransitionConfigFunction<
+    TContext,
+    TExpressionEvent,
+    TEvent,
+    TEmitted,
+    any // TActionMap
+  >;
   meta?: TMeta;
   description?: string;
 }
@@ -498,7 +505,8 @@ export type DelayedTransitions<
         TContext,
         TEvent,
         TEvent,
-        TODO // TEmitted
+        TODO, // TEmitted
+        any // TActionMap
       >;
 };
 
@@ -577,22 +585,32 @@ export type TransitionConfigOrTarget<
       TEmitted,
       TMeta
     >
-  | TransitionConfigFunction<TContext, TExpressionEvent, TEvent, TEmitted>
+  | TransitionConfigFunction<TContext, TExpressionEvent, TEvent, TEmitted, any>
 >;
 
 export type TransitionConfigFunction<
   TContext extends MachineContext,
   TCurrentEvent extends EventObject,
   TEvent extends EventObject,
-  TEmitted extends EventObject
+  TEmitted extends EventObject,
+  TActionMap extends Implementations['actions']
 > = (
-  obj: {
+  {
+    context,
+    event,
+    self,
+    parent,
+    value,
+    children,
+    actions
+  }: {
     context: TContext;
     event: TCurrentEvent;
     self: AnyActorRef;
     parent: UnknownActorRef | undefined;
     value: StateValue;
     children: Record<string, AnyActorRef>;
+    actions: TActionMap;
   },
   enq: EnqueueObject<TEvent, TEmitted>
 ) => {
@@ -602,6 +620,7 @@ export type TransitionConfigFunction<
 } | void;
 
 export type AnyTransitionConfigFunction = TransitionConfigFunction<
+  any,
   any,
   any,
   any,
@@ -914,7 +933,7 @@ export interface StateNodeConfig<
   /** The initial state transition. */
   initial?:
     | InitialTransitionConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
-    | TransitionConfigFunction<TContext, TEvent, TEvent, TEmitted>
+    | TransitionConfigFunction<TContext, TEvent, TEvent, TEmitted, any>
     | string
     | undefined;
   /**
@@ -2760,7 +2779,8 @@ export type EnqueueObject<
 export type Action2<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TEmittedEvent extends EventObject
+  TEmittedEvent extends EventObject,
+  TActionMap extends Implementations['actions']
 > = (
   _: {
     context: TContext;
@@ -2768,6 +2788,7 @@ export type Action2<
     parent: AnyActorRef | undefined;
     self: AnyActorRef;
     children: Record<string, AnyActorRef | undefined>;
+    actions: TActionMap;
   },
   enqueue: EnqueueObject<TEvent, TEmittedEvent>
 ) => {

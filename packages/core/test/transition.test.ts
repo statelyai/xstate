@@ -37,11 +37,11 @@ describe('transition function', () => {
     //   }
     // }).
     const machine = next_createMachine({
-      // entry: [
-      //   { type: 'actionWithParams', params: { a: 1 } },
-      //   'stringAction',
-      //   assign({ count: 100 })
-      // ],
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       entry: (_, enq) => {
         enq(actionWithParams, { a: 1 });
         enq(stringAction);
