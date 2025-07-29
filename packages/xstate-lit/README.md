@@ -60,14 +60,14 @@ constructor() {
     });
   }
 
-  private get turn() {
+  private get turnedOff() {
     return this.toggleController.snapshot.matches('inactive');
   }
 
   render() {
     return html`
       <button @click=${() => this.toggleController.send({ type: 'TOGGLE' })}>
-        ${this.turn ? 'Turn on' : 'Turn off'}
+        ${this.turnedOff ? 'Turn on' : 'Turn off'}
       </button>
     `;
   }
