@@ -13,7 +13,6 @@ import {
   EventObject,
   createActor,
   createMachine,
-  forwardTo,
   next_createMachine,
   setup
 } from '../src/index.ts';
@@ -2361,37 +2360,59 @@ describe('action meta', () => {
 describe('forwardTo()', () => {
   it('should forward an event to a service', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const child = createMachine({
-      types: {} as {
-        events: {
-          type: 'EVENT';
-          value: number;
-        };
+    const child = next_createMachine({
+      // types: {} as {
+      //   events: {
+      //     type: 'EVENT';
+      //     value: number;
+      //   };
+      // },
+      schemas: {
+        events: z.object({
+          type: z.literal('EVENT'),
+          value: z.number()
+        })
       },
       id: 'child',
       initial: 'active',
       states: {
         active: {
           on: {
-            EVENT: {
-              actions: sendParent({ type: 'SUCCESS' }),
-              guard: ({ event }) => event.value === 42
+            // EVENT: {
+            //   actions: sendParent({ type: 'SUCCESS' }),
+            //   guard: ({ event }) => event.value === 42
+            // }
+            EVENT: ({ event, parent }, enq) => {
+              if (event.value === 42) {
+                enq.sendTo(parent, { type: 'SUCCESS' });
+              }
             }
           }
         }
       }
     });
 
-    const parent = createMachine({
-      types: {} as {
-        events:
-          | {
-              type: 'EVENT';
-              value: number;
-            }
-          | {
-              type: 'SUCCESS';
-            };
+    const parent = next_createMachine({
+      // types: {} as {
+      //   events:
+      //     | {
+      //         type: 'EVENT';
+      //         value: number;
+      //       }
+      //     | {
+      //         type: 'SUCCESS';
+      //       };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('EVENT'),
+            value: z.number()
+          }),
+          z.object({
+            type: z.literal('SUCCESS')
+          })
+        ])
       },
       id: 'parent',
       initial: 'first',
@@ -2399,10 +2420,15 @@ describe('forwardTo()', () => {
         first: {
           invoke: { src: child, id: 'myChild' },
           on: {
-            EVENT: {
-              actions: forwardTo('myChild')
+            // EVENT: {
+            //   actions: forwardTo('myChild')
+            // },
+            EVENT: ({ event, children }, enq) => {
+              enq.sendTo(children.myChild, event);
             },
-            SUCCESS: 'last'
+            SUCCESS: () => {
+              return { target: 'last' };
+            }
           }
         },
         last: {
@@ -2499,9 +2525,11 @@ describe('forwardTo()', () => {
   });
 
   it('should not cause an infinite loop when forwarding to undefined', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       on: {
-        '*': { guard: () => true, actions: forwardTo(undefined as any) }
+        '*': ({ event }, enq) => {
+          enq.sendTo(undefined, event);
+        }
       }
     });
 

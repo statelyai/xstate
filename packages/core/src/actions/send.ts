@@ -313,68 +313,6 @@ export function sendParent<
   >(SpecialTargets.Parent, event, options as any);
 }
 
-type Target<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
-  TEvent extends EventObject
-> =
-  | string
-  | AnyActorRef
-  | ((
-      args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-      params: TParams
-    ) => string | AnyActorRef);
-
-/**
- * Forwards (sends) an event to the `target` actor.
- *
- * @param target The target actor to forward the event to.
- * @param options Options to pass into the send action creator.
- */
-export function forwardTo<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
-  TEvent extends EventObject,
-  TDelay extends string = never,
-  TUsedDelay extends TDelay = never
->(
-  target: Target<TContext, TExpressionEvent, TParams, TEvent>,
-  options?: SendToActionOptions<
-    TContext,
-    TExpressionEvent,
-    TParams,
-    TEvent,
-    TUsedDelay
-  >
-) {
-  if (isDevelopment && (!target || typeof target === 'function')) {
-    const originalTarget = target;
-    target = (...args) => {
-      const resolvedTarget =
-        typeof originalTarget === 'function'
-          ? originalTarget(...args)
-          : originalTarget;
-      if (!resolvedTarget) {
-        throw new Error(
-          `Attempted to forward event to undefined actor. This risks an infinite loop in the sender.`
-        );
-      }
-      return resolvedTarget;
-    };
-  }
-  return sendTo<
-    TContext,
-    TExpressionEvent,
-    TParams,
-    AnyActorRef,
-    TEvent,
-    TDelay,
-    TUsedDelay
-  >(target, ({ event }: any) => event, options);
-}
-
 export interface ExecutableSendToAction extends ExecutableActionObject {
   type: 'xstate.sendTo';
   params: {

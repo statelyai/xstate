@@ -1431,7 +1431,7 @@ export function getTransitionResult(
         event,
         value: snapshot.value,
         children: snapshot.children,
-        parent: undefined,
+        parent: actorScope.self._parent,
         self,
         actions: snapshot.machine.implementations.actions,
         actors: snapshot.machine.implementations.actors
