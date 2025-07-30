@@ -131,15 +131,6 @@ importers:
         specifier: ^3.25.51
         version: 3.25.51
 
-  packages/xstate-immer:
-    devDependencies:
-      immer:
-        specifier: ^10.0.2
-        version: 10.1.1
-      xstate:
-        specifier: workspace:^
-        version: link:../core
-
   packages/xstate-inspect:
     dependencies:
       fast-safe-stringify:

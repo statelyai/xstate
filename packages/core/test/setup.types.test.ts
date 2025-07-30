@@ -13,7 +13,6 @@ import {
   fromTransition,
   not,
   raise,
-  sendParent,
   sendTo,
   setup,
   spawnChild,
@@ -773,25 +772,6 @@ describe('setup()', () => {
       },
       actions: {
         sendFoo: sendTo(({ self }) => self, {
-          type: 'FOO'
-        })
-      }
-    });
-  });
-
-  it('should accept a `sendParent` action when delays are not configured', () => {
-    setup({
-      types: {} as {
-        events:
-          | {
-              type: 'FOO';
-            }
-          | {
-              type: 'BAR';
-            };
-      },
-      actions: {
-        sendFoo: sendParent({
           type: 'FOO'
         })
       }

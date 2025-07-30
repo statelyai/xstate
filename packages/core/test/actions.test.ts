@@ -2,7 +2,6 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import {
   cancel,
   raise,
-  sendParent,
   sendTo,
   spawnChild,
   stopChild
@@ -1479,44 +1478,49 @@ describe('entry/exit actions', () => {
 
     // https://github.com/statelyai/xstate/issues/2880
     it('stopping an interpreter that receives events from its children exit handlers should not throw', () => {
-      const child = createMachine({
+      const child = next_createMachine({
         id: 'child',
         initial: 'idle',
         states: {
           idle: {
-            exit: sendParent({ type: 'EXIT' })
+            // exit: sendParent({ type: 'EXIT' })
+            exit: ({ parent }, enq) => {
+              enq.sendTo(parent, { type: 'EXIT' });
+            }
           }
         }
       });
 
-      const parent = createMachine({
+      const parent = next_createMachine({
         id: 'parent',
         invoke: {
           src: child
         }
       });
 
-      const interpreter = createActor(parent);
-      interpreter.start();
+      const actor = createActor(parent);
+      actor.start();
 
-      expect(() => interpreter.stop()).not.toThrow();
+      expect(() => actor.stop()).not.toThrow();
     });
 
     // TODO: determine if the sendParent action should execute when the child actor is stopped.
     // If it shouldn't be, we need to clarify whether exit actions in general should be executed on machine stop,
     // since this is contradictory to other tests.
     it.skip('sent events from exit handlers of a stopped child should not be received by the parent', () => {
-      const child = createMachine({
+      const child = next_createMachine({
         id: 'child',
         initial: 'idle',
         states: {
           idle: {
-            exit: sendParent({ type: 'EXIT' })
+            exit: ({ parent }, enq) => {
+              enq.sendTo(parent, { type: 'EXIT' });
+            }
           }
         }
       });
 
-      const parent = createMachine({
+      const parent = next_createMachine({
         types: {} as {
           context: {
             child: ActorRefFromLogic<typeof child>;
@@ -1527,13 +1531,19 @@ describe('entry/exit actions', () => {
           child: spawn(child)
         }),
         on: {
-          STOP_CHILD: {
-            actions: stopChild(({ context }) => context.child)
+          // STOP_CHILD: {
+          //   actions: stopChild(({ context }) => context.child)
+          // },
+          STOP_CHILD: ({ context }, enq) => {
+            enq.stopChild(context.child);
           },
-          EXIT: {
-            actions: () => {
-              throw new Error('This should not be called.');
-            }
+          // EXIT: {
+          //   actions: () => {
+          //     throw new Error('This should not be called.');
+          //   }
+          // }
+          EXIT: () => {
+            throw new Error('This should not be called.');
           }
         }
       });
@@ -1545,7 +1555,7 @@ describe('entry/exit actions', () => {
     it('sent events from exit handlers of a done child should be received by the parent ', () => {
       let eventReceived = false;
 
-      const child = createMachine({
+      const child = next_createMachine({
         id: 'child',
         initial: 'active',
         states: {
@@ -1558,10 +1568,13 @@ describe('entry/exit actions', () => {
             type: 'final'
           }
         },
-        exit: sendParent({ type: 'CHILD_DONE' })
+        // exit: sendParent({ type: 'CHILD_DONE' })
+        exit: ({ parent }, enq) => {
+          enq.sendTo(parent, { type: 'CHILD_DONE' });
+        }
       });
 
-      const parent = createMachine({
+      const parent = next_createMachine({
         types: {} as {
           context: {
             child: ActorRefFromLogic<typeof child>;
@@ -1572,19 +1585,25 @@ describe('entry/exit actions', () => {
           child: spawn(child)
         }),
         on: {
-          FINISH_CHILD: {
-            actions: sendTo(({ context }) => context.child, { type: 'FINISH' })
+          // FINISH_CHILD: {
+          //   actions: sendTo(({ context }) => context.child, { type: 'FINISH' })
+          // },
+          FINISH_CHILD: ({ context }, enq) => {
+            enq.sendTo(context.child, { type: 'FINISH' });
           },
-          CHILD_DONE: {
-            actions: () => {
-              eventReceived = true;
-            }
+          // CHILD_DONE: {
+          //   actions: () => {
+          //     eventReceived = true;
+          //   }
+          // }
+          CHILD_DONE: (_, enq) => {
+            enq(() => (eventReceived = true));
           }
         }
       });
 
-      const interpreter = createActor(parent).start();
-      interpreter.send({ type: 'FINISH_CHILD' });
+      const actor = createActor(parent).start();
+      actor.send({ type: 'FINISH_CHILD' });
 
       expect(eventReceived).toBe(true);
     });
@@ -2448,21 +2467,28 @@ describe('forwardTo()', () => {
   it('should forward an event to a service (dynamic)', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
 
-    const child = createMachine({
-      types: {} as {
-        events: {
-          type: 'EVENT';
-          value: number;
-        };
+    const child = next_createMachine({
+      // types: {} as {
+      //   events: {
+      //     type: 'EVENT';
+      //     value: number;
+      //   };
+      // },
+      schemas: {
+        events: z.object({
+          type: z.literal('EVENT'),
+          value: z.number()
+        })
       },
       id: 'child',
       initial: 'active',
       states: {
         active: {
           on: {
-            EVENT: {
-              actions: sendParent({ type: 'SUCCESS' }),
-              guard: ({ event }) => event.value === 42
+            EVENT: ({ event, parent }, enq) => {
+              if (event.value === 42) {
+                enq.sendTo(parent, { type: 'SUCCESS' });
+              }
             }
           }
         }
@@ -2908,7 +2934,7 @@ describe('sendParent', () => {
       type: 'CHILD';
     }
 
-    const child = createMachine({
+    const child = next_createMachine({
       types: {} as {
         events: ChildEvent;
       },
@@ -2917,7 +2943,10 @@ describe('sendParent', () => {
       states: {
         start: {
           // This should not be a TypeScript error
-          entry: [sendParent({ type: 'PARENT' })]
+          // entry: [sendParent({ type: 'PARENT' })]
+          entry: ({ parent }, enq) => {
+            enq.sendTo(parent, { type: 'PARENT' });
+          }
         }
       }
     });

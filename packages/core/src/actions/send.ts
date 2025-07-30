@@ -276,43 +276,6 @@ export function sendTo<
   return sendTo;
 }
 
-/**
- * Sends an event to this machine's parent.
- *
- * @param event The event to send to the parent machine.
- * @param options Options to pass into the send event.
- */
-export function sendParent<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
-  TSentEvent extends EventObject = AnyEventObject,
-  TEvent extends EventObject = AnyEventObject,
-  TDelay extends string = never,
-  TUsedDelay extends TDelay = never
->(
-  event:
-    | TSentEvent
-    | SendExpr<TContext, TExpressionEvent, TParams, TSentEvent, TEvent>,
-  options?: SendToActionOptions<
-    TContext,
-    TExpressionEvent,
-    TParams,
-    TEvent,
-    TUsedDelay
-  >
-) {
-  return sendTo<
-    TContext,
-    TExpressionEvent,
-    TParams,
-    AnyActorRef,
-    TEvent,
-    TDelay,
-    TUsedDelay
-  >(SpecialTargets.Parent, event, options as any);
-}
-
 export interface ExecutableSendToAction extends ExecutableActionObject {
   type: 'xstate.sendTo';
   params: {
