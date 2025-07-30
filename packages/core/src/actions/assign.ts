@@ -18,14 +18,16 @@ import type {
   ActionFunction,
   BuiltinActionResolution
 } from '../types.ts';
+import { Implementations } from '../types.v6.ts';
 
 export interface AssignArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TActor extends ProvidedActor
+  TActor extends Implementations['actors']
 > extends ActionArgs<TContext, TExpressionEvent, TEvent> {
   spawn: Spawner;
+  actors: TActor;
 }
 
 function resolveAssign(
@@ -57,6 +59,7 @@ function resolveAssign(
       actionArgs.event,
       spawnedChildren
     ),
+    actors: snapshot.machine.implementations.actors,
     self: actorScope.self,
     system: actorScope.system,
     children: snapshot.children

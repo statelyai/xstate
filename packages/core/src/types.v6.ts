@@ -39,7 +39,8 @@ export type Next_MachineConfig<
     EventObject,
   TDelays extends string = string,
   TTag extends string = string,
-  TActionMap extends Implementations['actions'] = Implementations['actions']
+  TActionMap extends Implementations['actions'] = Implementations['actions'],
+  TActorMap extends Implementations['actors'] = Implementations['actors']
 > = (Omit<
   Next_StateNodeConfig<
     InferOutput<TContextSchema, MachineContext>,
@@ -49,7 +50,8 @@ export type Next_MachineConfig<
     DoNotInfer<StandardSchemaV1.InferOutput<TOutputSchema>>,
     DoNotInfer<StandardSchemaV1.InferOutput<TEmittedSchema> & EventObject>,
     DoNotInfer<InferOutput<TMetaSchema, MetaObject>>,
-    DoNotInfer<TActionMap>
+    DoNotInfer<TActionMap>,
+    DoNotInfer<TActorMap>
   >,
   'output'
 > & {
@@ -63,7 +65,7 @@ export type Next_MachineConfig<
   };
   actions?: TActionMap;
   guards?: Implementations['guards'];
-  actors?: Implementations['actors'];
+  actors?: TActorMap;
   /** The initial context (extended state) */
   /** The machine's own version. */
   version?: string;
@@ -86,7 +88,7 @@ export type Next_MachineConfig<
     ? {
         context?: InitialContext<
           LowInfer<TContext>,
-          TODO,
+          TActorMap,
           InferOutput<TInputSchema, unknown>,
           TEvent
         >;
@@ -94,7 +96,7 @@ export type Next_MachineConfig<
     : {
         context: InitialContext<
           LowInfer<TContext>,
-          TODO,
+          TActorMap,
           InferOutput<TInputSchema, unknown>,
           TEvent
         >;
@@ -113,11 +115,18 @@ export interface Next_StateNodeConfig<
   _TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
-  TActionMap extends Implementations['actions']
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors']
 > {
   /** The initial state transition. */
   initial?:
-    | Next_InitialTransitionConfig<TContext, TEvent, TEmitted, TActionMap>
+    | Next_InitialTransitionConfig<
+        TContext,
+        TEvent,
+        TEmitted,
+        TActionMap,
+        TActorMap
+      >
     | string
     | undefined;
   /**
@@ -148,7 +157,8 @@ export interface Next_StateNodeConfig<
       any, // TOutput,
       TEmitted,
       TMeta,
-      TActionMap
+      TActionMap,
+      TActorMap
     >;
   };
   /**
@@ -156,7 +166,7 @@ export interface Next_StateNodeConfig<
    * be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<{
-    src: AnyActorLogic;
+    src: AnyActorLogic | (({ actors }: { actors: TActorMap }) => AnyActorLogic);
     id?: string;
     input?: TODO;
     onDone?: Next_TransitionConfigOrTarget<
@@ -164,21 +174,24 @@ export interface Next_StateNodeConfig<
       DoneActorEvent,
       TEvent,
       TEmitted,
-      TActionMap
+      TActionMap,
+      TActorMap
     >;
     onError?: Next_TransitionConfigOrTarget<
       TContext,
       ErrorEvent,
       TEvent,
       TEmitted,
-      TActionMap
+      TActionMap,
+      TActorMap
     >;
     onSnapshot?: Next_TransitionConfigOrTarget<
       TContext,
       SnapshotEvent<any>,
       TEvent,
       TEmitted,
-      TActionMap
+      TActionMap,
+      TActorMap
     >;
   }>;
   /** The mapping of event types to their potential transition(s). */
@@ -188,11 +201,12 @@ export interface Next_StateNodeConfig<
       ExtractEvent<TEvent, K>,
       TEvent,
       TEmitted,
-      TActionMap
+      TActionMap,
+      TActorMap
     >;
   };
-  entry?: Action2<TContext, TEvent, TEmitted, TActionMap>;
-  exit?: Action2<TContext, TEvent, TEmitted, TActionMap>;
+  entry?: Action2<TContext, TEvent, TEmitted, TActionMap, TActorMap>;
+  exit?: Action2<TContext, TEvent, TEmitted, TActionMap, TActorMap>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state
    * node.
@@ -207,7 +221,8 @@ export interface Next_StateNodeConfig<
         DoneStateEvent,
         TEvent,
         TEmitted,
-        TActionMap
+        TActionMap,
+        TActorMap
       >
     | undefined;
   /**
@@ -224,7 +239,8 @@ export interface Next_StateNodeConfig<
           TEvent,
           TEvent,
           TODO, // TEmitted
-          TActionMap
+          TActionMap,
+          TActorMap
         >;
   };
 
@@ -237,7 +253,8 @@ export interface Next_StateNodeConfig<
     TEvent,
     TEvent,
     TEmitted,
-    TActionMap
+    TActionMap,
+    TActorMap
   >;
   /**
    * The meta data associated with this state node, which will be returned in
@@ -279,15 +296,24 @@ export type Next_InitialTransitionConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmitted extends EventObject,
-  TActionMap extends Implementations['actions']
-> = TransitionConfigFunction<TContext, TEvent, TEvent, TEmitted, TActionMap>;
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors']
+> = TransitionConfigFunction<
+  TContext,
+  TEvent,
+  TEvent,
+  TEmitted,
+  TActionMap,
+  TActorMap
+>;
 
 export type Next_TransitionConfigOrTarget<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TEmitted extends EventObject,
-  TActionMap extends Implementations['actions']
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors']
 > =
   | string
   | undefined
@@ -297,7 +323,8 @@ export type Next_TransitionConfigOrTarget<
       TExpressionEvent,
       TEvent,
       TEmitted,
-      TActionMap
+      TActionMap,
+      TActorMap
     >;
 
 export interface Next_MachineTypes<

@@ -703,7 +703,8 @@ export class Actor<TLogic extends AnyActorLogic>
     if (this._processingStatus === ProcessingStatus.Stopped) {
       // do nothing
       if (isDevelopment) {
-        const eventString = JSON.stringify(event);
+        // TODO: circular serialization issues
+        const eventString = ''; //JSON.stringify(event);
 
         console.warn(
           `Event "${event.type}" was sent to stopped actor "${this.id} (${this.sessionId})". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`

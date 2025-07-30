@@ -182,6 +182,7 @@ export function next_createMachine<
   TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
   TActor extends ProvidedActor,
   TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
   TGuard extends ParameterizedObject,
   TDelays extends string,
   TTag extends string,
@@ -202,7 +203,8 @@ export function next_createMachine<
     TEvent,
     TDelays,
     TTag,
-    TActionMap
+    TActionMap,
+    TActorMap
   >
 ): StateMachine<
   InferOutput<TContextSchema, MachineContext>,
@@ -218,9 +220,12 @@ export function next_createMachine<
   InferOutput<TOutputSchema, unknown>,
   WithDefault<InferOutput<TEmittedSchema, EventObject>, AnyEventObject>,
   InferOutput<TMetaSchema, MetaObject>, // TMeta
-  TODO // TStateSchema
+  TODO, // TStateSchema
+  TActionMap,
+  TActorMap
 > & {
   emits: InferOutput<TEmittedSchema, EventObject>;
+  actors: TActorMap;
 } {
   config._special = true;
   return new StateMachine<
@@ -237,6 +242,8 @@ export function next_createMachine<
     any,
     any, // TEmitted
     any, // TMeta
-    any // TStateSchema
+    any, // TStateSchema
+    any,
+    any
   >(config as any);
 }

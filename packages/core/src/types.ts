@@ -593,7 +593,8 @@ export type TransitionConfigFunction<
   TCurrentEvent extends EventObject,
   TEvent extends EventObject,
   TEmitted extends EventObject,
-  TActionMap extends Implementations['actions']
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors']
 > = (
   {
     context,
@@ -611,6 +612,7 @@ export type TransitionConfigFunction<
     value: StateValue;
     children: Record<string, AnyActorRef>;
     actions: TActionMap;
+    actors: TActorMap;
   },
   enq: EnqueueObject<TEvent, TEmitted>
 ) => {
@@ -620,6 +622,7 @@ export type TransitionConfigFunction<
 } | void;
 
 export type AnyTransitionConfigFunction = TransitionConfigFunction<
+  any,
   any,
   any,
   any,
@@ -1384,22 +1387,24 @@ export type InternalMachineImplementations<TTypes extends StateMachineTypes> = {
 
 export type InitialContext<
   TContext extends MachineContext,
-  TActor extends ProvidedActor,
+  TActorMap extends Implementations['actors'],
   TInput,
   TEvent extends EventObject
-> = TContext | ContextFactory<TContext, TActor, TInput, TEvent>;
+> = TContext | ContextFactory<TContext, TActorMap, TInput, TEvent>;
 
 export type ContextFactory<
   TContext extends MachineContext,
-  _TActor extends ProvidedActor, // DELETE
+  TActorMap extends Implementations['actors'],
   TInput,
   TEvent extends EventObject = EventObject
 > = ({
   spawn,
+  actors,
   input,
   self
 }: {
   spawn: Spawner;
+  actors: TActorMap;
   input: TInput;
   self: ActorRef<
     MachineSnapshot<
@@ -2780,7 +2785,8 @@ export type Action2<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmittedEvent extends EventObject,
-  TActionMap extends Implementations['actions']
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors']
 > = (
   _: {
     context: TContext;
@@ -2789,6 +2795,7 @@ export type Action2<
     self: AnyActorRef;
     children: Record<string, AnyActorRef | undefined>;
     actions: TActionMap;
+    actors: TActorMap;
   },
   enqueue: EnqueueObject<TEvent, TEmittedEvent>
 ) => {

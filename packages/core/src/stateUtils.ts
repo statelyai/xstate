@@ -1433,7 +1433,8 @@ export function getTransitionResult(
         children: snapshot.children,
         parent: undefined,
         self,
-        actions: snapshot.machine.implementations.actions
+        actions: snapshot.machine.implementations.actions,
+        actors: snapshot.machine.implementations.actors
       },
       enqueue
     );
@@ -1519,7 +1520,8 @@ export function getTransitionActions(
         children: snapshot.children,
         parent: actorScope.self._parent,
         self: actorScope.self,
-        actions: snapshot.machine.implementations.actions
+        actions: snapshot.machine.implementations.actions,
+        actors: snapshot.machine.implementations.actors
       },
       enqueue
     );
@@ -1953,7 +1955,8 @@ function resolveAndExecuteActionsWithContext(
       system: actorScope.system,
       children: intermediateSnapshot.children,
       parent: actorScope.self._parent,
-      actions: currentSnapshot.machine.implementations.actions
+      actions: currentSnapshot.machine.implementations.actions,
+      actors: currentSnapshot.machine.implementations.actors
     };
 
     let actionParams =
@@ -1974,6 +1977,7 @@ function resolveAndExecuteActionsWithContext(
 
     if (resolvedAction && '_special' in resolvedAction) {
       const specialAction = resolvedAction as unknown as Action2<
+        any,
         any,
         any,
         any,
@@ -2221,7 +2225,7 @@ function stopChildren(
     nextState,
     event,
     actorScope,
-    Object.values(nextState.children)
+    Object.values(nextState.children ?? {})
       .filter(Boolean)
       .map((child: any) => stopChild(child)),
     [],
@@ -2327,7 +2331,7 @@ function createEnqueueObject(
 export const emptyEnqueueObject = createEnqueueObject({}, () => {});
 
 function getActionsFromAction2(
-  action2: Action2<any, any, any, any>,
+  action2: Action2<any, any, any, any, any>,
   {
     context,
     event,
@@ -2398,7 +2402,8 @@ function getActionsFromAction2(
         parent,
         self,
         children,
-        actions: machine.implementations.actions // TODO!!!!
+        actions: machine.implementations.actions,
+        actors: machine.implementations.actors
       },
       enqueue
     );
@@ -2438,8 +2443,9 @@ export function hasEffect(
           children: snapshot.children,
           parent: {
             send: triggerEffect
-          },
-          actions: snapshot.machine.implementations.actions
+          } as any,
+          actions: snapshot.machine.implementations.actions,
+          actors: snapshot.machine.implementations.actors
         },
         createEnqueueObject(
           {
@@ -2489,12 +2495,13 @@ export function evaluateCandidate(
           context,
           event,
           self,
-          // @ts-ignore TODO
           parent: {
             send: triggerEffect
           },
           value: snapshot.value,
-          children: snapshot.children
+          children: snapshot.children,
+          actions: stateNode.machine.implementations.actions,
+          actors: stateNode.machine.implementations.actors
         },
         createEnqueueObject(
           {

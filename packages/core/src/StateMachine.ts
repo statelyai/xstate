@@ -67,7 +67,9 @@ export class StateMachine<
   TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
-  TConfig extends StateSchema
+  TConfig extends StateSchema,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors']
 > implements
     ActorLogic<
       MachineSnapshot<
@@ -171,20 +173,10 @@ export class StateMachine<
    *   recursively merge with the existing options.
    * @returns A new `StateMachine` instance with the provided implementations.
    */
-  public provide(
-    implementations: InternalMachineImplementations<
-      ResolvedStateMachineTypes<
-        TContext,
-        DoNotInfer<TEvent>,
-        TActor,
-        TAction,
-        TGuard,
-        TDelay,
-        TTag,
-        TEmitted
-      >
-    >
-  ): StateMachine<
+  public provide(implementations: {
+    actions?: Partial<TActionMap>;
+    actors?: Partial<TActorMap>;
+  }): StateMachine<
     TContext,
     TEvent,
     TChildren,
@@ -198,7 +190,9 @@ export class StateMachine<
     TOutput,
     TEmitted,
     TMeta,
-    TConfig
+    TConfig,
+    TActionMap,
+    TActorMap
   > {
     const { actions, guards, actors, delays } = this.implementations;
 
@@ -381,8 +375,8 @@ export class StateMachine<
     );
 
     if (typeof context === 'function') {
-      const assignment = ({ spawn, event, self }: any) =>
-        context({ spawn, input: event.input, self });
+      const assignment = ({ spawn, event, self, actors }: any) =>
+        context({ spawn, input: event.input, self, actors });
       return resolveActionsAndContext(
         preInitial,
         initEvent,
