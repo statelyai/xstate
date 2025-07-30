@@ -254,9 +254,6 @@ describe('spawning machines', () => {
       initial: 'waiting',
       states: {
         waiting: {
-          // entry: assign({
-          //   ref: ({ spawn }) => spawn('child')
-          // }),
           entry: ({ actors }, enq) => ({
             context: {
               ref: enq.spawn(actors.childMachine)
@@ -304,21 +301,6 @@ describe('spawning promises', () => {
       },
       states: {
         idle: {
-          // entry: assign({
-          //   promiseRef: ({ spawn }) => {
-          //     const ref = spawn(
-          //       fromPromise(
-          //         () =>
-          //           new Promise<string>((res) => {
-          //             res('response');
-          //           })
-          //       ),
-          //       { id: 'my-promise' }
-          //     );
-
-          //     return ref;
-          //   }
-          // }),
           entry: (_, enq) => ({
             context: {
               promiseRef: enq.spawn(
@@ -328,10 +310,6 @@ describe('spawning promises', () => {
             }
           }),
           on: {
-            // 'xstate.done.actor.my-promise': {
-            //   target: 'success',
-            //   guard: ({ event }) => event.output === 'response'
-            // }
             'xstate.done.actor.my-promise': ({ event }) => {
               if (event.output === 'response') {
                 return {
@@ -374,10 +352,6 @@ describe('spawning promises', () => {
       },
       states: {
         idle: {
-          // entry: assign({
-          //   promiseRef: ({ spawn }) =>
-          //     spawn('somePromise', { id: 'my-promise' })
-          // }),
           entry: ({ actors }, enq) => ({
             context: {
               promiseRef: enq.spawn(actors.somePromise, { id: 'my-promise' })
@@ -427,20 +401,6 @@ describe('spawning callbacks', () => {
       },
       states: {
         idle: {
-          // entry: assign({
-          //   callbackRef: ({ spawn }) =>
-          //     spawn(
-          //       fromCallback<{ type: 'START' }>(({ sendBack, receive }) => {
-          //         receive((event) => {
-          //           if (event.type === 'START') {
-          //             setTimeout(() => {
-          //               sendBack({ type: 'SEND_BACK' });
-          //             }, 10);
-          //           }
-          //         });
-          //       })
-          //     )
-          // }),
           entry: (_, enq) => ({
             context: {
               callbackRef: enq.spawn(
@@ -542,16 +502,6 @@ describe('spawning observables', () => {
       },
       states: {
         idle: {
-          // entry: assign({
-          //   observableRef: ({ spawn }) => {
-          //     const ref = spawn(observableLogic, {
-          //       id: 'int',
-          //       syncSnapshot: true
-          //     });
-
-          //     return ref;
-          //   }
-          // }),
           entry: (_, enq) => ({
             context: {
               observableRef: enq.spawn(observableLogic, {
@@ -561,10 +511,6 @@ describe('spawning observables', () => {
             }
           }),
           on: {
-            // 'xstate.snapshot.int': {
-            //   target: 'success',
-            //   guard: ({ event }) => event.snapshot.context === 5
-            // }
             'xstate.snapshot.int': ({ event }) => {
               if (event.snapshot.context === 5) {
                 return {
@@ -604,10 +550,6 @@ describe('spawning observables', () => {
       },
       states: {
         idle: {
-          // entry: assign({
-          //   observableRef: ({ spawn }) =>
-          //     spawn('interval', { id: 'int', syncSnapshot: true })
-          // }),
           entry: (_, enq) => ({
             context: {
               observableRef: enq.spawn(
@@ -617,10 +559,6 @@ describe('spawning observables', () => {
             }
           }),
           on: {
-            // 'xstate.snapshot.int': {
-            //   target: 'success',
-            //   guard: ({ event }) => event.snapshot.context === 5
-            // }
             'xstate.snapshot.int': ({ event }) => {
               if (event.snapshot.context === 5) {
                 return {
@@ -658,16 +596,6 @@ describe('spawning observables', () => {
       },
       states: {
         idle: {
-          // entry: assign({
-          //   observableRef: ({ spawn }) => {
-          //     const ref = spawn(observableLogic, {
-          //       id: 'int',
-          //       syncSnapshot: true
-          //     });
-
-          //     return ref;
-          //   }
-          // }),
           entry: (_, enq) => ({
             context: {
               observableRef: enq.spawn(observableLogic, {
@@ -677,15 +605,6 @@ describe('spawning observables', () => {
             }
           }),
           on: {
-            // 'xstate.snapshot.int': {
-            //   target: 'success',
-            //   guard: ({ context, event }) => {
-            //     return (
-            //       event.snapshot.context === 1 &&
-            //       context.observableRef.getSnapshot().context === 1
-            //     );
-            //   }
-            // }
             'xstate.snapshot.int': ({ event }) => {
               if (event.snapshot.context === 1) {
                 return {
@@ -903,9 +822,6 @@ describe('spawning event observables', () => {
       },
       states: {
         idle: {
-          // entry: assign({
-          //   observableRef: ({ spawn }) => spawn('interval', { id: 'int' })
-          // }),
           entry: (_, enq) => ({
             context: {
               observableRef: enq.spawn(
@@ -917,10 +833,6 @@ describe('spawning event observables', () => {
             }
           }),
           on: {
-            // COUNT: {
-            //   target: 'success',
-            //   guard: ({ event }) => event.val === 5
-            // }
             COUNT: ({ event }) => {
               if (event.val === 5) {
                 return {
@@ -1041,16 +953,6 @@ describe('actors', () => {
       },
       states: {
         start: {
-          // entry: assign({
-          //   refs: ({ context, spawn }) => {
-          //     count++;
-          //     const c = context.items.map((item) =>
-          //       spawn(fromPromise(() => new Promise((res) => res(item))))
-          //     );
-
-          //     return c;
-          //   }
-          // })
           entry: ({ context }, enq) => {
             enq(() => count++);
             return {

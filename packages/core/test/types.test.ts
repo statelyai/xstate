@@ -711,29 +711,25 @@ describe('events', () => {
   });
 
   it('action objects used within implementations parameter should get access to the provided event type', () => {
-    createMachine(
-      {
-        types: {
-          context: {} as { numbers: number[] },
-          events: {} as { type: 'ADD'; number: number }
-        },
-        context: {
-          numbers: []
-        }
+    next_createMachine({
+      types: {
+        context: {} as { numbers: number[] },
+        events: {} as { type: 'ADD'; number: number }
       },
-      {
-        actions: {
-          addNumber: assign({
-            numbers: ({ context, event }) => {
-              ((_accept: number) => {})(event.number);
-              // @ts-expect-error
-              ((_accept: string) => {})(event.number);
-              return context.numbers.concat(event.number);
-            }
-          })
-        }
+      context: {
+        numbers: []
+      },
+      actions: {
+        addNumber: assign({
+          numbers: ({ context, event }) => {
+            ((_accept: number) => {})(event.number);
+            // @ts-expect-error
+            ((_accept: string) => {})(event.number);
+            return context.numbers.concat(event.number);
+          }
+        })
       }
-    );
+    });
   });
 
   it('should provide the default TEvent to transition actions when there is no specific TEvent configured', () => {
