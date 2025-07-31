@@ -48,7 +48,8 @@ import {
   toArray,
   toStatePath,
   toTransitionConfigArray,
-  isErrorActorEvent
+  isErrorActorEvent,
+  resolveReferencedActor
 } from './utils.ts';
 import { createActor } from './createActor.ts';
 
@@ -1271,12 +1272,32 @@ function enterStates(
     // Add entry actions
     actions.push(...stateNodeToEnter.entry);
 
+    const children = { ...currentSnapshot.children };
+
     for (const invokeDef of stateNodeToEnter.invoke) {
+      let logic = resolveReferencedActor(
+        currentSnapshot.machine,
+        invokeDef.src
+      );
+      if (typeof logic === 'function') {
+        logic = logic({
+          actors: currentSnapshot.machine.implementations.actors
+        });
+      }
+      const actor = createActor(logic, {
+        ...invokeDef,
+        syncSnapshot: !!invokeDef.onSnapshot
+      });
+      if (invokeDef.id) {
+        children[invokeDef.id] = actor;
+      }
+
       actions.push(
-        spawnChild(invokeDef.src, {
-          ...invokeDef,
-          syncSnapshot: !!invokeDef.onSnapshot
-        })
+        // spawnChild(invokeDef.src, {
+        //   ...invokeDef,
+        //   syncSnapshot: !!invokeDef.onSnapshot
+        // })
+        () => actor.start()
       );
     }
 
@@ -1287,7 +1308,7 @@ function enterStates(
           event,
           self: actorScope.self,
           parent: actorScope.self._parent,
-          children: currentSnapshot.children,
+          children,
           actorScope,
           machine: currentSnapshot.machine
         })

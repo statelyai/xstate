@@ -704,10 +704,10 @@ export class Actor<TLogic extends AnyActorLogic>
       // do nothing
       if (isDevelopment) {
         // TODO: circular serialization issues
-        const eventString = ''; //JSON.stringify(event);
+        // const eventString = ''; //JSON.stringify(event);
 
         console.warn(
-          `Event "${event.type}" was sent to stopped actor "${this.id} (${this.sessionId})". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`
+          `Event "${event.type}" was sent to stopped actor "${this.id} (${this.sessionId})". This actor has already reached its final state, and will not transition.`
         );
       }
       return;

@@ -2773,9 +2773,9 @@ export type EnqueueObject<
   emit: (emittedEvent: TEmittedEvent) => void;
   <T extends (...args: any[]) => any>(fn: T, ...args: Parameters<T>): void;
   log: (...args: any[]) => void;
-  sendTo: <T extends AnyActorRef>(
-    actorRef: T | undefined,
-    event: EventFrom<T>,
+  sendTo: <T extends EventObject>(
+    actorRef: { send: (event: T) => void } | undefined,
+    event: T,
     options?: { id?: string; delay?: number }
   ) => void;
   stop: (actorRef?: AnyActorRef) => void;
