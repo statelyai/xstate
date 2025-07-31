@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.8.4
+
+### Patch Changes
+
+- [#5337](https://github.com/statelyai/xstate/pull/5337) [`b64a6c9`](https://github.com/statelyai/xstate/commit/b64a6c925d87bce6246d35e562bdda6907e2e33f) Thanks [@flbn](https://github.com/flbn)! - chore: add missing EventFromStoreConfig, EmitsFromStoreConfig, ContextFromStoreConfig types from @xstate/store exports
+
 ## 3.8.3
 
 ### Patch Changes
