@@ -450,6 +450,9 @@ export function formatInitialTransition<
     | undefined
     | InitialTransitionConfig<TContext, TEvent, TODO, TODO, TODO, TODO>
 ): InitialTransitionDefinition<TContext, TEvent> {
+  if (typeof _target === 'function') {
+    const res = getTransitionResult({ fn: _target });
+  }
   const resolvedTarget =
     typeof _target === 'string'
       ? stateNode.states[_target]
@@ -1284,8 +1287,11 @@ function enterStates(
           actors: currentSnapshot.machine.implementations.actors
         });
       }
+      const input = invokeDef.input?.({ self: actorScope.self });
       const actor = createActor(logic, {
         ...invokeDef,
+        input,
+        parent: actorScope.self,
         syncSnapshot: !!invokeDef.onSnapshot
       });
       if (invokeDef.id) {
@@ -1300,6 +1306,8 @@ function enterStates(
         () => actor.start()
       );
     }
+
+    nextSnapshot = cloneMachineSnapshot(nextSnapshot, { children });
 
     if (stateNodeToEnter.entry2) {
       actions.push(
