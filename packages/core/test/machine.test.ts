@@ -1,4 +1,4 @@
-import { createActor, createMachine, assign, setup } from '../src/index.ts';
+import { createActor, next_createMachine, setup } from '../src/index.ts';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -17,7 +17,7 @@ const pedestrianStates = {
   }
 };
 
-const lightMachine = createMachine({
+const lightMachine = next_createMachine({
   initial: 'green',
   states: {
     green: {
@@ -66,7 +66,7 @@ describe('machine', () => {
 
   describe('machine.config', () => {
     it('state node config should reference original machine config', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'one',
         states: {
           one: {
@@ -95,88 +95,10 @@ describe('machine', () => {
   });
 
   describe('machine.provide', () => {
-    it('should override an action', () => {
-      const originalEntry = vi.fn();
-      const overridenEntry = vi.fn();
-
-      const machine = createMachine(
-        {
-          entry: 'entryAction'
-        },
-        {
-          actions: {
-            entryAction: originalEntry
-          }
-        }
-      );
-      const differentMachine = machine.provide({
-        actions: {
-          entryAction: overridenEntry
-        }
-      });
-
-      createActor(differentMachine).start();
-
-      expect(originalEntry).toHaveBeenCalledTimes(0);
-      expect(overridenEntry).toHaveBeenCalledTimes(1);
-    });
-
-    it('should override a guard', () => {
-      const originalGuard = vi.fn().mockImplementation(() => true);
-      const overridenGuard = vi.fn().mockImplementation(() => true);
-
-      const machine = createMachine(
-        {
-          on: {
-            EVENT: {
-              guard: 'someCondition',
-              actions: () => {}
-            }
-          }
-        },
-        {
-          guards: {
-            someCondition: originalGuard
-          }
-        }
-      );
-
-      const differentMachine = machine.provide({
-        guards: { someCondition: overridenGuard }
-      });
-
-      const actorRef = createActor(differentMachine).start();
-      actorRef.send({ type: 'EVENT' });
-
-      expect(originalGuard).toHaveBeenCalledTimes(0);
-      expect(overridenGuard).toHaveBeenCalledTimes(1);
-    });
-
-    it('should not override context if not defined', () => {
-      const machine = createMachine({
-        context: {
-          foo: 'bar'
-        }
-      });
-      const differentMachine = machine.provide({});
-      const actorRef = createActor(differentMachine).start();
-      expect(actorRef.getSnapshot().context).toEqual({ foo: 'bar' });
-    });
-
-    it.skip('should override context (second argument)', () => {
-      // const differentMachine = configMachine.withConfig(
-      //   {},
-      //   { foo: 'different' }
-      // );
-      // expect(differentMachine.initialState.context).toEqual({
-      //   foo: 'different'
-      // });
-    });
-
     // https://github.com/davidkpiano/xstate/issues/674
     it('should throw if initial state is missing in a compound state', () => {
       expect(() => {
-        createMachine({
+        next_createMachine({
           initial: 'first',
           states: {
             first: {
@@ -191,12 +113,13 @@ describe('machine', () => {
     });
 
     it('machines defined without context should have a default empty object for context', () => {
-      expect(createActor(createMachine({})).getSnapshot().context).toEqual({});
+      expect(createActor(next_createMachine({})).getSnapshot().context).toEqual(
+        {}
+      );
     });
 
     it('should lazily create context for all interpreter instances created from the same machine template created by `provide`', () => {
-      const machine = createMachine({
-        types: {} as { context: { foo: { prop: string } } },
+      const machine = next_createMachine({
         context: () => ({
           foo: { prop: 'baz' }
         })
@@ -222,8 +145,8 @@ describe('machine', () => {
           active: {}
         }
       };
-      const testMachine1 = createMachine(config);
-      const testMachine2 = createMachine(config);
+      const testMachine1 = next_createMachine(config);
+      const testMachine2 = next_createMachine(config);
 
       const initialState1 = createActor(testMachine1).getSnapshot();
       const initialState2 = createActor(testMachine2).getSnapshot();
@@ -240,8 +163,8 @@ describe('machine', () => {
     });
   });
 
-  describe('machine.resolveStateValue()', () => {
-    const resolveMachine = createMachine({
+  describe('machine.resolveState()', () => {
+    const resolveMachine = next_createMachine({
       id: 'resolve',
       initial: 'foo',
       states: {
@@ -289,7 +212,7 @@ describe('machine', () => {
     });
 
     it('should resolve `status: done`', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'foo',
         states: {
           foo: {
@@ -309,11 +232,11 @@ describe('machine', () => {
 
   describe('initial state', () => {
     it('should follow always transition', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: {
-            always: [{ target: 'b' }]
+            always: { target: 'b' }
           },
           b: {}
         }
@@ -325,7 +248,7 @@ describe('machine', () => {
 
   describe('versioning', () => {
     it('should allow a version to be specified', () => {
-      const versionMachine = createMachine({
+      const versionMachine = next_createMachine({
         id: 'version',
         version: '1.0.4',
         states: {}
@@ -337,7 +260,7 @@ describe('machine', () => {
 
   describe('id', () => {
     it('should represent the ID', () => {
-      const idMachine = createMachine({
+      const idMachine = next_createMachine({
         id: 'some-id',
         initial: 'idle',
         states: { idle: {} }
@@ -347,7 +270,7 @@ describe('machine', () => {
     });
 
     it('should represent the ID (state node)', () => {
-      const idMachine = createMachine({
+      const idMachine = next_createMachine({
         id: 'some-id',
         initial: 'idle',
         states: {
@@ -361,7 +284,7 @@ describe('machine', () => {
     });
 
     it('should use the key as the ID if no ID is provided (state node)', () => {
-      const noStateNodeIDMachine = createMachine({
+      const noStateNodeIDMachine = next_createMachine({
         id: 'some-id',
         initial: 'idle',
         states: { idle: {} }
@@ -373,13 +296,15 @@ describe('machine', () => {
 
   describe('combinatorial machines', () => {
     it('should support combinatorial machines (single-state)', () => {
-      const testMachine = createMachine({
-        types: {} as { context: { value: number } },
+      const testMachine = next_createMachine({
+        // types: {} as { context: { value: number } },
         context: { value: 42 },
         on: {
-          INC: {
-            actions: assign({ value: ({ context }) => context.value + 1 })
-          }
+          INC: ({ context }) => ({
+            context: {
+              value: context.value + 1
+            }
+          })
         }
       });
 
