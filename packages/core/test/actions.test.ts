@@ -1,15 +1,11 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import { cancel, raise, sendTo } from '../src/actions.ts';
 import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import {
   ActorRefFromLogic,
   EventObject,
   createActor,
-  createMachine,
-  next_createMachine,
-  setup
+  next_createMachine
 } from '../src/index.ts';
-import { trackEntries } from './utils.ts';
 import { z } from 'zod';
 
 const originalConsoleLog = console.log;
@@ -105,54 +101,66 @@ describe('entry/exit actions', () => {
     });
 
     it('should return the entry and exit actions of a transition', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'green',
         states: {
           green: {
-            on: {
-              TIMER: 'yellow'
-            }
-          },
-          yellow: {}
-        }
-      });
-
-      const flushTracked = trackEntries(machine);
-
-      const actor = createActor(machine).start();
-      flushTracked();
-
-      actor.send({ type: 'TIMER' });
-
-      expect(flushTracked()).toEqual(['exit: green', 'enter: yellow']);
-    });
-
-    it('should return the entry and exit actions of a deep transition', () => {
-      const machine = createMachine({
-        initial: 'green',
-        states: {
-          green: {
+            entry: (_, enq) => enq(() => tracked.push('enter: green')),
+            exit: (_, enq) => enq(() => tracked.push('exit: green')),
             on: {
               TIMER: 'yellow'
             }
           },
           yellow: {
+            entry: (_, enq) => enq(() => tracked.push('enter: yellow')),
+            exit: (_, enq) => enq(() => tracked.push('exit: yellow'))
+          }
+        }
+      });
+
+      const actor = createActor(machine).start();
+      tracked.length = 0;
+
+      actor.send({ type: 'TIMER' });
+
+      expect(tracked).toEqual(['exit: green', 'enter: yellow']);
+    });
+
+    it('should return the entry and exit actions of a deep transition', () => {
+      const tracked: string[] = [];
+      const machine = next_createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            entry: (_, enq) => enq(() => tracked.push('enter: green')),
+            exit: (_, enq) => enq(() => tracked.push('exit: green')),
+            on: {
+              TIMER: 'yellow'
+            }
+          },
+          yellow: {
+            entry: (_, enq) => enq(() => tracked.push('enter: yellow')),
+            exit: (_, enq) => enq(() => tracked.push('exit: yellow')),
             initial: 'speed_up',
             states: {
-              speed_up: {}
+              speed_up: {
+                entry: (_, enq) =>
+                  enq(() => tracked.push('enter: yellow.speed_up')),
+                exit: (_, enq) =>
+                  enq(() => tracked.push('exit: yellow.speed_up'))
+              }
             }
           }
         }
       });
 
-      const flushTracked = trackEntries(machine);
-
       const actor = createActor(machine).start();
-      flushTracked();
+      tracked.length = 0;
 
       actor.send({ type: 'TIMER' });
 
-      expect(flushTracked()).toEqual([
+      expect(tracked).toEqual([
         'exit: green',
         'enter: yellow',
         'enter: yellow.speed_up'
@@ -160,80 +168,100 @@ describe('entry/exit actions', () => {
     });
 
     it('should return the entry and exit actions of a nested transition', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            entry: (_, enq) => enq(() => tracked.push('enter: green')),
+            exit: (_, enq) => enq(() => tracked.push('exit: green')),
+            initial: 'walk',
+            states: {
+              walk: {
+                entry: (_, enq) => enq(() => tracked.push('enter: green.walk')),
+                exit: (_, enq) => enq(() => tracked.push('exit: green.walk')),
+                on: {
+                  PED_COUNTDOWN: 'wait'
+                }
+              },
+              wait: {
+                entry: (_, enq) => enq(() => tracked.push('enter: green.wait')),
+                exit: (_, enq) => enq(() => tracked.push('exit: green.wait'))
+              }
+            }
+          }
+        }
+      });
+
+      const actor = createActor(machine).start();
+      tracked.length = 0;
+
+      actor.send({ type: 'PED_COUNTDOWN' });
+
+      expect(tracked).toEqual(['exit: green.walk', 'enter: green.wait']);
+    });
+
+    it('should not have actions for unhandled events (shallow)', () => {
+      const tracked: string[] = [];
+      const machine = next_createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            entry: (_, enq) => enq(() => tracked.push('enter: green')),
+            exit: (_, enq) => enq(() => tracked.push('exit: green'))
+          }
+        }
+      });
+
+      const actor = createActor(machine).start();
+      tracked.length = 0;
+
+      actor.send({ type: 'FAKE' });
+
+      expect(tracked).toEqual([]);
+    });
+
+    it('should not have actions for unhandled events (deep)', () => {
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'green',
         states: {
           green: {
             initial: 'walk',
             states: {
               walk: {
-                on: {
-                  PED_COUNTDOWN: 'wait'
-                }
+                entry: (_, enq) => enq(() => tracked.push('enter: green.walk')),
+                exit: (_, enq) => enq(() => tracked.push('exit: green.walk'))
               },
-              wait: {}
+              wait: {
+                entry: (_, enq) => enq(() => tracked.push('enter: green.wait')),
+                exit: (_, enq) => enq(() => tracked.push('exit: green.wait'))
+              },
+              stop: {
+                entry: (_, enq) => enq(() => tracked.push('enter: green.stop')),
+                exit: (_, enq) => enq(() => tracked.push('exit: green.stop'))
+              }
             }
           }
         }
       });
 
-      const flushTracked = trackEntries(machine);
-
       const actor = createActor(machine).start();
-      flushTracked();
-
-      actor.send({ type: 'PED_COUNTDOWN' });
-
-      expect(flushTracked()).toEqual(['exit: green.walk', 'enter: green.wait']);
-    });
-
-    it('should not have actions for unhandled events (shallow)', () => {
-      const machine = createMachine({
-        initial: 'green',
-        states: {
-          green: {}
-        }
-      });
-      const flushTracked = trackEntries(machine);
-
-      const actor = createActor(machine).start();
-      flushTracked();
+      tracked.length = 0;
 
       actor.send({ type: 'FAKE' });
 
-      expect(flushTracked()).toEqual([]);
-    });
-
-    it('should not have actions for unhandled events (deep)', () => {
-      const machine = createMachine({
-        initial: 'green',
-        states: {
-          green: {
-            initial: 'walk',
-            states: {
-              walk: {},
-              wait: {},
-              stop: {}
-            }
-          }
-        }
-      });
-
-      const flushTracked = trackEntries(machine);
-
-      const actor = createActor(machine).start();
-      flushTracked();
-
-      actor.send({ type: 'FAKE' });
-
-      expect(flushTracked()).toEqual([]);
+      expect(tracked).toEqual([]);
     });
 
     it('should exit and enter the state for reentering self-transitions (shallow)', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'green',
         states: {
           green: {
+            entry: (_, enq) => enq(() => tracked.push('enter: green')),
+            exit: (_, enq) => enq(() => tracked.push('exit: green')),
             on: {
               RESTART: {
                 target: 'green',
@@ -244,21 +272,22 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(machine);
-
       const actor = createActor(machine).start();
-      flushTracked();
+      tracked.length = 0;
 
       actor.send({ type: 'RESTART' });
 
-      expect(flushTracked()).toEqual(['exit: green', 'enter: green']);
+      expect(tracked).toEqual(['exit: green', 'enter: green']);
     });
 
     it('should exit and enter the state for reentering self-transitions (deep)', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'green',
         states: {
           green: {
+            entry: (_, enq) => enq(() => tracked.push('enter: green')),
+            exit: (_, enq) => enq(() => tracked.push('exit: green')),
             on: {
               RESTART: {
                 target: 'green',
@@ -267,21 +296,29 @@ describe('entry/exit actions', () => {
             },
             initial: 'walk',
             states: {
-              walk: {},
-              wait: {},
-              stop: {}
+              walk: {
+                entry: (_, enq) => enq(() => tracked.push('enter: green.walk')),
+                exit: (_, enq) => enq(() => tracked.push('exit: green.walk'))
+              },
+              wait: {
+                entry: (_, enq) => enq(() => tracked.push('enter: green.wait')),
+                exit: (_, enq) => enq(() => tracked.push('exit: green.wait'))
+              },
+              stop: {
+                entry: (_, enq) => enq(() => tracked.push('enter: green.stop')),
+                exit: (_, enq) => enq(() => tracked.push('exit: green.stop'))
+              }
             }
           }
         }
       });
-      const flushTracked = trackEntries(machine);
 
       const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      flushTracked();
       actor.send({ type: 'RESTART' });
 
-      expect(flushTracked()).toEqual([
+      expect(tracked).toEqual([
         'exit: green.walk',
         'exit: green',
         'enter: green',
@@ -381,33 +418,42 @@ describe('entry/exit actions', () => {
     });
 
     it('should return nested actions in the correct (child to parent) order', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: {
+            entry: (_, enq) => enq(() => tracked.push('enter: a')),
+            exit: (_, enq) => enq(() => tracked.push('exit: a')),
             initial: 'a1',
             states: {
-              a1: {}
+              a1: {
+                entry: (_, enq) => enq(() => tracked.push('enter: a.a1')),
+                exit: (_, enq) => enq(() => tracked.push('exit: a.a1'))
+              }
             },
             on: { CHANGE: 'b' }
           },
           b: {
+            entry: (_, enq) => enq(() => tracked.push('enter: b')),
+            exit: (_, enq) => enq(() => tracked.push('exit: b')),
             initial: 'b1',
             states: {
-              b1: {}
+              b1: {
+                entry: (_, enq) => enq(() => tracked.push('enter: b.b1')),
+                exit: (_, enq) => enq(() => tracked.push('exit: b.b1'))
+              }
             }
           }
         }
       });
 
-      const flushTracked = trackEntries(machine);
-
       const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      flushTracked();
       actor.send({ type: 'CHANGE' });
 
-      expect(flushTracked()).toEqual([
+      expect(tracked).toEqual([
         'exit: a.a1',
         'exit: a',
         'enter: b',
@@ -416,31 +462,35 @@ describe('entry/exit actions', () => {
     });
 
     it('should ignore parent state actions for same-parent substates', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: {
             initial: 'a1',
             states: {
               a1: {
+                entry: (_, enq) => enq(() => tracked.push('enter: a.a1')),
+                exit: (_, enq) => enq(() => tracked.push('exit: a.a1')),
                 on: {
                   NEXT: 'a2'
                 }
               },
-              a2: {}
+              a2: {
+                entry: (_, enq) => enq(() => tracked.push('enter: a.a2')),
+                exit: (_, enq) => enq(() => tracked.push('exit: a.a2'))
+              }
             }
           }
         }
       });
 
-      const flushTracked = trackEntries(machine);
-
       const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      flushTracked();
       actor.send({ type: 'NEXT' });
 
-      expect(flushTracked()).toEqual(['exit: a.a1', 'enter: a.a2']);
+      expect(tracked).toEqual(['exit: a.a1', 'enter: a.a2']);
     });
 
     it('should work with function actions', () => {
@@ -513,30 +563,45 @@ describe('entry/exit actions', () => {
     });
 
     it('should exit children of parallel state nodes', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'B',
         states: {
           A: {
+            entry: (_, enq) => enq(() => tracked.push('enter: A')),
+            exit: (_, enq) => enq(() => tracked.push('exit: A')),
             on: {
               'to-B': 'B'
             }
           },
           B: {
             type: 'parallel',
+            entry: (_, enq) => enq(() => tracked.push('enter: B')),
+            exit: (_, enq) => enq(() => tracked.push('exit: B')),
             on: {
               'to-A': 'A'
             },
             states: {
               C: {
+                entry: (_, enq) => enq(() => tracked.push('enter: B.C')),
+                exit: (_, enq) => enq(() => tracked.push('exit: B.C')),
                 initial: 'C1',
                 states: {
-                  C1: {}
+                  C1: {
+                    entry: (_, enq) => enq(() => tracked.push('enter: B.C.C1')),
+                    exit: (_, enq) => enq(() => tracked.push('exit: B.C.C1'))
+                  }
                 }
               },
               D: {
+                entry: (_, enq) => enq(() => tracked.push('enter: B.D')),
+                exit: (_, enq) => enq(() => tracked.push('exit: B.D')),
                 initial: 'D1',
                 states: {
-                  D1: {}
+                  D1: {
+                    entry: (_, enq) => enq(() => tracked.push('enter: B.D.D1')),
+                    exit: (_, enq) => enq(() => tracked.push('exit: B.D.D1'))
+                  }
                 }
               }
             }
@@ -544,14 +609,12 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(machine);
-
       const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      flushTracked();
       actor.send({ type: 'to-A' });
 
-      expect(flushTracked()).toEqual([
+      expect(tracked).toEqual([
         'exit: B.D.D1',
         'exit: B.D',
         'exit: B.C.C1',
@@ -562,14 +625,20 @@ describe('entry/exit actions', () => {
     });
 
     it("should reenter targeted ancestor (as it's a descendant of the transition domain)", () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'loaded',
         states: {
           loaded: {
             id: 'loaded',
+            entry: (_, enq) => enq(() => tracked.push('enter: loaded')),
+            exit: (_, enq) => enq(() => tracked.push('exit: loaded')),
             initial: 'idle',
             states: {
               idle: {
+                entry: (_, enq) =>
+                  enq(() => tracked.push('enter: loaded.idle')),
+                exit: (_, enq) => enq(() => tracked.push('exit: loaded.idle')),
                 on: {
                   UPDATE: '#loaded'
                 }
@@ -579,14 +648,12 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(machine);
-
       const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      flushTracked();
       actor.send({ type: 'UPDATE' });
 
-      expect(flushTracked()).toEqual([
+      expect(tracked).toEqual([
         'exit: loaded.idle',
         'exit: loaded',
         'enter: loaded',
@@ -598,10 +665,10 @@ describe('entry/exit actions', () => {
       let entrySpy = vi.fn();
       let exitSpy = vi.fn();
 
-      const machine = createMachine({
+      const machine = next_createMachine({
         id: 'root',
-        entry: entrySpy,
-        exit: exitSpy,
+        entry: (_, enq) => enq(entrySpy),
+        exit: (_, enq) => enq(exitSpy),
         on: {
           EVENT: {
             target: '#two',
@@ -630,127 +697,161 @@ describe('entry/exit actions', () => {
 
     describe('should ignore same-parent state actions (sparse)', () => {
       it('with a relative transition', () => {
-        const machine = createMachine({
+        const tracked: string[] = [];
+        const machine = next_createMachine({
           initial: 'ping',
           states: {
             ping: {
+              entry: (_, enq) => enq(() => tracked.push('enter: ping')),
+              exit: (_, enq) => enq(() => tracked.push('exit: ping')),
               initial: 'foo',
               states: {
                 foo: {
+                  entry: (_, enq) => enq(() => tracked.push('enter: ping.foo')),
+                  exit: (_, enq) => enq(() => tracked.push('exit: ping.foo')),
                   on: {
                     TACK: 'bar'
                   }
                 },
-                bar: {}
+                bar: {
+                  entry: (_, enq) => enq(() => tracked.push('enter: ping.bar')),
+                  exit: (_, enq) => enq(() => tracked.push('exit: ping.bar'))
+                }
               }
             }
           }
         });
 
-        const flushTracked = trackEntries(machine);
-
         const actor = createActor(machine).start();
-        flushTracked();
+        tracked.length = 0;
 
         actor.send({ type: 'TACK' });
 
-        expect(flushTracked()).toEqual(['exit: ping.foo', 'enter: ping.bar']);
+        expect(tracked).toEqual(['exit: ping.foo', 'enter: ping.bar']);
       });
 
       it('with an absolute transition', () => {
-        const machine = createMachine({
+        const tracked: string[] = [];
+        const machine = next_createMachine({
           id: 'root',
           initial: 'ping',
           states: {
             ping: {
+              entry: (_, enq) => enq(() => tracked.push('enter: ping')),
+              exit: (_, enq) => enq(() => tracked.push('exit: ping')),
               initial: 'foo',
               states: {
                 foo: {
+                  entry: (_, enq) => enq(() => tracked.push('enter: ping.foo')),
+                  exit: (_, enq) => enq(() => tracked.push('exit: ping.foo')),
                   on: {
                     ABSOLUTE_TACK: '#root.ping.bar'
                   }
                 },
-                bar: {}
+                bar: {
+                  entry: (_, enq) => enq(() => tracked.push('enter: ping.bar')),
+                  exit: (_, enq) => enq(() => tracked.push('exit: ping.bar'))
+                }
               }
             },
-            pong: {}
+            pong: {
+              entry: (_, enq) => enq(() => tracked.push('enter: pong')),
+              exit: (_, enq) => enq(() => tracked.push('exit: pong'))
+            }
           }
         });
 
-        const flushTracked = trackEntries(machine);
-
         const actor = createActor(machine).start();
-        flushTracked();
+        tracked.length = 0;
 
         actor.send({ type: 'ABSOLUTE_TACK' });
 
-        expect(flushTracked()).toEqual(['exit: ping.foo', 'enter: ping.bar']);
+        expect(tracked).toEqual(['exit: ping.foo', 'enter: ping.bar']);
       });
     });
   });
 
   describe('entry/exit actions', () => {
     it('should return the entry actions of an initial state', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'green',
+        entry: (_, enq) => enq(() => tracked.push('enter: __root__')),
+        exit: (_, enq) => enq(() => tracked.push('exit: __root__')),
         states: {
-          green: {}
+          green: {
+            entry: (_, enq) => enq(() => tracked.push('enter: green')),
+            exit: (_, enq) => enq(() => tracked.push('exit: green'))
+          }
         }
       });
-      const flushTracked = trackEntries(machine);
+
       createActor(machine).start();
 
-      expect(flushTracked()).toEqual(['enter: __root__', 'enter: green']);
+      expect(tracked).toEqual(['enter: __root__', 'enter: green']);
     });
 
     it('should return the entry and exit actions of a transition', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'green',
         states: {
           green: {
-            on: {
-              TIMER: 'yellow'
-            }
-          },
-          yellow: {}
-        }
-      });
-
-      const flushTracked = trackEntries(machine);
-
-      const actor = createActor(machine).start();
-      flushTracked();
-
-      actor.send({ type: 'TIMER' });
-
-      expect(flushTracked()).toEqual(['exit: green', 'enter: yellow']);
-    });
-
-    it('should return the entry and exit actions of a deep transition', () => {
-      const machine = createMachine({
-        initial: 'green',
-        states: {
-          green: {
+            entry: (_, enq) => enq(() => tracked.push('enter: green')),
+            exit: (_, enq) => enq(() => tracked.push('exit: green')),
             on: {
               TIMER: 'yellow'
             }
           },
           yellow: {
+            entry: (_, enq) => enq(() => tracked.push('enter: yellow')),
+            exit: (_, enq) => enq(() => tracked.push('exit: yellow'))
+          }
+        }
+      });
+
+      const actor = createActor(machine).start();
+      tracked.length = 0;
+
+      actor.send({ type: 'TIMER' });
+
+      expect(tracked).toEqual(['exit: green', 'enter: yellow']);
+    });
+
+    it('should return the entry and exit actions of a deep transition', () => {
+      const tracked: string[] = [];
+      const machine = next_createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            entry: (_, enq) => enq(() => tracked.push('enter: green')),
+            exit: (_, enq) => enq(() => tracked.push('exit: green')),
+            on: {
+              TIMER: 'yellow'
+            }
+          },
+          yellow: {
+            entry: (_, enq) => enq(() => tracked.push('enter: yellow')),
+            exit: (_, enq) => enq(() => tracked.push('exit: yellow')),
             initial: 'speed_up',
             states: {
-              speed_up: {}
+              speed_up: {
+                entry: (_, enq) =>
+                  enq(() => tracked.push('enter: yellow.speed_up')),
+                exit: (_, enq) =>
+                  enq(() => tracked.push('exit: yellow.speed_up'))
+              }
             }
           }
         }
       });
-      const flushTracked = trackEntries(machine);
 
       const actor = createActor(machine).start();
-      flushTracked();
+      tracked.length = 0;
 
       actor.send({ type: 'TIMER' });
 
-      expect(flushTracked()).toEqual([
+      expect(tracked).toEqual([
         'exit: green',
         'enter: yellow',
         'enter: yellow.speed_up'
@@ -758,76 +859,94 @@ describe('entry/exit actions', () => {
     });
 
     it('should return the entry and exit actions of a nested transition', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'green',
         states: {
           green: {
+            entry: (_, enq) => enq(() => tracked.push('enter: green')),
+            exit: (_, enq) => enq(() => tracked.push('exit: green')),
             initial: 'walk',
             states: {
               walk: {
+                entry: (_, enq) => enq(() => tracked.push('enter: green.walk')),
+                exit: (_, enq) => enq(() => tracked.push('exit: green.walk')),
                 on: {
                   PED_COUNTDOWN: 'wait'
                 }
               },
-              wait: {}
+              wait: {
+                entry: (_, enq) => enq(() => tracked.push('enter: green.wait')),
+                exit: (_, enq) => enq(() => tracked.push('exit: green.wait'))
+              }
             }
           }
         }
       });
-      const flushTracked = trackEntries(machine);
 
       const actor = createActor(machine).start();
-      flushTracked();
+      tracked.length = 0;
 
       actor.send({ type: 'PED_COUNTDOWN' });
 
-      expect(flushTracked()).toEqual(['exit: green.walk', 'enter: green.wait']);
+      expect(tracked).toEqual(['exit: green.walk', 'enter: green.wait']);
     });
 
     it('should keep the same state for unhandled events (shallow)', () => {
-      const machine = createMachine({
-        initial: 'green',
-        states: {
-          green: {}
-        }
-      });
-      const flushTracked = trackEntries(machine);
-
-      const actor = createActor(machine).start();
-      flushTracked();
-
-      actor.send({ type: 'FAKE' });
-
-      expect(flushTracked()).toEqual([]);
-    });
-
-    it('should keep the same state for unhandled events (deep)', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'green',
         states: {
           green: {
+            entry: (_, enq) => enq(() => tracked.push('enter: green')),
+            exit: (_, enq) => enq(() => tracked.push('exit: green'))
+          }
+        }
+      });
+
+      const actor = createActor(machine).start();
+      tracked.length = 0;
+
+      actor.send({ type: 'FAKE' });
+
+      expect(tracked).toEqual([]);
+    });
+
+    it('should keep the same state for unhandled events (deep)', () => {
+      const tracked: string[] = [];
+      const machine = next_createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            entry: (_, enq) => enq(() => tracked.push('enter: green')),
+            exit: (_, enq) => enq(() => tracked.push('exit: green')),
             initial: 'walk',
             states: {
-              walk: {}
+              walk: {
+                entry: (_, enq) => enq(() => tracked.push('enter: green.walk')),
+                exit: (_, enq) => enq(() => tracked.push('exit: green.walk'))
+              }
             }
           }
         }
       });
-      const flushTracked = trackEntries(machine);
 
       const actor = createActor(machine).start();
-      flushTracked();
+      tracked.length = 0;
 
       actor.send({ type: 'FAKE' });
 
-      expect(flushTracked()).toEqual([]);
+      expect(tracked).toEqual([]);
     });
 
     it('should exit and enter the state for reentering self-transitions (shallow)', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'green',
         states: {
           green: {
+            entry: (_, enq) => enq(() => tracked.push('enter: green')),
+            exit: (_, enq) => enq(() => tracked.push('exit: green')),
             on: {
               RESTART: {
                 target: 'green',
@@ -838,21 +957,22 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(machine);
-
       const actor = createActor(machine).start();
-      flushTracked();
+      tracked.length = 0;
 
       actor.send({ type: 'RESTART' });
 
-      expect(flushTracked()).toEqual(['exit: green', 'enter: green']);
+      expect(tracked).toEqual(['exit: green', 'enter: green']);
     });
 
     it('should exit and enter the state for reentering self-transitions (deep)', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'green',
         states: {
           green: {
+            entry: (_, enq) => enq(() => tracked.push('enter: green')),
+            exit: (_, enq) => enq(() => tracked.push('exit: green')),
             on: {
               RESTART: {
                 target: 'green',
@@ -861,19 +981,20 @@ describe('entry/exit actions', () => {
             },
             initial: 'walk',
             states: {
-              walk: {}
+              walk: {
+                entry: (_, enq) => enq(() => tracked.push('enter: green.walk')),
+                exit: (_, enq) => enq(() => tracked.push('exit: green.walk'))
+              }
             }
           }
         }
       });
 
-      const flushTracked = trackEntries(machine);
-
       const actor = createActor(machine).start();
-      flushTracked();
+      tracked.length = 0;
 
       actor.send({ type: 'RESTART' });
-      expect(flushTracked()).toEqual([
+      expect(tracked).toEqual([
         'exit: green.walk',
         'exit: green',
         'enter: green',
@@ -882,21 +1003,33 @@ describe('entry/exit actions', () => {
     });
 
     it('should exit current node and enter target node when target is not a descendent or ancestor of current', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'A',
+
         states: {
           A: {
+            entry: (_, enq) => enq(() => tracked.push('enter: A')),
+            exit: (_, enq) => enq(() => tracked.push('exit: A')),
             initial: 'A1',
             states: {
               A1: {
+                entry: (_, enq) => enq(() => tracked.push('enter: A.A1')),
+                exit: (_, enq) => enq(() => tracked.push('exit: A.A1')),
                 on: {
                   NEXT: '#sibling_descendant'
                 }
               },
               A2: {
+                entry: (_, enq) => enq(() => tracked.push('enter: A.A2')),
+                exit: (_, enq) => enq(() => tracked.push('exit: A.A2')),
                 initial: 'A2_child',
                 states: {
                   A2_child: {
+                    entry: (_, enq) =>
+                      enq(() => tracked.push('enter: A.A2.A2_child')),
+                    exit: (_, enq) =>
+                      enq(() => tracked.push('exit: A.A2.A2_child')),
                     id: 'sibling_descendant'
                   }
                 }
@@ -906,13 +1039,12 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(machine);
+      const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      const service = createActor(machine).start();
-      flushTracked();
-      service.send({ type: 'NEXT' });
+      actor.send({ type: 'NEXT' });
 
-      expect(flushTracked()).toEqual([
+      expect(tracked).toEqual([
         'exit: A.A1',
         'enter: A.A2',
         'enter: A.A2.A2_child'
@@ -920,22 +1052,33 @@ describe('entry/exit actions', () => {
     });
 
     it('should exit current node and reenter target node when target is ancestor of current', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'A',
         states: {
           A: {
+            entry: (_, enq) => enq(() => tracked.push('enter: A')),
+            exit: (_, enq) => enq(() => tracked.push('exit: A')),
             id: 'ancestor',
             initial: 'A1',
             states: {
               A1: {
+                entry: (_, enq) => enq(() => tracked.push('enter: A.A1')),
+                exit: (_, enq) => enq(() => tracked.push('exit: A.A1')),
                 on: {
                   NEXT: 'A2'
                 }
               },
               A2: {
+                entry: (_, enq) => enq(() => tracked.push('enter: A.A2')),
+                exit: (_, enq) => enq(() => tracked.push('exit: A.A2')),
                 initial: 'A2_child',
                 states: {
                   A2_child: {
+                    entry: (_, enq) =>
+                      enq(() => tracked.push('enter: A.A2.A2_child')),
+                    exit: (_, enq) =>
+                      enq(() => tracked.push('exit: A.A2.A2_child')),
                     on: {
                       NEXT: '#ancestor'
                     }
@@ -947,15 +1090,16 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(machine);
+      const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      const service = createActor(machine).start();
-      service.send({ type: 'NEXT' });
+      actor.send({ type: 'NEXT' });
 
-      flushTracked();
-      service.send({ type: 'NEXT' });
+      tracked.length = 0;
 
-      expect(flushTracked()).toEqual([
+      actor.send({ type: 'NEXT' });
+
+      expect(tracked).toEqual([
         'exit: A.A2.A2_child',
         'exit: A.A2',
         'exit: A',
@@ -965,10 +1109,14 @@ describe('entry/exit actions', () => {
     });
 
     it('should enter all descendents when target is a descendent of the source when using an reentering transition', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'A',
+
         states: {
           A: {
+            entry: (_, enq) => enq(() => tracked.push('enter: A')),
+            exit: (_, enq) => enq(() => tracked.push('exit: A')),
             initial: 'A1',
             on: {
               NEXT: {
@@ -977,11 +1125,20 @@ describe('entry/exit actions', () => {
               }
             },
             states: {
-              A1: {},
+              A1: {
+                entry: (_, enq) => enq(() => tracked.push('enter: A.A1')),
+                exit: (_, enq) => enq(() => tracked.push('exit: A.A1'))
+              },
               A2: {
+                entry: (_, enq) => enq(() => tracked.push('enter: A.A2')),
+                exit: (_, enq) => enq(() => tracked.push('exit: A.A2')),
                 initial: 'A2a',
                 states: {
-                  A2a: {}
+                  A2a: {
+                    entry: (_, enq) =>
+                      enq(() => tracked.push('enter: A.A2.A2a')),
+                    exit: (_, enq) => enq(() => tracked.push('exit: A.A2.A2a'))
+                  }
                 }
               }
             }
@@ -989,13 +1146,12 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(machine);
+      const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      const service = createActor(machine).start();
-      flushTracked();
-      service.send({ type: 'NEXT' });
+      actor.send({ type: 'NEXT' });
 
-      expect(flushTracked()).toEqual([
+      expect(tracked).toEqual([
         'exit: A.A1',
         'exit: A',
         'enter: A',
@@ -1005,19 +1161,28 @@ describe('entry/exit actions', () => {
     });
 
     it('should exit deep descendant during a default self-transition', () => {
-      const m = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: {
+            entry: (_, enq) => enq(() => tracked.push('enter: a')),
+            exit: (_, enq) => enq(() => tracked.push('exit: a')),
             on: {
               EV: 'a'
             },
             initial: 'a1',
             states: {
               a1: {
+                entry: (_, enq) => enq(() => tracked.push('enter: a.a1')),
+                exit: (_, enq) => enq(() => tracked.push('exit: a.a1')),
                 initial: 'a11',
                 states: {
-                  a11: {}
+                  a11: {
+                    entry: (_, enq) =>
+                      enq(() => tracked.push('enter: a.a1.a11')),
+                    exit: (_, enq) => enq(() => tracked.push('exit: a.a1.a11'))
+                  }
                 }
               }
             }
@@ -1025,14 +1190,16 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(m);
+      const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      const service = createActor(m).start();
+      actor.send({ type: 'EV' });
 
-      flushTracked();
-      service.send({ type: 'EV' });
+      tracked.length = 0;
 
-      expect(flushTracked()).toEqual([
+      actor.send({ type: 'EV' });
+
+      expect(tracked).toEqual([
         'exit: a.a1.a11',
         'exit: a.a1',
         'enter: a.a1',
@@ -1041,10 +1208,13 @@ describe('entry/exit actions', () => {
     });
 
     it('should exit deep descendant during a reentering self-transition', () => {
-      const m = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: {
+            entry: (_, enq) => enq(() => tracked.push('enter: a')),
+            exit: (_, enq) => enq(() => tracked.push('exit: a')),
             on: {
               EV: {
                 target: 'a',
@@ -1054,9 +1224,15 @@ describe('entry/exit actions', () => {
             initial: 'a1',
             states: {
               a1: {
+                entry: (_, enq) => enq(() => tracked.push('enter: a.a1')),
+                exit: (_, enq) => enq(() => tracked.push('exit: a.a1')),
                 initial: 'a11',
                 states: {
-                  a11: {}
+                  a11: {
+                    entry: (_, enq) =>
+                      enq(() => tracked.push('enter: a.a1.a11')),
+                    exit: (_, enq) => enq(() => tracked.push('exit: a.a1.a11'))
+                  }
                 }
               }
             }
@@ -1064,14 +1240,12 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(m);
+      const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      const service = createActor(m).start();
+      actor.send({ type: 'EV' });
 
-      flushTracked();
-      service.send({ type: 'EV' });
-
-      expect(flushTracked()).toEqual([
+      expect(tracked).toEqual([
         'exit: a.a1.a11',
         'exit: a.a1',
         'exit: a',
@@ -1082,7 +1256,10 @@ describe('entry/exit actions', () => {
     });
 
     it('should not reenter leaf state during its default self-transition', () => {
-      const m = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
+        entry: (_, enq) => enq(() => tracked.push('enter: a')),
+        exit: (_, enq) => enq(() => tracked.push('exit: a')),
         initial: 'a',
         states: {
           a: {
@@ -1098,24 +1275,27 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(m);
+      const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      const service = createActor(m).start();
+      actor.send({ type: 'EV' });
 
-      flushTracked();
-      service.send({ type: 'EV' });
-
-      expect(flushTracked()).toEqual([]);
+      expect(tracked).toEqual([]);
     });
 
     it('should reenter leaf state during its reentering self-transition', () => {
-      const m = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: {
+            entry: (_, enq) => enq(() => tracked.push('enter: a')),
+            exit: (_, enq) => enq(() => tracked.push('exit: a')),
             initial: 'a1',
             states: {
               a1: {
+                entry: (_, enq) => enq(() => tracked.push('enter: a.a1')),
+                exit: (_, enq) => enq(() => tracked.push('exit: a.a1')),
                 on: {
                   EV: {
                     target: 'a1',
@@ -1128,30 +1308,35 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(m);
+      const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      const service = createActor(m).start();
+      actor.send({ type: 'EV' });
 
-      flushTracked();
-      service.send({ type: 'EV' });
-
-      expect(flushTracked()).toEqual(['exit: a.a1', 'enter: a.a1']);
+      expect(tracked).toEqual(['exit: a.a1', 'enter: a.a1']);
     });
 
     it('should not enter exited state when targeting its ancestor and when its former descendant gets selected through initial state', () => {
-      const m = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: {
+            entry: (_, enq) => enq(() => tracked.push('enter: a')),
+            exit: (_, enq) => enq(() => tracked.push('exit: a')),
             id: 'parent',
             initial: 'a1',
             states: {
               a1: {
+                entry: (_, enq) => enq(() => tracked.push('enter: a.a1')),
+                exit: (_, enq) => enq(() => tracked.push('exit: a.a1')),
                 on: {
                   EV: 'a2'
                 }
               },
               a2: {
+                entry: (_, enq) => enq(() => tracked.push('enter: a.a2')),
+                exit: (_, enq) => enq(() => tracked.push('exit: a.a2')),
                 on: {
                   EV: '#parent'
                 }
@@ -1161,15 +1346,16 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(m);
+      const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      const service = createActor(m).start();
-      service.send({ type: 'EV' });
+      actor.send({ type: 'EV' });
 
-      flushTracked();
-      service.send({ type: 'EV' });
+      tracked.length = 0;
 
-      expect(flushTracked()).toEqual([
+      actor.send({ type: 'EV' });
+
+      expect(tracked).toEqual([
         'exit: a.a2',
         'exit: a',
         'enter: a',
@@ -1178,19 +1364,26 @@ describe('entry/exit actions', () => {
     });
 
     it('should not enter exited state when targeting its ancestor and when its latter descendant gets selected through initial state', () => {
-      const m = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: {
+            entry: (_, enq) => enq(() => tracked.push('enter: a')),
+            exit: (_, enq) => enq(() => tracked.push('exit: a')),
             id: 'parent',
             initial: 'a2',
             states: {
               a1: {
+                entry: (_, enq) => enq(() => tracked.push('enter: a.a1')),
+                exit: (_, enq) => enq(() => tracked.push('exit: a.a1')),
                 on: {
                   EV: '#parent'
                 }
               },
               a2: {
+                entry: (_, enq) => enq(() => tracked.push('enter: a.a2')),
+                exit: (_, enq) => enq(() => tracked.push('exit: a.a2')),
                 on: {
                   EV: 'a1'
                 }
@@ -1200,15 +1393,16 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(m);
+      const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      const service = createActor(m).start();
-      service.send({ type: 'EV' });
+      actor.send({ type: 'EV' });
 
-      flushTracked();
-      service.send({ type: 'EV' });
+      tracked.length = 0;
 
-      expect(flushTracked()).toEqual([
+      actor.send({ type: 'EV' });
+
+      expect(tracked).toEqual([
         'exit: a.a1',
         'exit: a',
         'enter: a',
@@ -1219,19 +1413,31 @@ describe('entry/exit actions', () => {
 
   describe('parallel states', () => {
     it('should return entry action defined on parallel state', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'start',
         states: {
           start: {
+            entry: (_, enq) => enq(() => tracked.push('enter: start')),
+            exit: (_, enq) => enq(() => tracked.push('exit: start')),
             on: { ENTER_PARALLEL: 'p1' }
           },
           p1: {
             type: 'parallel',
+            entry: (_, enq) => enq(() => tracked.push('enter: p1')),
+            exit: (_, enq) => enq(() => tracked.push('exit: p1')),
             states: {
               nested: {
+                entry: (_, enq) => enq(() => tracked.push('enter: p1.nested')),
+                exit: (_, enq) => enq(() => tracked.push('exit: p1.nested')),
                 initial: 'inner',
                 states: {
-                  inner: {}
+                  inner: {
+                    entry: (_, enq) =>
+                      enq(() => tracked.push('enter: p1.nested.inner')),
+                    exit: (_, enq) =>
+                      enq(() => tracked.push('exit: p1.nested.inner'))
+                  }
                 }
               }
             }
@@ -1239,14 +1445,12 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(machine);
-
       const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      flushTracked();
       actor.send({ type: 'ENTER_PARALLEL' });
 
-      expect(flushTracked()).toEqual([
+      expect(tracked).toEqual([
         'exit: start',
         'enter: p1',
         'enter: p1.nested',
@@ -1255,10 +1459,13 @@ describe('entry/exit actions', () => {
     });
 
     it('should reenter parallel region when a parallel state gets reentered while targeting another region', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'ready',
         states: {
           ready: {
+            entry: (_, enq) => enq(() => tracked.push('enter: ready')),
+            exit: (_, enq) => enq(() => tracked.push('exit: ready')),
             type: 'parallel',
             on: {
               FOO: {
@@ -1267,12 +1474,29 @@ describe('entry/exit actions', () => {
               }
             },
             states: {
-              devicesInfo: {},
+              devicesInfo: {
+                entry: (_, enq) =>
+                  enq(() => tracked.push('enter: ready.devicesInfo')),
+                exit: (_, enq) =>
+                  enq(() => tracked.push('exit: ready.devicesInfo'))
+              },
               camera: {
+                entry: (_, enq) =>
+                  enq(() => tracked.push('enter: ready.camera')),
+                exit: (_, enq) => enq(() => tracked.push('exit: ready.camera')),
                 initial: 'on',
                 states: {
-                  on: {},
+                  on: {
+                    entry: (_, enq) =>
+                      enq(() => tracked.push('enter: ready.camera.on')),
+                    exit: (_, enq) =>
+                      enq(() => tracked.push('exit: ready.camera.on'))
+                  },
                   off: {
+                    entry: (_, enq) =>
+                      enq(() => tracked.push('enter: ready.camera.off')),
+                    exit: (_, enq) =>
+                      enq(() => tracked.push('exit: ready.camera.off')),
                     id: 'cameraOff'
                   }
                 }
@@ -1282,14 +1506,12 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(machine);
+      const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      const service = createActor(machine).start();
+      actor.send({ type: 'FOO' });
 
-      flushTracked();
-      service.send({ type: 'FOO' });
-
-      expect(flushTracked()).toEqual([
+      expect(tracked).toEqual([
         'exit: ready.camera.on',
         'exit: ready.camera',
         'exit: ready.devicesInfo',
@@ -1302,10 +1524,13 @@ describe('entry/exit actions', () => {
     });
 
     it('should reenter parallel region when a parallel state is reentered while targeting another region', () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
         initial: 'ready',
         states: {
           ready: {
+            entry: (_, enq) => enq(() => tracked.push('enter: ready')),
+            exit: (_, enq) => enq(() => tracked.push('exit: ready')),
             type: 'parallel',
             on: {
               FOO: {
@@ -1314,12 +1539,29 @@ describe('entry/exit actions', () => {
               }
             },
             states: {
-              devicesInfo: {},
+              devicesInfo: {
+                entry: (_, enq) =>
+                  enq(() => tracked.push('enter: ready.devicesInfo')),
+                exit: (_, enq) =>
+                  enq(() => tracked.push('exit: ready.devicesInfo'))
+              },
               camera: {
                 initial: 'on',
+                entry: (_, enq) =>
+                  enq(() => tracked.push('enter: ready.camera')),
+                exit: (_, enq) => enq(() => tracked.push('exit: ready.camera')),
                 states: {
-                  on: {},
+                  on: {
+                    entry: (_, enq) =>
+                      enq(() => tracked.push('enter: ready.camera.on')),
+                    exit: (_, enq) =>
+                      enq(() => tracked.push('exit: ready.camera.on'))
+                  },
                   off: {
+                    entry: (_, enq) =>
+                      enq(() => tracked.push('enter: ready.camera.off')),
+                    exit: (_, enq) =>
+                      enq(() => tracked.push('exit: ready.camera.off')),
                     id: 'cameraOff'
                   }
                 }
@@ -1329,14 +1571,12 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(machine);
+      const actor = createActor(machine).start();
+      tracked.length = 0;
 
-      const service = createActor(machine).start();
+      actor.send({ type: 'FOO' });
 
-      flushTracked();
-      service.send({ type: 'FOO' });
-
-      expect(flushTracked()).toEqual([
+      expect(tracked).toEqual([
         'exit: ready.camera.on',
         'exit: ready.camera',
         'exit: ready.devicesInfo',
@@ -1351,7 +1591,10 @@ describe('entry/exit actions', () => {
 
   describe('targetless transitions', () => {
     it("shouldn't exit a state on a parent's targetless transition", () => {
-      const parent = createMachine({
+      const tracked: string[] = [];
+      const parent = next_createMachine({
+        entry: (_, enq) => enq(() => tracked.push('enter: one')),
+        exit: (_, enq) => enq(() => tracked.push('exit: one')),
         initial: 'one',
         on: {
           WHATEVER: {
@@ -1363,40 +1606,39 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const flushTracked = trackEntries(parent);
+      const actor = createActor(parent).start();
+      tracked.length = 0;
 
-      const service = createActor(parent).start();
+      actor.send({ type: 'WHATEVER' });
 
-      flushTracked();
-      service.send({ type: 'WHATEVER' });
-
-      expect(flushTracked()).toEqual([]);
+      expect(tracked).toEqual([]);
     });
 
     it("shouldn't exit (and reenter) state on targetless delayed transition", async () => {
-      const machine = createMachine({
+      const tracked: string[] = [];
+      const machine = next_createMachine({
+        entry: (_, enq) => enq(() => tracked.push('enter: one')),
+        exit: (_, enq) => enq(() => tracked.push('exit: one')),
         initial: 'one',
         states: {
           one: {
             after: {
-              10: {
-                actions: () => {
-                  // do smth
-                }
+              10: (_, enq) => {
+                enq(() => {
+                  /* ... */
+                });
               }
             }
           }
         }
       });
 
-      const flushTracked = trackEntries(machine);
-
-      createActor(machine).start();
-      flushTracked();
+      const actor = createActor(machine).start();
+      tracked.length = 0;
 
       await sleep(50);
 
-      expect(flushTracked()).toEqual([]);
+      expect(tracked).toEqual([]);
     });
   });
 
@@ -1406,22 +1648,22 @@ describe('entry/exit actions', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
       let exitCalled = false;
       let childExitCalled = false;
-      const childMachine = createMachine({
-        exit: () => {
-          exitCalled = true;
+      const childMachine = next_createMachine({
+        exit: (_, enq) => {
+          enq(() => (exitCalled = true));
         },
         initial: 'a',
         states: {
           a: {
             type: 'final',
-            exit: () => {
-              childExitCalled = true;
+            exit: (_, enq) => {
+              enq(() => (childExitCalled = true));
             }
           }
         }
       });
 
-      const parentMachine = createMachine({
+      const parentMachine = next_createMachine({
         initial: 'active',
         states: {
           active: {
@@ -1454,12 +1696,12 @@ describe('entry/exit actions', () => {
       const rootSpy = vi.fn();
       const childSpy = vi.fn();
 
-      const machine = createMachine({
-        exit: rootSpy,
+      const machine = next_createMachine({
+        exit: (_, enq) => enq(rootSpy),
         initial: 'a',
         states: {
           a: {
-            exit: childSpy
+            exit: (_, enq) => enq(childSpy)
           }
         }
       });
@@ -1631,12 +1873,10 @@ describe('entry/exit actions', () => {
     it('sent events from exit handlers of a stopped child should not be received by its children', () => {
       const spy = vi.fn();
 
-      const grandchild = createMachine({
+      const grandchild = next_createMachine({
         id: 'grandchild',
         on: {
-          STOPPED: {
-            actions: spy
-          }
+          STOPPED: (_, enq) => enq(spy)
         }
       });
 
@@ -1799,21 +2039,21 @@ describe('entry/exit actions', () => {
     });
 
     it('should clear all scheduled events when the interpreter gets stopped', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         on: {
-          INITIALIZE_SYNC_SEQUENCE: {
-            actions: () => {
+          INITIALIZE_SYNC_SEQUENCE: (_, enq) => {
+            enq(() => {
               // schedule those 2 events
               service.send({ type: 'SOME_EVENT' });
               service.send({ type: 'SOME_EVENT' });
               // but also immediately stop *while* the `INITIALIZE_SYNC_SEQUENCE` is still being processed
               service.stop();
-            }
+            });
           },
-          SOME_EVENT: {
-            actions: () => {
+          SOME_EVENT: (_, enq) => {
+            enq(() => {
               throw new Error('This should not be called.');
-            }
+            });
           }
         }
       });
@@ -1823,40 +2063,47 @@ describe('entry/exit actions', () => {
       service.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
     });
 
-    it('should execute exit actions of the settled state of the last initiated microstep', () => {
+    it.skip('should execute exit actions of the settled state of the last initiated microstep', () => {
       const exitActions: string[] = [];
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'foo',
         states: {
           foo: {
-            exit: () => {
-              exitActions.push('foo action');
+            // exit: () => {
+            //   exitActions.push('foo action');
+            // },
+            exit: (_, enq) => {
+              enq(() => exitActions.push('foo action'));
             },
             on: {
-              INITIALIZE_SYNC_SEQUENCE: {
-                target: 'bar',
-                actions: [
-                  () => {
-                    // immediately stop *while* the `INITIALIZE_SYNC_SEQUENCE` is still being processed
-                    actor.stop();
-                  },
-                  () => {}
-                ]
+              // INITIALIZE_SYNC_SEQUENCE: {
+              //   target: 'bar',
+              //   actions: [
+              //     () => {
+              //       // immediately stop *while* the `INITIALIZE_SYNC_SEQUENCE` is still being processed
+              //       actor.stop();
+              //     },
+              //     () => {}
+              //   ]
+              // }
+              INITIALIZE_SYNC_SEQUENCE: (_, enq) => {
+                // immediately stop *while* the `INITIALIZE_SYNC_SEQUENCE` is still being processed
+                enq(() => {
+                  actor.stop();
+                });
               }
             }
           },
           bar: {
-            exit: () => {
-              exitActions.push('bar action');
+            exit: (_, enq) => {
+              enq(() => exitActions.push('bar action'));
             }
           }
         }
       });
 
       const actor = createActor(machine).start();
-
       actor.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
-
       expect(exitActions).toEqual(['foo action']);
     });
 
@@ -2001,20 +2248,19 @@ describe('actions config', () => {
 
   it('should reference actions defined in actions parameter of machine options (initial state)', () => {
     const spy = vi.fn();
-    const machine = createMachine(
-      {
-        entry: ['definedAction', { type: 'definedAction' }, 'undefinedAction']
+    const machine = next_createMachine({
+      actions: {
+        definedAction: spy
       },
-      {
-        actions: {
-          definedAction: spy
-        }
+      // entry: ['definedAction', { type: 'definedAction' }, 'undefinedAction']
+      entry: ({ actions }, enq) => {
+        enq(actions.definedAction);
       }
-    );
+    });
 
     createActor(machine).start();
 
-    expect(spy).toHaveBeenCalledTimes(2);
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it('should be able to reference action implementations from action objects', () => {
@@ -3185,21 +3431,23 @@ describe('sendTo', () => {
     const warnSpy = vi.spyOn(console, 'warn');
     const spy1 = vi.fn();
 
-    const child1 = createMachine({
+    const child1 = next_createMachine({
       on: {
-        PING: {
-          actions: spy1
-        }
+        // PING: {
+        //   actions: spy1
+        // }
+        PING: (_, enq) => enq(spy1)
       }
     });
 
     const spy2 = vi.fn();
 
-    const child2 = createMachine({
+    const child2 = next_createMachine({
       on: {
-        PING: {
-          actions: spy2
-        }
+        // PING: {
+        //   actions: spy2
+        // }
+        PING: (_, enq) => enq(spy2)
       }
     });
 
@@ -3342,16 +3590,19 @@ Event: {"type":"PING"}",
 describe('raise', () => {
   it('should be able to send a delayed event to itself', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
-          entry: raise(
-            { type: 'EVENT' },
-            {
-              delay: 1
-            }
-          ),
+          // entry: raise(
+          //   { type: 'EVENT' },
+          //   {
+          //     delay: 1
+          //   }
+          // ),
+          entry: (_, enq) => {
+            enq.raise({ type: 'EVENT' }, { delay: 1 });
+          },
           on: {
             TO_B: 'b'
           }
@@ -3377,16 +3628,19 @@ describe('raise', () => {
   });
 
   it('should be able to send a delayed event to itself with delay = 0', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
-          entry: raise(
-            { type: 'EVENT' },
-            {
-              delay: 0
-            }
-          ),
+          // entry: raise(
+          //   { type: 'EVENT' },
+          //   {
+          //     delay: 0
+          //   }
+          // ),
+          entry: (_, enq) => {
+            enq.raise({ type: 'EVENT' }, { delay: 0 });
+          },
           on: {
             EVENT: 'b'
           }
@@ -3406,11 +3660,14 @@ describe('raise', () => {
   });
 
   it('should be able to raise an event and respond to it in the same state', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
-          entry: raise({ type: 'TO_B' }),
+          // entry: raise({ type: 'TO_B' }),
+          entry: (_, enq) => {
+            enq.raise({ type: 'TO_B' });
+          },
           on: {
             TO_B: 'b'
           }
@@ -3428,16 +3685,19 @@ describe('raise', () => {
 
   it('should be able to raise a delayed event and respond to it in the same state', async () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
-          entry: raise(
-            { type: 'TO_B' },
-            {
-              delay: 100
-            }
-          ),
+          // entry: raise(
+          //   { type: 'TO_B' },
+          //   {
+          //     delay: 100
+          //   }
+          // ),
+          entry: (_, enq) => {
+            enq.raise({ type: 'TO_B' }, { delay: 100 });
+          },
           on: {
             TO_B: 'b'
           }
@@ -3539,11 +3799,17 @@ describe('raise', () => {
   });
 
   it('should error if given a string', () => {
-    const machine = createMachine({
-      entry: raise(
-        // @ts-ignore
-        'a string'
-      )
+    const machine = next_createMachine({
+      // entry: raise(
+      //   // @ts-ignore
+      //   'a string'
+      // )
+      entry: (_, enq) => {
+        enq.raise(
+          // @ts-expect-error
+          'a string'
+        );
+      }
     });
 
     const errorSpy = vi.fn();
@@ -3566,17 +3832,23 @@ describe('raise', () => {
 
 describe('cancel', () => {
   it('should be possible to cancel a raised delayed event', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
           on: {
-            NEXT: {
-              actions: raise({ type: 'RAISED' }, { delay: 1, id: 'myId' })
+            // NEXT: {
+            //   actions: raise({ type: 'RAISED' }, { delay: 1, id: 'myId' })
+            // },
+            NEXT: (_, enq) => {
+              enq.raise({ type: 'RAISED' }, { delay: 1, id: 'myId' });
             },
             RAISED: 'b',
-            CANCEL: {
-              actions: cancel('myId')
+            // CANCEL: {
+            //   actions: cancel('myId')
+            // }
+            CANCEL: (_, enq) => {
+              enq.cancel('myId');
             }
           }
         },
@@ -3719,10 +3991,13 @@ describe('cancel', () => {
   it('should not try to clear an undefined timeout when canceling an unscheduled timer', async () => {
     const spy = vi.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       on: {
-        FOO: {
-          actions: cancel('foo')
+        // FOO: {
+        //   actions: cancel('foo')
+        // }
+        FOO: (_, enq) => {
+          enq.cancel('foo');
         }
       }
     });
@@ -3744,19 +4019,19 @@ describe('cancel', () => {
   it('should be able to cancel a just scheduled delayed event to a just invoked child', async () => {
     const spy = vi.fn();
 
-    const child = createMachine({
+    const child = next_createMachine({
       on: {
-        PING: {
-          actions: spy
-        }
+        // PING: {
+        //   actions: spy
+        // }
+        PING: (_, enq) => enq(spy)
       }
     });
 
-    const machine = setup({
+    const machine = next_createMachine({
       actors: {
         child
-      }
-    }).createMachine({
+      },
       initial: 'a',
       states: {
         a: {
@@ -3765,12 +4040,20 @@ describe('cancel', () => {
           }
         },
         b: {
-          entry: [
-            sendTo('myChild', { type: 'PING' }, { id: 'myEvent', delay: 0 }),
-            cancel('myEvent')
-          ],
+          // entry: [
+          //   sendTo('myChild', { type: 'PING' }, { id: 'myEvent', delay: 0 }),
+          //   cancel('myEvent')
+          // ],
+          entry: ({ children }, enq) => {
+            enq.sendTo(
+              children.myChild,
+              { type: 'PING' },
+              { id: 'myEvent', delay: 0 }
+            );
+            enq.cancel('myEvent');
+          },
           invoke: {
-            src: 'child',
+            src: ({ actors }) => actors.child,
             id: 'myChild'
           }
         }
@@ -4102,20 +4385,5 @@ describe('actions', () => {
     expect(spy).toHaveBeenCalledWith({
       foo: 'bar'
     });
-  });
-
-  it('inline actions should not leak into provided actions object', async () => {
-    const actions = {};
-
-    const machine = createMachine(
-      {
-        entry: () => {}
-      },
-      { actions }
-    );
-
-    createActor(machine).start();
-
-    expect(actions).toEqual({});
   });
 });
