@@ -1,6 +1,16 @@
 import { produce } from 'immer';
-import { createStore, createStoreWithProducer } from '../src/index.ts';
+import {
+  createStore,
+  createStoreConfig,
+  createStoreWithProducer
+} from '../src/index.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
+import { undoRedo } from '../src/undo.ts';
+import {
+  AnyStoreConfig,
+  ContextFromStoreConfig,
+  EventFromStoreConfig
+} from '../src/types.ts';
 
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
@@ -714,5 +724,156 @@ describe('store.transition', () => {
     expect(nextState.context).toEqual({ count: 1 });
     expect(effects).toHaveLength(1);
     expect(typeof effects[0]).toBe('function');
+  });
+});
+
+it('can be created with a logic object', () => {
+  const store = createStore({
+    getInitialSnapshot: () => ({
+      context: { count: 0 },
+      status: 'active' as const,
+      output: undefined,
+      error: undefined
+    }),
+    transition: (
+      snapshot,
+      event: {
+        type: 'inc';
+      }
+    ) => {
+      if (event.type === 'inc') {
+        return [
+          { ...snapshot, context: { count: snapshot.context.count + 1 } },
+          []
+        ];
+      }
+      return [snapshot, []];
+    }
+  });
+
+  expect(store.getSnapshot().context).toEqual({ count: 0 });
+
+  store.trigger.inc();
+
+  expect(store.getSnapshot().context).toEqual({ count: 1 });
+
+  // @ts-expect-error
+  store.trigger.unknown();
+
+  store.getSnapshot().context.count satisfies number;
+
+  // @ts-expect-error
+  store.getSnapshot().context.count satisfies string;
+});
+
+describe('types', () => {
+  it('AnyStoreConfig', () => {
+    function transformStoreConfig(_config: AnyStoreConfig): void {}
+
+    transformStoreConfig({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    });
+
+    // @ts-expect-error
+    transformStoreConfig({});
+  });
+
+  it('EventFromStoreConfig', () => {
+    const storeConfig = createStoreConfig({
+      context: { count: 0 },
+      on: {
+        inc: (ctx, event: { by: number }) => ({ count: ctx.count + event.by })
+      }
+    });
+
+    let ev: EventFromStoreConfig<typeof storeConfig> = {
+      type: 'inc',
+      by: 1
+    };
+
+    ev satisfies {
+      type: 'inc';
+      by: number;
+    };
+
+    // @ts-expect-error
+    ev satisfies { type: 'unknown' };
+  });
+
+  it('ContextFromStoreConfig', () => {
+    const storeConfig = createStoreConfig({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    });
+
+    type Context = ContextFromStoreConfig<typeof storeConfig>;
+
+    const context: Context = { count: 0 };
+
+    context.count satisfies number;
+
+    // @ts-expect-error
+    context.count satisfies string;
+  });
+
+  it('generics can be provided', () => {
+    type Context = {
+      coffeeBeans: number;
+      water: number;
+    };
+
+    type Events =
+      | {
+          type: 'addWater';
+          amount: number;
+        }
+      | {
+          type: 'grindBeans';
+        };
+
+    type Emitted =
+      | { type: 'brewing' }
+      | { type: 'beansGround'; amount: number };
+
+    const store = createStore<Context, Events, Emitted>({
+      context: {
+        coffeeBeans: 0,
+        water: 0
+      },
+      on: {
+        addWater: (ctx, event) => ({
+          ...ctx,
+          water: ctx.water + event.amount
+        }),
+        grindBeans: (ctx, _, enq) => {
+          enq.emit.brewing();
+
+          enq.emit.beansGround({ amount: 1 });
+
+          // @ts-expect-error
+          enq.emit.beansGround();
+
+          // @ts-expect-error
+          enq.emit.brewing({ foo: 'bar' });
+
+          return {
+            ...ctx,
+            coffeeBeans: ctx.coffeeBeans + 1
+          };
+        }
+      }
+    });
+
+    store.trigger.addWater({ amount: 1 });
+
+    store.trigger.grindBeans();
+
+    // @ts-expect-error
+    store.trigger.unknown();
   });
 });

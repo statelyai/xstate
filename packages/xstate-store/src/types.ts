@@ -77,7 +77,7 @@ export type StoreSnapshot<TContext> = Snapshot<undefined> & {
  * - Is observable
  */
 export interface Store<
-  TContext,
+  TContext extends StoreContext,
   TEvent extends EventObject,
   TEmitted extends EventObject
 > extends Subscribable<StoreSnapshot<TContext>>,
@@ -143,11 +143,17 @@ export interface Store<
    * });
    * ```
    */
-  transition: (
-    state: StoreSnapshot<TContext>,
-    event: TEvent
-  ) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
+  transition: StoreTransition<TContext, TEvent, TEmitted>;
 }
+
+export type StoreTransition<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = (
+  state: StoreSnapshot<TContext>,
+  event: TEvent
+) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
 
 export type StoreConfig<
   TContext extends StoreContext,
@@ -164,6 +170,20 @@ export type StoreConfig<
       { type: K } & TEventPayloadMap[K],
       ExtractEvents<TEmitted>
     >;
+  };
+};
+
+export type SpecificStoreConfig<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = {
+  context: TContext;
+  emits?: {
+    [E in TEmitted as E['type']]: (payload: E) => void;
+  };
+  on: {
+    [E in TEvent as E['type']]: StoreAssigner<TContext, E, TEmitted>;
   };
 };
 
@@ -407,3 +427,30 @@ export interface ReadonlyAtom<T> extends BaseAtom<T> {}
 type DistributiveOmit<T, K extends PropertyKey> = T extends any
   ? Omit<T, K>
   : never;
+
+export type StoreLogic<
+  TSnapshot extends StoreSnapshot<any>,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = {
+  getInitialSnapshot: () => TSnapshot;
+  transition: (
+    snapshot: TSnapshot,
+    event: TEvent
+  ) => [TSnapshot, StoreEffect<TEmitted>[]];
+};
+export type AnyStoreLogic = StoreLogic<any, any, any>;
+
+export type AnyStoreConfig = StoreConfig<any, any, any>;
+export type EventFromStoreConfig<TStore extends AnyStoreConfig> =
+  TStore extends StoreConfig<any, infer TEventPayloadMap, any>
+    ? ExtractEvents<TEventPayloadMap>
+    : never;
+
+export type EmitsFromStoreConfig<TStore extends AnyStoreConfig> =
+  TStore extends StoreConfig<any, any, infer TEmitted>
+    ? ExtractEvents<TEmitted>
+    : never;
+
+export type ContextFromStoreConfig<TStore extends AnyStoreConfig> =
+  TStore extends StoreConfig<infer TContext, any, any> ? TContext : never;

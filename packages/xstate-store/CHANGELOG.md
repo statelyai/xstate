@@ -1,5 +1,127 @@
 # @xstate/store
 
+## 3.8.4
+
+### Patch Changes
+
+- [#5337](https://github.com/statelyai/xstate/pull/5337) [`b64a6c9`](https://github.com/statelyai/xstate/commit/b64a6c925d87bce6246d35e562bdda6907e2e33f) Thanks [@flbn](https://github.com/flbn)! - chore: add missing EventFromStoreConfig, EmitsFromStoreConfig, ContextFromStoreConfig types from @xstate/store exports
+
+## 3.8.3
+
+### Patch Changes
+
+- [#5334](https://github.com/statelyai/xstate/pull/5334) [`c4adf25`](https://github.com/statelyai/xstate/commit/c4adf25331faeb15004d449b35799c53bd069b1b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createStore` function now supports explicit generic type parameters for better type control when needed. This allows you to specify the exact types for context, events, and emitted events instead of relying solely on type inference if desired.
+
+  ```ts
+  type CoffeeContext = {
+    beans: number;
+    cups: number;
+  };
+
+  type CoffeeEvents =
+    | { type: 'addBeans'; amount: number }
+    | { type: 'brewCup' };
+
+  type CoffeeEmitted =
+    | { type: 'beansAdded'; amount: number }
+    | { type: 'cupBrewed' };
+
+  const coffeeStore = createStore<CoffeeContext, CoffeeEvents, CoffeeEmitted>({
+    context: {
+      beans: 0,
+      cups: 0
+    },
+    on: {
+      addBeans: (ctx, event, enq) => {
+        enq.emit.beansAdded({ amount: event.amount });
+        return { ...ctx, beans: ctx.beans + event.amount };
+      },
+      brewCup: (ctx, _, enq) => {
+        if (ctx.beans > 0) {
+          enq.emit.cupBrewed();
+          return { ...ctx, beans: ctx.beans - 1, cups: ctx.cups + 1 };
+        }
+
+        return ctx;
+      }
+    }
+  });
+  ```
+
+## 3.8.2
+
+### Patch Changes
+
+- [#5329](https://github.com/statelyai/xstate/pull/5329) [`8a27bc4`](https://github.com/statelyai/xstate/commit/8a27bc43f975b03dc82a7e381a3956af49fb0633) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix: `createAsyncAtom` now properly propagates status updates after promise resolves/rejects.
+
+## 3.8.1
+
+### Patch Changes
+
+- [#5326](https://github.com/statelyai/xstate/pull/5326) [`68ab6fb`](https://github.com/statelyai/xstate/commit/68ab6fb72d20c5bd2eb8d1d6249dc3046da79010) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The XState Store undo/redo package can now be imported as `@xstate/store/undo`.
+
+  ```ts
+  import { createStore } from '@xstate/store';
+  import { undoRedo } from '@xstate/store/undo';
+
+  const store = createStore(
+    undoRedo({
+      context: {
+        count: 0
+      },
+      on: {
+        // ...
+      }
+    })
+  );
+
+  // ...
+  ```
+
+## 3.8.0
+
+### Minor Changes
+
+- [#5305](https://github.com/statelyai/xstate/pull/5305) [`725530f`](https://github.com/statelyai/xstate/commit/725530fd462c4300319fad82efc545ff44cf3e22) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added undo/redo functionality to XState Store via the `undoRedo` higher-order store logic:
+  - Adds `undo` and `redo` events to stores
+  - Supports grouping related events into transactions using `transactionId`
+  - Maintains event history for precise state reconstruction
+  - Automatically clears redo stack when new events occur
+
+  ```ts
+  import { createStore } from '@xstate/store';
+  import { undoRedo } from '@xstate/store/undo';
+
+  const store = createStore(
+    undoRedo({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 }),
+        dec: (ctx) => ({ count: ctx.count - 1 })
+      }
+    })
+  );
+
+  store.trigger.inc();
+  // count: 1
+  store.trigger.inc();
+  // count: 2
+  store.trigger.undo();
+  // count: 1
+  store.trigger.undo();
+  // count: 0
+  store.trigger.redo();
+  // count: 1
+  store.trigger.redo();
+  // count: 2
+  ```
+
+## 3.7.1
+
+### Patch Changes
+
+- [#5307](https://github.com/statelyai/xstate/pull/5307) [`b269485`](https://github.com/statelyai/xstate/commit/b269485e47b95fa57bbc75e34352f107ef2c37c3) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix the types for `useAtom` to accept `ReadonlyAtom` values.
+
 ## 3.7.0
 
 ### Minor Changes
@@ -76,7 +198,6 @@
 ### Minor Changes
 
 - [#5250](https://github.com/statelyai/xstate/pull/5250) [`a1bffb55b2029bde82e542d5936c51d961909a37`](https://github.com/statelyai/xstate/commit/a1bffb55b2029bde82e542d5936c51d961909a37) Thanks [@davidkpiano](https://github.com/davidkpiano)! - - Improved atom architecture with better dependency management (the diamond problem is solved!)
-
   - Optimized recomputation logic to prevent unnecessary updates
   - Added support for custom equality functions through `compare` option in `createAtom`, allowing fine-grained control over when atoms update:
 
@@ -129,7 +250,6 @@
 ### Minor Changes
 
 - [#5221](https://github.com/statelyai/xstate/pull/5221) [`4635d3d8d3debcfeef5cddd78613e32891c10eac`](https://github.com/statelyai/xstate/commit/4635d3d8d3debcfeef5cddd78613e32891c10eac) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `createAtom()` for creating reactive atoms that can be combined with other atoms and stores:
-
   - Create simple atoms with initial values:
 
     ```ts
@@ -200,7 +320,6 @@
 ### Minor Changes
 
 - [#5200](https://github.com/statelyai/xstate/pull/5200) [`0332a16a42fb372eb614df74ff4cb7f003c31fc8`](https://github.com/statelyai/xstate/commit/0332a16a42fb372eb614df74ff4cb7f003c31fc8) Thanks [@{](https://github.com/{)! - Added selectors to @xstate/store that enable efficient state selection and subscription:
-
   - `store.select(selector)` function to create a "selector" entity where you can:
     - Get current value with `.get()`
     - Subscribe to changes with `.subscribe(callback)`

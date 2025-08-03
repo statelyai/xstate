@@ -699,4 +699,66 @@ describe('async atoms', () => {
 
     expect('set' in atom).toBe(false);
   });
+
+  it('should notify subscribers when async operation completes successfully', async () => {
+    const log = vi.fn();
+    const atom = createAsyncAtom(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return 'test-value';
+    });
+
+    atom.subscribe(log);
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+    expect(log).not.toHaveBeenCalled();
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log).toHaveBeenCalledWith({ status: 'done', data: 'test-value' });
+    expect(atom.get()).toEqual({ status: 'done', data: 'test-value' });
+  });
+
+  it('should notify subscribers when async operation fails', async () => {
+    const log = vi.fn();
+    const error = new Error('test error');
+    const atom = createAsyncAtom(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      throw error;
+    });
+
+    atom.subscribe(log);
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+    expect(log).not.toHaveBeenCalled();
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log).toHaveBeenCalledWith({ status: 'error', error });
+    expect(atom.get()).toEqual({ status: 'error', error });
+  });
+
+  it('should notify multiple subscribers when async operation completes', async () => {
+    const log1 = vi.fn();
+    const log2 = vi.fn();
+    const atom = createAsyncAtom(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return 'multi-test';
+    });
+
+    atom.subscribe(log1);
+    atom.subscribe(log2);
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+    expect(log1).not.toHaveBeenCalled();
+    expect(log2).not.toHaveBeenCalled();
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(log1).toHaveBeenCalledTimes(1);
+    expect(log1).toHaveBeenCalledWith({ status: 'done', data: 'multi-test' });
+    expect(log2).toHaveBeenCalledTimes(1);
+    expect(log2).toHaveBeenCalledWith({ status: 'done', data: 'multi-test' });
+  });
 });
