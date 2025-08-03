@@ -2431,7 +2431,9 @@ type ResolveEventType<T> =
         infer _TOutput,
         infer _TEmitted,
         infer _TMeta,
-        infer _TStateSchema
+        infer _TConfig,
+        infer _TActionMap,
+        infer _TActorMap
       >
       ? TEvent
       : R extends MachineSnapshot<
@@ -2472,7 +2474,9 @@ export type ContextFrom<T> =
         infer _TOutput,
         infer _TEmitted,
         infer _TMeta,
-        infer _TStateSchema
+        infer _TConfig,
+        infer _TActionMap,
+        infer _TActorMap
       >
       ? TContext
       : R extends MachineSnapshot<

@@ -44,7 +44,6 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
-  ResolvedStateMachineTypes,
   StateSchema,
   SnapshotStatus
 } from './types.ts';
@@ -467,14 +466,14 @@ export class StateMachine<
       TConfig
     >
   ): void {
-    if (snapshot.children)
-      Object.values(snapshot.children as Record<string, AnyActorRef>).forEach(
-        (child: any) => {
-          if (child.getSnapshot().status === 'active') {
-            child.start();
-          }
-        }
-      );
+    // if (snapshot.children)
+    //   Object.values(snapshot.children as Record<string, AnyActorRef>).forEach(
+    //     (child: any) => {
+    //       if (child.getSnapshot().status === 'active') {
+    //         child.start();
+    //       }
+    //     }
+    //   );
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {

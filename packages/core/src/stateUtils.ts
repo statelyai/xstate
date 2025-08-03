@@ -1170,8 +1170,7 @@ export function microstep(
               event,
               self: actorScope.self,
               parent: actorScope.self._parent,
-              // children: actorScope.self.getSnapshot().children
-              children: {},
+              children: actorScope.self.getSnapshot().children,
               actorScope,
               machine: currentSnapshot.machine
             });
@@ -1266,6 +1265,7 @@ function enterStates(
 
   const completedNodes = new Set();
 
+  const children = { ...currentSnapshot.children };
   for (const stateNodeToEnter of [...statesToEnter].sort(
     (a, b) => a.order - b.order
   )) {
@@ -1274,8 +1274,6 @@ function enterStates(
 
     // Add entry actions
     actions.push(...stateNodeToEnter.entry);
-
-    const children = { ...currentSnapshot.children };
 
     for (const invokeDef of stateNodeToEnter.invoke) {
       let logic = resolveReferencedActor(
@@ -1287,7 +1285,14 @@ function enterStates(
           actors: currentSnapshot.machine.implementations.actors
         });
       }
-      const input = invokeDef.input?.({ self: actorScope.self });
+      const input =
+        typeof invokeDef.input === 'function'
+          ? invokeDef.input({
+              self: actorScope.self,
+              context: currentSnapshot.context,
+              event
+            })
+          : invokeDef.input;
       const actor = createActor(logic, {
         ...invokeDef,
         input,
@@ -1359,6 +1364,7 @@ function enterStates(
           )
         );
       }
+
       while (
         ancestorMarker?.type === 'parallel' &&
         !completedNodes.has(ancestorMarker) &&
