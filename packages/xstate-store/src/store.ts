@@ -266,14 +266,9 @@ export function createStore<
   TEvent extends EventObject,
   TEmitted extends EventObject
 >(
-  definition: SpecificStoreConfig<TContext, TEvent, TEmitted>
-): Store<TContext, TEvent, TEmitted>;
-export function createStore<
-  TContext extends StoreContext,
-  TEvent extends EventObject,
-  TEmitted extends EventObject
->(
-  logic: StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>
+  definition:
+    | SpecificStoreConfig<TContext, TEvent, TEmitted>
+    | StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>
 ): Store<TContext, TEvent, TEmitted>;
 export function createStore(
   definitionOrLogic: StoreConfig<any, any, any> | AnyStoreLogic

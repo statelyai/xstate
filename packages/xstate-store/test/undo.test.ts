@@ -184,3 +184,25 @@ it('should preserve emitted events during undo/redo', () => {
     { type: 'changed', value: 1 }
   ]);
 });
+
+it('should preserve context and event types', () => {
+  const store = createStore(
+    undoRedo({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    })
+  );
+
+  store.getSnapshot().context satisfies { count: number };
+  store.send({ type: 'inc' });
+  store.send({ type: 'undo' });
+  store.send({ type: 'redo' });
+
+  // @ts-expect-error
+  store.getSnapshot().context.foo;
+
+  // @ts-expect-error
+  store.send({ type: 'dec' });
+});
