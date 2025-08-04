@@ -876,4 +876,19 @@ describe('types', () => {
     // @ts-expect-error
     store.trigger.unknown();
   });
+
+  it('localizes TypeScript errors to the specific transition', () => {
+    // but now it's localized to the `changeSort` transition.
+    createStore({
+      context: {
+        sort: 'asc' as const
+      },
+      on: {
+        // @ts-expect-error
+        changeSort: (_, event: { sort: 'desc' }) => ({
+          sort: event.sort
+        })
+      }
+    });
+  });
 });
