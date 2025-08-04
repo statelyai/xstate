@@ -878,7 +878,6 @@ describe('types', () => {
   });
 
   it('localizes TypeScript errors to the specific transition', () => {
-    // Previously, the error was localized to the `createStore` call (because of the overloads)
     // but now it's localized to the `changeSort` transition.
     createStore({
       context: {
