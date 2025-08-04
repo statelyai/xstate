@@ -1,5 +1,13 @@
 # @xstate/store
 
+## 3.8.5
+
+### Patch Changes
+
+- [#5347](https://github.com/statelyai/xstate/pull/5347) [`4dff4e9`](https://github.com/statelyai/xstate/commit/4dff4e94d6aa547f0b1ae37e51e96281a252d236) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix TypeScript error localization in `createStore(…)` overloads
+
+  Previously, TS errors in transitions would appear on the `createStore` call itself rather than on the specific transition.
+
 ## 3.8.4
 
 ### Patch Changes
