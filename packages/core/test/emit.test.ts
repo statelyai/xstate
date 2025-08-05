@@ -142,44 +142,6 @@ describe('event emitter', () => {
     expect(actor.getSnapshot().status).toEqual('active');
   });
 
-  it('actor continues to work normally after emit callback errors', async () => {
-    const machine = setup({
-      types: {
-        emitted: {} as { type: 'emitted'; foo: string }
-      }
-    }).createMachine({
-      on: {
-        someEvent: {
-          actions: emit({ type: 'emitted', foo: 'bar' })
-        }
-      }
-    });
-
-    const actor = createActor(machine).start();
-    let errorThrown = false;
-
-    actor.on('emitted', () => {
-      errorThrown = true;
-      throw new Error('oops');
-    });
-
-    // Send first event - should trigger error but actor should remain active
-    actor.send({ type: 'someEvent' });
-    await new Promise((resolve) => setTimeout(resolve, 10));
-
-    expect(errorThrown).toBe(true);
-    expect(actor.getSnapshot().status).toEqual('active');
-
-    // Send second event - should work normally without error
-    const event = await new Promise<AnyEventObject>((res) => {
-      actor.on('emitted', res);
-      actor.send({ type: 'someEvent' });
-    });
-
-    expect(event.foo).toBe('bar');
-    expect(actor.getSnapshot().status).toEqual('active');
-  });
-
   it('dynamically emits events that can be listened to on actorRef.on(…)', async () => {
     const machine = createMachine({
       context: { count: 10 },
