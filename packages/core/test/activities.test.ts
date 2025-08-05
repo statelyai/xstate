@@ -1,5 +1,5 @@
 import { fromCallback } from '../src/actors/index.ts';
-import { createActor, createMachine, assign } from '../src/index.ts';
+import { createActor, next_createMachine } from '../src/index.ts';
 import { setup } from '../src/setup.ts';
 
 // TODO: remove this file but before doing that ensure that things tested here are covered by other tests
@@ -7,7 +7,7 @@ import { setup } from '../src/setup.ts';
 describe('invocations (activities)', () => {
   it('identifies initial root invocations', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       invoke: {
         src: fromCallback(() => {
           active = true;
@@ -21,7 +21,7 @@ describe('invocations (activities)', () => {
 
   it('identifies initial invocations', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -40,7 +40,7 @@ describe('invocations (activities)', () => {
 
   it('identifies initial deep invocations', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -64,7 +64,7 @@ describe('invocations (activities)', () => {
 
   it('identifies start invocations', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -91,7 +91,7 @@ describe('invocations (activities)', () => {
 
   it('identifies start invocations for child states and active invocations', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -129,7 +129,7 @@ describe('invocations (activities)', () => {
 
   it('identifies stop invocations for child states', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -174,7 +174,7 @@ describe('invocations (activities)', () => {
     let active1 = false;
     let active2 = false;
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -218,7 +218,7 @@ describe('invocations (activities)', () => {
 
   it('should activate even if there are subsequent always but blocked transition', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'A',
       states: {
         A: {
@@ -248,7 +248,7 @@ describe('invocations (activities)', () => {
   it('should remember the invocations even after an ignored event', () => {
     let cleanupSpy = vi.fn();
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'A',
       states: {
         A: {
@@ -281,7 +281,7 @@ describe('invocations (activities)', () => {
   it('should remember the invocations when transitioning within the invoking state', () => {
     let cleanupSpy = vi.fn();
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'A',
       states: {
         A: {
@@ -402,7 +402,7 @@ describe('invocations (activities)', () => {
 
   it('should have stopped after automatic transitions', () => {
     let active = false;
-    const machine = createMachine({
+    const machine = next_createMachine({
       context: {
         counter: 0
       },
@@ -415,26 +415,27 @@ describe('invocations (activities)', () => {
               return () => (active = false);
             })
           },
-          always: {
-            guard: ({ context }) => context.counter !== 0,
-            target: 'b'
+          always: ({ context }) => {
+            if (context.counter !== 0) {
+              return { target: 'b' };
+            }
           },
           on: {
-            INC: {
-              actions: assign(({ context }) => ({
+            INC: ({ context }) => ({
+              context: {
                 counter: context.counter + 1
-              }))
-            }
+              }
+            })
           }
         },
         b: {}
       }
     });
-    const service = createActor(machine).start();
+    const actor = createActor(machine).start();
 
     expect(active).toBe(true);
 
-    service.send({ type: 'INC' });
+    actor.send({ type: 'INC' });
 
     expect(active).toBe(false);
   });

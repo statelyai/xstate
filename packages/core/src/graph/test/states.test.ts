@@ -1,4 +1,4 @@
-import { StateValue, createMachine } from '../../index.ts';
+import { StateValue, next_createMachine } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 import { testUtils } from './testUtils.ts';
 
@@ -6,7 +6,7 @@ describe('states', () => {
   it('should test states by key', async () => {
     const testedStateValues: StateValue[] = [];
     const testModel = createTestModel(
-      createMachine({
+      next_createMachine({
         initial: 'a',
         states: {
           a: {
@@ -63,7 +63,7 @@ describe('states', () => {
   it('should test states by ID', async () => {
     const testedStateValues: StateValue[] = [];
     const testModel = createTestModel(
-      createMachine({
+      next_createMachine({
         initial: 'a',
         states: {
           a: {

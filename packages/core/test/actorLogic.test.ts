@@ -3,7 +3,7 @@ import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
 import {
   AnyActorRef,
-  createMachine,
+  next_createMachine,
   createActor,
   AnyActorLogic,
   Snapshot,
@@ -300,7 +300,7 @@ describe('promise logic (fromPromise)', () => {
       signal.addEventListener('abort', signalListener);
       return deferred.promise;
     });
-    const machine = createMachine({
+    const machine = next_createMachine({
       type: 'parallel',
       states: {
         p1: {
@@ -360,7 +360,7 @@ describe('promise logic (fromPromise)', () => {
       signal.addEventListener('abort', fn);
       return deferred.promise;
     });
-    const machine = createMachine({
+    const machine = next_createMachine({
       type: 'parallel',
       states: {
         p1: {
@@ -424,7 +424,7 @@ describe('promise logic (fromPromise)', () => {
       signal.addEventListener('abort', fn);
       return deferred.promise;
     });
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'running',
       states: {
         running: {
@@ -715,7 +715,7 @@ describe('callback logic (fromCallback)', () => {
 
   it('can send self reference in an event to parent', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       types: {} as {
         events: { type: 'PING'; ref: AnyActorRef };
       },
@@ -751,32 +751,26 @@ describe('callback logic (fromCallback)', () => {
 
   it('should persist the input of a callback', () => {
     const spy = vi.fn();
-    const machine = createMachine(
-      {
-        types: {} as { events: { type: 'EV'; data: number } },
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: 'b'
-            }
-          },
-          b: {
-            invoke: {
-              src: 'cb',
-              input: ({ event }) => event.data
-            }
+    const cb = fromCallback(({ input }) => {
+      spy(input);
+    });
+    const machine = next_createMachine({
+      types: {} as { events: { type: 'EV'; data: number } },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            src: cb,
+            input: ({ event }) => event.data
           }
         }
-      },
-      {
-        actors: {
-          cb: fromCallback(({ input }) => {
-            spy(input);
-          })
-        }
       }
-    );
+    });
 
     const actor = createActor(machine);
     actor.start();
@@ -802,7 +796,7 @@ describe('callback logic (fromCallback)', () => {
 
 describe('machine logic', () => {
   it('should persist a machine', async () => {
-    const childMachine = createMachine({
+    const childMachine = next_createMachine({
       context: {
         count: 55
       },
@@ -817,7 +811,7 @@ describe('machine logic', () => {
       }
     });
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'waiting',
       invoke: [
         {
@@ -875,7 +869,7 @@ describe('machine logic', () => {
   });
 
   it('should persist and restore a nested machine', () => {
-    const childMachine = createMachine({
+    const childMachine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -892,7 +886,7 @@ describe('machine logic', () => {
       }
     });
 
-    const parentMachine = createMachine({
+    const parentMachine = next_createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -945,7 +939,7 @@ describe('machine logic', () => {
   });
 
   it('should return the initial persisted state of a non-started actor', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'idle',
       states: {
         idle: {}
@@ -962,10 +956,10 @@ describe('machine logic', () => {
   });
 
   it('the initial state of a child is available before starting the parent', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       invoke: {
         id: 'child',
-        src: createMachine({
+        src: next_createMachine({
           initial: 'inner',
           states: { inner: {} }
         })
@@ -984,7 +978,7 @@ describe('machine logic', () => {
   });
 
   it('should not invoke an actor if it is missing in persisted state', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -995,7 +989,7 @@ describe('machine logic', () => {
         b: {
           invoke: {
             id: 'child',
-            src: createMachine({
+            src: next_createMachine({
               context: ({ input }) => ({
                 // this is only meant to showcase why we can't invoke this actor when it's missing in the persisted state
                 // because we don't have access to the right input as it depends on the event that was used to enter state `b`
@@ -1037,7 +1031,7 @@ describe('machine logic', () => {
 
   it('should persist a spawned actor with referenced src', () => {
     const reducer = fromTransition((s) => s, { count: 42 });
-    const machine = createMachine({
+    const machine = next_createMachine({
       types: {
         context: {} as {
           ref: AnyActorRef;
@@ -1077,10 +1071,10 @@ describe('machine logic', () => {
   });
 
   it('should not persist a spawned actor with inline src', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       context: ({ spawn }) => {
         return {
-          childRef: spawn(createMachine({}))
+          childRef: spawn(next_createMachine({}))
         };
       }
     });
@@ -1096,7 +1090,7 @@ describe('machine logic', () => {
 
   it('should have access to the system', () => {
     expect.assertions(1);
-    const machine = createMachine({
+    const machine = next_createMachine({
       entry: ({ system }) => {
         expect(system).toBeDefined();
       }
@@ -1121,7 +1115,7 @@ describe('composable actor logic', () => {
       };
     }
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -1242,7 +1236,7 @@ describe('composable actor logic', () => {
       return enhancedLogic;
     }
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'start',
       states: {
         start: {

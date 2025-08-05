@@ -8,7 +8,7 @@ export {
   type Interpreter,
   type RequiredActorOptionsKeys as RequiredActorOptionsKeys
 } from './createActor.ts';
-export { createMachine } from './createMachine.ts';
+export { createMachine, next_createMachine } from './createMachine.ts';
 export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
 export { and, not, or, stateIn } from './guards.ts';
 export type {

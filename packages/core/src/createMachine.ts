@@ -1,3 +1,4 @@
+import { StandardSchemaV1 } from '../../xstate-store/src/schema.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
   ResolvedStateMachineTypes,
@@ -17,6 +18,12 @@ import {
   ToChildren,
   MetaObject
 } from './types.ts';
+import {
+  Implementations,
+  InferOutput,
+  Next_MachineConfig,
+  WithDefault
+} from './types.v6.ts';
 
 type TestValue =
   | string
@@ -162,4 +169,81 @@ export function createMachine<
     any, // TMeta
     any // TStateSchema
   >(config as any, implementations as any);
+}
+
+export function next_createMachine<
+  TContextSchema extends StandardSchemaV1,
+  TEventSchema extends StandardSchemaV1,
+  TEmittedSchema extends StandardSchemaV1,
+  TInputSchema extends StandardSchemaV1,
+  TOutputSchema extends StandardSchemaV1,
+  TMetaSchema extends StandardSchemaV1,
+  // TContext extends MachineContext,
+  TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
+  TActor extends ProvidedActor,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuard extends ParameterizedObject,
+  TDelays extends string,
+  TTag extends string,
+  TInput,
+  // it's important to have at least one default type parameter here
+  // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
+  // we should be able to remove this when we start inferring TConfig, with it we'll always have an inference candidate
+  _ = any
+>(
+  config: Next_MachineConfig<
+    TContextSchema,
+    TEventSchema,
+    TEmittedSchema,
+    TInputSchema,
+    TOutputSchema,
+    TMetaSchema,
+    InferOutput<TContextSchema, MachineContext>,
+    TEvent,
+    TDelays,
+    TTag,
+    TActionMap,
+    TActorMap
+  >
+): StateMachine<
+  InferOutput<TContextSchema, MachineContext>,
+  TEvent,
+  Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
+  TActor,
+  any, // TODO: TAction
+  TGuard,
+  TDelays,
+  StateValue,
+  TTag & string,
+  TInput,
+  InferOutput<TOutputSchema, unknown>,
+  WithDefault<InferOutput<TEmittedSchema, EventObject>, AnyEventObject>,
+  InferOutput<TMetaSchema, MetaObject>, // TMeta
+  TODO, // TStateSchema
+  TActionMap,
+  TActorMap
+> & {
+  emits: InferOutput<TEmittedSchema, EventObject>;
+  actors: TActorMap;
+} {
+  config._special = true;
+  return new StateMachine<
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any, // TEmitted
+    any, // TMeta
+    any, // TStateSchema
+    any,
+    any
+  >(config as any);
 }
