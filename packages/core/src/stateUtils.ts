@@ -1469,7 +1469,8 @@ export function getTransitionResult(
         parent: actorScope.self._parent,
         self,
         actions: snapshot.machine.implementations.actions,
-        actors: snapshot.machine.implementations.actors
+        actors: snapshot.machine.implementations.actors,
+        guards: snapshot.machine.implementations.guards
       },
       enqueue
     );
@@ -1535,7 +1536,7 @@ export function getTransitionActions(
         },
         stop: (actorRef) => {
           if (actorRef) {
-            actions.push(stopChild(actorRef));
+            actions.push(() => actorScope.stopChild(actorRef));
           }
         }
       },
@@ -2437,6 +2438,7 @@ function getActionsFromAction2(
         parent,
         self,
         children,
+        system: actorScope.system,
         actions: machine.implementations.actions,
         actors: machine.implementations.actors
       },
@@ -2536,7 +2538,8 @@ export function evaluateCandidate(
           value: snapshot.value,
           children: snapshot.children,
           actions: stateNode.machine.implementations.actions,
-          actors: stateNode.machine.implementations.actors
+          actors: stateNode.machine.implementations.actors,
+          guards: stateNode.machine.implementations.guards
         },
         createEnqueueObject(
           {
@@ -2545,7 +2548,8 @@ export function evaluateCandidate(
             log: triggerEffect,
             raise: triggerEffect,
             spawn: triggerEffect,
-            sendTo: triggerEffect
+            sendTo: triggerEffect,
+            stop: triggerEffect
           },
           triggerEffect
         )

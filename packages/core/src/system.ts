@@ -167,6 +167,9 @@ export function createSystem<T extends ActorSystemInfo>(
   };
 
   const system: ActorSystem<T> = {
+    children,
+    reverseKeyedActors,
+    keyedActors,
     _snapshot: {
       _scheduledEvents:
         (options?.snapshot && (options.snapshot as any).scheduler) ?? {}

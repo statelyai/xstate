@@ -585,7 +585,15 @@ export type TransitionConfigOrTarget<
       TEmitted,
       TMeta
     >
-  | TransitionConfigFunction<TContext, TExpressionEvent, TEvent, TEmitted, any>
+  | TransitionConfigFunction<
+      TContext,
+      TExpressionEvent,
+      TEvent,
+      TEmitted,
+      any,
+      any,
+      any
+    >
 >;
 
 export type TransitionConfigFunction<
@@ -594,7 +602,8 @@ export type TransitionConfigFunction<
   TEvent extends EventObject,
   TEmitted extends EventObject,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors']
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards']
 > = (
   {
     context,
@@ -607,12 +616,16 @@ export type TransitionConfigFunction<
   }: {
     context: TContext;
     event: TCurrentEvent;
-    self: AnyActorRef;
+    self: ActorRef<
+      MachineSnapshot<TContext, TEvent, TODO, TODO, TODO, TODO, TODO, TODO>,
+      TEvent
+    >;
     parent: UnknownActorRef | undefined;
     value: StateValue;
     children: Record<string, AnyActorRef>;
     actions: TActionMap;
     actors: TActorMap;
+    guards: TGuardMap;
   },
   enq: EnqueueObject<TEvent, TEmitted>
 ) => {
@@ -622,6 +635,7 @@ export type TransitionConfigFunction<
 } | void;
 
 export type AnyTransitionConfigFunction = TransitionConfigFunction<
+  any,
   any,
   any,
   any,
@@ -1213,7 +1227,10 @@ export type AnyStateMachine = StateMachine<
   any, // output
   any, // emitted
   any, // TMeta
-  any // TStateSchema
+  any, // TStateSchema,
+  any, // TActionMap,
+  any, // TActorMap
+  any // TGuardMap
 >;
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
@@ -2117,7 +2134,10 @@ export type ActorRefFrom<T> =
         infer TOutput,
         infer TEmitted,
         infer TMeta,
-        infer TStateSchema
+        infer TStateSchema,
+        infer _TActionMap,
+        infer _TActorMap,
+        infer _TGuardMap
       >
       ? ActorRef<
           MachineSnapshot<
@@ -2772,6 +2792,7 @@ export type EnqueueObject<
       input?: InputFrom<T>;
       id?: string;
       syncSnapshot?: boolean;
+      systemId?: string;
     }
   ) => AnyActorRef;
   emit: (emittedEvent: TEmittedEvent) => void;
@@ -2796,10 +2817,14 @@ export type Action2<
     context: TContext;
     event: TEvent;
     parent: AnyActorRef | undefined;
-    self: AnyActorRef;
+    self: ActorRef<
+      MachineSnapshot<TContext, TEvent, TODO, TODO, TODO, TODO, TODO, TODO>,
+      TEvent
+    >;
     children: Record<string, AnyActorRef | undefined>;
     actions: TActionMap;
     actors: TActorMap;
+    system?: AnyActorSystem;
   },
   enqueue: EnqueueObject<TEvent, TEmittedEvent>
 ) => {

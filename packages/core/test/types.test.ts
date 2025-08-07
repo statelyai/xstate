@@ -1,33 +1,18 @@
 import { from } from 'rxjs';
-import { raise } from '../src/actions/raise';
-import { stopChild } from '../src/actions/stopChild';
-import {
-  PromiseActorLogic,
-  createEmptyActor,
-  fromCallback,
-  fromPromise
-} from '../src/actors';
+import { createEmptyActor, fromCallback, fromPromise } from '../src/actors';
 import {
   ActorRefFrom,
   ActorRefFromLogic,
   AnyActorLogic,
-  MachineContext,
-  Spawner,
   StateMachine,
   UnknownActorRef,
-  assign,
   createActor,
-  createMachine,
-  enqueueActions,
   next_createMachine,
-  not,
-  sendTo,
-  setup,
-  spawnChild,
   stateIn,
   toPromise
 } from '../src/index';
 import { createInertActorScope } from '../src/getNextSnapshot';
+import z from 'zod';
 
 function noop(_x: unknown) {
   return;
@@ -35,148 +20,232 @@ function noop(_x: unknown) {
 
 describe('Raise events', () => {
   it('should accept a valid event type', () => {
-    createMachine({
-      types: {} as {
-        events: { type: 'FOO' } | { type: 'BAR' };
+    next_createMachine({
+      // types: {} as {
+      //   events: { type: 'FOO' } | { type: 'BAR' };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('FOO')
+          }),
+          z.object({
+            type: z.literal('BAR')
+          })
+        ])
       },
-      entry: raise({
-        type: 'FOO'
-      })
+      // entry: raise({
+      //   type: 'FOO'
+      // })
+      entry: (_, enq) =>
+        enq.raise({
+          type: 'FOO'
+        })
     });
   });
 
   it('should reject an invalid event type', () => {
-    createMachine({
-      types: {} as {
-        events: { type: 'FOO' } | { type: 'BAR' };
+    next_createMachine({
+      // types: {} as {
+      //   events: { type: 'FOO' } | { type: 'BAR' };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('FOO')
+          }),
+          z.object({
+            type: z.literal('BAR')
+          })
+        ])
       },
-      entry: raise({
-        // @ts-expect-error
-        type: 'UNKNOWN'
-      })
+      entry: (_, enq) =>
+        enq.raise({
+          // @ts-expect-error
+          type: 'UNKNOWN'
+        })
     });
   });
 
   it('should reject a string event type', () => {
     const event: { type: string } = { type: 'something' };
 
-    createMachine({
-      types: {
-        events: {} as { type: 'FOO' } | { type: 'BAR' }
+    next_createMachine({
+      // types: {
+      //   events: {} as { type: 'FOO' } | { type: 'BAR' }
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('FOO')
+          }),
+          z.object({
+            type: z.literal('BAR')
+          })
+        ])
       },
       // @ts-expect-error
-      entry: raise(event)
+      entry: (_, enq) => enq.raise(event)
     });
   });
 
   it('should provide a narrowed down expression event type when used as a transition action', () => {
-    createMachine({
-      types: {
-        events: {} as { type: 'FOO' } | { type: 'BAR' }
+    next_createMachine({
+      // types: {
+      //   events: {} as { type: 'FOO' } | { type: 'BAR' }
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('FOO')
+          }),
+          z.object({
+            type: z.literal('BAR')
+          })
+        ])
       },
       on: {
-        FOO: {
-          actions: raise(({ event }) => {
-            ((_arg: 'FOO') => {})(event.type);
-            // @ts-expect-error
-            ((_arg: 'BAR') => {})(event.type);
+        // FOO: {
+        //   actions: raise(({ event }) => {
+        //     ((_arg: 'FOO') => {})(event.type);
+        //     // @ts-expect-error
+        //     ((_arg: 'BAR') => {})(event.type);
 
-            return {
-              type: 'BAR' as const
-            };
-          })
+        //     return {
+        //       type: 'BAR' as const
+        //     };
+        //   })
+        // }
+        FOO: ({ event }, enq) => {
+          ((_arg: 'FOO') => {})(event.type);
+
+          // @ts-expect-error
+          ((_arg: 'BAR') => {})(event.type);
+
+          const ev = {
+            type: 'BAR' as const
+          };
+
+          enq.raise(ev);
         }
       }
     });
   });
 
   it('should accept a valid event type returned from an expression', () => {
-    createMachine({
-      types: {
-        events: {} as { type: 'FOO' } | { type: 'BAR' }
+    next_createMachine({
+      // types: {
+      //   events: {} as { type: 'FOO' } | { type: 'BAR' }
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('FOO')
+          }),
+          z.object({
+            type: z.literal('BAR')
+          })
+        ])
       },
-      entry: raise(() => ({
-        type: 'BAR' as const
-      }))
+      entry: (_, enq) =>
+        enq.raise({
+          type: 'BAR' as const
+        })
     });
   });
 
   it('should reject an invalid event type returned from an expression', () => {
-    createMachine({
-      types: {
-        events: {} as { type: 'FOO' } | { type: 'BAR' }
+    next_createMachine({
+      // types: {
+      //   events: {} as { type: 'FOO' } | { type: 'BAR' }
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('FOO')
+          }),
+          z.object({
+            type: z.literal('BAR')
+          })
+        ])
       },
-      // @ts-expect-error
-      entry: raise(() => ({
-        type: 'UNKNOWN'
-      }))
+      entry: (_, enq) =>
+        enq.raise({
+          // @ts-expect-error
+          type: 'UNKNOWN'
+        })
     });
   });
 
   it('should reject a string event type returned from an expression', () => {
     const event: { type: string } = { type: 'something' };
 
-    createMachine({
-      types: {
-        events: {} as { type: 'FOO' } | { type: 'BAR' }
+    next_createMachine({
+      // types: {
+      //   events: {} as { type: 'FOO' } | { type: 'BAR' }
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('FOO')
+          }),
+          z.object({
+            type: z.literal('BAR')
+          })
+        ])
       },
       // @ts-expect-error
-      entry: raise(() => event)
-    });
-  });
-});
-
-describe('stop', () => {
-  it('should narrow down the event type in the expression', () => {
-    createMachine({
-      types: {
-        events: {} as { type: 'FOO' } | { type: 'BAR' }
-      },
-      on: {
-        FOO: {
-          actions: stopChild(({ event }) => {
-            ((_arg: 'FOO') => {})(event.type);
-            // @ts-expect-error
-            ((_arg: 'BAR') => {})(event.type);
-
-            return 'fakeId';
-          })
-        }
-      }
+      // entry: raise(() => event)
+      entry: (_, enq) => enq.raise(event)
     });
   });
 });
 
 describe('context', () => {
-  it('defined context in createMachine() should be an object', () => {
-    createMachine({
+  it('defined context in next_createMachine() should be an object', () => {
+    next_createMachine({
       // @ts-expect-error
       context: 'string'
     });
   });
 
   it('context should be required if present in types', () => {
-    createMachine(
+    next_createMachine(
       // @ts-expect-error
       {
-        types: {} as {
-          context: { count: number };
+        // types: {} as {
+        //   context: { count: number };
+        // }
+        schemas: {
+          context: z.object({
+            count: z.number()
+          })
         }
       }
     );
 
-    createMachine({
-      types: {} as {
-        context: { count: number };
+    next_createMachine({
+      // types: {} as {
+      //   context: { count: number };
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
       },
       context: {
         count: 0
       }
     });
 
-    createMachine({
-      types: {} as {
-        context: { count: number };
+    next_createMachine({
+      // types: {} as {
+      //   context: { count: number };
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
       },
       context: () => ({
         count: 0
@@ -188,6 +257,12 @@ describe('context', () => {
 describe('output', () => {
   it('output type should be represented in state', () => {
     const machine = next_createMachine({
+      // types: {} as {
+      //   output: number;
+      // },
+      schemas: {
+        output: z.number()
+      },
       output: 42
     });
 
@@ -201,18 +276,24 @@ describe('output', () => {
   });
 
   it('should accept valid static output', () => {
-    createMachine({
-      types: {} as {
-        output: number;
+    next_createMachine({
+      // types: {} as {
+      //   output: number;
+      // },
+      schemas: {
+        output: z.number()
       },
       output: 42
     });
   });
 
   it('should reject invalid static output', () => {
-    createMachine({
-      types: {} as {
-        output: number;
+    next_createMachine({
+      // types: {} as {
+      //   output: number;
+      // },
+      schemas: {
+        output: z.number()
       },
       // @ts-expect-error
       output: 'a string'
@@ -220,18 +301,24 @@ describe('output', () => {
   });
 
   it('should accept valid dynamic output', () => {
-    createMachine({
-      types: {} as {
-        output: number;
+    next_createMachine({
+      // types: {} as {
+      //   output: number;
+      // },
+      schemas: {
+        output: z.number()
       },
       output: () => 42
     });
   });
 
   it('should reject invalid dynamic output', () => {
-    createMachine({
-      types: {} as {
-        output: number;
+    next_createMachine({
+      // types: {} as {
+      //   output: number;
+      // },
+      schemas: {
+        output: z.number()
       },
       // @ts-expect-error
       output: () => 'a string'
@@ -239,12 +326,20 @@ describe('output', () => {
   });
 
   it('should provide the context type to the dynamic top-level output', () => {
-    createMachine({
-      types: {} as {
-        context: { password: string };
-        output: {
-          secret: string;
-        };
+    next_createMachine({
+      // types: {} as {
+      //   context: { password: string };
+      //   output: {
+      //     secret: string;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          password: z.string()
+        }),
+        output: z.object({
+          secret: z.string()
+        })
       },
       context: { password: 'okoń' },
       output: ({ context }) => {
@@ -259,12 +354,20 @@ describe('output', () => {
   });
 
   it('should provide the context type to the dynamic nested output', () => {
-    createMachine({
-      types: {} as {
-        context: { password: string };
-        output: {
-          secret: string;
-        };
+    next_createMachine({
+      // types: {} as {
+      //   context: { password: string };
+      //   output: {
+      //     secret: string;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          password: z.string()
+        }),
+        output: z.object({
+          secret: z.string()
+        })
       },
       context: { password: 'okoń' },
       initial: 'secret',
@@ -295,13 +398,26 @@ describe('output', () => {
 
 describe('emitted', () => {
   it('emitted type should be represented in actor.on(…)', () => {
-    const m = setup({
-      types: {
-        emitted: {} as
-          | { type: 'onClick'; x: number; y: number }
-          | { type: 'onChange' }
+    // const m = setup({
+    //   types: {
+    //     emitted: {} as
+    //       | { type: 'onClick'; x: number; y: number }
+    //       | { type: 'onChange' }
+    //   }
+    // }).createMachine({});
+
+    const m = next_createMachine({
+      schemas: {
+        emitted: z.union([
+          z.object({
+            type: z.literal('onClick'),
+            x: z.number(),
+            y: z.number()
+          }),
+          z.object({ type: z.literal('onChange') })
+        ])
       }
-    }).createMachine({});
+    });
 
     const actor = createActor(m);
 
@@ -319,81 +435,40 @@ describe('emitted', () => {
   });
 });
 
-it('should infer context type from `config.context` when there is no `schema.context`', () => {
-  createMachine(
-    {
-      context: {
-        foo: 'test'
-      }
-    },
-    {
-      actions: {
-        someAction: ({ context }) => {
-          ((_accept: string) => {})(context.foo);
-          // @ts-expect-error
-          ((_accept: number) => {})(context.foo);
-        }
-      }
-    }
-  );
-});
-
 it('should not use actions as possible inference sites', () => {
-  createMachine(
-    {
-      types: {
-        context: {} as {
-          count: number;
-        }
-      },
-      context: {
-        count: 0
-      },
-      entry: () => {}
+  next_createMachine({
+    // types: {
+    //   context: {} as {
+    //     count: number;
+    //   }
+    // },
+    schemas: {
+      context: z.object({
+        count: z.number()
+      })
     },
-    {
-      actions: {
-        someAction: ({ context }) => {
-          ((_accept: number) => {})(context.count);
-          // @ts-expect-error
-          ((_accept: string) => {})(context.count);
-        }
-      }
+    context: {
+      count: 0
+    },
+    entry: ({ context }) => {
+      ((_accept: number) => {})(context.count);
+      // @ts-expect-error
+      ((_accept: string) => {})(context.count);
     }
-  );
-});
-
-it('should work with generic context', () => {
-  function createMachineWithExtras<TContext extends MachineContext>(
-    context: TContext
-  ): StateMachine<
-    TContext,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any, // TMeta
-    any
-  > {
-    return createMachine({ context });
-  }
-
-  createMachineWithExtras({ counter: 42 });
+  });
 });
 
 it('should not widen literal types defined in `schema.context` based on `config.context`', () => {
-  createMachine({
-    types: {
-      context: {} as {
-        literalTest: 'foo' | 'bar';
-      }
+  next_createMachine({
+    // types: {
+    //   context: {} as {
+    //     literalTest: 'foo' | 'bar';
+    //   }
+    // },
+    schemas: {
+      context: z.object({
+        literalTest: z.union([z.literal('foo'), z.literal('bar')])
+      })
     },
     context: {
       // @ts-expect-error
@@ -406,23 +481,25 @@ describe('states', () => {
   it('should accept a state handling subset of events as part of the whole config handling superset of those events', () => {
     const italicState = {
       on: {
-        TOGGLE_BOLD: {
-          actions: () => {}
-        }
+        TOGGLE_BOLD: () => {}
       }
     };
 
     const boldState = {
       on: {
-        TOGGLE_BOLD: {
-          actions: () => {}
-        }
+        TOGGLE_BOLD: () => {}
       }
     };
 
-    createMachine({
-      types: {} as {
-        events: { type: 'TOGGLE_ITALIC' } | { type: 'TOGGLE_BOLD' };
+    next_createMachine({
+      // types: {} as {
+      //   events: { type: 'TOGGLE_ITALIC' } | { type: 'TOGGLE_BOLD' };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({ type: z.literal('TOGGLE_ITALIC') }),
+          z.object({ type: z.literal('TOGGLE_BOLD') })
+        ])
       },
       type: 'parallel',
       states: {
@@ -437,15 +514,19 @@ describe('states', () => {
   it('should not accept a state handling an event type outside of the events accepted by the machine', () => {
     const underlineState = {
       on: {
-        TOGGLE_UNDERLINE: {
-          actions: () => {}
-        }
+        TOGGLE_UNDERLINE: () => {}
       }
     };
 
-    createMachine({
-      types: {} as {
-        events: { type: 'TOGGLE_ITALIC' } | { type: 'TOGGLE_BOLD' };
+    next_createMachine({
+      // types: {} as {
+      //   events: { type: 'TOGGLE_ITALIC' } | { type: 'TOGGLE_BOLD' };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({ type: z.literal('TOGGLE_ITALIC') }),
+          z.object({ type: z.literal('TOGGLE_BOLD') })
+        ])
       },
       type: 'parallel',
       states: {
@@ -458,13 +539,18 @@ describe('states', () => {
 
 describe('events', () => {
   it('should not use actions as possible inference sites 1', () => {
-    const machine = createMachine({
-      types: {
-        events: {} as {
-          type: 'FOO';
-        }
+    const machine = next_createMachine({
+      // types: {
+      //   events: {} as {
+      //     type: 'FOO';
+      //   }
+      // },
+      schemas: {
+        events: z.object({
+          type: z.literal('FOO')
+        })
       },
-      entry: raise<any, any, any, any, any, any>({ type: 'FOO' })
+      entry: (_, enq) => enq.raise({ type: 'FOO' })
     });
 
     const service = createActor(machine).start();
@@ -475,13 +561,18 @@ describe('events', () => {
   });
 
   it('should not use actions as possible inference sites 2', () => {
-    const machine = createMachine({
-      types: {
-        events: {} as {
-          type: 'FOO';
-        }
+    const machine = next_createMachine({
+      // types: {
+      //   events: {} as {
+      //     type: 'FOO';
+      //   }
+      // },
+      schemas: {
+        events: z.object({
+          type: z.literal('FOO')
+        })
       },
-      entry: () => {}
+      entry: (_, enq) => enq.raise({ type: 'FOO' })
     });
 
     const service = createActor(machine).start();
@@ -492,14 +583,22 @@ describe('events', () => {
   });
 
   it('event type should be inferable from a simple state machine type', () => {
-    const toggleMachine = createMachine({
-      types: {} as {
-        context: {
-          count: number;
-        };
-        events: {
-          type: 'TOGGLE';
-        };
+    const toggleMachine = next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     count: number;
+      //   };
+      //   events: {
+      //     type: 'TOGGLE';
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        }),
+        events: z.object({
+          type: z.literal('TOGGLE')
+        })
       },
       context: {
         count: 0
@@ -532,120 +631,209 @@ describe('events', () => {
   });
 
   it('should infer inline function parameters when narrowing transition actions based on the event type', () => {
-    createMachine({
-      types: {
-        context: {} as {
-          count: number;
-        },
-        events: {} as
-          | { type: 'EVENT_WITH_FLAG'; flag: boolean }
-          | {
-              type: 'EVENT_WITHOUT_FLAG';
-            }
+    next_createMachine({
+      // types: {
+      //   context: {} as {
+      //     count: number;
+      //   },
+      //   events: {} as
+      //     | { type: 'EVENT_WITH_FLAG'; flag: boolean }
+      //     | {
+      //         type: 'EVENT_WITHOUT_FLAG';
+      //       }
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        }),
+        events: z.union([
+          z.object({ type: z.literal('EVENT_WITH_FLAG'), flag: z.boolean() }),
+          z.object({ type: z.literal('EVENT_WITHOUT_FLAG') })
+        ])
       },
       context: {
         count: 0
       },
       on: {
-        EVENT_WITH_FLAG: {
-          actions: ({ event }) => {
-            ((_accept: 'EVENT_WITH_FLAG') => {})(event.type);
-            ((_accept: boolean) => {})(event.flag);
-            // @ts-expect-error
-            ((_accept: 'is not any') => {})(event);
-          }
+        // EVENT_WITH_FLAG: {
+        //   actions: ({ event }) => {
+        //     ((_accept: 'EVENT_WITH_FLAG') => {})(event.type);
+        //     ((_accept: boolean) => {})(event.flag);
+        //     // @ts-expect-error
+        //     ((_accept: 'is not any') => {})(event);
+        //   }
+        // }
+        EVENT_WITH_FLAG: ({ event }) => {
+          ((_accept: 'EVENT_WITH_FLAG') => {})(event.type);
+          ((_accept: boolean) => {})(event.flag);
+          // @ts-expect-error
+          ((_accept: 'is not any') => {})(event);
         }
       }
     });
   });
 
   it('should infer inline function parameters when for a wildcard transition', () => {
-    createMachine({
-      types: {
-        context: {} as {
-          count: number;
-        },
-        events: {} as
-          | { type: 'EVENT_WITH_FLAG'; flag: boolean }
-          | {
-              type: 'EVENT_WITHOUT_FLAG';
-            }
+    next_createMachine({
+      // types: {
+      //   context: {} as {
+      //     count: number;
+      //   },
+      //   events: {} as
+      //     | { type: 'EVENT_WITH_FLAG'; flag: boolean }
+      //     | {
+      //         type: 'EVENT_WITHOUT_FLAG';
+      //       }
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        }),
+        events: z.union([
+          z.object({ type: z.literal('EVENT_WITH_FLAG'), flag: z.boolean() }),
+          z.object({ type: z.literal('EVENT_WITHOUT_FLAG') })
+        ])
       },
       context: {
         count: 0
       },
       on: {
-        '*': {
-          actions: ({ event }) => {
-            ((_accept: 'EVENT_WITH_FLAG' | 'EVENT_WITHOUT_FLAG') => {})(
-              event.type
-            );
-            // @ts-expect-error
-            ((_accept: 'is not any') => {})(event);
-          }
+        // '*': {
+        //   actions: ({ event }) => {
+        //     ((_accept: 'EVENT_WITH_FLAG' | 'EVENT_WITHOUT_FLAG') => {})(
+        //       event.type
+        //     );
+        //     // @ts-expect-error
+        //     ((_accept: 'is not any') => {})(event);
+        //   }
+        // }
+        '*': ({ event }) => {
+          ((_accept: 'EVENT_WITH_FLAG' | 'EVENT_WITHOUT_FLAG') => {})(
+            event.type
+          );
+          // @ts-expect-error
+          ((_accept: 'is not any') => {})(event);
         }
       }
     });
   });
 
   it('should infer inline function parameter with a partial transition descriptor matching multiple events with the matching count of segments', () => {
-    createMachine({
-      types: {} as {
-        events:
-          | { type: 'mouse.click.up'; direction: 'up' }
-          | { type: 'mouse.click.down'; direction: 'down' }
-          | { type: 'mouse.move' }
-          | { type: 'mouse' }
-          | { type: 'keypress' };
+    next_createMachine({
+      // types: {} as {
+      //   events:
+      //     | { type: 'mouse.click.up'; direction: 'up' }
+      //     | { type: 'mouse.click.down'; direction: 'down' }
+      //     | { type: 'mouse.move' }
+      //     | { type: 'mouse' }
+      //     | { type: 'keypress' };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('mouse.click.up'),
+            direction: z.literal('up')
+          }),
+          z.object({
+            type: z.literal('mouse.click.down'),
+            direction: z.literal('down')
+          }),
+          z.object({ type: z.literal('mouse.move') }),
+          z.object({ type: z.literal('mouse') }),
+          z.object({ type: z.literal('keypress') })
+        ])
       },
       on: {
-        'mouse.click.*': {
-          actions: ({ event }) => {
-            ((_accept: 'mouse.click.up' | 'mouse.click.down') => {})(
-              event.type
-            );
-            ((_accept: 'up' | 'down') => {})(event.direction);
-            // @ts-expect-error
-            ((_accept: 'not any') => {})(event.type);
-          }
+        // 'mouse.click.*': {
+        //   actions: ({ event }) => {
+        //     ((_accept: 'mouse.click.up' | 'mouse.click.down') => {})(
+        //       event.type
+        //     );
+        //     ((_accept: 'up' | 'down') => {})(event.direction);
+        //     // @ts-expect-error
+        //     ((_accept: 'not any') => {})(event.type);
+        //   }
+        // }
+        'mouse.click.*': ({ event }) => {
+          ((_accept: 'mouse.click.up' | 'mouse.click.down') => {})(event.type);
+          ((_accept: 'up' | 'down') => {})(event.direction);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(event.type);
         }
       }
     });
   });
 
   it('should infer inline function parameter with a partial transition descriptor matching multiple events with the same count of segments or more', () => {
-    createMachine({
-      types: {} as {
-        events:
-          | { type: 'mouse.click.up'; direction: 'up' }
-          | { type: 'mouse.click.down'; direction: 'down' }
-          | { type: 'mouse.move' }
-          | { type: 'mouse' }
-          | { type: 'keypress' };
+    next_createMachine({
+      // types: {} as {
+      //   events:
+      //     | { type: 'mouse.click.up'; direction: 'up' }
+      //     | { type: 'mouse.click.down'; direction: 'down' }
+      //     | { type: 'mouse.move' }
+      //     | { type: 'mouse' }
+      //     | { type: 'keypress' };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('mouse.click.up'),
+            direction: z.literal('up')
+          }),
+          z.object({
+            type: z.literal('mouse.click.down'),
+            direction: z.literal('down')
+          }),
+          z.object({ type: z.literal('mouse.move') }),
+          z.object({ type: z.literal('mouse') }),
+          z.object({ type: z.literal('keypress') })
+        ])
       },
       on: {
-        'mouse.*': {
-          actions: ({ event }) => {
-            ((
-              _accept: 'mouse.click.up' | 'mouse.click.down' | 'mouse.move'
-            ) => {})(event.type);
-            // @ts-expect-error
-            ((_accept: 'not any') => {})(event.type);
-          }
+        // 'mouse.*': {
+        //   actions: ({ event }) => {
+        //     ((
+        //       _accept: 'mouse.click.up' | 'mouse.click.down' | 'mouse.move'
+        //     ) => {})(event.type);
+        //     // @ts-expect-error
+        //     ((_accept: 'not any') => {})(event.type);
+        //   }
+        // }
+        'mouse.*': ({ event }) => {
+          ((
+            _accept: 'mouse.click.up' | 'mouse.click.down' | 'mouse.move'
+          ) => {})(event.type);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(event.type);
         }
       }
     });
   });
 
   it('should not allow a transition using an event type matching the possible prefix but one that is outside of the defines ones', () => {
-    createMachine({
-      types: {} as {
-        events:
-          | { type: 'mouse.click.up'; direction: 'up' }
-          | { type: 'mouse.click.down'; direction: 'down' }
-          | { type: 'mouse.move' }
-          | { type: 'mouse' }
-          | { type: 'keypress' };
+    next_createMachine({
+      // types: {} as {
+      //   events:
+      //     | { type: 'mouse.click.up'; direction: 'up' }
+      //     | { type: 'mouse.click.down'; direction: 'down' }
+      //     | { type: 'mouse.move' }
+      //     | { type: 'mouse' }
+      //     | { type: 'keypress' };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('mouse.click.up'),
+            direction: z.literal('up')
+          }),
+          z.object({
+            type: z.literal('mouse.click.down'),
+            direction: z.literal('down')
+          }),
+          z.object({ type: z.literal('mouse.move') }),
+          z.object({ type: z.literal('mouse') }),
+          z.object({ type: z.literal('keypress') })
+        ])
       },
       on: {
         // @ts-expect-error
@@ -655,14 +843,29 @@ describe('events', () => {
   });
 
   it('should not allow a transition using an event type matching the possible prefix but one that is outside of the defines ones', () => {
-    createMachine({
-      types: {} as {
-        events:
-          | { type: 'mouse.click.up'; direction: 'up' }
-          | { type: 'mouse.click.down'; direction: 'down' }
-          | { type: 'mouse.move' }
-          | { type: 'mouse' }
-          | { type: 'keypress' };
+    next_createMachine({
+      // types: {} as {
+      //   events:
+      //     | { type: 'mouse.click.up'; direction: 'up' }
+      //     | { type: 'mouse.click.down'; direction: 'down' }
+      //     | { type: 'mouse.move' }
+      //     | { type: 'mouse' }
+      //     | { type: 'keypress' };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('mouse.click.up'),
+            direction: z.literal('up')
+          }),
+          z.object({
+            type: z.literal('mouse.click.down'),
+            direction: z.literal('down')
+          }),
+          z.object({ type: z.literal('mouse.move') }),
+          z.object({ type: z.literal('mouse') }),
+          z.object({ type: z.literal('keypress') })
+        ])
       },
       on: {
         // @ts-expect-error
@@ -672,36 +875,71 @@ describe('events', () => {
   });
 
   it(`should infer inline function parameter only using a direct match when the transition descriptor doesn't has a trailing wildcard`, () => {
-    createMachine({
-      types: {} as {
-        events:
-          | { type: 'mouse.click.up'; direction: 'up' }
-          | { type: 'mouse.click.down'; direction: 'down' }
-          | { type: 'mouse.move' }
-          | { type: 'mouse' }
-          | { type: 'keypress' };
+    next_createMachine({
+      // types: {} as {
+      //   events:
+      //     | { type: 'mouse.click.up'; direction: 'up' }
+      //     | { type: 'mouse.click.down'; direction: 'down' }
+      //     | { type: 'mouse.move' }
+      //     | { type: 'mouse' }
+      //     | { type: 'keypress' };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('mouse.click.up'),
+            direction: z.literal('up')
+          }),
+          z.object({
+            type: z.literal('mouse.click.down'),
+            direction: z.literal('down')
+          }),
+          z.object({ type: z.literal('mouse.move') }),
+          z.object({ type: z.literal('mouse') }),
+          z.object({ type: z.literal('keypress') })
+        ])
       },
       on: {
-        mouse: {
-          actions: ({ event }) => {
-            ((_accept: 'mouse') => {})(event.type);
-            // @ts-expect-error
-            ((_accept: 'not any') => {})(event.type);
-          }
+        // mouse: {
+        //   actions: ({ event }) => {
+        //     ((_accept: 'mouse') => {})(event.type);
+        //     // @ts-expect-error
+        //     ((_accept: 'not any') => {})(event.type);
+        //   }
+        // }
+        mouse: ({ event }) => {
+          ((_accept: 'mouse') => {})(event.type);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(event.type);
         }
       }
     });
   });
 
   it('should not allow a transition using a partial descriptor related to an event type that is only defined exxactly', () => {
-    createMachine({
-      types: {} as {
-        events:
-          | { type: 'mouse.click.up'; direction: 'up' }
-          | { type: 'mouse.click.down'; direction: 'down' }
-          | { type: 'mouse.move' }
-          | { type: 'mouse' }
-          | { type: 'keypress' };
+    next_createMachine({
+      // types: {} as {
+      //   events:
+      //     | { type: 'mouse.click.up'; direction: 'up' }
+      //     | { type: 'mouse.click.down'; direction: 'down' }
+      //     | { type: 'mouse.move' }
+      //     | { type: 'mouse' }
+      //     | { type: 'keypress' };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('mouse.click.up'),
+            direction: z.literal('up')
+          }),
+          z.object({
+            type: z.literal('mouse.click.down'),
+            direction: z.literal('down')
+          }),
+          z.object({ type: z.literal('mouse.move') }),
+          z.object({ type: z.literal('mouse') }),
+          z.object({ type: z.literal('keypress') })
+        ])
       },
       on: {
         // @ts-expect-error
@@ -710,68 +948,66 @@ describe('events', () => {
     });
   });
 
-  it('action objects used within implementations parameter should get access to the provided event type', () => {
-    next_createMachine({
-      types: {
-        context: {} as { numbers: number[] },
-        events: {} as { type: 'ADD'; number: number }
-      },
-      context: {
-        numbers: []
-      },
-      actions: {
-        addNumber: assign({
-          numbers: ({ context, event }) => {
-            ((_accept: number) => {})(event.number);
-            // @ts-expect-error
-            ((_accept: string) => {})(event.number);
-            return context.numbers.concat(event.number);
-          }
-        })
-      }
-    });
-  });
-
   it('should provide the default TEvent to transition actions when there is no specific TEvent configured', () => {
-    createMachine({
-      types: {
-        context: {} as {
-          count: number;
-        }
+    next_createMachine({
+      // types: {
+      //   context: {} as {
+      //     count: number;
+      //   }
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
       },
       context: {
         count: 0
       },
       on: {
-        FOO: {
-          actions: ({ event }) => {
-            ((_accept: string) => {})(event.type);
-          }
+        // FOO: {
+        //   actions: ({ event }) => {
+        //     ((_accept: string) => {})(event.type);
+        //   }
+        // }
+        FOO: ({ event }) => {
+          ((_accept: string) => {})(event.type);
         }
       }
     });
   });
 
   it('should provide contextual `event` type in transition actions when the matching event has a union `.type`', () => {
-    createMachine({
-      types: {} as {
-        events:
-          | {
-              type: 'FOO' | 'BAR';
-              value: string;
-            }
-          | {
-              type: 'OTHER';
-            };
+    next_createMachine({
+      // types: {} as {
+      //   events:
+      //     | {
+      //         type: 'FOO' | 'BAR';
+      //         value: string;
+      //       }
+      //     | {
+      //         type: 'OTHER';
+      //       };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({ type: z.literal('FOO'), value: z.string() }),
+          z.object({ type: z.literal('OTHER') })
+        ])
       },
       on: {
-        FOO: {
-          actions: ({ event }) => {
-            event.type satisfies 'FOO' | 'BAR'; // it could be narrowed down to `FOO` but it's not worth the effort/complexity
-            event.value satisfies string;
-            // @ts-expect-error
-            event.value satisfies number;
-          }
+        // FOO: {
+        //   actions: ({ event }) => {
+        //     event.type satisfies 'FOO' | 'BAR'; // it could be narrowed down to `FOO` but it's not worth the effort/complexity
+        //     event.value satisfies string;
+        //     // @ts-expect-error
+        //     event.value satisfies number;
+        //   }
+        // }
+        FOO: ({ event }) => {
+          event.type satisfies 'FOO' | 'BAR'; // it could be narrowed down to `FOO` but it's not worth the effort/complexity
+          event.value satisfies string;
+          // @ts-expect-error
+          event.value satisfies number;
         }
       }
     });
@@ -781,9 +1017,14 @@ describe('events', () => {
 describe('interpreter', () => {
   it('should be convertible to Rx observable', () => {
     const s = createActor(
-      createMachine({
-        types: {
-          context: {} as { count: number }
+      next_createMachine({
+        // types: {
+        //   context: {} as { count: number }
+        // },
+        schemas: {
+          context: z.object({
+            count: z.number()
+          })
         },
         context: {
           count: 0
@@ -804,164 +1045,218 @@ describe('spawnChild action', () => {
   it('should reject actor outside of the defined ones at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: {
+        child
       },
-      entry:
-        // @ts-expect-error
-        spawnChild('other')
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child);
+        enq.spawn(
+          // @ts-expect-error
+          actors.other
+        );
+      }
     });
   });
 
   it('should accept a defined actor at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: {
+        child
       },
-      entry: spawnChild('child')
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child);
+      }
     });
   });
 
   it('should allow valid configured actor id', () => {
-    const child = createMachine({});
+    const child = next_createMachine({});
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child;
-        };
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     id: 'ok1' | 'ok2';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: {
+        child
       },
-      entry: spawnChild('child', { id: 'ok1' })
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, { id: 'ok1' });
+      }
     });
   });
 
   it('should disallow invalid actor id', () => {
-    const child = createMachine({});
+    const child = next_createMachine({});
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child;
-        };
-      },
-      entry: spawnChild(
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     id: 'ok1' | 'ok2';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: spawnChild(
+      //   // @ts-expect-error
+      //   'child',
+      //   {
+      //     id: 'child'
+      //   }
+      // )
+      entry: ({ actors }, enq) => {
         // @ts-expect-error
-        'child',
-        {
-          id: 'child'
-        }
-      )
+        enq.spawn(actors.child, { id: 'child' });
+      }
     });
   });
 
   it('should require id to be specified when it was configured', () => {
-    const child = createMachine({});
+    const child = next_createMachine({});
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child;
-        };
-      },
-      entry:
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     id: 'ok1' | 'ok2';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry:
+      //   // @ts-expect-error
+      //   spawnChild('child')
+      entry: ({ actors }, enq) => {
         // @ts-expect-error
-        spawnChild('child')
+        enq.spawn(actors.child);
+      }
     });
   });
 
   it(`shouldn't require id to be specified when it was not configured`, () => {
-    const child = createMachine({});
+    const child = next_createMachine({});
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: spawnChild('child')
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: spawnChild('child')
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child);
+      }
     });
   });
 
   it(`should allow id to be specified when it was not configured`, () => {
-    const child = createMachine({});
+    const child = next_createMachine({});
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: spawnChild('child', { id: 'someId' })
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: spawnChild('child', { id: 'someId' })
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, { id: 'someId' });
+      }
     });
   });
 
   it(`should allow anonymous inline actor outside of the configured actors`, () => {
-    const child1 = createMachine({
+    const child1 = next_createMachine({
       context: {
         counter: 0
       }
     });
 
-    const child2 = createMachine({
+    const child2 = next_createMachine({
       context: {
         answer: ''
       }
     });
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child1;
-        };
-      },
-      entry: spawnChild(child2)
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child1;
+      //   };
+      // },
+      actors: { child1 },
+      // entry: spawnChild(child2)
+      entry: ({ actors }, enq) => {
+        enq.spawn(child2);
+      }
     });
   });
 
   it(`should disallow anonymous inline actor with an id outside of the configured actors`, () => {
-    const child1 = createMachine({
+    const child1 = next_createMachine({
+      schemas: {
+        context: z.object({
+          counter: z.number()
+        })
+      },
       context: {
         counter: 0
       }
     });
 
-    const child2 = createMachine({
+    const child2 = next_createMachine({
+      schemas: {
+        context: z.object({
+          answer: z.string()
+        })
+      },
       context: {
         answer: ''
       }
     });
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child1;
-          id: 'myChild';
-        };
-      },
-      entry: spawnChild(
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child1;
+      //     id: 'myChild';
+      //   };
+      // },
+      actors: { child1 },
+      // entry: spawnChild(
+      //   // @ts-expect-error
+      //   child2,
+      //   { id: 'myChild' }
+      // )
+      entry: ({ actors }, enq) => {
         // @ts-expect-error
-        child2,
-        { id: 'myChild' }
-      )
+        enq.spawn(child2, { id: 'myChild' });
+      }
     });
   });
 
@@ -970,20 +1265,27 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: spawnChild(
-        // @ts-expect-error
-        'child',
-        {
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: spawnChild(
+      //   // @ts-expect-error
+      //   'child',
+      //   {
+      //     input: 'hello'
+      //   }
+      // )
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, {
+          // @ts-expect-error
           input: 'hello'
-        }
-      )
+        });
+      }
     });
   });
 
@@ -992,16 +1294,22 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: spawnChild('child', {
-        input: 42
-      })
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: spawnChild('child', {
+      //   input: 42
+      // })
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, {
+          input: 42
+        });
+      }
     });
   });
 
@@ -1010,16 +1318,22 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: spawnChild('child', {
-        input: 42
-      })
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: spawnChild('child', {
+      //   input: 42
+      // })
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, {
+          input: 42
+        });
+      }
     });
   });
 
@@ -1028,20 +1342,27 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: spawnChild(
-        // @ts-expect-error
-        'child',
-        {
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: spawnChild(
+      //   // @ts-expect-error
+      //   'child',
+      //   {
+      //     input: Math.random() > 0.5 ? 'string' : 42
+      //   }
+      // )
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, {
+          // @ts-expect-error
           input: Math.random() > 0.5 ? 'string' : 42
-        }
-      )
+        });
+      }
     });
   });
 
@@ -1050,20 +1371,27 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: spawnChild(
-        // @ts-expect-error
-        'child',
-        {
-          input: () => 'hello'
-        }
-      )
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: spawnChild(
+      //   // @ts-expect-error
+      //   'child',
+      //   {
+      //     input: () => 'hello'
+      //   }
+      // )
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, {
+          // @ts-expect-error
+          input: 'hello'
+        });
+      }
     });
   });
 
@@ -1072,16 +1400,22 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: spawnChild('child', {
-        input: () => 42
-      })
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: spawnChild('child', {
+      //   input: () => 42
+      // })
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, {
+          input: 42
+        });
+      }
     });
   });
 
@@ -1090,20 +1424,27 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: spawnChild(
-        // @ts-expect-error
-        'child',
-        {
-          input: () => (Math.random() > 0.5 ? 42 : 'hello')
-        }
-      )
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: spawnChild(
+      //   // @ts-expect-error
+      //   'child',
+      //   {
+      //     input: () => (Math.random() > 0.5 ? 42 : 'hello')
+      //   }
+      // )
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, {
+          // @ts-expect-error
+          input: Math.random() > 0.5 ? 42 : 'hello'
+        });
+      }
     });
   });
 
@@ -1112,16 +1453,22 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: spawnChild('child', {
-        input: () => 'hello'
-      })
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: spawnChild('child', {
+      //   input: () => 'hello'
+      // })
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, {
+          input: 'hello'
+        });
+      }
     });
   });
 
@@ -1132,39 +1479,53 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors:
-          | {
-              src: 'child1';
-              logic: typeof child1;
-            }
-          | {
-              src: 'child2';
-              logic: typeof child2;
-            };
-      },
-      entry:
+    next_createMachine({
+      // types: {} as {
+      //   actors:
+      //     | {
+      //         src: 'child1';
+      //         logic: typeof child1;
+      //       }
+      //     | {
+      //         src: 'child2';
+      //         logic: typeof child2;
+      //       };
+      // },
+      actors: { child1, child2 },
+      // entry:
+      //   // @ts-expect-error
+      //   spawnChild('child1', {
+      //     input: 'hello'
+      //   })
+      entry: ({ actors }, enq) => {
         // @ts-expect-error
-        spawnChild('child1', {
+        enq.spawn(actors.child1, {
           input: 'hello'
-        })
+        });
+      }
     });
   });
 
   it(`should require input to be specified when it is required`, () => {
     const child = fromPromise(({}: { input: number }) => Promise.resolve(100));
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry:
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: assign(({ spawn }) => {
+      //   // @ts-expect-error
+      //   spawn('child');
+      //   return {};
+      // })
+      entry: ({ actors }, enq) => {
         // @ts-expect-error
-        spawnChild('child')
+        enq.spawn(actors.child);
+      }
     });
   });
 
@@ -1173,213 +1534,277 @@ describe('spawnChild action', () => {
       Promise.resolve(100)
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: spawnChild('child')
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: assign(({ spawn }) => {
+      //   spawn('child');
+      //   return {};
+      // })
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child);
+      }
     });
   });
 });
 
 describe('spawner in assign', () => {
-  it('spawned actor ref should be compatible with the result of ActorRefFrom', () => {
-    const createChild = () => createMachine({});
-
-    function createParent(_deps: {
-      spawnChild: (
-        spawn: Spawner
-      ) => ActorRefFrom<ReturnType<typeof createChild>>;
-    }) {}
-
-    createParent({
-      spawnChild: (spawn) => spawn(createChild())
-    });
-  });
-
   it('should reject actor outside of the defined ones at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: assign(({ spawn }) => {
-        // @ts-expect-error
-        spawn('other');
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: assign(({ spawn }) => {
+      //   // @ts-expect-error
+      //   spawn('other');
+      //   return {};
+      // })
+      entry: ({ actors }, enq) => {
+        enq.spawn(
+          // @ts-expect-error
+          actors.other
+        );
         return {};
-      })
+      }
     });
   });
 
   it('should accept a defined actor at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: assign(({ spawn }) => {
-        spawn('child');
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: assign(({ spawn }) => {
+      //   spawn('child');
+      //   return {};
+      // })
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child);
         return {};
-      })
+      }
     });
   });
 
   it('should allow valid configured actor id', () => {
-    const child = createMachine({});
+    const child = next_createMachine({});
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child;
-        };
-      },
-      entry: assign(({ spawn }) => {
-        spawn('child', { id: 'ok1' });
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     id: 'ok1' | 'ok2';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: assign(({ spawn }) => {
+      //   spawn('child', { id: 'ok1' });
+      //   return {};
+      // })
+      entry: (_, enq) => {
+        enq.spawn(child, { id: 'ok1' });
         return {};
-      })
+      }
     });
   });
 
   it('should disallow invalid actor id', () => {
-    const child = createMachine({});
+    const child = next_createMachine({});
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child;
-        };
-      },
-      entry: assign(({ spawn }) => {
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     id: 'ok1' | 'ok2';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: assign(({ spawn }) => {
+      //   // @ts-expect-error
+      //   spawn('child', {
+      //     id: 'child'
+      //   });
+      //   return {};
+      // })
+      entry: ({ actors }, enq) => {
         // @ts-expect-error
-        spawn('child', {
-          id: 'child'
-        });
+        enq.spawn(actors.child, { id: 'child' });
         return {};
-      })
+      }
     });
   });
 
   it('should require id to be specified when it was configured', () => {
-    const child = createMachine({});
+    const child = next_createMachine({});
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child;
-        };
-      },
-      entry: assign(({ spawn }) => {
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     id: 'ok1' | 'ok2';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: assign(({ spawn }) => {
+      //   // @ts-expect-error
+      //   spawn('child');
+      //   return {};
+      // })
+      entry: (_, enq) => {
         // @ts-expect-error
-        spawn('child');
+        enq.spawn(child);
         return {};
-      })
+      }
     });
   });
 
   it(`shouldn't require id to be specified when it was not configured`, () => {
-    const child = createMachine({});
+    const child = next_createMachine({});
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: assign(({ spawn }) => {
-        spawn('child');
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: assign(({ spawn }) => {
+      //   spawn('child');
+      //   return {};
+      // })
+      entry: (_, enq) => {
+        enq.spawn(child);
         return {};
-      })
+      }
     });
   });
 
   it(`should allow id to be specified when it was not configured`, () => {
-    const child = createMachine({});
+    const child = next_createMachine({});
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: assign(({ spawn }) => {
-        spawn('child', { id: 'someId' });
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: assign(({ spawn }) => {
+      //   spawn('child', { id: 'someId' });
+      //   return {};
+      // })
+      entry: (_, enq) => {
+        enq.spawn(child, { id: 'someId' });
         return {};
-      })
+      }
     });
   });
 
   it(`should allow anonymous inline actor outside of the configured actors`, () => {
-    const child1 = createMachine({
+    const child1 = next_createMachine({
+      schemas: {
+        context: z.object({
+          counter: z.number()
+        })
+      },
       context: {
         counter: 0
       }
     });
 
-    const child2 = createMachine({
+    const child2 = next_createMachine({
+      schemas: {
+        context: z.object({
+          answer: z.string()
+        })
+      },
       context: {
         answer: ''
       }
     });
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child1;
-        };
-      },
-      entry: assign(({ spawn }) => {
-        spawn(child2);
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child1;
+      //   };
+      // },
+      actors: { child1 },
+      // entry: assign(({ spawn }) => {
+      //   spawn(child2);
+      //   return {};
+      // })
+      entry: (_, enq) => {
+        enq.spawn(child2);
         return {};
-      })
+      }
     });
   });
 
   it(`should no allow anonymous inline actor with an id outside of the configured ones`, () => {
-    const child1 = createMachine({
+    const child1 = next_createMachine({
+      schemas: {
+        context: z.object({
+          counter: z.number()
+        })
+      },
       context: {
         counter: 0
       }
     });
 
-    const child2 = createMachine({
+    const child2 = next_createMachine({
+      schemas: {
+        context: z.object({
+          answer: z.string()
+        })
+      },
       context: {
         answer: ''
       }
     });
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child1;
-          id: 'myChild';
-        };
-      },
-      entry: assign(({ spawn }) => {
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child1;
+      //     id: 'myChild';
+      //   };
+      // },
+      actors: { child1 },
+      // entry: assign(({ spawn }) => {
+      //   // @ts-expect-error
+      //   spawn(child2, { id: 'myChild' });
+      //   return {};
+      // })
+      entry: (_, enq) => {
         // @ts-expect-error
-        spawn(child2, { id: 'myChild' });
+        enq.spawn(child2, { id: 'myChild' });
         return {};
-      })
+      }
     });
   });
 
@@ -1388,20 +1813,28 @@ describe('spawner in assign', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: assign(({ spawn }) => {
-        // @ts-expect-error
-        spawn('child', {
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: assign(({ spawn }) => {
+      //   // @ts-expect-error
+      //   spawn('child', {
+      //     input: 'hello'
+      //   });
+      //   return {};
+      // })
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, {
+          // @ts-expect-error
           input: 'hello'
         });
         return {};
-      })
+      }
     });
   });
 
@@ -1410,19 +1843,26 @@ describe('spawner in assign', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: assign(({ spawn }) => {
-        spawn('child', {
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: assign(({ spawn }) => {
+      //   spawn('child', {
+      //     input: 42
+      //   });
+      //   return {};
+      // })
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, {
           input: 42
         });
         return {};
-      })
+      }
     });
   });
 
@@ -1431,19 +1871,26 @@ describe('spawner in assign', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: assign(({ spawn }) => {
-        spawn('child', {
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: assign(({ spawn }) => {
+      //   spawn('child', {
+      //     input: 42
+      //   });
+      //   return {};
+      // })
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, {
           input: 42
         });
         return {};
-      })
+      }
     });
   });
 
@@ -1452,20 +1899,28 @@ describe('spawner in assign', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: assign(({ spawn }) => {
-        // @ts-expect-error
-        spawn('child', {
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: assign(({ spawn }) => {
+      //   // @ts-expect-error
+      //   spawn('child', {
+      //     input: Math.random() > 0.5 ? 'string' : 42
+      //   });
+      //   return {};
+      // })
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, {
+          // @ts-expect-error
           input: Math.random() > 0.5 ? 'string' : 42
         });
         return {};
-      })
+      }
     });
   });
 
@@ -1474,104 +1929,151 @@ describe('spawner in assign', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: assign(({ spawn }) => {
-        // @ts-expect-error
-        spawn('child', {
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, {
+          // @ts-expect-error
           input: () => 42
         });
         return {};
-      })
+      }
     });
   });
 
   it(`should return a concrete actor ref type based on actor logic argument, one that is assignable to a location expecting that concrete actor ref type`, () => {
-    const child = createMachine({
-      types: {} as {
-        context: {
-          counter: number;
-        };
+    const child = next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     counter: number;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          counter: z.number()
+        })
       },
       context: {
         counter: 100
       }
     });
 
-    createMachine({
-      types: {} as {
-        context: {
-          myChild?: ActorRefFrom<typeof child>;
-        };
+    next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     myChild?: ActorRefFrom<typeof child>;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          myChild: z.custom<ActorRefFrom<typeof child>>().optional()
+        })
       },
       context: {},
-      entry: assign({
-        myChild: ({ spawn }) => {
-          return spawn(child);
-        }
-      })
+      // entry: assign({
+      //   myChild: ({ spawn }) => {
+      //     return spawn(child);
+      //   }
+      // })
+      entry: (_, enq) => {
+        return {
+          context: {
+            myChild: enq.spawn(child)
+          }
+        };
+      }
     });
   });
 
   it(`should return a concrete actor ref type based on actor logic argument, one that isn't assignable to a location expecting a different concrete actor ref type`, () => {
-    const child = createMachine({
-      types: {} as {
-        context: {
-          counter: number;
-        };
+    const child = next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     counter: number;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          counter: z.number()
+        })
       },
       context: {
         counter: 100
       }
     });
 
-    const otherChild = createMachine({
-      types: {} as {
-        context: {
-          title: string;
-        };
+    const otherChild = next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     title: string;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          title: z.string()
+        })
       },
       context: {
         title: 'The Answer'
       }
     });
 
-    createMachine({
-      types: {} as {
-        context: {
-          myChild?: ActorRefFrom<typeof child>;
-        };
+    next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     myChild?: ActorRefFrom<typeof child>;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          myChild: z.custom<ActorRefFrom<typeof child>>().optional()
+        })
       },
       context: {},
-      entry: assign({
-        // @ts-expect-error
-        myChild: ({ spawn }) => {
-          return spawn(otherChild);
-        }
-      })
+      // entry: assign({
+      //   // @ts-expect-error
+      //   myChild: ({ spawn }) => {
+      //     return spawn(otherChild);
+      //   }
+      // })
+      entry: (_, enq) => {
+        return {
+          context: {
+            myChild:
+              // @ts-expect-error
+              enq.spawn(otherChild)
+          }
+        };
+      }
     });
   });
 
   it(`should require input to be specified when it is required`, () => {
     const child = fromPromise(({}: { input: number }) => Promise.resolve(100));
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: assign(({ spawn }) => {
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: assign(({ spawn }) => {
+      //   // @ts-expect-error
+      //   spawn('child');
+      //   return {};
+      // })
+      entry: ({ actors }, enq) => {
         // @ts-expect-error
-        spawn('child');
-        return {};
-      })
+        enq.spawn(actors.child);
+      }
     });
   });
 
@@ -1580,64 +2082,21 @@ describe('spawner in assign', () => {
       Promise.resolve(100)
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      entry: assign(({ spawn }) => {
-        spawn('child');
-        return {};
-      })
-    });
-  });
-
-  it(`should return a concrete actor ref type based on the used string reference`, () => {
-    const child = createMachine({
-      types: {} as {
-        context: {
-          counter: number;
-        };
-      },
-      context: {
-        counter: 100
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      // entry: assign(({ spawn }) => {
+      //   spawn('child');
+      //   return {};
+      // })
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child);
       }
-    });
-
-    const otherChild = createMachine({
-      types: {} as {
-        context: {
-          title: string;
-        };
-      },
-      context: {
-        title: 'The Answer'
-      }
-    });
-
-    createMachine({
-      types: {} as {
-        context: {
-          myChild?: ActorRefFrom<typeof child>;
-        };
-        actors:
-          | {
-              src: 'child';
-              logic: typeof child;
-            }
-          | {
-              src: 'other';
-              logic: typeof otherChild;
-            };
-      },
-      context: {},
-      entry: assign({
-        myChild: ({ spawn }) => {
-          return spawn('child');
-        }
-      })
     });
   });
 });
@@ -1646,16 +2105,18 @@ describe('invoke', () => {
   it('should reject actor outside of the defined ones at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      // @ts-expect-error
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       invoke: {
-        src: 'other'
+        src: ({ actors }) =>
+          // @ts-expect-error
+          actors.other
       }
     });
   });
@@ -1663,127 +2124,134 @@ describe('invoke', () => {
   it('should accept a defined actor at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       invoke: {
-        src: 'child'
+        src: ({ actors }) => actors.child
       }
     });
   });
 
   it('should allow valid configured actor id', () => {
-    const child = createMachine({});
+    const child = next_createMachine({});
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     id: 'ok1' | 'ok2';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       invoke: {
         id: 'ok1',
-        src: 'child'
+        src: ({ actors }) => actors.child
       }
     });
   });
 
   it('should disallow invalid actor id', () => {
-    const child = createMachine({});
+    const child = next_createMachine({});
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     id: 'ok1' | 'ok2';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       invoke: {
         // @ts-expect-error
         id: 'child',
-        src: 'child'
+        src: ({ actors }) => actors.child
       }
     });
   });
 
   it('should require id to be specified when it was configured', () => {
-    const child = createMachine({});
+    const child = next_createMachine({});
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     id: 'ok1' | 'ok2';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       // @ts-expect-error
       invoke: {
-        src: 'child'
+        src: ({ actors }) => actors.child
       }
     });
   });
 
   it(`shouldn't require id to be specified when it was not configured`, () => {
-    const child = createMachine({});
+    const child = next_createMachine({});
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       invoke: {
-        src: 'child'
+        src: ({ actors }) => actors.child
       }
     });
   });
 
   it(`should allow id to be specified when it was not configured`, () => {
-    const child = createMachine({});
+    const child = next_createMachine({});
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       invoke: {
         id: 'someId',
-        src: 'child'
+        src: ({ actors }) => actors.child
       }
     });
   });
 
   it(`should allow anonymous inline actor outside of the configured actors`, () => {
-    const child1 = createMachine({
+    const child1 = next_createMachine({
       context: {
         counter: 0
       }
     });
 
-    const child2 = createMachine({
+    const child2 = next_createMachine({
       context: {
         answer: ''
       }
     });
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child1;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child1;
+      //   };
+      // },
+      actors: { child1 },
       invoke: {
         src: child2
       }
@@ -1791,26 +2259,27 @@ describe('invoke', () => {
   });
 
   it(`should diallow anonymous inline actor with an id outside of the configured actors`, () => {
-    const child1 = createMachine({
+    const child1 = next_createMachine({
       context: {
         counter: 0
       }
     });
 
-    const child2 = createMachine({
+    const child2 = next_createMachine({
       context: {
         answer: ''
       }
     });
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child1;
-          id: 'myChild';
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child1;
+      //     id: 'myChild';
+      //   };
+      // },
+      actors: { child1 },
       invoke: {
         src: child2,
         // @ts-expect-error
@@ -1824,15 +2293,16 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       invoke: {
-        src: 'child',
+        src: ({ actors }) => actors.child,
         // @ts-expect-error
         input: 'hello'
       }
@@ -1844,15 +2314,16 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       invoke: {
-        src: 'child',
+        src: ({ actors }) => actors.child,
         input: 42
       }
     });
@@ -1863,15 +2334,16 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       invoke: {
-        src: 'child',
+        src: ({ actors }) => actors.child,
         input: 42
       }
     });
@@ -1882,15 +2354,16 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       invoke: {
-        src: 'child',
+        src: ({ actors }) => actors.child,
         // @ts-expect-error
         input: Math.random() > 0.5 ? 'string' : 42
       }
@@ -1902,15 +2375,16 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       invoke: {
-        src: 'child',
+        src: ({ actors }) => actors.child,
         // @ts-expect-error
         input: () => 'hello'
       }
@@ -1922,15 +2396,16 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       invoke: {
-        src: 'child',
+        src: ({ actors }) => actors.child,
         input: () => 42
       }
     });
@@ -1941,15 +2416,16 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       invoke: {
-        src: 'child',
+        src: ({ actors }) => actors.child,
         // @ts-expect-error
         input: () => (Math.random() > 0.5 ? 42 : 'hello')
       }
@@ -1961,81 +2437,35 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       invoke: {
-        src: 'child',
+        src: ({ actors }) => actors.child,
         input: () => 'hello'
       }
     });
   });
 
-  it('onDone should work with a service that uses strings for both targets', () => {
-    const machine = createMachine({
-      invoke: {
-        src: fromPromise(() => new Promise((resolve) => resolve(1))),
-        onDone: ['.a', '.b']
-      },
-      initial: 'a',
-      states: {
-        a: {},
-        b: {}
-      }
-    });
-    noop(machine);
-    expect(true).toBeTruthy();
-  });
-
-  it('onDone should work with a service that uses transition objects for both targets', () => {
-    const machine = createMachine({
-      invoke: {
-        src: fromPromise(() => new Promise((resolve) => resolve(1))),
-        onDone: [{ target: '.a' }, { target: '.b' }]
-      },
-      initial: 'a',
-      states: {
-        a: {},
-        b: {}
-      }
-    });
-    noop(machine);
-    expect(true).toBeTruthy();
-  });
-
-  it('onDone should work with a service that uses a string for one target and a transition object for another', () => {
-    const machine = createMachine({
-      invoke: {
-        src: fromPromise(() => new Promise((resolve) => resolve(1))),
-        onDone: [{ target: '.a' }, '.b']
-      },
-      initial: 'a',
-      states: {
-        a: {},
-        b: {}
-      }
-    });
-    noop(machine);
-    expect(true).toBeTruthy();
-  });
-
   it(`should require input to be specified when it is required`, () => {
     const child = fromPromise(({}: { input: number }) => Promise.resolve(100));
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       // @ts-expect-error
       invoke: {
-        src: 'child'
+        src: ({ actors }) => actors.child
       }
     });
   });
@@ -2045,15 +2475,16 @@ describe('invoke', () => {
       Promise.resolve(100)
     );
 
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
       invoke: {
-        src: 'child'
+        src: ({ actors }) => actors.child
       }
     });
   });
@@ -2063,86 +2494,78 @@ describe('actor implementations', () => {
   it('should reject actor outside of the defined ones in provided implementations', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'child';
-            logic: typeof child;
-          };
-        }
-      },
-      {
-        actors: {
-          // @ts-expect-error
-          other: child
-        }
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // }
+      actors: { child }
+    }).provide({
+      actors: {
+        // @ts-expect-error
+        other: child
       }
-    );
+    });
   });
 
   it('should accept a defined actor in provided implementations', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'child';
-            logic: typeof child;
-          };
-        }
-      },
-      {
-        actors: {
-          child
-        }
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // }
+      actors: { child }
+    }).provide({
+      actors: {
+        child
       }
-    );
+    });
   });
 
   it(`should reject the provided actor when the output doesn't match`, () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'child';
-            logic: typeof child;
-          };
-        }
-      },
-      {
-        actors: {
-          // @ts-expect-error
-          child: fromPromise(() => Promise.resolve(42))
-        }
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // }
+      actors: { child }
+    }).provide({
+      actors: {
+        // @ts-expect-error
+        child: fromPromise(() => Promise.resolve(42))
       }
-    );
+    });
   });
 
   it(`should reject the provided actor when its output is a super type of the expected one`, () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'child';
-            logic: typeof child;
-          };
-        }
-      },
-      {
-        actors: {
-          // @ts-expect-error
-          child: fromPromise(() =>
-            Promise.resolve(Math.random() > 0.5 ? 'foo' : 42)
-          )
-        }
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // }
+      actors: { child }
+    }).provide({
+      actors: {
+        // @ts-expect-error
+        child: fromPromise(() =>
+          Promise.resolve(Math.random() > 0.5 ? 'foo' : 42)
+        )
       }
-    );
+    });
   });
 
   it(`should accept the provided actor when its output is a sub type of the expected one`, () => {
@@ -2150,339 +2573,412 @@ describe('actor implementations', () => {
       Promise.resolve(Math.random() > 0.5 ? 'foo' : 42)
     );
 
-    createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'child';
-            logic: typeof child;
-          };
-        }
-      },
-      {
-        actors: {
-          // TODO: ideally this shouldn't error
-          // @ts-expect-error
-          child: fromPromise(() => Promise.resolve('foo'))
-        }
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // }
+      actors: {
+        child
       }
-    );
+    }).provide({
+      actors: {
+        // TODO: ideally this shouldn't error
+        // @ts-expect-error
+        child: fromPromise(() => Promise.resolve('foo'))
+      }
+    });
   });
 
   it('should allow an actor with the expected snapshot type', () => {
-    const child = createMachine({
-      types: {} as {
-        context: {
-          foo: string;
-        };
+    const child = next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     foo: string;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          foo: z.string()
+        })
       },
       context: {
         foo: 'bar'
       }
     });
 
-    createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'child';
-            logic: typeof child;
-          };
-        }
-      },
-      {
-        actors: {
-          child
-        }
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // }
+      actors: {
+        child
       }
-    );
+    }).provide({
+      actors: {
+        child
+      }
+    });
   });
 
   it('should reject an actor with an incorrect snapshot type', () => {
-    const child = createMachine({
-      types: {} as {
-        context: {
-          foo: string;
-        };
+    const child = next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     foo: string;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          foo: z.string()
+        })
       },
       context: {
         foo: 'bar'
       }
     });
 
-    createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'child';
-            logic: typeof child;
-          };
-        }
-      },
-      {
-        actors: {
-          // @ts-expect-error
-          child: createMachine({
-            types: {} as {
-              context: {
-                foo: number;
-              };
-            },
-            context: {
-              foo: 100
-            }
-          })
-        }
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // }
+      actors: {
+        child
       }
-    );
+    }).provide({
+      actors: {
+        // @ts-expect-error
+        child: next_createMachine({
+          // types: {} as {
+          //   context: {
+          //     foo: number;
+          //   };
+          // },
+          schemas: {
+            context: z.object({
+              foo: z.number()
+            })
+          },
+          context: {
+            foo: 100
+          }
+        })
+      }
+    });
   });
 
   it('should allow an actor with a snapshot type that is a subtype of the expected one', () => {
-    const child = createMachine({
-      types: {} as {
-        context: {
-          foo: string | number;
-        };
+    const child = next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     foo: string | number;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          foo: z.union([z.string(), z.number()])
+        })
       },
       context: {
         foo: 'bar'
       }
     });
 
-    createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'child';
-            logic: typeof child;
-          };
-        }
-      },
-      {
-        actors: {
-          // TODO: ideally this should be allowed
-          // @ts-expect-error
-          child: createMachine({
-            types: {} as {
-              context: {
-                foo: string;
-              };
-            },
-            context: {
-              foo: 'bar'
-            }
-          })
-        }
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // }
+      actors: {
+        child
       }
-    );
+    }).provide({
+      actors: {
+        // TODO: ideally this should be allowed
+        // @ts-expect-error
+        child: next_createMachine({
+          // types: {} as {
+          //   context: {
+          //     foo: string;
+          //   };
+          // },
+          schemas: {
+            context: z.object({
+              foo: z.string()
+            })
+          },
+          context: {
+            foo: 'bar'
+          }
+        })
+      }
+    });
   });
 
   it('should reject an actor with a snapshot type that is a supertype of the expected one', () => {
-    const child = createMachine({
-      types: {} as {
-        context: {
-          foo: string;
-        };
+    const child = next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     foo: string;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          foo: z.string()
+        })
       },
       context: {
         foo: 'bar'
       }
     });
 
-    createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'child';
-            logic: typeof child;
-          };
-        }
-      },
-      {
-        actors: {
-          // @ts-expect-error
-          child: createMachine({
-            types: {} as {
-              context: {
-                foo: string | number;
-              };
-            },
-            context: {
-              foo: 'bar'
-            }
-          })
-        }
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // }
+      actors: {
+        child
       }
-    );
+    }).provide({
+      actors: {
+        // @ts-expect-error
+        child: next_createMachine({
+          // types: {} as {
+          //   context: {
+          //     foo: string | number;
+          //   };
+          // },
+          schemas: {
+            context: z.object({
+              foo: z.union([z.string(), z.number()])
+            })
+          },
+          context: {
+            foo: 'bar'
+          }
+        })
+      }
+    });
   });
 
   it('should allow an actor with the expected event types', () => {
-    const child = createMachine({
-      types: {} as {
-        events: {
-          type: 'EV_1';
-        };
+    const child = next_createMachine({
+      // types: {} as {
+      //   events: {
+      //     type: 'EV_1';
+      //   };
+      // }
+      schemas: {
+        events: z.object({
+          type: z.literal('EV_1')
+        })
       }
     });
 
-    createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'child';
-            logic: typeof child;
-          };
-        }
-      },
-      {
-        actors: {
-          child
-        }
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // }
+      actors: {
+        child
       }
-    );
+    }).provide({
+      actors: {
+        child
+      }
+    });
   });
 
   it('should reject an actor with wrong event types', () => {
-    const child = createMachine({
-      types: {} as {
-        events: {
-          type: 'EV_1';
-        };
+    const child = next_createMachine({
+      // types: {} as {
+      //   events: {
+      //     type: 'EV_1';
+      //   };
+      // }
+      schemas: {
+        events: z.object({
+          type: z.literal('EV_1')
+        })
       }
     });
 
-    createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'child';
-            logic: typeof child;
-          };
-        }
-      },
-      {
-        actors: {
-          // @ts-expect-error
-          child: createMachine({
-            types: {} as {
-              events: {
-                type: 'OTHER';
-              };
-            }
-          })
-        }
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // }
+      actors: {
+        child
       }
-    );
+    }).provide({
+      actors: {
+        // @ts-expect-error
+        child: next_createMachine({
+          // types: {} as {
+          //   events: {
+          //     type: 'OTHER';
+          //   };
+          // }
+          schemas: {
+            events: z.object({
+              type: z.literal('OTHER')
+            })
+          }
+        })
+      }
+    });
   });
 
   it('should reject an actor with an event type that is a subtype of the expected one', () => {
-    const child = createMachine({
-      types: {} as {
-        events:
-          | {
-              type: 'EV_1';
-            }
-          | {
-              type: 'EV_2';
-            };
+    const child = next_createMachine({
+      // types: {} as {
+      //   events:
+      //     | {
+      //         type: 'EV_1';
+      //       }
+      //     | {
+      //         type: 'EV_2';
+      //       };
+      // }
+      schemas: {
+        events: z.union([
+          z.object({ type: z.literal('EV_1') }),
+          z.object({ type: z.literal('EV_2') })
+        ])
       }
     });
 
-    createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'child';
-            logic: typeof child;
-          };
-        }
-      },
-      {
-        actors: {
-          // the provided actor has to be able to handle all the event types that it might receive from the parent here
-          // @ts-expect-error
-          child: createMachine({
-            types: {} as {
-              events: {
-                type: 'EV_1';
-              };
-            }
-          })
-        }
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // }
+      actors: {
+        child
       }
-    );
+    }).provide({
+      actors: {
+        // the provided actor has to be able to handle all the event types that it might receive from the parent here
+        // @ts-expect-error
+        child: next_createMachine({
+          // types: {} as {
+          //   events: {
+          //     type: 'EV_1';
+          //   };
+          // }
+          schemas: {
+            events: z.object({
+              type: z.literal('EV_1')
+            })
+          }
+        })
+      }
+    });
   });
 
   it('should allow an actor with a snapshot type that is a supertype of the expected one', () => {
-    const child = createMachine({
-      types: {} as {
-        events: {
-          type: 'EV_1';
-        };
+    const child = next_createMachine({
+      // types: {} as {
+      //   events: {
+      //     type: 'EV_1';
+      //   };
+      // }
+      schemas: {
+        events: z.object({
+          type: z.literal('EV_1')
+        })
       }
     });
 
-    createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'child';
-            logic: typeof child;
-          };
-        }
-      },
-      {
-        actors: {
-          // TODO: ideally this should be allowed since the provided actor is capable of handling all the event types that it might receive from the parent here
-          // @ts-expect-error
-          child: createMachine({
-            types: {} as {
-              events:
-                | {
-                    type: 'EV_1';
-                  }
-                | {
-                    type: 'EV_2';
-                  };
-            }
-          })
-        }
+    next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // }
+      actors: {
+        child
       }
-    );
+    }).provide({
+      actors: {
+        // TODO: ideally this should be allowed since the provided actor is capable of handling all the event types that it might receive from the parent here
+        // @ts-expect-error
+        child: next_createMachine({
+          // types: {} as {
+          //   events:
+          //     | {
+          //         type: 'EV_1';
+          //       }
+          //     | {
+          //         type: 'EV_2';
+          //       };
+          // }
+          schemas: {
+            events: z.union([
+              z.object({ type: z.literal('EV_1') }),
+              z.object({ type: z.literal('EV_2') })
+            ])
+          }
+        })
+      }
+    });
   });
 });
 
 describe('state.children without setup', () => {
   it('should return the correct child type on the available snapshot when the child ID for the actor was configured', () => {
-    const child = createMachine({
-      types: {} as {
-        context: {
-          foo: string;
-        };
+    const child = next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     foo: string;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          foo: z.string()
+        })
       },
       context: {
         foo: ''
       }
     });
 
-    const machine = createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'child';
-            id: 'someChild';
-            logic: typeof child;
-          };
-        },
-        invoke: {
-          id: 'someChild',
-          src: 'child'
-        }
-      },
-      {
-        actors: { child }
+    const machine = next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     id: 'someChild';
+      //     logic: typeof child;
+      //   };
+      // },
+      actors: { child },
+      invoke: {
+        id: 'someChild',
+        src: ({ actors }) => actors.child
       }
-    );
+    });
 
     const snapshot = createActor(machine).getSnapshot();
     const childSnapshot = snapshot.children.someChild!.getSnapshot();
@@ -2496,19 +2992,22 @@ describe('state.children without setup', () => {
   });
 
   it('should have an optional child on the available snapshot when the child ID for the actor was configured', () => {
-    const child = createMachine({
+    const child = next_createMachine({
       context: {
         counter: 0
       }
     });
 
-    const machine = createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'myChild';
-          logic: typeof child;
-        };
+    const machine = next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     id: 'myChild';
+      //     logic: typeof child;
+      //   };
+      // }
+      actors: {
+        child
       }
     });
 
@@ -2520,18 +3019,21 @@ describe('state.children without setup', () => {
   });
 
   it('should have an optional child on the available snapshot when the child ID for the actor was not configured', () => {
-    const child = createMachine({
+    const child = next_createMachine({
       context: {
         counter: 0
       }
     });
 
-    const machine = createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
+    const machine = next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof child;
+      //   };
+      // }
+      actors: {
+        child
       }
     });
 
@@ -2543,31 +3045,35 @@ describe('state.children without setup', () => {
   });
 
   it('should not have an index signature on the available snapshot when child IDs were configured for all actors', () => {
-    const child1 = createMachine({
+    const child1 = next_createMachine({
       context: {
         counter: 0
       }
     });
 
-    const child2 = createMachine({
+    const child2 = next_createMachine({
       context: {
         answer: ''
       }
     });
 
-    const machine = createMachine({
-      types: {} as {
-        actors:
-          | {
-              src: 'child1';
-              id: 'counter';
-              logic: typeof child1;
-            }
-          | {
-              src: 'child2';
-              id: 'quiz';
-              logic: typeof child2;
-            };
+    const machine = next_createMachine({
+      // types: {} as {
+      //   actors:
+      //     | {
+      //         src: 'child1';
+      //         id: 'counter';
+      //         logic: typeof child1;
+      //       }
+      //     | {
+      //         src: 'child2';
+      //         id: 'quiz';
+      //         logic: typeof child2;
+      //       };
+      // }
+      actors: {
+        child1,
+        child2
       }
     });
 
@@ -2578,31 +3084,46 @@ describe('state.children without setup', () => {
   });
 
   it('should have an index signature on the available snapshot when child IDs were configured only for some actors', () => {
-    const child1 = createMachine({
+    const child1 = next_createMachine({
+      schemas: {
+        context: z.object({
+          counter: z.number()
+        })
+      },
       context: {
         counter: 0
       }
     });
 
-    const child2 = createMachine({
+    const child2 = next_createMachine({
+      schemas: {
+        context: z.object({
+          answer: z.string()
+        })
+      },
       context: {
         answer: ''
       }
     });
 
-    const machine = createMachine({
-      types: {} as {
-        actors:
-          | {
-              src: 'child1';
-              id: 'counter';
-              logic: typeof child1;
-            }
-          | {
-              src: 'child2';
-              logic: typeof child2;
-            };
+    const machine = next_createMachine({
+      // types: {} as {
+      //   actors:
+      //     | {
+      //         src: 'child1';
+      //         id: 'counter';
+      //         logic: typeof child1;
+      //       }
+      //     | {
+      //         src: 'child2';
+      //         logic: typeof child2;
+      //       };
+      // }
+      actors: {
+        child1,
+        child2
       }
+      // TODO: children schema
     });
 
     const counterActor = createActor(machine).getSnapshot().children.counter;
@@ -2620,515 +3141,392 @@ describe('state.children without setup', () => {
 
 describe('actions', () => {
   it('context should get inferred for builtin actions used as an entry action', () => {
-    createMachine({
-      types: {
-        context: {} as { count: number }
+    next_createMachine({
+      // types: {
+      //   context: {} as { count: number }
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
       },
       context: {
         count: 0
       },
-      entry: assign(({ context }) => {
+      entry: ({ context }) => {
         ((_accept: number) => {})(context.count);
         // @ts-expect-error
         ((_accept: "ain't any") => {})(context.count);
         return {};
-      })
+      }
     });
   });
 
   it('context should get inferred for builtin actions used as a transition action', () => {
-    createMachine({
-      types: {
-        context: {} as { count: number },
-        events: {} as { type: 'FOO' } | { type: 'BAR' }
+    next_createMachine({
+      // types: {
+      //   context: {} as { count: number },
+      //   events: {} as { type: 'FOO' } | { type: 'BAR' }
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        }),
+        events: z.union([
+          z.object({ type: z.literal('FOO') }),
+          z.object({ type: z.literal('BAR') })
+        ])
       },
       context: {
         count: 0
       },
       on: {
-        FOO: {
-          actions: assign(({ context }) => {
-            ((_accept: number) => {})(context.count);
-            // @ts-expect-error
-            ((_accept: "ain't any") => {})(context.count);
-            return {};
-          })
-        }
-      }
-    });
-  });
-
-  it('context should get inferred for a builtin action within an array of entry actions', () => {
-    createMachine({
-      types: {
-        context: {} as { count: number }
-      },
-      context: {
-        count: 0
-      },
-      entry: [
-        'foo',
-        assign(({ context }) => {
+        FOO: ({ context }) => {
           ((_accept: number) => {})(context.count);
           // @ts-expect-error
           ((_accept: "ain't any") => {})(context.count);
           return {};
-        })
-      ]
-    });
-  });
-
-  it('context should get inferred for a builtin action within an array of transition actions', () => {
-    createMachine({
-      types: {
-        context: {} as { count: number }
-      },
-      context: {
-        count: 0
-      },
-      on: {
-        FOO: {
-          actions: [
-            'foo',
-            assign(({ context }) => {
-              ((_accept: number) => {})(context.count);
-              // @ts-expect-error
-              ((_accept: "ain't any") => {})(context.count);
-              return {};
-            })
-          ]
-        }
-      }
-    });
-  });
-
-  it('context should get inferred for a stop action used as an entry action', () => {
-    const childMachine = createMachine({
-      initial: 'idle',
-      states: {
-        idle: {}
-      }
-    });
-
-    createMachine({
-      types: {
-        context: {} as {
-          count: number;
-          childRef: ActorRefFrom<typeof childMachine>;
-        }
-      },
-      context: ({ spawn }) => ({
-        count: 0,
-        childRef: spawn(childMachine)
-      }),
-      entry: stopChild(({ context }) => {
-        ((_accept: number) => {})(context.count);
-        // @ts-expect-error
-        ((_accept: "ain't any") => {})(context.count);
-        return context.childRef;
-      })
-    });
-  });
-
-  it('context should get inferred for a stop action used as a transition action', () => {
-    const childMachine = createMachine({
-      initial: 'idle',
-      states: {
-        idle: {}
-      }
-    });
-
-    createMachine({
-      types: {
-        context: {} as {
-          count: number;
-          childRef: ActorRefFrom<typeof childMachine>;
-        }
-      },
-      context: ({ spawn }) => ({
-        count: 0,
-        childRef: spawn(childMachine)
-      }),
-      on: {
-        FOO: {
-          actions: stopChild(({ context }) => {
-            ((_accept: number) => {})(context.count);
-            // @ts-expect-error
-            ((_accept: "ain't any") => {})(context.count);
-            return context.childRef;
-          })
         }
       }
     });
   });
 
   it('should report an error when the stop action returns an invalid actor ref', () => {
-    createMachine({
-      types: {
-        context: {} as {
-          count: number;
-        }
+    next_createMachine({
+      // types: {
+      //   context: {} as {
+      //     count: number;
+      //   }
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
       },
       context: {
         count: 0
       },
-      entry: stopChild(
-        // @ts-expect-error
-        ({ context }) => {
-          return context.count;
-        }
-      )
+      // entry: stopChild(
+      //   // @ts-expect-error
+      //   ({ context }) => {
+      //     return context.count;
+      //   }
+      // )
+      entry: ({ context }, enq) => {
+        enq.stop(
+          // @ts-expect-error
+          context.count
+        );
+      }
     });
   });
 
-  it('context should get inferred for a stop actions within an array of entry actions', () => {
-    const childMachine = createMachine({});
-
-    createMachine({
-      types: {
-        context: {} as {
-          count: number;
-          childRef: ActorRefFrom<typeof childMachine>;
-          promiseRef: ActorRefFrom<PromiseActorLogic<string>>;
-        }
-      },
-      context: ({ spawn }) => ({
-        count: 0,
-        childRef: spawn(childMachine),
-        promiseRef: spawn(fromPromise(() => Promise.resolve('foo')))
-      }),
-      entry: [
-        stopChild(({ context }) => {
-          ((_accept: number) => {})(context.count);
-          // @ts-expect-error
-          ((_accept: "ain't any") => {})(context.count);
-          return context.childRef;
+  it('should NOT accept assign with partial static object', () => {
+    next_createMachine({
+      // types: {
+      //   events: {} as {
+      //     type: 'TOGGLE';
+      //   },
+      //   context: {} as {
+      //     count: number;
+      //     mode: 'foo' | 'bar' | null;
+      //   }
+      // },
+      schemas: {
+        events: z.object({
+          type: z.literal('TOGGLE')
         }),
-        stopChild(({ context }) => {
-          ((_accept: number) => {})(context.count);
-          // @ts-expect-error
-          ((_accept: "ain't any") => {})(context.count);
-          return context.promiseRef;
+        context: z.object({
+          count: z.number(),
+          mode: z.union([z.literal('foo'), z.literal('bar'), z.literal(null)])
         })
-      ]
-    });
-  });
-
-  it('should accept assign with partial static object', () => {
-    createMachine({
-      types: {
-        events: {} as {
-          type: 'TOGGLE';
-        },
-        context: {} as {
-          count: number;
-          mode: 'foo' | 'bar' | null;
-        }
       },
       context: {
         count: 0,
         mode: null
       },
-      entry: assign({ mode: 'foo' })
-    });
-  });
-
-  it("should provide context to single prop updater in assign when it's mixed with a static value for another prop", () => {
-    createMachine({
-      types: {
-        context: {} as {
-          count: number;
-          skip: boolean;
-        },
-        events: {} as {
-          type: 'TOGGLE';
+      // @ts-expect-error
+      entry: () => ({
+        context: {
+          mode: 'foo'
         }
-      },
-      context: {
-        count: 0,
-        skip: true
-      },
-      entry: assign({
-        count: ({ context }) => context.count + 1,
-        skip: true
       })
     });
   });
 
   it('should allow a defined parameterized action with params', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+    next_createMachine({
+      // types: {} as {
+      //   actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      // },
+      actions: {
+        greet: (params: { name: string }) => {},
+        poke: () => {}
       },
-      entry: {
-        type: 'greet',
-        params: {
+      entry: ({ actions }, enq) => {
+        enq(actions.greet, {
           name: 'David'
-        }
+        });
       }
     });
   });
 
   it('should disallow a non-defined parameterized action', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+    next_createMachine({
+      // types: {} as {
+      //   actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      // },
+      actions: {
+        greet: (params: { name: string }) => {},
+        poke: () => {}
       },
-      // @ts-expect-error
-      entry: {
-        type: 'other',
-        params: {
-          foo: 'bar'
-        }
+      entry: ({ actions }, enq) => {
+        enq(
+          // @ts-expect-error
+          actions.other,
+          {
+            params: {
+              foo: 'bar'
+            }
+          }
+        );
       }
     });
   });
 
   it('should disallow a defined parameterized action with invalid params', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+    next_createMachine({
+      // types: {} as {
+      //   actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      // },
+      actions: {
+        greet: (params: { name: string }) => {},
+        poke: () => {}
       },
-      entry: {
-        type: 'greet',
-        params: {
+      entry: ({ actions }, enq) => {
+        enq(actions.greet, {
           // @ts-expect-error
           kick: 'start'
-        }
+        });
       }
     });
   });
 
   it('should disallow a defined parameterized action when it lacks required params', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+    next_createMachine({
+      // types: {} as {
+      //   actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      // },
+      actions: {
+        greet: (params: { name: string }) => {},
+        poke: () => {}
       },
-      entry: {
-        type: 'greet',
-        // @ts-expect-error
-        params: {}
-      }
-    });
-  });
-
-  it("should disallow a defined parameterized action with required params when it's referenced using a string", () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
-      },
-      // @ts-expect-error
-      entry: 'greet'
-    });
-  });
-
-  it("should allow a defined action when it has no params when it's referenced using a string", () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
-      },
-      entry: 'poke'
-    });
-  });
-
-  it("should allow a defined action when it has no params when it's referenced using an object", () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
-      },
-      entry: {
-        type: 'poke'
-      }
-    });
-  });
-
-  it("should allow a defined action without params when it only has optional params when it's referenced using a string", () => {
-    createMachine({
-      types: {} as {
-        actions:
-          | { type: 'greet'; params: { name: string } }
-          | { type: 'poke'; params?: { target: string } };
-      },
-      entry: {
-        type: 'poke'
+      // entry: {
+      //   type: 'greet',
+      //   // @ts-expect-error
+      //   params: {}
+      // }
+      entry: ({ actions }, enq) => {
+        enq(
+          actions.greet,
+          // @ts-expect-error
+          {}
+        );
       }
     });
   });
 
   it("should allow a defined action without params when it only has optional params when it's referenced using an object", () => {
-    createMachine({
-      types: {} as {
-        actions:
-          | { type: 'greet'; params: { name: string } }
-          | { type: 'poke'; params?: { target: string } };
+    next_createMachine({
+      // types: {} as {
+      //   actions:
+      //     | { type: 'greet'; params: { name: string } }
+      //     | { type: 'poke'; params?: { target: string } };
+      // },
+      actions: {
+        greet: (params: { name: string }) => {},
+        poke: (params?: { target: string }) => {}
       },
-      entry: {
-        type: 'poke'
+      entry: ({ actions }, enq) => {
+        enq(actions.poke);
+        enq(() => actions.poke());
       }
-    });
-  });
-
-  it('should type action params as undefined in inline custom action', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
-      },
-      entry: (_, params) => {
-        ((_accept: undefined) => {})(params);
-        // @ts-expect-error
-        ((_accept: 'not any') => {})(params);
-      }
-    });
-  });
-
-  it('should type action params as undefined in inline builtin action', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
-      },
-      entry: assign((_, params) => {
-        ((_accept: undefined) => {})(params);
-        // @ts-expect-error
-        ((_accept: 'not any') => {})(params);
-        return {};
-      })
     });
   });
 
   it('should type action params as the specific defined params in the provided custom action', () => {
-    createMachine(
-      {
-        types: {} as {
-          actions:
-            | { type: 'greet'; params: { name: string } }
-            | { type: 'poke' };
-        }
-      },
-      {
-        actions: {
-          greet: (_, params) => {
-            ((_accept: string) => {})(params.name);
-            // @ts-expect-error
-            ((_accept: 'not any') => {})(params.name);
-          }
+    next_createMachine({
+      // types: {} as {
+      //   actions:
+      //     | { type: 'greet'; params: { name: string } }
+      //     | { type: 'poke' };
+      // }
+      actions: {
+        greet: (params: { name: string }) => {},
+        poke: () => {}
+      }
+    }).provide({
+      actions: {
+        greet: (params) => {
+          ((_accept: string) => {})(params.name);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(params.name);
         }
       }
-    );
-  });
-
-  it('should type action params as the specific defined params in the provided builtin action', () => {
-    createMachine(
-      {
-        types: {} as {
-          actions:
-            | { type: 'greet'; params: { name: string } }
-            | { type: 'poke' };
-        }
-      },
-      {
-        actions: {
-          greet: assign((_, params) => {
-            ((_accept: string) => {})(params.name);
-            // @ts-expect-error
-            ((_accept: 'not any') => {})(params.name);
-            return {};
-          })
-        }
-      }
-    );
+    });
   });
 
   it('should not allow a provided action outside of the defined ones', () => {
-    createMachine(
-      {
-        types: {} as {
-          actions:
-            | { type: 'greet'; params: { name: string } }
-            | { type: 'poke' };
-        }
-      },
-      {
-        actions: {
-          // @ts-expect-error
-          other: () => {}
-        }
+    next_createMachine({
+      // types: {} as {
+      //   actions:
+      //     | { type: 'greet'; params: { name: string } }
+      //     | { type: 'poke' };
+      // }
+      actions: {
+        greet: (params: { name: string }) => {},
+        poke: () => {}
       }
-    );
+    }).provide({
+      actions: {
+        // @ts-expect-error
+        other: () => {}
+      }
+    });
   });
 
   it('should allow dynamic params that return correct params type', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+    next_createMachine({
+      // types: {} as {
+      //   actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      // },
+      actions: {
+        greet: (params: { name: string }) => {},
+        poke: () => {}
       },
-      entry: {
-        type: 'greet',
-        params: () => ({
-          name: 'Anders'
-        })
+      // entry: {
+      //   type: 'greet',
+      //   params: () => ({
+      //     name: 'Anders'
+      //   })
+      // }
+      entry: ({ actions }, enq) => {
+        enq(actions.greet, { name: 'Anders' });
       }
     });
   });
 
   it('should disallow dynamic params that return invalid params type', () => {
-    createMachine({
-      types: {} as {
-        actions:
-          | { type: 'greet'; params: { surname: string } }
-          | { type: 'poke' };
+    next_createMachine({
+      // types: {} as {
+      //   actions:
+      //     | { type: 'greet'; params: { surname: string } }
+      //     | { type: 'poke' };
+      // },
+      actions: {
+        greet: (params: { surname: string }) => {},
+        poke: () => {}
       },
-      entry: {
-        type: 'greet',
-        // @ts-expect-error
-        params: () => ({
+      // entry: {
+      //   type: 'greet',
+      //   // @ts-expect-error
+      //   params: () => ({
+      //     surname: 100
+      //   })
+      // }
+      entry: ({ actions }, enq) => {
+        enq(actions.greet, {
+          // @ts-expect-error
           surname: 100
-        })
+        });
       }
     });
   });
 
   it('should provide context type to dynamic params', () => {
-    createMachine({
-      types: {} as {
-        context: {
-          count: number;
-        };
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+    next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     count: number;
+      //   };
+      //   actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
+      actions: {
+        greet: (params: { name: string }) => {
+          ((_accept: string) => {})(params.name);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(params.name);
+        }
       },
       context: { count: 1 },
-      entry: {
-        type: 'greet',
-        params: ({ context }) => {
-          ((_accept: number) => {})(context.count);
-          // @ts-expect-error
-          ((_accept: 'not any') => {})(context.count);
-          return {
-            name: 'Anders'
-          };
-        }
+      // entry: {
+      //   type: 'greet',
+      //   params: ({ context }) => {
+      //     ((_accept: number) => {})(context.count);
+      //     // @ts-expect-error
+      //     ((_accept: 'not any') => {})(context.count);
+      //     return {
+      //       name: 'Anders'
+      //     };
+      //   }
+      // }
+      entry: ({ context, actions }, enq) => {
+        ((_accept: number) => {})(context.count);
+        // @ts-expect-error
+        ((_accept: 'not any') => {})(context.count);
+
+        enq(actions.greet, { name: 'Anders' });
       }
     });
   });
 
   it('should provide narrowed down event type to dynamic params', () => {
-    createMachine({
-      types: {} as {
-        events: { type: 'FOO' } | { type: 'BAR' };
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+    next_createMachine({
+      // types: {} as {
+      //   events: { type: 'FOO' } | { type: 'BAR' };
+      //   actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('FOO')
+          }),
+          z.object({
+            type: z.literal('BAR')
+          })
+        ])
+      },
+      actions: {
+        greet: (params: { name: string }) => {
+          ((_accept: string) => {})(params.name);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(params.name);
+        }
       },
       on: {
-        FOO: {
-          actions: {
-            type: 'greet',
-            params: ({ event }) => {
-              ((_accept: 'FOO') => {})(event.type);
-              // @ts-expect-error
-              ((_accept: 'not any') => {})(event.type);
-              return {
-                name: 'Anders'
-              };
-            }
-          }
+        // FOO: {
+        //   actions: {
+        //     type: 'greet',
+        //     params: ({ event }) => {
+        //       ((_accept: 'FOO') => {})(event.type);
+        //       // @ts-expect-error
+        //       ((_accept: 'not any') => {})(event.type);
+        //       return {
+        //         name: 'Anders'
+        //       };
+        //     }
+        //   }
+        // }
+        FOO: ({ actions, event }) => {
+          ((_accept: 'FOO') => {})(event.type);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(event.type);
+          actions.greet({ name: 'Anders' });
         }
       }
     });
@@ -3137,7 +3535,7 @@ describe('actions', () => {
 
 describe('input', () => {
   it('should provide the input type to the context factory', () => {
-    createMachine({
+    next_createMachine({
       types: {
         input: {} as {
           count: number;
@@ -3153,7 +3551,7 @@ describe('input', () => {
   });
 
   it('should accept valid input type when interpreting an actor', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       types: {
         input: {} as {
           count: number;
@@ -3165,7 +3563,7 @@ describe('input', () => {
   });
 
   it('should reject invalid input type when interpreting an actor', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       types: {
         input: {} as {
           count: number;
@@ -3182,7 +3580,7 @@ describe('input', () => {
   });
 
   it('should require input to be specified when defined', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       types: {
         input: {} as {
           count: number;
@@ -3195,7 +3593,7 @@ describe('input', () => {
   });
 
   it('should not require input when not defined', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       types: {}
     });
 
@@ -3204,47 +3602,39 @@ describe('input', () => {
 });
 
 describe('guards', () => {
-  it('`not` guard should be accepted when it references another guard using a string', () => {
-    createMachine(
-      {
-        id: 'b',
-        types: {} as {
-          events: { type: 'EVENT' };
-        },
-        on: {
-          EVENT: {
-            target: '#b',
-            guard: not('falsy')
-          }
-        }
-      },
-      {
-        guards: {
-          falsy: () => false
-        }
-      }
-    );
-  });
-
   it('should allow a defined parameterized guard with params', () => {
-    createMachine({
-      types: {} as {
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard' };
+    next_createMachine({
+      // types: {} as {
+      //   guards:
+      //     | {
+      //         type: 'isGreaterThan';
+      //         params: {
+      //           count: number;
+      //         };
+      //       }
+      //     | { type: 'plainGuard' };
+      // },
+      guards: {
+        isGreaterThan: (params: { count: number }) => {
+          ((_accept: number) => {})(params.count);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(params);
+          return true;
+        },
+        plainGuard: () => true
       },
       on: {
-        EV: {
-          guard: {
-            type: 'isGreaterThan',
-            params: {
-              count: 10
-            }
+        // EV: {
+        //   guard: {
+        //     type: 'isGreaterThan',
+        //     params: {
+        //       count: 10
+        //     }
+        //   }
+        // }
+        EV: ({ guards }) => {
+          if (guards.isGreaterThan({ count: 10 })) {
+            return {};
           }
         }
       }
@@ -3252,25 +3642,42 @@ describe('guards', () => {
   });
 
   it('should disallow a non-defined parameterized guard', () => {
-    createMachine({
-      types: {} as {
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard' };
+    next_createMachine({
+      // types: {} as {
+      //   guards:
+      //     | {
+      //         type: 'isGreaterThan';
+      //         params: {
+      //           count: number;
+      //         };
+      //       }
+      //     | { type: 'plainGuard' };
+      // },
+      guards: {
+        isGreaterThan: (params: { count: number }) => {
+          ((_accept: number) => {})(params.count);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(params);
+          return true;
+        },
+        plainGuard: () => true
       },
       on: {
-        // @ts-expect-error
-        EV: {
-          guard: {
-            type: 'other',
-            params: {
-              foo: 'bar'
-            }
+        // EV: {
+        //   guard: {
+        //     type: 'other',
+        //     params: {
+        //       foo: 'bar'
+        //     }
+        //   }
+        // }
+        EV: ({ guards }) => {
+          if (
+            guards
+              // @ts-expect-error
+              .other({ foo: 'bar' })
+          ) {
+            return {};
           }
         }
       }
@@ -3278,25 +3685,42 @@ describe('guards', () => {
   });
 
   it('should disallow a defined parameterized guard with invalid params', () => {
-    createMachine({
-      types: {} as {
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard' };
+    next_createMachine({
+      // types: {} as {
+      //   guards:
+      //     | {
+      //         type: 'isGreaterThan';
+      //         params: {
+      //           count: number;
+      //         };
+      //       }
+      //     | { type: 'plainGuard' };
+      // },
+      guards: {
+        isGreaterThan: (params: { count: number }) => {
+          ((_accept: number) => {})(params.count);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(params);
+          return true;
+        }
       },
       on: {
-        // @ts-expect-error
-        EV: {
-          guard: {
-            type: 'isGreaterThan',
-            params: {
+        // EV: {
+        //   guard: {
+        //     type: 'isGreaterThan',
+        //     params: {
+        //       count: 'bar'
+        //     }
+        //   }
+        // }
+        EV: ({ guards }) => {
+          if (
+            guards.isGreaterThan({
+              // @ts-expect-error
               count: 'bar'
-            }
+            })
+          ) {
+            return {};
           }
         }
       }
@@ -3304,319 +3728,131 @@ describe('guards', () => {
   });
 
   it('should disallow a defined parameterized guard when it lacks required params', () => {
-    createMachine({
-      types: {} as {
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard' };
+    next_createMachine({
+      // types: {} as {
+      //   guards:
+      //     | {
+      //         type: 'isGreaterThan';
+      //         params: {
+      //           count: number;
+      //         };
+      //       }
+      //     | { type: 'plainGuard' };
+      // },
+      guards: {
+        isGreaterThan: (params: { count: number }) => {
+          ((_accept: number) => {})(params.count);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(params);
+          return true;
+        }
       },
       on: {
-        // @ts-expect-error
-        EV: {
-          guard: {
-            type: 'isGreaterThan',
-            params: {}
+        // EV: {
+        //   guard: {
+        //     type: 'isGreaterThan',
+        //     params: {}
+        //   }
+        // }
+        EV: ({ guards }) => {
+          if (
+            guards
+              // @ts-expect-error
+              .isGreaterThan()
+          ) {
+            return {};
           }
-        }
-      }
-    });
-  });
-
-  it("should disallow a defined parameterized guard with required params when it's referenced using a string", () => {
-    createMachine({
-      types: {} as {
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard' };
-      },
-      on: {
-        // @ts-expect-error
-        EV: {
-          guard: 'isGreaterThan'
-        }
-      }
-    });
-  });
-
-  it("should allow a defined guard when it has no params when it's referenced using a string", () => {
-    createMachine({
-      types: {} as {
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard' };
-      },
-      on: {
-        EV: {
-          guard: 'plainGuard'
-        }
-      }
-    });
-  });
-
-  it("should allow a defined guard when it has no params when it's referenced using an object", () => {
-    createMachine({
-      types: {} as {
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard' };
-      },
-      on: {
-        EV: {
-          guard: {
-            type: 'plainGuard'
-          }
-        }
-      }
-    });
-  });
-
-  it("should allow a defined guard without params when it only has optional params when it's referenced using a string", () => {
-    createMachine({
-      types: {} as {
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard'; params?: { foo: string } };
-      },
-      on: {
-        EV: {
-          guard: 'plainGuard'
         }
       }
     });
   });
 
   it("should allow a defined guard without params when it only has optional params when it's referenced using an object", () => {
-    createMachine({
-      types: {} as {
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard'; params?: { foo: string } };
-      },
-      on: {
-        EV: {
-          guard: {
-            type: 'plainGuard'
-          }
+    next_createMachine({
+      // types: {} as {
+      //   guards:
+      //     | {
+      //         type: 'isGreaterThan';
+      //         params: {
+      //           count: number;
+      //         };
+      //       }
+      //     | { type: 'plainGuard'; params?: { foo: string } };
+      // },
+      guards: {
+        plainGuard: (params?: { foo: string }) => true,
+        isGreaterThan: (params: { count: number }) => {
+          ((_accept: number) => {})(params.count);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(params);
+          return true;
         }
-      }
-    });
-  });
-
-  it('should type guard params as undefined in inline custom guard', () => {
-    createMachine({
-      types: {} as {
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard' };
       },
       on: {
-        EV: {
-          guard: (_, params) => {
-            ((_accept: undefined) => {})(params);
-            // @ts-expect-error
-            ((_accept: 'not any') => {})(params);
-            return true;
+        // EV: {
+        //   guard: {
+        //     type: 'plainGuard'
+        //   }
+        // }
+        EV: ({ guards }) => {
+          if (guards.plainGuard()) {
+            return {};
           }
-        }
-      }
-    });
-  });
-
-  it('should type guard param as unknown in inline composite guard', () => {
-    createMachine({
-      types: {} as {
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard' };
-      },
-      context: {
-        counter: 0
-      },
-      on: {
-        EV: {
-          guard: not((_, params) => {
-            params satisfies unknown;
-            // @ts-expect-error
-            params satisfies undefined;
-            // @ts-expect-error
-            params satisfies 'not any';
-            return true;
-          })
         }
       }
     });
   });
 
   it('should type guard params as the specific params in the provided custom guard', () => {
-    createMachine(
-      {
-        types: {} as {
-          guards:
-            | {
-                type: 'isGreaterThan';
-                params: {
-                  count: number;
-                };
-              }
-            | { type: 'plainGuard' };
-        }
-      },
-      {
-        guards: {
-          isGreaterThan: (_, params) => {
-            ((_accept: number) => {})(params.count);
-            // @ts-expect-error
-            ((_accept: 'not any') => {})(params);
-            return true;
-          }
-        }
-      }
-    );
-  });
-
-  it('should not type guard params as the specific params in the provided composite guard', () => {
-    createMachine(
-      {
-        types: {} as {
-          guards:
-            | {
-                type: 'isGreaterThan';
-                params: {
-                  count: number;
-                };
-              }
-            | { type: 'plainGuard' };
-        },
-        context: {
-          count: 0
-        }
-      },
-      {
-        guards: {
-          isGreaterThan: not((_, params) => {
-            params satisfies unknown;
-            // @ts-expect-error
-            params satisfies undefined;
-            // @ts-expect-error
-            params satisfies { count: number };
-            return true;
-          })
-        }
-      }
-    );
-  });
-
-  it('should not allow a provided guard outside of the defined ones', () => {
-    createMachine(
-      {
-        types: {} as {
-          guards:
-            | {
-                type: 'isGreaterThan';
-                params: {
-                  count: number;
-                };
-              }
-            | { type: 'plainGuard' };
-        }
-      },
-      {
-        guards: {
+    next_createMachine({
+      // types: {} as {
+      //   guards:
+      //     | {
+      //         type: 'isGreaterThan';
+      //         params: {
+      //           count: number;
+      //         };
+      //       }
+      //     | { type: 'plainGuard' };
+      // }
+      guards: {
+        isGreaterThan: (params: { count: number }) => {
+          ((_accept: number) => {})(params.count);
           // @ts-expect-error
-          other: () => true
+          ((_accept: 'not any') => {})(params);
+          return true;
         }
       }
-    );
-  });
-
-  it('`not` should be allowed in the config argument when inline function gets passed to it', () => {
-    createMachine({
-      types: {} as {
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard' };
-      },
-      on: {
-        EV: {
-          guard: not(() => {
-            return true;
-          })
+    }).provide({
+      guards: {
+        isGreaterThan: (params: { count: number }) => {
+          ((_accept: number) => {})(params.count);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(params);
+          return true;
         }
       }
     });
   });
 
-  it('`not` should be allowed in the implementations argument when inline function gets passed to it', () => {
-    createMachine(
-      {
-        types: {} as {
-          guards:
-            | {
-                type: 'isGreaterThan';
-                params: {
-                  count: number;
-                };
-              }
-            | { type: 'plainGuard' };
-        }
-      },
-      {
-        guards: {
-          isGreaterThan: not(() => {
-            return true;
-          })
-        }
+  it('should not allow a provided guard outside of the defined ones', () => {
+    const machine = next_createMachine({
+      guards: {
+        isGreaterThan: (_params: { count: number }) => {
+          return true;
+        },
+        plainGuard: () => true
       }
-    );
+    }).provide({
+      guards: {
+        // @ts-expect-error
+        other: () => true
+      }
+    });
   });
 
   it('`stateIn` should be allowed in the config argument', () => {
-    createMachine({
+    next_createMachine({
       types: {} as {
         guards:
           | {
@@ -3636,7 +3872,7 @@ describe('guards', () => {
   });
 
   it('`stateIn` should be allowed in the implementations argument', () => {
-    createMachine(
+    next_createMachine(
       {
         types: {} as {
           guards:
@@ -3658,46 +3894,77 @@ describe('guards', () => {
   });
 
   it('should allow dynamic params that return correct params type', () => {
-    createMachine({
-      types: {} as {
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard' };
+    next_createMachine({
+      // types: {} as {
+      //   guards:
+      //     | {
+      //         type: 'isGreaterThan';
+      //         params: {
+      //           count: number;
+      //         };
+      //       }
+      //     | { type: 'plainGuard' };
+      // },
+      guards: {
+        isGreaterThan: (params: { count: number }) => {
+          ((_accept: number) => {})(params.count);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(params);
+          return true;
+        }
       },
       on: {
-        FOO: {
-          guard: {
-            type: 'isGreaterThan',
-            params: () => ({ count: 100 })
+        // FOO: {
+        //   guard: {
+        //     type: 'isGreaterThan',
+        //     params: () => ({ count: 100 })
+        //   }
+        // }
+        FOO: ({ guards }) => {
+          if (guards.isGreaterThan({ count: 100 })) {
+            return {};
           }
         }
       }
     });
   });
 
-  it('should disallow dynamic params that return invalid params type', () => {
-    createMachine({
-      types: {} as {
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard' };
+  it.only('should disallow dynamic params that return invalid params type', () => {
+    next_createMachine({
+      // types: {} as {
+      //   guards:
+      //     | {
+      //         type: 'isGreaterThan';
+      //         params: {
+      //           count: number;
+      //         };
+      //       }
+      //     | { type: 'plainGuard' };
+      // },
+      guards: {
+        isGreaterThan: (params: { count: number }) => {
+          ((_accept: number) => {})(params.count);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(params);
+          return true;
+        },
+        plainGuard: () => true
       },
       on: {
-        // @ts-expect-error
-        FOO: {
-          guard: {
-            type: 'isGreaterThan',
-            params: () => ({ count: 'bazinga' })
+        // FOO: {
+        //   guard: {
+        //     type: 'isGreaterThan',
+        //     params: () => ({ count: 'bazinga' })
+        //   }
+        // }
+        FOO: ({ guards }) => {
+          if (
+            guards.isGreaterThan({
+              // @ts-expect-error
+              count: 'bazinga'
+            })
+          ) {
+            return {};
           }
         }
       }
@@ -3705,65 +3972,50 @@ describe('guards', () => {
   });
 
   it('should provide context type to dynamic params', () => {
-    createMachine({
-      types: {} as {
-        context: {
-          count: number;
-        };
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard' };
+    next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     count: number;
+      //   };
+      //   guards:
+      //     | {
+      //         type: 'isGreaterThan';
+      //         params: {
+      //           count: number;
+      //         };
+      //       }
+      //     | { type: 'plainGuard' };
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
+      guards: {
+        isGreaterThan: ({ count }: { count: number }) => {
+          return true;
+        }
       },
       context: { count: 1 },
       on: {
-        FOO: {
-          guard: {
-            type: 'isGreaterThan',
-            params: ({ context }) => {
-              ((_accept: number) => {})(context.count);
-              // @ts-expect-error
-              ((_accept: 'not any') => {})(context.count);
-              return {
-                count: context.count
-              };
-            }
+        // FOO: {
+        //   guard: {
+        //     type: 'isGreaterThan',
+        //     params: ({ context }) => {
+        //       ((_accept: number) => {})(context.count);
+        //       // @ts-expect-error
+        //       ((_accept: 'not any') => {})(context.count);
+        //       return {
+        //         count: context.count
+        //       };
+        //     }
+        //   }
+        // }
+        FOO: ({ guards }) => {
+          if (guards.isGreaterThan({ count: 100 })) {
+            return {};
           }
-        }
-      }
-    });
-  });
-
-  it('should provide narrowed down event type to dynamic params', () => {
-    createMachine({
-      types: {} as {
-        events: { type: 'FOO' } | { type: 'BAR' };
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard' };
-      },
-      on: {
-        FOO: {
-          guard: {
-            type: 'isGreaterThan',
-            params: ({ event }) => {
-              ((_accept: 'FOO') => {})(event.type);
-              // @ts-expect-error
-              ((_accept: 'not any') => {})(event.type);
-              return {
-                count: 100
-              };
-            }
-          }
+          return {};
         }
       }
     });
@@ -3772,156 +4024,242 @@ describe('guards', () => {
 
 describe('delays', () => {
   it('should accept a plain number as key of an after transitions object when delays are declared', () => {
-    createMachine({
-      types: {} as {
-        delays: 'one second' | 'one minute';
+    next_createMachine({
+      // types: {} as {
+      //   delays: 'one second' | 'one minute';
+      // },
+      delays: {
+        'one second': 1000,
+        'one minute': 60000
       },
       after: {
-        100: {}
+        100: () => {}
       }
     });
   });
 
   it('should accept a defined delay type as key of an after transitions object when delays are declared', () => {
-    createMachine({
-      types: {} as {
-        delays: 'one second' | 'one minute';
+    next_createMachine({
+      // types: {} as {
+      //   delays: 'one second' | 'one minute';
+      // },
+      delays: {
+        'one second': 1000,
+        'one minute': 60000
       },
       after: {
-        'one second': {}
+        'one second': () => {}
       }
     });
   });
 
   it(`should reject delay as key of an after transitions object if it's outside of the defined ones`, () => {
-    createMachine({
-      types: {} as {
-        delays: 'one second' | 'one minute';
+    next_createMachine({
+      // types: {} as {
+      //   delays: 'one second' | 'one minute';
+      // },
+      delays: {
+        'one second': 1000,
+        'one minute': 60000
       },
       after: {
         // @ts-expect-error
-        'unknown delay': {}
+        'unknown delay': {} // TODO: should be rejected
       }
     });
   });
 
   it('should accept a plain number as delay in `raise` when delays are declared', () => {
-    createMachine({
-      types: {} as {
-        delays: 'one second' | 'one minute';
+    next_createMachine({
+      // types: {} as {
+      //   delays: 'one second' | 'one minute';
+      // },
+      delays: {
+        'one second': 1000,
+        'one minute': 60000
       },
-      entry: raise({ type: 'FOO' }, { delay: 100 })
+      // entry: raise({ type: 'FOO' }, { delay: 100 })
+      entry: (_, enq) => {
+        enq.raise({ type: 'FOO' }, { delay: 100 });
+      }
     });
   });
 
   it('should accept a defined delay in `raise`', () => {
-    createMachine({
-      types: {} as {
-        delays: 'one second' | 'one minute';
+    next_createMachine({
+      // types: {} as {
+      //   delays: 'one second' | 'one minute';
+      // },
+      delays: {
+        'one second': 1000,
+        'one minute': 60000
       },
-      entry: raise({ type: 'FOO' }, { delay: 'one minute' })
+      // entry: raise({ type: 'FOO' }, { delay: 'one minute' })
+      entry: (_, enq) => {
+        enq.raise({ type: 'FOO' }, { delay: 'one minute' });
+      }
     });
   });
 
   it('should reject a delay outside of the defined ones in `raise`', () => {
-    createMachine({
-      types: {} as {
-        delays: 'one second' | 'one minute';
+    next_createMachine({
+      // types: {} as {
+      //   delays: 'one second' | 'one minute';
+      // },
+      delays: {
+        'one second': 1000,
+        'one minute': 60000
       },
 
-      entry: raise(
-        { type: 'FOO' },
-        {
-          // @ts-expect-error
-          delay: 'unknown delay'
-        }
-      )
-    });
-  });
-
-  it('should accept a plain number as delay in `sendTo` when delays are declared', () => {
-    const otherActor = createActor(createMachine({}));
-
-    createMachine({
-      types: {} as {
-        delays: 'one second' | 'one minute';
-      },
-      entry: sendTo(otherActor, { type: 'FOO' }, { delay: 100 })
-    });
-  });
-
-  it('should accept a defined delay in `sendTo`', () => {
-    const otherActor = createActor(createMachine({}));
-
-    createMachine({
-      types: {} as {
-        delays: 'one second' | 'one minute';
-      },
-      entry: sendTo(otherActor, { type: 'FOO' }, { delay: 'one minute' })
-    });
-  });
-
-  it('should reject a delay outside of the defined ones in `sendTo`', () => {
-    const otherActor = createActor(createMachine({}));
-
-    createMachine({
-      types: {} as {
-        delays: 'one second' | 'one minute';
-      },
-
-      entry: sendTo(
-        otherActor,
-        { type: 'FOO' },
-        {
-          // @ts-expect-error
-          delay: 'unknown delay'
-        }
-      )
-    });
-  });
-
-  it('should accept a plain number as delay in `raise` in `enqueueActions` when delays are declared', () => {
-    createMachine({
-      types: {} as {
-        delays: 'one second' | 'one minute';
-      },
-      entry: enqueueActions(({ enqueue }) => {
-        enqueue.raise({ type: 'FOO' }, { delay: 100 });
-      })
-    });
-  });
-
-  it('should accept a defined delay in `raise` in `enqueueActions`', () => {
-    createMachine({
-      types: {} as {
-        delays: 'one second' | 'one minute';
-      },
-      entry: enqueueActions(({ enqueue }) => {
-        enqueue.raise({ type: 'FOO' }, { delay: 'one minute' });
-      })
-    });
-  });
-
-  it('should reject a delay outside of the defined ones in `raise` in `enqueueActions`', () => {
-    createMachine({
-      types: {} as {
-        delays: 'one second' | 'one minute';
-      },
-      entry: enqueueActions(({ enqueue }) => {
-        enqueue.raise(
+      // entry: raise(
+      //   { type: 'FOO' },
+      //   {
+      //     // @ts-expect-error
+      //     delay: 'unknown delay'
+      //   }
+      // )
+      entry: (_, enq) => {
+        enq.raise(
           { type: 'FOO' },
           {
             // @ts-expect-error
             delay: 'unknown delay'
           }
         );
-      })
+      }
     });
   });
 
-  it('should accept any delay string when no explicit delays are defined', () => {
-    createMachine({
+  it('should accept a plain number as delay in `sendTo` when delays are declared', () => {
+    const otherActor = createActor(next_createMachine({}));
+
+    next_createMachine({
+      // types: {} as {
+      //   delays: 'one second' | 'one minute';
+      // },
+      delays: {
+        'one second': 1000,
+        'one minute': 60000
+      },
+      // entry: sendTo(otherActor, { type: 'FOO' }, { delay: 100 })
+      entry: (_, enq) => {
+        enq.sendTo(otherActor, { type: 'FOO' }, { delay: 100 });
+      }
+    });
+  });
+
+  it('should accept a defined delay in `sendTo`', () => {
+    const otherActor = createActor(next_createMachine({}));
+
+    next_createMachine({
+      // types: {} as {
+      //   delays: 'one second' | 'one minute';
+      // },
+      delays: {
+        'one second': 1000,
+        'one minute': 60000
+      },
+      // entry: sendTo(otherActor, { type: 'FOO' }, { delay: 'one minute' })
+      entry: (_, enq) => {
+        enq.sendTo(otherActor, { type: 'FOO' }, { delay: 'one minute' });
+      }
+    });
+  });
+
+  it('should reject a delay outside of the defined ones in `sendTo`', () => {
+    const otherActor = createActor(next_createMachine({}));
+
+    next_createMachine({
+      // types: {} as {
+      //   delays: 'one second' | 'one minute';
+      // },
+      delays: {
+        'one second': 1000,
+        'one minute': 60000
+      },
+
+      // entry: sendTo(
+      //   otherActor,
+      //   { type: 'FOO' },
+      //   {
+      //     // @ts-expect-error
+      //     delay: 'unknown delay'
+      //   }
+      // )
+      entry: (_, enq) => {
+        enq.sendTo(
+          otherActor,
+          { type: 'FOO' },
+          {
+            // @ts-expect-error
+            delay: 'unknown delay'
+          }
+        );
+      }
+    });
+  });
+
+  it('should accept a plain number as delay in `raise` in `enqueueActions` when delays are declared', () => {
+    next_createMachine({
+      // types: {} as {
+      //   delays: 'one second' | 'one minute';
+      // },
+      delays: {
+        'one second': 1000,
+        'one minute': 60000
+      },
+      // entry: enqueueActions(({ enqueue }) => {
+      //   enqueue.raise({ type: 'FOO' }, { delay: 100 });
+      // })
+      entry: (_, enq) => {
+        enq.raise({ type: 'FOO' }, { delay: 100 });
+      }
+    });
+  });
+
+  it('should accept a defined delay in `raise` in `enqueueActions`', () => {
+    next_createMachine({
+      // types: {} as {
+      //   delays: 'one second' | 'one minute';
+      // },
+      delays: {
+        'one second': 1000,
+        'one minute': 60000
+      },
+      // entry: enqueueActions(({ enqueue }) => {
+      //   enqueue.raise({ type: 'FOO' }, { delay: 'one minute' });
+      // })
+      entry: (_, enq) => {
+        enq.raise({ type: 'FOO' }, { delay: 'one minute' });
+      }
+    });
+  });
+
+  it('should reject a delay outside of the defined ones in `raise` in `enqueueActions`', () => {
+    next_createMachine({
+      // types: {} as {
+      //   delays: 'one second' | 'one minute';
+      // },
+      delays: {
+        'one second': 1000,
+        'one minute': 60000
+      },
+      entry: (_, enq) => {
+        enq.raise(
+          { type: 'FOO' },
+          {
+            // @ts-expect-error
+            delay: 'unknown delay'
+          }
+        );
+      }
+    });
+  });
+
+  it('should NOT accept any delay string when no explicit delays are defined', () => {
+    next_createMachine({
       after: {
+        // @ts-expect-error
         just_any_delay: {}
       }
     });
@@ -3929,28 +4267,50 @@ describe('delays', () => {
 });
 
 describe('tags', () => {
-  it(`should allow a defined tag when it's set using a string`, () => {
-    createMachine({
-      types: {} as {
-        tags: 'pending' | 'success' | 'error';
+  it(`should NOT allow a defined tag when it's set using a string`, () => {
+    next_createMachine({
+      // types: {} as {
+      //   tags: 'pending' | 'success' | 'error';
+      // },
+      schemas: {
+        tags: z.union([
+          z.literal('pending'),
+          z.literal('success'),
+          z.literal('error')
+        ])
       },
+      // @ts-expect-error
       tags: 'pending'
     });
   });
 
   it(`should allow a defined tag when it's set using an array`, () => {
-    createMachine({
-      types: {} as {
-        tags: 'pending' | 'success' | 'error';
+    next_createMachine({
+      // types: {} as {
+      //   tags: 'pending' | 'success' | 'error';
+      // },
+      schemas: {
+        tags: z.union([
+          z.literal('pending'),
+          z.literal('success'),
+          z.literal('error')
+        ])
       },
       tags: ['pending']
     });
   });
 
   it(`should not allow a tag outside of the defined ones when it's set using a string`, () => {
-    createMachine({
-      types: {} as {
-        tags: 'pending' | 'success' | 'error';
+    next_createMachine({
+      // types: {} as {
+      //   tags: 'pending' | 'success' | 'error';
+      // },
+      schemas: {
+        tags: z.union([
+          z.literal('pending'),
+          z.literal('success'),
+          z.literal('error')
+        ])
       },
       // @ts-expect-error
       tags: 'other'
@@ -3958,9 +4318,16 @@ describe('tags', () => {
   });
 
   it(`should not allow a tag outside of the defined ones when it's set using an array`, () => {
-    createMachine({
-      types: {} as {
-        tags: 'pending' | 'success' | 'error';
+    next_createMachine({
+      // types: {} as {
+      //   tags: 'pending' | 'success' | 'error';
+      // },
+      schemas: {
+        tags: z.union([
+          z.literal('pending'),
+          z.literal('success'),
+          z.literal('error')
+        ])
       },
       tags: [
         // @ts-expect-error
@@ -3970,9 +4337,12 @@ describe('tags', () => {
   });
 
   it('`hasTag` should allow checking a defined tag', () => {
-    const machine = createMachine({
-      types: {} as {
-        tags: 'a' | 'b' | 'c';
+    const machine = next_createMachine({
+      // types: {} as {
+      //   tags: 'a' | 'b' | 'c';
+      // }
+      schemas: {
+        tags: z.union([z.literal('a'), z.literal('b'), z.literal('c')])
       }
     });
 
@@ -3982,9 +4352,12 @@ describe('tags', () => {
   });
 
   it('`hasTag` should not allow checking a tag outside of the defined ones', () => {
-    const machine = createMachine({
-      types: {} as {
-        tags: 'a' | 'b' | 'c';
+    const machine = next_createMachine({
+      // types: {} as {
+      //   tags: 'a' | 'b' | 'c';
+      // }
+      schemas: {
+        tags: z.union([z.literal('a'), z.literal('b'), z.literal('c')])
       }
     });
 
@@ -3997,7 +4370,7 @@ describe('tags', () => {
 
 describe('fromCallback', () => {
   it('should reject a start callback that returns an explicit promise', () => {
-    createMachine({
+    next_createMachine({
       invoke: {
         src: fromCallback(
           // @ts-ignore
@@ -4023,7 +4396,7 @@ describe('fromCallback', () => {
     //
     //   // implicit completion
     // })
-    createMachine({
+    next_createMachine({
       invoke: {
         src: fromCallback(
           // @ts-ignore
@@ -4034,7 +4407,7 @@ describe('fromCallback', () => {
   });
 
   it('should reject a start callback that returns a non-function and non-undefined value', () => {
-    createMachine({
+    next_createMachine({
       invoke: {
         src: fromCallback(
           // @ts-ignore
@@ -4047,7 +4420,7 @@ describe('fromCallback', () => {
   });
 
   it('should allow returning an implicit undefined from the start callback', () => {
-    createMachine({
+    next_createMachine({
       invoke: {
         src: fromCallback(() => {})
       }
@@ -4055,7 +4428,7 @@ describe('fromCallback', () => {
   });
 
   it('should allow returning an explicit undefined from the start callback', () => {
-    createMachine({
+    next_createMachine({
       invoke: {
         src: fromCallback(() => {
           return undefined;
@@ -4065,7 +4438,7 @@ describe('fromCallback', () => {
   });
 
   it('should allow returning a cleanup function the start callback', () => {
-    createMachine({
+    next_createMachine({
       invoke: {
         src: fromCallback(() => {
           return undefined;
@@ -4077,9 +4450,19 @@ describe('fromCallback', () => {
 
 describe('self', () => {
   it('should accept correct event types in an inline entry custom action', () => {
-    createMachine({
-      types: {} as {
-        events: { type: 'FOO' } | { type: 'BAR' };
+    next_createMachine({
+      // types: {} as {
+      //   events: { type: 'FOO' } | { type: 'BAR' };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('FOO')
+          }),
+          z.object({
+            type: z.literal('BAR')
+          })
+        ])
       },
       entry: ({ self }) => {
         self.send({ type: 'FOO' });
@@ -4091,61 +4474,91 @@ describe('self', () => {
   });
 
   it('should accept correct event types in an inline entry builtin action', () => {
-    createMachine({
-      types: {} as {
-        events: { type: 'FOO' } | { type: 'BAR' };
+    next_createMachine({
+      // types: {} as {
+      //   events: { type: 'FOO' } | { type: 'BAR' };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('FOO')
+          }),
+          z.object({
+            type: z.literal('BAR')
+          })
+        ])
       },
-      entry: assign(({ self }) => {
+      entry: ({ self }) => {
         self.send({ type: 'FOO' });
         self.send({ type: 'BAR' });
         // @ts-expect-error
         self.send({ type: 'BAZ' });
-        return {};
-      })
+      }
     });
   });
 
   it('should accept correct event types in an inline transition custom action', () => {
-    createMachine({
-      types: {} as {
-        events: { type: 'FOO' } | { type: 'BAR' };
+    next_createMachine({
+      // types: {} as {
+      //   events: { type: 'FOO' } | { type: 'BAR' };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('FOO')
+          }),
+          z.object({
+            type: z.literal('BAR')
+          })
+        ])
       },
       on: {
-        FOO: {
-          actions: ({ self }) => {
-            self.send({ type: 'FOO' });
-            self.send({ type: 'BAR' });
-            // @ts-expect-error
-            self.send({ type: 'BAZ' });
-          }
+        FOO: ({ self }) => {
+          self.send({ type: 'FOO' });
+          self.send({ type: 'BAR' });
+          // @ts-expect-error
+          self.send({ type: 'BAZ' });
         }
       }
     });
   });
 
   it('should accept correct event types in an inline transition builtin action', () => {
-    createMachine({
-      types: {} as {
-        events: { type: 'FOO' } | { type: 'BAR' };
+    next_createMachine({
+      // types: {} as {
+      //   events: { type: 'FOO' } | { type: 'BAR' };
+      // },
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('FOO')
+          }),
+          z.object({
+            type: z.literal('BAR')
+          })
+        ])
       },
       on: {
-        FOO: {
-          actions: assign(({ self }) => {
-            self.send({ type: 'FOO' });
-            self.send({ type: 'BAR' });
-            // @ts-expect-error
-            self.send({ type: 'BAZ' });
-            return {};
-          })
+        FOO: ({ self }) => {
+          self.send({ type: 'FOO' });
+          self.send({ type: 'BAR' });
+          // @ts-expect-error
+          self.send({ type: 'BAZ' });
+          return {};
         }
       }
     });
   });
 
   it('should return correct snapshot in an inline entry custom action', () => {
-    createMachine({
-      types: {} as {
-        context: { count: number };
+    next_createMachine({
+      // types: {} as {
+      //   context: { count: number };
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
       },
       context: { count: 0 },
       entry: ({ self }) => {
@@ -4156,18 +4569,28 @@ describe('self', () => {
     });
   });
 
-  it('should return correct snapshot in an inline entry builtin action', () => {
-    createMachine({
-      types: {} as {
-        context: { count: number };
+  it('should return correct snapshot in an inline entry action', () => {
+    next_createMachine({
+      // types: {} as {
+      //   context: { count: number };
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
       },
       context: { count: 0 },
-      entry: assign(({ self }) => {
+      // entry: assign(({ self }) => {
+      //   ((_accept: number) => {})(self.getSnapshot().context.count);
+      //   // @ts-expect-error
+      //   ((_accept: string) => {})(self.getSnapshot().context.count);
+      //   return {};
+      // })
+      entry: ({ self }) => {
         ((_accept: number) => {})(self.getSnapshot().context.count);
         // @ts-expect-error
         ((_accept: string) => {})(self.getSnapshot().context.count);
-        return {};
-      })
+      }
     });
   });
 });
@@ -4191,12 +4614,13 @@ describe('createActor', () => {
 
 describe('snapshot methods', () => {
   it('should type infer actor union snapshot methods', () => {
-    const typeOne = setup({
-      types: {} as {
-        events: { type: 'one' };
-        tags: 'one';
-      }
-    }).createMachine({
+    const typeOne = next_createMachine({
+      schemas: {
+        events: z.object({
+          type: z.literal('one')
+        }),
+        tags: z.literal('one')
+      },
       initial: 'one',
       states: {
         one: {}
@@ -4204,18 +4628,25 @@ describe('snapshot methods', () => {
     });
     type TypeOneRef = ActorRefFrom<typeof typeOne>;
 
-    const typeTwo = setup({
-      types: {} as {
-        events: { type: 'one' } | { type: 'two' };
-        tags: 'one' | 'two';
-      }
-    }).createMachine({
+    const typeTwo = next_createMachine({
+      schemas: {
+        events: z.union([
+          z.object({
+            type: z.literal('one')
+          }),
+          z.object({
+            type: z.literal('two')
+          })
+        ]),
+        tags: z.union([z.literal('one'), z.literal('two')])
+      },
       initial: 'one',
       states: {
         one: {},
         two: {}
       }
     });
+
     type TypeTwoRef = ActorRefFrom<typeof typeTwo>;
 
     const ref = createActor(typeTwo) as TypeOneRef | TypeTwoRef;
@@ -4246,11 +4677,18 @@ describe('snapshot methods', () => {
 
 // https://github.com/statelyai/xstate/issues/4931
 it('fromPromise should not have issues with actors with emitted types', () => {
-  const machine = setup({
-    types: {
-      emitted: {} as { type: 'FOO' }
+  // const machine = setup({
+  //   types: {
+  //     emitted: {} as { type: 'FOO' }
+  //   }
+  // }).createMachine({});
+  const machine = next_createMachine({
+    schemas: {
+      emitted: z.object({
+        type: z.literal('FOO')
+      })
     }
-  }).createMachine({});
+  });
 
   const actor = createActor(machine).start();
 
@@ -4265,7 +4703,7 @@ it('UnknownActorRef should return a Snapshot-typed value from getSnapshot()', ()
 });
 
 it('Actor<T> should be assignable to ActorRefFromLogic<T>', () => {
-  const logic = createMachine({});
+  const logic = next_createMachine({});
 
   class ActorThing<T extends AnyActorLogic> {
     actorRef: ActorRefFromLogic<T>;

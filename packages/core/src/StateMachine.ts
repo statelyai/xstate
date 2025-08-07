@@ -68,7 +68,8 @@ export class StateMachine<
   TMeta extends MetaObject,
   TConfig extends StateSchema,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors']
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards']
 > implements
     ActorLogic<
       MachineSnapshot<
@@ -175,6 +176,7 @@ export class StateMachine<
   public provide(implementations: {
     actions?: Partial<TActionMap>;
     actors?: Partial<TActorMap>;
+    guards?: Partial<TGuardMap>;
   }): StateMachine<
     TContext,
     TEvent,
@@ -191,7 +193,8 @@ export class StateMachine<
     TMeta,
     TConfig,
     TActionMap,
-    TActorMap
+    TActorMap,
+    TGuardMap
   > {
     const { actions, guards, actors, delays } = this.implementations;
 
