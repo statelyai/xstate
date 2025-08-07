@@ -1,11 +1,12 @@
 import { render } from '@testing-library/react';
-import { ActorRefFrom, assign, createMachine, setup } from 'xstate';
+import { ActorRefFrom, assign, next_createMachine, setup } from 'xstate';
 import {
   useActor,
   useActorRef,
   useMachine,
   useSelector
 } from '../src/index.ts';
+import z from 'zod';
 
 describe('useMachine', () => {
   interface YesNoContext {
@@ -16,8 +17,16 @@ describe('useMachine', () => {
     type: 'YES';
   }
 
-  const yesNoMachine = createMachine({
-    types: {} as { context: YesNoContext; events: YesNoEvent },
+  const yesNoMachine = next_createMachine({
+    // types: {} as { context: YesNoContext; events: YesNoEvent },
+    schemas: {
+      context: z.object({
+        value: z.number().optional()
+      }),
+      events: z.object({
+        type: z.literal('YES')
+      })
+    },
     context: {
       value: undefined
     },
@@ -50,10 +59,19 @@ describe('useMachine', () => {
 
   // Example from: https://github.com/statelyai/xstate/discussions/1534
   it('spawned actors should be typed correctly', () => {
-    const child = createMachine({
-      types: {} as {
-        context: { bar: number };
-        events: { type: 'FOO'; data: number };
+    const child = next_createMachine({
+      // types: {} as {
+      //   context: { bar: number };
+      //   events: { type: 'FOO'; data: number };
+      // },
+      schemas: {
+        context: z.object({
+          bar: z.number()
+        }),
+        events: z.object({
+          type: z.literal('FOO'),
+          data: z.number()
+        })
       },
       id: 'myActor',
       context: {
@@ -65,26 +83,26 @@ describe('useMachine', () => {
       }
     });
 
-    const m = createMachine(
-      {
-        initial: 'ready',
-        context: {
-          actor: null
-        } as { actor: ActorRefFrom<typeof child> | null },
-        states: {
-          ready: {
-            entry: 'spawnActor'
-          }
-        }
+    const m = next_createMachine({
+      initial: 'ready',
+      schemas: {
+        context: z.object({
+          actor: z.custom<ActorRefFrom<typeof child>>().nullable()
+        })
       },
-      {
-        actions: {
-          spawnActor: assign({
-            actor: ({ spawn }) => spawn(child)
+      context: {
+        actor: null
+      },
+      states: {
+        ready: {
+          entry: (_, enq) => ({
+            context: {
+              actor: enq.spawn(child)
+            }
           })
         }
       }
-    );
+    });
 
     interface Props {
       myActor: ActorRefFrom<typeof child>;
@@ -127,8 +145,13 @@ describe('useMachine', () => {
 
 describe('useActor', () => {
   it('should require input to be specified when defined', () => {
-    const withInputMachine = createMachine({
-      types: {} as { input: { value: number } },
+    const withInputMachine = next_createMachine({
+      // types: {} as { input: { value: number } },
+      schemas: {
+        input: z.object({
+          value: z.number()
+        })
+      },
       initial: 'idle',
       states: {
         idle: {}
@@ -145,8 +168,8 @@ describe('useActor', () => {
   });
 
   it('should not require input when not defined', () => {
-    const noInputMachine = createMachine({
-      types: {} as {},
+    const noInputMachine = next_createMachine({
+      // types: {} as {},
       initial: 'idle',
       states: {
         idle: {}
@@ -163,8 +186,13 @@ describe('useActor', () => {
 
 describe('useActorRef', () => {
   it('should require input to be specified when defined', () => {
-    const withInputMachine = createMachine({
-      types: {} as { input: { value: number } },
+    const withInputMachine = next_createMachine({
+      // types: {} as { input: { value: number } },
+      schemas: {
+        input: z.object({
+          value: z.number()
+        })
+      },
       initial: 'idle',
       states: {
         idle: {}
@@ -181,8 +209,8 @@ describe('useActorRef', () => {
   });
 
   it('should not require input when not defined', () => {
-    const noInputMachine = createMachine({
-      types: {} as {},
+    const noInputMachine = next_createMachine({
+      // types: {} as {},
       initial: 'idle',
       states: {
         idle: {}
@@ -200,7 +228,7 @@ describe('useActorRef', () => {
 
 it('useMachine types work for machines with a specified id and state with an after property #5008', () => {
   // https://github.com/statelyai/xstate/issues/5008
-  const cheatCodeMachine = setup({}).createMachine({
+  const cheatCodeMachine = next_createMachine({
     id: 'cheatCodeMachine',
     initial: 'disabled',
     states: {

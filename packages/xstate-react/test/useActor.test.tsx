@@ -12,14 +12,13 @@ import {
   StateFrom,
   assign,
   createActor,
-  createMachine,
   next_createMachine,
-  raise,
   setup
 } from 'xstate';
 import { fromCallback, fromObservable, fromPromise } from 'xstate';
 import { useActor, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
+import z from 'zod';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -407,9 +406,17 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('actions should not use stale data in a custom entry action', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
 
-    const toggleMachine = createMachine({
-      types: {} as {
-        events: { type: 'TOGGLE' };
+    const toggleMachine = next_createMachine({
+      // types: {} as {
+      //   events: { type: 'TOGGLE' };
+      // },
+      schemas: {
+        events: z.object({
+          type: z.literal('TOGGLE')
+        })
+      },
+      actions: {
+        doAction: () => {}
       },
       initial: 'inactive',
       states: {
@@ -417,7 +424,9 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
           on: { TOGGLE: 'active' }
         },
         active: {
-          entry: 'doAction'
+          entry: ({ actions }, enq) => {
+            enq(actions.doAction);
+          }
         }
       }
     });
@@ -470,27 +479,36 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should only render once when initial microsteps are involved', () => {
     let rerenders = 0;
 
-    const m = createMachine(
-      {
-        types: {} as { context: { stuff: number[] } },
-        initial: 'init',
-        context: { stuff: [1, 2, 3] },
-        states: {
-          init: {
-            entry: 'setup',
-            always: 'ready'
-          },
-          ready: {}
-        }
+    const m = next_createMachine({
+      // types: {} as { context: { stuff: number[] } },
+      schemas: {
+        context: z.object({
+          stuff: z.array(z.number())
+        })
       },
-      {
-        actions: {
-          setup: assign({
-            stuff: ({ context }) => [...context.stuff, 4]
-          })
-        }
+      actions: {
+        setup: assign({
+          stuff: ({ context }) => [...context.stuff, 4]
+        })
+      },
+      initial: 'init',
+      context: { stuff: [1, 2, 3] },
+      states: {
+        // init: {
+        //   entry: 'setup',
+        //   always: 'ready'
+        // },
+        init: {
+          entry: ({ context }) => ({
+            context: {
+              stuff: [...context.stuff, 4]
+            }
+          }),
+          always: 'ready'
+        },
+        ready: {}
       }
-    );
+    });
 
     const App = () => {
       useActor(m);
@@ -506,33 +524,39 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should maintain the same reference for objects created when resolving initial state', () => {
     let effectsFired = 0;
 
-    const m = createMachine(
-      {
-        types: {} as { context: { counter: number; stuff: number[] } },
-        initial: 'init',
-        context: { counter: 0, stuff: [1, 2, 3] },
-        states: {
-          init: {
-            entry: 'setup'
-          }
-        },
-        on: {
-          INC: {
-            actions: 'increase'
-          }
-        }
+    const m = next_createMachine({
+      // types: {} as { context: { counter: number; stuff: number[] } },
+      schemas: {
+        context: z.object({
+          counter: z.number(),
+          stuff: z.array(z.number())
+        })
       },
-      {
-        actions: {
-          setup: assign({
-            stuff: ({ context }) => [...context.stuff, 4]
-          }),
-          increase: assign({
-            counter: ({ context }) => ++context.counter
+      initial: 'init',
+      context: { counter: 0, stuff: [1, 2, 3] },
+      states: {
+        init: {
+          // entry: 'setup'
+          entry: ({ context }) => ({
+            context: {
+              ...context,
+              stuff: [...context.stuff, 4]
+            }
           })
         }
+      },
+      on: {
+        // INC: {
+        //   actions: 'increase'
+        // }
+        INC: ({ context }) => ({
+          context: {
+            ...context,
+            counter: context.counter + 1
+          }
+        })
       }
-    );
+    });
 
     const App = () => {
       const [state, send] = useActor(m);
@@ -563,7 +587,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should successfully spawn actors from the lazily declared context', () => {
     let childSpawned = false;
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       context: ({ spawn }) => ({
         ref: spawn(
           fromCallback(() => {
@@ -610,30 +634,37 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should be able to use a guard provided outside of React', () => {
     let guardCalled = false;
 
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: {
-                guard: 'isAwesome',
-                target: 'b'
+    const machine = next_createMachine({
+      initial: 'a',
+      guards: {
+        isAwesome: () => true
+      },
+      states: {
+        a: {
+          on: {
+            // EV: {
+            //   guard: 'isAwesome',
+            //   target: 'b'
+            // }
+            EV: ({ guards }) => {
+              if (guards.isAwesome()) {
+                return {
+                  target: 'b'
+                };
               }
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          isAwesome: () => {
-            guardCalled = true;
-            return true;
           }
+        },
+        b: {}
+      }
+    }).provide({
+      guards: {
+        isAwesome: () => {
+          guardCalled = true;
+          return true;
         }
       }
-    );
+    });
 
     const App = () => {
       const [_state, send] = useActor(machine);
@@ -651,31 +682,28 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should be able to use a service provided outside of React', () => {
     let serviceCalled = false;
 
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: 'b'
-            }
-          },
-          b: {
-            invoke: {
-              src: 'foo'
-            }
+    const machine = next_createMachine({
+      actors: {
+        foo: fromPromise(() => {
+          serviceCalled = true;
+          return Promise.resolve();
+        })
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            // src: 'foo'
+            src: ({ actors }) => actors.foo
           }
         }
-      },
-      {
-        actors: {
-          foo: fromPromise(() => {
-            serviceCalled = true;
-            return Promise.resolve();
-          })
-        }
       }
-    );
+    });
 
     const App = () => {
       const [_state, send] = useActor(machine);
@@ -693,28 +721,35 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should be able to use a delay provided outside of React', () => {
     vi.useFakeTimers();
 
-    const machine = setup({
-      delays: {
-        myDelay: () => {
-          return 300;
+    const machine =
+      // setup({
+      //   delays: {
+      //     myDelay: () => {
+      //       return 300;
+      //     }
+      //   }
+      // }).
+      next_createMachine({
+        delays: {
+          myDelay: () => {
+            return 300;
+          }
+        },
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: 'b'
+            }
+          },
+          b: {
+            after: {
+              myDelay: 'c'
+            }
+          },
+          c: {}
         }
-      }
-    }).createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            EV: 'b'
-          }
-        },
-        b: {
-          after: {
-            myDelay: 'c'
-          }
-        },
-        c: {}
-      }
-    });
+      });
 
     const App = () => {
       const [state, send] = useActor(machine);
@@ -741,18 +776,24 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should not use stale data in a guard', () => {
-    const machine = setup({
+    const machine = next_createMachine({
       guards: {
         isAwesome: () => false
-      }
-    }).createMachine({
+      },
       initial: 'a',
       states: {
         a: {
           on: {
-            EV: {
-              guard: 'isAwesome',
-              target: 'b'
+            // EV: {
+            //   guard: 'isAwesome',
+            //   target: 'b'
+            // }
+            EV: ({ guards }) => {
+              if (guards.isAwesome()) {
+                return {
+                  target: 'b'
+                };
+              }
             }
           }
         },
@@ -787,7 +828,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   it('should not invoke initial services more than once', () => {
     let activatedCount = 0;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'active',
       invoke: {
         src: fromCallback(() => {
@@ -814,11 +855,16 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('child component should be able to send an event to a parent immediately in an effect', () => {
-    const machine = setup({}).createMachine({
-      types: {} as {
-        events: {
-          type: 'FINISH';
-        };
+    const machine = next_createMachine({
+      // types: {} as {
+      //   events: {
+      //     type: 'FINISH';
+      //   };
+      // },
+      schemas: {
+        events: z.object({
+          type: z.literal('FINISH')
+        })
       },
       initial: 'active',
       states: {
@@ -856,12 +902,20 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('custom data should be available right away for the invoked actor', () => {
-    const childMachine = createMachine({
-      types: {
-        context: {} as { value: number }
+    const childMachine = next_createMachine({
+      // types: {
+      //   context: {} as { value: number }
+      // },
+      schemas: {
+        context: z.object({
+          value: z.number()
+        }),
+        input: z.object({
+          value: z.number()
+        })
       },
       initial: 'initial',
-      context: ({ input }: { input: { value: number } }) => {
+      context: ({ input }) => {
         return {
           value: input.value
         };
@@ -871,30 +925,29 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const machine = createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'child';
-            logic: typeof childMachine;
-            id: 'test';
-          };
-        },
-        initial: 'active',
-        states: {
-          active: {
-            invoke: {
-              src: 'child',
-              id: 'test',
-              input: { value: 42 }
-            }
+    const machine = next_createMachine({
+      // types: {} as {
+      //   actors: {
+      //     src: 'child';
+      //     logic: typeof childMachine;
+      //     id: 'test';
+      //   };
+      // },
+      actors: {
+        child: childMachine
+      },
+      initial: 'active',
+      states: {
+        active: {
+          invoke: {
+            // src: 'child',
+            src: ({ actors }) => actors.child,
+            id: 'test',
+            input: { value: 42 }
           }
         }
-      },
-      {
-        actors: { child: childMachine }
       }
-    );
+    });
 
     const Test = () => {
       const [state] = useActor(machine);
@@ -911,11 +964,16 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   // https://github.com/statelyai/xstate/issues/1334
   it('delayed transitions should work when initializing from a rehydrated state', () => {
     vi.useFakeTimers();
-    const testMachine = createMachine({
-      types: {} as {
-        events: {
-          type: 'START';
-        };
+    const testMachine = next_createMachine({
+      // types: {} as {
+      //   events: {
+      //     type: 'START';
+      //   };
+      // },
+      schemas: {
+        events: z.object({
+          type: z.literal('START')
+        })
       },
       id: 'app',
       initial: 'idle',
@@ -969,7 +1027,12 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   it('should not miss initial synchronous updates', () => {
     const m = next_createMachine({
-      types: {} as { context: { count: number } },
+      // types: {} as { context: { count: number } },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       initial: 'idle',
       context: {
         count: 0
@@ -1075,7 +1138,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should execute a delayed transition of the initial state', async () => {
-    const machine = setup({}).createMachine({
+    const machine = next_createMachine({
       initial: 'one',
       states: {
         one: {

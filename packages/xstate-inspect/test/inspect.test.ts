@@ -1,4 +1,4 @@
-import { assign, createMachine, createActor } from 'xstate';
+import { assign, next_createMachine, createActor } from 'xstate';
 import { createDevTools, inspect } from '../src/index.ts';
 
 const windowListenersUsedArguments: Array<any> = [];
@@ -58,7 +58,7 @@ describe('@xstate/inspect', () => {
       }
     };
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       id: 'whatever',
       context: circularStructure,
       initial: 'active',
@@ -108,7 +108,7 @@ describe('@xstate/inspect', () => {
       }
     };
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'active',
       states: {
         active: {}
@@ -153,7 +153,7 @@ describe('@xstate/inspect', () => {
   });
 
   it('should accept a serializer', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'active',
       context: {
         map: new Map(),
@@ -233,7 +233,7 @@ describe('@xstate/inspect', () => {
       current = current.nested;
     }
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'active',
       context: deepObj,
       states: {
@@ -267,7 +267,7 @@ describe('@xstate/inspect', () => {
   });
 
   it('should successfully serialize value with unsafe toJSON when serializer manages to replace it', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       context: {},
       types: {} as {
         events: { type: 'EV'; value: any };
@@ -355,7 +355,7 @@ describe('@xstate/inspect', () => {
   });
 
   it('should only send events once to the inspector after restarting a service', () => {
-    const machine = createMachine({});
+    const machine = next_createMachine({});
 
     const devTools = createDevTools();
     const iframeMock = createIframeMock();
