@@ -30,13 +30,24 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   };
   const fetchMachine = next_createMachine({
     id: 'fetch',
-    types: {} as {
-      context: typeof context;
-      events: { type: 'FETCH' } | DoneActorEvent;
-      actors: {
-        src: 'fetchData';
-        logic: ActorLogicFrom<Promise<string>>;
-      };
+    // types: {} as {
+    //   context: typeof context;
+    //   events: { type: 'FETCH' } | DoneActorEvent;
+    //   actors: {
+    //     src: 'fetchData';
+    //     logic: ActorLogicFrom<Promise<string>>;
+    //   };
+    // },
+    schemas: {
+      context: z.object({
+        data: z.string().optional()
+      }),
+      events: z.object({
+        type: z.literal('FETCH')
+      })
+    },
+    actors: {
+      fetchData: next_createMachine({})
     },
     initial: 'idle',
     context,
@@ -47,7 +58,8 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       loading: {
         invoke: {
           id: 'fetchData',
-          src: 'fetchData',
+          // src: 'fetchData',
+          src: ({ actors }) => actors.fetchData,
           // onDone: {
           //   target: 'success',
           //   actions: assign({
