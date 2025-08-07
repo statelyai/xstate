@@ -615,6 +615,7 @@ export class Actor<TLogic extends AnyActorLogic>
       return this;
     }
     this.mailbox.enqueue({ type: XSTATE_STOP } as any);
+    this.system._unregister(this);
 
     return this;
   }
@@ -835,14 +836,9 @@ export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
  */
 export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  ...[options]: ConditionalRequired<
-    [
-      options?: ActorOptions<TLogic> & {
-        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
-      }
-    ],
-    IsNotNever<RequiredActorOptionsKeys<TLogic>>
-  >
+  options?: ActorOptions<TLogic> & {
+    [K in RequiredActorOptionsKeys<TLogic>]: unknown;
+  }
 ): Actor<TLogic> {
   return new Actor(logic, options);
 }

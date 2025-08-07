@@ -178,14 +178,15 @@ export function next_createMachine<
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
+  TTagSchema extends StandardSchemaV1,
   // TContext extends MachineContext,
   TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
   TActor extends ProvidedActor,
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
-  TGuard extends ParameterizedObject,
+  TGuardMap extends Implementations['guards'],
   TDelays extends string,
-  TTag extends string,
+  TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
   TInput,
   // it's important to have at least one default type parameter here
   // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
@@ -199,12 +200,14 @@ export function next_createMachine<
     TInputSchema,
     TOutputSchema,
     TMetaSchema,
+    TTagSchema,
     InferOutput<TContextSchema, MachineContext>,
     TEvent,
     TDelays,
     TTag,
     TActionMap,
-    TActorMap
+    TActorMap,
+    TGuardMap
   >
 ): StateMachine<
   InferOutput<TContextSchema, MachineContext>,
@@ -212,7 +215,7 @@ export function next_createMachine<
   Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
   TActor,
   any, // TODO: TAction
-  TGuard,
+  any, // TODO: TGuard
   TDelays,
   StateValue,
   TTag & string,
@@ -222,10 +225,12 @@ export function next_createMachine<
   InferOutput<TMetaSchema, MetaObject>, // TMeta
   TODO, // TStateSchema
   TActionMap,
-  TActorMap
+  TActorMap,
+  TGuardMap
 > & {
   emits: InferOutput<TEmittedSchema, EventObject>;
   actors: TActorMap;
+  tags: TTag;
 } {
   config._special = true;
   return new StateMachine<
@@ -243,6 +248,7 @@ export function next_createMachine<
     any, // TEmitted
     any, // TMeta
     any, // TStateSchema
+    any,
     any,
     any
   >(config as any);

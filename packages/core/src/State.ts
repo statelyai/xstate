@@ -2,12 +2,7 @@ import isDevelopment from '#is-development';
 import { $$ACTOR_TYPE } from './createActor.ts';
 import type { StateNode } from './StateNode.ts';
 import type { StateMachine } from './StateMachine.ts';
-import {
-  getStateValue,
-  getTransitionResult,
-  getTransitionActions,
-  hasEffect
-} from './stateUtils.ts';
+import { getStateValue, getTransitionResult, hasEffect } from './stateUtils.ts';
 import type {
   ProvidedActor,
   AnyMachineSnapshot,
@@ -25,7 +20,8 @@ import type {
   StateSchema,
   StateId,
   SnapshotStatus,
-  PersistedHistoryValue
+  PersistedHistoryValue,
+  TODO
 } from './types.ts';
 import { matchesState } from './utils.ts';
 
@@ -76,7 +72,10 @@ interface MachineSnapshotBase<
     TOutput,
     EventObject, // TEmitted
     any, // TMeta
-    TStateSchema
+    TStateSchema,
+    TODO, // TActionMap
+    TODO, // TActorMap
+    TODO // TGuardMap
   >;
   /** The tags of the active state nodes that represent the current state value. */
   tags: Set<string>;
