@@ -1438,7 +1438,11 @@ export function getTransitionResult(
           });
         },
         spawn: (src, options) => {
-          const actorRef = createActor(src, { ...options, parent: self });
+          const actorRef = createActor(src, {
+            ...options,
+
+            parent: self
+          });
           actions.push(() => actorRef.start());
           return actorRef;
         },
@@ -1469,7 +1473,7 @@ export function getTransitionResult(
         event,
         value: snapshot.value,
         children: snapshot.children,
-        parent: actorScope.self._parent,
+        parent: self._parent,
         self,
         actions: snapshot.machine.implementations.actions,
         actors: snapshot.machine.implementations.actors,

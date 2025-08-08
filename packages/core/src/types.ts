@@ -2055,7 +2055,13 @@ export interface ActorRef<
     InteropObservable<TSnapshot> {
   /** The unique identifier for this actor relative to its parent. */
   id: string;
-  sessionId: string;
+  /**
+   * The globally unique process ID for this invocation.
+   *
+   * @remarks
+   * This is only defined once the actor is started.
+   */
+  sessionId: string | undefined;
   /** @internal */
   _send: (event: TEvent) => void;
   send: (event: TEvent) => void;

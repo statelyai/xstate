@@ -24,6 +24,8 @@ import type {
   TODO
 } from './types.ts';
 import { matchesState } from './utils.ts';
+import { createSystem } from './system.ts';
+import { createEmptyActor } from './actors/index.ts';
 
 type ToTestStateValue<TStateValue extends StateValue> =
   TStateValue extends string
@@ -316,13 +318,15 @@ const machineSnapshotCan = function can(
     );
   }
 
-  const transitionData = this.machine.getTransitionData(this, event);
+  const transitionData = this.machine.getTransitionData(this, event, {} as any);
 
   return (
     !!transitionData?.length &&
     // Check that at least one transition is not forbidden
     transitionData.some((t) => {
-      const res = getTransitionResult(t, this, event, {} as any);
+      const res = getTransitionResult(t, this, event, createEmptyActor(), {
+        system: createSystem(createEmptyActor(), {})
+      } as any);
       return (
         t.target !== undefined ||
         res.targets?.length ||
