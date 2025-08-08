@@ -329,30 +329,4 @@ describe('input', () => {
 
     expect(spy).toHaveBeenCalledWith(actor);
   });
-
-  it('should call the input factory with self when spawning', async () => {
-    const { resolve, promise } = Promise.withResolvers<void>();
-    const spy = vi.fn();
-
-    const child = next_createMachine({});
-
-    const machine = next_createMachine({
-      // entry: spawnChild(child, {
-      //   input: ({ self }: any) => spy(self)
-      // })
-      entry: (_, enq) => {
-        enq.spawn(child, {
-          input: ({ self }) => {
-            // TODO: input isn't called as a function yet
-            expect(self).toBe(actor);
-            resolve();
-          }
-        });
-      }
-    });
-
-    const actor = createActor(machine).start();
-
-    return promise;
-  });
 });

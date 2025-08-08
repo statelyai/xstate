@@ -348,6 +348,12 @@ describe('internal transitions', () => {
 
     const actor = createActor(machine).start();
 
+    expect(actor.getSnapshot().context).toEqual({
+      sourceStateEntries: 1,
+      directDescendantEntries: 1,
+      deepDescendantEntries: 1
+    });
+
     actor.send({ type: 'REENTER' });
 
     expect(actor.getSnapshot().context).toEqual({

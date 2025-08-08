@@ -329,16 +329,15 @@ describe('invocations (activities)', () => {
       };
     });
 
-    const machine = setup({
+    const machine = next_createMachine({
       actors: {
         fooActor
-      }
-    }).createMachine({
+      },
       initial: 'a',
       states: {
         a: {
           invoke: {
-            src: 'fooActor'
+            src: ({ actors }) => actors.fooActor
           },
           on: {
             NEXT: 'b'
@@ -346,7 +345,7 @@ describe('invocations (activities)', () => {
         },
         b: {
           invoke: {
-            src: 'fooActor'
+            src: ({ actors }) => actors.fooActor
           }
         }
       }
@@ -373,16 +372,15 @@ describe('invocations (activities)', () => {
       };
     });
 
-    const machine = setup({
+    const machine = next_createMachine({
       actors: {
         fooActor
-      }
-    }).createMachine({
+      },
       initial: 'a',
       states: {
         a: {
           invoke: {
-            src: 'fooActor'
+            src: ({ actors }) => actors.fooActor
           },
           on: {
             NEXT: {

@@ -1274,7 +1274,9 @@ function enterStates(
     const actions: UnknownAction[] = [];
 
     // Add entry actions
-    actions.push(...stateNodeToEnter.entry);
+    if (!stateNodeToEnter.entry2) {
+      actions.push(...stateNodeToEnter.entry);
+    }
 
     for (const invokeDef of stateNodeToEnter.invoke) {
       let logic = resolveReferencedActor(

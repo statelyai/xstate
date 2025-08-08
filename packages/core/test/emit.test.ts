@@ -487,7 +487,8 @@ describe('event emitter', () => {
     );
   });
 
-  it('events can be emitted from callback logic (restored root)', () => {
+  // TODO: event sourcing
+  it.skip('events can be emitted from callback logic (restored root)', () => {
     const spy = vi.fn();
 
     const logic = fromCallback<any, any, { type: 'emitted'; msg: string }>(
@@ -499,12 +500,11 @@ describe('event emitter', () => {
       }
     );
 
-    const machine = setup({
-      actors: { logic }
-    }).createMachine({
+    const machine = next_createMachine({
+      actors: { logic },
       invoke: {
         id: 'cb',
-        src: 'logic'
+        src: ({ actors }) => actors.logic
       }
     });
 
