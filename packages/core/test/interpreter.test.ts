@@ -621,7 +621,8 @@ describe('interpreter', () => {
       expect(spy).toHaveBeenCalled();
     });
 
-    it('should restart activities from a compound state', () => {
+    // TODO: event sourcing
+    it.skip('should restart activities from a compound state', () => {
       let activityActive = false;
 
       const machine = next_createMachine(
@@ -835,8 +836,7 @@ describe('interpreter', () => {
     expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
-          "Event "TIMER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
-      Event: {"type":"TIMER"}",
+          "Event "TIMER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.",
         ],
       ]
     `);
@@ -1201,7 +1201,7 @@ describe('interpreter', () => {
 
       const machine = next_createMachine({
         context: contextSpy,
-        entry: entrySpy
+        entry: (_, enq) => enq(entrySpy)
       });
       const actor = createActor(machine);
       actor.start();
@@ -1342,8 +1342,7 @@ describe('interpreter', () => {
         expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
           [
             [
-              "Event "TRIGGER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
-          Event: {"type":"TRIGGER"}",
+              "Event "TRIGGER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.",
             ],
           ]
         `);

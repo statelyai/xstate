@@ -1157,27 +1157,28 @@ export function microstep(
   const nextStateNodes = [...mutStateNodeSet];
 
   if (nextState.status === 'done') {
+    const exitActions = nextStateNodes
+      .sort((a, b) => b.order - a.order)
+      .flatMap((stateNode) => {
+        if (stateNode.exit2) {
+          const actions = getActionsFromAction2(stateNode.exit2, {
+            context: nextState.context,
+            event,
+            self: actorScope.self,
+            parent: actorScope.self._parent,
+            children: nextState.children,
+            actorScope,
+            machine: currentSnapshot.machine
+          });
+          return [...stateNode.exit, ...actions];
+        }
+        return stateNode.exit;
+      });
     nextState = resolveActionsAndContext(
       nextState,
       event,
       actorScope,
-      nextStateNodes
-        .sort((a, b) => b.order - a.order)
-        .flatMap((stateNode) => {
-          if (stateNode.exit2) {
-            const actions = getActionsFromAction2(stateNode.exit2, {
-              context: nextState.context,
-              event,
-              self: actorScope.self,
-              parent: actorScope.self._parent,
-              children: actorScope.self.getSnapshot().children,
-              actorScope,
-              machine: currentSnapshot.machine
-            });
-            return [...stateNode.exit, ...actions];
-          }
-          return stateNode.exit;
-        }),
+      exitActions,
       internalQueue,
       undefined
     );

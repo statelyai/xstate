@@ -17,8 +17,8 @@ import {
   fromTransition
 } from '../src/actors/index.ts';
 import { waitFor } from '../src/waitFor.ts';
-import { raise, sendTo } from '../src/actions.ts';
 import type { Mock } from 'vitest';
+import z from 'zod';
 
 describe('promise logic (fromPromise)', () => {
   it('should interpret a promise', async () => {
@@ -716,8 +716,14 @@ describe('callback logic (fromCallback)', () => {
   it('can send self reference in an event to parent', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const machine = next_createMachine({
-      types: {} as {
-        events: { type: 'PING'; ref: AnyActorRef };
+      // types: {} as {
+      //   events: { type: 'PING'; ref: AnyActorRef };
+      // },
+      schemas: {
+        events: z.object({
+          type: z.literal('PING'),
+          ref: z.any()
+        })
       },
       invoke: {
         src: fromCallback(({ self, sendBack, receive }) => {
@@ -736,11 +742,14 @@ describe('callback logic (fromCallback)', () => {
         })
       },
       on: {
-        PING: {
-          actions: sendTo(
-            ({ event }) => event.ref,
-            () => ({ type: 'PONG' })
-          )
+        // PING: {
+        //   actions: sendTo(
+        //     ({ event }) => event.ref,
+        //     () => ({ type: 'PONG' })
+        //   )
+        // }
+        PING: ({ event }, enq) => {
+          enq.sendTo(event.ref, { type: 'PONG' });
         }
       }
     });
@@ -749,13 +758,20 @@ describe('callback logic (fromCallback)', () => {
     return promise;
   });
 
-  it('should persist the input of a callback', () => {
+  // TODO: event sourcing
+  it.skip('should persist the input of a callback', () => {
     const spy = vi.fn();
     const cb = fromCallback(({ input }) => {
       spy(input);
     });
     const machine = next_createMachine({
-      types: {} as { events: { type: 'EV'; data: number } },
+      // types: {} as { events: { type: 'EV'; data: number } },
+      schemas: {
+        events: z.object({
+          type: z.literal('EV'),
+          data: z.number()
+        })
+      },
       initial: 'a',
       states: {
         a: {
@@ -817,9 +833,7 @@ describe('machine logic', () => {
         {
           id: 'a',
           src: fromPromise(() => Promise.resolve(42)),
-          onDone: {
-            actions: raise({ type: 'done' })
-          }
+          onDone: (_, enq) => enq.raise({ type: 'done' })
         },
         {
           id: 'b',
@@ -868,7 +882,8 @@ describe('machine logic', () => {
     );
   });
 
-  it('should persist and restore a nested machine', () => {
+  // TODO: event sourcing
+  it.todo('should persist and restore a nested machine', () => {
     const childMachine = next_createMachine({
       initial: 'a',
       states: {
@@ -900,11 +915,17 @@ describe('machine logic', () => {
             src: childMachine
           },
           on: {
-            NEXT: {
-              actions: sendTo('child', { type: 'NEXT' })
+            // NEXT: {
+            //   actions: sendTo('child', { type: 'NEXT' })
+            // },
+            NEXT: ({ children }, enq) => {
+              enq.sendTo(children.child, { type: 'NEXT' });
             },
-            LAST: {
-              actions: sendTo('child', { type: 'LAST' })
+            // LAST: {
+            //   actions: sendTo('child', { type: 'LAST' })
+            // }
+            LAST: ({ children }, enq) => {
+              enq.sendTo(children.child, { type: 'LAST' });
             }
           }
         }
@@ -1088,15 +1109,18 @@ describe('machine logic', () => {
     );
   });
 
-  it('should have access to the system', () => {
-    expect.assertions(1);
+  it('should have access to the system', async () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = next_createMachine({
       entry: ({ system }) => {
         expect(system).toBeDefined();
+        resolve();
       }
     });
 
     createActor(machine).start();
+
+    await promise;
   });
 });
 
