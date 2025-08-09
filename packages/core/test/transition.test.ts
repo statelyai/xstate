@@ -240,10 +240,8 @@ describe('transition function', () => {
 
     expect(actions0).toContainEqual(
       expect.objectContaining({
-        type: 'xstate.spawnChild',
-        params: expect.objectContaining({
-          id: 'someActor'
-        })
+        type: '@xstate.start',
+        args: [state.children.someActor]
       })
     );
 
@@ -500,7 +498,7 @@ describe('transition function', () => {
       state: undefined as any
     };
 
-    const machine = setup({
+    const machine = next_createMachine({
       actors: {
         sendWelcomeEmail: fromPromise(async () => {
           calls.push('sendWelcomeEmail');
@@ -508,13 +506,12 @@ describe('transition function', () => {
             status: 'sent'
           };
         })
-      }
-    }).createMachine({
+      },
       initial: 'sendingWelcomeEmail',
       states: {
         sendingWelcomeEmail: {
           invoke: {
-            src: 'sendWelcomeEmail',
+            src: ({ actors }) => actors.sendWelcomeEmail,
             input: () => ({ message: 'hello world', subject: 'hi' }),
             onDone: 'logSent'
           }
@@ -533,18 +530,13 @@ describe('transition function', () => {
 
     async function execute(action: ExecutableActionsFrom<typeof machine>) {
       switch (action.type) {
-        case 'xstate.spawnChild': {
-          const spawnAction = action as ExecutableSpawnAction;
-          const logic =
-            typeof spawnAction.params.src === 'string'
-              ? resolveReferencedActor(machine, spawnAction.params.src)
-              : spawnAction.params.src;
-          assert('transition' in logic);
-          const output = await toPromise(
-            createActor(logic, spawnAction.params).start()
-          );
-          postEvent(createDoneActorEvent(spawnAction.params.id, output));
+        case '@xstate.start': {
+          action.exec.apply(null, action.args);
+          const startedActor = action.args[0];
+          const output = await toPromise(startedActor);
+          postEvent(createDoneActorEvent(startedActor.id, output));
         }
+
         default:
           break;
       }

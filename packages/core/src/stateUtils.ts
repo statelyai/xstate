@@ -1296,14 +1296,14 @@ function enterStates(
               event
             })
           : invokeDef.input;
-      const actor = createActor(logic, {
+      const actorRef = createActor(logic, {
         ...invokeDef,
         input,
         parent: actorScope.self,
         syncSnapshot: !!invokeDef.onSnapshot
       });
       if (invokeDef.id) {
-        children[invokeDef.id] = actor;
+        children[invokeDef.id] = actorRef;
       }
 
       actions.push(
@@ -1311,7 +1311,10 @@ function enterStates(
         //   ...invokeDef,
         //   syncSnapshot: !!invokeDef.onSnapshot
         // })
-        () => actor.start()
+        {
+          action: builtInActions['@xstate.start'],
+          args: [actorRef]
+        }
       );
     }
 
@@ -1440,10 +1443,13 @@ export function getTransitionResult(
         spawn: (src, options) => {
           const actorRef = createActor(src, {
             ...options,
-
             parent: self
           });
-          actions.push(() => actorRef.start());
+
+          actions.push({
+            action: builtInActions['@xstate.start'],
+            args: [actorRef]
+          });
           return actorRef;
         },
         sendTo: (actorRef, event, options) => {
@@ -1500,6 +1506,12 @@ export function getTransitionResult(
   };
 }
 
+const builtInActions = {
+  ['@xstate.start']: (actorRef: AnyActorRef) => {
+    actorRef.start();
+  }
+};
+
 export function getTransitionActions(
   transition: Pick<
     AnyTransitionDefinition,
@@ -1533,7 +1545,11 @@ export function getTransitionActions(
             ...options,
             parent: actorScope.self
           });
-          actions.push(() => actorRef.start());
+
+          actions.push({
+            action: builtInActions['@xstate.start'],
+            args: [actorRef]
+          });
           return actorRef;
         },
         sendTo: (actorRef, event, options) => {
@@ -2416,7 +2432,15 @@ function getActionsFromAction2(
         },
         spawn: (logic, options) => {
           const actorRef = createActor(logic, { ...options, parent: self });
-          actions.push(() => actorRef.start());
+
+          // actions.push({
+          //   action: actorRef.start,
+          //   args: []
+          // });
+          actions.push({
+            action: builtInActions['@xstate.start'],
+            args: [actorRef]
+          });
           return actorRef;
         },
         sendTo: (actorRef, event, options) => {
