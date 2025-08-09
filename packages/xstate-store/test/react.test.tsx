@@ -5,7 +5,12 @@ import {
   createStoreConfig,
   createAtom
 } from '../src/index.ts';
-import { useSelector, useStore, useAtom } from '../src/react.ts';
+import {
+  useSelector,
+  useStore,
+  useAtom,
+  createStoreHook
+} from '../src/react.ts';
 import {
   useActor,
   useActorRef,
@@ -929,5 +934,453 @@ describe('useAtom', () => {
 
     render(<TestComponent />);
     expect(screen.getByTestId('value').textContent).toBe('true');
+  });
+});
+
+describe('createStoreHook', () => {
+  it('should create a hook that returns state and triggers', () => {
+    const useCountStore = createStoreHook({
+      context: { count: 0 },
+      on: {
+        inc: (ctx, event: { by: number }) => ({
+          ...ctx,
+          count: ctx.count + event.by
+        }),
+        reset: (ctx) => ({
+          ...ctx,
+          count: 0
+        })
+      }
+    });
+
+    const Counter = () => {
+      const [count, triggers] = useCountStore((s) => s.context.count);
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button
+            data-testid="increment"
+            onClick={() => triggers.inc({ by: 1 })}
+          >
+            +1
+          </button>
+          <button
+            data-testid="increment-5"
+            onClick={() => triggers.inc({ by: 5 })}
+          >
+            +5
+          </button>
+          <button data-testid="reset" onClick={() => triggers.reset()}>
+            Reset
+          </button>
+        </div>
+      );
+    };
+
+    render(<Counter />);
+
+    const countDisplay = screen.getByTestId('count');
+    const incrementBtn = screen.getByTestId('increment');
+    const increment5Btn = screen.getByTestId('increment-5');
+    const resetBtn = screen.getByTestId('reset');
+
+    // Initial state
+    expect(countDisplay.textContent).toBe('0');
+
+    // Increment by 1
+    fireEvent.click(incrementBtn);
+    expect(countDisplay.textContent).toBe('1');
+
+    // Increment by 5
+    fireEvent.click(increment5Btn);
+    expect(countDisplay.textContent).toBe('6');
+
+    // Reset
+    fireEvent.click(resetBtn);
+    expect(countDisplay.textContent).toBe('0');
+  });
+
+  it('should work without selector (return full snapshot)', () => {
+    const useFullStore = createStoreHook({
+      context: { count: 0, name: 'Test' },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }),
+        setName: (ctx, event: { name: string }) => ({
+          ...ctx,
+          name: event.name
+        })
+      }
+    });
+
+    const Component = () => {
+      const [snapshot, triggers] = useFullStore();
+
+      return (
+        <div>
+          <div data-testid="name">{snapshot.context.name}</div>
+          <div data-testid="count">{snapshot.context.count}</div>
+          <div data-testid="status">{snapshot.status}</div>
+          <button onClick={() => triggers.inc()}>Increment</button>
+          <input
+            data-testid="name-input"
+            value={snapshot.context.name}
+            onChange={(e) => triggers.setName({ name: e.target.value })}
+          />
+        </div>
+      );
+    };
+
+    render(<Component />);
+
+    // Check initial state
+    expect(screen.getByTestId('name').textContent).toBe('Test');
+    expect(screen.getByTestId('count').textContent).toBe('0');
+    expect(screen.getByTestId('status').textContent).toBe('active');
+
+    // Update count
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByTestId('count').textContent).toBe('1');
+
+    // Update name
+    const nameInput = screen.getByTestId('name-input') as HTMLInputElement;
+    fireEvent.change(nameInput, { target: { value: 'Updated' } });
+    expect(screen.getByTestId('name').textContent).toBe('Updated');
+  });
+
+  it('should work with custom comparison function', () => {
+    let renderCount = 0;
+
+    const useOptimizedStore = createStoreHook({
+      context: { count: 0, name: 'Test' },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }),
+        setName: (ctx, event: { name: string }) => ({
+          ...ctx,
+          name: event.name
+        })
+      }
+    });
+
+    const OptimizedComponent = () => {
+      renderCount++;
+      // Only re-render if count changes (custom comparison)
+      const [count, triggers] = useOptimizedStore(
+        (s) => s.context.count,
+        (a, b) => a === b
+      );
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button data-testid="inc-count" onClick={() => triggers.inc()}>
+            Inc Count
+          </button>
+          <button
+            data-testid="change-name"
+            onClick={() => triggers.setName({ name: 'Changed' })}
+          >
+            Change Name
+          </button>
+        </div>
+      );
+    };
+
+    render(<OptimizedComponent />);
+
+    expect(renderCount).toBe(1);
+    expect(screen.getByTestId('count').textContent).toBe('0');
+
+    // Changing name shouldn't trigger re-render since we only select count
+    fireEvent.click(screen.getByTestId('change-name'));
+    expect(renderCount).toBe(1); // No re-render
+
+    // Changing count should trigger re-render
+    fireEvent.click(screen.getByTestId('inc-count'));
+    expect(renderCount).toBe(2);
+    expect(screen.getByTestId('count').textContent).toBe('1');
+  });
+
+  it('should maintain stable store instances across renders', () => {
+    const storeInstances: any[] = [];
+
+    const useTestStore = createStoreHook({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 })
+      }
+    });
+
+    const Component = () => {
+      const [count, triggers] = useTestStore((s) => s.context.count);
+
+      // Capture the triggers object to check stability
+      storeInstances.push(triggers);
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button onClick={() => triggers.inc()}>Increment</button>
+        </div>
+      );
+    };
+
+    render(<Component />);
+
+    // Click to trigger re-render
+    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByRole('button'));
+
+    // All trigger objects should be the same reference (stable)
+    expect(storeInstances.length).toBeGreaterThan(1);
+    expect(
+      storeInstances.every((instance) => instance === storeInstances[0])
+    ).toBe(true);
+  });
+
+  it('should handle emitted events', () => {
+    const onEmit = vi.fn();
+
+    const useEmittingStore = createStoreHook({
+      context: { count: 0 },
+      emits: {
+        countChanged: (payload: { newCount: number }) => {
+          onEmit(payload);
+        }
+      },
+      on: {
+        inc: (ctx, _event: { type: 'inc' }, enq) => {
+          const newCount = ctx.count + 1;
+          enq.emit.countChanged({ newCount });
+          return { ...ctx, count: newCount };
+        }
+      }
+    });
+
+    const Component = () => {
+      const [count, triggers] = useEmittingStore((s) => s.context.count);
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button onClick={() => triggers.inc()}>Increment</button>
+        </div>
+      );
+    };
+
+    render(<Component />);
+
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(onEmit).toHaveBeenCalledWith({ type: 'countChanged', newCount: 1 });
+    expect(screen.getByTestId('count').textContent).toBe('1');
+  });
+
+  it('should work with multiple independent hook instances', () => {
+    const useCounterStore = createStoreHook({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 })
+      }
+    });
+
+    const Counter1 = () => {
+      const [count, triggers] = useCounterStore((s) => s.context.count);
+      return (
+        <div>
+          <div data-testid="count-1">{count}</div>
+          <button data-testid="inc-1" onClick={() => triggers.inc()}>
+            +
+          </button>
+        </div>
+      );
+    };
+
+    const Counter2 = () => {
+      const [count, triggers] = useCounterStore((s) => s.context.count);
+      return (
+        <div>
+          <div data-testid="count-2">{count}</div>
+          <button data-testid="inc-2" onClick={() => triggers.inc()}>
+            +
+          </button>
+        </div>
+      );
+    };
+
+    render(
+      <>
+        <Counter1 />
+        <Counter2 />
+      </>
+    );
+
+    // Both should start at 0
+    expect(screen.getByTestId('count-1').textContent).toBe('0');
+    expect(screen.getByTestId('count-2').textContent).toBe('0');
+
+    // Increment first counter only
+    fireEvent.click(screen.getByTestId('inc-1'));
+    expect(screen.getByTestId('count-1').textContent).toBe('1');
+    expect(screen.getByTestId('count-2').textContent).toBe('0'); // Should remain 0
+
+    // Increment second counter twice
+    fireEvent.click(screen.getByTestId('inc-2'));
+    fireEvent.click(screen.getByTestId('inc-2'));
+    expect(screen.getByTestId('count-1').textContent).toBe('1'); // Should remain 1
+    expect(screen.getByTestId('count-2').textContent).toBe('2');
+  });
+
+  it('should properly type the trigger object', () => {
+    const useTypedStore = createStoreHook({
+      context: { count: 0, name: 'test' },
+      on: {
+        increment: (ctx, event: { by: number }) => ({
+          ...ctx,
+          count: ctx.count + event.by
+        }),
+        decrement: (ctx, event: { by: number }) => ({
+          ...ctx,
+          count: ctx.count - event.by
+        }),
+        setName: (ctx, event: { name: string }) => ({
+          ...ctx,
+          name: event.name
+        }),
+        reset: (ctx) => ({
+          ...ctx,
+          count: 0
+        })
+      }
+    });
+
+    const TypedComponent = () => {
+      const [state, triggers] = useTypedStore();
+
+      // Test that triggers have correct types
+      return (
+        <div>
+          <div data-testid="count">{state.context.count}</div>
+          <div data-testid="name">{state.context.name}</div>
+          <button onClick={() => triggers.increment({ by: 5 })}>+5</button>
+          <button onClick={() => triggers.decrement({ by: 2 })}>-2</button>
+          <button onClick={() => triggers.setName({ name: 'updated' })}>
+            Set Name
+          </button>
+          <button onClick={() => triggers.reset()}>Reset</button>
+        </div>
+      );
+    };
+
+    render(<TypedComponent />);
+
+    expect(screen.getByTestId('count').textContent).toBe('0');
+    expect(screen.getByTestId('name').textContent).toBe('test');
+
+    // Test all trigger methods work correctly
+    fireEvent.click(screen.getByText('+5'));
+    expect(screen.getByTestId('count').textContent).toBe('5');
+
+    fireEvent.click(screen.getByText('-2'));
+    expect(screen.getByTestId('count').textContent).toBe('3');
+
+    fireEvent.click(screen.getByText('Set Name'));
+    expect(screen.getByTestId('name').textContent).toBe('updated');
+
+    fireEvent.click(screen.getByText('Reset'));
+    expect(screen.getByTestId('count').textContent).toBe('0');
+  });
+
+  it('should work with complex state selections', () => {
+    const useComplexStore = createStoreHook({
+      context: {
+        user: { name: 'John', age: 30 },
+        settings: { theme: 'dark', notifications: true },
+        items: [1, 2, 3]
+      },
+      on: {
+        updateUser: (ctx, event: { name?: string; age?: number }) => ({
+          ...ctx,
+          user: { ...ctx.user, ...event }
+        }),
+        addItem: (ctx, event: { item: number }) => ({
+          ...ctx,
+          items: [...ctx.items, event.item]
+        }),
+        toggleTheme: (ctx) => ({
+          ...ctx,
+          settings: {
+            ...ctx.settings,
+            theme: ctx.settings.theme === 'dark' ? 'light' : 'dark'
+          }
+        })
+      }
+    });
+
+    const UserComponent = () => {
+      const [userName, triggers] = useComplexStore((s) => s.context.user.name);
+
+      return (
+        <div>
+          <div data-testid="user-name">{userName}</div>
+          <button onClick={() => triggers.updateUser({ name: 'Jane' })}>
+            Update Name
+          </button>
+        </div>
+      );
+    };
+
+    const ThemeComponent = () => {
+      const [theme, triggers] = useComplexStore(
+        (s) => s.context.settings.theme
+      );
+
+      return (
+        <div>
+          <div data-testid="theme">{theme}</div>
+          <button onClick={() => triggers.toggleTheme()}>Toggle Theme</button>
+        </div>
+      );
+    };
+
+    const ItemsComponent = () => {
+      const [itemCount, triggers] = useComplexStore(
+        (s) => s.context.items.length
+      );
+
+      return (
+        <div>
+          <div data-testid="item-count">{itemCount}</div>
+          <button onClick={() => triggers.addItem({ item: Math.random() })}>
+            Add Item
+          </button>
+        </div>
+      );
+    };
+
+    render(
+      <>
+        <UserComponent />
+        <ThemeComponent />
+        <ItemsComponent />
+      </>
+    );
+
+    // Initial state
+    expect(screen.getByTestId('user-name').textContent).toBe('John');
+    expect(screen.getByTestId('theme').textContent).toBe('dark');
+    expect(screen.getByTestId('item-count').textContent).toBe('3');
+
+    // Update user name
+    fireEvent.click(screen.getByText('Update Name'));
+    expect(screen.getByTestId('user-name').textContent).toBe('Jane');
+
+    // Toggle theme
+    fireEvent.click(screen.getByText('Toggle Theme'));
+    expect(screen.getByTestId('theme').textContent).toBe('light');
+
+    // Add item
+    fireEvent.click(screen.getByText('Add Item'));
+    expect(screen.getByTestId('item-count').textContent).toBe('4');
   });
 });

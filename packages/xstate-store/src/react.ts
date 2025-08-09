@@ -8,7 +8,8 @@ import {
   ExtractEvents,
   Readable,
   AnyAtom,
-  BaseAtom
+  BaseAtom,
+  StoreSnapshot
 } from './types';
 import { createStore } from './store';
 
@@ -142,4 +143,79 @@ export function useAtom(
   const state = useSelector(atom, selector, compare);
 
   return state;
+}
+
+/**
+ * Creates a custom React hook that manages an XState store
+ *
+ * @example
+ *
+ * ```ts
+ * const useCountStore = createStoreHook({
+ *   context: { count: 0 },
+ *   on: {
+ *     inc: (context, event: { by: number }) => ({
+ *       ...context,
+ *       count: context.count + event.by
+ *     })
+ *   }
+ * });
+ *
+ * function Component() {
+ *   const [count, triggers] = useCountStore(s => s.context.count);
+ *
+ *   return (
+ *     <div>
+ *       {count}
+ *       <button onClick={() => triggers.inc({ by: 1 })}>+</button>
+ *     </div>
+ *   );
+ * }
+ * ```
+ *
+ * @param definition The store configuration object
+ * @returns A custom hook that returns [selectedValue, triggers]
+ */
+export function createStoreHook<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventPayloadMap
+>(definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>) {
+  type TStore = Store<
+    TContext,
+    ExtractEvents<TEventPayloadMap>,
+    ExtractEvents<TEmitted>
+  >;
+  type TSnapshot = StoreSnapshot<TContext>;
+  type TTriggers = TStore['trigger'];
+
+  function useStoreHook(): [TSnapshot, TTriggers];
+  function useStoreHook<T>(
+    selector: (snapshot: TSnapshot) => T,
+    compare?: (a: T | undefined, b: T) => boolean
+  ): [T, TTriggers];
+  function useStoreHook<T>(
+    selector?: (snapshot: TSnapshot) => T,
+    compare: (a: T | undefined, b: T) => boolean = defaultCompare
+  ) {
+    const storeRef = useRef<TStore | undefined>(undefined);
+
+    if (!storeRef.current) {
+      storeRef.current = createStore(definition);
+    }
+
+    const store = storeRef.current;
+
+    // If no selector provided, return full snapshot
+    if (!selector) {
+      const snapshot = useSelector(store, identity, defaultCompare);
+      return [snapshot, store.trigger] as const;
+    }
+
+    // Use selector with comparison
+    const selectedValue = useSelector(store, selector, compare);
+    return [selectedValue, store.trigger] as const;
+  }
+
+  return useStoreHook;
 }
