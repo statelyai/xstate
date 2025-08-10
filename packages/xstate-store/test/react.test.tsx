@@ -954,24 +954,24 @@ describe('createStoreHook', () => {
     });
 
     const Counter = () => {
-      const [count, triggers] = useCountStore((s) => s.context.count);
+      const [count, store] = useCountStore((s) => s.context.count);
 
       return (
         <div>
           <div data-testid="count">{count}</div>
           <button
             data-testid="increment"
-            onClick={() => triggers.inc({ by: 1 })}
+            onClick={() => store.trigger.inc({ by: 1 })}
           >
             +1
           </button>
           <button
             data-testid="increment-5"
-            onClick={() => triggers.inc({ by: 5 })}
+            onClick={() => store.trigger.inc({ by: 5 })}
           >
             +5
           </button>
-          <button data-testid="reset" onClick={() => triggers.reset()}>
+          <button data-testid="reset" onClick={() => store.trigger.reset()}>
             Reset
           </button>
         </div>
@@ -1014,18 +1014,18 @@ describe('createStoreHook', () => {
     });
 
     const Component = () => {
-      const [snapshot, triggers] = useFullStore();
+      const [snapshot, store] = useFullStore();
 
       return (
         <div>
           <div data-testid="name">{snapshot.context.name}</div>
           <div data-testid="count">{snapshot.context.count}</div>
           <div data-testid="status">{snapshot.status}</div>
-          <button onClick={() => triggers.inc()}>Increment</button>
+          <button onClick={() => store.trigger.inc()}>Increment</button>
           <input
             data-testid="name-input"
             value={snapshot.context.name}
-            onChange={(e) => triggers.setName({ name: e.target.value })}
+            onChange={(e) => store.trigger.setName({ name: e.target.value })}
           />
         </div>
       );
@@ -1065,7 +1065,7 @@ describe('createStoreHook', () => {
     const OptimizedComponent = () => {
       renderCount++;
       // Only re-render if count changes (custom comparison)
-      const [count, triggers] = useOptimizedStore(
+      const [count, store] = useOptimizedStore(
         (s) => s.context.count,
         (a, b) => a === b
       );
@@ -1073,12 +1073,12 @@ describe('createStoreHook', () => {
       return (
         <div>
           <div data-testid="count">{count}</div>
-          <button data-testid="inc-count" onClick={() => triggers.inc()}>
+          <button data-testid="inc-count" onClick={() => store.trigger.inc()}>
             Inc Count
           </button>
           <button
             data-testid="change-name"
-            onClick={() => triggers.setName({ name: 'Changed' })}
+            onClick={() => store.trigger.setName({ name: 'Changed' })}
           >
             Change Name
           </button>
@@ -1112,15 +1112,15 @@ describe('createStoreHook', () => {
     });
 
     const Component = () => {
-      const [count, triggers] = useTestStore((s) => s.context.count);
+      const [count, store] = useTestStore((s) => s.context.count);
 
-      // Capture the triggers object to check stability
-      storeInstances.push(triggers);
+      // Capture the store object to check stability
+      storeInstances.push(store);
 
       return (
         <div>
           <div data-testid="count">{count}</div>
-          <button onClick={() => triggers.inc()}>Increment</button>
+          <button onClick={() => store.trigger.inc()}>Increment</button>
         </div>
       );
     };
@@ -1158,12 +1158,12 @@ describe('createStoreHook', () => {
     });
 
     const Component = () => {
-      const [count, triggers] = useEmittingStore((s) => s.context.count);
+      const [count, store] = useEmittingStore((s) => s.context.count);
 
       return (
         <div>
           <div data-testid="count">{count}</div>
-          <button onClick={() => triggers.inc()}>Increment</button>
+          <button onClick={() => store.trigger.inc()}>Increment</button>
         </div>
       );
     };
@@ -1185,11 +1185,11 @@ describe('createStoreHook', () => {
     });
 
     const Counter1 = () => {
-      const [count, triggers] = useCounterStore((s) => s.context.count);
+      const [count, store] = useCounterStore((s) => s.context.count);
       return (
         <div>
           <div data-testid="count-1">{count}</div>
-          <button data-testid="inc-1" onClick={() => triggers.inc()}>
+          <button data-testid="inc-1" onClick={() => store.trigger.inc()}>
             +
           </button>
         </div>
@@ -1197,11 +1197,11 @@ describe('createStoreHook', () => {
     };
 
     const Counter2 = () => {
-      const [count, triggers] = useCounterStore((s) => s.context.count);
+      const [count, store] = useCounterStore((s) => s.context.count);
       return (
         <div>
           <div data-testid="count-2">{count}</div>
-          <button data-testid="inc-2" onClick={() => triggers.inc()}>
+          <button data-testid="inc-2" onClick={() => store.trigger.inc()}>
             +
           </button>
         </div>
@@ -1255,19 +1255,19 @@ describe('createStoreHook', () => {
     });
 
     const TypedComponent = () => {
-      const [state, triggers] = useTypedStore();
+      const [state, store] = useTypedStore();
 
       // Test that triggers have correct types
       return (
         <div>
           <div data-testid="count">{state.context.count}</div>
           <div data-testid="name">{state.context.name}</div>
-          <button onClick={() => triggers.increment({ by: 5 })}>+5</button>
-          <button onClick={() => triggers.decrement({ by: 2 })}>-2</button>
-          <button onClick={() => triggers.setName({ name: 'updated' })}>
+          <button onClick={() => store.trigger.increment({ by: 5 })}>+5</button>
+          <button onClick={() => store.trigger.decrement({ by: 2 })}>-2</button>
+          <button onClick={() => store.trigger.setName({ name: 'updated' })}>
             Set Name
           </button>
-          <button onClick={() => triggers.reset()}>Reset</button>
+          <button onClick={() => store.trigger.reset()}>Reset</button>
         </div>
       );
     };
@@ -1277,7 +1277,6 @@ describe('createStoreHook', () => {
     expect(screen.getByTestId('count').textContent).toBe('0');
     expect(screen.getByTestId('name').textContent).toBe('test');
 
-    // Test all trigger methods work correctly
     fireEvent.click(screen.getByText('+5'));
     expect(screen.getByTestId('count').textContent).toBe('5');
 
@@ -1318,12 +1317,12 @@ describe('createStoreHook', () => {
     });
 
     const UserComponent = () => {
-      const [userName, triggers] = useComplexStore((s) => s.context.user.name);
+      const [userName, store] = useComplexStore((s) => s.context.user.name);
 
       return (
         <div>
           <div data-testid="user-name">{userName}</div>
-          <button onClick={() => triggers.updateUser({ name: 'Jane' })}>
+          <button onClick={() => store.trigger.updateUser({ name: 'Jane' })}>
             Update Name
           </button>
         </div>
@@ -1331,27 +1330,27 @@ describe('createStoreHook', () => {
     };
 
     const ThemeComponent = () => {
-      const [theme, triggers] = useComplexStore(
-        (s) => s.context.settings.theme
-      );
+      const [theme, store] = useComplexStore((s) => s.context.settings.theme);
 
       return (
         <div>
           <div data-testid="theme">{theme}</div>
-          <button onClick={() => triggers.toggleTheme()}>Toggle Theme</button>
+          <button onClick={() => store.trigger.toggleTheme()}>
+            Toggle Theme
+          </button>
         </div>
       );
     };
 
     const ItemsComponent = () => {
-      const [itemCount, triggers] = useComplexStore(
-        (s) => s.context.items.length
-      );
+      const [itemCount, store] = useComplexStore((s) => s.context.items.length);
 
       return (
         <div>
           <div data-testid="item-count">{itemCount}</div>
-          <button onClick={() => triggers.addItem({ item: Math.random() })}>
+          <button
+            onClick={() => store.trigger.addItem({ item: Math.random() })}
+          >
             Add Item
           </button>
         </div>
