@@ -9,8 +9,7 @@ import {
   Readable,
   AnyAtom,
   BaseAtom,
-  StoreSnapshot,
-  SnapshotFromStore
+  StoreSnapshot
 } from './types';
 import { createStore } from './store';
 

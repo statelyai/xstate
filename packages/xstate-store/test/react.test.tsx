@@ -3,7 +3,8 @@ import {
   createStore,
   fromStore,
   createStoreConfig,
-  createAtom
+  createAtom,
+  AnyStore
 } from '../src/index.ts';
 import {
   useSelector,
@@ -1073,15 +1074,11 @@ describe('createStoreHook', () => {
       return (
         <div>
           <div data-testid="count">{count}</div>
-          <button data-testid="inc-count" onClick={() => store.trigger.inc()}>
-            Inc Count
-          </button>
+          <button data-testid="inc-count" onClick={() => store.trigger.inc()} />
           <button
             data-testid="change-name"
             onClick={() => store.trigger.setName({ name: 'Changed' })}
-          >
-            Change Name
-          </button>
+          />
         </div>
       );
     };
@@ -1102,7 +1099,7 @@ describe('createStoreHook', () => {
   });
 
   it('should maintain stable store instances across renders', () => {
-    const storeInstances: any[] = [];
+    const storeInstances: Set<AnyStore> = new Set();
 
     const useTestStore = createStoreHook({
       context: { count: 0 },
@@ -1115,7 +1112,7 @@ describe('createStoreHook', () => {
       const [count, store] = useTestStore((s) => s.context.count);
 
       // Capture the store object to check stability
-      storeInstances.push(store);
+      storeInstances.add(store);
 
       return (
         <div>
@@ -1132,10 +1129,7 @@ describe('createStoreHook', () => {
     fireEvent.click(screen.getByRole('button'));
 
     // All trigger objects should be the same reference (stable)
-    expect(storeInstances.length).toBeGreaterThan(1);
-    expect(
-      storeInstances.every((instance) => instance === storeInstances[0])
-    ).toBe(true);
+    expect(storeInstances.size).toBe(1);
   });
 
   it('should handle emitted events', () => {
@@ -1163,7 +1157,7 @@ describe('createStoreHook', () => {
       return (
         <div>
           <div data-testid="count">{count}</div>
-          <button onClick={() => store.trigger.inc()}>Increment</button>
+          <button onClick={() => store.trigger.inc()} />
         </div>
       );
     };
@@ -1189,9 +1183,7 @@ describe('createStoreHook', () => {
       return (
         <div>
           <div data-testid="count-1">{count}</div>
-          <button data-testid="inc-1" onClick={() => store.trigger.inc()}>
-            +
-          </button>
+          <button data-testid="inc-1" onClick={() => store.trigger.inc()} />
         </div>
       );
     };
@@ -1201,9 +1193,7 @@ describe('createStoreHook', () => {
       return (
         <div>
           <div data-testid="count-2">{count}</div>
-          <button data-testid="inc-2" onClick={() => store.trigger.inc()}>
-            +
-          </button>
+          <button data-testid="inc-2" onClick={() => store.trigger.inc()} />
         </div>
       );
     };
@@ -1262,12 +1252,19 @@ describe('createStoreHook', () => {
         <div>
           <div data-testid="count">{state.context.count}</div>
           <div data-testid="name">{state.context.name}</div>
-          <button onClick={() => store.trigger.increment({ by: 5 })}>+5</button>
-          <button onClick={() => store.trigger.decrement({ by: 2 })}>-2</button>
-          <button onClick={() => store.trigger.setName({ name: 'updated' })}>
-            Set Name
-          </button>
-          <button onClick={() => store.trigger.reset()}>Reset</button>
+          <button
+            data-testid="increment"
+            onClick={() => store.trigger.increment({ by: 5 })}
+          />
+          <button
+            data-testid="decrement"
+            onClick={() => store.trigger.decrement({ by: 2 })}
+          />
+          <button
+            data-testid="set-name"
+            onClick={() => store.trigger.setName({ name: 'updated' })}
+          />
+          <button data-testid="reset" onClick={() => store.trigger.reset()} />
         </div>
       );
     };
@@ -1277,16 +1274,16 @@ describe('createStoreHook', () => {
     expect(screen.getByTestId('count').textContent).toBe('0');
     expect(screen.getByTestId('name').textContent).toBe('test');
 
-    fireEvent.click(screen.getByText('+5'));
+    fireEvent.click(screen.getByTestId('increment'));
     expect(screen.getByTestId('count').textContent).toBe('5');
 
-    fireEvent.click(screen.getByText('-2'));
+    fireEvent.click(screen.getByTestId('decrement'));
     expect(screen.getByTestId('count').textContent).toBe('3');
 
-    fireEvent.click(screen.getByText('Set Name'));
+    fireEvent.click(screen.getByTestId('set-name'));
     expect(screen.getByTestId('name').textContent).toBe('updated');
 
-    fireEvent.click(screen.getByText('Reset'));
+    fireEvent.click(screen.getByTestId('reset'));
     expect(screen.getByTestId('count').textContent).toBe('0');
   });
 
@@ -1322,9 +1319,10 @@ describe('createStoreHook', () => {
       return (
         <div>
           <div data-testid="user-name">{userName}</div>
-          <button onClick={() => store.trigger.updateUser({ name: 'Jane' })}>
-            Update Name
-          </button>
+          <button
+            data-testid="update-name"
+            onClick={() => store.trigger.updateUser({ name: 'Jane' })}
+          />
         </div>
       );
     };
@@ -1335,9 +1333,10 @@ describe('createStoreHook', () => {
       return (
         <div>
           <div data-testid="theme">{theme}</div>
-          <button onClick={() => store.trigger.toggleTheme()}>
-            Toggle Theme
-          </button>
+          <button
+            data-testid="toggle-theme"
+            onClick={() => store.trigger.toggleTheme()}
+          />
         </div>
       );
     };
@@ -1349,10 +1348,9 @@ describe('createStoreHook', () => {
         <div>
           <div data-testid="item-count">{itemCount}</div>
           <button
+            data-testid="add-item"
             onClick={() => store.trigger.addItem({ item: Math.random() })}
-          >
-            Add Item
-          </button>
+          />
         </div>
       );
     };
@@ -1371,15 +1369,15 @@ describe('createStoreHook', () => {
     expect(screen.getByTestId('item-count').textContent).toBe('3');
 
     // Update user name
-    fireEvent.click(screen.getByText('Update Name'));
+    fireEvent.click(screen.getByTestId('update-name'));
     expect(screen.getByTestId('user-name').textContent).toBe('Jane');
 
     // Toggle theme
-    fireEvent.click(screen.getByText('Toggle Theme'));
+    fireEvent.click(screen.getByTestId('toggle-theme'));
     expect(screen.getByTestId('theme').textContent).toBe('light');
 
     // Add item
-    fireEvent.click(screen.getByText('Add Item'));
+    fireEvent.click(screen.getByTestId('add-item'));
     expect(screen.getByTestId('item-count').textContent).toBe('4');
   });
 });
