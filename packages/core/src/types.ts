@@ -603,7 +603,8 @@ export type TransitionConfigFunction<
   TEmitted extends EventObject,
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
-  TGuardMap extends Implementations['guards']
+  TGuardMap extends Implementations['guards'],
+  TMeta extends MetaObject
 > = (
   {
     context,
@@ -632,9 +633,11 @@ export type TransitionConfigFunction<
   target?: string;
   context?: TContext;
   reenter?: boolean;
+  meta?: TMeta;
 } | void;
 
 export type AnyTransitionConfigFunction = TransitionConfigFunction<
+  any,
   any,
   any,
   any,

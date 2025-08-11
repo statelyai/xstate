@@ -1,6 +1,5 @@
 import { fromCallback } from '../src/actors/index.ts';
 import { createActor, next_createMachine } from '../src/index.ts';
-import { setup } from '../src/setup.ts';
 
 // TODO: remove this file but before doing that ensure that things tested here are covered by other tests
 

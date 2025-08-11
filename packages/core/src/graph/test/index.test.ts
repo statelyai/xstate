@@ -1,5 +1,5 @@
 import z from 'zod';
-import { AnyStateMachine, next_createMachine, setup } from '../../index.ts';
+import { next_createMachine } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 import { testUtils } from './testUtils.ts';
 

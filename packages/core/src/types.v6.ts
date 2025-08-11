@@ -131,7 +131,8 @@ export interface Next_StateNodeConfig<
         TEmitted,
         TActionMap,
         TActorMap,
-        TGuardMap
+        TGuardMap,
+        TMeta
       >
     | string
     | undefined;
@@ -184,7 +185,8 @@ export interface Next_StateNodeConfig<
       TEmitted,
       TActionMap,
       TActorMap,
-      TGuardMap
+      TGuardMap,
+      TMeta
     >;
     onError?: Next_TransitionConfigOrTarget<
       TContext,
@@ -193,7 +195,8 @@ export interface Next_StateNodeConfig<
       TEmitted,
       TActionMap,
       TActorMap,
-      TGuardMap
+      TGuardMap,
+      TMeta
     >;
     onSnapshot?: Next_TransitionConfigOrTarget<
       TContext,
@@ -202,7 +205,8 @@ export interface Next_StateNodeConfig<
       TEmitted,
       TActionMap,
       TActorMap,
-      TGuardMap
+      TGuardMap,
+      TMeta
     >;
   }>;
   /** The mapping of event types to their potential transition(s). */
@@ -214,7 +218,8 @@ export interface Next_StateNodeConfig<
       TEmitted,
       TActionMap,
       TActorMap,
-      TGuardMap
+      TGuardMap,
+      TMeta
     >;
   };
   entry?: Action2<TContext, TEvent, TEmitted, TActionMap, TActorMap>;
@@ -235,7 +240,8 @@ export interface Next_StateNodeConfig<
         TEmitted,
         TActionMap,
         TActorMap,
-        TGuardMap
+        TGuardMap,
+        TMeta
       >
     | undefined;
   /**
@@ -254,7 +260,8 @@ export interface Next_StateNodeConfig<
           TODO, // TEmitted
           TActionMap,
           TActorMap,
-          TGuardMap
+          TGuardMap,
+          TMeta
         >;
   };
 
@@ -269,7 +276,8 @@ export interface Next_StateNodeConfig<
     TEmitted,
     TActionMap,
     TActorMap,
-    TGuardMap
+    TGuardMap,
+    TMeta
   >;
   /**
    * The meta data associated with this state node, which will be returned in
@@ -313,7 +321,8 @@ export type Next_InitialTransitionConfig<
   TEmitted extends EventObject,
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
-  TGuardMap extends Implementations['guards']
+  TGuardMap extends Implementations['guards'],
+  TMeta extends MetaObject
 > = TransitionConfigFunction<
   TContext,
   TEvent,
@@ -321,7 +330,8 @@ export type Next_InitialTransitionConfig<
   TEmitted,
   TActionMap,
   TActorMap,
-  TGuardMap
+  TGuardMap,
+  TMeta
 >;
 
 export type Next_TransitionConfigOrTarget<
@@ -331,7 +341,8 @@ export type Next_TransitionConfigOrTarget<
   TEmitted extends EventObject,
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
-  TGuardMap extends Implementations['guards']
+  TGuardMap extends Implementations['guards'],
+  TMeta extends MetaObject
 > =
   | string
   | undefined
@@ -343,7 +354,8 @@ export type Next_TransitionConfigOrTarget<
       TEmitted,
       TActionMap,
       TActorMap,
-      TGuardMap
+      TGuardMap,
+      TMeta
     >;
 
 export interface Next_MachineTypes<

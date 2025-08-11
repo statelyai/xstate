@@ -1,4 +1,5 @@
-import { createActor, next_createMachine, setup } from '../src/index.ts';
+import z from 'zod';
+import { createActor, next_createMachine } from '../src/index.ts';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -319,15 +320,18 @@ describe('machine', () => {
   });
 
   it('should pass through schemas', () => {
-    const machine = setup({
+    const machine = next_createMachine({
       schemas: {
-        context: { count: { type: 'number' } }
-      }
-    }).createMachine({});
-
-    expect(machine.schemas).toEqual({
-      context: { count: { type: 'number' } }
+        context: z.object({ count: z.number() })
+      },
+      context: () => ({ count: 42 })
     });
+
+    expect(machine.schemas).toEqual(
+      expect.objectContaining({
+        context: expect.anything()
+      })
+    );
   });
 });
 

@@ -7,8 +7,7 @@ import {
   fromEventObservable,
   fromObservable,
   fromPromise,
-  fromTransition,
-  setup
+  fromTransition
 } from '../src';
 
 describe('event emitter', () => {

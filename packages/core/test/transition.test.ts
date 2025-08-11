@@ -1,20 +1,15 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
-  createActor,
   next_createMachine,
   EventFrom,
   ExecutableActionsFrom,
-  ExecutableSpawnAction,
   fromPromise,
   fromTransition,
-  setup,
   toPromise,
   transition
 } from '../src';
 import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
-import assert from 'node:assert';
-import { resolveReferencedActor } from '../src/utils';
 import { z } from 'zod';
 
 describe('transition function', () => {
@@ -94,12 +89,11 @@ describe('transition function', () => {
   it('should not execute a referenced serialized action', () => {
     const foo = vi.fn();
 
-    const machine = setup({
+    const machine = next_createMachine({
       actions: {
         foo
-      }
-    }).createMachine({
-      entry: 'foo',
+      },
+      entry: ({ actions }, enq) => enq(actions.foo),
       context: { count: 0 }
     });
 

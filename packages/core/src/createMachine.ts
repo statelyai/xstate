@@ -188,27 +188,28 @@ export function next_createMachine<
   TDelays extends string,
   TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
   TInput,
+  const TSS
   // it's important to have at least one default type parameter here
   // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
   // we should be able to remove this when we start inferring TConfig, with it we'll always have an inference candidate
-  _ = any
 >(
-  config: Next_MachineConfig<
-    TContextSchema,
-    TEventSchema,
-    TEmittedSchema,
-    TInputSchema,
-    TOutputSchema,
-    TMetaSchema,
-    TTagSchema,
-    InferOutput<TContextSchema, MachineContext>,
-    TEvent,
-    TDelays,
-    TTag,
-    TActionMap,
-    TActorMap,
-    TGuardMap
-  >
+  config: TSS &
+    Next_MachineConfig<
+      TContextSchema,
+      TEventSchema,
+      TEmittedSchema,
+      TInputSchema,
+      TOutputSchema,
+      TMetaSchema,
+      TTagSchema,
+      InferOutput<TContextSchema, MachineContext>,
+      TEvent,
+      TDelays,
+      TTag,
+      TActionMap,
+      TActorMap,
+      TGuardMap
+    >
 ): StateMachine<
   InferOutput<TContextSchema, MachineContext>,
   TEvent,
@@ -223,14 +224,12 @@ export function next_createMachine<
   InferOutput<TOutputSchema, unknown>,
   WithDefault<InferOutput<TEmittedSchema, EventObject>, AnyEventObject>,
   InferOutput<TMetaSchema, MetaObject>, // TMeta
-  TODO, // TStateSchema
+  TSS, // TStateSchema
   TActionMap,
   TActorMap,
   TGuardMap
 > & {
-  emits: InferOutput<TEmittedSchema, EventObject>;
-  actors: TActorMap;
-  tags: TTag;
+  states: TSS;
 } {
   config._special = true;
   return new StateMachine<
