@@ -290,6 +290,14 @@ export function getDelayedTransitions(
         delay
       })
     );
+    const oldEntry = stateNode.entry2;
+    stateNode.entry2 = (x, enq) => {
+      enq.raise(afterEvent, {
+        id: eventType,
+        delay
+      });
+      oldEntry?.(x, enq);
+    };
     stateNode.exit.push(cancel(eventType));
     return eventType;
   };

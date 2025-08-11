@@ -102,10 +102,10 @@ export class StateNode<
   public history: false | 'shallow' | 'deep';
   /** The action(s) to be executed upon entering the state node. */
   public entry: UnknownAction[];
-  public entry2: Action2<any, any, any> | undefined;
+  public entry2: Action2<any, any, any, any, any> | undefined;
   /** The action(s) to be executed upon exiting the state node. */
   public exit: UnknownAction[];
-  public exit2: Action2<any, any, any> | undefined;
+  public exit2: Action2<any, any, any, any, any> | undefined;
   /** The parent state node. */
   public parent?: StateNode<TContext, TEvent>;
   /** The root machine node. */
