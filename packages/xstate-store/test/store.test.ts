@@ -447,6 +447,39 @@ it('effects can be enqueued', async () => {
   expect(store.getSnapshot().context.count).toEqual(0);
 });
 
+it('async effects can be enqueued', async () => {
+  const store = createStore({
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.effect(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+          store.send({ type: 'dec' });
+        });
+
+        return {
+          ...ctx,
+          count: ctx.count + 1
+        };
+      },
+      dec: (ctx) => ({
+        ...ctx,
+        count: ctx.count - 1
+      })
+    }
+  });
+
+  store.send({ type: 'inc' });
+
+  expect(store.getSnapshot().context.count).toEqual(1);
+
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  expect(store.getSnapshot().context.count).toEqual(0);
+});
+
 describe('store.trigger', () => {
   it('should allow triggering events with a fluent API', () => {
     const store = createStore({
