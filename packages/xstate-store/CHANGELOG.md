@@ -1,5 +1,30 @@
 # @xstate/store
 
+## 3.9.0
+
+### Minor Changes
+
+- [#5354](https://github.com/statelyai/xstate/pull/5354) [`515cc31`](https://github.com/statelyai/xstate/commit/515cc31063f04a7cd238006a485ae9368a8c1278) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `createStoreHook(…)` function for React. Creates a store hook that returns `[selectedValue, store]` instead of managing store instances manually.
+
+  ```tsx
+  const useCountStore = createStoreHook({
+    context: { count: 0 },
+    on: {
+      inc: (ctx, event: { by: number }) => ({
+        ...ctx,
+        count: ctx.count + event.by
+      })
+    }
+  });
+
+  // Usage
+  const [count, store] = useCountStore((s) => s.context.count);
+  store.trigger.inc({ by: 3 });
+
+  // Usage (no selector)
+  const [snapshot, store] = useCountStore();
+  ```
+
 ## 3.8.5
 
 ### Patch Changes
