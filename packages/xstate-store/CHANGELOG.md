@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.9.1
+
+### Patch Changes
+
+- [#5359](https://github.com/statelyai/xstate/pull/5359) [`3f4bffc`](https://github.com/statelyai/xstate/commit/3f4bffc3dc9e4797207617f8166d5b8aac8d64ea) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `createStoreHook` to create a single shared store instance across all components. Previously, the implementation was creating independent store instances, but now multiple components using the same hook will share state as expected.
+
 ## 3.9.0
 
 ### Minor Changes
