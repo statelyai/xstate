@@ -1170,7 +1170,7 @@ describe('createStoreHook', () => {
     expect(screen.getByTestId('count').textContent).toBe('1');
   });
 
-  it('should work with multiple independent hook instances', () => {
+  it('should work with shared store instance across multiple hook calls', () => {
     const useCounterStore = createStoreHook({
       context: { count: 0 },
       on: {
@@ -1205,19 +1205,18 @@ describe('createStoreHook', () => {
       </>
     );
 
-    // Both should start at 0
+    // Both should start at 0 (shared state)
     expect(screen.getByTestId('count-1').textContent).toBe('0');
     expect(screen.getByTestId('count-2').textContent).toBe('0');
 
-    // Increment first counter only
+    // Increment first counter - both should update since they share the same store
     fireEvent.click(screen.getByTestId('inc-1'));
     expect(screen.getByTestId('count-1').textContent).toBe('1');
-    expect(screen.getByTestId('count-2').textContent).toBe('0'); // Should remain 0
+    expect(screen.getByTestId('count-2').textContent).toBe('1'); // Should also be 1
 
-    // Increment second counter twice
+    // Increment second counter - both should update since they share the same store
     fireEvent.click(screen.getByTestId('inc-2'));
-    fireEvent.click(screen.getByTestId('inc-2'));
-    expect(screen.getByTestId('count-1').textContent).toBe('1'); // Should remain 1
+    expect(screen.getByTestId('count-1').textContent).toBe('2'); // Should also be 2
     expect(screen.getByTestId('count-2').textContent).toBe('2');
   });
 
