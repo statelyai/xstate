@@ -189,6 +189,8 @@ export function createStoreHook<
   >;
   type TSnapshot = StoreSnapshot<TContext>;
 
+  const store = createStore(definition);
+
   function useStoreHook(): [TSnapshot, TStore];
   function useStoreHook<T>(
     selector: (snapshot: TSnapshot) => T,
@@ -198,14 +200,6 @@ export function createStoreHook<
     selector?: (snapshot: TSnapshot) => T,
     compare: (a: T | undefined, b: T) => boolean = defaultCompare
   ) {
-    const storeRef = useRef<TStore | undefined>(undefined);
-
-    if (!storeRef.current) {
-      storeRef.current = createStore(definition);
-    }
-
-    const store = storeRef.current;
-
     // If no selector provided, return full snapshot
     if (!selector) {
       const snapshot = useSelector(store, identity, defaultCompare);
