@@ -64,6 +64,9 @@
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
+  "dependencies": {
+    "alien-signals": "^2.0.7"
+  },
   "devDependencies": {
     "@solidjs/testing-library": "^0.8.10",
     "@statelyai/inspect": "^0.4.0",

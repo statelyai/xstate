@@ -2,7 +2,7 @@ import {
   createReactiveSystem,
   type ReactiveNode,
   type ReactiveFlags
-} from './alien';
+} from 'alien-signals/system';
 import { toObserver } from './toObserver';
 import {
   Atom,
@@ -32,9 +32,9 @@ const {
     queuedEffects[queuedEffectsLength++] = effect;
   },
   unwatched(atom: InternalReadonlyAtom<any>): void {
-    let toRemove = atom._deps;
+    let toRemove = atom.deps;
     if (toRemove !== undefined) {
-      atom._flags = 17 as ReactiveFlags.Mutable | ReactiveFlags.Dirty;
+      atom.flags = 17 as ReactiveFlags.Mutable | ReactiveFlags.Dirty;
       do {
         toRemove = unlink(toRemove, atom);
       } while (toRemove !== undefined);
@@ -69,7 +69,7 @@ export function createAsyncAtom<T>(
     getValue().then(
       (data) => {
         if (atom._update({ status: 'done', data })) {
-          const subs = atom._subs;
+          const subs = atom.subs;
           if (subs !== undefined) {
             propagate(subs);
             shallowPropagate(subs);
@@ -79,7 +79,7 @@ export function createAsyncAtom<T>(
       },
       (error) => {
         if (atom._update({ status: 'error', error })) {
-          const subs = atom._subs;
+          const subs = atom.subs;
           if (subs !== undefined) {
             propagate(subs);
             shallowPropagate(subs);
@@ -114,9 +114,9 @@ export function createAtom<T>(
   const atom: InternalBaseAtom<T> & ReactiveNode = {
     _snapshot: isComputed ? undefined! : valueOrFn,
 
-    _subs: undefined,
-    _subsTail: undefined,
-    _flags: 0 as ReactiveFlags.None,
+    subs: undefined,
+    subsTail: undefined,
+    flags: 0 as ReactiveFlags.None,
 
     get(): T {
       if (activeSub !== undefined) {
@@ -172,26 +172,26 @@ export function createAtom<T>(
   if (isComputed) {
     Object.assign<
       BaseAtom<T>,
-      Pick<InternalReadonlyAtom<T>, '_deps' | '_depsTail' | '_flags' | 'get'>
+      Pick<InternalReadonlyAtom<T>, 'deps' | 'depsTail' | 'flags' | 'get'>
     >(atom, {
-      _deps: undefined,
-      _depsTail: undefined,
-      _flags: 17 as ReactiveFlags.Mutable | ReactiveFlags.Dirty,
+      deps: undefined,
+      depsTail: undefined,
+      flags: 17 as ReactiveFlags.Mutable | ReactiveFlags.Dirty,
       get(): T {
-        const flags = (this as unknown as InternalReadonlyAtom<T>)._flags;
+        const flags = (this as unknown as InternalReadonlyAtom<T>).flags;
         if (
           flags & (16 satisfies ReactiveFlags.Dirty) ||
           (flags & (32 satisfies ReactiveFlags.Pending) &&
-            checkDirty(atom._deps!, atom))
+            checkDirty(atom.deps!, atom))
         ) {
           if (atom._update()) {
-            const subs = atom._subs;
+            const subs = atom.subs;
             if (subs !== undefined) {
               shallowPropagate(subs);
             }
           }
         } else if (flags & (32 satisfies ReactiveFlags.Pending)) {
-          atom._flags = flags & ~(32 satisfies ReactiveFlags.Pending);
+          atom.flags = flags & ~(32 satisfies ReactiveFlags.Pending);
         }
         if (activeSub !== undefined) {
           link(atom, activeSub);
@@ -203,7 +203,7 @@ export function createAtom<T>(
     Object.assign<BaseAtom<T>, Pick<Atom<T>, 'set'>>(atom, {
       set(valueOrFn: T | ((prev: T) => T)): void {
         if (atom._update(valueOrFn)) {
-          const subs = atom._subs;
+          const subs = atom.subs;
           if (subs !== undefined) {
             propagate(subs);
             shallowPropagate(subs);
@@ -235,20 +235,20 @@ function effect<T>(fn: () => T): Effect {
     }
   };
   const effectObj: Effect = {
-    _deps: undefined,
-    _depsTail: undefined,
-    _flags: 2 satisfies ReactiveFlags.Watching,
+    deps: undefined,
+    depsTail: undefined,
+    flags: 2 satisfies ReactiveFlags.Watching,
 
     notify(): void {
-      const flags = this._flags;
+      const flags = this.flags;
       if (
         flags & (16 satisfies ReactiveFlags.Dirty) ||
         (flags & (32 satisfies ReactiveFlags.Pending) &&
-          checkDirty(this._deps!, this))
+          checkDirty(this.deps!, this))
       ) {
         run();
       } else if (flags & (32 satisfies ReactiveFlags.Pending)) {
-        this._flags = flags & ~(32 satisfies ReactiveFlags.Pending);
+        this.flags = flags & ~(32 satisfies ReactiveFlags.Pending);
       }
     },
 

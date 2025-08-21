@@ -203,6 +203,10 @@ importers:
         version: link:../core
 
   packages/xstate-store:
+    dependencies:
+      alien-signals:
+        specifier: ^2.0.7
+        version: 2.0.7
     devDependencies:
       '@solidjs/testing-library':
         specifier: ^0.8.10
@@ -11041,6 +11045,8 @@ snapshots:
       tunnel-agent: 0.6.0
     transitivePeerDependencies:
       - supports-color
+
+  alien-signals@2.0.7: {}
 
   alphanum-sort@1.0.2: {}
 

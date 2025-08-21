@@ -1,4 +1,4 @@
-import type { ReactiveNode } from './alien';
+import type { ReactiveNode } from 'alien-signals/system';
 
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
