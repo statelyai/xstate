@@ -1,5 +1,13 @@
 # @xstate/store
 
+## 3.9.2
+
+### Patch Changes
+
+- [#5361](https://github.com/statelyai/xstate/pull/5361) [`7f8d90a`](https://github.com/statelyai/xstate/commit/7f8d90a5a6e851ade55e94a9569f746aaebc160a) Thanks [@johnsoncodehk](https://github.com/johnsoncodehk)! - Synchronize the alien-signals algorithm to 2.0.7.
+
+  This is primarily to fix the severe performance degradation discovered in vuejs/core: vuejs/core#13654
+
 ## 3.9.1
 
 ### Patch Changes
