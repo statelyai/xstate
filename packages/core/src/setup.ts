@@ -178,7 +178,7 @@ export function setup<
   createStateConfig: (
     config: StateNodeConfig<
       TContext,
-      NoInfer<TEvent>,
+      TEvent,
       ToProvidedActor<TChildrenMap, TActors>,
       ToParameterizedObject<TActions>,
       ToParameterizedObject<TGuards>,
