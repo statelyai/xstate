@@ -175,8 +175,8 @@ export function setup<
    * });
    * ```
    */
-  createStateConfig: (
-    config: StateNodeConfig<
+  createStateConfig: <
+    TStateConfig extends StateNodeConfig<
       TContext,
       TEvent,
       ToProvidedActor<TChildrenMap, TActors>,
@@ -188,7 +188,9 @@ export function setup<
       TEmitted,
       TMeta
     >
-  ) => typeof config;
+  >(
+    config: TStateConfig
+  ) => TStateConfig;
   createMachine: <
     const TConfig extends MachineConfig<
       TContext,
