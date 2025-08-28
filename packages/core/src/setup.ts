@@ -17,6 +17,7 @@ import {
   NonReducibleUnknown,
   ParameterizedObject,
   SetupTypes,
+  StateNodeConfig,
   ToChildren,
   ToStateValue,
   UnknownActorLogic,
@@ -145,6 +146,49 @@ export function setup<
 } & {
   [K in RequiredSetupKeys<TChildrenMap>]: unknown;
 }): {
+  /**
+   * Creates a state config that is strongly typed. This state config can be
+   * used to create a machine.
+   *
+   * @example
+   *
+   * ```ts
+   * const lightMachineSetup = setup({
+   *   // ...
+   * });
+   *
+   * const green = lightMachineSetup.createStateConfig({
+   *   on: {
+   *     timer: {
+   *       actions: 'doSomething'
+   *     }
+   *   }
+   * });
+   *
+   * const machine = lightMachineSetup.createMachine({
+   *   initial: 'green',
+   *   states: {
+   *     green,
+   *     yellow,
+   *     red
+   *   }
+   * });
+   * ```
+   */
+  createStateConfig: (
+    config: StateNodeConfig<
+      TContext,
+      NoInfer<TEvent>,
+      ToProvidedActor<TChildrenMap, TActors>,
+      ToParameterizedObject<TActions>,
+      ToParameterizedObject<TGuards>,
+      TDelay,
+      TTag,
+      unknown,
+      TEmitted,
+      TMeta
+    >
+  ) => typeof config;
   createMachine: <
     const TConfig extends MachineConfig<
       TContext,
@@ -182,6 +226,7 @@ export function setup<
   >;
 } {
   return {
+    createStateConfig: (config) => config,
     createMachine: (config) =>
       (createMachine as any)(
         { ...config, schemas },

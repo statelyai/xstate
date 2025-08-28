@@ -2398,3 +2398,94 @@ describe('setup()', () => {
     ((_accept: ContextFrom<typeof machine>) => {})({ myVar: 'whatever' });
   });
 });
+
+describe('createStateConfig', () => {
+  it('should be able to create a state config with a custom action', () => {
+    const machineSetup = setup({
+      types: {
+        context: {} as {
+          count: number;
+        },
+        events: {} as {
+          type: 'timer';
+          by: number;
+        }
+      },
+      actions: {
+        doSomething: () => {}
+      },
+      guards: {
+        isLightActive: () => true
+      }
+    });
+
+    const green = machineSetup.createStateConfig({
+      on: {
+        timer: {
+          actions: 'doSomething',
+          guard: 'isLightActive'
+        }
+      }
+    });
+
+    const yellow = machineSetup.createStateConfig({
+      on: {
+        timer: {
+          actions: 'doSomething',
+          guard: 'isLightActive'
+        }
+      }
+    });
+
+    const red = machineSetup.createStateConfig({
+      on: {
+        timer: {
+          actions: 'doSomething',
+          guard: 'isLightActive'
+        }
+      }
+    });
+
+    const invalidEvent = machineSetup.createStateConfig({
+      on: {
+        // @ts-expect-error
+        nonsense: {}
+      }
+    });
+
+    const invalidAction = machineSetup.createStateConfig({
+      on: {
+        // @ts-expect-error
+        timer: {
+          // TODO: why is the error not here?
+          actions: 'nonexistent'
+        }
+      }
+    });
+
+    const invalidGuard = machineSetup.createStateConfig({
+      on: {
+        // @ts-expect-error
+        timer: {
+          // TODO: why is the error not here?
+          guard: 'nonexistent'
+        }
+      }
+    });
+
+    machineSetup.createMachine({
+      context: {
+        count: 0
+      },
+      initial: 'green',
+      states: {
+        green,
+        yellow,
+        red,
+        invalidEvent,
+        invalidAction,
+        invalidGuard
+      }
+    });
+  });
+});
