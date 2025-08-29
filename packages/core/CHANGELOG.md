@@ -1,5 +1,38 @@
 # xstate
 
+## 5.21.0
+
+### Minor Changes
+
+- [#5364](https://github.com/statelyai/xstate/pull/5364) [`15e15b5`](https://github.com/statelyai/xstate/commit/15e15b5e38e2fb3c2bd67ae584aa4e019d12699c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `.createStateConfig(…)` to the setup API. This makes it possible to create state configs that are strongly typed and modular.
+
+  ```ts
+  const lightMachineSetup = setup({
+    // ...
+  });
+
+  const green = lightMachineSetup.createStateConfig({
+    //...
+  });
+
+  const yellow = lightMachineSetup.createStateConfig({
+    //...
+  });
+
+  const red = lightMachineSetup.createStateConfig({
+    //...
+  });
+
+  const machine = lightMachineSetup.createMachine({
+    initial: 'green',
+    states: {
+      green,
+      yellow,
+      red
+    }
+  });
+  ```
+
 ## 5.20.2
 
 ### Patch Changes
