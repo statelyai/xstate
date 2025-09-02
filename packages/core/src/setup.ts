@@ -191,6 +191,21 @@ export function setup<
   >(
     config: TStateConfig
   ) => TStateConfig;
+  createAction: <
+    T extends ActionFunction<
+      TContext,
+      TEvent,
+      TEvent,
+      unknown,
+      ToProvidedActor<TChildrenMap, TActors>,
+      ToParameterizedObject<TActions>,
+      ToParameterizedObject<TGuards>,
+      TDelay,
+      TEmitted
+    >
+  >(
+    action: T
+  ) => T;
   createMachine: <
     const TConfig extends MachineConfig<
       TContext,
@@ -229,6 +244,7 @@ export function setup<
 } {
   return {
     createStateConfig: (config) => config,
+    createAction: (fn) => fn,
     createMachine: (config) =>
       (createMachine as any)(
         { ...config, schemas },

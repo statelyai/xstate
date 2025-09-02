@@ -2648,3 +2648,42 @@ describe('createStateConfig', () => {
     });
   });
 });
+
+describe('createAction', () => {
+  it('should be able to create a type-safe action action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        context: {
+          count: number;
+        };
+        events: {
+          type: 'inc';
+          value: number;
+        };
+      }
+    });
+
+    const action = machineSetup.createAction((args) => {
+      args.context.count satisfies number;
+      // @ts-expect-error
+      args.context.text satisfies string;
+
+      args.event.type satisfies 'inc';
+      args.event.value satisfies number;
+      // @ts-expect-error
+      args.event.value satisfies string;
+    });
+
+    machineSetup.createMachine({
+      context: {
+        count: 0
+      },
+      entry: action
+    });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: action
+    });
+  });
+});
