@@ -191,8 +191,8 @@ export function setup<
   >(
     config: TStateConfig
   ) => TStateConfig;
-  createAction: <
-    T extends ActionFunction<
+  createAction: (
+    action: ActionFunction<
       TContext,
       TEvent,
       TEvent,
@@ -203,9 +203,7 @@ export function setup<
       TDelay,
       TEmitted
     >
-  >(
-    action: T
-  ) => T;
+  ) => typeof action;
   createMachine: <
     const TConfig extends MachineConfig<
       TContext,
