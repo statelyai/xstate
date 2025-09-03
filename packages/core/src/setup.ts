@@ -191,6 +191,30 @@ export function setup<
   >(
     config: TStateConfig
   ) => TStateConfig;
+  /**
+   * Creates a type-safe action.
+   *
+   * @example
+   *
+   * ```ts
+   * const machineSetup = setup({
+   *   // ...
+   * });
+   *
+   * const action = machineSetup.createAction(({ context, event }) => {
+   *   console.log(context.count, event.value);
+   * });
+   *
+   * const incrementAction = machineSetup.createAction(
+   *   assign({ count: ({ context }) => context.count + 1 })
+   * );
+   *
+   * const machine = machineSetup.createMachine({
+   *   context: { count: 0 },
+   *   entry: [action, incrementAction]
+   * });
+   * ```
+   */
   createAction: (
     action: ActionFunction<
       TContext,
