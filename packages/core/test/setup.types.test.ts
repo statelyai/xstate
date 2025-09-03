@@ -2648,3 +2648,109 @@ describe('createStateConfig', () => {
     });
   });
 });
+
+describe('createAction', () => {
+  it('should be able to create a type-safe action action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        context: {
+          count: number;
+        };
+        events: {
+          type: 'inc';
+          value: number;
+        };
+      }
+    });
+
+    const action = machineSetup.createAction((args) => {
+      args.context.count satisfies number;
+      // @ts-expect-error
+      args.context.text satisfies string;
+
+      args.event.type satisfies 'inc';
+      args.event.value satisfies number;
+      // @ts-expect-error
+      args.event.value satisfies string;
+    });
+
+    machineSetup.createMachine({
+      context: {
+        count: 0
+      },
+      entry: action
+    });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: action
+    });
+  });
+
+  it('should be able to create a type-safe assign action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        context: {
+          count: number;
+        };
+      }
+    });
+    const assignAction = machineSetup.createAction(
+      assign({
+        count: ({ context }) => {
+          context.count satisfies number;
+          // @ts-expect-error
+          context.text satisfies string;
+
+          return context.count + 1;
+        }
+      })
+    );
+
+    machineSetup.createMachine({
+      context: {
+        count: 0
+      },
+      entry: assignAction
+    });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: assignAction
+    });
+  });
+
+  it('should be able to create a type-safe raise action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        context: {
+          count: number;
+        };
+        events: {
+          type: 'TEST';
+        };
+      }
+    });
+    const sendToAction = machineSetup.createAction(
+      raise(({ event }) => {
+        event.type satisfies 'TEST';
+        // @ts-expect-error
+        event.type satisfies 'INVALID';
+
+        return event;
+      })
+    );
+
+    machineSetup.createMachine({
+      context: {
+        count: 0
+      },
+      entry: sendToAction
+    });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: sendToAction
+    });
+  });
+});
