@@ -1,5 +1,100 @@
 # @xstate/store
 
+## 3.9.2
+
+### Patch Changes
+
+- [#5361](https://github.com/statelyai/xstate/pull/5361) [`7f8d90a`](https://github.com/statelyai/xstate/commit/7f8d90a5a6e851ade55e94a9569f746aaebc160a) Thanks [@johnsoncodehk](https://github.com/johnsoncodehk)! - Synchronize the alien-signals algorithm to 2.0.7.
+
+  This is primarily to fix the severe performance degradation discovered in vuejs/core: vuejs/core#13654
+
+## 3.9.1
+
+### Patch Changes
+
+- [#5359](https://github.com/statelyai/xstate/pull/5359) [`3f4bffc`](https://github.com/statelyai/xstate/commit/3f4bffc3dc9e4797207617f8166d5b8aac8d64ea) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `createStoreHook` to create a single shared store instance across all components. Previously, the implementation was creating independent store instances, but now multiple components using the same hook will share state as expected.
+
+## 3.9.0
+
+### Minor Changes
+
+- [#5354](https://github.com/statelyai/xstate/pull/5354) [`515cc31`](https://github.com/statelyai/xstate/commit/515cc31063f04a7cd238006a485ae9368a8c1278) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `createStoreHook(…)` function for React. Creates a store hook that returns `[selectedValue, store]` instead of managing store instances manually.
+
+  ```tsx
+  const useCountStore = createStoreHook({
+    context: { count: 0 },
+    on: {
+      inc: (ctx, event: { by: number }) => ({
+        ...ctx,
+        count: ctx.count + event.by
+      })
+    }
+  });
+
+  // Usage
+  const [count, store] = useCountStore((s) => s.context.count);
+  store.trigger.inc({ by: 3 });
+
+  // Usage (no selector)
+  const [snapshot, store] = useCountStore();
+  ```
+
+## 3.8.5
+
+### Patch Changes
+
+- [#5347](https://github.com/statelyai/xstate/pull/5347) [`4dff4e9`](https://github.com/statelyai/xstate/commit/4dff4e94d6aa547f0b1ae37e51e96281a252d236) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix TypeScript error localization in `createStore(…)` overloads
+
+  Previously, TS errors in transitions would appear on the `createStore` call itself rather than on the specific transition.
+
+## 3.8.4
+
+### Patch Changes
+
+- [#5337](https://github.com/statelyai/xstate/pull/5337) [`b64a6c9`](https://github.com/statelyai/xstate/commit/b64a6c925d87bce6246d35e562bdda6907e2e33f) Thanks [@flbn](https://github.com/flbn)! - chore: add missing EventFromStoreConfig, EmitsFromStoreConfig, ContextFromStoreConfig types from @xstate/store exports
+
+## 3.8.3
+
+### Patch Changes
+
+- [#5334](https://github.com/statelyai/xstate/pull/5334) [`c4adf25`](https://github.com/statelyai/xstate/commit/c4adf25331faeb15004d449b35799c53bd069b1b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createStore` function now supports explicit generic type parameters for better type control when needed. This allows you to specify the exact types for context, events, and emitted events instead of relying solely on type inference if desired.
+
+  ```ts
+  type CoffeeContext = {
+    beans: number;
+    cups: number;
+  };
+
+  type CoffeeEvents =
+    | { type: 'addBeans'; amount: number }
+    | { type: 'brewCup' };
+
+  type CoffeeEmitted =
+    | { type: 'beansAdded'; amount: number }
+    | { type: 'cupBrewed' };
+
+  const coffeeStore = createStore<CoffeeContext, CoffeeEvents, CoffeeEmitted>({
+    context: {
+      beans: 0,
+      cups: 0
+    },
+    on: {
+      addBeans: (ctx, event, enq) => {
+        enq.emit.beansAdded({ amount: event.amount });
+        return { ...ctx, beans: ctx.beans + event.amount };
+      },
+      brewCup: (ctx, _, enq) => {
+        if (ctx.beans > 0) {
+          enq.emit.cupBrewed();
+          return { ...ctx, beans: ctx.beans - 1, cups: ctx.cups + 1 };
+        }
+
+        return ctx;
+      }
+    }
+  });
+  ```
+
 ## 3.8.2
 
 ### Patch Changes

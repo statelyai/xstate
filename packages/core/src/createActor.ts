@@ -200,7 +200,11 @@ export class Actor<TLogic extends AnyActorLogic>
           ...(wildcardListener ? wildcardListener.values() : [])
         ];
         for (const handler of allListeners) {
-          handler(emittedEvent);
+          try {
+            handler(emittedEvent);
+          } catch (err) {
+            reportUnhandledError(err);
+          }
         }
       },
       actionExecutor: (action) => {
