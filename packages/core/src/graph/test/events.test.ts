@@ -1,4 +1,4 @@
-import { createMachine } from '../../index.ts';
+import { next_createMachine } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 import { testUtils } from './testUtils.ts';
 
@@ -7,7 +7,7 @@ describe('events', () => {
     let executed = false;
 
     const testModel = createTestModel(
-      createMachine({
+      next_createMachine({
         initial: 'a',
         states: {
           a: {
@@ -35,7 +35,7 @@ describe('events', () => {
     let executed = false;
 
     const testModel = createTestModel(
-      createMachine({
+      next_createMachine({
         initial: 'a',
         states: {
           a: {

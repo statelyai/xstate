@@ -223,7 +223,11 @@ export class Actor<TLogic extends AnyActorLogic>
           const saveExecutingCustomAction = executingCustomAction;
           try {
             executingCustomAction = true;
-            action.exec(action.info, action.params);
+            // v6
+            const actionArgs = action.args.length
+              ? [] // already bound
+              : [];
+            action.exec(...actionArgs);
           } finally {
             executingCustomAction = saveExecutingCustomAction;
           }
@@ -615,6 +619,7 @@ export class Actor<TLogic extends AnyActorLogic>
       return this;
     }
     this.mailbox.enqueue({ type: XSTATE_STOP } as any);
+    this.system._unregister(this);
 
     return this;
   }
@@ -703,10 +708,11 @@ export class Actor<TLogic extends AnyActorLogic>
     if (this._processingStatus === ProcessingStatus.Stopped) {
       // do nothing
       if (isDevelopment) {
-        const eventString = JSON.stringify(event);
+        // TODO: circular serialization issues
+        // const eventString = ''; //JSON.stringify(event);
 
         console.warn(
-          `Event "${event.type}" was sent to stopped actor "${this.id} (${this.sessionId})". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`
+          `Event "${event.type}" was sent to stopped actor "${this.id} (${this.sessionId})". This actor has already reached its final state, and will not transition.`
         );
       }
       return;
@@ -834,14 +840,9 @@ export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
  */
 export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  ...[options]: ConditionalRequired<
-    [
-      options?: ActorOptions<TLogic> & {
-        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
-      }
-    ],
-    IsNotNever<RequiredActorOptionsKeys<TLogic>>
-  >
+  options?: ActorOptions<TLogic> & {
+    [K in RequiredActorOptionsKeys<TLogic>]: unknown;
+  }
 ): Actor<TLogic> {
   return new Actor(logic, options);
 }

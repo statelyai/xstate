@@ -37,56 +37,28 @@ type SpawnOptions<
     >
   : never;
 
-export type Spawner<TActor extends ProvidedActor> =
-  IsLiteralString<TActor['src']> extends true
-    ? {
-        <TSrc extends TActor['src']>(
-          logic: TSrc,
-          ...[options]: SpawnOptions<TActor, TSrc>
-        ): ActorRefFromLogic<GetConcreteByKey<TActor, 'src', TSrc>['logic']>;
-        <TLogic extends AnyActorLogic>(
-          src: TLogic,
-          ...[options]: ConditionalRequired<
-            [
-              options?: {
-                id?: never;
-                systemId?: string;
-                input?: InputFrom<TLogic>;
-                syncSnapshot?: boolean;
-              } & { [K in RequiredLogicInput<TLogic>]: unknown }
-            ],
-            IsNotNever<RequiredLogicInput<TLogic>>
-          >
-        ): ActorRefFromLogic<TLogic>;
-      }
-    : <TLogic extends AnyActorLogic | string>(
-        src: TLogic,
-        ...[options]: ConditionalRequired<
-          [
-            options?: {
-              id?: string;
-              systemId?: string;
-              input?: TLogic extends string ? unknown : InputFrom<TLogic>;
-              syncSnapshot?: boolean;
-            } & (TLogic extends AnyActorLogic
-              ? { [K in RequiredLogicInput<TLogic>]: unknown }
-              : {})
-          ],
-          IsNotNever<
-            TLogic extends AnyActorLogic ? RequiredLogicInput<TLogic> : never
-          >
-        >
-      ) => TLogic extends AnyActorLogic
-        ? ActorRefFromLogic<TLogic>
-        : AnyActorRef;
+export type Spawner = <TLogic extends AnyActorLogic>(
+  src: TLogic,
+  ...[options]: ConditionalRequired<
+    [
+      options?: {
+        id?: string;
+        systemId?: string;
+        input?: TLogic extends string ? unknown : InputFrom<TLogic>;
+        syncSnapshot?: boolean;
+      } & { [K in RequiredLogicInput<TLogic>]: unknown }
+    ],
+    IsNotNever<RequiredLogicInput<TLogic>>
+  >
+) => ActorRefFromLogic<TLogic>;
 
 export function createSpawner(
   actorScope: AnyActorScope,
   { machine, context }: AnyMachineSnapshot,
   event: AnyEventObject,
   spawnedChildren: Record<string, AnyActorRef>
-): Spawner<any> {
-  const spawn: Spawner<any> = ((src, options) => {
+): Spawner {
+  const spawn: Spawner = ((src, options) => {
     if (typeof src === 'string') {
       const logic = resolveReferencedActor(machine, src);
 
@@ -127,7 +99,7 @@ export function createSpawner(
 
       return actorRef;
     }
-  }) as Spawner<any>;
+  }) as Spawner;
   return ((src, options) => {
     const actorRef = spawn(src, options) as TODO; // TODO: fix types
     spawnedChildren[actorRef.id] = actorRef;
@@ -138,5 +110,5 @@ export function createSpawner(
       actorRef.start();
     });
     return actorRef;
-  }) as Spawner<any>;
+  }) as Spawner;
 }

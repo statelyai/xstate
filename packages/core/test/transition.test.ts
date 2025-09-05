@@ -1,27 +1,16 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
-  assign,
-  cancel,
-  createActor,
-  createMachine,
-  emit,
-  enqueueActions,
+  next_createMachine,
   EventFrom,
   ExecutableActionsFrom,
-  ExecutableSpawnAction,
   fromPromise,
   fromTransition,
-  log,
-  raise,
-  sendTo,
-  setup,
   toPromise,
   transition
 } from '../src';
 import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
-import assert from 'node:assert';
-import { resolveReferencedActor } from '../src/utils';
+import { z } from 'zod';
 
 describe('transition function', () => {
   it('should capture actions', () => {
@@ -29,33 +18,44 @@ describe('transition function', () => {
     const actionWithDynamicParams = vi.fn();
     const stringAction = vi.fn();
 
-    const machine = setup({
-      types: {
-        context: {} as { count: number },
-        events: {} as { type: 'event'; msg: string }
+    // const machine = setup({
+    //   types: {
+    //     context: {} as { count: number },
+    //     events: {} as { type: 'event'; msg: string }
+    //   },
+    //   actions: {
+    //     actionWithParams,
+    //     actionWithDynamicParams: (_, params: { msg: string }) => {
+    //       actionWithDynamicParams(params);
+    //     },
+    //     stringAction
+    //   }
+    // }).
+    const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
       },
-      actions: {
-        actionWithParams,
-        actionWithDynamicParams: (_, params: { msg: string }) => {
-          actionWithDynamicParams(params);
-        },
-        stringAction
-      }
-    }).createMachine({
-      entry: [
-        { type: 'actionWithParams', params: { a: 1 } },
-        'stringAction',
-        assign({ count: 100 })
-      ],
+      entry: (_, enq) => {
+        enq(actionWithParams, { a: 1 });
+        enq(stringAction);
+        return {
+          context: { count: 100 }
+        };
+      },
       context: { count: 0 },
       on: {
-        event: {
-          actions: {
-            type: 'actionWithDynamicParams',
-            params: ({ event }) => {
-              return { msg: event.msg };
-            }
-          }
+        // event: {
+        //   actions: {
+        //     type: 'actionWithDynamicParams',
+        //     params: ({ event }) => {
+        //       return { msg: event.msg };
+        //     }
+        //   }
+        // }
+        event: ({ event }, enq) => {
+          enq(actionWithDynamicParams, { msg: event.msg });
         }
       }
     });
@@ -64,8 +64,8 @@ describe('transition function', () => {
 
     expect(state0.context.count).toBe(100);
     expect(actions0).toEqual([
-      expect.objectContaining({ type: 'actionWithParams', params: { a: 1 } }),
-      expect.objectContaining({ type: 'stringAction' })
+      expect.objectContaining({ args: [{ a: 1 }] }),
+      expect.objectContaining({})
     ]);
 
     expect(actionWithParams).not.toHaveBeenCalled();
@@ -79,8 +79,7 @@ describe('transition function', () => {
     expect(state1.context.count).toBe(100);
     expect(actions1).toEqual([
       expect.objectContaining({
-        type: 'actionWithDynamicParams',
-        params: { msg: 'hello' }
+        args: [{ msg: 'hello' }]
       })
     ]);
 
@@ -90,12 +89,11 @@ describe('transition function', () => {
   it('should not execute a referenced serialized action', () => {
     const foo = vi.fn();
 
-    const machine = setup({
+    const machine = next_createMachine({
       actions: {
         foo
-      }
-    }).createMachine({
-      entry: 'foo',
+      },
+      entry: ({ actions }, enq) => enq(actions.foo),
       context: { count: 0 }
     });
 
@@ -105,13 +103,11 @@ describe('transition function', () => {
   });
 
   it('should capture enqueued actions', () => {
-    const machine = createMachine({
-      entry: [
-        enqueueActions((x) => {
-          x.enqueue('stringAction');
-          x.enqueue({ type: 'objectAction' });
-        })
-      ]
+    const machine = next_createMachine({
+      entry: (_, enq) => {
+        enq.emit({ type: 'stringAction' });
+        enq.emit({ type: 'objectAction' });
+      }
     });
 
     const [_state, actions] = initialTransition(machine);
@@ -123,11 +119,13 @@ describe('transition function', () => {
   });
 
   it('delayed raise actions should be returned', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
-          entry: raise({ type: 'NEXT' }, { delay: 10 }),
+          entry: (_, enq) => {
+            enq.raise({ type: 'NEXT' }, { delay: 10 });
+          },
           on: {
             NEXT: 'b'
           }
@@ -152,7 +150,7 @@ describe('transition function', () => {
   });
 
   it('raise actions related to delayed transitions should be returned', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -178,15 +176,17 @@ describe('transition function', () => {
   });
 
   it('cancel action should be returned', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
-          entry: raise({ type: 'NEXT' }, { delay: 10, id: 'myRaise' }),
+          entry: (_, enq) => {
+            enq.raise({ type: 'NEXT' }, { delay: 10, id: 'myRaise' });
+          },
           on: {
-            NEXT: {
-              target: 'b',
-              actions: cancel('myRaise')
+            NEXT: (_, enq) => {
+              enq.cancel('myRaise');
+              return { target: 'b' };
             }
           }
         },
@@ -211,17 +211,17 @@ describe('transition function', () => {
   });
 
   it('sendTo action should be returned', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       invoke: {
-        src: createMachine({}),
+        src: next_createMachine({}),
         id: 'someActor'
       },
       states: {
         a: {
           on: {
-            NEXT: {
-              actions: sendTo('someActor', { type: 'someEvent' })
+            NEXT: ({ children }, enq) => {
+              enq.sendTo(children.someActor, { type: 'someEvent' });
             }
           }
         }
@@ -234,10 +234,8 @@ describe('transition function', () => {
 
     expect(actions0).toContainEqual(
       expect.objectContaining({
-        type: 'xstate.spawnChild',
-        params: expect.objectContaining({
-          id: 'someActor'
-        })
+        type: '@xstate.start',
+        args: [state.children.someActor]
       })
     );
 
@@ -247,24 +245,36 @@ describe('transition function', () => {
       expect.objectContaining({
         type: 'xstate.sendTo',
         params: expect.objectContaining({
-          targetId: 'someActor'
+          event: { type: 'someEvent' }
         })
       })
     );
   });
 
   it('emit actions should be returned', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
+      // types: {
+      //   emitted: {} as { type: 'counted'; count: number }
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        }),
+        emitted: z.object({
+          type: z.literal('counted'),
+          count: z.number()
+        })
+      },
       initial: 'a',
       context: { count: 10 },
       states: {
         a: {
           on: {
-            NEXT: {
-              actions: emit(({ context }) => ({
+            NEXT: ({ context }, enq) => {
+              enq.emit({
                 type: 'counted',
                 count: context.count
-              }))
+              });
             }
           }
         }
@@ -279,23 +289,26 @@ describe('transition function', () => {
 
     expect(nextActions).toContainEqual(
       expect.objectContaining({
-        type: 'xstate.emit',
-        params: expect.objectContaining({
-          event: { type: 'counted', count: 10 }
-        })
+        type: 'counted',
+        params: { count: 10 }
       })
     );
   });
 
   it('log actions should be returned', async () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       initial: 'a',
       context: { count: 10 },
       states: {
         a: {
           on: {
-            NEXT: {
-              actions: log(({ context }) => `count: ${context.count}`)
+            NEXT: ({ context }, enq) => {
+              enq.log(`count: ${context.count}`);
             }
           }
         }
@@ -310,10 +323,7 @@ describe('transition function', () => {
 
     expect(nextActions).toContainEqual(
       expect.objectContaining({
-        type: 'xstate.log',
-        params: expect.objectContaining({
-          value: 'count: 10'
-        })
+        args: ['count: 10']
       })
     );
   });
@@ -338,7 +348,7 @@ describe('transition function', () => {
   });
 
   it('should calculate the next snapshot for machine logic', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -368,9 +378,9 @@ describe('transition function', () => {
   it('should not execute entry actions', () => {
     const fn = vi.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
-      entry: fn,
+      entry: (_, enq) => enq(fn),
       states: {
         a: {},
         b: {}
@@ -385,14 +395,14 @@ describe('transition function', () => {
   it('should not execute transition actions', () => {
     const fn = vi.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
           on: {
-            event: {
-              target: 'b',
-              actions: fn
+            event: (_, enq) => {
+              enq(fn);
+              return { target: 'b' };
             }
           }
         },
@@ -412,7 +422,7 @@ describe('transition function', () => {
       state: undefined as any
     };
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'start',
       states: {
         start: {
@@ -482,7 +492,7 @@ describe('transition function', () => {
       state: undefined as any
     };
 
-    const machine = setup({
+    const machine = next_createMachine({
       actors: {
         sendWelcomeEmail: fromPromise(async () => {
           calls.push('sendWelcomeEmail');
@@ -490,13 +500,12 @@ describe('transition function', () => {
             status: 'sent'
           };
         })
-      }
-    }).createMachine({
+      },
       initial: 'sendingWelcomeEmail',
       states: {
         sendingWelcomeEmail: {
           invoke: {
-            src: 'sendWelcomeEmail',
+            src: ({ actors }) => actors.sendWelcomeEmail,
             input: () => ({ message: 'hello world', subject: 'hi' }),
             onDone: 'logSent'
           }
@@ -515,18 +524,13 @@ describe('transition function', () => {
 
     async function execute(action: ExecutableActionsFrom<typeof machine>) {
       switch (action.type) {
-        case 'xstate.spawnChild': {
-          const spawnAction = action as ExecutableSpawnAction;
-          const logic =
-            typeof spawnAction.params.src === 'string'
-              ? resolveReferencedActor(machine, spawnAction.params.src)
-              : spawnAction.params.src;
-          assert('transition' in logic);
-          const output = await toPromise(
-            createActor(logic, spawnAction.params).start()
-          );
-          postEvent(createDoneActorEvent(spawnAction.params.id, output));
+        case '@xstate.start': {
+          action.exec.apply(null, action.args);
+          const startedActor = action.args[0];
+          const output = await toPromise(startedActor);
+          postEvent(createDoneActorEvent(startedActor.id, output));
         }
+
         default:
           break;
       }

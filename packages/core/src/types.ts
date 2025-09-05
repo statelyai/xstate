@@ -13,6 +13,7 @@ import { AnyActorSystem, Clock } from './system.ts';
 
 // this is needed to make JSDoc `@link` work properly
 import type { SimulatedClock } from './SimulatedClock.ts';
+import { Implementations } from './types.v6.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -133,7 +134,9 @@ export interface ActionArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject
-> extends UnifiedArg<TContext, TExpressionEvent, TEvent> {}
+> extends UnifiedArg<TContext, TExpressionEvent, TEvent> {
+  children: Record<string, AnyActorRef>;
+}
 
 export type InputFrom<T> =
   T extends StateMachine<
@@ -254,7 +257,11 @@ export type Action<
       TGuard,
       TDelay,
       TEmitted
-    >;
+    >
+  | {
+      action: (...args: any[]) => any;
+      args: unknown[];
+    };
 
 export type UnknownAction = Action<
   MachineContext,
@@ -336,6 +343,13 @@ export interface TransitionConfig<
   >;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
+  fn?: TransitionConfigFunction<
+    TContext,
+    TExpressionEvent,
+    TEvent,
+    TEmitted,
+    any // TActionMap
+  >;
   meta?: TMeta;
   description?: string;
 }
@@ -486,6 +500,13 @@ export type DelayedTransitions<
           TODO, // TEmitted
           TODO // TMeta
         >
+      >
+    | TransitionConfigFunction<
+        TContext,
+        TEvent,
+        TEvent,
+        TODO, // TEmitted
+        any // TActionMap
       >;
 };
 
@@ -564,6 +585,66 @@ export type TransitionConfigOrTarget<
       TEmitted,
       TMeta
     >
+  | TransitionConfigFunction<
+      TContext,
+      TExpressionEvent,
+      TEvent,
+      TEmitted,
+      any,
+      any,
+      any
+    >
+>;
+
+export type TransitionConfigFunction<
+  TContext extends MachineContext,
+  TCurrentEvent extends EventObject,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TMeta extends MetaObject
+> = (
+  {
+    context,
+    event,
+    self,
+    parent,
+    value,
+    children,
+    actions
+  }: {
+    context: TContext;
+    event: TCurrentEvent;
+    self: ActorRef<
+      MachineSnapshot<TContext, TEvent, TODO, TODO, TODO, TODO, TODO, TODO>,
+      TEvent
+    >;
+    parent: UnknownActorRef | undefined;
+    value: StateValue;
+    children: Record<string, AnyActorRef>;
+    actions: TActionMap;
+    actors: TActorMap;
+    guards: TGuardMap;
+  },
+  enq: EnqueueObject<TEvent, TEmitted>
+) => {
+  target?: string;
+  context?: TContext;
+  reenter?: boolean;
+  meta?: TMeta;
+} | void;
+
+export type AnyTransitionConfigFunction = TransitionConfigFunction<
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any
 >;
 
 export type TransitionsConfig<
@@ -872,6 +953,7 @@ export interface StateNodeConfig<
   /** The initial state transition. */
   initial?:
     | InitialTransitionConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
+    | TransitionConfigFunction<TContext, TEvent, TEvent, TEmitted, any>
     | string
     | undefined;
   /**
@@ -923,6 +1005,16 @@ export interface StateNodeConfig<
       TMeta
     >
   >;
+  invoke2?: InvokeConfig<
+    TContext,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TEmitted,
+    TMeta
+  >;
   /** The mapping of event types to their potential transition(s). */
   on?: TransitionsConfig<
     TContext,
@@ -946,6 +1038,7 @@ export interface StateNodeConfig<
     TDelay,
     TEmitted
   >;
+  entry2?: Action2<TContext, TEvent, TEmitted>;
   /** The action(s) to be executed upon exiting the state node. */
   exit?: Actions<
     TContext,
@@ -958,6 +1051,7 @@ export interface StateNodeConfig<
     TDelay,
     TEmitted
   >;
+  exit2?: Action2<TContext, TEvent, TEmitted>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state
    * node.
@@ -1136,7 +1230,10 @@ export type AnyStateMachine = StateMachine<
   any, // output
   any, // emitted
   any, // TMeta
-  any // TStateSchema
+  any, // TStateSchema,
+  any, // TActionMap,
+  any, // TActorMap
+  any // TGuardMap
 >;
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
@@ -1308,24 +1405,26 @@ export type InternalMachineImplementations<TTypes extends StateMachineTypes> = {
   guards?: MachineImplementationsGuards<TTypes>;
 };
 
-type InitialContext<
+export type InitialContext<
   TContext extends MachineContext,
-  TActor extends ProvidedActor,
+  TActorMap extends Implementations['actors'],
   TInput,
   TEvent extends EventObject
-> = TContext | ContextFactory<TContext, TActor, TInput, TEvent>;
+> = TContext | ContextFactory<TContext, TActorMap, TInput, TEvent>;
 
 export type ContextFactory<
   TContext extends MachineContext,
-  TActor extends ProvidedActor,
+  TActorMap extends Implementations['actors'],
   TInput,
   TEvent extends EventObject = EventObject
 > = ({
   spawn,
+  actors,
   input,
   self
 }: {
-  spawn: Spawner<TActor>;
+  spawn: Spawner;
+  actors: TActorMap;
   input: TInput;
   self: ActorRef<
     MachineSnapshot<
@@ -1679,14 +1778,6 @@ export interface TransitionDefinition<
   reenter: boolean;
   guard?: UnknownGuard;
   eventType: EventDescriptor<TEvent>;
-  toJSON: () => {
-    target: string[] | undefined;
-    source: string;
-    actions: readonly UnknownAction[];
-    guard?: UnknownGuard;
-    eventType: EventDescriptor<TEvent>;
-    meta?: Record<string, any>;
-  };
 }
 
 export type AnyTransitionDefinition = TransitionDefinition<any, any>;
@@ -1729,7 +1820,7 @@ export interface StateConfig<
   historyValue?: HistoryValue<TContext, TEvent>;
   /** @internal */
   _nodes: Array<StateNode<TContext, TEvent>>;
-  children: Record<string, AnyActorRef>;
+  children: Record<string, AnyActorRef | undefined>;
   status: SnapshotStatus;
   output?: any;
   error?: unknown;
@@ -1967,7 +2058,13 @@ export interface ActorRef<
     InteropObservable<TSnapshot> {
   /** The unique identifier for this actor relative to its parent. */
   id: string;
-  sessionId: string;
+  /**
+   * The globally unique process ID for this invocation.
+   *
+   * @remarks
+   * This is only defined once the actor is started.
+   */
+  sessionId: string | undefined;
   /** @internal */
   _send: (event: TEvent) => void;
   send: (event: TEvent) => void;
@@ -1994,7 +2091,7 @@ export interface ActorRef<
 
 export type AnyActorRef = ActorRef<
   any,
-  any, // TODO: shouldn't this be AnyEventObject?
+  AnyEventObject, // TODO: shouldn't this be AnyEventObject?
   any
 >;
 
@@ -2046,7 +2143,10 @@ export type ActorRefFrom<T> =
         infer TOutput,
         infer TEmitted,
         infer TMeta,
-        infer TStateSchema
+        infer TStateSchema,
+        infer _TActionMap,
+        infer _TActorMap,
+        infer _TGuardMap
       >
       ? ActorRef<
           MachineSnapshot<
@@ -2360,7 +2460,9 @@ type ResolveEventType<T> =
         infer _TOutput,
         infer _TEmitted,
         infer _TMeta,
-        infer _TStateSchema
+        infer _TConfig,
+        infer _TActionMap,
+        infer _TActorMap
       >
       ? TEvent
       : R extends MachineSnapshot<
@@ -2401,7 +2503,9 @@ export type ContextFrom<T> =
         infer _TOutput,
         infer _TEmitted,
         infer _TMeta,
-        infer _TStateSchema
+        infer _TConfig,
+        infer _TActionMap,
+        infer _TActorMap
       >
       ? TContext
       : R extends MachineSnapshot<
@@ -2626,6 +2730,7 @@ export interface ExecutableActionObject {
   type: string;
   info: ActionArgs<MachineContext, EventObject, EventObject>;
   params: NonReducibleUnknown;
+  args: unknown[];
   exec:
     | ((info: ActionArgs<any, any, any>, params: unknown) => void)
     | undefined;
@@ -2683,3 +2788,55 @@ export type BuiltinActionResolution = [
   NonReducibleUnknown, // params
   UnknownAction[] | undefined
 ];
+
+export type EnqueueObject<
+  TEvent extends EventObject,
+  TEmittedEvent extends EventObject
+> = {
+  cancel: (id: string) => void;
+  raise: (ev: TEvent, options?: { id?: string; delay?: number }) => void;
+  spawn: <T extends AnyActorLogic>(
+    logic: T,
+    options?: {
+      input?: InputFrom<T>;
+      id?: string;
+      syncSnapshot?: boolean;
+      systemId?: string;
+    }
+  ) => AnyActorRef;
+  emit: (emittedEvent: TEmittedEvent) => void;
+  <T extends (...args: any[]) => any>(fn: T, ...args: Parameters<T>): void;
+  log: (...args: any[]) => void;
+  sendTo: <T extends EventObject>(
+    actorRef: { send: (event: T) => void } | undefined,
+    event: T,
+    options?: { id?: string; delay?: number }
+  ) => void;
+  stop: (actorRef?: AnyActorRef) => void;
+};
+
+export type Action2<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TEmittedEvent extends EventObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors']
+> = (
+  _: {
+    context: TContext;
+    event: TEvent;
+    parent: AnyActorRef | undefined;
+    self: ActorRef<
+      MachineSnapshot<TContext, TEvent, TODO, TODO, TODO, TODO, TODO, TODO>,
+      TEvent
+    >;
+    children: Record<string, AnyActorRef | undefined>;
+    actions: TActionMap;
+    actors: TActorMap;
+    system?: AnyActorSystem;
+  },
+  enqueue: EnqueueObject<TEvent, TEmittedEvent>
+) => {
+  context?: TContext;
+  children?: Record<string, AnyActorRef | undefined>;
+} | void;

@@ -53,7 +53,6 @@ Special thanks to the sponsors who support this open-source project:
   </picture>
 </a>
 
-
 ## Templates
 
 Get started by forking one of these templates on CodeSandbox:
@@ -564,7 +563,6 @@ actor.send({ type: 'PREVIOUS' });
 </tr>
 </tbody>
 </table>
-
 
 ## SemVer Policy
 

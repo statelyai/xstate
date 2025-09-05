@@ -49,13 +49,17 @@ function resolveSpawn(
     syncSnapshot: boolean;
   }
 ): BuiltinActionResolution {
-  const logic =
+  let logic =
     typeof src === 'string'
       ? resolveReferencedActor(snapshot.machine, src)
       : src;
   const resolvedId = typeof id === 'function' ? id(actionArgs) : id;
   let actorRef: AnyActorRef | undefined;
   let resolvedInput: unknown | undefined = undefined;
+
+  if (typeof logic === 'function') {
+    logic = logic({ actors: snapshot.machine.implementations.actors });
+  }
 
   if (logic) {
     resolvedInput =

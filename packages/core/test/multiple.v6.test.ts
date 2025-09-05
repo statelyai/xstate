@@ -15,7 +15,9 @@ describe('multiple', () => {
             target: ['para.A.C', 'para.K.M', 'other']
           },
           BROKEN_DIFFERENT_REGIONS_2: { target: ['para.A.C', 'para2.K2.M2'] },
-          BROKEN_DIFFERENT_REGIONS_3: { target: ['para2.K2.L2.L2A', 'other'] },
+          BROKEN_DIFFERENT_REGIONS_3: {
+            target: ['para2.K2.L2.L2A', 'other']
+          },
           BROKEN_DIFFERENT_REGIONS_4: {
             target: ['para2.K2.L2.L2A.L2C', 'para2.K2.M2']
           },
