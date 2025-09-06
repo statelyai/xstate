@@ -227,6 +227,11 @@ export class Actor<TLogic extends AnyActorLogic>
             const actionArgs = action.args.length
               ? [] // already bound
               : [];
+
+            if (!actionArgs) {
+              throw new Error('actionArgs is undefined');
+            }
+
             action.exec(...actionArgs);
           } finally {
             executingCustomAction = saveExecutingCustomAction;

@@ -670,6 +670,9 @@ describe('parallel states', () => {
   it('should handle simultaneous orthogonal transitions', () => {
     const simultaneousMachine = next_createMachine({
       schemas: {
+        context: z.object({
+          value: z.string()
+        }),
         events: z.union([
           z.object({
             type: z.literal('CHANGE'),
@@ -678,7 +681,6 @@ describe('parallel states', () => {
           z.object({ type: z.literal('SAVE') })
         ])
       },
-      // types: {} as { context: { value: string }; events: Events },
       id: 'yamlEditor',
       type: 'parallel',
       context: {
@@ -736,7 +738,7 @@ describe('parallel states', () => {
 
   // TODO: skip (initial actions)
   it.skip('should execute actions of the initial transition of a parallel region when entering the initial state nodes of a machine', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = next_createMachine({
       type: 'parallel',

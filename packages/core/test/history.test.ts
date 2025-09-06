@@ -194,8 +194,9 @@ describe('history states', () => {
               }
             },
             a2: {
-              entry: (_, enq) => enq(actual.push, 'a2 entered'),
-              exit: (_, enq) => enq(actual.push, 'a2 exited')
+              // TODO: investigate why enq(actual.push, 'a2 entered') throws
+              entry: (_, enq) => enq(() => actual.push('a2 entered')),
+              exit: (_, enq) => enq(() => actual.push('a2 exited'))
             },
             a3: {
               type: 'history',

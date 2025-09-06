@@ -75,9 +75,9 @@ function executeStop(
   // we need for all of the already enqueued events to be processed before we stop the child
   // the parent itself might want to send some events to a child (for example from exit actions on the invoking state)
   // and we don't want to ignore those events
-  actorScope.defer(() => {
-    actorScope.stopChild(actorRef);
-  });
+  // TODO: revisit above
+
+  actorScope.stopChild(actorRef);
 }
 
 export interface StopAction<

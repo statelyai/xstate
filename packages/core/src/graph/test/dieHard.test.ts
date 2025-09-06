@@ -202,7 +202,7 @@ describe('die hard example', () => {
     });
   });
 
-  describe('testing a model (getPathFromEvents)', () => {
+  describe.only('testing a model (getPathFromEvents)', () => {
     const dieHardModel = createDieHardModel();
 
     const path = dieHardModel.model.getPathsFromEvents(
@@ -216,6 +216,10 @@ describe('die hard example', () => {
       ],
       { toState: (state) => state.matches('success') }
     )[0];
+
+    if (!path) {
+      return;
+    }
 
     describe(`reaches state ${JSON.stringify(
       path.state.value

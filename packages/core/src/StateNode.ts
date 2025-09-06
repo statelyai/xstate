@@ -9,7 +9,8 @@ import {
   formatTransition,
   formatTransitions,
   getCandidates,
-  getDelayedTransitions
+  getDelayedTransitions,
+  getTransitionResult
 } from './stateUtils.ts';
 import type {
   DelayedTransitionDefinition,
@@ -33,7 +34,10 @@ import type {
   NonReducibleUnknown,
   EventDescriptor,
   Action2,
-  AnyActorRef
+  AnyActorRef,
+  AnyStateNode,
+  InitialTransitionConfig,
+  AnyEventObject
 } from './types.ts';
 import {
   createInvokeId,
@@ -468,4 +472,124 @@ export class StateNode<
 
     return Array.from(events);
   }
+}
+
+export function formatTransitions<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
+  stateNode: AnyStateNode
+): Map<string, TransitionDefinition<TContext, TEvent>[]> {
+  const transitions = new Map<
+    string,
+    TransitionDefinition<TContext, AnyEventObject>[]
+  >();
+  if (stateNode.config.on) {
+    for (const descriptor of Object.keys(stateNode.config.on)) {
+      if (descriptor === NULL_EVENT) {
+        throw new Error(
+          'Null events ("") cannot be specified as a transition key. Use `always: { ... }` instead.'
+        );
+      }
+      const transitionsConfig = stateNode.config.on[descriptor];
+      transitions.set(
+        descriptor,
+        toTransitionConfigArray(transitionsConfig).map((t) =>
+          typeof t === 'function'
+            ? t
+            : formatTransition(stateNode, descriptor, t)
+        )
+      );
+    }
+  }
+  if (stateNode.config.onDone) {
+    const descriptor = `xstate.done.state.${stateNode.id}`;
+    transitions.set(
+      descriptor,
+      toTransitionConfigArray(stateNode.config.onDone).map((t) =>
+        typeof t === 'function' ? t : formatTransition(stateNode, descriptor, t)
+      )
+    );
+  }
+  for (const invokeDef of stateNode.invoke) {
+    if (invokeDef.onDone) {
+      const descriptor = `xstate.done.actor.${invokeDef.id}`;
+      transitions.set(
+        descriptor,
+        toTransitionConfigArray(invokeDef.onDone).map((t) =>
+          typeof t === 'function'
+            ? t
+            : formatTransition(stateNode, descriptor, t)
+        )
+      );
+    }
+    if (invokeDef.onError) {
+      const descriptor = `xstate.error.actor.${invokeDef.id}`;
+      transitions.set(
+        descriptor,
+        toTransitionConfigArray(invokeDef.onError).map((t) =>
+          typeof t === 'function'
+            ? t
+            : formatTransition(stateNode, descriptor, t)
+        )
+      );
+    }
+    if (invokeDef.onSnapshot) {
+      const descriptor = `xstate.snapshot.${invokeDef.id}`;
+      transitions.set(
+        descriptor,
+        toTransitionConfigArray(invokeDef.onSnapshot).map((t) =>
+          typeof t === 'function'
+            ? t
+            : formatTransition(stateNode, descriptor, t)
+        )
+      );
+    }
+  }
+  for (const delayedTransition of stateNode.after) {
+    let existing = transitions.get(delayedTransition.eventType);
+    if (!existing) {
+      existing = [];
+      transitions.set(delayedTransition.eventType, existing);
+    }
+    existing.push(delayedTransition);
+  }
+  return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
+}
+
+export function formatInitialTransition<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
+  stateNode: AnyStateNode,
+  _target:
+    | string
+    | undefined
+    | InitialTransitionConfig<TContext, TEvent, TODO, TODO, TODO, TODO>
+): InitialTransitionDefinition<TContext, TEvent> {
+  // if (typeof _target === 'function') {
+  //   const res = getTransitionResult({ fn: _target }, {}, {}, {}, {}, {});
+  // }
+  const resolvedTarget =
+    typeof _target === 'string'
+      ? stateNode.states[_target]
+      : _target
+        ? stateNode.states[_target.target]
+        : undefined;
+  if (!resolvedTarget && _target) {
+    throw new Error(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-base-to-string
+      `Initial state node "${_target}" not found on parent state node #${stateNode.id}`
+    );
+  }
+  const transition: InitialTransitionDefinition<TContext, TEvent> = {
+    source: stateNode,
+    actions:
+      !_target || typeof _target === 'string' ? [] : toArray(_target.actions),
+    eventType: null as any,
+    reenter: false,
+    target: resolvedTarget ? [resolvedTarget] : []
+  };
+
+  return transition;
 }

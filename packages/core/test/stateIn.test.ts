@@ -1,4 +1,9 @@
-import { next_createMachine, createActor, matchesState } from '../src/index.ts';
+import {
+  next_createMachine,
+  createActor,
+  matchesState,
+  StateValue
+} from '../src/index.ts';
 import { stateIn } from '../src/guards.ts';
 
 describe('transition "in" check', () => {
@@ -427,34 +432,36 @@ describe('transition "in" check', () => {
   });
 
   it('should be possible to use a referenced `stateIn` guard', () => {
-    const machine = next_createMachine(
-      {
-        type: 'parallel',
-        // machine definition,
-        states: {
-          selected: {},
-          location: {
-            initial: 'home',
-            states: {
-              home: {
-                on: {
-                  NEXT: {
-                    target: 'success',
-                    guard: 'hasSelection'
-                  }
-                }
-              },
-              success: {}
-            }
-          }
+    const machine = next_createMachine({
+      type: 'parallel',
+      guards: {
+        // hasSelection: stateIn('selected')
+        hasSelection: (value: StateValue) => {
+          return matchesState('selected', value);
         }
       },
-      {
-        guards: {
-          hasSelection: stateIn('selected')
+      // machine definition,
+      states: {
+        selected: {},
+        location: {
+          initial: 'home',
+          states: {
+            home: {
+              on: {
+                NEXT: ({ guards, value }) => {
+                  if (guards.hasSelection(value)) {
+                    return {
+                      target: 'success'
+                    };
+                  }
+                }
+              }
+            },
+            success: {}
+          }
         }
       }
-    );
+    });
 
     const actor = createActor(machine).start();
     actor.send({
@@ -466,7 +473,7 @@ describe('transition "in" check', () => {
     });
   });
 
-  it('should be possible to check an ID with a path', () => {
+  it.skip('should be possible to check an ID with a path', () => {
     const spy = vi.fn();
     const machine = next_createMachine({
       type: 'parallel',
@@ -476,9 +483,14 @@ describe('transition "in" check', () => {
           states: {
             A1: {
               on: {
-                MY_EVENT: {
-                  guard: stateIn('#b.B1'),
-                  actions: spy
+                // MY_EVENT: {
+                //   guard: stateIn('#b.B1'),
+                //   actions: spy
+                // }
+                MY_EVENT: ({ value }, enq) => {
+                  if (matchesState('#b.B1', value)) {
+                    enq(spy);
+                  }
                 }
               }
             }

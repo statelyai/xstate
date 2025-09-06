@@ -245,6 +245,11 @@ describe('spawning machines', () => {
     });
 
     const parentMachine = next_createMachine({
+      schemas: {
+        context: z.object({
+          ref: z.custom<AnyActorRef>()
+        })
+      },
       context: {
         ref: null! as AnyActorRef
       },
@@ -590,6 +595,15 @@ describe('spawning observables', () => {
     const observableLogic = fromObservable(() => interval(10));
     const observableMachine = next_createMachine({
       id: 'observable',
+      schemas: {
+        context: z.object({
+          observableRef: z.custom<AnyActorRef>()
+        }),
+        events: z.object({
+          type: z.literal('COUNT'),
+          val: z.number()
+        })
+      },
       initial: 'idle',
       context: {
         observableRef: undefined! as ActorRefFrom<typeof observableLogic>
@@ -758,6 +772,15 @@ describe('spawning event observables', () => {
     );
     const observableMachine = next_createMachine({
       id: 'observable',
+      schemas: {
+        context: z.object({
+          observableRef: z.custom<AnyActorRef>()
+        }),
+        events: z.object({
+          type: z.literal('COUNT'),
+          val: z.number()
+        })
+      },
       initial: 'idle',
       context: {
         observableRef: undefined! as ActorRefFrom<typeof eventObservableLogic>
@@ -811,6 +834,15 @@ describe('spawning event observables', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const observableMachine = next_createMachine({
       id: 'observable',
+      schemas: {
+        context: z.object({
+          observableRef: z.custom<AnyActorRef>()
+        }),
+        events: z.object({
+          type: z.literal('COUNT'),
+          val: z.number()
+        })
+      },
       actors: {
         interval: fromEventObservable(() =>
           interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
@@ -864,11 +896,11 @@ describe('communicating with spawned actors', () => {
   it('should treat an interpreter as an actor', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const existingMachine = next_createMachine({
-      types: {
-        events: {} as {
-          type: 'ACTIVATE';
-          origin: AnyActorRef;
-        }
+      schemas: {
+        events: z.object({
+          type: z.literal('ACTIVATE'),
+          origin: z.custom<AnyActorRef>()
+        })
       },
       initial: 'inactive',
       states: {
@@ -889,25 +921,42 @@ describe('communicating with spawned actors', () => {
     const existingService = createActor(existingMachine).start();
 
     const parentMachine = next_createMachine({
-      types: {} as {
-        context: { existingRef?: typeof existingService };
+      // types: {} as {
+      //   context: { existingRef?: typeof existingService };
+      // },
+      schemas: {
+        context: z.object({
+          existingRef: z.custom<typeof existingService>().optional()
+        }),
+        events: z.union([
+          z.object({
+            type: z.literal('ACTIVATE'),
+            origin: z.custom<typeof existingService>()
+          }),
+          z.object({
+            type: z.literal('EXISTING.DONE')
+          })
+        ])
       },
       initial: 'pending',
       context: {
-        existingRef: undefined
+        existingRef: existingService
       },
       states: {
         pending: {
-          entry: () => ({
-            context: {
-              existingRef: existingService
-            }
-          }),
+          entry: () => {
+            return {
+              context: {
+                existingRef: existingService
+              }
+            };
+          },
           on: {
             'EXISTING.DONE': 'success'
           },
           after: {
             100: ({ context, self }, enq) => {
+              expect(context.existingRef).toBeDefined();
               enq.sendTo(context.existingRef, {
                 type: 'ACTIVATE',
                 origin: self
