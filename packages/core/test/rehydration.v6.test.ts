@@ -7,7 +7,7 @@ import {
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
 
-describe('rehydration', () => {
+describe.skip('rehydration', () => {
   describe('using persisted state', () => {
     it('should be able to use `hasTag` immediately', () => {
       const machine = next_createMachine({

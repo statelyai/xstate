@@ -1000,6 +1000,8 @@ export function microstep(
     );
   }
 
+  currentSnapshot.random = Math.random();
+
   const { context, actions } = filteredTransitions
     .flatMap((t) =>
       getTransitionResult(
@@ -1012,10 +1014,9 @@ export function microstep(
     )
     .reduce(
       (acc, res) => {
-        acc.context =
-          acc.context || res.context
-            ? { ...acc.context, ...res.context }
-            : res.context;
+        if (res.context) {
+          acc.context = res.context;
+        }
         acc.actions = [...acc.actions, ...res.actions];
         return acc;
       },
@@ -1030,7 +1031,7 @@ export function microstep(
     internalQueue,
     undefined
   );
-  if (context) {
+  if (context && context !== currentSnapshot.context) {
     nextState = cloneMachineSnapshot(nextState, { context });
   }
 
@@ -1159,6 +1160,7 @@ function enterStates(
   const completedNodes = new Set();
 
   const children = { ...currentSnapshot.children };
+  let invoked = false;
   for (const stateNodeToEnter of [...statesToEnter].sort(
     (a, b) => a.order - b.order
   )) {
@@ -1171,6 +1173,7 @@ function enterStates(
     }
 
     for (const invokeDef of stateNodeToEnter.invoke) {
+      invoked = true;
       let logic = resolveReferencedActor(
         currentSnapshot.machine,
         invokeDef.src
@@ -1210,7 +1213,9 @@ function enterStates(
       );
     }
 
-    nextSnapshot = cloneMachineSnapshot(nextSnapshot, { children });
+    if (invoked) {
+      nextSnapshot = cloneMachineSnapshot(nextSnapshot, { children });
+    }
 
     if (stateNodeToEnter.entry2) {
       actions.push(
