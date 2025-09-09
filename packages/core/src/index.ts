@@ -11,14 +11,7 @@ export {
 export { createMachine, next_createMachine } from './createMachine.ts';
 export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
 export { and, not, or, stateIn } from './guards.ts';
-export type {
-  InspectedActionEvent,
-  InspectedActorEvent,
-  InspectedEventEvent,
-  InspectedMicrostepEvent,
-  InspectedSnapshotEvent,
-  InspectionEvent
-} from './inspection.ts';
+export type { InspectionEvent } from './inspection.ts';
 export { setup } from './setup.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
 export { type Spawner } from './spawn.ts';

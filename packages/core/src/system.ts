@@ -159,7 +159,7 @@ export function createSystem<T extends ActorSystemInfo>(
     }
     const resolvedInspectionEvent: InspectionEvent = {
       ...event,
-      rootId: rootActor.sessionId
+      rootId: rootActor.sessionId!
     };
     inspectionObservers.forEach((observer) =>
       observer.next?.(resolvedInspectionEvent)
@@ -214,13 +214,8 @@ export function createSystem<T extends ActorSystemInfo>(
     },
     _sendInspectionEvent: sendInspectionEvent as any,
     _relay: (source, target, event) => {
-      system._sendInspectionEvent({
-        type: '@xstate.event',
-        sourceRef: source,
-        actorRef: target,
-        event
-      });
-
+      // remember the last source for unified transition inspect event
+      (target as any)._lastSourceRef = source;
       target._send(event);
     },
     scheduler,

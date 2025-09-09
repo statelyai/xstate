@@ -2056,13 +2056,11 @@ export function macrostep(
     event: AnyEventObject,
     transitions: AnyTransitionDefinition[]
   ) {
-    actorScope.system._sendInspectionEvent({
-      type: '@xstate.microstep',
-      actorRef: actorScope.self,
-      event,
-      snapshot: microstate,
-      _transitions: transitions
-    });
+    // collect microsteps for unified '@xstate.transition'
+    (actorScope.self as any)._collectedMicrosteps = [
+      ...(((actorScope.self as any)._collectedMicrosteps as any[]) || []),
+      ...transitions
+    ];
     microstates.push(microstate);
   }
 

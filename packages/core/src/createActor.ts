@@ -34,7 +34,8 @@ import type {
   InputFrom,
   IsNotNever,
   Snapshot,
-  SnapshotFrom
+  SnapshotFrom,
+  AnyTransitionDefinition
 } from './types.ts';
 import {
   ActorOptions,
@@ -121,6 +122,10 @@ export class Actor<TLogic extends AnyActorLogic>
   >;
 
   private _systemId: string | undefined;
+  /** @internal */
+  public _lastSourceRef?: AnyActorRef;
+  /** @internal */
+  public _collectedMicrosteps: AnyTransitionDefinition[] = [] as any;
 
   /** The globally unique process ID for this invocation. */
   public sessionId: string;
@@ -209,14 +214,7 @@ export class Actor<TLogic extends AnyActorLogic>
       },
       actionExecutor: (action) => {
         const exec = () => {
-          this._actorScope.system._sendInspectionEvent({
-            type: '@xstate.action',
-            actorRef: this,
-            action: {
-              type: action.type,
-              params: action.params
-            }
-          });
+          // unified '@xstate.transition' event replaces '@xstate.action'
           if (!action.exec) {
             return;
           }
@@ -249,16 +247,15 @@ export class Actor<TLogic extends AnyActorLogic>
     // if destructured
     this.send = this.send.bind(this);
 
-    this.system._sendInspectionEvent({
-      type: '@xstate.actor',
-      actorRef: this
-    });
+    // unified '@xstate.transition' event replaces '@xstate.actor'
 
     if (systemId) {
       this._systemId = systemId;
       this.system._set(systemId, this);
     }
 
+    // prepare to collect initial microsteps during getInitialSnapshot
+    this._collectedMicrosteps = [] as any;
     this._initState(options?.snapshot ?? options?.state);
 
     if (systemId && (this._snapshot as any).status !== 'active') {
@@ -354,11 +351,17 @@ export class Actor<TLogic extends AnyActorLogic>
         break;
     }
     this.system._sendInspectionEvent({
-      type: '@xstate.snapshot',
-      actorRef: this,
+      type: '@xstate.transition',
+      actorRef: this as any,
       event,
-      snapshot
+      sourceRef: this._lastSourceRef,
+      targetRef: this as any,
+      snapshot,
+      microsteps: this._collectedMicrosteps as any,
+      eventType: event.type
     });
+    // reset after emission
+    this._collectedMicrosteps = [] as any;
   }
 
   /**
@@ -524,13 +527,8 @@ export class Actor<TLogic extends AnyActorLogic>
 
     // TODO: this isn't correct when rehydrating
     const initEvent = createInitEvent(this.options.input);
-
-    this.system._sendInspectionEvent({
-      type: '@xstate.event',
-      sourceRef: this._parent,
-      actorRef: this,
-      event: initEvent
-    });
+    // remember source of init as parent for unified transition event
+    this._lastSourceRef = this._parent;
 
     const status = (this._snapshot as any).status;
 
