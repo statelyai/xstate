@@ -2695,17 +2695,15 @@ describe('createAction', () => {
         };
       }
     });
-    const assignAction = machineSetup.createAction(
-      assign({
-        count: ({ context }) => {
-          context.count satisfies number;
-          // @ts-expect-error
-          context.text satisfies string;
+    const assignAction = machineSetup.createAction.assign({
+      count: ({ context }) => {
+        context.count satisfies number;
+        // @ts-expect-error
+        context.text satisfies string;
 
-          return context.count + 1;
-        }
-      })
-    );
+        return context.count + 1;
+      }
+    });
 
     machineSetup.createMachine({
       context: {
@@ -2731,14 +2729,42 @@ describe('createAction', () => {
         };
       }
     });
-    const sendToAction = machineSetup.createAction(
-      raise(({ event }) => {
+    const raiseAction = machineSetup.createAction.raise(({ event }) => {
+      event.type satisfies 'TEST';
+      // @ts-expect-error
+      event.type satisfies 'INVALID';
+
+      return event;
+    });
+
+    machineSetup.createMachine({
+      context: {
+        count: 0
+      },
+      entry: raiseAction
+    });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: raiseAction
+    });
+  });
+
+  it('should be able to create a type-safe sendTo action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        events: { type: 'TEST' };
+      }
+    });
+    const sendToAction = machineSetup.createAction.sendTo(
+      ({ self }) => self,
+      ({ event }) => {
         event.type satisfies 'TEST';
         // @ts-expect-error
         event.type satisfies 'INVALID';
 
         return event;
-      })
+      }
     );
 
     machineSetup.createMachine({
@@ -2752,5 +2778,73 @@ describe('createAction', () => {
       // @ts-expect-error
       entry: sendToAction
     });
+  });
+
+  it('should be able to create a type-safe sendParent action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        events: { type: 'TEST' };
+      }
+    });
+    const sendParentAction = machineSetup.createAction.sendParent(
+      ({ event }) => {
+        event.type satisfies 'TEST';
+        // @ts-expect-error
+        event.type satisfies 'INVALID';
+        return event;
+      }
+    );
+
+    machineSetup.createMachine({
+      context: { count: 0 },
+      entry: sendParentAction
+    });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: sendParentAction
+    });
+  });
+
+  it('should be able to create a type-safe forwardTo action', () => {
+    const machineSetup = setup({});
+    const forwardAction = machineSetup.createAction.forwardTo(
+      ({ self }) => self
+    );
+
+    machineSetup.createMachine({
+      entry: forwardAction
+    });
+  });
+
+  it('should be able to create a type-safe log action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        context: { count: number };
+        events: { type: 'TEST' };
+      }
+    });
+    const logAction = machineSetup.createAction.log(({ context, event }) => {
+      context.count satisfies number;
+      event.type satisfies 'TEST';
+      return { context, event };
+    }, 'label');
+
+    machineSetup.createMachine({
+      context: { count: 0 },
+      entry: logAction
+    });
+  });
+
+  it('should be able to create a type-safe cancel action', () => {
+    const machineSetup = setup({});
+    const cancelAction = machineSetup.createAction.cancel('some-id');
+    machineSetup.createMachine({ entry: cancelAction });
+  });
+
+  it('should be able to create a type-safe stopChild action', () => {
+    const machineSetup = setup({});
+    const stopAction = machineSetup.createAction.stopChild('child');
+    machineSetup.createMachine({ entry: stopAction });
   });
 });

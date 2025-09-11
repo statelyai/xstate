@@ -1,14 +1,31 @@
 import { StateMachine } from './StateMachine';
 import { createMachine } from './createMachine';
 import { GuardPredicate } from './guards';
+import { assign } from './actions/assign';
+import { sendTo, sendParent, forwardTo } from './actions/send';
+import { raise } from './actions/raise';
+import { log } from './actions/log';
+import { stopChild } from './actions/stopChild';
+import { cancel } from './actions/cancel';
 
 import {
   ActionFunction,
+  ActionArgs,
   AnyActorRef,
   AnyEventObject,
   Cast,
   DelayConfig,
   EventObject,
+  Assigner,
+  PropertyAssigner,
+  LowInfer,
+  DoNotInfer,
+  SendExpr,
+  RaiseActionOptions,
+  EventFrom,
+  InferEvent,
+  SendToActionOptions,
+  LogExpr,
   Invert,
   IsNever,
   MachineConfig,
@@ -215,7 +232,7 @@ export function setup<
    * });
    * ```
    */
-  createAction: (
+  createAction: ((
     action: ActionFunction<
       TContext,
       TEvent,
@@ -227,7 +244,194 @@ export function setup<
       TDelay,
       TEmitted
     >
-  ) => typeof action;
+  ) => typeof action) & {
+    assign: <
+      TParams extends ParameterizedObject['params'] | undefined,
+      TActor extends ToProvidedActor<TChildrenMap, TActors>
+    >(
+      assignment:
+        | Assigner<LowInfer<TContext>, TEvent, TParams, TEvent, TActor>
+        | PropertyAssigner<LowInfer<TContext>, TEvent, TParams, TEvent, TActor>
+    ) => ActionFunction<
+      TContext,
+      TEvent,
+      TEvent,
+      TParams,
+      TActor,
+      never,
+      never,
+      never,
+      never
+    >;
+    sendTo: <
+      TParams extends ParameterizedObject['params'] | undefined,
+      TTargetActor extends AnyActorRef,
+      TUsedDelay extends TDelay = never
+    >(
+      to:
+        | TTargetActor
+        | string
+        | ((
+            args: ActionArgs<TContext, TEvent, TEvent>,
+            params: TParams
+          ) => TTargetActor | string),
+      eventOrExpr:
+        | EventFrom<TTargetActor>
+        | SendExpr<
+            TContext,
+            TEvent,
+            TParams,
+            InferEvent<Cast<EventFrom<TTargetActor>, EventObject>>,
+            TEvent
+          >,
+      options?: SendToActionOptions<
+        TContext,
+        TEvent,
+        TParams,
+        TEvent,
+        TUsedDelay
+      >
+    ) => ActionFunction<
+      TContext,
+      TEvent,
+      TEvent,
+      TParams,
+      never,
+      never,
+      never,
+      TDelay,
+      never
+    >;
+    sendParent: <
+      TParams extends ParameterizedObject['params'] | undefined,
+      TSpecificEvent extends TEvent,
+      TUsedDelay extends TDelay = never
+    >(
+      event:
+        | TSpecificEvent
+        | SendExpr<TContext, TEvent, TParams, TSpecificEvent, TEvent>,
+      options?: SendToActionOptions<
+        TContext,
+        TEvent,
+        TParams,
+        TEvent,
+        TUsedDelay
+      >
+    ) => ActionFunction<
+      TContext,
+      TEvent,
+      TSpecificEvent,
+      TParams,
+      never,
+      never,
+      never,
+      TDelay,
+      never
+    >;
+    forwardTo: <TParams extends ParameterizedObject['params'] | undefined>(
+      target:
+        | string
+        | AnyActorRef
+        | ((
+            args: ActionArgs<TContext, TEvent, TEvent>,
+            params: TParams
+          ) => string | AnyActorRef),
+      options?: SendToActionOptions<TContext, TEvent, TParams, TEvent, any>
+    ) => ActionFunction<
+      TContext,
+      TEvent,
+      TEvent,
+      TParams,
+      never,
+      never,
+      never,
+      TDelay,
+      never
+    >;
+    raise: <
+      TSpecificEvent extends TEvent,
+      TParams extends ParameterizedObject['params'] | undefined,
+      TUsedDelay extends TDelay = never
+    >(
+      eventOrExpr:
+        | DoNotInfer<TSpecificEvent>
+        | SendExpr<
+            TContext,
+            TEvent,
+            TParams,
+            DoNotInfer<TSpecificEvent>,
+            TEvent
+          >,
+      options?: RaiseActionOptions<
+        TContext,
+        TEvent,
+        TParams,
+        DoNotInfer<TSpecificEvent>,
+        TUsedDelay
+      >
+    ) => ActionFunction<
+      TContext,
+      TEvent,
+      TSpecificEvent,
+      TParams,
+      never,
+      never,
+      never,
+      TDelay,
+      never
+    >;
+    log: <TParams extends ParameterizedObject['params'] | undefined>(
+      value?: string | LogExpr<TContext, TEvent, TParams, TEvent>,
+      label?: string
+    ) => ActionFunction<
+      TContext,
+      TEvent,
+      TEvent,
+      TParams,
+      never,
+      never,
+      never,
+      never,
+      never
+    >;
+    cancel: <TParams extends ParameterizedObject['params'] | undefined>(
+      sendId:
+        | string
+        | ((
+            args: ActionArgs<TContext, TEvent, TEvent>,
+            params: TParams
+          ) => string)
+    ) => ActionFunction<
+      TContext,
+      TEvent,
+      TEvent,
+      TParams,
+      never,
+      never,
+      never,
+      never,
+      never
+    >;
+    stopChild: <TParams extends ParameterizedObject['params'] | undefined>(
+      actorRef:
+        | string
+        | AnyActorRef
+        | ((
+            args: ActionArgs<TContext, TEvent, TEvent>,
+            params: TParams
+          ) => AnyActorRef | string)
+    ) => ActionFunction<
+      TContext,
+      TEvent,
+      TEvent,
+      TParams,
+      never,
+      never,
+      never,
+      never,
+      never
+    >;
+  };
   createMachine: <
     const TConfig extends MachineConfig<
       TContext,
@@ -264,9 +468,34 @@ export function setup<
     TConfig
   >;
 } {
+  const createActionImpl = (
+    fn: ActionFunction<
+      TContext,
+      TEvent,
+      TEvent,
+      unknown,
+      ToProvidedActor<TChildrenMap, TActors>,
+      ToParameterizedObject<TActions>,
+      ToParameterizedObject<TGuards>,
+      TDelay,
+      TEmitted
+    >
+  ) => fn;
+
+  const createActionWithStatics = Object.assign(createActionImpl, {
+    assign,
+    sendTo,
+    sendParent,
+    forwardTo,
+    raise,
+    log,
+    cancel,
+    stopChild
+  });
+
   return {
     createStateConfig: (config) => config,
-    createAction: (fn) => fn,
+    createAction: createActionWithStatics as any,
     createMachine: (config) =>
       (createMachine as any)(
         { ...config, schemas },
