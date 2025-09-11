@@ -784,12 +784,12 @@ describe('joinPaths()', () => {
 
     expect(pathToBAndC.steps.map((step) => step.event.type))
       .toMatchInlineSnapshot(`
-      [
-        "xstate.init",
-        "NEXT",
-        "TO_C",
-      ]
-    `);
+        [
+          "@xstate.init",
+          "NEXT",
+          "TO_C",
+        ]
+      `);
 
     expect(pathToBAndC.state.matches('c')).toBeTruthy();
   });

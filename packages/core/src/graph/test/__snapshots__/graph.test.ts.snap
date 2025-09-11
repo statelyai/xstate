@@ -7,7 +7,7 @@ exports[`@xstate/graph > getPathFromEvents() > should return a path to the last 
   },
   "steps": [
     {
-      "eventType": "xstate.init",
+      "eventType": "@xstate.init",
       "state": "green",
     },
     {
@@ -43,7 +43,7 @@ exports[`@xstate/graph > getShortestPaths() > should return a mapping of shortes
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": {
           "a": "a1",
           "b": "b1",
@@ -58,7 +58,7 @@ exports[`@xstate/graph > getShortestPaths() > should return a mapping of shortes
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": {
           "a": "a1",
           "b": "b1",
@@ -80,7 +80,7 @@ exports[`@xstate/graph > getShortestPaths() > should return a mapping of shortes
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": {
           "a": "a1",
           "b": "b1",
@@ -104,7 +104,7 @@ exports[`@xstate/graph > getShortestPaths() > should return a mapping of shortes
     "state": "green",
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
     ],
@@ -113,7 +113,7 @@ exports[`@xstate/graph > getShortestPaths() > should return a mapping of shortes
     "state": "yellow",
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
       {
@@ -128,7 +128,7 @@ exports[`@xstate/graph > getShortestPaths() > should return a mapping of shortes
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
       {
@@ -145,7 +145,7 @@ exports[`@xstate/graph > getShortestPaths() > should return a mapping of shortes
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
       {
@@ -166,7 +166,7 @@ exports[`@xstate/graph > getShortestPaths() > should return a mapping of shortes
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
       {
@@ -193,7 +193,7 @@ exports[`@xstate/graph > getShortestPaths() > should return a mapping of shortes
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
       {
@@ -229,7 +229,7 @@ exports[`@xstate/graph > getSimplePaths() > should return a mapping of arrays of
     "state": "green",
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
     ],
@@ -238,7 +238,7 @@ exports[`@xstate/graph > getSimplePaths() > should return a mapping of arrays of
     "state": "yellow",
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
       {
@@ -253,7 +253,7 @@ exports[`@xstate/graph > getSimplePaths() > should return a mapping of arrays of
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
       {
@@ -280,7 +280,7 @@ exports[`@xstate/graph > getSimplePaths() > should return a mapping of arrays of
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
       {
@@ -313,7 +313,7 @@ exports[`@xstate/graph > getSimplePaths() > should return a mapping of arrays of
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
       {
@@ -352,7 +352,7 @@ exports[`@xstate/graph > getSimplePaths() > should return a mapping of arrays of
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
       {
@@ -373,7 +373,7 @@ exports[`@xstate/graph > getSimplePaths() > should return a mapping of arrays of
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
       {
@@ -390,7 +390,7 @@ exports[`@xstate/graph > getSimplePaths() > should return a mapping of arrays of
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
       {
@@ -411,7 +411,7 @@ exports[`@xstate/graph > getSimplePaths() > should return a mapping of arrays of
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
       {
@@ -438,7 +438,7 @@ exports[`@xstate/graph > getSimplePaths() > should return a mapping of arrays of
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "green",
       },
       {
@@ -477,7 +477,7 @@ exports[`@xstate/graph > getSimplePaths() > should return a mapping of simple pa
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": {
           "a": "a1",
           "b": "b1",
@@ -492,7 +492,7 @@ exports[`@xstate/graph > getSimplePaths() > should return a mapping of simple pa
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": {
           "a": "a1",
           "b": "b1",
@@ -514,7 +514,7 @@ exports[`@xstate/graph > getSimplePaths() > should return a mapping of simple pa
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": {
           "a": "a1",
           "b": "b1",
@@ -543,7 +543,7 @@ exports[`@xstate/graph > getSimplePaths() > should return a mapping of simple pa
     },
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": {
           "a": "a1",
           "b": "b1",
@@ -567,7 +567,7 @@ exports[`@xstate/graph > getSimplePaths() > should return multiple paths for equ
     "state": "a",
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "a",
       },
     ],
@@ -576,7 +576,7 @@ exports[`@xstate/graph > getSimplePaths() > should return multiple paths for equ
     "state": "b",
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "a",
       },
       {
@@ -589,7 +589,7 @@ exports[`@xstate/graph > getSimplePaths() > should return multiple paths for equ
     "state": "b",
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "a",
       },
       {
@@ -607,7 +607,7 @@ exports[`@xstate/graph > getSimplePaths() > should return value-based paths > si
     "state": "start",
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "start",
       },
     ],
@@ -616,7 +616,7 @@ exports[`@xstate/graph > getSimplePaths() > should return value-based paths > si
     "state": "start",
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "start",
       },
       {
@@ -629,7 +629,7 @@ exports[`@xstate/graph > getSimplePaths() > should return value-based paths > si
     "state": "start",
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "start",
       },
       {
@@ -646,7 +646,7 @@ exports[`@xstate/graph > getSimplePaths() > should return value-based paths > si
     "state": "finish",
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": "start",
       },
       {
@@ -765,7 +765,7 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 0,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
     ],
@@ -774,7 +774,7 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 1,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -787,7 +787,7 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 1,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -804,7 +804,7 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 1,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -825,7 +825,7 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 1,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -842,7 +842,7 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 1,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -863,7 +863,7 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 0,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -888,7 +888,7 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 0,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -909,7 +909,7 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 0,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -922,7 +922,7 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 0,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -939,49 +939,7 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 0,
     "steps": [
       {
-        "eventType": "xstate.init",
-        "state": 0,
-      },
-      {
-        "eventType": "a",
-        "state": 1,
-      },
-      {
-        "eventType": "b",
-        "state": 2,
-      },
-      {
-        "eventType": "reset",
-        "state": 0,
-      },
-    ],
-  },
-  {
-    "state": 0,
-    "steps": [
-      {
-        "eventType": "xstate.init",
-        "state": 0,
-      },
-      {
-        "eventType": "a",
-        "state": 1,
-      },
-      {
-        "eventType": "reset",
-        "state": 0,
-      },
-    ],
-  },
-  {
-    "state": 0,
-    "steps": [
-      {
-        "eventType": "xstate.init",
-        "state": 0,
-      },
-      {
-        "eventType": "b",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -1002,7 +960,49 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 0,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
+        "state": 0,
+      },
+      {
+        "eventType": "a",
+        "state": 1,
+      },
+      {
+        "eventType": "reset",
+        "state": 0,
+      },
+    ],
+  },
+  {
+    "state": 0,
+    "steps": [
+      {
+        "eventType": "@xstate.init",
+        "state": 0,
+      },
+      {
+        "eventType": "b",
+        "state": 0,
+      },
+      {
+        "eventType": "a",
+        "state": 1,
+      },
+      {
+        "eventType": "b",
+        "state": 2,
+      },
+      {
+        "eventType": "reset",
+        "state": 0,
+      },
+    ],
+  },
+  {
+    "state": 0,
+    "steps": [
+      {
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -1023,7 +1023,7 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 0,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -1040,7 +1040,7 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 0,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -1053,28 +1053,7 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 2,
     "steps": [
       {
-        "eventType": "xstate.init",
-        "state": 0,
-      },
-      {
-        "eventType": "a",
-        "state": 1,
-      },
-      {
-        "eventType": "b",
-        "state": 2,
-      },
-    ],
-  },
-  {
-    "state": 2,
-    "steps": [
-      {
-        "eventType": "xstate.init",
-        "state": 0,
-      },
-      {
-        "eventType": "b",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -1091,15 +1070,11 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 2,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
         "eventType": "b",
-        "state": 0,
-      },
-      {
-        "eventType": "reset",
         "state": 0,
       },
       {
@@ -1116,7 +1091,11 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 2,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
+        "state": 0,
+      },
+      {
+        "eventType": "b",
         "state": 0,
       },
       {
@@ -1137,7 +1116,28 @@ exports[`shortest paths for transition functions 1`] = `
     "state": 2,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
+        "state": 0,
+      },
+      {
+        "eventType": "reset",
+        "state": 0,
+      },
+      {
+        "eventType": "a",
+        "state": 1,
+      },
+      {
+        "eventType": "b",
+        "state": 2,
+      },
+    ],
+  },
+  {
+    "state": 2,
+    "steps": [
+      {
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -1167,7 +1167,7 @@ exports[`simple paths for transition functions 1`] = `
     "state": 0,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
     ],
@@ -1176,7 +1176,7 @@ exports[`simple paths for transition functions 1`] = `
     "state": 1,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -1189,7 +1189,7 @@ exports[`simple paths for transition functions 1`] = `
     "state": 0,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -1202,7 +1202,7 @@ exports[`simple paths for transition functions 1`] = `
     "state": 0,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {
@@ -1215,7 +1215,7 @@ exports[`simple paths for transition functions 1`] = `
     "state": 2,
     "steps": [
       {
-        "eventType": "xstate.init",
+        "eventType": "@xstate.init",
         "state": 0,
       },
       {

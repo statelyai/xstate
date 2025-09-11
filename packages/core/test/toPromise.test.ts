@@ -125,8 +125,10 @@ describe('toPromise', () => {
 
   it('should immediately reject for an actor that had an error', async () => {
     const machine = createMachine({
-      entry: () => {
-        throw new Error('oh noes');
+      entry: (_, enq) => {
+        enq(() => {
+          throw new Error('oh noes');
+        });
       }
     });
 
