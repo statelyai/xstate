@@ -364,6 +364,15 @@ export function formatTransition(
   return transition;
 }
 
+function resolveInitialTarget(
+  stateNode: AnyStateNode,
+  targets: ReadonlyArray<string> | undefined
+): ReadonlyArray<AnyStateNode> | undefined {
+  return targets?.map((target) => {
+    return stateNode.states?.[target];
+  });
+}
+
 function resolveTarget(
   stateNode: AnyStateNode,
   targets: ReadonlyArray<string | AnyStateNode> | undefined
@@ -1232,7 +1241,13 @@ function enterStates(
     }
 
     if (statesForDefaultEntry.has(stateNodeToEnter)) {
-      const initialActions = stateNodeToEnter.initial.actions;
+      // const initialActions = stateNodeToEnter.initial.actions;
+      const initialActions = getTransitionActions(
+        stateNodeToEnter.initial,
+        nextSnapshot,
+        event,
+        actorScope
+      );
       actions.push(...initialActions);
     }
 
@@ -1385,10 +1400,16 @@ export function getTransitionResult(
       enqueue
     );
 
+    const targets = res?.target
+      ? // TODO: remove transition.initial and figure out a better way to
+        // identify initial transitions
+        transition.initial
+        ? resolveInitialTarget(transition.source, [res.target])
+        : resolveTarget(transition.source, [res.target])
+      : undefined;
+
     return {
-      targets: res?.target
-        ? resolveTarget(transition.source, [res.target])
-        : undefined,
+      targets: targets,
       context: res?.context,
       reenter: res?.reenter,
       actions
@@ -1659,7 +1680,13 @@ function addDescendantStatesToEnter<
     }
   } else {
     if (stateNode.type === 'compound') {
-      const [initialState] = stateNode.initial.target;
+      const [initialState] = getTransitionResult(
+        stateNode.initial,
+        snapshot,
+        event,
+        self,
+        actorScope
+      ).targets!;
 
       if (!isHistoryNode(initialState)) {
         statesToEnter.add(initialState);

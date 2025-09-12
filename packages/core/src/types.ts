@@ -348,7 +348,10 @@ export interface TransitionConfig<
     TExpressionEvent,
     TEvent,
     TEmitted,
-    any // TActionMap
+    any, // TActionMap
+    any,
+    any,
+    any
   >;
   meta?: TMeta;
   description?: string;
@@ -953,7 +956,16 @@ export interface StateNodeConfig<
   /** The initial state transition. */
   initial?:
     | InitialTransitionConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
-    | TransitionConfigFunction<TContext, TEvent, TEvent, TEmitted, any>
+    | TransitionConfigFunction<
+        TContext,
+        TEvent,
+        TEvent,
+        TEmitted,
+        any,
+        any,
+        any,
+        any
+      >
     | string
     | undefined;
   /**
@@ -1149,13 +1161,14 @@ export type AnyStateNodeConfig = StateNodeConfig<
 
 export interface StateNodeDefinition<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TEmitted extends EventObject
 > {
   id: string;
   version?: string | undefined;
   key: string;
   type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
-  initial: InitialTransitionDefinition<TContext, TEvent> | undefined;
+  initial: InitialTransitionDefinition<TContext, TEvent, TEmitted> | undefined;
   history: boolean | 'shallow' | 'deep' | undefined;
   states: StatesDefinition<TContext, TEvent>;
   on: TransitionDefinitionMap<TContext, TEvent>;
@@ -1782,13 +1795,29 @@ export interface TransitionDefinition<
 
 export type AnyTransitionDefinition = TransitionDefinition<any, any>;
 
-export interface InitialTransitionDefinition<
+export type InitialTransitionDefinition<
   TContext extends MachineContext,
-  TEvent extends EventObject
-> extends TransitionDefinition<TContext, TEvent> {
-  target: ReadonlyArray<StateNode<TContext, TEvent>>;
-  guard?: never;
-}
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> =
+  | (TransitionDefinition<TContext, TEvent> & {
+      target: ReadonlyArray<StateNode<TContext, TEvent>>;
+      guard?: never;
+    })
+  | {
+      initial: true;
+      source: StateNode<TContext, TEvent>;
+      fn: TransitionConfigFunction<
+        TContext,
+        TEvent,
+        TEvent,
+        TEmitted,
+        any, // TActionMap
+        any,
+        any,
+        any
+      >;
+    };
 
 export type TransitionDefinitionMap<
   TContext extends MachineContext,

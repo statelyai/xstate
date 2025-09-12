@@ -37,7 +37,8 @@ import type {
   AnyActorRef,
   AnyStateNode,
   InitialTransitionConfig,
-  AnyEventObject
+  AnyEventObject,
+  TransitionConfigFunction
 } from './types.ts';
 import {
   createInvokeId,
@@ -375,7 +376,7 @@ export class StateNode<
     );
   }
 
-  public get initial(): InitialTransitionDefinition<TContext, TEvent> {
+  public get initial(): InitialTransitionDefinition<TContext, TEvent, TODO> {
     return memo(this, 'initial', () =>
       formatInitialTransition(this, this.config.initial)
     );
@@ -566,10 +567,24 @@ export function formatInitialTransition<
     | string
     | undefined
     | InitialTransitionConfig<TContext, TEvent, TODO, TODO, TODO, TODO>
-): InitialTransitionDefinition<TContext, TEvent> {
-  // if (typeof _target === 'function') {
-  //   const res = getTransitionResult({ fn: _target }, {}, {}, {}, {}, {});
-  // }
+    | TransitionConfigFunction<
+        TContext,
+        TEvent,
+        TEvent,
+        TODO,
+        TODO,
+        TODO,
+        TODO,
+        TODO
+      >
+): InitialTransitionDefinition<TContext, TEvent, TODO> {
+  if (typeof _target === 'function') {
+    return {
+      initial: true,
+      source: stateNode,
+      fn: _target
+    };
+  }
   const resolvedTarget =
     typeof _target === 'string'
       ? stateNode.states[_target]
@@ -582,7 +597,7 @@ export function formatInitialTransition<
       `Initial state node "${_target}" not found on parent state node #${stateNode.id}`
     );
   }
-  const transition: InitialTransitionDefinition<TContext, TEvent> = {
+  const transition: InitialTransitionDefinition<TContext, TEvent, TODO> = {
     source: stateNode,
     actions:
       !_target || typeof _target === 'string' ? [] : toArray(_target.actions),
