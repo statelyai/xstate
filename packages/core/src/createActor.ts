@@ -214,23 +214,14 @@ export class Actor<TLogic extends AnyActorLogic>
       },
       actionExecutor: (action) => {
         const exec = () => {
-          // unified '@xstate.transition' event replaces '@xstate.action'
           if (!action.exec) {
             return;
           }
           const saveExecutingCustomAction = executingCustomAction;
           try {
             executingCustomAction = true;
-            // v6
-            const actionArgs = action.args.length
-              ? [] // already bound
-              : [];
 
-            if (!actionArgs) {
-              throw new Error('actionArgs is undefined');
-            }
-
-            action.exec(...actionArgs);
+            action.exec();
           } finally {
             executingCustomAction = saveExecutingCustomAction;
           }
