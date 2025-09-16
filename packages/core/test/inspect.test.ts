@@ -1149,4 +1149,21 @@ describe('inspect', () => {
 
     expect(events.length).toEqual(0);
   });
+
+  it('actor.inspect(…) can inspect actors', () => {
+    const actor = createActor(createMachine({}));
+    const events: InspectionEvent[] = [];
+
+    actor.start();
+
+    actor.inspect((ev) => {
+      events.push(ev);
+    });
+
+    expect(events).toHaveLength(0);
+
+    actor.send({ type: 'someEvent' });
+
+    expect(events).toHaveLength(3);
+  });
 });

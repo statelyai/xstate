@@ -45,6 +45,7 @@ import {
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
+import { InspectionEvent } from './inspection.ts';
 
 export const $$ACTOR_TYPE = 1;
 
@@ -788,6 +789,18 @@ export class Actor<TLogic extends AnyActorLogic>
       );
     }
     return this._snapshot;
+  }
+
+  /**
+   * Subscribes to [inspection events](https://stately.ai/docs/inspection) from
+   * the actor.
+   */
+  public inspect(
+    observer:
+      | Observer<InspectionEvent>
+      | ((inspectionEvent: InspectionEvent) => void)
+  ): Subscription {
+    return this.system.inspect(observer);
   }
 }
 
