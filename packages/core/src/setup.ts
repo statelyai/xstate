@@ -1,31 +1,24 @@
 import { StateMachine } from './StateMachine';
+import { assign } from './actions/assign';
+import { cancel } from './actions/cancel';
+import { log } from './actions/log';
+import { raise } from './actions/raise';
+import { forwardTo, sendParent, sendTo } from './actions/send';
+import { stopChild } from './actions/stopChild';
 import { createMachine } from './createMachine';
 import { GuardPredicate } from './guards';
-import { assign } from './actions/assign';
-import { sendTo, sendParent, forwardTo } from './actions/send';
-import { raise } from './actions/raise';
-import { log } from './actions/log';
-import { stopChild } from './actions/stopChild';
-import { cancel } from './actions/cancel';
 
 import {
-  ActionFunction,
   ActionArgs,
+  ActionFunction,
   AnyActorRef,
   AnyEventObject,
   Cast,
   DelayConfig,
-  EventObject,
-  Assigner,
-  PropertyAssigner,
-  LowInfer,
   DoNotInfer,
-  SendExpr,
-  RaiseActionOptions,
   EventFrom,
+  EventObject,
   InferEvent,
-  SendToActionOptions,
-  LogExpr,
   Invert,
   IsNever,
   MachineConfig,
@@ -33,6 +26,9 @@ import {
   MetaObject,
   NonReducibleUnknown,
   ParameterizedObject,
+  RaiseActionOptions,
+  SendExpr,
+  SendToActionOptions,
   SetupTypes,
   StateNodeConfig,
   ToChildren,
@@ -282,23 +278,12 @@ export function setup<
     TConfig
   >;
 
-  assign: <
-    TParams extends ParameterizedObject['params'] | undefined,
-    TActor extends ToProvidedActor<TChildrenMap, TActors>
-  >(
-    assignment:
-      | Assigner<LowInfer<TContext>, TEvent, TParams, TEvent, TActor>
-      | PropertyAssigner<LowInfer<TContext>, TEvent, TParams, TEvent, TActor>
-  ) => ActionFunction<
+  assign: typeof assign<
     TContext,
     TEvent,
+    unknown,
     TEvent,
-    TParams,
-    TActor,
-    never,
-    never,
-    never,
-    never
+    ToProvidedActor<TChildrenMap, TActors>
   >;
   sendTo: <
     TParams extends ParameterizedObject['params'] | undefined,
@@ -399,72 +384,10 @@ export function setup<
     TDelay,
     never
   >;
-  log: <TParams extends ParameterizedObject['params'] | undefined>(
-    value?: string | LogExpr<TContext, TEvent, TParams, TEvent>,
-    label?: string
-  ) => ActionFunction<
-    TContext,
-    TEvent,
-    TEvent,
-    TParams,
-    never,
-    never,
-    never,
-    never,
-    never
-  >;
-  cancel: <TParams extends ParameterizedObject['params'] | undefined>(
-    sendId:
-      | string
-      | ((
-          args: ActionArgs<TContext, TEvent, TEvent>,
-          params: TParams
-        ) => string)
-  ) => ActionFunction<
-    TContext,
-    TEvent,
-    TEvent,
-    TParams,
-    never,
-    never,
-    never,
-    never,
-    never
-  >;
-  stopChild: <TParams extends ParameterizedObject['params'] | undefined>(
-    actorRef:
-      | string
-      | AnyActorRef
-      | ((
-          args: ActionArgs<TContext, TEvent, TEvent>,
-          params: TParams
-        ) => AnyActorRef | string)
-  ) => ActionFunction<
-    TContext,
-    TEvent,
-    TEvent,
-    TParams,
-    never,
-    never,
-    never,
-    never,
-    never
-  >;
+  log: typeof log<TContext, TEvent, unknown, TEvent>;
+  cancel: typeof cancel<TContext, TEvent, unknown, TEvent>;
+  stopChild: typeof stopChild<TContext, TEvent, unknown, TEvent>;
 } {
-  const createAction = (
-    fn: ActionFunction<
-      TContext,
-      TEvent,
-      TEvent,
-      unknown,
-      ToProvidedActor<TChildrenMap, TActors>,
-      ToParameterizedObject<TActions>,
-      ToParameterizedObject<TGuards>,
-      TDelay,
-      TEmitted
-    >
-  ) => fn;
-
   return {
     assign,
     sendTo,
@@ -475,7 +398,7 @@ export function setup<
     cancel,
     stopChild,
     createStateConfig: (config) => config,
-    createAction,
+    createAction: (fn) => fn,
     createMachine: (config) =>
       (createMachine as any)(
         { ...config, schemas },
