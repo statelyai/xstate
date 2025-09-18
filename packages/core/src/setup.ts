@@ -93,9 +93,12 @@ type SetupReturn<
     TExtendGuards extends Record<
       string,
       ParameterizedObject['params'] | undefined
-    > = {}
+    > = {},
+    TExtendDelays extends string = never
   >({
-    actions
+    actions,
+    guards,
+    delays
   }: {
     actions?: {
       [K in keyof TExtendActions]: ActionFunction<
@@ -118,6 +121,14 @@ type SetupReturn<
         ToParameterizedObject<TGuards>
       >;
     };
+    delays?: {
+      [K in TExtendDelays]: DelayConfig<
+        TContext,
+        TEvent,
+        ToParameterizedObject<TActions>['params'],
+        TEvent
+      >;
+    };
   }) => SetupReturn<
     TContext,
     TEvent,
@@ -125,7 +136,7 @@ type SetupReturn<
     TChildrenMap,
     TActions & TExtendActions,
     TGuards & TExtendGuards,
-    TDelay,
+    TDelay | TExtendDelays,
     TTag,
     TInput,
     TOutput,
@@ -321,7 +332,7 @@ export function setup<
         actors,
         actions: { ...actions, ...extended.actions },
         guards: { ...guards, ...extended.guards },
-        delays
+        delays: { ...delays, ...extended.delays }
       } as any)
   };
 }

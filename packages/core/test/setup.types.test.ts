@@ -13,6 +13,7 @@ import {
   fromTransition,
   log,
   not,
+  or,
   raise,
   sendParent,
   sendTo,
@@ -2646,5 +2647,132 @@ describe('createStateConfig', () => {
       // @ts-expect-error
       green: 'green'
     });
+  });
+});
+
+describe('extend', () => {
+  it('should allow extending actions and referencing previous ones via enqueueActions across chained extends', () => {
+    setup({
+      actions: {
+        doSomething: () => {}
+      }
+    })
+      .extend({
+        actions: {
+          foo: enqueueActions(({ enqueue }) => {
+            enqueue('doSomething');
+
+            // @ts-expect-error
+            enqueue('nonexistent');
+          })
+        }
+      })
+      .extend({
+        actions: {
+          bar: enqueueActions(({ enqueue }) => {
+            enqueue('foo');
+
+            enqueue({
+              type: 'doSomething'
+            });
+
+            // @ts-expect-error
+            enqueue('nonexistent');
+          })
+        }
+      })
+      .createMachine({
+        entry: 'bar'
+      });
+  });
+
+  it('should allow extending guards and referencing previous ones with not/and/or across chained extends', () => {
+    setup({
+      guards: {
+        truthy: () => true
+      }
+    })
+      .extend({
+        guards: {
+          alsoTruthy: () => true,
+          notTruthy: not('truthy'),
+          // @ts-expect-error
+          nonexistent: not('existent')
+        }
+      })
+      .extend({
+        guards: {
+          combined: and(['truthy', 'alsoTruthy']),
+          alt: or(['notTruthy', 'truthy']),
+          // @ts-expect-error
+          nonexistent: or(['existent', 'truthy'])
+        }
+      })
+      .createMachine({
+        on: {
+          EV: [
+            { guard: 'combined', actions: () => {} },
+            { guard: 'alt', actions: () => {} },
+            {
+              // @ts-expect-error
+              guard: 'fake',
+              actions: () => {}
+            }
+          ]
+        }
+      });
+  });
+
+  it('should allow extending delays and referencing base delays in actions and transitions', () => {
+    setup({
+      delays: {
+        short: 10
+      }
+    })
+      .extend({
+        delays: {
+          medium: 100
+        }
+      })
+      .extend({
+        delays: {
+          long: 1000
+        }
+      })
+      .createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            entry: [
+              raise({ type: 'GO' }, { delay: 'short' }),
+              raise({ type: 'GO' }, { delay: 'medium' }),
+              raise({ type: 'GO' }, { delay: 'long' }),
+              raise(
+                { type: 'GO' },
+                {
+                  // @ts-expect-error
+                  delay: 'nonexistent'
+                }
+              )
+            ],
+            on: {
+              GO: 'b'
+            }
+          },
+          b: {
+            after: {
+              medium: 'c'
+            }
+          },
+          c: {
+            after: {
+              long: 'd',
+              // @ts-expect-error
+              nonexistent: 'd'
+            }
+          },
+          d: {}
+        }
+      });
   });
 });
