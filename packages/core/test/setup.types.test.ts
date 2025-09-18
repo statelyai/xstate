@@ -2780,30 +2780,6 @@ describe('type-bound actions', () => {
     });
   });
 
-  it('should be able to create a type-safe sendParent action', () => {
-    const machineSetup = setup({
-      types: {} as {
-        events: { type: 'TEST' };
-      }
-    });
-    const sendParentAction = machineSetup.sendParent(({ event }) => {
-      event.type satisfies 'TEST';
-      // @ts-expect-error
-      event.type satisfies 'INVALID';
-      return event;
-    });
-
-    machineSetup.createMachine({
-      context: { count: 0 },
-      entry: sendParentAction
-    });
-
-    setup({}).createMachine({
-      // @ts-expect-error
-      entry: sendParentAction
-    });
-  });
-
   it('should be able to create a type-safe log action', () => {
     const machineSetup = setup({
       types: {} as {
@@ -2833,5 +2809,81 @@ describe('type-bound actions', () => {
     const machineSetup = setup({});
     const stopAction = machineSetup.stopChild('child');
     machineSetup.createMachine({ entry: stopAction });
+  });
+
+  it('should be able to create a type-safe enqueueActions action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        context: { count: number };
+        events: { type: 'INC'; value: number };
+      },
+      actions: {
+        doing: () => {}
+      },
+      guards: {
+        isOk: () => true
+      }
+    });
+
+    const enq = machineSetup.enqueueActions(
+      ({ context, event, check, enqueue }) => {
+        context.count satisfies number;
+        event.type satisfies 'INC';
+
+        if (check('isOk')) {
+          enqueue('doing');
+        }
+
+        enqueue.assign({
+          count: ({ context }) => context.count + 1
+        });
+      }
+    );
+
+    machineSetup.createMachine({
+      context: { count: 0 },
+      entry: enq
+    });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: enq
+    });
+  });
+
+  it('should be able to create a type-safe emit action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        emitted: { type: 'PING' };
+        events: { type: 'TEST' };
+      }
+    });
+
+    const emitAction = machineSetup.emit({ type: 'PING' });
+
+    machineSetup.createMachine({ entry: emitAction });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: emitAction
+    });
+  });
+
+  it('should be able to create a type-safe spawnChild action', () => {
+    const child = createMachine({});
+    const machineSetup = setup({
+      actors: {
+        child
+      }
+    });
+
+    const spawn = machineSetup.spawnChild('child');
+
+    machineSetup.createMachine({ entry: spawn });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: spawn
+    });
   });
 });

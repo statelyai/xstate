@@ -1,9 +1,12 @@
 import { StateMachine } from './StateMachine';
 import { assign } from './actions/assign';
 import { cancel } from './actions/cancel';
+import { emit } from './actions/emit';
+import { enqueueActions } from './actions/enqueueActions';
 import { log } from './actions/log';
 import { raise } from './actions/raise';
-import { sendParent, sendTo } from './actions/send';
+import { sendTo } from './actions/send';
+import { spawnChild } from './actions/spawnChild';
 import { stopChild } from './actions/stopChild';
 import { createMachine } from './createMachine';
 import { GuardPredicate } from './guards';
@@ -301,28 +304,40 @@ export function setup<
       TDelay
     >
   >;
-  sendParent: typeof sendParent<
-    TContext,
-    TEvent,
-    undefined,
-    AnyEventObject,
-    TEvent,
-    TDelay,
-    TDelay
-  >;
   raise: typeof raise<TContext, TEvent, TEvent, undefined, TDelay, TDelay>;
   log: typeof log<TContext, TEvent, undefined, TEvent>;
   cancel: typeof cancel<TContext, TEvent, undefined, TEvent>;
   stopChild: typeof stopChild<TContext, TEvent, undefined, TEvent>;
+  enqueueActions: typeof enqueueActions<
+    TContext,
+    TEvent,
+    ToParameterizedObject<TActions>['params'],
+    TEvent,
+    ToProvidedActor<TChildrenMap, TActors>,
+    ToParameterizedObject<TActions>,
+    ToParameterizedObject<TGuards>,
+    TDelay,
+    TEmitted
+  >;
+  emit: typeof emit<TContext, TEvent, undefined, TEvent, TEmitted>;
+  spawnChild: typeof spawnChild<
+    TContext,
+    TEvent,
+    undefined,
+    TEvent,
+    ToProvidedActor<TChildrenMap, TActors>
+  >;
 } {
   return {
     assign,
     sendTo,
-    sendParent,
     raise,
     log,
     cancel,
     stopChild,
+    enqueueActions,
+    emit,
+    spawnChild,
     createStateConfig: (config) => config,
     createAction: (fn) => fn,
     createMachine: (config) =>
