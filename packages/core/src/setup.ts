@@ -9,15 +9,12 @@ import { createMachine } from './createMachine';
 import { GuardPredicate } from './guards';
 
 import {
-  ActionArgs,
   ActionFunction,
   AnyActorRef,
   AnyEventObject,
   Cast,
   DelayConfig,
-  EventFrom,
   EventObject,
-  InferEvent,
   Invert,
   IsNever,
   MachineConfig,
@@ -25,8 +22,6 @@ import {
   MetaObject,
   NonReducibleUnknown,
   ParameterizedObject,
-  SendExpr,
-  SendToActionOptions,
   SetupTypes,
   StateNodeConfig,
   ToChildren,
@@ -279,92 +274,59 @@ export function setup<
   assign: typeof assign<
     TContext,
     TEvent,
-    unknown,
+    undefined,
     TEvent,
     ToProvidedActor<TChildrenMap, TActors>
   >;
-  sendTo: <
-    TParams extends ParameterizedObject['params'] | undefined,
-    TTargetActor extends AnyActorRef,
-    TUsedDelay extends TDelay = never
-  >(
-    to:
-      | TTargetActor
-      | string
-      | ((
-          args: ActionArgs<TContext, TEvent, TEvent>,
-          params: TParams
-        ) => TTargetActor | string),
-    eventOrExpr:
-      | EventFrom<TTargetActor>
-      | SendExpr<
-          TContext,
-          TEvent,
-          TParams,
-          InferEvent<Cast<EventFrom<TTargetActor>, EventObject>>,
-          TEvent
-        >,
-    options?: SendToActionOptions<TContext, TEvent, TParams, TEvent, TUsedDelay>
-  ) => ActionFunction<
+  sendTo: <TTargetActor extends AnyActorRef>(
+    ...args: Parameters<
+      typeof sendTo<
+        TContext,
+        TEvent,
+        undefined,
+        TTargetActor,
+        TEvent,
+        TDelay,
+        TDelay
+      >
+    >
+  ) => ReturnType<
+    typeof sendTo<
+      TContext,
+      TEvent,
+      undefined,
+      TTargetActor,
+      TEvent,
+      TDelay,
+      TDelay
+    >
+  >;
+  sendParent: typeof sendParent<
     TContext,
     TEvent,
+    undefined,
+    AnyEventObject,
     TEvent,
-    TParams,
-    never,
-    never,
-    never,
     TDelay,
-    never
+    TDelay
   >;
-  sendParent: <
-    TParams extends ParameterizedObject['params'] | undefined,
-    TSpecificEvent extends TEvent,
-    TUsedDelay extends TDelay = never
-  >(
-    event:
-      | TSpecificEvent
-      | SendExpr<TContext, TEvent, TParams, TSpecificEvent, TEvent>,
-    options?: SendToActionOptions<TContext, TEvent, TParams, TEvent, TUsedDelay>
-  ) => ActionFunction<
+  forwardTo: typeof forwardTo<
     TContext,
     TEvent,
-    TSpecificEvent,
-    TParams,
-    never,
-    never,
-    never,
-    TDelay,
-    never
-  >;
-  forwardTo: <TParams extends ParameterizedObject['params'] | undefined>(
-    target:
-      | string
-      | AnyActorRef
-      | ((
-          args: ActionArgs<TContext, TEvent, TEvent>,
-          params: TParams
-        ) => string | AnyActorRef),
-    options?: SendToActionOptions<TContext, TEvent, TParams, TEvent, any>
-  ) => ActionFunction<
-    TContext,
+    undefined,
     TEvent,
-    TEvent,
-    TParams,
-    never,
-    never,
-    never,
     TDelay,
-    never
+    TDelay
   >;
-  raise: typeof raise<TContext, TEvent, TEvent, unknown, TDelay, TDelay>;
-  log: typeof log<TContext, TEvent, unknown, TEvent>;
-  cancel: typeof cancel<TContext, TEvent, unknown, TEvent>;
-  stopChild: typeof stopChild<TContext, TEvent, unknown, TEvent>;
+  raise: typeof raise<TContext, TEvent, TEvent, undefined, TDelay, TDelay>;
+  log: typeof log<TContext, TEvent, undefined, TEvent>;
+  cancel: typeof cancel<TContext, TEvent, undefined, TEvent>;
+  stopChild: typeof stopChild<TContext, TEvent, undefined, TEvent>;
 } {
   return {
     assign,
     sendTo,
-    sendParent: sendParent as any,
+    sendParent,
     forwardTo,
     raise,
     log,
