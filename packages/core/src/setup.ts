@@ -3,7 +3,7 @@ import { assign } from './actions/assign';
 import { cancel } from './actions/cancel';
 import { log } from './actions/log';
 import { raise } from './actions/raise';
-import { forwardTo, sendParent, sendTo } from './actions/send';
+import { sendParent, sendTo } from './actions/send';
 import { stopChild } from './actions/stopChild';
 import { createMachine } from './createMachine';
 import { GuardPredicate } from './guards';
@@ -310,14 +310,6 @@ export function setup<
     TDelay,
     TDelay
   >;
-  forwardTo: typeof forwardTo<
-    TContext,
-    TEvent,
-    undefined,
-    TEvent,
-    TDelay,
-    TDelay
-  >;
   raise: typeof raise<TContext, TEvent, TEvent, undefined, TDelay, TDelay>;
   log: typeof log<TContext, TEvent, undefined, TEvent>;
   cancel: typeof cancel<TContext, TEvent, undefined, TEvent>;
@@ -327,7 +319,6 @@ export function setup<
     assign,
     sendTo,
     sendParent,
-    forwardTo,
     raise,
     log,
     cancel,

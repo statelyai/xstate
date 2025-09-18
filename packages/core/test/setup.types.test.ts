@@ -2649,7 +2649,7 @@ describe('createStateConfig', () => {
   });
 });
 
-describe('createAction', () => {
+describe('type-bound actions', () => {
   it('should be able to create a type-safe action action', () => {
     const machineSetup = setup({
       types: {} as {
@@ -2801,15 +2801,6 @@ describe('createAction', () => {
     setup({}).createMachine({
       // @ts-expect-error
       entry: sendParentAction
-    });
-  });
-
-  it('should be able to create a type-safe forwardTo action', () => {
-    const machineSetup = setup({});
-    const forwardAction = machineSetup.forwardTo(({ self }) => self);
-
-    machineSetup.createMachine({
-      entry: forwardAction
     });
   });
 
