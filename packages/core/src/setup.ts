@@ -15,7 +15,6 @@ import {
   AnyEventObject,
   Cast,
   DelayConfig,
-  DoNotInfer,
   EventFrom,
   EventObject,
   InferEvent,
@@ -26,7 +25,6 @@ import {
   MetaObject,
   NonReducibleUnknown,
   ParameterizedObject,
-  RaiseActionOptions,
   SendExpr,
   SendToActionOptions,
   SetupTypes,
@@ -358,32 +356,7 @@ export function setup<
     TDelay,
     never
   >;
-  raise: <
-    TSpecificEvent extends TEvent,
-    TParams extends ParameterizedObject['params'] | undefined,
-    TUsedDelay extends TDelay = never
-  >(
-    eventOrExpr:
-      | DoNotInfer<TSpecificEvent>
-      | SendExpr<TContext, TEvent, TParams, DoNotInfer<TSpecificEvent>, TEvent>,
-    options?: RaiseActionOptions<
-      TContext,
-      TEvent,
-      TParams,
-      DoNotInfer<TSpecificEvent>,
-      TUsedDelay
-    >
-  ) => ActionFunction<
-    TContext,
-    TEvent,
-    TSpecificEvent,
-    TParams,
-    never,
-    never,
-    never,
-    TDelay,
-    never
-  >;
+  raise: typeof raise<TContext, TEvent, TEvent, unknown, TDelay, TDelay>;
   log: typeof log<TContext, TEvent, unknown, TEvent>;
   cancel: typeof cancel<TContext, TEvent, unknown, TEvent>;
   stopChild: typeof stopChild<TContext, TEvent, unknown, TEvent>;
@@ -393,7 +366,7 @@ export function setup<
     sendTo,
     sendParent: sendParent as any,
     forwardTo,
-    raise: raise as any,
+    raise,
     log,
     cancel,
     stopChild,
