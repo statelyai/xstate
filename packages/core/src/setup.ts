@@ -311,7 +311,7 @@ export function setup<
   enqueueActions: typeof enqueueActions<
     TContext,
     TEvent,
-    ToParameterizedObject<TActions>['params'],
+    undefined,
     TEvent,
     ToProvidedActor<TChildrenMap, TActors>,
     ToParameterizedObject<TActions>,
