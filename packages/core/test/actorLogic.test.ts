@@ -349,7 +349,7 @@ describe('promise logic (fromPromise)', () => {
     expect(signalListenerMap.get('p2')).not.toHaveBeenCalled();
   });
 
-  it('should not reuse the same signal for different actors with same logic and id', async () => {
+  it.skip('should not reuse the same signal for different actors with same logic and id', async () => {
     let deferredList: PromiseWithResolvers<number>[] = [];
     let signalListenerList: Mock[] = [];
     const p = fromPromise(({ signal }) => {

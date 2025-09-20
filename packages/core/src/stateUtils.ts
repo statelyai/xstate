@@ -7,7 +7,6 @@ import { cancel } from './actions/cancel.ts';
 import { stopChild } from './actions/stopChild.ts';
 import {
   XSTATE_INIT,
-  NULL_EVENT,
   STATE_DELIMITER,
   STATE_IDENTIFIER,
   XSTATE_STOP,
@@ -24,13 +23,10 @@ import {
   DelayedTransitionDefinition,
   EventObject,
   HistoryValue,
-  InitialTransitionConfig,
-  InitialTransitionDefinition,
   MachineContext,
   StateValue,
   StateValueMap,
   TransitionDefinition,
-  TODO,
   UnknownAction,
   ParameterizedObject,
   AnyTransitionConfig,
@@ -46,7 +42,6 @@ import {
   normalizeTarget,
   toArray,
   toStatePath,
-  toTransitionConfigArray,
   isErrorActorEvent,
   resolveReferencedActor
 } from './utils.ts';
