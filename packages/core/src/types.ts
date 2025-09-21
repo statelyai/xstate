@@ -2255,7 +2255,7 @@ export type InterpreterFrom<
 export type MachineImplementationsFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > =
-  ReturnTypeOrValue<T> extends StateMachine<
+  T extends StateMachine<
     infer TContext,
     infer TEvent,
     infer _TChildren,
@@ -2269,7 +2269,10 @@ export type MachineImplementationsFrom<
     infer _TOutput,
     infer TEmitted,
     infer _TMeta,
-    infer _TStateSchema
+    infer _TStateSchema,
+    infer _TActionMap,
+    infer _TActorMap,
+    infer _TGuardMap
   >
     ? InternalMachineImplementations<
         ResolvedStateMachineTypes<
@@ -2473,42 +2476,42 @@ export type EmittedFrom<TLogic extends AnyActorLogic> =
     ? TEmitted
     : never;
 
-type ResolveEventType<T> =
-  ReturnTypeOrValue<T> extends infer R
-    ? R extends StateMachine<
-        infer _TContext,
-        infer TEvent,
-        infer _TChildren,
-        infer _TActor,
-        infer _TAction,
-        infer _TGuard,
-        infer _TDelay,
-        infer _TStateValue,
-        infer _TTag,
-        infer _TInput,
-        infer _TOutput,
-        infer _TEmitted,
-        infer _TMeta,
-        infer _TConfig,
-        infer _TActionMap,
-        infer _TActorMap
-      >
+type ResolveEventType<T> = T extends infer R
+  ? R extends StateMachine<
+      infer _TContext,
+      infer TEvent,
+      infer _TChildren,
+      infer _TActor,
+      infer _TAction,
+      infer _TGuard,
+      infer _TDelay,
+      infer _TStateValue,
+      infer _TTag,
+      infer _TInput,
+      infer _TOutput,
+      infer _TEmitted,
+      infer _TMeta,
+      infer _TConfig,
+      infer _TActionMap,
+      infer _TActorMap,
+      infer _TGuardMap
+    >
+    ? TEvent
+    : R extends MachineSnapshot<
+          infer _TContext,
+          infer TEvent,
+          infer _TChildren,
+          infer _TStateValue,
+          infer _TTag,
+          infer _TOutput,
+          infer _TMeta,
+          infer _TStateSchema
+        >
       ? TEvent
-      : R extends MachineSnapshot<
-            infer _TContext,
-            infer TEvent,
-            infer _TChildren,
-            infer _TStateValue,
-            infer _TTag,
-            infer _TOutput,
-            infer _TMeta,
-            infer _TStateSchema
-          >
+      : R extends ActorRef<infer _TSnapshot, infer TEvent, infer _TEmitted>
         ? TEvent
-        : R extends ActorRef<infer _TSnapshot, infer TEvent, infer _TEmitted>
-          ? TEvent
-          : never
-    : never;
+        : never
+  : never;
 
 export type EventFrom<
   T,
@@ -2516,59 +2519,62 @@ export type EventFrom<
   TEvent extends EventObject = ResolveEventType<T>
 > = IsNever<K> extends true ? TEvent : ExtractEvent<TEvent, K>;
 
-export type ContextFrom<T> =
-  ReturnTypeOrValue<T> extends infer R
-    ? R extends StateMachine<
-        infer TContext,
-        infer _TEvent,
-        infer _TChildren,
-        infer _TActor,
-        infer _TAction,
-        infer _TGuard,
-        infer _TDelay,
-        infer _TStateValue,
-        infer _TTag,
-        infer _TInput,
-        infer _TOutput,
-        infer _TEmitted,
-        infer _TMeta,
-        infer _TConfig,
-        infer _TActionMap,
-        infer _TActorMap
-      >
+export type ContextFrom<T> = T extends infer R
+  ? R extends StateMachine<
+      infer TContext,
+      infer _TEvent,
+      infer _TChildren,
+      infer _TActor,
+      infer _TAction,
+      infer _TGuard,
+      infer _TDelay,
+      infer _TStateValue,
+      infer _TTag,
+      infer _TInput,
+      infer _TOutput,
+      infer _TEmitted,
+      infer _TMeta,
+      infer _TConfig,
+      infer _TActionMap,
+      infer _TActorMap,
+      infer _TGuardMap
+    >
+    ? TContext
+    : R extends MachineSnapshot<
+          infer TContext,
+          infer _TEvent,
+          infer _TChildren,
+          infer _TStateValue,
+          infer _TTag,
+          infer _TOutput,
+          infer _TMeta,
+          infer _TStateSchema
+        >
       ? TContext
-      : R extends MachineSnapshot<
+      : R extends Actor<infer TActorLogic>
+        ? TActorLogic extends StateMachine<
             infer TContext,
             infer _TEvent,
             infer _TChildren,
+            infer _TActor,
+            infer _TAction,
+            infer _TGuard,
+            infer _TDelay,
             infer _TStateValue,
             infer _TTag,
+            infer _TInput,
             infer _TOutput,
+            infer _TEmitted,
             infer _TMeta,
-            infer _TStateSchema
+            infer _TStateSchema,
+            infer _TActionMap,
+            infer _TActorMap,
+            infer _TGuardMap
           >
-        ? TContext
-        : R extends Actor<infer TActorLogic>
-          ? TActorLogic extends StateMachine<
-              infer TContext,
-              infer _TEvent,
-              infer _TChildren,
-              infer _TActor,
-              infer _TAction,
-              infer _TGuard,
-              infer _TDelay,
-              infer _TStateValue,
-              infer _TTag,
-              infer _TInput,
-              infer _TOutput,
-              infer _TEmitted,
-              infer _TMeta,
-              infer _TStateSchema
-            >
-            ? TContext
-            : never
+          ? TContext
           : never
-    : never;
+        : never
+  : never;
 
 export type InferEvent<E extends EventObject> = {
   [T in E['type']]: { type: T } & Extract<E, { type: T }>;

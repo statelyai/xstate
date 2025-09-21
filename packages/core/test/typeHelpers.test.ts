@@ -78,11 +78,12 @@ describe('EventFrom', () => {
 
   it('should return events for an interpreter', () => {
     const machine = next_createMachine({
-      types: {
-        events: {} as
-          | { type: 'UPDATE_NAME'; value: string }
-          | { type: 'UPDATE_AGE'; value: number }
-          | { type: 'ANOTHER_EVENT' }
+      schemas: {
+        events: z.union([
+          z.object({ type: z.literal('UPDATE_NAME'), value: z.string() }),
+          z.object({ type: z.literal('UPDATE_AGE'), value: z.number() }),
+          z.object({ type: z.literal('ANOTHER_EVENT') })
+        ])
       }
     });
 
@@ -108,8 +109,14 @@ describe('MachineImplementationsFrom', () => {
       context: {
         count: 100
       },
-      types: {
-        events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
+      schemas: {
+        context: z.object({
+          count: z.number()
+        }),
+        events: z.union([
+          z.object({ type: z.literal('FOO') }),
+          z.object({ type: z.literal('BAR'), value: z.string() })
+        ])
       }
     });
 
@@ -167,6 +174,11 @@ describe('SnapshotFrom', () => {
 
   it('should return state from a machine with context', () => {
     const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          counter: z.number()
+        })
+      },
       context: {
         counter: 0
       }
