@@ -1,5 +1,5 @@
 import { Element as XMLElement, xml2js } from 'xml-js';
-import { assign } from './actions/assign.ts';
+// import { assign } from './actions/assign.ts';
 import { cancel } from './actions/cancel.ts';
 import { log } from './actions/log.ts';
 import { raise } from './actions/raise.ts';
@@ -10,8 +10,7 @@ import {
   ActionFunction,
   MachineContext,
   SpecialTargets,
-  createMachine,
-  enqueueActions
+  createMachine
 } from './index.ts';
 import {
   AnyStateMachine,
@@ -184,16 +183,17 @@ function mapAction(
       });
     }
     case 'assign': {
-      return assign(({ context, event, ...meta }) => {
-        const fnBody = `
+      return { type: 'todo' };
+      //       return assign(({ context, event, ...meta }) => {
+      //         const fnBody = `
 
-${element.attributes!.location};
+      // ${element.attributes!.location};
 
-return {'${element.attributes!.location}': ${element.attributes!.expr}};
-          `;
+      // return {'${element.attributes!.location}': ${element.attributes!.expr}};
+      //           `;
 
-        return evaluateExecutableContent(context, event, meta, fnBody);
-      });
+      //         return evaluateExecutableContent(context, event, meta, fnBody);
+      //       });
     }
     case 'cancel':
       if ('sendid' in element.attributes!) {
@@ -324,14 +324,16 @@ return ${element.attributes!.expr};
 
       branches.push(current);
 
-      return enqueueActions(({ enqueue, check }) => {
-        for (const branch of branches) {
-          if (!branch.guard || check(branch.guard)) {
-            branch.actions.forEach(enqueue);
-            break;
-          }
-        }
-      });
+      return { type: 'todo' };
+
+      // return enqueueActions(({ enqueue, check }) => {
+      //   for (const branch of branches) {
+      //     if (!branch.guard || check(branch.guard)) {
+      //       branch.actions.forEach(enqueue);
+      //       break;
+      //     }
+      //   }
+      // });
     }
     default:
       throw new Error(

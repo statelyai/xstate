@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ActorRefFrom, assign, next_createMachine } from '../src';
+import { next_createMachine } from '../src';
 
 describe('spawn inside machine', () => {
   it('input is required when defined in actor', () => {

@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
-import { assign, raise, sendTo } from './actions.ts';
+import { raise, sendTo } from './actions.ts';
 import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
 import { stopChild } from './actions/stopChild.ts';
@@ -1054,11 +1054,17 @@ export function microstep(
   const nextStateNodes = [...mutStateNodeSet];
 
   if (nextState.status === 'done') {
-    const exitActions = nextStateNodes
-      .sort((a, b) => b.order - a.order)
-      .flatMap((stateNode) => {
-        if (stateNode.exit2) {
-          const actions = getActionsFromAction2(stateNode.exit2, {
+    const allExitActions = [];
+    const nextStateNodesToExit = nextStateNodes.sort(
+      (a, b) => b.order - a.order
+    );
+    let context: MachineContext | undefined;
+
+    nextStateNodesToExit.forEach((stateNode) => {
+      if (stateNode.exit2) {
+        const [actions, nextContext] = getActionsAndContextFromTransitionFn(
+          stateNode.exit2,
+          {
             context: nextState.context,
             event,
             self: actorScope.self,
@@ -1066,19 +1072,29 @@ export function microstep(
             children: nextState.children,
             actorScope,
             machine: currentSnapshot.machine
-          });
-          return [...stateNode.exit, ...actions];
+          }
+        );
+        const resultActions = [...stateNode.exit, ...actions];
+        allExitActions.push(...resultActions);
+
+        if (nextContext) {
+          context = nextContext;
         }
-        return stateNode.exit;
-      });
+      }
+      allExitActions.push(...stateNode.exit);
+      return stateNode.exit;
+    });
     nextState = resolveActionsAndContext(
       nextState,
       event,
       actorScope,
-      exitActions,
+      allExitActions,
       internalQueue,
       undefined
     );
+    if (context) {
+      nextState.context = context;
+    }
   }
 
   // eslint-disable-next-line no-useless-catch
@@ -1220,10 +1236,12 @@ function enterStates(
     if (invoked) {
       nextSnapshot = cloneMachineSnapshot(nextSnapshot, { children });
     }
+    let context: MachineContext | undefined;
 
     if (stateNodeToEnter.entry2) {
-      actions.push(
-        ...getActionsFromAction2(stateNodeToEnter.entry2, {
+      const [resultActions, nextContext] = getActionsAndContextFromTransitionFn(
+        stateNodeToEnter.entry2,
+        {
           context: nextSnapshot.context,
           event,
           self: actorScope.self,
@@ -1231,8 +1249,12 @@ function enterStates(
           children,
           actorScope,
           machine: currentSnapshot.machine
-        })
+        }
       );
+      actions.push(...resultActions);
+      if (nextContext) {
+        context = nextContext;
+      }
     }
 
     if (statesForDefaultEntry.has(stateNodeToEnter)) {
@@ -1254,6 +1276,10 @@ function enterStates(
       internalQueue,
       stateNodeToEnter.invoke.map((invokeDef) => invokeDef.id)
     );
+
+    if (context) {
+      nextSnapshot.context = context;
+    }
 
     if (stateNodeToEnter.type === 'final') {
       const parent = stateNodeToEnter.parent;
@@ -1839,8 +1865,8 @@ function exitStates(
   }
 
   for (const s of statesToExit) {
-    const exitActions = s.exit2
-      ? getActionsFromAction2(s.exit2, {
+    const [exitActions, nextContext] = s.exit2
+      ? getActionsAndContextFromTransitionFn(s.exit2, {
           context: nextSnapshot.context,
           event,
           self: actorScope.self,
@@ -1849,7 +1875,7 @@ function exitStates(
           actorScope,
           machine: currentSnapshot.machine
         })
-      : s.exit;
+      : [s.exit];
     nextSnapshot = resolveActionsAndContext(
       nextSnapshot,
       event,
@@ -1858,6 +1884,9 @@ function exitStates(
       internalQueue,
       undefined
     );
+    if (nextContext) {
+      nextSnapshot.context = nextContext;
+    }
     mutStateNodeSet.delete(s);
   }
   return [nextSnapshot, changedHistory || historyValue] as const;
@@ -2306,7 +2335,7 @@ function createEnqueueObject(
 
 export const emptyEnqueueObject = createEnqueueObject({}, () => {});
 
-function getActionsFromAction2(
+function getActionsAndContextFromTransitionFn(
   action2: Action2<any, any, any, any, any>,
   {
     context,
@@ -2325,10 +2354,11 @@ function getActionsFromAction2(
     actorScope: AnyActorScope;
     machine: AnyStateMachine;
   }
-) {
+): [actions: any[], context: MachineContext | undefined] {
   if (action2.length === 2) {
     // enqueue action; retrieve
     const actions: any[] = [];
+    let updatedContext: MachineContext | undefined;
 
     const enqueue = createEnqueueObject(
       {
@@ -2394,13 +2424,13 @@ function getActionsFromAction2(
     );
 
     if (res?.context) {
-      actions.push(assign(res.context));
+      updatedContext = res.context;
     }
 
-    return actions;
+    return [actions, updatedContext];
   }
 
-  return [action2];
+  return [[action2], undefined];
 }
 
 export function hasEffect(

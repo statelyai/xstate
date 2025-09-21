@@ -9,7 +9,6 @@ import {
   SnapshotFrom,
   StateValueFrom,
   TagsFrom,
-  assign,
   createActor,
   next_createMachine
 } from '../src/index.ts';
@@ -123,27 +122,7 @@ describe('MachineImplementationsFrom', () => {
         foo: () => {}
       }
     });
-    acceptMachineImplementations({
-      actions: {
-        foo: assign(() => ({}))
-      }
-    });
-    acceptMachineImplementations({
-      actions: {
-        foo: assign(({ context }) => {
-          ((_accept: number) => {})(context.count);
-          return {};
-        })
-      }
-    });
-    acceptMachineImplementations({
-      actions: {
-        foo: assign(({ event }) => {
-          ((_accept: 'FOO' | 'BAR') => {})(event.type);
-          return {};
-        })
-      }
-    });
+
     // @ts-expect-error
     acceptMachineImplementations(100);
   });

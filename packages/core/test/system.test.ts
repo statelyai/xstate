@@ -1,23 +1,16 @@
 import { of } from 'rxjs';
 import { z } from 'zod';
-import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
+import { fromCallback } from '../src/actors/callback.ts';
 import {
   ActorRef,
-  ActorRefFrom,
-  AnyActorRef,
-  AnyStateMachine,
   EventObject,
   Snapshot,
-  assign,
   createActor,
   next_createMachine,
   fromEventObservable,
   fromObservable,
   fromPromise,
-  fromTransition,
-  sendTo,
-  spawnChild,
-  stopChild
+  fromTransition
 } from '../src/index.ts';
 import { ActorSystem } from '../src/system.ts';
 

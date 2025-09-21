@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
-import { assign } from './actions.ts';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import { createInitEvent } from './eventUtils.ts';
+import { createSpawner } from './spawn.ts';
 import {
   createMachineSnapshot,
   getPersistedSnapshot,
@@ -29,12 +29,10 @@ import type {
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
-  DoNotInfer,
   Equals,
   EventDescriptor,
   EventObject,
   HistoryValue,
-  InternalMachineImplementations,
   MachineContext,
   MetaObject,
   ParameterizedObject,
@@ -377,16 +375,32 @@ export class StateMachine<
     );
 
     if (typeof context === 'function') {
-      const assignment = ({ spawn, event, self, actors }: any) =>
-        context({ spawn, input: event.input, self, actors });
-      return resolveActionsAndContext(
+      const children = {};
+      const spawn = createSpawner(actorScope, preInitial, initEvent, children);
+      const resolvedContext = context({
+        spawn,
+        input: initEvent.input,
+        self: actorScope.self,
+        actors: this.implementations.actors
+      });
+      const nextState = resolveActionsAndContext(
         preInitial,
         initEvent,
         actorScope,
-        [assign(assignment)],
+        [],
         internalQueue,
         undefined
       ) as SnapshotFrom<this>;
+      if (resolvedContext) {
+        nextState.context = resolvedContext;
+      }
+      if (Object.keys(children).length > 0) {
+        nextState.children = {
+          ...nextState.children,
+          ...children
+        };
+      }
+      return nextState;
     }
 
     return preInitial as SnapshotFrom<this>;
