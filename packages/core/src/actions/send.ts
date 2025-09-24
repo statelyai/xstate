@@ -214,13 +214,13 @@ export function sendTo<
   TDelay extends string = never,
   TUsedDelay extends TDelay = never
 >(
-  to:
-    | TTargetActor
-    | string
-    | ((
-        args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-        params: TParams
-      ) => TTargetActor | string),
+  to: SendToActionTarget<
+    TContext,
+    TExpressionEvent,
+    TParams,
+    TTargetActor,
+    TEvent
+  >,
   eventOrExpr:
     | EventFrom<TTargetActor>
     | SendExpr<
