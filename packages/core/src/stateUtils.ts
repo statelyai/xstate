@@ -278,12 +278,6 @@ export function getDelayedTransitions(
     const afterEvent = createAfterEvent(delay, stateNode.id);
     const eventType = afterEvent.type;
 
-    stateNode.entry.push(
-      raise(afterEvent, {
-        id: eventType,
-        delay
-      })
-    );
     const oldEntry = stateNode.entry2;
     stateNode.entry2 = (x, enq) => {
       enq.raise(afterEvent, {
@@ -1054,7 +1048,7 @@ export function microstep(
   const nextStateNodes = [...mutStateNodeSet];
 
   if (nextState.status === 'done') {
-    const allExitActions = [];
+    const allExitActions: UnknownAction[] = [];
     const nextStateNodesToExit = nextStateNodes.sort(
       (a, b) => b.order - a.order
     );
@@ -1062,9 +1056,8 @@ export function microstep(
 
     nextStateNodesToExit.forEach((stateNode) => {
       if (stateNode.exit2) {
-        const [actions, nextContext] = getActionsAndContextFromTransitionFn(
-          stateNode.exit2,
-          {
+        const [actions, nextContext, internalEvents] =
+          getActionsAndContextFromTransitionFn(stateNode.exit2, {
             context: nextState.context,
             event,
             self: actorScope.self,
@@ -1072,13 +1065,15 @@ export function microstep(
             children: nextState.children,
             actorScope,
             machine: currentSnapshot.machine
-          }
-        );
+          });
         const resultActions = [...stateNode.exit, ...actions];
         allExitActions.push(...resultActions);
 
         if (nextContext) {
           context = nextContext;
+        }
+        if (internalEvents?.length) {
+          internalQueue.push(...internalEvents);
         }
       }
       allExitActions.push(...stateNode.exit);
@@ -1239,9 +1234,8 @@ function enterStates(
     let context: MachineContext | undefined;
 
     if (stateNodeToEnter.entry2) {
-      const [resultActions, nextContext] = getActionsAndContextFromTransitionFn(
-        stateNodeToEnter.entry2,
-        {
+      const [resultActions, nextContext, internalEvents] =
+        getActionsAndContextFromTransitionFn(stateNodeToEnter.entry2, {
           context: nextSnapshot.context,
           event,
           self: actorScope.self,
@@ -1249,9 +1243,11 @@ function enterStates(
           children,
           actorScope,
           machine: currentSnapshot.machine
-        }
-      );
+        });
       actions.push(...resultActions);
+      if (internalEvents?.length) {
+        internalQueue.push(...internalEvents);
+      }
       if (nextContext) {
         context = nextContext;
       }
@@ -1865,7 +1861,7 @@ function exitStates(
   }
 
   for (const s of statesToExit) {
-    const [exitActions, nextContext] = s.exit2
+    const [exitActions, nextContext, internalEvents] = s.exit2
       ? getActionsAndContextFromTransitionFn(s.exit2, {
           context: nextSnapshot.context,
           event,
@@ -1876,6 +1872,9 @@ function exitStates(
           machine: currentSnapshot.machine
         })
       : [s.exit];
+    if (internalEvents?.length) {
+      internalQueue.push(...internalEvents);
+    }
     nextSnapshot = resolveActionsAndContext(
       nextSnapshot,
       event,
@@ -2354,10 +2353,15 @@ function getActionsAndContextFromTransitionFn(
     actorScope: AnyActorScope;
     machine: AnyStateMachine;
   }
-): [actions: any[], context: MachineContext | undefined] {
+): [
+  actions: any[],
+  context: MachineContext | undefined,
+  internalEvents: EventObject[] | undefined
+] {
   if (action2.length === 2) {
     // enqueue action; retrieve
     const actions: any[] = [];
+    const internalEvents: EventObject[] = [];
     let updatedContext: MachineContext | undefined;
 
     const enqueue = createEnqueueObject(
@@ -2375,7 +2379,18 @@ function getActionsAndContextFromTransitionFn(
           });
         },
         raise: (raisedEvent, options) => {
-          actions.push(raise(raisedEvent, options));
+          if (typeof raisedEvent === 'string') {
+            throw new Error(
+              `Only event objects may be used with raise; use raise({ type: "${raisedEvent}" }) instead`
+            );
+          }
+          // actions.push(raise(raisedEvent, options));
+          if (options?.delay !== undefined) {
+            const delay = options.delay;
+            actions.push(raise(raisedEvent, options));
+          } else {
+            internalEvents.push(raisedEvent);
+          }
         },
         spawn: (logic, options) => {
           const actorRef = createActor(logic, { ...options, parent: self });
@@ -2427,10 +2442,10 @@ function getActionsAndContextFromTransitionFn(
       updatedContext = res.context;
     }
 
-    return [actions, updatedContext];
+    return [actions, updatedContext, internalEvents];
   }
 
-  return [[action2], undefined];
+  return [[action2], undefined, undefined];
 }
 
 export function hasEffect(

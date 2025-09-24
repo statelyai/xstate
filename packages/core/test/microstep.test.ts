@@ -1,5 +1,5 @@
 import { next_createMachine } from '../src/index.ts';
-import { raise } from '../src/actions/raise';
+
 import { createInertActorScope } from '../src/getNextSnapshot.ts';
 
 describe('machine.microstep()', () => {

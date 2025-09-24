@@ -1,4 +1,4 @@
-import { fromPromise, next_createMachine, raise } from '../../index.ts';
+import { fromPromise, next_createMachine } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 
 describe.skip('Forbidden attributes', () => {
