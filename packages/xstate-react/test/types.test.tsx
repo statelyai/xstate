@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { ActorRefFrom, assign, next_createMachine, setup } from 'xstate';
+import { ActorRefFrom, next_createMachine } from 'xstate';
 import {
   useActor,
   useActorRef,

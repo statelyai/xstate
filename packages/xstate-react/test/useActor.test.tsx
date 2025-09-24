@@ -5,15 +5,12 @@ import { useState } from 'react';
 import { BehaviorSubject } from 'rxjs';
 import {
   Actor,
-  ActorLogicFrom,
   ActorRef,
-  DoneActorEvent,
   Snapshot,
   StateFrom,
   assign,
   createActor,
-  next_createMachine,
-  setup
+  next_createMachine
 } from 'xstate';
 import { fromCallback, fromObservable, fromPromise } from 'xstate';
 import { useActor, useSelector } from '../src/index.ts';
