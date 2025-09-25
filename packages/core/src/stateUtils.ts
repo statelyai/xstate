@@ -998,9 +998,7 @@ export function microstep(
     );
   }
 
-  currentSnapshot.random = Math.random();
-
-  const { context, actions } = filteredTransitions
+  const { context, actions, internalEvents } = filteredTransitions
     .flatMap((t) =>
       getTransitionResult(
         t,
@@ -1015,11 +1013,21 @@ export function microstep(
         if (res.context) {
           acc.context = res.context;
         }
-        acc.actions = [...acc.actions, ...res.actions];
+        if (res.actions) acc.actions.push(...res.actions);
+        if (res.internalEvents) acc.internalEvents.push(...res.internalEvents);
         return acc;
       },
-      { context: nextState.context, actions: [] as UnknownAction[] }
+      {
+        context: nextState.context,
+        actions: [] as UnknownAction[],
+        internalEvents: [] as EventObject[]
+      }
     );
+
+  if (internalEvents?.length) {
+    internalQueue.push(...internalEvents);
+  }
+
   // Execute transition content
   nextState = resolveActionsAndContext(
     nextState,
@@ -1255,13 +1263,14 @@ function enterStates(
 
     if (statesForDefaultEntry.has(stateNodeToEnter)) {
       // const initialActions = stateNodeToEnter.initial.actions;
-      const initialActions = getTransitionActions(
+      const { actions: initialActions } = getTransitionResult(
         stateNodeToEnter.initial,
         nextSnapshot,
         event,
+        actorScope.self,
         actorScope
       );
-      actions.push(...initialActions);
+      if (initialActions) actions.push(...initialActions);
     }
 
     nextSnapshot = resolveActionsAndContext(
@@ -1345,19 +1354,25 @@ export function getTransitionResult(
 ): {
   targets: Readonly<AnyStateNode[]> | undefined;
   context: MachineContext | undefined;
-  actions: UnknownAction[];
+  actions: UnknownAction[] | undefined;
   reenter?: boolean;
+  internalEvents: EventObject[] | undefined;
 } {
   if (transition.fn) {
     const actions: UnknownAction[] = [];
-
+    const internalEvents: EventObject[] = [];
     const enqueue = createEnqueueObject(
       {
         cancel: (id) => {
           actions.push(cancel(id));
         },
         raise: (event, options) => {
-          actions.push(raise(event, options));
+          if (options?.delay !== undefined) {
+            const delay = options.delay;
+            actions.push(raise(event, options));
+          } else {
+            internalEvents.push(event);
+          }
         },
         emit: (emittedEvent) => {
           actions.push(emittedEvent);
@@ -1429,7 +1444,8 @@ export function getTransitionResult(
       targets: targets,
       context: res?.context,
       reenter: res?.reenter,
-      actions
+      actions,
+      internalEvents
     };
   }
 
@@ -1437,7 +1453,8 @@ export function getTransitionResult(
     targets: transition.target as AnyStateNode[] | undefined,
     context: undefined,
     reenter: transition.reenter,
-    actions: []
+    actions: undefined,
+    internalEvents: undefined
   };
 }
 
@@ -1446,85 +1463,6 @@ const builtInActions = {
     actorRef.start();
   }
 };
-
-export function getTransitionActions(
-  transition: Pick<
-    AnyTransitionDefinition,
-    'target' | 'fn' | 'source' | 'actions'
-  >,
-  snapshot: AnyMachineSnapshot,
-  event: AnyEventObject,
-  actorScope: AnyActorScope
-): Readonly<UnknownAction[]> {
-  if (transition.fn) {
-    const actions: UnknownAction[] = [];
-    const enqueue = createEnqueueObject(
-      {
-        cancel: (id) => {
-          actions.push(cancel(id));
-        },
-        raise: (event, options) => {
-          actions.push(raise(event, options));
-        },
-        emit: (emittedEvent) => {
-          actions.push(emittedEvent);
-        },
-        log: (...args) => {
-          actions.push({
-            action: actorScope.logger,
-            args
-          });
-        },
-        spawn: (logic, options) => {
-          const actorRef = createActor(logic, {
-            ...options,
-            parent: actorScope.self
-          });
-
-          actions.push({
-            action: builtInActions['@xstate.start'],
-            args: [actorRef]
-          });
-          return actorRef;
-        },
-        sendTo: (actorRef, event, options) => {
-          if (actorRef) {
-            actions.push(sendTo(actorRef, event, options));
-          }
-        },
-        stop: (actorRef) => {
-          if (actorRef) {
-            actions.push(() => actorScope.stopChild(actorRef));
-          }
-        }
-      },
-      (fn, ...args) => {
-        actions.push({
-          action: fn,
-          args
-        });
-      }
-    );
-
-    transition.fn(
-      {
-        context: snapshot.context,
-        event,
-        value: snapshot.value,
-        children: snapshot.children,
-        parent: actorScope.self._parent,
-        self: actorScope.self,
-        actions: snapshot.machine.implementations.actions,
-        actors: snapshot.machine.implementations.actors
-      },
-      enqueue
-    );
-
-    return actions;
-  }
-
-  return transition.actions;
-}
 
 function computeEntrySet(
   transitions: Array<AnyTransitionDefinition>,
@@ -1536,9 +1474,9 @@ function computeEntrySet(
   self: AnyActorRef,
   actorScope: AnyActorScope
 ) {
-  for (const t of transitions) {
+  for (const transition of transitions) {
     const domain = getTransitionDomain(
-      t,
+      transition,
       historyValue,
       snapshot,
       event,
@@ -1547,29 +1485,29 @@ function computeEntrySet(
     );
 
     const { targets, reenter } = getTransitionResult(
-      t,
+      transition,
       snapshot,
       event,
       self,
       actorScope
     );
 
-    for (const s of targets ?? []) {
+    for (const targetNode of targets ?? []) {
       if (
-        !isHistoryNode(s) &&
+        !isHistoryNode(targetNode) &&
         // if the target is different than the source then it will *definitely* be entered
-        (t.source !== s ||
+        (transition.source !== targetNode ||
           // we know that the domain can't lie within the source
           // if it's different than the source then it's outside of it and it means that the target has to be entered as well
-          t.source !== domain ||
+          transition.source !== domain ||
           // reentering transitions always enter the target, even if it's the source itself
           reenter)
       ) {
-        statesToEnter.add(s);
-        statesForDefaultEntry.add(s);
+        statesToEnter.add(targetNode);
+        statesForDefaultEntry.add(targetNode);
       }
       addDescendantStatesToEnter(
-        s,
+        targetNode,
         historyValue,
         statesForDefaultEntry,
         statesToEnter,
@@ -1580,7 +1518,7 @@ function computeEntrySet(
       );
     }
     const targetStates = getEffectiveTargetStates(
-      t,
+      transition,
       historyValue,
       snapshot,
       event,
@@ -1597,7 +1535,7 @@ function computeEntrySet(
         historyValue,
         statesForDefaultEntry,
         ancestors,
-        !t.source.parent && reenter ? undefined : domain,
+        !transition.source.parent && reenter ? undefined : domain,
         snapshot,
         event,
         self,
@@ -1926,8 +1864,7 @@ function resolveAndExecuteActionsWithContext(
   extra: {
     internalQueue: AnyEventObject[];
     deferredActorIds: string[] | undefined;
-  },
-  retries: (readonly [BuiltinAction, unknown])[] | undefined
+  }
 ): AnyMachineSnapshot {
   const { machine } = currentSnapshot;
   let intermediateSnapshot = currentSnapshot;
@@ -1965,18 +1902,10 @@ function resolveAndExecuteActionsWithContext(
       actors: currentSnapshot.machine.implementations.actors
     };
 
-    let actionParams =
-      isInline || typeof action === 'string'
-        ? undefined
-        : 'params' in action
-          ? typeof action.params === 'function'
-            ? action.params({ context: intermediateSnapshot.context, event })
-            : action.params
-          : // Emitted event
-            undefined;
+    let actionParams = undefined;
 
     // Emitted events
-    if (!actionParams && typeof action === 'object' && action !== null) {
+    if (typeof action === 'object' && action !== null) {
       const { type: _, ...emittedEventParams } = action as any;
       actionParams = emittedEventParams;
     }
@@ -2004,13 +1933,11 @@ function resolveAndExecuteActionsWithContext(
     if (!resolvedAction || !('resolve' in resolvedAction)) {
       actorScope.actionExecutor({
         type:
-          typeof action === 'string'
-            ? action
-            : typeof action === 'object'
-              ? 'action' in action && typeof action.action === 'function'
-                ? (action.action.name ?? '(anonymous)')
-                : action.type
-              : action.name || '(anonymous)',
+          typeof action === 'object'
+            ? 'action' in action && typeof action.action === 'function'
+              ? (action.action.name ?? '(anonymous)')
+              : action.type
+            : action.name || '(anonymous)',
         info: actionArgs,
         params: actionParams,
         args:
@@ -2033,7 +1960,7 @@ function resolveAndExecuteActionsWithContext(
     intermediateSnapshot = nextState;
 
     if ('retryResolve' in builtinAction) {
-      retries?.push([builtinAction, params]);
+      // retries?.push([builtinAction, params]);
     }
 
     if ('execute' in builtinAction) {
@@ -2052,8 +1979,7 @@ function resolveAndExecuteActionsWithContext(
         event,
         actorScope,
         actions,
-        extra,
-        retries
+        extra
       );
     }
   }
@@ -2069,19 +1995,14 @@ export function resolveActionsAndContext(
   internalQueue: AnyEventObject[],
   deferredActorIds: string[] | undefined
 ): AnyMachineSnapshot {
-  const retries: (readonly [BuiltinAction, unknown])[] | undefined =
-    deferredActorIds ? [] : undefined;
   const nextState = resolveAndExecuteActionsWithContext(
     currentSnapshot,
     event,
     actorScope,
     actions,
-    { internalQueue, deferredActorIds },
-    retries
+    { internalQueue, deferredActorIds }
   );
-  retries?.forEach(([builtinAction, params]) => {
-    builtinAction.retryResolve(actorScope, nextState, params);
-  });
+
   return nextState;
 }
 
@@ -2475,7 +2396,8 @@ export function hasEffect(
             send: triggerEffect
           } as any,
           actions: snapshot.machine.implementations.actions,
-          actors: snapshot.machine.implementations.actors
+          actors: snapshot.machine.implementations.actors,
+          guards: snapshot.machine.implementations.guards
         },
         createEnqueueObject(
           {
