@@ -3,7 +3,7 @@ import { Element as XMLElement, xml2js } from 'xml-js';
 import { cancel } from './actions/cancel.ts';
 import { log } from './actions/log.ts';
 // import { raise } from './actions/raise.ts';
-import { sendTo } from './actions/send.ts';
+// import { sendTo } from './actions/send.ts';
 import { NULL_EVENT } from './constants.ts';
 import { not, stateIn } from './guards.ts';
 import {
@@ -266,14 +266,16 @@ return (${
         return raise(convertedEvent);
       }
 
-      return sendTo(
-        typeof target === 'string' ? target : ({ self }) => self,
-        convertedEvent,
-        {
-          delay: convertedDelay,
-          id: id as string | undefined
-        }
-      );
+      return { type: 'todo' };
+
+      // return sendTo(
+      //   typeof target === 'string' ? target : ({ self }) => self,
+      //   convertedEvent,
+      //   {
+      //     delay: convertedDelay,
+      //     id: id as string | undefined
+      //   }
+      // );
     }
     case 'log': {
       const label = element.attributes!.label;

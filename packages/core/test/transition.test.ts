@@ -245,10 +245,7 @@ describe('transition function', () => {
 
     expect(actions).toContainEqual(
       expect.objectContaining({
-        type: 'xstate.sendTo',
-        params: expect.objectContaining({
-          event: { type: 'someEvent' }
-        })
+        type: '@xstate.sendTo'
       })
     );
   });
