@@ -107,10 +107,10 @@ export class StateNode<
   public history: false | 'shallow' | 'deep';
   /** The action(s) to be executed upon entering the state node. */
   public entry: UnknownAction[];
-  public entry2: Action2<any, any, any, any, any> | undefined;
+  public entry2: Action2<any, any, any, any, any, any, any> | undefined;
   /** The action(s) to be executed upon exiting the state node. */
   public exit: UnknownAction[];
-  public exit2: Action2<any, any, any, any, any> | undefined;
+  public exit2: Action2<any, any, any, any, any, any, any> | undefined;
   /** The parent state node. */
   public parent?: StateNode<TContext, TEvent>;
   /** The root machine node. */
@@ -128,7 +128,11 @@ export class StateNode<
     any, // output
     any, // emitted
     any, // meta
-    any // state schema
+    any, // state schema
+    any, // action map
+    any, // actor map
+    any, // guard map
+    any // delay map
   >;
   /**
    * The meta data associated with this state node, which will be returned in
@@ -593,7 +597,6 @@ export function formatInitialTransition<
         : undefined;
   if (!resolvedTarget && _target) {
     throw new Error(
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-base-to-string
       `Initial state node "${_target}" not found on parent state node #${stateNode.id}`
     );
   }

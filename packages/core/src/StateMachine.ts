@@ -67,7 +67,8 @@ export class StateMachine<
   TConfig extends StateSchema,
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
-  TGuardMap extends Implementations['guards']
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > implements
     ActorLogic<
       MachineSnapshot<

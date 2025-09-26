@@ -42,7 +42,8 @@ export type Next_MachineConfig<
   _TTag extends string = string,
   TActionMap extends Implementations['actions'] = Implementations['actions'],
   TActorMap extends Implementations['actors'] = Implementations['actors'],
-  TGuardMap extends Implementations['guards'] = Implementations['guards']
+  TGuardMap extends Implementations['guards'] = Implementations['guards'],
+  TDelayMap extends Implementations['delays'] = Implementations['delays']
 > = (Omit<
   Next_StateNodeConfig<
     InferOutput<TContextSchema, MachineContext>,
@@ -54,7 +55,8 @@ export type Next_MachineConfig<
     DoNotInfer<InferOutput<TMetaSchema, MetaObject>>,
     DoNotInfer<TActionMap>,
     DoNotInfer<TActorMap>,
-    DoNotInfer<TGuardMap>
+    DoNotInfer<TGuardMap>,
+    DoNotInfer<TDelayMap>
   >,
   'output'
 > & {
@@ -121,7 +123,8 @@ export interface Next_StateNodeConfig<
   TMeta extends MetaObject,
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
-  TGuardMap extends Implementations['guards']
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > {
   /** The initial state transition. */
   initial?:
@@ -132,6 +135,7 @@ export interface Next_StateNodeConfig<
         TActionMap,
         TActorMap,
         TGuardMap,
+        TDelayMap,
         TMeta
       >
     | string
@@ -166,7 +170,8 @@ export interface Next_StateNodeConfig<
       TMeta,
       TActionMap,
       TActorMap,
-      TGuardMap
+      TGuardMap,
+      TDelayMap
     >;
   };
   /**
@@ -186,6 +191,7 @@ export interface Next_StateNodeConfig<
       TActionMap,
       TActorMap,
       TGuardMap,
+      TDelayMap,
       TMeta
     >;
     onError?: Next_TransitionConfigOrTarget<
@@ -196,6 +202,7 @@ export interface Next_StateNodeConfig<
       TActionMap,
       TActorMap,
       TGuardMap,
+      TDelayMap,
       TMeta
     >;
     onSnapshot?: Next_TransitionConfigOrTarget<
@@ -206,6 +213,7 @@ export interface Next_StateNodeConfig<
       TActionMap,
       TActorMap,
       TGuardMap,
+      TDelayMap,
       TMeta
     >;
   }>;
@@ -219,11 +227,28 @@ export interface Next_StateNodeConfig<
       TActionMap,
       TActorMap,
       TGuardMap,
+      TDelayMap,
       TMeta
     >;
   };
-  entry?: Action2<TContext, TEvent, TEmitted, TActionMap, TActorMap>;
-  exit?: Action2<TContext, TEvent, TEmitted, TActionMap, TActorMap>;
+  entry?: Action2<
+    TContext,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >;
+  exit?: Action2<
+    TContext,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >;
   /**
    * The potential transition(s) to be taken upon reaching a final child state
    * node.
@@ -241,6 +266,7 @@ export interface Next_StateNodeConfig<
         TActionMap,
         TActorMap,
         TGuardMap,
+        TDelayMap,
         TMeta
       >
     | undefined;
@@ -261,6 +287,7 @@ export interface Next_StateNodeConfig<
           TActionMap,
           TActorMap,
           TGuardMap,
+          TDelayMap,
           TMeta
         >;
   };
@@ -277,6 +304,7 @@ export interface Next_StateNodeConfig<
     TActionMap,
     TActorMap,
     TGuardMap,
+    TDelayMap,
     TMeta
   >;
   /**
@@ -322,6 +350,7 @@ export type Next_InitialTransitionConfig<
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject
 > = TransitionConfigFunction<
   TContext,
@@ -331,6 +360,7 @@ export type Next_InitialTransitionConfig<
   TActionMap,
   TActorMap,
   TGuardMap,
+  TDelayMap,
   TMeta
 >;
 
@@ -342,6 +372,7 @@ export type Next_TransitionConfigOrTarget<
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject
 > =
   | string
@@ -355,6 +386,7 @@ export type Next_TransitionConfigOrTarget<
       TActionMap,
       TActorMap,
       TGuardMap,
+      TDelayMap,
       TMeta
     >;
 

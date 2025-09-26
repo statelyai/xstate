@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
-import { raise, sendTo } from './actions.ts';
+import { sendTo } from './actions.ts';
 import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
 import { stopChild } from './actions/stopChild.ts';
@@ -280,9 +280,15 @@ export function getDelayedTransitions(
 
     const oldEntry = stateNode.entry2;
     stateNode.entry2 = (x, enq) => {
+      let resolvedDelay = typeof delay === 'string' ? x.delays[delay] : delay;
+
+      if (typeof resolvedDelay === 'function') {
+        resolvedDelay = resolvedDelay(x);
+      }
+
       enq.raise(afterEvent, {
         id: eventType,
-        delay
+        delay: resolvedDelay
       });
       return oldEntry?.(x, enq);
     };
@@ -1369,7 +1375,19 @@ export function getTransitionResult(
         raise: (event, options) => {
           if (options?.delay !== undefined) {
             const delay = options.delay;
-            actions.push(raise(event, options));
+            // actions.push(raise(event, options));
+            actions.push({
+              action: () => {
+                actorScope.system.scheduler.schedule(
+                  actorScope.self,
+                  actorScope.self,
+                  event,
+                  delay,
+                  options?.id
+                );
+              },
+              args: []
+            });
           } else {
             internalEvents.push(event);
           }
@@ -1427,7 +1445,8 @@ export function getTransitionResult(
         self,
         actions: snapshot.machine.implementations.actions,
         actors: snapshot.machine.implementations.actors,
-        guards: snapshot.machine.implementations.guards
+        guards: snapshot.machine.implementations.guards,
+        delays: snapshot.machine.implementations.delays
       },
       enqueue
     );
@@ -1461,6 +1480,19 @@ export function getTransitionResult(
 const builtInActions = {
   ['@xstate.start']: (actorRef: AnyActorRef) => {
     actorRef.start();
+  },
+  ['@xstate.raise']: (
+    actorScope: AnyActorScope,
+    event: EventObject,
+    options: { id?: string; delay?: number }
+  ) => {
+    actorScope.system.scheduler.schedule(
+      actorScope.self,
+      actorScope.self,
+      event,
+      options?.delay ?? 0,
+      options?.id
+    );
   }
 };
 
@@ -2256,7 +2288,7 @@ function createEnqueueObject(
 export const emptyEnqueueObject = createEnqueueObject({}, () => {});
 
 function getActionsAndContextFromTransitionFn(
-  action2: Action2<any, any, any, any, any>,
+  action2: Action2<any, any, any, any, any, any>,
   {
     context,
     event,
@@ -2308,7 +2340,23 @@ function getActionsAndContextFromTransitionFn(
           // actions.push(raise(raisedEvent, options));
           if (options?.delay !== undefined) {
             const delay = options.delay;
-            actions.push(raise(raisedEvent, options));
+            // actions.push(raise(raisedEvent, options));
+            // actions.push({
+            //   action: () => {
+            //     actorScope.system.scheduler.schedule(
+            //       actorScope.self,
+            //       actorScope.self,
+            //       raisedEvent,
+            //       delay,
+            //       options?.id
+            //     );
+            //   },
+            //   args: []
+            // });
+            actions.push({
+              action: builtInActions['@xstate.raise'],
+              args: [actorScope, raisedEvent, options]
+            });
           } else {
             internalEvents.push(raisedEvent);
           }
@@ -2354,7 +2402,9 @@ function getActionsAndContextFromTransitionFn(
         children,
         system: actorScope.system,
         actions: machine.implementations.actions,
-        actors: machine.implementations.actors
+        actors: machine.implementations.actors,
+        guards: machine.implementations.guards,
+        delays: machine.implementations.delays
       },
       enqueue
     );
@@ -2397,7 +2447,8 @@ export function hasEffect(
           } as any,
           actions: snapshot.machine.implementations.actions,
           actors: snapshot.machine.implementations.actors,
-          guards: snapshot.machine.implementations.guards
+          guards: snapshot.machine.implementations.guards,
+          delays: snapshot.machine.implementations.delays
         },
         createEnqueueObject(
           {
@@ -2447,6 +2498,7 @@ export function evaluateCandidate(
           context,
           event,
           self,
+          // @ts-ignore
           parent: {
             send: triggerEffect
           },
@@ -2454,7 +2506,8 @@ export function evaluateCandidate(
           children: snapshot.children,
           actions: stateNode.machine.implementations.actions,
           actors: stateNode.machine.implementations.actors,
-          guards: stateNode.machine.implementations.guards
+          guards: stateNode.machine.implementations.guards,
+          delays: stateNode.machine.implementations.delays
         },
         createEnqueueObject(
           {

@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { initialTransition, transition } from '../src';
 import { next_createMachine } from '../src';
 
@@ -83,6 +84,11 @@ it('should work with both fn actions and target', () => {
 
 it('should work with conditions', () => {
   const machine = next_createMachine({
+    schemas: {
+      context: z.object({
+        count: z.number()
+      })
+    },
     initial: 'active',
     context: {
       count: 0

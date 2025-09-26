@@ -3,6 +3,11 @@ import { next_createMachine, createActor } from '../src/index.ts';
 import z from 'zod';
 
 const lightMachine = next_createMachine({
+  schemas: {
+    context: z.object({
+      canTurnGreen: z.boolean()
+    })
+  },
   id: 'light',
   initial: 'green',
   context: {
@@ -294,6 +299,11 @@ describe('delayed transitions', () => {
       };
       const machine = next_createMachine({
         initial: 'inactive',
+        schemas: {
+          context: z.object({
+            delay: z.number()
+          })
+        },
         context,
         delays: {
           myDelay: ({ context }) => {

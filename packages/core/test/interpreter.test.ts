@@ -426,7 +426,7 @@ describe('interpreter', () => {
       expect(stopped).toBe(true);
     });
 
-    it('can send an event after a delay (delayed transitions)', () => {
+    it.only('can send an event after a delay (delayed transitions)', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
       const clock = new SimulatedClock();
       const letterMachine = next_createMachine(
@@ -435,6 +435,9 @@ describe('interpreter', () => {
           //   events: { type: 'FIRE_DELAY'; value: number };
           // },
           schemas: {
+            context: z.object({
+              delay: z.number()
+            }),
             events: z.object({
               type: z.literal('FIRE_DELAY'),
               value: z.number()

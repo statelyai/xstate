@@ -2,7 +2,7 @@ import { Element as XMLElement, xml2js } from 'xml-js';
 // import { assign } from './actions/assign.ts';
 import { cancel } from './actions/cancel.ts';
 import { log } from './actions/log.ts';
-import { raise } from './actions/raise.ts';
+// import { raise } from './actions/raise.ts';
 import { sendTo } from './actions/send.ts';
 import { NULL_EVENT } from './constants.ts';
 import { not, stateIn } from './guards.ts';
@@ -178,9 +178,10 @@ function mapAction(
 ): ActionFunction<any, any, any, any, any, any, any, any, any> {
   switch (element.name) {
     case 'raise': {
-      return raise({
-        type: element.attributes!.event as string
-      });
+      // return raise({
+      //   type: element.attributes!.event as string
+      // });
+      return { type: 'todo' };
     }
     case 'assign': {
       return { type: 'todo' };

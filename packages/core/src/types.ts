@@ -351,6 +351,7 @@ export interface TransitionConfig<
     any, // TActionMap
     any,
     any,
+    any,
     any
   >;
   meta?: TMeta;
@@ -508,8 +509,12 @@ export type DelayedTransitions<
         TContext,
         TEvent,
         TEvent,
-        TODO, // TEmitted
-        any // TActionMap
+        TODO,
+        any,
+        any,
+        any,
+        any,
+        any
       >;
 };
 
@@ -595,6 +600,8 @@ export type TransitionConfigOrTarget<
       TEmitted,
       any,
       any,
+      any,
+      any,
       any
     >
 >;
@@ -607,6 +614,7 @@ export type TransitionConfigFunction<
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject
 > = (
   {
@@ -630,6 +638,7 @@ export type TransitionConfigFunction<
     actions: TActionMap;
     actors: TActorMap;
     guards: TGuardMap;
+    delays: TDelayMap;
   },
   enq: EnqueueObject<TEvent, TEmitted>
 ) => {
@@ -640,6 +649,7 @@ export type TransitionConfigFunction<
 } | void;
 
 export type AnyTransitionConfigFunction = TransitionConfigFunction<
+  any,
   any,
   any,
   any,
@@ -961,6 +971,7 @@ export interface StateNodeConfig<
         TEvent,
         TEvent,
         TEmitted,
+        any,
         any,
         any,
         any,
@@ -1813,6 +1824,7 @@ export type InitialTransitionDefinition<
         TEvent,
         TEmitted,
         any, // TActionMap
+        any,
         any,
         any,
         any
@@ -2855,7 +2867,9 @@ export type Action2<
   TEvent extends EventObject,
   TEmittedEvent extends EventObject,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors']
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > = (
   _: {
     context: TContext;
@@ -2868,6 +2882,8 @@ export type Action2<
     children: Record<string, AnyActorRef | undefined>;
     actions: TActionMap;
     actors: TActorMap;
+    guards: TGuardMap;
+    delays: TDelayMap;
     system?: AnyActorSystem;
   },
   enqueue: EnqueueObject<TEvent, TEmittedEvent>

@@ -16,7 +16,8 @@ import {
   ProvidedActor,
   StateValue,
   ToChildren,
-  MetaObject
+  MetaObject,
+  StateSchema
 } from './types.ts';
 import {
   Implementations,
@@ -151,7 +152,11 @@ export function createMachine<
   TOutput,
   TEmitted,
   TMeta, // TMeta
-  TODO // TStateSchema
+  TODO, // TStateSchema
+  TODO,
+  TODO,
+  TODO,
+  TODO
 > {
   return new StateMachine<
     any,
@@ -167,7 +172,11 @@ export function createMachine<
     any,
     any, // TEmitted
     any, // TMeta
-    any // TStateSchema
+    any, // TStateSchema
+    any,
+    any,
+    any,
+    any
   >(config as any, implementations as any);
 }
 
@@ -185,10 +194,11 @@ export function next_createMachine<
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
   TDelays extends string,
   TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
   TInput,
-  const TSS
+  const TSS extends StateSchema
   // it's important to have at least one default type parameter here
   // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
   // we should be able to remove this when we start inferring TConfig, with it we'll always have an inference candidate
@@ -227,7 +237,8 @@ export function next_createMachine<
   TSS, // TStateSchema
   TActionMap,
   TActorMap,
-  TGuardMap
+  TGuardMap,
+  TDelayMap
 > & {
   states: TSS;
 } {
@@ -247,6 +258,7 @@ export function next_createMachine<
     any, // TEmitted
     any, // TMeta
     any, // TStateSchema
+    any,
     any,
     any,
     any
