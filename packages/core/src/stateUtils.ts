@@ -1529,6 +1529,9 @@ const builtInActions = {
         actorScope.system._relay(actorScope.self, actorRef, event);
       });
     }
+  },
+  ['@xstate.cancel']: (actorScope: AnyActorScope, sendId: string) => {
+    actorScope.system.scheduler.cancel(actorScope.self, sendId);
   }
 };
 
@@ -2356,7 +2359,10 @@ function getActionsAndContextFromTransitionFn(
     const enqueue = createEnqueueObject(
       {
         cancel: (id: string) => {
-          actions.push(cancel(id));
+          actions.push({
+            action: builtInActions['@xstate.cancel'],
+            args: [actorScope, id]
+          });
         },
         emit: (emittedEvent) => {
           actions.push(emittedEvent);
