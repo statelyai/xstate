@@ -11,7 +11,6 @@ import {
   XSTATE_STOP,
   WILDCARD
 } from './constants.ts';
-import { evaluateGuard } from './guards.ts';
 import {
   ActionArgs,
   AnyEventObject,
@@ -2379,22 +2378,7 @@ function getActionsAndContextFromTransitionFn(
               `Only event objects may be used with raise; use raise({ type: "${raisedEvent}" }) instead`
             );
           }
-          // actions.push(raise(raisedEvent, options));
           if (options?.delay !== undefined) {
-            const delay = options.delay;
-            // actions.push(raise(raisedEvent, options));
-            // actions.push({
-            //   action: () => {
-            //     actorScope.system.scheduler.schedule(
-            //       actorScope.self,
-            //       actorScope.self,
-            //       raisedEvent,
-            //       delay,
-            //       options?.id
-            //     );
-            //   },
-            //   args: []
-            // });
             actions.push({
               action: builtInActions['@xstate.raise'],
               args: [actorScope, raisedEvent, options]
@@ -2405,11 +2389,6 @@ function getActionsAndContextFromTransitionFn(
         },
         spawn: (logic, options) => {
           const actorRef = createActor(logic, { ...options, parent: self });
-
-          // actions.push({
-          //   action: actorRef.start,
-          //   args: []
-          // });
           actions.push({
             action: builtInActions['@xstate.start'],
             args: [actorRef]
@@ -2577,26 +2556,9 @@ export function evaluateCandidate(
     return res !== undefined;
   }
 
-  const { guard } = candidate;
-
-  let result: boolean;
-  try {
-    result = !guard || evaluateGuard(guard, context, event, snapshot);
-  } catch (err: any) {
-    const guardType =
-      typeof guard === 'string'
-        ? guard
-        : typeof guard === 'object'
-          ? guard.type
-          : undefined;
-    throw new Error(
-      `Unable to evaluate guard ${
-        guardType ? `'${guardType}' ` : ''
-      }in transition for event '${event.type}' in state node '${
-        stateNode.id
-      }':\n${err.message}`
-    );
+  if (candidate.guard) {
+    throw new Error('Transition function is required');
   }
 
-  return result;
+  return true;
 }

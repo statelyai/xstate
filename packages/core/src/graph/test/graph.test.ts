@@ -134,26 +134,12 @@ describe('@xstate/graph', () => {
     states: {
       pending: {
         on: {
-          // EVENT: [
-          //   {
-          //     target: 'foo',
-          //     guard: ({ event }) => event.id === 'foo'
-          //   },
-          //   { target: 'bar' }
-          // ],
           EVENT: ({ event }) => {
             if (event.id === 'foo') {
               return { target: 'foo' };
             }
             return { target: 'bar' };
           },
-          // STATE: [
-          //   {
-          //     target: 'foo',
-          //     guard: ({ context }) => context.id === 'foo'
-          //   },
-          //   { target: 'bar' }
-          // ]
           STATE: ({ context }) => {
             if (context.id === 'foo') {
               return { target: 'foo' };

@@ -232,7 +232,11 @@ describe('invocations (activities)', () => {
               return () => (active = false);
             })
           },
-          always: [{ guard: () => false, target: 'A' }]
+          always: () => {
+            if (1 + 1 !== 2) {
+              return { target: 'A' };
+            }
+          }
         }
       }
     });

@@ -10,7 +10,6 @@ export {
 } from './createActor.ts';
 export { createMachine, next_createMachine } from './createMachine.ts';
 export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
-export { and, not, or, stateIn } from './guards.ts';
 export type { InspectionEvent } from './inspection.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
 export { type Spawner } from './spawn.ts';
@@ -24,6 +23,7 @@ export * from './types.ts';
 export {
   getAllOwnEventDescriptors as __unsafe_getAllOwnEventDescriptors,
   matchesState,
+  checkStateIn,
   pathToStateValue,
   toObserver
 } from './utils.ts';

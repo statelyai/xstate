@@ -2,9 +2,9 @@ import {
   next_createMachine,
   createActor,
   matchesState,
-  StateValue
+  StateValue,
+  checkStateIn
 } from '../src/index.ts';
-import { stateIn } from '../src/guards.ts';
 
 describe('transition "in" check', () => {
   it('should transition if string state path matches current state value', () => {
@@ -88,9 +88,17 @@ describe('transition "in" check', () => {
           states: {
             a1: {
               on: {
-                EVENT3: {
-                  target: 'a2',
-                  guard: stateIn('#b_b2')
+                // EVENT3: {
+                //   target: 'a2',
+                //   guard: stateIn('#b_b2')
+                // }
+                EVENT3: ({ self }) => {
+                  if (checkStateIn(self.getSnapshot(), '#b_b2')) {
+                    return { target: 'a2' };
+                  }
+                  // if (matchesState('#b_b2', value)) {
+                  //   return { target: 'a2' };
+                  // }
                 }
               }
             },
@@ -152,9 +160,17 @@ describe('transition "in" check', () => {
           states: {
             a1: {
               on: {
-                EVENT1: {
-                  target: 'a2',
-                  guard: stateIn('b.b2')
+                // EVENT1: {
+                //   target: 'a2',
+                //   guard: stateIn('b.b2')
+                // }
+                EVENT1: ({ value }) => {
+                  if (matchesState('b.b2', value)) {
+                    return { target: 'a2' };
+                  }
+                  // if (checkStateIn(self.getSnapshot(), 'b.b2')) {
+                  //   return { target: 'a2' };
+                  // }
                 }
               }
             },
@@ -211,9 +227,14 @@ describe('transition "in" check', () => {
           states: {
             a1: {
               on: {
-                EVENT2: {
-                  target: 'a2',
-                  guard: stateIn({ b: 'b2' })
+                // EVENT2: {
+                //   target: 'a2',
+                //   guard: stateIn({ b: 'b2' })
+                // }
+                EVENT2: ({ value }) => {
+                  if (matchesState({ b: 'b2' }, value)) {
+                    return { target: 'a2' };
+                  }
                 }
               }
             },
@@ -292,7 +313,11 @@ describe('transition "in" check', () => {
                   states: {
                     foo1: {
                       on: {
-                        EVENT_DEEP: { target: 'foo2', guard: stateIn('#bar1') }
+                        EVENT_DEEP: ({ self }) => {
+                          if (checkStateIn(self.getSnapshot(), '#bar1')) {
+                            return { target: 'foo2' };
+                          }
+                        }
                       }
                     },
                     foo2: {}
@@ -353,7 +378,11 @@ describe('transition "in" check', () => {
                   states: {
                     foo1: {
                       on: {
-                        EVENT_DEEP: { target: 'foo2', guard: stateIn('#bar1') }
+                        EVENT_DEEP: ({ self }) => {
+                          if (checkStateIn(self.getSnapshot(), '#bar1')) {
+                            return { target: 'foo2' };
+                          }
+                        }
                       }
                     },
                     foo2: {}
@@ -406,12 +435,17 @@ describe('transition "in" check', () => {
             stop: {}
           },
           on: {
-            TIMER: [
-              {
-                target: 'green',
-                guard: stateIn({ red: 'stop' })
+            // TIMER: [
+            //   {
+            //     target: 'green',
+            //     guard: stateIn({ red: 'stop' })
+            //   }
+            // ]
+            TIMER: ({ value }) => {
+              if (matchesState({ red: 'stop' }, value)) {
+                return { target: 'green' };
               }
-            ]
+            }
           }
         }
       }

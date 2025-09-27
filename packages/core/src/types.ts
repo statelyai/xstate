@@ -1237,9 +1237,6 @@ export type AnyMachineSnapshot = MachineSnapshot<
   any
 >;
 
-/** @deprecated Use `AnyMachineSnapshot` instead */
-export type AnyState = AnyMachineSnapshot;
-
 export type AnyStateMachine = StateMachine<
   any, // context
   any, // event
@@ -1257,7 +1254,8 @@ export type AnyStateMachine = StateMachine<
   any, // TStateSchema,
   any, // TActionMap,
   any, // TActorMap
-  any // TGuardMap
+  any, // TGuardMap
+  any // TDelayMap
 >;
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;

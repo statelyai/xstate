@@ -8,7 +8,6 @@ import {
   UnknownActorRef,
   createActor,
   next_createMachine,
-  stateIn,
   toPromise
 } from '../src/index';
 import { createInertActorScope } from '../src/getNextSnapshot';
@@ -3849,48 +3848,6 @@ describe('guards', () => {
         other: () => true
       }
     });
-  });
-
-  it('`stateIn` should be allowed in the config argument', () => {
-    next_createMachine({
-      types: {} as {
-        guards:
-          | {
-              type: 'isGreaterThan';
-              params: {
-                count: number;
-              };
-            }
-          | { type: 'plainGuard' };
-      },
-      on: {
-        EV: {
-          guard: stateIn('foo')
-        }
-      }
-    });
-  });
-
-  it('`stateIn` should be allowed in the implementations argument', () => {
-    next_createMachine(
-      {
-        types: {} as {
-          guards:
-            | {
-                type: 'isGreaterThan';
-                params: {
-                  count: number;
-                };
-              }
-            | { type: 'plainGuard' };
-        }
-      },
-      {
-        guards: {
-          plainGuard: stateIn('foo')
-        }
-      }
-    );
   });
 
   it('should allow dynamic params that return correct params type', () => {

@@ -2,6 +2,7 @@ import isDevelopment from '#is-development';
 import { isMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import { TARGETLESS_KEY } from './constants.ts';
+import { isStateId } from './stateUtils.ts';
 import type {
   AnyActorRef,
   AnyEventObject,
@@ -49,6 +50,18 @@ export function matchesState(
 
     return matchesState(parentStateValue[key]!, childStateValue[key]!);
   });
+}
+
+export function checkStateIn(
+  snapshot: AnyMachineSnapshot,
+  stateValue: StateValue
+) {
+  if (typeof stateValue === 'string' && isStateId(stateValue)) {
+    const target = snapshot.machine.getStateNodeById(stateValue);
+    return snapshot._nodes.some((sn) => sn === target);
+  }
+
+  return snapshot.matches(stateValue);
 }
 
 export function toStatePath(stateId: string | string[]): string[] {
