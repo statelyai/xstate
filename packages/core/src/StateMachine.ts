@@ -17,7 +17,7 @@ import {
   isStateId,
   macrostep,
   microstep,
-  resolveActionsAndContext,
+  resolveAndExecuteActionsWithContext,
   resolveStateValue,
   transitionNode
 } from './stateUtils.ts';
@@ -384,13 +384,11 @@ export class StateMachine<
         self: actorScope.self,
         actors: this.implementations.actors
       });
-      const nextState = resolveActionsAndContext(
+      const nextState = resolveAndExecuteActionsWithContext(
         preInitial,
         initEvent,
         actorScope,
-        [],
-        internalQueue,
-        undefined
+        []
       ) as SnapshotFrom<this>;
       if (resolvedContext) {
         nextState.context = resolvedContext;

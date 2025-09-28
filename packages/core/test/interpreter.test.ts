@@ -426,7 +426,7 @@ describe('interpreter', () => {
       expect(stopped).toBe(true);
     });
 
-    it.only('can send an event after a delay (delayed transitions)', () => {
+    it('can send an event after a delay (delayed transitions)', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
       const clock = new SimulatedClock();
       const letterMachine = next_createMachine(

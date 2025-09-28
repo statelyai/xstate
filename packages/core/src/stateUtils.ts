@@ -1057,13 +1057,11 @@ export function microstep(
   }
 
   // Execute transition content
-  nextState = resolveActionsAndContext(
+  nextState = resolveAndExecuteActionsWithContext(
     nextState,
     event,
     actorScope,
-    actions,
-    internalQueue,
-    undefined
+    actions
   );
   if (context && context !== currentSnapshot.context) {
     nextState = cloneMachineSnapshot(nextState, { context });
@@ -1115,13 +1113,11 @@ export function microstep(
       allExitActions.push(...stateNode.exit);
       return stateNode.exit;
     });
-    nextState = resolveActionsAndContext(
+    nextState = resolveAndExecuteActionsWithContext(
       nextState,
       event,
       actorScope,
-      allExitActions,
-      internalQueue,
-      undefined
+      allExitActions
     );
     if (context) {
       nextState.context = context;
@@ -1303,13 +1299,11 @@ function enterStates(
       if (initialActions) actions.push(...initialActions);
     }
 
-    nextSnapshot = resolveActionsAndContext(
+    nextSnapshot = resolveAndExecuteActionsWithContext(
       nextSnapshot,
       event,
       actorScope,
-      actions,
-      internalQueue,
-      stateNodeToEnter.invoke.map((invokeDef) => invokeDef.id)
+      actions
     );
 
     if (context) {
@@ -1915,13 +1909,11 @@ function exitStates(
     if (internalEvents?.length) {
       internalQueue.push(...internalEvents);
     }
-    nextSnapshot = resolveActionsAndContext(
+    nextSnapshot = resolveAndExecuteActionsWithContext(
       nextSnapshot,
       event,
       actorScope,
-      exitActions,
-      internalQueue,
-      undefined
+      exitActions
     );
     s.invoke.forEach((def) => {
       actorScope.stopChild(nextSnapshot.children[def.id]);
@@ -1958,21 +1950,12 @@ export interface BuiltinAction {
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
-function getAction(machine: AnyStateMachine, actionType: string) {
-  return machine.implementations.actions[actionType];
-}
-
-function resolveAndExecuteActionsWithContext(
+export function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
-  actions: UnknownAction[],
-  extra: {
-    internalQueue: AnyEventObject[];
-    deferredActorIds: string[] | undefined;
-  }
+  actions: UnknownAction[]
 ): AnyMachineSnapshot {
-  const { machine } = currentSnapshot;
   let intermediateSnapshot = currentSnapshot;
 
   for (const action of actions) {
@@ -1988,7 +1971,7 @@ function resolveAndExecuteActionsWithContext(
           // it's fine to cast this here to get a common type and lack of errors in the rest of the code
           // our logic below makes sure that we call those 2 "variants" correctly
 
-          getAction(machine, typeof action === 'string' ? action : action.type);
+          false;
 
     // if no action, emit it!
     if (!resolvedAction && typeof action === 'object' && action !== null) {
@@ -2054,64 +2037,9 @@ function resolveAndExecuteActionsWithContext(
       });
       continue;
     }
-
-    const builtinAction = resolvedAction as BuiltinAction;
-
-    const [nextState, params, actions] = builtinAction.resolve(
-      actorScope,
-      intermediateSnapshot,
-      actionArgs,
-      actionParams,
-      resolvedAction, // this holds all params
-      extra
-    );
-    intermediateSnapshot = nextState;
-
-    if ('retryResolve' in builtinAction) {
-      // retries?.push([builtinAction, params]);
-    }
-
-    if ('execute' in builtinAction) {
-      actorScope.actionExecutor({
-        type: builtinAction.type,
-        info: actionArgs,
-        params,
-        args: [],
-        exec: builtinAction.execute.bind(null, actorScope, params)
-      });
-    }
-
-    if (actions) {
-      intermediateSnapshot = resolveAndExecuteActionsWithContext(
-        intermediateSnapshot,
-        event,
-        actorScope,
-        actions,
-        extra
-      );
-    }
   }
 
   return intermediateSnapshot;
-}
-
-export function resolveActionsAndContext(
-  currentSnapshot: AnyMachineSnapshot,
-  event: AnyEventObject,
-  actorScope: AnyActorScope,
-  actions: UnknownAction[],
-  internalQueue: AnyEventObject[],
-  deferredActorIds: string[] | undefined
-): AnyMachineSnapshot {
-  const nextState = resolveAndExecuteActionsWithContext(
-    currentSnapshot,
-    event,
-    actorScope,
-    actions,
-    { internalQueue, deferredActorIds }
-  );
-
-  return nextState;
 }
 
 export function macrostep(
@@ -2132,7 +2060,7 @@ export function macrostep(
 
   function addMicrostate(
     microstate: AnyMachineSnapshot,
-    event: AnyEventObject,
+
     transitions: AnyTransitionDefinition[]
   ) {
     // collect microsteps for unified '@xstate.transition'
@@ -2151,7 +2079,7 @@ export function macrostep(
         status: 'stopped'
       }
     );
-    addMicrostate(nextSnapshot, event, []);
+    addMicrostate(nextSnapshot, []);
 
     return {
       snapshot: nextSnapshot,
@@ -2181,7 +2109,7 @@ export function macrostep(
         status: 'error',
         error: currentEvent.error
       });
-      addMicrostate(nextSnapshot, currentEvent, []);
+      addMicrostate(nextSnapshot, []);
       return {
         snapshot: nextSnapshot,
         microstates
@@ -2195,7 +2123,7 @@ export function macrostep(
       false, // isInitial
       internalQueue
     );
-    addMicrostate(nextSnapshot, currentEvent, transitions);
+    addMicrostate(nextSnapshot, transitions);
   }
 
   let shouldSelectEventlessTransitions = true;
@@ -2236,7 +2164,7 @@ export function macrostep(
       internalQueue
     );
     shouldSelectEventlessTransitions = nextSnapshot !== previousState;
-    addMicrostate(nextSnapshot, nextEvent, enabledTransitions);
+    addMicrostate(nextSnapshot, enabledTransitions);
   }
 
   if (nextSnapshot.status !== 'active' && nextSnapshot.children) {
@@ -2366,7 +2294,7 @@ function createEnqueueObject(
 export const emptyEnqueueObject = createEnqueueObject({}, () => {});
 
 function getActionsAndContextFromTransitionFn(
-  action2: Action2<any, any, any, any, any, any>,
+  action2: Action2<any, any, any, any, any, any, any>,
   {
     context,
     event,
