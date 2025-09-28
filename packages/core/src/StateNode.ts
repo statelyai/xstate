@@ -405,11 +405,8 @@ export class StateNode<
     );
 
     for (const candidate of candidates) {
-      const resolvedContext = snapshot.context;
-
       const guardPassed = evaluateCandidate(
         candidate,
-        resolvedContext,
         event,
         snapshot,
         this,

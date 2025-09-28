@@ -761,10 +761,8 @@ function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
 function removeConflictingTransitions(
   enabledTransitions: Array<AnyTransitionDefinition>,
   stateNodeSet: Set<AnyStateNode>,
-  historyValue: AnyHistoryValue,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef,
   actorScope: AnyActorScope
 ): Array<AnyTransitionDefinition> {
   const filteredTransitions = new Set<AnyTransitionDefinition>();
@@ -775,24 +773,8 @@ function removeConflictingTransitions(
     for (const t2 of filteredTransitions) {
       if (
         hasIntersection(
-          computeExitSet(
-            [t1],
-            stateNodeSet,
-            historyValue,
-            snapshot,
-            event,
-            self,
-            actorScope
-          ),
-          computeExitSet(
-            [t2],
-            stateNodeSet,
-            historyValue,
-            snapshot,
-            event,
-            self,
-            actorScope
-          )
+          computeExitSet([t1], stateNodeSet, snapshot, event, actorScope),
+          computeExitSet([t2], stateNodeSet, snapshot, event, actorScope)
         )
       ) {
         if (isDescendant(t1.source, t2.source)) {
@@ -827,12 +809,12 @@ function findLeastCommonAncestor(
 
 function getEffectiveTargetStates(
   transition: Pick<AnyTransitionDefinition, 'target' | 'source'>,
-  historyValue: AnyHistoryValue,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef,
   actorScope: AnyActorScope
 ): Array<AnyStateNode> {
+  const historyValue = snapshot.historyValue;
+  const self = actorScope.self;
   const { targets } = getTransitionResult(
     transition,
     snapshot,
@@ -855,10 +837,8 @@ function getEffectiveTargetStates(
       } else {
         for (const node of getEffectiveTargetStates(
           resolveHistoryDefaultTransition(targetNode),
-          historyValue,
           snapshot,
           event,
-          self,
           actorScope
         )) {
           targetSet.add(node);
@@ -874,18 +854,15 @@ function getEffectiveTargetStates(
 
 function getTransitionDomain(
   transition: AnyTransitionDefinition,
-  historyValue: AnyHistoryValue,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef,
   actorScope: AnyActorScope
 ): AnyStateNode | undefined {
+  const self = actorScope.self;
   const targetStates = getEffectiveTargetStates(
     transition,
-    historyValue,
     snapshot,
     event,
-    self,
     actorScope
   );
 
@@ -928,17 +905,15 @@ function getTransitionDomain(
 function computeExitSet(
   transitions: Array<AnyTransitionDefinition>,
   stateNodeSet: Set<AnyStateNode>,
-  historyValue: AnyHistoryValue,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef,
   actorScope: AnyActorScope
 ): Array<AnyStateNode> {
   const statesToExit = new Set<AnyStateNode>();
-
-  for (const t of transitions) {
+  const self = actorScope.self;
+  for (const transition of transitions) {
     const { targets } = getTransitionResult(
-      t,
+      transition,
       snapshot,
       event,
       self,
@@ -947,15 +922,13 @@ function computeExitSet(
 
     if (targets?.length) {
       const domain = getTransitionDomain(
-        t,
-        historyValue,
+        transition,
         snapshot,
         event,
-        self,
         actorScope
       );
 
-      if (t.reenter && t.source === domain) {
+      if (transition.reenter && transition.source === domain) {
         statesToExit.add(domain);
       }
 
@@ -1003,10 +976,8 @@ export function microstep(
   const filteredTransitions = removeConflictingTransitions(
     transitions,
     mutStateNodeSet,
-    historyValue,
     currentSnapshot,
     event,
-    actorScope.self,
     actorScope
   );
 
@@ -1571,14 +1542,7 @@ function computeEntrySet(
   actorScope: AnyActorScope
 ) {
   for (const transition of transitions) {
-    const domain = getTransitionDomain(
-      transition,
-      historyValue,
-      snapshot,
-      event,
-      self,
-      actorScope
-    );
+    const domain = getTransitionDomain(transition, snapshot, event, actorScope);
 
     const { targets, reenter } = getTransitionResult(
       transition,
@@ -1615,10 +1579,8 @@ function computeEntrySet(
     }
     const targetStates = getEffectiveTargetStates(
       transition,
-      historyValue,
       snapshot,
       event,
-      self,
       actorScope
     );
     for (const s of targetStates) {
@@ -1865,10 +1827,8 @@ function exitStates(
   const statesToExit = computeExitSet(
     transitions,
     mutStateNodeSet,
-    historyValue,
     currentSnapshot,
     event,
-    actorScope.self,
     actorScope
   );
 
@@ -2131,12 +2091,7 @@ export function macrostep(
   while (nextSnapshot.status === 'active') {
     let enabledTransitions: AnyTransitionDefinition[] =
       shouldSelectEventlessTransitions
-        ? selectEventlessTransitions(
-            nextSnapshot,
-            nextEvent,
-            actorScope.self,
-            actorScope
-          )
+        ? selectEventlessTransitions(nextSnapshot, nextEvent, actorScope)
         : [];
 
     // eventless transitions should always be selected after selecting *regular* transitions
@@ -2207,28 +2162,26 @@ function selectTransitions(
 function selectEventlessTransitions(
   nextState: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef,
   actorScope: AnyActorScope
 ): AnyTransitionDefinition[] {
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
   const atomicStates = nextState._nodes.filter(isAtomicStateNode);
 
-  for (const stateNode of atomicStates) {
-    loop: for (const s of [stateNode].concat(
-      getProperAncestors(stateNode, undefined)
+  for (const atomicStateNode of atomicStates) {
+    loop: for (const stateNode of [atomicStateNode].concat(
+      getProperAncestors(atomicStateNode, undefined)
     )) {
-      if (!s.always) {
+      if (!stateNode.always) {
         continue;
       }
-      for (const transition of s.always) {
+      for (const transition of stateNode.always) {
         if (
           evaluateCandidate(
             transition,
-            nextState.context,
             event,
             nextState,
-            s,
-            self
+            stateNode,
+            actorScope.self
           )
         ) {
           enabledTransitionSet.add(transition);
@@ -2241,10 +2194,8 @@ function selectEventlessTransitions(
   return removeConflictingTransitions(
     Array.from(enabledTransitionSet),
     new Set(nextState._nodes),
-    nextState.historyValue,
     nextState,
     event,
-    self,
     actorScope
   );
 }
@@ -2473,7 +2424,6 @@ export function hasEffect(
 
 export function evaluateCandidate(
   candidate: TransitionDefinition<any, any>,
-  context: MachineContext,
   event: EventObject,
   snapshot: AnyMachineSnapshot,
   stateNode: AnyStateNode,
@@ -2482,6 +2432,7 @@ export function evaluateCandidate(
   if (candidate.fn) {
     let hasEffect = false;
     let res;
+    const context = snapshot.context;
 
     try {
       const triggerEffect = () => {
