@@ -1573,7 +1573,6 @@ function computeEntrySet(
         statesToEnter,
         snapshot,
         event,
-        self,
         actorScope
       );
     }
@@ -1590,13 +1589,11 @@ function computeEntrySet(
       }
       addAncestorStatesToEnter(
         statesToEnter,
-        historyValue,
         statesForDefaultEntry,
         ancestors,
         !transition.source.parent && reenter ? undefined : domain,
         snapshot,
         event,
-        self,
         actorScope
       );
     }
@@ -1613,9 +1610,9 @@ function addDescendantStatesToEnter<
   statesToEnter: Set<AnyStateNode>,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef,
   actorScope: AnyActorScope
 ) {
+  const self = actorScope.self;
   if (isHistoryNode(stateNode)) {
     if (historyValue[stateNode.id]) {
       const historyStateNodes = historyValue[stateNode.id];
@@ -1629,7 +1626,6 @@ function addDescendantStatesToEnter<
           statesToEnter,
           snapshot,
           event,
-          self,
           actorScope
         );
       }
@@ -1638,11 +1634,9 @@ function addDescendantStatesToEnter<
           s,
           stateNode.parent,
           statesToEnter,
-          historyValue,
           statesForDefaultEntry,
           snapshot,
           event,
-          self,
           actorScope
         );
       }
@@ -1672,7 +1666,6 @@ function addDescendantStatesToEnter<
           statesToEnter,
           snapshot,
           event,
-          self,
           actorScope
         );
       }
@@ -1682,11 +1675,9 @@ function addDescendantStatesToEnter<
           s,
           stateNode.parent,
           statesToEnter,
-          historyValue,
           statesForDefaultEntry,
           snapshot,
           event,
-          self,
           actorScope
         );
       }
@@ -1712,7 +1703,6 @@ function addDescendantStatesToEnter<
         statesToEnter,
         snapshot,
         event,
-        self,
         actorScope
       );
 
@@ -1720,11 +1710,9 @@ function addDescendantStatesToEnter<
         initialState,
         stateNode,
         statesToEnter,
-        historyValue,
         statesForDefaultEntry,
         snapshot,
         event,
-        self,
         actorScope
       );
     } else {
@@ -1744,7 +1732,6 @@ function addDescendantStatesToEnter<
               statesToEnter,
               snapshot,
               event,
-              self,
               actorScope
             );
           }
@@ -1756,15 +1743,14 @@ function addDescendantStatesToEnter<
 
 function addAncestorStatesToEnter(
   statesToEnter: Set<AnyStateNode>,
-  historyValue: HistoryValue<any, any>,
   statesForDefaultEntry: Set<AnyStateNode>,
   ancestors: AnyStateNode[],
   reentrancyDomain: AnyStateNode | undefined,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef,
   actorScope: AnyActorScope
 ) {
+  const historyValue = snapshot.historyValue;
   for (const anc of ancestors) {
     if (!reentrancyDomain || isDescendant(anc, reentrancyDomain)) {
       statesToEnter.add(anc);
@@ -1780,7 +1766,6 @@ function addAncestorStatesToEnter(
             statesToEnter,
             snapshot,
             event,
-            self,
             actorScope
           );
         }
@@ -1793,22 +1778,18 @@ function addProperAncestorStatesToEnter(
   stateNode: AnyStateNode,
   toStateNode: AnyStateNode | undefined,
   statesToEnter: Set<AnyStateNode>,
-  historyValue: HistoryValue<any, any>,
   statesForDefaultEntry: Set<AnyStateNode>,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef,
   actorScope: AnyActorScope
 ) {
   addAncestorStatesToEnter(
     statesToEnter,
-    historyValue,
     statesForDefaultEntry,
     getProperAncestors(stateNode, toStateNode),
     undefined,
     snapshot,
     event,
-    self,
     actorScope
   );
 }
