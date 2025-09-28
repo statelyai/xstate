@@ -204,10 +204,11 @@ describe('transition function', () => {
 
     expect(actions).toContainEqual(
       expect.objectContaining({
-        type: 'xstate.cancel',
-        params: expect.objectContaining({
-          sendId: 'myRaise'
-        })
+        type: '@xstate.cancel',
+        // params: expect.objectContaining({
+        //   sendId: 'myRaise'
+        // })
+        args: [expect.anything(), 'myRaise']
       })
     );
   });

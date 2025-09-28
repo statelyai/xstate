@@ -1,17 +1,12 @@
 import { Element as XMLElement, xml2js } from 'xml-js';
 // import { assign } from './actions/assign.ts';
-import { cancel } from './actions/cancel.ts';
+// import { cancel } from './actions/cancel.ts';
 // import { log } from './actions/log.ts';
 // import { raise } from './actions/raise.ts';
 // import { sendTo } from './actions/send.ts';
 import { NULL_EVENT } from './constants.ts';
 // import { not, stateIn } from './guards.ts';
-import {
-  ActionFunction,
-  MachineContext,
-  SpecialTargets,
-  createMachine
-} from './index.ts';
+import { MachineContext, SpecialTargets, createMachine } from './index.ts';
 import {
   AnyStateMachine,
   AnyStateNode,
@@ -197,16 +192,17 @@ function mapAction(
       //       });
     }
     case 'cancel':
-      if ('sendid' in element.attributes!) {
-        return cancel(element.attributes.sendid! as string);
-      }
-      return cancel(({ context, event, ...meta }) => {
-        const fnBody = `
-return ${element.attributes!.sendidexpr};
-          `;
+      return { type: 'todo' };
+    //       if ('sendid' in element.attributes!) {
+    //         return cancel(element.attributes.sendid! as string);
+    //       }
+    //       return cancel(({ context, event, ...meta }) => {
+    //         const fnBody = `
+    // return ${element.attributes!.sendidexpr};
+    //           `;
 
-        return evaluateExecutableContent(context, event, meta, fnBody);
-      });
+    //         return evaluateExecutableContent(context, event, meta, fnBody);
+    //       });
     case 'send': {
       const { event, eventexpr, target, id } = element.attributes!;
 

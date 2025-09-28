@@ -9,8 +9,7 @@ import {
   formatTransition,
   formatTransitions,
   getCandidates,
-  getDelayedTransitions,
-  getTransitionResult
+  getDelayedTransitions
 } from './stateUtils.ts';
 import type {
   DelayedTransitionDefinition,
@@ -243,6 +242,7 @@ export class StateNode<
       // @ts-ignore
       this.exit2._special = true;
     }
+
     this.meta = this.config.meta;
     this.output =
       this.type === 'final' || !this.parent ? this.config.output : undefined;
@@ -329,17 +329,9 @@ export class StateNode<
         return {
           ...invokeConfig,
           src: sourceName,
+          logic: typeof src === 'string' ? undefined : src,
           id: resolvedId,
-          systemId: systemId,
-          toJSON() {
-            const { onDone, onError, ...invokeDefValues } = invokeConfig;
-            return {
-              ...invokeDefValues,
-              type: 'xstate.invoke',
-              src: sourceName,
-              id: resolvedId
-            };
-          }
+          systemId: systemId
         } as InvokeDefinition<
           TContext,
           TEvent,

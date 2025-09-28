@@ -2,8 +2,6 @@ import isDevelopment from '#is-development';
 import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
-import { cancel } from './actions/cancel.ts';
-import { stopChild } from './actions/stopChild.ts';
 import {
   XSTATE_INIT,
   STATE_DELIMITER,
@@ -40,8 +38,7 @@ import {
   normalizeTarget,
   toArray,
   toStatePath,
-  isErrorActorEvent,
-  resolveReferencedActor
+  isErrorActorEvent
 } from './utils.ts';
 import { createActor } from './createActor.ts';
 
@@ -263,6 +260,28 @@ export function getCandidates<TEvent extends EventObject>(
   return candidates;
 }
 
+export function mutateEntryExit(
+  stateNode: AnyStateNode,
+  entryFn?: (x: any, enq: EnqueueObject<any, any>) => void,
+  exitFn?: (x: any, enq: EnqueueObject<any, any>) => void
+) {
+  if (entryFn) {
+    const oldEntry = stateNode.entry2;
+    stateNode.entry2 = (x, enq) => {
+      entryFn(x, enq);
+      return oldEntry?.(x, enq);
+    };
+  }
+  if (exitFn) {
+    const oldExit = stateNode.exit2;
+    stateNode.exit2 = (x, enq) => {
+      exitFn(x, enq);
+      return oldExit?.(x, enq);
+    };
+  }
+  return stateNode;
+}
+
 /** All delayed transitions from the config. */
 export function getDelayedTransitions(
   stateNode: AnyStateNode
@@ -272,25 +291,30 @@ export function getDelayedTransitions(
     return [];
   }
 
-  const mutateEntryExit = (delay: string | number) => {
+  const mutateEntryExitWithDelay = (delay: string | number) => {
     const afterEvent = createAfterEvent(delay, stateNode.id);
     const eventType = afterEvent.type;
 
-    const oldEntry = stateNode.entry2;
-    stateNode.entry2 = (x, enq) => {
-      let resolvedDelay = typeof delay === 'string' ? x.delays[delay] : delay;
+    mutateEntryExit(
+      stateNode,
+      // entry
+      (x, enq) => {
+        let resolvedDelay = typeof delay === 'string' ? x.delays[delay] : delay;
 
-      if (typeof resolvedDelay === 'function') {
-        resolvedDelay = resolvedDelay(x);
+        if (typeof resolvedDelay === 'function') {
+          resolvedDelay = resolvedDelay(x);
+        }
+        enq.raise(afterEvent, {
+          id: eventType,
+          delay: resolvedDelay
+        });
+      },
+      // exit
+      (_, enq) => {
+        enq.cancel(eventType);
       }
+    );
 
-      enq.raise(afterEvent, {
-        id: eventType,
-        delay: resolvedDelay
-      });
-      return oldEntry?.(x, enq);
-    };
-    stateNode.exit.push(cancel(eventType));
     return eventType;
   };
 
@@ -303,7 +327,7 @@ export function getDelayedTransitions(
           ? { fn: configTransition }
           : configTransition;
     const resolvedDelay = Number.isNaN(+delay) ? delay : +delay;
-    const eventType = mutateEntryExit(resolvedDelay);
+    const eventType = mutateEntryExitWithDelay(resolvedDelay);
     return toArray(resolvedTransition).map((transition) => ({
       ...transition,
       event: eventType,
@@ -1201,10 +1225,12 @@ function enterStates(
 
     for (const invokeDef of stateNodeToEnter.invoke) {
       invoked = true;
-      let logic = resolveReferencedActor(
-        currentSnapshot.machine,
-        invokeDef.src
-      );
+
+      // let logic = resolveReferencedActor(
+      //   currentSnapshot.machine,
+      //   invokeDef.src
+      // );
+      let logic = invokeDef.logic;
       if (typeof logic === 'function') {
         logic = logic({
           actors: currentSnapshot.machine.implementations.actors
@@ -1368,7 +1394,10 @@ export function getTransitionResult(
     const enqueue = createEnqueueObject(
       {
         cancel: (id) => {
-          actions.push(cancel(id));
+          actions.push({
+            action: builtInActions['@xstate.cancel'],
+            args: [actorScope, id]
+          });
         },
         raise: (event, options) => {
           if (options?.delay !== undefined) {
@@ -1531,6 +1560,9 @@ const builtInActions = {
   },
   ['@xstate.cancel']: (actorScope: AnyActorScope, sendId: string) => {
     actorScope.system.scheduler.cancel(actorScope.self, sendId);
+  },
+  ['@xstate.stopChild']: (actorScope: AnyActorScope, actorRef: AnyActorRef) => {
+    actorScope.stopChild(actorRef);
   }
 };
 
@@ -1887,10 +1919,14 @@ function exitStates(
       nextSnapshot,
       event,
       actorScope,
-      [...exitActions, ...s.invoke.map((def) => stopChild(def.id))],
+      exitActions,
       internalQueue,
       undefined
     );
+    s.invoke.forEach((def) => {
+      actorScope.stopChild(nextSnapshot.children[def.id]);
+      delete nextSnapshot.children[def.id];
+    });
     if (nextContext) {
       nextSnapshot.context = nextContext;
     }
@@ -1982,6 +2018,8 @@ function resolveAndExecuteActionsWithContext(
 
     if (resolvedAction && '_special' in resolvedAction) {
       const specialAction = resolvedAction as unknown as Action2<
+        any,
+        any,
         any,
         any,
         any,
@@ -2108,7 +2146,7 @@ export function macrostep(
   // Handle stop event
   if (event.type === XSTATE_STOP) {
     nextSnapshot = cloneMachineSnapshot(
-      stopChildren(nextSnapshot, event, actorScope),
+      stopChildren(nextSnapshot, actorScope),
       {
         status: 'stopped'
       }
@@ -2202,7 +2240,7 @@ export function macrostep(
   }
 
   if (nextSnapshot.status !== 'active' && nextSnapshot.children) {
-    stopChildren(nextSnapshot, nextEvent, actorScope);
+    stopChildren(nextSnapshot, actorScope);
   }
 
   return {
@@ -2213,19 +2251,21 @@ export function macrostep(
 
 function stopChildren(
   nextState: AnyMachineSnapshot,
-  event: AnyEventObject,
   actorScope: AnyActorScope
 ) {
-  return resolveActionsAndContext(
-    nextState,
-    event,
-    actorScope,
-    Object.values(nextState.children ?? {})
-      .filter(Boolean)
-      .map((child: any) => stopChild(child)),
-    [],
-    undefined
-  );
+  let children;
+  if (
+    !nextState.children ||
+    (children = Object.values(nextState.children).filter(Boolean)).length === 0
+  ) {
+    return nextState;
+  }
+  for (const child of children) {
+    actorScope.stopChild(child);
+  }
+  return cloneMachineSnapshot(nextState, {
+    children: {}
+  });
 }
 
 function selectTransitions(
@@ -2405,7 +2445,10 @@ function getActionsAndContextFromTransitionFn(
         },
         stop: (actorRef) => {
           if (actorRef) {
-            actions.push(stopChild(actorRef));
+            actions.push({
+              action: builtInActions['@xstate.stopChild'],
+              args: [actorScope, actorRef]
+            });
           }
         }
       },

@@ -1,4 +1,3 @@
-export * from './actions.ts';
 export * from './actors/index.ts';
 export { assertEvent } from './assert.ts';
 export {

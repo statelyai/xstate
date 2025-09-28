@@ -1,12 +1,8 @@
 import type { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
-import { AssignArgs } from './actions/assign.ts';
-import { ExecutableRaiseAction } from './actions/raise.ts';
-import { ExecutableSendToAction } from './actions/send.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
-import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import { InspectionEvent } from './inspection.ts';
 import { Spawner } from './spawn.ts';
 import { AnyActorSystem, Clock } from './system.ts';
@@ -178,26 +174,6 @@ export type OutputFrom<T> =
     : T extends ActorRef<infer TSnapshot, infer _TEvent, infer _TEmitted>
       ? (TSnapshot & { status: 'done' })['output']
       : never;
-
-export type ActionFunction<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TEmitted extends EventObject
-> = {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
-  _out_TEvent?: TEvent; // TODO: it feels like we should be able to remove this since now `TEvent` is "observable" by `self`
-  _out_TActor?: TActor;
-  _out_TAction?: TAction;
-  _out_TGuard?: TGuard;
-  _out_TDelay?: TDelay;
-  _out_TEmitted?: TEmitted;
-};
 
 export type NoRequiredParams<T extends ParameterizedObject> = T extends any
   ? undefined extends T['params']
@@ -404,6 +380,8 @@ export interface InvokeDefinition<
   id: string;
 
   systemId: string | undefined;
+
+  logic: AnyActorLogic;
   /** The source of the actor logic to be invoked */
   src: AnyActorLogic | string;
 
@@ -2827,12 +2805,6 @@ export type ExecutableActionsFrom<T extends AnyActorLogic> =
     : never;
 
 export type ActionExecutor = (actionToExecute: ExecutableActionObject) => void;
-
-export type BuiltinActionResolution = [
-  AnyMachineSnapshot,
-  NonReducibleUnknown, // params
-  UnknownAction[] | undefined
-];
 
 export type EnqueueObject<
   TEvent extends EventObject,
