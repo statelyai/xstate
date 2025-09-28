@@ -22,7 +22,7 @@ export type EnqueueObject<TEmittedEvent extends EventObject> = {
   emit: {
     [E in TEmittedEvent as E['type']]: EmitterFunction<E>;
   };
-  effect: (fn: () => void) => void;
+  effect: (fn: () => void | Promise<void>) => void;
 };
 
 export type StoreEffect<TEmitted extends EventObject> = (() => void) | TEmitted;
