@@ -68,7 +68,7 @@ export function fromStore<
 
       for (const effect of effects) {
         if (typeof effect === 'function') {
-          effect();
+          void effect();
         } else {
           actorScope.emit(effect as ExtractEvents<TEmitted>);
         }
