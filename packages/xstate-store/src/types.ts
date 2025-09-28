@@ -25,7 +25,7 @@ export type EnqueueObject<TEmittedEvent extends EventObject> = {
   effect: (fn: () => void | Promise<void>) => void;
 };
 
-export type StoreEffect<TEmitted extends EventObject> = (() => void) | TEmitted;
+export type StoreEffect<TEmitted extends EventObject> = (() => void) | (() => Promise<void>) | TEmitted;
 
 export type StoreAssigner<
   TContext extends StoreContext,
