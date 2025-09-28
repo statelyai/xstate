@@ -262,15 +262,15 @@ export function mutateEntryExit(
   exitFn?: (x: any, enq: EnqueueObject<any, any>) => void
 ) {
   if (entryFn) {
-    const oldEntry = stateNode.entry2;
-    stateNode.entry2 = (x, enq) => {
+    const oldEntry = stateNode.entry;
+    stateNode.entry = (x, enq) => {
       entryFn(x, enq);
       return oldEntry?.(x, enq);
     };
   }
   if (exitFn) {
-    const oldExit = stateNode.exit2;
-    stateNode.exit2 = (x, enq) => {
+    const oldExit = stateNode.exit;
+    stateNode.exit = (x, enq) => {
       exitFn(x, enq);
       return oldExit?.(x, enq);
     };
@@ -361,8 +361,6 @@ export function formatTransition(
 
   const transition = {
     ...transitionConfig,
-    actions: toArray(transitionConfig.actions),
-    guard: transitionConfig.guard as never,
     target,
     source: stateNode,
     reenter,
@@ -1052,9 +1050,9 @@ export function microstep(
     let context: MachineContext | undefined;
 
     nextStateNodesToExit.forEach((stateNode) => {
-      if (stateNode.exit2) {
+      if (stateNode.exit) {
         const [actions, nextContext, internalEvents] =
-          getActionsAndContextFromTransitionFn(stateNode.exit2, {
+          getActionsAndContextFromTransitionFn(stateNode.exit, {
             context: nextState.context,
             event,
             self: actorScope.self,
@@ -1063,8 +1061,7 @@ export function microstep(
             actorScope,
             machine: currentSnapshot.machine
           });
-        const resultActions = [...stateNode.exit, ...actions];
-        allExitActions.push(...resultActions);
+        allExitActions.push(...actions);
 
         if (nextContext) {
           context = nextContext;
@@ -1073,8 +1070,6 @@ export function microstep(
           internalQueue.push(...internalEvents);
         }
       }
-      allExitActions.push(...stateNode.exit);
-      return stateNode.exit;
     });
     nextState = resolveAndExecuteActionsWithContext(
       nextState,
@@ -1177,11 +1172,6 @@ function enterStates(
     mutStateNodeSet.add(stateNodeToEnter);
     const actions: UnknownAction[] = [];
 
-    // Add entry actions
-    if (!stateNodeToEnter.entry2) {
-      actions.push(...stateNodeToEnter.entry);
-    }
-
     for (const invokeDef of stateNodeToEnter.invoke) {
       invoked = true;
 
@@ -1230,9 +1220,9 @@ function enterStates(
     }
     let context: MachineContext | undefined;
 
-    if (stateNodeToEnter.entry2) {
+    if (stateNodeToEnter.entry) {
       const [resultActions, nextContext, internalEvents] =
-        getActionsAndContextFromTransitionFn(stateNodeToEnter.entry2, {
+        getActionsAndContextFromTransitionFn(stateNodeToEnter.entry, {
           context: nextSnapshot.context,
           event,
           self: actorScope.self,
@@ -1826,8 +1816,8 @@ function exitStates(
   }
 
   for (const exitStateNode of statesToExit) {
-    const [exitActions, nextContext, internalEvents] = exitStateNode.exit2
-      ? getActionsAndContextFromTransitionFn(exitStateNode.exit2, {
+    const [exitActions, nextContext, internalEvents] = exitStateNode.exit
+      ? getActionsAndContextFromTransitionFn(exitStateNode.exit, {
           context: nextSnapshot.context,
           event,
           self: actorScope.self,
@@ -1836,7 +1826,7 @@ function exitStates(
           actorScope,
           machine: currentSnapshot.machine
         })
-      : [exitStateNode.exit];
+      : [[]];
     if (internalEvents?.length) {
       internalQueue.push(...internalEvents);
     }
@@ -1909,9 +1899,6 @@ export function resolveAndExecuteActionsWithContext(
 
     if (resolvedAction && '_special' in resolvedAction) {
       const specialAction = resolvedAction as unknown as Action2<
-        any,
-        any,
-        any,
         any,
         any,
         any,
@@ -2192,7 +2179,7 @@ function createEnqueueObject(
 export const emptyEnqueueObject = createEnqueueObject({}, () => {});
 
 function getActionsAndContextFromTransitionFn(
-  action2: Action2<any, any, any, any, any, any, any>,
+  action2: Action2<any, any, any, any>,
   {
     context,
     event,

@@ -94,11 +94,9 @@ export class StateNode<
    */
   public history: false | 'shallow' | 'deep';
   /** The action(s) to be executed upon entering the state node. */
-  public entry: UnknownAction[];
-  public entry2: Action2<any, any, any, any, any, any, any> | undefined;
+  public entry: Action2<any, any, any, any> | undefined;
   /** The action(s) to be executed upon exiting the state node. */
-  public exit: UnknownAction[];
-  public exit2: Action2<any, any, any, any, any, any, any> | undefined;
+  public exit: Action2<any, any, any, any> | undefined;
   /** The parent state node. */
   public parent?: StateNode<TContext, TEvent>;
   /** The root machine node. */
@@ -117,10 +115,7 @@ export class StateNode<
     any, // emitted
     any, // meta
     any, // state schema
-    any, // action map
-    any, // actor map
-    any, // guard map
-    any // delay map
+    any // action map
   >;
   /**
    * The meta data associated with this state node, which will be returned in
@@ -152,14 +147,15 @@ export class StateNode<
     public config: StateNodeConfig<
       TContext,
       TEvent,
-      TODO, // actors
-      TODO, // actions
-      TODO, // guards
-      TODO, // delays
-      TODO, // tags
-      TODO, // output
-      TODO, // emitted
-      TODO // meta
+      any,
+      any,
+      any,
+      any,
+      any,
+      any,
+      any,
+      any,
+      any
     >,
     options: StateNodeOptions<TContext, TEvent>
   ) {
@@ -211,20 +207,17 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this.entry2 = this.config.entry;
-    this.exit2 = this.config.exit;
+    this.entry = this.config.entry;
+    this.exit = this.config.exit;
 
-    this.entry = toArray(this.config.entry).slice();
-    this.exit = toArray(this.config.exit).slice();
-
-    if (this.entry2) {
+    if (this.entry) {
       // @ts-ignore
-      this.entry2._special = true;
+      this.entry._special = true;
     }
 
-    if (this.exit2) {
+    if (this.exit) {
       // @ts-ignore
-      this.exit2._special = true;
+      this.exit._special = true;
     }
 
     this.meta = this.config.meta;
@@ -272,8 +265,8 @@ export class StateNode<
         ...t,
         actions: t.actions.map(toSerializableAction)
       })),
-      entry: this.entry.map(toSerializableAction),
-      exit: this.exit.map(toSerializableAction),
+      entry: this.entry,
+      exit: this.exit,
       meta: this.meta,
       order: this.order || -1,
       output: this.output,
@@ -398,7 +391,7 @@ export class StateNode<
       );
 
       if (guardPassed) {
-        actions.push(...candidate.actions);
+        // actions.push(...candidate.actions);
         selectedTransition = candidate;
         break;
       }
@@ -436,15 +429,13 @@ export class StateNode<
   public get ownEvents(): Array<EventDescriptor<TEvent>> {
     const events = new Set(
       [...this.transitions.keys()].filter((descriptor) => {
-        return this.transitions
-          .get(descriptor)!
-          .some(
-            (transition) =>
-              transition.target ||
-              transition.actions.length ||
-              transition.reenter ||
-              transition.fn
-          );
+        return this.transitions.get(descriptor)!.some(
+          (transition) =>
+            transition.target ||
+            // transition.actions.length ||
+            transition.reenter ||
+            transition.fn
+        );
       })
     );
 

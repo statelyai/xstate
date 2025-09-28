@@ -152,9 +152,6 @@ export function createMachine<
   TOutput,
   TEmitted,
   TMeta, // TMeta
-  TODO, // TStateSchema
-  TODO,
-  TODO,
   TODO,
   TODO
 > {
@@ -173,9 +170,6 @@ export function createMachine<
     any, // TEmitted
     any, // TMeta
     any, // TStateSchema
-    any,
-    any,
-    any,
     any
   >(config as any, implementations as any);
 }
@@ -191,10 +185,7 @@ export function next_createMachine<
   // TContext extends MachineContext,
   TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
   TActor extends ProvidedActor,
-  TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
-  TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays'],
+  TImplementations extends Implementations,
   TDelays extends string,
   TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
   TInput,
@@ -216,9 +207,7 @@ export function next_createMachine<
       TEvent,
       TDelays,
       TTag,
-      TActionMap,
-      TActorMap,
-      TGuardMap
+      TImplementations
     >
 ): StateMachine<
   InferOutput<TContextSchema, MachineContext>,
@@ -235,14 +224,10 @@ export function next_createMachine<
   WithDefault<InferOutput<TEmittedSchema, EventObject>, AnyEventObject>,
   InferOutput<TMetaSchema, MetaObject>, // TMeta
   TSS, // TStateSchema
-  TActionMap,
-  TActorMap,
-  TGuardMap,
-  TDelayMap
+  TImplementations
 > & {
   states: TSS;
 } {
-  config._special = true;
   return new StateMachine<
     any,
     any,
@@ -258,9 +243,6 @@ export function next_createMachine<
     any, // TEmitted
     any, // TMeta
     any, // TStateSchema
-    any,
-    any,
-    any,
     any
   >(config as any);
 }

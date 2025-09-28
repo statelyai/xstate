@@ -35,7 +35,11 @@ describe('transition function', () => {
       schemas: {
         context: z.object({
           count: z.number()
-        })
+        }),
+        events: z.union([
+          z.object({ type: z.literal('event'), msg: z.string() }),
+          z.object({ type: z.literal('stringAction') })
+        ])
       },
       entry: (_, enq) => {
         enq(actionWithParams, { a: 1 });
@@ -90,6 +94,11 @@ describe('transition function', () => {
     const foo = vi.fn();
 
     const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       actions: {
         foo
       },

@@ -65,10 +65,7 @@ export class StateMachine<
   TEmitted extends EventObject,
   TMeta extends MetaObject,
   TConfig extends StateSchema,
-  TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
-  TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays']
+  TImplementations extends Implementations
 > implements
     ActorLogic<
       MachineSnapshot<
@@ -118,8 +115,7 @@ export class StateMachine<
       any,
       any,
       any,
-      TOutput,
-      any // TEmitted
+      any
     > & {
       schemas?: unknown;
     },
