@@ -22,10 +22,13 @@ export type EnqueueObject<TEmittedEvent extends EventObject> = {
   emit: {
     [E in TEmittedEvent as E['type']]: EmitterFunction<E>;
   };
-  effect: (fn: () => void | Promise<void>) => void;
+  effect: (fn: EnqueuedEffectFn) => void;
 };
 
-export type StoreEffect<TEmitted extends EventObject> = (() => void) | (() => Promise<void>) | TEmitted;
+type EnqueuedEffectFn = () => void | Promise<void>;
+export type StoreEffect<TEmitted extends EventObject> =
+  | EnqueuedEffectFn
+  | TEmitted;
 
 export type StoreAssigner<
   TContext extends StoreContext,
