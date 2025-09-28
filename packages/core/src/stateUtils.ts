@@ -10,9 +10,7 @@ import {
   WILDCARD
 } from './constants.ts';
 import {
-  ActionArgs,
   AnyEventObject,
-  AnyHistoryValue,
   AnyMachineSnapshot,
   AnyStateNode,
   AnyTransitionDefinition,
@@ -24,10 +22,8 @@ import {
   StateValueMap,
   TransitionDefinition,
   UnknownAction,
-  ParameterizedObject,
   AnyTransitionConfig,
   AnyActorScope,
-  ActionExecutor,
   AnyStateMachine,
   EnqueueObject,
   Action2,
@@ -992,36 +988,32 @@ export function microstep(
       filteredTransitions,
       mutStateNodeSet,
       historyValue,
-      internalQueue,
-      actorScope.actionExecutor
+      internalQueue
     );
   }
 
-  const { context, actions, internalEvents } = filteredTransitions
-    .flatMap((t) =>
-      getTransitionResult(
-        t,
-        currentSnapshot,
-        event,
-        actorScope.self,
-        actorScope
-      )
-    )
-    .reduce(
-      (acc, res) => {
-        if (res.context) {
-          acc.context = res.context;
-        }
-        if (res.actions) acc.actions.push(...res.actions);
-        if (res.internalEvents) acc.internalEvents.push(...res.internalEvents);
-        return acc;
-      },
-      {
-        context: nextState.context,
-        actions: [] as UnknownAction[],
-        internalEvents: [] as EventObject[]
-      }
+  let context = nextState.context;
+  const actions: UnknownAction[] = [];
+  const internalEvents: EventObject[] = [];
+
+  for (const t of filteredTransitions) {
+    const res = getTransitionResult(
+      t,
+      currentSnapshot,
+      event,
+      actorScope.self,
+      actorScope
     );
+    if (res.context) {
+      context = res.context;
+    }
+    if (res.actions) {
+      actions.push(...res.actions);
+    }
+    if (res.internalEvents) {
+      internalEvents.push(...res.internalEvents);
+    }
+  }
 
   if (internalEvents?.length) {
     internalQueue.push(...internalEvents);
@@ -1259,7 +1251,6 @@ function enterStates(
     }
 
     if (statesForDefaultEntry.has(stateNodeToEnter)) {
-      // const initialActions = stateNodeToEnter.initial.actions;
       const { actions: initialActions } = getTransitionResult(
         stateNodeToEnter.initial,
         nextSnapshot,
@@ -1801,8 +1792,7 @@ function exitStates(
   transitions: AnyTransitionDefinition[],
   mutStateNodeSet: Set<AnyStateNode>,
   historyValue: HistoryValue<any, any>,
-  internalQueue: AnyEventObject[],
-  _actionExecutor: ActionExecutor
+  internalQueue: AnyEventObject[]
 ) {
   let nextSnapshot = currentSnapshot;
   const statesToExit = computeExitSet(
@@ -1835,9 +1825,9 @@ function exitStates(
     }
   }
 
-  for (const s of statesToExit) {
-    const [exitActions, nextContext, internalEvents] = s.exit2
-      ? getActionsAndContextFromTransitionFn(s.exit2, {
+  for (const exitStateNode of statesToExit) {
+    const [exitActions, nextContext, internalEvents] = exitStateNode.exit2
+      ? getActionsAndContextFromTransitionFn(exitStateNode.exit2, {
           context: nextSnapshot.context,
           event,
           self: actorScope.self,
@@ -1846,7 +1836,7 @@ function exitStates(
           actorScope,
           machine: currentSnapshot.machine
         })
-      : [s.exit];
+      : [exitStateNode.exit];
     if (internalEvents?.length) {
       internalQueue.push(...internalEvents);
     }
@@ -1856,39 +1846,16 @@ function exitStates(
       actorScope,
       exitActions
     );
-    s.invoke.forEach((def) => {
+    for (const def of exitStateNode.invoke) {
       actorScope.stopChild(nextSnapshot.children[def.id]);
       delete nextSnapshot.children[def.id];
-    });
+    }
     if (nextContext) {
       nextSnapshot.context = nextContext;
     }
-    mutStateNodeSet.delete(s);
+    mutStateNodeSet.delete(exitStateNode);
   }
   return [nextSnapshot, changedHistory || historyValue] as const;
-}
-
-export interface BuiltinAction {
-  (): void;
-  type: `xstate.${string}`;
-  resolve: (
-    actorScope: AnyActorScope,
-    snapshot: AnyMachineSnapshot,
-    actionArgs: ActionArgs<any, any, any>,
-    actionParams: ParameterizedObject['params'] | undefined,
-    action: unknown,
-    extra: unknown
-  ) => [
-    newState: AnyMachineSnapshot,
-    params: unknown,
-    actions?: UnknownAction[]
-  ];
-  retryResolve: (
-    actorScope: AnyActorScope,
-    snapshot: AnyMachineSnapshot,
-    params: unknown
-  ) => void;
-  execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
 export function resolveAndExecuteActionsWithContext(
@@ -1970,7 +1937,6 @@ export function resolveAndExecuteActionsWithContext(
               ? (action.action.name ?? '(anonymous)')
               : action.type
             : action.name || '(anonymous)',
-        info: actionArgs,
         params: actionParams,
         args:
           typeof action === 'object' && 'action' in action ? action.args : [],

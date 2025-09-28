@@ -3,11 +3,8 @@ import type { StateMachine } from './StateMachine.ts';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
 import { memo } from './memo.ts';
 import {
-  BuiltinAction,
   evaluateCandidate,
-  formatInitialTransition,
   formatTransition,
-  formatTransitions,
   getCandidates,
   getDelayedTransitions
 } from './stateUtils.ts';
@@ -51,14 +48,6 @@ const EMPTY_OBJECT = {};
 const toSerializableAction = (action: UnknownAction) => {
   if (typeof action === 'string') {
     return { type: action };
-  }
-  if (typeof action === 'function') {
-    if ('resolve' in action) {
-      return { type: (action as BuiltinAction).type };
-    }
-    return {
-      type: action.name
-    };
   }
   return action;
 };
@@ -222,17 +211,12 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    if (this.machine.config._special) {
-      this.entry2 = this.config.entry;
-      // this.config.entry = undefined;
-      this.exit2 = this.config.exit;
-      // this.config.exit = undefined;
-    }
+    this.entry2 = this.config.entry;
+    this.exit2 = this.config.exit;
 
     this.entry = toArray(this.config.entry).slice();
     this.exit = toArray(this.config.exit).slice();
-    this.entry2 ??= this.config.entry2;
-    this.exit2 ??= this.config.exit2;
+
     if (this.entry2) {
       // @ts-ignore
       this.entry2._special = true;
@@ -564,6 +548,7 @@ export function formatInitialTransition<
         TContext,
         TEvent,
         TEvent,
+        TODO,
         TODO,
         TODO,
         TODO,
