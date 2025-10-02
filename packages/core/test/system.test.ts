@@ -541,4 +541,10 @@ describe('system', () => {
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
+
+  it('system ID should be accessible on the actor', () => {
+    const machine = createMachine({});
+    const actor = createActor(machine, { systemId: 'test' });
+    expect(actor.systemId).toBe('test');
+  });
 });

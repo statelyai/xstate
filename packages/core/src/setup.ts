@@ -1,5 +1,13 @@
 import { StateMachine } from './StateMachine';
-import { enqueueActions } from './actions';
+import { assign } from './actions/assign';
+import { cancel } from './actions/cancel';
+import { emit } from './actions/emit';
+import { enqueueActions } from './actions/enqueueActions';
+import { log } from './actions/log';
+import { raise } from './actions/raise';
+import { sendTo } from './actions/send';
+import { spawnChild } from './actions/spawnChild';
+import { stopChild } from './actions/stopChild';
 import { createMachine } from './createMachine';
 import { GuardPredicate } from './guards';
 
@@ -188,6 +196,44 @@ type SetupReturn<
   >(
     config: TStateConfig
   ) => TStateConfig;
+  /**
+   * Creates a type-safe action.
+   *
+   * @example
+   *
+   * ```ts
+   * const machineSetup = setup({
+   *   // ...
+   * });
+   *
+   * const action = machineSetup.createAction(({ context, event }) => {
+   *   console.log(context.count, event.value);
+   * });
+   *
+   * const incrementAction = machineSetup.createAction(
+   *   assign({ count: ({ context }) => context.count + 1 })
+   * );
+   *
+   * const machine = machineSetup.createMachine({
+   *   context: { count: 0 },
+   *   entry: [action, incrementAction]
+   * });
+   * ```
+   */
+  createAction: (
+    action: ActionFunction<
+      TContext,
+      TEvent,
+      TEvent,
+      unknown,
+      ToProvidedActor<TChildrenMap, TActors>,
+      ToParameterizedObject<TActions>,
+      ToParameterizedObject<TGuards>,
+      TDelay,
+      TEmitted
+    >
+  ) => typeof action;
+
   createMachine: <
     const TConfig extends MachineConfig<
       TContext,
@@ -222,6 +268,60 @@ type SetupReturn<
     TEmitted,
     TMeta,
     TConfig
+  >;
+
+  assign: typeof assign<
+    TContext,
+    TEvent,
+    undefined,
+    TEvent,
+    ToProvidedActor<TChildrenMap, TActors>
+  >;
+  sendTo: <TTargetActor extends AnyActorRef>(
+    ...args: Parameters<
+      typeof sendTo<
+        TContext,
+        TEvent,
+        undefined,
+        TTargetActor,
+        TEvent,
+        TDelay,
+        TDelay
+      >
+    >
+  ) => ReturnType<
+    typeof sendTo<
+      TContext,
+      TEvent,
+      undefined,
+      TTargetActor,
+      TEvent,
+      TDelay,
+      TDelay
+    >
+  >;
+  raise: typeof raise<TContext, TEvent, TEvent, undefined, TDelay, TDelay>;
+  log: typeof log<TContext, TEvent, undefined, TEvent>;
+  cancel: typeof cancel<TContext, TEvent, undefined, TEvent>;
+  stopChild: typeof stopChild<TContext, TEvent, undefined, TEvent>;
+  enqueueActions: typeof enqueueActions<
+    TContext,
+    TEvent,
+    undefined,
+    TEvent,
+    ToProvidedActor<TChildrenMap, TActors>,
+    ToParameterizedObject<TActions>,
+    ToParameterizedObject<TGuards>,
+    TDelay,
+    TEmitted
+  >;
+  emit: typeof emit<TContext, TEvent, undefined, TEvent, TEmitted>;
+  spawnChild: typeof spawnChild<
+    TContext,
+    TEvent,
+    undefined,
+    TEvent,
+    ToProvidedActor<TChildrenMap, TActors>
   >;
 };
 
@@ -315,7 +415,17 @@ export function setup<
   TMeta
 > {
   return {
+    assign,
+    sendTo,
+    raise,
+    log,
+    cancel,
+    stopChild,
+    enqueueActions,
+    emit,
+    spawnChild,
     createStateConfig: (config) => config,
+    createAction: (fn) => fn,
     createMachine: (config) =>
       (createMachine as any)(
         { ...config, schemas },
