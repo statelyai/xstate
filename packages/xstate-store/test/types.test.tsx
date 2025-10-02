@@ -141,3 +141,41 @@ describe('trigger', () => {
     });
   });
 });
+
+describe('enqueue effects', () => {
+  it('can enqueue only sync and async functions', () => {
+    const waitAsecond = () =>
+      new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        increment: (ctx, _, enq) => {
+          // @ts-expect-error
+          enq.effect({ answer: 84 });
+
+          // @ts-expect-error
+          enq.effect(waitAsecond());
+
+          enq.effect(() => {
+            store.send({ type: 'decrement' });
+          });
+
+          enq.effect(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            store.send({ type: 'decrement' });
+          });
+
+          return {
+            ...ctx,
+            count: ctx.count + 1
+          };
+        },
+        decrement: (ctx) => ({
+          ...ctx,
+          count: ctx.count - 1
+        })
+      }
+    });
+  });
+});

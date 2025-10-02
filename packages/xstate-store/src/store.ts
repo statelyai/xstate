@@ -94,7 +94,7 @@ function createStoreCore<
 
     for (const effect of effects) {
       if (typeof effect === 'function') {
-        effect();
+        void effect();
       } else {
         // handle the inherent effect first
         emits?.[effect.type]?.(effect);
