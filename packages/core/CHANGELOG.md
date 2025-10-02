@@ -1,5 +1,18 @@
 # xstate
 
+## 5.22.1
+
+### Patch Changes
+
+- [#5379](https://github.com/statelyai/xstate/pull/5379) [`98f9ddd`](https://github.com/statelyai/xstate/commit/98f9ddde939320fb698ef382f6712a0753d55ca5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Make `actor.systemId` public:
+
+  ```ts
+  const actor = createActor(machine, { systemId: 'test' });
+  actor.systemId; // 'test'
+  ```
+
+- [#5380](https://github.com/statelyai/xstate/pull/5380) [`e7e5e44`](https://github.com/statelyai/xstate/commit/e7e5e44c3758eec4c1380bd604539406ad71115a) Thanks [@Nirajkashyap](https://github.com/Nirajkashyap)! - fix: remove 'eventType' from required fields in initialTransitionObject
+
 ## 5.22.0
 
 ### Minor Changes
