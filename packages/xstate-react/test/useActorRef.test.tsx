@@ -7,11 +7,10 @@ import * as React from 'react';
 import {
   ActorRefFrom,
   AnyStateMachine,
-  assign,
   createMachine,
   fromPromise,
   fromTransition,
-  sendParent,
+  next_createMachine,
   sendTo
 } from 'xstate';
 import { useActorRef, useMachine, useSelector } from '../src/index.ts';
@@ -347,18 +346,21 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('invoked actor should be able to receive (deferred) events that it replays when active', () => {
     let isDone = false;
 
-    const childMachine = createMachine({
+    const childMachine = next_createMachine({
       id: 'childMachine',
       initial: 'active',
       states: {
         active: {
           on: {
-            FINISH: { actions: sendParent({ type: 'FINISH' }) }
+            // FINISH: { actions: sendParent({ type: 'FINISH' }) }
+            FINISH: ({ parent }, enq) => {
+              enq.sendTo(parent, { type: 'FINISH' });
+            }
           }
         }
       }
     });
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'active',
       invoke: {
         id: 'child',
@@ -408,24 +410,42 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('spawned actor should be able to receive (deferred) events that it replays when active', () => {
     let isDone = false;
 
-    const childMachine = createMachine({
+    const childMachine = next_createMachine({
       id: 'childMachine',
       initial: 'active',
       states: {
         active: {
           on: {
-            FINISH: { actions: sendParent({ type: 'FINISH' }) }
+            // FINISH: { actions: sendParent({ type: 'FINISH' }) }
+            FINISH: ({ parent }, enq) => {
+              enq.sendTo(parent, { type: 'FINISH' });
+            }
           }
         }
       }
     });
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'active',
+      schemas: {
+        context: z.object({
+          actorRef: z.custom<ActorRefFrom<typeof childMachine>>()
+        })
+      },
+      context: {
+        actorRef: undefined
+      },
       states: {
         active: {
-          entry: assign({
-            actorRef: ({ spawn }) => spawn(childMachine, { id: 'child' })
-          }),
+          // entry: assign({
+          //   actorRef: ({ spawn }) => spawn(childMachine, { id: 'child' })
+          // }),
+          entry: (_, enq) => {
+            return {
+              context: {
+                actorRef: enq.spawn(childMachine, { id: 'child' })
+              }
+            };
+          },
           on: { FINISH: 'success' }
         },
         success: {}

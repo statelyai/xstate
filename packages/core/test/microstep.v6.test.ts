@@ -1,5 +1,4 @@
 import { next_createMachine } from '../src/index.ts';
-
 import { createInertActorScope } from '../src/getNextSnapshot.ts';
 
 describe('machine.microstep()', () => {
@@ -13,8 +12,9 @@ describe('machine.microstep()', () => {
           }
         },
         a: {
-          // entry: raise({ type: 'NEXT' }),
-          entry: (_, enq) => enq.raise({ type: 'NEXT' }),
+          entry: (_, enq) => {
+            enq.raise({ type: 'NEXT' });
+          },
           on: {
             NEXT: 'b'
           }
@@ -23,7 +23,9 @@ describe('machine.microstep()', () => {
           always: 'c'
         },
         c: {
-          entry: (_, enq) => enq.raise({ type: 'NEXT' }),
+          entry: (_, enq) => {
+            enq.raise({ type: 'NEXT' });
+          },
           on: {
             NEXT: 'd'
           }
@@ -74,10 +76,6 @@ describe('machine.microstep()', () => {
       states: {
         first: {
           on: {
-            // TRIGGER: {
-            //   target: 'second',
-            //   actions: raise({ type: 'RAISED' })
-            // }
             TRIGGER: (_, enq) => {
               enq.raise({ type: 'RAISED' });
               return { target: 'second' };
@@ -132,10 +130,6 @@ describe('machine.microstep()', () => {
       states: {
         first: {
           on: {
-            // TRIGGER: {
-            //   target: 'second',
-            //   actions: [raise({ type: 'FOO' }), raise({ type: 'BAR' })]
-            // }
             TRIGGER: (_, enq) => {
               enq.raise({ type: 'FOO' });
               enq.raise({ type: 'BAR' });

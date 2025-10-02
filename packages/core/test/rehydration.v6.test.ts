@@ -3,10 +3,11 @@ import {
   next_createMachine,
   createActor,
   fromPromise,
-  fromObservable
+  fromObservable,
+  createMachine
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { z } from 'zod';
+import z from 'zod';
 
 describe.skip('rehydration', () => {
   describe('using persisted state', () => {
@@ -34,13 +35,15 @@ describe.skip('rehydration', () => {
     it('should not call exit actions when machine gets stopped immediately', () => {
       const actual: string[] = [];
       const machine = next_createMachine({
-        // exit: () => actual.push('root'),
-        exit: (_, enq) => enq(() => actual.push('root')),
+        exit: (_, enq) => {
+          enq(() => actual.push('root'));
+        },
         initial: 'a',
         states: {
           a: {
-            // exit: () => actual.push('a')
-            exit: (_, enq) => enq(() => actual.push('a'))
+            exit: (_, enq) => {
+              enq(() => actual.push('a'));
+            }
           }
         }
       });
@@ -59,10 +62,9 @@ describe.skip('rehydration', () => {
     it('should get correct result back from `can` immediately', () => {
       const machine = next_createMachine({
         on: {
-          // FOO: {
-          //   actions: () => {}
-          // }
-          FOO: (_, enq) => enq(() => {})
+          FOO: (_, enq) => {
+            enq(() => {});
+          }
         }
       });
 
@@ -105,16 +107,18 @@ describe.skip('rehydration', () => {
     it('should not call exit actions when machine gets stopped immediately', () => {
       const actual: string[] = [];
       const machine = next_createMachine({
-        // exit: () => actual.push('root'),
-        exit: (_, enq) => enq(() => actual.push('root')),
+        exit: (_, enq) => {
+          enq(() => actual.push('root'));
+        },
         initial: 'inactive',
         states: {
           inactive: {
             on: { NEXT: 'active' }
           },
           active: {
-            // exit: () => actual.push('active')
-            exit: (_, enq) => enq(() => actual.push('active'))
+            exit: (_, enq) => {
+              enq(() => actual.push('active'));
+            }
           }
         }
       });
@@ -138,7 +142,7 @@ describe.skip('rehydration', () => {
 
       expect(() => {
         machine.resolveState({ value: 'invalid' });
-      }).toThrowError(/invalid/);
+      }).toThrow(/invalid/);
     });
 
     it('should error on incompatible state value (deep)', () => {
@@ -156,14 +160,16 @@ describe.skip('rehydration', () => {
 
       expect(() => {
         machine.resolveState({ value: { parent: 'invalid' } });
-      }).toThrowError(/invalid/);
+      }).toThrow(/invalid/);
     });
   });
 
   it('should not replay actions when starting from a persisted state', () => {
     const entrySpy = vi.fn();
     const machine = next_createMachine({
-      entry: entrySpy
+      entry: (_, enq) => {
+        enq(entrySpy);
+      }
     });
 
     const actor = createActor(machine).start();
@@ -245,14 +251,21 @@ describe.skip('rehydration', () => {
 
   it('a rehydrated done child should not be registered in the system', () => {
     const foo = next_createMachine({ type: 'final' });
-    const machine = next_createMachine({
-      context: ({ spawn }) => {
-        spawn(foo, {
-          systemId: 'mySystemId'
-        });
-        return {};
+    const machine = next_createMachine(
+      {
+        context: ({ spawn }) => {
+          spawn(foo, {
+            systemId: 'mySystemId'
+          });
+          return {};
+        }
       }
-    });
+      // {
+      //   actors: {
+      //     foo: next_createMachine({ type: 'final' })
+      //   }
+      // }
+    );
 
     const actor = createActor(machine).start();
     const persistedState = actor.getPersistedSnapshot();
@@ -267,22 +280,29 @@ describe.skip('rehydration', () => {
 
   it('a rehydrated done child should not re-notify the parent about its completion', () => {
     const spy = vi.fn();
+
     const foo = next_createMachine({ type: 'final' });
 
-    const machine = next_createMachine({
-      context: ({ spawn }) => {
-        spawn(foo, {
-          systemId: 'mySystemId'
-        });
-        return {};
-      },
-      on: {
-        // '*': {
-        //   actions: spy
-        // }
-        '*': (_, enq) => enq(spy)
+    const machine = next_createMachine(
+      {
+        context: ({ spawn }) => {
+          spawn(foo, {
+            systemId: 'mySystemId'
+          });
+          return {};
+        },
+        on: {
+          '*': (_, enq) => {
+            enq(spy);
+          }
+        }
       }
-    });
+      // {
+      //   actors: {
+      //     foo: next_createMachine({ type: 'final' })
+      //   }
+      // }
+    );
 
     const actor = createActor(machine).start();
     const persistedState = actor.getPersistedSnapshot();
@@ -299,11 +319,18 @@ describe.skip('rehydration', () => {
 
   it('should be possible to persist a rehydrated actor that got its children rehydrated', () => {
     const foo = fromPromise(() => Promise.resolve(42));
-    const machine = next_createMachine({
-      invoke: {
-        src: foo
+    const machine = next_createMachine(
+      {
+        invoke: {
+          src: foo
+        }
       }
-    });
+      // {
+      //   actors: {
+      //     foo: fromPromise(() => Promise.resolve(42))
+      //   }
+      // }
+    );
 
     const actor = createActor(machine).start();
 
@@ -346,11 +373,18 @@ describe.skip('rehydration', () => {
 
   it('should error on a rehydrated error state', async () => {
     const failure = fromPromise(() => Promise.reject(new Error('failure')));
-    const machine = next_createMachine({
-      invoke: {
-        src: failure
+    const machine = next_createMachine(
+      {
+        invoke: {
+          src: failure
+        }
       }
-    });
+      // {
+      //   actors: {
+      //     failure: fromPromise(() => Promise.reject(new Error('failure')))
+      //   }
+      // }
+    );
 
     const actorRef = createActor(machine);
     actorRef.subscribe({ error: function preventUnhandledErrorListener() {} });
@@ -374,12 +408,21 @@ describe.skip('rehydration', () => {
   it(`shouldn't re-notify the parent about the error when rehydrating`, async () => {
     const spy = vi.fn();
     const failure = fromPromise(() => Promise.reject(new Error('failure')));
-    const machine = next_createMachine({
-      invoke: {
-        src: failure,
-        onError: (_, enq) => enq(spy)
+    const machine = next_createMachine(
+      {
+        invoke: {
+          src: failure,
+          onError: (_, enq) => {
+            enq(spy);
+          }
+        }
       }
-    });
+      // {
+      //   actors: {
+      //     failure: fromPromise(() => Promise.reject(new Error('failure')))
+      //   }
+      // }
+    );
 
     const actorRef = createActor(machine);
     actorRef.start();
@@ -402,19 +445,28 @@ describe.skip('rehydration', () => {
 
     const spy = vi.fn();
 
-    const machine = next_createMachine({
-      invoke: [
-        {
+    const machine = next_createMachine(
+      {
+        // types: {} as {
+        //   actors: {
+        //     src: 'service';
+        //     logic: typeof subjectLogic;
+        //   };
+        // },
+
+        invoke: {
           src: subjectLogic,
-          // onSnapshot: {
-          //   actions: [({ event }) => spy(event.snapshot.context)]
-          // }
           onSnapshot: ({ event }, enq) => {
-            enq(spy, event.snapshot.context);
+            enq(() => spy(event.snapshot.context));
           }
         }
-      ]
-    });
+      }
+      // {
+      //   actors: {
+      //     service: subjectLogic
+      //   }
+      // }
+    );
 
     createActor(machine, {
       snapshot: createActor(machine).getPersistedSnapshot()
@@ -430,55 +482,53 @@ describe.skip('rehydration', () => {
 
   it('should be able to rehydrate an actor deep in the tree', () => {
     const grandchild = next_createMachine({
-      schemas: {
-        context: z.object({
-          count: z.number()
-        })
-      },
       context: {
         count: 0
       },
       on: {
         INC: ({ context }) => ({
           context: {
-            ...context,
             count: context.count + 1
           }
         })
       }
     });
-    const child = next_createMachine({
-      invoke: {
-        src: grandchild,
-        id: 'grandchild'
-      },
-      on: {
-        // INC: {
-        //   actions: sendTo('grandchild', {
-        //     type: 'INC'
-        //   })
-        // }
-        INC: ({ children }, enq) => {
-          enq.sendTo(children.grandchild, { type: 'INC' });
+    const child = next_createMachine(
+      {
+        invoke: {
+          src: grandchild,
+          id: 'grandchild'
+        },
+        on: {
+          INC: ({ children }) => {
+            children.grandchild?.send({ type: 'INC' });
+          }
         }
       }
-    });
-    const machine = next_createMachine({
-      invoke: {
-        src: child,
-        id: 'child'
-      },
-      on: {
-        // INC: {
-        //   actions: sendTo('child', {
-        //     type: 'INC'
-        //   })
-        // }
-        INC: ({ children }, enq) => {
-          enq.sendTo(children.child, { type: 'INC' });
+      // {
+      //   actors: {
+      //     grandchild
+      //   }
+      // }
+    );
+    const machine = next_createMachine(
+      {
+        invoke: {
+          src: child,
+          id: 'child'
+        },
+        on: {
+          INC: ({ children }) => {
+            children.child?.send({ type: 'INC' });
+          }
         }
       }
-    });
+      // {
+      //   actors: {
+      //     child
+      //   }
+      // }
+    );
 
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'INC' });

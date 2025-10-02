@@ -4,11 +4,11 @@ import { createActor, next_createMachine, assertEvent } from '../src';
 describe('assertion helpers', () => {
   it('assertEvent asserts the correct event type', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const events = z.union([
-      z.object({ type: z.literal('greet'), message: z.string() }),
-      z.object({ type: z.literal('count'), value: z.number() })
-    ]);
-    const greet = (event: z.infer<typeof events>) => {
+    type TestEvent =
+      | { type: 'greet'; message: string }
+      | { type: 'count'; value: number };
+
+    const greet = (event: TestEvent) => {
       // @ts-expect-error
       event.message;
 
@@ -20,17 +20,20 @@ describe('assertion helpers', () => {
     };
 
     const machine = next_createMachine({
-      // types: {
-      //   events: {} as
-      //     | { type: 'greet'; message: string }
-      //     | { type: 'count'; value: number }
-      // },
       schemas: {
-        events: events
+        events: z.union([
+          z.object({ type: z.literal('greet'), message: z.string() }),
+          z.object({ type: z.literal('count'), value: z.number() })
+        ])
       },
+
       on: {
-        greet: ({ event }, enq) => enq(greet, event),
-        count: ({ event }, enq) => enq(greet, event)
+        greet: ({ event }, enq) => {
+          enq(() => greet(event));
+        },
+        count: ({ event }) => {
+          greet(event);
+        }
       }
     });
 
@@ -54,16 +57,12 @@ describe('assertion helpers', () => {
 
   it('assertEvent asserts multiple event types', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const events = z.union([
-      z.object({ type: z.literal('greet'), message: z.string() }),
-      z.object({ type: z.literal('count'), value: z.number() }),
-      z.object({
-        type: z.literal('notify'),
-        message: z.string(),
-        level: z.enum(['info', 'error'])
-      })
-    ]);
-    const greet = (event: z.infer<typeof events>) => {
+    type TestEvent =
+      | { type: 'greet'; message: string }
+      | { type: 'notify'; message: string; level: 'info' | 'error' }
+      | { type: 'count'; value: number };
+
+    const greet = (event: TestEvent) => {
       // @ts-expect-error
       event.message;
 
@@ -79,14 +78,26 @@ describe('assertion helpers', () => {
       // @ts-expect-error
       event.count;
     };
+
     const machine = next_createMachine({
       schemas: {
-        events
+        events: z.union([
+          z.object({ type: z.literal('greet'), message: z.string() }),
+          z.object({
+            type: z.literal('notify'),
+            message: z.string(),
+            level: z.enum(['info', 'error'])
+          }),
+          z.object({ type: z.literal('count'), value: z.number() })
+        ])
       },
+
       on: {
-        greet: ({ event }, enq) => enq(greet, event),
+        greet: ({ event }, enq) => {
+          enq(() => greet(event));
+        },
         count: ({ event }, enq) => {
-          enq(greet, event);
+          enq(() => greet(event));
         }
       }
     });

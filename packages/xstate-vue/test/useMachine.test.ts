@@ -1,5 +1,10 @@
 import { fireEvent, render, waitFor } from '@testing-library/vue';
-import { PromiseActorLogic, assign, createActor, createMachine } from 'xstate';
+import {
+  PromiseActorLogic,
+  assign,
+  createActor,
+  next_createMachine as createMachine
+} from 'xstate';
 import UseMachineNoExtraOptions from './UseMachine-no-extra-options.vue';
 import UseMachine from './UseMachine.vue';
 

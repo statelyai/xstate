@@ -1,9 +1,9 @@
+import z from 'zod';
 import {
   EventObject,
   Snapshot,
   StateNode,
-  assign,
-  createMachine,
+  next_createMachine,
   fromTransition,
   isMachineSnapshot
 } from '../../index.ts';
@@ -51,9 +51,14 @@ describe('@xstate/graph', () => {
     states: {
       walk: {
         on: {
-          PED_COUNTDOWN: {
-            target: 'wait',
-            actions: ['startCountdown']
+          // PED_COUNTDOWN: {
+          //   target: 'wait',
+          //   actions: ['startCountdown']
+          // }
+          PED_COUNTDOWN: (_, enq) => {
+            enq(function startCountdown() {});
+
+            return { target: 'wait' };
           }
         }
       },
@@ -67,7 +72,7 @@ describe('@xstate/graph', () => {
     }
   };
 
-  const lightMachine = createMachine({
+  const lightMachine = next_createMachine({
     id: 'light',
     initial: 'green',
     states: {
@@ -75,11 +80,14 @@ describe('@xstate/graph', () => {
         on: {
           TIMER: 'yellow',
           POWER_OUTAGE: 'red.flashing',
-          PUSH_BUTTON: [
-            {
-              actions: ['doNothing'] // pushing the walk button never does anything
-            }
-          ]
+          // PUSH_BUTTON: [
+          //   {
+          //     actions: ['doNothing'] // pushing the walk button never does anything
+          //   }
+          // ]
+          PUSH_BUTTON: (_, enq) => {
+            enq(function doNothing() {});
+          }
         }
       },
       yellow: {
@@ -103,8 +111,22 @@ describe('@xstate/graph', () => {
   }
   type CondMachineEvents = { type: 'EVENT'; id: string } | { type: 'STATE' };
 
-  const condMachine = createMachine({
-    types: {} as { context: CondMachineCtx; events: CondMachineEvents },
+  const condMachine = next_createMachine({
+    // types: {} as { context: CondMachineCtx; events: CondMachineEvents },
+    schemas: {
+      context: z.object({
+        id: z.string().optional()
+      }),
+      events: z.union([
+        z.object({
+          type: z.literal('EVENT'),
+          id: z.string()
+        }),
+        z.object({
+          type: z.literal('STATE')
+        })
+      ])
+    },
     initial: 'pending',
     context: {
       id: undefined
@@ -112,20 +134,18 @@ describe('@xstate/graph', () => {
     states: {
       pending: {
         on: {
-          EVENT: [
-            {
-              target: 'foo',
-              guard: ({ event }) => event.id === 'foo'
-            },
-            { target: 'bar' }
-          ],
-          STATE: [
-            {
-              target: 'foo',
-              guard: ({ context }) => context.id === 'foo'
-            },
-            { target: 'bar' }
-          ]
+          EVENT: ({ event }) => {
+            if (event.id === 'foo') {
+              return { target: 'foo' };
+            }
+            return { target: 'bar' };
+          },
+          STATE: ({ context }) => {
+            if (context.id === 'foo') {
+              return { target: 'foo' };
+            }
+            return { target: 'bar' };
+          }
         }
       },
       foo: {},
@@ -133,7 +153,7 @@ describe('@xstate/graph', () => {
     }
   });
 
-  const parallelMachine = createMachine({
+  const parallelMachine = next_createMachine({
     type: 'parallel',
     id: 'p',
     states: {
@@ -226,8 +246,22 @@ describe('@xstate/graph', () => {
     });
 
     it.skip('should represent conditional paths based on context', () => {
-      const machine = createMachine({
-        types: {} as { context: CondMachineCtx; events: CondMachineEvents },
+      const machine = next_createMachine({
+        // types: {} as { context: CondMachineCtx; events: CondMachineEvents },
+        schemas: {
+          context: z.object({
+            id: z.string().optional()
+          }),
+          events: z.union([
+            z.object({
+              type: z.literal('EVENT'),
+              id: z.string()
+            }),
+            z.object({
+              type: z.literal('STATE')
+            })
+          ])
+        },
         initial: 'pending',
         context: {
           id: 'foo'
@@ -235,20 +269,32 @@ describe('@xstate/graph', () => {
         states: {
           pending: {
             on: {
-              EVENT: [
-                {
-                  target: 'foo',
-                  guard: ({ event }) => event.id === 'foo'
-                },
-                { target: 'bar' }
-              ],
-              STATE: [
-                {
-                  target: 'foo',
-                  guard: ({ context }) => context.id === 'foo'
-                },
-                { target: 'bar' }
-              ]
+              // EVENT: [
+              //   {
+              //     target: 'foo',
+              //     guard: ({ event }) => event.id === 'foo'
+              //   },
+              //   { target: 'bar' }
+              // ],
+              EVENT: ({ event }) => {
+                if (event.id === 'foo') {
+                  return { target: 'foo' };
+                }
+                return { target: 'bar' };
+              },
+              // STATE: [
+              //   {
+              //     target: 'foo',
+              //     guard: ({ context }) => context.id === 'foo'
+              //   },
+              //   { target: 'bar' }
+              // ]
+              STATE: ({ context }) => {
+                if (context.id === 'foo') {
+                  return { target: 'foo' };
+                }
+                return { target: 'bar' };
+              }
             }
           },
           foo: {},
@@ -313,7 +359,7 @@ describe('@xstate/graph', () => {
       expect(getPathsSnapshot(paths)).toMatchSnapshot();
     });
 
-    const equivMachine = createMachine({
+    const equivMachine = next_createMachine({
       initial: 'a',
       states: {
         a: { on: { FOO: 'b', BAR: 'b' } },
@@ -348,7 +394,7 @@ describe('@xstate/graph', () => {
     });
 
     it('should return multiple paths for equivalent transitions', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: { on: { FOO: 'b', BAR: 'b' } },
@@ -409,8 +455,20 @@ describe('@xstate/graph', () => {
         type: 'INC';
         value: number;
       }
-      const countMachine = createMachine({
-        types: {} as { context: Ctx; events: Events },
+      const countMachine = next_createMachine({
+        // types: {} as { context: Ctx; events: Events },
+        schemas: {
+          context: z.object({
+            count: z.number()
+          }),
+          events: z.union([
+            z.object({
+              type: z.literal('INC'),
+              value: z.number()
+            }),
+            z.object({ type: z.literal('FINISH') })
+          ])
+        },
         id: 'count',
         initial: 'start',
         context: {
@@ -418,16 +476,23 @@ describe('@xstate/graph', () => {
         },
         states: {
           start: {
-            always: {
-              target: 'finish',
-              guard: ({ context }) => context.count === 3
+            // always: {
+            //   target: 'finish',
+            //   guard: ({ context }) => context.count === 3
+            // },
+            always: ({ context }) => {
+              if (context.count === 3) {
+                return {
+                  target: 'finish'
+                };
+              }
             },
             on: {
-              INC: {
-                actions: assign({
-                  count: ({ context }) => context.count + 1
-                })
-              }
+              INC: ({ context }) => ({
+                context: {
+                  count: context.count + 1
+                }
+              })
             }
           },
           finish: {}
@@ -486,7 +551,7 @@ describe('@xstate/graph', () => {
 
   describe('toDirectedGraph', () => {
     it('should represent a statechart as a directed graph', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         id: 'light',
         initial: 'green',
         states: {
@@ -556,18 +621,22 @@ it('shortest paths for transition functions', () => {
 
 describe('filtering', () => {
   it('should not traverse past filtered states', () => {
-    const machine = createMachine({
-      types: {} as { context: { count: number } },
+    const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       initial: 'counting',
       context: { count: 0 },
       states: {
         counting: {
           on: {
-            INC: {
-              actions: assign({
-                count: ({ context }) => context.count + 1
-              })
-            }
+            INC: ({ context }) => ({
+              context: {
+                count: context.count + 1
+              }
+            })
           }
         }
       }
@@ -604,7 +673,7 @@ describe('filtering', () => {
 });
 
 it('should provide previous state for serializeState()', () => {
-  const machine = createMachine({
+  const machine = next_createMachine({
     initial: 'a',
     states: {
       a: {
@@ -640,7 +709,7 @@ it('should provide previous state for serializeState()', () => {
 it.each([getShortestPaths, getSimplePaths])(
   'from-state can be specified',
   (pathGetter) => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -674,7 +743,7 @@ it.each([getShortestPaths, getSimplePaths])(
 
 describe('joinPaths()', () => {
   it('should join two paths', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -701,18 +770,18 @@ describe('joinPaths()', () => {
 
     expect(pathToBAndC.steps.map((step) => step.event.type))
       .toMatchInlineSnapshot(`
-      [
-        "xstate.init",
-        "NEXT",
-        "TO_C",
-      ]
-    `);
+        [
+          "@xstate.init",
+          "NEXT",
+          "TO_C",
+        ]
+      `);
 
     expect(pathToBAndC.state.matches('c')).toBeTruthy();
   });
 
   it('should not join two paths with mismatched source/target states', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {

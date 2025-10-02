@@ -1,5 +1,4 @@
-import { stateIn } from '../../src/guards';
-import { createMachine, StateValue } from '../../src/index';
+import { checkStateIn, createMachine, StateValue } from '../../src/index';
 import { testAll } from '../utils';
 
 describe('Example 6.16', () => {
@@ -11,9 +10,14 @@ describe('Example 6.16', () => {
         states: {
           C: {
             on: {
-              2: {
-                target: 'D',
-                guard: stateIn('#E')
+              // 2: {
+              //   target: 'D',
+              //   guard: stateIn('#E')
+              // }
+              2: ({ self }) => {
+                if (checkStateIn(self.getSnapshot(), '#E')) {
+                  return { target: 'D' };
+                }
               }
             }
           },

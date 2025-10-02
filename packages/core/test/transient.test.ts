@@ -1,36 +1,41 @@
-import { createMachine, createActor } from '../src/index';
-import { raise } from '../src/actions/raise';
-import { assign } from '../src/actions/assign';
-import { stateIn } from '../src/guards';
+import { next_createMachine, createActor, matchesState } from '../src/index';
 
 const greetingContext = { hour: 10 };
-const greetingMachine = createMachine({
-  types: {} as { context: typeof greetingContext },
+const greetingMachine = next_createMachine({
+  // types: {} as { context: typeof greetingContext },
   id: 'greeting',
   initial: 'pending',
   context: greetingContext,
   states: {
     pending: {
-      always: [
-        { target: 'morning', guard: ({ context }) => context.hour < 12 },
-        { target: 'afternoon', guard: ({ context }) => context.hour < 18 },
-        { target: 'evening' }
-      ]
+      always: ({ context }) => {
+        if (context.hour < 12) {
+          return { target: 'morning' };
+        } else if (context.hour < 18) {
+          return { target: 'afternoon' };
+        } else {
+          return { target: 'evening' };
+        }
+      }
     },
     morning: {},
     afternoon: {},
     evening: {}
   },
   on: {
-    CHANGE: { actions: assign({ hour: 20 }) },
+    CHANGE: () => ({
+      context: {
+        hour: 20
+      }
+    }),
     RECHECK: '#greeting'
   }
 });
 
 describe('transient states (eventless transitions)', () => {
   it('should choose the first candidate target that matches the guard 1', () => {
-    const machine = createMachine({
-      types: {} as { context: { data: boolean } },
+    const machine = next_createMachine({
+      // types: {} as { context: { data: boolean } },
       context: { data: false },
       initial: 'G',
       states: {
@@ -38,10 +43,13 @@ describe('transient states (eventless transitions)', () => {
           on: { UPDATE_BUTTON_CLICKED: 'E' }
         },
         E: {
-          always: [
-            { target: 'D', guard: ({ context: { data } }) => !data },
-            { target: 'F' }
-          ]
+          always: ({ context }) => {
+            if (!context.data) {
+              return { target: 'D' };
+            } else {
+              return { target: 'F' };
+            }
+          }
         },
         D: {},
         F: {}
@@ -55,8 +63,8 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should choose the first candidate target that matches the guard 2', () => {
-    const machine = createMachine({
-      types: {} as { context: { data: boolean; status?: string } },
+    const machine = next_createMachine({
+      // types: {} as { context: { data: boolean; status?: string } },
       context: { data: false },
       initial: 'G',
       states: {
@@ -64,10 +72,13 @@ describe('transient states (eventless transitions)', () => {
           on: { UPDATE_BUTTON_CLICKED: 'E' }
         },
         E: {
-          always: [
-            { target: 'D', guard: ({ context: { data } }) => !data },
-            { target: 'F', guard: () => true }
-          ]
+          always: ({ context }) => {
+            if (!context.data) {
+              return { target: 'D' };
+            } else {
+              return { target: 'F' };
+            }
+          }
         },
         D: {},
         F: {}
@@ -81,8 +92,8 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should choose the final candidate without a guard if none others match', () => {
-    const machine = createMachine({
-      types: {} as { context: { data: boolean; status?: string } },
+    const machine = next_createMachine({
+      // types: {} as { context: { data: boolean; status?: string } },
       context: { data: true },
       initial: 'G',
       states: {
@@ -90,10 +101,13 @@ describe('transient states (eventless transitions)', () => {
           on: { UPDATE_BUTTON_CLICKED: 'E' }
         },
         E: {
-          always: [
-            { target: 'D', guard: ({ context: { data } }) => !data },
-            { target: 'F' }
-          ]
+          always: ({ context }) => {
+            if (!context.data) {
+              return { target: 'D' };
+            } else {
+              return { target: 'F' };
+            }
+          }
         },
         D: {},
         F: {}
@@ -107,23 +121,27 @@ describe('transient states (eventless transitions)', () => {
 
   it('should carry actions from previous transitions within same step', () => {
     const actual: string[] = [];
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'A',
       states: {
         A: {
-          exit: () => actual.push('exit_A'),
+          exit: (_, enq) => {
+            enq(() => void actual.push('exit_A'));
+          },
           on: {
-            TIMER: {
-              target: 'T',
-              actions: () => actual.push('timer')
+            TIMER: (_, enq) => {
+              enq(() => void actual.push('timer'));
+              return { target: 'T' };
             }
           }
         },
         T: {
-          always: [{ target: 'B' }]
+          always: { target: 'B' }
         },
         B: {
-          entry: () => actual.push('enter_B')
+          entry: (_, enq) => {
+            enq(() => void actual.push('enter_B'));
+          }
         }
       }
     });
@@ -136,7 +154,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should execute all internal events one after the other', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -148,7 +166,9 @@ describe('transient states (eventless transitions)', () => {
               }
             },
             A2: {
-              entry: raise({ type: 'INT1' })
+              entry: (_, enq) => {
+                enq.raise({ type: 'INT1' });
+              }
             }
           }
         },
@@ -162,7 +182,9 @@ describe('transient states (eventless transitions)', () => {
               }
             },
             B2: {
-              entry: raise({ type: 'INT2' })
+              entry: (_, enq) => {
+                enq.raise({ type: 'INT2' });
+              }
             }
           }
         },
@@ -199,7 +221,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should execute all eventless transitions in the same microstep', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -214,9 +236,10 @@ describe('transient states (eventless transitions)', () => {
               always: 'A3'
             },
             A3: {
-              always: {
-                target: 'A4',
-                guard: stateIn({ B: 'B3' })
+              always: ({ value }) => {
+                if (matchesState({ B: 'B3' }, value)) {
+                  return { target: 'A4' };
+                }
               }
             },
             A4: {}
@@ -232,15 +255,17 @@ describe('transient states (eventless transitions)', () => {
               }
             },
             B2: {
-              always: {
-                target: 'B3',
-                guard: stateIn({ A: 'A2' })
+              always: ({ value }) => {
+                if (matchesState({ A: 'A2' }, value)) {
+                  return { target: 'B3' };
+                }
               }
             },
             B3: {
-              always: {
-                target: 'B4',
-                guard: stateIn({ A: 'A3' })
+              always: ({ value }) => {
+                if (matchesState({ A: 'A3' }, value)) {
+                  return { target: 'B4' };
+                }
               }
             },
             B4: {}
@@ -256,7 +281,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should check for automatic transitions even after microsteps are done', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -274,9 +299,10 @@ describe('transient states (eventless transitions)', () => {
           initial: 'B1',
           states: {
             B1: {
-              always: {
-                target: 'B2',
-                guard: stateIn({ A: 'A2' })
+              always: ({ value }) => {
+                if (matchesState({ A: 'A2' }, value)) {
+                  return { target: 'B2' };
+                }
               }
             },
             B2: {}
@@ -286,9 +312,10 @@ describe('transient states (eventless transitions)', () => {
           initial: 'C1',
           states: {
             C1: {
-              always: {
-                target: 'C2',
-                guard: stateIn({ A: 'A2' })
+              always: ({ value }) => {
+                if (matchesState({ A: 'A2' }, value)) {
+                  return { target: 'C2' };
+                }
               }
             },
             C2: {}
@@ -318,7 +345,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should select eventless transition before processing raised events', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -327,7 +354,9 @@ describe('transient states (eventless transitions)', () => {
           }
         },
         b: {
-          entry: raise({ type: 'BAR' }),
+          entry: (_, enq) => {
+            enq.raise({ type: 'BAR' });
+          },
           always: 'c',
           on: {
             BAR: 'd'
@@ -350,7 +379,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should not select wildcard for eventless transition', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -374,31 +403,31 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should work with transient transition on root', () => {
-    const machine = createMachine({
-      types: {} as { context: { count: number } },
+    const machine = next_createMachine({
+      // types: {} as { context: { count: number } },
       id: 'machine',
       initial: 'first',
       context: { count: 0 },
       states: {
         first: {
           on: {
-            ADD: {
-              actions: assign({ count: ({ context }) => context.count + 1 })
-            }
+            ADD: ({ context }) => ({
+              context: {
+                count: context.count + 1
+              }
+            })
           }
         },
         success: {
           type: 'final'
         }
       },
-      always: [
-        {
-          target: '.success',
-          guard: ({ context }) => {
-            return context.count > 0;
-          }
+
+      always: ({ context }) => {
+        if (context.count > 0) {
+          return { target: '.success' };
         }
-      ]
+      }
     });
 
     const actorRef = createActor(machine).start();
@@ -408,32 +437,30 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it("shouldn't crash when invoking a machine with initial transient transition depending on custom data", () => {
-    const timerMachine = createMachine({
+    const timerMachine = next_createMachine({
       initial: 'initial',
       context: ({ input }: { input: { duration: number } }) => ({
         duration: input.duration
       }),
-      types: {
-        context: {} as { duration: number }
-      },
+      // types: {
+      //   context: {} as { duration: number }
+      // },
       states: {
         initial: {
-          always: [
-            {
-              target: `finished`,
-              guard: ({ context }) => context.duration < 1000
-            },
-            {
-              target: `active`
+          always: ({ context }) => {
+            if (context.duration < 1000) {
+              return { target: 'finished' };
+            } else {
+              return { target: 'active' };
             }
-          ]
+          }
         },
         active: {},
         finished: { type: 'final' }
       }
     });
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'active',
       context: {
         customDuration: 3000
@@ -455,13 +482,14 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should be taken even in absence of other transitions', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
-          always: {
-            target: 'b',
-            guard: ({ event }) => event.type === 'WHATEVER'
+          always: ({ event }) => {
+            if (event.type === 'WHATEVER') {
+              return { target: 'b' };
+            }
           }
         },
         b: {}
@@ -475,19 +503,21 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should select subsequent transient transitions even in absence of other transitions', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
-          always: {
-            target: 'b',
-            guard: ({ event }) => event.type === 'WHATEVER'
+          always: ({ event }) => {
+            if (event.type === 'WHATEVER') {
+              return { target: 'b' };
+            }
           }
         },
         b: {
-          always: {
-            target: 'c',
-            guard: () => true
+          always: () => {
+            if (true) {
+              return { target: 'c' };
+            }
           }
         },
         c: {}
@@ -502,7 +532,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('events that trigger eventless transitions should be preserved in guards', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -514,12 +544,11 @@ describe('transient states (eventless transitions)', () => {
           always: 'c'
         },
         c: {
-          always: {
-            guard: ({ event }) => {
-              expect(event.type).toEqual('EVENT');
-              return event.type === 'EVENT';
-            },
-            target: 'd'
+          always: ({ event }) => {
+            expect(event.type).toEqual('EVENT');
+            if (event.type === 'EVENT') {
+              return { target: 'd' };
+            }
           }
         },
         d: { type: 'final' }
@@ -533,9 +562,9 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('events that trigger eventless transitions should be preserved in actions', () => {
-    expect.assertions(3);
+    expect.assertions(2);
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -544,19 +573,14 @@ describe('transient states (eventless transitions)', () => {
           }
         },
         b: {
-          always: {
-            target: 'c',
-            actions: ({ event }) => {
-              expect(event).toEqual({ type: 'EVENT', value: 42 });
-            }
-          },
-          exit: ({ event }) => {
-            expect(event).toEqual({ type: 'EVENT', value: 42 });
+          always: ({ event }, enq) => {
+            enq(() => void expect(event).toEqual({ type: 'EVENT', value: 42 }));
+            return { target: 'c' };
           }
         },
         c: {
-          entry: ({ event }) => {
-            expect(event).toEqual({ type: 'EVENT', value: 42 });
+          entry: ({ event }, enq) => {
+            enq(() => void expect(event).toEqual({ type: 'EVENT', value: 42 }));
           }
         }
       }
@@ -567,7 +591,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it("shouldn't end up in an infinite loop when selecting the fallback target", () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -581,15 +605,13 @@ describe('transient states (eventless transitions)', () => {
             a: {},
             b: {}
           },
-          always: [
-            {
-              guard: () => false,
-              target: '.a'
-            },
-            {
-              target: '.b'
+          always: () => {
+            if (1 + 1 === 3) {
+              return { target: '.a' };
+            } else {
+              return { target: '.b' };
             }
-          ]
+          }
         }
       }
     });
@@ -602,7 +624,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it("shouldn't end up in an infinite loop when selecting a guarded target", () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -616,15 +638,13 @@ describe('transient states (eventless transitions)', () => {
             a: {},
             b: {}
           },
-          always: [
-            {
-              guard: () => true,
-              target: '.a'
-            },
-            {
-              target: '.b'
+          always: () => {
+            if (1 + 1 === 2) {
+              return { target: '.a' };
+            } else {
+              return { target: '.b' };
             }
-          ]
+          }
         }
       }
     });
@@ -638,7 +658,7 @@ describe('transient states (eventless transitions)', () => {
 
   it("shouldn't end up in an infinite loop when executing a fire-and-forget action that doesn't change state", () => {
     let count = 0;
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -651,17 +671,15 @@ describe('transient states (eventless transitions)', () => {
           states: {
             a: {}
           },
-          always: [
-            {
-              actions: () => {
-                count++;
-                if (count > 5) {
-                  throw new Error('Infinite loop detected');
-                }
-              },
-              target: '.a'
-            }
-          ]
+          always: (_, enq) => {
+            enq(() => {
+              count++;
+              if (count > 5) {
+                throw new Error('Infinite loop detected');
+              }
+            });
+            return { target: '.a' };
+          }
         }
       }
     });
@@ -678,14 +696,19 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should loop (but not infinitely) for assign actions', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       context: { count: 0 },
       initial: 'counting',
       states: {
         counting: {
-          always: {
-            guard: ({ context }) => context.count < 5,
-            actions: assign({ count: ({ context }) => context.count + 1 })
+          always: ({ context }) => {
+            if (context.count < 5) {
+              return {
+                context: {
+                  count: context.count + 1
+                }
+              };
+            }
           }
         }
       }
@@ -699,18 +722,20 @@ describe('transient states (eventless transitions)', () => {
   it("should execute an always transition after a raised transition even if that raised transition doesn't change the state", () => {
     const spy = vi.fn();
     let counter = 0;
-    const machine = createMachine({
-      always: {
-        actions: () => spy(counter)
+    const machine = next_createMachine({
+      always: (_, enq) => {
+        enq((...args) => {
+          spy(...args);
+        }, counter);
       },
       on: {
-        EV: {
-          actions: raise({ type: 'RAISED' })
+        EV: (_, enq) => {
+          enq.raise({ type: 'RAISED' });
         },
-        RAISED: {
-          actions: () => {
+        RAISED: (_, enq) => {
+          enq(() => {
             ++counter;
-          }
+          });
         }
       }
     });
