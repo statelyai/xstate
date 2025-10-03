@@ -185,8 +185,8 @@ function createStoreCore<
       get: (_, eventType: string) => {
         return (payload: any) => {
           store.send({
-            type: eventType,
-            ...payload
+            ...payload,
+            type: eventType
           });
         };
       }
