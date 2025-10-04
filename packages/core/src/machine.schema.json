@@ -203,6 +203,10 @@
             "$ref": "#/$defs/actionObject"
           }
         },
+        "eventType": {
+          "type": "string",
+          "description": "The event type that triggers this initial transition."
+        },
         "source": {
           "type": "string"
         },
@@ -214,7 +218,7 @@
           "minItems": 1
         }
       },
-      "required": ["actions", "source", "target"]
+      "required": ["actions", "eventType", "source", "target"]
     },
     "transitionsObject": {
       "type": "object",
