@@ -3,7 +3,8 @@ export { fromStore } from './fromStore';
 export {
   createStore,
   createStoreWithProducer,
-  createStoreConfig
+  createStoreConfig,
+  createStoreTransition
 } from './store';
 export { createAtom, createAsyncAtom } from './atom';
 export type {
@@ -35,6 +36,9 @@ export type {
   AtomOptions,
   AnyAtom,
   ReadonlyAtom,
+  StoreLogic,
+  AnyStoreLogic,
+  AnyStoreConfig,
   EventFromStoreConfig,
   EmitsFromStoreConfig,
   ContextFromStoreConfig
