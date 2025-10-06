@@ -55,6 +55,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   /** @internal */
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
+  getRunningActors: () => T['actors'];
 
   inspect: (
     observer:
@@ -187,6 +188,9 @@ export function createSystem<T extends ActorSystemInfo>(
     },
     get: (systemId) => {
       return keyedActors.get(systemId) as T['actors'][any];
+    },
+    getRunningActors: () => {
+      return Object.fromEntries(keyedActors.entries()) as T['actors'];
     },
     _set: (systemId, actorRef) => {
       const existing = keyedActors.get(systemId);
