@@ -5,7 +5,6 @@ import {
   createStoreWithProducer
 } from '../src/index.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
-import { undoRedo } from '../src/undo.ts';
 import {
   AnyStoreConfig,
   ContextFromStoreConfig,

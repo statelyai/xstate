@@ -1379,4 +1379,29 @@ describe('createStoreHook', () => {
     fireEvent.click(screen.getByTestId('add-item'));
     expect(screen.getByTestId('item-count').textContent).toBe('4');
   });
+
+  it('trigger methods that do not take args should work when passed directly into event handlers', () => {
+    const useTriggerStore = createStoreHook({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 })
+      }
+    });
+
+    const Component = () => {
+      const [count, store] = useTriggerStore((s) => s.context.count);
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          {/* Before, event.type would overwrite { type: 'inc' } */}
+          <button onClick={store.trigger.inc} />
+        </div>
+      );
+    };
+
+    render(<Component />);
+
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByTestId('count').textContent).toBe('1');
+  });
 });

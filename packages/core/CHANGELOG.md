@@ -1,5 +1,62 @@
 # xstate
 
+## 5.22.1
+
+### Patch Changes
+
+- [#5379](https://github.com/statelyai/xstate/pull/5379) [`98f9ddd`](https://github.com/statelyai/xstate/commit/98f9ddde939320fb698ef382f6712a0753d55ca5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Make `actor.systemId` public:
+
+  ```ts
+  const actor = createActor(machine, { systemId: 'test' });
+  actor.systemId; // 'test'
+  ```
+
+- [#5380](https://github.com/statelyai/xstate/pull/5380) [`e7e5e44`](https://github.com/statelyai/xstate/commit/e7e5e44c3758eec4c1380bd604539406ad71115a) Thanks [@Nirajkashyap](https://github.com/Nirajkashyap)! - fix: remove 'eventType' from required fields in initialTransitionObject
+
+## 5.22.0
+
+### Minor Changes
+
+- [#5367](https://github.com/statelyai/xstate/pull/5367) [`76c857e`](https://github.com/statelyai/xstate/commit/76c857e36f4ae3fae4b410759fb4f420bae31388) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add type-bound action helpers to `setup()`:
+  - `createAction(fn)` – create type-safe custom actions
+  - `setup().assign(...)`, `setup().sendTo(...)`, `setup().raise(...)`, `setup().log(...)`, `setup().cancel(...)`, `setup().stopChild(...)`, `setup().enqueueActions(...)`, `setup().emit(...)`, `setup().spawnChild(...)` – setup-scoped helpers that are fully typed to the setup's context/events/actors/guards/delays/emitted.
+
+  These helpers return actions that are bound to the specific `setup()` they were created from and can be used directly in the machine produced by that setup.
+
+  ```ts
+  const machineSetup = setup({
+    types: {} as {
+      context: {
+        count: number;
+      };
+      events: { type: 'inc'; value: number } | { type: 'TEST' };
+      emitted: { type: 'PING' };
+    }
+  });
+
+  // Custom action
+  const action = machineSetup.createAction(({ context, event }) => {
+    console.log(context.count, event.value);
+  });
+
+  // Type-bound built-ins (no wrapper needed)
+  const increment = machineSetup.assign({
+    count: ({ context }) => context.count + 1
+  });
+  const raiseTest = machineSetup.raise({ type: 'TEST' });
+  const ping = machineSetup.emit({ type: 'PING' });
+  const batch = machineSetup.enqueueActions(({ enqueue, check }) => {
+    if (check(() => true)) {
+      enqueue(increment);
+    }
+  });
+
+  const machine = machineSetup.createMachine({
+    context: { count: 0 },
+    entry: [action, increment, raiseTest, ping, batch]
+  });
+  ```
+
 ## 5.21.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.9.3
+
+### Patch Changes
+
+- [#5383](https://github.com/statelyai/xstate/pull/5383) [`4b6a513`](https://github.com/statelyai/xstate/commit/4b6a513ebd7ee1ab067856be4b431651b491cba5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix: `trigger` methods now work when passed directly as event handlers, even for events with no payload. Before, the React `event.type` would overwrite the intended event type.
+
 ## 3.9.2
 
 ### Patch Changes
