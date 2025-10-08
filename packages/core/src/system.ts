@@ -187,7 +187,8 @@ export function createSystem<T extends ActorSystemInfo>(
       }
     },
     get: (systemId) => {
-      return keyedActors.get(systemId) as T['actors'][any] | undefined
+      return keyedActors.get(systemId) as T['actors'][any] | undefined;
+    },
     getAll: () => {
       return Object.fromEntries(keyedActors.entries()) as Partial<T['actors']>;
     },
