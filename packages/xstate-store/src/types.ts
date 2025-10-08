@@ -171,6 +171,20 @@ export type StoreConfig<
   };
 };
 
+export type SpecificStoreConfig<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = {
+  context: TContext;
+  emits?: {
+    [E in TEmitted as E['type']]: (payload: E) => void;
+  };
+  on: {
+    [E in TEvent as E['type']]: StoreAssigner<TContext, E, TEmitted>;
+  };
+};
+
 type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
 
 export type AnyStore = Store<any, any, any>;

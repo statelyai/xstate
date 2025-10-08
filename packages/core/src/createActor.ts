@@ -120,7 +120,7 @@ export class Actor<TLogic extends AnyActorLogic>
     EmittedFrom<TLogic>
   >;
 
-  private _systemId: string | undefined;
+  public systemId: string | undefined;
 
   /** The globally unique process ID for this invocation. */
   public sessionId: string;
@@ -200,7 +200,11 @@ export class Actor<TLogic extends AnyActorLogic>
           ...(wildcardListener ? wildcardListener.values() : [])
         ];
         for (const handler of allListeners) {
-          handler(emittedEvent);
+          try {
+            handler(emittedEvent);
+          } catch (err) {
+            reportUnhandledError(err);
+          }
         }
       },
       actionExecutor: (action) => {
@@ -242,7 +246,7 @@ export class Actor<TLogic extends AnyActorLogic>
     });
 
     if (systemId) {
-      this._systemId = systemId;
+      this.systemId = systemId;
       this.system._set(systemId, this);
     }
 
@@ -504,8 +508,8 @@ export class Actor<TLogic extends AnyActorLogic>
     }
 
     this.system._register(this.sessionId, this);
-    if (this._systemId) {
-      this.system._set(this._systemId, this);
+    if (this.systemId) {
+      this.system._set(this.systemId, this);
     }
     this._processingStatus = ProcessingStatus.Running;
 

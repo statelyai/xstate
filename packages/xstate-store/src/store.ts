@@ -20,7 +20,8 @@ import {
   InternalBaseAtom,
   StoreLogic,
   StoreTransition,
-  AnyStoreLogic
+  AnyStoreLogic,
+  SpecificStoreConfig
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -174,8 +175,8 @@ function createStoreCore<
       get: (_, eventType: string) => {
         return (payload: any) => {
           store.send({
-            type: eventType,
-            ...payload
+            ...payload,
+            type: eventType
           });
         };
       }
@@ -253,14 +254,12 @@ export function createStore<
 export function createStore<
   TContext extends StoreContext,
   TEvent extends EventObject,
-  TEmittedPayloadMap extends EventPayloadMap
+  TEmitted extends EventObject
 >(
-  logic: StoreLogic<
-    StoreSnapshot<TContext>,
-    TEvent,
-    ExtractEvents<TEmittedPayloadMap>
-  >
-): Store<TContext, TEvent, ExtractEvents<TEmittedPayloadMap>>;
+  definition:
+    | SpecificStoreConfig<TContext, TEvent, TEmitted>
+    | StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>
+): Store<TContext, TEvent, TEmitted>;
 export function createStore(
   definitionOrLogic: StoreConfig<any, any, any> | AnyStoreLogic
 ) {
