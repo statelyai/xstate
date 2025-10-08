@@ -575,13 +575,13 @@ describe('system', () => {
 
     const actor = createActor(machine).start();
 
-    expect(actor.system.getRunningActors()).toEqual({
+    expect(actor.system.getAll()).toEqual({
       child1: actor.system.get('child1'),
       child2: actor.system.get('child2')
     });
 
     actor.send({ type: 'stopChild1' });
 
-    expect(actor.system.getRunningActors()).toEqual({});
+    expect(actor.system.getAll()).toEqual({});
   });
 });
