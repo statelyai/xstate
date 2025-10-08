@@ -63,6 +63,7 @@ function createStoreCore<
 
   function receive(event: StoreEvent) {
     const [nextSnapshot, effects] = transition(currentSnapshot, event);
+    currentSnapshot = nextSnapshot;
 
     inspectionObservers.get(store)?.forEach((observer) => {
       observer.next?.({
@@ -73,12 +74,6 @@ function createStoreCore<
         rootId: store.sessionId
       });
     });
-
-    if (nextSnapshot === currentSnapshot && !effects.length) {
-      return;
-    }
-
-    currentSnapshot = nextSnapshot;
 
     atom.set(nextSnapshot);
 
