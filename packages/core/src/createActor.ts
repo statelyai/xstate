@@ -415,23 +415,31 @@ export class Actor<TLogic extends AnyActorLogic>
   public subscribe(
     nextListener?: (snapshot: SnapshotFrom<TLogic>) => void,
     errorListener?: (error: any) => void,
-    completeListener?: () => void
+    completeListener?: () => void,
+    observerId?: string
   ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
       | ((snapshot: SnapshotFrom<TLogic>) => void)
       | Observer<SnapshotFrom<TLogic>>,
     errorListener?: (error: any) => void,
-    completeListener?: () => void
+    completeListener?: () => void,
+    observerId?: string
   ): Subscription {
     const observer = toObserver(
       nextListenerOrObserver,
       errorListener,
-      completeListener
+      completeListener,
+      observerId
     );
 
     if (this._processingStatus !== ProcessingStatus.Stopped) {
       this.observers.add(observer);
+      this._actorScope.system._sendInspectionEvent({
+        type: '@xstate.subscription',
+        actorRef: this,
+        subscriptionId: observer.id
+      });
     } else {
       switch ((this._snapshot as any).status) {
         case 'done':
