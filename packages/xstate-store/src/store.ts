@@ -7,7 +7,6 @@ import {
   ExtractEvents,
   InteropSubscribable,
   Observer,
-  Recipe,
   Store,
   StoreAssigner,
   StoreContext,
@@ -28,20 +27,6 @@ import {
 const symbolObservable: typeof Symbol.observable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) ||
   '@@observable')() as any;
-
-/**
- * Updates a context object using a recipe function.
- *
- * @param context - The current context
- * @param recipe - A function that describes how to update the context
- * @returns The updated context
- */
-function setter<TContext extends StoreContext>(
-  context: TContext,
-  recipe: Recipe<TContext, TContext>
-): TContext {
-  return recipe(context);
-}
 
 const inspectionObservers = new WeakMap<
   Store<any, any, any>,
@@ -77,20 +62,20 @@ function createStoreCore<
   const transition = logic.transition;
 
   function receive(event: StoreEvent) {
-    let effects: StoreEffect<TEmitted>[];
-    [currentSnapshot, effects] = transition(currentSnapshot, event);
+    const [nextSnapshot, effects] = transition(currentSnapshot, event);
+    currentSnapshot = nextSnapshot;
 
     inspectionObservers.get(store)?.forEach((observer) => {
       observer.next?.({
         type: '@xstate.snapshot',
         event,
-        snapshot: currentSnapshot,
+        snapshot: nextSnapshot,
         actorRef: store,
         rootId: store.sessionId
       });
     });
 
-    atom.set(currentSnapshot);
+    atom.set(nextSnapshot);
 
     for (const effect of effects) {
       if (typeof effect === 'function') {
@@ -422,7 +407,7 @@ export function createStoreTransition<
     event: ExtractEvents<TEventPayloadMap>
   ): [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]] => {
     type StoreEvent = ExtractEvents<TEventPayloadMap>;
-    let currentContext = snapshot.context;
+    const currentContext = snapshot.context;
     const assigner = transitions?.[event.type as StoreEvent['type']];
     const effects: StoreEffect<TEmitted>[] = [];
 
@@ -446,43 +431,22 @@ export function createStoreTransition<
       return [snapshot, effects];
     }
 
-    if (typeof assigner === 'function') {
-      currentContext = producer
-        ? producer(currentContext, (draftContext) =>
-            (assigner as StoreProducerAssigner<TContext, StoreEvent, TEmitted>)(
-              draftContext,
-              event,
-              enqueue
-            )
+    const nextContext = producer
+      ? producer(currentContext, (draftContext) =>
+          (assigner as StoreProducerAssigner<TContext, StoreEvent, TEmitted>)(
+            draftContext,
+            event,
+            enqueue
           )
-        : setter(currentContext, (draftContext) =>
-            Object.assign(
-              {},
-              currentContext,
-              assigner?.(
-                draftContext,
-                event as any, // TODO: help me
-                enqueue
-              )
-            )
-          );
-    } else {
-      const partialUpdate: Record<string, unknown> = {};
-      for (const key of Object.keys(assigner)) {
-        const propAssignment = assigner[key];
-        partialUpdate[key] =
-          typeof propAssignment === 'function'
-            ? (propAssignment as StoreAssigner<TContext, StoreEvent, TEmitted>)(
-                currentContext,
-                event,
-                enqueue
-              )
-            : propAssignment;
-      }
-      currentContext = Object.assign({}, currentContext, partialUpdate);
-    }
+        )
+      : (assigner(currentContext, event as any, enqueue) ?? currentContext);
 
-    return [{ ...snapshot, context: currentContext }, effects];
+    return [
+      nextContext === currentContext
+        ? snapshot
+        : { ...snapshot, context: nextContext },
+      effects
+    ];
   };
 }
 
