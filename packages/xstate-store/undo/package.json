@@ -1,0 +1,4 @@
+{
+  "main": "dist/xstate-store-undo.cjs.js",
+  "module": "dist/xstate-store-undo.esm.js"
+}

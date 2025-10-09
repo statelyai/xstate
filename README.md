@@ -31,6 +31,29 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 ✍️ Browse through the many [XState examples](https://github.com/statelyai/xstate/tree/main/examples)
 
+## Sponsors
+
+Special thanks to the sponsors who support this open-source project:
+
+<img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
+
+ <a href="https://go.warp.dev/xstate">
+    <img alt="Warp sponsorship" width="400" src="https://github.com/warpdotdev/brand-assets/blob/main/Github/Sponsor/Warp-Github-LG-04.png?raw=true](https://github.com/warpdotdev/brand-assets/blob/main/Github/Sponsor/Warp-Github-LG-03.png?raw=true)">
+ </a>
+
+### [Warp, the intelligent terminal for developers](https://go.warp.dev/xstate)
+
+<small><a href="https://go.warp.dev/xstate">Warp is built for coding with multiple AI agents</a></small>
+
+<a href="https://transloadit.com/?utm_source=xstate&utm_medium=referral&utm_campaign=sponsorship&utm_content=github">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://assets.transloadit.com/assets/images/sponsorships/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://assets.transloadit.com/assets/images/sponsorships/logo-default.svg">
+    <img src="https://assets.transloadit.com/assets/images/sponsorships/logo-default.svg" alt="Transloadit Logo">
+  </picture>
+</a>
+
+
 ## Templates
 
 Get started by forking one of these templates on CodeSandbox:
@@ -181,16 +204,15 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 
 ## Packages
 
-| Package                                                                                     | Description                                                                  |
-| ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| 🤖 `xstate`                                                                                 | Core finite state machine and statecharts library + interpreter              |
-| [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph)   | Graph traversal and model-based testing utilities using XState               |
-| [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react)   | React hooks and utilities for using XState in React applications             |
-| [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)       | Vue composition functions and utilities for using XState in Vue applications |
-| [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) | Svelte utilities for using XState in Svelte applications                     |
-| [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid)   | Solid hooks and utilities for using XState in Solid applications             |
-| [🔍 `@statelyai/inspect`](https://github.com/statelyai/inspect)                             | Inspection utilities for XState                                              |
-| [🏪 `@xstate/store`](https://github.com/statelyai/xstate/tree/main/packages/xstate-store)   | Small library for simple state management                                    |
+| Package                                                                                     | Description                                                                                                                  |
+| ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 🤖 `xstate`                                                                                 | Core finite state machine and statecharts library + interpreter, including graph traversal and model-based testing utilities |
+| [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react)   | React hooks and utilities for using XState in React applications                                                             |
+| [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)       | Vue composition functions and utilities for using XState in Vue applications                                                 |
+| [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) | Svelte utilities for using XState in Svelte applications                                                                     |
+| [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid)   | Solid hooks and utilities for using XState in Solid applications                                                             |
+| [🔍 `@statelyai/inspect`](https://github.com/statelyai/inspect)                             | Inspection utilities for XState                                                                                              |
+| [🏪 `@xstate/store`](https://github.com/statelyai/xstate/tree/main/packages/xstate-store)   | Small library for simple state management                                                                                    |
 
 ## Finite State Machines
 
@@ -543,19 +565,6 @@ actor.send({ type: 'PREVIOUS' });
 </tbody>
 </table>
 
-## Sponsors
-
-Special thanks to the sponsors who support this open-source project:
-
-<img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
-
-<a href="https://transloadit.com/?utm_source=xstate&utm_medium=referral&utm_campaign=sponsorship&utm_content=github">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://assets.transloadit.com/assets/images/sponsorships/logo-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://assets.transloadit.com/assets/images/sponsorships/logo-default.svg">
-    <img src="https://assets.transloadit.com/assets/images/sponsorships/logo-default.svg" alt="Transloadit Logo">
-  </picture>
-</a>
 
 ## SemVer Policy
 

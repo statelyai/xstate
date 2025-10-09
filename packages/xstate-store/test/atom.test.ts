@@ -1,4 +1,4 @@
-import { createStore, createAtom } from '../src/';
+import { createStore, createAtom, createAsyncAtom } from '../src/index.ts';
 
 it('creates an atom', () => {
   const atom = createAtom(42);
@@ -18,8 +18,16 @@ it('sets the value of the atom using a function', () => {
   expect(atom.get()).toBe(2);
 });
 
+it('can set the value to undefined', () => {
+  const atom = createAtom<number | undefined>(1);
+  expect(atom.get()).toBe(1);
+
+  atom.set(undefined);
+  expect(atom.get()).toBe(undefined);
+});
+
 it('can subscribe to atom changes', () => {
-  const log = jest.fn();
+  const log = vi.fn();
   const atom = createAtom(0);
 
   atom.subscribe(log);
@@ -34,7 +42,7 @@ it('can subscribe to atom changes', () => {
 });
 
 it('can unsubscribe from atom changes', () => {
-  const log = jest.fn();
+  const log = vi.fn();
   const atom = createAtom(0);
 
   const sub = atom.subscribe(log);
@@ -119,7 +127,7 @@ it('works with a mix of atoms and stores (get API)', () => {
     }
   });
 
-  const log = jest.fn();
+  const log = vi.fn();
 
   const combinedAtom = createAtom(
     () => store.get().context.name + ` ${countAtom.get()}`
@@ -405,7 +413,7 @@ it('conditionally read atoms are properly unsubscribed when no longer needed (ge
 });
 
 it('handles diamond dependencies with single update', () => {
-  const log = jest.fn();
+  const log = vi.fn();
   const sourceAtom = createAtom(1);
 
   const pathA = createAtom(() => sourceAtom.get() * 2);
@@ -435,7 +443,7 @@ it('handles diamond dependencies with single update', () => {
 });
 
 it('handles complex diamond dependencies correctly', () => {
-  const log = jest.fn();
+  const log = vi.fn();
 
   // Base atom D
   const atomD = createAtom(1);
@@ -480,7 +488,7 @@ it('handles complex diamond dependencies correctly', () => {
 });
 
 it('supports custom equality functions through compare option', () => {
-  const log = jest.fn();
+  const log = vi.fn();
 
   const coordAtom = createAtom(
     { x: 0, y: 0 },
@@ -515,7 +523,7 @@ it('supports custom equality functions through compare option', () => {
 });
 
 it('uses Object.is as default equality function', () => {
-  const log = jest.fn();
+  const log = vi.fn();
   const objAtom = createAtom({ value: 0 });
 
   objAtom.subscribe(log);
@@ -584,4 +592,173 @@ it('Atom-specific properties should not be exposed', () => {
   store._deps;
   // @ts-expect-error
   store._depsTail;
+});
+
+describe('async atoms', () => {
+  it('async atoms should work (fulfilled)', async () => {
+    const atom = createAsyncAtom(async () => 'hello');
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(atom.get()).toEqual({ status: 'done', data: 'hello' });
+  });
+
+  it('async atoms should work (rejected)', async () => {
+    const atom = createAsyncAtom(async () => {
+      throw new Error('test');
+    });
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(atom.get()).toEqual({
+      status: 'error',
+      error: expect.any(Error)
+    });
+  });
+
+  it('should only call getValue once for multiple concurrent reads', async () => {
+    let getValueCallCount = 0;
+    const RESOLVED_VALUE = 'test-value';
+
+    const myAsyncAtom = createAsyncAtom(async () => {
+      getValueCallCount++;
+      return RESOLVED_VALUE;
+    });
+
+    // Initial reads should show pending status
+    expect(myAsyncAtom.get()).toEqual({ status: 'pending' });
+    expect(myAsyncAtom.get()).toEqual({ status: 'pending' });
+
+    // Let the promise resolve
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Both reads should now show the resolved value
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'done',
+      data: RESOLVED_VALUE
+    });
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'done',
+      data: RESOLVED_VALUE
+    });
+
+    // getValue should have only been called once
+    expect(getValueCallCount).toBe(1);
+
+    // Additional reads after resolution should still use cached value
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'done',
+      data: RESOLVED_VALUE
+    });
+    expect(getValueCallCount).toBe(1);
+  });
+
+  it('should only call getValue once even when error occurs', async () => {
+    let getValueCallCount = 0;
+    const ERROR_MESSAGE = 'test error';
+
+    const myAsyncAtom = createAsyncAtom(async () => {
+      getValueCallCount++;
+      throw new Error(ERROR_MESSAGE);
+    });
+
+    // Initial reads should show pending status
+    expect(myAsyncAtom.get()).toEqual({ status: 'pending' });
+    expect(myAsyncAtom.get()).toEqual({ status: 'pending' });
+
+    // Let the promise reject
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Both reads should now show the error
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'error',
+      error: expect.any(Error)
+    });
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'error',
+      error: expect.any(Error)
+    });
+
+    // getValue should have only been called once
+    expect(getValueCallCount).toBe(1);
+
+    // Additional reads after rejection should still use cached error
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'error',
+      error: expect.any(Error)
+    });
+    expect(getValueCallCount).toBe(1);
+  });
+
+  it('async atoms should not have a .set() method', () => {
+    const atom = createAsyncAtom(async () => 'hello');
+
+    expect('set' in atom).toBe(false);
+  });
+
+  it('should notify subscribers when async operation completes successfully', async () => {
+    const log = vi.fn();
+    const atom = createAsyncAtom(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return 'test-value';
+    });
+
+    atom.subscribe(log);
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+    expect(log).not.toHaveBeenCalled();
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log).toHaveBeenCalledWith({ status: 'done', data: 'test-value' });
+    expect(atom.get()).toEqual({ status: 'done', data: 'test-value' });
+  });
+
+  it('should notify subscribers when async operation fails', async () => {
+    const log = vi.fn();
+    const error = new Error('test error');
+    const atom = createAsyncAtom(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      throw error;
+    });
+
+    atom.subscribe(log);
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+    expect(log).not.toHaveBeenCalled();
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log).toHaveBeenCalledWith({ status: 'error', error });
+    expect(atom.get()).toEqual({ status: 'error', error });
+  });
+
+  it('should notify multiple subscribers when async operation completes', async () => {
+    const log1 = vi.fn();
+    const log2 = vi.fn();
+    const atom = createAsyncAtom(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return 'multi-test';
+    });
+
+    atom.subscribe(log1);
+    atom.subscribe(log2);
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+    expect(log1).not.toHaveBeenCalled();
+    expect(log2).not.toHaveBeenCalled();
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(log1).toHaveBeenCalledTimes(1);
+    expect(log1).toHaveBeenCalledWith({ status: 'done', data: 'multi-test' });
+    expect(log2).toHaveBeenCalledTimes(1);
+    expect(log2).toHaveBeenCalledWith({ status: 'done', data: 'multi-test' });
+  });
 });

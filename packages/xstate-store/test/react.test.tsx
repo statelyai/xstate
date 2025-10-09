@@ -1,18 +1,24 @@
-import { fireEvent, screen, render } from '@testing-library/react';
+import { fireEvent, screen, render, act } from '@testing-library/react';
 import {
   createStore,
   fromStore,
   createStoreConfig,
-  createAtom
+  createAtom,
+  AnyStore
 } from '../src/index.ts';
-import { useSelector } from '../src/react.ts';
+import {
+  useSelector,
+  useStore,
+  useAtom,
+  createStoreHook
+} from '../src/react.ts';
 import {
   useActor,
   useActorRef,
   useSelector as useXStateSelector
 } from '@xstate/react';
 import ReactDOM from 'react-dom';
-import { useStore } from '../src/react.ts';
+import { vi } from 'vitest';
 
 describe('useSelector', () => {
   it('useSelector should work', () => {
@@ -355,7 +361,7 @@ describe('useStore', () => {
   });
 
   it('should handle emitted events', () => {
-    const onEmit = jest.fn();
+    const onEmit = vi.fn();
 
     const Counter = () => {
       const store = useStore({
@@ -762,5 +768,640 @@ describe('store examples', () => {
     // Moving without mouse down shouldn't create dots
     fireEvent.mouseMove(svg, { clientX: 50, clientY: 60 });
     expect(dotsGroup.children.length).toBe(2);
+  });
+});
+
+describe('useAtom', () => {
+  it('should return the full atom snapshot when used without selector', () => {
+    const atom = createAtom(0);
+
+    const TestComponent = () => {
+      const count = useAtom(atom);
+      return <div data-testid="value">{count}</div>;
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('value').textContent).toBe('0');
+  });
+
+  it('should return selected value when used with selector', () => {
+    const atom = createAtom({ count: 0, name: 'test' });
+
+    const TestComponent = () => {
+      const count = useAtom(atom, (state) => state.count);
+      return <div data-testid="value">{count}</div>;
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('value').textContent).toBe('0');
+  });
+
+  it('should update when atom value changes', () => {
+    const atom = createAtom({ count: 0 });
+
+    const TestComponent = () => {
+      const snapshot = useAtom(atom);
+      return (
+        <div>
+          <div data-testid="value">{snapshot.count}</div>
+          <button
+            data-testid="increment"
+            onClick={() => atom.set({ count: snapshot.count + 1 })}
+          >
+            Increment
+          </button>
+        </div>
+      );
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('value').textContent).toBe('0');
+
+    act(() => {
+      fireEvent.click(getByTestId('increment'));
+    });
+
+    expect(getByTestId('value').textContent).toBe('1');
+  });
+
+  it('should use custom compare function when provided', () => {
+    const renderCount = vi.fn();
+    const atom = createAtom({ user: { name: 'test', age: 25 } });
+
+    const TestComponent = () => {
+      const userName = useAtom(
+        atom,
+        (state) => state.user.name,
+        (a, b) => a?.toLowerCase() === b?.toLowerCase()
+      );
+
+      renderCount();
+      return <div data-testid="value">{userName}</div>;
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('value').textContent).toBe('test');
+    expect(renderCount).toHaveBeenCalledTimes(1);
+
+    // Update with same value but different case - should not trigger re-render
+    act(() => {
+      atom.set({ user: { name: 'TEST', age: 25 } });
+    });
+
+    expect(renderCount).toHaveBeenCalledTimes(1);
+    expect(getByTestId('value').textContent).toBe('test');
+
+    // Update with actually different value - should trigger re-render
+    act(() => {
+      atom.set({ user: { name: 'john', age: 25 } });
+    });
+
+    expect(renderCount).toHaveBeenCalledTimes(2);
+    expect(getByTestId('value').textContent).toBe('john');
+  });
+
+  it('should handle undefined values correctly', () => {
+    const atom = createAtom<{ value: string | undefined }>({
+      value: undefined
+    });
+
+    const TestComponent = () => {
+      const value = useAtom(atom, (state) => state.value);
+      return <div data-testid="value">{value ?? 'empty'}</div>;
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('value').textContent).toBe('empty');
+
+    act(() => {
+      atom.set({ value: 'defined' });
+    });
+
+    expect(getByTestId('value').textContent).toBe('defined');
+
+    act(() => {
+      atom.set({ value: undefined });
+    });
+
+    expect(getByTestId('value').textContent).toBe('empty');
+  });
+
+  it('should work with updater functions', () => {
+    const atom = createAtom(0);
+
+    const TestComponent = () => {
+      const count = useAtom(atom);
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button
+            data-testid="increment"
+            onClick={() => atom.set((c) => c + 1)}
+          >
+            Increment
+          </button>
+        </div>
+      );
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('count').textContent).toBe('0');
+
+    act(() => {
+      fireEvent.click(getByTestId('increment'));
+    });
+    expect(getByTestId('count').textContent).toBe('1');
+
+    act(() => {
+      fireEvent.click(getByTestId('increment'));
+    });
+    expect(getByTestId('count').textContent).toBe('2');
+  });
+
+  // https://github.com/statelyai/xstate/issues/5306
+  it('should work with readonly atoms', () => {
+    const booleanTestAtom = createAtom(() => 13 > 12);
+
+    const TestComponent = () => {
+      const booleanValue = useAtom(booleanTestAtom);
+
+      booleanValue satisfies boolean;
+
+      // @ts-expect-error
+      booleanValue satisfies number;
+
+      return <div data-testid="value">{booleanValue.toString()}</div>;
+    };
+
+    render(<TestComponent />);
+    expect(screen.getByTestId('value').textContent).toBe('true');
+  });
+});
+
+describe('createStoreHook', () => {
+  it('should create a hook that returns state and triggers', () => {
+    const useCountStore = createStoreHook({
+      context: { count: 0 },
+      on: {
+        inc: (ctx, event: { by: number }) => ({
+          ...ctx,
+          count: ctx.count + event.by
+        }),
+        reset: (ctx) => ({
+          ...ctx,
+          count: 0
+        })
+      }
+    });
+
+    const Counter = () => {
+      const [count, store] = useCountStore((s) => s.context.count);
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button
+            data-testid="increment"
+            onClick={() => store.trigger.inc({ by: 1 })}
+          >
+            +1
+          </button>
+          <button
+            data-testid="increment-5"
+            onClick={() => store.trigger.inc({ by: 5 })}
+          >
+            +5
+          </button>
+          <button data-testid="reset" onClick={() => store.trigger.reset()}>
+            Reset
+          </button>
+        </div>
+      );
+    };
+
+    render(<Counter />);
+
+    const countDisplay = screen.getByTestId('count');
+    const incrementBtn = screen.getByTestId('increment');
+    const increment5Btn = screen.getByTestId('increment-5');
+    const resetBtn = screen.getByTestId('reset');
+
+    // Initial state
+    expect(countDisplay.textContent).toBe('0');
+
+    // Increment by 1
+    fireEvent.click(incrementBtn);
+    expect(countDisplay.textContent).toBe('1');
+
+    // Increment by 5
+    fireEvent.click(increment5Btn);
+    expect(countDisplay.textContent).toBe('6');
+
+    // Reset
+    fireEvent.click(resetBtn);
+    expect(countDisplay.textContent).toBe('0');
+  });
+
+  it('should work without selector (return full snapshot)', () => {
+    const useFullStore = createStoreHook({
+      context: { count: 0, name: 'Test' },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }),
+        setName: (ctx, event: { name: string }) => ({
+          ...ctx,
+          name: event.name
+        })
+      }
+    });
+
+    const Component = () => {
+      const [snapshot, store] = useFullStore();
+
+      return (
+        <div>
+          <div data-testid="name">{snapshot.context.name}</div>
+          <div data-testid="count">{snapshot.context.count}</div>
+          <div data-testid="status">{snapshot.status}</div>
+          <button onClick={() => store.trigger.inc()}>Increment</button>
+          <input
+            data-testid="name-input"
+            value={snapshot.context.name}
+            onChange={(e) => store.trigger.setName({ name: e.target.value })}
+          />
+        </div>
+      );
+    };
+
+    render(<Component />);
+
+    // Check initial state
+    expect(screen.getByTestId('name').textContent).toBe('Test');
+    expect(screen.getByTestId('count').textContent).toBe('0');
+    expect(screen.getByTestId('status').textContent).toBe('active');
+
+    // Update count
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByTestId('count').textContent).toBe('1');
+
+    // Update name
+    const nameInput = screen.getByTestId('name-input') as HTMLInputElement;
+    fireEvent.change(nameInput, { target: { value: 'Updated' } });
+    expect(screen.getByTestId('name').textContent).toBe('Updated');
+  });
+
+  it('should work with custom comparison function', () => {
+    let renderCount = 0;
+
+    const useOptimizedStore = createStoreHook({
+      context: { count: 0, name: 'Test' },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }),
+        setName: (ctx, event: { name: string }) => ({
+          ...ctx,
+          name: event.name
+        })
+      }
+    });
+
+    const OptimizedComponent = () => {
+      renderCount++;
+      // Only re-render if count changes (custom comparison)
+      const [count, store] = useOptimizedStore(
+        (s) => s.context.count,
+        (a, b) => a === b
+      );
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button data-testid="inc-count" onClick={() => store.trigger.inc()} />
+          <button
+            data-testid="change-name"
+            onClick={() => store.trigger.setName({ name: 'Changed' })}
+          />
+        </div>
+      );
+    };
+
+    render(<OptimizedComponent />);
+
+    expect(renderCount).toBe(1);
+    expect(screen.getByTestId('count').textContent).toBe('0');
+
+    // Changing name shouldn't trigger re-render since we only select count
+    fireEvent.click(screen.getByTestId('change-name'));
+    expect(renderCount).toBe(1); // No re-render
+
+    // Changing count should trigger re-render
+    fireEvent.click(screen.getByTestId('inc-count'));
+    expect(renderCount).toBe(2);
+    expect(screen.getByTestId('count').textContent).toBe('1');
+  });
+
+  it('should maintain stable store instances across renders', () => {
+    const storeInstances: Set<AnyStore> = new Set();
+
+    const useTestStore = createStoreHook({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 })
+      }
+    });
+
+    const Component = () => {
+      const [count, store] = useTestStore((s) => s.context.count);
+
+      // Capture the store object to check stability
+      storeInstances.add(store);
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button onClick={() => store.trigger.inc()}>Increment</button>
+        </div>
+      );
+    };
+
+    render(<Component />);
+
+    // Click to trigger re-render
+    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByRole('button'));
+
+    // All trigger objects should be the same reference (stable)
+    expect(storeInstances.size).toBe(1);
+  });
+
+  it('should handle emitted events', () => {
+    const onEmit = vi.fn();
+
+    const useEmittingStore = createStoreHook({
+      context: { count: 0 },
+      emits: {
+        countChanged: (payload: { newCount: number }) => {
+          onEmit(payload);
+        }
+      },
+      on: {
+        inc: (ctx, _event: { type: 'inc' }, enq) => {
+          const newCount = ctx.count + 1;
+          enq.emit.countChanged({ newCount });
+          return { ...ctx, count: newCount };
+        }
+      }
+    });
+
+    const Component = () => {
+      const [count, store] = useEmittingStore((s) => s.context.count);
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button onClick={() => store.trigger.inc()} />
+        </div>
+      );
+    };
+
+    render(<Component />);
+
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(onEmit).toHaveBeenCalledWith({ type: 'countChanged', newCount: 1 });
+    expect(screen.getByTestId('count').textContent).toBe('1');
+  });
+
+  it('should work with shared store instance across multiple hook calls', () => {
+    const useCounterStore = createStoreHook({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 })
+      }
+    });
+
+    const Counter1 = () => {
+      const [count, store] = useCounterStore((s) => s.context.count);
+      return (
+        <div>
+          <div data-testid="count-1">{count}</div>
+          <button data-testid="inc-1" onClick={() => store.trigger.inc()} />
+        </div>
+      );
+    };
+
+    const Counter2 = () => {
+      const [count, store] = useCounterStore((s) => s.context.count);
+      return (
+        <div>
+          <div data-testid="count-2">{count}</div>
+          <button data-testid="inc-2" onClick={() => store.trigger.inc()} />
+        </div>
+      );
+    };
+
+    render(
+      <>
+        <Counter1 />
+        <Counter2 />
+      </>
+    );
+
+    // Both should start at 0 (shared state)
+    expect(screen.getByTestId('count-1').textContent).toBe('0');
+    expect(screen.getByTestId('count-2').textContent).toBe('0');
+
+    // Increment first counter - both should update since they share the same store
+    fireEvent.click(screen.getByTestId('inc-1'));
+    expect(screen.getByTestId('count-1').textContent).toBe('1');
+    expect(screen.getByTestId('count-2').textContent).toBe('1'); // Should also be 1
+
+    // Increment second counter - both should update since they share the same store
+    fireEvent.click(screen.getByTestId('inc-2'));
+    expect(screen.getByTestId('count-1').textContent).toBe('2'); // Should also be 2
+    expect(screen.getByTestId('count-2').textContent).toBe('2');
+  });
+
+  it('should properly type the trigger object', () => {
+    const useTypedStore = createStoreHook({
+      context: { count: 0, name: 'test' },
+      on: {
+        increment: (ctx, event: { by: number }) => ({
+          ...ctx,
+          count: ctx.count + event.by
+        }),
+        decrement: (ctx, event: { by: number }) => ({
+          ...ctx,
+          count: ctx.count - event.by
+        }),
+        setName: (ctx, event: { name: string }) => ({
+          ...ctx,
+          name: event.name
+        }),
+        reset: (ctx) => ({
+          ...ctx,
+          count: 0
+        })
+      }
+    });
+
+    const TypedComponent = () => {
+      const [state, store] = useTypedStore();
+
+      // Test that triggers have correct types
+      return (
+        <div>
+          <div data-testid="count">{state.context.count}</div>
+          <div data-testid="name">{state.context.name}</div>
+          <button
+            data-testid="increment"
+            onClick={() => store.trigger.increment({ by: 5 })}
+          />
+          <button
+            data-testid="decrement"
+            onClick={() => store.trigger.decrement({ by: 2 })}
+          />
+          <button
+            data-testid="set-name"
+            onClick={() => store.trigger.setName({ name: 'updated' })}
+          />
+          <button data-testid="reset" onClick={() => store.trigger.reset()} />
+        </div>
+      );
+    };
+
+    render(<TypedComponent />);
+
+    expect(screen.getByTestId('count').textContent).toBe('0');
+    expect(screen.getByTestId('name').textContent).toBe('test');
+
+    fireEvent.click(screen.getByTestId('increment'));
+    expect(screen.getByTestId('count').textContent).toBe('5');
+
+    fireEvent.click(screen.getByTestId('decrement'));
+    expect(screen.getByTestId('count').textContent).toBe('3');
+
+    fireEvent.click(screen.getByTestId('set-name'));
+    expect(screen.getByTestId('name').textContent).toBe('updated');
+
+    fireEvent.click(screen.getByTestId('reset'));
+    expect(screen.getByTestId('count').textContent).toBe('0');
+  });
+
+  it('should work with complex state selections', () => {
+    const useComplexStore = createStoreHook({
+      context: {
+        user: { name: 'John', age: 30 },
+        settings: { theme: 'dark', notifications: true },
+        items: [1, 2, 3]
+      },
+      on: {
+        updateUser: (ctx, event: { name?: string; age?: number }) => ({
+          ...ctx,
+          user: { ...ctx.user, ...event }
+        }),
+        addItem: (ctx, event: { item: number }) => ({
+          ...ctx,
+          items: [...ctx.items, event.item]
+        }),
+        toggleTheme: (ctx) => ({
+          ...ctx,
+          settings: {
+            ...ctx.settings,
+            theme: ctx.settings.theme === 'dark' ? 'light' : 'dark'
+          }
+        })
+      }
+    });
+
+    const UserComponent = () => {
+      const [userName, store] = useComplexStore((s) => s.context.user.name);
+
+      return (
+        <div>
+          <div data-testid="user-name">{userName}</div>
+          <button
+            data-testid="update-name"
+            onClick={() => store.trigger.updateUser({ name: 'Jane' })}
+          />
+        </div>
+      );
+    };
+
+    const ThemeComponent = () => {
+      const [theme, store] = useComplexStore((s) => s.context.settings.theme);
+
+      return (
+        <div>
+          <div data-testid="theme">{theme}</div>
+          <button
+            data-testid="toggle-theme"
+            onClick={() => store.trigger.toggleTheme()}
+          />
+        </div>
+      );
+    };
+
+    const ItemsComponent = () => {
+      const [itemCount, store] = useComplexStore((s) => s.context.items.length);
+
+      return (
+        <div>
+          <div data-testid="item-count">{itemCount}</div>
+          <button
+            data-testid="add-item"
+            onClick={() => store.trigger.addItem({ item: Math.random() })}
+          />
+        </div>
+      );
+    };
+
+    render(
+      <>
+        <UserComponent />
+        <ThemeComponent />
+        <ItemsComponent />
+      </>
+    );
+
+    // Initial state
+    expect(screen.getByTestId('user-name').textContent).toBe('John');
+    expect(screen.getByTestId('theme').textContent).toBe('dark');
+    expect(screen.getByTestId('item-count').textContent).toBe('3');
+
+    // Update user name
+    fireEvent.click(screen.getByTestId('update-name'));
+    expect(screen.getByTestId('user-name').textContent).toBe('Jane');
+
+    // Toggle theme
+    fireEvent.click(screen.getByTestId('toggle-theme'));
+    expect(screen.getByTestId('theme').textContent).toBe('light');
+
+    // Add item
+    fireEvent.click(screen.getByTestId('add-item'));
+    expect(screen.getByTestId('item-count').textContent).toBe('4');
+  });
+
+  it('trigger methods that do not take args should work when passed directly into event handlers', () => {
+    const useTriggerStore = createStoreHook({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 })
+      }
+    });
+
+    const Component = () => {
+      const [count, store] = useTriggerStore((s) => s.context.count);
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          {/* Before, event.type would overwrite { type: 'inc' } */}
+          <button onClick={store.trigger.inc} />
+        </div>
+      );
+    };
+
+    render(<Component />);
+
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByTestId('count').textContent).toBe('1');
   });
 });

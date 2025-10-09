@@ -19,7 +19,8 @@ import type {
   MetaObject,
   StateSchema,
   StateId,
-  SnapshotStatus
+  SnapshotStatus,
+  PersistedHistoryValue
 } from './types.ts';
 import { matchesState } from './utils.ts';
 
@@ -397,6 +398,25 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
   ) as TState;
 }
 
+function serializeHistoryValue<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(historyValue: HistoryValue<TContext, TEvent>): PersistedHistoryValue {
+  if (typeof historyValue !== 'object' || historyValue === null) {
+    return {};
+  }
+  const result: PersistedHistoryValue = {};
+
+  for (const key in historyValue) {
+    const value = historyValue[key];
+    if (Array.isArray(value)) {
+      result[key] = value.map((item) => ({ id: item.id }));
+    }
+  }
+
+  return result;
+}
+
 export function getPersistedSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -446,7 +466,7 @@ export function getPersistedSnapshot<
     childrenJson[id as keyof typeof childrenJson] = {
       snapshot: child.getPersistedSnapshot(options),
       src: child.src,
-      systemId: child._systemId,
+      systemId: child.systemId,
       syncSnapshot: child._syncSnapshot
     };
   }
@@ -454,7 +474,10 @@ export function getPersistedSnapshot<
   const persisted = {
     ...jsonValues,
     context: persistContext(context) as any,
-    children: childrenJson
+    children: childrenJson,
+    historyValue: serializeHistoryValue<TContext, TEvent>(
+      jsonValues.historyValue
+    )
   };
 
   return persisted;

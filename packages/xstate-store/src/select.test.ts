@@ -52,7 +52,7 @@ describe('select', () => {
       }
     });
 
-    const callback = jest.fn();
+    const callback = vi.fn();
     store.select((state) => state.user.name).subscribe(callback);
     store.send({ type: 'UPDATE_NAME', name: 'Jane' });
 
@@ -78,7 +78,7 @@ describe('select', () => {
       }
     });
 
-    const callback = jest.fn();
+    const callback = vi.fn();
     store.select((state) => state.user.name).subscribe(callback);
     store.send({ type: 'UPDATE_THEME', theme: 'light' });
 
@@ -103,7 +103,7 @@ describe('select', () => {
       }
     });
 
-    const callback = jest.fn();
+    const callback = vi.fn();
     const selector = (context: TestContext) => ({
       name: context.user.name,
       theme: context.settings.theme
@@ -138,7 +138,7 @@ describe('select', () => {
       }
     });
 
-    const callback = jest.fn();
+    const callback = vi.fn();
     const subscription = store
       .select((state) => state.user.name)
       .subscribe(callback);
@@ -180,7 +180,7 @@ describe('select', () => {
     });
 
     // Mock DOM manipulation callback
-    const renderCallback = jest.fn();
+    const renderCallback = vi.fn();
     store
       .select((state) => state.position)
       .subscribe((position) => {
@@ -188,7 +188,7 @@ describe('select', () => {
       });
 
     // Mock logger callback for x position only
-    const loggerCallback = jest.fn();
+    const loggerCallback = vi.fn();
     store
       .select((state) => state.position.x)
       .subscribe((x) => {

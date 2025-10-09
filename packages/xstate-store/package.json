@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store",
-  "version": "3.5.1",
+  "version": "3.9.3",
   "description": "Simple stores",
   "keywords": [
     "store",
@@ -12,6 +12,15 @@
   "main": "dist/xstate-store.cjs.js",
   "module": "dist/xstate-store.esm.js",
   "exports": {
+    "./undo": {
+      "types": {
+        "import": "./undo/dist/xstate-store-undo.cjs.mjs",
+        "default": "./undo/dist/xstate-store-undo.cjs.js"
+      },
+      "module": "./undo/dist/xstate-store-undo.esm.js",
+      "import": "./undo/dist/xstate-store-undo.cjs.mjs",
+      "default": "./undo/dist/xstate-store-undo.cjs.js"
+    },
     ".": {
       "types": {
         "import": "./dist/xstate-store.cjs.mjs",
@@ -45,7 +54,8 @@
   "files": [
     "dist",
     "react",
-    "solid"
+    "solid",
+    "undo"
   ],
   "repository": {
     "type": "git",
@@ -55,17 +65,21 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "devDependencies": {
+    "@solidjs/testing-library": "^0.8.10",
     "@statelyai/inspect": "^0.4.0",
     "@testing-library/react": "^16.2.0",
+    "@testing-library/vue": "^8.1.0",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-vue": "^5.1.2",
     "@xstate/react": "workspace:^",
     "@xstate/vue": "workspace:^",
     "immer": "^10.0.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "solid-js": "^1.7.6",
-    "solid-testing-library": "^0.3.0",
+    "solid-js": "^1.9.7",
+    "vite-plugin-solid": "^2.11.6",
+    "vue": "^3.4.35",
     "xstate": "workspace:^"
   },
   "peerDependencies": {
@@ -85,7 +99,8 @@
     "entrypoints": [
       "./index.ts",
       "./react.ts",
-      "./solid.ts"
+      "./solid.ts",
+      "./undo.ts"
     ]
   }
 }

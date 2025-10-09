@@ -13,9 +13,10 @@ permissions: {}
 jobs:
   release:
     permissions:
-      contents: write #  to create release (changesets/action)
+      contents: write # to create release (changesets/action)
       issues: write # to post issue comments (changesets/action)
-      pull-requests: write #  to create pull request (changesets/action)
+      pull-requests: write # to create pull request (changesets/action)
+      id-token: write # to use OpenID Connect token for provenance (changesets/action)
 
     if: github.repository == 'statelyai/xstate'
 
@@ -36,3 +37,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true

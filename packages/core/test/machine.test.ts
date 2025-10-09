@@ -96,8 +96,8 @@ describe('machine', () => {
 
   describe('machine.provide', () => {
     it('should override an action', () => {
-      const originalEntry = jest.fn();
-      const overridenEntry = jest.fn();
+      const originalEntry = vi.fn();
+      const overridenEntry = vi.fn();
 
       const machine = createMachine(
         {
@@ -122,8 +122,8 @@ describe('machine', () => {
     });
 
     it('should override a guard', () => {
-      const originalGuard = jest.fn().mockImplementation(() => true);
-      const overridenGuard = jest.fn().mockImplementation(() => true);
+      const originalGuard = vi.fn().mockImplementation(() => true);
+      const overridenGuard = vi.fn().mockImplementation(() => true);
 
       const machine = createMachine(
         {

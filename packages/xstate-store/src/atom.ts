@@ -1,11 +1,7 @@
 import {
   createReactiveSystem,
-  Dependency,
-  Subscriber,
-  SubscriberFlagsComputed,
-  SubscriberFlagsDirty,
-  SubscriberFlagsEffect,
-  SubscriberFlagsPendingComputed
+  type ReactiveNode,
+  type ReactiveFlags
 } from './alien';
 import { toObserver } from './toObserver';
 import {
@@ -19,25 +15,85 @@ import {
   ReadonlyAtom
 } from './types';
 
-const [
+const queuedEffects: (Effect | undefined)[] = [];
+const {
   link,
+  unlink,
   propagate,
-  updateDirtyFlag,
-  startTracking,
+  checkDirty,
   endTracking,
-  processEffectNotifications,
-  processComputedUpdate
-] = createReactiveSystem({
-  updateComputed(computed: InternalReadonlyAtom<any>) {
-    return computed._update();
+  startTracking,
+  shallowPropagate
+} = createReactiveSystem({
+  update(atom: InternalReadonlyAtom<any>): boolean {
+    return atom._update();
   },
-  notifyEffect(effect: Effect) {
-    effect.notify();
-    return true;
+  notify(effect: Effect): void {
+    queuedEffects[queuedEffectsLength++] = effect;
+  },
+  unwatched(atom: InternalReadonlyAtom<any>): void {
+    let toRemove = atom._deps;
+    if (toRemove !== undefined) {
+      atom._flags = 17 as ReactiveFlags.Mutable | ReactiveFlags.Dirty;
+      do {
+        toRemove = unlink(toRemove, atom);
+      } while (toRemove !== undefined);
+    }
   }
 });
 
-let activeSub: Subscriber | undefined = undefined;
+let notifyIndex = 0;
+let queuedEffectsLength = 0;
+let activeSub: ReactiveNode | undefined;
+
+function flush(): void {
+  while (notifyIndex < queuedEffectsLength) {
+    const effect = queuedEffects[notifyIndex]!;
+    queuedEffects[notifyIndex++] = undefined;
+    effect.notify();
+  }
+  notifyIndex = 0;
+  queuedEffectsLength = 0;
+}
+
+type AsyncAtomState<Data, Error = unknown> =
+  | { status: 'pending' }
+  | { status: 'done'; data: Data }
+  | { status: 'error'; error: Error };
+
+export function createAsyncAtom<T>(
+  getValue: () => Promise<T>,
+  options?: AtomOptions<AsyncAtomState<T>>
+): ReadonlyAtom<AsyncAtomState<T>> {
+  const atom = createAtom<AsyncAtomState<T>>(() => {
+    getValue().then(
+      (data) => {
+        if (atom._update({ status: 'done', data })) {
+          const subs = atom._subs;
+          if (subs !== undefined) {
+            propagate(subs);
+            shallowPropagate(subs);
+            flush();
+          }
+        }
+      },
+      (error) => {
+        if (atom._update({ status: 'error', error })) {
+          const subs = atom._subs;
+          if (subs !== undefined) {
+            propagate(subs);
+            shallowPropagate(subs);
+            flush();
+          }
+        }
+      }
+    );
+
+    return { status: 'pending' };
+  }, options) as InternalReadonlyAtom<AsyncAtomState<T>>;
+
+  return atom;
+}
 
 export function createAtom<T>(
   getValue: (read: <U>(atom: Readable<U>) => U) => T,
@@ -55,12 +111,12 @@ export function createAtom<T>(
   const getter = valueOrFn as (read: <U>(atom: Readable<U>) => U) => T;
 
   // Create plain object atom
-  const atom: InternalBaseAtom<T> & Dependency = {
+  const atom: InternalBaseAtom<T> & ReactiveNode = {
     _snapshot: isComputed ? undefined! : valueOrFn,
 
-    // Dependency fields
     _subs: undefined,
     _subsTail: undefined,
+    _flags: 0 as ReactiveFlags.None,
 
     get(): T {
       if (activeSub !== undefined) {
@@ -86,65 +142,73 @@ export function createAtom<T>(
           e.stop();
         }
       };
+    },
+    _update(getValue?: T | ((snapshot: T) => T)): boolean {
+      const prevSub = activeSub;
+      const compare = options?.compare ?? Object.is;
+      activeSub = atom as InternalReadonlyAtom<T>;
+      startTracking(atom as InternalReadonlyAtom<T>);
+      try {
+        const oldValue = atom._snapshot;
+        const read = (atom: Readable<any>) => atom.get();
+        const newValue =
+          typeof getValue === 'function'
+            ? (getValue as (snapshot: T) => T)(oldValue)
+            : getValue === undefined && isComputed
+              ? getter(read)
+              : getValue!;
+        if (oldValue === undefined || !compare(oldValue, newValue)) {
+          atom._snapshot = newValue;
+          return true;
+        }
+        return false;
+      } finally {
+        activeSub = prevSub;
+        endTracking(atom as InternalReadonlyAtom<T>);
+      }
     }
   };
 
   if (isComputed) {
     Object.assign<
       BaseAtom<T>,
-      Pick<
-        InternalReadonlyAtom<T>,
-        '_deps' | '_depsTail' | '_flags' | 'get' | '_update'
-      >
+      Pick<InternalReadonlyAtom<T>, '_deps' | '_depsTail' | '_flags' | 'get'>
     >(atom, {
       _deps: undefined,
       _depsTail: undefined,
-      _flags: SubscriberFlagsComputed | SubscriberFlagsDirty,
+      _flags: 17 as ReactiveFlags.Mutable | ReactiveFlags.Dirty,
       get(): T {
         const flags = (this as unknown as InternalReadonlyAtom<T>)._flags;
-        if (flags & (SubscriberFlagsPendingComputed | SubscriberFlagsDirty)) {
-          processComputedUpdate(atom as InternalReadonlyAtom<T>, flags);
+        if (
+          flags & (16 satisfies ReactiveFlags.Dirty) ||
+          (flags & (32 satisfies ReactiveFlags.Pending) &&
+            checkDirty(atom._deps!, atom))
+        ) {
+          if (atom._update()) {
+            const subs = atom._subs;
+            if (subs !== undefined) {
+              shallowPropagate(subs);
+            }
+          }
+        } else if (flags & (32 satisfies ReactiveFlags.Pending)) {
+          atom._flags = flags & ~(32 satisfies ReactiveFlags.Pending);
         }
-
         if (activeSub !== undefined) {
           link(atom, activeSub);
         }
         return atom._snapshot;
-      },
-      _update(): boolean {
-        const prevSub = activeSub;
-        const compare = options?.compare ?? Object.is;
-        activeSub = atom as InternalReadonlyAtom<T>;
-        startTracking(atom as InternalReadonlyAtom<T>);
-        try {
-          const oldValue = atom._snapshot;
-          const read = (atom: Readable<any>) => atom.get();
-          const newValue = getter(read);
-          if (oldValue === undefined || !compare(oldValue, newValue)) {
-            atom._snapshot = newValue;
-            return true;
-          }
-          return false;
-        } finally {
-          activeSub = prevSub;
-          endTracking(atom as InternalReadonlyAtom<T>);
-        }
       }
     });
   } else {
     Object.assign<BaseAtom<T>, Pick<Atom<T>, 'set'>>(atom, {
       set(valueOrFn: T | ((prev: T) => T)): void {
-        const compare = options?.compare ?? Object.is;
-        const value =
-          typeof valueOrFn === 'function'
-            ? (valueOrFn as (prev: T) => T)(atom._snapshot)
-            : valueOrFn;
-        if (compare(atom._snapshot, value)) return;
-        atom._snapshot = value;
-        const { _subs: subs } = atom;
-        if (subs !== undefined) {
-          propagate(subs);
-          processEffectNotifications();
+        if (atom._update(valueOrFn)) {
+          const subs = atom._subs;
+          if (subs !== undefined) {
+            propagate(subs);
+            shallowPropagate(subs);
+            flush();
+          }
         }
       }
     });
@@ -153,7 +217,7 @@ export function createAtom<T>(
   return atom as Atom<T> | ReadonlyAtom<T>;
 }
 
-interface Effect extends Subscriber {
+interface Effect extends ReactiveNode {
   notify(): void;
   stop(): void;
 }
@@ -171,18 +235,20 @@ function effect<T>(fn: () => T): Effect {
     }
   };
   const effectObj: Effect = {
-    // Subscriber fields
     _deps: undefined,
     _depsTail: undefined,
-    _flags: SubscriberFlagsEffect,
+    _flags: 2 satisfies ReactiveFlags.Watching,
 
     notify(): void {
       const flags = this._flags;
       if (
-        flags & SubscriberFlagsDirty ||
-        (flags & SubscriberFlagsPendingComputed && updateDirtyFlag(this, flags))
+        flags & (16 satisfies ReactiveFlags.Dirty) ||
+        (flags & (32 satisfies ReactiveFlags.Pending) &&
+          checkDirty(this._deps!, this))
       ) {
         run();
+      } else if (flags & (32 satisfies ReactiveFlags.Pending)) {
+        this._flags = flags & ~(32 satisfies ReactiveFlags.Pending);
       }
     },
 

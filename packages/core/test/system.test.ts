@@ -21,7 +21,8 @@ import {
 import { ActorSystem } from '../src/system.ts';
 
 describe('system', () => {
-  it('should register an invoked actor', (done) => {
+  it('should register an invoked actor', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     type MySystem = ActorSystem<{
       actors: {
         receiver: ActorRef<Snapshot<unknown>, { type: 'HELLO' }>;
@@ -38,7 +39,7 @@ describe('system', () => {
               src: fromCallback(({ receive }) => {
                 receive((event) => {
                   expect(event.type).toBe('HELLO');
-                  done();
+                  resolve();
                 });
               }),
               systemId: 'receiver'
@@ -61,9 +62,12 @@ describe('system', () => {
     });
 
     createActor(machine).start();
+
+    return promise;
   });
 
-  it('should register a spawned actor', (done) => {
+  it('should register a spawned actor', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     type MySystem = ActorSystem<{
       actors: {
         receiver: ActorRef<Snapshot<unknown>, { type: 'HELLO' }>;
@@ -83,7 +87,7 @@ describe('system', () => {
           fromCallback(({ receive }) => {
             receive((event) => {
               expect(event.type).toBe('HELLO');
-              done();
+              resolve();
             });
           }),
           { systemId: 'receiver' }
@@ -116,6 +120,8 @@ describe('system', () => {
     const actor = createActor(machine).start();
 
     actor.send({ type: 'toggle' });
+
+    return promise;
   });
 
   it('system can be immediately accessed outside the actor', () => {
@@ -217,7 +223,7 @@ describe('system', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine, { systemId: 'test' });
     actorRef.subscribe({
@@ -226,7 +232,7 @@ describe('system', () => {
     actorRef.start();
     actorRef.send({ type: 'toggle' });
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: Actor with system ID 'test' already exists.],
@@ -468,7 +474,7 @@ describe('system', () => {
   });
 
   it('should gracefully handle re-registration of a `systemId` during a reentering transition', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     let counter = 0;
 
@@ -513,7 +519,7 @@ describe('system', () => {
   });
 
   it('should be able to send an event to an ancestor with a registered `systemId` from an initial entry action', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const child = createMachine({
       entry: sendTo(({ system }) => system.get('myRoot'), {
@@ -534,5 +540,48 @@ describe('system', () => {
     createActor(machine, { systemId: 'myRoot' }).start();
 
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('system ID should be accessible on the actor', () => {
+    const machine = createMachine({});
+    const actor = createActor(machine, { systemId: 'test' });
+    expect(actor.systemId).toBe('test');
+  });
+
+  it('should give a list of runnings actors', () => {
+    const machine = createMachine({
+      id: 'root',
+      initial: 'happy path',
+      states: {
+        'happy path': {
+          entry: [spawnChild(createMachine({}), { systemId: 'child1' })],
+          invoke: [
+            {
+              src: createMachine({
+                id: 'machine'
+              }),
+              systemId: 'child2'
+            }
+          ],
+          on: {
+            stopChild1: 'sad path'
+          }
+        },
+        'sad path': {
+          entry: stopChild(({ system }) => system.get('child1'))
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(actor.system.getAll()).toEqual({
+      child1: actor.system.get('child1'),
+      child2: actor.system.get('child2')
+    });
+
+    actor.send({ type: 'stopChild1' });
+
+    expect(actor.system.getAll()).toEqual({});
   });
 });

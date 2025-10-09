@@ -1,5 +1,245 @@
 # @xstate/store
 
+## 3.9.3
+
+### Patch Changes
+
+- [#5383](https://github.com/statelyai/xstate/pull/5383) [`4b6a513`](https://github.com/statelyai/xstate/commit/4b6a513ebd7ee1ab067856be4b431651b491cba5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix: `trigger` methods now work when passed directly as event handlers, even for events with no payload. Before, the React `event.type` would overwrite the intended event type.
+
+## 3.9.2
+
+### Patch Changes
+
+- [#5361](https://github.com/statelyai/xstate/pull/5361) [`7f8d90a`](https://github.com/statelyai/xstate/commit/7f8d90a5a6e851ade55e94a9569f746aaebc160a) Thanks [@johnsoncodehk](https://github.com/johnsoncodehk)! - Synchronize the alien-signals algorithm to 2.0.7.
+
+  This is primarily to fix the severe performance degradation discovered in vuejs/core: vuejs/core#13654
+
+## 3.9.1
+
+### Patch Changes
+
+- [#5359](https://github.com/statelyai/xstate/pull/5359) [`3f4bffc`](https://github.com/statelyai/xstate/commit/3f4bffc3dc9e4797207617f8166d5b8aac8d64ea) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `createStoreHook` to create a single shared store instance across all components. Previously, the implementation was creating independent store instances, but now multiple components using the same hook will share state as expected.
+
+## 3.9.0
+
+### Minor Changes
+
+- [#5354](https://github.com/statelyai/xstate/pull/5354) [`515cc31`](https://github.com/statelyai/xstate/commit/515cc31063f04a7cd238006a485ae9368a8c1278) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `createStoreHook(…)` function for React. Creates a store hook that returns `[selectedValue, store]` instead of managing store instances manually.
+
+  ```tsx
+  const useCountStore = createStoreHook({
+    context: { count: 0 },
+    on: {
+      inc: (ctx, event: { by: number }) => ({
+        ...ctx,
+        count: ctx.count + event.by
+      })
+    }
+  });
+
+  // Usage
+  const [count, store] = useCountStore((s) => s.context.count);
+  store.trigger.inc({ by: 3 });
+
+  // Usage (no selector)
+  const [snapshot, store] = useCountStore();
+  ```
+
+## 3.8.5
+
+### Patch Changes
+
+- [#5347](https://github.com/statelyai/xstate/pull/5347) [`4dff4e9`](https://github.com/statelyai/xstate/commit/4dff4e94d6aa547f0b1ae37e51e96281a252d236) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix TypeScript error localization in `createStore(…)` overloads
+
+  Previously, TS errors in transitions would appear on the `createStore` call itself rather than on the specific transition.
+
+## 3.8.4
+
+### Patch Changes
+
+- [#5337](https://github.com/statelyai/xstate/pull/5337) [`b64a6c9`](https://github.com/statelyai/xstate/commit/b64a6c925d87bce6246d35e562bdda6907e2e33f) Thanks [@flbn](https://github.com/flbn)! - chore: add missing EventFromStoreConfig, EmitsFromStoreConfig, ContextFromStoreConfig types from @xstate/store exports
+
+## 3.8.3
+
+### Patch Changes
+
+- [#5334](https://github.com/statelyai/xstate/pull/5334) [`c4adf25`](https://github.com/statelyai/xstate/commit/c4adf25331faeb15004d449b35799c53bd069b1b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createStore` function now supports explicit generic type parameters for better type control when needed. This allows you to specify the exact types for context, events, and emitted events instead of relying solely on type inference if desired.
+
+  ```ts
+  type CoffeeContext = {
+    beans: number;
+    cups: number;
+  };
+
+  type CoffeeEvents =
+    | { type: 'addBeans'; amount: number }
+    | { type: 'brewCup' };
+
+  type CoffeeEmitted =
+    | { type: 'beansAdded'; amount: number }
+    | { type: 'cupBrewed' };
+
+  const coffeeStore = createStore<CoffeeContext, CoffeeEvents, CoffeeEmitted>({
+    context: {
+      beans: 0,
+      cups: 0
+    },
+    on: {
+      addBeans: (ctx, event, enq) => {
+        enq.emit.beansAdded({ amount: event.amount });
+        return { ...ctx, beans: ctx.beans + event.amount };
+      },
+      brewCup: (ctx, _, enq) => {
+        if (ctx.beans > 0) {
+          enq.emit.cupBrewed();
+          return { ...ctx, beans: ctx.beans - 1, cups: ctx.cups + 1 };
+        }
+
+        return ctx;
+      }
+    }
+  });
+  ```
+
+## 3.8.2
+
+### Patch Changes
+
+- [#5329](https://github.com/statelyai/xstate/pull/5329) [`8a27bc4`](https://github.com/statelyai/xstate/commit/8a27bc43f975b03dc82a7e381a3956af49fb0633) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix: `createAsyncAtom` now properly propagates status updates after promise resolves/rejects.
+
+## 3.8.1
+
+### Patch Changes
+
+- [#5326](https://github.com/statelyai/xstate/pull/5326) [`68ab6fb`](https://github.com/statelyai/xstate/commit/68ab6fb72d20c5bd2eb8d1d6249dc3046da79010) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The XState Store undo/redo package can now be imported as `@xstate/store/undo`.
+
+  ```ts
+  import { createStore } from '@xstate/store';
+  import { undoRedo } from '@xstate/store/undo';
+
+  const store = createStore(
+    undoRedo({
+      context: {
+        count: 0
+      },
+      on: {
+        // ...
+      }
+    })
+  );
+
+  // ...
+  ```
+
+## 3.8.0
+
+### Minor Changes
+
+- [#5305](https://github.com/statelyai/xstate/pull/5305) [`725530f`](https://github.com/statelyai/xstate/commit/725530fd462c4300319fad82efc545ff44cf3e22) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added undo/redo functionality to XState Store via the `undoRedo` higher-order store logic:
+  - Adds `undo` and `redo` events to stores
+  - Supports grouping related events into transactions using `transactionId`
+  - Maintains event history for precise state reconstruction
+  - Automatically clears redo stack when new events occur
+
+  ```ts
+  import { createStore } from '@xstate/store';
+  import { undoRedo } from '@xstate/store/undo';
+
+  const store = createStore(
+    undoRedo({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 }),
+        dec: (ctx) => ({ count: ctx.count - 1 })
+      }
+    })
+  );
+
+  store.trigger.inc();
+  // count: 1
+  store.trigger.inc();
+  // count: 2
+  store.trigger.undo();
+  // count: 1
+  store.trigger.undo();
+  // count: 0
+  store.trigger.redo();
+  // count: 1
+  store.trigger.redo();
+  // count: 2
+  ```
+
+## 3.7.1
+
+### Patch Changes
+
+- [#5307](https://github.com/statelyai/xstate/pull/5307) [`b269485`](https://github.com/statelyai/xstate/commit/b269485e47b95fa57bbc75e34352f107ef2c37c3) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix the types for `useAtom` to accept `ReadonlyAtom` values.
+
+## 3.7.0
+
+### Minor Changes
+
+- [#5302](https://github.com/statelyai/xstate/pull/5302) [`809d8b5`](https://github.com/statelyai/xstate/commit/809d8b53869ac7d664ec1b1d634eb8286a0d4cd2) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useAtom` hook is now available for reading the value of an atom or selecting a value from the atom.
+
+  ```tsx
+  const atom = createAtom(0);
+
+  const Component = () => {
+    const count = useAtom(atom);
+
+    return (
+      <>
+        <div onClick={() => atom.set((c) => c + 1)}>{count}</div>
+        <button onClick={() => atom.set(0)}>Reset</button>
+      </>
+    );
+  };
+  ```
+
+  With selectors:
+
+  ```tsx
+  const atom = createAtom({ count: 0 });
+
+  const Component = () => {
+    const count = useAtom(atom, (s) => s.count);
+
+    return <div>{count}</div>;
+  };
+  ```
+
+## 3.6.2
+
+### Patch Changes
+
+- [#5280](https://github.com/statelyai/xstate/pull/5280) [`d8a3456bc82af5e4d176990093ba4e649e7ce286`](https://github.com/statelyai/xstate/commit/d8a3456bc82af5e4d176990093ba4e649e7ce286) Thanks [@johnsoncodehk](https://github.com/johnsoncodehk)! - Synchronize the [`alien-signals`](https://github.com/stackblitz/alien-signals/) algorithm to 2.0.4
+
+## 3.6.1
+
+### Patch Changes
+
+- [#5282](https://github.com/statelyai/xstate/pull/5282) [`42b1565cfdd6635754a4de63800d63ca74886a70`](https://github.com/statelyai/xstate/commit/42b1565cfdd6635754a4de63800d63ca74886a70) Thanks [@lucioreyli](https://github.com/lucioreyli)! - Add missing `createAsyncAtom` export
+
+## 3.6.0
+
+### Minor Changes
+
+- [#5266](https://github.com/statelyai/xstate/pull/5266) [`42bfd0a30d74e1c5820728220a00db692023f1f8`](https://github.com/statelyai/xstate/commit/42bfd0a30d74e1c5820728220a00db692023f1f8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added async atoms:
+
+  ```typescript
+  const atom = createAsyncAtom(async () => {
+    const response = await fetch(`/api/something`);
+    return response.json();
+  });
+
+  atom.subscribe((state) => {
+    // Status can be 'pending', 'done', or 'error'
+    if (state.status === 'done') {
+      console.log(state.data);
+    }
+  });
+  ```
+
 ## 3.5.1
 
 ### Patch Changes
@@ -11,7 +251,6 @@
 ### Minor Changes
 
 - [#5250](https://github.com/statelyai/xstate/pull/5250) [`a1bffb55b2029bde82e542d5936c51d961909a37`](https://github.com/statelyai/xstate/commit/a1bffb55b2029bde82e542d5936c51d961909a37) Thanks [@davidkpiano](https://github.com/davidkpiano)! - - Improved atom architecture with better dependency management (the diamond problem is solved!)
-
   - Optimized recomputation logic to prevent unnecessary updates
   - Added support for custom equality functions through `compare` option in `createAtom`, allowing fine-grained control over when atoms update:
 
@@ -64,7 +303,6 @@
 ### Minor Changes
 
 - [#5221](https://github.com/statelyai/xstate/pull/5221) [`4635d3d8d3debcfeef5cddd78613e32891c10eac`](https://github.com/statelyai/xstate/commit/4635d3d8d3debcfeef5cddd78613e32891c10eac) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `createAtom()` for creating reactive atoms that can be combined with other atoms and stores:
-
   - Create simple atoms with initial values:
 
     ```ts
@@ -135,7 +373,6 @@
 ### Minor Changes
 
 - [#5200](https://github.com/statelyai/xstate/pull/5200) [`0332a16a42fb372eb614df74ff4cb7f003c31fc8`](https://github.com/statelyai/xstate/commit/0332a16a42fb372eb614df74ff4cb7f003c31fc8) Thanks [@{](https://github.com/{)! - Added selectors to @xstate/store that enable efficient state selection and subscription:
-
   - `store.select(selector)` function to create a "selector" entity where you can:
     - Get current value with `.get()`
     - Subscribe to changes with `.subscribe(callback)`

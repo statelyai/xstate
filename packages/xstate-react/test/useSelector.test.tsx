@@ -9,9 +9,7 @@ import {
   fromTransition,
   createActor,
   StateFrom,
-  Snapshot,
   TransitionSnapshot,
-  AnyEventObject,
   setup
 } from 'xstate';
 import {
@@ -616,7 +614,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       return null;
     }
 
-    console.error = jest.fn();
+    console.error = vi.fn();
     render(<App />);
 
     const [snapshot1] = snapshots;
@@ -705,7 +703,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should not log any spurious errors when used with a not-started actor', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     console.error = spy;
 
     const machine = createMachine({});

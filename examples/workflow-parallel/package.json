@@ -9,11 +9,11 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "typescript": "^5.7.3",
-    "vite": "^4.5.9",
+    "typescript": "^5.8.3",
+    "vite": "^4.5.14",
     "vite-node": "^0.31.4"
   },
   "dependencies": {
-    "xstate": "^5.19.2"
+    "xstate": "^5.19.4"
   }
 }

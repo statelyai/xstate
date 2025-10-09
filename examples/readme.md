@@ -2,7 +2,7 @@
 
 These steps assume You've forked the repo and created a branch for your PR. For more info, see the section _Making changes_ in our [CONTRIBUTING.md](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md#making-changes).
 
-1. In the CLI, navigate to the `/examples` folder. Start a [new Vite project](https://vitejs.dev/guide/#scaffolding-your-first-vite-project) using the appropiate template (e.g. `react-ts`) and adding the name of the framework at the end of your example's name:
+1. In the CLI, navigate to the `/examples` folder. Start a [new Vite project](https://vitejs.dev/guide/#scaffolding-your-first-vite-project) using the appropriate template (e.g. `react-ts`) and adding the name of the framework at the end of your example's name:
 
 ```bash
 pnpm create vite@latest my-example-react --template react-ts

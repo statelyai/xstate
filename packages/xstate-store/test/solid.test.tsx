@@ -1,7 +1,11 @@
 /* @jsxImportSource solid-js */
-import type { Accessor, Component } from 'solid-js';
-import { createRenderEffect, createSignal } from 'solid-js';
-import { fireEvent, render, screen } from 'solid-testing-library';
+import {
+  createRenderEffect,
+  createSignal,
+  type Accessor,
+  type Component
+} from 'solid-js';
+import { fireEvent, render, screen } from '@solidjs/testing-library';
 import { createStore } from '../src/index.ts';
 import { useSelector } from '../src/solid.ts';
 

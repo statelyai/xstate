@@ -8,9 +8,6 @@ import {
   InspectionEvent,
   isMachineSnapshot,
   assign,
-  ContextFrom,
-  EventObject,
-  AnyTransitionDefinition,
   raise,
   setup
 } from '../src';

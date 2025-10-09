@@ -11,7 +11,7 @@ import {
   onMount,
   For
 } from 'solid-js';
-import { fireEvent, render, screen, waitFor } from 'solid-testing-library';
+import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
 import {
   Actor,
   ActorLogicFrom,
@@ -22,14 +22,14 @@ import {
   raise
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
-import { useActor } from '../src';
+import { useActor } from '../src/index.ts';
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 describe('useActor', () => {
@@ -214,7 +214,8 @@ describe('useActor', () => {
     render(() => <Test />);
   });
 
-  it('should not spawn actors until service is started', (done) => {
+  it('should not spawn actors until service is started', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const spawnMachine = createMachine({
       types: {} as { context: any },
       id: 'spawn',
@@ -255,10 +256,13 @@ describe('useActor', () => {
     };
 
     render(() => <Spawner />);
-    waitFor(() => screen.getByTestId('success')).then(() => done());
+    waitFor(() => screen.getByTestId('success')).then(() => resolve());
+
+    return promise;
   });
 
-  it('send should update synchronously', (done) => {
+  it('send should update synchronously', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'start',
       states: {
@@ -295,10 +299,13 @@ describe('useActor', () => {
     };
 
     render(() => <Spawner />);
-    waitFor(() => screen.getByTestId('success')).then(() => done());
+    waitFor(() => screen.getByTestId('success')).then(() => resolve());
+
+    return promise;
   });
 
-  it('actions should not have stale data', (done) => {
+  it('actions should not have stale data', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const toggleMachine = createMachine({
       types: {} as {
         events: { type: 'TOGGLE' };
@@ -319,7 +326,7 @@ describe('useActor', () => {
 
       const doAction = () => {
         expect(ext()).toBeTruthy();
-        done();
+        resolve();
       };
 
       const [, send] = useActor(
@@ -355,6 +362,8 @@ describe('useActor', () => {
     fireEvent.click(extButton);
 
     fireEvent.click(button);
+
+    return promise;
   });
 
   it('should capture all actions', () => {
@@ -1020,7 +1029,8 @@ describe('useActor', () => {
     expect(canDoSomethingEl.textContent).toEqual('true');
   });
 
-  it(`should not reevaluate a scope depending on state.matches when state.value doesn't change`, (done) => {
+  it(`should not reevaluate a scope depending on state.matches when state.value doesn't change`, () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     interface MachineContext {
       counter: number;
     }
@@ -1063,7 +1073,7 @@ describe('useActor', () => {
             send({ type: 'INC' });
             setTimeout(() => {
               expect(calls).toBe(1);
-              done();
+              resolve();
             }, 100);
           });
         });
@@ -1073,6 +1083,8 @@ describe('useActor', () => {
     };
 
     render(() => <Comp />);
+
+    return promise;
   });
 
   it('should successfully spawn actors from the lazily declared context', () => {
@@ -1208,7 +1220,7 @@ describe('useActor', () => {
   });
 
   it('should be able to use a delay provided outside of SolidJS', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
     const machine = createMachine(
       {
@@ -1257,7 +1269,7 @@ describe('useActor', () => {
 
     expect(screen.getByTestId('result').textContent).toBe('b');
 
-    jest.advanceTimersByTime(310);
+    vi.advanceTimersByTime(310);
 
     expect(screen.getByTestId('result').textContent).toBe('c');
   });
@@ -1516,8 +1528,9 @@ describe('useActor', () => {
     expect(machine2Value.textContent).toEqual('101');
   });
 
-  it('Service should stop on component cleanup', (done) => {
-    jest.useFakeTimers();
+  it('Service should stop on component cleanup', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    vi.useFakeTimers();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -1534,7 +1547,7 @@ describe('useActor', () => {
     const Display = () => {
       onCleanup(() => {
         expect(service.getSnapshot().status).toBe('stopped');
-        done();
+        resolve();
       });
       const [state, , service] = useActor(machine);
       return <div>{state.toString()}</div>;
@@ -1547,7 +1560,9 @@ describe('useActor', () => {
     };
 
     render(() => <Counter />);
-    jest.advanceTimersByTime(200);
+    vi.advanceTimersByTime(200);
+
+    return promise;
   });
 
   it('.can should trigger on context change', () => {
@@ -1668,7 +1683,8 @@ describe('useActor', () => {
     expect(activatedCount).toEqual(1);
   });
 
-  it('child component should be able to send an event to a parent immediately in an effect', (done) => {
+  it('child component should be able to send an event to a parent immediately in an effect', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       types: {} as {
         events: { type: 'FINISH' };
@@ -1696,13 +1712,15 @@ describe('useActor', () => {
       const [state, send] = useActor(machine);
       createEffect(() => {
         if (state.matches('success')) {
-          done();
+          resolve();
         }
       });
       return <ChildTest send={send} />;
     };
 
     render(() => <Test />);
+
+    return promise;
   });
 
   it('custom data should be available right away for the invoked actor', () => {
@@ -1760,7 +1778,7 @@ describe('useActor', () => {
 
   // https://github.com/davidkpiano/xstate/issues/1334
   it('delayed transitions should work when initializing from a rehydrated state', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
       const testMachine = createMachine({
         types: {} as {
@@ -1808,11 +1826,11 @@ describe('useActor', () => {
       const button = screen.getByTestId('button');
 
       fireEvent.click(button);
-      jest.advanceTimersByTime(110);
+      vi.advanceTimersByTime(110);
 
       expect(container.textContent).toBe('idle');
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 
