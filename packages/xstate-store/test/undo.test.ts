@@ -206,3 +206,193 @@ it('should preserve context and event types', () => {
   // @ts-expect-error
   store.send({ type: 'dec' });
 });
+
+it('should skip non-undoable events during undo', () => {
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 }),
+          log: (ctx) => ctx // No state change, just logging
+        }
+      },
+      {
+        skipEvents: (event) => event.type === 'log'
+      }
+    )
+  );
+
+  store.send({ type: 'inc' }); // count = 1
+  store.send({ type: 'log' }); // count = 1 (logged but not undoable)
+  store.send({ type: 'inc' }); // count = 2
+  expect(store.getSnapshot().context.count).toBe(2);
+
+  store.send({ type: 'undo' }); // count = 1 (skips log event)
+  expect(store.getSnapshot().context.count).toBe(1);
+});
+
+it('should skip non-redoable events during redo', () => {
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 }),
+          log: (ctx) => ctx // No state change, just logging
+        }
+      },
+      {
+        skipEvents: (event) => event.type === 'log'
+      }
+    )
+  );
+
+  store.send({ type: 'inc' }); // count = 1
+  store.send({ type: 'log' }); // count = 1 (logged but not redoable)
+  store.send({ type: 'inc' }); // count = 2
+  store.send({ type: 'undo' }); // count = 1
+  expect(store.getSnapshot().context.count).toBe(1);
+
+  store.send({ type: 'redo' }); // count = 2 (skips log event)
+  expect(store.getSnapshot().context.count).toBe(2);
+});
+
+it('should skip events with transaction grouping', () => {
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 }),
+          log: (ctx) => ctx // No state change, just logging
+        }
+      },
+      {
+        getTransactionId: (event) => event.type,
+        skipEvents: (event) => event.type === 'log'
+      }
+    )
+  );
+
+  // First transaction: inc events
+  store.send({ type: 'inc' }); // count = 1
+  store.send({ type: 'inc' }); // count = 2
+  expect(store.getSnapshot().context.count).toBe(2);
+
+  // Log events (not a transaction because they're skipped)
+  store.send({ type: 'log' }); // count = 2 (logged but not undoable)
+  store.send({ type: 'log' }); // count = 2 (logged but not undoable)
+  expect(store.getSnapshot().context.count).toBe(2);
+
+  // Second transaction: inc events
+  store.send({ type: 'inc' }); // count = 3
+  store.send({ type: 'inc' }); // count = 4
+  expect(store.getSnapshot().context.count).toBe(4);
+
+  // Undo second transaction (all inc events)
+  store.send({ type: 'undo' }); // count = 0
+  expect(store.getSnapshot().context.count).toBe(0);
+});
+
+it('should handle mixed undoable and non-undoable events', () => {
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0, logs: [] as string[] },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1, logs: ctx.logs }),
+          log: (ctx, event: { type: 'log'; message: string }) => ({
+            logs: [...(ctx.logs || []), event.message],
+            count: ctx.count
+          })
+        }
+      },
+      {
+        skipEvents: (event) => event.type === 'log'
+      }
+    )
+  );
+
+  store.send({ type: 'inc' }); // count = 1
+  store.send({ type: 'log', message: 'first log' }); // logs = ['first log'] (not stored in history)
+  store.send({ type: 'inc' }); // count = 2
+  store.send({ type: 'log', message: 'second log' }); // logs = ['first log', 'second log'] (not stored in history)
+  store.send({ type: 'inc' }); // count = 3
+
+  expect(store.getSnapshot().context.count).toBe(3);
+  expect(store.getSnapshot().context.logs).toEqual(['first log', 'second log']);
+
+  // Undo should skip log events (they're not in history) but still undo inc events
+  // Since log events are skipped, they're not replayed during undo, so logs are lost
+  store.send({ type: 'undo' }); // count = 2, logs = [] (logs lost because not replayed)
+  expect(store.getSnapshot().context.count).toBe(2);
+  expect(store.getSnapshot().context.logs).toEqual([]);
+
+  store.send({ type: 'undo' }); // count = 1, logs = [] (logs lost because not replayed)
+  expect(store.getSnapshot().context.count).toBe(1);
+  expect(store.getSnapshot().context.logs).toEqual([]);
+
+  store.send({ type: 'undo' }); // count = 0, logs = [] (logs lost because not replayed)
+  expect(store.getSnapshot().context.count).toBe(0);
+  expect(store.getSnapshot().context.logs).toEqual([]);
+});
+
+it('should not replay emitted events for skipped events during undo/redo', () => {
+  type Events = { type: 'inc' } | { type: 'log'; message: string };
+
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0 },
+        emits: {
+          changed: (_: { value: number }) => {},
+          logged: (_: { message: string }) => {}
+        },
+        on: {
+          inc: (ctx, _: Events, enq) => {
+            enq.emit.changed({ value: ctx.count + 1 });
+            return { count: ctx.count + 1 };
+          },
+          log: (ctx, event: Events, enq) => {
+            enq.emit.logged({ message: (event as any).message });
+            return ctx; // No state change
+          }
+        }
+      },
+      {
+        skipEvents: (event) => event.type === 'log'
+      }
+    )
+  );
+
+  const emittedEvents: any[] = [];
+  store.on('changed', (event) => {
+    emittedEvents.push(event);
+  });
+  store.on('logged', (event) => {
+    emittedEvents.push(event);
+  });
+
+  store.send({ type: 'inc' }); // count = 1, emits changed(1)
+  store.send({ type: 'log', message: 'test log' }); // emits logged('test log') but not stored in history
+  store.send({ type: 'inc' }); // count = 2, emits changed(2)
+
+  expect(emittedEvents).toEqual([
+    { type: 'changed', value: 1 },
+    { type: 'logged', message: 'test log' },
+    { type: 'changed', value: 2 }
+  ]);
+
+  emittedEvents.length = 0;
+  store.send({ type: 'undo' }); // count = 1
+  store.send({ type: 'undo' }); // count = 0
+  store.send({ type: 'redo' }); // count = 1, emits changed(1)
+  store.send({ type: 'redo' }); // count = 2, emits changed(2)
+
+  // Only inc events should be emitted during undo/redo, log events are skipped from history
+  expect(emittedEvents).toEqual([
+    { type: 'changed', value: 1 },
+    { type: 'changed', value: 2 }
+  ]);
+});
