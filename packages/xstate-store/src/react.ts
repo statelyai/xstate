@@ -59,6 +59,21 @@ function useSelectorWithCompare<TStore extends Readable<any>, T>(
 export function useSelector<TStore extends Readable<any>, T>(
   store: TStore,
   selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
+  compare?: (a: T | undefined, b: T) => boolean
+): T;
+export function useSelector<TStore extends Readable<any>>(
+  store: TStore,
+  selector?: undefined,
+  compare?: (
+    a: TStore extends Readable<infer T> ? T : never | undefined,
+    b: TStore extends Readable<infer T> ? T : never | undefined
+  ) => boolean
+): TStore extends Readable<infer T> ? T : never;
+export function useSelector<TStore extends Readable<any>, T>(
+  store: TStore,
+  selector: (
+    snapshot: TStore extends Readable<infer T> ? T : never
+  ) => T = identity,
   compare: (a: T | undefined, b: T) => boolean = defaultCompare
 ): T {
   const selectorWithCompare = useSelectorWithCompare(selector, compare);
