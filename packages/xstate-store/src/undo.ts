@@ -248,7 +248,7 @@ export function undoRedo<
       const isEventSkipped = options?.skipEvents?.(event);
       const events = isEventSkipped
         ? snapshot.events
-        : snapshot.events.slice().concat({
+        : snapshot.events.concat({
             event,
             transactionId: options?.getTransactionId?.(event)
           });
