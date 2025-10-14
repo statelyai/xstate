@@ -174,10 +174,12 @@ export function undoRedo<
         }
 
         // Filter out events that should be skipped during undo
-        const eventsToReplay = options?.skipEvents ? events.filter(
-          (undoEvent: UndoEvent<TEvent>) =>
-            !options.skipEvents(undoEvent.event)
-        ) : events;
+        const eventsToReplay = options?.skipEvents
+          ? events.filter(
+              (undoEvent: UndoEvent<TEvent>) =>
+                !options.skipEvents!(undoEvent.event)
+            )
+          : events;
 
         // Replay remaining events to get to the new state
         let state = {
