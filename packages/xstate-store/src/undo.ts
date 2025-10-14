@@ -142,7 +142,7 @@ export function undoRedo<
       if (event.type === 'undo') {
         const events = snapshot.events.slice();
         const undoStack = snapshot.undoStack.slice();
-        if (!events.length) {
+        if (!snapshot.events.length) {
           return [snapshot, []];
         }
 
