@@ -218,7 +218,7 @@ it('should skip non-undoable events during undo', () => {
         }
       },
       {
-        skipEvents: (event) => event.type === 'log'
+        skipEvent: (event) => event.type === 'log'
       }
     )
   );
@@ -243,7 +243,7 @@ it('should skip non-redoable events during redo', () => {
         }
       },
       {
-        skipEvents: (event) => event.type === 'log'
+        skipEvent: (event) => event.type === 'log'
       }
     )
   );
@@ -270,7 +270,7 @@ it('should skip events with transaction grouping', () => {
       },
       {
         getTransactionId: (event) => event.type,
-        skipEvents: (event) => event.type === 'log'
+        skipEvent: (event) => event.type === 'log'
       }
     )
   );
@@ -309,7 +309,7 @@ it('should handle mixed undoable and non-undoable events', () => {
         }
       },
       {
-        skipEvents: (event) => event.type === 'log'
+        skipEvent: (event) => event.type === 'log'
       }
     )
   );
@@ -361,7 +361,7 @@ it('should not replay emitted events for skipped events during undo/redo', () =>
         }
       },
       {
-        skipEvents: (event) => event.type === 'log'
+        skipEvent: (event) => event.type === 'log'
       }
     )
   );
@@ -395,4 +395,69 @@ it('should not replay emitted events for skipped events during undo/redo', () =>
     { type: 'changed', value: 1 },
     { type: 'changed', value: 2 }
   ]);
+});
+
+it('should skip events with transaction grouping', () => {
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0, transactionId: null as string | null },
+        on: {
+          inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }),
+          transactionIdUpdated: (ctx, event: { id: string }) => ({
+            ...ctx,
+            transactionId: event.id
+          })
+        }
+      },
+      {
+        getTransactionId: (_, snapshot) => snapshot.context.transactionId
+      }
+    )
+  );
+
+  store.send({ type: 'inc' }); // count = 1
+  store.send({ type: 'transactionIdUpdated', id: '1' });
+  store.send({ type: 'inc' });
+  store.send({ type: 'inc' });
+  store.send({ type: 'inc' }); // count = 4
+  store.send({ type: 'transactionIdUpdated', id: '2' });
+  store.send({ type: 'inc' });
+  store.send({ type: 'inc' });
+  store.send({ type: 'inc' }); // count = 7
+
+  store.send({ type: 'undo' });
+  expect(store.getSnapshot().context.count).toBe(4);
+  store.send({ type: 'undo' });
+  expect(store.getSnapshot().context.count).toBe(1);
+  store.send({ type: 'redo' });
+  expect(store.getSnapshot().context.count).toBe(4);
+  store.send({ type: 'redo' });
+  expect(store.getSnapshot().context.count).toBe(7);
+});
+
+it('should use the snapshot in the skipEvents function', () => {
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      },
+      {
+        skipEvent: (_event, snapshot) => {
+          return snapshot.context.count >= 3;
+        }
+      }
+    )
+  );
+
+  store.send({ type: 'inc' }); // count = 1
+  store.send({ type: 'inc' }); // count = 2
+  store.send({ type: 'inc' }); // count = 3
+  store.send({ type: 'inc' }); // count = 4 (skipped)
+  expect(store.getSnapshot().context.count).toBe(4);
+  store.send({ type: 'undo' }); // count = 2
+  expect(store.getSnapshot().context.count).toBe(2);
 });

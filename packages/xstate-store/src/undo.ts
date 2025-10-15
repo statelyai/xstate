@@ -105,13 +105,19 @@ export function undoRedo<
   storeConfig: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap>,
   options?: {
     /** A function that returns the transaction ID of an event. */
-    getTransactionId?: (event: ExtractEvents<TEventPayloadMap>) => string;
+    getTransactionId?: (
+      event: ExtractEvents<TEventPayloadMap>,
+      snapshot: StoreSnapshot<TContext>
+    ) => string | null | undefined;
     /**
      * A function that returns whether an event should be skipped during
      * undo/redo. Skipped events are not stored in history and are not replayed
      * during undo/redo.
      */
-    skipEvents?: (event: ExtractEvents<TEventPayloadMap>) => boolean;
+    skipEvent?: (
+      event: ExtractEvents<TEventPayloadMap>,
+      snapshot: StoreSnapshot<TContext>
+    ) => boolean;
   }
 ): StoreLogic<
   StoreSnapshot<TContext>,
@@ -174,12 +180,7 @@ export function undoRedo<
         }
 
         // Filter out events that should be skipped during undo
-        const eventsToReplay = options?.skipEvents
-          ? events.filter(
-              (undoEvent: UndoEvent<TEvent>) =>
-                !options.skipEvents!(undoEvent.event)
-            )
-          : events;
+        const eventsToReplay = events;
 
         // Replay remaining events to get to the new state
         let state = {
@@ -228,11 +229,6 @@ export function undoRedo<
         ) {
           const undoEvent = undoStack.pop()!;
 
-          // Skip events that should not be redone
-          if (options?.skipEvents?.(undoEvent.event)) {
-            continue;
-          }
-
           events.push(undoEvent);
           const [newState, effects] = logic.transition(state, undoEvent.event);
           state = {
@@ -247,12 +243,12 @@ export function undoRedo<
       }
 
       const [state, effects] = logic.transition(snapshot, event);
-      const isEventSkipped = options?.skipEvents?.(event);
+      const isEventSkipped = options?.skipEvent?.(event, snapshot);
       const events = isEventSkipped
         ? snapshot.events
         : snapshot.events.concat({
             event,
-            transactionId: options?.getTransactionId?.(event)
+            transactionId: options?.getTransactionId?.(event, snapshot)
           });
 
       return [
