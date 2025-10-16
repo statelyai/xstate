@@ -15,7 +15,7 @@ const store = createStore(
       }
     },
     {
-      skipEvents: (event) => event.type === 'log'
+      skipEvents: (event, snapshot) => event.type === 'log'
     }
   )
 );
