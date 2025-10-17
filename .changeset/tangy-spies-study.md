@@ -2,7 +2,7 @@
 '@xstate/store': minor
 ---
 
-Add `skipEvents` option to `undoRedo()` to exclude certain events from undo/redo history.
+Add `skipEvent` option to `undoRedo()` to exclude certain events from undo/redo history.
 
 ```ts
 const store = createStore(
@@ -15,7 +15,7 @@ const store = createStore(
       }
     },
     {
-      skipEvents: (event, snapshot) => event.type === 'log'
+      skipEvent: (event, snapshot) => event.type === 'log'
     }
   )
 );

@@ -436,7 +436,7 @@ it('should skip events with transaction grouping', () => {
   expect(store.getSnapshot().context.count).toBe(7);
 });
 
-it('should use the snapshot in the skipEvents function', () => {
+it('should use the snapshot in the skipEvent function', () => {
   const store = createStore(
     undoRedo(
       {

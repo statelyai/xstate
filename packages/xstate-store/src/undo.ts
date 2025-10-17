@@ -84,7 +84,7 @@ type UndoEvent<TEvent extends EventObject> = {
  *       }
  *     },
  *     {
- *       skipEvents: (event) => event.type === 'log'
+ *       skipEvent: (event) => event.type === 'log'
  *     }
  *   )
  * );
