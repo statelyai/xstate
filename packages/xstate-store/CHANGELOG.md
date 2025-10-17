@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.11.1
+
+### Patch Changes
+
+- [#5395](https://github.com/statelyai/xstate/pull/5395) [`8408430`](https://github.com/statelyai/xstate/commit/84084304a1daf19593e8a1c4b13fb73b901a06e8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix redo logic bug where redo would apply too many events when no transaction grouping is used
+
 ## 3.11.0
 
 ### Minor Changes
