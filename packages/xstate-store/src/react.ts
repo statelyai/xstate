@@ -37,7 +37,7 @@ function useSelectorWithCompare<TStore extends Readable<any>, T>(
 
 /**
  * A React hook that subscribes to the `store` and selects a value from the
- * store's snapshot, with an optional compare function.
+ * store's snapshot via a selector function, with an optional compare function.
  *
  * @example
  *
@@ -61,6 +61,28 @@ export function useSelector<TStore extends Readable<any>, T>(
   selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
   compare?: (a: T | undefined, b: T) => boolean
 ): T;
+/**
+ * A React hook that subscribes to the `store` and selects a value from the
+ * store's snapshot via an optional selector function (identity by default),
+ * with an optional compare function.
+ *
+ * @example
+ *
+ * ```ts
+ * function Component() {
+ *   const countSnapshot = useSelector(store);
+ *
+ *   return <div>{countSnapshot.context.count}</div>;
+ * }
+ * ```
+ *
+ * @param store The store, created from `createStore(…)`
+ * @param selector An optional function which takes in the `snapshot` and
+ *   returns a selected value
+ * @param compare An optional function which compares the selected value to the
+ *   previous value
+ * @returns The selected value
+ */
 export function useSelector<TStore extends Readable<any>>(
   store: TStore,
   selector?: undefined,
