@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { fromCallback } from '../src/actors/callback.ts';
 import {
   ActorRef,
-  EventObject,
   Snapshot,
   createActor,
   next_createMachine,
@@ -560,32 +559,34 @@ describe('system', () => {
   });
 
   it('system ID should be accessible on the actor', () => {
-    const machine = createMachine({});
+    const machine = next_createMachine({});
     const actor = createActor(machine, { systemId: 'test' });
     expect(actor.systemId).toBe('test');
   });
 
   it('should give a list of runnings actors', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       id: 'root',
       initial: 'happy path',
       states: {
         'happy path': {
-          entry: [spawnChild(createMachine({}), { systemId: 'child1' })],
-          invoke: [
-            {
-              src: createMachine({
-                id: 'machine'
-              }),
-              systemId: 'child2'
-            }
-          ],
+          // entry: [spawnChild(createMachine({}), { systemId: 'child1' })],
+          entry: (_, enq) => {
+            enq.spawn(next_createMachine({}), { systemId: 'child1' });
+          },
+          invoke: {
+            src: next_createMachine({}),
+            systemId: 'child2'
+          },
           on: {
             stopChild1: 'sad path'
           }
         },
         'sad path': {
-          entry: stopChild(({ system }) => system.get('child1'))
+          // entry: stopChild(({ system }) => system.get('child1'))
+          entry: ({ system }, enq) => {
+            enq.stop(system?.get('child1'));
+          }
         }
       }
     });

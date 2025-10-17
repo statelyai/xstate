@@ -20,34 +20,6 @@
       "import": "./dist/xstate.cjs.mjs",
       "default": "./dist/xstate.cjs.js"
     },
-    "./guards": {
-      "types": {
-        "import": "./guards/dist/xstate-guards.cjs.mjs",
-        "default": "./guards/dist/xstate-guards.cjs.js"
-      },
-      "development": {
-        "module": "./guards/dist/xstate-guards.development.esm.js",
-        "import": "./guards/dist/xstate-guards.development.cjs.mjs",
-        "default": "./guards/dist/xstate-guards.development.cjs.js"
-      },
-      "module": "./guards/dist/xstate-guards.esm.js",
-      "import": "./guards/dist/xstate-guards.cjs.mjs",
-      "default": "./guards/dist/xstate-guards.cjs.js"
-    },
-    "./actions": {
-      "types": {
-        "import": "./actions/dist/xstate-actions.cjs.mjs",
-        "default": "./actions/dist/xstate-actions.cjs.js"
-      },
-      "development": {
-        "module": "./actions/dist/xstate-actions.development.esm.js",
-        "import": "./actions/dist/xstate-actions.development.cjs.mjs",
-        "default": "./actions/dist/xstate-actions.development.cjs.js"
-      },
-      "module": "./actions/dist/xstate-actions.esm.js",
-      "import": "./actions/dist/xstate-actions.cjs.mjs",
-      "default": "./actions/dist/xstate-actions.cjs.js"
-    },
     "./dev": {
       "types": {
         "import": "./dev/dist/xstate-dev.cjs.mjs",
@@ -145,9 +117,7 @@
     "umdName": "XState",
     "entrypoints": [
       "./index.ts",
-      "./actions.ts",
       "./actors/index.ts",
-      "./guards.ts",
       "./dev/index.ts",
       "./graph/index.ts"
     ]
