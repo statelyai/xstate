@@ -214,7 +214,7 @@
           "minItems": 1
         }
       },
-      "required": ["actions", "eventType", "source", "target"]
+      "required": ["actions", "source", "target"]
     },
     "transitionsObject": {
       "type": "object",

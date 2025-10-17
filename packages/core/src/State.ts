@@ -482,7 +482,7 @@ export function getPersistedSnapshot<
     childrenJson[id as keyof typeof childrenJson] = {
       snapshot: child.getPersistedSnapshot(options),
       src: child.src,
-      systemId: child._systemId,
+      systemId: child.systemId,
       syncSnapshot: child._syncSnapshot
     };
   }

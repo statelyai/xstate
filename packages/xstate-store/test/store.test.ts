@@ -5,7 +5,6 @@ import {
   createStoreWithProducer
 } from '../src/index.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
-import { undoRedo } from '../src/undo.ts';
 import {
   AnyStoreConfig,
   ContextFromStoreConfig,
@@ -447,6 +446,43 @@ it('effects can be enqueued', async () => {
   expect(store.getSnapshot().context.count).toEqual(0);
 });
 
+it('effect-only transitions should execute effects', () => {
+  const spy = vi.fn();
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      justEffect: (ctx, _, enq) => {
+        enq.effect(spy);
+      }
+    }
+  });
+
+  store.trigger.justEffect();
+
+  expect(spy).toHaveBeenCalledTimes(1);
+});
+
+it('emits-only transitions should emit events', () => {
+  const spy = vi.fn();
+  const store = createStore({
+    context: { count: 0 },
+    emits: {
+      emitted: () => {}
+    },
+    on: {
+      justEmit: (ctx, _, enq) => {
+        enq.emit.emitted();
+      }
+    }
+  });
+
+  store.on('emitted', spy);
+
+  store.trigger.justEmit();
+
+  expect(spy).toHaveBeenCalledTimes(1);
+});
+
 it('async effects can be enqueued', async () => {
   const store = createStore({
     context: {
@@ -797,6 +833,45 @@ it('can be created with a logic object', () => {
 
   // @ts-expect-error
   store.getSnapshot().context.count satisfies string;
+});
+
+it('should not trigger update if the snapshot is the same', () => {
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      doNothing: (ctx) => ctx
+    }
+  });
+
+  const spy = vi.fn();
+  store.subscribe(spy);
+
+  store.trigger.doNothing();
+  store.trigger.doNothing();
+
+  expect(spy).toHaveBeenCalledTimes(0);
+});
+
+it('should not trigger update if the snapshot is the same even if there are effects', () => {
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      doNothing: (ctx, _, enq) => {
+        enq.effect(() => {
+          // …
+        });
+        return ctx;
+      }
+    }
+  });
+
+  const spy = vi.fn();
+  store.subscribe(spy);
+
+  store.trigger.doNothing();
+  store.trigger.doNothing();
+
+  expect(spy).toHaveBeenCalledTimes(0);
 });
 
 describe('types', () => {

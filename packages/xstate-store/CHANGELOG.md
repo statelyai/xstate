@@ -1,5 +1,42 @@
 # @xstate/store
 
+## 3.10.0
+
+### Minor Changes
+
+- [#5323](https://github.com/statelyai/xstate/pull/5323) [`cb08332`](https://github.com/statelyai/xstate/commit/cb0833241cb2c0d2a908c413e79fc07b3d7a5fd9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added support for effect-only transitions that don't trigger state updates. Now, when a transition returns the same state but includes effects, subscribers won't be notified of a state change, but the effects will still be executed. This helps prevent unnecessary re-renders while maintaining side effect functionality.
+
+  ```ts
+  it('should not trigger update if the snapshot is the same even if there are effects', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        doNothing: (ctx, _, enq) => {
+          enq.effect(() => {
+            // …
+          });
+          return ctx; // Context is the same, so no update is triggered
+          // This is the same as not returning anything (void)
+        }
+      }
+    });
+
+    const spy = vi.fn();
+    store.subscribe(spy);
+
+    store.trigger.doNothing();
+    store.trigger.doNothing();
+
+    expect(spy).toHaveBeenCalledTimes(0);
+  });
+  ```
+
+## 3.9.3
+
+### Patch Changes
+
+- [#5383](https://github.com/statelyai/xstate/pull/5383) [`4b6a513`](https://github.com/statelyai/xstate/commit/4b6a513ebd7ee1ab067856be4b431651b491cba5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix: `trigger` methods now work when passed directly as event handlers, even for events with no payload. Before, the React `event.type` would overwrite the intended event type.
+
 ## 3.9.2
 
 ### Patch Changes

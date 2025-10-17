@@ -558,4 +558,47 @@ describe('system', () => {
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
+
+  it('system ID should be accessible on the actor', () => {
+    const machine = createMachine({});
+    const actor = createActor(machine, { systemId: 'test' });
+    expect(actor.systemId).toBe('test');
+  });
+
+  it('should give a list of runnings actors', () => {
+    const machine = createMachine({
+      id: 'root',
+      initial: 'happy path',
+      states: {
+        'happy path': {
+          entry: [spawnChild(createMachine({}), { systemId: 'child1' })],
+          invoke: [
+            {
+              src: createMachine({
+                id: 'machine'
+              }),
+              systemId: 'child2'
+            }
+          ],
+          on: {
+            stopChild1: 'sad path'
+          }
+        },
+        'sad path': {
+          entry: stopChild(({ system }) => system.get('child1'))
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(actor.system.getAll()).toEqual({
+      child1: actor.system.get('child1'),
+      child2: actor.system.get('child2')
+    });
+
+    actor.send({ type: 'stopChild1' });
+
+    expect(actor.system.getAll()).toEqual({});
+  });
 });

@@ -240,7 +240,7 @@ describe.skip('rehydration', () => {
       snapshot: persistedState
     }).start();
 
-    expect(rehydratedActor.system.get('mySystemId')).not.toBeUndefined();
+    expect(rehydratedActor.system.get('mySystemId')).toBeDefined();
   });
 
   it('a rehydrated done child should not be registered in the system', () => {
