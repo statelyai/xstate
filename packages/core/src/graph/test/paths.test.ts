@@ -1,12 +1,12 @@
 import {
-  createMachine,
+  next_createMachine,
   getInitialSnapshot,
   getNextSnapshot
 } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 import { testUtils } from './testUtils.ts';
 
-const multiPathMachine = createMachine({
+const multiPathMachine = next_createMachine({
   initial: 'a',
   states: {
     a: {
@@ -33,7 +33,7 @@ const multiPathMachine = createMachine({
 describe('testModel.testPaths(...)', () => {
   it('custom path generators can be provided', async () => {
     const testModel = createTestModel(
-      createMachine({
+      next_createMachine({
         initial: 'a',
         states: {
           a: {
@@ -73,7 +73,7 @@ describe('testModel.testPaths(...)', () => {
 
   describe('When the machine only has one path', () => {
     it('Should only follow that path', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: {
@@ -126,15 +126,15 @@ describe('path.description', () => {
     const paths = model.getShortestPaths();
 
     expect(paths.map((path) => path.description)).toEqual([
-      'Reaches state "d": xstate.init → EVENT → EVENT → EVENT',
-      'Reaches state "e": xstate.init → EVENT → EVENT → EVENT_2'
+      'Reaches state "d": @xstate.init → EVENT → EVENT → EVENT',
+      'Reaches state "e": @xstate.init → EVENT → EVENT → EVENT_2'
     ]);
   });
 });
 
 describe('transition coverage', () => {
   it('path generation should cover all transitions by default', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -158,34 +158,35 @@ describe('transition coverage', () => {
 
     expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
       [
-        "Reaches state "a": xstate.init → NEXT → PREV",
-        "Reaches state "a": xstate.init → NEXT → RESTART",
-        "Reaches state "b": xstate.init → END",
+        "Reaches state "a": @xstate.init → NEXT → PREV",
+        "Reaches state "a": @xstate.init → NEXT → RESTART",
+        "Reaches state "b": @xstate.init → END",
       ]
     `);
   });
 
   it('transition coverage should consider guarded transitions', () => {
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              NEXT: [{ guard: 'valid', target: 'b' }, { target: 'b' }]
+    function valid(value: number): boolean {
+      return value > 10;
+    }
+
+    const machine = next_createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            // NEXT: [{ guard: 'valid', target: 'b' }, { target: 'b' }]
+            NEXT: ({ event }) => {
+              if (valid(event.value)) {
+                return { target: 'b' };
+              }
+              return { target: 'b' };
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          valid: ({ event }) => {
-            return event.value > 10;
           }
-        }
+        },
+        b: {}
       }
-    );
+    });
 
     const model = createTestModel(machine);
 
@@ -200,15 +201,15 @@ describe('transition coverage', () => {
     // { value: 1000 } already covered by first guarded transition
     expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
       [
-        "Reaches state "b": xstate.init → NEXT ({"value":0}) → NEXT ({"value":0})",
-        "Reaches state "b": xstate.init → NEXT ({"value":100})",
-        "Reaches state "b": xstate.init → NEXT ({"value":1000})",
+        "Reaches state "b": @xstate.init → NEXT ({"value":0}) → NEXT ({"value":0})",
+        "Reaches state "b": @xstate.init → NEXT ({"value":100})",
+        "Reaches state "b": @xstate.init → NEXT ({"value":1000})",
       ]
     `);
   });
 
   it('transition coverage should consider multiple transitions with the same target', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -235,14 +236,14 @@ describe('transition coverage', () => {
     const paths = model.getShortestPaths();
 
     expect(paths.map((p) => p.description)).toEqual([
-      `Reaches state "a": xstate.init → GO_TO_B → GO_TO_A`,
-      `Reaches state "a": xstate.init → GO_TO_C → GO_TO_A`
+      `Reaches state "a": @xstate.init → GO_TO_B → GO_TO_A`,
+      `Reaches state "a": @xstate.init → GO_TO_C → GO_TO_A`
     ]);
   });
 });
 
 describe('getShortestPathsTo', () => {
-  const machine = createMachine({
+  const machine = next_createMachine({
     initial: 'open',
     states: {
       open: {
@@ -276,7 +277,7 @@ describe('getShortestPathsTo', () => {
 
 describe('getShortestPathsFrom', () => {
   it('should get shortest paths from array of paths', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -315,7 +316,7 @@ describe('getShortestPathsFrom', () => {
 
   describe('getSimplePathsFrom', () => {
     it('should get simple paths from array of paths', () => {
-      const machine = createMachine({
+      const machine = next_createMachine({
         initial: 'a',
         states: {
           a: {

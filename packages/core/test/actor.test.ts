@@ -1,10 +1,6 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { EMPTY, interval, of } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { forwardTo, sendParent } from '../src/actions.ts';
-import { assign } from '../src/actions/assign';
-import { raise } from '../src/actions/raise';
-import { sendTo } from '../src/actions/send';
 import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import {
   fromEventObservable,
@@ -26,11 +22,10 @@ import {
   Snapshot,
   Subscribable,
   createActor,
-  createMachine,
   waitFor,
-  stopChild
+  next_createMachine
 } from '../src/index.ts';
-import { setup } from '../src/setup.ts';
+import z from 'zod';
 
 describe('spawning machines', () => {
   const context = {
@@ -56,9 +51,22 @@ describe('spawning machines', () => {
     | { type: 'PONG' }
     | { type: 'SUCCESS' };
 
-  const serverMachine = createMachine({
-    types: {} as {
-      events: PingPongEvent;
+  const serverMachine = next_createMachine({
+    // types: {} as {
+    //   events: PingPongEvent;
+    // },
+    schemas: {
+      events: z.union([
+        z.object({
+          type: z.literal('PING')
+        }),
+        z.object({
+          type: z.literal('PONG')
+        }),
+        z.object({
+          type: z.literal('SUCCESS')
+        })
+      ])
     },
     id: 'server',
     initial: 'waitPing',
@@ -69,7 +77,11 @@ describe('spawning machines', () => {
         }
       },
       sendPong: {
-        entry: [sendParent({ type: 'PONG' }), raise({ type: 'SUCCESS' })],
+        // entry: [sendParent({ type: 'PONG' }), raise({ type: 'SUCCESS' })],
+        entry: ({ parent }, enq) => {
+          enq.sendTo(parent, { type: 'PONG' });
+          enq.raise({ type: 'SUCCESS' });
+        },
         on: {
           SUCCESS: 'waitPing'
         }
@@ -81,8 +93,24 @@ describe('spawning machines', () => {
     server?: ActorRef<Snapshot<unknown>, PingPongEvent>;
   }
 
-  const clientMachine = createMachine({
-    types: {} as { context: ClientContext; events: PingPongEvent },
+  const clientMachine = next_createMachine({
+    // types: {} as { context: ClientContext; events: PingPongEvent },
+    schemas: {
+      context: z.object({
+        server: z.any()
+      }),
+      events: z.union([
+        z.object({
+          type: z.literal('PING')
+        }),
+        z.object({
+          type: z.literal('PONG')
+        }),
+        z.object({
+          type: z.literal('SUCCESS')
+        })
+      ])
+    },
     id: 'client',
     initial: 'init',
     context: {
@@ -90,21 +118,28 @@ describe('spawning machines', () => {
     },
     states: {
       init: {
-        entry: [
-          assign({
-            server: ({ spawn }) => spawn(serverMachine)
-          }),
-          raise({ type: 'SUCCESS' })
-        ],
+        entry: (_, enq) => {
+          const server = enq.spawn(serverMachine);
+          enq.raise({ type: 'SUCCESS' });
+          return {
+            context: {
+              server
+            }
+          };
+        },
         on: {
           SUCCESS: 'sendPing'
         }
       },
       sendPing: {
-        entry: [
-          sendTo(({ context }) => context.server!, { type: 'PING' }),
-          raise({ type: 'SUCCESS' })
-        ],
+        // entry: [
+        //   sendTo(({ context }) => context.server!, { type: 'PING' }),
+        //   raise({ type: 'SUCCESS' })
+        // ],
+        entry: ({ context }, enq) => {
+          enq.sendTo(context.server, { type: 'PING' });
+          enq.raise({ type: 'SUCCESS' });
+        },
         on: {
           SUCCESS: 'waitPong'
         }
@@ -122,7 +157,7 @@ describe('spawning machines', () => {
 
   it('should spawn machines', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const todoMachine = createMachine({
+    const todoMachine = next_createMachine({
       id: 'todo',
       initial: 'incomplete',
       states: {
@@ -130,15 +165,36 @@ describe('spawning machines', () => {
           on: { SET_COMPLETE: 'complete' }
         },
         complete: {
-          entry: sendParent({ type: 'TODO_COMPLETED' })
+          // entry: sendParent({ type: 'TODO_COMPLETED' })
+          entry: ({ parent }, enq) => {
+            enq.sendTo(parent, { type: 'TODO_COMPLETED' });
+          }
         }
       }
     });
 
-    const todosMachine = createMachine({
-      types: {} as {
-        context: typeof context;
-        events: TodoEvent;
+    const todosMachine = next_createMachine({
+      // types: {} as {
+      //   context: typeof context;
+      //   events: TodoEvent;
+      // },
+      schemas: {
+        context: z.object({
+          todoRefs: z.record(z.any())
+        }),
+        events: z.union([
+          z.object({
+            type: z.literal('ADD'),
+            id: z.number()
+          }),
+          z.object({
+            type: z.literal('SET_COMPLETE'),
+            id: z.number()
+          }),
+          z.object({
+            type: z.literal('TODO_COMPLETED')
+          })
+        ])
       },
       id: 'todos',
       context,
@@ -154,21 +210,16 @@ describe('spawning machines', () => {
         }
       },
       on: {
-        ADD: {
-          actions: assign({
-            todoRefs: ({ context, event, spawn }) => ({
+        ADD: ({ context, event }, enq) => ({
+          context: {
+            todoRefs: {
               ...context.todoRefs,
-              [event.id]: spawn(todoMachine)
-            })
-          })
-        },
-        SET_COMPLETE: {
-          actions: sendTo(
-            ({ context, event }) => {
-              return context.todoRefs[event.id];
-            },
-            { type: 'SET_COMPLETE' }
-          )
+              [event.id]: enq.spawn(todoMachine)
+            }
+          }
+        }),
+        SET_COMPLETE: ({ context, event }, enq) => {
+          enq.sendTo(context.todoRefs[event.id], { type: 'SET_COMPLETE' });
         }
       }
     });
@@ -186,36 +237,42 @@ describe('spawning machines', () => {
   });
 
   it('should spawn referenced machines', () => {
-    const childMachine = createMachine({
-      entry: sendParent({ type: 'DONE' })
+    const childMachine = next_createMachine({
+      // entry: sendParent({ type: 'DONE' })
+      entry: ({ parent }, enq) => {
+        enq.sendTo(parent, { type: 'DONE' });
+      }
     });
 
-    const parentMachine = createMachine(
-      {
-        context: {
-          ref: null! as AnyActorRef
-        },
-        initial: 'waiting',
-        states: {
-          waiting: {
-            entry: assign({
-              ref: ({ spawn }) => spawn('child')
-            }),
-            on: {
-              DONE: 'success'
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
+    const parentMachine = next_createMachine({
+      schemas: {
+        context: z.object({
+          ref: z.custom<AnyActorRef>()
+        })
       },
-      {
-        actors: {
-          child: childMachine
+      context: {
+        ref: null! as AnyActorRef
+      },
+      actors: {
+        childMachine
+      },
+      initial: 'waiting',
+      states: {
+        waiting: {
+          entry: ({ actors }, enq) => ({
+            context: {
+              ref: enq.spawn(actors.childMachine)
+            }
+          }),
+          on: {
+            DONE: 'success'
+          }
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    });
 
     const actor = createActor(parentMachine);
     actor.start();
@@ -235,12 +292,10 @@ describe('spawning machines', () => {
   });
 });
 
-const aaa = 'dadasda';
-
 describe('spawning promises', () => {
   it('should be able to spawn a promise', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const promiseMachine = createMachine({
+    const promiseMachine = next_createMachine({
       types: {} as {
         context: { promiseRef?: PromiseActorRef<string> };
       },
@@ -251,25 +306,21 @@ describe('spawning promises', () => {
       },
       states: {
         idle: {
-          entry: assign({
-            promiseRef: ({ spawn }) => {
-              const ref = spawn(
-                fromPromise(
-                  () =>
-                    new Promise<string>((res) => {
-                      res('response');
-                    })
-                ),
+          entry: (_, enq) => ({
+            context: {
+              promiseRef: enq.spawn(
+                fromPromise(() => Promise.resolve('response')),
                 { id: 'my-promise' }
-              );
-
-              return ref;
+              )
             }
           }),
           on: {
-            'xstate.done.actor.my-promise': {
-              target: 'success',
-              guard: ({ event }) => event.output === 'response'
+            'xstate.done.actor.my-promise': ({ event }) => {
+              if (event.output === 'response') {
+                return {
+                  target: 'success'
+                };
+              }
             }
           }
         },
@@ -292,13 +343,12 @@ describe('spawning promises', () => {
 
   it('should be able to spawn a referenced promise', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const promiseMachine = setup({
-      actors: {
-        somePromise: fromPromise(() => Promise.resolve('response'))
-      }
-    }).createMachine({
+    const promiseMachine = next_createMachine({
       types: {} as {
         context: { promiseRef?: PromiseActorRef<string> };
+      },
+      actors: {
+        somePromise: fromPromise(() => Promise.resolve('response'))
       },
       id: 'promise',
       initial: 'idle',
@@ -307,14 +357,18 @@ describe('spawning promises', () => {
       },
       states: {
         idle: {
-          entry: assign({
-            promiseRef: ({ spawn }) =>
-              spawn('somePromise', { id: 'my-promise' })
+          entry: ({ actors }, enq) => ({
+            context: {
+              promiseRef: enq.spawn(actors.somePromise, { id: 'my-promise' })
+            }
           }),
           on: {
-            'xstate.done.actor.my-promise': {
-              target: 'success',
-              guard: ({ event }) => event.output === 'response'
+            'xstate.done.actor.my-promise': ({ event }) => {
+              if (event.output === 'response') {
+                return {
+                  target: 'success'
+                };
+              }
             }
           }
         },
@@ -339,7 +393,7 @@ describe('spawning promises', () => {
 describe('spawning callbacks', () => {
   it('should be able to spawn an actor from a callback', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const callbackMachine = createMachine({
+    const callbackMachine = next_createMachine({
       types: {} as {
         context: {
           callbackRef?: CallbackActorRef<{ type: 'START' }>;
@@ -352,9 +406,9 @@ describe('spawning callbacks', () => {
       },
       states: {
         idle: {
-          entry: assign({
-            callbackRef: ({ spawn }) =>
-              spawn(
+          entry: (_, enq) => ({
+            context: {
+              callbackRef: enq.spawn(
                 fromCallback<{ type: 'START' }>(({ sendBack, receive }) => {
                   receive((event) => {
                     if (event.type === 'START') {
@@ -365,12 +419,18 @@ describe('spawning callbacks', () => {
                   });
                 })
               )
+            }
           }),
           on: {
-            START_CB: {
-              actions: sendTo(({ context }) => context.callbackRef!, {
+            // START_CB: {
+            //   actions: sendTo(({ context }) => context.callbackRef!, {
+            //     type: 'START'
+            //   })
+            // },
+            START_CB: ({ context }, enq) => {
+              enq.sendTo(context.callbackRef, {
                 type: 'START'
-              })
+              });
             },
             SEND_BACK: 'success'
           }
@@ -398,7 +458,7 @@ describe('spawning callbacks', () => {
 
     let sendToParent: () => void;
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -417,8 +477,11 @@ describe('spawning callbacks', () => {
         b: {}
       },
       on: {
-        FROM_CALLBACK: {
-          actions: spy
+        // FROM_CALLBACK: {
+        //   actions: spy
+        // }
+        FROM_CALLBACK: (_, enq) => {
+          enq(spy);
         }
       }
     });
@@ -436,7 +499,7 @@ describe('spawning observables', () => {
   it('should spawn an observable', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const observableLogic = fromObservable(() => interval(10));
-    const observableMachine = createMachine({
+    const observableMachine = next_createMachine({
       id: 'observable',
       initial: 'idle',
       context: {
@@ -444,20 +507,21 @@ describe('spawning observables', () => {
       },
       states: {
         idle: {
-          entry: assign({
-            observableRef: ({ spawn }) => {
-              const ref = spawn(observableLogic, {
+          entry: (_, enq) => ({
+            context: {
+              observableRef: enq.spawn(observableLogic, {
                 id: 'int',
                 syncSnapshot: true
-              });
-
-              return ref;
+              })
             }
           }),
           on: {
-            'xstate.snapshot.int': {
-              target: 'success',
-              guard: ({ event }) => event.snapshot.context === 5
+            'xstate.snapshot.int': ({ event }) => {
+              if (event.snapshot.context === 5) {
+                return {
+                  target: 'success'
+                };
+              }
             }
           }
         },
@@ -480,37 +544,40 @@ describe('spawning observables', () => {
 
   it('should spawn a referenced observable', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const observableMachine = createMachine(
-      {
-        id: 'observable',
-        initial: 'idle',
-        context: {
-          observableRef: undefined! as AnyActorRef
-        },
-        states: {
-          idle: {
-            entry: assign({
-              observableRef: ({ spawn }) =>
-                spawn('interval', { id: 'int', syncSnapshot: true })
-            }),
-            on: {
-              'xstate.snapshot.int': {
-                target: 'success',
-                guard: ({ event }) => event.snapshot.context === 5
+    const observableMachine = next_createMachine({
+      id: 'observable',
+      initial: 'idle',
+      context: {
+        observableRef: undefined! as AnyActorRef
+      },
+      actors: {
+        interval: fromObservable(() => interval(10))
+      },
+      states: {
+        idle: {
+          entry: (_, enq) => ({
+            context: {
+              observableRef: enq.spawn(
+                fromObservable(() => interval(10)),
+                { id: 'int', syncSnapshot: true }
+              )
+            }
+          }),
+          on: {
+            'xstate.snapshot.int': ({ event }) => {
+              if (event.snapshot.context === 5) {
+                return {
+                  target: 'success'
+                };
               }
             }
-          },
-          success: {
-            type: 'final'
           }
-        }
-      },
-      {
-        actors: {
-          interval: fromObservable(() => interval(10))
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    });
 
     const observableService = createActor(observableMachine);
     observableService.subscribe({
@@ -526,32 +593,37 @@ describe('spawning observables', () => {
   it(`should read the latest snapshot of the event's origin while handling that event`, () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const observableLogic = fromObservable(() => interval(10));
-    const observableMachine = createMachine({
+    const observableMachine = next_createMachine({
       id: 'observable',
+      schemas: {
+        context: z.object({
+          observableRef: z.custom<AnyActorRef>()
+        }),
+        events: z.object({
+          type: z.literal('COUNT'),
+          val: z.number()
+        })
+      },
       initial: 'idle',
       context: {
         observableRef: undefined! as ActorRefFrom<typeof observableLogic>
       },
       states: {
         idle: {
-          entry: assign({
-            observableRef: ({ spawn }) => {
-              const ref = spawn(observableLogic, {
+          entry: (_, enq) => ({
+            context: {
+              observableRef: enq.spawn(observableLogic, {
                 id: 'int',
                 syncSnapshot: true
-              });
-
-              return ref;
+              })
             }
           }),
           on: {
-            'xstate.snapshot.int': {
-              target: 'success',
-              guard: ({ context, event }) => {
-                return (
-                  event.snapshot.context === 1 &&
-                  context.observableRef.getSnapshot().context === 1
-                );
+            'xstate.snapshot.int': ({ event }) => {
+              if (event.snapshot.context === 1) {
+                return {
+                  target: 'success'
+                };
               }
             }
           }
@@ -576,40 +648,43 @@ describe('spawning observables', () => {
   it('should notify direct child listeners with final snapshot before it gets stopped', async () => {
     const intervalActor = fromObservable(() => interval(10));
 
-    const parentMachine = createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'interval';
-            id: 'childActor';
-            logic: typeof intervalActor;
-          };
-        },
-        initial: 'active',
-        states: {
-          active: {
-            invoke: {
-              id: 'childActor',
-              src: 'interval',
-              onSnapshot: {
-                target: 'success',
-                guard: ({ event }) => {
-                  return event.snapshot.context === 3;
-                }
+    const parentMachine = next_createMachine({
+      types: {} as {
+        actors: {
+          src: 'interval';
+          id: 'childActor';
+          logic: typeof intervalActor;
+        };
+      },
+      actors: {
+        interval: intervalActor
+      },
+      initial: 'active',
+      states: {
+        active: {
+          invoke: {
+            id: 'childActor',
+            src: ({ actors }) => actors.interval,
+            // onSnapshot: {
+            //   target: 'success',
+            //   guard: ({ event }) => {
+            //     return event.snapshot.context === 3;
+            //   }
+            // }
+            onSnapshot: ({ event }) => {
+              if (event.snapshot.context === 3) {
+                return {
+                  target: 'success'
+                };
               }
             }
-          },
-          success: {
-            type: 'final'
           }
-        }
-      },
-      {
-        actors: {
-          interval: intervalActor
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    });
 
     const actorRef = createActor(parentMachine);
     actorRef.start();
@@ -630,40 +705,43 @@ describe('spawning observables', () => {
   it('should not notify direct child listeners after it gets stopped', async () => {
     const intervalActor = fromObservable(() => interval(10));
 
-    const parentMachine = createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'interval';
-            id: 'childActor';
-            logic: typeof intervalActor;
-          };
-        },
-        initial: 'active',
-        states: {
-          active: {
-            invoke: {
-              id: 'childActor',
-              src: 'interval',
-              onSnapshot: {
-                target: 'success',
-                guard: ({ event }) => {
-                  return event.snapshot.context === 3;
-                }
+    const parentMachine = next_createMachine({
+      types: {} as {
+        actors: {
+          src: 'interval';
+          id: 'childActor';
+          logic: typeof intervalActor;
+        };
+      },
+      actors: {
+        interval: intervalActor
+      },
+      initial: 'active',
+      states: {
+        active: {
+          invoke: {
+            id: 'childActor',
+            src: ({ actors }) => actors.interval,
+            // onSnapshot: {
+            //   target: 'success',
+            //   guard: ({ event }) => {
+            //     return event.snapshot.context === 3;
+            //   }
+            // }
+            onSnapshot: ({ event }) => {
+              if (event.snapshot.context === 3) {
+                return {
+                  target: 'success'
+                };
               }
             }
-          },
-          success: {
-            type: 'final'
           }
-        }
-      },
-      {
-        actors: {
-          interval: intervalActor
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    });
 
     const actorRef = createActor(parentMachine);
     actorRef.start();
@@ -692,25 +770,46 @@ describe('spawning event observables', () => {
     const eventObservableLogic = fromEventObservable(() =>
       interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
     );
-    const observableMachine = createMachine({
+    const observableMachine = next_createMachine({
       id: 'observable',
+      schemas: {
+        context: z.object({
+          observableRef: z.custom<AnyActorRef>()
+        }),
+        events: z.object({
+          type: z.literal('COUNT'),
+          val: z.number()
+        })
+      },
       initial: 'idle',
       context: {
         observableRef: undefined! as ActorRefFrom<typeof eventObservableLogic>
       },
       states: {
         idle: {
-          entry: assign({
-            observableRef: ({ spawn }) => {
-              const ref = spawn(eventObservableLogic, { id: 'int' });
+          // entry: assign({
+          //   observableRef: ({ spawn }) => {
+          //     const ref = spawn(eventObservableLogic, { id: 'int' });
 
-              return ref;
+          //     return ref;
+          //   }
+          // }),
+          entry: (_, enq) => ({
+            context: {
+              observableRef: enq.spawn(eventObservableLogic, { id: 'int' })
             }
           }),
           on: {
-            COUNT: {
-              target: 'success',
-              guard: ({ event }) => event.val === 5
+            // COUNT: {
+            //   target: 'success',
+            //   guard: ({ event }) => event.val === 5
+            // }
+            COUNT: ({ event }) => {
+              if (event.val === 5) {
+                return {
+                  target: 'success'
+                };
+              }
             }
           }
         },
@@ -733,38 +832,53 @@ describe('spawning event observables', () => {
 
   it('should spawn a referenced event observable', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const observableMachine = createMachine(
-      {
-        id: 'observable',
-        initial: 'idle',
-        context: {
-          observableRef: undefined! as AnyActorRef
-        },
-        states: {
-          idle: {
-            entry: assign({
-              observableRef: ({ spawn }) => spawn('interval', { id: 'int' })
-            }),
-            on: {
-              COUNT: {
-                target: 'success',
-                guard: ({ event }) => event.val === 5
+    const observableMachine = next_createMachine({
+      id: 'observable',
+      schemas: {
+        context: z.object({
+          observableRef: z.custom<AnyActorRef>()
+        }),
+        events: z.object({
+          type: z.literal('COUNT'),
+          val: z.number()
+        })
+      },
+      actors: {
+        interval: fromEventObservable(() =>
+          interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
+        )
+      },
+      initial: 'idle',
+      context: {
+        observableRef: undefined! as AnyActorRef
+      },
+      states: {
+        idle: {
+          entry: (_, enq) => ({
+            context: {
+              observableRef: enq.spawn(
+                fromEventObservable(() =>
+                  interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
+                ),
+                { id: 'int' }
+              )
+            }
+          }),
+          on: {
+            COUNT: ({ event }) => {
+              if (event.val === 5) {
+                return {
+                  target: 'success'
+                };
               }
             }
-          },
-          success: {
-            type: 'final'
           }
-        }
-      },
-      {
-        actors: {
-          interval: fromEventObservable(() =>
-            interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
-          )
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    });
 
     const observableService = createActor(observableMachine);
     observableService.subscribe({
@@ -781,52 +895,72 @@ describe('spawning event observables', () => {
 describe('communicating with spawned actors', () => {
   it('should treat an interpreter as an actor', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const existingMachine = createMachine({
-      types: {
-        events: {} as {
-          type: 'ACTIVATE';
-          origin: AnyActorRef;
-        }
+    const existingMachine = next_createMachine({
+      schemas: {
+        events: z.object({
+          type: z.literal('ACTIVATE'),
+          origin: z.custom<AnyActorRef>()
+        })
       },
       initial: 'inactive',
       states: {
         inactive: {
           on: { ACTIVATE: 'active' }
         },
+        // active: {
+        //   entry: sendTo(({ event }) => event.origin, { type: 'EXISTING.DONE' })
+        // }
         active: {
-          entry: sendTo(({ event }) => event.origin, { type: 'EXISTING.DONE' })
+          entry: ({ event }, enq) => {
+            enq.sendTo(event.origin, { type: 'EXISTING.DONE' });
+          }
         }
       }
     });
 
     const existingService = createActor(existingMachine).start();
 
-    const parentMachine = createMachine({
-      types: {} as {
-        context: { existingRef?: typeof existingService };
+    const parentMachine = next_createMachine({
+      // types: {} as {
+      //   context: { existingRef?: typeof existingService };
+      // },
+      schemas: {
+        context: z.object({
+          existingRef: z.custom<typeof existingService>().optional()
+        }),
+        events: z.union([
+          z.object({
+            type: z.literal('ACTIVATE'),
+            origin: z.custom<typeof existingService>()
+          }),
+          z.object({
+            type: z.literal('EXISTING.DONE')
+          })
+        ])
       },
       initial: 'pending',
       context: {
-        existingRef: undefined
+        existingRef: existingService
       },
       states: {
         pending: {
-          entry: assign({
-            // No need to spawn an existing service:
-            existingRef: existingService
-          }),
+          entry: () => {
+            return {
+              context: {
+                existingRef: existingService
+              }
+            };
+          },
           on: {
             'EXISTING.DONE': 'success'
           },
           after: {
-            100: {
-              actions: sendTo(
-                ({ context }) => context.existingRef!,
-                ({ self }) => ({
-                  type: 'ACTIVATE',
-                  origin: self
-                })
-              )
+            100: ({ context, self }, enq) => {
+              expect(context.existingRef).toBeDefined();
+              enq.sendTo(context.existingRef, {
+                type: 'ACTIVATE',
+                origin: self
+              });
             }
           }
         },
@@ -852,8 +986,14 @@ describe('actors', () => {
   it('should only spawn actors defined on initial state once', () => {
     let count = 0;
 
-    const startMachine = createMachine({
-      types: {} as { context: { items: number[]; refs: any[] } },
+    const startMachine = next_createMachine({
+      // types: {} as { context: { items: number[]; refs: any[] } },
+      schemas: {
+        context: z.object({
+          items: z.array(z.number()),
+          refs: z.array(z.any())
+        })
+      },
       id: 'start',
       initial: 'start',
       context: {
@@ -862,16 +1002,17 @@ describe('actors', () => {
       },
       states: {
         start: {
-          entry: assign({
-            refs: ({ context, spawn }) => {
-              count++;
-              const c = context.items.map((item) =>
-                spawn(fromPromise(() => new Promise((res) => res(item))))
-              );
-
-              return c;
-            }
-          })
+          entry: ({ context }, enq) => {
+            enq(() => count++);
+            return {
+              context: {
+                ...context,
+                refs: context.items.map((item) =>
+                  enq.spawn(fromPromise(() => new Promise((res) => res(item))))
+                )
+              }
+            };
+          }
         }
       }
     });
@@ -890,27 +1031,46 @@ describe('actors', () => {
       promise?: ActorRefFrom<PromiseActorLogic<string>>;
     }
 
-    const child = createMachine({
-      types: {} as { context: TestContext },
+    const child = next_createMachine({
+      // types: {} as { context: TestContext },
+      schemas: {
+        context: z.object({
+          promise: z
+            .object({
+              send: z.function().args(z.any()).returns(z.any())
+            })
+            .optional()
+        })
+      },
       initial: 'bar',
       context: {},
       states: {
         bar: {
-          entry: assign({
-            promise: ({ spawn }) => {
-              return spawn(
+          // entry: assign({
+          //   promise: ({ spawn }) => {
+          //     return spawn(
+          //       fromPromise(() => {
+          //         spawnCounter++;
+          //         return Promise.resolve('answer');
+          //       })
+          //     );
+          //   }
+          // })
+          entry: (_, enq) => ({
+            context: {
+              promise: enq.spawn(
                 fromPromise(() => {
                   spawnCounter++;
                   return Promise.resolve('answer');
                 })
-              );
+              )
             }
           })
         }
       }
     });
 
-    const parent = createMachine({
+    const parent = next_createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -929,16 +1089,19 @@ describe('actors', () => {
   // https://github.com/statelyai/xstate/issues/2565
   it('should only spawn an initial actor once when it synchronously responds with an event', () => {
     let spawnCalled = 0;
-    const anotherMachine = createMachine({
+    const anotherMachine = next_createMachine({
       initial: 'hello',
       states: {
         hello: {
-          entry: sendParent({ type: 'ping' })
+          // entry: sendParent({ type: 'ping' })
+          entry: ({ parent }, enq) => {
+            enq.sendTo(parent, { type: 'ping' });
+          }
         }
       }
     });
 
-    const testMachine = createMachine({
+    const testMachine = next_createMachine({
       types: {} as { context: { ref?: ActorRefFrom<typeof anotherMachine> } },
       initial: 'testing',
       context: ({ spawn }) => {
@@ -966,14 +1129,19 @@ describe('actors', () => {
   });
 
   it('should spawn null actors if not used within a service', () => {
-    const nullActorMachine = createMachine({
+    const nullActorMachine = next_createMachine({
       types: {} as { context: { ref?: PromiseActorRef<number> } },
       initial: 'foo',
       context: { ref: undefined },
       states: {
         foo: {
-          entry: assign({
-            ref: ({ spawn }) => spawn(fromPromise(() => Promise.resolve(42)))
+          // entry: assign({
+          //   ref: ({ spawn }) => spawn(fromPromise(() => Promise.resolve(42)))
+          // })
+          entry: (_, enq) => ({
+            context: {
+              ref: enq.spawn(fromPromise(() => Promise.resolve(42)))
+            }
           })
         }
       }
@@ -989,7 +1157,7 @@ describe('actors', () => {
     const cleanup1 = vi.fn();
     const cleanup2 = vi.fn();
 
-    const parent = createMachine({
+    const parent = next_createMachine({
       context: ({ spawn }) => ({
         ref1: spawn(fromCallback(() => cleanup1)),
         ref2: spawn(fromCallback(() => cleanup2))
@@ -1009,20 +1177,16 @@ describe('actors', () => {
     const cleanup1 = vi.fn();
     const cleanup2 = vi.fn();
 
-    const parent = createMachine(
-      {
-        context: ({ spawn }) => ({
-          ref1: spawn('child1'),
-          ref2: spawn('child2')
-        })
-      },
-      {
-        actors: {
-          child1: fromCallback(() => cleanup1),
-          child2: fromCallback(() => cleanup2)
-        }
+    const parent = next_createMachine({
+      context: ({ spawn, actors }) => ({
+        ref1: spawn(actors.child1),
+        ref2: spawn(actors.child2)
+      }),
+      actors: {
+        child1: fromCallback(() => cleanup1),
+        child2: fromCallback(() => cleanup2)
       }
-    );
+    });
     const actorRef = createActor(parent).start();
 
     expect(Object.keys(actorRef.getSnapshot().children).length).toBe(2);
@@ -1045,19 +1209,27 @@ describe('actors', () => {
         return count;
       }, 0);
 
-      const countMachine = createMachine({
+      const countMachine = next_createMachine({
         types: {} as {
           context: { count: ActorRefFrom<typeof countLogic> | undefined };
         },
         context: {
           count: undefined
         },
-        entry: assign({
-          count: ({ spawn }) => spawn(countLogic)
+        // entry: assign({
+        //   count: ({ spawn }) => spawn(countLogic)
+        // }),
+        entry: (_, enq) => ({
+          context: {
+            count: enq.spawn(countLogic)
+          }
         }),
         on: {
-          INC: {
-            actions: forwardTo(({ context }) => context.count!)
+          // INC: {
+          //   actions: forwardTo(({ context }) => context.count!)
+          // }
+          INC: ({ context, event }, enq) => {
+            enq.sendTo(context.count, event);
           }
         }
       });
@@ -1082,7 +1254,7 @@ describe('actors', () => {
 
     it('should work with a promise logic (fulfill)', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
-      const countMachine = createMachine({
+      const countMachine = next_createMachine({
         types: {} as {
           context: {
             count: ActorRefFrom<PromiseActorLogic<number>> | undefined;
@@ -1091,9 +1263,21 @@ describe('actors', () => {
         context: {
           count: undefined
         },
-        entry: assign({
-          count: ({ spawn }) =>
-            spawn(
+        // entry: assign({
+        //   count: ({ spawn }) =>
+        //     spawn(
+        //       fromPromise(
+        //         () =>
+        //           new Promise<number>((res) => {
+        //             setTimeout(() => res(42));
+        //           })
+        //       ),
+        //       { id: 'test' }
+        //     )
+        // }),
+        entry: (_, enq) => ({
+          context: {
+            count: enq.spawn(
               fromPromise(
                 () =>
                   new Promise<number>((res) => {
@@ -1102,14 +1286,22 @@ describe('actors', () => {
               ),
               { id: 'test' }
             )
+          }
         }),
         initial: 'pending',
         states: {
           pending: {
             on: {
-              'xstate.done.actor.test': {
-                target: 'success',
-                guard: ({ event }) => event.output === 42
+              // 'xstate.done.actor.test': {
+              //   target: 'success',
+              //   guard: ({ event }) => event.output === 42
+              // }
+              'xstate.done.actor.test': ({ event }) => {
+                if (event.output === 42) {
+                  return {
+                    target: 'success'
+                  };
+                }
               }
             }
           },
@@ -1132,7 +1324,7 @@ describe('actors', () => {
     it('should work with a promise logic (reject)', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
       const errorMessage = 'An error occurred';
-      const countMachine = createMachine({
+      const countMachine = next_createMachine({
         types: {} as {
           context: { count: ActorRefFrom<PromiseActorLogic<number>> };
         },
@@ -1151,10 +1343,17 @@ describe('actors', () => {
         states: {
           pending: {
             on: {
-              'xstate.error.actor.test': {
-                target: 'success',
-                guard: ({ event }) => {
-                  return event.error === errorMessage;
+              // 'xstate.error.actor.test': {
+              //   target: 'success',
+              //   guard: ({ event }) => {
+              //     return event.error === errorMessage;
+              //   }
+              // }
+              'xstate.error.actor.test': ({ event }) => {
+                if (event.error === errorMessage) {
+                  return {
+                    target: 'success'
+                  };
                 }
               }
             }
@@ -1193,7 +1392,7 @@ describe('actors', () => {
         getPersistedSnapshot: (s) => s
       };
 
-      const pingMachine = createMachine({
+      const pingMachine = next_createMachine({
         types: {} as {
           context: { ponger: ActorRefFrom<typeof pongLogic> | undefined };
         },
@@ -1201,12 +1400,20 @@ describe('actors', () => {
         context: {
           ponger: undefined
         },
-        entry: assign({
-          ponger: ({ spawn }) => spawn(pongLogic)
+        // entry: assign({
+        //   ponger: ({ spawn }) => spawn(pongLogic)
+        // }),
+        entry: (_, enq) => ({
+          context: {
+            ponger: enq.spawn(pongLogic)
+          }
         }),
         states: {
           waiting: {
-            entry: sendTo(({ context }) => context.ponger!, { type: 'PING' }),
+            // entry: sendTo(({ context }) => context.ponger!, { type: 'PING' }),
+            entry: ({ context }, enq) => {
+              enq.sendTo(context.ponger!, { type: 'PING' });
+            },
             invoke: {
               id: 'ponger',
               src: pongLogic
@@ -1234,7 +1441,7 @@ describe('actors', () => {
 
   it('should be able to spawn callback actors in (lazy) initial context', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       types: {} as { context: { ref: CallbackActorRef<EventObject> } },
       context: ({ spawn }) => ({
         ref: spawn(
@@ -1266,11 +1473,14 @@ describe('actors', () => {
 
   it('should be able to spawn machines in (lazy) initial context', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const childMachine = createMachine({
-      entry: sendParent({ type: 'TEST' })
+    const childMachine = next_createMachine({
+      // entry: sendParent({ type: 'TEST' })
+      entry: ({ parent }, enq) => {
+        enq.sendTo(parent, { type: 'TEST' });
+      }
     });
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       types: {} as { context: { ref: ActorRefFrom<typeof childMachine> } },
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
@@ -1298,15 +1508,13 @@ describe('actors', () => {
 
   // https://github.com/statelyai/xstate/issues/2507
   it('should not crash on child machine sync completion during self-initialization', () => {
-    const childMachine = createMachine({
+    const childMachine = next_createMachine({
       initial: 'idle',
       states: {
         idle: {
-          always: [
-            {
-              target: 'stopped'
-            }
-          ]
+          always: {
+            target: 'stopped'
+          }
         },
         stopped: {
           type: 'final'
@@ -1314,24 +1522,19 @@ describe('actors', () => {
       }
     });
 
-    const parentMachine = createMachine(
-      {
-        types: {} as {
-          context: { child: ActorRefFrom<typeof childMachine> | null };
-        },
-        context: {
-          child: null
-        },
-        entry: 'setup'
+    const parentMachine = next_createMachine({
+      types: {} as {
+        context: { child: ActorRefFrom<typeof childMachine> | null };
       },
-      {
-        actions: {
-          setup: assign({
-            child: ({ spawn }) => spawn(childMachine)
-          })
+      context: {
+        child: null
+      },
+      entry: (_, enq) => ({
+        context: {
+          child: enq.spawn(childMachine)
         }
-      }
-    );
+      })
+    });
     const service = createActor(parentMachine);
     expect(() => {
       service.start();
@@ -1342,15 +1545,26 @@ describe('actors', () => {
     const promiseLogic = fromPromise(
       () => ({ then: (fn: any) => fn(null) }) as any
     );
-    const parentMachine = createMachine({
-      types: {} as {
-        context: { child: ActorRefFrom<typeof promiseLogic> | null };
+    const parentMachine = next_createMachine({
+      schemas: {
+        context: z.object({
+          child: z
+            .object({
+              send: z.function().args(z.any()).returns(z.any())
+            })
+            .nullable()
+        })
       },
       context: {
         child: null
       },
-      entry: assign({
-        child: ({ spawn }) => spawn(promiseLogic)
+      // entry: assign({
+      //   child: ({ spawn }) => spawn(promiseLogic)
+      // })
+      entry: (_, enq) => ({
+        context: {
+          child: enq.spawn(promiseLogic)
+        }
       })
     });
     const service = createActor(parentMachine);
@@ -1370,15 +1584,29 @@ describe('actors', () => {
 
     const emptyObservableLogic = fromObservable(createEmptyObservable);
 
-    const parentMachine = createMachine({
-      types: {} as {
-        context: { child: ActorRefFrom<typeof emptyObservableLogic> | null };
+    const parentMachine = next_createMachine({
+      // types: {} as {
+      //   context: { child: ActorRefFrom<typeof emptyObservableLogic> | null };
+      // },
+      schemas: {
+        context: z.object({
+          child: z
+            .object({
+              send: z.function().args(z.any()).returns(z.any())
+            })
+            .nullable()
+        })
       },
       context: {
         child: null
       },
-      entry: assign({
-        child: ({ spawn }) => spawn(emptyObservableLogic)
+      // entry: assign({
+      //   child: ({ spawn }) => spawn(emptyObservableLogic)
+      // })
+      entry: (_, enq) => ({
+        context: {
+          child: enq.spawn(emptyObservableLogic)
+        }
       })
     });
     const service = createActor(parentMachine);
@@ -1390,7 +1618,7 @@ describe('actors', () => {
   it('should receive done event from an immediately completed observable when self-initializing', () => {
     const emptyObservable = fromObservable(() => EMPTY);
 
-    const parentMachine = createMachine({
+    const parentMachine = next_createMachine({
       types: {
         context: {} as {
           child: ActorRefFrom<typeof emptyObservable> | null;
@@ -1399,8 +1627,13 @@ describe('actors', () => {
       context: {
         child: null
       },
-      entry: assign({
-        child: ({ spawn }) => spawn(emptyObservable, { id: 'myactor' })
+      // entry: assign({
+      //   child: ({ spawn }) => spawn(emptyObservable, { id: 'myactor' })
+      // }),
+      entry: (_, enq) => ({
+        context: {
+          child: enq.spawn(emptyObservable, { id: 'myactor' })
+        }
       }),
       initial: 'init',
       states: {
@@ -1421,7 +1654,7 @@ describe('actors', () => {
 
   it('should not restart a completed observable', () => {
     let subscriptionCount = 0;
-    const machine = createMachine({
+    const machine = next_createMachine({
       invoke: {
         id: 'observable',
         src: fromObservable(() => {
@@ -1444,7 +1677,7 @@ describe('actors', () => {
 
   it('should not restart a completed event observable', () => {
     let subscriptionCount = 0;
-    const machine = createMachine({
+    const machine = next_createMachine({
       invoke: {
         id: 'observable',
         src: fromEventObservable(() => {
@@ -1469,7 +1702,7 @@ describe('actors', () => {
     const actual: string[] = [];
     let invokeCounter = 0;
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       types: {} as {
         context: {
           actorRef: CallbackActorRef<EventObject>;
@@ -1477,11 +1710,10 @@ describe('actors', () => {
       },
       initial: 'active',
       context: ({ spawn }) => {
-        const localId = ++invokeCounter;
-
         return {
           actorRef: spawn(
             fromCallback(() => {
+              const localId = ++invokeCounter;
               actual.push(`start ${localId}`);
               return () => {
                 actual.push(`stop ${localId}`);
@@ -1494,27 +1726,47 @@ describe('actors', () => {
       states: {
         active: {
           on: {
-            update: {
-              actions: [
-                stopChild(({ context }) => {
-                  return context.actorRef;
-                }),
-                assign({
-                  actorRef: ({ spawn }) => {
-                    const localId = ++invokeCounter;
+            //   update: {
+            //     actions: [
+            //       stopChild(({ context }) => {
+            //         return context.actorRef;
+            //       }),
+            //       assign({
+            //         actorRef: ({ spawn }) => {
+            //           const localId = ++invokeCounter;
 
-                    return spawn(
-                      fromCallback(() => {
-                        actual.push(`start ${localId}`);
-                        return () => {
-                          actual.push(`stop ${localId}`);
-                        };
-                      }),
-                      { id: 'callback-2' }
-                    );
-                  }
-                })
-              ]
+            //           return spawn(
+            //             fromCallback(() => {
+            //               actual.push(`start ${localId}`);
+            //               return () => {
+            //                 actual.push(`stop ${localId}`);
+            //               };
+            //             }),
+            //             { id: 'callback-2' }
+            //           );
+            //         }
+            //       })
+            //     ]
+            //   }
+            // }
+            update: ({ context }, enq) => {
+              enq.stop(context.actorRef);
+
+              return {
+                context: {
+                  ...context,
+                  actorRef: enq.spawn(
+                    fromCallback(() => {
+                      const localId = ++invokeCounter;
+                      actual.push(`start ${localId}`);
+                      return () => {
+                        actual.push(`stop ${localId}`);
+                      };
+                    }),
+                    { id: 'callback-2' }
+                  )
+                }
+              };
             }
           }
         }
@@ -1536,7 +1788,7 @@ describe('actors', () => {
     const actual: string[] = [];
     let invokeCounter = 0;
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       types: {} as {
         context: {
           actorRef: CallbackActorRef<EventObject>;
@@ -1544,11 +1796,10 @@ describe('actors', () => {
       },
       initial: 'active',
       context: ({ spawn }) => {
-        const localId = ++invokeCounter;
-
         return {
           actorRef: spawn(
             fromCallback(() => {
+              const localId = ++invokeCounter;
               actual.push(`start ${localId}`);
               return () => {
                 actual.push(`stop ${localId}`);
@@ -1561,25 +1812,44 @@ describe('actors', () => {
       states: {
         active: {
           on: {
-            update: {
-              actions: [
-                stopChild(({ context }) => context.actorRef),
-                assign({
-                  actorRef: ({ spawn }) => {
-                    const localId = ++invokeCounter;
+            // update: {
+            //   actions: [
+            //     stopChild(({ context }) => context.actorRef),
+            //     assign({
+            //       actorRef: ({ spawn }) => {
+            //         const localId = ++invokeCounter;
 
-                    return spawn(
-                      fromCallback(() => {
-                        actual.push(`start ${localId}`);
-                        return () => {
-                          actual.push(`stop ${localId}`);
-                        };
-                      }),
-                      { id: 'my_name' }
-                    );
-                  }
-                })
-              ]
+            //         return spawn(
+            //           fromCallback(() => {
+            //             actual.push(`start ${localId}`);
+            //             return () => {
+            //               actual.push(`stop ${localId}`);
+            //             };
+            //           }),
+            //           { id: 'my_name' }
+            //         );
+            //       }
+            //     })
+            //   ]
+            // }
+            update: ({ context }, enq) => {
+              enq.stop(context.actorRef);
+
+              return {
+                context: {
+                  ...context,
+                  actorRef: enq.spawn(
+                    fromCallback(() => {
+                      const localId = ++invokeCounter;
+                      actual.push(`start ${localId}`);
+                      return () => {
+                        actual.push(`stop ${localId}`);
+                      };
+                    }),
+                    { id: 'my_name' }
+                  )
+                }
+              };
             }
           }
         }
@@ -1601,7 +1871,7 @@ describe('actors', () => {
     const actual: string[] = [];
     let invokeCounter = 0;
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       types: {} as {
         context: {
           actorRef: CallbackActorRef<EventObject>;
@@ -1609,11 +1879,10 @@ describe('actors', () => {
       },
       initial: 'active',
       context: ({ spawn }) => {
-        const localId = ++invokeCounter;
-
         return {
           actorRef: spawn(
             fromCallback(() => {
+              const localId = ++invokeCounter;
               actual.push(`start ${localId}`);
               return () => {
                 actual.push(`stop ${localId}`);
@@ -1626,25 +1895,24 @@ describe('actors', () => {
       states: {
         active: {
           on: {
-            update: {
-              actions: [
-                stopChild('my_name'),
-                assign({
-                  actorRef: ({ spawn }) => {
-                    const localId = ++invokeCounter;
+            update: ({ context }, enq) => {
+              enq.stop(context.actorRef);
 
-                    return spawn(
-                      fromCallback(() => {
-                        actual.push(`start ${localId}`);
-                        return () => {
-                          actual.push(`stop ${localId}`);
-                        };
-                      }),
-                      { id: 'my_name' }
-                    );
-                  }
-                })
-              ]
+              return {
+                context: {
+                  ...context,
+                  actorRef: enq.spawn(
+                    fromCallback(() => {
+                      const localId = ++invokeCounter;
+                      actual.push(`start ${localId}`);
+                      return () => {
+                        actual.push(`stop ${localId}`);
+                      };
+                    }),
+                    { id: 'my_name' }
+                  )
+                }
+              };
             }
           }
         }
@@ -1666,7 +1934,7 @@ describe('actors', () => {
     const actual: string[] = [];
     let invokeCounter = 0;
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       types: {} as {
         context: {
           actorRef: CallbackActorRef<EventObject>;
@@ -1674,12 +1942,11 @@ describe('actors', () => {
       },
       initial: 'active',
       context: ({ spawn }) => {
-        const localId = ++invokeCounter;
-        actual.push(`start ${localId}`);
-
         return {
           actorRef: spawn(
             fromCallback(() => {
+              const localId = ++invokeCounter;
+              actual.push(`start ${localId}`);
               return () => {
                 actual.push(`stop ${localId}`);
               };
@@ -1691,25 +1958,24 @@ describe('actors', () => {
       states: {
         active: {
           on: {
-            update: {
-              actions: [
-                stopChild(() => 'my_name'),
-                assign({
-                  actorRef: ({ spawn }) => {
-                    const localId = ++invokeCounter;
+            update: ({ context }, enq) => {
+              enq.stop(context.actorRef);
 
-                    return spawn(
-                      fromCallback(() => {
-                        actual.push(`start ${localId}`);
-                        return () => {
-                          actual.push(`stop ${localId}`);
-                        };
-                      }),
-                      { id: 'my_name' }
-                    );
-                  }
-                })
-              ]
+              return {
+                context: {
+                  ...context,
+                  actorRef: enq.spawn(
+                    fromCallback(() => {
+                      const localId = ++invokeCounter;
+                      actual.push(`start ${localId}`);
+                      return () => {
+                        actual.push(`stop ${localId}`);
+                      };
+                    }),
+                    { id: 'my_name' }
+                  )
+                }
+              };
             }
           }
         }
@@ -1730,7 +1996,7 @@ describe('actors', () => {
   it('should be possible to pass `self` as input to a child machine from within the context factory', () => {
     const spy = vi.fn();
 
-    const child = createMachine({
+    const child = next_createMachine({
       types: {} as {
         context: {
           parent: AnyActorRef;
@@ -1742,19 +2008,23 @@ describe('actors', () => {
       context: ({ input }) => ({
         parent: input.parent
       }),
-      entry: sendTo(({ context }) => context.parent, { type: 'GREET' })
+      // entry: sendTo(({ context }) => context.parent, { type: 'GREET' })
+      entry: ({ parent }, enq) => {
+        enq.sendTo(parent, { type: 'GREET' });
+      }
     });
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       context: ({ spawn, self }) => {
         return {
           childRef: spawn(child, { input: { parent: self } })
         };
       },
       on: {
-        GREET: {
-          actions: spy
-        }
+        // GREET: {
+        //   actions: spy
+        // }
+        GREET: (_, enq) => enq(spy)
       }
     });
 
@@ -1763,18 +2033,17 @@ describe('actors', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('catches errors from spawned promise actors', () => {
+  it('catches errors from spawned promise actors', async () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     expect.assertions(1);
-    const machine = createMachine({
+    const machine = next_createMachine({
       on: {
-        event: {
-          actions: assign(({ spawn }) => {
-            spawn(
-              fromPromise(async () => {
-                throw new Error('uh oh');
-              })
-            );
-          })
+        event: (_, enq) => {
+          enq.spawn(
+            fromPromise(async () => {
+              throw new Error('uh oh');
+            })
+          );
         }
       }
     });
@@ -1783,10 +2052,13 @@ describe('actors', () => {
     actor.subscribe({
       error: (err) => {
         expect((err as Error).message).toBe('uh oh');
+        resolve();
       }
     });
     actor.start();
     actor.send({ type: 'event' });
+
+    await promise;
   });
 
   it('same-position invokes should not leak between machines', async () => {
@@ -1794,24 +2066,21 @@ describe('actors', () => {
 
     const sharedActors = {};
 
-    const m1 = createMachine(
-      {
-        invoke: {
-          src: fromPromise(async () => 'foo'),
-          onDone: {
-            actions: ({ event }) => spy(event.output)
-          }
+    const m1 = next_createMachine({
+      invoke: {
+        src: fromPromise(async () => 'foo'),
+        // onDone: {
+        //   actions: ({ event }) => spy(event.output)
+        // }
+        onDone: ({ event }, enq) => {
+          enq(spy, event.output);
         }
-      },
-      { actors: sharedActors }
-    );
+      }
+    }).provide({ actors: sharedActors });
 
-    createMachine(
-      {
-        invoke: { src: fromPromise(async () => 100) }
-      },
-      { actors: sharedActors }
-    );
+    next_createMachine({
+      invoke: { src: fromPromise(async () => 100) }
+    }).provide({ actors: sharedActors });
 
     createActor(m1).start();
 
@@ -1824,14 +2093,12 @@ describe('actors', () => {
   it('inline invokes should not leak into provided actors object', async () => {
     const actors = {};
 
-    const machine = createMachine(
-      {
-        invoke: {
-          src: fromPromise(async () => 'foo')
-        }
-      },
-      { actors }
-    );
+    const machine = next_createMachine({
+      actors,
+      invoke: {
+        src: fromPromise(async () => 'foo')
+      }
+    });
 
     createActor(machine).start();
 
