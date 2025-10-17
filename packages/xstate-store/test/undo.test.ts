@@ -34,6 +34,30 @@ it('should redo a previously undone event', () => {
   expect(store.getSnapshot().context.count).toBe(1);
 });
 
+it('should undo/redo multiple events, non-transactional', () => {
+  const store = createStore(
+    undoRedo({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    })
+  );
+
+  store.trigger.inc();
+  store.trigger.inc();
+  store.trigger.inc();
+  expect(store.getSnapshot().context.count).toBe(3);
+  store.trigger.undo();
+  expect(store.getSnapshot().context.count).toBe(2);
+  store.trigger.undo();
+  expect(store.getSnapshot().context.count).toBe(1);
+  store.trigger.redo();
+  expect(store.getSnapshot().context.count).toBe(2);
+  store.trigger.redo();
+  expect(store.getSnapshot().context.count).toBe(3);
+});
+
 it('should group events by transaction ID', () => {
   const store = createStore(
     undoRedo(
