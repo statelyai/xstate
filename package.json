@@ -29,8 +29,8 @@
     "fix": "manypkg fix",
     "lint": "eslint --cache --quiet",
     "typecheck": "tsc",
-    "test": "vitest",
-    "test:core": "vitest --project xstate",
+    "test": "vitest run",
+    "test:core": "vitest run --project xstate",
     "changeset": "changeset",
     "release": "pnpm -r publish --access=public && changeset tag",
     "version": "changeset version"
