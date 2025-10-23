@@ -150,7 +150,10 @@ export type InputFrom<T> =
     infer _TEmitted,
     infer _TMeta,
     infer _TStateSchema,
-    infer _TImplementations
+    infer _TActionMap,
+    infer _TActorMap,
+    infer _TGuardMap,
+    infer _TDelayMap
   >
     ? TInput
     : T extends ActorLogic<
@@ -441,7 +444,10 @@ export type StatesConfig<
   TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
-  TImplementations extends Implementations
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > = {
   [K in string]: StateNodeConfig<
     TContext,
@@ -454,7 +460,10 @@ export type StatesConfig<
     TOutput,
     TEmitted,
     TMeta,
-    TImplementations
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
   >;
 };
 
@@ -478,7 +487,10 @@ export type TransitionConfigOrTarget<
   TDelay extends string,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
-  TImplementations extends Implementations
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > = SingleOrArray<
   | TransitionConfigTarget
   | TransitionConfig<
@@ -497,7 +509,10 @@ export type TransitionConfigOrTarget<
       TExpressionEvent,
       TEvent,
       TEmitted,
-      TImplementations,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
       TMeta
     >
 >;
@@ -507,7 +522,10 @@ export type TransitionConfigFunction<
   TCurrentEvent extends EventObject,
   TEvent extends EventObject,
   TEmitted extends EventObject,
-  TImplementations extends Implementations,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject
 > = (
   {
@@ -528,10 +546,10 @@ export type TransitionConfigFunction<
     parent: UnknownActorRef | undefined;
     value: StateValue;
     children: Record<string, AnyActorRef>;
-    actions: TImplementations['actions'];
-    actors: TImplementations['actors'];
-    guards: TImplementations['guards'];
-    delays: TImplementations['delays'];
+    actions: TActionMap;
+    actors: TActorMap;
+    guards: TGuardMap;
+    delays: TDelayMap;
   },
   enq: EnqueueObject<TEvent, TEmitted>
 ) => {
@@ -855,7 +873,10 @@ export interface StateNodeConfig<
   _TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
-  TImplementations extends Implementations
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > {
   /** The initial state transition. */
   initial?:
@@ -865,10 +886,10 @@ export interface StateNodeConfig<
         TEvent,
         TEvent,
         TEmitted,
-        any,
-        any,
-        any,
-        any,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
         any
       >
     | string
@@ -904,7 +925,10 @@ export interface StateNodeConfig<
         NonReducibleUnknown,
         TEmitted,
         TMeta,
-        TImplementations
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap
       >
     | undefined;
   /**
@@ -945,9 +969,25 @@ export interface StateNodeConfig<
     TMeta
   >;
   /** The action(s) to be executed upon entering the state node. */
-  entry?: Action2<TContext, TEvent, TEmitted, TImplementations>;
+  entry?: Action2<
+    TContext,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >;
   /** The action(s) to be executed upon exiting the state node. */
-  exit?: Action2<TContext, TEvent, TEmitted, TImplementations>;
+  exit?: Action2<
+    TContext,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >;
   /**
    * The potential transition(s) to be taken upon reaching a final child state
    * node.
@@ -991,7 +1031,11 @@ export interface StateNodeConfig<
     TGuard,
     TDelay,
     TEmitted,
-    TMeta
+    TMeta,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
   >;
   parent?: StateNode<TContext, TEvent>;
   /**
@@ -1349,7 +1393,10 @@ export type MachineConfig<
   TOutput = unknown,
   TEmitted extends EventObject = EventObject,
   TMeta extends MetaObject = MetaObject,
-  TImplementations extends Implementations = Implementations
+  TActionMap extends Implementations['actions'] = Implementations['actions'],
+  TActorMap extends Implementations['actors'] = Implementations['actors'],
+  TGuardMap extends Implementations['guards'] = Implementations['guards'],
+  TDelayMap extends Implementations['delays'] = Implementations['delays']
 > = (Omit<
   StateNodeConfig<
     DoNotInfer<TContext>,
@@ -1362,7 +1409,10 @@ export type MachineConfig<
     DoNotInfer<TOutput>,
     DoNotInfer<TEmitted>,
     DoNotInfer<TMeta>,
-    DoNotInfer<TImplementations>
+    DoNotInfer<TActionMap>,
+    DoNotInfer<TActorMap>,
+    DoNotInfer<TGuardMap>,
+    DoNotInfer<TDelayMap>
   >,
   'output'
 > & {
@@ -2582,7 +2632,10 @@ export type Action2<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmittedEvent extends EventObject,
-  TImplementations extends Implementations
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > = (
   _: {
     context: TContext;
@@ -2593,10 +2646,10 @@ export type Action2<
       TEvent
     >;
     children: Record<string, AnyActorRef | undefined>;
-    actions: TImplementations['actions'];
-    actors: TImplementations['actors'];
-    guards: TImplementations['guards'];
-    delays: TImplementations['delays'];
+    actions: TActionMap;
+    actors: TActorMap;
+    guards: TGuardMap;
+    delays: TDelayMap;
     system?: AnyActorSystem;
   },
   enqueue: EnqueueObject<TEvent, TEmittedEvent>

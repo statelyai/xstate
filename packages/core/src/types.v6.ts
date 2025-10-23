@@ -40,7 +40,10 @@ export type Next_MachineConfig<
     EventObject,
   TDelays extends string = string,
   _TTag extends string = string,
-  TImplementations extends Implementations = Implementations
+  TActionMap extends Implementations['actions'] = Implementations['actions'],
+  TActorMap extends Implementations['actors'] = Implementations['actors'],
+  TGuardMap extends Implementations['guards'] = Implementations['guards'],
+  TDelayMap extends Implementations['delays'] = Implementations['delays']
 > = (Omit<
   Next_StateNodeConfig<
     InferOutput<TContextSchema, MachineContext>,
@@ -50,7 +53,10 @@ export type Next_MachineConfig<
     DoNotInfer<StandardSchemaV1.InferOutput<TOutputSchema>>,
     DoNotInfer<StandardSchemaV1.InferOutput<TEmittedSchema> & EventObject>,
     DoNotInfer<InferOutput<TMetaSchema, MetaObject>>,
-    DoNotInfer<TImplementations>
+    DoNotInfer<TActionMap>,
+    DoNotInfer<TActorMap>,
+    DoNotInfer<TGuardMap>,
+    DoNotInfer<TDelayMap>
   >,
   'output'
 > & {
@@ -63,9 +69,9 @@ export type Next_MachineConfig<
     meta?: TMetaSchema;
     tags?: TTagSchema;
   };
-  actions?: TImplementations['actions'];
-  guards?: TImplementations['guards'];
-  actors?: TImplementations['actors'];
+  actions?: TActionMap;
+  guards?: TGuardMap;
+  actors?: TActorMap;
   /** The initial context (extended state) */
   /** The machine's own version. */
   version?: string;
@@ -88,7 +94,7 @@ export type Next_MachineConfig<
     ? {
         context?: InitialContext<
           LowInfer<TContext>,
-          TImplementations['actors'],
+          TActorMap,
           InferOutput<TInputSchema, unknown>,
           TEvent
         >;
@@ -96,7 +102,7 @@ export type Next_MachineConfig<
     : {
         context: InitialContext<
           LowInfer<TContext>,
-          TImplementations['actors'],
+          TActorMap,
           InferOutput<TInputSchema, unknown>,
           TEvent
         >;
@@ -115,7 +121,10 @@ export interface Next_StateNodeConfig<
   _TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
-  TImplementations extends Implementations
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > {
   /** The initial state transition. */
   initial?:
@@ -123,7 +132,10 @@ export interface Next_StateNodeConfig<
         TContext,
         TEvent,
         TEmitted,
-        TImplementations,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
         TMeta
       >
     | string
@@ -156,7 +168,10 @@ export interface Next_StateNodeConfig<
       any, // TOutput,
       TEmitted,
       TMeta,
-      TImplementations
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap
     >;
   };
   /**
@@ -164,9 +179,7 @@ export interface Next_StateNodeConfig<
    * be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<{
-    src:
-      | AnyActorLogic
-      | (({ actors }: { actors: TImplementations['actors'] }) => AnyActorLogic);
+    src: AnyActorLogic | (({ actors }: { actors: TActorMap }) => AnyActorLogic);
     id?: string;
     systemId?: string;
     input?: TODO;
@@ -175,7 +188,10 @@ export interface Next_StateNodeConfig<
       DoneActorEvent,
       TEvent,
       TEmitted,
-      TImplementations,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
       TMeta
     >;
     onError?: Next_TransitionConfigOrTarget<
@@ -183,7 +199,10 @@ export interface Next_StateNodeConfig<
       ErrorEvent,
       TEvent,
       TEmitted,
-      TImplementations,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
       TMeta
     >;
     onSnapshot?: Next_TransitionConfigOrTarget<
@@ -191,7 +210,10 @@ export interface Next_StateNodeConfig<
       SnapshotEvent<any>,
       TEvent,
       TEmitted,
-      TImplementations,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
       TMeta
     >;
   }>;
@@ -202,12 +224,31 @@ export interface Next_StateNodeConfig<
       ExtractEvent<TEvent, K>,
       TEvent,
       TEmitted,
-      TImplementations,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
       TMeta
     >;
   };
-  entry?: Action2<TContext, TEvent, TEmitted, TImplementations>;
-  exit?: Action2<TContext, TEvent, TEmitted, TImplementations>;
+  entry?: Action2<
+    TContext,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >;
+  exit?: Action2<
+    TContext,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >;
   /**
    * The potential transition(s) to be taken upon reaching a final child state
    * node.
@@ -222,7 +263,10 @@ export interface Next_StateNodeConfig<
         DoneStateEvent,
         TEvent,
         TEmitted,
-        TImplementations,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
         TMeta
       >
     | undefined;
@@ -240,7 +284,10 @@ export interface Next_StateNodeConfig<
           TEvent,
           TEvent,
           TODO, // TEmitted
-          TImplementations,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
           TMeta
         >;
   };
@@ -254,7 +301,10 @@ export interface Next_StateNodeConfig<
     TEvent,
     TEvent,
     TEmitted,
-    TImplementations,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
     TMeta
   >;
   /**
@@ -297,14 +347,20 @@ export type Next_InitialTransitionConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmitted extends EventObject,
-  TImplementations extends Implementations,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject
 > = TransitionConfigFunction<
   TContext,
   TEvent,
   TEvent,
   TEmitted,
-  TImplementations,
+  TActionMap,
+  TActorMap,
+  TGuardMap,
+  TDelayMap,
   TMeta
 >;
 
@@ -313,7 +369,10 @@ export type Next_TransitionConfigOrTarget<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TEmitted extends EventObject,
-  TImplementations extends Implementations,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject
 > =
   | string
@@ -324,7 +383,10 @@ export type Next_TransitionConfigOrTarget<
       TExpressionEvent,
       TEvent,
       TEmitted,
-      TImplementations,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
       TMeta
     >;
 

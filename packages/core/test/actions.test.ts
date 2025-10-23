@@ -1837,10 +1837,15 @@ describe('entry/exit actions', () => {
       });
 
       const parent = next_createMachine({
-        types: {} as {
-          context: {
-            child: ActorRefFromLogic<typeof child>;
-          };
+        // types: {} as {
+        //   context: {
+        //     child: ActorRefFromLogic<typeof child>;
+        //   };
+        // },
+        schemas: {
+          context: z.object({
+            child: z.custom<ActorRefFromLogic<typeof child>>()
+          })
         },
         id: 'parent',
         context: ({ spawn }) => ({
@@ -2012,6 +2017,9 @@ describe('entry/exit actions', () => {
       const parent = next_createMachine({
         actions: { referencedAction: spy },
         id: 'parent',
+        schemas: {
+          context: z.object({})
+        },
         context: {},
         exit: ({ actions }, enq) => {
           enq(actions.referencedAction);
@@ -2898,6 +2906,11 @@ describe('enqueueActions', () => {
   it('should be able to check a simple referenced guard', () => {
     const spy = vi.fn().mockImplementation(() => true);
     const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 0
       },
