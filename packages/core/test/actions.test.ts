@@ -1,5 +1,9 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
+import {
+  CallbackActorLogic,
+  CallbackActorRef,
+  fromCallback
+} from '../src/actors/callback.ts';
 import {
   ActorRefFromLogic,
   EventObject,
@@ -1597,8 +1601,8 @@ describe('entry/exit actions', () => {
         exit: (_, enq) => enq(() => tracked.push('exit: one')),
         initial: 'one',
         on: {
-          WHATEVER: {
-            actions: () => {}
+          WHATEVER: (_, enq) => {
+            enq(() => {});
           }
         },
         states: {
@@ -1783,10 +1787,15 @@ describe('entry/exit actions', () => {
       });
 
       const parent = next_createMachine({
-        types: {} as {
-          context: {
-            child: ActorRefFromLogic<typeof child>;
-          };
+        // types: {} as {
+        //   context: {
+        //     child: ActorRefFromLogic<typeof child>;
+        //   };
+        // },
+        schemas: {
+          context: z.object({
+            child: z.custom<ActorRefFromLogic<typeof child>>()
+          })
         },
         id: 'parent',
         context: ({ spawn }) => ({
@@ -1797,7 +1806,7 @@ describe('entry/exit actions', () => {
           //   actions: stopChild(({ context }) => context.child)
           // },
           STOP_CHILD: ({ context }, enq) => {
-            enq.stopChild(context.child);
+            enq.stop(context.child);
           },
           // EXIT: {
           //   actions: () => {
@@ -2930,6 +2939,11 @@ describe('enqueueActions', () => {
     const spy = vi.fn((_: { max: number }) => true);
 
     const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 0
       },
@@ -2964,8 +2978,6 @@ describe('enqueueActions', () => {
   });
 
   it('should be able to communicate with the parent using params', () => {
-    type ParentEvent = { type: 'FOO' };
-
     const childMachine = next_createMachine({
       schemas: {
         input: z.object({
@@ -3110,10 +3122,10 @@ describe('sendTo', () => {
     });
 
     const parentMachine = next_createMachine({
-      types: {} as {
-        context: {
-          child: ActorRefFromLogic<typeof childMachine>;
-        };
+      schemas: {
+        context: z.object({
+          child: z.custom<ActorRefFromLogic<typeof childMachine>>()
+        })
       },
       context: ({ spawn }) => ({
         child: spawn(childMachine)
@@ -3148,11 +3160,11 @@ describe('sendTo', () => {
     });
 
     const parentMachine = next_createMachine({
-      types: {} as {
-        context: {
-          child: ActorRefFromLogic<typeof childMachine>;
-          count: number;
-        };
+      schemas: {
+        context: z.object({
+          child: z.custom<ActorRefFromLogic<typeof childMachine>>(),
+          count: z.number()
+        })
       },
       context: ({ spawn }) => {
         return {
@@ -3316,9 +3328,18 @@ describe('sendTo', () => {
   it('should be able to read from event', () => {
     expect.assertions(1);
     const machine = next_createMachine({
-      types: {} as {
-        context: Record<string, CallbackActorRef<EventObject>>;
-        events: { type: 'EVENT'; value: string };
+      // types: {} as {
+      //   context: Record<string, CallbackActorRef<EventObject>>;
+      //   events: { type: 'EVENT'; value: string };
+      // },
+      schemas: {
+        context: z.record(
+          z.custom<ActorRefFromLogic<CallbackActorLogic<any, any, any>>>()
+        ),
+        events: z.object({
+          type: z.literal('EVENT'),
+          value: z.string()
+        })
       },
       initial: 'a',
       context: ({ spawn }) => ({
