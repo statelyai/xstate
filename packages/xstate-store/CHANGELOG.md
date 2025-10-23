@@ -1,5 +1,57 @@
 # @xstate/store
 
+## 3.11.1
+
+### Patch Changes
+
+- [#5395](https://github.com/statelyai/xstate/pull/5395) [`8408430`](https://github.com/statelyai/xstate/commit/84084304a1daf19593e8a1c4b13fb73b901a06e8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix redo logic bug where redo would apply too many events when no transaction grouping is used
+
+## 3.11.0
+
+### Minor Changes
+
+- [#5393](https://github.com/statelyai/xstate/pull/5393) [`6d00d3f`](https://github.com/statelyai/xstate/commit/6d00d3fd3cdb27b3bb19557cc9ee84f85bd38fe8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `snapshot` parameter to `getTransactionId` function.
+
+  ```ts
+  const store = createStore(
+    undo(
+      {
+        // ...
+      },
+      {
+        getTransactionId: (event, snapshot) =>
+          snapshot.context.currentTransactionId
+      }
+    )
+  );
+  ```
+
+- [#5392](https://github.com/statelyai/xstate/pull/5392) [`5854b52`](https://github.com/statelyai/xstate/commit/5854b52c3fa1915f7f4620f144482d164af535e8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added an overload to `useSelector` that allows you to select the entire snapshot:
+
+  ```ts
+  // No selector provided, return the entire snapshot
+  const snapshot = useSelector(store);
+  ```
+
+- [#5393](https://github.com/statelyai/xstate/pull/5393) [`6d00d3f`](https://github.com/statelyai/xstate/commit/6d00d3fd3cdb27b3bb19557cc9ee84f85bd38fe8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `skipEvent` option to `undoRedo()` to exclude certain events from undo/redo history.
+
+  ```ts
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 }),
+          log: (ctx) => ctx // No state change
+        }
+      },
+      {
+        skipEvent: (event, snapshot) => event.type === 'log'
+      }
+    )
+  );
+  ```
+
 ## 3.10.0
 
 ### Minor Changes

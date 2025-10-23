@@ -223,12 +223,9 @@ export function undoRedo<
         };
         const allEffects: any[] = [];
 
-        while (
-          undoStack.length > 0 &&
-          undoStack[undoStack.length - 1].transactionId === lastTransactionId
-        ) {
+        if (lastTransactionId === undefined) {
+          // When no transaction ID is provided, each event is its own transaction
           const undoEvent = undoStack.pop()!;
-
           events.push(undoEvent);
           const [newState, effects] = logic.transition(state, undoEvent.event);
           state = {
@@ -237,6 +234,25 @@ export function undoRedo<
             undoStack
           };
           allEffects.push(...effects);
+        } else {
+          // Remove all events with the same transaction ID
+          while (
+            undoStack.length > 0 &&
+            undoStack[undoStack.length - 1].transactionId === lastTransactionId
+          ) {
+            const undoEvent = undoStack.pop()!;
+            events.push(undoEvent);
+            const [newState, effects] = logic.transition(
+              state,
+              undoEvent.event
+            );
+            state = {
+              ...newState,
+              events,
+              undoStack
+            };
+            allEffects.push(...effects);
+          }
         }
 
         return [state, allEffects];

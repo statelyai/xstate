@@ -259,20 +259,6 @@ actor.send({ type: 'TIMER' });
 // logs 'yellow'
 ```
 
-<table>
-<thead><tr><th>Code</th><th>Statechart</th></tr></thead>
-<tbody>
-<tr>
-<td>
-
-</td>
-<td>
-
-</td>
-</tr>
-</tbody>
-</table>
-
 </td>
 <td>
 
