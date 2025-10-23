@@ -30,7 +30,9 @@
     "lint": "eslint --cache --quiet",
     "typecheck": "tsc",
     "test": "vitest run",
+    "test:watch": "vitest",
     "test:core": "vitest run --project xstate",
+    "test:core:watch": "vitest --project xstate",
     "changeset": "changeset",
     "release": "pnpm -r publish --access=public && changeset tag",
     "version": "changeset version"
