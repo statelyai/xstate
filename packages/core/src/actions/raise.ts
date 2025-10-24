@@ -66,6 +66,12 @@ function resolveRaise(
   let resolvedDelay: number | undefined;
   if (typeof delay === 'string') {
     const configDelay = delaysMap && delaysMap[delay];
+    if (isDevelopment && configDelay === undefined) {
+      console.warn(
+        `Delay "${delay}" is not configured in \`delays\`. The event will be raised immediately. ` +
+          `This is likely a mistake. Available delays: ${Object.keys(delaysMap || {}).join(', ') || 'none'}.`
+      );
+    }
     resolvedDelay =
       typeof configDelay === 'function'
         ? configDelay(args, actionParams)
