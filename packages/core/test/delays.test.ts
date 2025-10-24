@@ -105,39 +105,41 @@ describe('delays runtime behavior', () => {
     expect(consoleWarnSpy).not.toHaveBeenCalled();
   });
 
-  it('should transition immediately when unknown delay is used (current behavior)', (done: any) => {
-    const machine = setup({
-      delays: {
-        knownDelay: 100
-      }
-    }).createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          after: {
-            unknownDelay: 'b' as any // TypeScript can't catch this due to TS#55709
-          }
-        },
-        b: {
-          type: 'final'
+  it('should transition immediately when unknown delay is used (current behavior)', () => {
+    return new Promise<void>((resolve, reject) => {
+      const machine = setup({
+        delays: {
+          knownDelay: 100
         }
-      }
+      }).createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            after: {
+              unknownDelay: 'b' as any // TypeScript can't catch this due to TS#55709
+            }
+          },
+          b: {
+            type: 'final'
+          }
+        }
+      });
+
+      const actor = createActor(machine);
+      
+      actor.subscribe({
+        complete: () => {
+          // Should complete immediately since unknownDelay is undefined
+          resolve();
+        }
+      });
+
+      actor.start();
+
+      // If the test doesn't complete quickly, it means the transition didn't happen immediately
+      setTimeout(() => {
+        reject(new Error('Should have transitioned immediately'));
+      }, 50);
     });
-
-    const actor = createActor(machine);
-    
-    actor.subscribe({
-      complete: () => {
-        // Should complete immediately since unknownDelay is undefined
-        done();
-      }
-    });
-
-    actor.start();
-
-    // If the test doesn't complete quickly, it means the transition didn't happen immediately
-    setTimeout(() => {
-      done(new Error('Should have transitioned immediately'));
-    }, 50);
   });
 });
