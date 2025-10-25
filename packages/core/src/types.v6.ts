@@ -113,6 +113,55 @@ export type DelayMap<TContext> = Record<
   number | ((context: TContext) => number)
 >;
 
+export interface Next_InvokeConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TMeta extends MetaObject
+> {
+  src: AnyActorLogic | (({ actors }: { actors: TActorMap }) => AnyActorLogic);
+  id?: string;
+  systemId?: string;
+  input?: TODO;
+  onDone?: Next_TransitionConfigOrTarget<
+    TContext,
+    DoneActorEvent,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TMeta
+  >;
+  onError?: Next_TransitionConfigOrTarget<
+    TContext,
+    ErrorEvent,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TMeta
+  >;
+  onSnapshot?: Next_TransitionConfigOrTarget<
+    TContext,
+    SnapshotEvent<any>,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TMeta
+  >;
+}
+
 export interface Next_StateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -178,14 +227,9 @@ export interface Next_StateNodeConfig<
    * The services to invoke upon entering this state node. These services will
    * be stopped upon exiting this state node.
    */
-  invoke?: SingleOrArray<{
-    src: AnyActorLogic | (({ actors }: { actors: TActorMap }) => AnyActorLogic);
-    id?: string;
-    systemId?: string;
-    input?: TODO;
-    onDone?: Next_TransitionConfigOrTarget<
+  invoke?: SingleOrArray<
+    Next_InvokeConfig<
       TContext,
-      DoneActorEvent,
       TEvent,
       TEmitted,
       TActionMap,
@@ -193,30 +237,8 @@ export interface Next_StateNodeConfig<
       TGuardMap,
       TDelayMap,
       TMeta
-    >;
-    onError?: Next_TransitionConfigOrTarget<
-      TContext,
-      ErrorEvent,
-      TEvent,
-      TEmitted,
-      TActionMap,
-      TActorMap,
-      TGuardMap,
-      TDelayMap,
-      TMeta
-    >;
-    onSnapshot?: Next_TransitionConfigOrTarget<
-      TContext,
-      SnapshotEvent<any>,
-      TEvent,
-      TEmitted,
-      TActionMap,
-      TActorMap,
-      TGuardMap,
-      TDelayMap,
-      TMeta
-    >;
-  }>;
+    >
+  >;
   /** The mapping of event types to their potential transition(s). */
   on?: {
     [K in EventDescriptor<TEvent>]?: Next_TransitionConfigOrTarget<

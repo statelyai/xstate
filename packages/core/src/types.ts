@@ -553,7 +553,7 @@ export type TransitionConfigFunction<
   },
   enq: EnqueueObject<TEvent, TEmitted>
 ) => {
-  target?: string;
+  target?: string | string[];
   context?: TContext;
   reenter?: boolean;
   meta?: TMeta;
@@ -946,16 +946,6 @@ export interface StateNodeConfig<
       TEmitted,
       TMeta
     >
-  >;
-  invoke2?: InvokeConfig<
-    TContext,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TEmitted,
-    TMeta
   >;
   /** The mapping of event types to their potential transition(s). */
   on?: TransitionsConfig<
