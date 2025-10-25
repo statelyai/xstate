@@ -3076,20 +3076,16 @@ describe('enqueueActions', () => {
 describe('sendParent', () => {
   // https://github.com/statelyai/xstate/issues/711
   it('TS: should compile for any event', () => {
-    interface ChildEvent {
-      type: 'CHILD';
-    }
-
     const child = next_createMachine({
-      types: {} as {
-        events: ChildEvent;
+      schemas: {
+        events: z.object({
+          type: z.literal('CHILD')
+        })
       },
       id: 'child',
       initial: 'start',
       states: {
         start: {
-          // This should not be a TypeScript error
-          // entry: [sendParent({ type: 'PARENT' })]
           entry: ({ parent }, enq) => {
             enq.sendTo(parent, { type: 'PARENT' });
           }
@@ -3105,8 +3101,10 @@ describe('sendTo', () => {
   it('should be able to send an event to an actor', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = next_createMachine({
-      types: {} as {
-        events: { type: 'EVENT' };
+      schemas: {
+        events: z.object({
+          type: z.literal('EVENT')
+        })
       },
       initial: 'waiting',
       states: {
@@ -3143,8 +3141,11 @@ describe('sendTo', () => {
   it('should be able to send an event from expression to an actor', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = next_createMachine({
-      types: {} as {
-        events: { type: 'EVENT'; count: number };
+      schemas: {
+        events: z.object({
+          type: z.literal('EVENT'),
+          count: z.number()
+        })
       },
       initial: 'waiting',
       states: {

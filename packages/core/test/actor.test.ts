@@ -296,8 +296,10 @@ describe('spawning promises', () => {
   it('should be able to spawn a promise', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const promiseMachine = next_createMachine({
-      types: {} as {
-        context: { promiseRef?: PromiseActorRef<string> };
+      schemas: {
+        context: z.object({
+          promiseRef: z.custom<PromiseActorRef<string>>().optional()
+        })
       },
       id: 'promise',
       initial: 'idle',
@@ -344,8 +346,10 @@ describe('spawning promises', () => {
   it('should be able to spawn a referenced promise', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const promiseMachine = next_createMachine({
-      types: {} as {
-        context: { promiseRef?: PromiseActorRef<string> };
+      schemas: {
+        context: z.object({
+          promiseRef: z.custom<PromiseActorRef<string>>().optional()
+        })
       },
       actors: {
         somePromise: fromPromise(() => Promise.resolve('response'))
@@ -394,10 +398,12 @@ describe('spawning callbacks', () => {
   it('should be able to spawn an actor from a callback', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const callbackMachine = next_createMachine({
-      types: {} as {
-        context: {
-          callbackRef?: CallbackActorRef<{ type: 'START' }>;
-        };
+      schemas: {
+        context: z.object({
+          callbackRef: z
+            .custom<CallbackActorRef<{ type: 'START' }>>()
+            .optional()
+        })
       },
       id: 'callback',
       initial: 'idle',
@@ -649,13 +655,13 @@ describe('spawning observables', () => {
     const intervalActor = fromObservable(() => interval(10));
 
     const parentMachine = next_createMachine({
-      types: {} as {
-        actors: {
-          src: 'interval';
-          id: 'childActor';
-          logic: typeof intervalActor;
-        };
-      },
+      // types: {} as {
+      //   actors: {
+      //     src: 'interval';
+      //     id: 'childActor';
+      //     logic: typeof intervalActor;
+      //   };
+      // },
       actors: {
         interval: intervalActor
       },
@@ -706,13 +712,13 @@ describe('spawning observables', () => {
     const intervalActor = fromObservable(() => interval(10));
 
     const parentMachine = next_createMachine({
-      types: {} as {
-        actors: {
-          src: 'interval';
-          id: 'childActor';
-          logic: typeof intervalActor;
-        };
-      },
+      // types: {} as {
+      //   actors: {
+      //     src: 'interval';
+      //     id: 'childActor';
+      //     logic: typeof intervalActor;
+      //   };
+      // },
       actors: {
         interval: intervalActor
       },
@@ -1102,7 +1108,11 @@ describe('actors', () => {
     });
 
     const testMachine = next_createMachine({
-      types: {} as { context: { ref?: ActorRefFrom<typeof anotherMachine> } },
+      schemas: {
+        context: z.object({
+          ref: z.custom<ActorRefFrom<typeof anotherMachine>>().optional()
+        })
+      },
       initial: 'testing',
       context: ({ spawn }) => {
         spawnCalled++;
@@ -1130,7 +1140,12 @@ describe('actors', () => {
 
   it('should spawn null actors if not used within a service', () => {
     const nullActorMachine = next_createMachine({
-      types: {} as { context: { ref?: PromiseActorRef<number> } },
+      // types: {} as { context: { ref?: PromiseActorRef<number> } },
+      schemas: {
+        context: z.object({
+          ref: z.custom<PromiseActorRef<number>>().optional()
+        })
+      },
       initial: 'foo',
       context: { ref: undefined },
       states: {
@@ -1210,8 +1225,13 @@ describe('actors', () => {
       }, 0);
 
       const countMachine = next_createMachine({
-        types: {} as {
-          context: { count: ActorRefFrom<typeof countLogic> | undefined };
+        // types: {} as {
+        //   context: { count: ActorRefFrom<typeof countLogic> | undefined };
+        // },
+        schemas: {
+          context: z.object({
+            count: z.custom<ActorRefFrom<typeof countLogic>>().optional()
+          })
         },
         context: {
           count: undefined
@@ -1255,10 +1275,17 @@ describe('actors', () => {
     it('should work with a promise logic (fulfill)', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
       const countMachine = next_createMachine({
-        types: {} as {
-          context: {
-            count: ActorRefFrom<PromiseActorLogic<number>> | undefined;
-          };
+        // types: {} as {
+        //   context: {
+        //     count: ActorRefFrom<PromiseActorLogic<number>> | undefined;
+        //   };
+        // },
+        schemas: {
+          context: z.object({
+            count: z
+              .custom<ActorRefFrom<PromiseActorLogic<number>>>()
+              .optional()
+          })
         },
         context: {
           count: undefined
@@ -1325,8 +1352,13 @@ describe('actors', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
       const errorMessage = 'An error occurred';
       const countMachine = next_createMachine({
-        types: {} as {
-          context: { count: ActorRefFrom<PromiseActorLogic<number>> };
+        // types: {} as {
+        //   context: { count: ActorRefFrom<PromiseActorLogic<number>> };
+        // },
+        schemas: {
+          context: z.object({
+            count: z.custom<ActorRefFrom<PromiseActorLogic<number>>>()
+          })
         },
         context: ({ spawn }) => ({
           count: spawn(
@@ -1393,8 +1425,13 @@ describe('actors', () => {
       };
 
       const pingMachine = next_createMachine({
-        types: {} as {
-          context: { ponger: ActorRefFrom<typeof pongLogic> | undefined };
+        // types: {} as {
+        //   context: { ponger: ActorRefFrom<typeof pongLogic> | undefined };
+        // },
+        schemas: {
+          context: z.object({
+            ponger: z.custom<ActorRefFrom<typeof pongLogic>>().optional()
+          })
         },
         initial: 'waiting',
         context: {
@@ -1442,7 +1479,12 @@ describe('actors', () => {
   it('should be able to spawn callback actors in (lazy) initial context', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const machine = next_createMachine({
-      types: {} as { context: { ref: CallbackActorRef<EventObject> } },
+      // types: {} as { context: { ref: CallbackActorRef<EventObject> } },
+      schemas: {
+        context: z.object({
+          ref: z.custom<CallbackActorRef<EventObject>>()
+        })
+      },
       context: ({ spawn }) => ({
         ref: spawn(
           fromCallback(({ sendBack }) => {
@@ -1481,7 +1523,12 @@ describe('actors', () => {
     });
 
     const machine = next_createMachine({
-      types: {} as { context: { ref: ActorRefFrom<typeof childMachine> } },
+      // types: {} as { context: { ref: ActorRefFrom<typeof childMachine> } },
+      schemas: {
+        context: z.object({
+          ref: z.custom<ActorRefFrom<typeof childMachine>>()
+        })
+      },
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
       }),
@@ -1523,8 +1570,13 @@ describe('actors', () => {
     });
 
     const parentMachine = next_createMachine({
-      types: {} as {
-        context: { child: ActorRefFrom<typeof childMachine> | null };
+      // types: {} as {
+      //   context: { child: ActorRefFrom<typeof childMachine> | null };
+      // },
+      schemas: {
+        context: z.object({
+          child: z.custom<ActorRefFrom<typeof childMachine>>().optional()
+        })
       },
       context: {
         child: null
@@ -1703,10 +1755,15 @@ describe('actors', () => {
     let invokeCounter = 0;
 
     const machine = next_createMachine({
-      types: {} as {
-        context: {
-          actorRef: CallbackActorRef<EventObject>;
-        };
+      // types: {} as {
+      //   context: {
+      //     actorRef: CallbackActorRef<EventObject>;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          actorRef: z.custom<CallbackActorRef<EventObject>>()
+        })
       },
       initial: 'active',
       context: ({ spawn }) => {
@@ -1789,10 +1846,15 @@ describe('actors', () => {
     let invokeCounter = 0;
 
     const machine = next_createMachine({
-      types: {} as {
-        context: {
-          actorRef: CallbackActorRef<EventObject>;
-        };
+      // types: {} as {
+      //   context: {
+      //     actorRef: CallbackActorRef<EventObject>;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          actorRef: z.custom<CallbackActorRef<EventObject>>()
+        })
       },
       initial: 'active',
       context: ({ spawn }) => {
@@ -1872,10 +1934,15 @@ describe('actors', () => {
     let invokeCounter = 0;
 
     const machine = next_createMachine({
-      types: {} as {
-        context: {
-          actorRef: CallbackActorRef<EventObject>;
-        };
+      // types: {} as {
+      //   context: {
+      //     actorRef: CallbackActorRef<EventObject>;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          actorRef: z.custom<CallbackActorRef<EventObject>>()
+        })
       },
       initial: 'active',
       context: ({ spawn }) => {
@@ -1935,10 +2002,15 @@ describe('actors', () => {
     let invokeCounter = 0;
 
     const machine = next_createMachine({
-      types: {} as {
-        context: {
-          actorRef: CallbackActorRef<EventObject>;
-        };
+      // types: {} as {
+      //   context: {
+      //     actorRef: CallbackActorRef<EventObject>;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          actorRef: z.custom<CallbackActorRef<EventObject>>()
+        })
       },
       initial: 'active',
       context: ({ spawn }) => {
@@ -1997,13 +2069,21 @@ describe('actors', () => {
     const spy = vi.fn();
 
     const child = next_createMachine({
-      types: {} as {
-        context: {
-          parent: AnyActorRef;
-        };
-        input: {
-          parent: AnyActorRef;
-        };
+      // types: {} as {
+      //   context: {
+      //     parent: AnyActorRef;
+      //   };
+      //   input: {
+      //     parent: AnyActorRef;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          parent: z.custom<AnyActorRef>()
+        }),
+        input: z.object({
+          parent: z.custom<AnyActorRef>()
+        })
       },
       context: ({ input }) => ({
         parent: input.parent
@@ -2015,6 +2095,11 @@ describe('actors', () => {
     });
 
     const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          childRef: z.custom<ActorRefFrom<typeof child>>()
+        })
+      },
       context: ({ spawn, self }) => {
         return {
           childRef: spawn(child, { input: { parent: self } })

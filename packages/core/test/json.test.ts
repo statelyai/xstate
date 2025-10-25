@@ -1,3 +1,4 @@
+import { createMachineFromConfig } from '../src/createMachineFromConfig';
 import { createMachine } from '../src/index';
 import * as machineSchema from '../src/machine.schema.json';
 
@@ -6,14 +7,9 @@ import Ajv from 'ajv';
 const ajv = new Ajv();
 const validate = ajv.compile(machineSchema);
 
-describe.skip('json', () => {
+describe('json', () => {
   it('should serialize the machine', () => {
-    interface Context {
-      [key: string]: any;
-    }
-
-    const machine = createMachine({
-      types: {} as { context: Context },
+    const machine = createMachineFromConfig({
       initial: 'foo',
       version: '1.0.0',
       context: {
@@ -25,38 +21,23 @@ describe.skip('json', () => {
         testActions: {
           invoke: [{ id: 'invokeId', src: 'invokeSrc' }],
           entry: [
-            'stringActionType',
+            { type: 'stringActionType' },
             {
               type: 'objectActionType'
             },
             {
               type: 'objectActionTypeWithExec',
-              exec: () => {
-                return true;
-              },
-              other: 'any'
-            },
-            function actionFunction() {
-              return true;
+              params: { other: 'any' }
             }
-            // TODO: investigate why this had to be casted to any to satisfy TS
-            // assign({
-            //   number: 10,
-            //   string: 'test',
-            //   evalNumber: () => 42
-            // }) as any,
-            // assign((ctx) => ({
-            //   ...ctx
-            // }))
           ],
           on: {
             TO_FOO: {
               target: ['foo', 'bar'],
-              guard: ({ context }) => !!context.string
+              guard: { type: 'isString', params: { string: 'hello' } }
             }
           },
           after: {
-            1000: 'bar'
+            1000: { target: 'bar' }
           }
         },
         foo: {},

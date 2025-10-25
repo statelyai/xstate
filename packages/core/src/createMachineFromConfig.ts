@@ -97,6 +97,10 @@ export interface StateNodeJSON {
   exit?: ActionJSON[];
   meta?: MetaObject;
   description?: string;
+  history?: 'shallow' | 'deep';
+  target?: string;
+  output?: unknown;
+  context?: Record<string, unknown>;
 }
 export interface MachineJSON extends StateNodeJSON {
   version?: string;
