@@ -485,3 +485,37 @@ it('should use the snapshot in the skipEvent function', () => {
   store.send({ type: 'undo' }); // count = 2
   expect(store.getSnapshot().context.count).toBe(2);
 });
+
+it('emit event types should be correct', () => {
+  const store = createStore(
+    undoRedo({
+      context: { count: 0 },
+      emits: {
+        changed: (_: { value: number }) => {}
+      },
+      on: {
+        // TODO: figure out why we need _: {} and not just _
+        inc: (ctx, _: {}, enq) => {
+          enq.emit.changed({ value: ctx.count + 1 });
+          // @ts-expect-error
+          enq.emit.whatever();
+          return { count: ctx.count + 1 };
+        }
+      }
+    })
+  );
+
+  store.on('changed', (event) => {
+    event.value satisfies number;
+    // @ts-expect-error
+    event.value satisfies string;
+    // @ts-expect-error
+    event.unknown;
+  });
+
+  store.on(
+    // @ts-expect-error
+    'whatever',
+    () => {}
+  );
+});
