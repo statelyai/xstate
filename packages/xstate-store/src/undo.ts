@@ -1,6 +1,5 @@
 import {
   AnyStoreLogic,
-  EmitsFromStoreConfig,
   EventObject,
   EventPayloadMap,
   ExtractEvents,
@@ -122,7 +121,7 @@ export function undoRedo<
 ): StoreLogic<
   StoreSnapshot<TContext>,
   ExtractEvents<TEventPayloadMap> | { type: 'undo' } | { type: 'redo' },
-  EmitsFromStoreConfig<any>
+  ExtractEvents<TEmittedPayloadMap>
 > {
   type TEvent = ExtractEvents<TEventPayloadMap>;
   const logic: AnyStoreLogic = {
