@@ -4421,4 +4421,53 @@ describe('actions', () => {
       foo: 'bar'
     });
   });
+
+  // From https://github.com/statelyai/xstate/pull/5101
+  it('a raised event "handler" should be able to read updated snapshot of self', () => {
+    const spy = vi.fn();
+    const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          counter: z.number()
+        })
+      },
+      context: {
+        counter: 0
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          // entry: [assign({ counter: 1 }), raise({ type: 'EVENT' })],
+          entry: (_, enq) => {
+            enq.raise({ type: 'EVENT' });
+
+            return {
+              context: {
+                counter: 1
+              }
+            };
+          },
+          on: {
+            EVENT: ({ self }, enq) => {
+              enq(spy, self.getSnapshot().context);
+              return {
+                target: 'c'
+              };
+            }
+          }
+        },
+        c: {}
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'NEXT' });
+    actorRef.send({ type: 'EVENT' });
+
+    expect(spy).toHaveBeenCalledWith({ counter: 1 });
+  });
 });
