@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.11.2
+
+### Patch Changes
+
+- [#5401](https://github.com/statelyai/xstate/pull/5401) [`d345e1f`](https://github.com/statelyai/xstate/commit/d345e1fa497c2196e296512937ed52e1c76fd6be) Thanks [@davidkpiano](https://github.com/davidkpiano)! - - Fix type inference for emitted event types when using `undoRedo`.
+
 ## 3.11.1
 
 ### Patch Changes
