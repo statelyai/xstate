@@ -500,7 +500,7 @@ export class Actor<TLogic extends AnyActorLogic>
             subscription.unsubscribe();
           },
           error: (error) => {
-            reject(error instanceof Error ? error : new Error(String(error)));
+            reject(error);
             subscription.unsubscribe();
           },
           complete: () => {
