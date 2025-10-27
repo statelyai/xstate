@@ -1964,7 +1964,8 @@ export interface ActorRef<
   TEvent extends EventObject,
   TEmitted extends EventObject = EventObject
 > extends Subscribable<TSnapshot>,
-    InteropObservable<TSnapshot> {
+    InteropObservable<TSnapshot>,
+    AsyncIterable<TSnapshot> {
   /** The unique identifier for this actor relative to its parent. */
   id: string;
   sessionId: string;
