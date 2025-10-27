@@ -1,7 +1,13 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import { createMachine, createActor } from '../src/index.ts';
+import { next_createMachine, createActor } from '../src/index.ts';
+import z from 'zod';
 
-const lightMachine = createMachine({
+const lightMachine = next_createMachine({
+  schemas: {
+    context: z.object({
+      canTurnGreen: z.boolean()
+    })
+  },
   id: 'light',
   initial: 'green',
   context: {
@@ -15,7 +21,7 @@ const lightMachine = createMachine({
     },
     yellow: {
       after: {
-        1000: [{ target: 'red' }]
+        1000: { target: 'red' }
       }
     },
     red: {
@@ -48,7 +54,7 @@ describe('delayed transitions', () => {
     // https://github.com/statelyai/xstate/issues/5001
     const spy = vi.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'green',
       states: {
         green: {
@@ -88,7 +94,7 @@ describe('delayed transitions', () => {
   it('should be able to transition with delay from nested initial state', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'nested',
       states: {
         nested: {
@@ -124,23 +130,29 @@ describe('delayed transitions', () => {
 
     const actual: string[] = [];
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'one',
       states: {
         one: {
           initial: 'two',
-          entry: () => actual.push('entered one'),
+          entry: (_, enq) => enq(() => actual.push('entered one')),
           states: {
             two: {
-              entry: () => actual.push('entered two')
+              entry: (_, enq) => {
+                enq(() => actual.push('entered two'));
+              }
             },
             three: {
-              entry: () => actual.push('entered three'),
+              entry: (_, enq) => {
+                enq(() => actual.push('entered three'));
+              },
               always: '#end'
             }
           },
           after: {
-            10: '.three'
+            10: () => {
+              return { target: '.three' };
+            }
           }
         },
         end: {
@@ -165,27 +177,35 @@ describe('delayed transitions', () => {
   it('should defer a single send event for a delayed conditional transition (#886)', () => {
     vi.useFakeTimers();
     const spy = vi.fn();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'X',
       states: {
         X: {
           after: {
-            1: [
-              {
-                target: 'Y',
-                guard: () => true
-              },
-              {
-                target: 'Z'
+            // 1: [
+            //   {
+            //     target: 'Y',
+            //     guard: () => true
+            //   },
+            //   {
+            //     target: 'Z'
+            //   }
+            // ]
+            1: () => {
+              if (1 + 1 === 2) {
+                return { target: 'Y' };
+              } else {
+                return { target: 'Z' };
               }
-            ]
+            }
           }
         },
         Y: {
           on: {
-            '*': {
-              actions: spy
-            }
+            // '*': {
+            //   actions: spy
+            // }
+            '*': (_, enq) => enq(spy)
           }
         },
         Z: {}
@@ -202,7 +222,7 @@ describe('delayed transitions', () => {
   it.skip('should execute an after transition after starting from a state resolved using `.getPersistedSnapshot`', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       id: 'machine',
       initial: 'a',
       states: {
@@ -236,7 +256,7 @@ describe('delayed transitions', () => {
   it('should execute an after transition after starting from a persisted state', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const createMyMachine = () =>
-      createMachine({
+      next_createMachine({
         initial: 'A',
         states: {
           A: {
@@ -277,26 +297,27 @@ describe('delayed transitions', () => {
       const context = {
         delay: 500
       };
-      const machine = createMachine(
-        {
-          initial: 'inactive',
-          context,
-          states: {
-            inactive: {
-              after: { myDelay: 'active' }
-            },
-            active: {}
+      const machine = next_createMachine({
+        initial: 'inactive',
+        schemas: {
+          context: z.object({
+            delay: z.number()
+          })
+        },
+        context,
+        delays: {
+          myDelay: ({ context }) => {
+            spy(context);
+            return context.delay;
           }
         },
-        {
-          delays: {
-            myDelay: ({ context }) => {
-              spy(context);
-              return context.delay;
-            }
-          }
+        states: {
+          inactive: {
+            after: { myDelay: 'active' }
+          },
+          active: {}
         }
-      );
+      });
 
       const actor = createActor(machine).start();
 
@@ -313,31 +334,33 @@ describe('delayed transitions', () => {
     it('should evaluate the expression (string) to determine the delay', () => {
       vi.useFakeTimers();
       const spy = vi.fn();
-      const machine = createMachine(
-        {
-          initial: 'inactive',
-          states: {
-            inactive: {
-              on: {
-                ACTIVATE: 'active'
-              }
-            },
-            active: {
-              after: {
-                someDelay: 'inactive'
-              }
-            }
+      const machine = next_createMachine({
+        initial: 'inactive',
+        schemas: {
+          events: z.object({
+            type: z.literal('ACTIVATE'),
+            delay: z.number()
+          })
+        },
+        delays: {
+          someDelay: ({ event }) => {
+            spy(event);
+            return event.delay;
           }
         },
-        {
-          delays: {
-            someDelay: ({ event }) => {
-              spy(event);
-              return event.delay;
+        states: {
+          inactive: {
+            on: {
+              ACTIVATE: 'active'
+            }
+          },
+          active: {
+            after: {
+              someDelay: 'inactive'
             }
           }
         }
-      );
+      });
 
       const actor = createActor(machine).start();
 

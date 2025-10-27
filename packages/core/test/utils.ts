@@ -85,12 +85,16 @@ export function trackEntries(machine: AnyStateMachine) {
     state: StateNode<any, any>,
     stateDescription: string
   ) {
-    state.entry.unshift(function __testEntryTracker() {
-      logs.push(`enter: ${stateDescription}`);
-    });
-    state.exit.unshift(function __testExitTracker() {
-      logs.push(`exit: ${stateDescription}`);
-    });
+    const originalEntry2 = state.entry;
+    const originalExit2 = state.exit;
+    state.entry = (_, enq) => {
+      enq(() => logs.push(`enter: ${stateDescription}`));
+      return originalEntry2?.(_, enq);
+    };
+    state.exit = (_, enq) => {
+      enq(() => logs.push(`exit: ${stateDescription}`));
+      return originalExit2?.(_, enq);
+    };
   }
 
   function addTrackingActionsRecursively(state: StateNode<any, any>) {

@@ -1,8 +1,8 @@
-import { createMachine, getNextSnapshot } from '../src/index.ts';
+import { next_createMachine, transition } from '../src/index.ts';
 
 describe('invalid or resolved states', () => {
   it('should resolve a String state', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -22,9 +22,9 @@ describe('invalid or resolved states', () => {
       }
     });
     expect(
-      getNextSnapshot(machine, machine.resolveState({ value: 'A' }), {
+      transition(machine, machine.resolveState({ value: 'A' }), {
         type: 'E'
-      }).value
+      })[0].value
     ).toEqual({
       A: 'A1',
       B: 'B1'
@@ -32,7 +32,7 @@ describe('invalid or resolved states', () => {
   });
 
   it('should resolve transitions from empty states', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -52,11 +52,9 @@ describe('invalid or resolved states', () => {
       }
     });
     expect(
-      getNextSnapshot(
-        machine,
-        machine.resolveState({ value: { A: {}, B: {} } }),
-        { type: 'E' }
-      ).value
+      transition(machine, machine.resolveState({ value: { A: {}, B: {} } }), {
+        type: 'E'
+      })[0].value
     ).toEqual({
       A: 'A1',
       B: 'B1'
@@ -64,7 +62,7 @@ describe('invalid or resolved states', () => {
   });
 
   it('should allow transitioning from valid states', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -83,15 +81,13 @@ describe('invalid or resolved states', () => {
         }
       }
     });
-    getNextSnapshot(
-      machine,
-      machine.resolveState({ value: { A: 'A1', B: 'B1' } }),
-      { type: 'E' }
-    );
+    transition(machine, machine.resolveState({ value: { A: 'A1', B: 'B1' } }), {
+      type: 'E'
+    });
   });
 
   it('should reject transitioning from bad state configs', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -111,7 +107,7 @@ describe('invalid or resolved states', () => {
       }
     });
     expect(() =>
-      getNextSnapshot(
+      transition(
         machine,
         machine.resolveState({ value: { A: 'A3', B: 'B3' } }),
         { type: 'E' }
@@ -120,7 +116,7 @@ describe('invalid or resolved states', () => {
   });
 
   it('should resolve transitioning from partially valid states', () => {
-    const machine = createMachine({
+    const machine = next_createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -140,11 +136,9 @@ describe('invalid or resolved states', () => {
       }
     });
     expect(
-      getNextSnapshot(
-        machine,
-        machine.resolveState({ value: { A: 'A1', B: {} } }),
-        { type: 'E' }
-      ).value
+      transition(machine, machine.resolveState({ value: { A: 'A1', B: {} } }), {
+        type: 'E'
+      })[0].value
     ).toEqual({
       A: 'A1',
       B: 'B1'
@@ -155,7 +149,7 @@ describe('invalid or resolved states', () => {
 describe('invalid transition', () => {
   it('should throw when attempting to create a machine with a sibling target on the root node', () => {
     expect(() => {
-      createMachine({
+      next_createMachine({
         id: 'direction',
         initial: 'left',
         states: {
@@ -167,6 +161,6 @@ describe('invalid transition', () => {
           RIGHT_CLICK: 'right'
         }
       });
-    }).toThrowError(/invalid target/i);
+    }).toThrow(/invalid target/i);
   });
 });
