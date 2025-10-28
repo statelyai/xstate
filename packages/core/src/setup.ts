@@ -446,28 +446,3 @@ export function setup<
       } as any)
   };
 }
-
-const s = setup({
-  actions: {
-    doSomething: () => {},
-    other: () => {}
-  }
-});
-
-s.extend({
-  actions: {
-    foo: enqueueActions((x) => {
-      x.enqueue({
-        type: 'doSomething'
-      });
-    })
-  }
-}).extend({
-  actions: {
-    bar: enqueueActions((x) => {
-      x.enqueue({
-        type: 'foo'
-      });
-    })
-  }
-});
