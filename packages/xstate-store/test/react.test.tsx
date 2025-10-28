@@ -21,7 +21,7 @@ import ReactDOM from 'react-dom';
 import { vi } from 'vitest';
 
 describe('useSelector', () => {
-  it('useSelector should work', () => {
+  it('useSelector should work with a selector', () => {
     const store = createStore({
       context: {
         count: 0
@@ -58,6 +58,91 @@ describe('useSelector', () => {
     fireEvent.click(countDiv);
 
     expect(countDiv.textContent).toEqual('1');
+  });
+
+  it('useSelector should work with the entire snapshot when the selector is not provided', () => {
+    const store = createStore({
+      context: {
+        count: 0
+      },
+      on: {}
+    });
+
+    const Counter = () => {
+      const snapshot = useSelector(store);
+
+      snapshot.context.count satisfies number;
+
+      // @ts-expect-error
+      snapshot.context.count satisfies string;
+
+      return <div data-testid="count">{snapshot.context.count}</div>;
+    };
+
+    render(<Counter />);
+  });
+
+  it('useSelector should work with the entire snapshot and compare when the selector is undefined', () => {
+    const store = createStore({
+      context: {
+        user: { name: 'David', count: 100 }
+      },
+      on: {
+        setUser: (ctx, event: { name: string; count: number }) => ({
+          ...ctx,
+          user: { ...ctx.user, name: event.name, count: event.count }
+        })
+      }
+    });
+
+    const User = () => {
+      const snapshot = useSelector(
+        store,
+        undefined,
+        (a, b) => a.context.user.name === b.context.user.name
+      );
+
+      return (
+        <>
+          <button
+            data-testid="changeUser"
+            onClick={() =>
+              store.send({ type: 'setUser', name: 'John', count: 200 })
+            }
+          >
+            Change User
+          </button>
+          <div
+            data-testid="name"
+            onClick={() =>
+              store.send({ type: 'setUser', name: 'David', count: 200 })
+            }
+          >
+            {snapshot.context.user.name}
+          </div>
+          <div data-testid="count">{snapshot.context.user.count}</div>
+        </>
+      );
+    };
+
+    render(<User />);
+
+    expect(screen.getByTestId('name').textContent).toBe('David');
+
+    expect(screen.getByTestId('count').textContent).toBe('100');
+
+    fireEvent.click(screen.getByTestId('name'));
+
+    expect(screen.getByTestId('name').textContent).toBe('David');
+
+    // unchanged due to comparison function
+    expect(screen.getByTestId('count').textContent).toBe('100');
+
+    fireEvent.click(screen.getByTestId('changeUser'));
+
+    expect(screen.getByTestId('name').textContent).toBe('John');
+
+    expect(screen.getByTestId('count').textContent).toBe('200');
   });
 
   it('useSelector can take in a custom comparator', () => {
@@ -1378,5 +1463,30 @@ describe('createStoreHook', () => {
     // Add item
     fireEvent.click(screen.getByTestId('add-item'));
     expect(screen.getByTestId('item-count').textContent).toBe('4');
+  });
+
+  it('trigger methods that do not take args should work when passed directly into event handlers', () => {
+    const useTriggerStore = createStoreHook({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 })
+      }
+    });
+
+    const Component = () => {
+      const [count, store] = useTriggerStore((s) => s.context.count);
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          {/* Before, event.type would overwrite { type: 'inc' } */}
+          <button onClick={store.trigger.inc} />
+        </div>
+      );
+    };
+
+    render(<Component />);
+
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByTestId('count').textContent).toBe('1');
   });
 });

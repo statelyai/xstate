@@ -1,5 +1,40 @@
 # xstate
 
+## 5.23.0
+
+### Minor Changes
+
+- [#5387](https://github.com/statelyai/xstate/pull/5387) [`53dd7f1`](https://github.com/statelyai/xstate/commit/53dd7f1abe18f430d578072086e896ea8a22ee7f) Thanks [@farskid](https://github.com/farskid)! - Adds `system.getAll` that returns a record of running actors within the system by their system id
+
+  ```ts
+  const childMachine = createMachine({});
+  const machine = createMachine({
+    // ...
+    invoke: [
+      {
+        src: childMachine,
+        systemId: 'test'
+      }
+    ]
+  });
+  const system = createActor(machine);
+
+  system.getAll(); // { test: ActorRefFrom<typeof childMachine> }
+  ```
+
+## 5.22.1
+
+### Patch Changes
+
+- [#5379](https://github.com/statelyai/xstate/pull/5379) [`98f9ddd`](https://github.com/statelyai/xstate/commit/98f9ddde939320fb698ef382f6712a0753d55ca5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Make `actor.systemId` public:
+
+  ```ts
+  const actor = createActor(machine, { systemId: 'test' });
+  actor.systemId; // 'test'
+  ```
+
+- [#5380](https://github.com/statelyai/xstate/pull/5380) [`e7e5e44`](https://github.com/statelyai/xstate/commit/e7e5e44c3758eec4c1380bd604539406ad71115a) Thanks [@Nirajkashyap](https://github.com/Nirajkashyap)! - fix: remove 'eventType' from required fields in initialTransitionObject
+
 ## 5.22.0
 
 ### Minor Changes

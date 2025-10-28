@@ -1,6 +1,5 @@
 import {
   AnyStoreLogic,
-  EmitsFromStoreConfig,
   EventObject,
   EventPayloadMap,
   ExtractEvents,
@@ -70,6 +69,31 @@ type UndoEvent<TEvent extends EventObject> = {
  * store.trigger.undo(); // count = 0 (undoes both inc events)
  * ```
  *
+ * @example
+ *
+ * ```ts
+ * // Skip certain events from undo/redo
+ * const store = createStore(
+ *   undoRedo(
+ *     {
+ *       context: { count: 0 },
+ *       on: {
+ *         inc: (ctx) => ({ count: ctx.count + 1 }),
+ *         log: (ctx) => ctx // No state change, just logging
+ *       }
+ *     },
+ *     {
+ *       skipEvent: (event) => event.type === 'log'
+ *     }
+ *   )
+ * );
+ *
+ * store.send({ type: 'inc' }); // count = 1
+ * store.send({ type: 'log' }); // count = 1 (logged but not undoable)
+ * store.send({ type: 'inc' }); // count = 2
+ * store.trigger.undo(); // count = 1 (skips log event)
+ * ```
+ *
  * @returns Store logic with additional `undo` and `redo` event handlers
  */
 export function undoRedo<
@@ -79,12 +103,25 @@ export function undoRedo<
 >(
   storeConfig: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap>,
   options?: {
-    getTransactionId?: (event: ExtractEvents<TEventPayloadMap>) => string;
+    /** A function that returns the transaction ID of an event. */
+    getTransactionId?: (
+      event: ExtractEvents<TEventPayloadMap>,
+      snapshot: StoreSnapshot<TContext>
+    ) => string | null | undefined;
+    /**
+     * A function that returns whether an event should be skipped during
+     * undo/redo. Skipped events are not stored in history and are not replayed
+     * during undo/redo.
+     */
+    skipEvent?: (
+      event: ExtractEvents<TEventPayloadMap>,
+      snapshot: StoreSnapshot<TContext>
+    ) => boolean;
   }
 ): StoreLogic<
   StoreSnapshot<TContext>,
   ExtractEvents<TEventPayloadMap> | { type: 'undo' } | { type: 'redo' },
-  EmitsFromStoreConfig<any>
+  ExtractEvents<TEmittedPayloadMap>
 > {
   type TEvent = ExtractEvents<TEventPayloadMap>;
   const logic: AnyStoreLogic = {
@@ -110,15 +147,8 @@ export function undoRedo<
       if (event.type === 'undo') {
         const events = snapshot.events.slice();
         const undoStack = snapshot.undoStack.slice();
-        if (!events.length) {
-          return [
-            {
-              ...snapshot,
-              events,
-              undoStack
-            },
-            []
-          ];
+        if (!snapshot.events.length) {
+          return [snapshot, []];
         }
 
         // Get the transaction ID of the last event
@@ -148,6 +178,9 @@ export function undoRedo<
           }
         }
 
+        // Filter out events that should be skipped during undo
+        const eventsToReplay = events;
+
         // Replay remaining events to get to the new state
         let state = {
           ...logic.getInitialSnapshot(),
@@ -155,7 +188,7 @@ export function undoRedo<
           undoStack
         };
 
-        for (const { event } of events) {
+        for (const { event } of eventsToReplay) {
           const [newState, _effects] = logic.transition(state, event);
           state = {
             ...newState,
@@ -189,10 +222,8 @@ export function undoRedo<
         };
         const allEffects: any[] = [];
 
-        while (
-          undoStack.length > 0 &&
-          undoStack[undoStack.length - 1].transactionId === lastTransactionId
-        ) {
+        if (lastTransactionId === undefined) {
+          // When no transaction ID is provided, each event is its own transaction
           const undoEvent = undoStack.pop()!;
           events.push(undoEvent);
           const [newState, effects] = logic.transition(state, undoEvent.event);
@@ -202,20 +233,43 @@ export function undoRedo<
             undoStack
           };
           allEffects.push(...effects);
+        } else {
+          // Remove all events with the same transaction ID
+          while (
+            undoStack.length > 0 &&
+            undoStack[undoStack.length - 1].transactionId === lastTransactionId
+          ) {
+            const undoEvent = undoStack.pop()!;
+            events.push(undoEvent);
+            const [newState, effects] = logic.transition(
+              state,
+              undoEvent.event
+            );
+            state = {
+              ...newState,
+              events,
+              undoStack
+            };
+            allEffects.push(...effects);
+          }
         }
 
         return [state, allEffects];
       }
 
-      const events = snapshot.events.slice();
       const [state, effects] = logic.transition(snapshot, event);
+      const isEventSkipped = options?.skipEvent?.(event, snapshot);
+      const events = isEventSkipped
+        ? snapshot.events
+        : snapshot.events.concat({
+            event,
+            transactionId: options?.getTransactionId?.(event, snapshot)
+          });
+
       return [
         {
           ...state,
-          events: events.concat({
-            event,
-            transactionId: options?.getTransactionId?.(event)
-          }),
+          events,
           // Clear the undo stack when new events occur
           undoStack: []
         },

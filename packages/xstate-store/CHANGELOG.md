@@ -1,5 +1,100 @@
 # @xstate/store
 
+## 3.11.2
+
+### Patch Changes
+
+- [#5401](https://github.com/statelyai/xstate/pull/5401) [`d345e1f`](https://github.com/statelyai/xstate/commit/d345e1fa497c2196e296512937ed52e1c76fd6be) Thanks [@davidkpiano](https://github.com/davidkpiano)! - - Fix type inference for emitted event types when using `undoRedo`.
+
+## 3.11.1
+
+### Patch Changes
+
+- [#5395](https://github.com/statelyai/xstate/pull/5395) [`8408430`](https://github.com/statelyai/xstate/commit/84084304a1daf19593e8a1c4b13fb73b901a06e8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix redo logic bug where redo would apply too many events when no transaction grouping is used
+
+## 3.11.0
+
+### Minor Changes
+
+- [#5393](https://github.com/statelyai/xstate/pull/5393) [`6d00d3f`](https://github.com/statelyai/xstate/commit/6d00d3fd3cdb27b3bb19557cc9ee84f85bd38fe8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `snapshot` parameter to `getTransactionId` function.
+
+  ```ts
+  const store = createStore(
+    undo(
+      {
+        // ...
+      },
+      {
+        getTransactionId: (event, snapshot) =>
+          snapshot.context.currentTransactionId
+      }
+    )
+  );
+  ```
+
+- [#5392](https://github.com/statelyai/xstate/pull/5392) [`5854b52`](https://github.com/statelyai/xstate/commit/5854b52c3fa1915f7f4620f144482d164af535e8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added an overload to `useSelector` that allows you to select the entire snapshot:
+
+  ```ts
+  // No selector provided, return the entire snapshot
+  const snapshot = useSelector(store);
+  ```
+
+- [#5393](https://github.com/statelyai/xstate/pull/5393) [`6d00d3f`](https://github.com/statelyai/xstate/commit/6d00d3fd3cdb27b3bb19557cc9ee84f85bd38fe8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `skipEvent` option to `undoRedo()` to exclude certain events from undo/redo history.
+
+  ```ts
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 }),
+          log: (ctx) => ctx // No state change
+        }
+      },
+      {
+        skipEvent: (event, snapshot) => event.type === 'log'
+      }
+    )
+  );
+  ```
+
+## 3.10.0
+
+### Minor Changes
+
+- [#5323](https://github.com/statelyai/xstate/pull/5323) [`cb08332`](https://github.com/statelyai/xstate/commit/cb0833241cb2c0d2a908c413e79fc07b3d7a5fd9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added support for effect-only transitions that don't trigger state updates. Now, when a transition returns the same state but includes effects, subscribers won't be notified of a state change, but the effects will still be executed. This helps prevent unnecessary re-renders while maintaining side effect functionality.
+
+  ```ts
+  it('should not trigger update if the snapshot is the same even if there are effects', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        doNothing: (ctx, _, enq) => {
+          enq.effect(() => {
+            // …
+          });
+          return ctx; // Context is the same, so no update is triggered
+          // This is the same as not returning anything (void)
+        }
+      }
+    });
+
+    const spy = vi.fn();
+    store.subscribe(spy);
+
+    store.trigger.doNothing();
+    store.trigger.doNothing();
+
+    expect(spy).toHaveBeenCalledTimes(0);
+  });
+  ```
+
+## 3.9.3
+
+### Patch Changes
+
+- [#5383](https://github.com/statelyai/xstate/pull/5383) [`4b6a513`](https://github.com/statelyai/xstate/commit/4b6a513ebd7ee1ab067856be4b431651b491cba5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix: `trigger` methods now work when passed directly as event handlers, even for events with no payload. Before, the React `event.type` would overwrite the intended event type.
+
 ## 3.9.2
 
 ### Patch Changes
