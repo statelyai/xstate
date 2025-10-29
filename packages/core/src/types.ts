@@ -765,17 +765,82 @@ export type InvokeConfig<
   TMeta extends MetaObject
 > =
   IsLiteralString<TActor['src']> extends true
-    ? DistributeActors<
-        TContext,
-        TEvent,
-        TActor,
-        TAction,
-        TGuard,
-        TDelay,
-        TEmitted,
-        TMeta,
-        TActor
-      >
+    ?
+        | DistributeActors<
+            TContext,
+            TEvent,
+            TActor,
+            TAction,
+            TGuard,
+            TDelay,
+            TEmitted,
+            TMeta,
+            TActor
+          >
+        | {
+            id?: never;
+
+            systemId?: string;
+            src: AnyActorLogic;
+
+            input?:
+              | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
+              | NonReducibleUnknown;
+            /**
+             * The transition to take upon the invoked child machine reaching
+             * its final top-level state.
+             */
+            onDone?:
+              | string
+              | SingleOrArray<
+                  TransitionConfigOrTarget<
+                    TContext,
+                    DoneActorEvent<any>, // TODO: consider replacing with `unknown`
+                    TEvent,
+                    TActor,
+                    TAction,
+                    TGuard,
+                    TDelay,
+                    TEmitted,
+                    TMeta
+                  >
+                >;
+            /**
+             * The transition to take upon the invoked child machine sending an
+             * error event.
+             */
+            onError?:
+              | string
+              | SingleOrArray<
+                  TransitionConfigOrTarget<
+                    TContext,
+                    ErrorActorEvent,
+                    TEvent,
+                    TActor,
+                    TAction,
+                    TGuard,
+                    TDelay,
+                    TEmitted,
+                    TMeta
+                  >
+                >;
+
+            onSnapshot?:
+              | string
+              | SingleOrArray<
+                  TransitionConfigOrTarget<
+                    TContext,
+                    SnapshotEvent,
+                    TEvent,
+                    TActor,
+                    TAction,
+                    TGuard,
+                    TDelay,
+                    TEmitted,
+                    TMeta
+                  >
+                >;
+          }
     : {
         /**
          * The unique identifier for the invoked machine. If not specified, this
