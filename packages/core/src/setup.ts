@@ -115,9 +115,9 @@ type SetupReturn<
         TEvent,
         TExtendActions[K],
         ToProvidedActor<TChildrenMap, TActors>,
-        ToParameterizedObject<TActions>,
-        ToParameterizedObject<TGuards>,
-        TDelay,
+        ToParameterizedObject<TActions & TExtendActions>,
+        ToParameterizedObject<TGuards & TExtendGuards>,
+        TDelay | TExtendDelays,
         TEmitted
       >;
     };
@@ -126,14 +126,14 @@ type SetupReturn<
         TContext,
         TEvent,
         TExtendGuards[K],
-        ToParameterizedObject<TGuards>
+        ToParameterizedObject<TGuards & TExtendGuards>
       >;
     };
     delays?: {
       [K in TExtendDelays]: DelayConfig<
         TContext,
         TEvent,
-        ToParameterizedObject<TActions>['params'],
+        ToParameterizedObject<TActions & TExtendActions>['params'],
         TEvent
       >;
     };

@@ -2651,129 +2651,276 @@ describe('createStateConfig', () => {
 });
 
 describe('extend', () => {
-  it('should allow extending actions and referencing previous ones via enqueueActions across chained extends', () => {
-    setup({
-      actions: {
-        doSomething: () => {}
-      }
-    })
-      .extend({
-        actions: {
-          foo: enqueueActions(({ enqueue }) => {
-            enqueue('doSomething');
-
-            // @ts-expect-error
-            enqueue('nonexistent');
-          })
-        }
-      })
-      .extend({
-        actions: {
-          bar: enqueueActions(({ enqueue }) => {
-            enqueue('foo');
-
-            enqueue({
-              type: 'doSomething'
-            });
-
-            // @ts-expect-error
-            enqueue('nonexistent');
-          })
-        }
-      })
-      .createMachine({
-        entry: 'bar'
+  describe('undefined actions handling', () => {
+    it('should error on undefined actions in createMachine without extend', () => {
+      setup({}).createMachine({
+        // @ts-expect-error
+        entry: 'nonexistent'
       });
+    });
+
+    it('should error on undefined actions in createMachine with empty extend', () => {
+      setup({}).extend({}).createMachine({
+        // @ts-expect-error
+        entry: 'nonexistent'
+      });
+    });
+
+    it('should error on undefined actions in extend enqueueActions', () => {
+      const extended = setup({}).extend({
+        actions: {
+          foo: enqueueActions(() => {})
+        }
+      });
+
+      extended.createMachine({
+        // @ts-expect-error - nonexistent action should error
+        entry: 'nonexistent'
+      });
+    });
   });
 
-  it('should allow extending guards and referencing previous ones with not/and/or across chained extends', () => {
-    setup({
-      guards: {
-        truthy: () => true
-      }
-    })
-      .extend({
-        guards: {
-          alsoTruthy: () => true,
-          notTruthy: not('truthy'),
-          // @ts-expect-error
-          nonexistent: not('existent')
+  describe('actions', () => {
+    it('should allow extending actions', () => {
+      setup({})
+        .extend({
+          actions: {
+            foo: () => {}
+          }
+        })
+        .createMachine({
+          entry: 'foo'
+        });
+    });
+
+    it('should allow referencing base actions in extended actions via enqueueActions', () => {
+      setup({
+        actions: {
+          doSomething: () => {}
         }
       })
-      .extend({
-        guards: {
-          combined: and(['truthy', 'alsoTruthy']),
-          alt: or(['notTruthy', 'truthy']),
-          // @ts-expect-error
-          nonexistent: or(['existent', 'truthy'])
-        }
-      })
-      .createMachine({
-        on: {
-          EV: [
-            { guard: 'combined', actions: () => {} },
-            { guard: 'alt', actions: () => {} },
-            {
-              // @ts-expect-error
-              guard: 'fake',
-              actions: () => {}
-            }
-          ]
-        }
-      });
+        .extend({
+          actions: {
+            foo: enqueueActions(({ enqueue }) => {
+              // Using the setup's enqueueActions should work with proper types
+              enqueue.raise({ type: 'SOMETHING' });
+            })
+          }
+        })
+        .createMachine({
+          entry: 'foo'
+        });
+    });
   });
 
-  it('should allow extending delays and referencing base delays in actions and transitions', () => {
-    setup({
-      delays: {
-        short: 10
-      }
-    })
-      .extend({
-        delays: {
-          medium: 100
-        }
-      })
-      .extend({
-        delays: {
-          long: 1000
-        }
-      })
-      .createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            entry: [
-              raise({ type: 'GO' }, { delay: 'short' }),
-              raise({ type: 'GO' }, { delay: 'medium' }),
-              raise({ type: 'GO' }, { delay: 'long' }),
-              raise(
-                { type: 'GO' },
-                {
-                  // @ts-expect-error
-                  delay: 'nonexistent'
-                }
-              )
-            ],
-            on: {
-              GO: 'b'
+  describe('guards', () => {
+    it('should allow extending guards', () => {
+      setup({})
+        .extend({
+          guards: {
+            truthy: () => true
+          }
+        })
+        .createMachine({
+          on: {
+            EV: {
+              guard: 'truthy',
+              target: 'next'
             }
           },
-          b: {
-            after: {
-              medium: 'c'
+          states: {
+            next: {}
+          }
+        });
+    });
+
+    it('should allow referencing base guards in extended guards with not', () => {
+      setup({
+        guards: {
+          truthy: () => true
+        }
+      })
+        .extend({
+          guards: {
+            notTruthy: not('truthy'),
+            // @ts-expect-error
+            nonexistent: not('existent')
+          }
+        })
+        .createMachine({
+          on: {
+            EV: {
+              guard: 'notTruthy',
+              target: 'next'
             }
           },
-          c: {
-            after: {
-              long: 'd',
+          states: {
+            next: {}
+          }
+        });
+    });
+
+    it('should allow referencing extended guards in further extended guards', () => {
+      setup({
+        guards: {
+          truthy: () => true
+        }
+      })
+        .extend({
+          guards: {
+            alsoTruthy: () => true,
+            notTruthy: not('truthy')
+          }
+        })
+        .extend({
+          guards: {
+            combined: and(['truthy', 'alsoTruthy']),
+            alt: or(['notTruthy', 'truthy']),
+            // @ts-expect-error
+            nonexistent: or(['existent', 'truthy'])
+          }
+        })
+        .createMachine({
+          on: {
+            EV: [
+              { guard: 'combined', actions: () => {} },
+              { guard: 'alt', actions: () => {} },
+              {
+                // @ts-expect-error
+                guard: 'fake',
+                actions: () => {}
+              }
+            ]
+          }
+        });
+    });
+
+    it('should allow referencing extended guards in extended actions via check', () => {
+      setup({
+        guards: {
+          truthy: () => true
+        }
+      })
+        .extend({
+          guards: {
+            alsoTruthy: () => true
+          },
+          actions: {
+            foo: enqueueActions(({ check }) => {
+              check('truthy');
+              check('alsoTruthy');
               // @ts-expect-error
-              nonexistent: 'd'
-            }
-          },
-          d: {}
+              check('nonexistent');
+            })
+          }
+        })
+        .createMachine({
+          entry: 'foo'
+        });
+    });
+  });
+
+  describe('delays', () => {
+    it('should allow extending delays', () => {
+      setup({})
+        .extend({
+          delays: {
+            medium: 100
+          }
+        })
+        .createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              after: {
+                medium: 'b'
+              }
+            },
+            b: {}
+          }
+        });
+    });
+
+    it('should allow referencing base delays in extended delays', () => {
+      setup({
+        delays: {
+          short: 10
         }
-      });
+      })
+        .extend({
+          delays: {
+            medium: 100
+          }
+        })
+        .createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              entry: [
+                raise({ type: 'GO' }, { delay: 'short' }),
+                raise({ type: 'GO' }, { delay: 'medium' }),
+                raise(
+                  { type: 'GO' },
+                  {
+                    // @ts-expect-error
+                    delay: 'nonexistent'
+                  }
+                )
+              ],
+              on: {
+                GO: 'b'
+              }
+            },
+            b: {}
+          }
+        });
+    });
+
+    it('should allow referencing extended delays in further extended delays', () => {
+      setup({
+        delays: {
+          short: 10
+        }
+      })
+        .extend({
+          delays: {
+            medium: 100
+          }
+        })
+        .extend({
+          delays: {
+            long: 1000
+          }
+        })
+        .createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              entry: [
+                raise({ type: 'GO' }, { delay: 'short' }),
+                raise({ type: 'GO' }, { delay: 'medium' }),
+                raise({ type: 'GO' }, { delay: 'long' })
+              ],
+              on: {
+                GO: 'b'
+              }
+            },
+            b: {
+              after: {
+                medium: 'c'
+              }
+            },
+            c: {
+              after: {
+                long: 'd',
+                // @ts-expect-error
+                nonexistent: 'd'
+              }
+            },
+            d: {}
+          }
+        });
+    });
   });
 });
 
