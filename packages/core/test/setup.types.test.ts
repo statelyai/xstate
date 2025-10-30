@@ -2667,15 +2667,13 @@ describe('extend', () => {
     });
 
     it('should error on undefined actions in extend enqueueActions', () => {
-      const extended = setup({}).extend({
+      setup({}).extend({
         actions: {
-          foo: enqueueActions(() => {})
+          foo: enqueueActions(({ enqueue }) => {
+            // @ts-expect-error
+            enqueue('nonexistent');
+          })
         }
-      });
-
-      extended.createMachine({
-        // @ts-expect-error - nonexistent action should error
-        entry: 'nonexistent'
       });
     });
   });
