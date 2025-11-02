@@ -4,7 +4,8 @@ import {
   ActorSystem,
   AnyStateMachine,
   EventObject,
-  Snapshot
+  Snapshot,
+  StateMachine
 } from '../index.ts';
 import { getAdjacencyMap } from './adjacency.ts';
 import {
@@ -23,7 +24,7 @@ import { alterPath } from './alterPath.ts';
 import { createMockActorScope } from './actorScope.ts';
 
 function isMachine(value: any): value is AnyStateMachine {
-  return !!value && '__xstatenode' in value;
+  return !!value && value instanceof StateMachine;
 }
 
 export function getPathsFromEvents<

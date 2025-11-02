@@ -95,9 +95,6 @@ export class StateMachine<
   public implementations: Implementations;
 
   /** @internal */
-  public __xstatenode = true as const;
-
-  /** @internal */
   public idMap: Map<string, StateNode<TContext, TEvent>> = new Map();
 
   public root: StateNode<TContext, TEvent>;
@@ -286,8 +283,7 @@ export class StateMachine<
     TMeta,
     TConfig
   > {
-    return macrostep(snapshot, event, actorScope, [])
-      .snapshot as typeof snapshot;
+    return macrostep(snapshot, event, actorScope, []).snapshot;
   }
 
   /**
