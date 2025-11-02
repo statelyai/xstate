@@ -34,7 +34,10 @@ docs/.cache
 .cache
 
 # Docs
-api/
+# api/
 
 # pnpm
 .pnpm-lock.yaml
+
+# Examples
+examples/**/.next/
