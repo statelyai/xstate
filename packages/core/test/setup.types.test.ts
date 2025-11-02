@@ -2722,12 +2722,12 @@ describe('extend', () => {
         .createMachine({
           on: {
             EV: {
-              guard: 'truthy',
-              target: 'next'
+              guard: 'truthy'
+            },
+            // @ts-expect-error
+            EV2: {
+              guard: 'notTruthy'
             }
-          },
-          states: {
-            next: {}
           }
         });
     });
@@ -2748,12 +2748,12 @@ describe('extend', () => {
         .createMachine({
           on: {
             EV: {
-              guard: 'notTruthy',
-              target: 'next'
+              guard: 'notTruthy'
+            },
+            // @ts-expect-error
+            EV2: {
+              guard: 'notNotNotTruthy'
             }
-          },
-          states: {
-            next: {}
           }
         });
     });
