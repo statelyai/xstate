@@ -1,5 +1,44 @@
 # xstate
 
+## 5.24.0
+
+### Minor Changes
+
+- [#5371](https://github.com/statelyai/xstate/pull/5371) [`b8ec3b1`](https://github.com/statelyai/xstate/commit/b8ec3b153fbacae078c03cd07678271e0456679a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `setup.extend()` method to incrementally extend machine setup configurations with additional actions, guards, and delays. This enables composable and reusable machine setups where extended actions, guards, and delays can reference base actions, guards, and delays and support chaining multiple extensions:
+
+  ```ts
+  import { setup, not, and } from 'xstate';
+
+  const baseSetup = setup({
+    guards: {
+      isAuthenticated: () => true,
+      hasPermission: () => false
+    }
+  });
+
+  const extendedSetup = baseSetup.extend({
+    guards: {
+      // Type-safe guard references
+      isUnauthenticated: not('isAuthenticated'),
+      canAccess: and(['isAuthenticated', 'hasPermission'])
+    }
+  });
+
+  // Both base and extended guards are available
+  extendedSetup.createMachine({
+    on: {
+      LOGIN: {
+        guard: 'isAuthenticated',
+        target: 'authenticated'
+      },
+      LOGOUT: {
+        guard: 'isUnauthenticated',
+        target: 'unauthenticated'
+      }
+    }
+  });
+  ```
+
 ## 5.23.0
 
 ### Minor Changes
