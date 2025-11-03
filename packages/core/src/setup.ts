@@ -79,82 +79,78 @@ type ToProvidedActor<
 type RequiredSetupKeys<TChildrenMap> =
   IsNever<keyof TChildrenMap> extends true ? never : 'actors';
 
-export function setup<
+type SetupReturn<
   TContext extends MachineContext,
-  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TActors extends Record<string, UnknownActorLogic> = {},
-  TChildrenMap extends Record<string, string> = {},
-  TActions extends Record<
-    string,
-    ParameterizedObject['params'] | undefined
-  > = {},
-  TGuards extends Record<
-    string,
-    ParameterizedObject['params'] | undefined
-  > = {},
-  TDelay extends string = never,
-  TTag extends string = string,
-  TInput = NonReducibleUnknown,
-  TOutput extends NonReducibleUnknown = NonReducibleUnknown,
-  TEmitted extends EventObject = EventObject,
-  TMeta extends MetaObject = MetaObject
->({
-  schemas,
-  actors,
-  actions,
-  guards,
-  delays
-}: {
-  schemas?: unknown;
-  types?: SetupTypes<
+  TEvent extends AnyEventObject,
+  TActors extends Record<string, UnknownActorLogic>,
+  TChildrenMap extends Record<string, string>,
+  TActions extends Record<string, ParameterizedObject['params'] | undefined>,
+  TGuards extends Record<string, ParameterizedObject['params'] | undefined>,
+  TDelay extends string,
+  TTag extends string,
+  TInput,
+  TOutput extends NonReducibleUnknown,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject
+> = {
+  extend: <
+    TExtendActions extends Record<
+      string,
+      ParameterizedObject['params'] | undefined
+    > = {},
+    TExtendGuards extends Record<
+      string,
+      ParameterizedObject['params'] | undefined
+    > = {},
+    TExtendDelays extends string = never
+  >({
+    actions,
+    guards,
+    delays
+  }: {
+    actions?: {
+      [K in keyof TExtendActions]: ActionFunction<
+        TContext,
+        TEvent,
+        TEvent,
+        TExtendActions[K],
+        ToProvidedActor<TChildrenMap, TActors>,
+        ToParameterizedObject<TActions & TExtendActions>,
+        ToParameterizedObject<TGuards & TExtendGuards>,
+        TDelay | TExtendDelays,
+        TEmitted
+      >;
+    };
+    guards?: {
+      [K in keyof TExtendGuards]: GuardPredicate<
+        TContext,
+        TEvent,
+        TExtendGuards[K],
+        ToParameterizedObject<TGuards & TExtendGuards>
+      >;
+    };
+    delays?: {
+      [K in TExtendDelays]: DelayConfig<
+        TContext,
+        TEvent,
+        ToParameterizedObject<TActions & TExtendActions>['params'],
+        TEvent
+      >;
+    };
+  }) => SetupReturn<
     TContext,
     TEvent,
+    TActors,
     TChildrenMap,
+    TActions & TExtendActions,
+    TGuards & TExtendGuards,
+    TDelay | TExtendDelays,
     TTag,
     TInput,
     TOutput,
     TEmitted,
     TMeta
   >;
-  actors?: {
-    // union here enforces that all configured children have to be provided in actors
-    // it makes those values required here
-    [K in keyof TActors | Values<TChildrenMap>]: K extends keyof TActors
-      ? TActors[K]
-      : never;
-  };
-  actions?: {
-    [K in keyof TActions]: ActionFunction<
-      TContext,
-      TEvent,
-      TEvent,
-      TActions[K],
-      ToProvidedActor<TChildrenMap, TActors>,
-      ToParameterizedObject<TActions>,
-      ToParameterizedObject<TGuards>,
-      TDelay,
-      TEmitted
-    >;
-  };
-  guards?: {
-    [K in keyof TGuards]: GuardPredicate<
-      TContext,
-      TEvent,
-      TGuards[K],
-      ToParameterizedObject<TGuards>
-    >;
-  };
-  delays?: {
-    [K in TDelay]: DelayConfig<
-      TContext,
-      TEvent,
-      ToParameterizedObject<TActions>['params'],
-      TEvent
-    >;
-  };
-} & {
-  [K in RequiredSetupKeys<TChildrenMap>]: unknown;
-}): {
   /**
    * Creates a state config that is strongly typed. This state config can be
    * used to create a machine.
@@ -327,7 +323,97 @@ export function setup<
     TEvent,
     ToProvidedActor<TChildrenMap, TActors>
   >;
-} {
+};
+
+export function setup<
+  TContext extends MachineContext,
+  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TActors extends Record<string, UnknownActorLogic> = {},
+  TChildrenMap extends Record<string, string> = {},
+  TActions extends Record<
+    string,
+    ParameterizedObject['params'] | undefined
+  > = {},
+  TGuards extends Record<
+    string,
+    ParameterizedObject['params'] | undefined
+  > = {},
+  TDelay extends string = never,
+  TTag extends string = string,
+  TInput = NonReducibleUnknown,
+  TOutput extends NonReducibleUnknown = NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject,
+  TMeta extends MetaObject = MetaObject
+>({
+  schemas,
+  actors,
+  actions,
+  guards,
+  delays
+}: {
+  schemas?: unknown;
+  types?: SetupTypes<
+    TContext,
+    TEvent,
+    TChildrenMap,
+    TTag,
+    TInput,
+    TOutput,
+    TEmitted,
+    TMeta
+  >;
+  actors?: {
+    // union here enforces that all configured children have to be provided in actors
+    // it makes those values required here
+    [K in keyof TActors | Values<TChildrenMap>]: K extends keyof TActors
+      ? TActors[K]
+      : never;
+  };
+  actions?: {
+    [K in keyof TActions]: ActionFunction<
+      TContext,
+      TEvent,
+      TEvent,
+      TActions[K],
+      ToProvidedActor<TChildrenMap, TActors>,
+      ToParameterizedObject<TActions>,
+      ToParameterizedObject<TGuards>,
+      TDelay,
+      TEmitted
+    >;
+  };
+  guards?: {
+    [K in keyof TGuards]: GuardPredicate<
+      TContext,
+      TEvent,
+      TGuards[K],
+      ToParameterizedObject<TGuards>
+    >;
+  };
+  delays?: {
+    [K in TDelay]: DelayConfig<
+      TContext,
+      TEvent,
+      ToParameterizedObject<TActions>['params'],
+      TEvent
+    >;
+  };
+} & {
+  [K in RequiredSetupKeys<TChildrenMap>]: unknown;
+}): SetupReturn<
+  TContext,
+  TEvent,
+  TActors,
+  TChildrenMap,
+  TActions,
+  TGuards,
+  TDelay,
+  TTag,
+  TInput,
+  TOutput,
+  TEmitted,
+  TMeta
+> {
   return {
     assign,
     sendTo,
@@ -349,6 +435,14 @@ export function setup<
           guards,
           delays
         }
-      )
+      ),
+    extend: (extended) =>
+      setup({
+        schemas,
+        actors,
+        actions: { ...actions, ...extended.actions },
+        guards: { ...guards, ...extended.guards },
+        delays: { ...delays, ...extended.delays }
+      } as any)
   };
 }
