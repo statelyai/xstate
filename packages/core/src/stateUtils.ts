@@ -56,8 +56,9 @@ type AnyStateNodeIterable = StateNodeIterable<any, any>;
 
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 
-const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
-  stateNode.type === 'atomic' || stateNode.type === 'final';
+export function isAtomicStateNode(stateNode: StateNode<any, any>) {
+  return stateNode.type === 'atomic' || stateNode.type === 'final';
+}
 
 function getChildren<TContext extends MachineContext, TE extends EventObject>(
   stateNode: StateNode<TContext, TE>
@@ -65,7 +66,7 @@ function getChildren<TContext extends MachineContext, TE extends EventObject>(
   return Object.values(stateNode.states).filter((sn) => sn.type !== 'history');
 }
 
-function getProperAncestors(
+export function getProperAncestors(
   stateNode: AnyStateNode,
   toStateNode: AnyStateNode | undefined
 ): Array<typeof stateNode> {
@@ -1752,44 +1753,6 @@ function selectTransitions(
   nextState: AnyMachineSnapshot
 ): AnyTransitionDefinition[] {
   return nextState.machine.getTransitionData(nextState as any, event);
-}
-
-/**
- * Gets all potential next transitions from the current state.
- *
- * @param state - The current machine snapshot
- * @returns Array of transition definitions from the current state
- */
-export function getPotentialTransitions(
-  state: AnyMachineSnapshot
-): AnyTransitionDefinition[] {
-  const potentialTransitions: AnyTransitionDefinition[] = [];
-  const atomicStates = state._nodes.filter(isAtomicStateNode);
-  const processedEventTypes = new Set<string>();
-
-  // Collect all transitions from atomic states and their ancestors
-  for (const stateNode of atomicStates) {
-    for (const s of [stateNode].concat(
-      getProperAncestors(stateNode, undefined)
-    )) {
-      // Get all transitions for each event type
-      for (const [eventType, transitions] of s.transitions) {
-        if (processedEventTypes.has(eventType)) {
-          continue;
-        }
-
-        potentialTransitions.push(...transitions);
-        processedEventTypes.add(eventType);
-      }
-
-      // Also include always (eventless) transitions
-      if (s.always) {
-        potentialTransitions.push(...s.always);
-      }
-    }
-  }
-
-  return potentialTransitions;
 }
 
 function selectEventlessTransitions(

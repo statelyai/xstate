@@ -19,10 +19,9 @@ import {
   transition
 } from '../src';
 import { createDoneActorEvent } from '../src/eventUtils';
-import { initialTransition } from '../src/transition';
+import { initialTransition, getPotentialTransitions } from '../src';
 import assert from 'node:assert';
 import { resolveReferencedActor } from '../src/utils';
-import { getPotentialTransitions } from '../src/stateUtils';
 
 describe('transition function', () => {
   it('should capture actions', () => {
