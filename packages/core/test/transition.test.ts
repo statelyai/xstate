@@ -22,6 +22,7 @@ import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
 import assert from 'node:assert';
 import { resolveReferencedActor } from '../src/utils';
+import { getPotentialTransitions } from '../src/stateUtils';
 
 describe('transition function', () => {
   it('should capture actions', () => {
@@ -568,5 +569,188 @@ describe('transition function', () => {
 
     await sleep(10);
     expect(JSON.parse(db.state).value).toBe('finish');
+  });
+});
+
+describe('getPotentialTransitions', () => {
+  it('should return all transitions from current state', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            GO_B: 'b',
+            GO_C: 'c'
+          }
+        },
+        b: {},
+        c: {}
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+    const state = actor.getSnapshot();
+
+    const transitions = getPotentialTransitions(state);
+
+    expect(transitions).toHaveLength(2);
+    expect(transitions.map((t) => t.eventType).sort()).toEqual([
+      'GO_B',
+      'GO_C'
+    ]);
+  });
+
+  it('should include guarded transitions regardless of guard result', () => {
+    const machine = createMachine({
+      initial: 'a',
+      context: { count: 100 },
+      states: {
+        a: {
+          on: {
+            GO_B: [
+              {
+                guard: ({ context }) => context.count < 10,
+                target: 'b'
+              },
+              {
+                target: 'd'
+              }
+            ],
+            GO_C: {
+              guard: ({ context }) => context.count > 50,
+              target: 'c'
+            }
+          }
+        },
+        b: {},
+        c: {},
+        d: {}
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+    const state = actor.getSnapshot();
+
+    const transitions = getPotentialTransitions(state);
+
+    expect(transitions).toHaveLength(3);
+    expect(transitions.map((t) => t.eventType).sort()).toEqual([
+      'GO_B',
+      'GO_B',
+      'GO_C'
+    ]);
+    expect(transitions.map((t) => t.target?.[0]?.key).sort()).toEqual([
+      'b',
+      'c',
+      'd'
+    ]);
+  });
+
+  it('should include always (eventless) transitions', () => {
+    const machine = createMachine({
+      initial: 'a',
+      context: { count: 5 },
+      states: {
+        a: {
+          always: [
+            { guard: ({ context }) => context.count > 10, target: 'b' },
+            { guard: () => false, target: 'c' }
+          ],
+          on: {
+            GO_D: 'd'
+          }
+        },
+        b: {},
+        c: {},
+        d: {}
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+    const state = actor.getSnapshot();
+
+    const transitions = getPotentialTransitions(state);
+
+    expect(transitions).toHaveLength(3);
+    expect(transitions.map((t) => t.eventType).sort()).toEqual([
+      '',
+      '',
+      'GO_D'
+    ]);
+    expect(transitions.map((t) => t.target?.[0]?.key).sort()).toEqual([
+      'b',
+      'c',
+      'd'
+    ]);
+  });
+
+  it('should include after (delayed) transitions', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          after: {
+            1000: 'b'
+          },
+          on: {
+            GO_C: 'c'
+          }
+        },
+        b: {},
+        c: {}
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+    const state = actor.getSnapshot();
+
+    const transitions = getPotentialTransitions(state);
+
+    expect(transitions).toHaveLength(2);
+    expect(transitions.map((t) => t.eventType).sort()).toEqual([
+      'GO_C',
+      'xstate.after.1000.(machine).a'
+    ]);
+    expect(transitions.map((t) => t.target?.[0]?.key).sort()).toEqual([
+      'b',
+      'c'
+    ]);
+  });
+
+  it('should include transitions from parent states', () => {
+    const machine = createMachine({
+      initial: 'parent',
+      states: {
+        parent: {
+          initial: 'child',
+          on: {
+            PARENT_EVENT: 'other'
+          },
+          states: {
+            child: {
+              on: {
+                CHILD_EVENT: 'sibling'
+              }
+            },
+            sibling: {}
+          }
+        },
+        other: {}
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+    const state = actor.getSnapshot();
+
+    const transitions = getPotentialTransitions(state);
+
+    const eventTypes = transitions.map((t) => t.eventType);
+    expect(eventTypes).toContain('CHILD_EVENT');
+    expect(eventTypes).toContain('PARENT_EVENT');
   });
 });
