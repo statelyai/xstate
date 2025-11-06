@@ -241,11 +241,6 @@ export class StateNode<
     });
   }
 
-  /** @internal */
-  public toJSON() {
-    return this.definition;
-  }
-
   /** The logic invoked as actors by this state node. */
   public get invoke(): Array<
     InvokeDefinition<
@@ -263,10 +258,7 @@ export class StateNode<
       toArray(this.config.invoke).map((invokeConfig, i) => {
         const { src, systemId } = invokeConfig;
         const resolvedId = invokeConfig.id ?? createInvokeId(this.id, i);
-        const sourceName =
-          typeof src === 'string'
-            ? src
-            : `xstate.invoke.${createInvokeId(this.id, i)}`;
+        const sourceName = `xstate.invoke.${createInvokeId(this.id, i)}`;
 
         return {
           ...invokeConfig,
@@ -336,7 +328,6 @@ export class StateNode<
     self: AnyActorRef
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;
-    const actions: UnknownAction[] = [];
 
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
@@ -499,7 +490,16 @@ export function formatInitialTransition<
   _target:
     | string
     | undefined
-    | InitialTransitionConfig<TContext, TEvent, TODO, TODO, TODO, TODO>
+    | InitialTransitionConfig<
+        TContext,
+        TEvent,
+        TODO,
+        TODO,
+        TODO,
+        TODO,
+        TODO,
+        TODO
+      >
     | TransitionConfigFunction<
         TContext,
         TEvent,

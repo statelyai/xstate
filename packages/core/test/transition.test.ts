@@ -2,11 +2,12 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import {
   next_createMachine,
   EventFrom,
-  ExecutableActionsFrom,
   fromPromise,
   fromTransition,
   toPromise,
-  transition
+  transition,
+  ExecutableActionObject,
+  SpecialExecutableAction
 } from '../src';
 import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
@@ -450,7 +451,7 @@ describe('transition function', () => {
       }
     });
 
-    async function execute(action: ExecutableActionsFrom<typeof machine>) {
+    async function execute(action: SpecialExecutableAction) {
       if (action.type === '@xstate.raise' && action.args[2]?.delay) {
         const currentTime = Date.now();
         const startedAt = currentTime;
@@ -531,7 +532,7 @@ describe('transition function', () => {
 
     const calls: string[] = [];
 
-    async function execute(action: ExecutableActionsFrom<typeof machine>) {
+    async function execute(action: SpecialExecutableAction) {
       switch (action.type) {
         case '@xstate.start': {
           action.exec.apply(null, action.args);
