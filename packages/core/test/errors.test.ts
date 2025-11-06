@@ -40,6 +40,11 @@ describe('error handling', () => {
     const machine = next_createMachine({
       id: 'machine',
       initial: 'initial',
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 0
       },
@@ -80,6 +85,11 @@ describe('error handling', () => {
     const machine = next_createMachine({
       id: 'machine',
       initial: 'initial',
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 0
       },
@@ -129,6 +139,11 @@ describe('error handling', () => {
     const machine = next_createMachine({
       id: 'machine',
       initial: 'initial',
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 0
       },

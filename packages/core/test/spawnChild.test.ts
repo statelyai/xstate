@@ -56,6 +56,11 @@ describe.skip('spawnChild action', () => {
     const { promise, resolve } = Promise.withResolvers<void>();
     const observableLogic = fromObservable(() => interval(10));
     const observableMachine = next_createMachine({
+      schemas: {
+        context: z.object({
+          observableRef: z.custom<ActorRefFrom<typeof observableLogic>>()
+        })
+      },
       id: 'observable',
       initial: 'idle',
       context: {

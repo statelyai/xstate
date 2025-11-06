@@ -1,8 +1,14 @@
+import { z } from 'zod';
 import { next_createMachine, createActor, matchesState } from '../src/index';
 
 const greetingContext = { hour: 10 };
 const greetingMachine = next_createMachine({
   // types: {} as { context: typeof greetingContext },
+  schemas: {
+    context: z.object({
+      hour: z.number()
+    })
+  },
   id: 'greeting',
   initial: 'pending',
   context: greetingContext,
@@ -36,6 +42,11 @@ describe('transient states (eventless transitions)', () => {
   it('should choose the first candidate target that matches the guard 1', () => {
     const machine = next_createMachine({
       // types: {} as { context: { data: boolean } },
+      schemas: {
+        context: z.object({
+          data: z.boolean()
+        })
+      },
       context: { data: false },
       initial: 'G',
       states: {
@@ -65,6 +76,12 @@ describe('transient states (eventless transitions)', () => {
   it('should choose the first candidate target that matches the guard 2', () => {
     const machine = next_createMachine({
       // types: {} as { context: { data: boolean; status?: string } },
+      schemas: {
+        context: z.object({
+          data: z.boolean(),
+          status: z.string().optional()
+        })
+      },
       context: { data: false },
       initial: 'G',
       states: {
@@ -94,6 +111,12 @@ describe('transient states (eventless transitions)', () => {
   it('should choose the final candidate without a guard if none others match', () => {
     const machine = next_createMachine({
       // types: {} as { context: { data: boolean; status?: string } },
+      schemas: {
+        context: z.object({
+          data: z.boolean(),
+          status: z.string().optional()
+        })
+      },
       context: { data: true },
       initial: 'G',
       states: {
@@ -405,6 +428,11 @@ describe('transient states (eventless transitions)', () => {
   it('should work with transient transition on root', () => {
     const machine = next_createMachine({
       // types: {} as { context: { count: number } },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       id: 'machine',
       initial: 'first',
       context: { count: 0 },
@@ -439,12 +467,17 @@ describe('transient states (eventless transitions)', () => {
   it("shouldn't crash when invoking a machine with initial transient transition depending on custom data", () => {
     const timerMachine = next_createMachine({
       initial: 'initial',
+      schemas: {
+        context: z.object({
+          duration: z.number()
+        }),
+        input: z.object({
+          duration: z.number()
+        })
+      },
       context: ({ input }: { input: { duration: number } }) => ({
         duration: input.duration
       }),
-      // types: {
-      //   context: {} as { duration: number }
-      // },
       states: {
         initial: {
           always: ({ context }) => {
@@ -461,6 +494,11 @@ describe('transient states (eventless transitions)', () => {
     });
 
     const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          customDuration: z.number()
+        })
+      },
       initial: 'active',
       context: {
         customDuration: 3000
@@ -565,6 +603,12 @@ describe('transient states (eventless transitions)', () => {
     expect.assertions(2);
 
     const machine = next_createMachine({
+      schemas: {
+        events: z.object({
+          type: z.literal('EVENT'),
+          value: z.number()
+        })
+      },
       initial: 'a',
       states: {
         a: {
@@ -697,6 +741,11 @@ describe('transient states (eventless transitions)', () => {
 
   it('should loop (but not infinitely) for assign actions', () => {
     const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: { count: 0 },
       initial: 'counting',
       states: {
@@ -704,9 +753,7 @@ describe('transient states (eventless transitions)', () => {
           always: ({ context }) => {
             if (context.count < 5) {
               return {
-                context: {
-                  count: context.count + 1
-                }
+                context: { count: context.count + 1 }
               };
             }
           }

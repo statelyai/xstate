@@ -508,6 +508,11 @@ describe('spawning observables', () => {
     const observableMachine = next_createMachine({
       id: 'observable',
       initial: 'idle',
+      schemas: {
+        context: z.object({
+          observableRef: z.custom<ActorRefFrom<typeof observableLogic>>()
+        })
+      },
       context: {
         observableRef: undefined! as ActorRefFrom<typeof observableLogic>
       },
@@ -553,6 +558,11 @@ describe('spawning observables', () => {
     const observableMachine = next_createMachine({
       id: 'observable',
       initial: 'idle',
+      schemas: {
+        context: z.object({
+          observableRef: z.custom<AnyActorRef>()
+        })
+      },
       context: {
         observableRef: undefined! as AnyActorRef
       },
@@ -927,9 +937,6 @@ describe('communicating with spawned actors', () => {
     const existingService = createActor(existingMachine).start();
 
     const parentMachine = next_createMachine({
-      // types: {} as {
-      //   context: { existingRef?: typeof existingService };
-      // },
       schemas: {
         context: z.object({
           existingRef: z.custom<typeof existingService>().optional()
@@ -937,7 +944,7 @@ describe('communicating with spawned actors', () => {
         events: z.union([
           z.object({
             type: z.literal('ACTIVATE'),
-            origin: z.custom<typeof existingService>()
+            origin: z.custom<typeof parentService>()
           }),
           z.object({
             type: z.literal('EXISTING.DONE')
@@ -1032,10 +1039,6 @@ describe('actors', () => {
 
   it('should spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
     let spawnCounter = 0;
-
-    interface TestContext {
-      promise?: ActorRefFrom<PromiseActorLogic<string>>;
-    }
 
     const child = next_createMachine({
       // types: {} as { context: TestContext },
@@ -1173,6 +1176,12 @@ describe('actors', () => {
     const cleanup2 = vi.fn();
 
     const parent = next_createMachine({
+      schemas: {
+        context: z.object({
+          ref1: z.custom<AnyActorRef>(),
+          ref2: z.custom<AnyActorRef>()
+        })
+      },
       context: ({ spawn }) => ({
         ref1: spawn(fromCallback(() => cleanup1)),
         ref2: spawn(fromCallback(() => cleanup2))
@@ -1193,6 +1202,12 @@ describe('actors', () => {
     const cleanup2 = vi.fn();
 
     const parent = next_createMachine({
+      schemas: {
+        context: z.object({
+          ref1: z.custom<AnyActorRef>(),
+          ref2: z.custom<AnyActorRef>()
+        })
+      },
       context: ({ spawn, actors }) => ({
         ref1: spawn(actors.child1),
         ref2: spawn(actors.child2)
@@ -1575,7 +1590,7 @@ describe('actors', () => {
       // },
       schemas: {
         context: z.object({
-          child: z.custom<ActorRefFrom<typeof childMachine>>().optional()
+          child: z.custom<ActorRefFrom<typeof childMachine>>().nullable()
         })
       },
       context: {
@@ -1671,10 +1686,10 @@ describe('actors', () => {
     const emptyObservable = fromObservable(() => EMPTY);
 
     const parentMachine = next_createMachine({
-      types: {
-        context: {} as {
-          child: ActorRefFrom<typeof emptyObservable> | null;
-        }
+      schemas: {
+        context: z.object({
+          child: z.custom<ActorRefFrom<typeof emptyObservable>>().nullable()
+        })
       },
       context: {
         child: null

@@ -1,3 +1,4 @@
+import z from 'zod';
 import { fromCallback } from '../src/actors/index.ts';
 import { createActor, next_createMachine } from '../src/index.ts';
 
@@ -404,6 +405,11 @@ describe('invocations (activities)', () => {
   it('should have stopped after automatic transitions', () => {
     let active = false;
     const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          counter: z.number()
+        })
+      },
       context: {
         counter: 0
       },

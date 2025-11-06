@@ -7,6 +7,7 @@ import {
   StateMachine,
   UnknownActorRef,
   createActor,
+  createStateConfig,
   next_createMachine,
   toPromise
 } from '../src/index';
@@ -515,7 +516,7 @@ describe('states', () => {
       on: {
         TOGGLE_UNDERLINE: () => {}
       }
-    };
+    } as const;
 
     next_createMachine({
       // types: {} as {

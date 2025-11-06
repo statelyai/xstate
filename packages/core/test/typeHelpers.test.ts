@@ -97,7 +97,7 @@ describe('EventFrom', () => {
     acceptActorEvent({ type: 'UPDATE_AGE', value: 12 });
     acceptActorEvent({ type: 'ANOTHER_EVENT' });
     acceptActorEvent({
-      // @txs-expect-error
+      // @ts-expect-error
       type: 'UNKNOWN_EVENT'
     });
   });

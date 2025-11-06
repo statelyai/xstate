@@ -1,3 +1,4 @@
+import z from 'zod';
 import {
   createActor,
   next_createMachine as createMachine,
@@ -20,9 +21,11 @@ describe('toPromise', () => {
 
   it('should await actors', async () => {
     const machine = createMachine({
-      // types: {} as {
-      //   output: { count: 42 };
-      // },
+      schemas: {
+        output: z.object({
+          count: z.number()
+        })
+      },
       initial: 'pending',
       states: {
         pending: {
@@ -52,9 +55,11 @@ describe('toPromise', () => {
 
   it('should await already done actors', async () => {
     const machine = createMachine({
-      // types: {} as {
-      //   output: { count: 42 };
-      // },
+      schemas: {
+        output: z.object({
+          count: z.number()
+        })
+      },
       initial: 'done',
       states: {
         done: {

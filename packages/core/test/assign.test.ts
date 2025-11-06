@@ -9,6 +9,13 @@ interface CounterContext {
 
 const createCounterMachine = (context: Partial<CounterContext> = {}) =>
   next_createMachine({
+    schemas: {
+      context: z.object({
+        count: z.number(),
+        foo: z.string(),
+        maybe: z.string().optional()
+      })
+    },
     initial: 'counting',
     context: { count: 0, foo: 'bar', ...context },
     states: {
@@ -231,6 +238,9 @@ describe('assigning to context', () => {
   it('can assign from event', () => {
     const machine = next_createMachine({
       schemas: {
+        context: z.object({
+          count: z.number()
+        }),
         events: z.object({
           type: z.literal('INC'),
           value: z.number()

@@ -9,7 +9,6 @@ describe('predictableExec', () => {
 
     const machine = next_createMachine({
       initial: 'a',
-      context: {},
       states: {
         a: {
           on: { NEXT: 'b' }
@@ -100,7 +99,6 @@ describe('predictableExec', () => {
   it('should call raised transition builtin actions with raised event', () => {
     let eventArg: any;
     const machine = next_createMachine({
-      context: {},
       initial: 'a',
       states: {
         a: {
@@ -132,7 +130,6 @@ describe('predictableExec', () => {
   it('should call invoke creator with raised event', () => {
     let eventArg: any;
     const machine = next_createMachine({
-      context: {},
       initial: 'a',
       states: {
         a: {
@@ -167,7 +164,6 @@ describe('predictableExec', () => {
 
   it('invoked child should be available on the new state', () => {
     const machine = next_createMachine({
-      context: {},
       initial: 'a',
       states: {
         a: {
@@ -192,7 +188,6 @@ describe('predictableExec', () => {
 
   it('invoked child should not be available on the state after leaving invoking state', () => {
     const machine = next_createMachine({
-      context: {},
       initial: 'a',
       states: {
         a: {
@@ -427,6 +422,11 @@ describe('predictableExec', () => {
     let received: any;
 
     const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          updated: z.boolean()
+        })
+      },
       context: {
         updated: false
       },

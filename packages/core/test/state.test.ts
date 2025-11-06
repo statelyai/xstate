@@ -388,10 +388,9 @@ describe('State', () => {
       expect(spawned).toBe(false);
     });
 
-    it('should not execute assignments when used with non-started actor', () => {
+    it('should not execute actions when used with non-started actor', () => {
       let executed = false;
       const machine = next_createMachine({
-        context: {},
         on: {
           EVENT: (_, enq) => {
             enq(() => (executed = true));
@@ -406,10 +405,9 @@ describe('State', () => {
       expect(executed).toBeFalsy();
     });
 
-    it('should not execute assignments when used with started actor', () => {
+    it('should not execute actions when used with started actor', () => {
       let executed = false;
       const machine = next_createMachine({
-        context: {},
         on: {
           EVENT: (_, enq) => {
             enq(() => (executed = true));

@@ -41,6 +41,11 @@ describe('input', () => {
   it('initial event should have input property', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const machine = next_createMachine({
+      schemas: {
+        input: z.object({
+          greeting: z.string()
+        })
+      },
       entry: ({ event }) => {
         expect(event.input.greeting).toBe('hello');
         resolve();
