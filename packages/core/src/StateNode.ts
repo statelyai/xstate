@@ -16,9 +16,7 @@ import type {
   MachineContext,
   Mapper,
   StateNodeConfig,
-  StateNodeDefinition,
   StateNodesConfig,
-  StatesDefinition,
   TransitionDefinition,
   TransitionDefinitionMap,
   TODO,
@@ -29,12 +27,12 @@ import type {
   ProvidedActor,
   NonReducibleUnknown,
   EventDescriptor,
-  Action2,
   AnyActorRef,
   AnyStateNode,
   InitialTransitionConfig,
   AnyEventObject,
-  TransitionConfigFunction
+  TransitionConfigFunction,
+  AnyAction2
 } from './types.ts';
 import {
   createInvokeId,
@@ -94,9 +92,9 @@ export class StateNode<
    */
   public history: false | 'shallow' | 'deep';
   /** The action(s) to be executed upon entering the state node. */
-  public entry: Action2<any, any, any, any> | undefined;
+  public entry: AnyAction2 | undefined;
   /** The action(s) to be executed upon exiting the state node. */
-  public exit: Action2<any, any, any, any> | undefined;
+  public exit: AnyAction2 | undefined;
   /** The parent state node. */
   public parent?: StateNode<TContext, TEvent>;
   /** The root machine node. */
@@ -115,7 +113,10 @@ export class StateNode<
     any, // emitted
     any, // meta
     any, // state schema
-    any // action map
+    any, // action map
+    any,
+    any,
+    any
   >;
   /**
    * The meta data associated with this state node, which will be returned in
@@ -238,42 +239,6 @@ export class StateNode<
     Object.keys(this.states).forEach((key) => {
       this.states[key]._initialize();
     });
-  }
-
-  /** The well-structured state node definition. */
-  public get definition(): StateNodeDefinition<TContext, TEvent> {
-    return {
-      id: this.id,
-      key: this.key,
-      version: this.machine.version,
-      type: this.type,
-      initial: this.initial
-        ? {
-            target: this.initial.target,
-            source: this,
-            actions: this.initial.actions.map(toSerializableAction),
-            eventType: null as any,
-            reenter: false
-          }
-        : undefined,
-      history: this.history,
-      states: mapValues(this.states, (state: StateNode<TContext, TEvent>) => {
-        return state.definition;
-      }) as StatesDefinition<TContext, TEvent>,
-      on: this.on,
-      transitions: [...this.transitions.values()].flat().map((t) => ({
-        ...t,
-        actions: t.actions.map(toSerializableAction)
-      })),
-      entry: this.entry,
-      exit: this.exit,
-      meta: this.meta,
-      order: this.order || -1,
-      output: this.output,
-      invoke: this.invoke,
-      description: this.description,
-      tags: this.tags
-    };
   }
 
   /** @internal */

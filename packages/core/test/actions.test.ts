@@ -3782,18 +3782,7 @@ describe('raise', () => {
   });
 
   it('should be possible to access context in the event expression', () => {
-    type MachineEvent =
-      | {
-          type: 'RAISED';
-        }
-      | {
-          type: 'NEXT';
-        };
-    interface MachineContext {
-      eventType: MachineEvent['type'];
-    }
     const machine = next_createMachine({
-      // types: {} as { context: MachineContext; events: MachineEvent },
       schemas: {
         context: z.object({
           eventType: z.enum(['RAISED', 'NEXT'])

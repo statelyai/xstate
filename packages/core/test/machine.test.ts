@@ -5,6 +5,9 @@ const pedestrianStates = {
   initial: 'walk',
   states: {
     walk: {
+      contextSchema: z.object({
+        color: z.literal('walk')
+      }),
       on: {
         PED_COUNTDOWN: 'wait'
       }
@@ -16,12 +19,15 @@ const pedestrianStates = {
     },
     stop: {}
   }
-};
+} as const;
 
 const lightMachine = next_createMachine({
   initial: 'green',
   states: {
     green: {
+      contextSchema: z.object({
+        color: z.literal('green')
+      }),
       on: {
         TIMER: 'yellow',
         POWER_OUTAGE: 'red',
@@ -121,6 +127,13 @@ describe('machine', () => {
 
     it('should lazily create context for all interpreter instances created from the same machine template created by `provide`', () => {
       const machine = next_createMachine({
+        schemas: {
+          context: z.object({
+            foo: z.object({
+              prop: z.string()
+            })
+          })
+        },
         context: () => ({
           foo: { prop: 'baz' }
         })
@@ -299,6 +312,9 @@ describe('machine', () => {
     it('should support combinatorial machines (single-state)', () => {
       const testMachine = next_createMachine({
         // types: {} as { context: { value: number } },
+        schemas: {
+          context: z.object({ value: z.number() })
+        },
         context: { value: 42 },
         on: {
           INC: ({ context }) => ({
@@ -346,5 +362,44 @@ describe('StateNode', () => {
       'POWER_OUTAGE',
       'FORBIDDEN_EVENT'
     ]);
+  });
+});
+
+describe('typestates', () => {
+  it('testing', () => {
+    const machine = next_createMachine({
+      schemas: {
+        context: z.object({
+          user: z.string().nullable()
+        })
+      },
+      context: {
+        user: null
+      },
+      initial: 'active',
+      states: {
+        active: {
+          contextSchema: z.object({
+            user: z.string()
+          }),
+          on: {
+            ACTIVATE: (x) => ({
+              target: 'inactive',
+              context: {
+                ...x.context,
+                user: 'test'
+              }
+            })
+          }
+        },
+        inactive: {
+          contextSchema: z.object({
+            user: z.null()
+          })
+        }
+      }
+    });
+
+    machine.states;
   });
 });

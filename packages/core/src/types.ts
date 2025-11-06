@@ -10,6 +10,7 @@ import { AnyActorSystem, Clock } from './system.ts';
 // this is needed to make JSDoc `@link` work properly
 import type { SimulatedClock } from './SimulatedClock.ts';
 import { Implementations } from './types.v6.ts';
+import { StandardSchemaV1 } from '../../xstate-store/src/schema.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -242,12 +243,12 @@ export interface TransitionConfig<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TEmitted extends EventObject = EventObject,
-  TMeta extends MetaObject = MetaObject
+  TEmitted extends EventObject,
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > {
   actions?: never;
   reenter?: boolean;
@@ -257,8 +258,11 @@ export interface TransitionConfig<
     TExpressionEvent,
     TEvent,
     TEmitted,
-    any,
-    any
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TMeta
   >;
   meta?: TMeta;
   description?: string;
@@ -270,17 +274,23 @@ export interface InitialTransitionConfig<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
+  TDelay extends string,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > extends TransitionConfig<
     TContext,
     TEvent,
     TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TODO, // TEmitted
-    TODO // TMeta
+    TEmitted,
+    TMeta,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
   > {
   target: string;
 }
@@ -289,23 +299,23 @@ export type AnyTransitionConfig = TransitionConfig<
   any, // TContext
   any, // TExpressionEvent
   any, // TEvent
-  any, // TActor
-  any, // TAction
-  any, // TGuard
-  any, // TDelay
   any, // TEmitted
-  any // TMeta
+  any, // TMeta
+  any, // TActionMap
+  any, // TActorMap
+  any, // TGuardMap
+  any // TDelayMap
 >;
 
 export interface InvokeDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > {
   id: string;
 
@@ -329,12 +339,12 @@ export interface InvokeDefinition<
           TContext,
           DoneActorEvent<unknown>,
           TEvent,
-          TActor,
-          TAction,
-          TGuard,
-          TDelay,
           TEmitted,
-          TMeta
+          TMeta,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap
         >
       >;
   /**
@@ -348,12 +358,12 @@ export interface InvokeDefinition<
           TContext,
           ErrorActorEvent,
           TEvent,
-          TActor,
-          TAction,
-          TGuard,
-          TDelay,
           TEmitted,
-          TMeta
+          TMeta,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap
         >
       >;
 
@@ -364,28 +374,14 @@ export interface InvokeDefinition<
           TContext,
           SnapshotEvent,
           TEvent,
-          TActor,
-          TAction,
-          TGuard,
-          TDelay,
           TEmitted,
-          TMeta
+          TMeta,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap
         >
       >;
-
-  toJSON: () => Omit<
-    InvokeDefinition<
-      TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TEmitted,
-      TMeta
-    >,
-    'onDone' | 'onError' | 'toJSON'
-  >;
 }
 
 type Delay<TDelay extends string> = TDelay | number;
@@ -393,27 +389,39 @@ type Delay<TDelay extends string> = TDelay | number;
 export type DelayedTransitions<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string
+  TEmitted extends EventObject,
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > = {
-  [K in Delay<TDelay>]?:
+  [K in Delay<keyof TDelayMap & string>]?:
     | string
     | SingleOrArray<
         TransitionConfig<
           TContext,
           TEvent,
           TEvent,
-          TActor,
-          TAction,
-          TGuard,
-          TDelay,
-          TODO, // TEmitted
-          TODO // TMeta
+          TEmitted,
+          TMeta,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap
         >
       >
-    | TransitionConfigFunction<TContext, TEvent, TEvent, TODO, any, any>;
+    | TransitionConfigFunction<
+        TContext,
+        TEvent,
+        TEvent,
+        TODO,
+        any,
+        any,
+        any,
+        any,
+        any
+      >;
 };
 
 export type StateTypes =
@@ -481,10 +489,6 @@ export type TransitionConfigOrTarget<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
   TActionMap extends Implementations['actions'],
@@ -497,12 +501,12 @@ export type TransitionConfigOrTarget<
       TContext,
       TExpressionEvent,
       TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
       TEmitted,
-      TMeta
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap
     >
   | TransitionConfigFunction<
       TContext,
@@ -574,23 +578,23 @@ export type AnyTransitionConfigFunction = TransitionConfigFunction<
 export type TransitionsConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > = {
   [K in EventDescriptor<TEvent>]?: TransitionConfigOrTarget<
     TContext,
     ExtractEvent<TEvent, K>,
     TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
     TEmitted,
-    TMeta
+    TMeta,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
   >;
 };
 
@@ -615,10 +619,10 @@ export type IsLiteralString<T extends string> = string extends T ? false : true;
 type DistributeActors<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
+  _TActor extends ProvidedActor,
+  _TAction extends ParameterizedObject,
+  _TGuard extends ParameterizedObject,
+  _TDelay extends string,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
   TSpecificActor extends ProvidedActor
@@ -658,12 +662,12 @@ type DistributeActors<
                     TContext,
                     DoneActorEvent<OutputFrom<TSpecificActor['logic']>>,
                     TEvent,
-                    TActor,
-                    TAction,
-                    TGuard,
-                    TDelay,
                     TEmitted,
-                    TMeta
+                    TMeta,
+                    any,
+                    any,
+                    any,
+                    any
                   >
                 >;
             /**
@@ -677,12 +681,12 @@ type DistributeActors<
                     TContext,
                     ErrorActorEvent,
                     TEvent,
-                    TActor,
-                    TAction,
-                    TGuard,
-                    TDelay,
                     TEmitted,
-                    TMeta
+                    TMeta,
+                    any,
+                    any,
+                    any,
+                    any
                   >
                 >;
 
@@ -693,12 +697,12 @@ type DistributeActors<
                     TContext,
                     SnapshotEvent<SnapshotFrom<TSpecificActor['logic']>>,
                     TEvent,
-                    TActor,
-                    TAction,
-                    TGuard,
-                    TDelay,
                     TEmitted,
-                    TMeta
+                    TMeta,
+                    any,
+                    any,
+                    any,
+                    any
                   >
                 >;
           } & { [K in RequiredActorOptions<TSpecificActor>]: unknown }
@@ -717,12 +721,12 @@ type DistributeActors<
                   TContext,
                   DoneActorEvent<unknown>,
                   TEvent,
-                  TActor,
-                  TAction,
-                  TGuard,
-                  TDelay,
                   TEmitted,
-                  TMeta
+                  TMeta,
+                  any,
+                  any,
+                  any,
+                  any
                 >
               >;
           onError?:
@@ -732,12 +736,12 @@ type DistributeActors<
                   TContext,
                   ErrorActorEvent,
                   TEvent,
-                  TActor,
-                  TAction,
-                  TGuard,
-                  TDelay,
                   TEmitted,
-                  TMeta
+                  TMeta,
+                  any,
+                  any,
+                  any,
+                  any
                 >
               >;
 
@@ -748,12 +752,12 @@ type DistributeActors<
                   TContext,
                   SnapshotEvent,
                   TEvent,
-                  TActor,
-                  TAction,
-                  TGuard,
-                  TDelay,
                   TEmitted,
-                  TMeta
+                  TMeta,
+                  any,
+                  any,
+                  any,
+                  any
                 >
               >;
         }
@@ -806,12 +810,12 @@ export type InvokeConfig<
                 TContext,
                 DoneActorEvent<any>, // TODO: consider replacing with `unknown`
                 TEvent,
-                TActor,
-                TAction,
-                TGuard,
-                TDelay,
                 TEmitted,
-                TMeta
+                TMeta,
+                any,
+                any,
+                any,
+                any
               >
             >;
         /**
@@ -825,12 +829,12 @@ export type InvokeConfig<
                 TContext,
                 ErrorActorEvent,
                 TEvent,
-                TActor,
-                TAction,
-                TGuard,
-                TDelay,
                 TEmitted,
-                TMeta
+                TMeta,
+                any,
+                any,
+                any,
+                any
               >
             >;
 
@@ -841,12 +845,12 @@ export type InvokeConfig<
                 TContext,
                 SnapshotEvent,
                 TEvent,
-                TActor,
-                TAction,
-                TGuard,
-                TDelay,
                 TEmitted,
-                TMeta
+                TMeta,
+                any,
+                any,
+                any,
+                any
               >
             >;
       };
@@ -880,7 +884,20 @@ export interface StateNodeConfig<
 > {
   /** The initial state transition. */
   initial?:
-    | InitialTransitionConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
+    | InitialTransitionConfig<
+        TContext,
+        TEvent,
+        TActor,
+        TAction,
+        TGuard,
+        TDelay,
+        TEmitted,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap
+      >
     | TransitionConfigFunction<
         TContext,
         TEvent,
@@ -951,12 +968,12 @@ export interface StateNodeConfig<
   on?: TransitionsConfig<
     TContext,
     TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
     TEmitted,
-    TMeta
+    TMeta,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
   >;
   /** The action(s) to be executed upon entering the state node. */
   entry?: Action2<
@@ -988,17 +1005,7 @@ export interface StateNodeConfig<
   onDone?:
     | string
     | SingleOrArray<
-        TransitionConfig<
-          TContext,
-          DoneStateEvent,
-          TEvent,
-          TActor,
-          TAction,
-          TGuard,
-          TDelay,
-          TEmitted,
-          TMeta
-        >
+        TransitionConfig<TContext, DoneStateEvent, TEvent, TEmitted, TMeta>
       >
     | undefined;
   /**
@@ -1006,7 +1013,16 @@ export interface StateNodeConfig<
    * transition(s). The delayed transitions are taken after the specified delay
    * in an interpreter.
    */
-  after?: DelayedTransitions<TContext, TEvent, TActor, TAction, TGuard, TDelay>;
+  after?: DelayedTransitions<
+    TContext,
+    TEvent,
+    TEmitted,
+    TMeta,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >;
 
   /**
    * An eventless transition that is always taken when this state node is
@@ -1016,10 +1032,6 @@ export interface StateNodeConfig<
     TContext,
     TEvent,
     TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
     TEmitted,
     TMeta,
     TActionMap,
@@ -1073,65 +1085,15 @@ export type AnyStateNodeConfig = StateNodeConfig<
   any,
   any,
   any,
-  any, // emitted
-  any // meta
+  any,
+  any,
+  any,
+  any,
+  any,
+  any
 >;
 
-export interface StateNodeDefinition<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TEmitted extends EventObject
-> {
-  id: string;
-  version?: string | undefined;
-  key: string;
-  type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
-  initial: InitialTransitionDefinition<TContext, TEvent, TEmitted> | undefined;
-  history: boolean | 'shallow' | 'deep' | undefined;
-  states: StatesDefinition<TContext, TEvent>;
-  on: TransitionDefinitionMap<TContext, TEvent>;
-  transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  // TODO: establish what a definition really is
-  entry: UnknownAction[];
-  exit: UnknownAction[];
-  meta: any;
-  order: number;
-  output?: StateNodeConfig<
-    TContext,
-    TEvent,
-    ProvidedActor,
-    ParameterizedObject,
-    ParameterizedObject,
-    string,
-    string,
-    unknown,
-    EventObject, // TEmitted
-    any // TMeta
-  >['output'];
-  invoke: Array<
-    InvokeDefinition<
-      TContext,
-      TEvent,
-      TODO,
-      TODO,
-      TODO,
-      TODO,
-      TODO, // TEmitted
-      TODO // TMeta
-    >
-  >;
-  description?: string;
-  tags: string[];
-}
-
-export interface StateMachineDefinition<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> extends StateNodeDefinition<TContext, TEvent> {}
-
 export type AnyStateNode = StateNode<any, any>;
-
-export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
 export type AnyMachineSnapshot = MachineSnapshot<
   any,
@@ -1167,88 +1129,6 @@ export type AnyStateMachine = StateMachine<
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
 
-export interface AtomicStateNodeConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> extends StateNodeConfig<
-    TContext,
-    TEvent,
-    TODO,
-    TODO,
-    TODO,
-    TODO,
-    TODO,
-    TODO,
-    TODO, // emitted
-    TODO // meta
-  > {
-  initial?: undefined;
-  parallel?: false | undefined;
-  states?: undefined;
-  onDone?: undefined;
-}
-
-export interface HistoryStateNodeConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> extends AtomicStateNodeConfig<TContext, TEvent> {
-  history: 'shallow' | 'deep' | true;
-  target: string | undefined;
-}
-
-export type SimpleOrStateNodeConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> =
-  | AtomicStateNodeConfig<TContext, TEvent>
-  | StateNodeConfig<
-      TContext,
-      TEvent,
-      TODO,
-      TODO,
-      TODO,
-      TODO,
-      TODO,
-      TODO,
-      TODO, // emitted
-      TODO // meta
-    >;
-
-export type ActionFunctionMap<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject = ParameterizedObject,
-  TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string,
-  TEmitted extends EventObject = EventObject
-> = {
-  [K in TAction['type']]?: ActionFunction<
-    TContext,
-    TEvent,
-    TEvent,
-    GetParameterizedParams<TAction extends { type: K } ? TAction : never>,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TEmitted
-  >;
-};
-
-type GuardMap<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TGuard extends ParameterizedObject
-> = {
-  [K in TGuard['type']]?: GuardPredicate<
-    TContext,
-    TEvent,
-    GetParameterizedParams<TGuard extends { type: K } ? TGuard : never>,
-    TGuard
-  >;
-};
-
 export type DelayFunctionMap<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1261,78 +1141,6 @@ export type DelayConfig<
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 > = number | DelayExpr<TContext, TExpressionEvent, TParams, TEvent>;
-
-// TODO: possibly refactor this somehow, use even a simpler type, and maybe even make `machine.options` private or something
-/** @ignore */
-export interface MachineImplementationsSimplified<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor = ProvidedActor,
-  TAction extends ParameterizedObject = ParameterizedObject,
-  TGuard extends ParameterizedObject = ParameterizedObject
-> {
-  guards: GuardMap<TContext, TEvent, TGuard>;
-  actions: ActionFunctionMap<TContext, TEvent, TActor, TAction>;
-  actors: Record<
-    string,
-    | AnyActorLogic
-    | {
-        src: AnyActorLogic;
-        input: Mapper<TContext, TEvent, unknown, TEvent> | NonReducibleUnknown;
-      }
-  >;
-  delays: DelayFunctionMap<TContext, TEvent, TAction>;
-}
-
-type MachineImplementationsActions<TTypes extends StateMachineTypes> = {
-  [K in TTypes['actions']['type']]?: ActionFunction<
-    TTypes['context'],
-    TTypes['events'],
-    TTypes['events'],
-    GetConcreteByKey<TTypes['actions'], 'type', K>['params'],
-    TTypes['actors'],
-    TTypes['actions'],
-    TTypes['guards'],
-    TTypes['delays'],
-    TTypes['emitted']
-  >;
-};
-
-type MachineImplementationsActors<TTypes extends StateMachineTypes> = {
-  [K in TTypes['actors']['src']]?: GetConcreteByKey<
-    TTypes['actors'],
-    'src',
-    K
-  >['logic'];
-};
-
-type MachineImplementationsDelays<TTypes extends StateMachineTypes> = {
-  [K in TTypes['delays']]?: DelayConfig<
-    TTypes['context'],
-    TTypes['events'],
-    // delays in referenced send actions might use specific `TAction`
-    // delays executed by auto-generated send actions related to after transitions won't have that
-    // since they are effectively implicit inline actions
-    undefined,
-    TTypes['events']
-  >;
-};
-
-type MachineImplementationsGuards<TTypes extends StateMachineTypes> = {
-  [K in TTypes['guards']['type']]?: Guard<
-    TTypes['context'],
-    TTypes['events'],
-    GetConcreteByKey<TTypes['guards'], 'type', K>['params'],
-    TTypes['guards']
-  >;
-};
-
-export type InternalMachineImplementations<TTypes extends StateMachineTypes> = {
-  actions?: MachineImplementationsActions<TTypes>;
-  actors?: MachineImplementationsActors<TTypes>;
-  delays?: MachineImplementationsDelays<TTypes>;
-  guards?: MachineImplementationsGuards<TTypes>;
-};
 
 export type InitialContext<
   TContext extends MachineContext,
@@ -1413,8 +1221,12 @@ export type MachineConfig<
   output?: Mapper<TContext, DoneStateEvent, TOutput, TEvent> | TOutput;
 }) &
   (MachineContext extends TContext
-    ? { context?: InitialContext<LowInfer<TContext>, TActor, TInput, TEvent> }
-    : { context: InitialContext<LowInfer<TContext>, TActor, TInput, TEvent> });
+    ? {
+        context?: InitialContext<LowInfer<TContext>, TActorMap, TInput, TEvent>;
+      }
+    : {
+        context: InitialContext<LowInfer<TContext>, TActorMap, TInput, TEvent>;
+      });
 
 export type UnknownMachineConfig = MachineConfig<MachineContext, EventObject>;
 
@@ -1617,6 +1429,8 @@ export type TransitionDefinitionMap<
   >;
 };
 
+export type DelayExpr = TODO;
+
 export interface DelayedTransitionDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -1655,8 +1469,12 @@ export interface StateConfig<
     any,
     any,
     any,
-    any, // TMeta
-    any // TStateSchema
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
   >;
 }
 
@@ -1920,92 +1738,9 @@ export type ActorRefLike = Pick<
 
 export type UnknownActorRef = ActorRef<Snapshot<unknown>, EventObject>;
 
-export type ActorLogicFrom<T> =
-  ReturnTypeOrValue<T> extends infer R
-    ? R extends StateMachine<
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any, // TMeta
-        any // TStateSchema
-      >
-      ? R
-      : R extends Promise<infer U>
-        ? PromiseActorLogic<U>
-        : never
-    : never;
-
 // TODO: in v6, this should only accept AnyActorLogic, like ActorRefFromLogic
 export type ActorRefFrom<T> =
-  ReturnTypeOrValue<T> extends infer R
-    ? R extends StateMachine<
-        infer TContext,
-        infer TEvent,
-        infer TChildren,
-        infer _TActor,
-        infer _TAction,
-        infer _TGuard,
-        infer _TDelay,
-        infer TStateValue,
-        infer TTag,
-        infer _TInput,
-        infer TOutput,
-        infer TEmitted,
-        infer TMeta,
-        infer TStateSchema,
-        infer _TActionMap,
-        infer _TActorMap,
-        infer _TGuardMap
-      >
-      ? ActorRef<
-          MachineSnapshot<
-            TContext,
-            TEvent,
-            TChildren,
-            TStateValue,
-            TTag,
-            TOutput,
-            TMeta,
-            TStateSchema
-          >,
-          TEvent,
-          TEmitted
-        >
-      : R extends Promise<infer U>
-        ? ActorRefFrom<PromiseActorLogic<U>>
-        : R extends ActorLogic<
-              infer TSnapshot,
-              infer TEvent,
-              infer _TInput,
-              infer _TSystem,
-              infer TEmitted
-            >
-          ? ActorRef<TSnapshot, TEvent, TEmitted>
-          : never
-    : never;
-
-export type ActorRefFromLogic<T extends AnyActorLogic> = ActorRef<
-  SnapshotFrom<T>,
-  EventFromLogic<T>,
-  EmittedFrom<T>
->;
-
-export type DevToolsAdapter = (service: AnyActor) => void;
-
-/** @deprecated Use `Actor<T>` instead. */
-export type InterpreterFrom<
-  T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
-> =
-  ReturnTypeOrValue<T> extends StateMachine<
+  T extends StateMachine<
     infer TContext,
     infer TEvent,
     infer TChildren,
@@ -2015,66 +1750,79 @@ export type InterpreterFrom<
     infer _TDelay,
     infer TStateValue,
     infer TTag,
-    infer TInput,
+    infer _TInput,
     infer TOutput,
     infer TEmitted,
     infer TMeta,
-    infer TStateSchema
+    infer _TConfig,
+    infer _TActionMap,
+    infer _TActorMap,
+    infer _TGuardMap,
+    infer _TDelayMap
   >
-    ? Actor<
-        ActorLogic<
-          MachineSnapshot<
-            TContext,
-            TEvent,
-            TChildren,
-            TStateValue,
-            TTag,
-            TOutput,
-            TMeta,
-            TStateSchema
-          >,
+    ? ActorRef<
+        MachineSnapshot<
+          TContext,
           TEvent,
-          TInput,
-          AnyActorSystem,
-          TEmitted
-        >
+          TChildren,
+          TStateValue,
+          TTag,
+          TOutput,
+          TMeta,
+          any //TStateSchema
+        >,
+        TEvent,
+        TEmitted
       >
-    : never;
+    : T extends Promise<infer U>
+      ? ActorRefFrom<PromiseActorLogic<U>>
+      : T extends ActorLogic<
+            infer TSnapshot,
+            infer TEvent,
+            infer _TInput,
+            infer _TSystem,
+            infer TEmitted
+          >
+        ? ActorRef<TSnapshot, TEvent, TEmitted>
+        : never;
+
+export type ActorRefFromLogic<T extends AnyActorLogic> = ActorRef<
+  SnapshotFrom<T>,
+  EventFromLogic<T>,
+  EmittedFrom<T>
+>;
+
+export type DevToolsAdapter = (service: AnyActor) => void;
 
 export type MachineImplementationsFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > =
   T extends StateMachine<
-    infer TContext,
-    infer TEvent,
+    infer _TContext,
+    infer _TEvent,
     infer _TChildren,
-    infer TActor,
-    infer TAction,
-    infer TGuard,
-    infer TDelay,
+    infer _TActor,
+    infer _TAction,
+    infer _TGuard,
+    infer _TDelay,
     infer _TStateValue,
-    infer TTag,
+    infer _TTag,
     infer _TInput,
     infer _TOutput,
-    infer TEmitted,
+    infer _TEmitted,
     infer _TMeta,
-    infer _TStateSchema,
-    infer _TActionMap,
-    infer _TActorMap,
-    infer _TGuardMap
+    infer _TConfig,
+    infer TActionMap,
+    infer TActorMap,
+    infer TGuardMap,
+    infer TDelayMap
   >
-    ? InternalMachineImplementations<
-        ResolvedStateMachineTypes<
-          TContext,
-          TEvent,
-          TActor,
-          TAction,
-          TGuard,
-          TDelay,
-          TTag,
-          TEmitted
-        >
-      >
+    ? {
+        actions: TActionMap;
+        actors: TActorMap;
+        guards: TGuardMap;
+        delays: TDelayMap;
+      }
     : never;
 
 export interface ActorScope<
@@ -2283,7 +2031,8 @@ type ResolveEventType<T> = T extends infer R
       infer _TConfig,
       infer _TActionMap,
       infer _TActorMap,
-      infer _TGuardMap
+      infer _TGuardMap,
+      infer _TDelayMap
     >
     ? TEvent
     : R extends MachineSnapshot<
@@ -2326,7 +2075,8 @@ export type ContextFrom<T> = T extends infer R
       infer _TConfig,
       infer _TActionMap,
       infer _TActorMap,
-      infer _TGuardMap
+      infer _TGuardMap,
+      infer _TDelayMap
     >
     ? TContext
     : R extends MachineSnapshot<
@@ -2341,26 +2091,8 @@ export type ContextFrom<T> = T extends infer R
         >
       ? TContext
       : R extends Actor<infer TActorLogic>
-        ? TActorLogic extends StateMachine<
-            infer TContext,
-            infer _TEvent,
-            infer _TChildren,
-            infer _TActor,
-            infer _TAction,
-            infer _TGuard,
-            infer _TDelay,
-            infer _TStateValue,
-            infer _TTag,
-            infer _TInput,
-            infer _TOutput,
-            infer _TEmitted,
-            infer _TMeta,
-            infer _TStateSchema,
-            infer _TActionMap,
-            infer _TActorMap,
-            infer _TGuardMap
-          >
-          ? TContext
+        ? TActorLogic extends AnyStateMachine
+          ? ContextFrom<TActorLogic>
           : never
         : never
   : never;
@@ -2428,6 +2160,7 @@ export type ToChildren<TActor extends ProvidedActor> =
 export type StateSchema = {
   id?: string;
   states?: Record<string, StateSchema>;
+  contextSchema?: StandardSchemaV1;
 
   // Other types
   // Needed because TS treats objects with all optional properties as a "weak" object
@@ -2647,3 +2380,5 @@ export type Action2<
   context?: TContext;
   children?: Record<string, AnyActorRef | undefined>;
 } | void;
+
+export type AnyAction2 = Action2<any, any, any, any, any, any, any>;

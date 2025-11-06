@@ -10,7 +10,7 @@ export const fetchMachine = createMachine({
     context: typeof context;
     actors: {
       src: 'fetchData';
-      logic: ActorLogicFrom<Promise<string>>;
+      logic: any; //ActorLogicFrom<Promise<string>>;
     };
   },
   initial: 'idle',

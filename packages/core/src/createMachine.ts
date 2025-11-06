@@ -1,13 +1,11 @@
 import { StandardSchemaV1 } from '../../xstate-store/src/schema.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
-  ResolvedStateMachineTypes,
   TODO,
   AnyActorRef,
   EventObject,
   AnyEventObject,
   Cast,
-  InternalMachineImplementations,
   MachineConfig,
   MachineContext,
   MachineTypes,
@@ -126,18 +124,7 @@ export function createMachine<
     TEmitted,
     TMeta
   >,
-  implementations?: InternalMachineImplementations<
-    ResolvedStateMachineTypes<
-      TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TTag,
-      TEmitted
-    >
-  >
+  implementations?: Implementations
 ): StateMachine<
   TContext,
   TEvent,
@@ -262,5 +249,5 @@ export function next_createMachine<
     any,
     any,
     any
-  >(config as any);
+  >(config as any) as any;
 }

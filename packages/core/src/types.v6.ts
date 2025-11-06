@@ -1,7 +1,10 @@
 import { StandardSchemaV1 } from '../../xstate-store/src/schema';
+import { MachineSnapshot } from './State';
 import {
   Action2,
+  ActorRef,
   AnyActorLogic,
+  AnyActorRef,
   Compute,
   DoneActorEvent,
   DoNotInfer,
@@ -14,8 +17,10 @@ import {
   NonReducibleUnknown,
   SingleOrArray,
   SnapshotEvent,
+  StateValue,
   TODO,
-  TransitionConfigFunction
+  TransitionConfigFunction,
+  UnifiedArg
 } from './types';
 import { MachineContext, Mapper } from './types';
 import { LowInfer } from './types';
@@ -126,7 +131,24 @@ export interface Next_InvokeConfig<
   src: AnyActorLogic | (({ actors }: { actors: TActorMap }) => AnyActorLogic);
   id?: string;
   systemId?: string;
-  input?: TODO;
+  input?: (_: {
+    context: TContext;
+    event: TEvent;
+    self: ActorRef<
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        Record<string, AnyActorRef | undefined>,
+        StateValue,
+        string,
+        unknown,
+        TODO,
+        TODO
+      >,
+      TEvent,
+      TEmitted
+    >;
+  }) => unknown;
   onDone?: Next_TransitionConfigOrTarget<
     TContext,
     DoneActorEvent,
@@ -175,6 +197,7 @@ export interface Next_StateNodeConfig<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays']
 > {
+  contextSchema?: StandardSchemaV1;
   /** The initial state transition. */
   initial?:
     | Next_InitialTransitionConfig<

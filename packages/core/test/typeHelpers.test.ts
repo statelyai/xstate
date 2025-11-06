@@ -76,7 +76,7 @@ describe('EventFrom', () => {
     });
   });
 
-  it('should return events for an interpreter', () => {
+  it('should return events for an actor', () => {
     const machine = next_createMachine({
       schemas: {
         events: z.union([
@@ -87,17 +87,17 @@ describe('EventFrom', () => {
       }
     });
 
-    const service = createActor(machine);
+    const actor = createActor(machine);
 
-    type InterpreterEvent = EventFrom<typeof service>;
+    type ActorEvent = EventFrom<typeof actor>;
 
-    const acceptInterpreterEvent = (_event: InterpreterEvent) => {};
+    const acceptActorEvent = (_event: ActorEvent) => {};
 
-    acceptInterpreterEvent({ type: 'UPDATE_NAME', value: 'test' });
-    acceptInterpreterEvent({ type: 'UPDATE_AGE', value: 12 });
-    acceptInterpreterEvent({ type: 'ANOTHER_EVENT' });
-    acceptInterpreterEvent({
-      // @ts-expect-error
+    acceptActorEvent({ type: 'UPDATE_NAME', value: 'test' });
+    acceptActorEvent({ type: 'UPDATE_AGE', value: 12 });
+    acceptActorEvent({ type: 'ANOTHER_EVENT' });
+    acceptActorEvent({
+      // @txs-expect-error
       type: 'UNKNOWN_EVENT'
     });
   });
@@ -117,6 +117,9 @@ describe('MachineImplementationsFrom', () => {
           z.object({ type: z.literal('FOO') }),
           z.object({ type: z.literal('BAR'), value: z.string() })
         ])
+      },
+      actions: {
+        foo: (_num: number) => 'hello'
       }
     });
 
@@ -126,8 +129,11 @@ describe('MachineImplementationsFrom', () => {
 
     acceptMachineImplementations({
       actions: {
-        foo: () => {}
-      }
+        foo: (num: number) => 'hello'
+      },
+      actors: {},
+      guards: {},
+      delays: {}
     });
 
     // @ts-expect-error
@@ -149,8 +155,11 @@ describe('SnapshotFrom', () => {
   it('should return state type from a service that has concrete event type', () => {
     const service = createActor(
       next_createMachine({
-        types: {
-          events: {} as { type: 'FOO' }
+        // types: {
+        //   events: {} as { type: 'FOO' }
+        // }
+        schemas: {
+          events: z.object({ type: z.literal('FOO') })
         }
       })
     );

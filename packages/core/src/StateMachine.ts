@@ -39,7 +39,6 @@ import type {
   ProvidedActor,
   Snapshot,
   SnapshotFrom,
-  StateMachineDefinition,
   StateValue,
   TransitionDefinition,
   StateSchema,
@@ -190,7 +189,8 @@ export class StateMachine<
     TConfig,
     TActionMap,
     TActorMap,
-    TGuardMap
+    TGuardMap,
+    TDelayMap
   > {
     const { actions, guards, actors, delays } = this.implementations;
 
@@ -502,14 +502,6 @@ export class StateMachine<
       );
     }
     return getStateNodeByPath(stateNode, relativePath);
-  }
-
-  public get definition(): StateMachineDefinition<TContext, TEvent> {
-    return this.root.definition;
-  }
-
-  public toJSON() {
-    return this.definition;
   }
 
   public getPersistedSnapshot(
