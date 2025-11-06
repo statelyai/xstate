@@ -19,8 +19,7 @@ import {
   SnapshotEvent,
   StateValue,
   TODO,
-  TransitionConfigFunction,
-  UnifiedArg
+  TransitionConfigFunction
 } from './types';
 import { MachineContext, Mapper } from './types';
 import { LowInfer } from './types';

@@ -40,7 +40,8 @@ import type {
   StateValue,
   TransitionDefinition,
   StateSchema,
-  SnapshotStatus
+  SnapshotStatus,
+  AnyStateNode
 } from './types.ts';
 import { Implementations, Next_MachineConfig } from './types.v6.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
@@ -88,7 +89,7 @@ export class StateMachine<
   public implementations: Implementations;
 
   /** @internal */
-  public idMap: Map<string, StateNode<TContext, TEvent>> = new Map();
+  public idMap: Map<string, AnyStateNode> = new Map();
 
   public root: StateNode<TContext, TEvent>;
 

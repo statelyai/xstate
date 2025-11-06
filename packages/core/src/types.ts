@@ -1084,7 +1084,13 @@ export type AnyStateNodeConfig = StateNodeConfig<
   any
 >;
 
-export type AnyStateNode = StateNode<any, any>;
+// Accept any StateNode instance regardless of generic parameters
+// Using a union type to handle variance issues with machine.resolveState
+export type AnyStateNode =
+  | StateNode<any, any>
+  | StateNode<never, EventObject>
+  | StateNode<any, EventObject>
+  | StateNode<never, any>;
 
 export type AnyMachineSnapshot = MachineSnapshot<
   any,
@@ -1098,7 +1104,7 @@ export type AnyMachineSnapshot = MachineSnapshot<
 >;
 
 export type AnyStateMachine = StateMachine<
-  any, // context
+  any | never, // context
   any, // event
   any, // children
   any, // state value

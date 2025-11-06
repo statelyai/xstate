@@ -17,6 +17,7 @@ import {
   joinPaths,
   toDirectedGraph
 } from '../index.ts';
+import { createStateConfig } from '../../createMachine.ts';
 
 function getPathsSnapshot(
   paths: Array<StatePath<Snapshot<unknown>, EventObject>>
@@ -46,7 +47,7 @@ function getPathSnapshot(path: StatePath<Snapshot<unknown>, any>): {
 }
 
 describe('@xstate/graph', () => {
-  const pedestrianStates = {
+  const pedestrianStates = createStateConfig({
     initial: 'walk',
     states: {
       walk: {
@@ -70,7 +71,7 @@ describe('@xstate/graph', () => {
       stop: {},
       flashing: {}
     }
-  };
+  });
 
   const lightMachine = next_createMachine({
     id: 'light',
@@ -105,11 +106,6 @@ describe('@xstate/graph', () => {
       }
     }
   });
-
-  interface CondMachineCtx {
-    id?: string;
-  }
-  type CondMachineEvents = { type: 'EVENT'; id: string } | { type: 'STATE' };
 
   const condMachine = next_createMachine({
     // types: {} as { context: CondMachineCtx; events: CondMachineEvents },
@@ -448,13 +444,6 @@ describe('@xstate/graph', () => {
     });
 
     it('should return value-based paths', () => {
-      interface Ctx {
-        count: number;
-      }
-      interface Events {
-        type: 'INC';
-        value: number;
-      }
       const countMachine = next_createMachine({
         // types: {} as { context: Ctx; events: Events },
         schemas: {

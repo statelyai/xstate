@@ -20,7 +20,6 @@ import type {
   TransitionDefinition,
   TransitionDefinitionMap,
   TODO,
-  UnknownAction,
   ParameterizedObject,
   AnyStateMachine,
   AnyStateNodeConfig,
@@ -42,13 +41,6 @@ import {
 } from './utils.ts';
 
 const EMPTY_OBJECT = {};
-
-const toSerializableAction = (action: UnknownAction) => {
-  if (typeof action === 'string') {
-    return { type: action };
-  }
-  return action;
-};
 
 interface StateNodeOptions<
   TContext extends MachineContext,
@@ -101,19 +93,15 @@ export class StateNode<
   public machine: StateMachine<
     TContext,
     TEvent,
-    any, // children
-    any, // actor
-    any, // action
-    any, // guard
-    any, // delay
-    any, // state value
-    any, // tag
-    any, // input
-    any, // output
-    any, // emitted
-    any, // meta
-    any, // state schema
-    any, // action map
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
     any,
     any,
     any
@@ -148,6 +136,9 @@ export class StateNode<
     public config: StateNodeConfig<
       TContext,
       TEvent,
+      any,
+      any,
+      any,
       any,
       any,
       any,
@@ -532,8 +523,6 @@ export function formatInitialTransition<
   }
   const transition: InitialTransitionDefinition<TContext, TEvent, TODO> = {
     source: stateNode,
-    actions:
-      !_target || typeof _target === 'string' ? [] : toArray(_target.actions),
     eventType: null as any,
     reenter: false,
     target: resolvedTarget ? [resolvedTarget] : []
