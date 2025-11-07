@@ -1,6 +1,5 @@
 import {
   next_createMachine,
-  assign,
   fromPromise,
   Snapshot,
   InspectionEvent
@@ -87,12 +86,6 @@ describe('createActorContext', () => {
   });
 
   it('should work with useSelector and a custom comparator', async () => {
-    interface MachineContext {
-      obj: {
-        counter: number;
-      };
-      arr: string[];
-    }
     const someMachine = next_createMachine({
       schemas: {
         context: z.object({
@@ -214,6 +207,11 @@ describe('createActorContext', () => {
   it('should work with a provided machine', () => {
     const createSomeMachine = (context: { count: number }) =>
       next_createMachine({
+        schemas: {
+          context: z.object({
+            count: z.number()
+          })
+        },
         context
       });
 

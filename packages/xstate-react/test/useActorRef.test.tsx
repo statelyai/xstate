@@ -7,14 +7,13 @@ import * as React from 'react';
 import {
   ActorRefFrom,
   AnyStateMachine,
-  createMachine,
   fromPromise,
   fromTransition,
-  next_createMachine,
-  sendTo
+  next_createMachine
 } from 'xstate';
 import { useActorRef, useMachine, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
+import { z } from 'zod';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -23,7 +22,7 @@ afterEach(() => {
 describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('observer should be called with next state', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'inactive',
       states: {
         inactive: {
@@ -66,14 +65,18 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('actions created by a layout effect should access the latest closure values', () => {
     const actual: number[] = [];
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'foo',
+      actions: {
+        recordProp: () => {}
+      },
       states: {
         foo: {
           on: {
-            EXEC_ACTION: {
-              actions: 'recordProp'
-            }
+            // EXEC_ACTION: {
+            //   actions: 'recordProp'
+            // }
+            EXEC_ACTION: ({ actions }, enq) => enq(actions.recordProp)
           }
         }
       }
@@ -106,16 +109,30 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should rerender OK when only the provided machine implementations have changed', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'foo',
+      schemas: {
+        context: z.object({
+          id: z.number()
+        })
+      },
+      guards: {
+        hasOverflown: () => false
+      },
       context: { id: 1 },
       states: {
         foo: {
           on: {
-            CHECK: {
-              target: 'bar',
-              guard: 'hasOverflown'
+            // CHECK: {
+            //   target: 'bar',
+            //   guard: 'hasOverflown'
+            // }
+            CHECK: ({ guards }) => {
+              if (guards.hasOverflown()) {
+                return {
+                  target: 'bar'
+                };
+              }
             }
           }
         },
@@ -155,7 +172,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should change state when started', async () => {
-    const childMachine = createMachine({
+    const childMachine = next_createMachine({
       initial: 'waiting',
       states: {
         waiting: {
@@ -167,14 +184,18 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = createMachine({
-      types: {} as { context: { childRef: ActorRefFrom<typeof childMachine> } },
+    const parentMachine = next_createMachine({
+      schemas: {
+        context: z.object({
+          childRef: z.custom<ActorRefFrom<typeof childMachine>>()
+        })
+      },
       context: ({ spawn }) => ({
         childRef: spawn(childMachine)
       }),
       on: {
-        SEND_TO_CHILD: {
-          actions: sendTo(({ context }) => context.childRef, { type: 'EVENT' })
+        SEND_TO_CHILD: ({ context }, enq) => {
+          enq.sendTo(context.childRef, { type: 'EVENT' });
         }
       }
     });
@@ -210,7 +231,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should change state when started (useMachine)', async () => {
-    const childMachine = createMachine({
+    const childMachine = next_createMachine({
       initial: 'waiting',
       states: {
         waiting: {
@@ -222,18 +243,26 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = createMachine({
-      types: {} as {
-        context: {
-          childRef: ActorRefFrom<typeof childMachine>;
-        };
+    const parentMachine = next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     childRef: ActorRefFrom<typeof childMachine>;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          childRef: z.custom<ActorRefFrom<typeof childMachine>>()
+        })
       },
       context: ({ spawn }) => ({
         childRef: spawn(childMachine)
       }),
       on: {
-        SEND_TO_CHILD: {
-          actions: sendTo(({ context }) => context.childRef, { type: 'EVENT' })
+        // SEND_TO_CHILD: {
+        //   actions: sendTo(({ context }) => context.childRef, { type: 'EVENT' })
+        // }
+        SEND_TO_CHILD: ({ context }, enq) => {
+          enq.sendTo(context.childRef, { type: 'EVENT' });
         }
       }
     });
@@ -269,11 +298,9 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
 
   it('should deliver messages sent from an effect to the root actor registered in the system', () => {
     const spy = vi.fn();
-    const m = createMachine({
+    const m = next_createMachine({
       on: {
-        PING: {
-          actions: spy
-        }
+        PING: (_, enq) => enq(spy)
       }
     });
 
@@ -428,7 +455,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       initial: 'active',
       schemas: {
         context: z.object({
-          actorRef: z.custom<ActorRefFrom<typeof childMachine>>()
+          actorRef: z.custom<ActorRefFrom<typeof childMachine>>().optional()
         })
       },
       context: {
@@ -486,12 +513,12 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should be able to rerender with a new machine', () => {
-    const machine1 = createMachine({
+    const machine1 = next_createMachine({
       initial: 'a',
       states: { a: {} }
     });
 
-    const machine2 = createMachine({
+    const machine2 = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -540,7 +567,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should be able to rehydrate an incoming new machine using the persisted state of the previous one', () => {
-    const machine1 = createMachine({
+    const machine1 = next_createMachine({
       initial: 'a',
       states: {
         a: {
@@ -550,7 +577,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const machine2 = createMachine({
+    const machine2 = next_createMachine({
       initial: 'b',
       states: {
         b: {
@@ -602,9 +629,9 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('should not create extra rerenders when recreating the actor on the machine change', () => {
     let rerenders = 0;
 
-    const machine1 = createMachine({});
+    const machine1 = next_createMachine({});
 
-    const machine2 = createMachine({});
+    const machine2 = next_createMachine({});
 
     function Test() {
       const [machine, setMachine] = React.useState(machine1);
@@ -640,11 +667,11 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('all renders should be consistent - a value derived in render should be derived from the latest source', () => {
     let detectedInconsistency = false;
 
-    const machine1 = createMachine({
+    const machine1 = next_createMachine({
       tags: ['m1']
     });
 
-    const machine2 = createMachine({
+    const machine2 = next_createMachine({
       tags: ['m2']
     });
 
@@ -679,11 +706,11 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('all commits should be consistent - a value derived in render should be derived from the latest source', () => {
     let detectedInconsistency = false;
 
-    const machine1 = createMachine({
+    const machine1 = next_createMachine({
       tags: ['m1']
     });
 
-    const machine2 = createMachine({
+    const machine2 = next_createMachine({
       tags: ['m2']
     });
 
@@ -721,17 +748,18 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     const spy = vi.fn();
 
     const createSampleMachine = (counter: number) => {
-      const child = createMachine({
+      const child = next_createMachine({
         on: {
-          EV: {
-            actions: () => {
-              spy(counter);
-            }
-          }
+          EV: (_, enq) => enq(spy, counter)
         }
       });
 
-      return createMachine({
+      return next_createMachine({
+        schemas: {
+          context: z.object({
+            childRef: z.custom<ActorRefFrom<typeof child>>()
+          })
+        },
         context: ({ spawn }) => {
           return {
             childRef: spawn(child)
@@ -789,11 +817,15 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     const spy1 = vi.fn();
     const spy2 = vi.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
+      actions: {
+        stuff: spy1
+      },
       on: {
-        DO: {
-          actions: 'stuff'
-        }
+        // DO: {
+        //   actions: 'stuff'
+        // }
+        DO: ({ actions }, enq) => enq(actions.stuff)
       }
     });
 
@@ -838,7 +870,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('should execute an initial entry action once', () => {
     const spy = vi.fn();
 
-    const machine = createMachine({
+    const machine = next_createMachine({
       entry: spy
     });
 
