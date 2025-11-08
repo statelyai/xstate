@@ -15,7 +15,6 @@ import type {
   InvokeDefinition,
   MachineContext,
   Mapper,
-  StateNodeConfig,
   StateNodesConfig,
   TransitionDefinition,
   TransitionDefinitionMap,
@@ -33,6 +32,7 @@ import type {
   TransitionConfigFunction,
   AnyAction2
 } from './types.ts';
+import { Next_StateNodeConfig } from './types.v6.ts';
 import {
   createInvokeId,
   mapValues,
@@ -133,12 +133,9 @@ export class StateNode<
 
   constructor(
     /** The raw config used to create the machine. */
-    public config: StateNodeConfig<
+    public config: Next_StateNodeConfig<
       TContext,
       TEvent,
-      any,
-      any,
-      any,
       any,
       any,
       any,

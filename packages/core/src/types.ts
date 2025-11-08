@@ -9,7 +9,7 @@ import { AnyActorSystem, Clock } from './system.ts';
 
 // this is needed to make JSDoc `@link` work properly
 import type { SimulatedClock } from './SimulatedClock.ts';
-import { Implementations } from './types.v6.ts';
+import { Implementations, Next_StateNodeConfig } from './types.v6.ts';
 import { StandardSchemaV1 } from '../../xstate-store/src/schema.ts';
 import { builtInActions } from './actions.ts';
 
@@ -543,6 +543,7 @@ export type TransitionConfigFunction<
   enq: EnqueueObject<TEvent, TEmitted>
 ) => {
   target?: string | string[];
+  // target?: keyof TSS['states'];
   context?: TContext;
   reenter?: boolean;
   meta?: TMeta;
@@ -1067,10 +1068,7 @@ export interface StateNodeConfig<
   target?: string | undefined; // `| undefined` makes `HistoryStateNodeConfig` compatible with this interface (it extends it) under `exactOptionalPropertyTypes`
 }
 
-export type AnyStateNodeConfig = StateNodeConfig<
-  any,
-  any,
-  any,
+export type AnyStateNodeConfig = Next_StateNodeConfig<
   any,
   any,
   any,
@@ -1104,7 +1102,7 @@ export type AnyMachineSnapshot = MachineSnapshot<
 >;
 
 export type AnyStateMachine = StateMachine<
-  any | never, // context
+  any, // context
   any, // event
   any, // children
   any, // state value

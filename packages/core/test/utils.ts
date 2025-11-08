@@ -3,7 +3,6 @@ import {
   AnyStateMachine,
   getNextSnapshot,
   matchesState,
-  StateNode,
   StateValue
 } from '../src/index.ts';
 
@@ -71,9 +70,15 @@ export function testAll(
   });
 }
 
-const seen = new WeakSet<AnyStateMachine>();
+type StateNodeLike = {
+  states: Record<string, StateNodeLike>;
+  path?: string[];
+  entry?: (...args: any[]) => void;
+  exit?: (...args: any[]) => void;
+};
+const seen = new WeakSet<StateNodeLike>();
 
-export function trackEntries(machine: AnyStateMachine) {
+export function trackEntries(machine: StateNodeLike & { root: StateNodeLike }) {
   if (seen.has(machine)) {
     throw new Error(`This helper can't accept the same machine more than once`);
   }
@@ -81,10 +86,7 @@ export function trackEntries(machine: AnyStateMachine) {
 
   let logs: string[] = [];
 
-  function addTrackingActions(
-    state: StateNode<any, any>,
-    stateDescription: string
-  ) {
+  function addTrackingActions(state: StateNodeLike, stateDescription: string) {
     const originalEntry2 = state.entry;
     const originalExit2 = state.exit;
     state.entry = (_, enq) => {
@@ -97,9 +99,9 @@ export function trackEntries(machine: AnyStateMachine) {
     };
   }
 
-  function addTrackingActionsRecursively(state: StateNode<any, any>) {
+  function addTrackingActionsRecursively(state: StateNodeLike) {
     for (const child of Object.values(state.states)) {
-      addTrackingActions(child, child.path.join('.'));
+      addTrackingActions(child, child.path!.join('.'));
       addTrackingActionsRecursively(child);
     }
   }
