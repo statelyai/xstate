@@ -232,11 +232,14 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
 
   it('should change state when started (useMachine)', async () => {
     const childMachine = next_createMachine({
+      context: {},
       initial: 'waiting',
       states: {
         waiting: {
           on: {
-            EVENT: 'received'
+            EVENT: () => {
+              return { target: 'received' };
+            }
           }
         },
         received: {}
@@ -871,7 +874,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     const spy = vi.fn();
 
     const machine = next_createMachine({
-      entry: spy
+      entry: (_, enq) => enq(spy)
     });
 
     const Test = () => {

@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
+  '@preconstruct/cli':
+    hash: yuo3l2jpofe2col5mvd3ro35wm
+    path: patches/@preconstruct__cli.patch
   '@vue/test-utils@2.4.6':
     hash: drgml7uwcocw5qdowdzbfcfg3e
     path: patches/@vue__test-utils@2.4.6.patch
@@ -42,7 +45,7 @@ importers:
         version: 0.21.4
       '@preconstruct/cli':
         specifier: ^2.8.12
-        version: 2.8.12
+        version: 2.8.12(patch_hash=yuo3l2jpofe2col5mvd3ro35wm)
       '@types/node':
         specifier: ^20.14.13
         version: 20.19.6
@@ -9791,7 +9794,7 @@ snapshots:
       '@pnpm/network.ca-file': 1.0.2
       config-chain: 1.1.13
 
-  '@preconstruct/cli@2.8.12':
+  '@preconstruct/cli@2.8.12(patch_hash=yuo3l2jpofe2col5mvd3ro35wm)':
     dependencies:
       '@babel/code-frame': 7.27.1
       '@babel/core': 7.28.0

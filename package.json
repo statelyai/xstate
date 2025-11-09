@@ -88,7 +88,8 @@
   },
   "pnpm": {
     "patchedDependencies": {
-      "@vue/test-utils@2.4.6": "patches/@vue__test-utils@2.4.6.patch"
+      "@vue/test-utils@2.4.6": "patches/@vue__test-utils@2.4.6.patch",
+      "@preconstruct/cli": "patches/@preconstruct__cli.patch"
     }
   },
   "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531"

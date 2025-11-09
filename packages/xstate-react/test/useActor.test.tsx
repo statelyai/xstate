@@ -495,11 +495,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
           stuff: z.array(z.number())
         })
       },
-      actions: {
-        setup: assign({
-          stuff: ({ context }) => [...context.stuff, 4]
-        })
-      },
+
       initial: 'init',
       context: { stuff: [1, 2, 3] },
       states: {
@@ -1091,11 +1087,12 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     const m = next_createMachine({
       invoke: {
         systemId: 'child',
-        src: next_createMachine({
-          on: {
-            PING: (_, enq) => enq(spy)
-          }
-        })
+        src: () =>
+          next_createMachine({
+            on: {
+              PING: (_, enq) => enq(spy)
+            }
+          })
       }
     });
 
@@ -1103,7 +1100,10 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       const [_state, _send, actor] = useActor(m);
 
       React.useEffect(() => {
-        actor.system.get('child')!.send({ type: 'PING' });
+        if (!actor.system.get('child')) {
+          return;
+        }
+        actor.system.get('child')?.send({ type: 'PING' });
       });
 
       return null;

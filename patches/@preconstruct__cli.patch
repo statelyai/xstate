@@ -1,0 +1,19 @@
+diff --git a/cli/dist/preconstruct-cli-cli.cjs.js b/cli/dist/preconstruct-cli-cli.cjs.js
+index c1895b695b95fc27ebce976de0570965f4e969f0..f7fe291fb3dab6d823016a86921087f4dc8d148f 100644
+--- a/cli/dist/preconstruct-cli-cli.cjs.js
++++ b/cli/dist/preconstruct-cli-cli.cjs.js
+@@ -1932,7 +1932,7 @@ async function dev(projectDir) {
+           if (exportsFieldConfig.importConditionDefaultExport === "default") {
+             entrypointPromises.push(getHasDefaultExportPromise().then(hasDefaultExport => {
+               const filepath = path__namespace["default"].join(entrypoint.package.directory, getDistFilenameForConditions(entrypoint, conditions).replace(/\.js$/, ".mjs"));
+-              const importPath = `./${getDistFilenameForConditions(entrypoint, conditions)}`;
++              const importPath = `./${path__namespace["default"].basename(getDistFilenameForConditions(entrypoint, conditions))}`;
+               return Promise.all([fs__namespace.writeFile(filepath, mjsTemplate(
+               // the * won't really do anything right now
+               // since cjs-module-lexer won't find anything
+diff --git a/dist/declarations/src/cli.d.ts b/dist/declarations/src/cli.d.ts
+deleted file mode 100644
+index cb0ff5c3b541f646105198ee23ac0fc3d805023e..0000000000000000000000000000000000000000
+diff --git a/dist/declarations/src/worker.d.ts b/dist/declarations/src/worker.d.ts
+deleted file mode 100644
+index 9cd1f2dbb0325b78d77a6f2d93b066baf080fa6f..0000000000000000000000000000000000000000
