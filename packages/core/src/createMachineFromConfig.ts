@@ -68,10 +68,12 @@ export interface GuardJSON {
 }
 
 export interface InvokeJSON {
-  id: string;
+  id?: string;
   src: string;
   input?: Record<string, unknown>;
-  onDone?: string;
+  onDone?: TransitionJSON | TransitionJSON[];
+  onError?: TransitionJSON | TransitionJSON[];
+  onSnapshot?: TransitionJSON | TransitionJSON[];
 }
 
 export interface TransitionJSON {

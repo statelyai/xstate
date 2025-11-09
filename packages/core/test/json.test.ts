@@ -1,5 +1,5 @@
 import { createMachineFromConfig } from '../src/createMachineFromConfig';
-import { createMachine } from '../src/index';
+
 import * as machineSchema from '../src/machine.schema.json';
 
 import Ajv from 'ajv';
@@ -97,18 +97,18 @@ describe.skip('json', () => {
   });
 
   it('should not double-serialize invoke transitions', () => {
-    const machine = createMachine({
+    const machine = createMachineFromConfig({
       initial: 'active',
       states: {
         active: {
           id: 'active',
           invoke: {
             src: 'someSrc',
-            onDone: 'foo',
-            onError: 'bar'
+            onDone: { target: 'foo' },
+            onError: { target: 'bar' }
           },
           on: {
-            EVENT: 'foo'
+            EVENT: { target: 'foo' }
           }
         },
         foo: {},
@@ -120,7 +120,7 @@ describe.skip('json', () => {
 
     const machineObject = JSON.parse(machineJSON);
 
-    const revivedMachine = createMachine(machineObject);
+    const revivedMachine = createMachineFromConfig(machineObject);
 
     expect([...revivedMachine.states.active.transitions.values()].flat())
       .toMatchInlineSnapshot(`
