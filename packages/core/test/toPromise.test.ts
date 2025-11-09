@@ -1,7 +1,7 @@
 import z from 'zod';
 import {
   createActor,
-  next_createMachine as createMachine,
+  createMachine as createMachine,
   fromPromise,
   toPromise
 } from '../src';

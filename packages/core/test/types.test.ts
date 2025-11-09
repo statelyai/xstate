@@ -8,7 +8,7 @@ import {
   UnknownActorRef,
   createActor,
   createStateConfig,
-  next_createMachine,
+  createMachine,
   toPromise
 } from '../src/index';
 import { createInertActorScope } from '../src/getNextSnapshot';
@@ -20,7 +20,7 @@ function noop(_x: unknown) {
 
 describe('Raise events', () => {
   it('should accept a valid event type', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       // },
@@ -45,7 +45,7 @@ describe('Raise events', () => {
   });
 
   it('should reject an invalid event type', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       // },
@@ -70,7 +70,7 @@ describe('Raise events', () => {
   it('should reject a string event type', () => {
     const event: { type: string } = { type: 'something' };
 
-    next_createMachine({
+    createMachine({
       // types: {
       //   events: {} as { type: 'FOO' } | { type: 'BAR' }
       // },
@@ -90,7 +90,7 @@ describe('Raise events', () => {
   });
 
   it('should provide a narrowed down expression event type when used as a transition action', () => {
-    next_createMachine({
+    createMachine({
       // types: {
       //   events: {} as { type: 'FOO' } | { type: 'BAR' }
       // },
@@ -133,7 +133,7 @@ describe('Raise events', () => {
   });
 
   it('should accept a valid event type returned from an expression', () => {
-    next_createMachine({
+    createMachine({
       // types: {
       //   events: {} as { type: 'FOO' } | { type: 'BAR' }
       // },
@@ -155,7 +155,7 @@ describe('Raise events', () => {
   });
 
   it('should reject an invalid event type returned from an expression', () => {
-    next_createMachine({
+    createMachine({
       // types: {
       //   events: {} as { type: 'FOO' } | { type: 'BAR' }
       // },
@@ -180,7 +180,7 @@ describe('Raise events', () => {
   it('should reject a string event type returned from an expression', () => {
     const event: { type: string } = { type: 'something' };
 
-    next_createMachine({
+    createMachine({
       // types: {
       //   events: {} as { type: 'FOO' } | { type: 'BAR' }
       // },
@@ -203,14 +203,14 @@ describe('Raise events', () => {
 
 describe('context', () => {
   it('defined context in next_createMachine() should be an object', () => {
-    next_createMachine({
+    createMachine({
       // @ts-expect-error
       context: 'string'
     });
   });
 
   it('context should be required if present in types', () => {
-    next_createMachine(
+    createMachine(
       // @ts-expect-error
       {
         // types: {} as {
@@ -224,7 +224,7 @@ describe('context', () => {
       }
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   context: { count: number };
       // },
@@ -238,7 +238,7 @@ describe('context', () => {
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   context: { count: number };
       // },
@@ -256,7 +256,7 @@ describe('context', () => {
 
 describe('output', () => {
   it('output type should be represented in state', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   output: number;
       // },
@@ -276,7 +276,7 @@ describe('output', () => {
   });
 
   it('should accept valid static output', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   output: number;
       // },
@@ -288,7 +288,7 @@ describe('output', () => {
   });
 
   it('should reject invalid static output', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   output: number;
       // },
@@ -301,7 +301,7 @@ describe('output', () => {
   });
 
   it('should accept valid dynamic output', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   output: number;
       // },
@@ -313,7 +313,7 @@ describe('output', () => {
   });
 
   it('should reject invalid dynamic output', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   output: number;
       // },
@@ -326,7 +326,7 @@ describe('output', () => {
   });
 
   it('should provide the context type to the dynamic top-level output', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   context: { password: string };
       //   output: {
@@ -354,7 +354,7 @@ describe('output', () => {
   });
 
   it('should provide the context type to the dynamic nested output', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   context: { password: string };
       //   output: {
@@ -406,7 +406,7 @@ describe('emitted', () => {
     //   }
     // }).createMachine({});
 
-    const m = next_createMachine({
+    const m = createMachine({
       schemas: {
         emitted: z.union([
           z.object({
@@ -436,7 +436,7 @@ describe('emitted', () => {
 });
 
 it('should not use actions as possible inference sites', () => {
-  next_createMachine({
+  createMachine({
     // types: {
     //   context: {} as {
     //     count: number;
@@ -459,7 +459,7 @@ it('should not use actions as possible inference sites', () => {
 });
 
 it('should not widen literal types defined in `schema.context` based on `config.context`', () => {
-  next_createMachine({
+  createMachine({
     // types: {
     //   context: {} as {
     //     literalTest: 'foo' | 'bar';
@@ -491,7 +491,7 @@ describe('states', () => {
       }
     };
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events: { type: 'TOGGLE_ITALIC' } | { type: 'TOGGLE_BOLD' };
       // },
@@ -518,7 +518,7 @@ describe('states', () => {
       }
     } as const;
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events: { type: 'TOGGLE_ITALIC' } | { type: 'TOGGLE_BOLD' };
       // },
@@ -539,7 +539,7 @@ describe('states', () => {
 
 describe('events', () => {
   it('should not use actions as possible inference sites 1', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {
       //   events: {} as {
       //     type: 'FOO';
@@ -561,7 +561,7 @@ describe('events', () => {
   });
 
   it('should not use actions as possible inference sites 2', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {
       //   events: {} as {
       //     type: 'FOO';
@@ -583,7 +583,7 @@ describe('events', () => {
   });
 
   it('event type should be inferable from a simple state machine type', () => {
-    const toggleMachine = next_createMachine({
+    const toggleMachine = createMachine({
       // types: {} as {
       //   context: {
       //     count: number;
@@ -631,7 +631,7 @@ describe('events', () => {
   });
 
   it('should infer inline function parameters when narrowing transition actions based on the event type', () => {
-    next_createMachine({
+    createMachine({
       // types: {
       //   context: {} as {
       //     count: number;
@@ -674,7 +674,7 @@ describe('events', () => {
   });
 
   it('should infer inline function parameters when for a wildcard transition', () => {
-    next_createMachine({
+    createMachine({
       // types: {
       //   context: {} as {
       //     count: number;
@@ -719,7 +719,7 @@ describe('events', () => {
   });
 
   it('should infer inline function parameter with a partial transition descriptor matching multiple events with the matching count of segments', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events:
       //     | { type: 'mouse.click.up'; direction: 'up' }
@@ -765,7 +765,7 @@ describe('events', () => {
   });
 
   it('should infer inline function parameter with a partial transition descriptor matching multiple events with the same count of segments or more', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events:
       //     | { type: 'mouse.click.up'; direction: 'up' }
@@ -811,7 +811,7 @@ describe('events', () => {
   });
 
   it('should not allow a transition using an event type matching the possible prefix but one that is outside of the defines ones', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events:
       //     | { type: 'mouse.click.up'; direction: 'up' }
@@ -843,7 +843,7 @@ describe('events', () => {
   });
 
   it('should not allow a transition using an event type matching the possible prefix but one that is outside of the defines ones', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events:
       //     | { type: 'mouse.click.up'; direction: 'up' }
@@ -875,7 +875,7 @@ describe('events', () => {
   });
 
   it(`should infer inline function parameter only using a direct match when the transition descriptor doesn't has a trailing wildcard`, () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events:
       //     | { type: 'mouse.click.up'; direction: 'up' }
@@ -917,7 +917,7 @@ describe('events', () => {
   });
 
   it('should not allow a transition using a partial descriptor related to an event type that is only defined exxactly', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events:
       //     | { type: 'mouse.click.up'; direction: 'up' }
@@ -949,7 +949,7 @@ describe('events', () => {
   });
 
   it('should provide the default TEvent to transition actions when there is no specific TEvent configured', () => {
-    next_createMachine({
+    createMachine({
       // types: {
       //   context: {} as {
       //     count: number;
@@ -977,7 +977,7 @@ describe('events', () => {
   });
 
   it('should provide contextual `event` type in transition actions when the matching event has a union `.type`', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events:
       //     | {
@@ -1017,7 +1017,7 @@ describe('events', () => {
 describe('interpreter', () => {
   it('should be convertible to Rx observable', () => {
     const s = createActor(
-      next_createMachine({
+      createMachine({
         // types: {
         //   context: {} as { count: number }
         // },
@@ -1045,7 +1045,7 @@ describe('spawnChild action', () => {
   it('should reject actor outside of the defined ones at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1068,7 +1068,7 @@ describe('spawnChild action', () => {
   it('should accept a defined actor at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1085,9 +1085,9 @@ describe('spawnChild action', () => {
   });
 
   it('should allow valid configured actor id', () => {
-    const child = next_createMachine({});
+    const child = createMachine({});
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1105,9 +1105,9 @@ describe('spawnChild action', () => {
   });
 
   it('should disallow invalid actor id', () => {
-    const child = next_createMachine({});
+    const child = createMachine({});
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1131,9 +1131,9 @@ describe('spawnChild action', () => {
   });
 
   it('should require id to be specified when it was configured', () => {
-    const child = next_createMachine({});
+    const child = createMachine({});
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1153,9 +1153,9 @@ describe('spawnChild action', () => {
   });
 
   it(`shouldn't require id to be specified when it was not configured`, () => {
-    const child = next_createMachine({});
+    const child = createMachine({});
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1171,9 +1171,9 @@ describe('spawnChild action', () => {
   });
 
   it(`should allow id to be specified when it was not configured`, () => {
-    const child = next_createMachine({});
+    const child = createMachine({});
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1189,19 +1189,19 @@ describe('spawnChild action', () => {
   });
 
   it(`should allow anonymous inline actor outside of the configured actors`, () => {
-    const child1 = next_createMachine({
+    const child1 = createMachine({
       context: {
         counter: 0
       }
     });
 
-    const child2 = next_createMachine({
+    const child2 = createMachine({
       context: {
         answer: ''
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1217,7 +1217,7 @@ describe('spawnChild action', () => {
   });
 
   it(`should disallow anonymous inline actor with an id outside of the configured actors`, () => {
-    const child1 = next_createMachine({
+    const child1 = createMachine({
       schemas: {
         context: z.object({
           counter: z.number()
@@ -1228,7 +1228,7 @@ describe('spawnChild action', () => {
       }
     });
 
-    const child2 = next_createMachine({
+    const child2 = createMachine({
       schemas: {
         context: z.object({
           answer: z.string()
@@ -1239,7 +1239,7 @@ describe('spawnChild action', () => {
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1265,7 +1265,7 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1294,7 +1294,7 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1318,7 +1318,7 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1342,7 +1342,7 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1371,7 +1371,7 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1400,7 +1400,7 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1424,7 +1424,7 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1453,7 +1453,7 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1479,7 +1479,7 @@ describe('spawnChild action', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors:
       //     | {
@@ -1509,7 +1509,7 @@ describe('spawnChild action', () => {
   it(`should require input to be specified when it is required`, () => {
     const child = fromPromise(({}: { input: number }) => Promise.resolve(100));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1534,7 +1534,7 @@ describe('spawnChild action', () => {
       Promise.resolve(100)
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1557,7 +1557,7 @@ describe('spawner in assign', () => {
   it('should reject actor outside of the defined ones at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1583,7 +1583,7 @@ describe('spawner in assign', () => {
   it('should accept a defined actor at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1603,9 +1603,9 @@ describe('spawner in assign', () => {
   });
 
   it('should allow valid configured actor id', () => {
-    const child = next_createMachine({});
+    const child = createMachine({});
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1626,9 +1626,9 @@ describe('spawner in assign', () => {
   });
 
   it('should disallow invalid actor id', () => {
-    const child = next_createMachine({});
+    const child = createMachine({});
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1653,9 +1653,9 @@ describe('spawner in assign', () => {
   });
 
   it('should require id to be specified when it was configured', () => {
-    const child = next_createMachine({});
+    const child = createMachine({});
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1678,9 +1678,9 @@ describe('spawner in assign', () => {
   });
 
   it(`shouldn't require id to be specified when it was not configured`, () => {
-    const child = next_createMachine({});
+    const child = createMachine({});
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1700,9 +1700,9 @@ describe('spawner in assign', () => {
   });
 
   it(`should allow id to be specified when it was not configured`, () => {
-    const child = next_createMachine({});
+    const child = createMachine({});
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1722,7 +1722,7 @@ describe('spawner in assign', () => {
   });
 
   it(`should allow anonymous inline actor outside of the configured actors`, () => {
-    const child1 = next_createMachine({
+    const child1 = createMachine({
       schemas: {
         context: z.object({
           counter: z.number()
@@ -1733,7 +1733,7 @@ describe('spawner in assign', () => {
       }
     });
 
-    const child2 = next_createMachine({
+    const child2 = createMachine({
       schemas: {
         context: z.object({
           answer: z.string()
@@ -1744,7 +1744,7 @@ describe('spawner in assign', () => {
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1764,7 +1764,7 @@ describe('spawner in assign', () => {
   });
 
   it(`should no allow anonymous inline actor with an id outside of the configured ones`, () => {
-    const child1 = next_createMachine({
+    const child1 = createMachine({
       schemas: {
         context: z.object({
           counter: z.number()
@@ -1775,7 +1775,7 @@ describe('spawner in assign', () => {
       }
     });
 
-    const child2 = next_createMachine({
+    const child2 = createMachine({
       schemas: {
         context: z.object({
           answer: z.string()
@@ -1786,7 +1786,7 @@ describe('spawner in assign', () => {
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1813,7 +1813,7 @@ describe('spawner in assign', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1843,7 +1843,7 @@ describe('spawner in assign', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1871,7 +1871,7 @@ describe('spawner in assign', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1899,7 +1899,7 @@ describe('spawner in assign', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1929,7 +1929,7 @@ describe('spawner in assign', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -1948,7 +1948,7 @@ describe('spawner in assign', () => {
   });
 
   it(`should return a concrete actor ref type based on actor logic argument, one that is assignable to a location expecting that concrete actor ref type`, () => {
-    const child = next_createMachine({
+    const child = createMachine({
       // types: {} as {
       //   context: {
       //     counter: number;
@@ -1964,7 +1964,7 @@ describe('spawner in assign', () => {
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   context: {
       //     myChild?: ActorRefFrom<typeof child>;
@@ -1992,7 +1992,7 @@ describe('spawner in assign', () => {
   });
 
   it(`should return a concrete actor ref type based on actor logic argument, one that isn't assignable to a location expecting a different concrete actor ref type`, () => {
-    const child = next_createMachine({
+    const child = createMachine({
       // types: {} as {
       //   context: {
       //     counter: number;
@@ -2008,7 +2008,7 @@ describe('spawner in assign', () => {
       }
     });
 
-    const otherChild = next_createMachine({
+    const otherChild = createMachine({
       // types: {} as {
       //   context: {
       //     title: string;
@@ -2024,7 +2024,7 @@ describe('spawner in assign', () => {
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   context: {
       //     myChild?: ActorRefFrom<typeof child>;
@@ -2057,7 +2057,7 @@ describe('spawner in assign', () => {
   it(`should require input to be specified when it is required`, () => {
     const child = fromPromise(({}: { input: number }) => Promise.resolve(100));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2082,7 +2082,7 @@ describe('spawner in assign', () => {
       Promise.resolve(100)
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2105,7 +2105,7 @@ describe('invoke', () => {
   it('should reject actor outside of the defined ones at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2124,7 +2124,7 @@ describe('invoke', () => {
   it('should accept a defined actor at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2139,9 +2139,9 @@ describe('invoke', () => {
   });
 
   it('should allow valid configured actor id', () => {
-    const child = next_createMachine({});
+    const child = createMachine({});
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2158,9 +2158,9 @@ describe('invoke', () => {
   });
 
   it('should disallow invalid actor id', () => {
-    const child = next_createMachine({});
+    const child = createMachine({});
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2178,9 +2178,9 @@ describe('invoke', () => {
   });
 
   it('should require id to be specified when it was configured', () => {
-    const child = next_createMachine({});
+    const child = createMachine({});
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2197,9 +2197,9 @@ describe('invoke', () => {
   });
 
   it(`shouldn't require id to be specified when it was not configured`, () => {
-    const child = next_createMachine({});
+    const child = createMachine({});
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2214,9 +2214,9 @@ describe('invoke', () => {
   });
 
   it(`should allow id to be specified when it was not configured`, () => {
-    const child = next_createMachine({});
+    const child = createMachine({});
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2232,19 +2232,19 @@ describe('invoke', () => {
   });
 
   it(`should allow anonymous inline actor outside of the configured actors`, () => {
-    const child1 = next_createMachine({
+    const child1 = createMachine({
       context: {
         counter: 0
       }
     });
 
-    const child2 = next_createMachine({
+    const child2 = createMachine({
       context: {
         answer: ''
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2259,19 +2259,19 @@ describe('invoke', () => {
   });
 
   it(`should diallow anonymous inline actor with an id outside of the configured actors`, () => {
-    const child1 = next_createMachine({
+    const child1 = createMachine({
       context: {
         counter: 0
       }
     });
 
-    const child2 = next_createMachine({
+    const child2 = createMachine({
       context: {
         answer: ''
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2293,7 +2293,7 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2314,7 +2314,7 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2334,7 +2334,7 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2354,7 +2354,7 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2375,7 +2375,7 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2396,7 +2396,7 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2416,7 +2416,7 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2437,7 +2437,7 @@ describe('invoke', () => {
       Promise.resolve('foo')
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2455,7 +2455,7 @@ describe('invoke', () => {
   it(`should require input to be specified when it is required`, () => {
     const child = fromPromise(({}: { input: number }) => Promise.resolve(100));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2475,7 +2475,7 @@ describe('invoke', () => {
       Promise.resolve(100)
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2494,7 +2494,7 @@ describe('actor implementations', () => {
   it('should reject actor outside of the defined ones in provided implementations', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2513,7 +2513,7 @@ describe('actor implementations', () => {
   it('should accept a defined actor in provided implementations', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2531,7 +2531,7 @@ describe('actor implementations', () => {
   it(`should reject the provided actor when the output doesn't match`, () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2550,7 +2550,7 @@ describe('actor implementations', () => {
   it(`should reject the provided actor when its output is a super type of the expected one`, () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2573,7 +2573,7 @@ describe('actor implementations', () => {
       Promise.resolve(Math.random() > 0.5 ? 'foo' : 42)
     );
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2593,7 +2593,7 @@ describe('actor implementations', () => {
   });
 
   it('should allow an actor with the expected snapshot type', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       // types: {} as {
       //   context: {
       //     foo: string;
@@ -2609,7 +2609,7 @@ describe('actor implementations', () => {
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2627,7 +2627,7 @@ describe('actor implementations', () => {
   });
 
   it('should reject an actor with an incorrect snapshot type', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       // types: {} as {
       //   context: {
       //     foo: string;
@@ -2643,7 +2643,7 @@ describe('actor implementations', () => {
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2656,7 +2656,7 @@ describe('actor implementations', () => {
     }).provide({
       actors: {
         // @ts-expect-error
-        child: next_createMachine({
+        child: createMachine({
           // types: {} as {
           //   context: {
           //     foo: number;
@@ -2676,7 +2676,7 @@ describe('actor implementations', () => {
   });
 
   it('should allow an actor with a snapshot type that is a subtype of the expected one', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       // types: {} as {
       //   context: {
       //     foo: string | number;
@@ -2692,7 +2692,7 @@ describe('actor implementations', () => {
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2706,7 +2706,7 @@ describe('actor implementations', () => {
       actors: {
         // TODO: ideally this should be allowed
         // @ts-expect-error
-        child: next_createMachine({
+        child: createMachine({
           // types: {} as {
           //   context: {
           //     foo: string;
@@ -2726,7 +2726,7 @@ describe('actor implementations', () => {
   });
 
   it('should reject an actor with a snapshot type that is a supertype of the expected one', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       // types: {} as {
       //   context: {
       //     foo: string;
@@ -2742,7 +2742,7 @@ describe('actor implementations', () => {
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2755,7 +2755,7 @@ describe('actor implementations', () => {
     }).provide({
       actors: {
         // @ts-expect-error
-        child: next_createMachine({
+        child: createMachine({
           // types: {} as {
           //   context: {
           //     foo: string | number;
@@ -2775,7 +2775,7 @@ describe('actor implementations', () => {
   });
 
   it('should allow an actor with the expected event types', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       // types: {} as {
       //   events: {
       //     type: 'EV_1';
@@ -2788,7 +2788,7 @@ describe('actor implementations', () => {
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2806,7 +2806,7 @@ describe('actor implementations', () => {
   });
 
   it('should reject an actor with wrong event types', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       // types: {} as {
       //   events: {
       //     type: 'EV_1';
@@ -2819,7 +2819,7 @@ describe('actor implementations', () => {
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2832,7 +2832,7 @@ describe('actor implementations', () => {
     }).provide({
       actors: {
         // @ts-expect-error
-        child: next_createMachine({
+        child: createMachine({
           // types: {} as {
           //   events: {
           //     type: 'OTHER';
@@ -2849,7 +2849,7 @@ describe('actor implementations', () => {
   });
 
   it('should reject an actor with an event type that is a subtype of the expected one', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       // types: {} as {
       //   events:
       //     | {
@@ -2867,7 +2867,7 @@ describe('actor implementations', () => {
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2881,7 +2881,7 @@ describe('actor implementations', () => {
       actors: {
         // the provided actor has to be able to handle all the event types that it might receive from the parent here
         // @ts-expect-error
-        child: next_createMachine({
+        child: createMachine({
           // types: {} as {
           //   events: {
           //     type: 'EV_1';
@@ -2898,7 +2898,7 @@ describe('actor implementations', () => {
   });
 
   it('should allow an actor with a snapshot type that is a supertype of the expected one', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       // types: {} as {
       //   events: {
       //     type: 'EV_1';
@@ -2911,7 +2911,7 @@ describe('actor implementations', () => {
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2925,7 +2925,7 @@ describe('actor implementations', () => {
       actors: {
         // TODO: ideally this should be allowed since the provided actor is capable of handling all the event types that it might receive from the parent here
         // @ts-expect-error
-        child: next_createMachine({
+        child: createMachine({
           // types: {} as {
           //   events:
           //     | {
@@ -2949,7 +2949,7 @@ describe('actor implementations', () => {
 
 describe('state.children without setup', () => {
   it('should return the correct child type on the available snapshot when the child ID for the actor was configured', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       // types: {} as {
       //   context: {
       //     foo: string;
@@ -2965,7 +2965,7 @@ describe('state.children without setup', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -2992,13 +2992,13 @@ describe('state.children without setup', () => {
   });
 
   it('should have an optional child on the available snapshot when the child ID for the actor was configured', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       context: {
         counter: 0
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -3019,13 +3019,13 @@ describe('state.children without setup', () => {
   });
 
   it('should have an optional child on the available snapshot when the child ID for the actor was not configured', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       context: {
         counter: 0
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -3045,19 +3045,19 @@ describe('state.children without setup', () => {
   });
 
   it('should not have an index signature on the available snapshot when child IDs were configured for all actors', () => {
-    const child1 = next_createMachine({
+    const child1 = createMachine({
       context: {
         counter: 0
       }
     });
 
-    const child2 = next_createMachine({
+    const child2 = createMachine({
       context: {
         answer: ''
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   actors:
       //     | {
@@ -3084,7 +3084,7 @@ describe('state.children without setup', () => {
   });
 
   it('should have an index signature on the available snapshot when child IDs were configured only for some actors', () => {
-    const child1 = next_createMachine({
+    const child1 = createMachine({
       schemas: {
         context: z.object({
           counter: z.number()
@@ -3095,7 +3095,7 @@ describe('state.children without setup', () => {
       }
     });
 
-    const child2 = next_createMachine({
+    const child2 = createMachine({
       schemas: {
         context: z.object({
           answer: z.string()
@@ -3106,7 +3106,7 @@ describe('state.children without setup', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   actors:
       //     | {
@@ -3141,7 +3141,7 @@ describe('state.children without setup', () => {
 
 describe('actions', () => {
   it('context should get inferred for builtin actions used as an entry action', () => {
-    next_createMachine({
+    createMachine({
       // types: {
       //   context: {} as { count: number }
       // },
@@ -3163,7 +3163,7 @@ describe('actions', () => {
   });
 
   it('context should get inferred for builtin actions used as a transition action', () => {
-    next_createMachine({
+    createMachine({
       // types: {
       //   context: {} as { count: number },
       //   events: {} as { type: 'FOO' } | { type: 'BAR' }
@@ -3192,7 +3192,7 @@ describe('actions', () => {
   });
 
   it('should report an error when the stop action returns an invalid actor ref', () => {
-    next_createMachine({
+    createMachine({
       // types: {
       //   context: {} as {
       //     count: number;
@@ -3222,7 +3222,7 @@ describe('actions', () => {
   });
 
   it('should NOT accept assign with partial static object', () => {
-    next_createMachine({
+    createMachine({
       // types: {
       //   events: {} as {
       //     type: 'TOGGLE';
@@ -3255,7 +3255,7 @@ describe('actions', () => {
   });
 
   it('should allow a defined parameterized action with params', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       // },
@@ -3272,7 +3272,7 @@ describe('actions', () => {
   });
 
   it('should disallow a non-defined parameterized action', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       // },
@@ -3295,7 +3295,7 @@ describe('actions', () => {
   });
 
   it('should disallow a defined parameterized action with invalid params', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       // },
@@ -3313,7 +3313,7 @@ describe('actions', () => {
   });
 
   it('should disallow a defined parameterized action when it lacks required params', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       // },
@@ -3337,7 +3337,7 @@ describe('actions', () => {
   });
 
   it("should allow a defined action without params when it only has optional params when it's referenced using an object", () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actions:
       //     | { type: 'greet'; params: { name: string } }
@@ -3355,7 +3355,7 @@ describe('actions', () => {
   });
 
   it('should type action params as the specific defined params in the provided custom action', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actions:
       //     | { type: 'greet'; params: { name: string } }
@@ -3377,7 +3377,7 @@ describe('actions', () => {
   });
 
   it('should not allow a provided action outside of the defined ones', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actions:
       //     | { type: 'greet'; params: { name: string } }
@@ -3396,7 +3396,7 @@ describe('actions', () => {
   });
 
   it('should allow dynamic params that return correct params type', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       // },
@@ -3417,7 +3417,7 @@ describe('actions', () => {
   });
 
   it('should disallow dynamic params that return invalid params type', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   actions:
       //     | { type: 'greet'; params: { surname: string } }
@@ -3444,7 +3444,7 @@ describe('actions', () => {
   });
 
   it('should provide context type to dynamic params', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   context: {
       //     count: number;
@@ -3486,7 +3486,7 @@ describe('actions', () => {
   });
 
   it('should provide narrowed down event type to dynamic params', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       //   actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
@@ -3535,7 +3535,7 @@ describe('actions', () => {
 
 describe('input', () => {
   it('should provide the input type to the context factory', () => {
-    next_createMachine({
+    createMachine({
       types: {
         input: {} as {
           count: number;
@@ -3551,7 +3551,7 @@ describe('input', () => {
   });
 
   it('should accept valid input type when interpreting an actor', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       types: {
         input: {} as {
           count: number;
@@ -3563,7 +3563,7 @@ describe('input', () => {
   });
 
   it('should reject invalid input type when interpreting an actor', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       types: {
         input: {} as {
           count: number;
@@ -3580,7 +3580,7 @@ describe('input', () => {
   });
 
   it('should require input to be specified when defined', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       types: {
         input: {} as {
           count: number;
@@ -3593,7 +3593,7 @@ describe('input', () => {
   });
 
   it('should not require input when not defined', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       types: {}
     });
 
@@ -3603,7 +3603,7 @@ describe('input', () => {
 
 describe('guards', () => {
   it('should allow a defined parameterized guard with params', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   guards:
       //     | {
@@ -3642,7 +3642,7 @@ describe('guards', () => {
   });
 
   it('should disallow a non-defined parameterized guard', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   guards:
       //     | {
@@ -3685,7 +3685,7 @@ describe('guards', () => {
   });
 
   it('should disallow a defined parameterized guard with invalid params', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   guards:
       //     | {
@@ -3728,7 +3728,7 @@ describe('guards', () => {
   });
 
   it('should disallow a defined parameterized guard when it lacks required params', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   guards:
       //     | {
@@ -3768,7 +3768,7 @@ describe('guards', () => {
   });
 
   it("should allow a defined guard without params when it only has optional params when it's referenced using an object", () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   guards:
       //     | {
@@ -3804,7 +3804,7 @@ describe('guards', () => {
   });
 
   it('should type guard params as the specific params in the provided custom guard', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   guards:
       //     | {
@@ -3836,7 +3836,7 @@ describe('guards', () => {
   });
 
   it('should not allow a provided guard outside of the defined ones', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       guards: {
         isGreaterThan: (_params: { count: number }) => {
           return true;
@@ -3852,7 +3852,7 @@ describe('guards', () => {
   });
 
   it('should allow dynamic params that return correct params type', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   guards:
       //     | {
@@ -3888,7 +3888,7 @@ describe('guards', () => {
   });
 
   it.only('should disallow dynamic params that return invalid params type', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   guards:
       //     | {
@@ -3930,7 +3930,7 @@ describe('guards', () => {
   });
 
   it('should provide context type to dynamic params', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   context: {
       //     count: number;
@@ -3982,7 +3982,7 @@ describe('guards', () => {
 
 describe('delays', () => {
   it('should accept a plain number as key of an after transitions object when delays are declared', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   delays: 'one second' | 'one minute';
       // },
@@ -3997,7 +3997,7 @@ describe('delays', () => {
   });
 
   it('should accept a defined delay type as key of an after transitions object when delays are declared', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   delays: 'one second' | 'one minute';
       // },
@@ -4012,7 +4012,7 @@ describe('delays', () => {
   });
 
   it(`should reject delay as key of an after transitions object if it's outside of the defined ones`, () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   delays: 'one second' | 'one minute';
       // },
@@ -4028,7 +4028,7 @@ describe('delays', () => {
   });
 
   it('should accept a plain number as delay in `raise` when delays are declared', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   delays: 'one second' | 'one minute';
       // },
@@ -4044,7 +4044,7 @@ describe('delays', () => {
   });
 
   it('should accept a defined delay in `raise`', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   delays: 'one second' | 'one minute';
       // },
@@ -4060,7 +4060,7 @@ describe('delays', () => {
   });
 
   it('should reject a delay outside of the defined ones in `raise`', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   delays: 'one second' | 'one minute';
       // },
@@ -4089,9 +4089,9 @@ describe('delays', () => {
   });
 
   it('should accept a plain number as delay in `sendTo` when delays are declared', () => {
-    const otherActor = createActor(next_createMachine({}));
+    const otherActor = createActor(createMachine({}));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   delays: 'one second' | 'one minute';
       // },
@@ -4107,9 +4107,9 @@ describe('delays', () => {
   });
 
   it('should accept a defined delay in `sendTo`', () => {
-    const otherActor = createActor(next_createMachine({}));
+    const otherActor = createActor(createMachine({}));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   delays: 'one second' | 'one minute';
       // },
@@ -4125,9 +4125,9 @@ describe('delays', () => {
   });
 
   it('should reject a delay outside of the defined ones in `sendTo`', () => {
-    const otherActor = createActor(next_createMachine({}));
+    const otherActor = createActor(createMachine({}));
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   delays: 'one second' | 'one minute';
       // },
@@ -4158,7 +4158,7 @@ describe('delays', () => {
   });
 
   it('should accept a plain number as delay in `raise` in `enqueueActions` when delays are declared', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   delays: 'one second' | 'one minute';
       // },
@@ -4176,7 +4176,7 @@ describe('delays', () => {
   });
 
   it('should accept a defined delay in `raise` in `enqueueActions`', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   delays: 'one second' | 'one minute';
       // },
@@ -4194,7 +4194,7 @@ describe('delays', () => {
   });
 
   it('should reject a delay outside of the defined ones in `raise` in `enqueueActions`', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   delays: 'one second' | 'one minute';
       // },
@@ -4215,7 +4215,7 @@ describe('delays', () => {
   });
 
   it('should NOT accept any delay string when no explicit delays are defined', () => {
-    next_createMachine({
+    createMachine({
       after: {
         // @ts-expect-error
         just_any_delay: {}
@@ -4226,7 +4226,7 @@ describe('delays', () => {
 
 describe('tags', () => {
   it(`should NOT allow a defined tag when it's set using a string`, () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   tags: 'pending' | 'success' | 'error';
       // },
@@ -4243,7 +4243,7 @@ describe('tags', () => {
   });
 
   it(`should allow a defined tag when it's set using an array`, () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   tags: 'pending' | 'success' | 'error';
       // },
@@ -4259,7 +4259,7 @@ describe('tags', () => {
   });
 
   it(`should not allow a tag outside of the defined ones when it's set using a string`, () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   tags: 'pending' | 'success' | 'error';
       // },
@@ -4276,7 +4276,7 @@ describe('tags', () => {
   });
 
   it(`should not allow a tag outside of the defined ones when it's set using an array`, () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   tags: 'pending' | 'success' | 'error';
       // },
@@ -4295,7 +4295,7 @@ describe('tags', () => {
   });
 
   it('`hasTag` should allow checking a defined tag', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   tags: 'a' | 'b' | 'c';
       // }
@@ -4310,7 +4310,7 @@ describe('tags', () => {
   });
 
   it('`hasTag` should not allow checking a tag outside of the defined ones', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   tags: 'a' | 'b' | 'c';
       // }
@@ -4328,7 +4328,7 @@ describe('tags', () => {
 
 describe('fromCallback', () => {
   it('should reject a start callback that returns an explicit promise', () => {
-    next_createMachine({
+    createMachine({
       invoke: {
         src: fromCallback(
           // @ts-ignore
@@ -4354,7 +4354,7 @@ describe('fromCallback', () => {
     //
     //   // implicit completion
     // })
-    next_createMachine({
+    createMachine({
       invoke: {
         src: fromCallback(
           // @ts-ignore
@@ -4365,7 +4365,7 @@ describe('fromCallback', () => {
   });
 
   it('should reject a start callback that returns a non-function and non-undefined value', () => {
-    next_createMachine({
+    createMachine({
       invoke: {
         src: fromCallback(
           // @ts-ignore
@@ -4378,7 +4378,7 @@ describe('fromCallback', () => {
   });
 
   it('should allow returning an implicit undefined from the start callback', () => {
-    next_createMachine({
+    createMachine({
       invoke: {
         src: fromCallback(() => {})
       }
@@ -4386,7 +4386,7 @@ describe('fromCallback', () => {
   });
 
   it('should allow returning an explicit undefined from the start callback', () => {
-    next_createMachine({
+    createMachine({
       invoke: {
         src: fromCallback(() => {
           return undefined;
@@ -4396,7 +4396,7 @@ describe('fromCallback', () => {
   });
 
   it('should allow returning a cleanup function the start callback', () => {
-    next_createMachine({
+    createMachine({
       invoke: {
         src: fromCallback(() => {
           return undefined;
@@ -4408,7 +4408,7 @@ describe('fromCallback', () => {
 
 describe('self', () => {
   it('should accept correct event types in an inline entry custom action', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       // },
@@ -4432,7 +4432,7 @@ describe('self', () => {
   });
 
   it('should accept correct event types in an inline entry builtin action', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       // },
@@ -4456,7 +4456,7 @@ describe('self', () => {
   });
 
   it('should accept correct event types in an inline transition custom action', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       // },
@@ -4482,7 +4482,7 @@ describe('self', () => {
   });
 
   it('should accept correct event types in an inline transition builtin action', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       // },
@@ -4509,7 +4509,7 @@ describe('self', () => {
   });
 
   it('should return correct snapshot in an inline entry custom action', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   context: { count: number };
       // },
@@ -4528,7 +4528,7 @@ describe('self', () => {
   });
 
   it('should return correct snapshot in an inline entry action', () => {
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   context: { count: number };
       // },
@@ -4572,7 +4572,7 @@ describe('createActor', () => {
 
 describe('snapshot methods', () => {
   it('should type infer actor union snapshot methods', () => {
-    const typeOne = next_createMachine({
+    const typeOne = createMachine({
       schemas: {
         events: z.object({
           type: z.literal('one')
@@ -4586,7 +4586,7 @@ describe('snapshot methods', () => {
     });
     type TypeOneRef = ActorRefFrom<typeof typeOne>;
 
-    const typeTwo = next_createMachine({
+    const typeTwo = createMachine({
       schemas: {
         events: z.union([
           z.object({
@@ -4640,7 +4640,7 @@ it('fromPromise should not have issues with actors with emitted types', () => {
   //     emitted: {} as { type: 'FOO' }
   //   }
   // }).createMachine({});
-  const machine = next_createMachine({
+  const machine = createMachine({
     schemas: {
       emitted: z.object({
         type: z.literal('FOO')
@@ -4661,7 +4661,7 @@ it('UnknownActorRef should return a Snapshot-typed value from getSnapshot()', ()
 });
 
 it('Actor<T> should be assignable to ActorRefFromLogic<T>', () => {
-  const logic = next_createMachine({});
+  const logic = createMachine({});
 
   class ActorThing<T extends AnyActorLogic> {
     actorRef: ActorRefFromLogic<T>;

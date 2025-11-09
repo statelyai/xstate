@@ -1,11 +1,11 @@
-import { createActor, next_createMachine } from '../src';
+import { createActor, createMachine } from '../src';
 
 describe('logger', () => {
   it('system logger should be default logger for actors (invoked from machine)', () => {
     expect.assertions(1);
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: {
-        src: next_createMachine({
+        src: createMachine({
           entry: (_, enq) => {
             enq.log('hello');
           }
@@ -24,10 +24,10 @@ describe('logger', () => {
 
   it('system logger should be default logger for actors (spawned from machine)', () => {
     expect.assertions(1);
-    const machine = next_createMachine({
+    const machine = createMachine({
       entry: (_, enq) =>
         void enq.spawn(
-          next_createMachine({
+          createMachine({
             entry: (_, enq) => {
               enq.log('hello');
             }

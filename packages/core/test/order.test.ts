@@ -1,8 +1,8 @@
-import { next_createMachine, StateNode } from '../src/index.ts';
+import { createMachine, StateNode } from '../src/index.ts';
 
 describe('document order', () => {
   it('should specify the correct document order for each state node', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       id: 'order',
       initial: 'one',
       states: {

@@ -1,10 +1,10 @@
-import { next_createMachine, createActor } from '../src/index.ts';
+import { createMachine, createActor } from '../src/index.ts';
 import { trackEntries } from './utils.ts';
 
 describe('deep transitions', () => {
   describe('exiting super/substates', () => {
     it('should exit all substates when superstates exits', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         id: 'root',
         initial: 'A',
         states: {
@@ -51,7 +51,7 @@ describe('deep transitions', () => {
     });
 
     it('should exit substates and superstates when exiting (B_EVENT)', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         id: 'root',
         initial: 'A',
         states: {
@@ -97,7 +97,7 @@ describe('deep transitions', () => {
     });
 
     it('should exit substates and superstates when exiting (C_EVENT)', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         id: 'root',
         initial: 'A',
         states: {
@@ -143,7 +143,7 @@ describe('deep transitions', () => {
     });
 
     it('should exit superstates when exiting (D_EVENT)', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         id: 'root',
         initial: 'A',
         states: {
@@ -190,7 +190,7 @@ describe('deep transitions', () => {
     });
 
     it('should exit substate when machine handles event (MACHINE_EVENT)', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         id: 'deep',
         initial: 'A',
         on: {
@@ -236,7 +236,7 @@ describe('deep transitions', () => {
     });
 
     it('should exit deep and enter deep (A_S)', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         id: 'root',
         initial: 'A',
         states: {
@@ -299,7 +299,7 @@ describe('deep transitions', () => {
     });
 
     it('should exit deep and enter deep (D_P)', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         id: 'deep',
         initial: 'A',
         states: {
@@ -364,7 +364,7 @@ describe('deep transitions', () => {
     });
 
     it('should exit deep and enter deep when targeting an ancestor of the final resolved deep target', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         id: 'root',
         initial: 'A',
         states: {
@@ -428,7 +428,7 @@ describe('deep transitions', () => {
     });
 
     it('should exit deep and enter deep when targeting a deep state', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         id: 'root',
         initial: 'A',
         states: {

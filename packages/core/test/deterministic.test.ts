@@ -1,13 +1,13 @@
 import {
   createActor,
   transition,
-  next_createMachine,
+  createMachine,
   initialTransition,
   fromCallback
 } from '../src/index.ts';
 
 describe('deterministic machine', () => {
-  const lightMachine = next_createMachine({
+  const lightMachine = createMachine({
     initial: 'green',
     states: {
       green: {
@@ -47,7 +47,7 @@ describe('deterministic machine', () => {
     }
   });
 
-  const testMachine = next_createMachine({
+  const testMachine = createMachine({
     initial: 'a',
     states: {
       a: {
@@ -80,7 +80,7 @@ describe('deterministic machine', () => {
     });
 
     it('should not transition states for illegal transitions', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -195,7 +195,7 @@ describe('deterministic machine', () => {
     });
 
     it('should not transition from illegal events', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -252,7 +252,7 @@ describe('deterministic machine', () => {
 
   describe('state key names', () => {
     const activity = fromCallback(() => () => {});
-    const machine = next_createMachine(
+    const machine = createMachine(
       {
         initial: 'test',
         states: {

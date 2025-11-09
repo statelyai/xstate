@@ -1,5 +1,5 @@
 import {
-  next_createMachine,
+  createMachine,
   fromTransition,
   transition,
   initialTransition
@@ -25,7 +25,7 @@ describe('transition', () => {
     expect(s2.context.count).toEqual(2);
   });
   it('should calculate the next snapshot for machine logic', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -54,7 +54,7 @@ describe('transition', () => {
   it('should not execute actions', () => {
     const fn = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {

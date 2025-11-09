@@ -1,8 +1,8 @@
-import { next_createMachine, createActor } from '../src/index.ts';
+import { createMachine, createActor } from '../src/index.ts';
 import { testAll } from './utils.ts';
 
 describe('Example 6.8', () => {
-  const machine = next_createMachine({
+  const machine = createMachine({
     initial: 'A',
     states: {
       A: {

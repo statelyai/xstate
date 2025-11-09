@@ -10,12 +10,12 @@ import {
   StateValueFrom,
   TagsFrom,
   createActor,
-  next_createMachine
+  createMachine
 } from '../src/index.ts';
 
 describe('ContextFrom', () => {
   it('should return context of a machine', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {
       //   context: {} as { counter: number }
       // },
@@ -47,7 +47,7 @@ describe('ContextFrom', () => {
 
 describe('EventFrom', () => {
   it('should return events for a machine', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {
       //   events: {} as
       //     | { type: 'UPDATE_NAME'; value: string }
@@ -77,7 +77,7 @@ describe('EventFrom', () => {
   });
 
   it('should return events for an actor', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         events: z.union([
           z.object({ type: z.literal('UPDATE_NAME'), value: z.string() }),
@@ -105,7 +105,7 @@ describe('EventFrom', () => {
 
 describe('MachineImplementationsFrom', () => {
   it('should return implementations for a machine', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       context: {
         count: 100
       },
@@ -143,7 +143,7 @@ describe('MachineImplementationsFrom', () => {
 
 describe('StateValueFrom', () => {
   it('should return any from a machine', () => {
-    const machine = next_createMachine({});
+    const machine = createMachine({});
 
     function matches(_value: StateValueFrom<typeof machine>) {}
 
@@ -154,7 +154,7 @@ describe('StateValueFrom', () => {
 describe('SnapshotFrom', () => {
   it('should return state type from a service that has concrete event type', () => {
     const service = createActor(
-      next_createMachine({
+      createMachine({
         // types: {
         //   events: {} as { type: 'FOO' }
         // }
@@ -172,7 +172,7 @@ describe('SnapshotFrom', () => {
   });
 
   it('should return state from a machine without context', () => {
-    const machine = next_createMachine({});
+    const machine = createMachine({});
 
     function acceptState(_state: SnapshotFrom<typeof machine>) {}
 
@@ -182,7 +182,7 @@ describe('SnapshotFrom', () => {
   });
 
   it('should return state from a machine with context', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           counter: z.number()
@@ -223,7 +223,7 @@ describe('ActorRefFrom', () => {
 
 describe('tags', () => {
   it('derives string from StateMachine', () => {
-    const machine = next_createMachine({});
+    const machine = createMachine({});
 
     type Tags = TagsFrom<typeof machine>;
 

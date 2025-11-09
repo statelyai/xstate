@@ -1,4 +1,4 @@
-import { matchesState, next_createMachine, createActor } from '../src/index.ts';
+import { matchesState, createMachine, createActor } from '../src/index.ts';
 
 describe('matchesState()', () => {
   it('should return true if two states are equivalent', () => {
@@ -96,7 +96,7 @@ describe('matchesState()', () => {
 
 describe('matches() method', () => {
   it('should execute matchesState on a State given the parent state value', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {

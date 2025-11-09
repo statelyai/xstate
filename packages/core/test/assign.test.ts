@@ -1,5 +1,5 @@
 import z from 'zod';
-import { createActor, next_createMachine } from '../src/index.ts';
+import { createActor, createMachine } from '../src/index.ts';
 
 interface CounterContext {
   count: number;
@@ -8,7 +8,7 @@ interface CounterContext {
 }
 
 const createCounterMachine = (context: Partial<CounterContext> = {}) =>
-  next_createMachine({
+  createMachine({
     schemas: {
       context: z.object({
         count: z.number(),
@@ -236,7 +236,7 @@ describe('assigning to context', () => {
   });
 
   it('can assign from event', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()

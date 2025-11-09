@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import {
   createActor,
-  next_createMachine,
+  createMachine,
   fromPromise,
   waitFor,
   InspectionEvent,
@@ -45,7 +45,7 @@ function simplifyEvents(
 
 describe('inspect', () => {
   it('the .inspect option can observe inspection events', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -86,14 +86,14 @@ describe('inspect', () => {
   });
 
   it('can inspect communications between actors', async () => {
-    const parentMachine = next_createMachine({
+    const parentMachine = createMachine({
       initial: 'waiting',
       states: {
         waiting: {},
         success: {}
       },
       invoke: {
-        src: next_createMachine({
+        src: createMachine({
           initial: 'start',
           states: {
             start: {
@@ -163,7 +163,7 @@ describe('inspect', () => {
   });
 
   it('can inspect microsteps from always events', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -211,7 +211,7 @@ describe('inspect', () => {
   });
 
   it('can inspect microsteps from raised events', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -249,7 +249,7 @@ describe('inspect', () => {
 
   it('should inspect microsteps for normal transitions', () => {
     const events: any[] = [];
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: { on: { EV: 'b' } },
@@ -268,7 +268,7 @@ describe('inspect', () => {
 
   it('should inspect microsteps for eventless/always transitions', () => {
     const events: any[] = [];
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: { on: { EV: 'b' } },
@@ -300,7 +300,7 @@ describe('inspect', () => {
     const stringAction = () => {};
     const namedAction = (_params: { foo: string }) => {};
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       entry: (_, enq) => enq(enter1),
       exit: (_, enq) => enq(exit1),
       initial: 'loading',
@@ -345,7 +345,7 @@ describe('inspect', () => {
   });
 
   it('@xstate.transition inspection event should report no microsteps if an unknown event was sent', () => {
-    const machine = next_createMachine({});
+    const machine = createMachine({});
     const events: InspectionEvent[] = [];
     const actor = createActor(machine, {
       inspect: (ev) => {
@@ -365,7 +365,7 @@ describe('inspect', () => {
   });
 
   it('actor.system.inspect(…) can inspect actors', () => {
-    const actor = createActor(next_createMachine({}));
+    const actor = createActor(createMachine({}));
     const events: InspectionEvent[] = [];
 
     actor.system.inspect((ev) => {
@@ -378,7 +378,7 @@ describe('inspect', () => {
   });
 
   it('actor.system.inspect(…) can inspect actors (observer)', () => {
-    const actor = createActor(next_createMachine({}));
+    const actor = createActor(createMachine({}));
     const events: InspectionEvent[] = [];
 
     actor.system.inspect({
@@ -393,7 +393,7 @@ describe('inspect', () => {
   });
 
   it('actor.system.inspect(…) can be unsubscribed', () => {
-    const actor = createActor(next_createMachine({}));
+    const actor = createActor(createMachine({}));
     const events: InspectionEvent[] = [];
 
     const sub = actor.system.inspect((ev) => {
@@ -413,7 +413,7 @@ describe('inspect', () => {
   });
 
   it('actor.system.inspect(…) can be unsubscribed (observer)', () => {
-    const actor = createActor(next_createMachine({}));
+    const actor = createActor(createMachine({}));
     const events: InspectionEvent[] = [];
 
     const sub = actor.system.inspect({

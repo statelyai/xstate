@@ -12,7 +12,7 @@ import {
   Next_StateNodeConfig,
   Next_TransitionConfigOrTarget
 } from './types.v6';
-import { next_createMachine } from './createMachine';
+import { createMachine } from './createMachine';
 import { rootNode } from 'happy-dom/lib/PropertySymbol.js';
 
 export interface RaiseJSON {
@@ -271,7 +271,7 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
 
   const rootNodeConfig = iterNode(json);
 
-  return next_createMachine(rootNodeConfig);
+  return createMachine(rootNodeConfig);
 }
 
 function isBuiltInActionJSON(action: ActionJSON): action is BuiltInActionJSON {

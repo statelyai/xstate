@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { next_createMachine } from '../../index.ts';
+import { createMachine } from '../../index.ts';
 import { joinPaths } from '../graph.ts';
 import { getShortestPaths } from '../shortestPaths.ts';
 
 describe('getShortestPaths', () => {
   it('finds the shortest paths to a state without continuing traversal from that state', () => {
-    const m = next_createMachine({
+    const m = createMachine({
       // types: {} as { context: { count: number } },
       schemas: {
         context: z.object({
@@ -54,7 +54,7 @@ describe('getShortestPaths', () => {
   });
 
   it('finds the shortest paths from a state to another state', () => {
-    const m = next_createMachine({
+    const m = createMachine({
       // types: {} as {
       //   context: { count: number };
       // },
@@ -112,7 +112,7 @@ describe('getShortestPaths', () => {
   });
 
   it('handles event cases', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           todos: z.array(z.string())
@@ -158,7 +158,7 @@ describe('getShortestPaths', () => {
   });
 
   it('should work for machines with delays', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {

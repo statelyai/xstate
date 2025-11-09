@@ -1,9 +1,9 @@
-import { next_createMachine } from '../src/index.ts';
+import { createMachine } from '../src/index.ts';
 import { createInertActorScope } from '../src/getNextSnapshot.ts';
 
 describe('machine.microstep()', () => {
   it('should return an array of states from all microsteps', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -45,7 +45,7 @@ describe('machine.microstep()', () => {
   });
 
   it('should return the states from microstep (transient)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'first',
       states: {
         first: {
@@ -71,7 +71,7 @@ describe('machine.microstep()', () => {
   });
 
   it('should return the states from microstep (raised event)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'first',
       states: {
         first: {
@@ -102,7 +102,7 @@ describe('machine.microstep()', () => {
   });
 
   it('should return a single-item array for normal transitions', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'first',
       states: {
         first: {
@@ -125,7 +125,7 @@ describe('machine.microstep()', () => {
   });
 
   it('each state should preserve their internal queue', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'first',
       states: {
         first: {

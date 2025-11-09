@@ -1,9 +1,9 @@
-import { fromPromise, next_createMachine } from '../../index.ts';
+import { fromPromise, createMachine } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 
 describe.skip('Forbidden attributes', () => {
   it('Should not let you declare invocations on your test machine', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: {
         src: fromPromise(async () => {})
       }
@@ -15,7 +15,7 @@ describe.skip('Forbidden attributes', () => {
   });
 
   it('Should not let you declare after on your test machine', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       after: {
         5000: (_, enq) => {
           enq(() => {});
@@ -29,7 +29,7 @@ describe.skip('Forbidden attributes', () => {
   });
 
   it('Should not let you delayed actions on your machine', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // entry: [
       //   raise(
       //     {

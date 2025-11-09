@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { next_createMachine, createActor, StateId } from '../src/index.ts';
+import { createMachine, createActor, StateId } from '../src/index.ts';
 
 describe('state meta data', () => {
   const enter_walk = () => {};
@@ -43,7 +43,7 @@ describe('state meta data', () => {
   const enter_red = () => {};
   const exit_red = () => {};
 
-  const lightMachine = next_createMachine({
+  const lightMachine = createMachine({
     schemas: {
       meta: z.union([
         z.array(z.string()),
@@ -147,7 +147,7 @@ describe('state meta data', () => {
 
   // https://github.com/statelyai/xstate/issues/1105
   it('services started from a persisted state should calculate meta data', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         meta: z.object({
           name: z.string()
@@ -182,7 +182,7 @@ describe('state meta data', () => {
   });
 
   it('meta keys are strongly-typed', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         meta: z.object({
           template: z.string()
@@ -234,7 +234,7 @@ describe('state meta data', () => {
   });
 
   it('TS should error with unexpected meta property', () => {
-    next_createMachine({
+    createMachine({
       schemas: {
         meta: z.object({
           layout: z.string()
@@ -258,7 +258,7 @@ describe('state meta data', () => {
   });
 
   it('TS should error with wrong meta value type', () => {
-    next_createMachine({
+    createMachine({
       schemas: {
         meta: z.object({
           layout: z.string()
@@ -282,7 +282,7 @@ describe('state meta data', () => {
   });
 
   it('should allow states to omit meta', () => {
-    next_createMachine({
+    createMachine({
       schemas: {
         meta: z.object({
           layout: z.string()
@@ -301,7 +301,7 @@ describe('state meta data', () => {
   });
 
   it('TS should error with unexpected transition meta property', () => {
-    next_createMachine({
+    createMachine({
       schemas: {
         meta: z.object({
           layout: z.string()
@@ -324,7 +324,7 @@ describe('state meta data', () => {
   });
 
   it('TS should error with wrong transition meta value type', () => {
-    next_createMachine({
+    createMachine({
       schemas: {
         meta: z.object({
           layout: z.string()
@@ -347,7 +347,7 @@ describe('state meta data', () => {
   });
 
   it('should support typing meta properties (no ts-expected errors)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         meta: z.object({
           layout: z.string()
@@ -386,7 +386,7 @@ describe('state meta data', () => {
   });
 
   it('should strongly type the state IDs in snapshot.getMeta()', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         meta: z.object({})
       },
@@ -426,7 +426,7 @@ describe('state meta data', () => {
   });
 
   it('should strongly type the state IDs in snapshot.getMeta() (no root ID)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         meta: z.object({})
       },
@@ -468,7 +468,7 @@ describe('state meta data', () => {
 
 describe('transition meta data', () => {
   it('TS should error with unexpected transition meta property', () => {
-    next_createMachine({
+    createMachine({
       schemas: {
         meta: z.object({
           layout: z.string()
@@ -491,7 +491,7 @@ describe('transition meta data', () => {
   });
 
   it('TS should error with wrong transition meta value type', () => {
-    next_createMachine({
+    createMachine({
       schemas: {
         meta: z.object({
           layout: z.string()
@@ -516,7 +516,7 @@ describe('transition meta data', () => {
 
 describe('state description', () => {
   it('state node should have its description', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'test',
       states: {
         test: {
@@ -531,7 +531,7 @@ describe('state description', () => {
 
 describe('transition description', () => {
   it('state node should have its description', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         events: z.object({
           type: z.literal('EVENT')

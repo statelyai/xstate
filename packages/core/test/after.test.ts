@@ -1,8 +1,8 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import { next_createMachine, createActor } from '../src/index.ts';
+import { createMachine, createActor } from '../src/index.ts';
 import z from 'zod';
 
-const lightMachine = next_createMachine({
+const lightMachine = createMachine({
   schemas: {
     context: z.object({
       canTurnGreen: z.boolean()
@@ -54,7 +54,7 @@ describe('delayed transitions', () => {
     // https://github.com/statelyai/xstate/issues/5001
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'green',
       states: {
         green: {
@@ -94,7 +94,7 @@ describe('delayed transitions', () => {
   it('should be able to transition with delay from nested initial state', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'nested',
       states: {
         nested: {
@@ -130,7 +130,7 @@ describe('delayed transitions', () => {
 
     const actual: string[] = [];
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'one',
       states: {
         one: {
@@ -177,7 +177,7 @@ describe('delayed transitions', () => {
   it('should defer a single send event for a delayed conditional transition (#886)', () => {
     vi.useFakeTimers();
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'X',
       states: {
         X: {
@@ -222,7 +222,7 @@ describe('delayed transitions', () => {
   it.skip('should execute an after transition after starting from a state resolved using `.getPersistedSnapshot`', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       id: 'machine',
       initial: 'a',
       states: {
@@ -256,7 +256,7 @@ describe('delayed transitions', () => {
   it('should execute an after transition after starting from a persisted state', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const createMyMachine = () =>
-      next_createMachine({
+      createMachine({
         initial: 'A',
         states: {
           A: {
@@ -297,7 +297,7 @@ describe('delayed transitions', () => {
       const context = {
         delay: 500
       };
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'inactive',
         schemas: {
           context: z.object({
@@ -334,7 +334,7 @@ describe('delayed transitions', () => {
     it('should evaluate the expression (string) to determine the delay', () => {
       vi.useFakeTimers();
       const spy = vi.fn();
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'inactive',
         schemas: {
           events: z.object({

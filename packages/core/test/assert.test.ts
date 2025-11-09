@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createActor, next_createMachine, assertEvent } from '../src';
+import { createActor, createMachine, assertEvent } from '../src';
 
 describe('assertion helpers', () => {
   it('assertEvent asserts the correct event type', () => {
@@ -19,7 +19,7 @@ describe('assertion helpers', () => {
       event.count;
     };
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {
       //   events: {} as
       //     | { type: 'greet'; message: string }
@@ -79,7 +79,7 @@ describe('assertion helpers', () => {
       // @ts-expect-error
       event.count;
     };
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         events
       },

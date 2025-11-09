@@ -12,7 +12,7 @@ import {
   ActorScope,
   EventObject,
   StateValue,
-  next_createMachine,
+  createMachine,
   createActor,
   Snapshot,
   ActorRef,
@@ -25,7 +25,7 @@ const user = { name: 'David' };
 
 describe('invoke', () => {
   it('child can immediately respond to the parent with multiple events', () => {
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       // types: {} as {
       //   events: { type: 'FORWARD_DEC' };
       // },
@@ -44,7 +44,7 @@ describe('invoke', () => {
       }
     });
 
-    const someParentMachine = next_createMachine(
+    const someParentMachine = createMachine(
       {
         id: 'parent',
         // types: {} as {
@@ -109,7 +109,7 @@ describe('invoke', () => {
 
   it('should start services (explicit machine, invoke = config)', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       id: 'fetch',
       // types: {} as {
       //   context: { userId: string | undefined; user?: typeof user | undefined };
@@ -165,7 +165,7 @@ describe('invoke', () => {
       output: ({ context }) => ({ user: context.user })
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   context: {
       //     selectedUserId: string;
@@ -223,7 +223,7 @@ describe('invoke', () => {
 
   it('should start services (explicit machine, invoke = machine)', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       // types: {} as {
       //   events: { type: 'RESOLVE' };
       //   input: { userId: string };
@@ -252,7 +252,7 @@ describe('invoke', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -284,7 +284,7 @@ describe('invoke', () => {
 
   it('should start services (machine as invoke config)', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
-    const machineInvokeMachine = next_createMachine({
+    const machineInvokeMachine = createMachine({
       // types: {} as {
       //   events: {
       //     type: 'SUCCESS';
@@ -302,7 +302,7 @@ describe('invoke', () => {
       states: {
         pending: {
           invoke: {
-            src: next_createMachine({
+            src: createMachine({
               id: 'child',
               initial: 'sending',
               states: {
@@ -335,7 +335,7 @@ describe('invoke', () => {
 
   it('should start deeply nested service (machine as invoke config)', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
-    const machineInvokeMachine = next_createMachine({
+    const machineInvokeMachine = createMachine({
       // types: {} as {
       //   events: {
       //     type: 'SUCCESS';
@@ -356,7 +356,7 @@ describe('invoke', () => {
           states: {
             b: {
               invoke: {
-                src: next_createMachine({
+                src: createMachine({
                   id: 'child',
                   initial: 'sending',
                   states: {
@@ -392,7 +392,7 @@ describe('invoke', () => {
 
   it.skip('should use the service overwritten by .provide(...)', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       id: 'child',
       initial: 'init',
       states: {
@@ -400,7 +400,7 @@ describe('invoke', () => {
       }
     });
 
-    const someParentMachine = next_createMachine({
+    const someParentMachine = createMachine({
       id: 'parent',
       context: { count: 0 },
       initial: 'start',
@@ -423,7 +423,7 @@ describe('invoke', () => {
     const actor = createActor(
       someParentMachine.provide({
         actors: {
-          child: next_createMachine({
+          child: createMachine({
             id: 'child',
             initial: 'init',
             states: {
@@ -447,7 +447,7 @@ describe('invoke', () => {
   });
 
   describe('parent to child', () => {
-    const subMachine = next_createMachine({
+    const subMachine = createMachine({
       id: 'child',
       initial: 'one',
       states: {
@@ -464,7 +464,7 @@ describe('invoke', () => {
 
     it.skip('should communicate with the child machine (invoke on machine)', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const mainMachine = next_createMachine({
+      const mainMachine = createMachine({
         id: 'parent',
         initial: 'one',
         invoke: {
@@ -497,7 +497,7 @@ describe('invoke', () => {
 
     it('should communicate with the child machine (invoke on state)', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const mainMachine = next_createMachine({
+      const mainMachine = createMachine({
         id: 'parent',
         initial: 'one',
         states: {
@@ -528,7 +528,7 @@ describe('invoke', () => {
     });
 
     it('should transition correctly if child invocation causes it to directly go to final state', () => {
-      const doneSubMachine = next_createMachine({
+      const doneSubMachine = createMachine({
         id: 'child',
         initial: 'one',
         states: {
@@ -541,7 +541,7 @@ describe('invoke', () => {
         }
       });
 
-      const mainMachine = next_createMachine({
+      const mainMachine = createMachine({
         id: 'parent',
         initial: 'one',
         states: {
@@ -571,7 +571,7 @@ describe('invoke', () => {
 
     it('should work with invocations defined in orthogonal state nodes', async () => {
       const { resolve } = Promise.withResolvers<void>();
-      const pongMachine = next_createMachine({
+      const pongMachine = createMachine({
         id: 'pong',
         initial: 'active',
         states: {
@@ -582,7 +582,7 @@ describe('invoke', () => {
         output: { secret: 'pingpong' }
       });
 
-      const pingMachine = next_createMachine({
+      const pingMachine = createMachine({
         id: 'ping',
         type: 'parallel',
         states: {
@@ -625,7 +625,7 @@ describe('invoke', () => {
       let actionsCount = 0;
       let entryActionsCount = 0;
 
-      const machine = next_createMachine({
+      const machine = createMachine({
         invoke: {
           src: fromCallback(() => {
             invokeCount++;
@@ -671,7 +671,7 @@ describe('invoke', () => {
     it('should stop a child actor when reaching a final state', () => {
       let actorStopped = false;
 
-      const machine = next_createMachine({
+      const machine = createMachine({
         id: 'machine',
         invoke: {
           src: fromCallback(() => {
@@ -710,7 +710,7 @@ describe('invoke', () => {
       const { promise, resolve } = Promise.withResolvers<void>();
       let invokeCount = 0;
 
-      const child = next_createMachine({
+      const child = createMachine({
         id: 'child',
         initial: 'idle',
         states: {
@@ -748,7 +748,7 @@ describe('invoke', () => {
           }
         }
       });
-      const parent = next_createMachine({
+      const parent = createMachine({
         id: 'parent',
         initial: 'idle',
         states: {
@@ -813,7 +813,7 @@ describe('invoke', () => {
 
   promiseTypes.forEach(({ type, createPromise }) => {
     describe(`with promises (${type})`, () => {
-      const invokePromiseMachine = next_createMachine({
+      const invokePromiseMachine = createMachine({
         schemas: {
           context: z.object({
             id: z.number(),
@@ -863,7 +863,7 @@ describe('invoke', () => {
 
       it('should be invoked with a promise factory and resolve through onDone', async () => {
         const { promise, resolve } = Promise.withResolvers<void>();
-        const machine = next_createMachine({
+        const machine = createMachine({
           initial: 'pending',
           states: {
             pending: {
@@ -903,7 +903,7 @@ describe('invoke', () => {
 
       it('should be invoked with a promise factory and surface any unhandled errors', async () => {
         const { promise, resolve } = Promise.withResolvers<void>();
-        const promiseMachine = next_createMachine({
+        const promiseMachine = createMachine({
           id: 'invokePromise',
           initial: 'pending',
           states: {
@@ -939,7 +939,7 @@ describe('invoke', () => {
         const { promise, resolve } = Promise.withResolvers<void>();
         const completeSpy = vi.fn();
 
-        const promiseMachine = next_createMachine({
+        const promiseMachine = createMachine({
           id: 'invokePromise',
           initial: 'pending',
           states: {
@@ -976,7 +976,7 @@ describe('invoke', () => {
 
       it('should be invoked with a promise factory and resolve through onDone for compound state nodes', async () => {
         const { promise, resolve } = Promise.withResolvers<void>();
-        const promiseMachine = next_createMachine({
+        const promiseMachine = createMachine({
           id: 'promise',
           initial: 'parent',
           states: {
@@ -1014,7 +1014,7 @@ describe('invoke', () => {
         const somePromise = fromPromise(() =>
           createPromise((resolve) => resolve())
         );
-        const promiseMachine = next_createMachine(
+        const promiseMachine = createMachine(
           {
             id: 'promise',
             initial: 'parent',
@@ -1054,7 +1054,7 @@ describe('invoke', () => {
       });
       it('should assign the resolved data when invoked with a promise factory', async () => {
         const { promise, resolve } = Promise.withResolvers<void>();
-        const promiseMachine = next_createMachine({
+        const promiseMachine = createMachine({
           schemas: {
             context: z.object({
               count: z.number()
@@ -1100,7 +1100,7 @@ describe('invoke', () => {
         const somePromise = fromPromise(() =>
           createPromise((resolve) => resolve({ count: 1 }))
         );
-        const promiseMachine = next_createMachine(
+        const promiseMachine = createMachine(
           {
             schemas: {
               context: z.object({
@@ -1152,7 +1152,7 @@ describe('invoke', () => {
         const { promise, resolve } = Promise.withResolvers<void>();
         let count = 0;
 
-        const promiseMachine = next_createMachine({
+        const promiseMachine = createMachine({
           id: 'promise',
           schemas: {
             context: z.object({
@@ -1203,7 +1203,7 @@ describe('invoke', () => {
           createPromise((resolve) => resolve({ count: 1 }))
         );
 
-        const promiseMachine = next_createMachine(
+        const promiseMachine = createMachine(
           {
             id: 'promise',
             initial: 'pending',
@@ -1257,7 +1257,7 @@ describe('invoke', () => {
           }
         );
 
-        const promiseMachine = next_createMachine(
+        const promiseMachine = createMachine(
           {
             id: 'promise',
             schemas: {
@@ -1316,7 +1316,7 @@ describe('invoke', () => {
         const getRandomNumber = fromPromise(() =>
           createPromise((resolve) => resolve({ result: Math.random() }))
         );
-        const machine = next_createMachine(
+        const machine = createMachine(
           {
             // types: {} as {
             //   context: {
@@ -1422,7 +1422,7 @@ describe('invoke', () => {
 
       it('should not emit onSnapshot if stopped', async () => {
         const { promise, resolve } = Promise.withResolvers<void>();
-        const machine = next_createMachine({
+        const machine = createMachine({
           initial: 'active',
           states: {
             active: {
@@ -1498,7 +1498,7 @@ describe('invoke', () => {
         }
       );
 
-      const callbackMachine = next_createMachine(
+      const callbackMachine = createMachine(
         {
           id: 'callback',
           // types: {} as {
@@ -1576,7 +1576,7 @@ describe('invoke', () => {
       const someCallback = fromCallback(({ sendBack }) => {
         sendBack({ type: 'CALLBACK' });
       });
-      const callbackMachine = next_createMachine(
+      const callbackMachine = createMachine(
         {
           id: 'callback',
           initial: 'pending',
@@ -1622,7 +1622,7 @@ describe('invoke', () => {
       const someCallback = fromCallback(({ sendBack }) => {
         sendBack({ type: 'CALLBACK' });
       });
-      const callbackMachine = next_createMachine(
+      const callbackMachine = createMachine(
         {
           id: 'callback',
           initial: 'idle',
@@ -1666,7 +1666,7 @@ describe('invoke', () => {
       const someCallback = fromCallback(({ sendBack }) => {
         sendBack({ type: 'CALLBACK' });
       });
-      const callbackMachine = next_createMachine(
+      const callbackMachine = createMachine(
         {
           id: 'callback',
           initial: 'pending',
@@ -1716,7 +1716,7 @@ describe('invoke', () => {
 
     it('should treat a callback source as an event stream', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const intervalMachine = next_createMachine({
+      const intervalMachine = createMachine({
         // types: {} as { context: { count: number } },
         schemas: {
           context: z.object({
@@ -1766,7 +1766,7 @@ describe('invoke', () => {
 
     it('should dispose of the callback (if disposal function provided)', () => {
       const spy = vi.fn();
-      const intervalMachine = next_createMachine({
+      const intervalMachine = createMachine({
         id: 'interval',
         initial: 'counting',
         states: {
@@ -1791,7 +1791,7 @@ describe('invoke', () => {
 
     it('callback should be able to receive messages from parent', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const pingPongMachine = next_createMachine({
+      const pingPongMachine = createMachine({
         id: 'ping-pong',
         initial: 'active',
         states: {
@@ -1826,7 +1826,7 @@ describe('invoke', () => {
 
     it('should call onError upon error (sync)', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const errorMachine = next_createMachine({
+      const errorMachine = createMachine({
         id: 'error',
         initial: 'safe',
         states: {
@@ -1857,7 +1857,7 @@ describe('invoke', () => {
     });
 
     it('should transition correctly upon error (sync)', () => {
-      const errorMachine = next_createMachine({
+      const errorMachine = createMachine({
         id: 'error',
         initial: 'safe',
         states: {
@@ -1881,7 +1881,7 @@ describe('invoke', () => {
     });
 
     it('should call onError only on the state which has invoked failed service', () => {
-      const errorMachine = next_createMachine({
+      const errorMachine = createMachine({
         initial: 'start',
         states: {
           start: {
@@ -1939,7 +1939,7 @@ describe('invoke', () => {
     });
 
     it('should be able to be stringified', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'idle',
         states: {
           idle: {
@@ -1964,7 +1964,7 @@ describe('invoke', () => {
     });
 
     it('should result in an error notification if callback actor throws when it starts and the error stays unhandled by the machine', () => {
-      const errorMachine = next_createMachine({
+      const errorMachine = createMachine({
         initial: 'safe',
         states: {
           safe: {
@@ -1997,7 +1997,7 @@ describe('invoke', () => {
 
     it('should work with input', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const machine = next_createMachine({
+      const machine = createMachine({
         // types: {} as {
         //   context: { foo: string };
         // },
@@ -2026,7 +2026,7 @@ describe('invoke', () => {
     });
 
     it('sub invoke race condition ends on the completed state', () => {
-      const anotherChildMachine = next_createMachine({
+      const anotherChildMachine = createMachine({
         id: 'child',
         initial: 'start',
         states: {
@@ -2039,7 +2039,7 @@ describe('invoke', () => {
         }
       });
 
-      const anotherParentMachine = next_createMachine({
+      const anotherParentMachine = createMachine({
         id: 'parent',
         initial: 'begin',
         states: {
@@ -2071,7 +2071,7 @@ describe('invoke', () => {
   describe('with observables', () => {
     it('should work with an infinite observable', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const obsMachine = next_createMachine({
+      const obsMachine = createMachine({
         // types: {} as { context: { count: number | undefined }; events: Events },
         schemas: {
           context: z.object({
@@ -2115,7 +2115,7 @@ describe('invoke', () => {
 
     it('should work with a finite observable', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const obsMachine = next_createMachine({
+      const obsMachine = createMachine({
         // types: {} as { context: Ctx; events: Events },
         schemas: {
           context: z.object({
@@ -2161,7 +2161,7 @@ describe('invoke', () => {
 
     it('should receive an emitted error', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const obsMachine = next_createMachine({
+      const obsMachine = createMachine({
         // types: {} as { context: Ctx; events: Events },
         schemas: {
           context: z.object({
@@ -2223,7 +2223,7 @@ describe('invoke', () => {
         of(input)
       );
 
-      const machine = next_createMachine(
+      const machine = createMachine(
         {
           // types: {} as {
           //   actors: {
@@ -2263,7 +2263,7 @@ describe('invoke', () => {
   describe('with event observables', () => {
     it('should work with an infinite event observable', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const obsMachine = next_createMachine({
+      const obsMachine = createMachine({
         // types: {} as { context: { count: number | undefined }; events: Events },
         schemas: {
           context: z.object({
@@ -2316,7 +2316,7 @@ describe('invoke', () => {
 
     it('should work with a finite event observable', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const obsMachine = next_createMachine({
+      const obsMachine = createMachine({
         // types: {} as { context: Ctx; events: Events },
         schemas: {
           context: z.object({
@@ -2374,7 +2374,7 @@ describe('invoke', () => {
 
     it('should receive an emitted error', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const obsMachine = next_createMachine({
+      const obsMachine = createMachine({
         // types: {} as { context: Ctx; events: Events },
         schemas: {
           context: z.object({
@@ -2439,7 +2439,7 @@ describe('invoke', () => {
 
     it('should work with input', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const machine = next_createMachine({
+      const machine = createMachine({
         schemas: {
           events: z.object({
             type: z.literal('obs.event'),
@@ -2500,7 +2500,7 @@ describe('invoke', () => {
         getPersistedSnapshot: (s) => s
       };
 
-      const countMachine = next_createMachine({
+      const countMachine = createMachine({
         invoke: {
           id: 'count',
           src: countLogic
@@ -2543,7 +2543,7 @@ describe('invoke', () => {
         getPersistedSnapshot: (s) => s
       };
 
-      const pingMachine = next_createMachine({
+      const pingMachine = createMachine({
         initial: 'waiting',
         states: {
           waiting: {
@@ -2590,7 +2590,7 @@ describe('invoke', () => {
         return count;
       };
 
-      const countMachine = next_createMachine({
+      const countMachine = createMachine({
         invoke: {
           id: 'count',
           src: fromTransition(countReducer, 0)
@@ -2635,7 +2635,7 @@ describe('invoke', () => {
         return count;
       };
 
-      const countMachine = next_createMachine({
+      const countMachine = createMachine({
         invoke: {
           id: 'count',
           src: fromTransition(countReducer, 0)
@@ -2665,7 +2665,7 @@ describe('invoke', () => {
         (_, event: { type: 'update'; value: number }) => event.value * 2,
         0
       );
-      const machine = next_createMachine({
+      const machine = createMachine({
         invoke: {
           id: 'doubler',
           src: doublerLogic,
@@ -2688,7 +2688,7 @@ describe('invoke', () => {
   });
 
   describe('with machines', () => {
-    const pongMachine = next_createMachine({
+    const pongMachine = createMachine({
       id: 'pong',
       initial: 'active',
       states: {
@@ -2704,7 +2704,7 @@ describe('invoke', () => {
     });
 
     // Parent machine
-    const pingMachine = next_createMachine({
+    const pingMachine = createMachine({
       id: 'ping',
       initial: 'innerMachine',
       states: {
@@ -2744,7 +2744,7 @@ describe('invoke', () => {
 
     it('should emit onSnapshot', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const childMachine = next_createMachine({
+      const childMachine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -2755,7 +2755,7 @@ describe('invoke', () => {
           b: {}
         }
       });
-      const machine = next_createMachine({
+      const machine = createMachine({
         invoke: {
           src: childMachine,
           onSnapshot: ({ event }, enq) => {
@@ -2774,7 +2774,7 @@ describe('invoke', () => {
   });
 
   describe('multiple simultaneous services', () => {
-    const multiple = next_createMachine({
+    const multiple = createMachine({
       schemas: {
         context: z.object({
           one: z.string().optional(),
@@ -2842,7 +2842,7 @@ describe('invoke', () => {
       await promise;
     });
 
-    const parallel = next_createMachine({
+    const parallel = createMachine({
       schemas: {
         context: z.object({
           one: z.string().optional(),
@@ -2933,7 +2933,7 @@ describe('invoke', () => {
         // it does not make sense to start an actor in a state that will be exited immediately
         let actorStarted = false;
 
-        const transientMachine = next_createMachine({
+        const transientMachine = createMachine({
           id: 'transient',
           initial: 'active',
           states: {
@@ -2966,7 +2966,7 @@ describe('invoke', () => {
         // it does not make sense to start an actor in a state that will be exited immediately
         let actorStarted = false;
 
-        const transientMachine = next_createMachine({
+        const transientMachine = createMachine({
           initial: 'withNonLeafInvoke',
           states: {
             withNonLeafInvoke: {
@@ -3002,7 +3002,7 @@ describe('invoke', () => {
 
     it('should invoke a service if other service gets stopped in subsequent microstep (#1180)', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'running',
         states: {
           running: {
@@ -3066,7 +3066,7 @@ describe('invoke', () => {
     it.skip('should invoke an actor when reentering invoking state within a single macrostep', () => {
       let actorStartedCount = 0;
 
-      const transientMachine = next_createMachine({
+      const transientMachine = createMachine({
         // types: {} as { context: { counter: number } },
         schemas: {
           context: z.object({
@@ -3110,7 +3110,7 @@ describe('invoke', () => {
 
   it('invoke `src` can be used with invoke `input`', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'searching',
       states: {
         searching: {
@@ -3139,7 +3139,7 @@ describe('invoke', () => {
 
   it('invoke `src` can be used with dynamic invoke `input`', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'searching',
       context: {
         url: 'example.com'
@@ -3170,7 +3170,7 @@ describe('invoke', () => {
 
   it('invoke generated ID should be predictable based on the state node where it is defined', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -3207,7 +3207,7 @@ describe('invoke', () => {
     // ['machine', next_createMachine({ id: 'someId' })],
     [
       'src containing a machine directly',
-      { src: next_createMachine({ id: 'someId' }) }
+      { src: createMachine({ id: 'someId' }) }
     ],
     [
       'src containing a callback actor directly',
@@ -3220,7 +3220,7 @@ describe('invoke', () => {
   ])(
     'invoke config defined as %s should register unique and predictable child in state',
     (_type, invokeConfig) => {
-      const machine = next_createMachine(
+      const machine = createMachine(
         {
           id: 'machine',
           initial: 'a',
@@ -3278,7 +3278,7 @@ describe('invoke', () => {
       }
     });
 
-    const testMachine = next_createMachine({
+    const testMachine = createMachine({
       type: 'parallel',
       states: {
         first: createSingleState(),
@@ -3300,7 +3300,7 @@ describe('invoke', () => {
     const { promise, resolve } = Promise.withResolvers<void>();
     const actual: AnyEventObject[] = [];
 
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       id: 'child',
       initial: 'a',
       states: {
@@ -3329,7 +3329,7 @@ describe('invoke', () => {
       }
     });
 
-    const testMachine = next_createMachine({
+    const testMachine = createMachine({
       type: 'parallel',
       states: {
         first: createSingleState(),
@@ -3368,7 +3368,7 @@ describe('invoke', () => {
   it('should get reinstantiated after reentering the invoking state in a microstep', () => {
     let invokeCount = 0;
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -3395,7 +3395,7 @@ describe('invoke', () => {
 
   it('invocations should be stopped when the machine reaches done state', () => {
     let disposed = false;
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       invoke: {
         src: fromCallback(() => {
@@ -3423,7 +3423,7 @@ describe('invoke', () => {
 
   it('deep invocations should be stopped when the machine reaches done state', () => {
     let disposed = false;
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       invoke: {
         src: fromCallback(() => {
           return () => {
@@ -3433,7 +3433,7 @@ describe('invoke', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       invoke: {
         src: childMachine
@@ -3458,7 +3458,7 @@ describe('invoke', () => {
   it('root invocations should restart on root reentering transitions', () => {
     let count = 0;
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       id: 'root',
       invoke: {
         src: fromPromise(() => {
@@ -3492,7 +3492,7 @@ describe('invoke', () => {
     const actual: string[] = [];
     let invokeCounter = 0;
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'inactive',
       states: {
         inactive: {
@@ -3534,7 +3534,7 @@ describe('invoke', () => {
   });
 
   it.skip('should be able to receive a delayed event sent by the entry action of the invoking state', async () => {
-    const child = next_createMachine({
+    const child = createMachine({
       types: {} as {
         events: {
           type: 'PING';
@@ -3547,7 +3547,7 @@ describe('invoke', () => {
         }
       }
     });
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -3588,7 +3588,7 @@ describe('invoke', () => {
 describe('invoke input', () => {
   it('should provide input to an actor creator', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'pending',
       context: {
         count: 42
@@ -3629,7 +3629,7 @@ describe('invoke input', () => {
 
   it('should provide self to input mapper', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: {
         src: fromCallback(({ input }) => {
           expect(input.responder.send).toBeDefined();

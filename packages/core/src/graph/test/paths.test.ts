@@ -1,12 +1,12 @@
 import {
-  next_createMachine,
+  createMachine,
   getInitialSnapshot,
   getNextSnapshot
 } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 import { testUtils } from './testUtils.ts';
 
-const multiPathMachine = next_createMachine({
+const multiPathMachine = createMachine({
   initial: 'a',
   states: {
     a: {
@@ -33,7 +33,7 @@ const multiPathMachine = next_createMachine({
 describe('testModel.testPaths(...)', () => {
   it('custom path generators can be provided', async () => {
     const testModel = createTestModel(
-      next_createMachine({
+      createMachine({
         initial: 'a',
         states: {
           a: {
@@ -73,7 +73,7 @@ describe('testModel.testPaths(...)', () => {
 
   describe('When the machine only has one path', () => {
     it('Should only follow that path', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -134,7 +134,7 @@ describe('path.description', () => {
 
 describe('transition coverage', () => {
   it('path generation should cover all transitions by default', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -170,7 +170,7 @@ describe('transition coverage', () => {
       return value > 10;
     }
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -209,7 +209,7 @@ describe('transition coverage', () => {
   });
 
   it('transition coverage should consider multiple transitions with the same target', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -243,7 +243,7 @@ describe('transition coverage', () => {
 });
 
 describe('getShortestPathsTo', () => {
-  const machine = next_createMachine({
+  const machine = createMachine({
     initial: 'open',
     states: {
       open: {
@@ -277,7 +277,7 @@ describe('getShortestPathsTo', () => {
 
 describe('getShortestPathsFrom', () => {
   it('should get shortest paths from array of paths', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -316,7 +316,7 @@ describe('getShortestPathsFrom', () => {
 
   describe('getSimplePathsFrom', () => {
     it('should get simple paths from array of paths', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {

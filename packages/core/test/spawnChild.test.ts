@@ -2,7 +2,7 @@ import { interval } from 'rxjs';
 import {
   ActorRefFrom,
   createActor,
-  next_createMachine,
+  createMachine,
   fromObservable,
   fromPromise
 } from '../src';
@@ -12,7 +12,7 @@ import { z } from 'zod';
 describe.skip('spawnChild action', () => {
   it('can spawn', () => {
     const actor = createActor(
-      next_createMachine({
+      createMachine({
         entry: (_, enq) => {
           enq.spawn(
             fromPromise(() => Promise.resolve(42)),
@@ -32,7 +32,7 @@ describe.skip('spawnChild action', () => {
       Promise.resolve(input * 2)
     );
     const actor = createActor(
-      next_createMachine({
+      createMachine({
         // types: {
         //   actors: {} as {
         //     src: 'fetchNum';
@@ -55,7 +55,7 @@ describe.skip('spawnChild action', () => {
   it('should accept `syncSnapshot` option', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
     const observableLogic = fromObservable(() => interval(10));
-    const observableMachine = next_createMachine({
+    const observableMachine = createMachine({
       schemas: {
         context: z.object({
           observableRef: z.custom<ActorRefFrom<typeof observableLogic>>()
@@ -104,7 +104,7 @@ describe.skip('spawnChild action', () => {
   it('should handle a dynamic id', () => {
     const spy = vi.fn();
 
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       on: {
         FOO: (_, enq) => {
           enq(spy);
@@ -112,7 +112,7 @@ describe.skip('spawnChild action', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           childId: z.string()

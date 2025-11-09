@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   AnyEventObject,
   createActor,
-  next_createMachine,
+  createMachine,
   fromCallback,
   fromEventObservable,
   fromObservable,
@@ -23,7 +23,7 @@ vi.mock('../src/reportUnhandledError.ts', () => {
 
 describe('event emitter', () => {
   it('only emits expected events if specified in schemas', () => {
-    next_createMachine({
+    createMachine({
       schemas: {
         emitted: z.object({
           type: z.literal('greet'),
@@ -55,7 +55,7 @@ describe('event emitter', () => {
   });
 
   it('emits any events if not specified in schemas (unsafe)', () => {
-    next_createMachine({
+    createMachine({
       entry: (_, enq) => {
         enq.emit({
           type: 'nonsense'
@@ -81,7 +81,7 @@ describe('event emitter', () => {
   });
 
   it('emits events that can be listened to on actorRef.on(…)', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         emitted: z.object({
           type: z.literal('emitted'),
@@ -113,7 +113,7 @@ describe('event emitter', () => {
   });
 
   it('enqueue.emit(…) emits events that can be listened to on actorRef.on(…)', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         emitted: z.object({
           type: z.literal('emitted'),
@@ -149,7 +149,7 @@ describe('event emitter', () => {
   });
 
   it('handles errors', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         emitted: z.object({
           type: z.literal('emitted'),
@@ -182,7 +182,7 @@ describe('event emitter', () => {
   });
 
   it('dynamically emits events that can be listened to on actorRef.on(…)', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -219,7 +219,7 @@ describe('event emitter', () => {
   it('listener should be able to read the updated snapshot of the emitting actor', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -254,7 +254,7 @@ describe('event emitter', () => {
   it('wildcard listeners should be able to receive all emitted events', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         emitted: z.union([
           z.object({
@@ -506,7 +506,7 @@ describe('event emitter', () => {
       }
     );
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       actors: { logic },
       invoke: {
         id: 'cb',

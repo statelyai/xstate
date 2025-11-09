@@ -1,6 +1,6 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
-  next_createMachine,
+  createMachine,
   EventFrom,
   fromPromise,
   fromTransition,
@@ -32,7 +32,7 @@ describe('transition function', () => {
     //     stringAction
     //   }
     // }).
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -94,7 +94,7 @@ describe('transition function', () => {
   it('should not execute a referenced serialized action', () => {
     const foo = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -113,7 +113,7 @@ describe('transition function', () => {
   });
 
   it('should capture enqueued actions', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       entry: (_, enq) => {
         enq.emit({ type: 'stringAction' });
         enq.emit({ type: 'objectAction' });
@@ -129,7 +129,7 @@ describe('transition function', () => {
   });
 
   it.todo('delayed raise actions should be returned', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -157,7 +157,7 @@ describe('transition function', () => {
   });
 
   it('raise actions related to delayed transitions should be returned', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -188,7 +188,7 @@ describe('transition function', () => {
   });
 
   it('cancel action should be returned', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -224,10 +224,10 @@ describe('transition function', () => {
   });
 
   it('sendTo action should be returned', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       invoke: {
-        src: next_createMachine({}),
+        src: createMachine({}),
         id: 'someActor'
       },
       states: {
@@ -262,7 +262,7 @@ describe('transition function', () => {
   });
 
   it('emit actions should be returned', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {
       //   emitted: {} as { type: 'counted'; count: number }
       // },
@@ -306,7 +306,7 @@ describe('transition function', () => {
   });
 
   it('log actions should be returned', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -358,7 +358,7 @@ describe('transition function', () => {
   });
 
   it('should calculate the next snapshot for machine logic', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -388,7 +388,7 @@ describe('transition function', () => {
   it('should not execute entry actions', () => {
     const fn = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       entry: (_, enq) => enq(fn),
       states: {
@@ -405,7 +405,7 @@ describe('transition function', () => {
   it('should not execute transition actions', () => {
     const fn = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -432,7 +432,7 @@ describe('transition function', () => {
       state: undefined as any
     };
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -502,7 +502,7 @@ describe('transition function', () => {
       state: undefined as any
     };
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       actors: {
         sendWelcomeEmail: fromPromise(async () => {
           calls.push('sendWelcomeEmail');

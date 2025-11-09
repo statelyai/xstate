@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { next_createMachine, createActor, matchesState } from '../src/index';
+import { createMachine, createActor, matchesState } from '../src/index';
 
 const greetingContext = { hour: 10 };
-const greetingMachine = next_createMachine({
+const greetingMachine = createMachine({
   // types: {} as { context: typeof greetingContext },
   schemas: {
     context: z.object({
@@ -40,7 +40,7 @@ const greetingMachine = next_createMachine({
 
 describe('transient states (eventless transitions)', () => {
   it('should choose the first candidate target that matches the guard 1', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as { context: { data: boolean } },
       schemas: {
         context: z.object({
@@ -74,7 +74,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should choose the first candidate target that matches the guard 2', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as { context: { data: boolean; status?: string } },
       schemas: {
         context: z.object({
@@ -109,7 +109,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should choose the final candidate without a guard if none others match', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as { context: { data: boolean; status?: string } },
       schemas: {
         context: z.object({
@@ -144,7 +144,7 @@ describe('transient states (eventless transitions)', () => {
 
   it('should carry actions from previous transitions within same step', () => {
     const actual: string[] = [];
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'A',
       states: {
         A: {
@@ -177,7 +177,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should execute all internal events one after the other', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -244,7 +244,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should execute all eventless transitions in the same microstep', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -304,7 +304,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should check for automatic transitions even after microsteps are done', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -368,7 +368,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should select eventless transition before processing raised events', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -402,7 +402,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should not select wildcard for eventless transition', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -426,7 +426,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should work with transient transition on root', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as { context: { count: number } },
       schemas: {
         context: z.object({
@@ -465,7 +465,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it("shouldn't crash when invoking a machine with initial transient transition depending on custom data", () => {
-    const timerMachine = next_createMachine({
+    const timerMachine = createMachine({
       initial: 'initial',
       schemas: {
         context: z.object({
@@ -493,7 +493,7 @@ describe('transient states (eventless transitions)', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           customDuration: z.number()
@@ -520,7 +520,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should be taken even in absence of other transitions', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -541,7 +541,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should select subsequent transient transitions even in absence of other transitions', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -570,7 +570,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('events that trigger eventless transitions should be preserved in guards', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -602,7 +602,7 @@ describe('transient states (eventless transitions)', () => {
   it('events that trigger eventless transitions should be preserved in actions', () => {
     expect.assertions(2);
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         events: z.object({
           type: z.literal('EVENT'),
@@ -635,7 +635,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it("shouldn't end up in an infinite loop when selecting the fallback target", () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -668,7 +668,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it("shouldn't end up in an infinite loop when selecting a guarded target", () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -702,7 +702,7 @@ describe('transient states (eventless transitions)', () => {
 
   it("shouldn't end up in an infinite loop when executing a fire-and-forget action that doesn't change state", () => {
     let count = 0;
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -740,7 +740,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should loop (but not infinitely) for assign actions', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -769,7 +769,7 @@ describe('transient states (eventless transitions)', () => {
   it("should execute an always transition after a raised transition even if that raised transition doesn't change the state", () => {
     const spy = vi.fn();
     let counter = 0;
-    const machine = next_createMachine({
+    const machine = createMachine({
       always: (_, enq) => {
         enq((...args) => {
           spy(...args);

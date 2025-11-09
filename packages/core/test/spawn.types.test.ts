@@ -1,15 +1,15 @@
 import { z } from 'zod';
-import { next_createMachine } from '../src';
+import { createMachine } from '../src';
 
 describe('spawn inside machine', () => {
   it('input is required when defined in actor', () => {
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       // types: { input: {} as { value: number } }
       schemas: {
         input: z.object({ value: z.number() })
       }
     });
-    next_createMachine({
+    createMachine({
       // types: {} as { context: { ref: ActorRefFrom<typeof childMachine> } },
       schemas: {
         context: z.object({
@@ -35,8 +35,8 @@ describe('spawn inside machine', () => {
   });
 
   it('input is not required when not defined in actor', () => {
-    const childMachine = next_createMachine({});
-    next_createMachine({
+    const childMachine = createMachine({});
+    createMachine({
       // types: {} as { context: { ref: ActorRefFrom<typeof childMachine> } },
       schemas: {
         context: z.object({

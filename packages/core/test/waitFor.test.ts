@@ -1,7 +1,7 @@
 import {
   createActor,
   waitFor,
-  next_createMachine as createMachine
+  createMachine as createMachine
 } from '../src/index.ts';
 
 describe('waitFor', () => {

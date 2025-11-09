@@ -19,7 +19,7 @@ import type {
 import type { fromCallback } from './actors/callback.ts';
 import type { fromPromise } from './actors/promise.ts';
 import type { fromTransition } from './actors/transition.ts';
-import type { next_createMachine } from './createMachine.ts';
+import type { createMachine } from './createMachine.ts';
 
 export let executingCustomAction: boolean = false;
 
@@ -825,8 +825,8 @@ export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
  * ```
  *
  * @param logic - The actor logic to create an actor from. For a state machine
- *   actor logic creator, see {@link next_createMachine}. Other actor logic
- *   creators include {@link fromCallback}, {@link fromEventObservable},
+ *   actor logic creator, see {@link createMachine}. Other actor logic creators
+ *   include {@link fromCallback}, {@link fromEventObservable},
  *   {@link fromObservable}, {@link fromPromise}, and {@link fromTransition}.
  * @param options - Actor options
  */

@@ -1,5 +1,5 @@
 import z from 'zod';
-import { next_createMachine, createActor, StateValue } from '../src/index.ts';
+import { createMachine, createActor, StateValue } from '../src/index.ts';
 
 import { testMultiTransition, trackEntries } from './utils.ts';
 
@@ -9,7 +9,7 @@ const emptyClipboard = () => {};
 const selectActivity = () => {};
 const selectLink = () => {};
 
-const composerMachine = next_createMachine({
+const composerMachine = createMachine({
   initial: 'ReadOnly',
   states: {
     ReadOnly: {
@@ -149,7 +149,7 @@ const wak2sonBexit = () => {};
 const wak2enter = () => {};
 const wak2exit = () => {};
 
-const wakMachine = next_createMachine({
+const wakMachine = createMachine({
   id: 'wakMachine',
   type: 'parallel',
 
@@ -193,7 +193,7 @@ const wakMachine = next_createMachine({
   }
 });
 
-const wordMachine = next_createMachine({
+const wordMachine = createMachine({
   id: 'word',
   type: 'parallel',
   states: {
@@ -250,7 +250,7 @@ const wordMachine = next_createMachine({
   }
 });
 
-const flatParallelMachine = next_createMachine({
+const flatParallelMachine = createMachine({
   type: 'parallel',
   states: {
     foo: {},
@@ -265,7 +265,7 @@ const flatParallelMachine = next_createMachine({
   }
 });
 
-const raisingParallelMachine = next_createMachine({
+const raisingParallelMachine = createMachine({
   type: 'parallel',
   states: {
     OUTER1: {
@@ -339,7 +339,7 @@ const raisingParallelMachine = next_createMachine({
   }
 });
 
-const nestedParallelState = next_createMachine({
+const nestedParallelState = createMachine({
   type: 'parallel',
   states: {
     OUTER1: {
@@ -422,7 +422,7 @@ const nestedParallelState = next_createMachine({
   }
 });
 
-const deepFlatParallelMachine = next_createMachine({
+const deepFlatParallelMachine = createMachine({
   type: 'parallel',
   states: {
     X: {},
@@ -528,7 +528,7 @@ describe('parallel states', () => {
   });
 
   it('should have all parallel states represented in the state value', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         wak1: {
@@ -603,7 +603,7 @@ describe('parallel states', () => {
   });
 
   it('should properly transition according to entry events on an initial state', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         OUTER1: {
@@ -668,7 +668,7 @@ describe('parallel states', () => {
   });
 
   it('should handle simultaneous orthogonal transitions', () => {
-    const simultaneousMachine = next_createMachine({
+    const simultaneousMachine = createMachine({
       schemas: {
         context: z.object({
           value: z.string()
@@ -740,7 +740,7 @@ describe('parallel states', () => {
   it.skip('should execute actions of the initial transition of a parallel region when entering the initial state nodes of a machine', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -764,7 +764,7 @@ describe('parallel states', () => {
   it.skip('should execute actions of the initial transition of a parallel region when the parallel state is targeted with an explicit transition', () => {
     const spy = jest.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -852,7 +852,7 @@ describe('parallel states', () => {
 
   // https://github.com/statelyai/xstate/issues/191
   describe('nested flat parallel states', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'A',
       states: {
         A: {
@@ -910,7 +910,7 @@ describe('parallel states', () => {
     });
 
     it('should not overlap resolved state nodes in state resolution', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         id: 'pipeline',
         type: 'parallel',
         states: {
@@ -944,7 +944,7 @@ describe('parallel states', () => {
   describe('other', () => {
     // https://github.com/statelyai/xstate/issues/518
     it('regions should be able to transition to orthogonal regions', () => {
-      const testMachine = next_createMachine({
+      const testMachine = createMachine({
         type: 'parallel',
         states: {
           Pages: {
@@ -993,7 +993,7 @@ describe('parallel states', () => {
 
     // https://github.com/statelyai/xstate/issues/531
     it('should calculate the entry set for reentering transitions in parallel states', () => {
-      const testMachine = next_createMachine({
+      const testMachine = createMachine({
         id: 'test',
         schemas: {
           context: z.object({
@@ -1045,7 +1045,7 @@ describe('parallel states', () => {
 
   it('should raise a "xstate.done.state.*" event when all child states reach final state', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
-    const machine = next_createMachine({
+    const machine = createMachine({
       id: 'test',
       initial: 'p',
       states: {
@@ -1114,7 +1114,7 @@ describe('parallel states', () => {
   });
 
   it('should raise a "xstate.done.state.*" event when a pseudostate of a history type is directly on a parallel state', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'parallelSteps',
       states: {
         parallelSteps: {
@@ -1169,7 +1169,7 @@ describe('parallel states', () => {
   });
 
   it('source parallel region should be reentered when a transition within it targets another parallel region (parallel root)', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         Operation: {
@@ -1218,7 +1218,7 @@ describe('parallel states', () => {
   });
 
   it('source parallel region should be reentered when a transition within it targets another parallel region (nested parallel)', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -1272,7 +1272,7 @@ describe('parallel states', () => {
   });
 
   it('targetless transition on a parallel state should not enter nor exit any states', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       id: 'test',
       type: 'parallel',
       states: {
@@ -1304,7 +1304,7 @@ describe('parallel states', () => {
   });
 
   it('targetless transition in one of the parallel regions should not enter nor exit any states', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       id: 'test',
       type: 'parallel',
       states: {

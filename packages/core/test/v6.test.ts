@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { initialTransition, transition } from '../src';
-import { next_createMachine } from '../src';
+import { createMachine } from '../src';
 
 it('should work with fn targets', () => {
-  const machine = next_createMachine({
+  const machine = createMachine({
     initial: 'active',
     states: {
       active: {
@@ -23,7 +23,7 @@ it('should work with fn targets', () => {
 });
 
 it('should work with fn actions', () => {
-  const machine = next_createMachine({
+  const machine = createMachine({
     initial: 'active',
     states: {
       active: {
@@ -49,7 +49,7 @@ it('should work with fn actions', () => {
 });
 
 it('should work with both fn actions and target', () => {
-  const machine = next_createMachine({
+  const machine = createMachine({
     initial: 'active',
     states: {
       active: {
@@ -83,7 +83,7 @@ it('should work with both fn actions and target', () => {
 });
 
 it('should work with conditions', () => {
-  const machine = next_createMachine({
+  const machine = createMachine({
     schemas: {
       context: z.object({
         count: z.number()

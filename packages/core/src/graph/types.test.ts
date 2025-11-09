@@ -1,10 +1,10 @@
 import z from 'zod';
-import { next_createMachine } from '../index.ts';
+import { createMachine } from '../index.ts';
 import { createTestModel, getShortestPaths } from './index.ts';
 
 describe('getShortestPath types', () => {
   it('`getEvents` should be allowed to return a mutable array', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       // }
@@ -26,7 +26,7 @@ describe('getShortestPath types', () => {
   });
 
   it('`getEvents` should be allowed to return a readonly array', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       // }
@@ -48,7 +48,7 @@ describe('getShortestPath types', () => {
   });
 
   it('`events` should allow known event', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   events: { type: 'FOO'; value: number };
       // }
@@ -68,7 +68,7 @@ describe('getShortestPath types', () => {
   });
 
   it('`events` should not require all event types (array literal expression)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   events: { type: 'FOO'; value: number } | { type: 'BAR'; value: number };
       // }
@@ -86,7 +86,7 @@ describe('getShortestPath types', () => {
   });
 
   it('`events` should not require all event types (tuple)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         events: z.union([
           z.object({ type: z.literal('FOO'), value: z.number() }),
@@ -103,7 +103,7 @@ describe('getShortestPath types', () => {
   });
 
   it('`events` should not require all event types (function)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         events: z.union([
           z.object({ type: z.literal('FOO'), value: z.number() }),
@@ -118,7 +118,7 @@ describe('getShortestPath types', () => {
   });
 
   it('`events` should not allow unknown events', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: { events: {} as { type: 'FOO'; value: number } }
       schemas: {
         events: z.object({ type: z.literal('FOO'), value: z.number() })
@@ -137,7 +137,7 @@ describe('getShortestPath types', () => {
   });
 
   it('`events` should only allow props of a specific event', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   events: { type: 'FOO'; value: number } | { type: 'BAR'; other: string };
       // }
@@ -161,7 +161,7 @@ describe('getShortestPath types', () => {
   });
 
   it('`serializeEvent` should be allowed to return plain string', () => {
-    const machine = next_createMachine({});
+    const machine = createMachine({});
 
     getShortestPaths(machine, {
       serializeEvent: () => ''
@@ -169,7 +169,7 @@ describe('getShortestPath types', () => {
   });
 
   it('`serializeState` should be allowed to return plain string', () => {
-    const machine = next_createMachine({});
+    const machine = createMachine({});
 
     getShortestPaths(machine, {
       serializeState: () => ''
@@ -179,7 +179,7 @@ describe('getShortestPath types', () => {
 
 describe('createTestModel types', () => {
   it('`EventExecutor` should be passed event with type that corresponds to its key', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       id: 'test',
       // types: {
       //   events: {} as

@@ -1,7 +1,7 @@
-import { next_createMachine, createActor } from '../src/index';
+import { createMachine, createActor } from '../src/index';
 
 describe('multiple', () => {
-  const machine = next_createMachine({
+  const machine = createMachine({
     initial: 'simple',
     states: {
       simple: {

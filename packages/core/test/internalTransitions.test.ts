@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { next_createMachine, createActor } from '../src/index';
+import { createMachine, createActor } from '../src/index';
 
 describe('internal transitions', () => {
   it('parent state should enter child state without re-entering self', () => {
     const tracked: string[] = [];
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -41,7 +41,7 @@ describe('internal transitions', () => {
 
   it('parent state should re-enter self upon transitioning to child state if transition is reentering', () => {
     const tracked: string[] = [];
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -86,7 +86,7 @@ describe('internal transitions', () => {
 
   it('parent state should only exit/reenter if there is an explicit self-transition', () => {
     const tracked: string[] = [];
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -137,7 +137,7 @@ describe('internal transitions', () => {
 
   it('parent state should only exit/reenter if there is an explicit self-transition (to child)', () => {
     const tracked: string[] = [];
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -181,7 +181,7 @@ describe('internal transitions', () => {
   });
 
   it('should listen to events declared at top state', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       on: {
         CLICKED: '.bar'
@@ -201,7 +201,7 @@ describe('internal transitions', () => {
 
   it('should work with targetless transitions (in conditional array)', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -220,7 +220,7 @@ describe('internal transitions', () => {
 
   it('should work with targetless transitions (in object)', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -239,7 +239,7 @@ describe('internal transitions', () => {
 
   it('should work on parent with targetless transitions (in conditional array)', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       on: {
         TARGETLESS_ARRAY: (_, enq) => void enq(spy)
       },
@@ -255,7 +255,7 @@ describe('internal transitions', () => {
 
   it('should work on parent with targetless transitions (in object)', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       on: {
         TARGETLESS_OBJECT: (_, enq) => void enq(spy)
       },
@@ -270,7 +270,7 @@ describe('internal transitions', () => {
   });
 
   it('should maintain the child state when targetless transition is handled by parent', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       on: {
         PARENT_EVENT: (_, enq) => void enq(() => {})
@@ -288,7 +288,7 @@ describe('internal transitions', () => {
   });
 
   it('should reenter proper descendants of a source state of an internal transition', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   context: {
       //     sourceStateEntries: number;
@@ -364,7 +364,7 @@ describe('internal transitions', () => {
   });
 
   it('should exit proper descendants of a source state of an internal transition', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   context: {
       //     sourceStateExits: number;

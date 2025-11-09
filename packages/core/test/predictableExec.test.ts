@@ -1,4 +1,4 @@
-import { next_createMachine, createActor, waitFor } from '../src/index.ts';
+import { createMachine, createActor, waitFor } from '../src/index.ts';
 import { fromCallback } from '../src/actors/index.ts';
 import { fromPromise } from '../src/actors/index.ts';
 import { z } from 'zod';
@@ -7,7 +7,7 @@ describe('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {
     const actual: string[] = [];
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -30,7 +30,7 @@ describe('predictableExec', () => {
 
   it('should call initial custom actions when starting a service', () => {
     let called = false;
-    const machine = next_createMachine({
+    const machine = createMachine({
       entry: (_, enq) => {
         enq(() => {
           called = true;
@@ -46,7 +46,7 @@ describe('predictableExec', () => {
   });
 
   it('should resolve initial assign actions before starting a service', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           called: z.boolean()
@@ -67,7 +67,7 @@ describe('predictableExec', () => {
 
   it('should call raised transition custom actions with raised event', () => {
     let eventArg: any;
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -98,7 +98,7 @@ describe('predictableExec', () => {
 
   it('should call raised transition builtin actions with raised event', () => {
     let eventArg: any;
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -129,7 +129,7 @@ describe('predictableExec', () => {
 
   it('should call invoke creator with raised event', () => {
     let eventArg: any;
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -163,7 +163,7 @@ describe('predictableExec', () => {
   });
 
   it('invoked child should be available on the new state', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -187,7 +187,7 @@ describe('predictableExec', () => {
   });
 
   it('invoked child should not be available on the state after leaving invoking state', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -217,7 +217,7 @@ describe('predictableExec', () => {
 
   it('should correctly provide intermediate context value to a custom action executed in between assign actions', () => {
     let calledWith = 0;
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           counter: z.number()
@@ -258,7 +258,7 @@ describe('predictableExec', () => {
   it('initial actions should receive context updated only by preceding assign actions', () => {
     const actual: number[] = [];
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -286,7 +286,7 @@ describe('predictableExec', () => {
   });
 
   it('parent should be able to read the updated state of a child when receiving an event from it', async () => {
-    const child = next_createMachine({
+    const child = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -304,7 +304,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: {
         id: 'myChild',
         src: child
@@ -344,7 +344,7 @@ describe('predictableExec', () => {
   });
 
   it('should be possible to send immediate events to initially invoked actors', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       on: {
         PING: ({ parent }) => {
           parent?.send({ type: 'PONG' });
@@ -352,7 +352,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'waiting',
       states: {
         waiting: {
@@ -379,7 +379,7 @@ describe('predictableExec', () => {
   });
 
   it.skip('should create invoke based on context updated by entry actions of the same state', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           updated: z.boolean()
@@ -421,7 +421,7 @@ describe('predictableExec', () => {
   it('should deliver events sent from the entry actions to a service invoked in the same state', () => {
     let received: any;
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           updated: z.boolean()
@@ -443,7 +443,7 @@ describe('predictableExec', () => {
           },
           invoke: {
             id: 'myChild',
-            src: next_createMachine({
+            src: createMachine({
               on: {
                 // '*': {
                 //   actions: ({ event }: any) => {
@@ -467,7 +467,7 @@ describe('predictableExec', () => {
   });
 
   it('parent should be able to read the updated state of a child when receiving an event from it', async () => {
-    const child = next_createMachine({
+    const child = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -489,7 +489,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: {
         id: 'myChild',
         src: child
@@ -529,7 +529,7 @@ describe('predictableExec', () => {
   });
 
   it('should be possible to send immediate events to initially invoked actors', async () => {
-    const child = next_createMachine({
+    const child = createMachine({
       on: {
         PING: ({ parent }) => {
           parent?.send({ type: 'PONG' });
@@ -537,7 +537,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'waiting',
       states: {
         waiting: {
@@ -568,7 +568,7 @@ describe('predictableExec', () => {
 
   // https://github.com/statelyai/xstate/issues/3617
   it('should deliver events sent from the exit actions to a service invoked in the same state', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'active',
       states: {
         active: {

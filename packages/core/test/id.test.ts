@@ -1,13 +1,13 @@
 import { testAll } from './utils';
 import {
-  next_createMachine,
+  createMachine,
   createActor,
   transition,
   initialTransition,
   getNextSnapshot
 } from '../src/index.ts';
 
-const idMachine = next_createMachine({
+const idMachine = createMachine({
   initial: 'A',
   states: {
     A: {
@@ -75,7 +75,7 @@ describe('State node IDs', () => {
   testAll(idMachine, expected);
 
   it('should work with ID + relative path', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       on: {
         ACTION: '#bar.qux.quux'
@@ -116,7 +116,7 @@ describe('State node IDs', () => {
   });
 
   it('should work with keys that have escaped periods', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -149,7 +149,7 @@ describe('State node IDs', () => {
   });
 
   it('should work with IDs that have escaped periods', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -185,7 +185,7 @@ describe('State node IDs', () => {
   });
 
   it("should not treat escaped backslash as period's escape", () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'start',
       states: {
         start: {

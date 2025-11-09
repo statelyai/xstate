@@ -1,10 +1,10 @@
-import { createActor, next_createMachine, fromCallback } from '../src/index';
+import { createActor, createMachine, fromCallback } from '../src/index';
 import { trackEntries } from './utils';
 import { StateNode } from '../src/StateNode';
 
 describe('history states', () => {
   it('should go to the most recently visited state (explicit shallow history type)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'on',
       states: {
         on: {
@@ -39,7 +39,7 @@ describe('history states', () => {
   });
 
   it('should go to the most recently visited state (no explicit history type)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'on',
       states: {
         on: {
@@ -72,7 +72,7 @@ describe('history states', () => {
   });
 
   it('should go to the initial state when no history present (explicit shallow history type)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'off',
       states: {
         off: {
@@ -99,7 +99,7 @@ describe('history states', () => {
   });
 
   it('should go to the initial state when no history present (no explicit history type)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'off',
       states: {
         off: {
@@ -125,7 +125,7 @@ describe('history states', () => {
   });
 
   it('should go to the most recently visited state by a transient transition', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -176,7 +176,7 @@ describe('history states', () => {
   it('should reenter persisted state during reentering transition targeting a history state', () => {
     const actual: string[] = [];
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -218,7 +218,7 @@ describe('history states', () => {
   });
 
   it('should go to the configured default target when a history state is the initial state of the machine', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -235,7 +235,7 @@ describe('history states', () => {
   });
 
   it(`should go to the configured default target when a history state is the initial state of the transition's target`, () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -268,7 +268,7 @@ describe('history states', () => {
   it('should execute actions of the initial transition when a history state without a default target is targeted and its parent state was never visited yet', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -302,7 +302,7 @@ describe('history states', () => {
 
   it('should not execute actions of the initial transition when a history state with a default target is targeted and its parent state was never visited yet', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -338,7 +338,7 @@ describe('history states', () => {
 
   it('should execute entry actions of a parent of the targeted history state when its parent state was never visited yet', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -368,7 +368,7 @@ describe('history states', () => {
 
   it('should execute actions of the initial transition when it select a history state as the initial state of its parent', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -404,7 +404,7 @@ describe('history states', () => {
   it('should execute actions of the initial transition when a history state without a default target is targeted and its parent state was already visited', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -445,7 +445,7 @@ describe('history states', () => {
 
   it('should not execute actions of the initial transition when a history state with a default target is targeted and its parent state was already visited', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -488,7 +488,7 @@ describe('history states', () => {
 
   it('should execute entry actions of a parent of the targeted history state when its parent state was already visited', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -526,7 +526,7 @@ describe('history states', () => {
   it('should invoke an actor when reentering the stored configuration through the history state', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'running',
       states: {
         running: {
@@ -553,7 +553,7 @@ describe('history states', () => {
   });
 
   it('should not enter ancestors of the entered history state that lie outside of the transition domain when entering the default history configuration', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'closed',
       states: {
         closed: {
@@ -589,7 +589,7 @@ describe('history states', () => {
   });
 
   it('should not enter ancestors of the entered history state that lie outside of the transition domain when restoring the stored history configuration', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'closed',
       states: {
         closed: {
@@ -641,7 +641,7 @@ describe('history states', () => {
 
 describe('deep history states', () => {
   it('should go to the shallow history', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'on',
       states: {
         off: {
@@ -693,7 +693,7 @@ describe('deep history states', () => {
   });
 
   it('should go to the deep history (explicit)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'on',
       states: {
         off: {
@@ -747,7 +747,7 @@ describe('deep history states', () => {
   });
 
   it('should go to the deepest history', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'on',
       states: {
         off: {
@@ -806,7 +806,7 @@ describe('deep history states', () => {
 
 describe('parallel history states', () => {
   it('should ignore parallel state history', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'off',
       states: {
         off: {
@@ -872,7 +872,7 @@ describe('parallel history states', () => {
   });
 
   it('should remember first level state history', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'off',
       states: {
         off: {
@@ -943,7 +943,7 @@ describe('parallel history states', () => {
   });
 
   it('should re-enter each regions of parallel state correctly', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'off',
       states: {
         off: {
@@ -1032,7 +1032,7 @@ describe('parallel history states', () => {
   });
 
   it('should re-enter multiple history states', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'off',
       states: {
         off: {
@@ -1124,7 +1124,7 @@ describe('parallel history states', () => {
   });
 
   it('should re-enter a parallel with partial history', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'off',
       states: {
         off: {
@@ -1216,7 +1216,7 @@ describe('parallel history states', () => {
   });
 
   it('should re-enter a parallel with full history', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'off',
       states: {
         off: {
@@ -1310,7 +1310,7 @@ describe('parallel history states', () => {
 
 it('internal transition to a history state should enter default history state configuration if the containing state has never been exited yet', () => {
   const service = createActor(
-    next_createMachine({
+    createMachine({
       initial: 'first',
       states: {
         first: {
@@ -1347,7 +1347,7 @@ it('internal transition to a history state should enter default history state co
 
 describe('multistage history states', () => {
   it('should go to the most recently visited state', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'running',
       states: {
         running: {
@@ -1390,7 +1390,7 @@ describe('multistage history states', () => {
 });
 
 describe('revive history states', () => {
-  const machine = next_createMachine({
+  const machine = createMachine({
     initial: 'on',
     states: {
       on: {

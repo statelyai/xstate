@@ -1,8 +1,8 @@
-import { next_createMachine } from '../src/index';
+import { createMachine } from '../src/index';
 import { resolveStateValue } from '../src/stateUtils';
 
 // from parallel/test3.scxml
-const flatParallelMachine = next_createMachine({
+const flatParallelMachine = createMachine({
   id: 'fp',
   initial: 'p1',
   states: {

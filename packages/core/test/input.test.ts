@@ -1,5 +1,5 @@
 import { of } from 'rxjs';
-import { createActor, next_createMachine } from '../src';
+import { createActor, createMachine } from '../src';
 import {
   fromCallback,
   fromObservable,
@@ -12,7 +12,7 @@ describe('input', () => {
   it('should create a machine with input', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   context: { count: number };
       //   input: { startCount: number };
@@ -40,7 +40,7 @@ describe('input', () => {
 
   it('initial event should have input property', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         input: z.object({
           greeting: z.string()
@@ -58,7 +58,7 @@ describe('input', () => {
   });
 
   it('should error if input is expected but not provided', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   input: { greeting: string };
       //   context: { message: string };
@@ -83,7 +83,7 @@ describe('input', () => {
   });
 
   it('should be a type error if input is not expected yet provided', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       context: { count: 42 }
     });
 
@@ -96,7 +96,7 @@ describe('input', () => {
   it('should provide input data to invoked machines', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
 
-    const invokedMachine = next_createMachine({
+    const invokedMachine = createMachine({
       // types: {} as {
       //   input: { greeting: string };
       //   context: { greeting: string };
@@ -117,7 +117,7 @@ describe('input', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: {
         src: invokedMachine,
         input: { greeting: 'hello' }
@@ -131,7 +131,7 @@ describe('input', () => {
 
   it('should provide input data to spawned machines', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const spawnedMachine = next_createMachine({
+    const spawnedMachine = createMachine({
       // types: {} as {
       //   input: { greeting: string };
       //   context: { greeting: string };
@@ -160,7 +160,7 @@ describe('input', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           ref: z.object({}).optional()
@@ -248,14 +248,14 @@ describe('input', () => {
   it('should provide a static inline input to the referenced actor', () => {
     const spy = vi.fn();
 
-    const child = next_createMachine({
+    const child = createMachine({
       context: ({ input }: { input: number }) => {
         spy(input);
         return {};
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   actors: { src: 'child'; logic: typeof child };
       // },
@@ -273,14 +273,14 @@ describe('input', () => {
   it('should provide a dynamic inline input to the referenced actor', () => {
     const spy = vi.fn();
 
-    const child = next_createMachine({
+    const child = createMachine({
       context: ({ input }: { input: number }) => {
         spy(input);
         return {};
       }
     });
 
-    const machine = next_createMachine(
+    const machine = createMachine(
       {
         // types: {} as {
         //   actors: {
@@ -323,9 +323,9 @@ describe('input', () => {
   it('should call the input factory with self when invoking', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: {
-        src: next_createMachine({}),
+        src: createMachine({}),
         input: ({ self }: any) => spy(self)
       }
     });

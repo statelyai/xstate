@@ -1,6 +1,6 @@
 import { BehaviorSubject } from 'rxjs';
 import {
-  next_createMachine,
+  createMachine,
   createActor,
   fromPromise,
   fromObservable
@@ -10,7 +10,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 describe.skip('rehydration', () => {
   describe('using persisted state', () => {
     it('should be able to use `hasTag` immediately', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -32,7 +32,7 @@ describe.skip('rehydration', () => {
 
     it('should not call exit actions when machine gets stopped immediately', () => {
       const actual: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         exit: (_, enq) => {
           enq(() => actual.push('root'));
         },
@@ -58,7 +58,7 @@ describe.skip('rehydration', () => {
     });
 
     it('should get correct result back from `can` immediately', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         on: {
           FOO: (_, enq) => {
             enq(() => {});
@@ -80,7 +80,7 @@ describe.skip('rehydration', () => {
 
   describe('using state value', () => {
     it('should be able to use `hasTag` immediately', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'inactive',
         states: {
           inactive: {
@@ -104,7 +104,7 @@ describe.skip('rehydration', () => {
 
     it('should not call exit actions when machine gets stopped immediately', () => {
       const actual: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         exit: (_, enq) => {
           enq(() => actual.push('root'));
         },
@@ -131,7 +131,7 @@ describe.skip('rehydration', () => {
     });
 
     it('should error on incompatible state value (shallow)', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'valid',
         states: {
           valid: {}
@@ -144,7 +144,7 @@ describe.skip('rehydration', () => {
     });
 
     it('should error on incompatible state value (deep)', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'parent',
         states: {
           parent: {
@@ -164,7 +164,7 @@ describe.skip('rehydration', () => {
 
   it('should not replay actions when starting from a persisted state', () => {
     const entrySpy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       entry: (_, enq) => {
         enq(entrySpy);
       }
@@ -184,7 +184,7 @@ describe.skip('rehydration', () => {
   });
 
   it('should be able to stop a rehydrated child', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -219,8 +219,8 @@ describe.skip('rehydration', () => {
   });
 
   it('a rehydrated active child should be registered in the system', () => {
-    const foo = next_createMachine({});
-    const machine = next_createMachine(
+    const foo = createMachine({});
+    const machine = createMachine(
       {
         context: ({ spawn }) => {
           spawn(foo, {
@@ -248,8 +248,8 @@ describe.skip('rehydration', () => {
   });
 
   it('a rehydrated done child should not be registered in the system', () => {
-    const foo = next_createMachine({ type: 'final' });
-    const machine = next_createMachine(
+    const foo = createMachine({ type: 'final' });
+    const machine = createMachine(
       {
         context: ({ spawn }) => {
           spawn(foo, {
@@ -279,9 +279,9 @@ describe.skip('rehydration', () => {
   it('a rehydrated done child should not re-notify the parent about its completion', () => {
     const spy = vi.fn();
 
-    const foo = next_createMachine({ type: 'final' });
+    const foo = createMachine({ type: 'final' });
 
-    const machine = next_createMachine(
+    const machine = createMachine(
       {
         context: ({ spawn }) => {
           spawn(foo, {
@@ -317,7 +317,7 @@ describe.skip('rehydration', () => {
 
   it('should be possible to persist a rehydrated actor that got its children rehydrated', () => {
     const foo = fromPromise(() => Promise.resolve(42));
-    const machine = next_createMachine(
+    const machine = createMachine(
       {
         invoke: {
           src: foo
@@ -343,7 +343,7 @@ describe.skip('rehydration', () => {
   });
 
   it('should complete on a rehydrated final state', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -371,7 +371,7 @@ describe.skip('rehydration', () => {
 
   it('should error on a rehydrated error state', async () => {
     const failure = fromPromise(() => Promise.reject(new Error('failure')));
-    const machine = next_createMachine(
+    const machine = createMachine(
       {
         invoke: {
           src: failure
@@ -406,7 +406,7 @@ describe.skip('rehydration', () => {
   it(`shouldn't re-notify the parent about the error when rehydrating`, async () => {
     const spy = vi.fn();
     const failure = fromPromise(() => Promise.reject(new Error('failure')));
-    const machine = next_createMachine(
+    const machine = createMachine(
       {
         invoke: {
           src: failure,
@@ -443,7 +443,7 @@ describe.skip('rehydration', () => {
 
     const spy = vi.fn();
 
-    const machine = next_createMachine(
+    const machine = createMachine(
       {
         // types: {} as {
         //   actors: {
@@ -479,7 +479,7 @@ describe.skip('rehydration', () => {
   });
 
   it('should be able to rehydrate an actor deep in the tree', () => {
-    const grandchild = next_createMachine({
+    const grandchild = createMachine({
       context: {
         count: 0
       },
@@ -491,7 +491,7 @@ describe.skip('rehydration', () => {
         })
       }
     });
-    const child = next_createMachine(
+    const child = createMachine(
       {
         invoke: {
           src: grandchild,
@@ -509,7 +509,7 @@ describe.skip('rehydration', () => {
       //   }
       // }
     );
-    const machine = next_createMachine(
+    const machine = createMachine(
       {
         invoke: {
           src: child,

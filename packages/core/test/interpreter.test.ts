@@ -2,7 +2,7 @@ import { SimulatedClock } from '../src/SimulatedClock';
 import {
   createActor,
   StateValue,
-  next_createMachine,
+  createMachine,
   ActorRefFrom
 } from '../src/index.ts';
 import { interval, from } from 'rxjs';
@@ -12,7 +12,7 @@ import { fromCallback } from '../src/actors/callback';
 import { assertEvent } from '../src/assert.ts';
 import z from 'zod';
 
-const lightMachine = next_createMachine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -46,7 +46,7 @@ const lightMachine = next_createMachine({
 describe('interpreter', () => {
   describe('initial state', () => {
     it('.getSnapshot returns the initial state', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'foo',
         states: {
           bar: {},
@@ -62,7 +62,7 @@ describe('interpreter', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
       let promiseSpawned = 0;
 
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'idle',
         schemas: {
           context: z.object({
@@ -111,7 +111,7 @@ describe('interpreter', () => {
 
     it('does not execute actions from a restored state', () => {
       let called = false;
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
@@ -155,7 +155,7 @@ describe('interpreter', () => {
 
     it('should not execute actions that are not part of the actual persisted state', () => {
       let called = false;
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -183,7 +183,7 @@ describe('interpreter', () => {
   });
 
   describe('subscribing', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'active',
       states: {
         active: {}
@@ -202,7 +202,7 @@ describe('interpreter', () => {
 
   describe('send with delay', () => {
     it('can send an event after a delay', async () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'foo',
         states: {
           foo: {
@@ -242,7 +242,7 @@ describe('interpreter', () => {
         | { type: 'ACTIVATE'; wait: number }
         | { type: 'FINISH' };
 
-      const delayExprMachine = next_createMachine({
+      const delayExprMachine = createMachine({
         // types: {} as {
         //   context: DelayExprMachineCtx;
         //   events: DelayExpMachineEvents;
@@ -339,7 +339,7 @@ describe('interpreter', () => {
             type: 'FINISH';
           };
 
-      const delayExprMachine = next_createMachine({
+      const delayExprMachine = createMachine({
         // types: {} as {
         //   context: DelayExprMachineCtx;
         //   events: DelayExpMachineEvents;
@@ -429,7 +429,7 @@ describe('interpreter', () => {
     it('can send an event after a delay (delayed transitions)', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
       const clock = new SimulatedClock();
-      const letterMachine = next_createMachine(
+      const letterMachine = createMachine(
         {
           // types: {} as {
           //   events: { type: 'FIRE_DELAY'; value: number };
@@ -524,7 +524,7 @@ describe('interpreter', () => {
     it('should start activities', () => {
       const spy = vi.fn();
 
-      const activityMachine = next_createMachine(
+      const activityMachine = createMachine(
         {
           id: 'activity',
           initial: 'on',
@@ -556,7 +556,7 @@ describe('interpreter', () => {
     it('should stop activities', () => {
       const spy = vi.fn();
 
-      const activityMachine = next_createMachine(
+      const activityMachine = createMachine(
         {
           id: 'activity',
           initial: 'on',
@@ -592,7 +592,7 @@ describe('interpreter', () => {
     it('should stop activities upon stopping the service', () => {
       const spy = vi.fn();
 
-      const stopActivityMachine = next_createMachine(
+      const stopActivityMachine = createMachine(
         {
           id: 'stopActivity',
           initial: 'on',
@@ -628,7 +628,7 @@ describe('interpreter', () => {
     it.skip('should restart activities from a compound state', () => {
       let activityActive = false;
 
-      const machine = next_createMachine(
+      const machine = createMachine(
         {
           initial: 'inactive',
           states: {
@@ -695,7 +695,7 @@ describe('interpreter', () => {
 
   it('can cancel a delayed event using expression to resolve send id', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'first',
       states: {
         first: {
@@ -753,7 +753,7 @@ describe('interpreter', () => {
 
   it('should defer events sent to an uninitialized service', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const deferMachine = next_createMachine({
+    const deferMachine = createMachine({
       id: 'defer',
       initial: 'a',
       states: {
@@ -809,9 +809,7 @@ describe('interpreter', () => {
       }
     };
 
-    const snapshot = createActor(
-      next_createMachine(invalidMachine)
-    ).getSnapshot();
+    const snapshot = createActor(createMachine(invalidMachine)).getSnapshot();
 
     expect(snapshot.status).toBe('error');
     expect(snapshot.error).toMatchInlineSnapshot(
@@ -848,7 +846,7 @@ describe('interpreter', () => {
   it('should be able to log (log action)', () => {
     const logs: any[] = [];
 
-    const logMachine = next_createMachine({
+    const logMachine = createMachine({
       // types: {} as { context: { count: number } },
       schemas: {
         context: z.object({
@@ -889,7 +887,7 @@ describe('interpreter', () => {
   it('should receive correct event (log action)', () => {
     const logs: any[] = [];
 
-    const parentMachine = next_createMachine({
+    const parentMachine = createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -925,7 +923,7 @@ describe('interpreter', () => {
   });
 
   describe('send() event expressions', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as { context: Ctx; events: Events },
       schemas: {
         context: z.object({
@@ -983,7 +981,7 @@ describe('interpreter', () => {
   describe('sendParent() event expressions', () => {
     it('should resolve sendParent event expressions', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
-      const childMachine = next_createMachine({
+      const childMachine = createMachine({
         // types: {} as {
         //   context: { password: string };
         //   input: { password: string };
@@ -1016,7 +1014,7 @@ describe('interpreter', () => {
         }
       });
 
-      const parentMachine = next_createMachine({
+      const parentMachine = createMachine({
         // types: {} as {
         //   events: {
         //     type: 'NEXT';
@@ -1073,7 +1071,7 @@ describe('interpreter', () => {
   });
 
   describe('.send()', () => {
-    const sendMachine = next_createMachine({
+    const sendMachine = createMachine({
       schemas: {
         events: z.union([
           z.object({
@@ -1140,7 +1138,7 @@ describe('interpreter', () => {
 
     it('should receive and process all events sent simultaneously', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
-      const toggleMachine = next_createMachine({
+      const toggleMachine = createMachine({
         id: 'toggle',
         initial: 'inactive',
         states: {
@@ -1181,7 +1179,7 @@ describe('interpreter', () => {
       const contextSpy = vi.fn();
       const entrySpy = vi.fn();
 
-      const machine = next_createMachine({
+      const machine = createMachine({
         context: contextSpy,
         entry: entrySpy,
         initial: 'foo',
@@ -1202,7 +1200,7 @@ describe('interpreter', () => {
       const contextSpy = vi.fn();
       const entrySpy = vi.fn();
 
-      const machine = next_createMachine({
+      const machine = createMachine({
         context: contextSpy,
         entry: (_, enq) => enq(entrySpy)
       });
@@ -1215,7 +1213,7 @@ describe('interpreter', () => {
     });
 
     it('should be able to be initialized at a custom state', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'foo',
         states: {
           foo: {},
@@ -1232,7 +1230,7 @@ describe('interpreter', () => {
     });
 
     it('should be able to be initialized at a custom state value', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'foo',
         states: {
           foo: {},
@@ -1249,7 +1247,7 @@ describe('interpreter', () => {
     });
 
     it('should be able to resolve a custom initialized state', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         id: 'start',
         initial: 'foo',
         states: {
@@ -1276,7 +1274,7 @@ describe('interpreter', () => {
     it('should cancel delayed events', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
       let called = false;
-      const delayedMachine = next_createMachine({
+      const delayedMachine = createMachine({
         id: 'delayed',
         initial: 'foo',
         states: {
@@ -1316,7 +1314,7 @@ describe('interpreter', () => {
       const warnSpy = vi.spyOn(console, 'warn');
       let called = false;
 
-      const testMachine = next_createMachine({
+      const testMachine = createMachine({
         initial: 'waiting',
         states: {
           waiting: {
@@ -1356,7 +1354,7 @@ describe('interpreter', () => {
 
     it('stopping a not-started interpreter should not crash', () => {
       const service = createActor(
-        next_createMachine({
+        createMachine({
           initial: 'a',
           states: { a: {} }
         })
@@ -1370,7 +1368,7 @@ describe('interpreter', () => {
 
   describe('.unsubscribe()', () => {
     it('should remove transition listeners', () => {
-      const toggleMachine = next_createMachine({
+      const toggleMachine = createMachine({
         id: 'toggle',
         initial: 'inactive',
         states: {
@@ -1410,7 +1408,7 @@ describe('interpreter', () => {
 
   describe('transient states', () => {
     it('should transition in correct order', () => {
-      const stateMachine = next_createMachine({
+      const stateMachine = createMachine({
         id: 'transient',
         initial: 'idle',
         states: {
@@ -1436,7 +1434,7 @@ describe('interpreter', () => {
 
     it('should transition in correct order when there is a condition', () => {
       const alwaysFalse = () => false;
-      const stateMachine = next_createMachine(
+      const stateMachine = createMachine(
         {
           id: 'transient',
           initial: 'idle',
@@ -1481,7 +1479,7 @@ describe('interpreter', () => {
 
   describe('observable', () => {
     const context = { count: 0 };
-    const intervalMachine = next_createMachine({
+    const intervalMachine = createMachine({
       id: 'interval',
       // types: {} as { context: typeof context },
       schemas: {
@@ -1563,7 +1561,7 @@ describe('interpreter', () => {
     it('should be unsubscribable', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
       const countContext = { count: 0 };
-      const machine = next_createMachine({
+      const machine = createMachine({
         // types: {} as { context: typeof countContext },
         schemas: {
           context: z.object({
@@ -1624,7 +1622,7 @@ describe('interpreter', () => {
       const completeCb = vi.fn();
 
       const service = createActor(
-        next_createMachine({
+        createMachine({
           initial: 'idle',
           states: {
             idle: {
@@ -1649,7 +1647,7 @@ describe('interpreter', () => {
     it('should call complete() once the interpreter is stopped', () => {
       const completeCb = vi.fn();
 
-      const service = createActor(next_createMachine({})).start();
+      const service = createActor(createMachine({})).start();
 
       service.subscribe({
         complete: () => {
@@ -1668,7 +1666,7 @@ describe('interpreter', () => {
       const child = fromCallback(() => {
         // nothing
       });
-      const machine = next_createMachine(
+      const machine = createMachine(
         {
           initial: 'initial',
           states: {
@@ -1693,7 +1691,7 @@ describe('interpreter', () => {
 
   describe('children', () => {
     it('state.children should reference invoked child actors (machine)', () => {
-      const childMachine = next_createMachine({
+      const childMachine = createMachine({
         initial: 'active',
         states: {
           active: {
@@ -1708,7 +1706,7 @@ describe('interpreter', () => {
           }
         }
       });
-      const parentMachine = next_createMachine({
+      const parentMachine = createMachine({
         initial: 'active',
         states: {
           active: {
@@ -1744,7 +1742,7 @@ describe('interpreter', () => {
             }, 100);
           })
       );
-      const parentMachine = next_createMachine(
+      const parentMachine = createMachine(
         {
           initial: 'active',
 
@@ -1820,7 +1818,7 @@ describe('interpreter', () => {
       const interval$ = interval(10);
       const intervalLogic = fromObservable(() => interval$);
 
-      const parentMachine = next_createMachine(
+      const parentMachine = createMachine(
         {
           // types: {} as {
           //   actors: {
@@ -1880,13 +1878,13 @@ describe('interpreter', () => {
     });
 
     it.skip('state.children should reference spawned actors', () => {
-      const childMachine = next_createMachine({
+      const childMachine = createMachine({
         initial: 'idle',
         states: {
           idle: {}
         }
       });
-      const formMachine = next_createMachine({
+      const formMachine = createMachine({
         id: 'form',
         initial: 'idle',
         schemas: {
@@ -1912,14 +1910,14 @@ describe('interpreter', () => {
 
     // TODO: need to detect children returned from transition functions
     it.skip('stopped spawned actors should be cleaned up in parent', () => {
-      const childMachine = next_createMachine({
+      const childMachine = createMachine({
         initial: 'idle',
         states: {
           idle: {}
         }
       });
 
-      const parentMachine = next_createMachine({
+      const parentMachine = createMachine({
         id: 'form',
         initial: 'present',
         // context: {} as {
@@ -1991,7 +1989,7 @@ describe('interpreter', () => {
   it("shouldn't execute actions when reading a snapshot of not started actor", () => {
     const spy = vi.fn();
     const actorRef = createActor(
-      next_createMachine({
+      createMachine({
         entry: (_, enq) => enq(spy)
       })
     );
@@ -2005,7 +2003,7 @@ describe('interpreter', () => {
     const spy = vi.fn();
 
     const actorRef = createActor(
-      next_createMachine({
+      createMachine({
         entry: (_, enq) => enq(spy)
       })
     );
@@ -2019,7 +2017,7 @@ describe('interpreter', () => {
   });
 
   it('the first state of an actor should be its initial state', () => {
-    const machine = next_createMachine({});
+    const machine = createMachine({});
     const actor = createActor(machine);
     const initialState = actor.getSnapshot();
 
@@ -2030,7 +2028,7 @@ describe('interpreter', () => {
 
   it('should call an onDone callback immediately if the service is already done', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -2053,7 +2051,7 @@ describe('interpreter', () => {
 });
 
 it('should throw if an event is received', () => {
-  const machine = next_createMachine({});
+  const machine = createMachine({});
 
   const actor = createActor(machine).start();
 
@@ -2067,7 +2065,7 @@ it('should throw if an event is received', () => {
 
 it('should not process events sent directly to own actor ref before initial entry actions are processed', () => {
   const actual: string[] = [];
-  const machine = next_createMachine({
+  const machine = createMachine({
     entry: (_, enq) => {
       enq(() => actual.push('initial root entry start'));
       // enq(() =>
@@ -2113,7 +2111,7 @@ it('should not process events sent directly to own actor ref before initial entr
 it('should not notify the completion observer for an active logic when it gets subscribed before starting', () => {
   const spy = vi.fn();
 
-  const machine = next_createMachine({});
+  const machine = createMachine({});
   createActor(machine).subscribe({ complete: spy });
 
   expect(spy).not.toHaveBeenCalled();
@@ -2122,7 +2120,7 @@ it('should not notify the completion observer for an active logic when it gets s
 it('should notify the error observer for an errored logic when it gets subscribed after it errors', () => {
   const spy = vi.fn();
 
-  const machine = next_createMachine({
+  const machine = createMachine({
     entry: () => {
       throw new Error('error');
     }

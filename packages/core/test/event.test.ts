@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { next_createMachine, createActor, AnyActorRef } from '../src/index.ts';
+import { createMachine, createActor, AnyActorRef } from '../src/index.ts';
 
 describe('events', () => {
   it('should be able to respond to sender by sending self', async () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const authServerMachine = next_createMachine({
+    const authServerMachine = createMachine({
       // types: {
       //   events: {} as { type: 'CODE'; sender: AnyActorRef }
       // },
@@ -33,7 +33,7 @@ describe('events', () => {
       }
     });
 
-    const authClientMachine = next_createMachine({
+    const authClientMachine = createMachine({
       id: 'authClient',
       initial: 'idle',
       states: {
@@ -91,7 +91,7 @@ describe('nested transitions', () => {
       password
     });
 
-    const authMachine = next_createMachine({
+    const authMachine = createMachine({
       // types: {} as { context: SignInContext; events: ChangePassword },
       schemas: {
         context: z.object({

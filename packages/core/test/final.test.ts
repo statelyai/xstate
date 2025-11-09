@@ -1,17 +1,17 @@
 import { z } from 'zod';
-import { next_createMachine, createActor } from '../src/index.ts';
+import { createMachine, createActor } from '../src/index.ts';
 import { trackEntries } from './utils.ts';
 
 describe('final states', () => {
   it('status of a machine with a root state being final should be done', () => {
-    const machine = next_createMachine({ type: 'final' });
+    const machine = createMachine({ type: 'final' });
     const actorRef = createActor(machine).start();
 
     expect(actorRef.getSnapshot().status).toBe('done');
   });
   it('output of a machine with a root state being final should be called with a "xstate.done.state.ROOT_ID" event', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'final',
       output: ({ event }) => {
         spy(event);
@@ -33,7 +33,7 @@ describe('final states', () => {
   it('should emit the "xstate.done.state.*" event when all nested states are in their final states', () => {
     const onDoneSpy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       id: 'm',
       initial: 'foo',
       states: {
@@ -91,7 +91,7 @@ describe('final states', () => {
 
   it('should execute final child state actions first', () => {
     const actual: string[] = [];
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -127,7 +127,7 @@ describe('final states', () => {
   it('should call output expressions on nested final nodes', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           revealedSecret: z.string().optional()
@@ -186,7 +186,7 @@ describe('final states', () => {
 
   it("should only call data expression once when entering root's final state", () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         events: z.object({
           type: z.literal('FINISH'),
@@ -213,7 +213,7 @@ describe('final states', () => {
   });
 
   it('output mapper should receive self', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         output: z.object({
           selfRef: z.any()
@@ -234,7 +234,7 @@ describe('final states', () => {
 
   it('state output should be able to use context updated by the entry action of the reached final state', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -274,7 +274,7 @@ describe('final states', () => {
   });
 
   it('should emit a done state event for a parallel state when its parallel children reach their final states', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'first',
       states: {
         first: {
@@ -370,7 +370,7 @@ describe('final states', () => {
   });
 
   it('should emit a done state event for a parallel state when its compound child reaches its final state when the other parallel child region is already in its final state', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'first',
       states: {
         first: {
@@ -448,7 +448,7 @@ describe('final states', () => {
   });
 
   it('should emit a done state event for a parallel state when its parallel child reaches its final state when the other compound child region is already in its final state', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'first',
       states: {
         first: {
@@ -526,7 +526,7 @@ describe('final states', () => {
   });
 
   it('should reach a final state when a parallel state reaches its final state and transitions to a top-level final state in response to that', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -558,7 +558,7 @@ describe('final states', () => {
   });
 
   it('should reach a final state when a parallel state nested in a parallel state reaches its final state and transitions to a top-level final state in response to that', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -590,7 +590,7 @@ describe('final states', () => {
   });
   it('root output should be called with a "xstate.done.state.*" event of the parallel root when a direct final child of that parallel root is reached', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -618,7 +618,7 @@ describe('final states', () => {
 
   it('root output should be called with a "xstate.done.state.*" event of the parallel root when a final child of its compound child is reached', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -651,7 +651,7 @@ describe('final states', () => {
 
   it('root output should be called with a "xstate.done.state.*" event of the parallel root when a final descendant is reached 2 parallel levels deep', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -689,7 +689,7 @@ describe('final states', () => {
 
   it('onDone of an outer parallel state should be called with its own "xstate.done.state.*" event when its direct parallel child completes', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -729,7 +729,7 @@ describe('final states', () => {
 
   it('onDone should not be called when the machine reaches its final state', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -756,7 +756,7 @@ describe('final states', () => {
   });
 
   it('machine should not complete when a parallel child of a compound state completes', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -783,7 +783,7 @@ describe('final states', () => {
   it('root output should only be called once when multiple parallel regions complete at once', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -804,7 +804,7 @@ describe('final states', () => {
   it('onDone of a parallel state should only be called once when multiple parallel regions complete at once', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -828,7 +828,7 @@ describe('final states', () => {
   });
 
   it('should call exit actions in reversed document order when the machines reaches its final state', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -862,7 +862,7 @@ describe('final states', () => {
   });
 
   it('should call exit actions of parallel states in reversed document order when the machines reaches its final state after earlier region transition', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -918,7 +918,7 @@ describe('final states', () => {
   });
 
   it('should call exit actions of parallel states in reversed document order when the machines reaches its final state after later region transition', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -973,7 +973,7 @@ describe('final states', () => {
   });
 
   it('should call exit actions of parallel states in reversed document order when the machines reaches its final state after multiple regions transition', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -1029,7 +1029,7 @@ describe('final states', () => {
   });
 
   it('should not complete a parallel root immediately when only some of its regions are in their final states (final state reached in a compound region)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -1058,7 +1058,7 @@ describe('final states', () => {
   });
 
   it('should not complete a parallel root immediately when only some of its regions are in their final states (a direct final child state reached)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -1084,7 +1084,7 @@ describe('final states', () => {
   it('should not resolve output of a final state if its parent is a parallel state', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'A',
       states: {
         A: {
@@ -1113,7 +1113,7 @@ describe('final states', () => {
   it('should only call exit actions once when a child machine reaches its final state and sends an event to its parent that ends up stopping that child', () => {
     const spy = vi.fn();
 
-    const child = next_createMachine({
+    const child = createMachine({
       initial: 'start',
       exit: (_, enq) => enq(spy),
       states: {
@@ -1129,7 +1129,7 @@ describe('final states', () => {
         }
       }
     });
-    const parent = next_createMachine({
+    const parent = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -1157,7 +1157,7 @@ describe('final states', () => {
   });
 
   it('should deliver final outgoing events (from final entry action) to the parent before delivering the `xstate.done.actor.*` event', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -1172,7 +1172,7 @@ describe('final states', () => {
         }
       }
     });
-    const parent = next_createMachine({
+    const parent = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -1201,7 +1201,7 @@ describe('final states', () => {
   });
 
   it('should deliver final outgoing events (from root exit action) to the parent before delivering the `xstate.done.actor.*` event', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -1218,7 +1218,7 @@ describe('final states', () => {
         parent?.send({ type: 'CHILD_CANCELED' });
       }
     });
-    const parent = next_createMachine({
+    const parent = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -1247,7 +1247,7 @@ describe('final states', () => {
   });
 
   it('should be possible to complete with a null output (directly on root)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'start',
       schemas: {
         output: z.null()
@@ -1272,7 +1272,7 @@ describe('final states', () => {
   });
 
   it("should be possible to complete with a null output (resolving with final state's output)", () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'start',
       states: {
         start: {

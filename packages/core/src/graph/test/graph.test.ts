@@ -3,7 +3,7 @@ import {
   EventObject,
   Snapshot,
   StateNode,
-  next_createMachine,
+  createMachine,
   fromTransition,
   isMachineSnapshot
 } from '../../index.ts';
@@ -73,7 +73,7 @@ describe('@xstate/graph', () => {
     }
   });
 
-  const lightMachine = next_createMachine({
+  const lightMachine = createMachine({
     id: 'light',
     initial: 'green',
     states: {
@@ -107,7 +107,7 @@ describe('@xstate/graph', () => {
     }
   });
 
-  const condMachine = next_createMachine({
+  const condMachine = createMachine({
     // types: {} as { context: CondMachineCtx; events: CondMachineEvents },
     schemas: {
       context: z.object({
@@ -149,7 +149,7 @@ describe('@xstate/graph', () => {
     }
   });
 
-  const parallelMachine = next_createMachine({
+  const parallelMachine = createMachine({
     type: 'parallel',
     id: 'p',
     states: {
@@ -242,7 +242,7 @@ describe('@xstate/graph', () => {
     });
 
     it.skip('should represent conditional paths based on context', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         // types: {} as { context: CondMachineCtx; events: CondMachineEvents },
         schemas: {
           context: z.object({
@@ -355,7 +355,7 @@ describe('@xstate/graph', () => {
       expect(getPathsSnapshot(paths)).toMatchSnapshot();
     });
 
-    const equivMachine = next_createMachine({
+    const equivMachine = createMachine({
       initial: 'a',
       states: {
         a: { on: { FOO: 'b', BAR: 'b' } },
@@ -390,7 +390,7 @@ describe('@xstate/graph', () => {
     });
 
     it('should return multiple paths for equivalent transitions', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: { on: { FOO: 'b', BAR: 'b' } },
@@ -444,7 +444,7 @@ describe('@xstate/graph', () => {
     });
 
     it('should return value-based paths', () => {
-      const countMachine = next_createMachine({
+      const countMachine = createMachine({
         // types: {} as { context: Ctx; events: Events },
         schemas: {
           context: z.object({
@@ -540,7 +540,7 @@ describe('@xstate/graph', () => {
 
   describe('toDirectedGraph', () => {
     it('should represent a statechart as a directed graph', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         id: 'light',
         initial: 'green',
         states: {
@@ -610,7 +610,7 @@ it('shortest paths for transition functions', () => {
 
 describe('filtering', () => {
   it('should not traverse past filtered states', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -662,7 +662,7 @@ describe('filtering', () => {
 });
 
 it('should provide previous state for serializeState()', () => {
-  const machine = next_createMachine({
+  const machine = createMachine({
     initial: 'a',
     states: {
       a: {
@@ -698,7 +698,7 @@ it('should provide previous state for serializeState()', () => {
 it.each([getShortestPaths, getSimplePaths])(
   'from-state can be specified',
   (pathGetter) => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -732,7 +732,7 @@ it.each([getShortestPaths, getSimplePaths])(
 
 describe('joinPaths()', () => {
   it('should join two paths', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -770,7 +770,7 @@ describe('joinPaths()', () => {
   });
 
   it('should not join two paths with mismatched source/target states', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {

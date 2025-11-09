@@ -1,4 +1,4 @@
-import { createActor, matchesState, next_createMachine } from '../src/index.ts';
+import { createActor, matchesState, createMachine } from '../src/index.ts';
 import { trackEntries } from './utils.ts';
 import z from 'zod';
 
@@ -7,7 +7,7 @@ describe('guard conditions', () => {
     return elapsed >= 100 && elapsed < 200;
   }
 
-  const lightMachine = next_createMachine({
+  const lightMachine = createMachine({
     schemas: {
       input: z.object({
         elapsed: z.number().optional()
@@ -133,7 +133,7 @@ describe('guard conditions', () => {
   });
 
   it('should not transition if no condition is met', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         events: z.object({
           type: z.literal('TIMER'),
@@ -210,7 +210,7 @@ describe('guard conditions', () => {
   it('should work with defined string transitions (condition not met)', () => {
     const minTimeElapsed = (elapsed: number) => elapsed >= 100 && elapsed < 200;
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as { context: LightMachineCtx; events: LightMachineEvents },
       schemas: {
         context: z.object({
@@ -289,7 +289,7 @@ describe('guard conditions', () => {
   });
 
   it('should guard against transition', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -345,7 +345,7 @@ describe('guard conditions', () => {
   });
 
   it('should allow a matching transition', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -402,7 +402,7 @@ describe('guard conditions', () => {
   });
 
   it('should check guards with interim states', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -457,7 +457,7 @@ describe('guard conditions', () => {
 describe('[function] guard conditions', () => {
   const minTimeElapsed = (elapsed: number) => elapsed >= 100 && elapsed < 200;
 
-  const lightMachine = next_createMachine({
+  const lightMachine = createMachine({
     // types: {} as {
     //   input: { elapsed?: number };
     //   context: LightMachineCtx;
@@ -548,7 +548,7 @@ describe('[function] guard conditions', () => {
   });
 
   it('should not transition if no condition is met', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         events: z.object({
           type: z.literal('TIMER'),
@@ -613,7 +613,7 @@ describe('[function] guard conditions', () => {
   });
 
   it('should work with defined string transitions (condition not met)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as { context: LightMachineCtx; events: LightMachineEvents },
       schemas: {
         context: z.object({
@@ -669,7 +669,7 @@ describe('[function] guard conditions', () => {
   });
 
   it.skip('should allow a matching transition', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -726,7 +726,7 @@ describe('[function] guard conditions', () => {
   });
 
   it.skip('should check guards with interim states', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -804,7 +804,7 @@ describe('custom guards', () => {
 
       return false;
     }
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   context: Ctx;
       //   events: Events;
@@ -868,7 +868,7 @@ describe('custom guards', () => {
 
 describe('guards - other', () => {
   it('should allow for a fallback target to be a simple string', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {

@@ -8,7 +8,7 @@ import {
   ActorRefFromLogic,
   EventObject,
   createActor,
-  next_createMachine
+  createMachine
 } from '../src/index.ts';
 import { z } from 'zod';
 
@@ -22,7 +22,7 @@ describe('entry/exit actions', () => {
   describe('State.actions', () => {
     it('should return the entry actions of an initial state', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         entry: (_, enq) => enq(() => tracked.push('enter: __root__')),
         initial: 'green',
         states: {
@@ -39,7 +39,7 @@ describe('entry/exit actions', () => {
 
     it('should return the entry actions of an initial state (deep)', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         entry: (_, enq) => enq(() => tracked.push('enter: __root__')),
         initial: 'a',
         states: {
@@ -68,7 +68,7 @@ describe('entry/exit actions', () => {
 
     it('should return the entry actions of an initial state (parallel)', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         entry: (_, enq) => enq(() => tracked.push('enter: __root__')),
         type: 'parallel',
         states: {
@@ -106,7 +106,7 @@ describe('entry/exit actions', () => {
 
     it('should return the entry and exit actions of a transition', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
@@ -133,7 +133,7 @@ describe('entry/exit actions', () => {
 
     it('should return the entry and exit actions of a deep transition', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
@@ -173,7 +173,7 @@ describe('entry/exit actions', () => {
 
     it('should return the entry and exit actions of a nested transition', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
@@ -207,7 +207,7 @@ describe('entry/exit actions', () => {
 
     it('should not have actions for unhandled events (shallow)', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
@@ -227,7 +227,7 @@ describe('entry/exit actions', () => {
 
     it('should not have actions for unhandled events (deep)', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
@@ -260,7 +260,7 @@ describe('entry/exit actions', () => {
 
     it('should exit and enter the state for reentering self-transitions (shallow)', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
@@ -286,7 +286,7 @@ describe('entry/exit actions', () => {
 
     it('should exit and enter the state for reentering self-transitions (deep)', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
@@ -332,7 +332,7 @@ describe('entry/exit actions', () => {
 
     it('should return actions for parallel machines', () => {
       const actual: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         type: 'parallel',
         states: {
           a: {
@@ -423,7 +423,7 @@ describe('entry/exit actions', () => {
 
     it('should return nested actions in the correct (child to parent) order', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -467,7 +467,7 @@ describe('entry/exit actions', () => {
 
     it('should ignore parent state actions for same-parent substates', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -503,7 +503,7 @@ describe('entry/exit actions', () => {
       const transitionSpy = vi.fn();
       const tracked: string[] = [];
 
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -568,7 +568,7 @@ describe('entry/exit actions', () => {
 
     it('should exit children of parallel state nodes', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'B',
         states: {
           A: {
@@ -630,7 +630,7 @@ describe('entry/exit actions', () => {
 
     it("should reenter targeted ancestor (as it's a descendant of the transition domain)", () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'loaded',
         states: {
           loaded: {
@@ -669,7 +669,7 @@ describe('entry/exit actions', () => {
       let entrySpy = vi.fn();
       let exitSpy = vi.fn();
 
-      const machine = next_createMachine({
+      const machine = createMachine({
         id: 'root',
         entry: (_, enq) => enq(entrySpy),
         exit: (_, enq) => enq(exitSpy),
@@ -702,7 +702,7 @@ describe('entry/exit actions', () => {
     describe('should ignore same-parent state actions (sparse)', () => {
       it('with a relative transition', () => {
         const tracked: string[] = [];
-        const machine = next_createMachine({
+        const machine = createMachine({
           initial: 'ping',
           states: {
             ping: {
@@ -736,7 +736,7 @@ describe('entry/exit actions', () => {
 
       it('with an absolute transition', () => {
         const tracked: string[] = [];
-        const machine = next_createMachine({
+        const machine = createMachine({
           id: 'root',
           initial: 'ping',
           states: {
@@ -778,7 +778,7 @@ describe('entry/exit actions', () => {
   describe('entry/exit actions', () => {
     it('should return the entry actions of an initial state', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         entry: (_, enq) => enq(() => tracked.push('enter: __root__')),
         exit: (_, enq) => enq(() => tracked.push('exit: __root__')),
@@ -797,7 +797,7 @@ describe('entry/exit actions', () => {
 
     it('should return the entry and exit actions of a transition', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
@@ -824,7 +824,7 @@ describe('entry/exit actions', () => {
 
     it('should return the entry and exit actions of a deep transition', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
@@ -864,7 +864,7 @@ describe('entry/exit actions', () => {
 
     it('should return the entry and exit actions of a nested transition', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
@@ -898,7 +898,7 @@ describe('entry/exit actions', () => {
 
     it('should keep the same state for unhandled events (shallow)', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
@@ -918,7 +918,7 @@ describe('entry/exit actions', () => {
 
     it('should keep the same state for unhandled events (deep)', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
@@ -945,7 +945,7 @@ describe('entry/exit actions', () => {
 
     it('should exit and enter the state for reentering self-transitions (shallow)', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
@@ -971,7 +971,7 @@ describe('entry/exit actions', () => {
 
     it('should exit and enter the state for reentering self-transitions (deep)', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
@@ -1008,7 +1008,7 @@ describe('entry/exit actions', () => {
 
     it('should exit current node and enter target node when target is not a descendent or ancestor of current', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'A',
 
         states: {
@@ -1057,7 +1057,7 @@ describe('entry/exit actions', () => {
 
     it('should exit current node and reenter target node when target is ancestor of current', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'A',
         states: {
           A: {
@@ -1114,7 +1114,7 @@ describe('entry/exit actions', () => {
 
     it('should enter all descendents when target is a descendent of the source when using an reentering transition', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'A',
 
         states: {
@@ -1166,7 +1166,7 @@ describe('entry/exit actions', () => {
 
     it('should exit deep descendant during a default self-transition', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -1213,7 +1213,7 @@ describe('entry/exit actions', () => {
 
     it('should exit deep descendant during a reentering self-transition', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -1261,7 +1261,7 @@ describe('entry/exit actions', () => {
 
     it('should not reenter leaf state during its default self-transition', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         entry: (_, enq) => enq(() => tracked.push('enter: a')),
         exit: (_, enq) => enq(() => tracked.push('exit: a')),
         initial: 'a',
@@ -1289,7 +1289,7 @@ describe('entry/exit actions', () => {
 
     it('should reenter leaf state during its reentering self-transition', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -1322,7 +1322,7 @@ describe('entry/exit actions', () => {
 
     it('should not enter exited state when targeting its ancestor and when its former descendant gets selected through initial state', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -1369,7 +1369,7 @@ describe('entry/exit actions', () => {
 
     it('should not enter exited state when targeting its ancestor and when its latter descendant gets selected through initial state', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -1418,7 +1418,7 @@ describe('entry/exit actions', () => {
   describe('parallel states', () => {
     it('should return entry action defined on parallel state', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'start',
         states: {
           start: {
@@ -1464,7 +1464,7 @@ describe('entry/exit actions', () => {
 
     it('should reenter parallel region when a parallel state gets reentered while targeting another region', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'ready',
         states: {
           ready: {
@@ -1529,7 +1529,7 @@ describe('entry/exit actions', () => {
 
     it('should reenter parallel region when a parallel state is reentered while targeting another region', () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'ready',
         states: {
           ready: {
@@ -1596,7 +1596,7 @@ describe('entry/exit actions', () => {
   describe('targetless transitions', () => {
     it("shouldn't exit a state on a parent's targetless transition", () => {
       const tracked: string[] = [];
-      const parent = next_createMachine({
+      const parent = createMachine({
         entry: (_, enq) => enq(() => tracked.push('enter: one')),
         exit: (_, enq) => enq(() => tracked.push('exit: one')),
         initial: 'one',
@@ -1620,7 +1620,7 @@ describe('entry/exit actions', () => {
 
     it("shouldn't exit (and reenter) state on targetless delayed transition", async () => {
       const tracked: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         entry: (_, enq) => enq(() => tracked.push('enter: one')),
         exit: (_, enq) => enq(() => tracked.push('exit: one')),
         initial: 'one',
@@ -1652,7 +1652,7 @@ describe('entry/exit actions', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
       let exitCalled = false;
       let childExitCalled = false;
-      const childMachine = next_createMachine({
+      const childMachine = createMachine({
         exit: (_, enq) => {
           enq(() => (exitCalled = true));
         },
@@ -1667,7 +1667,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const parentMachine = next_createMachine({
+      const parentMachine = createMachine({
         initial: 'active',
         states: {
           active: {
@@ -1700,7 +1700,7 @@ describe('entry/exit actions', () => {
       const rootSpy = vi.fn();
       const childSpy = vi.fn();
 
-      const machine = next_createMachine({
+      const machine = createMachine({
         exit: (_, enq) => enq(rootSpy),
         initial: 'a',
         states: {
@@ -1719,7 +1719,7 @@ describe('entry/exit actions', () => {
 
     it('an exit action executed when an interpreter reaches its final state should be called with the last received event', () => {
       let receivedEvent;
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -1744,7 +1744,7 @@ describe('entry/exit actions', () => {
 
     // https://github.com/statelyai/xstate/issues/2880
     it('stopping an interpreter that receives events from its children exit handlers should not throw', () => {
-      const child = next_createMachine({
+      const child = createMachine({
         id: 'child',
         initial: 'idle',
         states: {
@@ -1757,7 +1757,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const parent = next_createMachine({
+      const parent = createMachine({
         id: 'parent',
         invoke: {
           src: child
@@ -1774,7 +1774,7 @@ describe('entry/exit actions', () => {
     // If it shouldn't be, we need to clarify whether exit actions in general should be executed on machine stop,
     // since this is contradictory to other tests.
     it.skip('sent events from exit handlers of a stopped child should not be received by the parent', () => {
-      const child = next_createMachine({
+      const child = createMachine({
         id: 'child',
         initial: 'idle',
         states: {
@@ -1786,7 +1786,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const parent = next_createMachine({
+      const parent = createMachine({
         // types: {} as {
         //   context: {
         //     child: ActorRefFromLogic<typeof child>;
@@ -1826,7 +1826,7 @@ describe('entry/exit actions', () => {
     it('sent events from exit handlers of a done child should be received by the parent ', () => {
       let eventReceived = false;
 
-      const child = next_createMachine({
+      const child = createMachine({
         id: 'child',
         initial: 'active',
         states: {
@@ -1845,7 +1845,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const parent = next_createMachine({
+      const parent = createMachine({
         // types: {} as {
         //   context: {
         //     child: ActorRefFromLogic<typeof child>;
@@ -1887,14 +1887,14 @@ describe('entry/exit actions', () => {
     it('sent events from exit handlers of a stopped child should not be received by its children', () => {
       const spy = vi.fn();
 
-      const grandchild = next_createMachine({
+      const grandchild = createMachine({
         id: 'grandchild',
         on: {
           STOPPED: (_, enq) => enq(spy)
         }
       });
 
-      const child = next_createMachine({
+      const child = createMachine({
         id: 'child',
         invoke: {
           id: 'myChild',
@@ -1905,7 +1905,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const parent = next_createMachine({
+      const parent = createMachine({
         id: 'parent',
         initial: 'a',
         states: {
@@ -1931,7 +1931,7 @@ describe('entry/exit actions', () => {
     it.skip('sent events from exit handlers of a done child should be received by its children', () => {
       const spy = vi.fn();
 
-      const grandchild = next_createMachine({
+      const grandchild = createMachine({
         id: 'grandchild',
         on: {
           // STOPPED: {
@@ -1943,7 +1943,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const child = next_createMachine({
+      const child = createMachine({
         id: 'child',
         initial: 'a',
         invoke: {
@@ -1972,7 +1972,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const parent = next_createMachine({
+      const parent = createMachine({
         id: 'parent',
         invoke: {
           id: 'myChild',
@@ -1995,14 +1995,14 @@ describe('entry/exit actions', () => {
     });
 
     it('actors spawned in exit handlers of a stopped child should not be started', () => {
-      const grandchild = next_createMachine({
+      const grandchild = createMachine({
         id: 'grandchild',
         entry: () => {
           throw new Error('This should not be called.');
         }
       });
 
-      const parent = next_createMachine({
+      const parent = createMachine({
         id: 'parent',
         schemas: {
           context: z.object({
@@ -2023,7 +2023,7 @@ describe('entry/exit actions', () => {
 
     it('should note execute referenced custom actions correctly when stopping an interpreter', () => {
       const spy = vi.fn();
-      const parent = next_createMachine({
+      const parent = createMachine({
         actions: { referencedAction: spy },
         id: 'parent',
         schemas: {
@@ -2043,7 +2043,7 @@ describe('entry/exit actions', () => {
 
     it('should not execute builtin actions when stopping an interpreter', () => {
       const action = vi.fn();
-      const machine = next_createMachine({
+      const machine = createMachine({
         exit: (_, enq) => {
           enq(action);
         }
@@ -2056,7 +2056,7 @@ describe('entry/exit actions', () => {
     });
 
     it('should clear all scheduled events when the interpreter gets stopped', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         on: {
           INITIALIZE_SYNC_SEQUENCE: (_, enq) => {
             enq(() => {
@@ -2082,7 +2082,7 @@ describe('entry/exit actions', () => {
 
     it.skip('should execute exit actions of the settled state of the last initiated microstep', () => {
       const exitActions: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'foo',
         states: {
           foo: {
@@ -2126,7 +2126,7 @@ describe('entry/exit actions', () => {
 
     it('should not execute exit actions of the settled state of the last initiated microstep after executing all actions from that microstep', () => {
       const executedActions: string[] = [];
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'foo',
         states: {
           foo: {
@@ -2181,7 +2181,7 @@ describe('entry/exit actions', () => {
 describe('actions on invalid transition', () => {
   it('should not recall previous actions', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -2225,7 +2225,7 @@ describe('actions config', () => {
 
   it('should reference actions defined in actions parameter of machine options (entry actions)', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       actions: {
         definedAction: spy
@@ -2265,7 +2265,7 @@ describe('actions config', () => {
 
   it('should reference actions defined in actions parameter of machine options (initial state)', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       actions: {
         definedAction: spy
       },
@@ -2284,7 +2284,7 @@ describe('actions config', () => {
     const updateContext = (): Context => ({
       count: 10
     });
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as { context: Context; events: EventType },
       schemas: {
         context: z.object({
@@ -2346,7 +2346,7 @@ describe('actions config', () => {
     let actionCalled = false;
     let exitCalled = false;
 
-    const anonMachine = next_createMachine({
+    const anonMachine = createMachine({
       id: 'anon',
       initial: 'active',
       states: {
@@ -2385,7 +2385,7 @@ describe('action meta', () => {
   it('should provide the original params', () => {
     const spy = vi.fn();
 
-    const testMachine = next_createMachine({
+    const testMachine = createMachine({
       actions: {
         entryAction: (params) => {
           spy(params);
@@ -2418,7 +2418,7 @@ describe('action meta', () => {
   it('should provide the action with resolved params when they are dynamic', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       actions: {
         entryAction: (params) => {
           spy(params);
@@ -2443,7 +2443,7 @@ describe('action meta', () => {
   it('should resolve dynamic params using context value', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           secret: z.number()
@@ -2476,7 +2476,7 @@ describe('action meta', () => {
   it('should resolve dynamic params using event value', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         events: z.object({
           type: z.literal('FOO'),
@@ -2514,7 +2514,7 @@ describe('action meta', () => {
 describe('forwardTo()', () => {
   it('should forward an event to a service', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const child = next_createMachine({
+    const child = createMachine({
       // types: {} as {
       //   events: {
       //     type: 'EVENT';
@@ -2546,7 +2546,7 @@ describe('forwardTo()', () => {
       }
     });
 
-    const parent = next_createMachine({
+    const parent = createMachine({
       // types: {} as {
       //   events:
       //     | {
@@ -2602,7 +2602,7 @@ describe('forwardTo()', () => {
   it('should forward an event to a service (dynamic)', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
 
-    const child = next_createMachine({
+    const child = createMachine({
       // types: {} as {
       //   events: {
       //     type: 'EVENT';
@@ -2630,7 +2630,7 @@ describe('forwardTo()', () => {
       }
     });
 
-    const parent = next_createMachine({
+    const parent = createMachine({
       // types: {} as {
       //   context: { child?: AnyActorRef };
       //   events: { type: 'EVENT'; value: number } | { type: 'SUCCESS' };
@@ -2686,7 +2686,7 @@ describe('forwardTo()', () => {
   });
 
   it.skip('should not cause an infinite loop when forwarding to undefined', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       on: {
         '*': ({ event }, enq) => {
           enq.sendTo(undefined, event);
@@ -2717,7 +2717,7 @@ describe('log()', () => {
   it('should log a string', () => {
     const consoleSpy = vi.fn();
     console.log = consoleSpy;
-    const machine = next_createMachine({
+    const machine = createMachine({
       // entry: log('some string', 'string label')
       entry: (_, enq) => {
         enq.log('some string', 'string label');
@@ -2738,7 +2738,7 @@ describe('log()', () => {
   it('should log an expression', () => {
     const consoleSpy = vi.fn();
     console.log = consoleSpy;
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -2769,7 +2769,7 @@ describe('enqueueActions', () => {
   it('should execute a simple referenced action', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       entry: (_, enq) => {
         enq(spy);
       }
@@ -2784,7 +2784,7 @@ describe('enqueueActions', () => {
     const spy1 = vi.fn();
     const spy2 = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       entry: (_, enq) => {
         enq(spy1);
         enq(spy2);
@@ -2800,7 +2800,7 @@ describe('enqueueActions', () => {
   it('should execute multiple same referenced actions', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       entry: (_, enq) => {
         enq(spy);
         enq(spy);
@@ -2815,7 +2815,7 @@ describe('enqueueActions', () => {
   it('should execute a parameterized action', () => {
     const spy = vi.fn((_: { answer: number }) => void 0);
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       entry: (_, enq) => {
         enq(spy, { answer: 42 });
       }
@@ -2837,7 +2837,7 @@ describe('enqueueActions', () => {
   it('should execute a function', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       entry: (_, enq) => enq(spy)
     });
 
@@ -2849,7 +2849,7 @@ describe('enqueueActions', () => {
   it('should execute a builtin action using its own action creator', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       on: {
         FOO: (_, enq) => {
           enq.raise({ type: 'RAISED' });
@@ -2871,7 +2871,7 @@ describe('enqueueActions', () => {
   it('should execute a builtin action using its bound action creator', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       on: {
         FOO: (_, enq) => {
           enq.raise({ type: 'RAISED' });
@@ -2891,7 +2891,7 @@ describe('enqueueActions', () => {
   });
 
   it('should execute assigns when resolving the initial snapshot', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -2914,7 +2914,7 @@ describe('enqueueActions', () => {
 
   it('should be able to check a simple referenced guard', () => {
     const spy = vi.fn().mockImplementation(() => true);
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -2938,7 +2938,7 @@ describe('enqueueActions', () => {
   it('should be able to check a parameterized guard', () => {
     const spy = vi.fn((_: { max: number }) => true);
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -2966,7 +2966,7 @@ describe('enqueueActions', () => {
 
   it('should provide self', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
-    const machine = next_createMachine({
+    const machine = createMachine({
       entry: ({ self }) => {
         expect(self.send).toBeDefined();
         resolve();
@@ -2978,7 +2978,7 @@ describe('enqueueActions', () => {
   });
 
   it('should be able to communicate with the parent using params', () => {
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       schemas: {
         input: z.object({
           parent: z.any()
@@ -3011,7 +3011,7 @@ describe('enqueueActions', () => {
       //     child: childMachine
       //   }
       // }).
-      next_createMachine({
+      createMachine({
         schemas: {
           events: z.object({
             type: z.literal('FOO')
@@ -3042,7 +3042,7 @@ describe('enqueueActions', () => {
       type: 'PARENT_EVENT';
     }
 
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       entry: ({ parent }, enq) => {
         enq.sendTo(parent, { type: 'PARENT_EVENT' });
       }
@@ -3050,7 +3050,7 @@ describe('enqueueActions', () => {
 
     const parentSpy = vi.fn();
 
-    const parentMachine = next_createMachine({
+    const parentMachine = createMachine({
       actors: {
         child: childMachine
       },
@@ -3076,7 +3076,7 @@ describe('enqueueActions', () => {
 describe('sendParent', () => {
   // https://github.com/statelyai/xstate/issues/711
   it('TS: should compile for any event', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       schemas: {
         events: z.object({
           type: z.literal('CHILD')
@@ -3100,7 +3100,7 @@ describe('sendParent', () => {
 describe('sendTo', () => {
   it('should be able to send an event to an actor', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       schemas: {
         events: z.object({
           type: z.literal('EVENT')
@@ -3119,7 +3119,7 @@ describe('sendTo', () => {
       }
     });
 
-    const parentMachine = next_createMachine({
+    const parentMachine = createMachine({
       schemas: {
         context: z.object({
           child: z.custom<ActorRefFromLogic<typeof childMachine>>()
@@ -3140,7 +3140,7 @@ describe('sendTo', () => {
 
   it('should be able to send an event from expression to an actor', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       schemas: {
         events: z.object({
           type: z.literal('EVENT'),
@@ -3160,7 +3160,7 @@ describe('sendTo', () => {
       }
     });
 
-    const parentMachine = next_createMachine({
+    const parentMachine = createMachine({
       schemas: {
         context: z.object({
           child: z.custom<ActorRefFromLogic<typeof childMachine>>(),
@@ -3187,7 +3187,7 @@ describe('sendTo', () => {
   });
 
   it('should report a type error for an invalid event', () => {
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       // types: {} as {
       //   events: { type: 'EVENT' };
       // },
@@ -3206,7 +3206,7 @@ describe('sendTo', () => {
       }
     });
 
-    next_createMachine({
+    createMachine({
       // types: {} as {
       //   context: {
       //     child: ActorRefFromLogic<typeof childMachine>;
@@ -3235,7 +3235,7 @@ describe('sendTo', () => {
 
   it('should be able to send an event to a named actor', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       // types: {} as {
       //   events: { type: 'EVENT' };
       // },
@@ -3257,7 +3257,7 @@ describe('sendTo', () => {
       }
     });
 
-    const parentMachine = next_createMachine({
+    const parentMachine = createMachine({
       // types: {} as {
       //   context: { child: ActorRefFromLogic<typeof childMachine> };
       // },
@@ -3282,7 +3282,7 @@ describe('sendTo', () => {
 
   it('should be able to send an event directly to an ActorRef', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       // types: {} as {
       //   events: { type: 'EVENT' };
       // },
@@ -3304,7 +3304,7 @@ describe('sendTo', () => {
       }
     });
 
-    const parentMachine = next_createMachine({
+    const parentMachine = createMachine({
       // types: {} as {
       //   context: { child: ActorRefFromLogic<typeof childMachine> };
       // },
@@ -3328,7 +3328,7 @@ describe('sendTo', () => {
 
   it('should be able to read from event', () => {
     expect.assertions(1);
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   context: Record<string, CallbackActorRef<EventObject>>;
       //   events: { type: 'EVENT'; value: string };
@@ -3374,7 +3374,7 @@ describe('sendTo', () => {
   });
 
   it('should error if given a string', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: {
         id: 'child',
         src: fromCallback(() => {})
@@ -3408,7 +3408,7 @@ describe('sendTo', () => {
 
   it('a self-event "handler" of an event sent using sendTo should be able to read updated snapshot of self', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           counter: z.number()
@@ -3466,7 +3466,7 @@ describe('sendTo', () => {
     const warnSpy = vi.spyOn(console, 'warn');
     const spy1 = vi.fn();
 
-    const child1 = next_createMachine({
+    const child1 = createMachine({
       on: {
         // PING: {
         //   actions: spy1
@@ -3477,7 +3477,7 @@ describe('sendTo', () => {
 
     const spy2 = vi.fn();
 
-    const child2 = next_createMachine({
+    const child2 = createMachine({
       on: {
         // PING: {
         //   actions: spy2
@@ -3486,7 +3486,7 @@ describe('sendTo', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       actors: {
         child1,
@@ -3546,7 +3546,7 @@ describe('sendTo', () => {
     const warnSpy = vi.spyOn(console, 'warn');
     const spy1 = vi.fn();
 
-    const child1 = next_createMachine({
+    const child1 = createMachine({
       on: {
         // PING: {
         //   actions: spy1
@@ -3557,7 +3557,7 @@ describe('sendTo', () => {
 
     const spy2 = vi.fn();
 
-    const child2 = next_createMachine({
+    const child2 = createMachine({
       on: {
         // PING: {
         //   actions: spy2
@@ -3566,7 +3566,7 @@ describe('sendTo', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       actors: {
         child1,
         child2
@@ -3625,7 +3625,7 @@ Event: {"type":"PING"}",
 describe('raise', () => {
   it('should be able to send a delayed event to itself', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -3663,7 +3663,7 @@ describe('raise', () => {
   });
 
   it('should be able to send a delayed event to itself with delay = 0', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -3695,7 +3695,7 @@ describe('raise', () => {
   });
 
   it('should be able to raise an event and respond to it in the same state', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -3720,7 +3720,7 @@ describe('raise', () => {
 
   it('should be able to raise a delayed event and respond to it in the same state', async () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -3756,7 +3756,7 @@ describe('raise', () => {
   });
 
   it('should accept event expression', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -3782,7 +3782,7 @@ describe('raise', () => {
   });
 
   it('should be possible to access context in the event expression', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           eventType: z.enum(['RAISED', 'NEXT'])
@@ -3823,7 +3823,7 @@ describe('raise', () => {
   });
 
   it('should error if given a string', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // entry: raise(
       //   // @ts-ignore
       //   'a string'
@@ -3856,7 +3856,7 @@ describe('raise', () => {
 
 describe('cancel', () => {
   it('should be possible to cancel a raised delayed event', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -3896,11 +3896,11 @@ describe('cancel', () => {
     const fooSpy = vi.fn();
     const barSpy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: [
         {
           id: 'foo',
-          src: next_createMachine({
+          src: createMachine({
             id: 'foo',
             // entry: raise({ type: 'event' }, { id: 'sameId', delay: 100 }),
             entry: (_, enq) => {
@@ -3916,7 +3916,7 @@ describe('cancel', () => {
         },
         {
           id: 'bar',
-          src: next_createMachine({
+          src: createMachine({
             id: 'bar',
             // entry: raise({ type: 'event' }, { id: 'sameId', delay: 100 }),
             entry: (_, enq) => {
@@ -3954,11 +3954,11 @@ describe('cancel', () => {
     const fooSpy = vi.fn();
     const barSpy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: [
         {
           id: 'foo',
-          src: next_createMachine({
+          src: createMachine({
             id: 'foo',
             // entry: raise({ type: 'event' }, { id: 'sameId', delay: 100 }),
             entry: (_, enq) => {
@@ -3972,7 +3972,7 @@ describe('cancel', () => {
         },
         {
           id: 'bar',
-          src: next_createMachine({
+          src: createMachine({
             id: 'bar',
             // entry: raise({ type: 'event' }, { id: 'sameId', delay: 100 }),
             entry: (_, enq) => {
@@ -4015,7 +4015,7 @@ describe('cancel', () => {
   it('should not try to clear an undefined timeout when canceling an unscheduled timer', async () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       on: {
         // FOO: {
         //   actions: cancel('foo')
@@ -4043,7 +4043,7 @@ describe('cancel', () => {
   it('should be able to cancel a just scheduled delayed event to a just invoked child', async () => {
     const spy = vi.fn();
 
-    const child = next_createMachine({
+    const child = createMachine({
       on: {
         // PING: {
         //   actions: spy
@@ -4052,7 +4052,7 @@ describe('cancel', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       actors: {
         child
       },
@@ -4097,7 +4097,7 @@ describe('cancel', () => {
   it('should not be able to cancel a just scheduled non-delayed event to a just invoked child', async () => {
     const spy = vi.fn();
 
-    const child = next_createMachine({
+    const child = createMachine({
       on: {
         // PING: {
         //   actions: spy
@@ -4106,7 +4106,7 @@ describe('cancel', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       actors: {
         child
@@ -4148,7 +4148,7 @@ describe('action meta', () => {
   it('should provide self', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       entry: ({ self }) => {
         expect(self.send).toBeDefined();
         resolve();
@@ -4164,7 +4164,7 @@ describe('actions', () => {
   it('should call transition actions in document order for same-level parallel regions', () => {
     const actual: string[] = [];
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -4198,7 +4198,7 @@ describe('actions', () => {
   it('should call transition actions in document order for states at different levels of parallel regions', () => {
     const actual: string[] = [];
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -4237,7 +4237,7 @@ describe('actions', () => {
   it('should call an inline action responding to an initial raise with the raised event', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       // entry: raise({ type: 'HELLO' }),
       entry: (_, enq) => {
         enq.raise({ type: 'HELLO' });
@@ -4262,7 +4262,7 @@ describe('actions', () => {
   it('should call a referenced action responding to an initial raise with the raised event', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       // entry: raise({ type: 'HELLO' }),
       entry: (_, enq) => {
         enq.raise({ type: 'HELLO' });
@@ -4287,7 +4287,7 @@ describe('actions', () => {
   it('should call an inline action responding to an initial raise with updated (non-initial) context', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -4320,7 +4320,7 @@ describe('actions', () => {
   it('should call a referenced action responding to an initial raise with updated (non-initial) context', () => {
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -4352,7 +4352,7 @@ describe('actions', () => {
     const spy = vi.fn();
 
     const actorRef = createActor(
-      next_createMachine({
+      createMachine({
         on: {
           // FOO: {
           //   actions: (_, params) => {
@@ -4375,7 +4375,7 @@ describe('actions', () => {
     const spy = vi.fn();
 
     createActor(
-      next_createMachine({
+      createMachine({
         actions: {
           myAction: (params?: unknown) => {
             spy(params);
@@ -4394,7 +4394,7 @@ describe('actions', () => {
     const spy = vi.fn();
 
     createActor(
-      next_createMachine({
+      createMachine({
         actions: {
           myAction: (params) => {
             spy(params);
@@ -4414,7 +4414,7 @@ describe('actions', () => {
   // From https://github.com/statelyai/xstate/pull/5101
   it('a raised event "handler" should be able to read updated snapshot of self', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           counter: z.number()

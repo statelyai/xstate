@@ -1,5 +1,5 @@
 import {
-  next_createMachine,
+  createMachine,
   createActor,
   matchesState,
   StateValue,
@@ -8,7 +8,7 @@ import {
 
 describe('transition "in" check', () => {
   it('should transition if string state path matches current state value', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -80,7 +80,7 @@ describe('transition "in" check', () => {
   });
 
   it('should transition if state node ID matches current state value', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -152,7 +152,7 @@ describe('transition "in" check', () => {
   });
 
   it('should not transition if string state path does not match current state value', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -219,7 +219,7 @@ describe('transition "in" check', () => {
   });
 
   it('should not transition if state value matches current state value', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -288,7 +288,7 @@ describe('transition "in" check', () => {
   });
 
   it('matching should be relative to grandparent (match)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -353,7 +353,7 @@ describe('transition "in" check', () => {
   });
 
   it('matching should be relative to grandparent (no match)', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
@@ -418,7 +418,7 @@ describe('transition "in" check', () => {
   });
 
   it('should work to forbid events', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'green',
       states: {
         green: { on: { TIMER: 'yellow' } },
@@ -466,7 +466,7 @@ describe('transition "in" check', () => {
   });
 
   it('should be possible to use a referenced `stateIn` guard', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       guards: {
         // hasSelection: stateIn('selected')
@@ -509,7 +509,7 @@ describe('transition "in" check', () => {
 
   it.skip('should be possible to check an ID with a path', () => {
     const spy = vi.fn();
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {

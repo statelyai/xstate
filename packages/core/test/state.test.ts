@@ -1,8 +1,8 @@
-import { next_createMachine, createActor } from '../src/index';
+import { createMachine, createActor } from '../src/index';
 import { fromCallback } from '../src/actors/callback';
 import { z } from 'zod';
 
-const exampleMachine = next_createMachine({
+const exampleMachine = createMachine({
   // types: {} as {
   //   events: Events;
   // },
@@ -120,7 +120,7 @@ describe('State', () => {
 
   describe('.can', () => {
     it('should return true for a simple event that results in a transition to a different state', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -138,7 +138,7 @@ describe('State', () => {
     });
 
     it('should return true for an event object that results in a transition to a different state', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -157,7 +157,7 @@ describe('State', () => {
 
     it('should return true for an event object that results in a new action', () => {
       const newAction = () => {};
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -176,7 +176,7 @@ describe('State', () => {
     });
 
     it('should return true for an event object that results in a context change', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         schemas: {
           context: z.object({
             count: z.number()
@@ -205,7 +205,7 @@ describe('State', () => {
     });
 
     it('should return true for a reentering self-transition without actions', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -220,7 +220,7 @@ describe('State', () => {
     });
 
     it('should return true for a reentering self-transition with reentry action', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -236,7 +236,7 @@ describe('State', () => {
     });
 
     it('should return true for a reentering self-transition with transition action', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -254,7 +254,7 @@ describe('State', () => {
     });
 
     it('should return true for a targetless transition with actions', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -271,7 +271,7 @@ describe('State', () => {
     });
 
     it('should return false for a forbidden transition', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -288,7 +288,7 @@ describe('State', () => {
     });
 
     it('should return false for an unknown event', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -306,7 +306,7 @@ describe('State', () => {
     });
 
     it('should return true when a guarded transition allows the transition', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -330,7 +330,7 @@ describe('State', () => {
     });
 
     it('should return false when a guarded transition disallows the transition', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -355,7 +355,7 @@ describe('State', () => {
 
     it('should not spawn actors when determining if an event is accepted', () => {
       let spawned = false;
-      const machine = next_createMachine({
+      const machine = createMachine({
         schemas: {
           context: z.object({
             ref: z.any()
@@ -390,7 +390,7 @@ describe('State', () => {
 
     it('should not execute actions when used with non-started actor', () => {
       let executed = false;
-      const machine = next_createMachine({
+      const machine = createMachine({
         on: {
           EVENT: (_, enq) => {
             enq(() => (executed = true));
@@ -407,7 +407,7 @@ describe('State', () => {
 
     it('should not execute actions when used with started actor', () => {
       let executed = false;
-      const machine = next_createMachine({
+      const machine = createMachine({
         on: {
           EVENT: (_, enq) => {
             enq(() => (executed = true));
@@ -423,7 +423,7 @@ describe('State', () => {
     });
 
     it('should return true when non-first parallel region changes value', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         type: 'parallel',
         states: {
           a: {
@@ -456,7 +456,7 @@ describe('State', () => {
     });
 
     it('should return true when transition targets a state that is already part of the current configuration but the final state value changes', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -487,7 +487,7 @@ describe('State', () => {
 
   describe('.hasTag', () => {
     it('should be able to check a tag after recreating a persisted state', () => {
-      const machine = next_createMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -509,7 +509,7 @@ describe('State', () => {
 
   describe('.status', () => {
     it("should be 'stopped' after a running actor gets stopped", () => {
-      const snapshot = createActor(next_createMachine({}))
+      const snapshot = createActor(createMachine({}))
         .start()
         .stop()
         .getSnapshot();

@@ -1,11 +1,11 @@
 import z from 'zod';
-import { next_createMachine } from '../../index.ts';
+import { createMachine } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 import { testUtils } from './testUtils.ts';
 
 describe('events', () => {
   it('should allow for representing many cases', async () => {
-    const feedbackMachine = next_createMachine({
+    const feedbackMachine = createMachine({
       id: 'feedback',
       // types: {
       //   events: {} as Events
@@ -81,7 +81,7 @@ describe('events', () => {
   });
 
   it('should not throw an error for unimplemented events', () => {
-    const testMachine = next_createMachine({
+    const testMachine = createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -100,7 +100,7 @@ describe('events', () => {
 
   it('should allow for dynamic generation of cases based on state', async () => {
     const values = [1, 2, 3];
-    const testMachine = next_createMachine({
+    const testMachine = createMachine({
       // types: {} as {
       //   context: { values: number[] };
       //   events: { type: 'EVENT'; value: number };
@@ -183,7 +183,7 @@ describe('events', () => {
 
 describe('state limiting', () => {
   it('should limit states with filter option', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as { context: { count: number } },
       schemas: {
         context: z.object({
@@ -221,7 +221,7 @@ describe('state limiting', () => {
 
 // https://github.com/statelyai/xstate/issues/1935
 it('prevents infinite recursion based on a provided limit', () => {
-  const machine = next_createMachine({
+  const machine = createMachine({
     // types: {} as { context: { count: number } },
     schemas: {
       context: z.object({
@@ -253,7 +253,7 @@ describe('test model options', () => {
     const testedStates: any[] = [];
 
     const model = createTestModel(
-      next_createMachine({
+      createMachine({
         initial: 'inactive',
         states: {
           inactive: {
@@ -281,7 +281,7 @@ describe('test model options', () => {
 // https://github.com/statelyai/xstate/issues/1538
 it('tests transitions', async () => {
   expect.assertions(2);
-  const machine = next_createMachine({
+  const machine = createMachine({
     initial: 'first',
     states: {
       first: {
@@ -309,7 +309,7 @@ it('tests transitions', async () => {
 
 // https://github.com/statelyai/xstate/issues/982
 it('Event in event executor should contain payload from case', async () => {
-  const machine = next_createMachine({
+  const machine = createMachine({
     initial: 'first',
     states: {
       first: {
@@ -354,7 +354,7 @@ describe('state tests', () => {
     // a -> b (2)
     expect.assertions(2);
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -384,7 +384,7 @@ describe('state tests', () => {
     // a -> c (2)
     expect.assertions(4);
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -415,7 +415,7 @@ describe('state tests', () => {
   it('should test nested states', async () => {
     const testedStateValues: any[] = [];
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -458,7 +458,7 @@ describe('state tests', () => {
   });
 
   it('should test with input', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         input: z.object({
           name: z.string()

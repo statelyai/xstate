@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { next_createMachine } from '../../index.ts';
+import { createMachine } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 import { getDescription } from '../utils.ts';
 
@@ -42,7 +42,7 @@ describe('die hard example', () => {
   let jugs: Jugs;
 
   const createDieHardModel = () => {
-    const dieHardMachine = next_createMachine({
+    const dieHardMachine = createMachine({
       schemas: {
         context: z.object({
           three: z.number(),
@@ -268,7 +268,7 @@ describe('die hard example', () => {
 });
 describe('error path trace', () => {
   describe('should return trace for failed state', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'first',
       states: {
         first: {

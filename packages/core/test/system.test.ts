@@ -5,7 +5,7 @@ import {
   ActorRef,
   Snapshot,
   createActor,
-  next_createMachine,
+  createMachine,
   fromEventObservable,
   fromObservable,
   fromPromise,
@@ -22,7 +22,7 @@ describe('system', () => {
       };
     }>;
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       id: 'parent',
       initial: 'a',
       states: {
@@ -38,7 +38,7 @@ describe('system', () => {
               systemId: 'receiver'
             },
             {
-              src: next_createMachine({
+              src: createMachine({
                 id: 'childmachine',
                 entry: ({ system }) => {
                   const receiver = (system as MySystem)?.get('receiver');
@@ -67,7 +67,7 @@ describe('system', () => {
       };
     }>;
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   context: {
       //     ref: CallbackActorRef<EventObject, unknown>;
@@ -96,7 +96,7 @@ describe('system', () => {
         toggle: (_, enq) => ({
           context: {
             machineRef: enq.spawn(
-              next_createMachine({
+              createMachine({
                 id: 'childmachine',
                 entry: ({ system }) => {
                   const receiver = (system as MySystem)?.get('receiver');
@@ -122,10 +122,10 @@ describe('system', () => {
   });
 
   it('system can be immediately accessed outside the actor', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: {
         systemId: 'someChild',
-        src: next_createMachine({})
+        src: createMachine({})
       }
     });
 
@@ -136,18 +136,18 @@ describe('system', () => {
   });
 
   it('root actor can be given the systemId', () => {
-    const machine = next_createMachine({});
+    const machine = createMachine({});
     const actor = createActor(machine, { systemId: 'test0' });
     expect(actor.system.get('test0')).toBe(actor);
   });
 
   it('should remove invoked actor from receptionist if stopped', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'active',
       states: {
         active: {
           invoke: {
-            src: next_createMachine({}),
+            src: createMachine({}),
             systemId: 'test1'
           },
           on: {
@@ -168,8 +168,8 @@ describe('system', () => {
   });
 
   it('should remove spawned actor from receptionist if stopped', () => {
-    const childMachine = next_createMachine({});
-    const machine = next_createMachine({
+    const childMachine = createMachine({});
+    const machine = createMachine({
       // types: {} as {
       //   context: {
       //     ref: ActorRefFrom<typeof childMachine>;
@@ -207,7 +207,7 @@ describe('system', () => {
   });
 
   it('should throw an error if an actor with the system ID already exists', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'inactive',
       states: {
         inactive: {
@@ -218,11 +218,11 @@ describe('system', () => {
         active: {
           invoke: [
             {
-              src: next_createMachine({}),
+              src: createMachine({}),
               systemId: 'test1'
             },
             {
-              src: next_createMachine({}),
+              src: createMachine({}),
               systemId: 'test1'
             }
           ]
@@ -249,7 +249,7 @@ describe('system', () => {
   });
 
   it.skip('should cleanup stopped actors', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {
       //   context: {} as {
       //     ref: AnyActorRef;
@@ -308,9 +308,9 @@ describe('system', () => {
   });
 
   it('should be accessible in inline custom actions', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: {
-        src: next_createMachine({}),
+        src: createMachine({}),
         systemId: 'test3'
       },
       entry: ({ system }) => {
@@ -322,14 +322,14 @@ describe('system', () => {
   });
 
   it('should be accessible in referenced custom actions', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       actions: {
         myAction: (system) => {
           expect(system.get('test4')).toBeDefined();
         }
       },
       invoke: {
-        src: next_createMachine({}),
+        src: createMachine({}),
         systemId: 'test4'
       },
       entry: ({ system, actions }, enq) => {
@@ -341,9 +341,9 @@ describe('system', () => {
   });
 
   it('should be accessible in sendTo actions', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: {
-        src: next_createMachine({}),
+        src: createMachine({}),
         systemId: 'test5'
       },
       initial: 'a',
@@ -369,10 +369,10 @@ describe('system', () => {
 
   it('should be accessible in promise logic', () => {
     expect.assertions(2);
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: [
         {
-          src: next_createMachine({}),
+          src: createMachine({}),
           systemId: 'test6'
         },
         {
@@ -391,10 +391,10 @@ describe('system', () => {
 
   it('should be accessible in transition logic', () => {
     expect.assertions(2);
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: [
         {
-          src: next_createMachine({}),
+          src: createMachine({}),
           systemId: 'test7'
         },
 
@@ -418,10 +418,10 @@ describe('system', () => {
 
   it('should be accessible in observable logic', () => {
     expect.assertions(2);
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: [
         {
-          src: next_createMachine({}),
+          src: createMachine({}),
           systemId: 'test8'
         },
 
@@ -441,10 +441,10 @@ describe('system', () => {
 
   it('should be accessible in event observable logic', () => {
     expect.assertions(2);
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: [
         {
-          src: next_createMachine({}),
+          src: createMachine({}),
           systemId: 'test9'
         },
 
@@ -464,10 +464,10 @@ describe('system', () => {
 
   it('should be accessible in callback logic', () => {
     expect.assertions(2);
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: [
         {
-          src: next_createMachine({}),
+          src: createMachine({}),
           systemId: 'test10'
         },
         {
@@ -488,7 +488,7 @@ describe('system', () => {
 
     let counter = 0;
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'listening',
       states: {
         listening: {
@@ -531,7 +531,7 @@ describe('system', () => {
   it('should be able to send an event to an ancestor with a registered `systemId` from an initial entry action', () => {
     const spy = vi.fn();
 
-    const child = next_createMachine({
+    const child = createMachine({
       // entry: sendTo(({ system }) => system.get('myRoot'), {
       //   type: 'EV'
       // })
@@ -540,7 +540,7 @@ describe('system', () => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: {
         src: child
       },
@@ -559,23 +559,23 @@ describe('system', () => {
   });
 
   it('system ID should be accessible on the actor', () => {
-    const machine = next_createMachine({});
+    const machine = createMachine({});
     const actor = createActor(machine, { systemId: 'test' });
     expect(actor.systemId).toBe('test');
   });
 
   it('should give a list of runnings actors', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       id: 'root',
       initial: 'happy path',
       states: {
         'happy path': {
           // entry: [spawnChild(createMachine({}), { systemId: 'child1' })],
           entry: (_, enq) => {
-            enq.spawn(next_createMachine({}), { systemId: 'child1' });
+            enq.spawn(createMachine({}), { systemId: 'child1' });
           },
           invoke: {
-            src: next_createMachine({}),
+            src: createMachine({}),
             systemId: 'child2'
           },
           on: {

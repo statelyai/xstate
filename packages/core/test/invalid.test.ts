@@ -1,8 +1,8 @@
-import { next_createMachine, transition } from '../src/index.ts';
+import { createMachine, transition } from '../src/index.ts';
 
 describe('invalid or resolved states', () => {
   it('should resolve a String state', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -32,7 +32,7 @@ describe('invalid or resolved states', () => {
   });
 
   it('should resolve transitions from empty states', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -62,7 +62,7 @@ describe('invalid or resolved states', () => {
   });
 
   it('should allow transitioning from valid states', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -87,7 +87,7 @@ describe('invalid or resolved states', () => {
   });
 
   it('should reject transitioning from bad state configs', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -116,7 +116,7 @@ describe('invalid or resolved states', () => {
   });
 
   it('should resolve transitioning from partially valid states', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -149,7 +149,7 @@ describe('invalid or resolved states', () => {
 describe('invalid transition', () => {
   it('should throw when attempting to create a machine with a sibling target on the root node', () => {
     expect(() => {
-      next_createMachine({
+      createMachine({
         id: 'direction',
         initial: 'left',
         states: {

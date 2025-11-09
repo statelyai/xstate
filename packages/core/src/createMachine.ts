@@ -76,7 +76,7 @@ type _GroupTestValues<TTestValue extends string | TestValue> =
  * @param options DEPRECATED: use `setup({ ... })` or `machine.provide({ ... })`
  *   to provide machine implementations instead.
  */
-export function next_createMachine<
+export function createMachine<
   TContextSchema extends StandardSchemaV1,
   TEventSchema extends StandardSchemaV1,
   TEmittedSchema extends StandardSchemaV1,
