@@ -1,8 +1,8 @@
-import { createMachine, StateValue } from '../../src/index';
-import { testMultiTransition } from '../utils';
+import { next_createMachine, StateValue } from '../src/index';
+import { testMultiTransition } from './utils';
 
 describe('Example 6.17', () => {
-  const machine = createMachine({
+  const machine = next_createMachine({
     initial: 'X',
     states: {
       X: {
@@ -66,7 +66,7 @@ describe('Example 6.17', () => {
 });
 
 describe('Jump to ID', () => {
-  const machine = createMachine({
+  const machine = next_createMachine({
     initial: 'X',
     states: {
       X: {

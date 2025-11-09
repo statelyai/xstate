@@ -1,16 +1,11 @@
 import { StandardSchemaV1 } from '../../xstate-store/src/schema.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
-  TODO,
   AnyActorRef,
   EventObject,
   AnyEventObject,
   Cast,
-  MachineConfig,
   MachineContext,
-  MachineTypes,
-  NonReducibleUnknown,
-  ParameterizedObject,
   ProvidedActor,
   StateValue,
   ToChildren,
@@ -81,86 +76,6 @@ type _GroupTestValues<TTestValue extends string | TestValue> =
  * @param options DEPRECATED: use `setup({ ... })` or `machine.provide({ ... })`
  *   to provide machine implementations instead.
  */
-export function createMachine<
-  TContext extends MachineContext,
-  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TTag extends string,
-  TInput,
-  TOutput extends NonReducibleUnknown,
-  TEmitted extends EventObject,
-  TMeta extends MetaObject,
-  // it's important to have at least one default type parameter here
-  // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
-  // we should be able to remove this when we start inferring TConfig, with it we'll always have an inference candidate
-  _ = any
->(
-  config: {
-    types?: MachineTypes<
-      TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TTag,
-      TInput,
-      TOutput,
-      TEmitted,
-      TMeta
-    >;
-    schemas?: unknown;
-  } & MachineConfig<
-    TContext,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TInput,
-    TOutput,
-    TEmitted,
-    TMeta
-  >,
-  implementations?: Implementations
-): StateMachine<
-  TContext,
-  TEvent,
-  Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
-  StateValue,
-  TTag & string,
-  TInput,
-  TOutput,
-  TEmitted,
-  TMeta, // TMeta
-  TODO,
-  TODO,
-  TODO,
-  TODO,
-  TODO
-> {
-  return new StateMachine<
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any, // TEmitted
-    any, // TMeta
-    any, // TStateSchema
-    any,
-    any,
-    any,
-    any
-  >(config as any, implementations as any);
-}
-
 export function next_createMachine<
   TContextSchema extends StandardSchemaV1,
   TEventSchema extends StandardSchemaV1,

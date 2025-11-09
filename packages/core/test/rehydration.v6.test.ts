@@ -3,11 +3,9 @@ import {
   next_createMachine,
   createActor,
   fromPromise,
-  fromObservable,
-  createMachine
+  fromObservable
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
-import z from 'zod';
 
 describe.skip('rehydration', () => {
   describe('using persisted state', () => {

@@ -1,8 +1,8 @@
-import { checkStateIn, createMachine, StateValue } from '../../src/index';
-import { testAll } from '../utils';
+import { checkStateIn, next_createMachine, StateValue } from '../src/index';
+import { testAll } from './utils';
 
 describe('Example 6.16', () => {
-  const machine = createMachine({
+  const machine = next_createMachine({
     type: 'parallel',
     states: {
       A: {

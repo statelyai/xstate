@@ -1,10 +1,10 @@
-import { createMachine, assign } from 'xstate';
+import { next_createMachine, assign } from 'xstate';
 
 const context = {
   data: undefined as string | undefined
 };
 
-export const fetchMachine = createMachine({
+export const fetchMachine = next_createMachine({
   id: 'fetch',
   types: {} as {
     context: typeof context;

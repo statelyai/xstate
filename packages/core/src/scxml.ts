@@ -6,7 +6,7 @@ import { Element as XMLElement, xml2js } from 'xml-js';
 // import { sendTo } from './actions/send.ts';
 import { NULL_EVENT } from './constants.ts';
 // import { not, stateIn } from './guards.ts';
-import { MachineContext, SpecialTargets, createMachine } from './index.ts';
+import { MachineContext, SpecialTargets, next_createMachine } from './index.ts';
 import {
   AnyStateMachine,
   AnyStateNode,
@@ -595,7 +595,7 @@ function scxmlToMachine(scxmlJson: XMLElement): AnyStateMachine {
         )
     : undefined;
 
-  const machine = createMachine({
+  const machine = next_createMachine({
     ...toConfig(machineElement, '(machine)'),
     context
   });
