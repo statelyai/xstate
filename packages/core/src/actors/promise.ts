@@ -165,6 +165,7 @@ export function fromPromise<
           };
         case XSTATE_STOP: {
           controllerMap.get(scope.self)?.abort();
+          controllerMap.delete(scope.self);
           return {
             ...state,
             status: 'stopped',

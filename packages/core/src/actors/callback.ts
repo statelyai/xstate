@@ -231,6 +231,8 @@ export function fromCallback<
         };
 
         callbackState.dispose?.();
+        callbackState.receivers?.clear();
+        instanceStates.delete(actorScope.self);
         return state;
       }
 
