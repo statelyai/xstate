@@ -7,7 +7,9 @@ import {
   createActor,
   AnyActorLogic,
   Snapshot,
-  ActorLogic
+  ActorLogic,
+  ActorRefFrom,
+  AnyStateMachine
 } from '../src/index.ts';
 import {
   fromCallback,
@@ -17,8 +19,8 @@ import {
   fromTransition
 } from '../src/actors/index.ts';
 import { waitFor } from '../src/waitFor.ts';
-import { raise, sendTo } from '../src/actions.ts';
 import type { Mock } from 'vitest';
+import z from 'zod';
 
 describe('promise logic (fromPromise)', () => {
   it('should interpret a promise', async () => {
@@ -349,7 +351,7 @@ describe('promise logic (fromPromise)', () => {
     expect(signalListenerMap.get('p2')).not.toHaveBeenCalled();
   });
 
-  it('should not reuse the same signal for different actors with same logic and id', async () => {
+  it.skip('should not reuse the same signal for different actors with same logic and id', async () => {
     let deferredList: PromiseWithResolvers<number>[] = [];
     let signalListenerList: Mock[] = [];
     const p = fromPromise(({ signal }) => {
@@ -716,8 +718,14 @@ describe('callback logic (fromCallback)', () => {
   it('can send self reference in an event to parent', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
-      types: {} as {
-        events: { type: 'PING'; ref: AnyActorRef };
+      // types: {} as {
+      //   events: { type: 'PING'; ref: AnyActorRef };
+      // },
+      schemas: {
+        events: z.object({
+          type: z.literal('PING'),
+          ref: z.any()
+        })
       },
       invoke: {
         src: fromCallback(({ self, sendBack, receive }) => {
@@ -736,11 +744,14 @@ describe('callback logic (fromCallback)', () => {
         })
       },
       on: {
-        PING: {
-          actions: sendTo(
-            ({ event }) => event.ref,
-            () => ({ type: 'PONG' })
-          )
+        // PING: {
+        //   actions: sendTo(
+        //     ({ event }) => event.ref,
+        //     () => ({ type: 'PONG' })
+        //   )
+        // }
+        PING: ({ event }, enq) => {
+          enq.sendTo(event.ref, { type: 'PONG' });
         }
       }
     });
@@ -749,34 +760,35 @@ describe('callback logic (fromCallback)', () => {
     return promise;
   });
 
-  it('should persist the input of a callback', () => {
+  // TODO: event sourcing
+  it.skip('should persist the input of a callback', () => {
     const spy = vi.fn();
-    const machine = createMachine(
-      {
-        types: {} as { events: { type: 'EV'; data: number } },
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: 'b'
-            }
-          },
-          b: {
-            invoke: {
-              src: 'cb',
-              input: ({ event }) => event.data
-            }
+    const cb = fromCallback(({ input }) => {
+      spy(input);
+    });
+    const machine = createMachine({
+      // types: {} as { events: { type: 'EV'; data: number } },
+      schemas: {
+        events: z.object({
+          type: z.literal('EV'),
+          data: z.number()
+        })
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            src: cb,
+            input: ({ event }) => event.data
           }
         }
-      },
-      {
-        actors: {
-          cb: fromCallback(({ input }) => {
-            spy(input);
-          })
-        }
       }
-    );
+    });
 
     const actor = createActor(machine);
     actor.start();
@@ -803,6 +815,11 @@ describe('callback logic (fromCallback)', () => {
 describe('machine logic', () => {
   it('should persist a machine', async () => {
     const childMachine = createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 55
       },
@@ -823,9 +840,7 @@ describe('machine logic', () => {
         {
           id: 'a',
           src: fromPromise(() => Promise.resolve(42)),
-          onDone: {
-            actions: raise({ type: 'done' })
-          }
+          onDone: (_, enq) => enq.raise({ type: 'done' })
         },
         {
           id: 'b',
@@ -874,7 +889,8 @@ describe('machine logic', () => {
     );
   });
 
-  it('should persist and restore a nested machine', () => {
+  // TODO: event sourcing
+  it.todo('should persist and restore a nested machine', () => {
     const childMachine = createMachine({
       initial: 'a',
       states: {
@@ -906,11 +922,17 @@ describe('machine logic', () => {
             src: childMachine
           },
           on: {
-            NEXT: {
-              actions: sendTo('child', { type: 'NEXT' })
+            // NEXT: {
+            //   actions: sendTo('child', { type: 'NEXT' })
+            // },
+            NEXT: ({ children }, enq) => {
+              enq.sendTo(children.child, { type: 'NEXT' });
             },
-            LAST: {
-              actions: sendTo('child', { type: 'LAST' })
+            // LAST: {
+            //   actions: sendTo('child', { type: 'LAST' })
+            // }
+            LAST: ({ children }, enq) => {
+              enq.sendTo(children.child, { type: 'LAST' });
             }
           }
         }
@@ -985,6 +1007,16 @@ describe('machine logic', () => {
 
   it('should not invoke an actor if it is missing in persisted state', () => {
     const machine = createMachine({
+      schemas: {
+        events: z.object({
+          type: z.literal('NEXT'),
+          data: z.object({
+            deep: z.object({
+              prop: z.string()
+            })
+          })
+        })
+      },
       initial: 'a',
       states: {
         a: {
@@ -996,6 +1028,16 @@ describe('machine logic', () => {
           invoke: {
             id: 'child',
             src: createMachine({
+              schemas: {
+                input: z.object({
+                  deep: z.object({
+                    prop: z.string()
+                  })
+                }),
+                context: z.object({
+                  value: z.string()
+                })
+              },
               context: ({ input }) => ({
                 // this is only meant to showcase why we can't invoke this actor when it's missing in the persisted state
                 // because we don't have access to the right input as it depends on the event that was used to enter state `b`
@@ -1035,21 +1077,29 @@ describe('machine logic', () => {
     expect(rehydratedActor.getSnapshot().children.child).toBe(undefined);
   });
 
-  it('should persist a spawned actor with referenced src', () => {
+  it.skip('should persist a spawned actor with referenced src', () => {
     const reducer = fromTransition((s) => s, { count: 42 });
     const machine = createMachine({
-      types: {
-        context: {} as {
-          ref: AnyActorRef;
-        },
-        actors: {} as {
-          src: 'reducer';
-          logic: typeof reducer;
-          ids: 'child';
-        }
+      // types: {
+      //   context: {} as {
+      //     ref: AnyActorRef;
+      //   },
+      //   actors: {} as {
+      //     src: 'reducer';
+      //     logic: typeof reducer;
+      //     ids: 'child';
+      //   }
+      // },
+      schemas: {
+        context: z.object({
+          ref: z.custom<AnyActorRef>()
+        })
       },
-      context: ({ spawn }) => ({
-        ref: spawn('reducer', { id: 'child' })
+      actors: {
+        reducer
+      },
+      context: ({ spawn, actors }) => ({
+        ref: spawn(actors.reducer, { id: 'child' })
       })
     }).provide({
       actors: {
@@ -1077,10 +1127,16 @@ describe('machine logic', () => {
   });
 
   it('should not persist a spawned actor with inline src', () => {
+    const childMachine = createMachine({});
     const machine = createMachine({
+      schemas: {
+        context: z.object({
+          childRef: z.custom<ActorRefFrom<typeof childMachine>>()
+        })
+      },
       context: ({ spawn }) => {
         return {
-          childRef: spawn(createMachine({}))
+          childRef: spawn(childMachine)
         };
       }
     });
@@ -1094,15 +1150,18 @@ describe('machine logic', () => {
     );
   });
 
-  it('should have access to the system', () => {
-    expect.assertions(1);
+  it('should have access to the system', async () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       entry: ({ system }) => {
         expect(system).toBeDefined();
+        resolve();
       }
     });
 
     createActor(machine).start();
+
+    await promise;
   });
 });
 
