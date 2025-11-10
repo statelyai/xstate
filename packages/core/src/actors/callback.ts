@@ -230,9 +230,9 @@ export function fromCallback<
           error: undefined
         };
 
-        callbackState.dispose?.();
-        callbackState.receivers?.clear();
         instanceStates.delete(actorScope.self);
+        callbackState.receivers?.clear();
+        callbackState.dispose?.();
         return state;
       }
 
