@@ -1,0 +1,72 @@
+{
+  "name": "@xstate/rxjs",
+  "version": "0.0.1",
+  "description": "XState tools for RxJS",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "state",
+    "graph",
+    "rxjs"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-rxjs#readme",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "module": "es/index.js",
+  "types": "lib/index.d.ts",
+  "sideEffects": false,
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.d.ts",
+    "dist/**/*.js",
+    "es/**/*.js",
+    "es/**/*.d.ts",
+    "fsm/package.json"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "scripts": {
+    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
+    "build": "tsc && tsc --outDir es --module es2015 && rollup -c",
+    "test": "jest",
+    "prepare": "npm run build"
+  },
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "peerDependencies": {
+    "@xstate/fsm": "^2.0.0",
+    "rxjs": "^7.1.0",
+    "xstate": "^4.36.0"
+  },
+  "peerDependenciesMeta": {
+    "@xstate/fsm": {
+      "optional": true
+    },
+    "xstate": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@xstate/fsm": "^2.0.0",
+    "babel-core": "^6.26.3",
+    "jest": "^26.6.3",
+    "lerna-alias": "3.0.3-0",
+    "rollup": "^2.69.0",
+    "rollup-plugin-terser": "^5.1.2",
+    "rollup-plugin-typescript2": "^0.30.0",
+    "rxjs": "^7.1.0",
+    "ts-jest": "^26.5.6",
+    "typescript": "^4.8.4",
+    "xstate": "^4.35.2"
+  }
+}

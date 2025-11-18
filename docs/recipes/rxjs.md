@@ -9,13 +9,10 @@ XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-1
 The [interpreted machine](../guides/interpretation.md) (i.e., `service`) is subscribable.
 
 ```js
-import { createMachine, interpret } from 'xstate';
-import { from } from 'rxjs';
+import { createMachine, fromMachine } from '@xstate/rxjs';
 
 const machine = createMachine(/* ... */);
-const service = interpret(machine).start();
-
-const state$ = from(service);
+const { state$, send, service } = fromMachine(machine);
 
 state$.subscribe((state) => {
   // ...

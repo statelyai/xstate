@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "main": "../lib/fsm.js",
+  "module": "../es/fsm.js",
+  "types": "../lib/fsm.d.ts"
+}
