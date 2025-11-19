@@ -41,7 +41,7 @@ function createStoreCore<
 >(
   logic: StoreLogic<TSnapshot, ExtractEvents<TEventPayloadMap>, TEmitted>,
   emits?: Record<string, (payload: any) => void> // TODO: improve this type
-): Store<TContext, ExtractEvents<TEventPayloadMap>, TEmitted> {
+): Store<TContext, TEventPayloadMap, TEmitted> {
   type StoreEvent = ExtractEvents<TEventPayloadMap>;
   let listeners: Map<TEmitted['type'], Set<any>> | undefined;
   const initialSnapshot = logic.getInitialSnapshot();
@@ -88,7 +88,7 @@ function createStoreCore<
     }
   }
 
-  const store: Store<TContext, StoreEvent, TEmitted> &
+  const store: Store<TContext, TEventPayloadMap, TEmitted> &
     Pick<InternalBaseAtom<any>, '_snapshot'> = {
     get _snapshot() {
       return (atom as unknown as InternalBaseAtom<any>)._snapshot;
@@ -166,16 +166,19 @@ function createStoreCore<
         }
       };
     },
-    trigger: new Proxy({} as Store<TContext, StoreEvent, TEmitted>['trigger'], {
-      get: (_, eventType: string) => {
-        return (payload: any) => {
-          store.send({
-            ...payload,
-            type: eventType
-          });
-        };
+    trigger: new Proxy(
+      {} as Store<TContext, TEventPayloadMap, TEmitted>['trigger'],
+      {
+        get: (_, eventType: string) => {
+          return (payload: any) => {
+            store.send({
+              ...payload,
+              type: eventType
+            });
+          };
+        }
       }
-    }),
+    ),
     select<TSelected>(
       selector: Selector<TContext, TSelected>,
       equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
@@ -237,15 +240,11 @@ export type TransitionsFromEventPayloadMap<
  */
 export function createStore<
   TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
+  const TEventPayloadMap extends EventPayloadMap,
   TEmittedPayloadMap extends EventPayloadMap
 >(
   definition: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap>
-): Store<
-  TContext,
-  ExtractEvents<TEventPayloadMap>,
-  ExtractEvents<TEmittedPayloadMap>
->;
+): Store<TContext, TEventPayloadMap, ExtractEvents<TEmittedPayloadMap>>;
 export function createStore<
   TContext extends StoreContext,
   TEvent extends EventObject,
@@ -254,7 +253,13 @@ export function createStore<
   definition:
     | SpecificStoreConfig<TContext, TEvent, TEmitted>
     | StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>
-): Store<TContext, TEvent, TEmitted>;
+): Store<
+  TContext,
+  {
+    [E in TEvent as E['type']]: E;
+  },
+  TEmitted
+>;
 export function createStore(
   definitionOrLogic: StoreConfig<any, any, any> | AnyStoreLogic
 ) {
@@ -350,11 +355,7 @@ export function createStoreWithProducer<
       ) => void;
     };
   }
-): Store<
-  TContext,
-  ExtractEvents<TEventPayloadMap>,
-  ExtractEvents<TEmittedPayloadMap>
-> {
+): Store<TContext, TEventPayloadMap, ExtractEvents<TEmittedPayloadMap>> {
   const transition = createStoreTransition(config.on, producer);
   const logic = {
     getInitialSnapshot: () => ({
