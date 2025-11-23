@@ -76,12 +76,12 @@ export type StoreSnapshot<TContext> = Snapshot<undefined> & {
  */
 export interface Store<
   TContext extends StoreContext,
-  TEvent extends EventObject,
+  TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject
 > extends Subscribable<StoreSnapshot<TContext>>,
     InteropObservable<StoreSnapshot<TContext>>,
     BaseAtom<StoreSnapshot<TContext>> {
-  send: (event: TEvent) => void;
+  send: (event: ExtractEvents<TEventPayloadMap>) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
   /** @alias getSnapshot */
   get: () => StoreSnapshot<TContext>;
@@ -118,11 +118,11 @@ export interface Store<
    * ```
    */
   trigger: {
-    [E in TEvent as E['type'] & string]: IsEmptyObject<
-      DistributiveOmit<E, 'type'>
+    [K in keyof TEventPayloadMap]: IsEmptyObject<
+      DistributiveOmit<TEventPayloadMap[K], 'type'>
     > extends true
       ? () => void
-      : (eventPayload: DistributiveOmit<E, 'type'>) => void;
+      : (eventPayload: DistributiveOmit<TEventPayloadMap[K], 'type'>) => void;
   };
   select<TSelected>(
     selector: Selector<TContext, TSelected>,
@@ -141,7 +141,11 @@ export interface Store<
    * });
    * ```
    */
-  transition: StoreTransition<TContext, TEvent, TEmitted>;
+  transition: StoreTransition<
+    TContext,
+    ExtractEvents<TEventPayloadMap>,
+    TEmitted
+  >;
 }
 
 export type StoreTransition<
@@ -160,7 +164,7 @@ export type StoreConfig<
 > = {
   context: TContext;
   emits?: {
-    [K in keyof TEmitted & string]: (payload: TEmitted[K]) => void;
+    [K in keyof TEmitted]: (payload: TEmitted[K]) => void;
   };
   on: {
     [K in keyof TEventPayloadMap & string]: StoreAssigner<
@@ -267,8 +271,8 @@ export type SnapshotFromStore<TStore extends Store<any, any, any>> =
  * ```
  */
 export type EventFromStore<TStore extends Store<any, any, any>> =
-  TStore extends Store<infer _TContext, infer TEvent, infer _TEmitted>
-    ? TEvent
+  TStore extends Store<infer _TContext, infer TEventPayloadMap, infer _TEmitted>
+    ? ExtractEvents<TEventPayloadMap>
     : never;
 
 // Copied from XState core

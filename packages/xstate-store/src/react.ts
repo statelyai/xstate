@@ -117,14 +117,14 @@ export const useStore: {
     TEmitted extends EventPayloadMap
   >(
     definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
-  ): Store<TContext, ExtractEvents<TEventPayloadMap>, ExtractEvents<TEmitted>>;
+  ): Store<TContext, TEventPayloadMap, ExtractEvents<TEmitted>>;
   <
     TContext extends StoreContext,
     TEventPayloadMap extends EventPayloadMap,
     TEmitted extends EventPayloadMap
   >(
     definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
-  ): Store<TContext, ExtractEvents<TEventPayloadMap>, ExtractEvents<TEmitted>>;
+  ): Store<TContext, TEventPayloadMap, ExtractEvents<TEmitted>>;
 } = function useStoreImpl<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
@@ -219,11 +219,7 @@ export function createStoreHook<
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventPayloadMap
 >(definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>) {
-  type TStore = Store<
-    TContext,
-    ExtractEvents<TEventPayloadMap>,
-    ExtractEvents<TEmitted>
-  >;
+  type TStore = Store<TContext, TEventPayloadMap, ExtractEvents<TEmitted>>;
   type TSnapshot = StoreSnapshot<TContext>;
 
   const store = createStore(definition);
