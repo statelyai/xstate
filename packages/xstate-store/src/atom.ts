@@ -96,7 +96,7 @@ export function createAsyncAtom<T>(
 }
 
 export function createAtom<T>(
-  getValue: (read: <U>(atom: Readable<U>) => U) => T,
+  getValue: (read: <U>(atom: Readable<U>) => U, prev?: NoInfer<T>) => T,
   options?: AtomOptions<T>
 ): ReadonlyAtom<T>;
 export function createAtom<T>(
@@ -104,11 +104,14 @@ export function createAtom<T>(
   options?: AtomOptions<T>
 ): Atom<T>;
 export function createAtom<T>(
-  valueOrFn: T | ((read: <U>(atom: Readable<U>) => U) => T),
+  valueOrFn: T | ((read: <U>(atom: Readable<U>) => U, prev?: T) => T),
   options?: AtomOptions<T>
 ): Atom<T> | ReadonlyAtom<T> {
   const isComputed = typeof valueOrFn === 'function';
-  const getter = valueOrFn as (read: <U>(atom: Readable<U>) => U) => T;
+  const getter = valueOrFn as (
+    read: <U>(atom: Readable<U>) => U,
+    prev?: T
+  ) => T;
 
   // Create plain object atom
   const atom: InternalBaseAtom<T> & ReactiveNode = {
@@ -155,7 +158,7 @@ export function createAtom<T>(
           typeof getValue === 'function'
             ? (getValue as (snapshot: T) => T)(oldValue)
             : getValue === undefined && isComputed
-              ? getter(read)
+              ? getter(read, oldValue)
               : getValue!;
         if (oldValue === undefined || !compare(oldValue, newValue)) {
           atom._snapshot = newValue;
