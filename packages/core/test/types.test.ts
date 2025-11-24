@@ -6,7 +6,8 @@ import {
   PromiseActorLogic,
   createEmptyActor,
   fromCallback,
-  fromPromise
+  fromPromise,
+  fromTransition
 } from '../src/actors';
 import {
   ActorRefFrom,
@@ -17,6 +18,7 @@ import {
   Spawner,
   StateMachine,
   UnknownActorRef,
+  assertEvent,
   assign,
   createActor,
   createMachine,
@@ -4619,4 +4621,1149 @@ it('Actor<T> should be assignable to ActorRefFromLogic<T>', () => {
   }
 
   new ActorThing(logic);
+});
+
+describe('TypeScript stress test', () => {
+  it('inference should be fast', () => {
+    const machine = setup({
+      types: {
+        context: {} as {
+          num: number;
+          str: string;
+          arr: string[];
+          complexArr: Array<{
+            num: number;
+            str: string;
+            arr: string[];
+          }>;
+          obj: {
+            num: number;
+            str: string;
+            arr: string[];
+            complexObj: {
+              num: number;
+              str: string;
+              arr: string[];
+            };
+          };
+        },
+        events: {} as
+          | { type: 'event.one'; value: number }
+          | { type: 'event.two'; value: string }
+          | { type: 'event.three'; value: string[] }
+          | {
+              type: 'event.four';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.five';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.six';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.seven';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.eight';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.nine';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.ten';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.eleven';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.twelve';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.thirteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.fourteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.fifteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.sixteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.seventeen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.eighteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.nineteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.twenty';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | { type: 'another.event.one'; value: number }
+          | { type: 'another.event.two'; value: string }
+          | { type: 'another.event.three'; value: string[] }
+          | {
+              type: 'another.event.four';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.five';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.six';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.seven';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.eight';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.nine';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.ten';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.eleven';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.twelve';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.thirteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.fourteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.fifteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.sixteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.seventeen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.eighteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.nineteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.twenty';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | { type: 'yet.another.event.one'; value: number }
+          | { type: 'yet.another.event.two'; value: string }
+          | { type: 'yet.another.event.three'; value: string[] }
+          | {
+              type: 'yet.another.event.four';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.five';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.six';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.seven';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.eight';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.nine';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.ten';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.eleven';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.twelve';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.thirteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.fourteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.fifteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.sixteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.seventeen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.eighteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.nineteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'yet.another.event.twenty';
+              value: { num: number; str: string; arr: string[] };
+            }
+          // action events
+          | {
+              type: 'assignNum';
+              value: number;
+            }
+          | {
+              type: 'assignStr';
+              value: string;
+            }
+          | {
+              type: 'assignArr';
+              value: string[];
+            }
+          | {
+              type: 'assignComplexArr';
+              value: Array<{
+                num: number;
+                str: string;
+                arr: string[];
+              }>;
+            }
+          | {
+              type: 'assignObj';
+              value: {
+                num: number;
+                str: string;
+                arr: string[];
+                complexObj: {
+                  num: number;
+                  str: string;
+                  arr: string[];
+                };
+              };
+            }
+      },
+      actors: {
+        transition1: fromTransition((state, _event) => {
+          return state;
+        }, {}),
+        transition2: fromTransition((state, _event) => {
+          return state;
+        }, {}),
+        transition3: fromTransition((state, _event) => {
+          return state;
+        }, {}),
+        transition4: fromTransition((state, _event) => {
+          return state;
+        }, {}),
+        transition5: fromTransition((state, _event) => {
+          return state;
+        }, {}),
+        transition6: fromTransition((state, _event) => {
+          return state;
+        }, {}),
+        transition7: fromTransition((state, _event) => {
+          return state;
+        }, {}),
+        transition8: fromTransition((state, _event) => {
+          return state;
+        }, {}),
+        transition9: fromTransition((state, _event) => {
+          return state;
+        }, {}),
+        transition10: fromTransition((state, _event) => {
+          return state;
+        }, {})
+      },
+      actions: {
+        assignNum: assign({
+          num: ({ event }) => {
+            assertEvent(event, 'assignNum');
+            return event.value;
+          }
+        }),
+        assignStr: assign({
+          str: ({ event }) => {
+            assertEvent(event, 'assignStr');
+            return event.value;
+          }
+        }),
+        assignArr: assign({
+          arr: ({ event }) => {
+            assertEvent(event, 'assignArr');
+            return event.value;
+          }
+        }),
+        assignComplexArr: assign({
+          complexArr: ({ event }) => {
+            assertEvent(event, 'assignComplexArr');
+            return event.value;
+          }
+        }),
+        assignObj: assign({
+          obj: ({ event }) => {
+            assertEvent(event, 'assignObj');
+            return event.value;
+          }
+        }),
+        actionOne: () => {},
+        actionTwo: () => {},
+        actionThree: () => {},
+        actionFour: () => {},
+        actionFive: () => {},
+        actionSix: () => {},
+        actionSeven: () => {},
+        actionEight: () => {},
+        actionNine: () => {},
+        actionTen: () => {},
+        actionEleven: () => {},
+        actionTwelve: () => {},
+        actionThirteen: () => {},
+        actionFourteen: () => {},
+        actionFifteen: () => {},
+        actionSixteen: () => {},
+        actionSeventeen: () => {},
+        actionEighteen: () => {},
+        actionNineteen: () => {},
+        actionTwenty: () => {}
+      },
+      guards: {
+        guardOne: () => true,
+        guardTwo: () => true,
+        guardThree: () => true,
+        guardFour: () => true,
+        guardFive: () => true,
+        guardSix: () => true,
+        guardSeven: () => true,
+        guardEight: () => true,
+        guardNine: () => true,
+        guardTen: () => true,
+        guardEleven: () => true,
+        guardTwelve: () => true,
+        guardThirteen: () => true,
+        guardFourteen: () => true,
+        guardFifteen: () => true,
+        guardSixteen: () => true,
+        guardSeventeen: () => true,
+        guardEighteen: () => true,
+        guardNineteen: () => true,
+        guardTwenty: () => true
+      }
+    }).createMachine({
+      context: {
+        num: 0,
+        str: '',
+        arr: [],
+        complexArr: [],
+        obj: {
+          num: 0,
+          str: '',
+          arr: [],
+          complexObj: {
+            num: 0,
+            str: '',
+            arr: []
+          }
+        }
+      },
+      entry: [
+        {
+          type: 'assignNum'
+        }
+      ],
+      initial: 'a',
+      states: {
+        a: {
+          initial: 'one',
+          states: {
+            one: {
+              entry: enqueueActions((x) => {
+                x.enqueue({
+                  type: 'assignArr'
+                });
+              })
+            },
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        b: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        c: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        d: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        e: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        f: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        g: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        h: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        i: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        j: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        k: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        l: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        m: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        n: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        o: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        p: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        q: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        r: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        s: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        t: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        u: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        v: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        w: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        x: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        y: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        z: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {},
+            four: {},
+            five: {},
+            six: {},
+            seven: {},
+            eight: {},
+            nine: {},
+            ten: {},
+            eleven: {},
+            twelve: {},
+            thirteen: {},
+            fourteen: {},
+            fifteen: {},
+            sixteen: {},
+            seventeen: {},
+            eighteen: {},
+            nineteen: {},
+            twenty: {}
+          }
+        },
+        deep: {
+          initial: 'one',
+          states: {
+            one: {
+              initial: 'deepOne',
+              states: {
+                deepOne: {
+                  initial: 'deeperOne',
+                  states: {
+                    deeperOne: {
+                      initial: 'deepestOne',
+                      states: {
+                        deepestOne: {},
+                        deepestTwo: {},
+                        deepestThree: {},
+                        deepestFour: {},
+                        deepestFive: {},
+                        deepestSix: {},
+                        deepestSeven: {},
+                        deepestEight: {},
+                        deepestNine: {},
+                        deepestTen: {},
+                        deepestEleven: {},
+                        deepestTwelve: {},
+                        deepestThirteen: {},
+                        deepestFourteen: {},
+                        deepestFifteen: {},
+                        deepestSixteen: {},
+                        deepestSeventeen: {},
+                        deepestEighteen: {},
+                        deepestNineteen: {},
+                        deepestTwenty: {}
+                      }
+                    },
+                    deeperTwo: {},
+                    deeperThree: {},
+                    deeperFour: {},
+                    deeperFive: {},
+                    deeperSix: {},
+                    deeperSeven: {},
+                    deeperEight: {},
+                    deeperNine: {},
+                    deeperTen: {},
+                    deeperEleven: {},
+                    deeperTwelve: {},
+                    deeperThirteen: {},
+                    deeperFourteen: {},
+                    deeperFifteen: {},
+                    deeperSixteen: {},
+                    deeperSeventeen: {},
+                    deeperEighteen: {},
+                    deeperNineteen: {},
+                    deeperTwenty: {}
+                  }
+                },
+                deepTwo: {},
+                deepThree: {},
+                deepFour: {},
+                deepFive: {},
+                deepSix: {},
+                deepSeven: {},
+                deepEight: {},
+                deepNine: {},
+                deepTen: {},
+                deepEleven: {},
+                deepTwelve: {},
+                deepThirteen: {},
+                deepFourteen: {},
+                deepFifteen: {},
+                deepSixteen: {},
+                deepSeventeen: {},
+                deepEighteen: {},
+                deepNineteen: {},
+                deepTwenty: {}
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+    const snapshot = actor.getSnapshot();
+  });
 });
