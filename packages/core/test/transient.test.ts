@@ -566,6 +566,75 @@ describe('transient states (eventless transitions)', () => {
     service.send({ type: 'EVENT', value: 42 });
   });
 
+  it('should avoid infinite loops with eventless transitions', () => {
+    expect.assertions(1);
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          always: {
+            target: 'b'
+          }
+        },
+        b: {
+          always: {
+            target: 'c'
+          }
+        },
+        c: {
+          always: {
+            target: 'a'
+          }
+        }
+      }
+    });
+    const actor = createActor(machine);
+
+    actor.subscribe({
+      error: (err) => {
+        expect(err).toMatchInlineSnapshot(/infinite loop/i);
+      }
+    });
+
+    actor.start();
+  });
+
+  it('should avoid infinite loops with raised events', () => {
+    expect.assertions(1);
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          always: {
+            target: 'b'
+          }
+        },
+        b: {
+          entry: raise({ type: 'EVENT' }),
+          on: {
+            EVENT: {
+              target: 'c'
+            }
+          }
+        },
+        c: {
+          always: {
+            target: 'a'
+          }
+        }
+      }
+    });
+    const actor = createActor(machine);
+
+    actor.subscribe({
+      error: (err) => {
+        expect(err).toMatchInlineSnapshot(/infinite loop/i);
+      }
+    });
+
+    actor.start();
+  });
+
   it("shouldn't end up in an infinite loop when selecting the fallback target", () => {
     const machine = createMachine({
       initial: 'idle',

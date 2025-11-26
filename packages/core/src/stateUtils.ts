@@ -1691,8 +1691,17 @@ export function macrostep(
   }
 
   let shouldSelectEventlessTransitions = true;
+  const maxIterations = 1000; // Safety limit to prevent infinite loops
+  let iterationCount = 0;
 
   while (nextSnapshot.status === 'active') {
+    iterationCount++;
+    if (iterationCount > maxIterations) {
+      throw new Error(
+        `Infinite loop detected: the machine has processed more than ${maxIterations} microsteps without reaching a stable state. This usually happens when there's a cycle of transitions (e.g., eventless transitions or raised events causing state A -> B -> C -> A).`
+      );
+    }
+
     let enabledTransitions: AnyTransitionDefinition[] =
       shouldSelectEventlessTransitions
         ? selectEventlessTransitions(nextSnapshot, nextEvent)
