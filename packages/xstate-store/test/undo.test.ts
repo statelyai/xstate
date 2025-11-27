@@ -855,4 +855,62 @@ describe('undoRedoSnapshot', () => {
     store.send({ type: 'undo' }); // Should stay at 1
     expect(store.getSnapshot().context.count).toBe(1);
   });
+
+  it('should use compare function to skip duplicate snapshots', () => {
+    const store = createStore(
+      undoRedoSnapshot(
+        {
+          context: { count: 0 },
+          on: {
+            inc: (ctx) => ({ count: ctx.count + 1 }),
+            noop: (ctx) => ctx
+          }
+        },
+        {
+          compare: (past, current) =>
+            past.context.count === current.context.count
+        }
+      )
+    );
+
+    store.send({ type: 'inc' }); // count = 1
+    store.send({ type: 'noop' }); // count = 1 (duplicate, not saved)
+    store.send({ type: 'noop' }); // count = 1 (duplicate, not saved)
+    store.send({ type: 'inc' }); // count = 2
+
+    // Should only have 2 snapshots in history (0 and 1), not 4
+    store.send({ type: 'undo' }); // count = 1
+    expect(store.getSnapshot().context.count).toBe(1);
+    store.send({ type: 'undo' }); // count = 0
+    expect(store.getSnapshot().context.count).toBe(0);
+    store.send({ type: 'undo' }); // Should stay at 0
+    expect(store.getSnapshot().context.count).toBe(0);
+  });
+
+  it('should save all snapshots when no compare function is provided', () => {
+    const store = createStore(
+      undoRedoSnapshot({
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 }),
+          noop: (ctx) => ctx
+        }
+      })
+    );
+
+    store.send({ type: 'inc' }); // count = 1
+    store.send({ type: 'noop' }); // count = 1 (saved even though duplicate)
+    store.send({ type: 'noop' }); // count = 1 (saved even though duplicate)
+    store.send({ type: 'inc' }); // count = 2
+
+    // Should have 4 snapshots in history (0, 1, 1, 1)
+    store.send({ type: 'undo' }); // count = 1
+    expect(store.getSnapshot().context.count).toBe(1);
+    store.send({ type: 'undo' }); // count = 1
+    expect(store.getSnapshot().context.count).toBe(1);
+    store.send({ type: 'undo' }); // count = 1
+    expect(store.getSnapshot().context.count).toBe(1);
+    store.send({ type: 'undo' }); // count = 0
+    expect(store.getSnapshot().context.count).toBe(0);
+  });
 });

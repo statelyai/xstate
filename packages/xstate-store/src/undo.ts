@@ -48,6 +48,14 @@ interface UndoRedoSnapshotOptions<
   skipEvent?: (event: TEvent, snapshot: StoreSnapshot<TContext>) => boolean;
   /** Maximum number of snapshots to keep in history. Defaults to Infinity. */
   historyLimit?: number;
+  /**
+   * A function to compare snapshots for equality. When true, the new snapshot
+   * will not be added to history. Useful for avoiding duplicate snapshots.
+   */
+  compare?: (
+    pastSnapshot: StoreSnapshot<TContext>,
+    currentSnapshot: StoreSnapshot<TContext>
+  ) => boolean;
 }
 
 /**
@@ -503,7 +511,6 @@ export function undoRedoSnapshot<
         ];
       }
 
-      const past = snapshot.past.slice();
       const currentSnapshot = {
         status: snapshot.status,
         context: snapshot.context,
@@ -511,6 +518,25 @@ export function undoRedoSnapshot<
         error: snapshot.error
       };
 
+      // Check if current snapshot equals the last snapshot in past
+      const lastPastSnapshot =
+        snapshot.past[snapshot.past.length - 1]?.snapshot;
+      const isEqual =
+        lastPastSnapshot &&
+        options?.compare?.(lastPastSnapshot, currentSnapshot);
+
+      if (isEqual) {
+        return [
+          {
+            ...state,
+            past: snapshot.past,
+            future: []
+          },
+          effects
+        ];
+      }
+
+      const past = snapshot.past.slice();
       past.push({
         snapshot: currentSnapshot,
         transactionId: options?.getTransactionId?.(event, snapshot)
