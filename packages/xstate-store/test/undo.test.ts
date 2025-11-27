@@ -1,5 +1,5 @@
 import { createStore } from '../src/index.ts';
-import { undoRedo } from '../src/undo.ts';
+import { undoRedo, undoRedoSnapshot } from '../src/undo.ts';
 
 it('should undo a single event', () => {
   const store = createStore(
@@ -518,4 +518,341 @@ it('emit event types should be correct', () => {
     'whatever',
     () => {}
   );
+});
+
+describe('undoRedoSnapshot', () => {
+  it('should undo a single event', () => {
+    const store = createStore(
+      undoRedoSnapshot({
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      })
+    );
+
+    store.trigger.inc();
+    expect(store.getSnapshot().context.count).toBe(1);
+
+    store.trigger.undo();
+    expect(store.getSnapshot().context.count).toBe(0);
+  });
+
+  it('should redo a previously undone event', () => {
+    const store = createStore(
+      undoRedoSnapshot({
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      })
+    );
+
+    store.trigger.inc();
+    store.trigger.undo();
+    store.trigger.redo();
+    expect(store.getSnapshot().context.count).toBe(1);
+  });
+
+  it('should undo/redo multiple events, non-transactional', () => {
+    const store = createStore(
+      undoRedoSnapshot({
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      })
+    );
+
+    store.trigger.inc();
+    store.trigger.inc();
+    store.trigger.inc();
+    expect(store.getSnapshot().context.count).toBe(3);
+    store.trigger.undo();
+    expect(store.getSnapshot().context.count).toBe(2);
+    store.trigger.undo();
+    expect(store.getSnapshot().context.count).toBe(1);
+    store.trigger.redo();
+    expect(store.getSnapshot().context.count).toBe(2);
+    store.trigger.redo();
+    expect(store.getSnapshot().context.count).toBe(3);
+  });
+
+  it('should group events by transaction ID', () => {
+    const store = createStore(
+      undoRedoSnapshot(
+        {
+          context: { count: 0 },
+          on: {
+            inc: (ctx) => ({ count: ctx.count + 1 }),
+            dec: (ctx) => ({ count: ctx.count - 1 })
+          }
+        },
+        {
+          getTransactionId: (event) => {
+            return event.type;
+          }
+        }
+      )
+    );
+
+    // First transaction
+    store.send({ type: 'inc' });
+    store.send({ type: 'inc' });
+    expect(store.getSnapshot().context.count).toBe(2);
+
+    // Second transaction
+    store.send({ type: 'dec' });
+    store.send({ type: 'dec' });
+    expect(store.getSnapshot().context.count).toBe(0);
+
+    // Undo second transaction (both decrements)
+    store.send({ type: 'undo' });
+    expect(store.getSnapshot().context.count).toBe(2);
+
+    // Undo first transaction (both increments)
+    store.send({ type: 'undo' });
+    expect(store.getSnapshot().context.count).toBe(0);
+  });
+
+  it('should maintain correct state when interleaving undo/redo with new events', () => {
+    const store = createStore(
+      undoRedoSnapshot({
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 }),
+          dec: (ctx) => ({ count: ctx.count - 1 })
+        }
+      })
+    );
+
+    store.trigger.inc(); // 1
+    expect(store.getSnapshot().context.count).toBe(1);
+    store.trigger.inc(); // 2
+    expect(store.getSnapshot().context.count).toBe(2);
+    store.trigger.undo(); // 1
+    expect(store.getSnapshot().context.count).toBe(1);
+    store.send({ type: 'dec' }); // 0
+    expect(store.getSnapshot().context.count).toBe(0);
+    store.trigger.undo(); // 1
+    expect(store.getSnapshot().context.count).toBe(1);
+    store.send({ type: 'redo' }); // 0
+    expect(store.getSnapshot().context.count).toBe(0);
+
+    expect(store.getSnapshot().context.count).toBe(0);
+  });
+
+  it('should do nothing when undoing with empty history', () => {
+    const store = createStore(
+      undoRedoSnapshot({
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      })
+    );
+
+    const initialSnapshot = store.getSnapshot();
+    store.send({ type: 'undo' });
+    expect(store.getSnapshot().context).toEqual(initialSnapshot.context);
+  });
+
+  it('should do nothing when redoing with empty future stack', () => {
+    const store = createStore(
+      undoRedoSnapshot({
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      })
+    );
+
+    const initialSnapshot = store.getSnapshot();
+    store.send({ type: 'redo' });
+    expect(store.getSnapshot().context).toEqual(initialSnapshot.context);
+  });
+
+  it('should clear redo stack when new events occur after undo', () => {
+    const store = createStore(
+      undoRedoSnapshot({
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 }),
+          dec: (ctx) => ({ count: ctx.count - 1 })
+        }
+      })
+    );
+
+    store.send({ type: 'inc' }); // 1
+    expect(store.getSnapshot().context.count).toBe(1);
+    store.send({ type: 'inc' }); // 2
+    expect(store.getSnapshot().context.count).toBe(2);
+    store.send({ type: 'undo' }); // 1
+    expect(store.getSnapshot().context.count).toBe(1);
+    store.send({ type: 'dec' }); // 0
+
+    // Redo should not work as we added a new event after undo
+    store.send({ type: 'redo' });
+    expect(store.getSnapshot().context.count).toBe(0);
+  });
+
+  it('should skip non-undoable events', () => {
+    const store = createStore(
+      undoRedoSnapshot(
+        {
+          context: { count: 0 },
+          on: {
+            inc: (ctx) => ({ count: ctx.count + 1 }),
+            log: (ctx) => ctx // No state change, just logging
+          }
+        },
+        {
+          skipEvent: (event) => event.type === 'log'
+        }
+      )
+    );
+
+    store.send({ type: 'inc' }); // count = 1
+    store.send({ type: 'log' }); // count = 1 (logged but not tracked)
+    store.send({ type: 'inc' }); // count = 2
+    expect(store.getSnapshot().context.count).toBe(2);
+
+    store.send({ type: 'undo' }); // count = 1 (skips log event)
+    expect(store.getSnapshot().context.count).toBe(1);
+  });
+
+  it('should respect historyLimit', () => {
+    const store = createStore(
+      undoRedoSnapshot(
+        {
+          context: { count: 0 },
+          on: {
+            inc: (ctx) => ({ count: ctx.count + 1 })
+          }
+        },
+        {
+          historyLimit: 2
+        }
+      )
+    );
+
+    store.trigger.inc(); // 1
+    store.trigger.inc(); // 2
+    store.trigger.inc(); // 3
+    store.trigger.inc(); // 4
+
+    // Can only undo 2 times because of history limit
+    store.trigger.undo(); // 3
+    expect(store.getSnapshot().context.count).toBe(3);
+    store.trigger.undo(); // 2
+    expect(store.getSnapshot().context.count).toBe(2);
+    store.trigger.undo(); // Should stay at 2 (limit reached)
+    expect(store.getSnapshot().context.count).toBe(2);
+  });
+
+  it('should apply historyLimit during redo', () => {
+    const store = createStore(
+      undoRedoSnapshot(
+        {
+          context: { count: 0 },
+          on: {
+            inc: (ctx) => ({ count: ctx.count + 1 })
+          }
+        },
+        {
+          historyLimit: 2
+        }
+      )
+    );
+
+    store.trigger.inc(); // 1
+    store.trigger.inc(); // 2
+    store.trigger.undo(); // 1
+    store.trigger.undo(); // 0
+    store.trigger.redo(); // 1
+    store.trigger.redo(); // 2
+    store.trigger.inc(); // 3
+    store.trigger.inc(); // 4
+
+    // History should be trimmed to last 2 snapshots
+    store.trigger.undo(); // 3
+    store.trigger.undo(); // 2
+    store.trigger.undo(); // Should stay at 2
+    expect(store.getSnapshot().context.count).toBe(2);
+  });
+
+  it('should preserve context with skipped events', () => {
+    const store = createStore(
+      undoRedoSnapshot(
+        {
+          context: { count: 0, logs: [] as string[] },
+          on: {
+            inc: (ctx) => ({ count: ctx.count + 1, logs: ctx.logs }),
+            log: (ctx, event: { type: 'log'; message: string }) => ({
+              logs: [...(ctx.logs || []), event.message],
+              count: ctx.count
+            })
+          }
+        },
+        {
+          skipEvent: (event) => event.type === 'log'
+        }
+      )
+    );
+
+    store.send({ type: 'inc' }); // count = 1
+    store.send({ type: 'log', message: 'first log' }); // logs = ['first log'] (not tracked)
+    store.send({ type: 'inc' }); // count = 2
+
+    expect(store.getSnapshot().context.count).toBe(2);
+    expect(store.getSnapshot().context.logs).toEqual(['first log']);
+
+    // Undo should restore snapshot before second inc, which includes the log
+    store.send({ type: 'undo' }); // count = 1, logs = ['first log']
+    expect(store.getSnapshot().context.count).toBe(1);
+    expect(store.getSnapshot().context.logs).toEqual(['first log']);
+  });
+
+  it('should handle transaction grouping with historyLimit', () => {
+    const store = createStore(
+      undoRedoSnapshot(
+        {
+          context: { count: 0 },
+          on: {
+            inc: (ctx) => ({ count: ctx.count + 1 }),
+            dec: (ctx) => ({ count: ctx.count - 1 })
+          }
+        },
+        {
+          getTransactionId: (event) => event.type,
+          historyLimit: 3
+        }
+      )
+    );
+
+    // First transaction
+    store.send({ type: 'inc' }); // 1
+    store.send({ type: 'inc' }); // 2
+
+    // Second transaction
+    store.send({ type: 'dec' }); // 1
+    store.send({ type: 'dec' }); // 0
+
+    // Third transaction
+    store.send({ type: 'inc' }); // 1
+    store.send({ type: 'inc' }); // 2
+
+    // Undo third transaction
+    store.send({ type: 'undo' }); // 0
+    expect(store.getSnapshot().context.count).toBe(0);
+
+    // Undo second transaction - only partial history available due to limit
+    // The {2,dec} snapshot was trimmed, so we can only restore to {1,dec}
+    store.send({ type: 'undo' }); // 1
+    expect(store.getSnapshot().context.count).toBe(1);
+
+    // Can't undo further due to limit (first transaction's snapshots were trimmed)
+    store.send({ type: 'undo' }); // Should stay at 1
+    expect(store.getSnapshot().context.count).toBe(1);
+  });
 });
