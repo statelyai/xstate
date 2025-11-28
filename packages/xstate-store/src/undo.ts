@@ -139,7 +139,7 @@ interface UndoRedoSnapshotOptions<
  *
  * @returns Store logic with additional `undo` and `redo` event handlers
  */
-export function undoRedoEvent<
+function undoRedoEvent<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
   TEmittedPayloadMap extends EventPayloadMap
@@ -356,7 +356,7 @@ export function undoRedoEvent<
  *
  * @returns Store logic with additional `undo` and `redo` event handlers
  */
-export function undoRedoSnapshot<
+function undoRedoSnapshot<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
   TEmittedPayloadMap extends EventPayloadMap
