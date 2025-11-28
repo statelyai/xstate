@@ -15,7 +15,7 @@ type UndoEvent<TEvent extends EventObject> = {
   transactionId?: string;
 };
 
-interface UndoRedoOptions<
+interface UndoRedoEventOptions<
   TContext extends StoreContext,
   TEvent extends EventObject
 > {
@@ -59,7 +59,7 @@ interface UndoRedoSnapshotOptions<
 }
 
 /**
- * Creates store logic with undo/redo functionality.
+ * Creates store logic with undo/redo functionality using event replay strategy.
  *
  * It maintains an event history and allows reverting to previous states by
  * replaying events from the beginning up to a certain point.
@@ -69,7 +69,7 @@ interface UndoRedoSnapshotOptions<
  * ```ts
  * // Basic usage - each event is its own transaction
  * const store = createStore(
- *   undoRedo({
+ *   undoRedoEvent({
  *     context: { count: 0 },
  *     on: {
  *       inc: (ctx) => ({ count: ctx.count + 1 }),
@@ -89,7 +89,7 @@ interface UndoRedoSnapshotOptions<
  * ```ts
  * // Grouped events by transaction ID
  * const store = createStore(
- *   undoRedo(
+ *   undoRedoEvent(
  *     {
  *       context: { count: 0 },
  *       on: {
@@ -117,7 +117,7 @@ interface UndoRedoSnapshotOptions<
  * ```ts
  * // Skip certain events from undo/redo
  * const store = createStore(
- *   undoRedo(
+ *   undoRedoEvent(
  *     {
  *       context: { count: 0 },
  *       on: {
@@ -139,13 +139,13 @@ interface UndoRedoSnapshotOptions<
  *
  * @returns Store logic with additional `undo` and `redo` event handlers
  */
-export function undoRedo<
+export function undoRedoEvent<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
   TEmittedPayloadMap extends EventPayloadMap
 >(
   storeConfig: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap>,
-  options?: UndoRedoOptions<TContext, ExtractEvents<TEventPayloadMap>>
+  options?: UndoRedoEventOptions<TContext, ExtractEvents<TEventPayloadMap>>
 ): StoreLogic<
   StoreSnapshot<TContext>,
   ExtractEvents<TEventPayloadMap> | { type: 'undo' } | { type: 'redo' },
@@ -368,7 +368,6 @@ export function undoRedoSnapshot<
   ExtractEvents<TEventPayloadMap> | { type: 'undo' } | { type: 'redo' },
   ExtractEvents<TEmittedPayloadMap>
 > {
-  type TEvent = ExtractEvents<TEventPayloadMap>;
   const logic: AnyStoreLogic = {
     getInitialSnapshot: () => ({
       status: 'active',
@@ -561,4 +560,81 @@ export function undoRedoSnapshot<
   };
 
   return enhancedLogic;
+}
+
+type UndoRedoStrategyOptions<
+  TContext extends StoreContext,
+  TEvent extends EventObject
+> =
+  | ({
+      strategy?: 'event';
+    } & UndoRedoEventOptions<TContext, TEvent>)
+  | ({
+      strategy: 'snapshot';
+    } & UndoRedoSnapshotOptions<TContext, TEvent>);
+
+/**
+ * Creates store logic with undo/redo functionality.
+ *
+ * Supports two strategies:
+ *
+ * - 'event' (default): Maintains event history and replays events
+ * - 'snapshot': Maintains snapshot history for faster undo/redo
+ *
+ * @example
+ *
+ * ```ts
+ * // Event strategy (default)
+ * const store = createStore(
+ *   undoRedo({
+ *     context: { count: 0 },
+ *     on: {
+ *       inc: (ctx) => ({ count: ctx.count + 1 })
+ *     }
+ *   })
+ * );
+ * ```
+ *
+ * @example
+ *
+ * ```ts
+ * // Snapshot strategy
+ * const store = createStore(
+ *   undoRedo(
+ *     {
+ *       context: { count: 0 },
+ *       on: {
+ *         inc: (ctx) => ({ count: ctx.count + 1 })
+ *       }
+ *     },
+ *     {
+ *       strategy: 'snapshot',
+ *       historyLimit: 10
+ *     }
+ *   )
+ * );
+ * ```
+ *
+ * @returns Store logic with additional `undo` and `redo` event handlers
+ */
+export function undoRedo<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmittedPayloadMap extends EventPayloadMap
+>(
+  storeConfig: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap>,
+  options?: UndoRedoStrategyOptions<TContext, ExtractEvents<TEventPayloadMap>>
+): StoreLogic<
+  StoreSnapshot<TContext>,
+  ExtractEvents<TEventPayloadMap> | { type: 'undo' } | { type: 'redo' },
+  ExtractEvents<TEmittedPayloadMap>
+> {
+  if (options?.strategy === 'snapshot') {
+    const { strategy, ...snapshotOptions } = options;
+    return undoRedoSnapshot(storeConfig, snapshotOptions);
+  }
+
+  // Event strategy (default)
+  const { strategy, ...eventOptions } = options ?? {};
+  return undoRedoEvent(storeConfig, eventOptions);
 }

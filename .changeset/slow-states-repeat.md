@@ -2,4 +2,12 @@
 '@xstate/store': minor
 ---
 
-Add `undoRedoSnapshot(…)` for undo/redo with snapshot history instead of event history.
+Add snapshot-based undo/redo strategy to `undoRedo(…)`:
+
+```ts
+// Snapshot strategy (faster undo/redo, more memory)
+undoRedo(config, {
+  strategy: 'snapshot',
+  historyLimit: 10
+});
+```
