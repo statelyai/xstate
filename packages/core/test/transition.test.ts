@@ -594,10 +594,8 @@ describe('getPotentialTransitions', () => {
     const transitions = getPotentialTransitions(state);
 
     expect(transitions).toHaveLength(2);
-    expect(transitions.map((t) => t.eventType).sort()).toEqual([
-      'GO_B',
-      'GO_C'
-    ]);
+    // Order should be deterministic: transitions appear in the order they're defined
+    expect(transitions.map((t) => t.eventType)).toEqual(['GO_B', 'GO_C']);
   });
 
   it('should include guarded transitions regardless of guard result', () => {
@@ -635,16 +633,14 @@ describe('getPotentialTransitions', () => {
     const transitions = getPotentialTransitions(state);
 
     expect(transitions).toHaveLength(3);
-    expect(transitions.map((t) => t.eventType).sort()).toEqual([
+    // Order should be deterministic: all GO_B transitions first (in order), then GO_C
+    expect(transitions.map((t) => t.eventType)).toEqual([
       'GO_B',
       'GO_B',
       'GO_C'
     ]);
-    expect(transitions.map((t) => t.target?.[0]?.key).sort()).toEqual([
-      'b',
-      'c',
-      'd'
-    ]);
+    // Verify targets match the order
+    expect(transitions.map((t) => t.target?.[0]?.key)).toEqual(['b', 'd', 'c']);
   });
 
   it('should include always (eventless) transitions', () => {
@@ -674,16 +670,9 @@ describe('getPotentialTransitions', () => {
     const transitions = getPotentialTransitions(state);
 
     expect(transitions).toHaveLength(3);
-    expect(transitions.map((t) => t.eventType).sort()).toEqual([
-      '',
-      '',
-      'GO_D'
-    ]);
-    expect(transitions.map((t) => t.target?.[0]?.key).sort()).toEqual([
-      'b',
-      'c',
-      'd'
-    ]);
+    // Order: on transitions first, then always transitions (in order they appear)
+    expect(transitions.map((t) => t.eventType)).toEqual(['GO_D', '', '']);
+    expect(transitions.map((t) => t.target?.[0]?.key)).toEqual(['d', 'b', 'c']);
   });
 
   it('should include after (delayed) transitions', () => {
@@ -710,14 +699,13 @@ describe('getPotentialTransitions', () => {
     const transitions = getPotentialTransitions(state);
 
     expect(transitions).toHaveLength(2);
-    expect(transitions.map((t) => t.eventType).sort()).toEqual([
-      'GO_C',
-      'xstate.after.1000.(machine).a'
-    ]);
-    expect(transitions.map((t) => t.target?.[0]?.key).sort()).toEqual([
-      'b',
-      'c'
-    ]);
+    // Order: on transitions first, then after transitions
+    const eventTypes = transitions.map((t) => t.eventType);
+    expect(eventTypes).toContain('GO_C');
+    expect(eventTypes).toContain('xstate.after.1000.(machine).a');
+    const targets = transitions.map((t) => t.target?.[0]?.key);
+    expect(targets).toContain('b');
+    expect(targets).toContain('c');
   });
 
   it('should include transitions from parent states', () => {
@@ -751,5 +739,61 @@ describe('getPotentialTransitions', () => {
     const eventTypes = transitions.map((t) => t.eventType);
     expect(eventTypes).toContain('CHILD_EVENT');
     expect(eventTypes).toContain('PARENT_EVENT');
+    // Order: child state transitions first, then parent state transitions
+    // CHILD_EVENT should come before PARENT_EVENT
+    const childIndex = eventTypes.indexOf('CHILD_EVENT');
+    const parentIndex = eventTypes.indexOf('PARENT_EVENT');
+    expect(childIndex).toBeLessThan(parentIndex);
+  });
+
+  it('should include all guarded transitions from different state nodes with same event type', () => {
+    const machine = createMachine({
+      initial: 'parent',
+      states: {
+        parent: {
+          initial: 'child',
+          on: {
+            SAME_EVENT: [
+              {
+                guard: () => false,
+                target: 'parentTarget'
+              },
+              {
+                target: 'parentTarget2'
+              }
+            ]
+          },
+          states: {
+            child: {
+              on: {
+                SAME_EVENT: {
+                  target: 'childTarget'
+                }
+              }
+            },
+            childTarget: {}
+          }
+        },
+        parentTarget: {},
+        parentTarget2: {}
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+    const state = actor.getSnapshot();
+
+    const transitions = getPotentialTransitions(state);
+
+    // Should include all transitions: 2 from parent, 1 from child = 3 total
+    expect(transitions).toHaveLength(3);
+    const sameEventTransitions = transitions.filter(
+      (t) => t.eventType === 'SAME_EVENT'
+    );
+    expect(sameEventTransitions).toHaveLength(3);
+    // Order: child state transitions first, then parent state transitions
+    expect(sameEventTransitions[0].target?.[0]?.key).toBe('childTarget');
+    expect(sameEventTransitions[1].target?.[0]?.key).toBe('parentTarget');
+    expect(sameEventTransitions[2].target?.[0]?.key).toBe('parentTarget2');
   });
 });
