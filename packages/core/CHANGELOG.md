@@ -1,5 +1,11 @@
 # xstate
 
+## 5.24.1
+
+### Patch Changes
+
+- [#5420](https://github.com/statelyai/xstate/pull/5420) [`2eb8274`](https://github.com/statelyai/xstate/commit/2eb82745dbdf4ac8dfbcc3c426ed4d81c732844b) Thanks [@assertnotnull](https://github.com/assertnotnull)! - Fix a bug in Cordova when iterating an empty Map
+
 ## 5.24.0
 
 ### Minor Changes
