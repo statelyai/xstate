@@ -21,7 +21,8 @@ import {
   StoreLogic,
   StoreTransition,
   AnyStoreLogic,
-  SpecificStoreConfig
+  SpecificStoreConfig,
+  StoreLogicWithEventPayloadMap
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -247,19 +248,17 @@ export function createStore<
 ): Store<TContext, TEventPayloadMap, ExtractEvents<TEmittedPayloadMap>>;
 export function createStore<
   TContext extends StoreContext,
-  TEvent extends EventObject,
+  TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject
 >(
   definition:
-    | SpecificStoreConfig<TContext, TEvent, TEmitted>
-    | StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>
-): Store<
-  TContext,
-  {
-    [E in TEvent as E['type']]: E;
-  },
-  TEmitted
->;
+    | SpecificStoreConfig<TContext, TEventPayloadMap, TEmitted>
+    | StoreLogicWithEventPayloadMap<
+        StoreSnapshot<TContext>,
+        TEventPayloadMap,
+        TEmitted
+      >
+): Store<TContext, TEventPayloadMap, TEmitted>;
 export function createStore(
   definitionOrLogic: StoreConfig<any, any, any> | AnyStoreLogic
 ) {
