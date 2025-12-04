@@ -177,7 +177,7 @@ export type StoreConfig<
 
 export type SpecificStoreConfig<
   TContext extends StoreContext,
-  TEvent extends EventObject,
+  TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject
 > = {
   context: TContext;
@@ -185,7 +185,11 @@ export type SpecificStoreConfig<
     [E in TEmitted as E['type']]: (payload: E) => void;
   };
   on: {
-    [E in TEvent as E['type']]: StoreAssigner<TContext, E, TEmitted>;
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      TContext,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEvents<TEmitted>
+    >;
   };
 };
 
@@ -439,6 +443,17 @@ export type StoreLogic<
   transition: (
     snapshot: TSnapshot,
     event: TEvent
+  ) => [TSnapshot, StoreEffect<TEmitted>[]];
+};
+export type StoreLogicWithEventPayloadMap<
+  TSnapshot extends StoreSnapshot<any>,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject
+> = {
+  getInitialSnapshot: () => TSnapshot;
+  transition: (
+    snapshot: TSnapshot,
+    event: ExtractEvents<TEventPayloadMap>
   ) => [TSnapshot, StoreEffect<TEmitted>[]];
 };
 export type AnyStoreLogic = StoreLogic<any, any, any>;

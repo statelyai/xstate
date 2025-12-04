@@ -6,6 +6,7 @@ import {
   StoreConfig,
   StoreContext,
   StoreLogic,
+  StoreLogicWithEventPayloadMap,
   StoreSnapshot
 } from './types';
 import { createStoreTransition } from './store';
@@ -624,9 +625,12 @@ export function undoRedo<
 >(
   storeConfig: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap>,
   options?: UndoRedoStrategyOptions<TContext, ExtractEvents<TEventPayloadMap>>
-): StoreLogic<
+): StoreLogicWithEventPayloadMap<
   StoreSnapshot<TContext>,
-  ExtractEvents<TEventPayloadMap> | { type: 'undo' } | { type: 'redo' },
+  TEventPayloadMap & {
+    undo: {};
+    redo: {};
+  },
   ExtractEvents<TEmittedPayloadMap>
 > {
   if (options?.strategy === 'snapshot') {

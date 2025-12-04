@@ -374,11 +374,11 @@ it('should not replay emitted events for skipped events during undo/redo', () =>
           logged: (_: { message: string }) => {}
         },
         on: {
-          inc: (ctx, _: Events, enq) => {
+          inc: (ctx, _: Events & { type: 'inc' }, enq) => {
             enq.emit.changed({ value: ctx.count + 1 });
             return { count: ctx.count + 1 };
           },
-          log: (ctx, event: Events, enq) => {
+          log: (ctx, event: Events & { type: 'log' }, enq) => {
             enq.emit.logged({ message: (event as any).message });
             return ctx; // No state change
           }
