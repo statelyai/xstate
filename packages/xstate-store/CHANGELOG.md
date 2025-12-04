@@ -1,5 +1,32 @@
 # @xstate/store
 
+## 3.13.0
+
+### Minor Changes
+
+- [#5415](https://github.com/statelyai/xstate/pull/5415) [`068f2a7`](https://github.com/statelyai/xstate/commit/068f2a7932343a3a7d418fa87e172a9de9f5e6cb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add snapshot-based undo/redo strategy to `undoRedo(…)`:
+
+  ```ts
+  // Snapshot strategy (faster undo/redo, more memory)
+  undoRedo(config, {
+    strategy: 'snapshot',
+    historyLimit: 10
+  });
+  ```
+
+## 3.12.0
+
+### Minor Changes
+
+- [#5410](https://github.com/statelyai/xstate/pull/5410) [`45d97de`](https://github.com/statelyai/xstate/commit/45d97de0a174b274aea69d02e27a59b224c2b855) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix go-to-definition for triggers
+
+- [#5414](https://github.com/statelyai/xstate/pull/5414) [`524a207`](https://github.com/statelyai/xstate/commit/524a207e20ee07560170817052763ad7f3c71d66) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Computed atoms can now access their previous value via an optional second parameter:
+
+  ```ts
+  const count = createAtom(1);
+  const double = createAtom<number>((_, prev) => count.get() + (prev ?? 0));
+  ```
+
 ## 3.11.2
 
 ### Patch Changes

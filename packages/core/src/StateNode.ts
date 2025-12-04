@@ -371,8 +371,9 @@ export class StateNode<
    * Excludes any inert events.
    */
   public get ownEvents(): Array<EventDescriptor<TEvent>> {
+    const keys = Object.keys(Object.fromEntries(this.transitions));
     const events = new Set(
-      [...this.transitions.keys()].filter((descriptor) => {
+      keys.filter((descriptor) => {
         return this.transitions.get(descriptor)!.some(
           (transition) =>
             transition.target ||
