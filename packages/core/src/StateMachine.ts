@@ -68,7 +68,7 @@ export class StateMachine<
   TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
-  TConfig extends StateSchema
+  TStateSchema extends StateSchema
 > implements
     ActorLogic<
       MachineSnapshot<
@@ -79,7 +79,7 @@ export class StateMachine<
         TTag,
         TOutput,
         TMeta,
-        TConfig
+        TStateSchema
       >,
       TEvent,
       TInput,
@@ -199,7 +199,7 @@ export class StateMachine<
     TOutput,
     TEmitted,
     TMeta,
-    TConfig
+    TStateSchema
   > {
     const { actions, guards, actors, delays } = this.implementations;
 
@@ -230,7 +230,7 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
     const resolvedStateValue = resolveStateValue(this.root, config.value);
     const nodeSet = getAllStateNodes(
@@ -258,7 +258,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >;
   }
 
@@ -278,7 +278,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >,
     event: TEvent,
     actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
@@ -290,7 +290,7 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
     return macrostep(snapshot, event, actorScope, [])
       .snapshot as typeof snapshot;
@@ -312,7 +312,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >,
     event: TEvent,
     actorScope: AnyActorScope
@@ -325,7 +325,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >
   > {
     return macrostep(snapshot, event, actorScope, []).microstates;
@@ -340,7 +340,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >,
     event: TEvent
   ): Array<TransitionDefinition<TContext, TEvent>> {
@@ -363,7 +363,7 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
     const { context } = this.config;
 
@@ -408,7 +408,7 @@ export class StateMachine<
         TTag,
         TOutput,
         TMeta,
-        TConfig
+        TStateSchema
       >,
       TEvent,
       AnyActorSystem,
@@ -423,7 +423,7 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
@@ -469,7 +469,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >
   ): void {
     Object.values(snapshot.children as Record<string, AnyActorRef>).forEach(
@@ -514,7 +514,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >,
     options?: unknown
   ) {
@@ -532,7 +532,7 @@ export class StateMachine<
         TTag,
         TOutput,
         TMeta,
-        TConfig
+        TStateSchema
       >,
       TEvent,
       AnyActorSystem,
@@ -546,7 +546,7 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
     const children: Record<string, AnyActorRef> = {};
     const snapshotChildren: Record<
@@ -650,7 +650,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >;
 
     const seen = new Set();

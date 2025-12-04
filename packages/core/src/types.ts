@@ -2669,7 +2669,7 @@ export type ExecutableActionsFrom<T extends AnyActorLogic> =
     infer _TOutput,
     infer _TEmitted,
     infer _TMeta,
-    infer _TConfig
+    infer _TStateSchema
   >
     ?
         | SpecialExecutableAction
