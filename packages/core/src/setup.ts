@@ -16,7 +16,6 @@ import {
   AnyActorRef,
   AnyEventObject,
   Cast,
-  Compute,
   DelayConfig,
   EventObject,
   Invert,
@@ -67,10 +66,10 @@ type ToProvidedActor<
 // used to keep only StateSchema relevant keys
 // this helps with type serialization as it makes the inferred type much shorter when dealing with huge configs
 type ToStateSchema<TSchema extends StateSchema> = {
-  [K in keyof TSchema as K & ('id' | 'states')]: K extends 'states'
+  -readonly [K in keyof TSchema as K & ('id' | 'states')]: K extends 'states'
     ? {
-        [SK in keyof TSchema['states']]: Compute<
-          ToStateSchema<NonNullable<TSchema['states'][SK]>>
+        [SK in keyof TSchema['states']]: ToStateSchema<
+          NonNullable<TSchema['states'][SK]>
         >;
       }
     : TSchema[K];
