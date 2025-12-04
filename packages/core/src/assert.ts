@@ -1,4 +1,6 @@
-import { EventObject } from './types.ts';
+import isDevelopment from '#is-development';
+import { WILDCARD } from './constants.ts';
+import { EventDescriptor, EventObject, ExtractEvent } from './types.ts';
 import { toArray } from './utils.ts';
 
 /**
@@ -26,13 +28,18 @@ import { toArray } from './utils.ts';
  */
 export function assertEvent<
   TEvent extends EventObject,
-  TAssertedType extends TEvent['type']
+  TAssertedDescriptor extends EventDescriptor<TEvent>
 >(
   event: TEvent,
-  type: TAssertedType | TAssertedType[]
-): asserts event is TEvent & { type: TAssertedType } {
+  type: TAssertedDescriptor | readonly TAssertedDescriptor[]
+): asserts event is ExtractEvent<TEvent, TAssertedDescriptor> {
   const types = toArray(type);
-  if (!types.includes(event.type as any)) {
+
+  const matches = types.some((descriptor) =>
+    matchesEventDescriptor(event.type, descriptor as string)
+  );
+
+  if (!matches) {
     const typesText =
       types.length === 1
         ? `type "${types[0]}"`
@@ -41,4 +48,57 @@ export function assertEvent<
       `Expected event ${JSON.stringify(event)} to have ${typesText}`
     );
   }
+}
+
+function matchesEventDescriptor(
+  eventType: string,
+  descriptor: string
+): boolean {
+  if (descriptor === eventType) {
+    return true;
+  }
+
+  if (descriptor === WILDCARD) {
+    return true;
+  }
+
+  if (!descriptor.endsWith('.*')) {
+    return false;
+  }
+
+  if (isDevelopment && /.*\*.+/.test(descriptor)) {
+    console.warn(
+      `Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "${descriptor}" event.`
+    );
+  }
+
+  const partialEventTokens = descriptor.split('.');
+  const eventTokens = eventType.split('.');
+
+  for (
+    let tokenIndex = 0;
+    tokenIndex < partialEventTokens.length;
+    tokenIndex++
+  ) {
+    const partialEventToken = partialEventTokens[tokenIndex];
+    const eventToken = eventTokens[tokenIndex];
+
+    if (partialEventToken === '*') {
+      const isLastToken = tokenIndex === partialEventTokens.length - 1;
+
+      if (isDevelopment && !isLastToken) {
+        console.warn(
+          `Infix wildcards in transition events are not allowed. Check the "${descriptor}" transition.`
+        );
+      }
+
+      return isLastToken;
+    }
+
+    if (partialEventToken !== eventToken) {
+      return false;
+    }
+  }
+
+  return true;
 }
