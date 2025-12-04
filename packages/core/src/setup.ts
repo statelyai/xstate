@@ -16,6 +16,7 @@ import {
   AnyActorRef,
   AnyEventObject,
   Cast,
+  Compute,
   DelayConfig,
   EventObject,
   Invert,
@@ -27,6 +28,7 @@ import {
   ParameterizedObject,
   SetupTypes,
   StateNodeConfig,
+  StateSchema,
   ToChildren,
   ToStateValue,
   UnknownActorLogic,
@@ -61,6 +63,18 @@ type ToProvidedActor<
         : string | undefined;
   };
 }>;
+
+// used to keep only StateSchema relevant keys
+// this helps with type serialization as it makes the inferred type much shorter when dealing with huge configs
+type ToStateSchema<TSchema extends StateSchema> = {
+  [K in keyof TSchema as K & ('id' | 'states')]: K extends 'states'
+    ? {
+        [SK in keyof TSchema['states']]: Compute<
+          ToStateSchema<NonNullable<TSchema['states'][SK]>>
+        >;
+      }
+    : TSchema[K];
+};
 
 type RequiredSetupKeys<TChildrenMap> =
   IsNever<keyof TChildrenMap> extends true ? never : 'actors';
@@ -253,7 +267,7 @@ type SetupReturn<
     TOutput,
     TEmitted,
     TMeta,
-    TConfig
+    ToStateSchema<TConfig>
   >;
 
   assign: typeof assign<
