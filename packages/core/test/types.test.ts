@@ -4625,6 +4625,145 @@ it('Actor<T> should be assignable to ActorRefFromLogic<T>', () => {
 
 describe('TypeScript stress test', () => {
   it('inference should be fast', () => {
+    const otherMachine = setup({
+      types: {
+        events: {} as
+          | { type: 'event.one'; value: number }
+          | { type: 'event.two'; value: string }
+          | { type: 'event.three'; value: string[] }
+          | {
+              type: 'event.four';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.five';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.six';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.seven';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.eight';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.nine';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.ten';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.eleven';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.twelve';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.thirteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.fourteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.fifteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.sixteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.seventeen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.eighteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.nineteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'event.twenty';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | { type: 'another.event.one'; value: number }
+          | { type: 'another.event.two'; value: string }
+          | { type: 'another.event.three'; value: string[] }
+          | {
+              type: 'another.event.four';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.five';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.six';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.seven';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.eight';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.nine';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.ten';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.eleven';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.twelve';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.thirteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.fourteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.fifteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.sixteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.seventeen';
+              value: { num: number; str: string; arr: string[] };
+            }
+          | {
+              type: 'another.event.eighteen';
+              value: { num: number; str: string; arr: string[] };
+            }
+      }
+    }).createMachine({});
     const machine = setup({
       types: {
         context: {} as {
@@ -4926,7 +5065,33 @@ describe('TypeScript stress test', () => {
         }, {}),
         transition10: fromTransition((state, _event) => {
           return state;
-        }, {})
+        }, {}),
+        machine0: otherMachine,
+        machine1: otherMachine,
+        machine2: otherMachine,
+        machine3: otherMachine,
+        machine4: otherMachine,
+        machine5: otherMachine,
+        machine6: otherMachine,
+        machine7: otherMachine,
+        machine8: otherMachine,
+        machine9: otherMachine,
+        machine10: otherMachine,
+        machine11: otherMachine,
+        machine12: otherMachine,
+        machine13: otherMachine,
+        machine14: otherMachine,
+        machine15: otherMachine,
+        machine16: otherMachine,
+        machine17: otherMachine,
+        machine18: otherMachine,
+        machine19: otherMachine,
+        machine20: otherMachine,
+        machine21: otherMachine,
+        machine22: otherMachine,
+        machine23: otherMachine,
+        machine24: otherMachine,
+        machine25: otherMachine
       },
       actions: {
         assignNum: assign({
@@ -4959,48 +5124,191 @@ describe('TypeScript stress test', () => {
             return event.value;
           }
         }),
-        actionOne: () => {},
-        actionTwo: () => {},
-        actionThree: () => {},
-        actionFour: () => {},
-        actionFive: () => {},
-        actionSix: () => {},
-        actionSeven: () => {},
+        actionOne: (_, params: { one: string }) => {},
+        actionTwo: (_, params: { two: string }) => {},
+        actionThree: (_, params: { three: string }) => {},
+        actionFour: (_, params: { four: string }) => {},
+        actionFive: (_, params: { five: string }) => {},
+        actionSix: (_, params: { six: string }) => {},
+        actionSeven: (_, params: { seven: string }) => {},
         actionEight: () => {},
-        actionNine: () => {},
+        actionNine: (_, params: { nine: string }) => {},
         actionTen: () => {},
         actionEleven: () => {},
-        actionTwelve: () => {},
+        actionTwelve: (_, params: { twelve: string }) => {},
         actionThirteen: () => {},
-        actionFourteen: () => {},
-        actionFifteen: () => {},
+        actionFourteen: (_, params: { fourteen: string }) => {},
+        actionFifteen: (_, params: { fifteen: string }) => {},
         actionSixteen: () => {},
-        actionSeventeen: () => {},
+        actionSeventeen: (_, params: { seventeen: string }) => {},
         actionEighteen: () => {},
-        actionNineteen: () => {},
-        actionTwenty: () => {}
+        actionNineteen: (_, params: { nineteen: string }) => {},
+        actionTwenty: (_, params: { twenty: string }) => {},
+        actionTwentyOne: () => {},
+        actionTwentyTwo: (_, params: { twentyTwo: string }) => {},
+        actionTwentyThree: (_, params: { twentyThree: string }) => {},
+        actionTwentyFour: (_, params: { twentyFour: string }) => {},
+        actionTwentyFive: (_, params: { twentyFive: string }) => {},
+        actionTwentySix: () => {},
+        actionTwentySeven: (_, params: { twentySeven: string }) => {},
+        actionTwentyEight: (_, params: { twentyEight: string }) => {},
+        actionTwentyNine: (_, params: { twentyNine: string }) => {},
+        actionThirty: (_, params: { thirty: string }) => {},
+        actionThirtyOne: (_, params: { thirtyOne: string }) => {},
+        actionThirtyTwo: (_, params: { thirtyTwo: string }) => {},
+        actionThirtyThree: (_, params: { thirtyThree: string }) => {},
+        actionThirtyFour: (_, params: { thirtyFour: string }) => {},
+        actionThirtyFive: (_, params: { thirtyFive: string }) => {},
+        actionThirtySix: (_, params: { thirtySix: string }) => {},
+        actionThirtySeven: (_, params: { thirtySeven: string }) => {},
+        actionThirtyEight: () => {},
+        actionThirtyNine: (_, params: { thirtyNine: string }) => {},
+        actionForty: () => {},
+        actionFortyOne: (_, params: { fortyOne: string }) => {},
+        actionFortyTwo: (_, params: { FortyTwo: string }) => {},
+        actionFortyThree: (_, params: { FortyThree: string }) => {},
+        actionFortyFour: (_, params: { FortyFour: string }) => {},
+        actionFortyFive: (_, params: { FortyFive: string }) => {},
+        actionFortySix: (_, params: { FortySix: string }) => {},
+        actionFortySeven: (_, params: { FortySeven: string }) => {},
+        actionFortyEight: (_, params: { FortyEight: string }) => {},
+        actionFortyNine: (_, params: { FortyNine: string }) => {},
+        actionFifty: (_, params: { Fifty: string }) => {},
+        actionFiftyOne: (_, params: { FiftyOne: string }) => {},
+        actionFiftyTwo: (_, params: { FiftyTwo: string }) => {},
+        actionFiftyThree: (_, params: { FiftyThree: string }) => {},
+        actionFiftyFour: (_, params: { FiftyFour: string }) => {},
+        actionFiftyFive: (_, params: { FiftyFive: string }) => {},
+        actionFiftySix: (_, params: { FiftySix: string }) => {},
+        actionFiftySeven: (_, params: { FiftySeven: string }) => {},
+        actionFiftyEight: (_, params: { FiftyEight: string }) => {},
+        actionFiftyNine: (_, params: { FiftyNine: string }) => {},
+        actionSixty: (_, params: { Sixty: string }) => {},
+        actionSixtyOne: (_, params: { SixtyOne: string }) => {},
+        actionSixtyTwo: (_, params: { SixtyTwo: string }) => {},
+        actionSixtyThree: (_, params: { SixtyThree: string }) => {},
+        actionSixtyFour: (_, params: { SixtyFour: string }) => {},
+        actionSixtyFive: (_, params: { SixtyFive: string }) => {},
+        actionSixtySix: (_, params: { SixtySix: string }) => {},
+        actionSixtySeven: (_, params: { SixtySeven: string }) => {},
+        actionSixtyEight: (_, params: { SixtyEight: string }) => {},
+        actionSixtyNine: (_, params: { SixtyNine: string }) => {},
+        actionSeventy: (_, params: { Seventy: string }) => {},
+        actionSeventyOne: (_, params: { SeventyOne: string }) => {},
+        actionSeventyTwo: (_, params: { SeventyTwo: string }) => {},
+        actionSeventyThree: (_, params: { SeventyThree: string }) => {},
+        actionSeventyFour: (_, params: { SeventyFour: string }) => {},
+        actionSeventyFive: (_, params: { SeventyFive: string }) => {},
+        actionSeventySix: (_, params: { SeventySix: string }) => {},
+        actionSeventySeven: (_, params: { SeventySeven: string }) => {},
+        actionSeventyEight: (_, params: { SeventyEight: string }) => {},
+        actionSeventyNine: (_, params: { SeventyNine: string }) => {},
+        actionEighty: (_, params: { Eighty: string }) => {},
+        actionEightyOne: (_, params: { EightyOne: string }) => {},
+        actionEightyTwo: (_, params: { EightyTwo: string }) => {},
+        actionEightyThree: (_, params: { EightyThree: string }) => {},
+        actionEightyFour: (_, params: { EightyFour: string }) => {},
+        actionEightyFive: (_, params: { EightyFive: string }) => {},
+        actionEightySix: (_, params: { EightySix: string }) => {},
+        actionEightySeven: (_, params: { EightySeven: string }) => {},
+        actionEightyEight: (_, params: { EightyEight: string }) => {},
+        actionEightyNine: (_, params: { EightyNine: string }) => {},
+        actionNinety: (_, params: { Ninety: string }) => {},
+        actionNinetyOne: (_, params: { NinetyOne: string }) => {},
+        actionNinetyTwo: (_, params: { NinetyTwo: string }) => {},
+        actionNinetyThree: (_, params: { NinetyThree: string }) => {},
+        actionNinetyFour: (_, params: { NinetyFour: string }) => {},
+        actionNinetyFive: (_, params: { NinetyFive: string }) => {},
+        actionNinetySix: (_, params: { NinetySix: string }) => {},
+        actionNinetySeven: (_, params: { NinetySeven: string }) => {},
+        actionNinetyEight: (_, params: { NinetyEight: string }) => {},
+        actionNinetyNine: (_, params: { NinetyNine: string }) => {},
+        actionOneHundred: (_, params: { OneHundred: string }) => {},
+        actionOneHundredOne: (_, params: { OneHundredOne: string }) => {},
+        actionOneHundredTwo: (_, params: { OneHundredTwo: string }) => {},
+        actionOneHundredThree: (_, params: { OneHundredThree: string }) => {}
       },
       guards: {
-        guardOne: () => true,
-        guardTwo: () => true,
-        guardThree: () => true,
-        guardFour: () => true,
-        guardFive: () => true,
-        guardSix: () => true,
-        guardSeven: () => true,
-        guardEight: () => true,
-        guardNine: () => true,
-        guardTen: () => true,
-        guardEleven: () => true,
-        guardTwelve: () => true,
-        guardThirteen: () => true,
-        guardFourteen: () => true,
-        guardFifteen: () => true,
-        guardSixteen: () => true,
-        guardSeventeen: () => true,
-        guardEighteen: () => true,
-        guardNineteen: () => true,
-        guardTwenty: () => true
+        guardOne: (_, params: { One: string }) => true,
+        guardTwo: (_, params: { Two: string }) => true,
+        guardThree: (_, params: { Three: string }) => true,
+        guardFour: (_, params: { Four: string }) => true,
+        guardFive: (_, params: { Five: string }) => true,
+        guardSix: (_, params: { Six: string }) => true,
+        guardSeven: (_, params: { Seven: string }) => true,
+        guardEight: (_, params: { Eight: string }) => true,
+        guardNine: (_, params: { Nine: string }) => true,
+        guardTen: (_, params: { Ten: string }) => true,
+        guardEleven: (_, params: { Eleven: string }) => true,
+        guardTwelve: (_, params: { Twelve: string }) => true,
+        guardThirteen: (_, params: { Thirteen: string }) => true,
+        guardFourteen: (_, params: { Fourteen: string }) => true,
+        guardFifteen: (_, params: { Fifteen: string }) => true,
+        guardSixteen: (_, params: { Sixteen: string }) => true,
+        guardSeventeen: (_, params: { Seventeen: string }) => true,
+        guardEighteen: (_, params: { Eighteen: string }) => true,
+        guardNineteen: (_, params: { Nineteen: string }) => true,
+        guardTwenty: (_, params: { Twenty: string }) => true,
+        otherGuardOne: (_, params: { One: string }) => true,
+        otherGuardTwo: (_, params: { Two: string }) => true,
+        otherGuardThree: (_, params: { Three: string }) => true,
+        otherGuardFour: (_, params: { Four: string }) => true,
+        otherGuardFive: (_, params: { Five: string }) => true,
+        otherGuardSix: (_, params: { Six: string }) => true,
+        otherGuardSeven: (_, params: { Seven: string }) => true,
+        otherGuardEight: (_, params: { Eight: string }) => true,
+        otherGuardNine: (_, params: { Nine: string }) => true,
+        otherGuardTen: (_, params: { Ten: string }) => true,
+        otherGuardEleven: (_, params: { Eleven: string }) => true,
+        otherGuardTwelve: (_, params: { Twelve: string }) => true,
+        otherGuardThirteen: (_, params: { Thirteen: string }) => true,
+        otherGuardFourteen: (_, params: { Fourteen: string }) => true,
+        otherGuardFifteen: (_, params: { Fifteen: string }) => true,
+        otherGuardSixteen: (_, params: { Sixteen: string }) => true,
+        otherGuardSeventeen: (_, params: { Seventeen: string }) => true,
+        otherGuardEighteen: (_, params: { Eighteen: string }) => true,
+        otherGuardNineteen: (_, params: { Nineteen: string }) => true,
+        otherGuardTwenty: (_, params: { Twenty: string }) => true,
+        anotherOuardOne: (_, params: { One: string }) => true,
+        anotherOuardTwo: (_, params: { Two: string }) => true,
+        anotherOuardThree: (_, params: { Three: string }) => true,
+        anotherOuardFour: (_, params: { Four: string }) => true,
+        anotherOuardFive: (_, params: { Five: string }) => true,
+        anotherOuardSix: (_, params: { Six: string }) => true,
+        anotherOuardSeven: (_, params: { Seven: string }) => true,
+        anotherOuardEight: (_, params: { Eight: string }) => true,
+        anotherOuardNine: (_, params: { Nine: string }) => true,
+        anotherOuardTen: (_, params: { Ten: string }) => true,
+        anotherOuardEleven: (_, params: { Eleven: string }) => true,
+        anotherOuardTwelve: (_, params: { Twelve: string }) => true,
+        anotherOuardThirteen: (_, params: { Thirteen: string }) => true,
+        anotherOuardFourteen: (_, params: { Fourteen: string }) => true,
+        anotherOuardFifteen: (_, params: { Fifteen: string }) => true,
+        anotherOuardSixteen: (_, params: { Sixteen: string }) => true,
+        anotherOuardSeventeen: (_, params: { Seventeen: string }) => true,
+        anotherOuardEighteen: (_, params: { Eighteen: string }) => true,
+        anotherOuardNineteen: (_, params: { Nineteen: string }) => true,
+        anotherOuardTwenty: (_, params: { Twenty: string }) => true,
+        anotherOtherGuardOne: (_, params: { One: string }) => true,
+        anotherOtherGuardTwo: (_, params: { Two: string }) => true,
+        anotherOtherGuardThree: (_, params: { Three: string }) => true,
+        anotherOtherGuardFour: (_, params: { Four: string }) => true,
+        anotherOtherGuardFive: (_, params: { Five: string }) => true,
+        anotherOtherGuardSix: (_, params: { Six: string }) => true,
+        anotherOtherGuardSeven: (_, params: { Seven: string }) => true,
+        anotherOtherGuardEight: (_, params: { Eight: string }) => true,
+        anotherOtherGuardNine: (_, params: { Nine: string }) => true,
+        anotherOtherGuardTen: (_, params: { Ten: string }) => true,
+        anotherOtherGuardEleven: (_, params: { Eleven: string }) => true,
+        anotherOtherGuardTwelve: (_, params: { Twelve: string }) => true,
+        anotherOtherGuardThirteen: (_, params: { Thirteen: string }) => true,
+        anotherOtherGuardFourteen: (_, params: { Fourteen: string }) => true,
+        anotherOtherGuardFifteen: (_, params: { Fifteen: string }) => true,
+        anotherOtherGuardSixteen: (_, params: { Sixteen: string }) => true,
+        anotherOtherGuardSeventeen: (_, params: { Seventeen: string }) => true,
+        anotherOtherGuardEighteen: (_, params: { Eighteen: string }) => true,
+        anotherOtherGuardNineteen: (_, params: { Nineteen: string }) => true,
+        anotherOtherGuardTwenty: (_, params: { Twenty: string }) => true
       }
     }).createMachine({
       context: {
@@ -5034,7 +5342,24 @@ describe('TypeScript stress test', () => {
                 x.enqueue({
                   type: 'assignArr'
                 });
-              })
+              }),
+              invoke: {
+                src: 'transition4',
+                onDone: {
+                  actions: {
+                    type: 'actionTwo',
+                    params: {
+                      two: 'two'
+                    }
+                  },
+                  guard: {
+                    type: 'otherGuardSix',
+                    params: {
+                      Six: 'six'
+                    }
+                  }
+                }
+              }
             },
             two: {},
             three: {},
