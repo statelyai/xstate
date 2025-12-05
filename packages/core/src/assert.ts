@@ -1,7 +1,5 @@
-import isDevelopment from '#is-development';
-import { WILDCARD } from './constants.ts';
 import { EventDescriptor, EventObject, ExtractEvent } from './types.ts';
-import { toArray } from './utils.ts';
+import { matchesEventDescriptor, toArray } from './utils.ts';
 
 /**
  * Asserts that the given event object is of the specified type or types. Throws
@@ -48,57 +46,4 @@ export function assertEvent<
       `Expected event ${JSON.stringify(event)} to have ${typesText}`
     );
   }
-}
-
-function matchesEventDescriptor(
-  eventType: string,
-  descriptor: string
-): boolean {
-  if (descriptor === eventType) {
-    return true;
-  }
-
-  if (descriptor === WILDCARD) {
-    return true;
-  }
-
-  if (!descriptor.endsWith('.*')) {
-    return false;
-  }
-
-  if (isDevelopment && /.*\*.+/.test(descriptor)) {
-    console.warn(
-      `Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "${descriptor}" event.`
-    );
-  }
-
-  const partialEventTokens = descriptor.split('.');
-  const eventTokens = eventType.split('.');
-
-  for (
-    let tokenIndex = 0;
-    tokenIndex < partialEventTokens.length;
-    tokenIndex++
-  ) {
-    const partialEventToken = partialEventTokens[tokenIndex];
-    const eventToken = eventTokens[tokenIndex];
-
-    if (partialEventToken === '*') {
-      const isLastToken = tokenIndex === partialEventTokens.length - 1;
-
-      if (isDevelopment && !isLastToken) {
-        console.warn(
-          `Infix wildcards in transition events are not allowed. Check the "${descriptor}" transition.`
-        );
-      }
-
-      return isLastToken;
-    }
-
-    if (partialEventToken !== eventToken) {
-      return false;
-    }
-  }
-
-  return true;
 }
