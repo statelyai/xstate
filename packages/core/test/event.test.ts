@@ -9,10 +9,9 @@ describe('events', () => {
       //   events: {} as { type: 'CODE'; sender: AnyActorRef }
       // },
       schemas: {
-        events: z.object({
-          type: z.literal('CODE'),
-          sender: z.any() // TODO: AnyActorRef
-        })
+        events: {
+          CODE: z.object({ sender: z.any() })
+        }
       },
       id: 'authServer',
       initial: 'waitingForCode',
@@ -98,10 +97,9 @@ describe('nested transitions', () => {
           email: z.string(),
           password: z.string()
         }),
-        events: z.object({
-          type: z.literal('changePassword'),
-          password: z.string()
-        })
+        events: {
+          changePassword: z.object({ password: z.string() })
+        }
       },
       context: { email: '', password: '' },
       initial: 'passwordField',

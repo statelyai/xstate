@@ -1,4 +1,5 @@
 import { createActor, matchesState, createMachine } from '../src/index.ts';
+import { InferEvents } from '../src/types.v6.ts';
 import { trackEntries } from './utils.ts';
 import z from 'zod';
 
@@ -15,18 +16,12 @@ describe('guard conditions', () => {
       context: z.object({
         elapsed: z.number()
       }),
-      events: z.union([
-        z.object({
-          type: z.literal('TIMER')
-        }),
-        z.object({
-          type: z.literal('EMERGENCY'),
-          isEmergency: z.boolean()
-        }),
-        z.object({
-          type: z.literal('TIMER_COND_OBJ')
-        })
-      ])
+
+      events: {
+        TIMER: z.object({}),
+        EMERGENCY: z.object({ isEmergency: z.boolean() }),
+        TIMER_COND_OBJ: z.object({})
+      }
     },
     context: ({ input = {} }) => ({
       elapsed: input.elapsed ?? 0
@@ -135,25 +130,14 @@ describe('guard conditions', () => {
   it('should not transition if no condition is met', () => {
     const machine = createMachine({
       schemas: {
-        events: z.object({
-          type: z.literal('TIMER'),
-          elapsed: z.number()
-        })
+        events: {
+          TIMER: z.object({ elapsed: z.number() })
+        }
       },
       initial: 'a',
       states: {
         a: {
           on: {
-            // TIMER: [
-            //   {
-            //     target: 'b',
-            //     guard: ({ event: { elapsed } }) => elapsed > 200
-            //   },
-            //   {
-            //     target: 'c',
-            //     guard: ({ event: { elapsed } }) => elapsed > 100
-            //   }
-            // ]
             TIMER: ({ event: { elapsed } }) => {
               if (elapsed > 200) {
                 return { target: 'b' };
@@ -216,15 +200,10 @@ describe('guard conditions', () => {
         context: z.object({
           elapsed: z.number()
         }),
-        events: z.union([
-          z.object({
-            type: z.literal('TIMER')
-          }),
-          z.object({
-            type: z.literal('EMERGENCY'),
-            isEmergency: z.boolean()
-          })
-        ])
+        events: {
+          TIMER: z.object({}),
+          EMERGENCY: z.object({ isEmergency: z.boolean() })
+        }
       },
       context: {
         elapsed: 10
@@ -470,18 +449,11 @@ describe('[function] guard conditions', () => {
       context: z.object({
         elapsed: z.number()
       }),
-      events: z.union([
-        z.object({
-          type: z.literal('TIMER')
-        }),
-        z.object({
-          type: z.literal('TIMER_COND_OBJ')
-        }),
-        z.object({
-          type: z.literal('EMERGENCY'),
-          isEmergency: z.boolean()
-        })
-      ])
+      events: {
+        TIMER: z.object({}),
+        TIMER_COND_OBJ: z.object({}),
+        EMERGENCY: z.object({ isEmergency: z.boolean() })
+      }
     },
     context: ({ input = {} }) => ({
       elapsed: input.elapsed ?? 0
@@ -550,10 +522,9 @@ describe('[function] guard conditions', () => {
   it('should not transition if no condition is met', () => {
     const machine = createMachine({
       schemas: {
-        events: z.object({
-          type: z.literal('TIMER'),
-          elapsed: z.number()
-        })
+        events: {
+          TIMER: z.object({ elapsed: z.number() })
+        }
       },
       initial: 'a',
       states: {
@@ -619,15 +590,10 @@ describe('[function] guard conditions', () => {
         context: z.object({
           elapsed: z.number()
         }),
-        events: z.union([
-          z.object({
-            type: z.literal('TIMER')
-          }),
-          z.object({
-            type: z.literal('EMERGENCY'),
-            isEmergency: z.boolean()
-          })
-        ])
+        events: {
+          TIMER: z.object({}),
+          EMERGENCY: z.object({ isEmergency: z.boolean() })
+        }
       },
       context: {
         elapsed: 10
@@ -783,14 +749,13 @@ describe('custom guards', () => {
     const contextSchema = z.object({
       count: z.number()
     });
-    const eventSchema = z.object({
-      type: z.literal('EVENT'),
-      value: z.number()
-    });
+    const eventSchema = {
+      EVENT: z.object({ value: z.number() })
+    };
 
     function customGuard(
       context: z.infer<typeof contextSchema>,
-      event: z.infer<typeof eventSchema>,
+      event: InferEvents<typeof eventSchema>,
       params: {
         prop: keyof z.infer<typeof contextSchema>;
         op: 'greaterThan';

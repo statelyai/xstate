@@ -241,10 +241,9 @@ describe('assigning to context', () => {
         context: z.object({
           count: z.number()
         }),
-        events: z.object({
-          type: z.literal('INC'),
-          value: z.number()
-        })
+        events: {
+          INC: z.object({ value: z.number() })
+        }
       },
       initial: 'active',
       context: {

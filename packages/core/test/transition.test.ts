@@ -37,10 +37,10 @@ describe('transition function', () => {
         context: z.object({
           count: z.number()
         }),
-        events: z.union([
-          z.object({ type: z.literal('event'), msg: z.string() }),
-          z.object({ type: z.literal('stringAction') })
-        ])
+        events: {
+          event: z.object({ msg: z.string() }),
+          stringAction: z.object({})
+        }
       },
       entry: (_, enq) => {
         enq(actionWithParams, { a: 1 });
@@ -270,10 +270,11 @@ describe('transition function', () => {
         context: z.object({
           count: z.number()
         }),
-        emitted: z.object({
-          type: z.literal('counted'),
-          count: z.number()
-        })
+        emitted: {
+          counted: z.object({
+            count: z.number()
+          })
+        }
       },
       initial: 'a',
       context: { count: 10 },

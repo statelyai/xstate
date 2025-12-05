@@ -1978,6 +1978,11 @@ describe('entry/exit actions', () => {
           id: 'myChild',
           src: child
         },
+        schemas: {
+          events: {
+            NEXT: z.object({})
+          }
+        },
         on: {
           // NEXT: {
           //   actions: sendTo('myChild', { type: 'FINISH' })
@@ -2478,10 +2483,9 @@ describe('action meta', () => {
 
     const machine = createMachine({
       schemas: {
-        events: z.object({
-          type: z.literal('FOO'),
-          secret: z.number()
-        })
+        events: {
+          FOO: z.object({ secret: z.number() })
+        }
       },
       actions: {
         myAction: (params) => {
@@ -2522,10 +2526,9 @@ describe('forwardTo()', () => {
       //   };
       // },
       schemas: {
-        events: z.object({
-          type: z.literal('EVENT'),
-          value: z.number()
-        })
+        events: {
+          EVENT: z.object({ value: z.number() })
+        }
       },
       id: 'child',
       initial: 'active',
@@ -2558,15 +2561,10 @@ describe('forwardTo()', () => {
       //       };
       // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('EVENT'),
-            value: z.number()
-          }),
-          z.object({
-            type: z.literal('SUCCESS')
-          })
-        ])
+        events: {
+          EVENT: z.object({ value: z.number() }),
+          SUCCESS: z.object({})
+        }
       },
       id: 'parent',
       initial: 'first',
@@ -2610,10 +2608,9 @@ describe('forwardTo()', () => {
       //   };
       // },
       schemas: {
-        events: z.object({
-          type: z.literal('EVENT'),
-          value: z.number()
-        })
+        events: {
+          EVENT: z.object({ value: z.number() })
+        }
       },
       id: 'child',
       initial: 'active',
@@ -2639,15 +2636,10 @@ describe('forwardTo()', () => {
         context: z.object({
           child: z.any()
         }),
-        events: z.union([
-          z.object({
-            type: z.literal('EVENT'),
-            value: z.number()
-          }),
-          z.object({
-            type: z.literal('SUCCESS')
-          })
-        ])
+        events: {
+          EVENT: z.object({ value: z.number() }),
+          SUCCESS: z.object({})
+        }
       },
       id: 'parent',
       initial: 'first',
@@ -2986,9 +2978,9 @@ describe('enqueueActions', () => {
         context: z.object({
           parent: z.any()
         }),
-        events: z.object({
-          type: z.literal('FOO')
-        })
+        events: {
+          foo: z.object({})
+        }
       },
       context: ({ input }) => ({ parent: input.parent }),
       // entry: {
@@ -3013,9 +3005,9 @@ describe('enqueueActions', () => {
       // }).
       createMachine({
         schemas: {
-          events: z.object({
-            type: z.literal('FOO')
-          })
+          events: {
+            FOO: z.object({})
+          }
         },
         on: {
           FOO: (_, enq) => {
@@ -3034,14 +3026,6 @@ describe('enqueueActions', () => {
   });
 
   it('should enqueue.sendParent', () => {
-    interface ChildEvent {
-      type: 'CHILD_EVENT';
-    }
-
-    interface ParentEvent {
-      type: 'PARENT_EVENT';
-    }
-
     const childMachine = createMachine({
       entry: ({ parent }, enq) => {
         enq.sendTo(parent, { type: 'PARENT_EVENT' });
@@ -3078,9 +3062,9 @@ describe('sendParent', () => {
   it('TS: should compile for any event', () => {
     const child = createMachine({
       schemas: {
-        events: z.object({
-          type: z.literal('CHILD')
-        })
+        events: {
+          CHILD: z.object({})
+        }
       },
       id: 'child',
       initial: 'start',
@@ -3102,9 +3086,9 @@ describe('sendTo', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
       schemas: {
-        events: z.object({
-          type: z.literal('EVENT')
-        })
+        events: {
+          EVENT: z.object({})
+        }
       },
       initial: 'waiting',
       states: {
@@ -3142,10 +3126,9 @@ describe('sendTo', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
       schemas: {
-        events: z.object({
-          type: z.literal('EVENT'),
-          count: z.number()
-        })
+        events: {
+          EVENT: z.object({ count: z.number() })
+        }
       },
       initial: 'waiting',
       states: {
@@ -3192,9 +3175,9 @@ describe('sendTo', () => {
       //   events: { type: 'EVENT' };
       // },
       schemas: {
-        events: z.object({
-          type: z.literal('EVENT')
-        })
+        events: {
+          EVENT: z.object({})
+        }
       },
       initial: 'waiting',
       states: {
@@ -3240,9 +3223,9 @@ describe('sendTo', () => {
       //   events: { type: 'EVENT' };
       // },
       schemas: {
-        events: z.object({
-          type: z.literal('EVENT')
-        })
+        events: {
+          EVENT: z.object({})
+        }
       },
       initial: 'waiting',
       states: {
@@ -3287,9 +3270,9 @@ describe('sendTo', () => {
       //   events: { type: 'EVENT' };
       // },
       schemas: {
-        events: z.object({
-          type: z.literal('EVENT')
-        })
+        events: {
+          EVENT: z.object({})
+        }
       },
       initial: 'waiting',
       states: {
@@ -3337,10 +3320,9 @@ describe('sendTo', () => {
         context: z.record(
           z.custom<ActorRefFromLogic<CallbackActorLogic<any, any, any>>>()
         ),
-        events: z.object({
-          type: z.literal('EVENT'),
-          value: z.string()
-        })
+        events: {
+          EVENT: z.object({ value: z.string() })
+        }
       },
       initial: 'a',
       context: ({ spawn }) => ({
@@ -3787,9 +3769,10 @@ describe('raise', () => {
         context: z.object({
           eventType: z.enum(['RAISED', 'NEXT'])
         }),
-        events: z.object({
-          type: z.enum(['RAISED', 'NEXT'])
-        })
+        events: {
+          RAISED: z.object({}),
+          NEXT: z.object({})
+        }
       },
       initial: 'a',
       context: {

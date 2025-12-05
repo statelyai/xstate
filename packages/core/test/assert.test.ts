@@ -1,14 +1,15 @@
 import { z } from 'zod';
 import { createActor, createMachine, assertEvent } from '../src';
+import { InferEvents } from '../src/types.v6';
 
 describe('assertion helpers', () => {
   it('assertEvent asserts the correct event type', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const events = z.union([
-      z.object({ type: z.literal('greet'), message: z.string() }),
-      z.object({ type: z.literal('count'), value: z.number() })
-    ]);
-    const greet = (event: z.infer<typeof events>) => {
+    const events = {
+      greet: z.object({ message: z.string() }),
+      count: z.object({ value: z.number() })
+    };
+    const greet = (event: InferEvents<typeof events>) => {
       // @ts-expect-error
       event.message;
 
@@ -54,16 +55,15 @@ describe('assertion helpers', () => {
 
   it('assertEvent asserts multiple event types', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const events = z.union([
-      z.object({ type: z.literal('greet'), message: z.string() }),
-      z.object({ type: z.literal('count'), value: z.number() }),
-      z.object({
-        type: z.literal('notify'),
+    const events = {
+      greet: z.object({ message: z.string() }),
+      count: z.object({ value: z.number() }),
+      notify: z.object({
         message: z.string(),
         level: z.enum(['info', 'error'])
       })
-    ]);
-    const greet = (event: z.infer<typeof events>) => {
+    };
+    const greet = (event: InferEvents<typeof events>) => {
       // @ts-expect-error
       event.message;
 

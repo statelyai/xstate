@@ -117,10 +117,11 @@ describe('getShortestPaths', () => {
         context: z.object({
           todos: z.array(z.string())
         }),
-        events: z.object({
-          type: z.literal('todo.add'),
-          todo: z.string()
-        })
+        events: {
+          'todo.add': z.object({
+            todo: z.string()
+          })
+        }
       },
       context: {
         todos: []

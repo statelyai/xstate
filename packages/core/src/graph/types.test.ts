@@ -9,10 +9,10 @@ describe('getShortestPath types', () => {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       // }
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('FOO') }),
-          z.object({ type: z.literal('BAR') })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({})
+        }
       }
     });
 
@@ -31,10 +31,10 @@ describe('getShortestPath types', () => {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       // }
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('FOO') }),
-          z.object({ type: z.literal('BAR') })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({})
+        }
       }
     });
 
@@ -53,7 +53,9 @@ describe('getShortestPath types', () => {
       //   events: { type: 'FOO'; value: number };
       // }
       schemas: {
-        events: z.object({ type: z.literal('FOO'), value: z.number() })
+        events: {
+          FOO: z.object({ value: z.number() })
+        }
       }
     });
 
@@ -73,10 +75,10 @@ describe('getShortestPath types', () => {
       //   events: { type: 'FOO'; value: number } | { type: 'BAR'; value: number };
       // }
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('FOO'), value: z.number() }),
-          z.object({ type: z.literal('BAR'), value: z.number() })
-        ])
+        events: {
+          FOO: z.object({ value: z.number() }),
+          BAR: z.object({ value: z.number() })
+        }
       }
     });
 
@@ -88,10 +90,10 @@ describe('getShortestPath types', () => {
   it('`events` should not require all event types (tuple)', () => {
     const machine = createMachine({
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('FOO'), value: z.number() }),
-          z.object({ type: z.literal('BAR'), value: z.number() })
-        ])
+        events: {
+          FOO: z.object({ value: z.number() }),
+          BAR: z.object({ value: z.number() })
+        }
       }
     });
 
@@ -105,10 +107,10 @@ describe('getShortestPath types', () => {
   it('`events` should not require all event types (function)', () => {
     const machine = createMachine({
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('FOO'), value: z.number() }),
-          z.object({ type: z.literal('BAR'), value: z.number() })
-        ])
+        events: {
+          FOO: z.object({ value: z.number() }),
+          BAR: z.object({ value: z.number() })
+        }
       }
     });
 
@@ -121,7 +123,9 @@ describe('getShortestPath types', () => {
     const machine = createMachine({
       // types: { events: {} as { type: 'FOO'; value: number } }
       schemas: {
-        events: z.object({ type: z.literal('FOO'), value: z.number() })
+        events: {
+          FOO: z.object({ value: z.number() })
+        }
       }
     });
 
@@ -142,10 +146,10 @@ describe('getShortestPath types', () => {
       //   events: { type: 'FOO'; value: number } | { type: 'BAR'; other: string };
       // }
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('FOO'), value: z.number() }),
-          z.object({ type: z.literal('BAR'), other: z.string() })
-        ])
+        events: {
+          FOO: z.object({ value: z.number() }),
+          BAR: z.object({ other: z.string() })
+        }
       }
     });
 
@@ -187,10 +191,10 @@ describe('createTestModel types', () => {
       //     | { type: 'b'; valueB: number }
       // },
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('a'), valueA: z.boolean() }),
-          z.object({ type: z.literal('b'), valueB: z.number() })
-        ])
+        events: {
+          a: z.object({ valueA: z.boolean() }),
+          b: z.object({ valueB: z.number() })
+        }
       },
       initial: 'a',
       states: {

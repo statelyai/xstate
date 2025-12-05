@@ -143,12 +143,9 @@ describe('input', () => {
         context: z.object({
           greeting: z.string()
         }),
-        events: z.object({
-          type: z.literal('greeting'),
-          input: z.object({
-            greeting: z.string()
-          })
-        })
+        events: {
+          greeting: z.object({ greeting: z.string() })
+        }
       },
       context({ input }) {
         return input;

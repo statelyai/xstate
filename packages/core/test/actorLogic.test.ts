@@ -722,10 +722,9 @@ describe('callback logic (fromCallback)', () => {
       //   events: { type: 'PING'; ref: AnyActorRef };
       // },
       schemas: {
-        events: z.object({
-          type: z.literal('PING'),
-          ref: z.any()
-        })
+        events: {
+          PING: z.object({ ref: z.any() })
+        }
       },
       invoke: {
         src: fromCallback(({ self, sendBack, receive }) => {
@@ -769,10 +768,9 @@ describe('callback logic (fromCallback)', () => {
     const machine = createMachine({
       // types: {} as { events: { type: 'EV'; data: number } },
       schemas: {
-        events: z.object({
-          type: z.literal('EV'),
-          data: z.number()
-        })
+        events: {
+          EV: z.object({ data: z.number() })
+        }
       },
       initial: 'a',
       states: {
@@ -1008,14 +1006,15 @@ describe('machine logic', () => {
   it('should not invoke an actor if it is missing in persisted state', () => {
     const machine = createMachine({
       schemas: {
-        events: z.object({
-          type: z.literal('NEXT'),
-          data: z.object({
-            deep: z.object({
-              prop: z.string()
+        events: {
+          NEXT: z.object({
+            data: z.object({
+              deep: z.object({
+                prop: z.string()
+              })
             })
           })
-        })
+        }
       },
       initial: 'a',
       states: {

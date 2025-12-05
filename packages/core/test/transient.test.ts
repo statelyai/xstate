@@ -604,10 +604,9 @@ describe('transient states (eventless transitions)', () => {
 
     const machine = createMachine({
       schemas: {
-        events: z.object({
-          type: z.literal('EVENT'),
-          value: z.number()
-        })
+        events: {
+          EVENT: z.object({ value: z.number() })
+        }
       },
       initial: 'a',
       states: {

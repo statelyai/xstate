@@ -337,10 +337,9 @@ describe('delayed transitions', () => {
       const machine = createMachine({
         initial: 'inactive',
         schemas: {
-          events: z.object({
-            type: z.literal('ACTIVATE'),
-            delay: z.number()
-          })
+          events: {
+            ACTIVATE: z.object({ delay: z.number() })
+          }
         },
         delays: {
           someDelay: ({ event }) => {

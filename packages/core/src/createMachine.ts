@@ -16,6 +16,7 @@ import {
 import {
   Implementations,
   InferOutput,
+  InferEvents,
   Next_MachineConfig,
   Next_StateNodeConfig,
   WithDefault
@@ -78,14 +79,14 @@ type _GroupTestValues<TTestValue extends string | TestValue> =
  */
 export function createMachine<
   TContextSchema extends StandardSchemaV1,
-  TEventSchema extends StandardSchemaV1,
-  TEmittedSchema extends StandardSchemaV1,
+  TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   // TContext extends MachineContext,
-  TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
+  _TEvent extends EventObject,
   TActor extends ProvidedActor,
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
@@ -99,14 +100,14 @@ export function createMachine<
   config: TSS &
     Next_MachineConfig<
       TContextSchema,
-      TEventSchema,
-      TEmittedSchema,
+      TEventSchemaMap,
+      TEmittedSchemaMap,
       TInputSchema,
       TOutputSchema,
       TMetaSchema,
       TTagSchema,
       InferOutput<TContextSchema, MachineContext>,
-      TEvent,
+      InferEvents<TEventSchemaMap>,
       TDelays,
       TTag,
       TActionMap,
@@ -116,13 +117,13 @@ export function createMachine<
     >
 ): StateMachine<
   InferOutput<TContextSchema, MachineContext>,
-  TEvent,
+  InferEvents<TEventSchemaMap>,
   Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
   StateValue,
   TTag & string,
   TInput,
   InferOutput<TOutputSchema, unknown>,
-  WithDefault<InferOutput<TEmittedSchema, EventObject>, AnyEventObject>,
+  WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
   InferOutput<TMetaSchema, MetaObject>, // TMeta
   TSS, // TStateSchema
   TActionMap,

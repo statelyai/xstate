@@ -21,10 +21,10 @@ describe('assertion helpers', () => {
 
     const machine = createMachine({
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('greet'), message: z.string() }),
-          z.object({ type: z.literal('count'), value: z.number() })
-        ])
+        events: {
+          greet: z.object({ message: z.string() }),
+          count: z.object({ value: z.number() })
+        }
       },
 
       on: {
@@ -81,15 +81,14 @@ describe('assertion helpers', () => {
 
     const machine = createMachine({
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('greet'), message: z.string() }),
-          z.object({
-            type: z.literal('notify'),
+        events: {
+          greet: z.object({ message: z.string() }),
+          notify: z.object({
             message: z.string(),
             level: z.enum(['info', 'error'])
           }),
-          z.object({ type: z.literal('count'), value: z.number() })
-        ])
+          count: z.object({ value: z.number() })
+        }
       },
 
       on: {

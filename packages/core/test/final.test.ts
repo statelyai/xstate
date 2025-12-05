@@ -188,10 +188,9 @@ describe('final states', () => {
     const spy = vi.fn();
     const machine = createMachine({
       schemas: {
-        events: z.object({
-          type: z.literal('FINISH'),
-          value: z.number()
-        })
+        events: {
+          FINISH: z.object({ value: z.number() })
+        }
       },
       initial: 'start',
       states: {

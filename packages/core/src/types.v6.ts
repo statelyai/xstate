@@ -19,7 +19,8 @@ import {
   SnapshotEvent,
   StateValue,
   TODO,
-  TransitionConfigFunction
+  TransitionConfigFunction,
+  Values
 } from './types';
 import { MachineContext, Mapper } from './types';
 import { LowInfer } from './types';
@@ -31,17 +32,24 @@ export type InferOutput<T extends StandardSchemaV1, U> = Compute<
     : never
 >;
 
+export type InferEvents<
+  TEventSchemaMap extends Record<string, StandardSchemaV1>
+> = Values<{
+  [K in keyof TEventSchemaMap & string]: StandardSchemaV1.InferOutput<
+    TEventSchemaMap[K]
+  > & { type: K };
+}>;
+
 export type Next_MachineConfig<
   TContextSchema extends StandardSchemaV1,
-  TEventSchema extends StandardSchemaV1,
-  TEmittedSchema extends StandardSchemaV1,
+  TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   TContext extends MachineContext = InferOutput<TContextSchema, MachineContext>,
-  TEvent extends EventObject = StandardSchemaV1.InferOutput<TEventSchema> &
-    EventObject,
+  TEvent extends EventObject = InferEvents<TEventSchemaMap>,
   TDelays extends string = string,
   _TTag extends string = string,
   TActionMap extends Implementations['actions'] = Implementations['actions'],
@@ -51,11 +59,11 @@ export type Next_MachineConfig<
 > = (Omit<
   Next_StateNodeConfig<
     InferOutput<TContextSchema, MachineContext>,
-    DoNotInfer<StandardSchemaV1.InferOutput<TEventSchema> & EventObject>,
+    DoNotInfer<InferEvents<TEventSchemaMap>>,
     DoNotInfer<TDelays>,
     DoNotInfer<StandardSchemaV1.InferOutput<TTagSchema> & string>,
     DoNotInfer<StandardSchemaV1.InferOutput<TOutputSchema>>,
-    DoNotInfer<StandardSchemaV1.InferOutput<TEmittedSchema> & EventObject>,
+    DoNotInfer<InferEvents<TEmittedSchemaMap>>,
     DoNotInfer<InferOutput<TMetaSchema, MetaObject>>,
     DoNotInfer<TActionMap>,
     DoNotInfer<TActorMap>,
@@ -65,9 +73,9 @@ export type Next_MachineConfig<
   'output'
 > & {
   schemas?: {
-    events?: TEventSchema;
+    events?: TEventSchemaMap;
     context?: TContextSchema;
-    emitted?: TEmittedSchema;
+    emitted?: TEmittedSchemaMap;
     input?: TInputSchema;
     output?: TOutputSchema;
     meta?: TMetaSchema;

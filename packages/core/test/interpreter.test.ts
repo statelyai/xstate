@@ -251,15 +251,11 @@ describe('interpreter', () => {
           context: z.object({
             initialDelay: z.number()
           }),
-          events: z.union([
-            z.object({
-              type: z.literal('ACTIVATE'),
-              wait: z.number()
-            }),
-            z.object({
-              type: z.literal('FINISH')
-            })
-          ])
+
+          events: {
+            ACTIVATE: z.object({ wait: z.number() }),
+            FINISH: z.object({})
+          }
         },
         id: 'delayExpr',
         context: {
@@ -348,15 +344,10 @@ describe('interpreter', () => {
           context: z.object({
             initialDelay: z.number()
           }),
-          events: z.union([
-            z.object({
-              type: z.literal('ACTIVATE'),
-              wait: z.number()
-            }),
-            z.object({
-              type: z.literal('FINISH')
-            })
-          ])
+          events: {
+            ACTIVATE: z.object({ wait: z.number() }),
+            FINISH: z.object({})
+          }
         },
         id: 'delayExpr',
         context: {
@@ -438,10 +429,9 @@ describe('interpreter', () => {
             context: z.object({
               delay: z.number()
             }),
-            events: z.object({
-              type: z.literal('FIRE_DELAY'),
-              value: z.number()
-            })
+            events: {
+              FIRE_DELAY: z.object({ value: z.number() })
+            }
           },
           delays: {
             someDelay: ({ context }) => context.delay + 50,
@@ -929,10 +919,9 @@ describe('interpreter', () => {
         context: z.object({
           password: z.string()
         }),
-        events: z.object({
-          type: z.literal('NEXT'),
-          password: z.string()
-        })
+        events: {
+          NEXT: z.object({ password: z.string() })
+        }
       },
       id: 'sendexpr',
       initial: 'start',
@@ -1022,10 +1011,9 @@ describe('interpreter', () => {
         //   };
         // },
         schemas: {
-          events: z.object({
-            type: z.literal('NEXT'),
-            password: z.string()
-          })
+          events: {
+            NEXT: z.object({ password: z.string() })
+          }
         },
         id: 'parent',
         initial: 'start',
@@ -1073,15 +1061,10 @@ describe('interpreter', () => {
   describe('.send()', () => {
     const sendMachine = createMachine({
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('EVENT'),
-            id: z.number()
-          }),
-          z.object({
-            type: z.literal('ACTIVATE')
-          })
-        ])
+        events: {
+          EVENT: z.object({ id: z.number() }),
+          ACTIVATE: z.object({})
+        }
       },
       id: 'send',
       initial: 'inactive',
@@ -1180,6 +1163,9 @@ describe('interpreter', () => {
       const entrySpy = vi.fn();
 
       const machine = createMachine({
+        schemas: {
+          context: z.object({})
+        },
         context: contextSpy,
         entry: entrySpy,
         initial: 'foo',
@@ -1201,6 +1187,9 @@ describe('interpreter', () => {
       const entrySpy = vi.fn();
 
       const machine = createMachine({
+        schemas: {
+          context: z.object({})
+        },
         context: contextSpy,
         entry: (_, enq) => enq(entrySpy)
       });

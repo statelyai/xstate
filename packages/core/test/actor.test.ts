@@ -56,17 +56,11 @@ describe('spawning machines', () => {
     //   events: PingPongEvent;
     // },
     schemas: {
-      events: z.union([
-        z.object({
-          type: z.literal('PING')
-        }),
-        z.object({
-          type: z.literal('PONG')
-        }),
-        z.object({
-          type: z.literal('SUCCESS')
-        })
-      ])
+      events: {
+        PING: z.object({}),
+        PONG: z.object({}),
+        SUCCESS: z.object({})
+      }
     },
     id: 'server',
     initial: 'waitPing',
@@ -99,17 +93,11 @@ describe('spawning machines', () => {
       context: z.object({
         server: z.any()
       }),
-      events: z.union([
-        z.object({
-          type: z.literal('PING')
-        }),
-        z.object({
-          type: z.literal('PONG')
-        }),
-        z.object({
-          type: z.literal('SUCCESS')
-        })
-      ])
+      events: {
+        PING: z.object({}),
+        PONG: z.object({}),
+        SUCCESS: z.object({})
+      }
     },
     id: 'client',
     initial: 'init',
@@ -182,19 +170,11 @@ describe('spawning machines', () => {
         context: z.object({
           todoRefs: z.record(z.any())
         }),
-        events: z.union([
-          z.object({
-            type: z.literal('ADD'),
-            id: z.number()
-          }),
-          z.object({
-            type: z.literal('SET_COMPLETE'),
-            id: z.number()
-          }),
-          z.object({
-            type: z.literal('TODO_COMPLETED')
-          })
-        ])
+        events: {
+          ADD: z.object({ id: z.number() }),
+          SET_COMPLETE: z.object({ id: z.number() }),
+          TODO_COMPLETED: z.object({})
+        }
       },
       id: 'todos',
       context,
@@ -615,10 +595,9 @@ describe('spawning observables', () => {
         context: z.object({
           observableRef: z.custom<AnyActorRef>()
         }),
-        events: z.object({
-          type: z.literal('COUNT'),
-          val: z.number()
-        })
+        events: {
+          COUNT: z.object({ val: z.number() })
+        }
       },
       initial: 'idle',
       context: {
@@ -792,10 +771,9 @@ describe('spawning event observables', () => {
         context: z.object({
           observableRef: z.custom<AnyActorRef>()
         }),
-        events: z.object({
-          type: z.literal('COUNT'),
-          val: z.number()
-        })
+        events: {
+          COUNT: z.object({ val: z.number() })
+        }
       },
       initial: 'idle',
       context: {
@@ -854,10 +832,9 @@ describe('spawning event observables', () => {
         context: z.object({
           observableRef: z.custom<AnyActorRef>()
         }),
-        events: z.object({
-          type: z.literal('COUNT'),
-          val: z.number()
-        })
+        events: {
+          COUNT: z.object({ val: z.number() })
+        }
       },
       actors: {
         interval: fromEventObservable(() =>
@@ -913,10 +890,9 @@ describe('communicating with spawned actors', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const existingMachine = createMachine({
       schemas: {
-        events: z.object({
-          type: z.literal('ACTIVATE'),
-          origin: z.custom<AnyActorRef>()
-        })
+        events: {
+          ACTIVATE: z.object({ origin: z.custom<AnyActorRef>() })
+        }
       },
       initial: 'inactive',
       states: {
@@ -941,15 +917,10 @@ describe('communicating with spawned actors', () => {
         context: z.object({
           existingRef: z.custom<typeof existingService>().optional()
         }),
-        events: z.union([
-          z.object({
-            type: z.literal('ACTIVATE'),
-            origin: z.custom<typeof parentService>()
-          }),
-          z.object({
-            type: z.literal('EXISTING.DONE')
-          })
-        ])
+        events: {
+          ACTIVATE: z.object({ origin: z.custom<typeof parentService>() }),
+          'EXISTING.DONE': z.object({})
+        }
       },
       initial: 'pending',
       context: {

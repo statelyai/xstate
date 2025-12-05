@@ -7,23 +7,23 @@ const exampleMachine = createMachine({
   //   events: Events;
   // },
   schemas: {
-    events: z.union([
-      z.object({ type: z.literal('BAR_EVENT') }),
-      z.object({ type: z.literal('DEEP_EVENT') }),
-      z.object({ type: z.literal('EXTERNAL') }),
-      z.object({ type: z.literal('FOO_EVENT') }),
-      z.object({ type: z.literal('FORBIDDEN_EVENT') }),
-      z.object({ type: z.literal('INERT') }),
-      z.object({ type: z.literal('INTERNAL') }),
-      z.object({ type: z.literal('MACHINE_EVENT') }),
-      z.object({ type: z.literal('P31') }),
-      z.object({ type: z.literal('P32') }),
-      z.object({ type: z.literal('THREE_EVENT') }),
-      z.object({ type: z.literal('TO_THREE') }),
-      z.object({ type: z.literal('TO_TWO'), foo: z.string() }),
-      z.object({ type: z.literal('TO_TWO_MAYBE') }),
-      z.object({ type: z.literal('TO_FINAL') })
-    ])
+    events: {
+      BAR_EVENT: z.object({}),
+      DEEP_EVENT: z.object({}),
+      EXTERNAL: z.object({}),
+      FOO_EVENT: z.object({}),
+      FORBIDDEN_EVENT: z.object({}),
+      INERT: z.object({}),
+      INTERNAL: z.object({}),
+      MACHINE_EVENT: z.object({}),
+      P31: z.object({}),
+      P32: z.object({}),
+      THREE_EVENT: z.object({}),
+      TO_THREE: z.object({}),
+      TO_TWO: z.object({ foo: z.string() }),
+      TO_TWO_MAYBE: z.object({}),
+      TO_FINAL: z.object({})
+    }
   },
   initial: 'one',
   states: {

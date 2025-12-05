@@ -25,10 +25,11 @@ describe('event emitter', () => {
   it('only emits expected events if specified in schemas', () => {
     createMachine({
       schemas: {
-        emitted: z.object({
-          type: z.literal('greet'),
-          message: z.string()
-        })
+        emitted: {
+          greet: z.object({
+            message: z.string()
+          })
+        }
       },
       entry: (_, enq) => {
         enq.emit({
@@ -83,10 +84,11 @@ describe('event emitter', () => {
   it('emits events that can be listened to on actorRef.on(…)', async () => {
     const machine = createMachine({
       schemas: {
-        emitted: z.object({
-          type: z.literal('emitted'),
-          foo: z.string()
-        })
+        emitted: {
+          emitted: z.object({
+            foo: z.string()
+          })
+        }
       },
       on: {
         someEvent: (_, enq) => {
@@ -115,10 +117,11 @@ describe('event emitter', () => {
   it('enqueue.emit(…) emits events that can be listened to on actorRef.on(…)', async () => {
     const machine = createMachine({
       schemas: {
-        emitted: z.object({
-          type: z.literal('emitted'),
-          foo: z.string()
-        })
+        emitted: {
+          emitted: z.object({
+            foo: z.string()
+          })
+        }
       },
       on: {
         someEvent: (_, enq) => {
@@ -151,10 +154,11 @@ describe('event emitter', () => {
   it('handles errors', async () => {
     const machine = createMachine({
       schemas: {
-        emitted: z.object({
-          type: z.literal('emitted'),
-          foo: z.string()
-        })
+        emitted: {
+          emitted: z.object({
+            foo: z.string()
+          })
+        }
       },
       on: {
         someEvent: (_, enq) => {
@@ -256,14 +260,14 @@ describe('event emitter', () => {
 
     const machine = createMachine({
       schemas: {
-        emitted: z.union([
-          z.object({
+        emitted: {
+          emitted: z.object({
             type: z.literal('emitted')
           }),
-          z.object({
+          anotherEmitted: z.object({
             type: z.literal('anotherEmitted')
           })
-        ])
+        }
       },
       on: {
         event: (_, enq) => {

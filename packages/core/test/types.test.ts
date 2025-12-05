@@ -25,14 +25,10 @@ describe('Raise events', () => {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('FOO')
-          }),
-          z.object({
-            type: z.literal('BAR')
-          })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({})
+        }
       },
       // entry: raise({
       //   type: 'FOO'
@@ -50,14 +46,10 @@ describe('Raise events', () => {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('FOO')
-          }),
-          z.object({
-            type: z.literal('BAR')
-          })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({})
+        }
       },
       entry: (_, enq) =>
         enq.raise({
@@ -75,14 +67,10 @@ describe('Raise events', () => {
       //   events: {} as { type: 'FOO' } | { type: 'BAR' }
       // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('FOO')
-          }),
-          z.object({
-            type: z.literal('BAR')
-          })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({})
+        }
       },
       // @ts-expect-error
       entry: (_, enq) => enq.raise(event)
@@ -95,14 +83,10 @@ describe('Raise events', () => {
       //   events: {} as { type: 'FOO' } | { type: 'BAR' }
       // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('FOO')
-          }),
-          z.object({
-            type: z.literal('BAR')
-          })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({})
+        }
       },
       on: {
         // FOO: {
@@ -138,14 +122,10 @@ describe('Raise events', () => {
       //   events: {} as { type: 'FOO' } | { type: 'BAR' }
       // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('FOO')
-          }),
-          z.object({
-            type: z.literal('BAR')
-          })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({})
+        }
       },
       entry: (_, enq) =>
         enq.raise({
@@ -160,14 +140,10 @@ describe('Raise events', () => {
       //   events: {} as { type: 'FOO' } | { type: 'BAR' }
       // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('FOO')
-          }),
-          z.object({
-            type: z.literal('BAR')
-          })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({})
+        }
       },
       entry: (_, enq) =>
         enq.raise({
@@ -181,18 +157,11 @@ describe('Raise events', () => {
     const event: { type: string } = { type: 'something' };
 
     createMachine({
-      // types: {
-      //   events: {} as { type: 'FOO' } | { type: 'BAR' }
-      // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('FOO')
-          }),
-          z.object({
-            type: z.literal('BAR')
-          })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({})
+        }
       },
       // @ts-expect-error
       // entry: raise(() => event)
@@ -408,14 +377,13 @@ describe('emitted', () => {
 
     const m = createMachine({
       schemas: {
-        emitted: z.union([
-          z.object({
-            type: z.literal('onClick'),
+        emitted: {
+          onClick: z.object({
             x: z.number(),
             y: z.number()
           }),
-          z.object({ type: z.literal('onChange') })
-        ])
+          onChange: z.object({})
+        }
       }
     });
 
@@ -496,10 +464,10 @@ describe('states', () => {
       //   events: { type: 'TOGGLE_ITALIC' } | { type: 'TOGGLE_BOLD' };
       // },
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('TOGGLE_ITALIC') }),
-          z.object({ type: z.literal('TOGGLE_BOLD') })
-        ])
+        events: {
+          TOGGLE_ITALIC: z.object({}),
+          TOGGLE_BOLD: z.object({})
+        }
       },
       type: 'parallel',
       states: {
@@ -519,18 +487,15 @@ describe('states', () => {
     } as const;
 
     createMachine({
-      // types: {} as {
-      //   events: { type: 'TOGGLE_ITALIC' } | { type: 'TOGGLE_BOLD' };
-      // },
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('TOGGLE_ITALIC') }),
-          z.object({ type: z.literal('TOGGLE_BOLD') })
-        ])
+        events: {
+          TOGGLE_ITALIC: z.object({}),
+          TOGGLE_BOLD: z.object({})
+        }
       },
       type: 'parallel',
+      // @ts-expect-error
       states: {
-        // @ts-expect-error
         underline: underlineState
       }
     });
@@ -546,9 +511,9 @@ describe('events', () => {
       //   }
       // },
       schemas: {
-        events: z.object({
-          type: z.literal('FOO')
-        })
+        events: {
+          FOO: z.object({})
+        }
       },
       entry: (_, enq) => enq.raise({ type: 'FOO' })
     });
@@ -568,9 +533,9 @@ describe('events', () => {
       //   }
       // },
       schemas: {
-        events: z.object({
-          type: z.literal('FOO')
-        })
+        events: {
+          FOO: z.object({})
+        }
       },
       entry: (_, enq) => enq.raise({ type: 'FOO' })
     });
@@ -584,21 +549,13 @@ describe('events', () => {
 
   it('event type should be inferable from a simple state machine type', () => {
     const toggleMachine = createMachine({
-      // types: {} as {
-      //   context: {
-      //     count: number;
-      //   };
-      //   events: {
-      //     type: 'TOGGLE';
-      //   };
-      // },
       schemas: {
         context: z.object({
           count: z.number()
         }),
-        events: z.object({
-          type: z.literal('TOGGLE')
-        })
+        events: {
+          TOGGLE: z.object({})
+        }
       },
       context: {
         count: 0
@@ -646,10 +603,10 @@ describe('events', () => {
         context: z.object({
           count: z.number()
         }),
-        events: z.union([
-          z.object({ type: z.literal('EVENT_WITH_FLAG'), flag: z.boolean() }),
-          z.object({ type: z.literal('EVENT_WITHOUT_FLAG') })
-        ])
+        events: {
+          EVENT_WITH_FLAG: z.object({ flag: z.boolean() }),
+          EVENT_WITHOUT_FLAG: z.object({})
+        }
       },
       context: {
         count: 0
@@ -689,10 +646,10 @@ describe('events', () => {
         context: z.object({
           count: z.number()
         }),
-        events: z.union([
-          z.object({ type: z.literal('EVENT_WITH_FLAG'), flag: z.boolean() }),
-          z.object({ type: z.literal('EVENT_WITHOUT_FLAG') })
-        ])
+        events: {
+          EVENT_WITH_FLAG: z.object({ flag: z.boolean() }),
+          EVENT_WITHOUT_FLAG: z.object({})
+        }
       },
       context: {
         count: 0
@@ -729,19 +686,13 @@ describe('events', () => {
       //     | { type: 'keypress' };
       // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('mouse.click.up'),
-            direction: z.literal('up')
-          }),
-          z.object({
-            type: z.literal('mouse.click.down'),
-            direction: z.literal('down')
-          }),
-          z.object({ type: z.literal('mouse.move') }),
-          z.object({ type: z.literal('mouse') }),
-          z.object({ type: z.literal('keypress') })
-        ])
+        events: {
+          'mouse.click.up': z.object({ direction: z.literal('up') }),
+          'mouse.click.down': z.object({ direction: z.literal('down') }),
+          'mouse.move': z.object({}),
+          mouse: z.object({}),
+          keypress: z.object({})
+        }
       },
       on: {
         // 'mouse.click.*': {
@@ -775,19 +726,13 @@ describe('events', () => {
       //     | { type: 'keypress' };
       // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('mouse.click.up'),
-            direction: z.literal('up')
-          }),
-          z.object({
-            type: z.literal('mouse.click.down'),
-            direction: z.literal('down')
-          }),
-          z.object({ type: z.literal('mouse.move') }),
-          z.object({ type: z.literal('mouse') }),
-          z.object({ type: z.literal('keypress') })
-        ])
+        events: {
+          'mouse.click.up': z.object({ direction: z.literal('up') }),
+          'mouse.click.down': z.object({ direction: z.literal('down') }),
+          'mouse.move': z.object({}),
+          mouse: z.object({}),
+          keypress: z.object({})
+        }
       },
       on: {
         // 'mouse.*': {
@@ -821,19 +766,13 @@ describe('events', () => {
       //     | { type: 'keypress' };
       // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('mouse.click.up'),
-            direction: z.literal('up')
-          }),
-          z.object({
-            type: z.literal('mouse.click.down'),
-            direction: z.literal('down')
-          }),
-          z.object({ type: z.literal('mouse.move') }),
-          z.object({ type: z.literal('mouse') }),
-          z.object({ type: z.literal('keypress') })
-        ])
+        events: {
+          'mouse.click.up': z.object({ direction: z.literal('up') }),
+          'mouse.click.down': z.object({ direction: z.literal('down') }),
+          'mouse.move': z.object({}),
+          mouse: z.object({}),
+          keypress: z.object({})
+        }
       },
       on: {
         // @ts-expect-error
@@ -853,19 +792,13 @@ describe('events', () => {
       //     | { type: 'keypress' };
       // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('mouse.click.up'),
-            direction: z.literal('up')
-          }),
-          z.object({
-            type: z.literal('mouse.click.down'),
-            direction: z.literal('down')
-          }),
-          z.object({ type: z.literal('mouse.move') }),
-          z.object({ type: z.literal('mouse') }),
-          z.object({ type: z.literal('keypress') })
-        ])
+        events: {
+          'mouse.click.up': z.object({ direction: z.literal('up') }),
+          'mouse.click.down': z.object({ direction: z.literal('down') }),
+          'mouse.move': z.object({}),
+          mouse: z.object({}),
+          keypress: z.object({})
+        }
       },
       on: {
         // @ts-expect-error
@@ -876,37 +809,16 @@ describe('events', () => {
 
   it(`should infer inline function parameter only using a direct match when the transition descriptor doesn't has a trailing wildcard`, () => {
     createMachine({
-      // types: {} as {
-      //   events:
-      //     | { type: 'mouse.click.up'; direction: 'up' }
-      //     | { type: 'mouse.click.down'; direction: 'down' }
-      //     | { type: 'mouse.move' }
-      //     | { type: 'mouse' }
-      //     | { type: 'keypress' };
-      // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('mouse.click.up'),
-            direction: z.literal('up')
-          }),
-          z.object({
-            type: z.literal('mouse.click.down'),
-            direction: z.literal('down')
-          }),
-          z.object({ type: z.literal('mouse.move') }),
-          z.object({ type: z.literal('mouse') }),
-          z.object({ type: z.literal('keypress') })
-        ])
+        events: {
+          'mouse.click.up': z.object({ direction: z.literal('up') }),
+          'mouse.click.down': z.object({ direction: z.literal('down') }),
+          'mouse.move': z.object({}),
+          mouse: z.object({}),
+          keypress: z.object({})
+        }
       },
       on: {
-        // mouse: {
-        //   actions: ({ event }) => {
-        //     ((_accept: 'mouse') => {})(event.type);
-        //     // @ts-expect-error
-        //     ((_accept: 'not any') => {})(event.type);
-        //   }
-        // }
         mouse: ({ event }) => {
           ((_accept: 'mouse') => {})(event.type);
           // @ts-expect-error
@@ -918,28 +830,14 @@ describe('events', () => {
 
   it('should not allow a transition using a partial descriptor related to an event type that is only defined exxactly', () => {
     createMachine({
-      // types: {} as {
-      //   events:
-      //     | { type: 'mouse.click.up'; direction: 'up' }
-      //     | { type: 'mouse.click.down'; direction: 'down' }
-      //     | { type: 'mouse.move' }
-      //     | { type: 'mouse' }
-      //     | { type: 'keypress' };
-      // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('mouse.click.up'),
-            direction: z.literal('up')
-          }),
-          z.object({
-            type: z.literal('mouse.click.down'),
-            direction: z.literal('down')
-          }),
-          z.object({ type: z.literal('mouse.move') }),
-          z.object({ type: z.literal('mouse') }),
-          z.object({ type: z.literal('keypress') })
-        ])
+        events: {
+          'mouse.click.up': z.object({ direction: z.literal('up') }),
+          'mouse.click.down': z.object({ direction: z.literal('down') }),
+          'mouse.move': z.object({}),
+          mouse: z.object({}),
+          keypress: z.object({})
+        }
       },
       on: {
         // @ts-expect-error
@@ -978,21 +876,11 @@ describe('events', () => {
 
   it('should provide contextual `event` type in transition actions when the matching event has a union `.type`', () => {
     createMachine({
-      // types: {} as {
-      //   events:
-      //     | {
-      //         type: 'FOO' | 'BAR';
-      //         value: string;
-      //       }
-      //     | {
-      //         type: 'OTHER';
-      //       };
-      // },
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('FOO'), value: z.string() }),
-          z.object({ type: z.literal('OTHER') })
-        ])
+        events: {
+          FOO: z.object({ value: z.string() }),
+          OTHER: z.object({})
+        }
       },
       on: {
         // FOO: {
@@ -2776,15 +2664,10 @@ describe('actor implementations', () => {
 
   it('should allow an actor with the expected event types', () => {
     const child = createMachine({
-      // types: {} as {
-      //   events: {
-      //     type: 'EV_1';
-      //   };
-      // }
       schemas: {
-        events: z.object({
-          type: z.literal('EV_1')
-        })
+        events: {
+          EV_1: z.object({})
+        }
       }
     });
 
@@ -2813,9 +2696,9 @@ describe('actor implementations', () => {
       //   };
       // }
       schemas: {
-        events: z.object({
-          type: z.literal('EV_1')
-        })
+        events: {
+          EV_1: z.object({})
+        }
       }
     });
 
@@ -2839,9 +2722,9 @@ describe('actor implementations', () => {
           //   };
           // }
           schemas: {
-            events: z.object({
-              type: z.literal('OTHER')
-            })
+            events: {
+              OTHER: z.object({})
+            }
           }
         })
       }
@@ -2860,10 +2743,10 @@ describe('actor implementations', () => {
       //       };
       // }
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('EV_1') }),
-          z.object({ type: z.literal('EV_2') })
-        ])
+        events: {
+          EV_1: z.object({}),
+          EV_2: z.object({})
+        }
       }
     });
 
@@ -2888,9 +2771,9 @@ describe('actor implementations', () => {
           //   };
           // }
           schemas: {
-            events: z.object({
-              type: z.literal('EV_1')
-            })
+            events: {
+              EV_1: z.object({})
+            }
           }
         })
       }
@@ -2905,9 +2788,9 @@ describe('actor implementations', () => {
       //   };
       // }
       schemas: {
-        events: z.object({
-          type: z.literal('EV_1')
-        })
+        events: {
+          EV_1: z.object({})
+        }
       }
     });
 
@@ -2936,10 +2819,10 @@ describe('actor implementations', () => {
           //       };
           // }
           schemas: {
-            events: z.union([
-              z.object({ type: z.literal('EV_1') }),
-              z.object({ type: z.literal('EV_2') })
-            ])
+            events: {
+              EV_1: z.object({}),
+              EV_2: z.object({})
+            }
           }
         })
       }
@@ -3172,10 +3055,10 @@ describe('actions', () => {
         context: z.object({
           count: z.number()
         }),
-        events: z.union([
-          z.object({ type: z.literal('FOO') }),
-          z.object({ type: z.literal('BAR') })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({})
+        }
       },
       context: {
         count: 0
@@ -3233,9 +3116,9 @@ describe('actions', () => {
       //   }
       // },
       schemas: {
-        events: z.object({
-          type: z.literal('TOGGLE')
-        }),
+        events: {
+          TOGGLE: z.object({})
+        },
         context: z.object({
           count: z.number(),
           mode: z.union([z.literal('foo'), z.literal('bar'), z.literal(null)])
@@ -3492,14 +3375,10 @@ describe('actions', () => {
       //   actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('FOO')
-          }),
-          z.object({
-            type: z.literal('BAR')
-          })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({})
+        }
       },
       actions: {
         greet: (params: { name: string }) => {
@@ -4409,18 +4288,11 @@ describe('fromCallback', () => {
 describe('self', () => {
   it('should accept correct event types in an inline entry custom action', () => {
     createMachine({
-      // types: {} as {
-      //   events: { type: 'FOO' } | { type: 'BAR' };
-      // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('FOO')
-          }),
-          z.object({
-            type: z.literal('BAR')
-          })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({})
+        }
       },
       entry: ({ self }) => {
         self.send({ type: 'FOO' });
@@ -4437,14 +4309,10 @@ describe('self', () => {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('FOO')
-          }),
-          z.object({
-            type: z.literal('BAR')
-          })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({})
+        }
       },
       entry: ({ self }) => {
         self.send({ type: 'FOO' });
@@ -4461,14 +4329,10 @@ describe('self', () => {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('FOO')
-          }),
-          z.object({
-            type: z.literal('BAR')
-          })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({})
+        }
       },
       on: {
         FOO: ({ self }) => {
@@ -4487,14 +4351,10 @@ describe('self', () => {
       //   events: { type: 'FOO' } | { type: 'BAR' };
       // },
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('FOO')
-          }),
-          z.object({
-            type: z.literal('BAR')
-          })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({})
+        }
       },
       on: {
         FOO: ({ self }) => {
@@ -4574,10 +4434,10 @@ describe('snapshot methods', () => {
   it('should type infer actor union snapshot methods', () => {
     const typeOne = createMachine({
       schemas: {
-        events: z.object({
-          type: z.literal('one')
-        }),
-        tags: z.literal('one')
+        events: {
+          one: z.object({})
+        },
+        tags: z.union([z.literal('one'), z.literal('two')])
       },
       initial: 'one',
       states: {
@@ -4588,14 +4448,10 @@ describe('snapshot methods', () => {
 
     const typeTwo = createMachine({
       schemas: {
-        events: z.union([
-          z.object({
-            type: z.literal('one')
-          }),
-          z.object({
-            type: z.literal('two')
-          })
-        ]),
+        events: {
+          one: z.object({}),
+          two: z.object({})
+        },
         tags: z.union([z.literal('one'), z.literal('two')])
       },
       initial: 'one',
@@ -4642,9 +4498,11 @@ it('fromPromise should not have issues with actors with emitted types', () => {
   // }).createMachine({});
   const machine = createMachine({
     schemas: {
-      emitted: z.object({
-        type: z.literal('FOO')
-      })
+      emitted: {
+        FOO: z.object({
+          type: z.literal('FOO')
+        })
+      }
     }
   });
 

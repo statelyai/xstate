@@ -124,10 +124,9 @@ describe('invoke', () => {
           userId: z.string().optional(),
           user: z.object({ name: z.string() }).optional()
         }),
-        events: z.object({
-          type: z.literal('RESOLVE'),
-          user: z.object({ name: z.string() })
-        }),
+        events: {
+          RESOLVE: z.object({ user: z.object({ name: z.string() }) })
+        },
         input: z.object({ userId: z.string() })
       },
       context: ({ input }) => ({
@@ -229,9 +228,9 @@ describe('invoke', () => {
       //   input: { userId: string };
       // },
       schemas: {
-        events: z.object({
-          type: z.literal('RESOLVE')
-        }),
+        events: {
+          RESOLVE: z.object({})
+        },
         input: z.object({ userId: z.string() })
       },
       initial: 'pending',
@@ -292,10 +291,9 @@ describe('invoke', () => {
       //   };
       // },
       schemas: {
-        events: z.object({
-          type: z.literal('SUCCESS'),
-          data: z.number()
-        })
+        events: {
+          SUCCESS: z.object({ data: z.number() })
+        }
       },
       id: 'machine-invoke',
       initial: 'pending',
@@ -343,10 +341,9 @@ describe('invoke', () => {
       //   };
       // },
       schemas: {
-        events: z.object({
-          type: z.literal('SUCCESS'),
-          data: z.number()
-        })
+        events: {
+          SUCCESS: z.object({ data: z.number() })
+        }
       },
       id: 'parent',
       initial: 'a',
@@ -1264,10 +1261,9 @@ describe('invoke', () => {
               context: z.object({
                 foo: z.boolean()
               }),
-              events: z.object({
-                type: z.literal('BEGIN'),
-                payload: z.any()
-              })
+              events: {
+                BEGIN: z.object({ payload: z.any() })
+              }
             },
             initial: 'pending',
             context: {
@@ -1513,16 +1509,11 @@ describe('invoke', () => {
             context: z.object({
               foo: z.boolean()
             }),
-            events: z.union([
-              z.object({
-                type: z.literal('BEGIN'),
-                payload: z.any()
-              }),
-              z.object({
-                type: z.literal('CALLBACK'),
-                data: z.number()
-              })
-            ])
+
+            events: {
+              BEGIN: z.object({ payload: z.any() }),
+              CALLBACK: z.object({ data: z.number() })
+            }
           },
           initial: 'pending',
           context: {
@@ -2269,10 +2260,9 @@ describe('invoke', () => {
           context: z.object({
             count: z.number().optional()
           }),
-          events: z.object({
-            type: z.literal('COUNT'),
-            value: z.number()
-          })
+          events: {
+            COUNT: z.object({ value: z.number() })
+          }
         },
         id: 'obs',
         initial: 'counting',
@@ -2322,10 +2312,9 @@ describe('invoke', () => {
           context: z.object({
             count: z.number().optional()
           }),
-          events: z.object({
-            type: z.literal('COUNT'),
-            value: z.number()
-          })
+          events: {
+            COUNT: z.object({ value: z.number() })
+          }
         },
         id: 'obs',
         initial: 'counting',
@@ -2380,10 +2369,9 @@ describe('invoke', () => {
           context: z.object({
             count: z.number().optional()
           }),
-          events: z.object({
-            type: z.literal('COUNT'),
-            value: z.number()
-          })
+          events: {
+            COUNT: z.object({ value: z.number() })
+          }
         },
         id: 'obs',
         initial: 'counting',
@@ -2441,10 +2429,9 @@ describe('invoke', () => {
       const { promise, resolve } = Promise.withResolvers<void>();
       const machine = createMachine({
         schemas: {
-          events: z.object({
-            type: z.literal('obs.event'),
-            value: z.number()
-          })
+          events: {
+            OBS_EVENT: z.object({ value: z.number() })
+          }
         },
         invoke: {
           src: fromEventObservable(({ input }) =>

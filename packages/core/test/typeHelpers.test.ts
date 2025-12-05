@@ -55,11 +55,11 @@ describe('EventFrom', () => {
       //     | { type: 'ANOTHER_EVENT' }
       // }
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('UPDATE_NAME'), value: z.string() }),
-          z.object({ type: z.literal('UPDATE_AGE'), value: z.number() }),
-          z.object({ type: z.literal('ANOTHER_EVENT') })
-        ])
+        events: {
+          UPDATE_NAME: z.object({ value: z.string() }),
+          UPDATE_AGE: z.object({ value: z.number() }),
+          ANOTHER_EVENT: z.object({})
+        }
       }
     });
 
@@ -79,11 +79,11 @@ describe('EventFrom', () => {
   it('should return events for an actor', () => {
     const machine = createMachine({
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('UPDATE_NAME'), value: z.string() }),
-          z.object({ type: z.literal('UPDATE_AGE'), value: z.number() }),
-          z.object({ type: z.literal('ANOTHER_EVENT') })
-        ])
+        events: {
+          UPDATE_NAME: z.object({ value: z.string() }),
+          UPDATE_AGE: z.object({ value: z.number() }),
+          ANOTHER_EVENT: z.object({})
+        }
       }
     });
 
@@ -113,10 +113,10 @@ describe('MachineImplementationsFrom', () => {
         context: z.object({
           count: z.number()
         }),
-        events: z.union([
-          z.object({ type: z.literal('FOO') }),
-          z.object({ type: z.literal('BAR'), value: z.string() })
-        ])
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({ value: z.string() })
+        }
       },
       actions: {
         foo: (_num: number) => 'hello'
@@ -159,7 +159,9 @@ describe('SnapshotFrom', () => {
         //   events: {} as { type: 'FOO' }
         // }
         schemas: {
-          events: z.object({ type: z.literal('FOO') })
+          events: {
+            FOO: z.object({})
+          }
         }
       })
     );

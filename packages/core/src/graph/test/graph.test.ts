@@ -76,6 +76,14 @@ describe('@xstate/graph', () => {
   const lightMachine = createMachine({
     id: 'light',
     initial: 'green',
+    schemas: {
+      events: {
+        TIMER: z.object({}),
+        POWER_OUTAGE: z.object({}),
+        PUSH_BUTTON: z.object({}),
+        PED_COUNTDOWN: z.object({})
+      }
+    },
     states: {
       green: {
         on: {
@@ -113,15 +121,12 @@ describe('@xstate/graph', () => {
       context: z.object({
         id: z.string().optional()
       }),
-      events: z.union([
-        z.object({
-          type: z.literal('EVENT'),
+      events: {
+        EVENT: z.object({
           id: z.string()
         }),
-        z.object({
-          type: z.literal('STATE')
-        })
-      ])
+        STATE: z.object({})
+      }
     },
     initial: 'pending',
     context: {
@@ -248,15 +253,12 @@ describe('@xstate/graph', () => {
           context: z.object({
             id: z.string().optional()
           }),
-          events: z.union([
-            z.object({
-              type: z.literal('EVENT'),
+          events: {
+            EVENT: z.object({
               id: z.string()
             }),
-            z.object({
-              type: z.literal('STATE')
-            })
-          ])
+            STATE: z.object({})
+          }
         },
         initial: 'pending',
         context: {
@@ -450,13 +452,10 @@ describe('@xstate/graph', () => {
           context: z.object({
             count: z.number()
           }),
-          events: z.union([
-            z.object({
-              type: z.literal('INC'),
-              value: z.number()
-            }),
-            z.object({ type: z.literal('FINISH') })
-          ])
+          events: {
+            INC: z.object({ value: z.number() }),
+            FINISH: z.object({})
+          }
         },
         id: 'count',
         initial: 'start',
@@ -522,7 +521,10 @@ describe('@xstate/graph', () => {
       expect(() =>
         getPathsFromEvents(lightMachine, [
           { type: 'TIMER' },
-          { type: 'INVALID_EVENT' }
+          {
+            // @ts-expect-error
+            type: 'INVALID_EVENT'
+          }
         ])
       ).toThrow();
     });

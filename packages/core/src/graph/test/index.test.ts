@@ -11,16 +11,13 @@ describe('events', () => {
       //   events: {} as Events
       // },
       schemas: {
-        events: z.union([
-          z.object({ type: z.literal('CLICK_BAD') }),
-          z.object({ type: z.literal('CLICK_GOOD') }),
-          z.object({
-            type: z.literal('SUBMIT'),
-            value: z.string()
-          }),
-          z.object({ type: z.literal('CLOSE') }),
-          z.object({ type: z.literal('ESC') })
-        ])
+        events: {
+          CLICK_BAD: z.object({}),
+          CLICK_GOOD: z.object({}),
+          SUBMIT: z.object({ value: z.string() }),
+          CLOSE: z.object({}),
+          ESC: z.object({})
+        }
       },
       initial: 'question',
       states: {
@@ -109,10 +106,9 @@ describe('events', () => {
         context: z.object({
           values: z.array(z.number())
         }),
-        events: z.object({
-          type: z.literal('EVENT'),
-          value: z.number()
-        })
+        events: {
+          EVENT: z.object({ value: z.number() })
+        }
       },
       initial: 'a',
       context: {

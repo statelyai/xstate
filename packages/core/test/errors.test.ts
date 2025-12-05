@@ -900,10 +900,12 @@ describe('error handling', () => {
 
     const machine = createMachine({
       schemas: {
-        emitted: z.object({
-          type: z.literal('emitted'),
-          foo: z.string()
-        })
+        emitted: {
+          emitted: z.object({
+            type: z.literal('emitted'),
+            foo: z.string()
+          })
+        }
       },
       on: {
         // someEvent: {

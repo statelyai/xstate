@@ -673,13 +673,10 @@ describe('parallel states', () => {
         context: z.object({
           value: z.string()
         }),
-        events: z.union([
-          z.object({
-            type: z.literal('CHANGE'),
-            value: z.string()
-          }),
-          z.object({ type: z.literal('SAVE') })
-        ])
+        events: {
+          CHANGE: z.object({ value: z.string() }),
+          SAVE: z.object({})
+        }
       },
       id: 'yamlEditor',
       type: 'parallel',
