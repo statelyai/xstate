@@ -809,12 +809,10 @@ function getEffectiveTargetStates(
   actorScope: AnyActorScope
 ): Array<AnyStateNode> {
   const historyValue = snapshot.historyValue;
-  const self = actorScope.self;
   const { targets } = getTransitionResult(
     transition,
     snapshot,
     event,
-    self,
     actorScope
   );
   if (!targets) {
@@ -853,7 +851,6 @@ function getTransitionDomain(
   event: AnyEventObject,
   actorScope: AnyActorScope
 ): AnyStateNode | undefined {
-  const self = actorScope.self;
   const targetStates = getEffectiveTargetStates(
     transition,
     snapshot,
@@ -869,7 +866,6 @@ function getTransitionDomain(
     transition,
     snapshot,
     event,
-    self,
     actorScope
   );
 
@@ -905,13 +901,11 @@ function computeExitSet(
   actorScope: AnyActorScope
 ): Array<AnyStateNode> {
   const statesToExit = new Set<AnyStateNode>();
-  const self = actorScope.self;
   for (const transition of transitions) {
     const { targets } = getTransitionResult(
       transition,
       snapshot,
       event,
-      self,
       actorScope
     );
 
@@ -996,13 +990,7 @@ export function microstep(
   const internalEvents: EventObject[] = [];
 
   for (const t of filteredTransitions) {
-    const res = getTransitionResult(
-      t,
-      currentSnapshot,
-      event,
-      actorScope.self,
-      actorScope
-    );
+    const res = getTransitionResult(t, currentSnapshot, event, actorScope);
     if (res.context) {
       context = res.context;
     }
@@ -1154,7 +1142,6 @@ function enterStates(
     statesToEnter,
     currentSnapshot,
     event,
-    actorScope.self,
     actorScope
   );
 
@@ -1246,7 +1233,6 @@ function enterStates(
         stateNodeToEnter.initial,
         nextSnapshot,
         event,
-        actorScope.self,
         actorScope
       );
       if (initialActions) actions.push(...initialActions);
@@ -1326,7 +1312,6 @@ export function getTransitionResult(
   },
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef,
   actorScope: AnyActorScope
 ): {
   targets: Readonly<AnyStateNode[]> | undefined;
@@ -1379,7 +1364,7 @@ export function getTransitionResult(
         spawn: (src, options) => {
           const actorRef = createActor(src, {
             ...options,
-            parent: self
+            parent: actorScope.self
           });
 
           actions.push({
@@ -1426,8 +1411,8 @@ export function getTransitionResult(
         event,
         value: snapshot.value,
         children: snapshot.children,
-        parent: self._parent,
-        self,
+        parent: actorScope.self._parent,
+        self: actorScope.self,
         actions: snapshot.machine.implementations.actions,
         actors: snapshot.machine.implementations.actors,
         guards: snapshot.machine.implementations.guards,
@@ -1469,7 +1454,6 @@ function computeEntrySet(
   statesToEnter: Set<AnyStateNode>,
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  self: AnyActorRef,
   actorScope: AnyActorScope
 ) {
   for (const transition of transitions) {
@@ -1479,7 +1463,6 @@ function computeEntrySet(
       transition,
       snapshot,
       event,
-      self,
       actorScope
     );
 
@@ -1543,7 +1526,6 @@ function addDescendantStatesToEnter<
   event: AnyEventObject,
   actorScope: AnyActorScope
 ) {
-  const self = actorScope.self;
   if (isHistoryNode(stateNode)) {
     if (historyValue[stateNode.id]) {
       const historyStateNodes = historyValue[stateNode.id];
@@ -1580,7 +1562,6 @@ function addDescendantStatesToEnter<
         historyDefaultTransition,
         snapshot,
         event,
-        self,
         actorScope
       );
       for (const s of targets ?? []) {
@@ -1619,7 +1600,6 @@ function addDescendantStatesToEnter<
         stateNode.initial,
         snapshot,
         event,
-        self,
         actorScope
       ).targets!;
 
@@ -1849,6 +1829,9 @@ export function resolveAndExecuteActionsWithContext(
 
     if (resolvedAction && '_special' in resolvedAction) {
       const specialAction = resolvedAction as unknown as Action2<
+        any,
+        any,
+        any,
         any,
         any,
         any,
