@@ -1,35 +1,39 @@
+import { z } from 'zod';
 import { createActor, createMachine, assertEvent } from '../src';
+import { InferEvents } from '../src/types.v6';
 
 describe('assertion helpers', () => {
   it('assertEvent asserts the correct event type', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine(
-      {
-        types: {
-          events: {} as
-            | { type: 'greet'; message: string }
-            | { type: 'count'; value: number }
-        },
-        on: {
-          greet: { actions: 'greet' },
-          count: { actions: 'greet' }
-        }
+    const events = {
+      greet: z.object({ message: z.string() }),
+      count: z.object({ value: z.number() })
+    };
+    const greet = (event: InferEvents<typeof events>) => {
+      // @ts-expect-error
+      event.message;
+
+      assertEvent(event, 'greet');
+      event.message satisfies string;
+
+      // @ts-expect-error
+      event.count;
+    };
+
+    const machine = createMachine({
+      // types: {
+      //   events: {} as
+      //     | { type: 'greet'; message: string }
+      //     | { type: 'count'; value: number }
+      // },
+      schemas: {
+        events: events
       },
-      {
-        actions: {
-          greet: ({ event }) => {
-            // @ts-expect-error
-            event.message;
-
-            assertEvent(event, 'greet');
-            event.message satisfies string;
-
-            // @ts-expect-error
-            event.count;
-          }
-        }
+      on: {
+        greet: ({ event }, enq) => enq(greet, event),
+        count: ({ event }, enq) => enq(greet, event)
       }
-    );
+    });
 
     const actor = createActor(machine);
 
@@ -51,40 +55,41 @@ describe('assertion helpers', () => {
 
   it('assertEvent asserts multiple event types', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine(
-      {
-        types: {
-          events: {} as
-            | { type: 'greet'; message: string }
-            | { type: 'notify'; message: string; level: 'info' | 'error' }
-            | { type: 'count'; value: number }
-        },
-        on: {
-          greet: { actions: 'greet' },
-          count: { actions: 'greet' }
-        }
+    const events = {
+      greet: z.object({ message: z.string() }),
+      count: z.object({ value: z.number() }),
+      notify: z.object({
+        message: z.string(),
+        level: z.enum(['info', 'error'])
+      })
+    };
+    const greet = (event: InferEvents<typeof events>) => {
+      // @ts-expect-error
+      event.message;
+
+      assertEvent(event, ['greet', 'notify']);
+      event.message satisfies string;
+
+      // @ts-expect-error
+      event.level;
+
+      assertEvent(event, ['notify']);
+      event.level satisfies 'info' | 'error';
+
+      // @ts-expect-error
+      event.count;
+    };
+    const machine = createMachine({
+      schemas: {
+        events
       },
-      {
-        actions: {
-          greet: ({ event }) => {
-            // @ts-expect-error
-            event.message;
-
-            assertEvent(event, ['greet', 'notify']);
-            event.message satisfies string;
-
-            // @ts-expect-error
-            event.level;
-
-            assertEvent(event, ['notify']);
-            event.level satisfies 'info' | 'error';
-
-            // @ts-expect-error
-            event.count;
-          }
+      on: {
+        greet: ({ event }, enq) => enq(greet, event),
+        count: ({ event }, enq) => {
+          enq(greet, event);
         }
       }
-    );
+    });
 
     const actor = createActor(machine);
 

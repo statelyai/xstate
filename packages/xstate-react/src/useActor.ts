@@ -5,6 +5,7 @@ import {
   Actor,
   ActorOptions,
   AnyActorLogic,
+  AnyActorRef,
   SnapshotFrom,
   type ConditionalRequired,
   type IsNotNever,
@@ -59,7 +60,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     actorRef.start();
 
     return () => {
-      stopRootWithRehydration(actorRef);
+      stopRootWithRehydration(actorRef as unknown as AnyActorRef);
     };
   }, [actorRef]);
 

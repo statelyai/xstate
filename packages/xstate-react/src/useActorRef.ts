@@ -4,6 +4,7 @@ import {
   Actor,
   ActorOptions,
   AnyActorLogic,
+  AnyActorRef,
   AnyStateMachine,
   Observer,
   SnapshotFrom,
@@ -88,7 +89,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     actorRef.start();
 
     return () => {
-      stopRootWithRehydration(actorRef);
+      stopRootWithRehydration(actorRef as unknown as AnyActorRef);
     };
   }, [actorRef]);
 
