@@ -1,4 +1,4 @@
-import { StandardSchemaV1 } from '../../xstate-store/src/schema';
+import { StandardSchemaV1 } from './schema.types.ts';
 import { MachineSnapshot } from './State';
 import {
   Action2,

@@ -1,4 +1,4 @@
-import { StandardSchemaV1 } from '../../xstate-store/src/schema.ts';
+import { StandardSchemaV1 } from './schema.types.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
   AnyActorRef,

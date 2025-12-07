@@ -10,7 +10,7 @@ import { AnyActorSystem, Clock } from './system.ts';
 // this is needed to make JSDoc `@link` work properly
 import type { SimulatedClock } from './SimulatedClock.ts';
 import { Implementations, Next_StateNodeConfig } from './types.v6.ts';
-import { StandardSchemaV1 } from '../../xstate-store/src/schema.ts';
+import { StandardSchemaV1 } from './schema.types.ts';
 import { builtInActions } from './actions.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
