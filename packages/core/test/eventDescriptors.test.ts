@@ -430,7 +430,7 @@ describe('event descriptors', () => {
     expect(() =>
       assertEvent(nonFeedbackEvent, 'FEEDBACK.*')
     ).toThrowErrorMatchingInlineSnapshot(
-      `[Error: Expected event {"type":"OTHER"} to have type "FEEDBACK.*"]`
+      `[Error: Expected event {"type":"OTHER"} to have type matching "FEEDBACK.*"]`
     );
   });
 });

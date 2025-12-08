@@ -40,8 +40,8 @@ export function assertEvent<
   if (!matches) {
     const typesText =
       types.length === 1
-        ? `type "${types[0]}"`
-        : `one of types "${types.join('", "')}"`;
+        ? `type matching "${types[0]}"`
+        : `one of types matching "${types.join('", "')}"`;
     throw new Error(
       `Expected event ${JSON.stringify(event)} to have ${typesText}`
     );
