@@ -186,6 +186,10 @@ function createStoreCore<
       return createAtom(() => selector(store.get().context), {
         compare: equalityFn
       });
+    },
+    with(extension) {
+      const extendedLogic = extension(logic as any);
+      return createStoreCore(extendedLogic);
     }
   };
 
