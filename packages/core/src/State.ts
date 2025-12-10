@@ -155,7 +155,7 @@ interface ActiveMachineSnapshot<
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
-  TConfig extends StateSchema
+  TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -164,7 +164,7 @@ interface ActiveMachineSnapshot<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
   status: 'active';
   output: undefined;
@@ -179,7 +179,7 @@ interface DoneMachineSnapshot<
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
-  TConfig extends StateSchema
+  TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -188,7 +188,7 @@ interface DoneMachineSnapshot<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
   status: 'done';
   output: TOutput;
@@ -203,7 +203,7 @@ interface ErrorMachineSnapshot<
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
-  TConfig extends StateSchema
+  TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -212,7 +212,7 @@ interface ErrorMachineSnapshot<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
   status: 'error';
   output: undefined;
@@ -227,7 +227,7 @@ interface StoppedMachineSnapshot<
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
-  TConfig extends StateSchema
+  TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -236,7 +236,7 @@ interface StoppedMachineSnapshot<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
   status: 'stopped';
   output: undefined;
@@ -251,7 +251,7 @@ export type MachineSnapshot<
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
-  TConfig extends StateSchema
+  TStateSchema extends StateSchema
 > =
   | ActiveMachineSnapshot<
       TContext,
@@ -261,7 +261,7 @@ export type MachineSnapshot<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >
   | DoneMachineSnapshot<
       TContext,
@@ -271,7 +271,7 @@ export type MachineSnapshot<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >
   | ErrorMachineSnapshot<
       TContext,
@@ -281,7 +281,7 @@ export type MachineSnapshot<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >
   | StoppedMachineSnapshot<
       TContext,
@@ -291,7 +291,7 @@ export type MachineSnapshot<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >;
 
 const machineSnapshotMatches = function matches(

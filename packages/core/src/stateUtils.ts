@@ -9,6 +9,7 @@ import {
   XSTATE_STOP,
   WILDCARD
 } from './constants.ts';
+import { matchesEventDescriptor } from './utils.ts';
 import {
   AnyEventObject,
   AnyMachineSnapshot,
@@ -204,53 +205,9 @@ export function getCandidates<TEvent extends EventObject>(
   const candidates =
     stateNode.transitions.get(receivedEventType) ||
     [...stateNode.transitions.keys()]
-      .filter((eventDescriptor) => {
-        // check if transition is a wildcard transition,
-        // which matches any non-transient events
-        if (eventDescriptor === WILDCARD) {
-          return true;
-        }
-
-        if (!eventDescriptor.endsWith('.*')) {
-          return false;
-        }
-
-        if (isDevelopment && /.*\*.+/.test(eventDescriptor)) {
-          console.warn(
-            `Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "${eventDescriptor}" event.`
-          );
-        }
-
-        const partialEventTokens = eventDescriptor.split('.');
-        const eventTokens = receivedEventType.split('.');
-
-        for (
-          let tokenIndex = 0;
-          tokenIndex < partialEventTokens.length;
-          tokenIndex++
-        ) {
-          const partialEventToken = partialEventTokens[tokenIndex];
-          const eventToken = eventTokens[tokenIndex];
-
-          if (partialEventToken === '*') {
-            const isLastToken = tokenIndex === partialEventTokens.length - 1;
-
-            if (isDevelopment && !isLastToken) {
-              console.warn(
-                `Infix wildcards in transition events are not allowed. Check the "${eventDescriptor}" transition.`
-              );
-            }
-
-            return isLastToken;
-          }
-
-          if (partialEventToken !== eventToken) {
-            return false;
-          }
-        }
-
-        return true;
-      })
+      .filter((eventDescriptor) =>
+        matchesEventDescriptor(receivedEventType, eventDescriptor)
+      )
       .sort((a, b) => b.length - a.length)
       .flatMap((key) => stateNode.transitions.get(key)!);
 
