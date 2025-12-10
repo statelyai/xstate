@@ -157,7 +157,7 @@ describe('history states', () => {
         },
         destroy: {
           id: 'destroy',
-          always: [{ target: 'idle.absent' }]
+          always: { target: 'idle.absent' }
         }
       }
     });
@@ -194,8 +194,9 @@ describe('history states', () => {
               }
             },
             a2: {
-              entry: () => actual.push('a2 entered'),
-              exit: () => actual.push('a2 exited')
+              // TODO: investigate why enq(actual.push, 'a2 entered') throws
+              entry: (_, enq) => enq(() => actual.push('a2 entered')),
+              exit: (_, enq) => enq(() => actual.push('a2 exited'))
             },
             a3: {
               type: 'history',
@@ -274,9 +275,13 @@ describe('history states', () => {
           on: { NEXT: '#hist' }
         },
         b: {
-          initial: {
-            target: 'b1',
-            actions: spy
+          // initial: {
+          //   target: 'b1',
+          //   actions: spy
+          // },
+          initial: (_, enq) => {
+            enq(spy);
+            return { target: 'b1' };
           },
           states: {
             b1: {},
@@ -304,9 +309,13 @@ describe('history states', () => {
           on: { NEXT: '#hist' }
         },
         b: {
-          initial: {
-            target: 'b1',
-            actions: spy
+          // initial: {
+          //   target: 'b1',
+          //   actions: spy
+          // },
+          initial: (_, enq) => {
+            enq(spy);
+            return { target: 'b1' };
           },
           states: {
             b1: {},
@@ -366,9 +375,13 @@ describe('history states', () => {
           on: { NEXT: 'b' }
         },
         b: {
-          initial: {
-            target: 'b1',
-            actions: spy
+          // initial: {
+          //   target: 'b1',
+          //   actions: spy
+          // },
+          initial: (_, enq) => {
+            enq(spy);
+            return { target: 'b1' };
           },
           states: {
             b1: {
@@ -398,9 +411,13 @@ describe('history states', () => {
           on: { NEXT: '#hist' }
         },
         b: {
-          initial: {
-            target: 'b1',
-            actions: spy
+          // initial: {
+          //   target: 'b1',
+          //   actions: spy
+          // },
+          initial: (_, enq) => {
+            enq(spy);
+            return { target: 'b1' };
           },
           states: {
             b1: {},
@@ -435,9 +452,13 @@ describe('history states', () => {
           on: { NEXT: '#hist' }
         },
         b: {
-          initial: {
-            target: 'b1',
-            actions: spy
+          // initial: {
+          //   target: 'b1',
+          //   actions: spy
+          // },
+          initial: (_, enq) => {
+            enq(spy);
+            return { target: 'b1' };
           },
           states: {
             b1: {},
@@ -1017,7 +1038,9 @@ describe('parallel history states', () => {
         off: {
           on: {
             SWITCH: 'on',
-            PARALLEL_HISTORY: [{ target: ['on.A.hist', 'on.K.hist'] }]
+            PARALLEL_HISTORY: {
+              target: ['on.A.hist', 'on.K.hist']
+            }
           }
         },
         on: {
@@ -1107,7 +1130,9 @@ describe('parallel history states', () => {
         off: {
           on: {
             SWITCH: 'on',
-            PARALLEL_SOME_HISTORY: [{ target: ['on.A.C', 'on.K.hist'] }]
+            PARALLEL_SOME_HISTORY: {
+              target: ['on.A.C', 'on.K.hist']
+            }
           }
         },
         on: {
@@ -1197,9 +1222,9 @@ describe('parallel history states', () => {
         off: {
           on: {
             SWITCH: 'on',
-            PARALLEL_DEEP_HISTORY: [
-              { target: ['on.A.deepHistory', 'on.K.deepHistory'] }
-            ]
+            PARALLEL_DEEP_HISTORY: {
+              target: ['on.A.deepHistory', 'on.K.deepHistory']
+            }
           }
         },
         on: {

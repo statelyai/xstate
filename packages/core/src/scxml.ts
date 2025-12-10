@@ -1,18 +1,12 @@
 import { Element as XMLElement, xml2js } from 'xml-js';
-import { assign } from './actions/assign.ts';
-import { cancel } from './actions/cancel.ts';
-import { log } from './actions/log.ts';
-import { raise } from './actions/raise.ts';
-import { sendTo } from './actions/send.ts';
+// import { assign } from './actions/assign.ts';
+// import { cancel } from './actions/cancel.ts';
+// import { log } from './actions/log.ts';
+// import { raise } from './actions/raise.ts';
+// import { sendTo } from './actions/send.ts';
 import { NULL_EVENT } from './constants.ts';
-import { not, stateIn } from './guards.ts';
-import {
-  ActionFunction,
-  MachineContext,
-  SpecialTargets,
-  createMachine,
-  enqueueActions
-} from './index.ts';
+// import { not, stateIn } from './guards.ts';
+import { MachineContext, SpecialTargets, createMachine } from './index.ts';
 import {
   AnyStateMachine,
   AnyStateNode,
@@ -179,33 +173,36 @@ function mapAction(
 ): ActionFunction<any, any, any, any, any, any, any, any, any> {
   switch (element.name) {
     case 'raise': {
-      return raise({
-        type: element.attributes!.event as string
-      });
+      // return raise({
+      //   type: element.attributes!.event as string
+      // });
+      return { type: 'todo' };
     }
     case 'assign': {
-      return assign(({ context, event, ...meta }) => {
-        const fnBody = `
+      return { type: 'todo' };
+      //       return assign(({ context, event, ...meta }) => {
+      //         const fnBody = `
 
-${element.attributes!.location};
+      // ${element.attributes!.location};
 
-return {'${element.attributes!.location}': ${element.attributes!.expr}};
-          `;
+      // return {'${element.attributes!.location}': ${element.attributes!.expr}};
+      //           `;
 
-        return evaluateExecutableContent(context, event, meta, fnBody);
-      });
+      //         return evaluateExecutableContent(context, event, meta, fnBody);
+      //       });
     }
     case 'cancel':
-      if ('sendid' in element.attributes!) {
-        return cancel(element.attributes.sendid! as string);
-      }
-      return cancel(({ context, event, ...meta }) => {
-        const fnBody = `
-return ${element.attributes!.sendidexpr};
-          `;
+      return { type: 'todo' };
+    //       if ('sendid' in element.attributes!) {
+    //         return cancel(element.attributes.sendid! as string);
+    //       }
+    //       return cancel(({ context, event, ...meta }) => {
+    //         const fnBody = `
+    // return ${element.attributes!.sendidexpr};
+    //           `;
 
-        return evaluateExecutableContent(context, event, meta, fnBody);
-      });
+    //         return evaluateExecutableContent(context, event, meta, fnBody);
+    //       });
     case 'send': {
       const { event, eventexpr, target, id } = element.attributes!;
 
@@ -265,14 +262,16 @@ return (${
         return raise(convertedEvent);
       }
 
-      return sendTo(
-        typeof target === 'string' ? target : ({ self }) => self,
-        convertedEvent,
-        {
-          delay: convertedDelay,
-          id: id as string | undefined
-        }
-      );
+      return { type: 'todo' };
+
+      // return sendTo(
+      //   typeof target === 'string' ? target : ({ self }) => self,
+      //   convertedEvent,
+      //   {
+      //     delay: convertedDelay,
+      //     id: id as string | undefined
+      //   }
+      // );
     }
     case 'log': {
       const label = element.attributes!.label;
@@ -324,14 +323,16 @@ return ${element.attributes!.expr};
 
       branches.push(current);
 
-      return enqueueActions(({ enqueue, check }) => {
-        for (const branch of branches) {
-          if (!branch.guard || check(branch.guard)) {
-            branch.actions.forEach(enqueue);
-            break;
-          }
-        }
-      });
+      return { type: 'todo' };
+
+      // return enqueueActions(({ enqueue, check }) => {
+      //   for (const branch of branches) {
+      //     if (!branch.guard || check(branch.guard)) {
+      //       branch.actions.forEach(enqueue);
+      //       break;
+      //     }
+      //   }
+      // });
     }
     default:
       throw new Error(

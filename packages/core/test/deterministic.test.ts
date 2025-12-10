@@ -1,9 +1,9 @@
 import {
-  fromCallback,
   createActor,
   transition,
   createMachine,
-  getInitialSnapshot
+  initialTransition,
+  fromCallback
 } from '../src/index.ts';
 
 describe('deterministic machine', () => {
@@ -139,14 +139,14 @@ describe('deterministic machine', () => {
     });
 
     it('should use the machine.initialState when an undefined state is given', () => {
-      const init = getInitialSnapshot(lightMachine, undefined);
+      const [init] = initialTransition(lightMachine, undefined);
       expect(
         transition(lightMachine, init, { type: 'TIMER' })[0].value
       ).toEqual('yellow');
     });
 
     it('should use the machine.initialState when an undefined state is given (unhandled event)', () => {
-      const init = getInitialSnapshot(lightMachine, undefined);
+      const [init] = initialTransition(lightMachine, undefined);
       expect(
         transition(lightMachine, init, { type: 'TIMER' })[0].value
       ).toEqual('yellow');
@@ -237,7 +237,7 @@ describe('deterministic machine', () => {
     });
 
     it('should return the same state if no transition occurs', () => {
-      const init = getInitialSnapshot(lightMachine, undefined);
+      const [init] = initialTransition(lightMachine, undefined);
       const [initialState] = transition(lightMachine, init, {
         type: 'NOTHING'
       });
@@ -251,29 +251,30 @@ describe('deterministic machine', () => {
   });
 
   describe('state key names', () => {
+    const activity = fromCallback(() => () => {});
     const machine = createMachine(
       {
         initial: 'test',
         states: {
           test: {
-            invoke: [{ src: 'activity' }],
-            entry: ['onEntry'],
+            invoke: { src: activity },
+            entry: () => {},
             on: {
               NEXT: 'test'
             },
-            exit: ['onExit']
+            exit: () => {}
           }
         }
-      },
-      {
-        actors: {
-          activity: fromCallback(() => () => {})
-        }
       }
+      // {
+      //   actors: {
+      //     activity: fromCallback(() => () => {})
+      //   }
+      // }
     );
 
     it('should work with substate nodes that have the same key', () => {
-      const init = getInitialSnapshot(machine, undefined);
+      const [init] = initialTransition(machine, undefined);
       expect(transition(machine, init, { type: 'NEXT' })[0].value).toEqual(
         'test'
       );
