@@ -1,15 +1,61 @@
 import { createStore } from '../src/index.ts';
 import { undoRedo } from '../src/undo.ts';
 
+describe('undoRedo (deprecated pattern)', () => {
+  it('should work with deprecated createStore(undoRedo(config)) pattern', () => {
+    const store = createStore(
+      undoRedo({
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 }),
+          dec: (ctx) => ({ count: ctx.count - 1 })
+        }
+      })
+    );
+
+    store.trigger.inc();
+    expect(store.getSnapshot().context.count).toBe(1);
+
+    store.trigger.undo();
+    expect(store.getSnapshot().context.count).toBe(0);
+
+    store.trigger.redo();
+    expect(store.getSnapshot().context.count).toBe(1);
+  });
+
+  it('should work with deprecated pattern and options', () => {
+    const store = createStore(
+      undoRedo(
+        {
+          context: { count: 0 },
+          on: {
+            inc: (ctx) => ({ count: ctx.count + 1 })
+          }
+        },
+        { strategy: 'snapshot', historyLimit: 2 }
+      )
+    );
+
+    store.trigger.inc(); // 1
+    store.trigger.inc(); // 2
+    store.trigger.inc(); // 3
+
+    store.trigger.undo(); // 2
+    expect(store.getSnapshot().context.count).toBe(2);
+    store.trigger.undo(); // 1
+    expect(store.getSnapshot().context.count).toBe(1);
+    store.trigger.undo(); // stays at 1 due to limit
+    expect(store.getSnapshot().context.count).toBe(1);
+  });
+});
+
 it('should undo a single event', () => {
-  const store = createStore(
-    undoRedo({
-      context: { count: 0 },
-      on: {
-        inc: (ctx) => ({ count: ctx.count + 1 })
-      }
-    })
-  );
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 })
+    }
+  }).with(undoRedo());
 
   store.trigger.inc();
   expect(store.getSnapshot().context.count).toBe(1);
@@ -19,14 +65,12 @@ it('should undo a single event', () => {
 });
 
 it('should redo a previously undone event', () => {
-  const store = createStore(
-    undoRedo({
-      context: { count: 0 },
-      on: {
-        inc: (ctx) => ({ count: ctx.count + 1 })
-      }
-    })
-  );
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 })
+    }
+  }).with(undoRedo());
 
   store.trigger.inc();
   store.trigger.undo();
@@ -35,14 +79,12 @@ it('should redo a previously undone event', () => {
 });
 
 it('should undo/redo multiple events, non-transactional', () => {
-  const store = createStore(
-    undoRedo({
-      context: { count: 0 },
-      on: {
-        inc: (ctx) => ({ count: ctx.count + 1 })
-      }
-    })
-  );
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 })
+    }
+  }).with(undoRedo());
 
   store.trigger.inc();
   store.trigger.inc();
@@ -59,22 +101,13 @@ it('should undo/redo multiple events, non-transactional', () => {
 });
 
 it('should group events by transaction ID', () => {
-  const store = createStore(
-    undoRedo(
-      {
-        context: { count: 0 },
-        on: {
-          inc: (ctx) => ({ count: ctx.count + 1 }),
-          dec: (ctx) => ({ count: ctx.count - 1 })
-        }
-      },
-      {
-        getTransactionId: (event) => {
-          return event.type;
-        }
-      }
-    )
-  );
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 }),
+      dec: (ctx) => ({ count: ctx.count - 1 })
+    }
+  }).with(undoRedo({ getTransactionId: (event) => event.type }));
 
   // First transaction
   store.trigger.inc();
@@ -96,15 +129,13 @@ it('should group events by transaction ID', () => {
 });
 
 it('should maintain correct state when interleaving undo/redo with new events', () => {
-  const store = createStore(
-    undoRedo({
-      context: { count: 0 },
-      on: {
-        inc: (ctx) => ({ count: ctx.count + 1 }),
-        dec: (ctx) => ({ count: ctx.count - 1 })
-      }
-    })
-  );
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 }),
+      dec: (ctx) => ({ count: ctx.count - 1 })
+    }
+  }).with(undoRedo());
 
   store.trigger.inc(); // 1
   expect(store.getSnapshot().context.count).toBe(1);
@@ -123,14 +154,12 @@ it('should maintain correct state when interleaving undo/redo with new events', 
 });
 
 it('should do nothing when undoing with empty history', () => {
-  const store = createStore(
-    undoRedo({
-      context: { count: 0 },
-      on: {
-        inc: (ctx) => ({ count: ctx.count + 1 })
-      }
-    })
-  );
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 })
+    }
+  }).with(undoRedo());
 
   const initialSnapshot = store.getSnapshot();
   store.trigger.undo();
@@ -138,14 +167,12 @@ it('should do nothing when undoing with empty history', () => {
 });
 
 it('should do nothing when redoing with empty undo stack', () => {
-  const store = createStore(
-    undoRedo({
-      context: { count: 0 },
-      on: {
-        inc: (ctx) => ({ count: ctx.count + 1 })
-      }
-    })
-  );
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 })
+    }
+  }).with(undoRedo());
 
   const initialSnapshot = store.getSnapshot();
   store.trigger.redo();
@@ -153,15 +180,13 @@ it('should do nothing when redoing with empty undo stack', () => {
 });
 
 it('should clear redo stack when new events occur after undo', () => {
-  const store = createStore(
-    undoRedo({
-      context: { count: 0 },
-      on: {
-        inc: (ctx) => ({ count: ctx.count + 1 }),
-        dec: (ctx) => ({ count: ctx.count - 1 })
-      }
-    })
-  );
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 }),
+      dec: (ctx) => ({ count: ctx.count - 1 })
+    }
+  }).with(undoRedo());
 
   store.trigger.inc(); // 1
   expect(store.getSnapshot().context.count).toBe(1);
@@ -179,20 +204,18 @@ it('should clear redo stack when new events occur after undo', () => {
 it('should preserve emitted events during undo/redo', () => {
   type Events = { type: 'inc' };
 
-  const store = createStore(
-    undoRedo({
-      context: { count: 0 },
-      emits: {
-        changed: (_: { value: number }) => {}
-      },
-      on: {
-        inc: (ctx, _: Events, enq) => {
-          enq.emit.changed({ value: ctx.count + 1 });
-          return { count: ctx.count + 1 };
-        }
+  const store = createStore({
+    context: { count: 0 },
+    emits: {
+      changed: (_: { value: number }) => {}
+    },
+    on: {
+      inc: (ctx, _: Events, enq) => {
+        enq.emit.changed({ value: ctx.count + 1 });
+        return { count: ctx.count + 1 };
       }
-    })
-  );
+    }
+  }).with(undoRedo());
 
   const emittedEvents: any[] = [];
   store.on('changed', (event) => {
@@ -210,14 +233,12 @@ it('should preserve emitted events during undo/redo', () => {
 });
 
 it('should preserve context and event types', () => {
-  const store = createStore(
-    undoRedo({
-      context: { count: 0 },
-      on: {
-        inc: (ctx) => ({ count: ctx.count + 1 })
-      }
-    })
-  );
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 })
+    }
+  }).with(undoRedo());
 
   store.getSnapshot().context satisfies { count: number };
   store.trigger.inc();
@@ -232,20 +253,13 @@ it('should preserve context and event types', () => {
 });
 
 it('should skip non-undoable events during undo', () => {
-  const store = createStore(
-    undoRedo(
-      {
-        context: { count: 0 },
-        on: {
-          inc: (ctx) => ({ count: ctx.count + 1 }),
-          log: (ctx) => ctx // No state change, just logging
-        }
-      },
-      {
-        skipEvent: (event) => event.type === 'log'
-      }
-    )
-  );
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 }),
+      log: (ctx) => ctx // No state change, just logging
+    }
+  }).with(undoRedo({ skipEvent: (event) => event.type === 'log' }));
 
   store.trigger.inc(); // count = 1
   store.trigger.log(); // count = 1 (logged but not undoable)
@@ -257,20 +271,13 @@ it('should skip non-undoable events during undo', () => {
 });
 
 it('should skip non-redoable events during redo', () => {
-  const store = createStore(
-    undoRedo(
-      {
-        context: { count: 0 },
-        on: {
-          inc: (ctx) => ({ count: ctx.count + 1 }),
-          log: (ctx) => ctx // No state change, just logging
-        }
-      },
-      {
-        skipEvent: (event) => event.type === 'log'
-      }
-    )
-  );
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 }),
+      log: (ctx) => ctx // No state change, just logging
+    }
+  }).with(undoRedo({ skipEvent: (event) => event.type === 'log' }));
 
   store.trigger.inc(); // count = 1
   store.trigger.log(); // count = 1 (logged but not redoable)
@@ -283,20 +290,17 @@ it('should skip non-redoable events during redo', () => {
 });
 
 it('should skip events with transaction grouping', () => {
-  const store = createStore(
-    undoRedo(
-      {
-        context: { count: 0 },
-        on: {
-          inc: (ctx) => ({ count: ctx.count + 1 }),
-          log: (ctx) => ctx // No state change, just logging
-        }
-      },
-      {
-        getTransactionId: (event) => event.type,
-        skipEvent: (event) => event.type === 'log'
-      }
-    )
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 }),
+      log: (ctx) => ctx // No state change, just logging
+    }
+  }).with(
+    undoRedo({
+      getTransactionId: (event) => event.type,
+      skipEvent: (event) => event.type === 'log'
+    })
   );
 
   // First transaction: inc events
@@ -320,22 +324,19 @@ it('should skip events with transaction grouping', () => {
 });
 
 it('should handle mixed undoable and non-undoable events', () => {
-  const store = createStore(
-    undoRedo(
-      {
-        context: { count: 0, logs: [] as string[] },
-        on: {
-          inc: (ctx) => ({ count: ctx.count + 1, logs: ctx.logs }),
-          log: (ctx, event: { type: 'log'; message: string }) => ({
-            logs: [...(ctx.logs || []), event.message],
-            count: ctx.count
-          })
-        }
-      },
-      {
-        skipEvent: (event) => event.type === 'log'
-      }
-    )
+  const store = createStore({
+    context: { count: 0, logs: [] as string[] },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1, logs: ctx.logs }),
+      log: (ctx, event: { type: 'log'; message: string }) => ({
+        logs: [...(ctx.logs || []), event.message],
+        count: ctx.count
+      })
+    }
+  }).with(
+    undoRedo({
+      skipEvent: (event) => event.type === 'log'
+    })
   );
 
   store.trigger.inc(); // count = 1
@@ -363,31 +364,26 @@ it('should handle mixed undoable and non-undoable events', () => {
 });
 
 it('should not replay emitted events for skipped events during undo/redo', () => {
-  type Events = { type: 'inc' } | { type: 'log'; message: string };
-
-  const store = createStore(
-    undoRedo(
-      {
-        context: { count: 0 },
-        emits: {
-          changed: (_: { value: number }) => {},
-          logged: (_: { message: string }) => {}
-        },
-        on: {
-          inc: (ctx, _: Events, enq) => {
-            enq.emit.changed({ value: ctx.count + 1 });
-            return { count: ctx.count + 1 };
-          },
-          log: (ctx, event: Events, enq) => {
-            enq.emit.logged({ message: (event as any).message });
-            return ctx; // No state change
-          }
-        }
+  const store = createStore({
+    context: { count: 0 },
+    emits: {
+      changed: (_: { value: number }) => {},
+      logged: (_: { message: string }) => {}
+    },
+    on: {
+      inc: (ctx, _event, enq) => {
+        enq.emit.changed({ value: ctx.count + 1 });
+        return { count: ctx.count + 1 };
       },
-      {
-        skipEvent: (event) => event.type === 'log'
+      log: (ctx, event: { message: string }, enq) => {
+        enq.emit.logged({ message: (event as any).message });
+        return ctx; // No state change
       }
-    )
+    }
+  }).with(
+    undoRedo({
+      skipEvent: (event) => event.type === 'log'
+    })
   );
 
   const emittedEvents: any[] = [];
@@ -422,22 +418,19 @@ it('should not replay emitted events for skipped events during undo/redo', () =>
 });
 
 it('should skip events with transaction grouping', () => {
-  const store = createStore(
-    undoRedo(
-      {
-        context: { count: 0, transactionId: null as string | null },
-        on: {
-          inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }),
-          transactionIdUpdated: (ctx, event: { id: string }) => ({
-            ...ctx,
-            transactionId: event.id
-          })
-        }
-      },
-      {
-        getTransactionId: (_, snapshot) => snapshot.context.transactionId
-      }
-    )
+  const store = createStore({
+    context: { count: 0, transactionId: null as string | null },
+    on: {
+      inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }),
+      transactionIdUpdated: (ctx, event: { id: string }) => ({
+        ...ctx,
+        transactionId: event.id
+      })
+    }
+  }).with(
+    undoRedo({
+      getTransactionId: (_, snapshot) => snapshot.context.transactionId
+    })
   );
 
   store.trigger.inc(); // count = 1
@@ -461,20 +454,17 @@ it('should skip events with transaction grouping', () => {
 });
 
 it('should use the snapshot in the skipEvent function', () => {
-  const store = createStore(
-    undoRedo(
-      {
-        context: { count: 0 },
-        on: {
-          inc: (ctx) => ({ count: ctx.count + 1 })
-        }
-      },
-      {
-        skipEvent: (_event, snapshot) => {
-          return snapshot.context.count >= 3;
-        }
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 })
+    }
+  }).with(
+    undoRedo({
+      skipEvent: (_event, snapshot) => {
+        return snapshot.context.count >= 3;
       }
-    )
+    })
   );
 
   store.trigger.inc(); // count = 1
@@ -487,23 +477,21 @@ it('should use the snapshot in the skipEvent function', () => {
 });
 
 it('emit event types should be correct', () => {
-  const store = createStore(
-    undoRedo({
-      context: { count: 0 },
-      emits: {
-        changed: (_: { value: number }) => {}
-      },
-      on: {
-        // TODO: figure out why we need _: {} and not just _
-        inc: (ctx, _: {}, enq) => {
-          enq.emit.changed({ value: ctx.count + 1 });
-          // @ts-expect-error
-          enq.emit.whatever();
-          return { count: ctx.count + 1 };
-        }
+  const store = createStore({
+    context: { count: 0 },
+    emits: {
+      changed: (_: { value: number }) => {}
+    },
+    on: {
+      // TODO: figure out why we need _: {} and not just _
+      inc: (ctx, _: {}, enq) => {
+        enq.emit.changed({ value: ctx.count + 1 });
+        // @ts-expect-error
+        enq.emit.whatever();
+        return { count: ctx.count + 1 };
       }
-    })
-  );
+    }
+  }).with(undoRedo());
 
   store.on('changed', (event) => {
     event.value satisfies number;
@@ -522,17 +510,12 @@ it('emit event types should be correct', () => {
 
 describe('undoRedo with snapshot strategy', () => {
   it('should undo a single event', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 })
-          }
-        },
-        { strategy: 'snapshot' }
-      )
-    );
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    }).with(undoRedo({ strategy: 'snapshot' }));
 
     store.trigger.inc();
     expect(store.getSnapshot().context.count).toBe(1);
@@ -542,17 +525,12 @@ describe('undoRedo with snapshot strategy', () => {
   });
 
   it('should redo a previously undone event', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 })
-          }
-        },
-        { strategy: 'snapshot' }
-      )
-    );
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    }).with(undoRedo({ strategy: 'snapshot' }));
 
     store.trigger.inc();
     store.trigger.undo();
@@ -561,17 +539,12 @@ describe('undoRedo with snapshot strategy', () => {
   });
 
   it('should undo/redo multiple events, non-transactional', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 })
-          }
-        },
-        { strategy: 'snapshot' }
-      )
-    );
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    }).with(undoRedo({ strategy: 'snapshot' }));
 
     store.trigger.inc();
     store.trigger.inc();
@@ -588,22 +561,19 @@ describe('undoRedo with snapshot strategy', () => {
   });
 
   it('should group events by transaction ID', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 }),
-            dec: (ctx) => ({ count: ctx.count - 1 })
-          }
-        },
-        {
-          strategy: 'snapshot',
-          getTransactionId: (event) => {
-            return event.type;
-          }
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 }),
+        dec: (ctx) => ({ count: ctx.count - 1 })
+      }
+    }).with(
+      undoRedo({
+        strategy: 'snapshot',
+        getTransactionId: (event) => {
+          return event.type;
         }
-      )
+      })
     );
 
     // First transaction
@@ -626,18 +596,13 @@ describe('undoRedo with snapshot strategy', () => {
   });
 
   it('should maintain correct state when interleaving undo/redo with new events', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 }),
-            dec: (ctx) => ({ count: ctx.count - 1 })
-          }
-        },
-        { strategy: 'snapshot' }
-      )
-    );
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 }),
+        dec: (ctx) => ({ count: ctx.count - 1 })
+      }
+    }).with(undoRedo({ strategy: 'snapshot' }));
 
     store.trigger.inc(); // 1
     expect(store.getSnapshot().context.count).toBe(1);
@@ -656,17 +621,12 @@ describe('undoRedo with snapshot strategy', () => {
   });
 
   it('should do nothing when undoing with empty history', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 })
-          }
-        },
-        { strategy: 'snapshot' }
-      )
-    );
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    }).with(undoRedo({ strategy: 'snapshot' }));
 
     const initialSnapshot = store.getSnapshot();
     store.trigger.undo();
@@ -674,17 +634,12 @@ describe('undoRedo with snapshot strategy', () => {
   });
 
   it('should do nothing when redoing with empty future stack', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 })
-          }
-        },
-        { strategy: 'snapshot' }
-      )
-    );
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    }).with(undoRedo({ strategy: 'snapshot' }));
 
     const initialSnapshot = store.getSnapshot();
     store.trigger.redo();
@@ -692,18 +647,13 @@ describe('undoRedo with snapshot strategy', () => {
   });
 
   it('should clear redo stack when new events occur after undo', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 }),
-            dec: (ctx) => ({ count: ctx.count - 1 })
-          }
-        },
-        { strategy: 'snapshot' }
-      )
-    );
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 }),
+        dec: (ctx) => ({ count: ctx.count - 1 })
+      }
+    }).with(undoRedo({ strategy: 'snapshot' }));
 
     store.trigger.inc(); // 1
     expect(store.getSnapshot().context.count).toBe(1);
@@ -719,20 +669,17 @@ describe('undoRedo with snapshot strategy', () => {
   });
 
   it('should skip non-undoable events', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 }),
-            log: (ctx) => ctx // No state change, just logging
-          }
-        },
-        {
-          strategy: 'snapshot',
-          skipEvent: (event) => event.type === 'log'
-        }
-      )
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 }),
+        log: (ctx) => ctx // No state change, just logging
+      }
+    }).with(
+      undoRedo({
+        strategy: 'snapshot',
+        skipEvent: (event) => event.type === 'log'
+      })
     );
 
     store.trigger.inc(); // count = 1
@@ -745,20 +692,12 @@ describe('undoRedo with snapshot strategy', () => {
   });
 
   it('should respect historyLimit', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 })
-          }
-        },
-        {
-          strategy: 'snapshot',
-          historyLimit: 2
-        }
-      )
-    );
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    }).with(undoRedo({ strategy: 'snapshot', historyLimit: 2 }));
 
     store.trigger.inc(); // 1
     store.trigger.inc(); // 2
@@ -775,20 +714,12 @@ describe('undoRedo with snapshot strategy', () => {
   });
 
   it('should apply historyLimit during redo', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 })
-          }
-        },
-        {
-          strategy: 'snapshot',
-          historyLimit: 2
-        }
-      )
-    );
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    }).with(undoRedo({ strategy: 'snapshot', historyLimit: 2 }));
 
     store.trigger.inc(); // 1
     store.trigger.inc(); // 2
@@ -807,23 +738,20 @@ describe('undoRedo with snapshot strategy', () => {
   });
 
   it('should preserve context with skipped events', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0, logs: [] as string[] },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1, logs: ctx.logs }),
-            log: (ctx, event: { type: 'log'; message: string }) => ({
-              logs: [...(ctx.logs || []), event.message],
-              count: ctx.count
-            })
-          }
-        },
-        {
-          strategy: 'snapshot',
-          skipEvent: (event) => event.type === 'log'
-        }
-      )
+    const store = createStore({
+      context: { count: 0, logs: [] as string[] },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1, logs: ctx.logs }),
+        log: (ctx, event: { type: 'log'; message: string }) => ({
+          logs: [...(ctx.logs || []), event.message],
+          count: ctx.count
+        })
+      }
+    }).with(
+      undoRedo({
+        strategy: 'snapshot',
+        skipEvent: (event) => event.type === 'log'
+      })
     );
 
     store.trigger.inc(); // count = 1
@@ -840,21 +768,18 @@ describe('undoRedo with snapshot strategy', () => {
   });
 
   it('should handle transaction grouping with historyLimit', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 }),
-            dec: (ctx) => ({ count: ctx.count - 1 })
-          }
-        },
-        {
-          strategy: 'snapshot',
-          getTransactionId: (event) => event.type,
-          historyLimit: 3
-        }
-      )
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 }),
+        dec: (ctx) => ({ count: ctx.count - 1 })
+      }
+    }).with(
+      undoRedo({
+        strategy: 'snapshot',
+        getTransactionId: (event) => event.type,
+        historyLimit: 3
+      })
     );
 
     // First transaction
@@ -884,21 +809,17 @@ describe('undoRedo with snapshot strategy', () => {
   });
 
   it('should use compare function to skip duplicate snapshots', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 }),
-            noop: (ctx) => ctx
-          }
-        },
-        {
-          strategy: 'snapshot',
-          compare: (past, current) =>
-            past.context.count === current.context.count
-        }
-      )
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 }),
+        noop: (ctx) => ctx
+      }
+    }).with(
+      undoRedo({
+        strategy: 'snapshot',
+        compare: (past, current) => past.context.count === current.context.count
+      })
     );
 
     store.trigger.inc(); // count = 1
@@ -916,18 +837,13 @@ describe('undoRedo with snapshot strategy', () => {
   });
 
   it('should save all snapshots when no compare function is provided', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 }),
-            noop: (ctx) => ctx
-          }
-        },
-        { strategy: 'snapshot' }
-      )
-    );
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 }),
+        noop: (ctx) => ctx
+      }
+    }).with(undoRedo({ strategy: 'snapshot' }));
 
     store.trigger.inc(); // count = 1
     store.trigger.noop(); // count = 1 (saved even though duplicate)

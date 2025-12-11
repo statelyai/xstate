@@ -37,5 +37,6 @@ export type {
   ReadonlyAtom,
   EventFromStoreConfig,
   EmitsFromStoreConfig,
-  ContextFromStoreConfig
+  ContextFromStoreConfig,
+  StoreExtension
 } from './types';
