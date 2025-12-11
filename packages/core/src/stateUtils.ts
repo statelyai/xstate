@@ -1648,7 +1648,7 @@ export function macrostep(
   }
 
   let shouldSelectEventlessTransitions = true;
-  const maxIterations = 1000; // Safety limit to prevent infinite loops
+  const maxIterations = snapshot.machine.options?.maxIterations ?? 1000;
   let iterationCount = 0;
 
   while (nextSnapshot.status === 'active') {

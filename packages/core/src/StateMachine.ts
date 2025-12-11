@@ -38,6 +38,7 @@ import type {
   MachineConfig,
   MachineContext,
   MachineImplementationsSimplified,
+  MachineOptions,
   MetaObject,
   ParameterizedObject,
   ProvidedActor,
@@ -94,6 +95,9 @@ export class StateMachine<
 
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
+  /** Runtime options for machine execution. */
+  public options: MachineOptions;
+
   /** @internal */
   public __xstatenode = true as const;
 
@@ -135,6 +139,10 @@ export class StateMachine<
     };
     this.version = this.config.version;
     this.schemas = this.config.schemas;
+    this.options = {
+      maxIterations: 1000,
+      ...this.config.options
+    };
 
     this.transition = this.transition.bind(this);
     this.getInitialSnapshot = this.getInitialSnapshot.bind(this);
