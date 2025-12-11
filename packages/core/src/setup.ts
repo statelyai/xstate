@@ -27,6 +27,7 @@ import {
   ParameterizedObject,
   SetupTypes,
   StateNodeConfig,
+  StateSchema,
   ToChildren,
   ToStateValue,
   UnknownActorLogic,
@@ -38,43 +39,41 @@ type ToParameterizedObject<
     string,
     ParameterizedObject['params'] | undefined
   >
-> = // `silentNeverType` to `never` conversion (explained in `ToProvidedActor`)
-  IsNever<TParameterizedMap> extends true
-    ? never
-    : Values<{
-        [K in keyof TParameterizedMap & string]: {
-          type: K;
-          params: TParameterizedMap[K];
-        };
-      }>;
+> = Values<{
+  [K in keyof TParameterizedMap as K & string]: {
+    type: K & string;
+    params: TParameterizedMap[K];
+  };
+}>;
 
 // at the moment we allow extra actors - ones that are not specified by `children`
 // this could be reconsidered in the future
 type ToProvidedActor<
   TChildrenMap extends Record<string, string>,
   TActors extends Record<string, UnknownActorLogic>
-> =
-  // this essentially is meant to convert a leaked `silentNeverType` to the true `never` type
-  // it shouldn't be observable but here we are
-  // we don't want to lock inner inferences for our actions with types containing this type
-  // it's used in inner inference contexts when the outer one context doesn't have inference candidates for a type parameter
-  // because it leaks here, without this condition it manages to create an inferable type that contains it
-  // the `silentNeverType` is non-inferable itself and that usually means that a containing object is non-inferable too
-  // that doesn't happen here though. However, we actually want to infer a true `never` here so our actions can't use unknown actors
-  // for that reason it's important to do the conversion here because we want to map it to something that is actually inferable
-  IsNever<TActors> extends true
-    ? never
-    : Values<{
-        [K in keyof TActors & string]: {
-          src: K;
-          logic: TActors[K];
-          id: IsNever<TChildrenMap> extends true
-            ? string | undefined
-            : K extends keyof Invert<TChildrenMap>
-              ? Invert<TChildrenMap>[K] & string
-              : string | undefined;
-        };
-      }>;
+> = Values<{
+  [K in keyof TActors as K & string]: {
+    src: K & string;
+    logic: TActors[K];
+    id: IsNever<TChildrenMap> extends true
+      ? string | undefined
+      : K extends keyof Invert<TChildrenMap>
+        ? Invert<TChildrenMap>[K] & string
+        : string | undefined;
+  };
+}>;
+
+// used to keep only StateSchema relevant keys
+// this helps with type serialization as it makes the inferred type much shorter when dealing with huge configs
+type ToStateSchema<TSchema extends StateSchema> = {
+  -readonly [K in keyof TSchema as K & ('id' | 'states')]: K extends 'states'
+    ? {
+        [SK in keyof TSchema['states']]: ToStateSchema<
+          NonNullable<TSchema['states'][SK]>
+        >;
+      }
+    : TSchema[K];
+};
 
 type RequiredSetupKeys<TChildrenMap> =
   IsNever<keyof TChildrenMap> extends true ? never : 'actors';
@@ -267,7 +266,7 @@ type SetupReturn<
     TOutput,
     TEmitted,
     TMeta,
-    TConfig
+    ToStateSchema<TConfig>
   >;
 
   assign: typeof assign<

@@ -1,5 +1,5 @@
-import { EventObject } from './types.ts';
-import { toArray } from './utils.ts';
+import { EventDescriptor, EventObject, ExtractEvent } from './types.ts';
+import { matchesEventDescriptor, toArray } from './utils.ts';
 
 /**
  * Asserts that the given event object is of the specified type or types. Throws
@@ -26,17 +26,22 @@ import { toArray } from './utils.ts';
  */
 export function assertEvent<
   TEvent extends EventObject,
-  TAssertedType extends TEvent['type']
+  TAssertedDescriptor extends EventDescriptor<TEvent>
 >(
   event: TEvent,
-  type: TAssertedType | TAssertedType[]
-): asserts event is TEvent & { type: TAssertedType } {
+  type: TAssertedDescriptor | readonly TAssertedDescriptor[]
+): asserts event is ExtractEvent<TEvent, TAssertedDescriptor> {
   const types = toArray(type);
-  if (!types.includes(event.type as any)) {
+
+  const matches = types.some((descriptor) =>
+    matchesEventDescriptor(event.type, descriptor as string)
+  );
+
+  if (!matches) {
     const typesText =
       types.length === 1
-        ? `type "${types[0]}"`
-        : `one of types "${types.join('", "')}"`;
+        ? `type matching "${types[0]}"`
+        : `one of types matching "${types.join('", "')}"`;
     throw new Error(
       `Expected event ${JSON.stringify(event)} to have ${typesText}`
     );

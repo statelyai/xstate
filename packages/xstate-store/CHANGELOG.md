@@ -1,5 +1,19 @@
 # @xstate/store
 
+## 3.13.0
+
+### Minor Changes
+
+- [#5415](https://github.com/statelyai/xstate/pull/5415) [`068f2a7`](https://github.com/statelyai/xstate/commit/068f2a7932343a3a7d418fa87e172a9de9f5e6cb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add snapshot-based undo/redo strategy to `undoRedo(…)`:
+
+  ```ts
+  // Snapshot strategy (faster undo/redo, more memory)
+  undoRedo(config, {
+    strategy: 'snapshot',
+    historyLimit: 10
+  });
+  ```
+
 ## 3.12.0
 
 ### Minor Changes
