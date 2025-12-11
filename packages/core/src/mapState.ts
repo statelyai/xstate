@@ -3,26 +3,39 @@ import { setup } from './setup';
 import {
   AnyMachineSnapshot,
   AnyStateNode,
-  ContextFrom,
-  MachineContext,
   StateSchema,
   StateSchemaFrom
 } from './types';
 
-type StateSchemaMapper<TC extends MachineContext, T extends StateSchema> = {
-  map: (context: TC) => unknown;
+/**
+ * A mapper object that defines how to transform a snapshot based on its state.
+ * Can be nested to match the state hierarchy of the machine.
+ */
+type StateSchemaMapper<
+  TSnapshot extends AnyMachineSnapshot,
+  T extends StateSchema
+> = {
+  /** Maps the snapshot to a value when this state is active. */
+  map?: (snapshot: TSnapshot) => unknown;
+  /** Nested mappers for child states. */
   states?: {
     [K in keyof T['states']]?: T['states'][K] extends StateSchema
-      ? StateSchemaMapper<TC, T['states'][K]>
+      ? StateSchemaMapper<TSnapshot, T['states'][K]>
       : never;
   };
 };
 
+/**
+ * Maps a machine snapshot to an array of result objects based on active states.
+ *
+ * Traverses all active state nodes (from atomic/leaf states up to root) and
+ * collects results from matching `map` functions in the mapper object.
+ */
 export function mapState<T extends AnyMachineSnapshot>(
   snapshot: T,
-  mapper: StateSchemaMapper<ContextFrom<T>, StateSchemaFrom<T['machine']>>
+  mapper: StateSchemaMapper<T, StateSchemaFrom<T['machine']>>
 ) {
-  const results: unknown[] = [];
+  const results: { stateNode: AnyStateNode; result: unknown }[] = [];
 
   // Helper to check if a node is atomic
   const isAtomicStateNode = (stateNode: AnyStateNode) =>
@@ -42,24 +55,17 @@ export function mapState<T extends AnyMachineSnapshot>(
   // Helper to find the mapper for a given node key path
   // nodePath is from root to the node (e.g., ['a', 'one'])
   const findMapper = (
-    currentMapper: StateSchemaMapper<
-      ContextFrom<T>,
-      StateSchemaFrom<T['machine']>
-    >,
+    currentMapper: StateSchemaMapper<T, StateSchemaFrom<T['machine']>>,
     nodePath: string[]
-  ): StateSchemaMapper<ContextFrom<T>, any> | undefined => {
-    let mapper: StateSchemaMapper<ContextFrom<T>, any> | undefined =
-      currentMapper;
+  ): StateSchemaMapper<T, any> | undefined => {
+    let mapper: StateSchemaMapper<T, any> | undefined = currentMapper;
 
     // Traverse the node path forward (root to node) to find the nested mapper
     for (const key of nodePath) {
       if (!mapper?.states) {
         return undefined;
       }
-      const states = mapper.states as Record<
-        string,
-        StateSchemaMapper<ContextFrom<T>, any>
-      >;
+      const states = mapper.states as Record<string, StateSchemaMapper<T, any>>;
       if (!(key in states)) {
         return undefined;
       }
@@ -77,59 +83,19 @@ export function mapState<T extends AnyMachineSnapshot>(
     const pathToRoot = getPathToRoot(atomicNode);
 
     // Process from atomic node up to root
-    for (const node of pathToRoot) {
+    for (const stateNode of pathToRoot) {
       // Get the path from root to this node (for mapper lookup)
-      const nodePathFromRoot = node.path;
+      const nodePathFromRoot = stateNode.path;
 
       // Find the mapper for this node
       const nodeMapper = findMapper(mapper, nodePathFromRoot);
 
       // If mapper exists, call map and add to results
       if (nodeMapper?.map) {
-        results.push(nodeMapper.map(snapshot.context));
+        results.push({ stateNode, result: nodeMapper.map(snapshot) });
       }
     }
   }
 
   return results;
 }
-
-const machine = setup({}).createMachine({
-  initial: 'a',
-  states: {
-    a: {
-      initial: 'one',
-      states: {
-        one: {
-          on: {
-            NEXT: 'two'
-          }
-        },
-        two: {}
-      }
-    },
-    b: {
-      on: {
-        NEXT: 'c'
-      }
-    },
-    c: {}
-  }
-});
-
-mapState(createActor(machine).getSnapshot(), {
-  map: (context) => context,
-  states: {
-    a: {
-      map: (context) => context,
-      states: {
-        one: {
-          map: (context) => context
-        },
-        two: {
-          map: (context) => context
-        }
-      }
-    }
-  }
-});
