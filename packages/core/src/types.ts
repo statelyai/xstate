@@ -1361,9 +1361,10 @@ export type ContextFactory<
 export interface MachineOptions {
   /**
    * Maximum number of microsteps allowed before throwing an infinite loop
-   * error. Defaults to 1000.
+   * error. Defaults to `Infinity` (no limit). Set to a number to enable
+   * infinite loop detection, or `-1` to explicitly disable the limit.
    *
-   * @default 1000
+   * @default Infinity
    */
   maxIterations?: number;
 }

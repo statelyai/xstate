@@ -570,6 +570,9 @@ describe('transient states (eventless transitions)', () => {
     expect.assertions(1);
     const machine = createMachine({
       initial: 'a',
+      options: {
+        maxIterations: 100
+      },
       states: {
         a: {
           always: {
@@ -622,6 +625,9 @@ describe('transient states (eventless transitions)', () => {
             target: 'a'
           }
         }
+      },
+      options: {
+        maxIterations: 100
       }
     });
     const actor = createActor(machine);
