@@ -146,6 +146,29 @@ export interface Store<
     ExtractEvents<TEventPayloadMap>,
     TEmitted
   >;
+  /**
+   * Extends the store with additional functionality via a store extension.
+   *
+   * @example
+   *
+   * ```ts
+   * const store = createStore({
+   *   context: { count: 0 },
+   *   on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+   * }).with(undoRedo());
+   *
+   * store.trigger.inc();
+   * store.trigger.undo(); // undoes the increment
+   * ```
+   */
+  with<TNewEventPayloadMap extends EventPayloadMap>(
+    extension: StoreExtension<
+      TContext,
+      TEventPayloadMap,
+      TNewEventPayloadMap,
+      TEmitted
+    >
+  ): Store<TContext, TEventPayloadMap & TNewEventPayloadMap, TEmitted>;
 }
 
 export type StoreTransition<
@@ -442,6 +465,35 @@ export type StoreLogic<
   ) => [TSnapshot, StoreEffect<TEmitted>[]];
 };
 export type AnyStoreLogic = StoreLogic<any, any, any>;
+
+/**
+ * A store extension that transforms store logic, optionally adding new events.
+ *
+ * @example
+ *
+ * ```ts
+ * const store = createStore({
+ *   context: { count: 0 },
+ *   on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+ * }).with(undoRedo());
+ * ```
+ */
+export type StoreExtension<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TNewEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject
+> = (
+  logic: StoreLogic<
+    StoreSnapshot<TContext>,
+    ExtractEvents<TEventPayloadMap>,
+    TEmitted
+  >
+) => StoreLogic<
+  StoreSnapshot<TContext>,
+  ExtractEvents<TEventPayloadMap> | ExtractEvents<TNewEventPayloadMap>,
+  TEmitted
+>;
 
 export type AnyStoreConfig = StoreConfig<any, any, any>;
 export type EventFromStoreConfig<TStore extends AnyStoreConfig> =
