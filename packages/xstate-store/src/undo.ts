@@ -367,14 +367,17 @@ function undoRedoFromLogic<
 // Overload: extension pattern (no config, just options)
 export function undoRedo<
   TContext extends StoreContext,
-  TEvent extends EventObject,
+  TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject
 >(
-  options?: UndoRedoStrategyOptions<TContext, TEvent>
+  options?: UndoRedoStrategyOptions<TContext, ExtractEvents<TEventPayloadMap>>
 ): StoreExtension<
   TContext,
-  TEvent,
-  { type: 'undo' } | { type: 'redo' },
+  TEventPayloadMap,
+  {
+    undo: null;
+    redo: null;
+  },
   TEmitted
 >;
 /**

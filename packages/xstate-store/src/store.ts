@@ -189,7 +189,7 @@ function createStoreCore<
     },
     with(extension) {
       const extendedLogic = extension(logic as any);
-      return createStoreCore(extendedLogic);
+      return createStoreCore(extendedLogic) as any;
     }
   };
 

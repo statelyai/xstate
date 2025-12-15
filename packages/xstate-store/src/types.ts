@@ -161,18 +161,14 @@ export interface Store<
    * store.trigger.undo(); // undoes the increment
    * ```
    */
-  with<TNewEvent extends EventObject>(
+  with<TNewEventPayloadMap extends EventPayloadMap>(
     extension: StoreExtension<
       TContext,
-      ExtractEvents<TEventPayloadMap>,
-      TNewEvent,
+      TEventPayloadMap,
+      TNewEventPayloadMap,
       TEmitted
     >
-  ): Store<
-    TContext,
-    TEventPayloadMap & { [E in TNewEvent as E['type']]: E },
-    TEmitted
-  >;
+  ): Store<TContext, TEventPayloadMap & TNewEventPayloadMap, TEmitted>;
 }
 
 export type StoreTransition<
@@ -484,12 +480,20 @@ export type AnyStoreLogic = StoreLogic<any, any, any>;
  */
 export type StoreExtension<
   TContext extends StoreContext,
-  TEvent extends EventObject,
-  TNewEvent extends EventObject,
+  TEventPayloadMap extends EventPayloadMap,
+  TNewEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject
 > = (
-  logic: StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>
-) => StoreLogic<StoreSnapshot<TContext>, TEvent | TNewEvent, TEmitted>;
+  logic: StoreLogic<
+    StoreSnapshot<TContext>,
+    ExtractEvents<TEventPayloadMap>,
+    TEmitted
+  >
+) => StoreLogic<
+  StoreSnapshot<TContext>,
+  ExtractEvents<TEventPayloadMap> | ExtractEvents<TNewEventPayloadMap>,
+  TEmitted
+>;
 
 export type AnyStoreConfig = StoreConfig<any, any, any>;
 export type EventFromStoreConfig<TStore extends AnyStoreConfig> =
