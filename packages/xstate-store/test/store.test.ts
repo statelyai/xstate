@@ -935,18 +935,15 @@ describe('types', () => {
       water: number;
     };
 
-    type Events =
-      | {
-          type: 'addWater';
-          amount: number;
-        }
-      | {
-          type: 'grindBeans';
-        };
+    type Events = {
+      addWater: { amount: number };
+      grindBeans: unknown;
+    };
 
-    type Emitted =
-      | { type: 'brewing' }
-      | { type: 'beansGround'; amount: number };
+    type Emitted = {
+      brewing: unknown;
+      beansGround: { amount: number };
+    };
 
     const store = createStore<Context, Events, Emitted>({
       context: {
