@@ -57,8 +57,9 @@ type AnyStateNodeIterable = StateNodeIterable<any, any>;
 
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 
-const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
-  stateNode.type === 'atomic' || stateNode.type === 'final';
+export function isAtomicStateNode(stateNode: StateNode<any, any>): boolean {
+  return stateNode.type === 'atomic' || stateNode.type === 'final';
+}
 
 function getChildren<TContext extends MachineContext, TE extends EventObject>(
   stateNode: StateNode<TContext, TE>
