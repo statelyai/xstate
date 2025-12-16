@@ -1,10 +1,19 @@
 {
   "name": "@xstate/store",
   "version": "3.14.0",
-  "description": "Simple stores",
+  "description": "Simple event-based state management library: lightweight, type-safe, and XState compatible",
   "keywords": [
     "store",
-    "state"
+    "state",
+    "state-management",
+    "event-driven",
+    "reactive",
+    "xstate",
+    "typescript",
+    "react",
+    "solid",
+    "undo",
+    "immutable"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store#readme",
