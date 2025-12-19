@@ -2302,9 +2302,5 @@ export function evaluateCandidate(
     return res !== undefined;
   }
 
-  if (candidate.guard) {
-    throw new Error('Transition function is required');
-  }
-
   return true;
 }

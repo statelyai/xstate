@@ -419,9 +419,6 @@ function serializeHistoryValue<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(historyValue: HistoryValue<TContext, TEvent>): PersistedHistoryValue {
-  if (typeof historyValue !== 'object' || historyValue === null) {
-    return {};
-  }
   const result: PersistedHistoryValue = {};
 
   for (const key in historyValue) {

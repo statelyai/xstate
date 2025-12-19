@@ -34,6 +34,7 @@
     "test:watch": "vitest",
     "test:core": "vitest run --project xstate",
     "test:core:watch": "vitest --project xstate",
+    "test:core:coverage": "vitest run --project xstate --coverage --coverage.provider=istanbul --coverage.include=packages/core/src/**/*.ts --coverage.exclude=**/*.test.ts",
     "changeset": "changeset",
     "release": "pnpm -r publish --access=public && changeset tag",
     "version": "changeset version"
@@ -60,6 +61,7 @@
     "@manypkg/cli": "^0.21.4",
     "@preconstruct/cli": "^2.8.12",
     "@types/node": "^20.14.13",
+    "@vitest/coverage-istanbul": "^3",
     "babel-preset-solid": "^1.8.4",
     "eslint": "^9.26.0",
     "eslint-plugin-jsdoc": "^50.6.14",
