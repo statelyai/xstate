@@ -211,8 +211,8 @@ describe('spawning machines', () => {
     });
     service.start();
 
-    service.send({ type: 'ADD', id: 42 });
-    service.send({ type: 'SET_COMPLETE', id: 42 });
+    service.trigger.ADD({ id: 42 });
+    service.trigger.SET_COMPLETE({ id: 42 });
     return promise;
   });
 
@@ -383,7 +383,11 @@ describe('spawning callbacks', () => {
           callbackRef: z
             .custom<CallbackActorRef<{ type: 'START' }>>()
             .optional()
-        })
+        }),
+        events: {
+          START_CB: z.object({}),
+          SEND_BACK: z.object({})
+        }
       },
       id: 'callback',
       initial: 'idle',
@@ -435,7 +439,7 @@ describe('spawning callbacks', () => {
     });
 
     callbackService.start();
-    callbackService.send({ type: 'START_CB' });
+    callbackService.trigger.START_CB();
     return promise;
   });
 
@@ -918,6 +922,7 @@ describe('communicating with spawned actors', () => {
           existingRef: z.custom<typeof existingService>().optional()
         }),
         events: {
+          // TODO: this causes parentMachine to be any
           ACTIVATE: z.object({ origin: z.custom<typeof parentService>() }),
           'EXISTING.DONE': z.object({})
         }

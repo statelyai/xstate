@@ -132,6 +132,12 @@ export class Actor<TLogic extends AnyActorLogic>
   public system: AnyActorSystem;
   private _doneEvent?: DoneActorEvent;
 
+  public trigger: ActorRef<
+    SnapshotFrom<TLogic>,
+    EventFromLogic<TLogic>,
+    EmittedFrom<TLogic>
+  >['trigger'];
+
   public src: string | AnyActorLogic;
 
   /**
@@ -235,6 +241,20 @@ export class Actor<TLogic extends AnyActorLogic>
     // Ensure that the send method is bound to this Actor instance
     // if destructured
     this.send = this.send.bind(this);
+    this.trigger = new Proxy(
+      {} as ActorRef<
+        SnapshotFrom<TLogic>,
+        EventFromLogic<TLogic>,
+        EmittedFrom<TLogic>
+      >['trigger'],
+      {
+        get: (_, eventType: string) => {
+          return (payload?: any) => {
+            this.send({ ...payload, type: eventType });
+          };
+        }
+      }
+    );
 
     // unified '@xstate.transition' event replaces '@xstate.actor'
 

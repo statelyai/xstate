@@ -85,7 +85,6 @@ export function createMachine<
   TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
-  // TContext extends MachineContext,
   _TEvent extends EventObject,
   TActor extends ProvidedActor,
   TActionMap extends Implementations['actions'],

@@ -65,6 +65,8 @@ export type IndexByProp<T extends Record<P, string>, P extends keyof T> = {
 
 export type IndexByType<T extends { type: string }> = IndexByProp<T, 'type'>;
 
+export type IsEmptyObject<T> = keyof T extends never ? true : false;
+
 export type Equals<A1, A2> =
   (<A>() => A extends A2 ? true : false) extends <A>() => A extends A1
     ? true
@@ -1705,13 +1707,16 @@ export interface ActorRef<
       emitted: TEmitted & (TType extends '*' ? unknown : { type: TType })
     ) => void
   ) => Subscription;
+  trigger: {
+    [K in TEvent['type']]: IsEmptyObject<
+      Omit<Extract<TEvent, { type: K }>, 'type'>
+    > extends true
+      ? () => void
+      : (payload: Omit<Extract<TEvent, { type: K }>, 'type'>) => void;
+  };
 }
 
-export type AnyActorRef = ActorRef<
-  any,
-  AnyEventObject, // TODO: shouldn't this be AnyEventObject?
-  any
->;
+export type AnyActorRef = ActorRef<any, any, any>;
 
 export type ActorRefLike = Pick<
   AnyActorRef,
