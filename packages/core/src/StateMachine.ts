@@ -337,8 +337,7 @@ export class StateMachine<
    */
   private getPreInitialState(
     actorScope: AnyActorScope,
-    initEvent: any,
-    internalQueue: AnyEventObject[]
+    initEvent: any
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -425,18 +424,13 @@ export class StateMachine<
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
-    const preInitialState = this.getPreInitialState(
-      actorScope,
-      initEvent,
-      internalQueue
-    );
+    const preInitialState = this.getPreInitialState(actorScope, initEvent);
     const nextState = microstep(
       [
         {
           target: [...getInitialStateNodes(this.root)],
           source: this.root,
           reenter: true,
-          actions: [],
           eventType: null as any
         }
       ],

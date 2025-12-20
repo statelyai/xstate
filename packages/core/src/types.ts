@@ -1373,8 +1373,8 @@ export interface TransitionDefinition<
     // it doesn't exactly have to be incorrect, we are overriding this here anyway but it looks like a lucky accident rather than smth done on purpose
     | 'guard'
   > {
-  target: ReadonlyArray<StateNode<TContext, TEvent>> | undefined;
-  source: StateNode<TContext, TEvent>;
+  target: ReadonlyArray<AnyStateNode> | undefined;
+  source: AnyStateNode;
   reenter: boolean;
   eventType: EventDescriptor<TEvent>;
 }
@@ -1439,7 +1439,7 @@ export interface StateConfig<
   context: TContext;
   historyValue?: HistoryValue<TContext, TEvent>;
   /** @internal */
-  _nodes: Array<StateNode<TContext, TEvent>>;
+  _nodes: Array<AnyStateNode>;
   children: Record<string, AnyActorRef | undefined>;
   status: SnapshotStatus;
   output?: any;

@@ -7,35 +7,12 @@ import {
   AnyEventObject,
   AnyMachineSnapshot,
   ConditionalRequired,
-  GetConcreteByKey,
   InputFrom,
-  IsLiteralString,
   IsNotNever,
-  ProvidedActor,
-  RequiredActorOptions,
   TODO,
   type RequiredLogicInput
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
-
-type SpawnOptions<
-  TActor extends ProvidedActor,
-  TSrc extends TActor['src']
-> = TActor extends {
-  src: TSrc;
-}
-  ? ConditionalRequired<
-      [
-        options?: {
-          id?: TActor['id'];
-          systemId?: string;
-          input?: InputFrom<TActor['logic']>;
-          syncSnapshot?: boolean;
-        } & { [K in RequiredActorOptions<TActor>]: unknown }
-      ],
-      IsNotNever<RequiredActorOptions<TActor>>
-    >
-  : never;
 
 export type Spawner = <TLogic extends AnyActorLogic>(
   src: TLogic,
