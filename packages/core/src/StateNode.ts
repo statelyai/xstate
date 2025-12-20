@@ -1,4 +1,3 @@
-import { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
 import { memo } from './memo.ts';
@@ -27,9 +26,7 @@ import type {
   EventDescriptor,
   AnyActorRef,
   AnyStateNode,
-  InitialTransitionConfig,
   AnyEventObject,
-  TransitionConfigFunction,
   AnyAction2,
   AnyTransitionDefinition,
   AnyMachineSnapshot
@@ -296,7 +293,7 @@ export class StateNode<
     );
   }
 
-  public get initial(): InitialTransitionDefinition<TContext, TEvent, TODO> {
+  public get initial(): InitialTransitionDefinition {
     return memo(this, 'initial', () =>
       formatInitialTransition(this, this.config.initial)
     );
@@ -464,59 +461,20 @@ export function formatTransitions<
   return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
 }
 
-export function formatInitialTransition<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
+export function formatInitialTransition(
   stateNode: AnyStateNode,
-  _target:
-    | string
-    | undefined
-    | InitialTransitionConfig<
-        TContext,
-        TEvent,
-        TODO,
-        TODO,
-        TODO,
-        TODO,
-        TODO,
-        TODO
-      >
-    | TransitionConfigFunction<
-        TContext,
-        TEvent,
-        TEvent,
-        TODO,
-        TODO,
-        TODO,
-        TODO,
-        TODO,
-        TODO
-      >
-): InitialTransitionDefinition<TContext, TEvent, TODO> {
-  if (typeof _target === 'function') {
-    return {
-      initial: true,
-      source: stateNode,
-      fn: _target
-    };
-  }
+  _target: string | undefined
+): InitialTransitionDefinition {
   const resolvedTarget =
-    typeof _target === 'string'
-      ? stateNode.states[_target]
-      : _target
-        ? stateNode.states[_target.target]
-        : undefined;
+    typeof _target === 'string' ? stateNode.states[_target] : undefined;
   if (!resolvedTarget && _target) {
     throw new Error(
       `Initial state node "${_target}" not found on parent state node #${stateNode.id}`
     );
   }
-  const transition: InitialTransitionDefinition<TContext, TEvent, TODO> = {
+  const transition: InitialTransitionDefinition = {
     source: stateNode,
-    eventType: null as any,
-    reenter: false,
-    target: resolvedTarget ? [resolvedTarget] : []
+    target: resolvedTarget ? [resolvedTarget] : undefined
   };
 
   return transition;

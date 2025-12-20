@@ -417,7 +417,7 @@ export function getInitialStateNodes(stateNode: AnyStateNode) {
     }
     set.add(descStateNode);
     if (descStateNode.type === 'compound') {
-      iter(descStateNode.initial.target[0]);
+      iter(descStateNode.initial.target![0]);
     } else if (descStateNode.type === 'parallel') {
       for (const child of getChildren(descStateNode)) {
         iter(child);

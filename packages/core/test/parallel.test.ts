@@ -734,17 +734,15 @@ describe('parallel states', () => {
   });
 
   // TODO: skip (initial actions)
-  it.skip('should execute actions of the initial transition of a parallel region when entering the initial state nodes of a machine', () => {
+  it('should execute actions of the initial transition of a parallel region when entering the initial state nodes of a machine', () => {
     const spy = vi.fn();
 
     const machine = createMachine({
       type: 'parallel',
       states: {
         a: {
-          initial: (_, enq) => {
-            enq(spy);
-            return { target: 'a1' };
-          },
+          entry: (_, enq) => enq(spy),
+          initial: 'a1',
           states: {
             a1: {}
           }
@@ -758,8 +756,8 @@ describe('parallel states', () => {
   });
 
   // TODO: fix (initial actions)
-  it.skip('should execute actions of the initial transition of a parallel region when the parallel state is targeted with an explicit transition', () => {
-    const spy = jest.fn();
+  it('should execute actions of the initial transition of a parallel region when the parallel state is targeted with an explicit transition', () => {
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'a',
@@ -776,10 +774,8 @@ describe('parallel states', () => {
           type: 'parallel',
           states: {
             c: {
-              initial: (_, enq) => {
-                enq(spy);
-                return { target: 'c1' };
-              },
+              entry: (_, enq) => enq(spy),
+              initial: 'c1',
               states: {
                 c1: {}
               }

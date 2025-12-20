@@ -206,19 +206,7 @@ export interface Next_StateNodeConfig<
 > {
   contextSchema?: StandardSchemaV1;
   /** The initial state transition. */
-  initial?:
-    | Next_InitialTransitionConfig<
-        TContext,
-        TEvent,
-        TEmitted,
-        TActionMap,
-        TActorMap,
-        TGuardMap,
-        TDelayMap,
-        TMeta
-      >
-    | string
-    | undefined;
+  initial?: string | undefined;
   /**
    * The type of this state node:
    *

@@ -871,30 +871,7 @@ export interface StateNodeConfig<
   TDelayMap extends Implementations['delays']
 > {
   /** The initial state transition. */
-  initial?:
-    | InitialTransitionConfig<
-        TContext,
-        TEvent,
-        TEmitted,
-        TMeta,
-        TActionMap,
-        TActorMap,
-        TGuardMap,
-        TDelayMap
-      >
-    | TransitionConfigFunction<
-        TContext,
-        TEvent,
-        TEvent,
-        TEmitted,
-        TActionMap,
-        TActorMap,
-        TGuardMap,
-        TDelayMap,
-        any
-      >
-    | string
-    | undefined;
+  initial?: string | undefined;
   /**
    * The type of this state node:
    *
@@ -1378,29 +1355,10 @@ export interface TransitionDefinition<
 
 export type AnyTransitionDefinition = TransitionDefinition<any, any>;
 
-export type InitialTransitionDefinition<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TEmitted extends EventObject
-> =
-  | (TransitionDefinition<TContext, TEvent> & {
-      target: ReadonlyArray<StateNode<TContext, TEvent>>;
-    })
-  | {
-      initial: true;
-      source: StateNode<TContext, TEvent>;
-      fn: TransitionConfigFunction<
-        TContext,
-        TEvent,
-        TEvent,
-        TEmitted,
-        any, // TActionMap
-        any,
-        any,
-        any,
-        any
-      >;
-    };
+export type InitialTransitionDefinition = {
+  source: AnyStateNode;
+  target: AnyStateNode[] | undefined;
+};
 
 export type TransitionDefinitionMap<
   TContext extends MachineContext,
