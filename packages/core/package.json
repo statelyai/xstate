@@ -20,20 +20,6 @@
       "import": "./dist/xstate.cjs.mjs",
       "default": "./dist/xstate.cjs.js"
     },
-    "./dev": {
-      "types": {
-        "import": "./dev/dist/xstate-dev.cjs.mjs",
-        "default": "./dev/dist/xstate-dev.cjs.js"
-      },
-      "development": {
-        "module": "./dev/dist/xstate-dev.development.esm.js",
-        "import": "./dev/dist/xstate-dev.development.cjs.mjs",
-        "default": "./dev/dist/xstate-dev.development.cjs.js"
-      },
-      "module": "./dev/dist/xstate-dev.esm.js",
-      "import": "./dev/dist/xstate-dev.cjs.mjs",
-      "default": "./dev/dist/xstate-dev.cjs.js"
-    },
     "./graph": {
       "types": {
         "import": "./graph/dist/xstate-graph.cjs.mjs",
@@ -118,7 +104,6 @@
     "entrypoints": [
       "./index.ts",
       "./actors/index.ts",
-      "./dev/index.ts",
       "./graph/index.ts"
     ]
   }

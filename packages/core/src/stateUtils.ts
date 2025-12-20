@@ -40,20 +40,14 @@ import {
 import { createActor } from './createActor.ts';
 import { builtInActions } from './actions.ts';
 
-type StateNodeIterable<
-  TContext extends MachineContext,
-  TE extends EventObject
-> = Iterable<StateNode<TContext, TE>>;
-type AnyStateNodeIterable = StateNodeIterable<any, any>;
+type AnyStateNodeIterable = Iterable<AnyStateNode>;
 
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 
-const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
+const isAtomicStateNode = (stateNode: AnyStateNode) =>
   stateNode.type === 'atomic' || stateNode.type === 'final';
 
-function getChildren<TContext extends MachineContext, TE extends EventObject>(
-  stateNode: StateNode<TContext, TE>
-): Array<StateNode<TContext, TE>> {
+function getChildren(stateNode: AnyStateNode): Array<AnyStateNode> {
   return Object.values(stateNode.states).filter((sn) => sn.type !== 'history');
 }
 
@@ -148,9 +142,7 @@ function getValueFromAdj(baseNode: AnyStateNode, adjList: AdjList): StateValue {
   return stateValue;
 }
 
-function getAdjList<TContext extends MachineContext, TE extends EventObject>(
-  stateNodes: StateNodeIterable<TContext, TE>
-): AdjList {
+function getAdjList(stateNodes: AnyStateNodeIterable): AdjList {
   const adjList: AdjList = new Map();
 
   for (const s of stateNodes) {
@@ -385,13 +377,10 @@ function resolveTarget(
   });
 }
 
-function resolveHistoryDefaultTransition<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(stateNode: AnyStateNode & { type: 'history' }) {
-  const normalizedTarget = normalizeTarget<TContext, TEvent>(
-    stateNode.config.target
-  );
+function resolveHistoryDefaultTransition(
+  stateNode: AnyStateNode & { type: 'history' }
+): AnyTransitionDefinition {
+  const normalizedTarget = normalizeTarget(stateNode.config.target);
   if (!normalizedTarget) {
     return stateNode.parent!.initial;
   }
@@ -529,25 +518,13 @@ export function getStateNodes(
   );
 }
 
-function transitionAtomicNode<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
+function transitionAtomicNode(
   stateNode: AnyStateNode,
   stateValue: string,
-  snapshot: MachineSnapshot<
-    TContext,
-    TEvent,
-    any,
-    any,
-    any,
-    any,
-    any, // TMeta
-    any // TStateSchema
-  >,
-  event: TEvent,
+  snapshot: AnyMachineSnapshot,
+  event: EventObject,
   self: AnyActorRef
-): Array<TransitionDefinition<TContext, TEvent>> | undefined {
+): Array<AnyTransitionDefinition> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
   const next = childStateNode.next(snapshot, event, self);
 
@@ -916,7 +893,7 @@ export function microstep(
   if (!transitions.length) {
     return currentSnapshot;
   }
-  const mutStateNodeSet = new Set(currentSnapshot._nodes);
+  const mutStateNodeSet = new Set(currentSnapshot._nodes as StateNode[]);
   let historyValue = currentSnapshot.historyValue;
 
   const filteredTransitions = removeConflictingTransitions(
@@ -1032,7 +1009,10 @@ export function microstep(
   try {
     if (
       historyValue === currentSnapshot.historyValue &&
-      areStateNodeCollectionsEqual(currentSnapshot._nodes, mutStateNodeSet)
+      areStateNodeCollectionsEqual(
+        currentSnapshot._nodes as StateNode[],
+        mutStateNodeSet
+      )
     ) {
       return nextState;
     }
@@ -1511,10 +1491,8 @@ function addDescendantStatesToEnter<
         );
       }
     } else {
-      const historyDefaultTransition = resolveHistoryDefaultTransition<
-        TContext,
-        TEvent
-      >(stateNode);
+      const historyDefaultTransition =
+        resolveHistoryDefaultTransition(stateNode);
       const { targets } = getTransitionResult(
         historyDefaultTransition,
         snapshot,
@@ -2247,7 +2225,7 @@ export function hasEffect(
 }
 
 export function evaluateCandidate(
-  candidate: TransitionDefinition<any, any>,
+  candidate: AnyTransitionDefinition,
   event: EventObject,
   snapshot: AnyMachineSnapshot,
   stateNode: AnyStateNode,

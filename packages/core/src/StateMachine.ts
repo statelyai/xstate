@@ -197,7 +197,7 @@ export class StateMachine<
     config: {
       value: StateValue;
       context?: TContext;
-      historyValue?: HistoryValue<TContext, TEvent>;
+      historyValue?: HistoryValue;
       status?: SnapshotStatus;
       output?: TOutput;
       error?: unknown;
@@ -589,11 +589,11 @@ export class StateMachine<
         string,
         ({ id: string } | StateNode<TContext, TEvent>)[]
       >
-    ): HistoryValue<TContext, TEvent> {
+    ): HistoryValue {
       if (!historyValue || typeof historyValue !== 'object') {
         return {};
       }
-      const revived: HistoryValue<TContext, TEvent> = {};
+      const revived: HistoryValue = {};
       for (const key in historyValue) {
         const arr = historyValue[key];
 

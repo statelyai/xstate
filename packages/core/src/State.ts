@@ -21,7 +21,8 @@ import type {
   StateId,
   SnapshotStatus,
   PersistedHistoryValue,
-  TODO
+  TODO,
+  AnyStateNode
 } from './types.ts';
 import { matchesState } from './utils.ts';
 import { createSystem } from './system.ts';
@@ -110,7 +111,7 @@ interface MachineSnapshotBase<
 
   historyValue: Readonly<HistoryValue<TContext, TEvent>>;
   /** The enabled state nodes representative of the state value. */
-  _nodes: Array<StateNode<TContext, TEvent>>;
+  _nodes: Array<AnyStateNode>;
   /** An object mapping actor names to spawned/invoked actors. */
   children: TChildren;
 

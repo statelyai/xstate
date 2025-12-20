@@ -30,7 +30,9 @@ import type {
   InitialTransitionConfig,
   AnyEventObject,
   TransitionConfigFunction,
-  AnyAction2
+  AnyAction2,
+  AnyTransitionDefinition,
+  AnyMachineSnapshot
 } from './types.ts';
 import { Next_StateNodeConfig } from './types.v6.ts';
 import {
@@ -129,7 +131,7 @@ export class StateNode<
 
   public tags: string[] = [];
   public transitions!: Map<string, TransitionDefinition<TContext, TEvent>[]>;
-  public always?: Array<TransitionDefinition<TContext, TEvent>>;
+  public always?: Array<AnyTransitionDefinition>;
 
   constructor(
     /** The raw config used to create the machine. */
@@ -302,24 +304,15 @@ export class StateNode<
 
   /** @internal */
   public next(
-    snapshot: MachineSnapshot<
-      TContext,
-      TEvent,
-      any,
-      any,
-      any,
-      any,
-      any, // TMeta
-      any // TStateSchema
-    >,
+    snapshot: AnyMachineSnapshot,
     event: TEvent,
     self: AnyActorRef
-  ): TransitionDefinition<TContext, TEvent>[] | undefined {
+  ): Array<AnyTransitionDefinition> | undefined {
     const eventType = event.type;
 
-    let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
+    let selectedTransition: AnyTransitionDefinition | undefined;
 
-    const candidates: Array<TransitionDefinition<TContext, TEvent>> = memo(
+    const candidates: Array<AnyTransitionDefinition> = memo(
       this,
       `candidates-${eventType}`,
       () => getCandidates(this, eventType)

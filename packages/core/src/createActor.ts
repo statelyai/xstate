@@ -1,7 +1,6 @@
 import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
 import { XSTATE_STOP } from './constants.ts';
-import { devToolsAdapter } from './dev/index.ts';
 import {
   createDoneActorEvent,
   createErrorActorEvent,
@@ -63,8 +62,7 @@ const defaultOptions = {
       return clearTimeout(id);
     }
   } as Clock,
-  logger: console.log.bind(console),
-  devTools: false
+  logger: console.log.bind(console)
 };
 
 /**
@@ -579,10 +577,6 @@ export class Actor<TLogic extends AnyActorLogic>
     // we need to rethink if this needs to be refactored
     this.update(this._snapshot, initEvent as unknown as EventFromLogic<TLogic>);
 
-    if (this.options.devTools) {
-      this.attachDevTools();
-    }
-
     this.mailbox.start();
 
     return this;
@@ -747,15 +741,6 @@ export class Actor<TLogic extends AnyActorLogic>
     this.system._relay(undefined, this, event);
   }
 
-  private attachDevTools(): void {
-    const { devTools } = this.options;
-    if (devTools) {
-      const resolvedDevToolsAdapter =
-        typeof devTools === 'function' ? devTools : devToolsAdapter;
-
-      resolvedDevToolsAdapter(this);
-    }
-  }
   public toJSON() {
     return {
       xstate$$type: $$ACTOR_TYPE,

@@ -1278,14 +1278,11 @@ export interface HistoryStateNode<TContext extends MachineContext>
   target: string | undefined;
 }
 
-export type HistoryValue<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> = Record<string, Array<StateNode<TContext, TEvent>>>;
+export type HistoryValue = Record<string, Array<AnyStateNode>>;
 
 export type PersistedHistoryValue = Record<string, Array<{ id: string }>>;
 
-export type AnyHistoryValue = HistoryValue<any, any>;
+export type AnyHistoryValue = HistoryValue;
 
 export type StateFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
@@ -1437,7 +1434,7 @@ export interface StateConfig<
   TEvent extends EventObject
 > {
   context: TContext;
-  historyValue?: HistoryValue<TContext, TEvent>;
+  historyValue?: HistoryValue;
   /** @internal */
   _nodes: Array<AnyStateNode>;
   children: Record<string, AnyActorRef | undefined>;
