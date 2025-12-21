@@ -635,12 +635,14 @@ export class Actor<TLogic extends AnyActorLogic>
       }
     }
     this.observers.clear();
+    this.eventListeners.clear();
   }
   private _reportError(err: unknown): void {
     if (!this.observers.size) {
       if (!this._parent) {
         reportUnhandledError(err);
       }
+      this.eventListeners.clear();
       return;
     }
     let reportError = false;
@@ -655,6 +657,7 @@ export class Actor<TLogic extends AnyActorLogic>
       }
     }
     this.observers.clear();
+    this.eventListeners.clear();
     if (reportError) {
       reportUnhandledError(err);
     }
