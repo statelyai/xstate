@@ -1,0 +1,4 @@
+{
+  "main": "dist/xstate-store-vue.cjs.js",
+  "module": "dist/xstate-store-vue.esm.js"
+}

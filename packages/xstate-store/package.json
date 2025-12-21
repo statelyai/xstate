@@ -12,6 +12,15 @@
   "main": "dist/xstate-store.cjs.js",
   "module": "dist/xstate-store.esm.js",
   "exports": {
+    "./vue": {
+      "types": {
+        "import": "./vue/dist/xstate-store-vue.cjs.mjs",
+        "default": "./vue/dist/xstate-store-vue.cjs.js"
+      },
+      "module": "./vue/dist/xstate-store-vue.esm.js",
+      "import": "./vue/dist/xstate-store-vue.cjs.mjs",
+      "default": "./vue/dist/xstate-store-vue.cjs.js"
+    },
     "./undo": {
       "types": {
         "import": "./undo/dist/xstate-store-undo.cjs.mjs",
@@ -55,6 +64,7 @@
     "dist",
     "react",
     "solid",
+    "vue",
     "undo"
   ],
   "repository": {
@@ -84,13 +94,17 @@
   },
   "peerDependencies": {
     "react": "^18.2.0 || ^19.0.0",
-    "solid-js": "^1.7.6"
+    "solid-js": "^1.7.6",
+    "vue": "^3.2.0"
   },
   "peerDependenciesMeta": {
     "react": {
       "optional": true
     },
     "solid-js": {
+      "optional": true
+    },
+    "vue": {
       "optional": true
     }
   },
@@ -100,7 +114,8 @@
       "./index.ts",
       "./react.ts",
       "./solid.ts",
-      "./undo.ts"
+      "./undo.ts",
+      "./vue.ts"
     ]
   }
 }
