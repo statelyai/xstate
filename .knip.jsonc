@@ -19,7 +19,7 @@
       "entry": ["src/index.ts", "src/server.ts"]
     },
     "packages/xstate-store": {
-      "entry": ["src/index.ts", "src/react.ts", "src/solid.ts"]
+      "entry": ["src/index.ts", "src/react.ts", "src/solid.ts", "src/vue.ts"]
     },
     "packages/xstate-svelte": {
       "typescript": "test/tsconfig.json"
