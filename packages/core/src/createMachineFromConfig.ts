@@ -4,8 +4,7 @@ import {
   AnyStateMachine,
   EventObject,
   MachineContext,
-  MetaObject,
-  TransitionConfig
+  MetaObject
 } from './types';
 import {
   Next_InvokeConfig,
@@ -13,7 +12,6 @@ import {
   Next_TransitionConfigOrTarget
 } from './types.v6';
 import { createMachine } from './createMachine';
-import { rootNode } from 'happy-dom/lib/PropertySymbol.js';
 
 export interface RaiseJSON {
   type: '@xstate.raise';
@@ -42,6 +40,14 @@ export interface AssignJSON {
   context: MachineContext;
 }
 
+export interface ScxmlAssignJSON {
+  type: 'scxml.assign';
+  /** SCXML location attribute - the context property to assign to */
+  location: string;
+  /** SCXML expr attribute - expression to evaluate */
+  expr: string;
+}
+
 export type BuiltInActionJSON =
   | RaiseJSON
   | CancelJSON
@@ -60,7 +66,8 @@ export type ActionJSON =
   | CancelJSON
   | LogJSON
   | EmitJSON
-  | AssignJSON;
+  | AssignJSON
+  | ScxmlAssignJSON;
 
 export interface GuardJSON {
   type: string;
@@ -108,6 +115,22 @@ export interface MachineJSON extends StateNodeJSON {
   version?: string;
 }
 
+/** Evaluates an SCXML expression with context variables available via `with`. */
+function evaluateExpr(
+  context: MachineContext,
+  expr: string,
+  event: AnyEventObject | null
+): unknown {
+  const fnBody = `
+with (context) {
+  return (${expr});
+}
+  `;
+  // eslint-disable-next-line @typescript-eslint/no-implied-eval
+  const fn = new Function('context', '_event', fnBody);
+  return fn(context, event ? { name: event.type, data: event } : undefined);
+}
+
 export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
   function iterNode(node: StateNodeJSON) {
     const nodeConfig: Next_StateNodeConfig<
@@ -123,8 +146,11 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
       any,
       any
     > = {
+      id: node.id,
       initial: node.initial,
       type: node.type,
+      history: node.history,
+      target: node.target,
       states: node.states
         ? Object.entries(node.states).reduce(
             (acc, [key, value]) => {
@@ -152,7 +178,7 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
       on: node.on
         ? Object.entries(node.on).reduce(
             (acc, [key, value]) => {
-              acc[key] = iterTransitions(value);
+              acc[key] = getTransitionConfig(value);
               return acc;
             },
             {} as Record<
@@ -171,8 +197,8 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
             >
           )
         : undefined,
+      always: node.always ? getTransitionConfig(node.always) : undefined,
       // after: node.after,
-      // always: node.always,
       entry: node.entry ? iterActions(node.entry) : undefined,
       exit: node.exit ? iterActions(node.exit) : undefined,
       // invoke: node.invoke,
@@ -225,14 +251,26 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
                 `Unknown built-in action: ${(action as any).type}`
               );
           }
+        } else if (action.type === 'scxml.assign') {
+          // SCXML-style assign with location and expr
+          context ??= {};
+          const scxmlAction = action as ScxmlAssignJSON;
+          context[scxmlAction.location] = evaluateExpr(
+            x.context,
+            scxmlAction.expr,
+            x.event
+          );
         } else {
-          enq(x.actions[action.type], action.params);
+          enq(x.actions[action.type], (action as CustomActionJSON).params);
         }
       }
+      return {
+        context
+      };
     };
   }
 
-  function iterTransitions(
+  function getTransitionConfig(
     transition: TransitionJSON | TransitionJSON[]
   ): Next_TransitionConfigOrTarget<
     any,
@@ -254,24 +292,48 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
       reenter: transition.reenter
     }));
 
-    return (x, enq) => {
+    const transitionFn = (x, enq) => {
       for (const transition of nextTransitions) {
-        const guard = transition.guard
-          ? x.guards[transition.guard.type]
-          : undefined;
-        if (!guard || guard(transition.guard?.params)) {
-          transition.action?.(x, enq);
+        let guardPassed = true;
+        if (transition.guard) {
+          if (transition.guard.type === 'scxml.cond') {
+            // SCXML inline condition expression - evaluate with context vars
+            const expr = transition.guard.params?.expr as string;
+            if (expr) {
+              guardPassed = !!evaluateExpr(x.context, expr, x.event);
+            }
+          } else {
+            // Custom guard from implementations
+            const guard = x.guards[transition.guard.type];
+            guardPassed = !guard || guard(transition.guard.params);
+          }
+        }
+        if (guardPassed) {
+          const { context } = transition.action?.(x, enq) ?? {};
+          // Target must be a single string - stateUtils wraps it in array
+          const target = Array.isArray(transition.target)
+            ? transition.target[0]
+            : transition.target;
           return {
-            target: transition.target
+            target,
+            context,
+            reenter: transition.reenter
           };
         }
       }
     };
+
+    transitionFn.config = transitions;
+    return transitionFn;
   }
 
   const rootNodeConfig = iterNode(json);
+  const contextConfig = json.context ? { context: json.context } : {};
 
-  return createMachine(rootNodeConfig);
+  return createMachine({
+    ...rootNodeConfig,
+    ...contextConfig
+  } as any) as unknown as AnyStateMachine;
 }
 
 function isBuiltInActionJSON(action: ActionJSON): action is BuiltInActionJSON {

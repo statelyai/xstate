@@ -1000,9 +1000,6 @@ export function microstep(
       actorScope,
       allExitActions
     );
-    if (context) {
-      nextState.context = context;
-    }
   }
 
   // eslint-disable-next-line no-useless-catch
@@ -1063,7 +1060,7 @@ function enterStates(
   filteredTransitions: AnyTransitionDefinition[],
   mutStateNodeSet: Set<AnyStateNode>,
   internalQueue: AnyEventObject[],
-  historyValue: HistoryValue<any, any>,
+  historyValue: HistoryValue,
   isInitial: boolean
 ) {
   let nextSnapshot = currentSnapshot;
@@ -1386,7 +1383,7 @@ export function getTransitionResult(
 
 function computeEntrySet(
   transitions: Array<AnyTransitionDefinition>,
-  historyValue: HistoryValue<any, any>,
+  historyValue: HistoryValue,
   statesForDefaultEntry: Set<AnyStateNode>,
   statesToEnter: Set<AnyStateNode>,
   snapshot: AnyMachineSnapshot,
@@ -1451,12 +1448,9 @@ function computeEntrySet(
   }
 }
 
-function addDescendantStatesToEnter<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
+function addDescendantStatesToEnter(
   stateNode: AnyStateNode,
-  historyValue: HistoryValue<any, any>,
+  historyValue: HistoryValue,
   statesForDefaultEntry: Set<AnyStateNode>,
   statesToEnter: Set<AnyStateNode>,
   snapshot: AnyMachineSnapshot,
@@ -1705,9 +1699,7 @@ function exitStates(
       actorScope.stopChild(nextSnapshot.children[def.id]);
       delete nextSnapshot.children[def.id];
     }
-    if (nextContext) {
-      nextSnapshot.context = nextContext;
-    }
+
     mutStateNodeSet.delete(exitStateNode);
   }
   return [nextSnapshot, changedHistory || historyValue] as const;
@@ -1813,10 +1805,6 @@ export function macrostep(
   snapshot: typeof snapshot;
   microstates: Array<typeof snapshot>;
 } {
-  if (isDevelopment && event.type === WILDCARD) {
-    throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
-  }
-
   let nextSnapshot = snapshot;
   const microstates: AnyMachineSnapshot[] = [];
 
@@ -1890,7 +1878,12 @@ export function macrostep(
 
   let shouldSelectEventlessTransitions = true;
 
+  let microstepCount = 0;
   while (nextSnapshot.status === 'active') {
+    microstepCount++;
+    if (microstepCount > 1000) {
+      throw new Error('Microstep count exceeded 1000');
+    }
     let enabledTransitions: AnyTransitionDefinition[] =
       shouldSelectEventlessTransitions
         ? selectEventlessTransitions(nextSnapshot, nextEvent, actorScope)

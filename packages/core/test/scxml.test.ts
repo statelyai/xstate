@@ -433,7 +433,7 @@ async function runTestToCompletion(
   });
 }
 
-describe.skip('scxml', () => {
+describe('scxml', () => {
   const onlyTests: string[] = [
     // e.g., 'test399.txml'
     // 'test208.txml'
