@@ -9,6 +9,7 @@ import {
   emit,
   enqueueActions,
   EventFrom,
+  fromCallback,
   fromPromise,
   fromTransition,
   log,
@@ -493,8 +494,11 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept an `assign` with a spawner that tries to spawn an unknown actor when actors are not configured', () => {
+  it('should not accept an `assign` with a spawner that tries to spawn an unknown actor when actors are configured', () => {
     setup({
+      actors: {
+        foo: fromPromise(async () => {})
+      },
       actions: {
         spawnFetcher: assign(({ spawn }) => {
           return {
@@ -507,10 +511,10 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept an invoke that tries to invoke an unknown actor when actors are not configured', () => {
+  it('should accept an invoke that tries to invoke an unknown actor when actors are not configured', () => {
     setup({}).createMachine({
+      // @ts-expect-error
       invoke: {
-        // @ts-expect-error
         src: 'unknown'
       }
     });
@@ -2397,6 +2401,19 @@ describe('setup()', () => {
     });
 
     ((_accept: ContextFrom<typeof machine>) => {})({ myVar: 'whatever' });
+  });
+
+  it('should accept an invoke that tries to invoke an inline actor when actors are not configured', () => {
+    setup({}).createMachine({
+      states: {
+        //...
+        exampleState: {
+          invoke: {
+            src: fromCallback(() => {})
+          }
+        }
+      }
+    });
   });
 });
 
