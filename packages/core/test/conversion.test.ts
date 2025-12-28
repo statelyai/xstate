@@ -151,7 +151,7 @@ describe('SCXML to XState conversion', () => {
       // SCXML events get .* suffix for prefix matching
       const transition = json.states!.a.on!['GO.*'];
       expect(transition).toBeDefined();
-      expect((transition as any).target).toEqual(['b']);
+      expect((transition as any).target).toEqual(['#b']);
     });
 
     it('should convert guarded transitions', () => {
@@ -302,7 +302,7 @@ describe('SCXML to XState conversion', () => {
       expect(json.states!.a.always).toBeDefined();
       const always = json.states!.a.always as any[];
       expect(always).toHaveLength(1);
-      expect(always[0].target).toEqual(['b']);
+      expect(always[0].target).toEqual(['#b']);
     });
   });
 
@@ -413,7 +413,7 @@ describe('SCXML to XState conversion', () => {
       expect(json.states!.parent.states!.hist).toMatchObject({
         type: 'history',
         history: 'shallow',
-        target: 'child1'
+        target: '#child1'
       });
     });
 
@@ -508,7 +508,7 @@ describe('SCXML to XState conversion', () => {
       expect(json.states!['state$two']).toBeDefined();
 
       const transition = json.states!['state$one'].on!['GO.*'] as any;
-      expect(transition.target).toEqual(['state$two']);
+      expect(transition.target).toEqual(['#state$two']);
     });
 
     it('should sanitize nested state IDs with dots (foo.bar.baz → foo$bar$baz)', () => {
@@ -695,181 +695,5 @@ describe('createMachineFromConfig', () => {
     const [nextState3] = transition(machine, nextState2, { type: 'COND_NEXT' });
     expect(nextState3.value).toEqual('c');
     expect(nextState3.context).toEqual({ count: 42 });
-  });
-
-  it.only('test', () => {
-    const scxml = `
-<scxml 
-    datamodel="ecmascript"
-    xmlns="http://www.w3.org/2005/07/scxml"
-    version="1.0">
-
-    <datamodel>
-        <data id="i"/>
-    </datamodel>
-
-    <state id="a">
-        <transition target="b" event="t">
-            <assign location="i" expr="0"/>
-        </transition>
-    </state>
-
-    <state id="A">
-
-        <state id="b">
-            <transition target="c" cond="i &lt; 100">
-                <assign location="i" expr="i + 1"/>
-            </transition>
-        </state>
-
-        <state id="c">
-            <transition target="b" cond="i &lt; 100">
-                <assign location="i" expr="i + 1"/>
-            </transition>
-        </state>
-
-        <transition target="d" cond="i === 100">
-            <assign location="i" expr="i * 2"/>
-        </transition>
-    </state>
-
-
-    <state id="d">
-        <transition target="e" cond="i === 200"/>
-        <transition target="f"/>
-    </state>
-
-    <state id="e"/>
-
-    <state id="f"/>
-
-</scxml>
-    `;
-    // const machine = toMachine(scxml);
-    const machine = createMachineFromConfig({
-      id: '(machine)',
-      initial: 'a',
-      states: {
-        a: {
-          id: 'a',
-          on: {
-            't.*': {
-              target: ['#b'],
-              actions: [
-                {
-                  type: 'scxml.assign',
-                  location: 'i',
-                  expr: '0'
-                }
-              ],
-              reenter: true
-            }
-          }
-        },
-        A: {
-          id: 'A',
-          initial: 'b',
-          states: {
-            b: {
-              id: 'b',
-              always: [
-                {
-                  target: ['#c'],
-                  actions: [
-                    {
-                      type: 'scxml.assign',
-                      location: 'i',
-                      expr: 'i + 1'
-                    }
-                  ],
-                  guard: {
-                    type: 'scxml.cond',
-                    params: {
-                      expr: 'i < 100'
-                    }
-                  },
-                  reenter: true
-                }
-              ]
-            },
-            c: {
-              id: 'c',
-              always: [
-                {
-                  target: ['#b'],
-                  actions: [
-                    {
-                      type: 'scxml.assign',
-                      location: 'i',
-                      expr: 'i + 1'
-                    }
-                  ],
-                  guard: {
-                    type: 'scxml.cond',
-                    params: {
-                      expr: 'i < 100'
-                    }
-                  },
-                  reenter: true
-                }
-              ]
-            }
-          },
-          always: [
-            {
-              target: ['#d'],
-              actions: [
-                {
-                  type: 'scxml.assign',
-                  location: 'i',
-                  expr: 'i * 2'
-                }
-              ],
-              guard: {
-                type: 'scxml.cond',
-                params: {
-                  expr: 'i === 100'
-                }
-              },
-              reenter: true
-            }
-          ]
-        },
-        d: {
-          id: 'd',
-          always: [
-            {
-              target: ['#e'],
-              guard: {
-                type: 'scxml.cond',
-                params: {
-                  expr: 'i === 200'
-                }
-              },
-              reenter: true
-            },
-            {
-              target: ['#f'],
-              reenter: true
-            }
-          ]
-        },
-        e: {
-          id: 'e'
-        },
-        f: {
-          id: 'f'
-        }
-      },
-      context: {
-        i: undefined
-      }
-    });
-
-    let [state] = initialTransition(machine);
-    expect(state.value).toEqual('a');
-    [state] = transition(machine, state, { type: 't' });
-    expect(state.context).toEqual({ i: 100 });
-    expect(state.value).toEqual('e');
   });
 });

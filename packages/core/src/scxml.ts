@@ -235,10 +235,7 @@ function toStateNodeJSON(
       id: sanitizeStateId(id),
       type: 'history',
       history,
-      target: target
-        ? `
-      #${sanitizeStateId(target as string)}`
-        : undefined
+      target: target ? `#${sanitizeStateId(target as string)}` : undefined
     };
   }
 
