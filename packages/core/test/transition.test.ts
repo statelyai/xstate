@@ -584,4 +584,32 @@ describe('transition function', () => {
     await sleep(10);
     expect(JSON.parse(db.state).value).toBe('finish');
   });
+
+  it('should support transition functions', () => {
+    const fn = vi.fn();
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: {
+              description: 'next',
+              to: (_, enq) => {
+                enq(fn);
+                return {
+                  target: 'b'
+                };
+              }
+            }
+          }
+        },
+        b: {}
+      }
+    });
+
+    const [init] = initialTransition(machine);
+    const [s1, actions] = transition(machine, init, { type: 'NEXT' });
+    expect(s1.value).toEqual('b');
+    expect(actions.length).toEqual(1);
+  });
 });

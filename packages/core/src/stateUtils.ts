@@ -270,7 +270,7 @@ export function getDelayedTransitions(
       typeof configTransition === 'string'
         ? { target: configTransition }
         : typeof configTransition === 'function'
-          ? { fn: configTransition }
+          ? { to: configTransition }
           : configTransition;
     const resolvedDelay = Number.isNaN(+delay) ? delay : +delay;
     const eventType = mutateEntryExitWithDelay(resolvedDelay);
@@ -1254,7 +1254,7 @@ export function getTransitionResult(
   reenter?: boolean;
   internalEvents: EventObject[] | undefined;
 } {
-  if (transition.fn) {
+  if (transition.to) {
     const actions: UnknownAction[] = [];
     const internalEvents: EventObject[] = [];
     const enqueue = createEnqueueObject(
@@ -1339,7 +1339,7 @@ export function getTransitionResult(
       }
     );
 
-    const res = transition.fn(
+    const res = transition.to(
       {
         context: snapshot.context,
         event,
@@ -2167,7 +2167,7 @@ export function hasEffect(
   snapshot: AnyMachineSnapshot,
   self: AnyActorRef
 ): boolean {
-  if (transition.fn) {
+  if (transition.to) {
     let hasEffect = false;
     let res;
 
@@ -2176,7 +2176,7 @@ export function hasEffect(
         hasEffect = true;
         throw new Error('Effect triggered');
       };
-      res = transition.fn(
+      res = transition.to(
         {
           context,
           event,
@@ -2224,7 +2224,7 @@ export function evaluateCandidate(
   stateNode: AnyStateNode,
   self: AnyActorRef
 ): boolean {
-  if (candidate.fn) {
+  if (candidate.to) {
     let hasEffect = false;
     let res;
     const context = snapshot.context;
@@ -2234,7 +2234,7 @@ export function evaluateCandidate(
         hasEffect = true;
         throw new Error('Effect triggered');
       };
-      res = candidate.fn(
+      res = candidate.to(
         {
           context,
           event,

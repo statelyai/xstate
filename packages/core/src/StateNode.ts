@@ -369,7 +369,7 @@ export class StateNode<
             transition.target ||
             // transition.actions.length ||
             transition.reenter ||
-            transition.fn
+            transition.to
         );
       })
     );

@@ -417,7 +417,28 @@ export type Next_TransitionConfigOrTarget<
 > =
   | string
   | undefined
-  | { target?: string | string[]; description?: string; reenter?: boolean }
+  | {
+      target?: string | string[];
+      description?: string;
+      reenter?: boolean;
+      meta?: TMeta;
+    }
+  | {
+      to?: TransitionConfigFunction<
+        TContext,
+        TExpressionEvent,
+        TEvent,
+        TEmitted,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TMeta
+      >;
+      description?: string;
+      reenter?: boolean;
+      meta?: TMeta;
+    }
   | TransitionConfigFunction<
       TContext,
       TExpressionEvent,

@@ -232,7 +232,7 @@ export function toTransitionConfigArray(
     }
 
     if (typeof transitionLike === 'function') {
-      return { fn: transitionLike };
+      return { to: transitionLike };
     }
 
     return transitionLike;

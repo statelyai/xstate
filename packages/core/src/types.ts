@@ -252,7 +252,7 @@ export interface TransitionConfig<
   actions?: never;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
-  fn?: TransitionConfigFunction<
+  to?: TransitionConfigFunction<
     TContext,
     TExpressionEvent,
     TEvent,
