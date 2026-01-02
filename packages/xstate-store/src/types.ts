@@ -1,5 +1,3 @@
-import type { ReactiveNode } from './alien';
-
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
 export type ExtractEvents<T extends EventPayloadMap> = Values<{
