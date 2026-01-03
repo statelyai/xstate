@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.14.1
+
+### Patch Changes
+
+- [#5437](https://github.com/statelyai/xstate/pull/5437) [`ae93af1`](https://github.com/statelyai/xstate/commit/ae93af1a9813c9e7f6ad5eb34fe0f087c147e890) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Update the internal atom implementation (alien-signals)
+
 ## 3.14.0
 
 ### Minor Changes
