@@ -15,6 +15,7 @@ import {
   fromPromise,
   fromTransition,
   sendTo,
+  setup,
   spawnChild,
   stopChild
 } from '../src/index.ts';
@@ -583,5 +584,44 @@ describe('system', () => {
     actor.send({ type: 'stopChild1' });
 
     expect(actor.system.getAll()).toEqual({});
+  });
+
+  it('should unregister nested child systemIds when stopping a parent actor', () => {
+    const subchild = createMachine({});
+
+    const child = setup({
+      actors: {
+        subchild
+      }
+    }).createMachine({
+      id: 'childSystem',
+      invoke: {
+        src: 'subchild',
+        systemId: 'subchild'
+      }
+    });
+
+    const parent = setup({
+      actors: { child }
+    }).createMachine({
+      entry: spawnChild('child', { id: 'childId' }),
+      on: {
+        restart: {
+          actions: [
+            stopChild('childId'),
+            spawnChild('child', { id: 'childId' })
+          ]
+        }
+      }
+    });
+
+    const root = createActor(parent).start();
+
+    expect(root.system.get('subchild')).toBeDefined();
+
+    // This should not throw "Actor with system ID 'subchild' already exists"
+    expect(() => root.send({ type: 'restart' })).not.toThrow();
+
+    expect(root.system.get('subchild')).toBeDefined();
   });
 });
