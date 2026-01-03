@@ -35,6 +35,8 @@
     "test:core": "vitest run --project xstate",
     "test:core:watch": "vitest --project xstate",
     "test:core:coverage": "vitest run --project xstate --coverage --coverage.provider=istanbul --coverage.include=packages/core/src/**/*.ts --coverage.exclude=**/*.test.ts",
+    "test:store": "vitest run --project @xstate/store",
+    "test:store:watch": "vitest --project @xstate/store",
     "changeset": "changeset",
     "release": "pnpm -r publish --access=public && changeset tag",
     "version": "changeset version"
