@@ -48,6 +48,20 @@ export interface ScxmlAssignJSON {
   expr: string;
 }
 
+export interface ScxmlRaiseJSON {
+  type: 'scxml.raise';
+  /** Event type, or undefined if using eventexpr */
+  event?: string;
+  /** Expression to evaluate for event type */
+  eventexpr?: string;
+  /** Params with expressions to evaluate */
+  params?: Array<{ name: string; expr: string }>;
+  id?: string;
+  delay?: number;
+  /** Expression for delay */
+  delayexpr?: string;
+}
+
 export type BuiltInActionJSON =
   | RaiseJSON
   | CancelJSON
@@ -67,7 +81,8 @@ export type ActionJSON =
   | LogJSON
   | EmitJSON
   | AssignJSON
-  | ScxmlAssignJSON;
+  | ScxmlAssignJSON
+  | ScxmlRaiseJSON;
 
 export interface GuardJSON {
   type: string;
@@ -264,6 +279,45 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
             scxmlAction.expr,
             x.event
           );
+        } else if (action.type === 'scxml.raise') {
+          // SCXML raise/send with params that need runtime evaluation
+          const scxmlAction = action as ScxmlRaiseJSON;
+          const mergedContext = { ...x.context, ...context };
+
+          // Evaluate event type
+          const eventType = scxmlAction.eventexpr
+            ? (evaluateExpr(
+                mergedContext,
+                scxmlAction.eventexpr,
+                x.event
+              ) as string)
+            : scxmlAction.event || 'unknown';
+
+          // Build event with evaluated params
+          const eventData: Record<string, unknown> = { type: eventType };
+          if (scxmlAction.params) {
+            for (const param of scxmlAction.params) {
+              eventData[param.name] = evaluateExpr(
+                mergedContext,
+                param.expr,
+                x.event
+              );
+            }
+          }
+
+          // Evaluate delay if expression
+          const delay = scxmlAction.delayexpr
+            ? (evaluateExpr(
+                mergedContext,
+                scxmlAction.delayexpr,
+                x.event
+              ) as number)
+            : scxmlAction.delay;
+
+          enq.raise(eventData as AnyEventObject, {
+            id: scxmlAction.id,
+            delay
+          });
         } else {
           enq(x.actions[action.type], (action as CustomActionJSON).params);
         }

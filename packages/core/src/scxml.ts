@@ -8,6 +8,7 @@ import {
   LogJSON,
   MachineJSON,
   RaiseJSON,
+  ScxmlRaiseJSON,
   StateNodeJSON,
   TransitionJSON,
   createMachineFromConfig
@@ -107,25 +108,56 @@ function mapAction(element: XMLElement): ActionJSON {
       };
     }
     case 'send': {
-      const { event, target, id, delay } = element.attributes!;
+      const { event, eventexpr, target, id, delay, delayexpr } =
+        element.attributes!;
 
-      // If target is internal, treat as raise
-      if (target === SpecialTargets.Internal) {
+      // Extract params from child elements
+      const params: Array<{ name: string; expr: string }> = [];
+      if (element.elements) {
+        for (const child of element.elements) {
+          if (child.name === 'param') {
+            params.push({
+              name: child.attributes!.name as string,
+              expr: child.attributes!.expr as string
+            });
+          } else if (child.name === 'content') {
+            throw new Error(
+              'Conversion of <content/> inside <send/> not implemented.'
+            );
+          }
+        }
+      }
+
+      // If no params and no expressions, use simple RaiseJSON
+      if (!params.length && !eventexpr && !delayexpr) {
+        if (target === SpecialTargets.Internal) {
+          const action: RaiseJSON = {
+            type: '@xstate.raise',
+            event: { type: event as string },
+            id: id as string | undefined,
+            delay: delay ? delayToMs(delay) : undefined
+          };
+          return action;
+        }
+
         const action: RaiseJSON = {
           type: '@xstate.raise',
-          event: { type: event as string },
+          event: { type: (event as string) || 'unknown' },
           id: id as string | undefined,
           delay: delay ? delayToMs(delay) : undefined
         };
         return action;
       }
 
-      // For external sends, we still use raise for now (self-targeting)
-      const action: RaiseJSON = {
-        type: '@xstate.raise',
-        event: { type: (event as string) || 'unknown' },
+      // Use ScxmlRaiseJSON for params/expressions that need runtime evaluation
+      const action: ScxmlRaiseJSON = {
+        type: 'scxml.raise',
+        event: event as string | undefined,
+        eventexpr: eventexpr as string | undefined,
+        params: params.length ? params : undefined,
         id: id as string | undefined,
-        delay: delay ? delayToMs(delay) : undefined
+        delay: delay ? delayToMs(delay) : undefined,
+        delayexpr: delayexpr as string | undefined
       };
       return action;
     }
