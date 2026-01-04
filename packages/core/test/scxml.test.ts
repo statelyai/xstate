@@ -352,7 +352,10 @@ interface SCIONTest {
   }>;
 }
 
-async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
+async function runW3TestToCompletion(
+  name: string,
+  machine: AnyStateMachine
+): Promise<void> {
   const { resolve, reject, promise } = Promise.withResolvers<void>();
   let nextState: AnyMachineSnapshot;
   let prevState: AnyMachineSnapshot;
@@ -372,7 +375,7 @@ async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
       } else {
         reject(
           new Error(
-            `Reached "fail" state from state ${JSON.stringify(
+            `${name}: Reached "fail" state from state ${JSON.stringify(
               prevState?.value
             )}`
           )
@@ -385,11 +388,12 @@ async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
 }
 
 async function runTestToCompletion(
+  name: string,
   machine: AnyStateMachine,
   test: SCIONTest
 ): Promise<void> {
   if (!test.events.length && test.initialConfiguration[0] === 'pass') {
-    await runW3TestToCompletion(machine);
+    await runW3TestToCompletion(name, machine);
     return;
   }
 
@@ -408,7 +412,9 @@ async function runTestToCompletion(
     complete: () => {
       if (nextState.value === 'fail') {
         throw new Error(
-          `Reached "fail" state from state ${JSON.stringify(prevState?.value)}`
+          `${name}: Reached "fail" state from state ${JSON.stringify(
+            prevState?.value
+          )}`
         );
       }
       done = true;
@@ -433,10 +439,9 @@ async function runTestToCompletion(
   });
 }
 
-describe.skip('scxml', () => {
+describe('scxml', () => {
   const onlyTests: string[] = [
     // e.g., 'test399.txml'
-    // 'test208.txml'
   ];
   const testGroupKeys = Object.keys(testGroups);
 
@@ -473,7 +478,11 @@ describe.skip('scxml', () => {
         const machine = toMachine(scxmlDefinition);
 
         try {
-          await runTestToCompletion(machine, scxmlTest);
+          await runTestToCompletion(
+            `${testGroupName}/${testName}`,
+            machine,
+            scxmlTest
+          );
         } catch (e) {
           // console.log(JSON.stringify(machine.config, null, 2));
           throw e;

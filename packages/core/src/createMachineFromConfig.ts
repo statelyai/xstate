@@ -121,7 +121,9 @@ function evaluateExpr(
   expr: string,
   event: AnyEventObject | null
 ): unknown {
+  const scope = 'const _sessionid = "NOT_IMPLEMENTED";';
   const fnBody = `
+${scope}
 with (context) {
   return (${expr});
 }
@@ -255,8 +257,10 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
           // SCXML-style assign with location and expr
           context ??= {};
           const scxmlAction = action as ScxmlAssignJSON;
+          // Merge original context with accumulated changes so expressions can reference prior assigns
+          const mergedContext = { ...x.context, ...context };
           context[scxmlAction.location] = evaluateExpr(
-            x.context,
+            mergedContext,
             scxmlAction.expr,
             x.event
           );
@@ -264,8 +268,9 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
           enq(x.actions[action.type], (action as CustomActionJSON).params);
         }
       }
+      // Return full merged context if any changes were made
       return {
-        context
+        context: context ? { ...x.context, ...context } : undefined
       };
     };
   }

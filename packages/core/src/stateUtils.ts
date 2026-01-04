@@ -1640,7 +1640,7 @@ function exitStates(
   actorScope: AnyActorScope,
   transitions: AnyTransitionDefinition[],
   mutStateNodeSet: Set<AnyStateNode>,
-  historyValue: HistoryValue<any, any>,
+  historyValue: HistoryValue,
   internalQueue: AnyEventObject[]
 ) {
   let nextSnapshot = currentSnapshot;
@@ -1681,13 +1681,19 @@ function exitStates(
           event,
           self: actorScope.self,
           parent: actorScope.self._parent,
-          children: actorScope.self.getSnapshot().children,
+          children: currentSnapshot.children,
           actorScope,
           machine: currentSnapshot.machine
         })
       : [[]];
     if (internalEvents?.length) {
       internalQueue.push(...internalEvents);
+    }
+    // Apply context changes from exit actions before executing other actions
+    if (nextContext) {
+      nextSnapshot = cloneMachineSnapshot(nextSnapshot, {
+        context: nextContext
+      });
     }
     nextSnapshot = resolveAndExecuteActionsWithContext(
       nextSnapshot,
