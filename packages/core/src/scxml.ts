@@ -108,7 +108,7 @@ function mapAction(element: XMLElement): ActionJSON {
       };
     }
     case 'send': {
-      const { event, eventexpr, target, id, delay, delayexpr } =
+      const { event, eventexpr, target, targetexpr, id, delay, delayexpr } =
         element.attributes!;
 
       // Extract params from child elements
@@ -128,23 +128,22 @@ function mapAction(element: XMLElement): ActionJSON {
         }
       }
 
-      // If no params and no expressions, use simple RaiseJSON
-      if (!params.length && !eventexpr && !delayexpr) {
-        if (target === SpecialTargets.Internal) {
-          const action: RaiseJSON = {
-            type: '@xstate.raise',
-            event: { type: event as string },
-            id: id as string | undefined,
-            delay: delay ? delayToMs(delay) : undefined
-          };
-          return action;
-        }
+      const isInternal = target === SpecialTargets.Internal;
+      // External events (non-internal) go to external queue via delay:0
+      // This ensures internal events are processed first within a macrostep
+      const resolvedDelay = delay
+        ? delayToMs(delay)
+        : isInternal
+          ? undefined
+          : 0;
 
+      // If no params and no expressions, use simple RaiseJSON
+      if (!params.length && !eventexpr && !delayexpr && !targetexpr) {
         const action: RaiseJSON = {
           type: '@xstate.raise',
           event: { type: (event as string) || 'unknown' },
           id: id as string | undefined,
-          delay: delay ? delayToMs(delay) : undefined
+          delay: resolvedDelay
         };
         return action;
       }
@@ -156,8 +155,9 @@ function mapAction(element: XMLElement): ActionJSON {
         eventexpr: eventexpr as string | undefined,
         params: params.length ? params : undefined,
         id: id as string | undefined,
-        delay: delay ? delayToMs(delay) : undefined,
-        delayexpr: delayexpr as string | undefined
+        delay: resolvedDelay,
+        delayexpr: delayexpr as string | undefined,
+        targetexpr: targetexpr as string | undefined
       };
       return action;
     }
@@ -175,6 +175,12 @@ function mapAction(element: XMLElement): ActionJSON {
       // if/elseif/else - we'll flatten this into a single custom action for now
       // The full implementation would require runtime conditional logic
       return { type: 'scxml.if', params: { element } };
+    }
+    case 'script': {
+      // Get the script text content
+      const textElement = element.elements?.find((el) => el.type === 'text');
+      const code = (textElement?.text as string) || '';
+      return { type: 'scxml.script', code: code.trim() };
     }
     default:
       throw new Error(
@@ -340,13 +346,16 @@ function toStateNodeJSON(
         guard = createGuard(value.attributes.cond as string);
       }
 
+      // Only set reenter:true for external transitions WITH a target
+      // Targetless transitions should not reenter (they just execute actions)
+      const hasTarget = targets !== undefined;
       const transitionConfig: TransitionJSON = {
         target: getTargets(targets),
         ...(value.elements?.length
           ? { actions: mapActions(value.elements) }
           : undefined),
         ...(guard ? { guard } : undefined),
-        ...(!internal && { reenter: true })
+        ...(hasTarget && !internal && { reenter: true })
       };
 
       if (eventType === NULL_EVENT || eventType === '') {

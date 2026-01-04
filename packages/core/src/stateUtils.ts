@@ -1241,7 +1241,7 @@ function enterStates(
  * transition.
  */
 export function getTransitionResult(
-  transition: Pick<AnyTransitionDefinition, 'target' | 'fn' | 'source'> & {
+  transition: Pick<AnyTransitionDefinition, 'target' | 'to' | 'source'> & {
     reenter?: AnyTransitionDefinition['reenter'];
   },
   snapshot: AnyMachineSnapshot,

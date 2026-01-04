@@ -60,6 +60,14 @@ export interface ScxmlRaiseJSON {
   delay?: number;
   /** Expression for delay */
   delayexpr?: string;
+  /** Expression for target */
+  targetexpr?: string;
+}
+
+export interface ScxmlScriptJSON {
+  type: 'scxml.script';
+  /** The script code to execute */
+  code: string;
 }
 
 export type BuiltInActionJSON =
@@ -82,7 +90,8 @@ export type ActionJSON =
   | EmitJSON
   | AssignJSON
   | ScxmlAssignJSON
-  | ScxmlRaiseJSON;
+  | ScxmlRaiseJSON
+  | ScxmlScriptJSON;
 
 export interface GuardJSON {
   type: string;
@@ -136,16 +145,59 @@ function evaluateExpr(
   expr: string,
   event: AnyEventObject | null
 ): unknown {
-  const scope = 'const _sessionid = "NOT_IMPLEMENTED";';
+  const scope =
+    'const _sessionid = "NOT_IMPLEMENTED"; const _ioprocessors = "NOT_IMPLEMENTED";';
   const fnBody = `
 ${scope}
 with (context) {
   return (${expr});
 }
-  `;
+  `.trim();
   // eslint-disable-next-line @typescript-eslint/no-implied-eval
   const fn = new Function('context', '_event', fnBody);
-  return fn(context, event ? { name: event.type, data: event } : undefined);
+  // SCXML _event has: name, data, origin, origintype, etc.
+  // For self-raised events, origin is #_internal
+  const result = fn(
+    context,
+    event
+      ? {
+          name: event.type,
+          data: event,
+          origin: '#_internal',
+          origintype: 'http://www.w3.org/TR/scxml/#SCXMLEventProcessor'
+        }
+      : undefined
+  );
+
+  return result;
+}
+
+/** Executes an SCXML script block and returns updated context values. */
+function executeScript(
+  context: MachineContext,
+  code: string
+): Record<string, unknown> {
+  // Create a proxy to track which properties are modified
+  const updates: Record<string, unknown> = {};
+  const contextKeys = Object.keys(context);
+
+  // Build variable declarations and reassignment capture
+  const varDeclarations = contextKeys
+    .map((k) => `let ${k} = context.${k};`)
+    .join('\n');
+  const captureUpdates = contextKeys
+    .map((k) => `updates.${k} = ${k};`)
+    .join('\n');
+
+  const fnBody = `
+${varDeclarations}
+${code}
+${captureUpdates}
+return updates;
+  `;
+  // eslint-disable-next-line @typescript-eslint/no-implied-eval
+  const fn = new Function('context', 'updates', fnBody);
+  return fn(context, updates);
 }
 
 export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
@@ -305,19 +357,40 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
             }
           }
 
-          // Evaluate delay if expression
+          // Evaluate target if expression
+          const target = scxmlAction.targetexpr
+            ? (evaluateExpr(
+                mergedContext,
+                scxmlAction.targetexpr,
+                x.event
+              ) as string)
+            : undefined;
+
+          // If target is #_internal, use internal queue (no delay)
+          // Otherwise use the specified delay or default external queue delay
+          const isInternalTarget = target === '#_internal';
           const delay = scxmlAction.delayexpr
             ? (evaluateExpr(
                 mergedContext,
                 scxmlAction.delayexpr,
                 x.event
               ) as number)
-            : scxmlAction.delay;
+            : isInternalTarget
+              ? undefined
+              : scxmlAction.delay;
 
           enq.raise(eventData as AnyEventObject, {
             id: scxmlAction.id,
             delay
           });
+        } else if (action.type === 'scxml.script') {
+          // SCXML script - execute code that can modify context
+          context ??= {};
+          const scxmlAction = action as ScxmlScriptJSON;
+          const mergedContext = { ...x.context, ...context };
+          // Execute script with context variables in scope
+          const updatedContext = executeScript(mergedContext, scxmlAction.code);
+          Object.assign(context, updatedContext);
         } else {
           enq(x.actions[action.type], (action as CustomActionJSON).params);
         }

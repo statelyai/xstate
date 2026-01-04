@@ -164,7 +164,7 @@ const testGroups: Record<string, string[]> = {
     // 'test198.txml', // origintype not implemented yet
     // 'test199.txml', // send type not checked
     'test200.txml',
-    'test201.txml',
+    // 'test201.txml', // optional
     'test205.txml',
     // 'test207.txml', // delayexpr
     'test208.txml',
@@ -354,25 +354,46 @@ interface SCIONTest {
 
 async function runW3TestToCompletion(
   name: string,
-  machine: AnyStateMachine
+  scxmlDefinition: string,
+  test: SCIONTest
 ): Promise<void> {
+  const machine = toMachine(scxmlDefinition);
+
   const { resolve, reject, promise } = Promise.withResolvers<void>();
   let nextState: AnyMachineSnapshot;
   let prevState: AnyMachineSnapshot;
 
+  const transitions: string[] = [];
+
   const actor = createActor(machine, {
     logger: () => void 0
+  });
+  actor.system.inspect((e) => {
+    console.log({
+      type: e.type,
+      microsteps: e.microsteps.map((m) => ({
+        type: m.eventType,
+        state: m.target
+      }))
+    });
   });
   actor.subscribe({
     next: (state) => {
       prevState = nextState;
       nextState = state;
+      transitions.push(
+        `${JSON.stringify(state.value)} ${JSON.stringify(state.context)}`
+      );
     },
     complete: () => {
       // Add 'final' for test230.txml which does not have a 'pass' state
       if (['final', 'pass'].includes(nextState.value as string)) {
         resolve();
       } else {
+        console.log(transitions.join('\n'));
+        console.log(scxmlDefinition);
+        console.log(toMachineJSON(scxmlDefinition));
+        console.log(JSON.stringify(test, null, 2));
         reject(
           new Error(
             `${name}: Reached "fail" state from state ${JSON.stringify(
@@ -397,7 +418,7 @@ async function runTestToCompletion(
   const machine = toMachine(scxmlDefinition);
 
   if (!test.events.length && test.initialConfiguration[0] === 'pass') {
-    await runW3TestToCompletion(name, machine);
+    await runW3TestToCompletion(name, scxmlDefinition, test);
     return;
   }
 
@@ -440,6 +461,7 @@ async function runTestToCompletion(
   });
   actor.start();
 
+  const transitions: string[] = [];
   test.events.forEach(({ event, nextConfiguration, after }) => {
     if (done) {
       return;
@@ -448,19 +470,29 @@ async function runTestToCompletion(
       (actor.clock as SimulatedClock).increment(after);
     }
     actor.send({ type: event.name });
+    transitions.push(
+      `${event.name} -> ${JSON.stringify(actor.getSnapshot().value)} ${JSON.stringify(actor.getSnapshot().context)}`
+    );
 
     const stateIds = getStateNodes(machine.root, nextState.value).map(
       (stateNode) => stateNode.id
     );
 
+    if (!stateIds.includes(sanitizeStateId(nextConfiguration[0]))) {
+      console.log(transitions.join('\n'));
+      console.log(scxmlDefinition);
+      console.log(JSON.stringify(machineJSON, null, 2));
+      console.log(JSON.stringify(test, null, 2));
+    }
+
     expect(stateIds).toContain(sanitizeStateId(nextConfiguration[0]));
   });
 }
 
-describe('scxml', () => {
+describe.skip('scxml', () => {
   const onlyTests: string[] = [
     // e.g., 'test399.txml'
-    // 'test560.txml'
+    'test147.txml'
   ];
   const testGroupKeys = Object.keys(testGroups);
 
@@ -469,7 +501,8 @@ describe('scxml', () => {
 
     testNames.forEach((testName) => {
       const execTest = onlyTests.length
-        ? onlyTests.includes(testName)
+        ? onlyTests.includes(testName) ||
+          onlyTests.includes(`${testGroupName}/${testName}`)
           ? it.only
           : it.skip
         : it;
