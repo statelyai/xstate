@@ -595,7 +595,7 @@ describe('transient states (eventless transitions)', () => {
 
     actor.subscribe({
       error: (err) => {
-        expect(err).toMatchInlineSnapshot(/infinite loop/i);
+        expect((err as any).message).toMatch(/infinite loop/i);
       }
     });
 
@@ -634,7 +634,7 @@ describe('transient states (eventless transitions)', () => {
 
     actor.subscribe({
       error: (err) => {
-        expect(err).toMatchInlineSnapshot(/infinite loop/i);
+        expect((err as any).message).toMatch(/infinite loop/i);
       }
     });
 
