@@ -37,8 +37,7 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "dependencies": {
-    "@xstate/store": "workspace:^",
-    "tslib": "^2.6.0"
+    "@xstate/store": "workspace:^"
   },
   "peerDependencies": {
     "@angular/core": "^19.0.0"
