@@ -1,16 +1,23 @@
-import { createMachine, createActor, assign } from '../src/index';
-import { trackEntries } from './utils';
+import { z } from 'zod';
+import { createMachine, createActor } from '../src/index';
 
 describe('internal transitions', () => {
   it('parent state should enter child state without re-entering self', () => {
+    const tracked: string[] = [];
     const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
           initial: 'a',
           states: {
-            a: {},
-            b: {}
+            a: {
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.a')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.a'))
+            },
+            b: {
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.b')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.b'))
+            }
           },
           on: {
             CLICK: '.b'
@@ -19,48 +26,57 @@ describe('internal transitions', () => {
       }
     });
 
-    const flushTracked = trackEntries(machine);
+    // const flushTracked = trackEntries(machine);
     const actor = createActor(machine).start();
-    flushTracked();
+    // flushTracked();
+    tracked.length = 0;
 
     actor.send({
       type: 'CLICK'
     });
 
     expect(actor.getSnapshot().value).toEqual({ foo: 'b' });
-    expect(flushTracked()).toEqual(['exit: foo.a', 'enter: foo.b']);
+    expect(tracked).toEqual(['exit: foo.a', 'enter: foo.b']);
   });
 
   it('parent state should re-enter self upon transitioning to child state if transition is reentering', () => {
+    const tracked: string[] = [];
     const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
+          entry: (_, enq) => enq(() => tracked.push('enter: foo')),
+          exit: (_, enq) => enq(() => tracked.push('exit: foo')),
           initial: 'left',
           states: {
-            left: {},
-            right: {}
+            left: {
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.left')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.left'))
+            },
+            right: {
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.right')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.right'))
+            }
           },
           on: {
-            NEXT: {
+            NEXT: () => ({
               target: '.right',
               reenter: true
-            }
+            })
           }
         }
       }
     });
 
-    const flushTracked = trackEntries(machine);
     const actor = createActor(machine).start();
-    flushTracked();
+    tracked.length = 0;
 
     actor.send({
       type: 'NEXT'
     });
 
     expect(actor.getSnapshot().value).toEqual({ foo: 'right' });
-    expect(flushTracked()).toEqual([
+    expect(tracked).toEqual([
       'exit: foo.left',
       'exit: foo',
       'enter: foo',
@@ -69,18 +85,26 @@ describe('internal transitions', () => {
   });
 
   it('parent state should only exit/reenter if there is an explicit self-transition', () => {
+    const tracked: string[] = [];
     const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
+          entry: (_, enq) => enq(() => tracked.push('enter: foo')),
+          exit: (_, enq) => enq(() => tracked.push('exit: foo')),
           initial: 'a',
           states: {
             a: {
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.a')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.a')),
               on: {
                 NEXT: 'b'
               }
             },
-            b: {}
+            b: {
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.b')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.b'))
+            }
           },
           on: {
             RESET: {
@@ -92,19 +116,18 @@ describe('internal transitions', () => {
       }
     });
 
-    const flushTracked = trackEntries(machine);
     const actor = createActor(machine).start();
     actor.send({
       type: 'NEXT'
     });
-    flushTracked();
+    tracked.length = 0;
 
     actor.send({
       type: 'RESET'
     });
 
     expect(actor.getSnapshot().value).toEqual({ foo: 'a' });
-    expect(flushTracked()).toEqual([
+    expect(tracked).toEqual([
       'exit: foo.b',
       'exit: foo',
       'enter: foo',
@@ -113,14 +136,23 @@ describe('internal transitions', () => {
   });
 
   it('parent state should only exit/reenter if there is an explicit self-transition (to child)', () => {
+    const tracked: string[] = [];
     const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
+          entry: (_, enq) => enq(() => tracked.push('enter: foo')),
+          exit: (_, enq) => enq(() => tracked.push('exit: foo')),
           initial: 'a',
           states: {
-            a: {},
-            b: {}
+            a: {
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.a')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.a'))
+            },
+            b: {
+              entry: (_, enq) => enq(() => tracked.push('enter: foo.b')),
+              exit: (_, enq) => enq(() => tracked.push('exit: foo.b'))
+            }
           },
           on: {
             RESET_TO_B: {
@@ -132,16 +164,15 @@ describe('internal transitions', () => {
       }
     });
 
-    const flushTracked = trackEntries(machine);
     const actor = createActor(machine).start();
-    flushTracked();
+    tracked.length = 0;
 
     actor.send({
       type: 'RESET_TO_B'
     });
 
     expect(actor.getSnapshot().value).toEqual({ foo: 'b' });
-    expect(flushTracked()).toEqual([
+    expect(tracked).toEqual([
       'exit: foo.a',
       'exit: foo',
       'enter: foo',
@@ -175,7 +206,7 @@ describe('internal transitions', () => {
       states: {
         foo: {
           on: {
-            TARGETLESS_ARRAY: [{ actions: [spy] }]
+            TARGETLESS_ARRAY: (_, enq) => void enq(spy)
           }
         }
       }
@@ -194,7 +225,7 @@ describe('internal transitions', () => {
       states: {
         foo: {
           on: {
-            TARGETLESS_OBJECT: { actions: [spy] }
+            TARGETLESS_OBJECT: (_, enq) => void enq(spy)
           }
         }
       }
@@ -210,7 +241,7 @@ describe('internal transitions', () => {
     const spy = vi.fn();
     const machine = createMachine({
       on: {
-        TARGETLESS_ARRAY: [{ actions: [spy] }]
+        TARGETLESS_ARRAY: (_, enq) => void enq(spy)
       },
       initial: 'foo',
       states: { foo: {} }
@@ -226,7 +257,7 @@ describe('internal transitions', () => {
     const spy = vi.fn();
     const machine = createMachine({
       on: {
-        TARGETLESS_OBJECT: { actions: [spy] }
+        TARGETLESS_OBJECT: (_, enq) => void enq(spy)
       },
       initial: 'foo',
       states: { foo: {} }
@@ -242,7 +273,7 @@ describe('internal transitions', () => {
     const machine = createMachine({
       initial: 'foo',
       on: {
-        PARENT_EVENT: { actions: () => {} }
+        PARENT_EVENT: (_, enq) => void enq(() => {})
       },
       states: {
         foo: {}
@@ -258,12 +289,19 @@ describe('internal transitions', () => {
 
   it('should reenter proper descendants of a source state of an internal transition', () => {
     const machine = createMachine({
-      types: {} as {
-        context: {
-          sourceStateEntries: number;
-          directDescendantEntries: number;
-          deepDescendantEntries: number;
-        };
+      // types: {} as {
+      //   context: {
+      //     sourceStateEntries: number;
+      //     directDescendantEntries: number;
+      //     deepDescendantEntries: number;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          sourceStateEntries: z.number(),
+          directDescendantEntries: z.number(),
+          deepDescendantEntries: z.number()
+        })
       },
       context: {
         sourceStateEntries: 0,
@@ -274,21 +312,28 @@ describe('internal transitions', () => {
       states: {
         a1: {
           initial: 'a11',
-          entry: assign({
-            sourceStateEntries: ({ context }) => context.sourceStateEntries + 1
+          entry: ({ context }) => ({
+            context: {
+              ...context,
+              sourceStateEntries: context.sourceStateEntries + 1
+            }
           }),
           states: {
             a11: {
               initial: 'a111',
-              entry: assign({
-                directDescendantEntries: ({ context }) =>
-                  context.directDescendantEntries + 1
+              entry: ({ context }) => ({
+                context: {
+                  ...context,
+                  directDescendantEntries: context.directDescendantEntries + 1
+                }
               }),
               states: {
                 a111: {
-                  entry: assign({
-                    deepDescendantEntries: ({ context }) =>
-                      context.deepDescendantEntries + 1
+                  entry: ({ context }) => ({
+                    context: {
+                      ...context,
+                      deepDescendantEntries: context.deepDescendantEntries + 1
+                    }
                   })
                 }
               }
@@ -301,11 +346,17 @@ describe('internal transitions', () => {
       }
     });
 
-    const service = createActor(machine).start();
+    const actor = createActor(machine).start();
 
-    service.send({ type: 'REENTER' });
+    expect(actor.getSnapshot().context).toEqual({
+      sourceStateEntries: 1,
+      directDescendantEntries: 1,
+      deepDescendantEntries: 1
+    });
 
-    expect(service.getSnapshot().context).toEqual({
+    actor.send({ type: 'REENTER' });
+
+    expect(actor.getSnapshot().context).toEqual({
       sourceStateEntries: 1,
       directDescendantEntries: 2,
       deepDescendantEntries: 2
@@ -314,12 +365,19 @@ describe('internal transitions', () => {
 
   it('should exit proper descendants of a source state of an internal transition', () => {
     const machine = createMachine({
-      types: {} as {
-        context: {
-          sourceStateExits: number;
-          directDescendantExits: number;
-          deepDescendantExits: number;
-        };
+      // types: {} as {
+      //   context: {
+      //     sourceStateExits: number;
+      //     directDescendantExits: number;
+      //     deepDescendantExits: number;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          sourceStateExits: z.number(),
+          directDescendantExits: z.number(),
+          deepDescendantExits: z.number()
+        })
       },
       context: {
         sourceStateExits: 0,
@@ -330,22 +388,32 @@ describe('internal transitions', () => {
       states: {
         a1: {
           initial: 'a11',
-          exit: assign({
-            sourceStateExits: ({ context }) => context.sourceStateExits + 1
+          exit: ({ context }) => ({
+            context: {
+              ...context,
+              sourceStateExits: context.sourceStateExits + 1
+            }
           }),
           states: {
             a11: {
               initial: 'a111',
-              exit: assign({
-                directDescendantExits: ({ context }) =>
-                  context.directDescendantExits + 1
+              exit: ({ context }) => ({
+                context: {
+                  ...context,
+                  directDescendantExits: context.directDescendantExits + 1
+                }
               }),
               states: {
                 a111: {
-                  exit: assign({
-                    deepDescendantExits: ({ context }) =>
-                      context.deepDescendantExits + 1
-                  })
+                  exit: ({ context }) => {
+                    console.log('a111 exit');
+                    return {
+                      context: {
+                        ...context,
+                        deepDescendantExits: context.deepDescendantExits + 1
+                      }
+                    };
+                  }
                 }
               }
             }
@@ -357,11 +425,11 @@ describe('internal transitions', () => {
       }
     });
 
-    const service = createActor(machine).start();
+    const actor = createActor(machine).start();
 
-    service.send({ type: 'REENTER' });
+    actor.send({ type: 'REENTER' });
 
-    expect(service.getSnapshot().context).toEqual({
+    expect(actor.getSnapshot().context).toEqual({
       sourceStateExits: 0,
       directDescendantExits: 1,
       deepDescendantExits: 1
