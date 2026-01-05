@@ -52,9 +52,8 @@ export function injectStore<TStore extends Readable<any>, TSelected>(
     equal: shallowEqual
   }
 ): Signal<TSelected> {
-  !options.injector && assertInInjectionContext(injectStore);
-
   if (!options.injector) {
+    assertInInjectionContext(injectStore);
     options.injector = inject(Injector);
   }
 
