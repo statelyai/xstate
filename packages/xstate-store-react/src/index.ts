@@ -1,23 +1,19 @@
-console.warn(
-  '[@xstate/store/react] This import path is deprecated. ' +
-    'Please migrate to @xstate/store-react instead. ' +
-    'See https://stately.ai/docs/xstate-store for migration guide.'
-);
+export * from '@xstate/store';
 
 import { useCallback, useRef, useSyncExternalStore } from 'react';
 import {
-  AnyStore,
-  StoreContext,
-  EventPayloadMap,
-  StoreConfig,
-  Store,
-  ExtractEvents,
-  Readable,
-  AnyAtom,
-  BaseAtom,
-  StoreSnapshot
-} from './types';
-import { createStore } from './store';
+  type AnyStore,
+  type StoreContext,
+  type EventPayloadMap,
+  type StoreConfig,
+  type Store,
+  type ExtractEvents,
+  type Readable,
+  type AnyAtom,
+  type BaseAtom,
+  type StoreSnapshot,
+  createStore
+} from '@xstate/store';
 
 function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;

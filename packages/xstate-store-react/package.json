@@ -1,0 +1,58 @@
+{
+  "name": "@xstate/store-react",
+  "version": "0.0.1",
+  "description": "XState Store for React",
+  "keywords": [
+    "store",
+    "state",
+    "react",
+    "hook"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store-react#readme",
+  "license": "MIT",
+  "main": "dist/xstate-store-react.cjs.js",
+  "module": "dist/xstate-store-react.esm.js",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-store-react.cjs.mjs",
+        "default": "./dist/xstate-store-react.cjs.js"
+      },
+      "module": "./dist/xstate-store-react.esm.js",
+      "import": "./dist/xstate-store-react.cjs.mjs",
+      "default": "./dist/xstate-store-react.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "dist/xstate-store-react.cjs.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "dependencies": {
+    "@xstate/store": "workspace:^"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.2.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      "./index.ts"
+    ]
+  }
+}

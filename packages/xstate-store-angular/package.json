@@ -1,0 +1,63 @@
+{
+  "name": "@xstate/store-angular",
+  "version": "0.0.1",
+  "description": "XState Store for Angular",
+  "keywords": [
+    "store",
+    "state",
+    "angular"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store-angular#readme",
+  "license": "MIT",
+  "main": "dist/xstate-store-angular.cjs.js",
+  "module": "dist/xstate-store-angular.esm.js",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-store-angular.cjs.mjs",
+        "default": "./dist/xstate-store-angular.cjs.js"
+      },
+      "module": "./dist/xstate-store-angular.esm.js",
+      "import": "./dist/xstate-store-angular.cjs.mjs",
+      "default": "./dist/xstate-store-angular.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "dist/xstate-store-angular.cjs.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "dependencies": {
+    "@xstate/store": "workspace:^",
+    "tslib": "^2.6.0"
+  },
+  "peerDependencies": {
+    "@angular/core": "^19.0.0"
+  },
+  "devDependencies": {
+    "@analogjs/vite-plugin-angular": "^1.21.2",
+    "@angular/build": "^19.0.0",
+    "@angular/common": "^19.0.0",
+    "@angular/compiler": "^19.0.0",
+    "@angular/compiler-cli": "^19.0.0",
+    "@angular/core": "^19.0.0",
+    "@angular/platform-browser": "^19.0.0",
+    "@angular/platform-browser-dynamic": "^19.0.0",
+    "jsdom": "^26.0.0",
+    "zone.js": "^0.15.0"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      "./index.ts"
+    ]
+  }
+}
