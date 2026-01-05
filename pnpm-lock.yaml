@@ -237,9 +237,6 @@ importers:
       '@xstate/store':
         specifier: workspace:^
         version: link:../xstate-store
-      tslib:
-        specifier: ^2.6.0
-        version: 2.8.1
     devDependencies:
       '@analogjs/vite-plugin-angular':
         specifier: ^1.21.2
