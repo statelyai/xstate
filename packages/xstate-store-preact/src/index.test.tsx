@@ -56,9 +56,11 @@ describe('@xstate/store-preact', () => {
       let renderCount = 0;
       const Items = () => {
         renderCount++;
-        const items = useSelector(store, (s) => s.context.items, {
-          compare: (a, b) => JSON.stringify(a) === JSON.stringify(b)
-        });
+        const items = useSelector(
+          store,
+          (s) => s.context.items,
+          (a, b) => JSON.stringify(a) === JSON.stringify(b)
+        );
         return <div data-testid="items">{items.join(',')}</div>;
       };
 
