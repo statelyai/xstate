@@ -42,7 +42,11 @@
     "solid-js",
     "xstate",
     "@types/ws",
-    "vitest"
+    "vitest",
+    // peer dependencies that may be needed but not directly imported
+    "@angular/compiler-cli",
+    "@sveltejs/vite-plugin-svelte",
+    "@testing-library/svelte"
   ],
   "vitest": {
     "config": ["vitest.config.mts", "vitest.config.**.mts"],
