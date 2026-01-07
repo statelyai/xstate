@@ -1,5 +1,11 @@
 # xstate
 
+## 5.25.1
+
+### Patch Changes
+
+- [#5440](https://github.com/statelyai/xstate/pull/5440) [`e36e299`](https://github.com/statelyai/xstate/commit/e36e299a319bc8d0f124f0435b30f095cbbd0ce6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `systemId` cleanup for nested children on `stopChild`
+
 ## 5.25.0
 
 ### Minor Changes
