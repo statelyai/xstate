@@ -1,12 +1,8 @@
 /* @jsxImportSource solid-js */
-console.warn(
-  '[@xstate/store/solid] This import path is deprecated. ' +
-    'Please migrate to @xstate/store-solid instead. ' +
-    'See https://stately.ai/docs/xstate-store for migration guide.'
-);
+export * from '@xstate/store';
 
 import { createEffect, createSignal, onCleanup } from 'solid-js';
-import type { SnapshotFromStore, AnyStore } from './types';
+import type { SnapshotFromStore, AnyStore } from '@xstate/store';
 
 function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;
@@ -37,7 +33,7 @@ function useSelectorWithCompare<TStore extends AnyStore, T>(
  *
  * ```tsx
  * import { donutStore } from './donutStore.ts';
- * import { useSelector } from '@xstate/store/solid';
+ * import { useSelector } from '@xstate/store-solid';
  *
  * function DonutCounter() {
  *   const donutCount = useSelector(donutStore, (state) => state.context.donuts);
