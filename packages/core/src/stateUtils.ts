@@ -1649,12 +1649,11 @@ export function macrostep(
 
   let shouldSelectEventlessTransitions = true;
   const maxIterations = snapshot.machine.options?.maxIterations ?? Infinity;
-  const hasMaxIterations = maxIterations !== Infinity && maxIterations !== -1;
   let iterationCount = 0;
 
   while (nextSnapshot.status === 'active') {
     iterationCount++;
-    if (hasMaxIterations && iterationCount > maxIterations) {
+    if (iterationCount > maxIterations) {
       throw new Error(
         `Infinite loop detected: the machine has processed more than ${maxIterations} microsteps without reaching a stable state. This usually happens when there's a cycle of transitions (e.g., eventless transitions or raised events causing state A -> B -> C -> A).`
       );

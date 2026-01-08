@@ -140,7 +140,7 @@ export class StateMachine<
     this.version = this.config.version;
     this.schemas = this.config.schemas;
     this.options = {
-      maxIterations: 1000,
+      maxIterations: Infinity,
       ...this.config.options
     };
 
