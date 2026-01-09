@@ -9,7 +9,8 @@ import type {
   WithDynamicParams,
   Identity,
   Elements,
-  DoNotInfer
+  DoNotInfer,
+  AnyActorScope
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
 
@@ -341,7 +342,8 @@ export function evaluateGuard<
   guard: UnknownGuard | UnknownInlineGuard,
   context: TContext,
   event: TExpressionEvent,
-  snapshot: AnyMachineSnapshot
+  snapshot: AnyMachineSnapshot,
+  actorScope?: AnyActorScope
 ): boolean {
   const { machine } = snapshot;
   const isInline = typeof guard === 'function';
@@ -361,7 +363,7 @@ export function evaluateGuard<
   }
 
   if (typeof resolved !== 'function') {
-    return evaluateGuard(resolved!, context, event, snapshot);
+    return evaluateGuard(resolved!, context, event, snapshot, actorScope);
   }
 
   const guardArgs = {
@@ -378,18 +380,43 @@ export function evaluateGuard<
           : guard.params
         : undefined;
 
+  let result: boolean;
+
   if (!('check' in resolved)) {
     // the existing type of `.guards` assumes non-nullable `TExpressionGuard`
     // inline guards expect `TExpressionGuard` to be set to `undefined`
     // it's fine to cast this here, our logic makes sure that we call those 2 "variants" correctly
-    return resolved(guardArgs, guardParams as never);
+    result = resolved(guardArgs, guardParams as never);
+  } else {
+    const builtinGuard = resolved as unknown as BuiltinGuard;
+    result = builtinGuard.check(
+      snapshot,
+      guardArgs,
+      resolved // this holds all params
+    );
   }
 
-  const builtinGuard = resolved as unknown as BuiltinGuard;
+  // Emit guard inspection event if actorScope is provided
+  if (actorScope) {
+    const guardType =
+      typeof guard === 'string'
+        ? guard
+        : typeof guard === 'object' && 'type' in guard
+          ? guard.type
+          : isInline
+            ? '<inline>'
+            : '<unknown>';
 
-  return builtinGuard.check(
-    snapshot,
-    guardArgs,
-    resolved // this holds all params
-  );
+    actorScope.system._sendInspectionEvent({
+      type: '@xstate.guard',
+      actorRef: actorScope.self,
+      guard: {
+        type: guardType,
+        params: guardParams
+      },
+      result
+    });
+  }
+
+  return result;
 }

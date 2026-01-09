@@ -481,6 +481,19 @@ describe('inspect', () => {
           "type": "@xstate.actor",
         },
         {
+          "actorRef": {
+            "id": "x:4",
+            "xstate$$type": 1,
+          },
+          "guard": {
+            "params": undefined,
+            "type": "<inline>",
+          },
+          "result": false,
+          "rootId": "x:4",
+          "type": "@xstate.guard",
+        },
+        {
           "_transitions": [
             {
               "actions": [
@@ -516,6 +529,19 @@ describe('inspect', () => {
             "value": "counting",
           },
           "type": "@xstate.microstep",
+        },
+        {
+          "actorRef": {
+            "id": "x:4",
+            "xstate$$type": 1,
+          },
+          "guard": {
+            "params": undefined,
+            "type": "<inline>",
+          },
+          "result": false,
+          "rootId": "x:4",
+          "type": "@xstate.guard",
         },
         {
           "_transitions": [
@@ -555,6 +581,19 @@ describe('inspect', () => {
           "type": "@xstate.microstep",
         },
         {
+          "actorRef": {
+            "id": "x:4",
+            "xstate$$type": 1,
+          },
+          "guard": {
+            "params": undefined,
+            "type": "<inline>",
+          },
+          "result": false,
+          "rootId": "x:4",
+          "type": "@xstate.guard",
+        },
+        {
           "_transitions": [
             {
               "actions": [
@@ -590,6 +629,19 @@ describe('inspect', () => {
             "value": "counting",
           },
           "type": "@xstate.microstep",
+        },
+        {
+          "actorRef": {
+            "id": "x:4",
+            "xstate$$type": 1,
+          },
+          "guard": {
+            "params": undefined,
+            "type": "<inline>",
+          },
+          "result": true,
+          "rootId": "x:4",
+          "type": "@xstate.guard",
         },
         {
           "_transitions": [

@@ -10,7 +10,8 @@ export type InspectionEvent =
   | InspectedEventEvent
   | InspectedActorEvent
   | InspectedMicrostepEvent
-  | InspectedActionEvent;
+  | InspectedActionEvent
+  | InspectedGuardEvent;
 
 interface BaseInspectionEventProperties {
   rootId: string; // the session ID of the root
@@ -56,4 +57,13 @@ export interface InspectedEventEvent extends BaseInspectionEventProperties {
 
 export interface InspectedActorEvent extends BaseInspectionEventProperties {
   type: '@xstate.actor';
+}
+
+export interface InspectedGuardEvent extends BaseInspectionEventProperties {
+  type: '@xstate.guard';
+  guard: {
+    type: string;
+    params: unknown;
+  };
+  result: boolean;
 }
