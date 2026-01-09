@@ -15,7 +15,6 @@ export type {
   InspectedActionEvent,
   InspectedActorEvent,
   InspectedEventEvent,
-  InspectedGuardEvent,
   InspectedMicrostepEvent,
   InspectedSnapshotEvent,
   InspectionEvent

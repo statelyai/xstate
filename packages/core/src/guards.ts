@@ -396,7 +396,7 @@ export function evaluateGuard<
     );
   }
 
-  // Emit guard inspection event if actorScope is provided
+  // Collect guard evaluation for microstep inspection event
   if (actorScope) {
     const guardType =
       typeof guard === 'string'
@@ -407,13 +407,12 @@ export function evaluateGuard<
             ? '<inline>'
             : '<unknown>';
 
-    actorScope.system._sendInspectionEvent({
-      type: '@xstate.guard',
-      actorRef: actorScope.self,
-      guard: {
-        type: guardType,
-        params: guardParams
-      },
+    if (!actorScope._collectedGuards) {
+      actorScope._collectedGuards = [];
+    }
+    actorScope._collectedGuards.push({
+      type: guardType,
+      params: guardParams,
       result
     });
   }

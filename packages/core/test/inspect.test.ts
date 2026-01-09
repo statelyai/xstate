@@ -481,19 +481,13 @@ describe('inspect', () => {
           "type": "@xstate.actor",
         },
         {
-          "actorRef": {
-            "id": "x:4",
-            "xstate$$type": 1,
-          },
-          "guard": {
-            "params": undefined,
-            "type": "<inline>",
-          },
-          "result": false,
-          "rootId": "x:4",
-          "type": "@xstate.guard",
-        },
-        {
+          "_guards": [
+            {
+              "params": undefined,
+              "result": false,
+              "type": "<inline>",
+            },
+          ],
           "_transitions": [
             {
               "actions": [
@@ -531,19 +525,13 @@ describe('inspect', () => {
           "type": "@xstate.microstep",
         },
         {
-          "actorRef": {
-            "id": "x:4",
-            "xstate$$type": 1,
-          },
-          "guard": {
-            "params": undefined,
-            "type": "<inline>",
-          },
-          "result": false,
-          "rootId": "x:4",
-          "type": "@xstate.guard",
-        },
-        {
+          "_guards": [
+            {
+              "params": undefined,
+              "result": false,
+              "type": "<inline>",
+            },
+          ],
           "_transitions": [
             {
               "actions": [
@@ -581,19 +569,13 @@ describe('inspect', () => {
           "type": "@xstate.microstep",
         },
         {
-          "actorRef": {
-            "id": "x:4",
-            "xstate$$type": 1,
-          },
-          "guard": {
-            "params": undefined,
-            "type": "<inline>",
-          },
-          "result": false,
-          "rootId": "x:4",
-          "type": "@xstate.guard",
-        },
-        {
+          "_guards": [
+            {
+              "params": undefined,
+              "result": false,
+              "type": "<inline>",
+            },
+          ],
           "_transitions": [
             {
               "actions": [
@@ -631,19 +613,13 @@ describe('inspect', () => {
           "type": "@xstate.microstep",
         },
         {
-          "actorRef": {
-            "id": "x:4",
-            "xstate$$type": 1,
-          },
-          "guard": {
-            "params": undefined,
-            "type": "<inline>",
-          },
-          "result": true,
-          "rootId": "x:4",
-          "type": "@xstate.guard",
-        },
-        {
+          "_guards": [
+            {
+              "params": undefined,
+              "result": true,
+              "type": "<inline>",
+            },
+          ],
           "_transitions": [
             {
               "actions": [],

@@ -1608,16 +1608,24 @@ export function macrostep(
   function addMicrostate(
     microstate: AnyMachineSnapshot,
     event: AnyEventObject,
-    transitions: AnyTransitionDefinition[]
+    transitions: AnyTransitionDefinition[],
+    guards: Array<{ type: string; params: unknown; result: boolean }>
   ) {
     actorScope.system._sendInspectionEvent({
       type: '@xstate.microstep',
       actorRef: actorScope.self,
       event,
       snapshot: microstate,
-      _transitions: transitions
+      _transitions: transitions,
+      _guards: guards
     });
     microstates.push(microstate);
+  }
+
+  function consumeCollectedGuards() {
+    const guards = actorScope._collectedGuards || [];
+    actorScope._collectedGuards = [];
+    return guards;
   }
 
   // Handle stop event
@@ -1628,7 +1636,7 @@ export function macrostep(
         status: 'stopped'
       }
     );
-    addMicrostate(nextSnapshot, event, []);
+    addMicrostate(nextSnapshot, event, [], []);
 
     return {
       snapshot: nextSnapshot,
@@ -1658,7 +1666,7 @@ export function macrostep(
         status: 'error',
         error: currentEvent.error
       });
-      addMicrostate(nextSnapshot, currentEvent, []);
+      addMicrostate(nextSnapshot, currentEvent, [], consumeCollectedGuards());
       return {
         snapshot: nextSnapshot,
         microstates
@@ -1672,7 +1680,12 @@ export function macrostep(
       false, // isInitial
       internalQueue
     );
-    addMicrostate(nextSnapshot, currentEvent, transitions);
+    addMicrostate(
+      nextSnapshot,
+      currentEvent,
+      transitions,
+      consumeCollectedGuards()
+    );
   }
 
   let shouldSelectEventlessTransitions = true;
@@ -1708,7 +1721,12 @@ export function macrostep(
       internalQueue
     );
     shouldSelectEventlessTransitions = nextSnapshot !== previousState;
-    addMicrostate(nextSnapshot, nextEvent, enabledTransitions);
+    addMicrostate(
+      nextSnapshot,
+      nextEvent,
+      enabledTransitions,
+      consumeCollectedGuards()
+    );
   }
 
   if (nextSnapshot.status !== 'active') {
