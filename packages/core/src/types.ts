@@ -2518,6 +2518,26 @@ export type StateSchema = {
   description?: unknown;
 };
 
+export type StateSchemaFrom<T extends AnyStateMachine> =
+  T extends StateMachine<
+    infer _TContext,
+    infer _TEvent,
+    infer _TChildren,
+    infer _TActor,
+    infer _TAction,
+    infer _TGuard,
+    infer _TDelay,
+    infer _TStateValue,
+    infer _TTag,
+    infer _TInput,
+    infer _TOutput,
+    infer _TEmitted,
+    infer _TMeta,
+    infer TStateSchema
+  >
+    ? TStateSchema
+    : never;
+
 export type StateId<
   TSchema extends StateSchema,
   TKey extends string = '(machine)',
