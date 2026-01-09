@@ -31,7 +31,8 @@ import type {
   AnyStateNodeConfig,
   ProvidedActor,
   NonReducibleUnknown,
-  EventDescriptor
+  EventDescriptor,
+  AnyActorScope
 } from './types.ts';
 import {
   createInvokeId,
@@ -374,7 +375,8 @@ export class StateNode<
       any, // TMeta
       any // TStateSchema
     >,
-    event: TEvent
+    event: TEvent,
+    actorScope?: AnyActorScope
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;
     const actions: UnknownAction[] = [];
@@ -400,7 +402,8 @@ export class StateNode<
             guard,
             resolvedContext,
             event,
-            snapshot
+            snapshot,
+            actorScope
           );
       } catch (err: any) {
         const guardType =
