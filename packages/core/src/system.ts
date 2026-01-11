@@ -136,8 +136,7 @@ export function createSystem<T extends ActorSystemInfo>(
       const timeout = clock.setTimeout(() => {
         delete timerMap[scheduledEventId];
         const {
-          _scheduledEvents: { [scheduledEventId]: _, ..._scheduledEvents },
-          actors
+          _scheduledEvents: { [scheduledEventId]: _, ..._scheduledEvents }
         } = system.getSnapshot();
         updateSnapshot({
           _scheduledEvents: {
