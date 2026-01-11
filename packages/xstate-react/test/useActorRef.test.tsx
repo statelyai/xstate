@@ -1,3 +1,8 @@
+import {
+  fireEvent,
+  screen,
+  waitFor as testWaitFor
+} from '@testing-library/react';
 import * as React from 'react';
 import {
   ActorRefFrom,
@@ -9,22 +14,16 @@ import {
   sendParent,
   sendTo
 } from 'xstate';
-import {
-  fireEvent,
-  screen,
-  waitFor as testWaitFor
-} from '@testing-library/react';
 import { useActorRef, useMachine, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
 
-const originalConsoleWarn = console.warn;
-
 afterEach(() => {
-  console.warn = originalConsoleWarn;
+  vi.restoreAllMocks();
 });
 
 describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
-  it('observer should be called with next state', (done) => {
+  it('observer should be called with next state', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'inactive',
       states: {
@@ -43,7 +42,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       React.useEffect(() => {
         actorRef.subscribe((state) => {
           if (state.matches('active')) {
-            done();
+            resolve();
           }
         });
       }, [actorRef]);
@@ -62,6 +61,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     const button = screen.getByTestId('button');
 
     fireEvent.click(button);
+    return promise;
   });
 
   it('actions created by a layout effect should access the latest closure values', () => {
@@ -107,7 +107,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should rerender OK when only the provided machine implementations have changed', () => {
-    console.warn = jest.fn();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const machine = createMachine({
       initial: 'foo',
       context: { id: 1 },
@@ -269,7 +269,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should deliver messages sent from an effect to the root actor registered in the system', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const m = createMachine({
       on: {
         PING: {
@@ -611,10 +611,10 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     fireEvent.click(screen.getByText('Reload machine'));
 
     // while those numbers might be a little bit surprising at first glance they are actually correct
-    // we are using the "derive state from props pattern" here and that involved 2 renders
+    // we are using the "derive state from props pattern" here and that involves 2 renders
     // so we have a first render and then two other renders when the machine changes
-    // and in strict mode every render is simply doubled
-    expect(rerenders).toBe(suiteKey === 'strict' ? 6 : 3);
+    // in strict mode only regular renders are doubled but the render scheduled by a state change in render is not
+    expect(rerenders).toBe(suiteKey === 'strict' ? 5 : 3);
   });
 
   it('all renders should be consistent - a value derived in render should be derived from the latest source', () => {
@@ -698,7 +698,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should be able to rehydrate an inline actor when changing machines', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const createSampleMachine = (counter: number) => {
       const child = createMachine({
@@ -766,8 +766,8 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it("should execute action bound to a specific machine's instance when the action is provided in render", () => {
-    const spy1 = jest.fn();
-    const spy2 = jest.fn();
+    const spy1 = vi.fn();
+    const spy2 = vi.fn();
 
     const machine = createMachine({
       on: {
@@ -816,7 +816,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should execute an initial entry action once', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       entry: spy

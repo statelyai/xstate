@@ -1,4 +1,4 @@
-import { InputFrom, createActor, createMachine, raise } from '../src/index.ts';
+import { createActor, createMachine } from '../src/index.ts';
 import { and, not, or, stateIn } from '../src/guards';
 import { trackEntries } from './utils.ts';
 
@@ -239,7 +239,7 @@ describe('guard conditions', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -249,7 +249,7 @@ describe('guard conditions', () => {
 
     actorRef.send({ type: 'BAD_COND' });
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: Unable to evaluate guard 'doesNotExist' in transition for event 'BAD_COND' in state node '(machine).foo':
@@ -472,7 +472,7 @@ describe('custom guards', () => {
   });
 
   it('should provide the undefined params if a guard was configured using a string', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -499,7 +499,7 @@ describe('custom guards', () => {
   });
 
   it('should provide the guard with resolved params when they are dynamic', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -528,7 +528,7 @@ describe('custom guards', () => {
   });
 
   it('should resolve dynamic params using context value', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -563,7 +563,7 @@ describe('custom guards', () => {
   });
 
   it('should resolve dynamic params using event value', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -596,7 +596,7 @@ describe('custom guards', () => {
   });
 
   it('should call a referenced `not` guard that embeds an inline function guard with undefined params', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -630,7 +630,7 @@ describe('custom guards', () => {
   });
 
   it('should call a string guard referenced by referenced `not` with undefined params', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -662,7 +662,7 @@ describe('custom guards', () => {
   });
 
   it('should call an object guard referenced by referenced `not` with its own params', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -697,7 +697,7 @@ describe('custom guards', () => {
   });
 
   it('should call an inline function guard embedded in referenced `and` with undefined params', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -732,7 +732,7 @@ describe('custom guards', () => {
   });
 
   it('should call a string guard referenced by referenced `and` with undefined params', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -764,7 +764,7 @@ describe('custom guards', () => {
   });
 
   it('should call an object guard referenced by referenced `and` with its own params', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -804,7 +804,7 @@ describe('custom guards', () => {
 
 describe('referencing guards', () => {
   it('guard should be checked when referenced by a string', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine(
       {
         on: {
@@ -832,7 +832,7 @@ describe('referencing guards', () => {
   });
 
   it('guard should be checked when referenced by a parametrized guard object', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine(
       {
         on: {
@@ -875,7 +875,7 @@ describe('referencing guards', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -884,7 +884,7 @@ describe('referencing guards', () => {
     actorRef.start();
     actorRef.send({ type: 'EVENT' });
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: Unable to evaluate guard 'missing-predicate' in transition for event 'EVENT' in state node 'invalid-predicate.active':
@@ -1010,6 +1010,48 @@ describe('guards - other', () => {
 
     expect(service.getSnapshot().value).toBe('c');
   });
+
+  it('inline function guard should not leak into provided guards object', async () => {
+    const guards = {};
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: () => false,
+            actions: () => {}
+          }
+        }
+      },
+      { guards }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FOO' });
+
+    expect(guards).toEqual({});
+  });
+
+  it('inline builtin guard should not leak into provided guards object', async () => {
+    const guards = {};
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: not(() => false),
+            actions: () => {}
+          }
+        }
+      },
+      { guards }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FOO' });
+
+    expect(guards).toEqual({});
+  });
 });
 
 describe('not() guard', () => {
@@ -1130,7 +1172,7 @@ describe('not() guard', () => {
   });
 
   it('should evaluate dynamic params of the referenced guard', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -1158,7 +1200,7 @@ describe('not() guard', () => {
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EV', secret: 42 });
 
-    expect(spy).toMatchMockCallsInlineSnapshot(`
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           {
@@ -1297,7 +1339,7 @@ describe('and() guard', () => {
   });
 
   it('should evaluate dynamic params of the referenced guard', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -1328,7 +1370,7 @@ describe('and() guard', () => {
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EV', secret: 42 });
 
-    expect(spy).toMatchMockCallsInlineSnapshot(`
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           {
@@ -1468,7 +1510,7 @@ describe('or() guard', () => {
   });
 
   it('should evaluate dynamic params of the referenced guard', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -1499,7 +1541,7 @@ describe('or() guard', () => {
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EV', secret: 42 });
 
-    expect(spy).toMatchMockCallsInlineSnapshot(`
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           {

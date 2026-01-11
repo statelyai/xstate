@@ -9,10 +9,10 @@ import {
   fromTransition,
   createActor,
   StateFrom,
-  Snapshot,
   TransitionSnapshot,
   AnyEventObject,
-  Actor
+  Actor,
+  setup
 } from 'xstate';
 import {
   shallowEqual,
@@ -539,7 +539,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
       return (
         <>
-          {value}
+          {value as number}
           <button
             type="button"
             onClick={() => forceRerender((s) => s + 1)}
@@ -617,7 +617,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       return null;
     }
 
-    console.error = jest.fn();
+    console.error = vi.fn();
     render(<App />);
 
     const [snapshot1] = snapshots;
@@ -649,7 +649,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should work with initially deferred actors spawned in lazy context', () => {
-    const childMachine = createMachine({
+    const childMachine = setup({}).createMachine({
       initial: 'one',
       states: {
         one: {
@@ -659,10 +659,11 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const machine = createMachine({
+    const machine = setup({
       types: {} as {
         context: { ref: ActorRefFrom<typeof childMachine> };
-      },
+      }
+    }).createMachine({
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
       }),
@@ -684,7 +685,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
       return (
         <>
-          <div data-testid="child-state">{childState.value as string}</div>
+          <div data-testid="child-state">{childState.value}</div>
           <button
             data-testid="child-send"
             onClick={() => childRef.send({ type: 'NEXT' })}
@@ -705,7 +706,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should not log any spurious errors when used with a not-started actor', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     console.error = spy;
 
     const machine = createMachine({});

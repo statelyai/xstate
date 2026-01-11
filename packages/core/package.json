@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "5.17.4",
+  "version": "5.25.0",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
   "module": "dist/xstate.esm.js",
@@ -62,6 +62,20 @@
       "import": "./dev/dist/xstate-dev.cjs.mjs",
       "default": "./dev/dist/xstate-dev.cjs.js"
     },
+    "./graph": {
+      "types": {
+        "import": "./graph/dist/xstate-graph.cjs.mjs",
+        "default": "./graph/dist/xstate-graph.cjs.js"
+      },
+      "development": {
+        "module": "./graph/dist/xstate-graph.development.esm.js",
+        "import": "./graph/dist/xstate-graph.development.cjs.mjs",
+        "default": "./graph/dist/xstate-graph.development.cjs.js"
+      },
+      "module": "./graph/dist/xstate-graph.esm.js",
+      "import": "./graph/dist/xstate-graph.cjs.mjs",
+      "default": "./graph/dist/xstate-graph.cjs.js"
+    },
     "./actors": {
       "types": {
         "import": "./actors/dist/xstate-actors.cjs.mjs",
@@ -95,7 +109,8 @@
     "actions",
     "invoke",
     "guards",
-    "dev"
+    "dev",
+    "graph"
   ],
   "keywords": [
     "statechart",
@@ -104,7 +119,8 @@
     "finite automata",
     "scxml",
     "state",
-    "interpreter"
+    "interpreter",
+    "graph"
   ],
   "scripts": {},
   "repository": {
@@ -119,10 +135,9 @@
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/core#readme",
   "devDependencies": {
     "@scion-scxml/test-framework": "^2.0.15",
-    "@xstate-repo/jest-utils": "*",
     "ajv": "^8.12.0",
     "pkg-up": "^3.1.0",
-    "rxjs": "^7.8.0",
+    "rxjs": "^7.8.1",
     "xml-js": "^1.6.11"
   },
   "preconstruct": {
@@ -132,7 +147,8 @@
       "./actions.ts",
       "./actors/index.ts",
       "./guards.ts",
-      "./dev/index.ts"
+      "./dev/index.ts",
+      "./graph/index.ts"
     ]
   }
 }

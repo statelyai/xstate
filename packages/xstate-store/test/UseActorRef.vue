@@ -15,14 +15,14 @@ export default defineComponent({
   emits: ['rerender'],
   setup() {
     const actorRef = useActorRef(
-      fromStore(
-        {
+      fromStore({
+        context: {
           count: 0
         },
-        {
+        on: {
           inc: (ctx) => ({ count: ctx.count + 1 })
         }
-      )
+      })
     );
     const count = useSelector(actorRef, (s) => s.context.count);
 

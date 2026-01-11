@@ -246,7 +246,7 @@ describe('invocations (activities)', () => {
   });
 
   it('should remember the invocations even after an ignored event', () => {
-    let cleanupSpy = jest.fn();
+    let cleanupSpy = vi.fn();
     let active = false;
     const machine = createMachine({
       initial: 'A',
@@ -279,7 +279,7 @@ describe('invocations (activities)', () => {
   });
 
   it('should remember the invocations when transitioning within the invoking state', () => {
-    let cleanupSpy = jest.fn();
+    let cleanupSpy = vi.fn();
     let active = false;
     const machine = createMachine({
       initial: 'A',

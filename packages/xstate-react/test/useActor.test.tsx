@@ -1,5 +1,5 @@
 import { act, fireEvent, screen } from '@testing-library/react';
-import { sleep } from '@xstate-repo/jest-utils';
+import { setTimeout as sleep } from 'node:timers/promises';
 import * as React from 'react';
 import { useState } from 'react';
 import { BehaviorSubject } from 'rxjs';
@@ -13,14 +13,15 @@ import {
   assign,
   createActor,
   createMachine,
-  raise
+  raise,
+  setup
 } from 'xstate';
 import { fromCallback, fromObservable, fromPromise } from 'xstate/actors';
 import { useActor, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
@@ -249,7 +250,9 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     await screen.findByTestId('success');
   });
 
-  it('actions should not use stale data in a builtin transition action', (done) => {
+  it('actions should not use stale data in a builtin transition action', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
     const toggleMachine = createMachine({
       types: {} as {
         context: { latest: number };
@@ -274,7 +277,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
             setLatest: assign({
               latest: () => {
                 expect(ext).toBe(2);
-                done();
+                resolve();
                 return ext;
               }
             })
@@ -307,9 +310,13 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     fireEvent.click(extButton);
 
     fireEvent.click(button);
+
+    return promise;
   });
 
-  it('actions should not use stale data in a builtin entry action', (done) => {
+  it('actions should not use stale data in a builtin entry action', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
     const toggleMachine = createMachine({
       types: {} as { context: { latest: number }; events: { type: 'NEXT' } },
       context: {
@@ -337,7 +344,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
             setLatest: assign({
               latest: () => {
                 expect(ext).toBe(2);
-                done();
+                resolve();
                 return ext;
               }
             })
@@ -370,9 +377,13 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     fireEvent.click(extButton);
 
     fireEvent.click(button);
+
+    return promise;
   });
 
-  it('actions should not use stale data in a custom entry action', (done) => {
+  it('actions should not use stale data in a custom entry action', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
     const toggleMachine = createMachine({
       types: {} as {
         events: { type: 'TOGGLE' };
@@ -393,7 +404,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
       const doAction = React.useCallback(() => {
         expect(ext).toBeTruthy();
-        done();
+        resolve();
       }, [ext]);
 
       const [, send] = useActor(
@@ -429,6 +440,8 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     fireEvent.click(extButton);
 
     fireEvent.click(button);
+
+    return promise;
   });
 
   it('should only render once when initial microsteps are involved', () => {
@@ -662,39 +675,36 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should be able to use a delay provided outside of React', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: 'b'
-            }
-          },
-          b: {
-            after: {
-              myDelay: 'c'
-            }
-          },
-          c: {}
-        }
-      },
-      {
-        delays: {
-          myDelay: () => {
-            return 300;
-          }
+    const machine = setup({
+      delays: {
+        myDelay: () => {
+          return 300;
         }
       }
-    );
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: 'b'
+          }
+        },
+        b: {
+          after: {
+            myDelay: 'c'
+          }
+        },
+        c: {}
+      }
+    });
 
     const App = () => {
       const [state, send] = useActor(machine);
       return (
         <>
-          <div data-testid="result">{state.value as string}</div>
+          <div data-testid="result">{state.value}</div>
           <button onClick={() => send({ type: 'EV' })} />
         </>
       );
@@ -708,14 +718,18 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     expect(screen.getByTestId('result').textContent).toBe('b');
 
     act(() => {
-      jest.advanceTimersByTime(310);
+      vi.advanceTimersByTime(310);
     });
 
     expect(screen.getByTestId('result').textContent).toBe('c');
   });
 
   it('should not use stale data in a guard', () => {
-    const machine = createMachine({
+    const machine = setup({
+      guards: {
+        isAwesome: () => false
+      }
+    }).createMachine({
       initial: 'a',
       states: {
         a: {
@@ -740,7 +754,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       );
       return (
         <>
-          <div data-testid="result">{state.value as string}</div>
+          <div data-testid="result">{state.value}</div>
           <button onClick={() => send({ type: 'EV' })} />
         </>
       );
@@ -784,7 +798,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('child component should be able to send an event to a parent immediately in an effect', () => {
-    const machine = createMachine({
+    const machine = setup({}).createMachine({
       types: {} as {
         events: {
           type: 'FINISH';
@@ -880,7 +894,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   // https://github.com/statelyai/xstate/issues/1334
   it('delayed transitions should work when initializing from a rehydrated state', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     const testMachine = createMachine({
       types: {} as {
         events: {
@@ -931,7 +945,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     fireEvent.click(button);
     act(() => {
-      jest.advanceTimersByTime(110);
+      vi.advanceTimersByTime(110);
     });
 
     expect(currentState!.matches('idle')).toBe(true);
@@ -969,7 +983,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should deliver messages sent from an effect to an actor registered in the system', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const m = createMachine({
       invoke: {
         systemId: 'child',
@@ -1001,7 +1015,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should work with `onSnapshot`', () => {
     const subject = new BehaviorSubject(0);
 
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       invoke: [
@@ -1030,7 +1044,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should execute a delayed transition of the initial state', async () => {
-    const machine = createMachine({
+    const machine = setup({}).createMachine({
       initial: 'one',
       states: {
         one: {

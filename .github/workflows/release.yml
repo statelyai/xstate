@@ -8,13 +8,16 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
-permissions: {}
+permissions:
+  id-token: write
+
 jobs:
   release:
     permissions:
-      contents: write #  to create release (changesets/action)
+      contents: write # to create release (changesets/action)
       issues: write # to post issue comments (changesets/action)
-      pull-requests: write #  to create pull request (changesets/action)
+      pull-requests: write # to create pull request (changesets/action)
+      id-token: write # to use OpenID Connect token for provenance (changesets/action)
 
     if: github.repository == 'statelyai/xstate'
 
@@ -30,8 +33,8 @@ jobs:
       - name: Create Release Pull Request or Publish to npm
         uses: changesets/action@v1
         with:
-          publish: yarn run release
-          version: yarn run version
+          publish: pnpm run release
+          version: pnpm run version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true

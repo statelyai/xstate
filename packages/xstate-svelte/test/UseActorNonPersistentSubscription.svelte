@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useActor } from '@xstate/svelte';
+  import { useActor } from '../src/index.ts';
   import UseActorNonPersistentSubscriptionChild from './UseActorNonPersistentSubscriptionChild.svelte';
   import { assign, createMachine } from 'xstate';
 

@@ -12,8 +12,8 @@ import {
   fromPromise,
   fromTransition,
   log,
-  matchesState,
   not,
+  or,
   raise,
   sendParent,
   sendTo,
@@ -2397,5 +2397,766 @@ describe('setup()', () => {
     });
 
     ((_accept: ContextFrom<typeof machine>) => {})({ myVar: 'whatever' });
+  });
+});
+
+describe('createStateConfig', () => {
+  it('should be able to create a state config with a custom action', () => {
+    const machineSetup = setup({
+      types: {
+        context: {} as {
+          count: number;
+        },
+        events: {} as {
+          type: 'timer';
+          by: number;
+        }
+      },
+      actions: {
+        doSomething: () => {}
+      },
+      guards: {
+        isLightActive: () => true
+      }
+    });
+
+    const green = machineSetup.createStateConfig({
+      on: {
+        timer: {
+          actions: 'doSomething',
+          guard: 'isLightActive'
+        }
+      }
+    });
+
+    const yellow = machineSetup.createStateConfig({
+      on: {
+        timer: {
+          actions: 'doSomething',
+          guard: 'isLightActive'
+        }
+      }
+    });
+
+    const red = machineSetup.createStateConfig({
+      on: {
+        timer: {
+          actions: 'doSomething',
+          guard: 'isLightActive'
+        }
+      }
+    });
+
+    const invalidEvent = machineSetup.createStateConfig({
+      on: {
+        // @ts-expect-error
+        nonsense: {}
+      }
+    });
+
+    const invalidAction = machineSetup.createStateConfig({
+      on: {
+        // @ts-expect-error
+        timer: {
+          // TODO: why is the error not here?
+          actions: 'nonexistent'
+        }
+      }
+    });
+
+    const invalidGuard = machineSetup.createStateConfig({
+      on: {
+        // @ts-expect-error
+        timer: {
+          // TODO: why is the error not here?
+          guard: 'nonexistent'
+        }
+      }
+    });
+
+    machineSetup.createMachine({
+      context: {
+        count: 0
+      },
+      initial: 'green',
+      states: {
+        green,
+        yellow,
+        red,
+        invalidEvent,
+        invalidAction,
+        invalidGuard
+      }
+    });
+  });
+
+  it('should allow matching against valid top state keys of a statechart with nested compound states', () => {
+    const machineSetup = setup({});
+    const green = machineSetup.createStateConfig({
+      initial: 'walk',
+      states: {
+        walk: {},
+        wait: {}
+      }
+    });
+    const machine = machineSetup.createMachine({
+      initial: 'green',
+      states: {
+        green,
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches('green');
+    snapshot.matches('yellow');
+    snapshot.matches('red');
+  });
+
+  it('should not allow matching against an invalid top state key of a statechart with nested compound states', () => {
+    const machineSetup = setup({});
+    const green = machineSetup.createStateConfig({
+      initial: 'walk',
+      states: {
+        walk: {},
+        wait: {}
+      }
+    });
+    const machine = machineSetup.createMachine({
+      initial: 'green',
+      states: {
+        green,
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches(
+      // @ts-expect-error
+      'orange'
+    );
+  });
+
+  it('should allow matching against a valid full object value of a statechart with nested compound states', () => {
+    const machineSetup = setup({});
+    const green = machineSetup.createStateConfig({
+      initial: 'walk',
+      states: {
+        walk: {},
+        wait: {}
+      }
+    });
+    const machine = machineSetup.createMachine({
+      initial: 'green',
+      states: {
+        green,
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches({
+      green: 'wait'
+    });
+  });
+
+  it('should allow matching against a valid non-full object value of a statechart with nested compound states', () => {
+    const machineSetup = setup({});
+    const green = machineSetup.createStateConfig({
+      initial: 'walk',
+      states: {
+        walk: {
+          initial: 'steady',
+          states: {
+            steady: {},
+            slowingDown: {}
+          }
+        },
+        wait: {}
+      }
+    });
+    const machine = machineSetup.createMachine({
+      initial: 'green',
+      states: {
+        green,
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches({
+      green: 'wait'
+    });
+  });
+
+  it('should not allow matching against a invalid object value of a statechart with nested compound states', () => {
+    const machineSetup = setup({});
+    const green = machineSetup.createStateConfig({
+      initial: 'walk',
+      states: {
+        walk: {},
+        wait: {}
+      }
+    });
+    const machine = machineSetup.createMachine({
+      initial: 'green',
+      states: {
+        green,
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches({
+      // @ts-expect-error
+      green: 'invalid'
+    });
+  });
+
+  it('should not allow matching against a invalid object value with self-key at value position', () => {
+    const machineSetup = setup({});
+    const green = machineSetup.createStateConfig({
+      initial: 'walk',
+      states: {
+        walk: {},
+        wait: {}
+      }
+    });
+    const machine = machineSetup.createMachine({
+      initial: 'green',
+      states: {
+        green,
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches({
+      // @ts-expect-error
+      green: 'green'
+    });
+  });
+});
+
+describe('extend', () => {
+  describe('undefined actions handling', () => {
+    it('should error on undefined actions in createMachine without extend', () => {
+      setup({}).createMachine({
+        // @ts-expect-error
+        entry: 'nonexistent'
+      });
+    });
+
+    it('should error on undefined actions in createMachine with empty extend', () => {
+      setup({}).extend({}).createMachine({
+        // @ts-expect-error
+        entry: 'nonexistent'
+      });
+    });
+
+    it('should error on undefined actions in extend enqueueActions', () => {
+      setup({}).extend({
+        actions: {
+          foo: enqueueActions(({ enqueue }) => {
+            // @ts-expect-error
+            enqueue('nonexistent');
+          })
+        }
+      });
+    });
+  });
+
+  describe('actions', () => {
+    it('should allow extending actions', () => {
+      setup({})
+        .extend({
+          actions: {
+            foo: () => {}
+          }
+        })
+        .createMachine({
+          entry: 'foo'
+        });
+    });
+
+    it('should allow referencing base actions in extended actions via enqueueActions', () => {
+      setup({
+        actions: {
+          doSomething: () => {}
+        }
+      })
+        .extend({
+          actions: {
+            foo: enqueueActions(({ enqueue }) => {
+              // Using the setup's enqueueActions should work with proper types
+              enqueue.raise({ type: 'SOMETHING' });
+            })
+          }
+        })
+        .createMachine({
+          entry: 'foo'
+        });
+    });
+  });
+
+  describe('guards', () => {
+    it('should allow extending guards', () => {
+      setup({})
+        .extend({
+          guards: {
+            truthy: () => true
+          }
+        })
+        .createMachine({
+          on: {
+            EV: {
+              guard: 'truthy'
+            },
+            // @ts-expect-error
+            EV2: {
+              guard: 'notTruthy'
+            }
+          }
+        });
+    });
+
+    it('should allow referencing base guards in extended guards with not', () => {
+      setup({
+        guards: {
+          truthy: () => true
+        }
+      })
+        .extend({
+          guards: {
+            notTruthy: not('truthy'),
+            // @ts-expect-error
+            nonexistent: not('existent')
+          }
+        })
+        .createMachine({
+          on: {
+            EV: {
+              guard: 'notTruthy'
+            },
+            // @ts-expect-error
+            EV2: {
+              guard: 'notNotNotTruthy'
+            }
+          }
+        });
+    });
+
+    it('should allow referencing extended guards in further extended guards', () => {
+      setup({
+        guards: {
+          truthy: () => true
+        }
+      })
+        .extend({
+          guards: {
+            alsoTruthy: () => true,
+            notTruthy: not('truthy')
+          }
+        })
+        .extend({
+          guards: {
+            combined: and(['truthy', 'alsoTruthy']),
+            alt: or(['notTruthy', 'truthy']),
+            // @ts-expect-error
+            nonexistent: or(['existent', 'truthy'])
+          }
+        })
+        .createMachine({
+          on: {
+            EV: [
+              { guard: 'combined', actions: () => {} },
+              { guard: 'alt', actions: () => {} },
+              {
+                // @ts-expect-error
+                guard: 'fake',
+                actions: () => {}
+              }
+            ]
+          }
+        });
+    });
+
+    it('should allow referencing extended guards in extended actions via check', () => {
+      setup({
+        guards: {
+          truthy: () => true
+        }
+      })
+        .extend({
+          guards: {
+            alsoTruthy: () => true
+          },
+          actions: {
+            foo: enqueueActions(({ check }) => {
+              check('truthy');
+              check('alsoTruthy');
+              // @ts-expect-error
+              check('nonexistent');
+            })
+          }
+        })
+        .createMachine({
+          entry: 'foo'
+        });
+    });
+  });
+
+  describe('delays', () => {
+    it('should allow extending delays', () => {
+      setup({})
+        .extend({
+          delays: {
+            medium: 100
+          }
+        })
+        .createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              after: {
+                medium: 'b'
+              }
+            },
+            b: {}
+          }
+        });
+    });
+
+    it('should allow referencing base delays in extended delays', () => {
+      setup({
+        delays: {
+          short: 10
+        }
+      })
+        .extend({
+          delays: {
+            medium: 100
+          }
+        })
+        .createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              entry: [
+                raise({ type: 'GO' }, { delay: 'short' }),
+                raise({ type: 'GO' }, { delay: 'medium' }),
+                raise(
+                  { type: 'GO' },
+                  {
+                    // @ts-expect-error
+                    delay: 'nonexistent'
+                  }
+                )
+              ],
+              on: {
+                GO: 'b'
+              }
+            },
+            b: {}
+          }
+        });
+    });
+
+    it('should allow referencing extended delays in further extended delays', () => {
+      setup({
+        delays: {
+          short: 10
+        }
+      })
+        .extend({
+          delays: {
+            medium: 100
+          }
+        })
+        .extend({
+          delays: {
+            long: 1000
+          }
+        })
+        .createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              entry: [
+                raise({ type: 'GO' }, { delay: 'short' }),
+                raise({ type: 'GO' }, { delay: 'medium' }),
+                raise({ type: 'GO' }, { delay: 'long' })
+              ],
+              on: {
+                GO: 'b'
+              }
+            },
+            b: {
+              after: {
+                medium: 'c'
+              }
+            },
+            c: {
+              after: {
+                long: 'd',
+                // @ts-expect-error
+                nonexistent: 'd'
+              }
+            },
+            d: {}
+          }
+        });
+    });
+  });
+});
+
+describe('type-bound actions', () => {
+  it('should be able to create a type-safe action action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        context: {
+          count: number;
+        };
+        events: {
+          type: 'inc';
+          value: number;
+        };
+      }
+    });
+
+    const action = machineSetup.createAction((args) => {
+      args.context.count satisfies number;
+      // @ts-expect-error
+      args.context.text satisfies string;
+
+      args.event.type satisfies 'inc';
+      args.event.value satisfies number;
+      // @ts-expect-error
+      args.event.value satisfies string;
+    });
+
+    machineSetup.createMachine({
+      context: {
+        count: 0
+      },
+      entry: action
+    });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: action
+    });
+  });
+
+  it('should be able to create a type-safe assign action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        context: {
+          count: number;
+        };
+      }
+    });
+    const assignAction = machineSetup.assign({
+      count: ({ context }) => {
+        context.count satisfies number;
+        // @ts-expect-error
+        context.text satisfies string;
+
+        return context.count + 1;
+      }
+    });
+
+    machineSetup.createMachine({
+      context: {
+        count: 0
+      },
+      entry: assignAction
+    });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: assignAction
+    });
+  });
+
+  it('should be able to create a type-safe raise action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        context: {
+          count: number;
+        };
+        events: {
+          type: 'TEST';
+        };
+      }
+    });
+    const raiseAction = machineSetup.raise(({ event }) => {
+      event.type satisfies 'TEST';
+      // @ts-expect-error
+      event.type satisfies 'INVALID';
+
+      return event;
+    });
+
+    machineSetup.createMachine({
+      context: {
+        count: 0
+      },
+      entry: raiseAction
+    });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: raiseAction
+    });
+  });
+
+  it('should be able to create a type-safe sendTo action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        events: { type: 'TEST' };
+      }
+    });
+    const sendToAction = machineSetup.sendTo(
+      ({ self }) => self,
+      ({ event }) => {
+        event.type satisfies 'TEST';
+        // @ts-expect-error
+        event.type satisfies 'INVALID';
+
+        return event;
+      }
+    );
+
+    machineSetup.createMachine({
+      context: {
+        count: 0
+      },
+      entry: sendToAction
+    });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: sendToAction
+    });
+  });
+
+  it('should be able to create a type-safe log action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        context: { count: number };
+        events: { type: 'TEST' };
+      }
+    });
+    const logAction = machineSetup.log(({ context, event }) => {
+      context.count satisfies number;
+      event.type satisfies 'TEST';
+      return { context, event };
+    }, 'label');
+
+    machineSetup.createMachine({
+      context: { count: 0 },
+      entry: logAction
+    });
+  });
+
+  it('should be able to create a type-safe cancel action', () => {
+    const machineSetup = setup({});
+    const cancelAction = machineSetup.cancel('some-id');
+    machineSetup.createMachine({ entry: cancelAction });
+  });
+
+  it('should be able to create a type-safe stopChild action', () => {
+    const machineSetup = setup({});
+    const stopAction = machineSetup.stopChild('child');
+    machineSetup.createMachine({ entry: stopAction });
+  });
+
+  it('should be able to create a type-safe enqueueActions action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        context: { count: number };
+        events: { type: 'INC'; value: number };
+      },
+      actions: {
+        doing: () => {}
+      },
+      guards: {
+        isOk: () => true
+      }
+    });
+
+    const enq = machineSetup.enqueueActions(
+      ({ context, event, check, enqueue }) => {
+        context.count satisfies number;
+        event.type satisfies 'INC';
+
+        if (check('isOk')) {
+          enqueue('doing');
+        }
+
+        enqueue.assign({
+          count: ({ context }) => context.count + 1
+        });
+      }
+    );
+
+    machineSetup.createMachine({
+      context: { count: 0 },
+      entry: enq
+    });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: enq
+    });
+  });
+
+  it('should be able to create a type-safe emit action', () => {
+    const machineSetup = setup({
+      types: {} as {
+        emitted: { type: 'PING' };
+        events: { type: 'TEST' };
+      }
+    });
+
+    const emitAction = machineSetup.emit({ type: 'PING' });
+
+    machineSetup.createMachine({ entry: emitAction });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: emitAction
+    });
+  });
+
+  it('should be able to create a type-safe spawnChild action', () => {
+    const child = createMachine({});
+    const machineSetup = setup({
+      actors: {
+        child
+      }
+    });
+
+    const spawn = machineSetup.spawnChild('child');
+
+    machineSetup.createMachine({ entry: spawn });
+
+    setup({}).createMachine({
+      // @ts-expect-error
+      entry: spawn
+    });
   });
 });

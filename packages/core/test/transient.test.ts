@@ -697,7 +697,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it("should execute an always transition after a raised transition even if that raised transition doesn't change the state", () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     let counter = 0;
     const machine = createMachine({
       always: {

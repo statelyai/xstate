@@ -1,101 +1,117 @@
+import { createAtom } from './atom';
+import { toObserver } from './toObserver';
 import {
-  Recipe,
+  EnqueueObject,
+  EventObject,
   EventPayloadMap,
-  Store,
-  ExtractEventsFromPayloadMap,
-  StoreSnapshot,
-  StorePartialAssigner,
-  StoreCompleteAssigner,
-  StoreAssigner,
-  StorePropertyAssigner,
-  Observer,
-  StoreContext,
+  ExtractEvents,
   InteropSubscribable,
-  InspectionEvent
+  Observer,
+  Store,
+  StoreAssigner,
+  StoreContext,
+  StoreConfig,
+  StoreEffect,
+  StoreInspectionEvent,
+  StoreProducerAssigner,
+  StoreSnapshot,
+  Selector,
+  Selection,
+  InternalBaseAtom,
+  StoreLogic,
+  StoreTransition,
+  AnyStoreLogic,
+  SpecificStoreConfig
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) ||
   '@@observable')() as any;
 
-function toObserver<T>(
-  nextHandler?: Observer<T> | ((value: T) => void),
-  errorHandler?: (error: any) => void,
-  completionHandler?: () => void
-): Observer<T> {
-  const isObserver = typeof nextHandler === 'object';
-  const self = isObserver ? nextHandler : undefined;
-
-  return {
-    next: (isObserver ? nextHandler.next : nextHandler)?.bind(self),
-    error: (isObserver ? nextHandler.error : errorHandler)?.bind(self),
-    complete: (isObserver ? nextHandler.complete : completionHandler)?.bind(
-      self
-    )
-  };
-}
-
-function setter<TContext extends StoreContext>(
-  context: TContext,
-  recipe: Recipe<TContext, TContext>
-): TContext {
-  return recipe(context);
-}
-
 const inspectionObservers = new WeakMap<
-  Store<any, any>,
-  Set<Observer<InspectionEvent>>
+  Store<any, any, any>,
+  Set<Observer<StoreInspectionEvent>>
 >();
 
 function createStoreCore<
   TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap
+  TSnapshot extends StoreSnapshot<any>,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject
 >(
-  initialContext: TContext,
-  transitions: {
-    [K in keyof TEventPayloadMap & string]:
-      | StoreAssigner<NoInfer<TContext>, { type: K } & TEventPayloadMap[K]>
-      | StorePropertyAssigner<
-          NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K]
-        >;
-  },
-  updater?: (
-    context: NoInfer<TContext>,
-    recipe: (context: NoInfer<TContext>) => NoInfer<TContext>
-  ) => NoInfer<TContext>
-): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
-  type StoreEvent = ExtractEventsFromPayloadMap<TEventPayloadMap>;
-  let observers: Set<Observer<StoreSnapshot<TContext>>> | undefined;
-  const initialSnapshot = {
-    context: initialContext,
-    status: 'active',
-    output: undefined,
-    error: undefined
-  } satisfies StoreSnapshot<TContext> as StoreSnapshot<TContext>;
-  let currentSnapshot = initialSnapshot;
-  const transition = createStoreTransition<TContext, TEventPayloadMap>(
-    transitions,
-    updater
-  );
+  logic: StoreLogic<TSnapshot, ExtractEvents<TEventPayloadMap>, TEmitted>,
+  emits?: Record<string, (payload: any) => void> // TODO: improve this type
+): Store<TContext, TEventPayloadMap, TEmitted> {
+  type StoreEvent = ExtractEvents<TEventPayloadMap>;
+  let listeners: Map<TEmitted['type'], Set<any>> | undefined;
+  const initialSnapshot = logic.getInitialSnapshot();
+  let currentSnapshot: TSnapshot = initialSnapshot;
+  const atom = createAtom<StoreSnapshot<TContext>>(currentSnapshot);
+
+  const emit = (ev: TEmitted) => {
+    if (!listeners) {
+      return;
+    }
+    const type = ev.type;
+    const typeListeners = listeners.get(type);
+    if (typeListeners) {
+      typeListeners.forEach((listener) => listener(ev));
+    }
+  };
+
+  const transition = logic.transition;
 
   function receive(event: StoreEvent) {
-    currentSnapshot = transition(currentSnapshot, event);
+    const [nextSnapshot, effects] = transition(currentSnapshot, event);
+    currentSnapshot = nextSnapshot;
 
     inspectionObservers.get(store)?.forEach((observer) => {
       observer.next?.({
         type: '@xstate.snapshot',
         event,
-        snapshot: currentSnapshot,
+        snapshot: nextSnapshot,
         actorRef: store,
         rootId: store.sessionId
       });
     });
 
-    observers?.forEach((o) => o.next?.(currentSnapshot));
+    atom.set(nextSnapshot);
+
+    for (const effect of effects) {
+      if (typeof effect === 'function') {
+        effect();
+      } else {
+        // handle the inherent effect first
+        emits?.[effect.type]?.(effect);
+        emit(effect);
+      }
+    }
   }
 
-  const store: Store<TContext, StoreEvent> = {
+  const store: Store<TContext, TEventPayloadMap, TEmitted> &
+    Pick<InternalBaseAtom<any>, '_snapshot'> = {
+    get _snapshot() {
+      return (atom as unknown as InternalBaseAtom<any>)._snapshot;
+    },
+    on(emittedEventType, handler) {
+      if (!listeners) {
+        listeners = new Map();
+      }
+      let eventListeners = listeners.get(emittedEventType);
+      if (!eventListeners) {
+        eventListeners = new Set();
+        listeners.set(emittedEventType, eventListeners);
+      }
+      const wrappedHandler = handler.bind(undefined);
+      eventListeners.add(wrappedHandler);
+
+      return {
+        unsubscribe() {
+          eventListeners.delete(wrappedHandler);
+        }
+      };
+    },
+    transition: logic.transition as any, // TODO: fix this
     sessionId: uniqueId(),
     send(event) {
       inspectionObservers.get(store)?.forEach((observer) => {
@@ -112,20 +128,13 @@ function createStoreCore<
     getSnapshot() {
       return currentSnapshot;
     },
+    get() {
+      return atom.get();
+    },
     getInitialSnapshot() {
       return initialSnapshot;
     },
-    subscribe(observerOrFn) {
-      const observer = toObserver(observerOrFn);
-      observers ??= new Set();
-      observers.add(observer);
-
-      return {
-        unsubscribe() {
-          return observers?.delete(observer);
-        }
-      };
-    },
+    subscribe: atom.subscribe.bind(atom),
     [symbolObservable](): InteropSubscribable<StoreSnapshot<TContext>> {
       return this;
     },
@@ -156,11 +165,50 @@ function createStoreCore<
           return inspectionObservers.get(store)?.delete(observer);
         }
       };
+    },
+    trigger: new Proxy(
+      {} as Store<TContext, TEventPayloadMap, TEmitted>['trigger'],
+      {
+        get: (_, eventType: string) => {
+          return (payload: any) => {
+            store.send({
+              ...payload,
+              type: eventType
+            });
+          };
+        }
+      }
+    ),
+    select<TSelected>(
+      selector: Selector<TContext, TSelected>,
+      equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
+    ): Selection<TSelected> {
+      return createAtom(() => selector(store.get().context), {
+        compare: equalityFn
+      });
+    },
+    with(extension) {
+      const extendedLogic = extension(logic as any);
+      return createStoreCore(extendedLogic) as any;
     }
   };
 
   return store;
 }
+
+export type TransitionsFromEventPayloadMap<
+  TEventPayloadMap extends EventPayloadMap,
+  TContext extends StoreContext,
+  TEmitted extends EventObject
+> = {
+  [K in keyof TEventPayloadMap & string]: StoreAssigner<
+    TContext,
+    {
+      type: K;
+    } & TEventPayloadMap[K],
+    TEmitted
+  >;
+};
 
 /**
  * Creates a **store** that has its own internal state and can be sent events
@@ -170,17 +218,12 @@ function createStoreCore<
  *
  * ```ts
  * const store = createStore({
- *   // Initial context
- *   { count: 0 },
- *   // Transitions
- *   {
- *     on: {
- *       inc: (context, event: { by: number }) => {
- *         return {
- *           count: context.count + event.by
- *         }
- *       }
- *     }
+ *   context: { count: 0, name: 'Ada' },
+ *   on: {
+ *     inc: (context, event: { by: number }) => ({
+ *       ...context,
+ *       count: context.count + event.by
+ *     })
  *   }
  * });
  *
@@ -189,25 +232,83 @@ function createStoreCore<
  * });
  *
  * store.send({ type: 'inc', by: 5 });
- * // Logs { context: { count: 5 }, status: 'active', ... }
+ * // Logs { context: { count: 5, name: 'Ada' }, status: 'active', ... }
  * ```
+ *
+ * @param config - The store configuration object
+ * @param config.context - The initial state of the store
+ * @param config.on - An object mapping event types to transition functions
+ * @param config.emits - An object mapping emitted event types to handlers
+ * @returns A store instance with methods to send events and subscribe to state
+ *   changes
  */
 export function createStore<
   TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap
+  const TEventPayloadMap extends EventPayloadMap,
+  TEmittedPayloadMap extends EventPayloadMap
 >(
-  initialContext: TContext,
-  transitions: {
-    [K in keyof TEventPayloadMap & string]:
-      | StoreAssigner<NoInfer<TContext>, { type: K } & TEventPayloadMap[K]>
-      | StorePropertyAssigner<
-          NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K]
-        >;
+  definition: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap>
+): Store<TContext, TEventPayloadMap, ExtractEvents<TEmittedPayloadMap>>;
+export function createStore<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+>(
+  definition:
+    | SpecificStoreConfig<TContext, TEvent, TEmitted>
+    | StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>
+): Store<
+  TContext,
+  {
+    [E in TEvent as E['type']]: E;
+  },
+  TEmitted
+>;
+export function createStore(
+  definitionOrLogic: StoreConfig<any, any, any> | AnyStoreLogic
+) {
+  if ('transition' in definitionOrLogic) {
+    return createStoreCore(definitionOrLogic);
   }
-): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
-  return createStoreCore(initialContext, transitions);
+  const transition = createStoreTransition(definitionOrLogic.on);
+  const logic: AnyStoreLogic = {
+    getInitialSnapshot: () => ({
+      status: 'active' as const,
+      context: definitionOrLogic.context,
+      output: undefined,
+      error: undefined
+    }),
+    transition
+  } satisfies AnyStoreLogic;
+  return createStoreCore(logic, definitionOrLogic.emits);
 }
+
+function _createStoreConfig<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventPayloadMap
+>(
+  definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
+): StoreConfig<TContext, TEventPayloadMap, TEmitted> {
+  return definition;
+}
+
+export const createStoreConfig: {
+  <
+    TContext extends StoreContext,
+    TEventPayloadMap extends EventPayloadMap,
+    TEmitted extends EventPayloadMap
+  >(
+    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
+  ): StoreConfig<TContext, TEventPayloadMap, TEmitted>;
+  <
+    TContext extends StoreContext,
+    TEventPayloadMap extends EventPayloadMap,
+    TEmitted extends EventPayloadMap
+  >(
+    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
+  ): StoreConfig<TContext, TEventPayloadMap, TEmitted>;
+} = _createStoreConfig;
 
 /**
  * Creates a `Store` with a provided producer (such as Immer's `producer(…)` A
@@ -219,14 +320,10 @@ export function createStore<
  * import { produce } from 'immer';
  *
  * const store = createStoreWithProducer(produce, {
- *   // Initial context
- *   { count: 0 },
- *   // Transitions
- *   {
- *     on: {
- *       inc: (context, event: { by: number }) => {
- *         context.count += event.by;
- *       }
+ *   context: { count: 0 },
+ *   on: {
+ *     inc: (context, event: { by: number }) => {
+ *       context.count += event.by;
  *     }
  *   }
  * });
@@ -241,20 +338,40 @@ export function createStore<
  */
 export function createStoreWithProducer<
   TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap
+  TEventPayloadMap extends EventPayloadMap,
+  TEmittedPayloadMap extends EventPayloadMap
 >(
   producer: NoInfer<
     (context: TContext, recipe: (context: TContext) => void) => TContext
   >,
-  initialContext: TContext,
-  transitions: {
-    [K in keyof TEventPayloadMap & string]: (
-      context: NoInfer<TContext>,
-      event: { type: K } & TEventPayloadMap[K]
-    ) => void;
+  config: {
+    context: TContext;
+    on: {
+      [K in keyof TEventPayloadMap & string]: (
+        context: NoInfer<TContext>,
+        event: { type: K } & TEventPayloadMap[K],
+        enqueue: EnqueueObject<ExtractEvents<TEmittedPayloadMap>>
+      ) => void;
+    };
+    emits?: {
+      [K in keyof TEmittedPayloadMap & string]: (
+        payload: TEmittedPayloadMap[K]
+      ) => void;
+    };
   }
-): Store<TContext, ExtractEventsFromPayloadMap<TEventPayloadMap>> {
-  return createStoreCore(initialContext, transitions as any, producer);
+): Store<TContext, TEventPayloadMap, ExtractEvents<TEmittedPayloadMap>> {
+  const transition = createStoreTransition(config.on, producer);
+  const logic = {
+    getInitialSnapshot: () => ({
+      status: 'active' as const,
+      context: config.context,
+      output: undefined,
+      error: undefined
+    }),
+    transition
+  } satisfies AnyStoreLogic;
+
+  return createStoreCore(logic, config.emits);
 }
 
 declare global {
@@ -264,85 +381,85 @@ declare global {
 }
 
 /**
- * Creates a store function, which is a function that accepts the current
- * snapshot and an event and returns a new snapshot.
+ * Creates a store transition function that handles state updates based on
+ * events.
  *
- * @param transitions
- * @param updater
- * @returns
+ * @param transitions - An object mapping event types to transition functions
+ * @param producer - Optional producer function (e.g., Immer's produce) for
+ *   immutable updates
+ * @returns A transition function that takes a snapshot and event and returns a
+ *   new snapshot with effects
  */
 export function createStoreTransition<
   TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject
 >(
   transitions: {
-    [K in keyof TEventPayloadMap & string]:
-      | StoreAssigner<NoInfer<TContext>, { type: K } & TEventPayloadMap[K]>
-      | StorePropertyAssigner<
-          NoInfer<TContext>,
-          { type: K } & TEventPayloadMap[K]
-        >;
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      TContext,
+      { type: K } & TEventPayloadMap[K],
+      TEmitted
+    >;
   },
-  updater?: (
-    context: NoInfer<TContext>,
-    recipe: (context: NoInfer<TContext>) => NoInfer<TContext>
-  ) => NoInfer<TContext>
-) {
+  producer?: (
+    context: TContext,
+    recipe: (context: TContext) => void
+  ) => TContext
+): StoreTransition<TContext, ExtractEvents<TEventPayloadMap>, TEmitted> {
   return (
     snapshot: StoreSnapshot<TContext>,
-    event: ExtractEventsFromPayloadMap<TEventPayloadMap>
-  ): StoreSnapshot<TContext> => {
-    type StoreEvent = ExtractEventsFromPayloadMap<TEventPayloadMap>;
-    let currentContext = snapshot.context;
+    event: ExtractEvents<TEventPayloadMap>
+  ): [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]] => {
+    type StoreEvent = ExtractEvents<TEventPayloadMap>;
+    const currentContext = snapshot.context;
     const assigner = transitions?.[event.type as StoreEvent['type']];
+    const effects: StoreEffect<TEmitted>[] = [];
+
+    const enqueue: EnqueueObject<TEmitted> = {
+      emit: new Proxy({} as any, {
+        get: (_, eventType: string) => {
+          return (payload: any) => {
+            effects.push({
+              ...payload,
+              type: eventType
+            });
+          };
+        }
+      }),
+      effect: (fn) => {
+        effects.push(fn);
+      }
+    };
 
     if (!assigner) {
-      return snapshot;
+      return [snapshot, effects];
     }
 
-    if (typeof assigner === 'function') {
-      currentContext = updater
-        ? updater(
-            currentContext,
-            (draftContext) =>
-              (assigner as StoreCompleteAssigner<TContext, StoreEvent>)?.(
-                draftContext,
-                event
-              )
+    const nextContext = producer
+      ? producer(currentContext, (draftContext) =>
+          (assigner as StoreProducerAssigner<TContext, StoreEvent, TEmitted>)(
+            draftContext,
+            event,
+            enqueue
           )
-        : setter(currentContext, (draftContext) =>
-            Object.assign(
-              {},
-              currentContext,
-              assigner?.(
-                draftContext,
-                event as any // TODO: help me
-              )
-            )
-          );
-    } else {
-      const partialUpdate: Record<string, unknown> = {};
-      for (const key of Object.keys(assigner)) {
-        const propAssignment = assigner[key];
-        partialUpdate[key] =
-          typeof propAssignment === 'function'
-            ? (
-                propAssignment as StorePartialAssigner<
-                  TContext,
-                  StoreEvent,
-                  typeof key
-                >
-              )(currentContext, event)
-            : propAssignment;
-      }
-      currentContext = Object.assign({}, currentContext, partialUpdate);
-    }
+        )
+      : (assigner(currentContext, event as any, enqueue) ?? currentContext);
 
-    return { ...snapshot, context: currentContext };
+    return [
+      nextContext === currentContext
+        ? snapshot
+        : { ...snapshot, context: nextContext },
+      effects
+    ];
   };
 }
 
-// create a unique 6-char id
-export function uniqueId() {
+/**
+ * Generates a unique 6-character identifier.
+ *
+ * @returns A random string identifier
+ */
+function uniqueId() {
   return Math.random().toString(36).slice(6);
 }

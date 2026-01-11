@@ -1,12 +1,12 @@
 import { StateMachine } from './StateMachine.ts';
-import { ResolvedStateMachineTypes, TODO } from './types.ts';
 import {
+  ResolvedStateMachineTypes,
+  TODO,
   AnyActorRef,
   EventObject,
   AnyEventObject,
   Cast,
   InternalMachineImplementations,
-  IsNever,
   MachineConfig,
   MachineContext,
   MachineTypes,
@@ -30,37 +30,6 @@ type _GroupTestValues<TTestValue extends string | TestValue> =
       ? [never, never]
       : [TTestValue, never]
     : [never, TTestValue];
-type GroupTestValues<TTestValue extends string | TestValue> = {
-  leafCandidates: _GroupTestValues<TTestValue>[0];
-  nonLeaf: _GroupTestValues<TTestValue>[1];
-};
-
-type FilterLeafValues<
-  TLeafCandidate extends string,
-  TNonLeaf extends { [k: string]: TestValue | undefined }
-> = IsNever<TNonLeaf> extends true
-  ? TLeafCandidate
-  : TLeafCandidate extends string
-    ? TLeafCandidate extends keyof TNonLeaf
-      ? never
-      : TLeafCandidate
-    : never;
-
-// this is not 100% accurate since we can't make parallel regions required in the result
-// `TTestValue` doesn't encode this information anyhow for us to be able to do that
-// this is fine for most practical use cases anyway though
-type ToStateValue<TTestValue extends string | TestValue> =
-  | FilterLeafValues<
-      GroupTestValues<TTestValue>['leafCandidates'],
-      GroupTestValues<TTestValue>['nonLeaf']
-    >
-  | (IsNever<GroupTestValues<TTestValue>['nonLeaf']> extends false
-      ? {
-          [K in keyof GroupTestValues<TTestValue>['nonLeaf']]: ToStateValue<
-            NonNullable<GroupTestValues<TTestValue>['nonLeaf'][K]>
-          >;
-        }
-      : never);
 
 /**
  * Creates a state machine (statechart) with the given configuration.

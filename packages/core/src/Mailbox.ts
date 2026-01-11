@@ -17,7 +17,7 @@ export class Mailbox<T> {
 
   public clear(): void {
     // we can't set _current to null because we might be currently processing
-    // and enqueue following clear shouldnt start processing the enqueued item immediately
+    // and enqueue following clear shouldn't start processing the enqueued item immediately
     if (this._current) {
       this._current.next = null;
       this._last = this._current;

@@ -11,6 +11,18 @@ import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { AnyActorSystem, Clock, createSystem } from './system.ts';
 
+// those are needed to make JSDoc `@link` work properly
+import type {
+  fromObservable,
+  fromEventObservable
+} from './actors/observable.ts';
+import type { fromCallback } from './actors/callback.ts';
+import type { fromPromise } from './actors/promise.ts';
+import type { fromTransition } from './actors/transition.ts';
+import type { createMachine } from './createMachine.ts';
+
+export let executingCustomAction: boolean = false;
+
 import type {
   ActorScope,
   AnyActorLogic,
@@ -108,7 +120,7 @@ export class Actor<TLogic extends AnyActorLogic>
     EmittedFrom<TLogic>
   >;
 
-  private _systemId: string | undefined;
+  public systemId: string | undefined;
 
   /** The globally unique process ID for this invocation. */
   public sessionId: string;
@@ -183,12 +195,43 @@ export class Actor<TLogic extends AnyActorLogic>
         if (!listeners && !wildcardListener) {
           return;
         }
-        const allListeners = new Set([
+        const allListeners = [
           ...(listeners ? listeners.values() : []),
           ...(wildcardListener ? wildcardListener.values() : [])
-        ]);
-        for (const handler of Array.from(allListeners)) {
-          handler(emittedEvent);
+        ];
+        for (const handler of allListeners) {
+          try {
+            handler(emittedEvent);
+          } catch (err) {
+            reportUnhandledError(err);
+          }
+        }
+      },
+      actionExecutor: (action) => {
+        const exec = () => {
+          this._actorScope.system._sendInspectionEvent({
+            type: '@xstate.action',
+            actorRef: this,
+            action: {
+              type: action.type,
+              params: action.params
+            }
+          });
+          if (!action.exec) {
+            return;
+          }
+          const saveExecutingCustomAction = executingCustomAction;
+          try {
+            executingCustomAction = true;
+            action.exec(action.info, action.params);
+          } finally {
+            executingCustomAction = saveExecutingCustomAction;
+          }
+        };
+        if (this._processingStatus === ProcessingStatus.Running) {
+          exec();
+        } else {
+          this._deferred.push(exec);
         }
       }
     };
@@ -196,13 +239,14 @@ export class Actor<TLogic extends AnyActorLogic>
     // Ensure that the send method is bound to this Actor instance
     // if destructured
     this.send = this.send.bind(this);
+
     this.system._sendInspectionEvent({
       type: '@xstate.actor',
       actorRef: this
     });
 
     if (systemId) {
-      this._systemId = systemId;
+      this.systemId = systemId;
       this.system._set(systemId, this);
     }
 
@@ -423,7 +467,8 @@ export class Actor<TLogic extends AnyActorLogic>
   public on<TType extends EmittedFrom<TLogic>['type'] | '*'>(
     type: TType,
     handler: (
-      emitted: EmittedFrom<TLogic> & (TType extends '*' ? {} : { type: TType })
+      emitted: EmittedFrom<TLogic> &
+        (TType extends '*' ? unknown : { type: TType })
     ) => void
   ): Subscription {
     let listeners = this.eventListeners.get(type);
@@ -436,7 +481,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
     return {
       unsubscribe: () => {
-        listeners!.delete(wrappedHandler);
+        listeners.delete(wrappedHandler);
       }
     };
   }
@@ -463,8 +508,8 @@ export class Actor<TLogic extends AnyActorLogic>
     }
 
     this.system._register(this.sessionId, this);
-    if (this._systemId) {
-      this.system._set(this._systemId, this);
+    if (this.systemId) {
+      this.system._set(this.systemId, this);
     }
     this._processingStatus = ProcessingStatus.Running;
 
@@ -590,12 +635,14 @@ export class Actor<TLogic extends AnyActorLogic>
       }
     }
     this.observers.clear();
+    this.eventListeners.clear();
   }
   private _reportError(err: unknown): void {
     if (!this.observers.size) {
       if (!this._parent) {
         reportUnhandledError(err);
       }
+      this.eventListeners.clear();
       return;
     }
     let reportError = false;
@@ -610,6 +657,7 @@ export class Actor<TLogic extends AnyActorLogic>
       }
     }
     this.observers.clear();
+    this.eventListeners.clear();
     if (reportError) {
       reportUnhandledError(err);
     }
@@ -746,7 +794,7 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 }
 
-type RequiredOptions<TLogic extends AnyActorLogic> =
+export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
   undefined extends InputFrom<TLogic> ? never : 'input';
 
 /**
@@ -792,10 +840,10 @@ export function createActor<TLogic extends AnyActorLogic>(
   ...[options]: ConditionalRequired<
     [
       options?: ActorOptions<TLogic> & {
-        [K in RequiredOptions<TLogic>]: unknown;
+        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
       }
     ],
-    IsNotNever<RequiredOptions<TLogic>>
+    IsNotNever<RequiredActorOptionsKeys<TLogic>>
   >
 ): Actor<TLogic> {
   return new Actor(logic, options);

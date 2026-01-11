@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from 'node:timers/promises';
 import { EMPTY, interval, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { forwardTo, sendParent } from '../src/actions.ts';
@@ -30,7 +31,6 @@ import {
   stopChild
 } from '../src/index.ts';
 import { setup } from '../src/setup.ts';
-import { sleep } from '@xstate-repo/jest-utils';
 
 describe('spawning machines', () => {
   const context = {
@@ -120,7 +120,8 @@ describe('spawning machines', () => {
     }
   });
 
-  it('should spawn machines', (done) => {
+  it('should spawn machines', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const todoMachine = createMachine({
       id: 'todo',
       initial: 'incomplete',
@@ -174,13 +175,14 @@ describe('spawning machines', () => {
     const service = createActor(todosMachine);
     service.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
     service.start();
 
     service.send({ type: 'ADD', id: 42 });
     service.send({ type: 'SET_COMPLETE', id: 42 });
+    return promise;
   });
 
   it('should spawn referenced machines', () => {
@@ -220,21 +222,24 @@ describe('spawning machines', () => {
     expect(actor.getSnapshot().value).toBe('success');
   });
 
-  it('should allow bidirectional communication between parent/child actors', (done) => {
+  it('should allow bidirectional communication between parent/child actors', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const actor = createActor(clientMachine);
     actor.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
     actor.start();
+    return promise;
   });
 });
 
 const aaa = 'dadasda';
 
 describe('spawning promises', () => {
-  it('should be able to spawn a promise', (done) => {
+  it('should be able to spawn a promise', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const promiseMachine = createMachine({
       types: {} as {
         context: { promiseRef?: PromiseActorRef<string> };
@@ -277,14 +282,16 @@ describe('spawning promises', () => {
     const promiseService = createActor(promiseMachine);
     promiseService.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
 
     promiseService.start();
+    return promise;
   });
 
-  it('should be able to spawn a referenced promise', (done) => {
+  it('should be able to spawn a referenced promise', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const promiseMachine = setup({
       actors: {
         somePromise: fromPromise(() => Promise.resolve('response'))
@@ -320,16 +327,18 @@ describe('spawning promises', () => {
     const promiseService = createActor(promiseMachine);
     promiseService.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
 
     promiseService.start();
+    return promise;
   });
 });
 
 describe('spawning callbacks', () => {
-  it('should be able to spawn an actor from a callback', (done) => {
+  it('should be able to spawn an actor from a callback', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const callbackMachine = createMachine({
       types: {} as {
         context: {
@@ -375,16 +384,17 @@ describe('spawning callbacks', () => {
     const callbackService = createActor(callbackMachine);
     callbackService.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
 
     callbackService.start();
     callbackService.send({ type: 'START_CB' });
+    return promise;
   });
 
   it('should not deliver events sent to the parent after the callback actor gets stopped', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     let sendToParent: () => void;
 
@@ -423,7 +433,8 @@ describe('spawning callbacks', () => {
 });
 
 describe('spawning observables', () => {
-  it('should spawn an observable', (done) => {
+  it('should spawn an observable', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const observableLogic = fromObservable(() => interval(10));
     const observableMachine = createMachine({
       id: 'observable',
@@ -459,14 +470,16 @@ describe('spawning observables', () => {
     const observableService = createActor(observableMachine);
     observableService.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
 
     observableService.start();
+    return promise;
   });
 
-  it('should spawn a referenced observable', (done) => {
+  it('should spawn a referenced observable', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const observableMachine = createMachine(
       {
         id: 'observable',
@@ -502,14 +515,16 @@ describe('spawning observables', () => {
     const observableService = createActor(observableMachine);
     observableService.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
 
     observableService.start();
+    return promise;
   });
 
-  it(`should read the latest snapshot of the event's origin while handling that event`, (done) => {
+  it(`should read the latest snapshot of the event's origin while handling that event`, () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const observableLogic = fromObservable(() => interval(10));
     const observableMachine = createMachine({
       id: 'observable',
@@ -550,11 +565,12 @@ describe('spawning observables', () => {
     const observableService = createActor(observableMachine);
     observableService.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
 
     observableService.start();
+    return promise;
   });
 
   it('should notify direct child listeners with final snapshot before it gets stopped', async () => {
@@ -600,7 +616,7 @@ describe('spawning observables', () => {
 
     await waitFor(actorRef, (state) => state.matches('active'));
 
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     actorRef.getSnapshot().children.childActor!.subscribe((data) => {
       spy(data.context);
@@ -654,7 +670,7 @@ describe('spawning observables', () => {
 
     await waitFor(actorRef, (state) => state.matches('active'));
 
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     actorRef.getSnapshot().children.childActor!.subscribe((data) => {
       spy(data);
@@ -671,7 +687,8 @@ describe('spawning observables', () => {
 });
 
 describe('spawning event observables', () => {
-  it('should spawn an event observable', (done) => {
+  it('should spawn an event observable', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const eventObservableLogic = fromEventObservable(() =>
       interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
     );
@@ -706,14 +723,16 @@ describe('spawning event observables', () => {
     const observableService = createActor(observableMachine);
     observableService.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
 
     observableService.start();
+    return promise;
   });
 
-  it('should spawn a referenced event observable', (done) => {
+  it('should spawn a referenced event observable', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const observableMachine = createMachine(
       {
         id: 'observable',
@@ -750,16 +769,18 @@ describe('spawning event observables', () => {
     const observableService = createActor(observableMachine);
     observableService.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
 
     observableService.start();
+    return promise;
   });
 });
 
 describe('communicating with spawned actors', () => {
-  it('should treat an interpreter as an actor', (done) => {
+  it('should treat an interpreter as an actor', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const existingMachine = createMachine({
       types: {
         events: {} as {
@@ -818,11 +839,12 @@ describe('communicating with spawned actors', () => {
     const parentService = createActor(parentMachine);
     parentService.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
 
     parentService.start();
+    return promise;
   });
 });
 
@@ -964,8 +986,8 @@ describe('actors', () => {
   });
 
   it('should stop multiple inline spawned actors that have no explicit ids', () => {
-    const cleanup1 = jest.fn();
-    const cleanup2 = jest.fn();
+    const cleanup1 = vi.fn();
+    const cleanup2 = vi.fn();
 
     const parent = createMachine({
       context: ({ spawn }) => ({
@@ -984,8 +1006,8 @@ describe('actors', () => {
   });
 
   it('should stop multiple referenced spawned actors that have no explicit ids', () => {
-    const cleanup1 = jest.fn();
-    const cleanup2 = jest.fn();
+    const cleanup1 = vi.fn();
+    const cleanup2 = vi.fn();
 
     const parent = createMachine(
       {
@@ -1012,7 +1034,8 @@ describe('actors', () => {
   });
 
   describe('with actor logic', () => {
-    it('should work with a transition function logic', (done) => {
+    it('should work with a transition function logic', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const countLogic = fromTransition((count: number, event: any) => {
         if (event.type === 'INC') {
           return count + 1;
@@ -1042,7 +1065,7 @@ describe('actors', () => {
       const countService = createActor(countMachine);
       countService.subscribe((state) => {
         if (state.context.count?.getSnapshot().context === 2) {
-          done();
+          resolve();
         }
       });
       countService.start();
@@ -1053,9 +1076,12 @@ describe('actors', () => {
       expect(
         countService.getSnapshot().context.count?.getSnapshot().context
       ).toBe(2);
+
+      return promise;
     });
 
-    it('should work with a promise logic (fulfill)', (done) => {
+    it('should work with a promise logic (fulfill)', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const countMachine = createMachine({
         types: {} as {
           context: {
@@ -1096,13 +1122,15 @@ describe('actors', () => {
       const countService = createActor(countMachine);
       countService.subscribe({
         complete: () => {
-          done();
+          resolve();
         }
       });
       countService.start();
+      return promise;
     });
 
-    it('should work with a promise logic (reject)', (done) => {
+    it('should work with a promise logic (reject)', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const errorMessage = 'An error occurred';
       const countMachine = createMachine({
         types: {} as {
@@ -1140,13 +1168,15 @@ describe('actors', () => {
       const countService = createActor(countMachine);
       countService.subscribe({
         complete: () => {
-          done();
+          resolve();
         }
       });
       countService.start();
+      return promise;
     });
 
-    it('actor logic should have reference to the parent', (done) => {
+    it('actor logic should have reference to the parent', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const pongLogic: ActorLogic<Snapshot<undefined>, EventObject> = {
         transition: (state, event, { self }) => {
           if (event.type === 'PING') {
@@ -1194,14 +1224,16 @@ describe('actors', () => {
       const pingService = createActor(pingMachine);
       pingService.subscribe({
         complete: () => {
-          done();
+          resolve();
         }
       });
       pingService.start();
+      return promise;
     });
   });
 
-  it('should be able to spawn callback actors in (lazy) initial context', (done) => {
+  it('should be able to spawn callback actors in (lazy) initial context', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       types: {} as { context: { ref: CallbackActorRef<EventObject> } },
       context: ({ spawn }) => ({
@@ -1225,13 +1257,15 @@ describe('actors', () => {
     const actor = createActor(machine);
     actor.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
     actor.start();
+    return promise;
   });
 
-  it('should be able to spawn machines in (lazy) initial context', (done) => {
+  it('should be able to spawn machines in (lazy) initial context', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
       entry: sendParent({ type: 'TEST' })
     });
@@ -1255,10 +1289,11 @@ describe('actors', () => {
     const actor = createActor(machine);
     actor.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
     actor.start();
+    return promise;
   });
 
   // https://github.com/statelyai/xstate/issues/2507
@@ -1693,7 +1728,7 @@ describe('actors', () => {
   });
 
   it('should be possible to pass `self` as input to a child machine from within the context factory', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const child = createMachine({
       types: {} as {
@@ -1752,5 +1787,54 @@ describe('actors', () => {
     });
     actor.start();
     actor.send({ type: 'event' });
+  });
+
+  it('same-position invokes should not leak between machines', async () => {
+    const spy = vi.fn();
+
+    const sharedActors = {};
+
+    const m1 = createMachine(
+      {
+        invoke: {
+          src: fromPromise(async () => 'foo'),
+          onDone: {
+            actions: ({ event }) => spy(event.output)
+          }
+        }
+      },
+      { actors: sharedActors }
+    );
+
+    createMachine(
+      {
+        invoke: { src: fromPromise(async () => 100) }
+      },
+      { actors: sharedActors }
+    );
+
+    createActor(m1).start();
+
+    await sleep(1);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith('foo');
+  });
+
+  it('inline invokes should not leak into provided actors object', async () => {
+    const actors = {};
+
+    const machine = createMachine(
+      {
+        invoke: {
+          src: fromPromise(async () => 'foo')
+        }
+      },
+      { actors }
+    );
+
+    createActor(machine).start();
+
+    expect(actors).toEqual({});
   });
 });

@@ -20,11 +20,11 @@ import type {
   StateSchema,
   StateId,
   SnapshotStatus,
-  SnapshotFrom
+  PersistedHistoryValue
 } from './types.ts';
 import { matchesState } from './utils.ts';
 
-export type ToTestStateValue<TStateValue extends StateValue> =
+type ToTestStateValue<TStateValue extends StateValue> =
   TStateValue extends string
     ? TStateValue
     : IsNever<keyof TStateValue> extends true
@@ -37,10 +37,7 @@ export type ToTestStateValue<TStateValue extends StateValue> =
               >;
             };
 
-export function isMachineSnapshot<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(value: unknown): value is AnyMachineSnapshot {
+export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
   return (
     !!value &&
     typeof value === 'object' &&
@@ -152,7 +149,7 @@ interface ActiveMachineSnapshot<
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
-  TConfig extends StateSchema
+  TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -161,7 +158,7 @@ interface ActiveMachineSnapshot<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
   status: 'active';
   output: undefined;
@@ -176,7 +173,7 @@ interface DoneMachineSnapshot<
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
-  TConfig extends StateSchema
+  TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -185,7 +182,7 @@ interface DoneMachineSnapshot<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
   status: 'done';
   output: TOutput;
@@ -200,7 +197,7 @@ interface ErrorMachineSnapshot<
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
-  TConfig extends StateSchema
+  TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -209,7 +206,7 @@ interface ErrorMachineSnapshot<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
   status: 'error';
   output: undefined;
@@ -224,7 +221,7 @@ interface StoppedMachineSnapshot<
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
-  TConfig extends StateSchema
+  TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -233,7 +230,7 @@ interface StoppedMachineSnapshot<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
   status: 'stopped';
   output: undefined;
@@ -248,7 +245,7 @@ export type MachineSnapshot<
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
-  TConfig extends StateSchema
+  TStateSchema extends StateSchema
 > =
   | ActiveMachineSnapshot<
       TContext,
@@ -258,7 +255,7 @@ export type MachineSnapshot<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >
   | DoneMachineSnapshot<
       TContext,
@@ -268,7 +265,7 @@ export type MachineSnapshot<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >
   | ErrorMachineSnapshot<
       TContext,
@@ -278,7 +275,7 @@ export type MachineSnapshot<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >
   | StoppedMachineSnapshot<
       TContext,
@@ -288,7 +285,7 @@ export type MachineSnapshot<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >;
 
 const machineSnapshotMatches = function matches(
@@ -401,6 +398,25 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
   ) as TState;
 }
 
+function serializeHistoryValue<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(historyValue: HistoryValue<TContext, TEvent>): PersistedHistoryValue {
+  if (typeof historyValue !== 'object' || historyValue === null) {
+    return {};
+  }
+  const result: PersistedHistoryValue = {};
+
+  for (const key in historyValue) {
+    const value = historyValue[key];
+    if (Array.isArray(value)) {
+      result[key] = value.map((item) => ({ id: item.id }));
+    }
+  }
+
+  return result;
+}
+
 export function getPersistedSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -450,7 +466,7 @@ export function getPersistedSnapshot<
     childrenJson[id as keyof typeof childrenJson] = {
       snapshot: child.getPersistedSnapshot(options),
       src: child.src,
-      systemId: child._systemId,
+      systemId: child.systemId,
       syncSnapshot: child._syncSnapshot
     };
   }
@@ -458,7 +474,10 @@ export function getPersistedSnapshot<
   const persisted = {
     ...jsonValues,
     context: persistContext(context) as any,
-    children: childrenJson
+    children: childrenJson,
+    historyValue: serializeHistoryValue<TContext, TEvent>(
+      jsonValues.historyValue
+    )
   };
 
   return persisted;

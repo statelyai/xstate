@@ -68,7 +68,7 @@ export class StateMachine<
   TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
-  TConfig extends StateSchema
+  TStateSchema extends StateSchema
 > implements
     ActorLogic<
       MachineSnapshot<
@@ -79,7 +79,7 @@ export class StateMachine<
         TTag,
         TOutput,
         TMeta,
-        TConfig
+        TStateSchema
       >,
       TEvent,
       TInput,
@@ -95,7 +95,7 @@ export class StateMachine<
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
   /** @internal */
-  public __xstatenode: true = true;
+  public __xstatenode = true as const;
 
   /** @internal */
   public idMap: Map<string, StateNode<TContext, TEvent>> = new Map();
@@ -166,11 +166,10 @@ export class StateMachine<
   }
 
   /**
-   * Clones this state machine with the provided implementations and merges the
-   * `context` (if provided).
+   * Clones this state machine with the provided implementations.
    *
-   * @param implementations Options (`actions`, `guards`, `actors`, `delays`,
-   *   `context`) to recursively merge with the existing options.
+   * @param implementations Options (`actions`, `guards`, `actors`, `delays`) to
+   *   recursively merge with the existing options.
    * @returns A new `StateMachine` instance with the provided implementations.
    */
   public provide(
@@ -200,7 +199,7 @@ export class StateMachine<
     TOutput,
     TEmitted,
     TMeta,
-    TConfig
+    TStateSchema
   > {
     const { actions, guards, actors, delays } = this.implementations;
 
@@ -231,7 +230,7 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
     const resolvedStateValue = resolveStateValue(this.root, config.value);
     const nodeSet = getAllStateNodes(
@@ -259,7 +258,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >;
   }
 
@@ -279,7 +278,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >,
     event: TEvent,
     actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
@@ -291,9 +290,10 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
-    return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
+    return macrostep(snapshot, event, actorScope, [])
+      .snapshot as typeof snapshot;
   }
 
   /**
@@ -312,7 +312,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >,
     event: TEvent,
     actorScope: AnyActorScope
@@ -325,10 +325,10 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >
   > {
-    return macrostep(snapshot, event, actorScope).microstates;
+    return macrostep(snapshot, event, actorScope, []).microstates;
   }
 
   public getTransitionData(
@@ -340,7 +340,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >,
     event: TEvent
   ): Array<TransitionDefinition<TContext, TEvent>> {
@@ -363,7 +363,7 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
     const { context } = this.config;
 
@@ -386,7 +386,8 @@ export class StateMachine<
         initEvent,
         actorScope,
         [assign(assignment)],
-        internalQueue
+        internalQueue,
+        undefined
       ) as SnapshotFrom<this>;
     }
 
@@ -407,7 +408,7 @@ export class StateMachine<
         TTag,
         TOutput,
         TMeta,
-        TConfig
+        TStateSchema
       >,
       TEvent,
       AnyActorSystem,
@@ -422,7 +423,7 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
@@ -468,7 +469,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >
   ): void {
     Object.values(snapshot.children as Record<string, AnyActorRef>).forEach(
@@ -513,7 +514,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >,
     options?: unknown
   ) {
@@ -531,7 +532,7 @@ export class StateMachine<
         TTag,
         TOutput,
         TMeta,
-        TConfig
+        TStateSchema
       >,
       TEvent,
       AnyActorSystem,
@@ -545,7 +546,7 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    TConfig
+    TStateSchema
   > {
     const children: Record<string, AnyActorRef> = {};
     const snapshotChildren: Record<
@@ -559,8 +560,7 @@ export class StateMachine<
     > = (snapshot as any).children;
 
     Object.keys(snapshotChildren).forEach((actorId) => {
-      const actorData =
-        snapshotChildren[actorId as keyof typeof snapshotChildren];
+      const actorData = snapshotChildren[actorId];
       const childState = actorData.snapshot;
       const src = actorData.src;
 
@@ -583,13 +583,63 @@ export class StateMachine<
       children[actorId] = actorRef;
     });
 
+    function resolveHistoryReferencedState(
+      root: StateNode<TContext, TEvent>,
+      referenced: { id: string } | StateNode<TContext, TEvent>
+    ) {
+      if (referenced instanceof StateNode) {
+        return referenced;
+      }
+      try {
+        return root.machine.getStateNodeById(referenced.id);
+      } catch {
+        if (isDevelopment) {
+          console.warn(`Could not resolve StateNode for id: ${referenced.id}`);
+        }
+      }
+    }
+
+    function reviveHistoryValue(
+      root: StateNode<TContext, TEvent>,
+      historyValue: Record<
+        string,
+        ({ id: string } | StateNode<TContext, TEvent>)[]
+      >
+    ): HistoryValue<TContext, TEvent> {
+      if (!historyValue || typeof historyValue !== 'object') {
+        return {};
+      }
+      const revived: HistoryValue<TContext, TEvent> = {};
+      for (const key in historyValue) {
+        const arr = historyValue[key];
+
+        for (const item of arr) {
+          const resolved = resolveHistoryReferencedState(root, item);
+
+          if (!resolved) {
+            continue;
+          }
+
+          revived[key] ??= [];
+          revived[key].push(resolved);
+        }
+      }
+      return revived;
+    }
+
+    const revivedHistoryValue = reviveHistoryValue(
+      this.root,
+      (snapshot as any).historyValue
+    );
+
     const restoredSnapshot = createMachineSnapshot(
       {
         ...(snapshot as any),
         children,
         _nodes: Array.from(
           getAllStateNodes(getStateNodes(this.root, (snapshot as any).value))
-        )
+        ),
+        historyValue: revivedHistoryValue
       },
       this
     ) as MachineSnapshot<
@@ -600,10 +650,10 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TConfig
+      TStateSchema
     >;
 
-    let seen = new Set();
+    const seen = new Set();
 
     function reviveContext(
       contextPart: Record<string, unknown>,
@@ -613,7 +663,7 @@ export class StateMachine<
         return;
       }
       seen.add(contextPart);
-      for (let key in contextPart) {
+      for (const key in contextPart) {
         const value: unknown = contextPart[key];
 
         if (value && typeof value === 'object') {

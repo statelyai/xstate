@@ -7,7 +7,7 @@ import {
   assign,
   sendTo
 } from '../src/index.ts';
-import { sleep } from '@xstate-repo/jest-utils';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {
@@ -157,7 +157,7 @@ describe('rehydration', () => {
   });
 
   it('should not replay actions when starting from a persisted state', () => {
-    const entrySpy = jest.fn();
+    const entrySpy = vi.fn();
     const machine = createMachine({
       entry: entrySpy
     });
@@ -235,7 +235,7 @@ describe('rehydration', () => {
       snapshot: persistedState
     }).start();
 
-    expect(rehydratedActor.system.get('mySystemId')).not.toBeUndefined();
+    expect(rehydratedActor.system.get('mySystemId')).toBeDefined();
   });
 
   it('a rehydrated done child should not be registered in the system', () => {
@@ -267,7 +267,7 @@ describe('rehydration', () => {
   });
 
   it('a rehydrated done child should not re-notify the parent about its completion', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -346,7 +346,7 @@ describe('rehydration', () => {
     actorRef.send({ type: 'NEXT' });
     const persistedState = actorRef.getPersistedSnapshot();
 
-    const spy = jest.fn();
+    const spy = vi.fn();
     const actorRef2 = createActor(machine, { snapshot: persistedState });
     actorRef2.subscribe({
       complete: spy
@@ -379,7 +379,7 @@ describe('rehydration', () => {
 
     const persistedState = actorRef.getPersistedSnapshot();
 
-    const spy = jest.fn();
+    const spy = vi.fn();
     const actorRef2 = createActor(machine, { snapshot: persistedState });
     actorRef2.subscribe({
       error: spy
@@ -390,7 +390,7 @@ describe('rehydration', () => {
   });
 
   it(`shouldn't re-notify the parent about the error when rehydrating`, async () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {
@@ -427,7 +427,7 @@ describe('rehydration', () => {
     const subject = new BehaviorSubject(0);
     const subjectLogic = fromObservable(() => subject);
 
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {

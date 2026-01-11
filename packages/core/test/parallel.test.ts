@@ -756,7 +756,7 @@ describe('parallel states', () => {
   });
 
   it('should execute actions of the initial transition of a parallel region when entering the initial state nodes of a machine', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       type: 'parallel',
@@ -779,7 +779,7 @@ describe('parallel states', () => {
   });
 
   it('should execute actions of the initial transition of a parallel region when the parallel state is targeted with an explicit transition', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'a',
@@ -1051,7 +1051,9 @@ describe('parallel states', () => {
     });
   });
 
-  it('should raise a "xstate.done.state.*" event when all child states reach final state', (done) => {
+  it('should raise a "xstate.done.state.*" event when all child states reach final state', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
     const machine = createMachine({
       id: 'test',
       initial: 'p',
@@ -1110,12 +1112,14 @@ describe('parallel states', () => {
     const service = createActor(machine);
     service.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
     service.start();
 
     service.send({ type: 'FINISH' });
+
+    return promise;
   });
 
   it('should raise a "xstate.done.state.*" event when a pseudostate of a history type is directly on a parallel state', () => {

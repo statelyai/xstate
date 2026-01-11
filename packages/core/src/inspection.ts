@@ -1,6 +1,5 @@
 import {
   ActorRefLike,
-  AnyActorRef,
   AnyEventObject,
   AnyTransitionDefinition,
   Snapshot
@@ -31,7 +30,7 @@ export interface InspectedSnapshotEvent extends BaseInspectionEventProperties {
   snapshot: Snapshot<unknown>;
 }
 
-interface InspectedMicrostepEvent extends BaseInspectionEventProperties {
+export interface InspectedMicrostepEvent extends BaseInspectionEventProperties {
   type: '@xstate.microstep';
   event: AnyEventObject; // { type: string, ... }
   snapshot: Snapshot<unknown>;
@@ -42,7 +41,7 @@ export interface InspectedActionEvent extends BaseInspectionEventProperties {
   type: '@xstate.action';
   action: {
     type: string;
-    params: Record<string, unknown>;
+    params: unknown;
   };
 }
 
@@ -51,7 +50,7 @@ export interface InspectedEventEvent extends BaseInspectionEventProperties {
   // The source might not exist, e.g. when:
   // - root init events
   // - events sent from external (non-actor) sources
-  sourceRef: AnyActorRef | undefined;
+  sourceRef: ActorRefLike | undefined;
   event: AnyEventObject; // { type: string, ... }
 }
 

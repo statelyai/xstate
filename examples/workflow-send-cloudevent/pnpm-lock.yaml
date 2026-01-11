@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       xstate:
-        specifier: ^5.17.1
-        version: 5.17.1
+        specifier: ^5.18.0
+        version: 5.18.0
     devDependencies:
       typescript:
         specifier: ^5.5.4
@@ -204,11 +204,11 @@ packages:
   picocolors@1.0.1:
     resolution: {integrity: sha512-anP1Z8qwhkbmu7MFP5iTt+wQKXgwzf7zTyGlcdzabySa9vd0Xt392U0rVmz9poOaBj0uHJKyyo9/upk0HrEQew==, tarball: https://registry.npmjs.org/picocolors/-/picocolors-1.0.1.tgz}
 
-  pkg-types@1.1.3:
-    resolution: {integrity: sha512-+JrgthZG6m3ckicaOB74TwQ+tBWsFl3qVQg7mN8ulwSOElJ7gBhKzj2VkCPnZ4NlF6kEquYU+RIYNVAvzd54UA==, tarball: https://registry.npmjs.org/pkg-types/-/pkg-types-1.1.3.tgz}
+  pkg-types@1.2.0:
+    resolution: {integrity: sha512-+ifYuSSqOQ8CqP4MbZA5hDpb97n3E8SVWdJe+Wms9kj745lmd3b7EZJiqvmLwAlmRfjrI7Hi5z3kdBJ93lFNPA==, tarball: https://registry.npmjs.org/pkg-types/-/pkg-types-1.2.0.tgz}
 
-  postcss@8.4.40:
-    resolution: {integrity: sha512-YF2kKIUzAofPMpfH6hOi2cGnv/HrUlfucspc7pDyvv7kGdqXrfj8SCl/t8owkEgKEuu8ZcRjSOxFxVLqwChZ2Q==, tarball: https://registry.npmjs.org/postcss/-/postcss-8.4.40.tgz}
+  postcss@8.4.44:
+    resolution: {integrity: sha512-Aweb9unOEpQ3ezu4Q00DPvvM2ZTUitJdNKeP/+uQgr1IBIqu574IaZoURId7BKtWMREwzKa9OgzPzezWGPWFQw==, tarball: https://registry.npmjs.org/postcss/-/postcss-8.4.44.tgz}
     engines: {node: ^10 || ^12 || >=14}
 
   rollup@3.29.4:
@@ -261,8 +261,8 @@ packages:
       terser:
         optional: true
 
-  xstate@5.17.1:
-    resolution: {integrity: sha512-RNwcXdth+kboWZg+Zhf6f6iNP6CtAAiS4z4qwyTd/fWBH9PHXRqko6OdW3xOTwP62f0mVD+jsPOSqY4Ar8nZKQ==, tarball: https://registry.npmjs.org/xstate/-/xstate-5.17.1.tgz}
+  xstate@5.18.0:
+    resolution: {integrity: sha512-MKlq/jhyFBYm6Z9+P0k9nhMrHYTTg1ZGmhMw8tVe67oDq9nIlEf2/u/bY5kvUvqu4LTCiVl67hnfd92RMLRyVg==, tarball: https://registry.npmjs.org/xstate/-/xstate-5.18.0.tgz}
 
 snapshots:
 
@@ -374,7 +374,7 @@ snapshots:
     dependencies:
       acorn: 8.12.1
       pathe: 1.1.2
-      pkg-types: 1.1.3
+      pkg-types: 1.2.0
       ufo: 1.5.4
 
   ms@2.1.2: {}
@@ -385,13 +385,13 @@ snapshots:
 
   picocolors@1.0.1: {}
 
-  pkg-types@1.1.3:
+  pkg-types@1.2.0:
     dependencies:
       confbox: 0.1.7
       mlly: 1.7.1
       pathe: 1.1.2
 
-  postcss@8.4.40:
+  postcss@8.4.44:
     dependencies:
       nanoid: 3.3.7
       picocolors: 1.0.1
@@ -428,9 +428,9 @@ snapshots:
   vite@4.5.3:
     dependencies:
       esbuild: 0.18.20
-      postcss: 8.4.40
+      postcss: 8.4.44
       rollup: 3.29.4
     optionalDependencies:
       fsevents: 2.3.3
 
-  xstate@5.17.1: {}
+  xstate@5.18.0: {}

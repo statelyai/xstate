@@ -3,12 +3,10 @@ import {
   assign,
   createMachine,
   createActor,
-  sendTo,
-  waitFor
+  sendTo
 } from '../src/index.ts';
-import { raise, sendParent, stopChild } from '../src/actions.ts';
-import { fromCallback } from '../src/actors/index.ts';
-import { fromPromise } from '../src/actors/index.ts';
+import { raise, sendParent } from '../src/actions.ts';
+import { fromCallback, fromPromise } from '../src/actors/index.ts';
 
 describe('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {
@@ -270,7 +268,9 @@ describe('predictableExec', () => {
     expect(actual).toEqual([0, 1, 2]);
   });
 
-  it('parent should be able to read the updated state of a child when receiving an event from it', (done) => {
+  it('parent should be able to read the updated state of a child when receiving an event from it', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
     const child = createMachine({
       initial: 'a',
       states: {
@@ -326,10 +326,12 @@ describe('predictableExec', () => {
     service.subscribe({
       complete: () => {
         expect(service.getSnapshot().value).toBe('success');
-        done();
+        resolve();
       }
     });
     service.start();
+
+    return promise;
   });
 
   it('should be possible to send immediate events to initially invoked actors', () => {
@@ -365,7 +367,9 @@ describe('predictableExec', () => {
     expect(service.getSnapshot().value).toBe('done');
   });
 
-  it('should create invoke based on context updated by entry actions of the same state', (done) => {
+  it('should create invoke based on context updated by entry actions of the same state', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
     const machine = createMachine({
       context: {
         updated: false
@@ -382,7 +386,7 @@ describe('predictableExec', () => {
           invoke: {
             src: fromPromise(({ input }) => {
               expect(input.updated).toBe(true);
-              done();
+              resolve();
               return Promise.resolve();
             }),
             input: ({ context }: any) => ({
@@ -395,6 +399,8 @@ describe('predictableExec', () => {
 
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'NEXT' });
+
+    return promise;
   });
 
   it('should deliver events sent from the entry actions to a service invoked in the same state', () => {
@@ -435,7 +441,9 @@ describe('predictableExec', () => {
     expect(received).toEqual({ type: 'KNOCK_KNOCK' });
   });
 
-  it('parent should be able to read the updated state of a child when receiving an event from it', (done) => {
+  it('parent should be able to read the updated state of a child when receiving an event from it', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
     const child = createMachine({
       initial: 'a',
       states: {
@@ -488,10 +496,12 @@ describe('predictableExec', () => {
     service.subscribe({
       complete: () => {
         expect(service.getSnapshot().value).toBe('success');
-        done();
+        resolve();
       }
     });
     service.start();
+
+    return promise;
   });
 
   it('should be possible to send immediate events to initially invoked actors', () => {
@@ -528,7 +538,9 @@ describe('predictableExec', () => {
   });
 
   // https://github.com/statelyai/xstate/issues/3617
-  it('should deliver events sent from the exit actions to a service invoked in the same state', (done) => {
+  it('should deliver events sent from the exit actions to a service invoked in the same state', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+
     const machine = createMachine({
       initial: 'active',
       states: {
@@ -538,7 +550,7 @@ describe('predictableExec', () => {
             src: fromCallback(({ receive }) => {
               receive((event) => {
                 if (event.type === 'MY_EVENT') {
-                  done();
+                  resolve();
                 }
               });
             })
@@ -555,5 +567,7 @@ describe('predictableExec', () => {
     const actor = createActor(machine).start();
 
     actor.send({ type: 'TOGGLE' });
+
+    return promise;
   });
 });

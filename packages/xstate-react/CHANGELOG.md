@@ -1,5 +1,103 @@
 # Changelog
 
+## 6.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`e07a7cd8462473188a0fb646a965e61be1ce6ae3`](https://github.com/statelyai/xstate/commit/e07a7cd8462473188a0fb646a965e61be1ce6ae3)]:
+  - xstate@5.20.0
+
+## 5.0.5
+
+### Patch Changes
+
+- Updated dependencies [[`479c74b83fa77c57c48f54cf0e9dcfab5fe6cae5`](https://github.com/statelyai/xstate/commit/479c74b83fa77c57c48f54cf0e9dcfab5fe6cae5)]:
+  - xstate@5.19.4
+
+## 5.0.4
+
+### Patch Changes
+
+- Updated dependencies [[`b453b2d72ba12d0fe46a995f9ccced8000fd0cc9`](https://github.com/statelyai/xstate/commit/b453b2d72ba12d0fe46a995f9ccced8000fd0cc9)]:
+  - xstate@5.19.3
+
+## 5.0.3
+
+### Patch Changes
+
+- [#5223](https://github.com/statelyai/xstate/pull/5223) [`9e1de554c4ebf49997b717fada540951d01f511c`](https://github.com/statelyai/xstate/commit/9e1de554c4ebf49997b717fada540951d01f511c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added React 19 as a peer dependency.
+
+## 5.0.2
+
+### Patch Changes
+
+- Updated dependencies [[`d99df1d8f4fe49145c9974465b65028bf19b365f`](https://github.com/statelyai/xstate/commit/d99df1d8f4fe49145c9974465b65028bf19b365f)]:
+  - xstate@5.19.2
+
+## 5.0.1
+
+### Patch Changes
+
+- Updated dependencies [[`bf6119a7310a878afbf4f5b01f5e24288f9a0f16`](https://github.com/statelyai/xstate/commit/bf6119a7310a878afbf4f5b01f5e24288f9a0f16)]:
+  - xstate@5.19.1
+
+## 5.0.0
+
+### Patch Changes
+
+- [#5109](https://github.com/statelyai/xstate/pull/5109) [`d67b71dd25d457a2a59f2c943db13f50fab7ec3d`](https://github.com/statelyai/xstate/commit/d67b71dd25d457a2a59f2c943db13f50fab7ec3d) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add React 19 as a peer dependency
+
+- Updated dependencies [[`8c4b70652acaef2702f32435362e4755679a516d`](https://github.com/statelyai/xstate/commit/8c4b70652acaef2702f32435362e4755679a516d)]:
+  - xstate@5.19.0
+
+## 4.1.3
+
+### Patch Changes
+
+- Updated dependencies [[`25963966c394fc904dc9b701a420b6e204ebe7f7`](https://github.com/statelyai/xstate/commit/25963966c394fc904dc9b701a420b6e204ebe7f7)]:
+  - xstate@5.18.2
+
+## 4.1.2
+
+### Patch Changes
+
+- [#5055](https://github.com/statelyai/xstate/pull/5055) [`ad38c35c37`](https://github.com/statelyai/xstate/commit/ad38c35c377d4ec5c97710fda12512abbe5f7140) Thanks [@SandroMaglione](https://github.com/SandroMaglione)! - Updated types of `useActor`, `useMachine`, and `useActorRef` to require `input` when defined inside `types/input`.
+
+  Previously even when `input` was defined inside `types`, `useActor`, `useMachine`, and `useActorRef` would **not** make the input required:
+
+  ```tsx
+  const machine = setup({
+    types: {
+      input: {} as { value: number }
+    }
+  }).createMachine({});
+
+  function App() {
+    // Event if `input` is not defined, `useMachine` works at compile time, but risks crashing at runtime
+    const _ = useMachine(machine);
+    return <></>;
+  }
+  ```
+
+  With this change the above code will show a type error, since `input` is now required:
+
+  ```tsx
+  const machine = setup({
+    types: {
+      input: {} as { value: number }
+    }
+  }).createMachine({});
+
+  function App() {
+    const _ = useMachine(machine, {
+      input: { value: 1 } // Now input is required at compile time!
+    });
+    return <></>;
+  }
+  ```
+
+  This avoids runtime errors when forgetting to pass `input` when defined inside `types`.
+
 ## 4.1.1
 
 ### Patch Changes
@@ -321,7 +419,6 @@
 ### Minor Changes
 
 - [#3778](https://github.com/statelyai/xstate/pull/3778) [`f12248b23`](https://github.com/statelyai/xstate/commit/f12248b2379e4e554d69a238019216feea5211f6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createActorContext(...)` helper has been introduced to make global actors easier to use with React. It outputs a React Context object with the following properties:
-
   - `.Provider` - The React Context provider
   - `.useActor(...)` - A hook that can be used to get the current state and send events to the actor
   - `.useSelector(...)` - A hook that can be used to select some derived state from the actor's state

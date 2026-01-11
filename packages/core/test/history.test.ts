@@ -1,11 +1,6 @@
-import {
-  assign,
-  createActor,
-  createMachine,
-  fromCallback,
-  fromPromise
-} from '../src/index';
+import { createActor, createMachine, fromCallback } from '../src/index';
 import { trackEntries } from './utils';
+import { StateNode } from '../src/StateNode';
 
 describe('history states', () => {
   it('should go to the most recently visited state (explicit shallow history type)', () => {
@@ -270,7 +265,7 @@ describe('history states', () => {
   });
 
   it('should execute actions of the initial transition when a history state without a default target is targeted and its parent state was never visited yet', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'a',
@@ -301,7 +296,7 @@ describe('history states', () => {
   });
 
   it('should not execute actions of the initial transition when a history state with a default target is targeted and its parent state was never visited yet', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -333,7 +328,7 @@ describe('history states', () => {
   });
 
   it('should execute entry actions of a parent of the targeted history state when its parent state was never visited yet', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -363,7 +358,7 @@ describe('history states', () => {
   });
 
   it('should execute actions of the initial transition when it select a history state as the initial state of its parent', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -394,7 +389,7 @@ describe('history states', () => {
   });
 
   it('should execute actions of the initial transition when a history state without a default target is targeted and its parent state was already visited', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'a',
@@ -432,7 +427,7 @@ describe('history states', () => {
   });
 
   it('should not execute actions of the initial transition when a history state with a default target is targeted and its parent state was already visited', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -471,7 +466,7 @@ describe('history states', () => {
   });
 
   it('should execute entry actions of a parent of the targeted history state when its parent state was already visited', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -508,7 +503,7 @@ describe('history states', () => {
   });
 
   it('should invoke an actor when reentering the stored configuration through the history state', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'running',
@@ -572,7 +567,7 @@ describe('history states', () => {
     ]);
   });
 
-  it('should not enter ancestors of the entered history state that lie outside of the transition domain when retoring the stored history configuration', () => {
+  it('should not enter ancestors of the entered history state that lie outside of the transition domain when restoring the stored history configuration', () => {
     const machine = createMachine({
       initial: 'closed',
       states: {
@@ -1365,6 +1360,105 @@ describe('multistage history states', () => {
 
     expect(actorRef.getSnapshot().value).toEqual({
       running: 'turbo'
+    });
+  });
+});
+
+describe('revive history states', () => {
+  const machine = createMachine({
+    initial: 'on',
+    states: {
+      on: {
+        initial: 'first',
+        states: {
+          first: {
+            on: { SWITCH: 'second' }
+          },
+          second: {},
+          hist: {
+            type: 'history'
+          }
+        },
+        on: {
+          POWER: 'off'
+        }
+      },
+      off: {
+        on: { POWER: 'on.hist' }
+      }
+    }
+  });
+
+  const sourceRef = createActor(machine).start();
+
+  sourceRef.send({ type: 'SWITCH' });
+  sourceRef.send({ type: 'POWER' });
+
+  const persistedSnapshot = JSON.parse(
+    JSON.stringify(sourceRef.getPersistedSnapshot())
+  );
+  const snapshot = sourceRef.getSnapshot();
+
+  sourceRef.stop();
+
+  it('should restore from stringified snapshot', () => {
+    expect(persistedSnapshot.value).toBe('off');
+
+    const actorRef = createActor(machine, {
+      snapshot: persistedSnapshot
+    }).start();
+    actorRef.send({ type: 'POWER' });
+
+    expect(actorRef.getSnapshot().value).toEqual({ on: 'second' });
+  });
+
+  it('should ignore unresolved ids as-is and log a warning', () => {
+    const consoleSpy = vi.spyOn(console, 'warn');
+    const fakeSnapshot = {
+      ...persistedSnapshot,
+      historyValue: { ['(machine).on.hist']: [{ id: 'nonexistent' }] }
+    };
+    expect(fakeSnapshot.value).toBe('off');
+
+    const actorRef = createActor(machine, {
+      snapshot: fakeSnapshot
+    }).start();
+    actorRef.send({ type: 'POWER' });
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Could not resolve StateNode for id: nonexistent'
+    );
+    expect(actorRef.getSnapshot().value).toEqual({ on: 'first' });
+    expect((actorRef.getPersistedSnapshot() as any).historyValue).toEqual({});
+    consoleSpy.mockRestore();
+  });
+
+  it('should not re-resolve already-instantiated StateNode', () => {
+    expect(snapshot.value).toBe('off');
+    expect(snapshot.historyValue['(machine).on.hist'][0]).toBeInstanceOf(
+      StateNode
+    );
+
+    const actorRef = createActor(machine, {
+      snapshot
+    }).start();
+    actorRef.send({ type: 'POWER' });
+
+    expect(actorRef.getSnapshot().value).toEqual({ on: 'second' });
+  });
+
+  it('should handle null, undefined, and primitive values', () => {
+    [null, undefined, 42, 'foo', true, false].forEach((val) => {
+      const fakeSnapshot = { ...persistedSnapshot, historyValue: val };
+      expect(fakeSnapshot.value).toBe('off');
+
+      const actorRef = createActor(machine, {
+        snapshot: fakeSnapshot
+      }).start();
+      actorRef.send({ type: 'POWER' });
+
+      expect(actorRef.getSnapshot().value).toEqual({ on: 'first' });
+      expect((actorRef.getPersistedSnapshot() as any).historyValue).toEqual({});
     });
   });
 });

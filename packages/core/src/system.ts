@@ -4,11 +4,9 @@ import {
   ActorSystemInfo,
   AnyActorRef,
   Observer,
-  Snapshot,
   Subscribable,
   HomomorphicOmit,
   EventObject,
-  AnyTransitionDefinition,
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
@@ -64,6 +62,7 @@ export interface ActorSystem<T extends ActorSystemInfo>
   /** @internal */
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
+  getAll: () => Partial<T['actors']>;
 
   inspect: (
     observer:
@@ -192,8 +191,8 @@ export function createSystem<T extends ActorSystemInfo>(
       ...event,
       rootId: rootActor.sessionId
     };
-    inspectionObservers.forEach(
-      (observer) => observer.next?.(resolvedInspectionEvent)
+    inspectionObservers.forEach((observer) =>
+      observer.next?.(resolvedInspectionEvent)
     );
   };
 
@@ -247,7 +246,10 @@ export function createSystem<T extends ActorSystemInfo>(
       }
     },
     get: (systemId) => {
-      return keyedActors.get(systemId) as T['actors'][any];
+      return keyedActors.get(systemId) as T['actors'][any] | undefined;
+    },
+    getAll: () => {
+      return Object.fromEntries(keyedActors.entries()) as Partial<T['actors']>;
     },
     subscribe: (
       nextListenerOrObserver:
