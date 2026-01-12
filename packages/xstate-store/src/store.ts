@@ -19,7 +19,6 @@ import {
   Selection,
   InternalBaseAtom,
   StoreLogic,
-  StoreTransition,
   AnyStoreLogic,
   SpecificStoreConfig
 } from './types';
@@ -62,28 +61,39 @@ function createStoreCore<
   const transition = logic.transition;
 
   function receive(event: StoreEvent) {
-    const [nextSnapshot, effects] = transition(currentSnapshot, event);
-    currentSnapshot = nextSnapshot;
+    const eventQueue: StoreEvent[] = [event];
 
-    inspectionObservers.get(store)?.forEach((observer) => {
-      observer.next?.({
-        type: '@xstate.snapshot',
-        event,
-        snapshot: nextSnapshot,
-        actorRef: store,
-        rootId: store.sessionId
+    while (eventQueue.length > 0) {
+      const currentEvent = eventQueue.shift()!;
+      const [nextSnapshot, effects, raisedEvents] = transition(
+        currentSnapshot,
+        currentEvent
+      );
+      currentSnapshot = nextSnapshot;
+
+      inspectionObservers.get(store)?.forEach((observer) => {
+        observer.next?.({
+          type: '@xstate.snapshot',
+          event: currentEvent,
+          snapshot: nextSnapshot,
+          actorRef: store,
+          rootId: store.sessionId
+        });
       });
-    });
 
-    atom.set(nextSnapshot);
+      atom.set(nextSnapshot);
 
-    for (const effect of effects) {
-      if (typeof effect === 'function') {
-        effect();
-      } else {
-        // handle the inherent effect first
-        emits?.[effect.type]?.(effect);
-        emit(effect);
+      // Queue raised events for next iteration
+      eventQueue.push(...raisedEvents);
+
+      for (const effect of effects) {
+        if (typeof effect === 'function') {
+          effect();
+        } else {
+          // handle the inherent effect first
+          emits?.[effect.type]?.(effect);
+          emit(effect);
+        }
       }
     }
   }
@@ -188,7 +198,7 @@ function createStoreCore<
       });
     },
     with(extension) {
-      const extendedLogic = extension(logic as any);
+      const extendedLogic = extension(logic as any) as any;
       return createStoreCore(extendedLogic) as any;
     }
   };
@@ -406,15 +416,27 @@ export function createStoreTransition<
     context: TContext,
     recipe: (context: TContext) => void
   ) => TContext
-): StoreTransition<TContext, ExtractEvents<TEventPayloadMap>, TEmitted> {
+): (
+  snapshot: StoreSnapshot<TContext>,
+  event: ExtractEvents<TEventPayloadMap>
+) => [
+  StoreSnapshot<TContext>,
+  StoreEffect<TEmitted>[],
+  ExtractEvents<TEventPayloadMap>[]
+] {
   return (
     snapshot: StoreSnapshot<TContext>,
     event: ExtractEvents<TEventPayloadMap>
-  ): [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]] => {
+  ): [
+    StoreSnapshot<TContext>,
+    StoreEffect<TEmitted>[],
+    ExtractEvents<TEventPayloadMap>[]
+  ] => {
     type StoreEvent = ExtractEvents<TEventPayloadMap>;
     const currentContext = snapshot.context;
     const assigner = transitions?.[event.type as StoreEvent['type']];
     const effects: StoreEffect<TEmitted>[] = [];
+    const raisedEvents: StoreEvent[] = [];
 
     const enqueue: EnqueueObject<TEmitted> = {
       emit: new Proxy({} as any, {
@@ -429,11 +451,21 @@ export function createStoreTransition<
       }),
       effect: (fn) => {
         effects.push(fn);
-      }
+      },
+      raise: new Proxy({} as any, {
+        get: (_, eventType: string) => {
+          return (payload: any) => {
+            raisedEvents.push({
+              ...payload,
+              type: eventType
+            });
+          };
+        }
+      })
     };
 
     if (!assigner) {
-      return [snapshot, effects];
+      return [snapshot, effects, raisedEvents];
     }
 
     const nextContext = producer
@@ -450,7 +482,8 @@ export function createStoreTransition<
       nextContext === currentContext
         ? snapshot
         : { ...snapshot, context: nextContext },
-      effects
+      effects,
+      raisedEvents
     ];
   };
 }

@@ -813,10 +813,11 @@ it('can be created with a logic object', () => {
       if (event.type === 'inc') {
         return [
           { ...snapshot, context: { count: snapshot.context.count + 1 } },
+          [],
           []
-        ];
+        ] as const;
       }
-      return [snapshot, []];
+      return [snapshot, [], []] as const;
     }
   });
 
@@ -850,6 +851,85 @@ it('should not trigger update if the snapshot is the same', () => {
   store.trigger.doNothing();
 
   expect(spy).toHaveBeenCalledTimes(0);
+});
+
+describe('enqueue.raise', () => {
+  it('should process raised events in the same macrostep', () => {
+    const events: string[] = [];
+
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        start: (ctx, _ev, enq) => {
+          events.push('start');
+          (enq.raise as any).increment({ by: 1 });
+          (enq.raise as any).increment({ by: 2 });
+          return ctx;
+        },
+        increment: (ctx, ev: { by: number }) => {
+          events.push(`increment:${ev.by}`);
+          return { count: ctx.count + ev.by };
+        }
+      }
+    });
+
+    store.trigger.start();
+
+    expect(events).toEqual(['start', 'increment:1', 'increment:2']);
+    expect(store.getSnapshot().context.count).toBe(3);
+  });
+
+  it('should process raised events that raise more events', () => {
+    const events: string[] = [];
+
+    const store = createStore({
+      context: { value: '' },
+      on: {
+        a: (ctx, _ev, enq) => {
+          events.push('a');
+          (enq.raise as any).b();
+          return { value: ctx.value + 'a' };
+        },
+        b: (ctx, _ev, enq) => {
+          events.push('b');
+          (enq.raise as any).c();
+          return { value: ctx.value + 'b' };
+        },
+        c: (ctx) => {
+          events.push('c');
+          return { value: ctx.value + 'c' };
+        }
+      }
+    });
+
+    store.trigger.a();
+
+    expect(events).toEqual(['a', 'b', 'c']);
+    expect(store.getSnapshot().context.value).toBe('abc');
+  });
+
+  it('should execute effects after each raised event', () => {
+    const effectOrder: string[] = [];
+
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        start: (ctx, _ev, enq) => {
+          enq.effect(() => effectOrder.push('effect:start'));
+          (enq.raise as any).next();
+          return ctx;
+        },
+        next: (ctx, _ev, enq) => {
+          enq.effect(() => effectOrder.push('effect:next'));
+          return { count: ctx.count + 1 };
+        }
+      }
+    });
+
+    store.trigger.start();
+
+    expect(effectOrder).toEqual(['effect:start', 'effect:next']);
+  });
 });
 
 it('should not trigger update if the snapshot is the same even if there are effects', () => {

@@ -14,12 +14,15 @@ type EmitterFunction<TEmittedEvent extends EventObject> = (
     : [DistributiveOmit<TEmittedEvent, 'type'>]
 ) => void;
 
-export type EnqueueObject<TEmittedEvent extends EventObject> = {
+export interface EnqueueObject<TEmittedEvent extends EventObject> {
   emit: {
     [E in TEmittedEvent as E['type']]: EmitterFunction<E>;
   };
-  effect: (fn: () => void) => void;
-};
+  effect(fn: () => void): void;
+  raise: {
+    [K in string as K]: EmitterFunction<{ type: K }>;
+  };
+}
 
 export type StoreEffect<TEmitted extends EventObject> = (() => void) | TEmitted;
 
@@ -176,7 +179,7 @@ export type StoreTransition<
 > = (
   state: StoreSnapshot<TContext>,
   event: TEvent
-) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
+) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[], TEvent[]];
 
 export type StoreConfig<
   TContext extends StoreContext,
@@ -456,7 +459,7 @@ export type StoreLogic<
   transition: (
     snapshot: TSnapshot,
     event: TEvent
-  ) => [TSnapshot, StoreEffect<TEmitted>[]];
+  ) => [TSnapshot, StoreEffect<TEmitted>[], TEvent[]];
 };
 export type AnyStoreLogic = StoreLogic<any, any, any>;
 

@@ -97,7 +97,7 @@ function undoRedoFromLogic<
           const future = snapshot.future.slice();
 
           if (!past.length) {
-            return [snapshot, []];
+            return [snapshot, [], []];
           }
 
           const currentSnapshot = {
@@ -134,7 +134,7 @@ function undoRedoFromLogic<
             });
           }
 
-          return [{ ...newSnapshot, past, future }, []];
+          return [{ ...newSnapshot, past, future }, [], []];
         }
 
         if (event.type === 'redo') {
@@ -142,7 +142,7 @@ function undoRedoFromLogic<
           const future = snapshot.future.slice();
 
           if (!future.length) {
-            return [snapshot, []];
+            return [snapshot, [], []];
           }
 
           const firstItem = future[0];
@@ -169,7 +169,7 @@ function undoRedoFromLogic<
             past.splice(0, excessCount);
           }
 
-          return [{ ...newSnapshot, past, future }, []];
+          return [{ ...newSnapshot, past, future }, [], []];
         }
 
         const [state, effects] = logic.transition(snapshot, event);
@@ -178,7 +178,8 @@ function undoRedoFromLogic<
         if (isEventSkipped) {
           return [
             { ...state, past: snapshot.past, future: snapshot.future },
-            effects
+            effects,
+            []
           ];
         }
 
@@ -196,7 +197,7 @@ function undoRedoFromLogic<
           options?.compare?.(lastPastSnapshot, currentSnapshot);
 
         if (isEqual) {
-          return [{ ...state, past: snapshot.past, future: [] }, effects];
+          return [{ ...state, past: snapshot.past, future: [] }, effects, []];
         }
 
         const past = snapshot.past.slice();
@@ -210,7 +211,7 @@ function undoRedoFromLogic<
           past.splice(0, excessCount);
         }
 
-        return [{ ...state, past, future: [] }, effects];
+        return [{ ...state, past, future: [] }, effects, []];
       }
     };
     return enhancedLogic;
@@ -229,7 +230,7 @@ function undoRedoFromLogic<
         const events = snapshot.events.slice();
         const undoStack = snapshot.undoStack.slice();
         if (!events.length) {
-          return [snapshot, []];
+          return [snapshot, [], []];
         }
 
         const lastTransactionId = events[events.length - 1].transactionId;
@@ -256,14 +257,14 @@ function undoRedoFromLogic<
           state = { ...newState, events, undoStack };
         }
 
-        return [state, []];
+        return [state, [], []];
       }
 
       if (event.type === 'redo') {
         const events = snapshot.events.slice();
         const undoStack = snapshot.undoStack.slice();
         if (!undoStack.length) {
-          return [{ ...snapshot, events, undoStack }, []];
+          return [{ ...snapshot, events, undoStack }, [], []];
         }
 
         const lastTransactionId = undoStack[undoStack.length - 1].transactionId;
@@ -292,7 +293,7 @@ function undoRedoFromLogic<
           }
         }
 
-        return [state, allEffects];
+        return [state, allEffects, []];
       }
 
       const [state, effects] = logic.transition(snapshot, event);
@@ -307,7 +308,7 @@ function undoRedoFromLogic<
             )
           });
 
-      return [{ ...state, events, undoStack: [] }, effects];
+      return [{ ...state, events, undoStack: [] }, effects, []];
     }
   };
 
