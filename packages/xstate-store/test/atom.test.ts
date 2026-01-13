@@ -106,7 +106,9 @@ it('works with a mix of atoms and stores', () => {
 
   expect(combinedAtom.get()).toBe('David 0');
 
-  store.send({ type: 'nameUpdated', name: 'John' });
+  store.trigger.nameUpdated({
+    name: 'John'
+  });
 
   expect(combinedAtom.get()).toBe('John 0');
 
@@ -137,7 +139,9 @@ it('works with a mix of atoms and stores (get API)', () => {
 
   expect(combinedAtom.get()).toBe('David 0');
 
-  store.send({ type: 'nameUpdated', name: 'John' });
+  store.trigger.nameUpdated({
+    name: 'John'
+  });
 
   expect(combinedAtom.get()).toBe('John 0');
 

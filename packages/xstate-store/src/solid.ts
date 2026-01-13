@@ -44,7 +44,7 @@ function useSelectorWithCompare<TStore extends AnyStore, T>(
  *
  *   return (
  *     <div>
- *       <button onClick={() => donutStore.send({ type: 'addDonut' })}>
+ *       <button onClick={() => donutStore.trigger.addDonut()}>
  *         Add donut ({donutCount()})
  *       </button>
  *     </div>

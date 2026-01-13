@@ -1,6 +1,6 @@
 <template>
   <div data-testid="count">{{ count }}</div>
-  <button data-testid="increment" @click="store.send({ type: 'inc' })">
+  <button data-testid="increment" @click="store.trigger.inc()">
     Increment
   </button>
 </template>

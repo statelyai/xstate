@@ -127,11 +127,10 @@ describe('Solid.js integration', () => {
               name="custom"
               comparison={(a, b) => JSON.stringify(a) === JSON.stringify(b)}
             />
-
             <button
               data-testid="same"
               onClick={() => {
-                store.send({ type: 'same' });
+                store.trigger.same();
               }}
             >
               Change
@@ -139,7 +138,7 @@ describe('Solid.js integration', () => {
             <button
               data-testid="different"
               onClick={() => {
-                store.send({ type: 'different' });
+                store.trigger.different();
               }}
             >
               Change
@@ -218,8 +217,8 @@ describe('Solid.js integration', () => {
           <div
             data-testid="count"
             onClick={() => {
-              store.send({ type: 'increment' });
-              store.send({ type: 'increment' });
+              store.trigger.increment();
+              store.trigger.increment();
             }}
           >
             {count()}
@@ -264,11 +263,11 @@ const Counter: Component<{ store: CounterStore }> = ({ store }) => {
       <CounterLabel store={store} />
       <button
         data-testid="other-button"
-        onclick={() => store.send({ type: 'other' })}
+        onclick={() => store.trigger.other()}
       />
       <button
         data-testid="increment-button"
-        onclick={() => store.send({ type: 'increment' })}
+        onclick={() => store.trigger.increment()}
       />
     </div>
   );
