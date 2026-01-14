@@ -19,7 +19,7 @@
  * Solid.js).
  */
 
-module.exports = function transformer(fileInfo, api, options) {
+module.exports = function transformer(fileInfo, api, _options) {
   const j = api.jscodeshift.withParser('tsx');
   const root = j(fileInfo.source);
 
