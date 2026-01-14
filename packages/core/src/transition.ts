@@ -110,7 +110,7 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
   );
 
   // Capture actions for the initial microstep
-  let currentActions: ExecutableActionObject[] = [];
+  const currentActions: ExecutableActionObject[] = [];
   actorScope.actionExecutor = (action) => {
     currentActions.push(action);
   };
