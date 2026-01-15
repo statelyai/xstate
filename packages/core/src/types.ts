@@ -9,7 +9,7 @@ import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import { InspectionEvent } from './inspection.ts';
 import { Spawner } from './spawn.ts';
-import { AnyActorSystem, Clock } from './system.ts';
+import { ActorSystem, AnyActorSystem, Clock } from './system.ts';
 
 // this is needed to make JSDoc `@link` work properly
 import type { SimulatedClock } from './SimulatedClock.ts';
@@ -2319,7 +2319,9 @@ export type SnapshotFrom<T> =
                 infer _TSystem
               >
             ? TSnapshot
-            : never
+            : R extends ActorSystem<infer _>
+              ? ReturnType<R['getSnapshot']>
+              : never
     : never;
 
 export type EventFromLogic<TLogic extends AnyActorLogic> =

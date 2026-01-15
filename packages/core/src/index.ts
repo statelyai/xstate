@@ -26,7 +26,7 @@ export { isMachineSnapshot, type MachineSnapshot } from './State.ts';
 export { StateMachine } from './StateMachine.ts';
 export { StateNode } from './StateNode.ts';
 export { getStateNodes } from './stateUtils.ts';
-export type { ActorSystem } from './system.ts';
+export type { ActorSystem, AnyActorSystem, SystemSnapshot } from './system.ts';
 export { toPromise } from './toPromise.ts';
 export * from './types.ts';
 export {

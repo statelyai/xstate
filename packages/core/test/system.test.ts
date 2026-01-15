@@ -624,4 +624,65 @@ describe('system', () => {
 
     expect(root.system.get('subchild')).toBeDefined();
   });
+
+  it('should allow subscriptions to a system', () => {
+    const aSystemId = 'a_child';
+    const bSystemId = 'b_child';
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: createMachine({}),
+            systemId: aSystemId
+          },
+          on: {
+            to_b: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            src: createMachine({}),
+            systemId: bSystemId
+          },
+          on: {
+            to_a: 'a'
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    const keysOverTime: string[][] = [
+      Object.keys(actorRef.system.getSnapshot().actors)
+    ];
+    const unsubscribedKeysOverTime: string[][] = [
+      Object.keys(actorRef.system.getSnapshot().actors)
+    ];
+
+    const subscription = actorRef.system.subscribe((event) => {
+      keysOverTime.push(Object.keys(event.actors));
+    });
+
+    actorRef.system.subscribe((event) => {
+      unsubscribedKeysOverTime.push(Object.keys(event.actors));
+    });
+
+    actorRef.send({ type: 'to_b' });
+    expect(keysOverTime).toEqual([['a_child'], [], ['b_child']]);
+    expect(unsubscribedKeysOverTime).toEqual([['a_child'], [], ['b_child']]);
+
+    subscription.unsubscribe();
+    actorRef.send({ type: 'to_a' });
+
+    expect(keysOverTime).toEqual([['a_child'], [], ['b_child']]);
+    expect(unsubscribedKeysOverTime).toEqual([
+      ['a_child'],
+      [],
+      ['b_child'],
+      [],
+      ['a_child']
+    ]);
+  });
 });
