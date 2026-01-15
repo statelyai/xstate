@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store-vue",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "XState Store for Vue",
   "keywords": [
     "store",
