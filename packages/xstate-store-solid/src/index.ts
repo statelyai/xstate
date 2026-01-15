@@ -1,6 +1,8 @@
 /* @jsxImportSource solid-js */
+export * from '@xstate/store';
+
 import { createEffect, createSignal, onCleanup } from 'solid-js';
-import type { SnapshotFromStore, AnyStore } from './types';
+import type { SnapshotFromStore, AnyStore } from '@xstate/store';
 
 function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;
@@ -27,19 +29,18 @@ function useSelectorWithCompare<TStore extends AnyStore, T>(
  * Creates a selector which subscribes to the store and selects a value from the
  * store's snapshot, using an optional comparison function.
  *
- * @deprecated Use `useSelector` from `@xstate/store-solid` instead.
  * @example
  *
  * ```tsx
  * import { donutStore } from './donutStore.ts';
- * import { useSelector } from '@xstate/store/solid';
+ * import { useSelector } from '@xstate/store-solid';
  *
  * function DonutCounter() {
  *   const donutCount = useSelector(donutStore, (state) => state.context.donuts);
  *
  *   return (
  *     <div>
- *       <button onClick={() => donutStore.trigger.addDonut()}>
+ *       <button onClick={() => donutStore.send({ type: 'addDonut' })}>
  *         Add donut ({donutCount()})
  *       </button>
  *     </div>
