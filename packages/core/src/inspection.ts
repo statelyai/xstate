@@ -35,6 +35,11 @@ export interface InspectedMicrostepEvent extends BaseInspectionEventProperties {
   event: AnyEventObject; // { type: string, ... }
   snapshot: Snapshot<unknown>;
   _transitions: AnyTransitionDefinition[];
+  _guards: Array<{
+    type: string;
+    params: unknown;
+    result: boolean;
+  }>;
 }
 
 export interface InspectedActionEvent extends BaseInspectionEventProperties {

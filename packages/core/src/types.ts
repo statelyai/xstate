@@ -2171,6 +2171,8 @@ export interface ActorScope<
   system: TSystem;
   stopChild: (child: AnyActorRef) => void;
   actionExecutor: ActionExecutor;
+  /** @internal */
+  _collectedGuards?: Array<{ type: string; params: unknown; result: boolean }>;
 }
 
 export type AnyActorScope = ActorScope<

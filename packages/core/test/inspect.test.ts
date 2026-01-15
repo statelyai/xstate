@@ -481,6 +481,13 @@ describe('inspect', () => {
           "type": "@xstate.actor",
         },
         {
+          "_guards": [
+            {
+              "params": undefined,
+              "result": false,
+              "type": "<inline>",
+            },
+          ],
           "_transitions": [
             {
               "actions": [
@@ -518,6 +525,13 @@ describe('inspect', () => {
           "type": "@xstate.microstep",
         },
         {
+          "_guards": [
+            {
+              "params": undefined,
+              "result": false,
+              "type": "<inline>",
+            },
+          ],
           "_transitions": [
             {
               "actions": [
@@ -555,6 +569,13 @@ describe('inspect', () => {
           "type": "@xstate.microstep",
         },
         {
+          "_guards": [
+            {
+              "params": undefined,
+              "result": false,
+              "type": "<inline>",
+            },
+          ],
           "_transitions": [
             {
               "actions": [
@@ -592,6 +613,13 @@ describe('inspect', () => {
           "type": "@xstate.microstep",
         },
         {
+          "_guards": [
+            {
+              "params": undefined,
+              "result": true,
+              "type": "<inline>",
+            },
+          ],
           "_transitions": [
             {
               "actions": [],
