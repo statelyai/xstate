@@ -54,7 +54,7 @@ describe('select', () => {
 
     const callback = vi.fn();
     store.select((state) => state.user.name).subscribe(callback);
-    store.trigger.UPDATE_NAME({ name: 'Jane' });
+    store.send({ type: 'UPDATE_NAME', name: 'Jane' });
 
     expect(callback).toHaveBeenCalledTimes(1);
     expect(callback).toHaveBeenCalledWith('Jane');
@@ -80,7 +80,7 @@ describe('select', () => {
 
     const callback = vi.fn();
     store.select((state) => state.user.name).subscribe(callback);
-    store.trigger.UPDATE_THEME({ theme: 'light' });
+    store.send({ type: 'UPDATE_THEME', theme: 'light' });
 
     expect(callback).not.toHaveBeenCalled();
   });
@@ -113,10 +113,10 @@ describe('select', () => {
 
     store.select(selector, equalityFn).subscribe(callback);
 
-    store.trigger.UPDATE_THEME({ theme: 'light' });
+    store.send({ type: 'UPDATE_THEME', theme: 'light' });
     expect(callback).not.toHaveBeenCalled();
 
-    store.trigger.UPDATE_NAME({ name: 'Jane' });
+    store.send({ type: 'UPDATE_NAME', name: 'Jane' });
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
@@ -143,7 +143,7 @@ describe('select', () => {
       .select((state) => state.user.name)
       .subscribe(callback);
     subscription.unsubscribe();
-    store.trigger.UPDATE_NAME({ name: 'Jane' });
+    store.send({ type: 'UPDATE_NAME', name: 'Jane' });
 
     expect(callback).not.toHaveBeenCalled();
   });

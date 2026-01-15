@@ -41,7 +41,7 @@ describe('useSelector', () => {
         <div
           data-testid="count"
           onClick={() => {
-            store.trigger.inc();
+            store.send({ type: 'inc' });
           }}
         >
           {count}
@@ -107,10 +107,7 @@ describe('useSelector', () => {
           <button
             data-testid="changeUser"
             onClick={() =>
-              store.trigger.setUser({
-                name: 'John',
-                count: 200
-              })
+              store.send({ type: 'setUser', name: 'John', count: 200 })
             }
           >
             Change User
@@ -118,10 +115,7 @@ describe('useSelector', () => {
           <div
             data-testid="name"
             onClick={() =>
-              store.trigger.setUser({
-                name: 'David',
-                count: 200
-              })
+              store.send({ type: 'setUser', name: 'David', count: 200 })
             }
           >
             {snapshot.context.user.name}
@@ -182,7 +176,7 @@ describe('useSelector', () => {
           <div
             data-testid="items"
             onClick={() => {
-              store.trigger.same();
+              store.send({ type: 'same' });
             }}
           >
             {items.join(',')}
@@ -190,7 +184,7 @@ describe('useSelector', () => {
           <button
             data-testid="different"
             onClick={() => {
-              store.trigger.different();
+              store.send({ type: 'different' });
             }}
           ></button>
         </>
@@ -239,8 +233,8 @@ describe('useSelector', () => {
           data-testid="count"
           onClick={() => {
             ReactDOM.unstable_batchedUpdates(() => {
-              store.trigger.inc();
-              store.trigger.inc();
+              store.send({ type: 'inc' });
+              store.send({ type: 'inc' });
             });
           }}
         >
@@ -309,7 +303,7 @@ describe('XState React hooks', () => {
         <div
           data-testid="count"
           onClick={() => {
-            store.trigger.inc();
+            store.send({ type: 'inc' });
           }}
         >
           {count}
@@ -430,7 +424,7 @@ describe('useStore', () => {
         <div
           data-testid="count"
           onClick={() => {
-            store.trigger.inc();
+            store.send({ type: 'inc' });
           }}
         >
           {count}
@@ -480,7 +474,7 @@ describe('useStore', () => {
         <div
           data-testid="count"
           onClick={() => {
-            store.trigger.inc();
+            store.send({ type: 'inc' });
           }}
         >
           {count}
@@ -514,7 +508,7 @@ describe('useStore', () => {
         <div
           data-testid="count"
           onClick={() => {
-            store.trigger.inc();
+            store.send({ type: 'inc' });
           }}
         >
           {count}
@@ -816,10 +810,11 @@ describe('store examples', () => {
           width="100"
           height="100"
           viewBox="0 0 100 100"
-          onMouseDown={() => drawingStore.trigger.mouseDown()}
-          onMouseUp={() => drawingStore.trigger.mouseUp()}
+          onMouseDown={() => drawingStore.send({ type: 'mouseDown' })}
+          onMouseUp={() => drawingStore.send({ type: 'mouseUp' })}
           onMouseMove={(e) => {
-            drawingStore.trigger.mouseMove({
+            drawingStore.send({
+              type: 'mouseMove',
               point: [e.clientX, e.clientY]
             });
           }}
