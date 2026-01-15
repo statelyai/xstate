@@ -2,4 +2,4 @@
 '@xstate/store-svelte': major
 ---
 
-Initial release for `@xstate/store-svelte`. Re-exports `@xstate/store`.
+Initial release for `@xstate/store-svelte`.
