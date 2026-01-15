@@ -94,7 +94,7 @@ describe('@xstate/inspect', () => {
           "machine": "{"id":"whatever","key":"whatever","type":"compound","initial":{"target":["#whatever.active"],"source":"#whatever","actions":[],"eventType":null},"history":false,"states":{"active":{"id":"whatever.active","key":"active","type":"atomic","initial":{"target":[],"source":"#whatever.active","actions":[],"eventType":null},"history":false,"states":{},"on":{},"transitions":[],"entry":[],"exit":[],"order":1,"invoke":[],"tags":[]}},"on":{},"transitions":[],"entry":[],"exit":[],"order":-1,"invoke":[],"tags":[]}",
           "parent": undefined,
           "sessionId": "x:1",
-          "state": "{"status":"active","context":{"cycle":"[Circular]"},"value":"active","children":{},"historyValue":{},"tags":[]}",
+          "state": "{"status":"active","context":{"cycle":"[Circular]"},"value":"active","children":{},"historyValue":{},"event":{"type":"xstate.init"},"tags":[]}",
           "type": "service.register",
         },
       ]
@@ -145,7 +145,7 @@ describe('@xstate/inspect', () => {
         },
         {
           "sessionId": "x:3",
-          "state": "{"status":"active","context":{},"value":"active","children":{},"historyValue":{},"tags":[]}",
+          "state": "{"status":"active","context":{},"value":"active","children":{},"historyValue":{},"event":{"type":"CIRCULAR","value":{"cycle":"[Circular]"}},"tags":[]}",
           "type": "service.state",
         },
       ]
@@ -202,7 +202,7 @@ describe('@xstate/inspect', () => {
           "machine": "{"id":"(machine)","key":"(machine)","type":"compound","initial":{"target":["#(machine).active"],"source":"#(machine)","actions":[],"eventType":null},"history":false,"states":{"active":{"id":"(machine).active","key":"active","type":"atomic","initial":{"target":[],"source":"#(machine).active","actions":[],"eventType":null},"history":false,"states":{},"on":{},"transitions":[],"entry":[],"exit":[],"order":1,"invoke":[],"tags":[]}},"on":{},"transitions":[],"entry":[],"exit":[],"order":-1,"invoke":[],"tags":[]}",
           "parent": undefined,
           "sessionId": "x:5",
-          "state": "{"status":"active","context":{"map":"map","deep":{"map":"map"}},"value":"active","children":{},"historyValue":{},"tags":[]}",
+          "state": "{"status":"active","context":{"map":"map","deep":{"map":"map"}},"value":"active","children":{},"historyValue":{},"event":{"type":"xstate.init"},"tags":[]}",
           "type": "service.register",
         },
         {
@@ -212,7 +212,7 @@ describe('@xstate/inspect', () => {
         },
         {
           "sessionId": "x:5",
-          "state": "{"status":"active","context":{"map":"map","deep":{"map":"map"}},"value":"active","children":{},"historyValue":{},"tags":[]}",
+          "state": "{"status":"active","context":{"map":"map","deep":{"map":"map"}},"value":"active","children":{},"historyValue":{},"event":{"type":"TEST","serialized":"map","deep":{"serialized":"map"}},"tags":[]}",
           "type": "service.state",
         },
       ]
@@ -325,7 +325,7 @@ describe('@xstate/inspect', () => {
         },
         {
           "sessionId": "x:7",
-          "state": "{"status":"active","context":{"value":{"unsafe":"[unsafe]"}},"value":{},"children":{},"historyValue":{},"tags":[]}",
+          "state": "{"status":"active","context":{"value":{"unsafe":"[unsafe]"}},"value":{},"children":{},"historyValue":{},"event":{"type":"EV","value":{"unsafe":"[unsafe]"}},"tags":[]}",
           "type": "service.state",
         },
       ]
@@ -347,7 +347,7 @@ describe('@xstate/inspect', () => {
         },
         {
           "sessionId": "x:7",
-          "state": "{"status":"active","context":{"value":{"unsafe":"[unsafe]"}},"value":{},"children":{},"historyValue":{},"tags":[]}",
+          "state": "{"status":"active","context":{"value":{"unsafe":"[unsafe]"}},"value":{},"children":{},"historyValue":{},"event":{"type":"UNKNOWN"},"tags":[]}",
           "type": "service.state",
         },
       ]
