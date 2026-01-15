@@ -1,10 +1,4 @@
 /* @jsxImportSource solid-js */
-console.warn(
-  '[@xstate/store/solid] This import path is deprecated. ' +
-    'Please migrate to @xstate/store-solid instead. ' +
-    'See https://stately.ai/docs/xstate-store for migration guide.'
-);
-
 import { createEffect, createSignal, onCleanup } from 'solid-js';
 import type { SnapshotFromStore, AnyStore } from './types';
 
@@ -33,6 +27,7 @@ function useSelectorWithCompare<TStore extends AnyStore, T>(
  * Creates a selector which subscribes to the store and selects a value from the
  * store's snapshot, using an optional comparison function.
  *
+ * @deprecated Use `useSelector` from `@xstate/store-solid` instead.
  * @example
  *
  * ```tsx

@@ -1,9 +1,3 @@
-console.warn(
-  '[@xstate/store/react] This import path is deprecated. ' +
-    'Please migrate to @xstate/store-react instead. ' +
-    'See https://stately.ai/docs/xstate-store for migration guide.'
-);
-
 import { useCallback, useRef, useSyncExternalStore } from 'react';
 import {
   AnyStore,
@@ -45,6 +39,7 @@ function useSelectorWithCompare<TStore extends Readable<any>, T>(
  * A React hook that subscribes to the `store` and selects a value from the
  * store's snapshot via a selector function, with an optional compare function.
  *
+ * @deprecated Use `useSelector` from `@xstate/store-react` instead.
  * @example
  *
  * ```ts
@@ -116,6 +111,7 @@ export function useSelector<TStore extends Readable<any>, T>(
   );
 }
 
+/** @deprecated Use `useStore` from `@xstate/store-react` instead. */
 export const useStore: {
   <
     TContext extends StoreContext,
@@ -149,6 +145,7 @@ export const useStore: {
  * A React hook that subscribes to the `atom` and returns the current value of
  * the atom.
  *
+ * @deprecated Use `useAtom` from `@xstate/store-react` instead.
  * @example
  *
  * ```ts
@@ -192,6 +189,7 @@ export function useAtom(
  * Creates a custom hook that returns the selected value and the store from a
  * store configuration object.
  *
+ * @deprecated Use `createStoreHook` from `@xstate/store-react` instead.
  * @example
  *
  * ```ts
