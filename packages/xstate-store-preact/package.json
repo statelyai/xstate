@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store-preact",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "XState Store for Preact",
   "keywords": [
     "store",

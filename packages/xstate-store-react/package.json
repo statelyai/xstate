@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store-react",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "XState Store for React",
   "keywords": [
     "store",
