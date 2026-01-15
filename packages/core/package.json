@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "5.25.0",
+  "version": "5.25.1",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
   "module": "dist/xstate.esm.js",
