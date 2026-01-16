@@ -602,4 +602,49 @@ describe('system', () => {
 
     expect(actor.system.getAll()).toEqual({});
   });
+
+  it('should unregister nested child systemIds when stopping a parent actor', () => {
+    const subchild = createMachine({});
+
+    const child = createMachine({
+      actors: {
+        subchild
+      },
+      id: 'childSystem',
+      invoke: {
+        src: ({ actors }) => actors.subchild,
+        systemId: 'subchild'
+      }
+    });
+
+    const parent = createMachine({
+      actors: { child },
+
+      // entry: spawnChild('child', { id: 'childId' }),
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, { id: 'childId' });
+      },
+      on: {
+        // restart: {
+        //   actions: [
+        //     stopChild('childId'),
+        //     spawnChild('child', { id: 'childId' })
+        //   ]
+        // }
+        restart: ({ children, actors }, enq) => {
+          enq.stop(children.childId);
+          enq.spawn(actors.child, { id: 'childId' });
+        }
+      }
+    });
+
+    const root = createActor(parent).start();
+
+    expect(root.system.get('subchild')).toBeDefined();
+
+    // This should not throw "Actor with system ID 'subchild' already exists"
+    expect(() => root.send({ type: 'restart' })).not.toThrow();
+
+    expect(root.system.get('subchild')).toBeDefined();
+  });
 });

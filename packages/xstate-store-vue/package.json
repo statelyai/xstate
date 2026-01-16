@@ -1,0 +1,56 @@
+{
+  "name": "@xstate/store-vue",
+  "version": "1.0.0",
+  "description": "XState Store for Vue",
+  "keywords": [
+    "store",
+    "state",
+    "vue"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store-vue#readme",
+  "license": "MIT",
+  "main": "dist/xstate-store-vue.cjs.js",
+  "module": "dist/xstate-store-vue.esm.js",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-store-vue.cjs.mjs",
+        "default": "./dist/xstate-store-vue.cjs.js"
+      },
+      "module": "./dist/xstate-store-vue.esm.js",
+      "import": "./dist/xstate-store-vue.cjs.mjs",
+      "default": "./dist/xstate-store-vue.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "dist/xstate-store-vue.cjs.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "dependencies": {
+    "@xstate/store": "workspace:^",
+    "vue-demi": "^0.14.10"
+  },
+  "peerDependencies": {
+    "vue": "^2.7.0 || ^3.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/vue": "^8.1.0",
+    "@vitejs/plugin-vue": "^5.1.2",
+    "vue": "^3.4.35"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      "./index.ts"
+    ]
+  }
+}
