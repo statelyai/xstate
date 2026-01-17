@@ -1396,7 +1396,10 @@ export interface SetupTypes<
   TInput,
   TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TAction extends ParameterizedObject = ParameterizedObject,
+  TGuard extends ParameterizedObject = ParameterizedObject,
+  TDelay extends string = string
 > {
   context?: TContext;
   events?: TEvent;
@@ -1406,6 +1409,9 @@ export interface SetupTypes<
   output?: TOutput;
   emitted?: TEmitted;
   meta?: TMeta;
+  actions?: TAction;
+  guards?: TGuard;
+  delays?: TDelay;
 }
 
 export interface MachineTypes<
@@ -1430,13 +1436,12 @@ export interface MachineTypes<
     TInput,
     TOutput,
     TEmitted,
-    TMeta
+    TMeta,
+    TAction,
+    TGuard,
+    TDelay
   > {
   actors?: TActor;
-  actions?: TAction;
-  guards?: TGuard;
-  delays?: TDelay;
-  meta?: TMeta;
 }
 
 export interface HistoryStateNode<TContext extends MachineContext>
