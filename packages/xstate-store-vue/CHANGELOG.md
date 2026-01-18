@@ -1,5 +1,11 @@
 # @xstate/store-vue
 
+## 1.0.1
+
+### Patch Changes
+
+- [`d6498eb`](https://github.com/statelyai/xstate/commit/d6498eb8e98100e4977e036904a04714089571e4) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added README.md
+
 ## 1.0.0
 
 ### Major Changes

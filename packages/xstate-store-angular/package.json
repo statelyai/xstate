@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store-angular",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "XState Store for Angular",
   "keywords": [
     "store",
