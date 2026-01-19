@@ -1,6 +1,6 @@
 import { fireEvent, render } from '@testing-library/vue';
 import TestCounter from './TestCounter.vue';
-import { createStore, createAtom } from './index';
+import { createStore, createAtom, useSelector } from './index';
 
 describe('@xstate/store-vue', () => {
   describe('useSelector', () => {
@@ -17,8 +17,6 @@ describe('@xstate/store-vue', () => {
     });
 
     it('should use custom comparison function', async () => {
-      const { useSelector } = await import('./index');
-
       const store = createStore({
         context: { items: [1, 2] },
         on: {
