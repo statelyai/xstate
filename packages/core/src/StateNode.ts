@@ -1,13 +1,9 @@
-import { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
-import { evaluateGuard } from './guards.ts';
 import { memo } from './memo.ts';
 import {
-  BuiltinAction,
-  formatInitialTransition,
+  evaluateCandidate,
   formatTransition,
-  formatTransitions,
   getCandidates,
   getDelayedTransitions
 } from './stateUtils.ts';
@@ -18,21 +14,25 @@ import type {
   InvokeDefinition,
   MachineContext,
   Mapper,
-  StateNodeConfig,
-  StateNodeDefinition,
   StateNodesConfig,
-  StatesDefinition,
   TransitionDefinition,
   TransitionDefinitionMap,
   TODO,
-  UnknownAction,
   ParameterizedObject,
   AnyStateMachine,
   AnyStateNodeConfig,
   ProvidedActor,
   NonReducibleUnknown,
-  EventDescriptor
+  EventDescriptor,
+  AnyActorRef,
+  AnyStateNode,
+  AnyEventObject,
+  AnyAction2,
+  AnyTransitionDefinition,
+  AnyMachineSnapshot,
+  AnyInvokeDefinition
 } from './types.ts';
+import { Next_StateNodeConfig } from './types.v6.ts';
 import {
   createInvokeId,
   mapValues,
@@ -41,21 +41,6 @@ import {
 } from './utils.ts';
 
 const EMPTY_OBJECT = {};
-
-const toSerializableAction = (action: UnknownAction) => {
-  if (typeof action === 'string') {
-    return { type: action };
-  }
-  if (typeof action === 'function') {
-    if ('resolve' in action) {
-      return { type: (action as BuiltinAction).type };
-    }
-    return {
-      type: action.name
-    };
-  }
-  return action;
-};
 
 interface StateNodeOptions<
   TContext extends MachineContext,
@@ -99,27 +84,27 @@ export class StateNode<
    */
   public history: false | 'shallow' | 'deep';
   /** The action(s) to be executed upon entering the state node. */
-  public entry: UnknownAction[];
+  public entry: AnyAction2 | undefined;
   /** The action(s) to be executed upon exiting the state node. */
-  public exit: UnknownAction[];
+  public exit: AnyAction2 | undefined;
   /** The parent state node. */
   public parent?: StateNode<TContext, TEvent>;
   /** The root machine node. */
   public machine: StateMachine<
     TContext,
     TEvent,
-    any, // children
-    any, // actor
-    any, // action
-    any, // guard
-    any, // delay
-    any, // state value
-    any, // tag
-    any, // input
-    any, // output
-    any, // emitted
-    any, // meta
-    any // state schema
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
   >;
   /**
    * The meta data associated with this state node, which will be returned in
@@ -144,21 +129,22 @@ export class StateNode<
 
   public tags: string[] = [];
   public transitions!: Map<string, TransitionDefinition<TContext, TEvent>[]>;
-  public always?: Array<TransitionDefinition<TContext, TEvent>>;
+  public always?: Array<AnyTransitionDefinition>;
 
   constructor(
     /** The raw config used to create the machine. */
-    public config: StateNodeConfig<
+    public config: Next_StateNodeConfig<
       TContext,
       TEvent,
-      TODO, // actors
-      TODO, // actions
-      TODO, // guards
-      TODO, // delays
-      TODO, // tags
-      TODO, // output
-      TODO, // emitted
-      TODO // meta
+      any,
+      any,
+      any,
+      any,
+      any,
+      any,
+      any,
+      any,
+      any
     >,
     options: StateNodeOptions<TContext, TEvent>
   ) {
@@ -210,8 +196,18 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this.entry = toArray(this.config.entry).slice();
-    this.exit = toArray(this.config.exit).slice();
+    this.entry = this.config.entry;
+    this.exit = this.config.exit;
+
+    if (this.entry) {
+      // @ts-ignore
+      this.entry._special = true;
+    }
+
+    if (this.exit) {
+      // @ts-ignore
+      this.exit._special = true;
+    }
 
     this.meta = this.config.meta;
     this.output =
@@ -224,7 +220,7 @@ export class StateNode<
     this.transitions = formatTransitions(this);
     if (this.config.always) {
       this.always = toTransitionConfigArray(this.config.always).map((t) =>
-        formatTransition(this, NULL_EVENT, t)
+        typeof t === 'function' ? t : formatTransition(this, NULL_EVENT, t)
       );
     }
 
@@ -233,99 +229,21 @@ export class StateNode<
     });
   }
 
-  /** The well-structured state node definition. */
-  public get definition(): StateNodeDefinition<TContext, TEvent> {
-    return {
-      id: this.id,
-      key: this.key,
-      version: this.machine.version,
-      type: this.type,
-      initial: this.initial
-        ? {
-            target: this.initial.target,
-            source: this,
-            actions: this.initial.actions.map(toSerializableAction),
-            eventType: null as any,
-            reenter: false,
-            toJSON: () => ({
-              target: this.initial.target.map((t) => `#${t.id}`),
-              source: `#${this.id}`,
-              actions: this.initial.actions.map(toSerializableAction),
-              eventType: null as any
-            })
-          }
-        : undefined,
-      history: this.history,
-      states: mapValues(this.states, (state: StateNode<TContext, TEvent>) => {
-        return state.definition;
-      }) as StatesDefinition<TContext, TEvent>,
-      on: this.on,
-      transitions: [...this.transitions.values()].flat().map((t) => ({
-        ...t,
-        actions: t.actions.map(toSerializableAction)
-      })),
-      entry: this.entry.map(toSerializableAction),
-      exit: this.exit.map(toSerializableAction),
-      meta: this.meta,
-      order: this.order || -1,
-      output: this.output,
-      invoke: this.invoke,
-      description: this.description,
-      tags: this.tags
-    };
-  }
-
-  /** @internal */
-  public toJSON() {
-    return this.definition;
-  }
-
   /** The logic invoked as actors by this state node. */
-  public get invoke(): Array<
-    InvokeDefinition<
-      TContext,
-      TEvent,
-      ProvidedActor,
-      ParameterizedObject,
-      ParameterizedObject,
-      string,
-      TODO, // TEmitted
-      TODO // TMeta
-    >
-  > {
+  public get invoke(): Array<AnyInvokeDefinition> {
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invokeConfig, i) => {
         const { src, systemId } = invokeConfig;
         const resolvedId = invokeConfig.id ?? createInvokeId(this.id, i);
-        const sourceName =
-          typeof src === 'string'
-            ? src
-            : `xstate.invoke.${createInvokeId(this.id, i)}`;
+        const sourceName = `xstate.invoke.${createInvokeId(this.id, i)}`;
 
         return {
           ...invokeConfig,
           src: sourceName,
+          logic: src,
           id: resolvedId,
-          systemId: systemId,
-          toJSON() {
-            const { onDone, onError, ...invokeDefValues } = invokeConfig;
-            return {
-              ...invokeDefValues,
-              type: 'xstate.invoke',
-              src: sourceName,
-              id: resolvedId
-            };
-          }
-        } as InvokeDefinition<
-          TContext,
-          TEvent,
-          ProvidedActor,
-          ParameterizedObject,
-          ParameterizedObject,
-          string,
-          TODO, // TEmitted
-          TODO // TMeta
-        >;
+          systemId: systemId
+        };
       })
     );
   }
@@ -356,7 +274,7 @@ export class StateNode<
     );
   }
 
-  public get initial(): InitialTransitionDefinition<TContext, TEvent> {
+  public get initial(): InitialTransitionDefinition {
     return memo(this, 'initial', () =>
       formatInitialTransition(this, this.config.initial)
     );
@@ -364,62 +282,31 @@ export class StateNode<
 
   /** @internal */
   public next(
-    snapshot: MachineSnapshot<
-      TContext,
-      TEvent,
-      any,
-      any,
-      any,
-      any,
-      any, // TMeta
-      any // TStateSchema
-    >,
-    event: TEvent
-  ): TransitionDefinition<TContext, TEvent>[] | undefined {
+    snapshot: AnyMachineSnapshot,
+    event: TEvent,
+    self: AnyActorRef
+  ): Array<AnyTransitionDefinition> | undefined {
     const eventType = event.type;
-    const actions: UnknownAction[] = [];
 
-    let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
+    let selectedTransition: AnyTransitionDefinition | undefined;
 
-    const candidates: Array<TransitionDefinition<TContext, TEvent>> = memo(
+    const candidates: Array<AnyTransitionDefinition> = memo(
       this,
       `candidates-${eventType}`,
       () => getCandidates(this, eventType)
     );
 
     for (const candidate of candidates) {
-      const { guard } = candidate;
-      const resolvedContext = snapshot.context;
-
-      let guardPassed = false;
-
-      try {
-        guardPassed =
-          !guard ||
-          evaluateGuard<TContext, TEvent>(
-            guard,
-            resolvedContext,
-            event,
-            snapshot
-          );
-      } catch (err: any) {
-        const guardType =
-          typeof guard === 'string'
-            ? guard
-            : typeof guard === 'object'
-              ? guard.type
-              : undefined;
-        throw new Error(
-          `Unable to evaluate guard ${
-            guardType ? `'${guardType}' ` : ''
-          }in transition for event '${eventType}' in state node '${
-            this.id
-          }':\n${err.message}`
-        );
-      }
+      const guardPassed = evaluateCandidate(
+        candidate,
+        event,
+        snapshot,
+        this,
+        self
+      );
 
       if (guardPassed) {
-        actions.push(...candidate.actions);
+        // actions.push(...candidate.actions);
         selectedTransition = candidate;
         break;
       }
@@ -458,19 +345,118 @@ export class StateNode<
     const keys = Object.keys(Object.fromEntries(this.transitions));
     const events = new Set(
       keys.filter((descriptor) => {
-        return this.transitions
-          .get(descriptor)!
-          .some(
-            (transition) =>
-              !(
-                !transition.target &&
-                !transition.actions.length &&
-                !transition.reenter
-              )
-          );
+        return this.transitions.get(descriptor)!.some(
+          (transition) =>
+            transition.target ||
+            // transition.actions.length ||
+            transition.reenter ||
+            transition.to
+        );
       })
     );
 
     return Array.from(events);
   }
+}
+
+export function formatTransitions<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
+  stateNode: AnyStateNode
+): Map<string, TransitionDefinition<TContext, TEvent>[]> {
+  const transitions = new Map<
+    string,
+    TransitionDefinition<TContext, AnyEventObject>[]
+  >();
+  if (stateNode.config.on) {
+    for (const descriptor of Object.keys(stateNode.config.on)) {
+      if (descriptor === NULL_EVENT) {
+        throw new Error(
+          'Null events ("") cannot be specified as a transition key. Use `always: { ... }` instead.'
+        );
+      }
+      const transitionsConfig = stateNode.config.on[descriptor];
+      transitions.set(
+        descriptor,
+        toTransitionConfigArray(transitionsConfig).map((t) =>
+          typeof t === 'function'
+            ? t
+            : formatTransition(stateNode, descriptor, t)
+        )
+      );
+    }
+  }
+  if (stateNode.config.onDone) {
+    const descriptor = `xstate.done.state.${stateNode.id}`;
+    transitions.set(
+      descriptor,
+      toTransitionConfigArray(stateNode.config.onDone).map((t) =>
+        typeof t === 'function' ? t : formatTransition(stateNode, descriptor, t)
+      )
+    );
+  }
+  for (const invokeDef of stateNode.invoke) {
+    if (invokeDef.onDone) {
+      const descriptor = `xstate.done.actor.${invokeDef.id}`;
+      transitions.set(
+        descriptor,
+        toTransitionConfigArray(invokeDef.onDone).map((t) =>
+          typeof t === 'function'
+            ? t
+            : formatTransition(stateNode, descriptor, t)
+        )
+      );
+    }
+    if (invokeDef.onError) {
+      const descriptor = `xstate.error.actor.${invokeDef.id}`;
+      transitions.set(
+        descriptor,
+        toTransitionConfigArray(invokeDef.onError).map((t) =>
+          typeof t === 'function'
+            ? t
+            : formatTransition(stateNode, descriptor, t)
+        )
+      );
+    }
+    if (invokeDef.onSnapshot) {
+      const descriptor = `xstate.snapshot.${invokeDef.id}`;
+      transitions.set(
+        descriptor,
+        toTransitionConfigArray(invokeDef.onSnapshot).map((t) =>
+          typeof t === 'function'
+            ? t
+            : formatTransition(stateNode, descriptor, t)
+        )
+      );
+    }
+  }
+  for (const delayedTransition of stateNode.after) {
+    let existing = transitions.get(delayedTransition.eventType);
+    if (!existing) {
+      existing = [];
+      transitions.set(delayedTransition.eventType, existing);
+    }
+    existing.push(delayedTransition);
+  }
+  return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
+}
+
+export function formatInitialTransition(
+  stateNode: AnyStateNode,
+  _target: string | undefined
+): InitialTransitionDefinition {
+  const resolvedTarget =
+    typeof _target === 'string' ? stateNode.states[_target] : undefined;
+  if (!resolvedTarget && _target) {
+    throw new Error(
+      `Initial state node "${_target}" not found on parent state node #${stateNode.id}`
+    );
+  }
+  const transition: InitialTransitionDefinition = {
+    source: stateNode,
+    target: resolvedTarget ? [resolvedTarget] : undefined
+  };
+
+  return transition;
 }
