@@ -2,17 +2,16 @@ import z from 'zod';
 import {
   createActor,
   createMachine as createMachine,
-  fromPromise,
-  toPromise
+  fromPromise
 } from '../src';
 
-describe('toPromise', () => {
+describe('', () => {
   it('should be awaitable', async () => {
     const promiseActor = createActor(
       fromPromise(() => Promise.resolve(42))
     ).start();
 
-    const result = await toPromise(promiseActor);
+    const result = await promiseActor;
 
     result satisfies number;
 
@@ -46,7 +45,7 @@ describe('toPromise', () => {
       actor.send({ type: 'RESOLVE' });
     }, 1);
 
-    const data = await toPromise(actor);
+    const data = await actor;
 
     data satisfies { count: number };
 
@@ -71,7 +70,7 @@ describe('toPromise', () => {
 
     const actor = createActor(machine).start();
 
-    const data = await toPromise(actor);
+    const data = await actor;
 
     data satisfies { count: number };
 
@@ -99,7 +98,7 @@ describe('toPromise', () => {
     });
 
     try {
-      await toPromise(actor);
+      await actor;
     } catch (err) {
       expect(err).toEqual(new Error('oh noes'));
     }
@@ -123,7 +122,7 @@ describe('toPromise', () => {
     expect(actor.getSnapshot().status).toBe('done');
     expect(actor.getSnapshot().output).toEqual({ count: 100 });
 
-    const output = await toPromise(actor);
+    const output = await actor;
 
     expect(output).toEqual({ count: 100 });
   });
@@ -144,7 +143,7 @@ describe('toPromise', () => {
       expect(actor.getSnapshot().status).toBe('error');
       expect(actor.getSnapshot().error).toEqual(new Error('oh noes'));
 
-      await expect(toPromise(actor)).rejects.toEqual(new Error('oh noes'));
+      await expect(actor).rejects.toEqual(new Error('oh noes'));
     }
   );
 });

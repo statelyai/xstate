@@ -17,7 +17,6 @@ export { StateMachine } from './StateMachine.ts';
 export { StateNode } from './StateNode.ts';
 export { getStateNodes } from './stateUtils.ts';
 export type { ActorSystem } from './system.ts';
-export { toPromise } from './toPromise.ts';
 export * from './types.ts';
 export {
   getAllOwnEventDescriptors as __unsafe_getAllOwnEventDescriptors,

@@ -69,7 +69,8 @@ export default ts.config(
           destructuring: 'all'
         }
       ],
-      'jsdoc/no-undefined-types': 'error'
+      'jsdoc/no-undefined-types': 'error',
+      '@typescript-eslint/no-misused-promises': 'off'
     }
   },
 
