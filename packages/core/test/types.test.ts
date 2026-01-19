@@ -8,7 +8,8 @@ import {
   UnknownActorRef,
   createActor,
   createStateConfig,
-  createMachine
+  createMachine,
+  toPromise
 } from '../src/index';
 import { createInertActorScope } from '../src/getNextSnapshot';
 import z from 'zod';
@@ -4507,7 +4508,7 @@ it('fromPromise should not have issues with actors with emitted types', () => {
 
   const actor = createActor(machine).start();
 
-  actor;
+  toPromise(actor);
 });
 
 it('UnknownActorRef should return a Snapshot-typed value from getSnapshot()', () => {

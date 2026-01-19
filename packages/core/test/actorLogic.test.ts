@@ -33,10 +33,9 @@ describe('promise logic (fromPromise)', () => {
 
     const actor = createActor(promiseLogic).start();
 
-    // const snapshot = await waitFor(actor, (s) => s.output === 'hello');
-    const output = await actor;
+    const snapshot = await waitFor(actor, (s) => s.output === 'hello');
 
-    expect(output).toBe('hello');
+    expect(snapshot.output).toBe('hello');
   });
   it('should resolve', () => {
     const { resolve, promise } = Promise.withResolvers<void>();

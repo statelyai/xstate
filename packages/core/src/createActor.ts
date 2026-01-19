@@ -30,7 +30,6 @@ import type {
   EmittedFrom,
   EventFromLogic,
   InputFrom,
-  OutputFrom,
   Snapshot,
   SnapshotFrom,
   AnyTransitionDefinition,
@@ -777,7 +776,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorRef<
   }
 
   /**
-   * Read an actor's snapshot synchronously.
+   * Read an actor’s snapshot synchronously.
    *
    * @remarks
    * The snapshot represent an actor's last emitted value.
@@ -787,7 +786,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorRef<
    *
    * Note that some actors, such as callback actors generated with
    * `fromCallback`, will not emit snapshots.
-   * @see {@link Actor.subscribe} to subscribe to an actor's snapshot values.
+   * @see {@link Actor.subscribe} to subscribe to an actor’s snapshot values.
    * @see {@link Actor.getPersistedSnapshot} to persist the internal state of an actor (which is more than just a snapshot).
    */
   public getSnapshot(): SnapshotFrom<TLogic> {
@@ -797,47 +796,6 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorRef<
       );
     }
     return this._snapshot;
-  }
-
-  /**
-   * Enables the actor to be awaited directly, resolving to its output when
-   * done.
-   *
-   * @example
-   *
-   * ```ts
-   * const actor = createActor(machine).start();
-   * const output = await actor;
-   * ```
-   */
-  public then<TResult1 = OutputFrom<TLogic>, TResult2 = never>(
-    onfulfilled?:
-      | ((value: OutputFrom<TLogic>) => TResult1 | PromiseLike<TResult1>)
-      | null,
-    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
-  ): Promise<TResult1 | TResult2> {
-    return new Promise<OutputFrom<TLogic>>((resolve, reject) => {
-      const snapshot = this._snapshot as any;
-      if (this._processingStatus === ProcessingStatus.Stopped) {
-        if (snapshot.status === 'done') {
-          resolve(snapshot.output);
-          return;
-        }
-        if (snapshot.status === 'error') {
-          reject(snapshot.error);
-          return;
-        }
-        resolve(undefined as any);
-        return;
-      }
-
-      this.subscribe({
-        complete: () => {
-          resolve((this._snapshot as any).output);
-        },
-        error: reject
-      });
-    }).then(onfulfilled, onrejected);
   }
 }
 

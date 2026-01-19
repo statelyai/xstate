@@ -1678,17 +1678,6 @@ export interface ActorRef<
       ? () => void
       : (payload: Omit<Extract<TEvent, { type: K }>, 'type'>) => void;
   };
-  then: <
-    TResult1 = (TSnapshot & { status: 'done' })['output'],
-    TResult2 = never
-  >(
-    onfulfilled?:
-      | ((
-          value: (TSnapshot & { status: 'done' })['output']
-        ) => TResult1 | PromiseLike<TResult1>)
-      | null,
-    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
-  ) => Promise<TResult1 | TResult2>;
 }
 
 export type AnyActorRef = ActorRef<any, any, any>;

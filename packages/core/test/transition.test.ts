@@ -4,7 +4,9 @@ import {
   EventFrom,
   fromPromise,
   fromTransition,
+  toPromise,
   transition,
+  ExecutableActionObject,
   SpecialExecutableAction
 } from '../src';
 import { createDoneActorEvent } from '../src/eventUtils';
@@ -536,7 +538,7 @@ describe('transition function', () => {
         case '@xstate.start': {
           action.exec.apply(null, action.args);
           const startedActor = action.args[0];
-          const output = await startedActor;
+          const output = await toPromise(startedActor);
           postEvent(createDoneActorEvent(startedActor.id, output));
         }
 
