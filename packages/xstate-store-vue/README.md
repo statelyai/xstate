@@ -32,7 +32,7 @@ const count = useSelector(store, (s) => s.context.count);
 
 ## API
 
-### `useSelector(store, selector?, options?)`
+### `useSelector(store, selector?, compare?)`
 
 A composable that subscribes to a store and returns a selected value as a readonly ref.
 
@@ -62,7 +62,7 @@ const snapshot = useSelector(store);
 
 - `store` - Store created with `createStore()`
 - `selector?` - Function to select a value from snapshot
-- `options?` - Object with optional `compare` equality function
+- `compare?` - Equality function (default: `===`)
 
 **Returns:** Readonly ref of the selected value
 

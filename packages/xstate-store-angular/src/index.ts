@@ -8,8 +8,12 @@ import {
   linkedSignal,
   runInInjectionContext
 } from '@angular/core';
-import type { CreateSignalOptions, Signal } from '@angular/core';
-import { shallowEqual, type Readable } from '@xstate/store';
+import type { Signal } from '@angular/core';
+import { type Readable } from '@xstate/store';
+
+function defaultCompare<T>(a: T, b: T) {
+  return a === b;
+}
 
 /**
  * An Angular function that creates a signal subscribed to a store, selecting a
@@ -34,32 +38,28 @@ import { shallowEqual, type Readable } from '@xstate/store';
  * @param store The store, created from `createStore(…)`
  * @param selector A function which takes in the snapshot and returns a selected
  *   value
- * @param options Optional signal creation options with compare function and
- *   injector
+ * @param compare An optional function which compares the selected value to the
+ *   previous value
  * @returns A readonly Signal of the selected value
  */
 export function injectStore<TStore extends Readable<any>, TSelected>(
   store: TStore,
   selector?: (state: TStore extends Readable<infer T> ? T : never) => TSelected,
-  options?: CreateSignalOptions<TSelected> & { injector?: Injector }
+  compare?: (a: TSelected, b: TSelected) => boolean
 ): Signal<TSelected>;
 export function injectStore<TStore extends Readable<any>, TSelected>(
   store: TStore,
   selector: (
     state: TStore extends Readable<infer T> ? T : never
   ) => TSelected = (d) => d as TSelected,
-  options: CreateSignalOptions<TSelected> & { injector?: Injector } = {
-    equal: shallowEqual
-  }
+  compare: (a: TSelected, b: TSelected) => boolean = defaultCompare
 ): Signal<TSelected> {
-  if (!options.injector) {
-    assertInInjectionContext(injectStore);
-    options.injector = inject(Injector);
-  }
+  assertInInjectionContext(injectStore);
+  const injector = inject(Injector);
 
-  return runInInjectionContext(options.injector, () => {
+  return runInInjectionContext(injector, () => {
     const destroyRef = inject(DestroyRef);
-    const slice = linkedSignal(() => selector(store.get()), options);
+    const slice = linkedSignal(() => selector(store.get()), { equal: compare });
 
     const { unsubscribe } = store.subscribe((s) => {
       slice.set(selector(s));

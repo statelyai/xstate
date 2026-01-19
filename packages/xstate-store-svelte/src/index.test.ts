@@ -55,9 +55,11 @@ describe('@xstate/store-svelte', () => {
       });
 
       let updateCount = 0;
-      const items$ = useSelector(store, (s) => s.context.items, {
-        compare: (a, b) => JSON.stringify(a) === JSON.stringify(b)
-      });
+      const items$ = useSelector(
+        store,
+        (s) => s.context.items,
+        (a, b) => JSON.stringify(a) === JSON.stringify(b)
+      );
 
       const unsubscribe = items$.subscribe(() => {
         updateCount++;
