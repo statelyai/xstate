@@ -1,12 +1,10 @@
 export * from '@xstate/store';
 
-import { shallowEqual, type Readable as XStateReadable } from '@xstate/store';
+import { type Readable as XStateReadable } from '@xstate/store';
 import type { Readable } from 'svelte/store';
 
-type EqualityFn<T> = (objA: T, objB: T) => boolean;
-
-interface UseSelectorOptions<T> {
-  compare?: EqualityFn<T>;
+function defaultCompare<T>(a: T, b: T) {
+  return a === b;
 }
 
 /**
@@ -29,7 +27,8 @@ interface UseSelectorOptions<T> {
  * @param store The store, created from `createStore(…)`
  * @param selector A function which takes in the snapshot and returns a selected
  *   value
- * @param options Optional configuration with compare function
+ * @param compare An optional function which compares the selected value to the
+ *   previous value
  * @returns A Svelte readable store
  */
 export function useSelector<TStore extends XStateReadable<any>, TSelected>(
@@ -37,10 +36,8 @@ export function useSelector<TStore extends XStateReadable<any>, TSelected>(
   selector: (
     state: TStore extends XStateReadable<infer T> ? T : never
   ) => TSelected = (d) => d as any,
-  options: UseSelectorOptions<TSelected> = {}
+  compare: (a: TSelected, b: TSelected) => boolean = defaultCompare
 ): Readable<TSelected> {
-  const compare = options.compare ?? shallowEqual;
-
   return {
     subscribe(run) {
       let currentValue = selector(store.get());

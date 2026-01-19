@@ -134,6 +134,66 @@ describe('@xstate/store-angular', () => {
       expect(fixture.nativeElement.textContent).toContain('10');
       expect(effectCount).toBe(2); // No re-render for ignored field
     });
+
+    it('should use custom comparison function', () => {
+      const store = createStore({
+        context: { items: [1, 2] },
+        on: {
+          same: (ctx) => ({ ...ctx, items: [1, 2] }),
+          different: (ctx) => ({ ...ctx, items: [3, 4] })
+        }
+      });
+
+      let effectCount = 0;
+
+      @Component({
+        template: `
+          <p id="items">{{ items() }}</p>
+          <button id="same" (click)="sendSame()">Same</button>
+          <button id="different" (click)="sendDifferent()">Different</button>
+        `,
+        standalone: true
+      })
+      class TestComponent {
+        items = injectStore(
+          store,
+          (state) => state.context.items,
+          (a, b) => JSON.stringify(a) === JSON.stringify(b)
+        );
+
+        constructor() {
+          effect(() => {
+            console.log(this.items());
+            effectCount++;
+          });
+        }
+
+        sendSame() {
+          store.send({ type: 'same' });
+        }
+
+        sendDifferent() {
+          store.send({ type: 'different' });
+        }
+      }
+
+      const fixture = TestBed.createComponent(TestComponent);
+      fixture.detectChanges();
+
+      const debugElement = fixture.debugElement;
+
+      expect(effectCount).toBe(1); // Initial
+
+      debugElement.query(By.css('#same')).triggerEventHandler('click', null);
+      fixture.detectChanges();
+      expect(effectCount).toBe(1); // Same content, should not trigger
+
+      debugElement
+        .query(By.css('#different'))
+        .triggerEventHandler('click', null);
+      fixture.detectChanges();
+      expect(effectCount).toBe(2); // Different content
+    });
   });
 
   describe('re-exports', () => {

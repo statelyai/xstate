@@ -36,7 +36,7 @@ export class CounterComponent {
 
 ## API
 
-### `injectStore(store, selector?, options?)`
+### `injectStore(store, selector?, compare?)`
 
 An Angular function that creates a signal subscribed to a store, selecting a value via an optional selector function.
 
@@ -67,7 +67,7 @@ export class CounterComponent {
 
 - `store` - Store created with `createStore()`
 - `selector?` - Function to select a value from snapshot
-- `options?` - Signal creation options with optional `equal` function and `injector`
+- `compare?` - Equality function (default: `===`)
 
 **Returns:** Readonly Angular signal of the selected value
 
