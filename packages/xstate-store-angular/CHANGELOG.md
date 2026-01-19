@@ -1,5 +1,11 @@
 # @xstate/store-angular
 
+## 1.1.0
+
+### Minor Changes
+
+- [#5452](https://github.com/statelyai/xstate/pull/5452) [`9992398`](https://github.com/statelyai/xstate/commit/9992398c2de922aff45804d8bfcbdc2a08594138) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Ensured that `compare` argument is a direct comparison function.
+
 ## 1.0.1
 
 ### Patch Changes
