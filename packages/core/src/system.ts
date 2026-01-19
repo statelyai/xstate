@@ -198,6 +198,7 @@ export function createSystem<T extends ActorSystemInfo>(
     _set: (systemId, actorRef) => {
       const existing = keyedActors.get(systemId);
       if (existing && existing !== actorRef) {
+        debugger;
         throw new Error(
           `Actor with system ID '${systemId as string}' already exists.`
         );

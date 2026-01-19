@@ -32,7 +32,8 @@ import type {
   InputFrom,
   Snapshot,
   SnapshotFrom,
-  AnyTransitionDefinition
+  AnyTransitionDefinition,
+  AnyActorScope
 } from './types.ts';
 import {
   ActorOptions,
@@ -862,3 +863,19 @@ export const interpret = createActor;
  * @alias
  */
 export type Interpreter = typeof Actor;
+
+function unregisterRecursively(
+  actorScope: AnyActorScope,
+  actorRef: AnyActorRef
+) {
+  // unregister children first (depth-first)
+  const snapshot = actorRef.getSnapshot();
+  if (snapshot && 'children' in snapshot) {
+    for (const child of Object.values(
+      snapshot.children as Record<string, AnyActorRef>
+    )) {
+      unregisterRecursively(actorScope, child);
+    }
+  }
+  actorScope.system._unregister(actorRef);
+}

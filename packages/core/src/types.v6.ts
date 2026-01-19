@@ -1,7 +1,7 @@
 import { StandardSchemaV1 } from './schema.types.ts';
 import { MachineSnapshot } from './State';
 import {
-  Action2,
+  Action,
   ActorRef,
   AnyActorLogic,
   AnyActorRef,
@@ -271,7 +271,7 @@ export interface Next_StateNodeConfig<
       TMeta
     >;
   };
-  entry?: Action2<
+  entry?: Action<
     TContext,
     TEvent,
     TEmitted,
@@ -280,7 +280,7 @@ export interface Next_StateNodeConfig<
     TGuardMap,
     TDelayMap
   >;
-  exit?: Action2<
+  exit?: Action<
     TContext,
     TEvent,
     TEmitted,

@@ -6,8 +6,7 @@ import {
   XSTATE_INIT,
   STATE_DELIMITER,
   STATE_IDENTIFIER,
-  XSTATE_STOP,
-  WILDCARD
+  XSTATE_STOP
 } from './constants.ts';
 import { matchesEventDescriptor } from './utils.ts';
 import {
@@ -22,12 +21,12 @@ import {
   StateValue,
   StateValueMap,
   TransitionDefinition,
-  UnknownAction,
+  AnyAction,
   AnyTransitionConfig,
   AnyActorScope,
   AnyStateMachine,
   EnqueueObject,
-  Action2,
+  Action,
   AnyActorRef
 } from './types.ts';
 import {
@@ -920,7 +919,7 @@ export function microstep(
   }
 
   let context = nextState.context;
-  const actions: UnknownAction[] = [];
+  const actions: AnyAction[] = [];
   const internalEvents: EventObject[] = [];
 
   for (const t of filteredTransitions) {
@@ -966,15 +965,14 @@ export function microstep(
   const nextStateNodes = [...mutStateNodeSet];
 
   if (nextState.status === 'done') {
-    const allExitActions: UnknownAction[] = [];
+    const allExitActions: AnyAction[] = [];
     const nextStateNodesToExit = nextStateNodes.sort(
       (a, b) => b.order - a.order
     );
-    let context: MachineContext | undefined;
 
     nextStateNodesToExit.forEach((stateNode) => {
       if (stateNode.exit) {
-        const [actions, nextContext, internalEvents] =
+        const [actions, , internalEvents] =
           getActionsAndContextFromTransitionFn(stateNode.exit, {
             context: nextState.context,
             event,
@@ -985,10 +983,6 @@ export function microstep(
             machine: currentSnapshot.machine
           });
         allExitActions.push(...actions);
-
-        if (nextContext) {
-          context = nextContext;
-        }
         if (internalEvents?.length) {
           internalQueue.push(...internalEvents);
         }
@@ -1092,7 +1086,7 @@ function enterStates(
     (a, b) => a.order - b.order
   )) {
     mutStateNodeSet.add(stateNodeToEnter);
-    const actions: UnknownAction[] = [];
+    const actions: AnyAction[] = [];
 
     for (const invokeDef of stateNodeToEnter.invoke) {
       invoked = true;
@@ -1250,12 +1244,12 @@ export function getTransitionResult(
 ): {
   targets: Readonly<AnyStateNode[]> | undefined;
   context: MachineContext | undefined;
-  actions: UnknownAction[] | undefined;
+  actions: AnyAction[] | undefined;
   reenter?: boolean;
   internalEvents: EventObject[] | undefined;
 } {
   if (transition.to) {
-    const actions: UnknownAction[] = [];
+    const actions: AnyAction[] = [];
     const internalEvents: EventObject[] = [];
     const enqueue = createEnqueueObject(
       {
@@ -1325,8 +1319,9 @@ export function getTransitionResult(
         },
         stop: (actorRef) => {
           if (actorRef) {
-            actions.push(() => {
-              actorScope.stopChild(actorRef);
+            actions.push({
+              action: builtInActions['@xstate.stopChild'],
+              args: [actorScope, actorRef]
             });
           }
         }
@@ -1356,11 +1351,7 @@ export function getTransitionResult(
     );
 
     const targets = res?.target
-      ? // TODO: remove transition.initial and figure out a better way to
-        // identify initial transitions
-        transition.initial
-        ? resolveInitialTarget(transition.source, [res.target])
-        : resolveTarget(transition.source, [res.target])
+      ? resolveTarget(transition.source, [res.target])
       : undefined;
 
     return {
@@ -1715,7 +1706,7 @@ export function resolveAndExecuteActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
-  actions: UnknownAction[]
+  actions: AnyAction[]
 ): AnyMachineSnapshot {
   let intermediateSnapshot = currentSnapshot;
 
@@ -1761,7 +1752,7 @@ export function resolveAndExecuteActionsWithContext(
     }
 
     if (resolvedAction && '_special' in resolvedAction) {
-      const specialAction = resolvedAction as unknown as Action2<
+      const specialAction = resolvedAction as unknown as Action<
         any,
         any,
         any,
@@ -2046,7 +2037,7 @@ function createEnqueueObject(
 export const emptyEnqueueObject = createEnqueueObject({}, () => {});
 
 function getActionsAndContextFromTransitionFn(
-  action2: Action2<any, any, any, any>,
+  action2: Action<any, any, any, any>,
   {
     context,
     event,

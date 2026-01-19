@@ -212,13 +212,6 @@ export type WithDynamicParams<
     >
   : never;
 
-export type Action = {
-  action: (...args: any[]) => any;
-  args: unknown[];
-};
-
-export type UnknownAction = Action;
-
 export type StateKey = string | AnyMachineSnapshot;
 
 export interface StateValueMap {
@@ -277,16 +270,16 @@ export interface InitialTransitionConfig<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays']
 > extends TransitionConfig<
-    TContext,
-    TEvent,
-    TEvent,
-    TEmitted,
-    TMeta,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap
-  > {
+  TContext,
+  TEvent,
+  TEvent,
+  TEmitted,
+  TMeta,
+  TActionMap,
+  TActorMap,
+  TGuardMap,
+  TDelayMap
+> {
   target: string;
 }
 
@@ -316,7 +309,7 @@ export interface InvokeDefinition<
 
   systemId: string | undefined;
 
-  logic: AnyActorLogic;
+  logic: AnyActorLogic | (({ actors }: { actors: TActorMap }) => AnyActorLogic);
   /** The source of the actor logic to be invoked */
   src: AnyActorLogic | string;
 
@@ -378,6 +371,17 @@ export interface InvokeDefinition<
         >
       >;
 }
+
+export type AnyInvokeDefinition = InvokeDefinition<
+  MachineContext,
+  EventObject,
+  EventObject,
+  MetaObject,
+  Implementations['actions'],
+  Implementations['actors'],
+  Implementations['guards'],
+  Implementations['delays']
+>;
 
 type Delay<TDelay extends string> = TDelay | number;
 
@@ -937,7 +941,7 @@ export interface StateNodeConfig<
     TDelayMap
   >;
   /** The action(s) to be executed upon entering the state node. */
-  entry?: Action2<
+  entry?: Action<
     TContext,
     TEvent,
     TEmitted,
@@ -947,7 +951,7 @@ export interface StateNodeConfig<
     TDelayMap
   >;
   /** The action(s) to be executed upon exiting the state node. */
-  exit?: Action2<
+  exit?: Action<
     TContext,
     TEvent,
     TEmitted,
@@ -1231,17 +1235,17 @@ export interface MachineTypes<
   TEmitted extends EventObject,
   TMeta extends MetaObject
 > extends SetupTypes<
-    TContext,
-    TEvent,
-    // in machine types we currently don't support `TChildren`
-    // and IDs can still be configured through `TActor['id']`
-    never,
-    TTag,
-    TInput,
-    TOutput,
-    TEmitted,
-    TMeta
-  > {
+  TContext,
+  TEvent,
+  // in machine types we currently don't support `TChildren`
+  // and IDs can still be configured through `TActor['id']`
+  never,
+  TTag,
+  TInput,
+  TOutput,
+  TEmitted,
+  TMeta
+> {
   actors?: TActor;
   actions?: TAction;
   guards?: TGuard;
@@ -1249,8 +1253,9 @@ export interface MachineTypes<
   meta?: TMeta;
 }
 
-export interface HistoryStateNode<TContext extends MachineContext>
-  extends StateNode<TContext> {
+export interface HistoryStateNode<
+  TContext extends MachineContext
+> extends StateNode<TContext> {
   history: 'shallow' | 'deep';
   target: string | undefined;
 }
@@ -1269,8 +1274,10 @@ export type StateFrom<
     ? ReturnType<ReturnType<T>['transition']>
     : never;
 
-export interface DoneActorEvent<TOutput = unknown, TId extends string = string>
-  extends EventObject {
+export interface DoneActorEvent<
+  TOutput = unknown,
+  TId extends string = string
+> extends EventObject {
   type: `xstate.done.actor.${TId}`;
   output: TOutput;
   actorId: TId;
@@ -1330,23 +1337,23 @@ export interface TransitionDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject
 > extends Omit<
-    TransitionConfig<
-      TContext,
-      TEvent,
-      TEvent,
-      TODO,
-      TODO,
-      TODO,
-      TODO,
-      TODO, // TEmitted
-      TODO // TMeta
-    >,
-    | 'target'
-    // `guard` is correctly rejected by `extends` here and `actions` should be too
-    // however, `any` passed to `TransitionConfig` as `TAction` collapses its `.actions` to `any` and it's accidentally allowed here
-    // it doesn't exactly have to be incorrect, we are overriding this here anyway but it looks like a lucky accident rather than smth done on purpose
-    | 'guard'
-  > {
+  TransitionConfig<
+    TContext,
+    TEvent,
+    TEvent,
+    TODO,
+    TODO,
+    TODO,
+    TODO,
+    TODO, // TEmitted
+    TODO // TMeta
+  >,
+  | 'target'
+  // `guard` is correctly rejected by `extends` here and `actions` should be too
+  // however, `any` passed to `TransitionConfig` as `TAction` collapses its `.actions` to `any` and it's accidentally allowed here
+  // it doesn't exactly have to be incorrect, we are overriding this here anyway but it looks like a lucky accident rather than smth done on purpose
+  | 'guard'
+> {
   target: ReadonlyArray<AnyStateNode> | undefined;
   source: AnyStateNode;
   reenter: boolean;
@@ -1620,8 +1627,10 @@ export interface BaseActorRef<TEvent extends EventObject> {
   send: (event: TEvent) => void;
 }
 
-export interface ActorLike<TCurrent, TEvent extends EventObject>
-  extends Subscribable<TCurrent> {
+export interface ActorLike<
+  TCurrent,
+  TEvent extends EventObject
+> extends Subscribable<TCurrent> {
   send: (event: TEvent) => void;
 }
 
@@ -1629,8 +1638,8 @@ export interface ActorRef<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TEmitted extends EventObject = EventObject
-> extends Subscribable<TSnapshot>,
-    InteropObservable<TSnapshot> {
+>
+  extends Subscribable<TSnapshot>, InteropObservable<TSnapshot> {
   /** The unique identifier for this actor relative to its parent. */
   id: string;
   /**
@@ -2212,9 +2221,7 @@ export interface ExecutableActionObject {
   type: string & {};
   params: NonReducibleUnknown;
   args: unknown[];
-  exec:
-    | ((info: ActionArgs<any, any, any>, params: unknown) => void)
-    | undefined;
+  exec: (() => void) | undefined;
 }
 
 export type SpecialExecutableAction = Values<{
@@ -2224,8 +2231,9 @@ export type SpecialExecutableAction = Values<{
   };
 }>;
 
-export interface ToExecutableAction<T extends ParameterizedObject>
-  extends ExecutableActionObject {
+export interface ToExecutableAction<
+  T extends ParameterizedObject
+> extends ExecutableActionObject {
   type: T['type'];
   params: T['params'];
   exec: undefined;
@@ -2259,7 +2267,7 @@ export type EnqueueObject<
   stop: (actorRef?: AnyActorRef) => void;
 };
 
-export type Action2<
+export type Action<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmittedEvent extends EventObject,
@@ -2289,4 +2297,12 @@ export type Action2<
   children?: Record<string, AnyActorRef | undefined>;
 } | void;
 
-export type AnyAction2 = Action2<any, any, any, any, any, any, any>;
+export type AnyAction = Action<
+  MachineContext,
+  EventObject,
+  EventObject,
+  Implementations['actions'],
+  Implementations['actors'],
+  Implementations['guards'],
+  Implementations['delays']
+>;

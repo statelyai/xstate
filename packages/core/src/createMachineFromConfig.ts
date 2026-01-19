@@ -1,5 +1,5 @@
 import {
-  Action2,
+  Action,
   AnyEventObject,
   AnyStateMachine,
   EventObject,
@@ -290,7 +290,7 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
 
   function iterActions(
     actions: ActionJSON[]
-  ): Action2<any, any, any, any, any, any, any> {
+  ): Action<any, any, any, any, any, any, any> {
     return (x, enq) => {
       let context: MachineContext | undefined;
       for (const action of actions) {

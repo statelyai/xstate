@@ -29,7 +29,8 @@ import type {
   AnyEventObject,
   AnyAction2,
   AnyTransitionDefinition,
-  AnyMachineSnapshot
+  AnyMachineSnapshot,
+  AnyInvokeDefinition
 } from './types.ts';
 import { Next_StateNodeConfig } from './types.v6.ts';
 import {
@@ -229,18 +230,7 @@ export class StateNode<
   }
 
   /** The logic invoked as actors by this state node. */
-  public get invoke(): Array<
-    InvokeDefinition<
-      TContext,
-      TEvent,
-      ProvidedActor,
-      ParameterizedObject,
-      ParameterizedObject,
-      string,
-      TODO, // TEmitted
-      TODO // TMeta
-    >
-  > {
+  public get invoke(): Array<AnyInvokeDefinition> {
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invokeConfig, i) => {
         const { src, systemId } = invokeConfig;
@@ -250,19 +240,10 @@ export class StateNode<
         return {
           ...invokeConfig,
           src: sourceName,
-          logic: typeof src === 'string' ? undefined : src,
+          logic: src,
           id: resolvedId,
           systemId: systemId
-        } as InvokeDefinition<
-          TContext,
-          TEvent,
-          ProvidedActor,
-          ParameterizedObject,
-          ParameterizedObject,
-          string,
-          TODO, // TEmitted
-          TODO // TMeta
-        >;
+        };
       })
     );
   }
