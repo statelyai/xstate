@@ -107,6 +107,8 @@ interface MachineSnapshotBase<
   _nodes: Array<StateNode<TContext, TEvent>>;
   /** An object mapping actor names to spawned/invoked actors. */
   children: TChildren;
+  /** The event that triggered this snapshot. */
+  event: TEvent;
 
   /**
    * Whether the current state value is a subset of the given partial state
@@ -380,6 +382,7 @@ export function createMachineSnapshot<
     tags: new Set(config._nodes.flatMap((sn) => sn.tags)),
     children: config.children as any,
     historyValue: config.historyValue || {},
+    event: config.event as TEvent,
     matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
     can: machineSnapshotCan,
