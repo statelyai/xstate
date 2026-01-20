@@ -1905,6 +1905,7 @@ export type Observer<T> = {
   next?: (value: T) => void;
   error?: (err: unknown) => void;
   complete?: () => void;
+  id?: string;
 };
 
 export interface Subscription {
