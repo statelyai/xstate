@@ -419,7 +419,6 @@
 ### Minor Changes
 
 - [#3778](https://github.com/statelyai/xstate/pull/3778) [`f12248b23`](https://github.com/statelyai/xstate/commit/f12248b2379e4e554d69a238019216feea5211f6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createActorContext(...)` helper has been introduced to make global actors easier to use with React. It outputs a React Context object with the following properties:
-
   - `.Provider` - The React Context provider
   - `.useActor(...)` - A hook that can be used to get the current state and send events to the actor
   - `.useSelector(...)` - A hook that can be used to select some derived state from the actor's state
