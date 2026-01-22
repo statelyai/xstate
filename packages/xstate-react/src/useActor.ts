@@ -43,7 +43,10 @@ export function useActor<TLogic extends AnyActorLogic>(
 
   const subscribe = useCallback(
     (handleStoreChange: () => void) => {
-      const { unsubscribe } = actorRef.subscribe(handleStoreChange);
+      const { unsubscribe } = actorRef.subscribe({
+        next: handleStoreChange,
+        error: handleStoreChange
+      });
       return unsubscribe;
     },
     [actorRef]
