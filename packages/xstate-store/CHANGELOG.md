@@ -1,5 +1,81 @@
 # @xstate/store
 
+## 3.15.0
+
+### Minor Changes
+
+- [#5441](https://github.com/statelyai/xstate/pull/5441) [`6ba9538`](https://github.com/statelyai/xstate/commit/6ba9538e05022c9aad9e4a4f089a87aaed54c06a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added new framework adapter packages for `@xstate/store` and deprecated:
+  - `@xstate/store/react` (use `@xstate/store-react` instead)
+  - `@xstate/store/solid` (use `@xstate/store-solid` instead)
+
+  ```diff
+  - import { useSelector } from '@xstate/store/react';
+  + import { useSelector } from '@xstate/store-react';
+  ```
+
+  ```diff
+  - import { useSelector } from '@xstate/store/solid';
+  + import { useSelector } from '@xstate/store-solid';
+  ```
+
+## 3.14.1
+
+### Patch Changes
+
+- [#5437](https://github.com/statelyai/xstate/pull/5437) [`ae93af1`](https://github.com/statelyai/xstate/commit/ae93af1a9813c9e7f6ad5eb34fe0f087c147e890) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Update the internal atom implementation (alien-signals)
+
+## 3.14.0
+
+### Minor Changes
+
+- [#5427](https://github.com/statelyai/xstate/pull/5427) [`77ec4ad`](https://github.com/statelyai/xstate/commit/77ec4ad34e3f7e7109a41edd13353bec640cd1a7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `.with()` method for store extensions.
+
+  ```ts
+  import { createStore } from '@xstate/store';
+  import { undoRedo } from '@xstate/store/undo';
+
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 }),
+      dec: (ctx) => ({ count: ctx.count - 1 })
+    }
+  }).with(undoRedo());
+
+  store.trigger.inc(); // count = 1
+
+  // Added from the undoRedo extension
+  store.trigger.undo(); // count = 0
+  store.trigger.redo(); // count = 1
+  ```
+
+## 3.13.0
+
+### Minor Changes
+
+- [#5415](https://github.com/statelyai/xstate/pull/5415) [`068f2a7`](https://github.com/statelyai/xstate/commit/068f2a7932343a3a7d418fa87e172a9de9f5e6cb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add snapshot-based undo/redo strategy to `undoRedo(…)`:
+
+  ```ts
+  // Snapshot strategy (faster undo/redo, more memory)
+  undoRedo(config, {
+    strategy: 'snapshot',
+    historyLimit: 10
+  });
+  ```
+
+## 3.12.0
+
+### Minor Changes
+
+- [#5410](https://github.com/statelyai/xstate/pull/5410) [`45d97de`](https://github.com/statelyai/xstate/commit/45d97de0a174b274aea69d02e27a59b224c2b855) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix go-to-definition for triggers
+
+- [#5414](https://github.com/statelyai/xstate/pull/5414) [`524a207`](https://github.com/statelyai/xstate/commit/524a207e20ee07560170817052763ad7f3c71d66) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Computed atoms can now access their previous value via an optional second parameter:
+
+  ```ts
+  const count = createAtom(1);
+  const double = createAtom<number>((_, prev) => count.get() + (prev ?? 0));
+  ```
+
 ## 3.11.2
 
 ### Patch Changes

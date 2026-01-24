@@ -30,7 +30,10 @@
     "packages/**/{true,false}.ts",
     // file acts as a type test
     "packages/xstate-svelte/test/interpreterAsReadable.svelte",
-    "docs/**"
+    "docs/**",
+    // copy-pasted implementation from alien-signals
+    "packages/xstate-store/src/alien.ts",
+    "scripts/**"
   ],
   "ignoreBinaries": ["svelte-check", "docs:build"],
   "ignoreDependencies": [
@@ -40,7 +43,11 @@
     "solid-js",
     "xstate",
     "@types/ws",
-    "vitest"
+    "vitest",
+    // peer dependencies that may be needed but not directly imported
+    "@angular/compiler-cli",
+    "@sveltejs/vite-plugin-svelte",
+    "@testing-library/svelte"
   ],
   "vitest": {
     "config": ["vitest.config.mts", "vitest.config.**.mts"],

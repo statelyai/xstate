@@ -1,5 +1,26 @@
 # xstate
 
+## 5.25.1
+
+### Patch Changes
+
+- [#5440](https://github.com/statelyai/xstate/pull/5440) [`e36e299`](https://github.com/statelyai/xstate/commit/e36e299a319bc8d0f124f0435b30f095cbbd0ce6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `systemId` cleanup for nested children on `stopChild`
+
+## 5.25.0
+
+### Minor Changes
+
+- [#5422](https://github.com/statelyai/xstate/pull/5422) [`329297b`](https://github.com/statelyai/xstate/commit/329297b3bf859668ed1dfc260c14e773a0413fd4) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add partial descriptor support to `assertEvent(…)`
+
+  ```ts
+  // Matches any event with a type that starts with `FEEDBACK.`
+  assertEvent(event, 'FEEDBACK.*');
+  ```
+
+### Patch Changes
+
+- [#5420](https://github.com/statelyai/xstate/pull/5420) [`2eb8274`](https://github.com/statelyai/xstate/commit/2eb82745dbdf4ac8dfbcc3c426ed4d81c732844b) Thanks [@assertnotnull](https://github.com/assertnotnull)! - Fix a bug in Cordova when iterating an empty Map
+
 ## 5.24.0
 
 ### Minor Changes
