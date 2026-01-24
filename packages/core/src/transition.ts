@@ -90,6 +90,7 @@ export function getPotentialTransitions(
 ): AnyTransitionDefinition[] {
   const potentialTransitions: AnyTransitionDefinition[] = [];
   const atomicStates = state._nodes.filter(isAtomicStateNode);
+  const visited = new Set();
 
   // Collect all transitions from atomic states and their ancestors
   // Process atomic states in document order (as they appear in state._nodes)
@@ -99,6 +100,11 @@ export function getPotentialTransitions(
     for (const s of [stateNode].concat(
       getProperAncestors(stateNode, undefined)
     )) {
+      if (visited.has(s.id)) {
+        continue;
+      }
+      visited.add(s.id);
+
       // Get all transitions for each event type
       // Include ALL transitions, even if the same event type appears in multiple state nodes
       // This is important for guarded transitions - all are "potential" regardless of guard evaluation

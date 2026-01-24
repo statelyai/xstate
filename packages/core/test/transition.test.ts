@@ -699,16 +699,15 @@ describe('getPotentialTransitions', () => {
     const transitions = getPotentialTransitions(state);
 
     expect(transitions).toHaveLength(2);
-    // Order: on transitions first, then after transitions
-    const eventTypes = transitions.map((t) => t.eventType);
-    expect(eventTypes).toContain('GO_C');
-    expect(eventTypes).toContain('xstate.after.1000.(machine).a');
-    const targets = transitions.map((t) => t.target?.[0]?.key);
-    expect(targets).toContain('b');
-    expect(targets).toContain('c');
+    // Order: on transitions first (in definition order), then after transitions
+    expect(transitions.map((t) => t.eventType)).toEqual([
+      'GO_C',
+      'xstate.after.1000.(machine).a'
+    ]);
+    expect(transitions.map((t) => t.target?.[0]?.key)).toEqual(['c', 'b']);
   });
 
-  it('should include transitions from parent states', () => {
+  it('should include transitions from parent states in depth-first order', () => {
     const machine = createMachine({
       initial: 'parent',
       states: {
@@ -736,14 +735,11 @@ describe('getPotentialTransitions', () => {
 
     const transitions = getPotentialTransitions(state);
 
-    const eventTypes = transitions.map((t) => t.eventType);
-    expect(eventTypes).toContain('CHILD_EVENT');
-    expect(eventTypes).toContain('PARENT_EVENT');
     // Order: child state transitions first, then parent state transitions
-    // CHILD_EVENT should come before PARENT_EVENT
-    const childIndex = eventTypes.indexOf('CHILD_EVENT');
-    const parentIndex = eventTypes.indexOf('PARENT_EVENT');
-    expect(childIndex).toBeLessThan(parentIndex);
+    expect(transitions.map((t) => t.eventType)).toEqual([
+      'CHILD_EVENT',
+      'PARENT_EVENT'
+    ]);
   });
 
   it('should include all guarded transitions from different state nodes with same event type', () => {
@@ -795,5 +791,165 @@ describe('getPotentialTransitions', () => {
     expect(sameEventTransitions[0].target?.[0]?.key).toBe('childTarget');
     expect(sameEventTransitions[1].target?.[0]?.key).toBe('parentTarget');
     expect(sameEventTransitions[2].target?.[0]?.key).toBe('parentTarget2');
+  });
+
+  it('should return transitions from parallel states in document order', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        regionA: {
+          initial: 'a1',
+          on: {
+            REGION_A_EVENT: '.a2'
+          },
+          states: {
+            a1: {
+              on: {
+                A1_EVENT: 'a2'
+              }
+            },
+            a2: {}
+          }
+        },
+        regionB: {
+          initial: 'b1',
+          on: {
+            REGION_B_EVENT: '.b2'
+          },
+          states: {
+            b1: {
+              on: {
+                B1_EVENT: 'b2'
+              }
+            },
+            b2: {}
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+    const state = actor.getSnapshot();
+
+    const transitions = getPotentialTransitions(state);
+
+    // Order: regionA atomic state first (depth-first), then regionB atomic state
+    // Within each: child transitions first, then parent transitions
+    expect(transitions.map((t) => t.eventType)).toEqual([
+      'A1_EVENT', // regionA.a1 (atomic)
+      'REGION_A_EVENT', // regionA (parent)
+      'B1_EVENT', // regionB.b1 (atomic)
+      'REGION_B_EVENT' // regionB (parent)
+    ]);
+  });
+
+  it('should return transitions from deeply nested compound states in depth-first order', () => {
+    const machine = createMachine({
+      initial: 'level1',
+      on: {
+        ROOT_EVENT: '.level1'
+      },
+      states: {
+        level1: {
+          initial: 'level2',
+          on: {
+            LEVEL1_EVENT: '.level2'
+          },
+          states: {
+            level2: {
+              initial: 'level3',
+              on: {
+                LEVEL2_EVENT: '.level3'
+              },
+              states: {
+                level3: {
+                  on: {
+                    LEVEL3_EVENT: 'level3'
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+    const state = actor.getSnapshot();
+
+    const transitions = getPotentialTransitions(state);
+
+    // Order: deepest state first, then ancestors up to root
+    expect(transitions.map((t) => t.eventType)).toEqual([
+      'LEVEL3_EVENT', // level3 (atomic, deepest)
+      'LEVEL2_EVENT', // level2 (parent of level3)
+      'LEVEL1_EVENT', // level1 (grandparent)
+      'ROOT_EVENT' // root (great-grandparent)
+    ]);
+  });
+
+  it('should return transitions from parallel states with nested compound states', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      on: {
+        ROOT_EVENT: {}
+      },
+      states: {
+        regionA: {
+          initial: 'nested',
+          on: {
+            REGION_A_EVENT: '.nested'
+          },
+          states: {
+            nested: {
+              initial: 'deep',
+              on: {
+                NESTED_A_EVENT: '.deep'
+              },
+              states: {
+                deep: {
+                  on: {
+                    DEEP_A_EVENT: 'deep'
+                  }
+                }
+              }
+            }
+          }
+        },
+        regionB: {
+          initial: 'leaf',
+          on: {
+            REGION_B_EVENT: '.leaf'
+          },
+          states: {
+            leaf: {
+              on: {
+                LEAF_B_EVENT: 'leaf'
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+    const state = actor.getSnapshot();
+
+    const transitions = getPotentialTransitions(state);
+
+    // Order: regionA's atomic state (depth-first up to regionA),
+    // then regionB's atomic state (depth-first up to regionB),
+    // then root
+    expect(transitions.map((t) => t.eventType)).toEqual([
+      'DEEP_A_EVENT', // regionA.nested.deep (atomic)
+      'NESTED_A_EVENT', // regionA.nested
+      'REGION_A_EVENT', // regionA
+      'ROOT_EVENT', // root
+      'LEAF_B_EVENT', // regionB.leaf (atomic)
+      'REGION_B_EVENT' // regionB
+    ]);
   });
 });
