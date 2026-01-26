@@ -1,5 +1,23 @@
 # @xstate/store
 
+## 3.15.0
+
+### Minor Changes
+
+- [#5441](https://github.com/statelyai/xstate/pull/5441) [`6ba9538`](https://github.com/statelyai/xstate/commit/6ba9538e05022c9aad9e4a4f089a87aaed54c06a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added new framework adapter packages for `@xstate/store` and deprecated:
+  - `@xstate/store/react` (use `@xstate/store-react` instead)
+  - `@xstate/store/solid` (use `@xstate/store-solid` instead)
+
+  ```diff
+  - import { useSelector } from '@xstate/store/react';
+  + import { useSelector } from '@xstate/store-react';
+  ```
+
+  ```diff
+  - import { useSelector } from '@xstate/store/solid';
+  + import { useSelector } from '@xstate/store-solid';
+  ```
+
 ## 3.14.1
 
 ### Patch Changes

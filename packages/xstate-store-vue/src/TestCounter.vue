@@ -1,18 +1,15 @@
 <template>
   <div data-testid="count">{{ count }}</div>
-  <button data-testid="increment" @click="store.trigger.inc()">
+  <button data-testid="increment" @click="store.send({ type: 'inc' })">
     Increment
   </button>
 </template>
 
 <script lang="ts">
 import { Ref, defineComponent } from 'vue';
-import { useSelector } from '@xstate/vue';
-
-import { createStore } from '../src/index.ts';
+import { createStore, useSelector } from './index';
 
 export default defineComponent({
-  emits: ['rerender'],
   setup() {
     const store = createStore({
       context: {
