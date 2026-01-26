@@ -85,7 +85,7 @@ export function initialTransition<T extends AnyActorLogic>(
  * @returns Array of transition definitions from the current state, in
  *   deterministic order
  */
-export function getPotentialTransitions(
+export function getNextTransitions(
   state: AnyMachineSnapshot
 ): AnyTransitionDefinition[] {
   const potentialTransitions: AnyTransitionDefinition[] = [];

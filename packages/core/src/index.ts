@@ -38,7 +38,7 @@ export {
 export {
   transition,
   initialTransition,
-  getPotentialTransitions
+  getNextTransitions
 } from './transition.ts';
 export { waitFor } from './waitFor.ts';
 

@@ -19,7 +19,7 @@ import {
   transition
 } from '../src';
 import { createDoneActorEvent } from '../src/eventUtils';
-import { initialTransition, getPotentialTransitions } from '../src';
+import { initialTransition, getNextTransitions } from '../src';
 import assert from 'node:assert';
 import { resolveReferencedActor } from '../src/utils';
 
@@ -571,7 +571,7 @@ describe('transition function', () => {
   });
 });
 
-describe('getPotentialTransitions', () => {
+describe('getNextTransitions', () => {
   it('should return all transitions from current state', () => {
     const machine = createMachine({
       initial: 'a',
@@ -591,7 +591,7 @@ describe('getPotentialTransitions', () => {
     actor.start();
     const state = actor.getSnapshot();
 
-    const transitions = getPotentialTransitions(state);
+    const transitions = getNextTransitions(state);
 
     expect(transitions).toHaveLength(2);
     // Order should be deterministic: transitions appear in the order they're defined
@@ -630,7 +630,7 @@ describe('getPotentialTransitions', () => {
     actor.start();
     const state = actor.getSnapshot();
 
-    const transitions = getPotentialTransitions(state);
+    const transitions = getNextTransitions(state);
 
     expect(transitions).toHaveLength(3);
     // Order should be deterministic: all GO_B transitions first (in order), then GO_C
@@ -667,7 +667,7 @@ describe('getPotentialTransitions', () => {
     actor.start();
     const state = actor.getSnapshot();
 
-    const transitions = getPotentialTransitions(state);
+    const transitions = getNextTransitions(state);
 
     expect(transitions).toHaveLength(3);
     // Order: on transitions first, then always transitions (in order they appear)
@@ -696,7 +696,7 @@ describe('getPotentialTransitions', () => {
     actor.start();
     const state = actor.getSnapshot();
 
-    const transitions = getPotentialTransitions(state);
+    const transitions = getNextTransitions(state);
 
     expect(transitions).toHaveLength(2);
     // Order: on transitions first (in definition order), then after transitions
@@ -733,7 +733,7 @@ describe('getPotentialTransitions', () => {
     actor.start();
     const state = actor.getSnapshot();
 
-    const transitions = getPotentialTransitions(state);
+    const transitions = getNextTransitions(state);
 
     // Order: child state transitions first, then parent state transitions
     expect(transitions.map((t) => t.eventType)).toEqual([
@@ -779,7 +779,7 @@ describe('getPotentialTransitions', () => {
     actor.start();
     const state = actor.getSnapshot();
 
-    const transitions = getPotentialTransitions(state);
+    const transitions = getNextTransitions(state);
 
     // Should include all transitions: 2 from parent, 1 from child = 3 total
     expect(transitions).toHaveLength(3);
@@ -832,7 +832,7 @@ describe('getPotentialTransitions', () => {
     actor.start();
     const state = actor.getSnapshot();
 
-    const transitions = getPotentialTransitions(state);
+    const transitions = getNextTransitions(state);
 
     // Order: regionA atomic state first (depth-first), then regionB atomic state
     // Within each: child transitions first, then parent transitions
@@ -879,7 +879,7 @@ describe('getPotentialTransitions', () => {
     actor.start();
     const state = actor.getSnapshot();
 
-    const transitions = getPotentialTransitions(state);
+    const transitions = getNextTransitions(state);
 
     // Order: deepest state first, then ancestors up to root
     expect(transitions.map((t) => t.eventType)).toEqual([
@@ -938,7 +938,7 @@ describe('getPotentialTransitions', () => {
     actor.start();
     const state = actor.getSnapshot();
 
-    const transitions = getPotentialTransitions(state);
+    const transitions = getNextTransitions(state);
 
     // Order: regionA's atomic state (depth-first up to regionA),
     // then regionB's atomic state (depth-first up to regionB),
