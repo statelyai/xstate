@@ -9,7 +9,10 @@ import {
   Snapshot
 } from '../types.ts';
 
-export type PromiseSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
+export type PromiseSnapshot<TOutput, TInput, TError = unknown> = Snapshot<
+  TOutput,
+  TError
+> & {
   input: TInput | undefined;
 };
 
@@ -19,9 +22,10 @@ const XSTATE_PROMISE_REJECT = 'xstate.promise.reject';
 export type PromiseActorLogic<
   TOutput,
   TInput = unknown,
-  TEmitted extends EventObject = EventObject
+  TEmitted extends EventObject = EventObject,
+  TError = unknown
 > = ActorLogic<
-  PromiseSnapshot<TOutput, TInput>,
+  PromiseSnapshot<TOutput, TInput, TError>,
   { type: string; [k: string]: unknown },
   TInput, // input
   AnyActorSystem,
@@ -61,8 +65,8 @@ export type PromiseActorLogic<
  *
  * @see {@link fromPromise}
  */
-export type PromiseActorRef<TOutput> = ActorRefFromLogic<
-  PromiseActorLogic<TOutput, unknown>
+export type PromiseActorRef<TOutput, TError = unknown> = ActorRefFromLogic<
+  PromiseActorLogic<TOutput, unknown, EventObject, TError>
 >;
 
 const controllerMap = new WeakMap<AnyActorRef, AbortController>();
@@ -120,7 +124,8 @@ const controllerMap = new WeakMap<AnyActorRef, AbortController>();
 export function fromPromise<
   TOutput,
   TInput = NonReducibleUnknown,
-  TEmitted extends EventObject = EventObject
+  TEmitted extends EventObject = EventObject,
+  TError = unknown
 >(
   promiseCreator: ({
     input,
@@ -138,8 +143,8 @@ export function fromPromise<
     signal: AbortSignal;
     emit: (emitted: TEmitted) => void;
   }) => PromiseLike<TOutput>
-): PromiseActorLogic<TOutput, TInput, TEmitted> {
-  const logic: PromiseActorLogic<TOutput, TInput, TEmitted> = {
+): PromiseActorLogic<TOutput, TInput, TEmitted, TError> {
+  const logic: PromiseActorLogic<TOutput, TInput, TEmitted, TError> = {
     config: promiseCreator,
     transition: (state, event, scope) => {
       if (state.status !== 'active') {
