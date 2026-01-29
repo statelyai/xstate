@@ -1071,4 +1071,43 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     expect(container.textContent).toBe('two');
   });
+
+  it('should have status error with error when an action throws', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          entry: () => {
+            throw new Error('action_error');
+          }
+        }
+      }
+    });
+
+    const App = () => {
+      const [state, send, actor] = useActor(machine);
+      return (
+        <>
+          <div data-testid="status">{state.status}</div>
+          <div data-testid="error">
+            {(state.error as Error)?.message ?? 'none'}
+          </div>
+          <button onClick={() => send({ type: 'NEXT' })}>Next</button>
+        </>
+      );
+    };
+
+    render(<App />);
+
+    expect(screen.getByTestId('status').textContent).toBe('active');
+    expect(screen.getByTestId('error').textContent).toBe('none');
+
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(screen.getByTestId('status').textContent).toBe('error');
+    expect(screen.getByTestId('error').textContent).toBe('action_error');
+  });
 });
