@@ -2,12 +2,10 @@ export * from '@xstate/store';
 
 import { readonly, ref, toRaw, watch } from 'vue-demi';
 import type { Ref } from 'vue-demi';
-import { shallowEqual, type Readable } from '@xstate/store';
+import { type Readable } from '@xstate/store';
 
-type EqualityFn<T> = (objA: T, objB: T) => boolean;
-
-interface UseSelectorOptions<T> {
-  compare?: EqualityFn<T>;
+function defaultCompare<T>(a: T, b: T) {
+  return a === b;
 }
 
 /**
@@ -32,7 +30,8 @@ interface UseSelectorOptions<T> {
  * @param store The store, created from `createStore(…)`
  * @param selector A function which takes in the snapshot and returns a selected
  *   value
- * @param options Optional configuration with compare function
+ * @param compare An optional function which compares the selected value to the
+ *   previous value
  * @returns A readonly ref of the selected value
  */
 export function useSelector<TStore extends Readable<any>, TSelected>(
@@ -40,10 +39,9 @@ export function useSelector<TStore extends Readable<any>, TSelected>(
   selector: (
     state: TStore extends Readable<infer T> ? T : never
   ) => TSelected = (d) => d as any,
-  options: UseSelectorOptions<TSelected> = {}
+  compare: (a: TSelected, b: TSelected) => boolean = defaultCompare
 ): Readonly<Ref<TSelected>> {
   const slice = ref(selector(store.get())) as Ref<TSelected>;
-  const compare = options.compare ?? shallowEqual;
 
   watch(
     () => store,

@@ -1,5 +1,24 @@
 # xstate
 
+## 5.26.0
+
+### Minor Changes
+
+- [#5406](https://github.com/statelyai/xstate/pull/5406) [`703c3a1`](https://github.com/statelyai/xstate/commit/703c3a109c824f2334ede31d8428e923d2727e6e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `getNextTransitions(state)` utility to get all transitions available from current `state`.
+
+  ```ts
+  import { getNextTransitions } from 'xstate';
+
+  // ...
+
+  const state = actor.getSnapshot();
+  const transitions = getNextTransitions(state);
+
+  transitions.forEach((t) => {
+    console.log(`Event: ${t.eventType}, Source: ${t.source.key}`);
+  });
+  ```
+
 ## 5.25.1
 
 ### Patch Changes

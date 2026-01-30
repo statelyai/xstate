@@ -26,7 +26,11 @@ export {
   pathToStateValue,
   toObserver
 } from './utils.ts';
-export { transition, initialTransition } from './transition.ts';
+export {
+  transition,
+  initialTransition,
+  getNextTransitions
+} from './transition.ts';
 export { waitFor } from './waitFor.ts';
 
 declare global {

@@ -43,14 +43,15 @@ type AnyStateNodeIterable = Iterable<AnyStateNode>;
 
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 
-const isAtomicStateNode = (stateNode: AnyStateNode) =>
-  stateNode.type === 'atomic' || stateNode.type === 'final';
+export function isAtomicStateNode(stateNode: AnyStateNode) {
+  return stateNode.type === 'atomic' || stateNode.type === 'final';
+}
 
 function getChildren(stateNode: AnyStateNode): Array<AnyStateNode> {
   return Object.values(stateNode.states).filter((sn) => sn.type !== 'history');
 }
 
-function getProperAncestors(
+export function getProperAncestors(
   stateNode: AnyStateNode,
   toStateNode: AnyStateNode | undefined
 ): Array<typeof stateNode> {
