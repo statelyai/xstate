@@ -70,10 +70,10 @@ describe('tags', () => {
           initial: 'active',
           states: {
             active: {
-              tags: 'yes'
+              tags: ['yes']
             },
             inactive: {
-              tags: 'no'
+              tags: ['no']
             }
           }
         },
@@ -81,13 +81,13 @@ describe('tags', () => {
           initial: 'active',
           states: {
             active: {
-              tags: 'yes',
+              tags: ['yes'],
               on: {
                 DEACTIVATE: 'inactive'
               }
             },
             inactive: {
-              tags: 'no'
+              tags: ['no']
             }
           }
         }
@@ -106,7 +106,7 @@ describe('tags', () => {
       initial: 'a',
       states: {
         a: {
-          tags: 'myTag'
+          tags: ['myTag']
         }
       }
     });
@@ -123,7 +123,7 @@ describe('tags', () => {
       initial: 'green',
       states: {
         green: {
-          tags: 'go'
+          tags: ['go']
         }
       }
     });

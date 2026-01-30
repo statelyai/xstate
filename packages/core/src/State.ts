@@ -2,7 +2,7 @@ import isDevelopment from '#is-development';
 import { $$ACTOR_TYPE } from './createActor.ts';
 import type { StateNode } from './StateNode.ts';
 import type { StateMachine } from './StateMachine.ts';
-import { getStateValue } from './stateUtils.ts';
+import { getStateValue, getTransitionResult, hasEffect } from './stateUtils.ts';
 import type {
   ProvidedActor,
   AnyMachineSnapshot,
@@ -20,9 +20,13 @@ import type {
   StateSchema,
   StateId,
   SnapshotStatus,
-  PersistedHistoryValue
+  PersistedHistoryValue,
+  TODO,
+  AnyStateNode
 } from './types.ts';
 import { matchesState } from './utils.ts';
+import { createSystem } from './system.ts';
+import { createEmptyActor } from './actors/index.ts';
 
 type ToTestStateValue<TStateValue extends StateValue> =
   TStateValue extends string
@@ -71,7 +75,10 @@ interface MachineSnapshotBase<
     TOutput,
     EventObject, // TEmitted
     any, // TMeta
-    TStateSchema
+    TStateSchema,
+    TODO, // TActionMap
+    TODO, // TActorMap
+    TODO // TGuardMap
   >;
   /** The tags of the active state nodes that represent the current state value. */
   tags: Set<string>;
@@ -104,7 +111,7 @@ interface MachineSnapshotBase<
 
   historyValue: Readonly<HistoryValue<TContext, TEvent>>;
   /** The enabled state nodes representative of the state value. */
-  _nodes: Array<StateNode<TContext, TEvent>>;
+  _nodes: Array<AnyStateNode>;
   /** An object mapping actor names to spawned/invoked actors. */
   children: TChildren;
 
@@ -312,12 +319,23 @@ const machineSnapshotCan = function can(
     );
   }
 
-  const transitionData = this.machine.getTransitionData(this, event);
+  const transitionData = this.machine.getTransitionData(this, event, {} as any);
 
   return (
     !!transitionData?.length &&
     // Check that at least one transition is not forbidden
-    transitionData.some((t) => t.target !== undefined || t.actions.length)
+    transitionData.some((t) => {
+      const res = getTransitionResult(t, this, event, {
+        self: createEmptyActor(),
+        system: createSystem(createEmptyActor(), {})
+      } as any);
+      return (
+        t.target !== undefined ||
+        res.targets?.length ||
+        res.context ||
+        hasEffect(t, this.context, event, this, {} as any)
+      );
+    })
   );
 };
 
@@ -402,9 +420,6 @@ function serializeHistoryValue<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(historyValue: HistoryValue<TContext, TEvent>): PersistedHistoryValue {
-  if (typeof historyValue !== 'object' || historyValue === null) {
-    return {};
-  }
   const result: PersistedHistoryValue = {};
 
   for (const key in historyValue) {
