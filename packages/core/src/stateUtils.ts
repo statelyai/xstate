@@ -67,7 +67,7 @@ function getChildren<TContext extends MachineContext, TE extends EventObject>(
   return Object.values(stateNode.states).filter((sn) => sn.type !== 'history');
 }
 
-function getProperAncestors(
+export function getProperAncestors(
   stateNode: AnyStateNode,
   toStateNode: AnyStateNode | undefined
 ): Array<typeof stateNode> {
