@@ -401,5 +401,123 @@ describe('mapState', () => {
         }
       });
     });
+
+    it('should enforce consistent TResult type across all map functions', () => {
+      const machine = setup({
+        types: {
+          context: {} as { count: number }
+        }
+      }).createMachine({
+        context: { count: 0 },
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'one',
+            states: {
+              one: {}
+            }
+          }
+        }
+      });
+
+      const snapshot = createActor(machine).getSnapshot();
+
+      // All returning number - should work
+      mapState<typeof snapshot, number>(snapshot, {
+        map: () => 42,
+        states: {
+          a: {
+            map: () => 100,
+            states: {
+              one: {
+                map: () => 200
+              }
+            }
+          }
+        }
+      });
+    });
+
+    it('should error when nested map returns wrong type', () => {
+      const machine = setup({
+        types: {
+          context: {} as { count: number }
+        }
+      }).createMachine({
+        context: { count: 0 },
+        initial: 'a',
+        states: {
+          a: {}
+        }
+      });
+
+      const snapshot = createActor(machine).getSnapshot();
+
+      mapState<typeof snapshot, number>(snapshot, {
+        map: () => 42,
+        states: {
+          a: {
+            // @ts-expect-error - boolean is not assignable to number
+            map: () => true
+          }
+        }
+      });
+    });
+
+    it('should error when deeply nested map returns wrong type', () => {
+      const machine = setup({
+        types: {
+          context: {} as { val: string }
+        }
+      }).createMachine({
+        context: { val: 'test' },
+        initial: 'parent',
+        states: {
+          parent: {
+            initial: 'child',
+            states: {
+              child: {}
+            }
+          }
+        }
+      });
+
+      const snapshot = createActor(machine).getSnapshot();
+
+      mapState<typeof snapshot, string>(snapshot, {
+        map: () => 'root',
+        states: {
+          parent: {
+            map: () => 'parent',
+            states: {
+              child: {
+                // @ts-expect-error - number is not assignable to string
+                map: () => 123
+              }
+            }
+          }
+        }
+      });
+    });
+
+    it('should infer result type in return value', () => {
+      const machine = setup({}).createMachine({
+        initial: 'idle',
+        states: {
+          idle: {}
+        }
+      });
+
+      const snapshot = createActor(machine).getSnapshot();
+
+      const results = mapState<typeof snapshot, number>(snapshot, {
+        map: () => 42
+      });
+
+      // result should be typed as number, not unknown
+      results[0].result satisfies number;
+      // @ts-expect-error
+      results[0].result satisfies string;
+    });
   });
 });

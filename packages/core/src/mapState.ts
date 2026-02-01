@@ -1,5 +1,3 @@
-import { createActor } from './createActor';
-import { setup } from './setup';
 import {
   AnyMachineSnapshot,
   AnyStateNode,
@@ -13,14 +11,15 @@ import {
  */
 type StateSchemaMapper<
   TSnapshot extends AnyMachineSnapshot,
-  T extends StateSchema
+  T extends StateSchema,
+  TResult
 > = {
   /** Maps the snapshot to a value when this state is active. */
-  map?: (snapshot: TSnapshot) => unknown;
+  map?: (snapshot: TSnapshot) => TResult;
   /** Nested mappers for child states. */
   states?: {
     [K in keyof T['states']]?: T['states'][K] extends StateSchema
-      ? StateSchemaMapper<TSnapshot, T['states'][K]>
+      ? StateSchemaMapper<TSnapshot, T['states'][K], TResult>
       : never;
   };
 };
@@ -31,11 +30,11 @@ type StateSchemaMapper<
  * Traverses all active state nodes (from atomic/leaf states up to root) and
  * collects results from matching `map` functions in the mapper object.
  */
-export function mapState<T extends AnyMachineSnapshot>(
+export function mapState<T extends AnyMachineSnapshot, TResult>(
   snapshot: T,
-  mapper: StateSchemaMapper<T, StateSchemaFrom<T['machine']>>
-) {
-  const results: { stateNode: AnyStateNode; result: unknown }[] = [];
+  mapper: StateSchemaMapper<T, StateSchemaFrom<T['machine']>, TResult>
+): { stateNode: AnyStateNode; result: TResult }[] {
+  const results: { stateNode: AnyStateNode; result: TResult }[] = [];
 
   // Helper to check if a node is atomic
   const isAtomicStateNode = (stateNode: AnyStateNode) =>
@@ -55,17 +54,20 @@ export function mapState<T extends AnyMachineSnapshot>(
   // Helper to find the mapper for a given node key path
   // nodePath is from root to the node (e.g., ['a', 'one'])
   const findMapper = (
-    currentMapper: StateSchemaMapper<T, StateSchemaFrom<T['machine']>>,
+    currentMapper: StateSchemaMapper<T, StateSchemaFrom<T['machine']>, TResult>,
     nodePath: string[]
-  ): StateSchemaMapper<T, any> | undefined => {
-    let mapper: StateSchemaMapper<T, any> | undefined = currentMapper;
+  ): StateSchemaMapper<T, any, TResult> | undefined => {
+    let mapper: StateSchemaMapper<T, any, TResult> | undefined = currentMapper;
 
     // Traverse the node path forward (root to node) to find the nested mapper
     for (const key of nodePath) {
       if (!mapper?.states) {
         return undefined;
       }
-      const states = mapper.states as Record<string, StateSchemaMapper<T, any>>;
+      const states = mapper.states as Record<
+        string,
+        StateSchemaMapper<T, any, TResult>
+      >;
       if (!(key in states)) {
         return undefined;
       }
