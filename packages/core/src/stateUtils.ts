@@ -38,6 +38,12 @@ import {
 } from './utils.ts';
 import { createActor } from './createActor.ts';
 import { builtInActions } from './actions.ts';
+import { listenerLogic, type ListenerInput } from './actors/listener.ts';
+import {
+  subscriptionLogic,
+  type SubscriptionInput,
+  type SubscriptionMappers
+} from './actors/subscription.ts';
 
 type AnyStateNodeIterable = Iterable<AnyStateNode>;
 
@@ -2029,6 +2035,8 @@ function createEnqueueObject(
     spawn: () => ({}) as any,
     sendTo: () => {},
     stop: () => {},
+    listen: () => ({}) as any,
+    subscribeTo: () => ({}) as any,
     ...props
   });
 
@@ -2122,6 +2130,41 @@ function getActionsAndContextFromTransitionFn(
               args: [actorScope, actorRef]
             });
           }
+        },
+        listen: (actor, eventType, mapper) => {
+          const input: ListenerInput<any, any> = {
+            actor,
+            eventType,
+            mapper
+          };
+          const actorRef = createActor(listenerLogic, {
+            input,
+            parent: self
+          });
+          actions.push({
+            action: builtInActions['@xstate.start'],
+            args: [actorRef]
+          });
+          return actorRef;
+        },
+        subscribeTo: (actor, mappers) => {
+          // Handle shorthand: subscribeTo(actor, snapshotMapper)
+          const normalizedMappers: SubscriptionMappers<any, any, any> =
+            typeof mappers === 'function' ? { snapshot: mappers } : mappers;
+
+          const input: SubscriptionInput<any, any, any, any> = {
+            actor,
+            mappers: normalizedMappers
+          };
+          const actorRef = createActor(subscriptionLogic, {
+            input,
+            parent: self
+          });
+          actions.push({
+            action: builtInActions['@xstate.start'],
+            args: [actorRef]
+          });
+          return actorRef;
         }
       },
       (action, ...args) => {

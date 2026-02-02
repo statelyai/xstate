@@ -2241,6 +2241,17 @@ export interface ToExecutableAction<
 
 export type ActionExecutor = (actionToExecute: ExecutableActionObject) => void;
 
+/** Mappers for subscribeTo - maps lifecycle events to machine events */
+export interface SubscribeToMappers<
+  TSnapshot extends Snapshot<unknown>,
+  TOutput,
+  TMappedEvent extends EventObject
+> {
+  snapshot?: (snapshot: TSnapshot) => TMappedEvent;
+  done?: (output: TOutput) => TMappedEvent;
+  error?: (error: unknown) => TMappedEvent;
+}
+
 export type EnqueueObject<
   TEvent extends EventObject,
   TEmittedEvent extends EventObject
@@ -2265,6 +2276,38 @@ export type EnqueueObject<
     options?: { id?: string; delay?: number }
   ) => void;
   stop: (actorRef?: AnyActorRef) => void;
+  /**
+   * Listen to emitted events from an actor. Returns a listener actor that can
+   * be stopped via `enq.stop()`.
+   *
+   * @param actor - The actor to listen to
+   * @param eventType - The emitted event type to listen for (supports
+   *   wildcards: 'event._', '_')
+   * @param mapper - Function to transform emitted events into machine events
+   */
+  listen: <TEmitted extends EventObject, TMappedEvent extends TEvent>(
+    actor: AnyActorRef,
+    eventType: string,
+    mapper: (event: TEmitted) => TMappedEvent
+  ) => AnyActorRef;
+  /**
+   * Subscribe to lifecycle events (done/error/snapshot) from an actor. Returns
+   * a subscription actor that can be stopped via `enq.stop()`.
+   *
+   * @param actor - The actor to subscribe to
+   * @param mappers - Object with done/error/snapshot mappers, or a single
+   *   snapshot mapper function
+   */
+  subscribeTo: <
+    TSnapshot extends Snapshot<unknown>,
+    TOutput,
+    TMappedEvent extends TEvent
+  >(
+    actor: AnyActorRef,
+    mappers:
+      | SubscribeToMappers<TSnapshot, TOutput, TMappedEvent>
+      | ((snapshot: TSnapshot) => TMappedEvent)
+  ) => AnyActorRef;
 };
 
 export type Action<
