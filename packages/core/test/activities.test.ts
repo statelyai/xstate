@@ -14,7 +14,7 @@ describe('invocations (activities)', () => {
         })
       }
     });
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(active).toBe(true);
   });
@@ -33,7 +33,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(active).toBe(true);
   });
@@ -57,7 +57,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(active).toBe(true);
   });
@@ -82,7 +82,7 @@ describe('invocations (activities)', () => {
       }
     });
 
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.send({ type: 'TIMER' });
 
@@ -118,7 +118,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = createActor(machine);
+    const service = machine.createActor();
 
     service.start();
     service.send({ type: 'TIMER' });
@@ -161,7 +161,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.send({ type: 'TIMER' });
     service.send({ type: 'TIMER' });
@@ -206,7 +206,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = createActor(machine);
+    const service = machine.createActor();
 
     service.start();
     service.send({ type: 'TIMER' });
@@ -242,7 +242,7 @@ describe('invocations (activities)', () => {
       }
     });
 
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.send({ type: 'E' });
 
@@ -273,7 +273,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.send({ type: 'E' });
     service.send({ type: 'IGNORE' });
@@ -310,7 +310,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.send({ type: 'E' });
 
@@ -354,7 +354,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.send({ type: 'NEXT' });
 
@@ -395,7 +395,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.send({ type: 'NEXT' });
 
@@ -438,7 +438,7 @@ describe('invocations (activities)', () => {
         b: {}
       }
     });
-    const actor = createActor(machine).start();
+    const actor = machine.createActor().start();
 
     expect(active).toBe(true);
 

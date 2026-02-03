@@ -32,12 +32,21 @@ export type InferOutput<T extends StandardSchemaV1, U> = Compute<
     : never
 >;
 
+/**
+ * Event payloads from schemas (e.g. Zod) are often inferred as optional in
+ * output types. Wrapping in Required<> ensures properties defined in the schema
+ * are required on the event.
+ */
 export type InferEvents<
   TEventSchemaMap extends Record<string, StandardSchemaV1>
 > = Values<{
   [K in keyof TEventSchemaMap & string]: StandardSchemaV1.InferOutput<
     TEventSchemaMap[K]
-  > & { type: K };
+  > extends infer O
+    ? unknown extends O
+      ? O & { type: K }
+      : Required<O> & { type: K }
+    : never;
 }>;
 
 export type Next_MachineConfig<
@@ -135,7 +144,20 @@ export interface Next_InvokeConfig<
   TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject
 > {
-  src: AnyActorLogic | (({ actors }: { actors: TActorMap }) => AnyActorLogic);
+  src:
+    | AnyActorLogic
+    | AnyActorRef
+    | (({
+        actors,
+        context,
+        event,
+        self
+      }: {
+        actors: TActorMap;
+        context: TContext;
+        event: TEvent;
+        self: AnyActorRef;
+      }) => AnyActorLogic | AnyActorRef);
   id?: string;
   systemId?: string;
   input?: (_: {

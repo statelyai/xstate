@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { $$ACTOR_TYPE, createActor } from './createActor.ts';
+import { $$ACTOR_TYPE, createActor, Actor } from './createActor.ts';
 import { createInitEvent } from './eventUtils.ts';
 import { createSpawner } from './spawn.ts';
 import {
@@ -41,7 +41,9 @@ import type {
   TransitionDefinition,
   StateSchema,
   SnapshotStatus,
-  AnyStateNode
+  AnyStateNode,
+  ActorOptions,
+  ActorRef
 } from './types.ts';
 import { Implementations, Next_MachineConfig } from './types.v6.ts';
 import { resolveReferencedActor, toStatePath } from './utils.ts';
@@ -63,24 +65,22 @@ export class StateMachine<
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays']
-> implements
-    ActorLogic<
-      MachineSnapshot<
-        TContext,
-        TEvent,
-        TChildren,
-        TStateValue,
-        TTag,
-        TOutput,
-        TMeta,
-        TConfig
-      >,
-      TEvent,
-      TInput,
-      AnyActorSystem,
-      TEmitted
-    >
-{
+> implements ActorLogic<
+  MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TMeta,
+    TConfig
+  >,
+  TEvent,
+  TInput,
+  AnyActorSystem,
+  TEmitted
+> {
   /** The machine's own version. */
   public version?: string;
 
@@ -154,6 +154,20 @@ export class StateMachine<
         'Missing `machine.output` declaration (top-level final state with output detected)'
       );
     }
+  }
+
+  /**
+   * Creates an unstarted actor from this logic.
+   *
+   * @param input - The input for the actor.
+   * @param options - Actor options.
+   * @returns An unstarted actor.
+   */
+  public createActor(
+    input?: TInput,
+    options?: ActorOptions<any>
+  ): ActorRef<SnapshotFrom<this>, TEvent, TEmitted> {
+    return createActor<any>(this, { ...options, input });
   }
 
   /**

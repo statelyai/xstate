@@ -16,7 +16,8 @@ import {
   createActor,
   Snapshot,
   ActorRef,
-  AnyEventObject
+  AnyEventObject,
+  assertEvent
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
 import z from 'zod';
@@ -111,14 +112,6 @@ describe('invoke', () => {
     const { promise, resolve } = Promise.withResolvers<void>();
     const childMachine = createMachine({
       id: 'fetch',
-      // types: {} as {
-      //   context: { userId: string | undefined; user?: typeof user | undefined };
-      //   events: {
-      //     type: 'RESOLVE';
-      //     user: typeof user;
-      //   };
-      //   input: { userId: string };
-      // },
       schemas: {
         context: z.object({
           userId: z.string().optional(),
@@ -191,10 +184,10 @@ describe('invoke', () => {
         },
         waiting: {
           invoke: {
-            src: childMachine,
-            input: ({ context }: any) => ({
-              userId: context.selectedUserId
-            }),
+            src: ({ context }) =>
+              childMachine.createActor({
+                userId: context.selectedUserId
+              }),
             onDone: ({ event }) => {
               // Should receive { user: { name: 'David' } } as event data
               if ((event.output as any).user.name === 'David') {
@@ -399,6 +392,9 @@ describe('invoke', () => {
 
     const someParentMachine = createMachine({
       id: 'parent',
+      schemas: {
+        context: z.object({ count: z.number() })
+      },
       context: { count: 0 },
       initial: 'start',
       states: {
@@ -582,6 +578,9 @@ describe('invoke', () => {
       const pingMachine = createMachine({
         id: 'ping',
         type: 'parallel',
+        actors: {
+          pongMachine
+        },
         states: {
           one: {
             initial: 'active',
@@ -1277,11 +1276,13 @@ describe('invoke', () => {
               },
               first: {
                 invoke: {
-                  src: promiseActor,
-                  input: ({ context, event }) => ({
-                    foo: context.foo,
-                    event: event
-                  }),
+                  src: ({ context, event }) => (
+                    assertEvent(event, 'BEGIN'),
+                    promiseActor.createActor({
+                      foo: context.foo,
+                      event: event
+                    })
+                  ),
                   onDone: 'last'
                 }
               },
@@ -1527,11 +1528,11 @@ describe('invoke', () => {
             },
             first: {
               invoke: {
-                src: someCallback,
-                input: ({ context, event }: any) => ({
-                  foo: context.foo,
-                  event: event
-                })
+                src: ({ context, event }) =>
+                  someCallback.createActor({
+                    foo: context.foo,
+                    event: event
+                  })
               },
               on: {
                 CALLBACK: ({ event }) => {
@@ -1567,37 +1568,33 @@ describe('invoke', () => {
       const someCallback = fromCallback(({ sendBack }) => {
         sendBack({ type: 'CALLBACK' });
       });
-      const callbackMachine = createMachine(
-        {
-          id: 'callback',
-          initial: 'pending',
-          context: { foo: true },
-          states: {
-            pending: {
-              on: { BEGIN: 'first' }
+      const callbackMachine = createMachine({
+        id: 'callback',
+        schemas: {
+          context: z.object({
+            foo: z.boolean()
+          })
+        },
+        initial: 'pending',
+        context: { foo: true },
+        states: {
+          pending: {
+            on: { BEGIN: 'first' }
+          },
+          first: {
+            invoke: {
+              src: someCallback
             },
-            first: {
-              invoke: {
-                src: someCallback
-              },
-              on: { CALLBACK: 'intermediate' }
-            },
-            intermediate: {
-              on: { NEXT: 'last' }
-            },
-            last: {
-              type: 'final'
-            }
+            on: { CALLBACK: 'intermediate' }
+          },
+          intermediate: {
+            on: { NEXT: 'last' }
+          },
+          last: {
+            type: 'final'
           }
         }
-        // {
-        //   actors: {
-        //     someCallback: fromCallback(({ sendBack }) => {
-        //       sendBack({ type: 'CALLBACK' });
-        //     })
-        //   }
-        // }
-      );
+      });
 
       const expectedStateValues = ['pending', 'first', 'intermediate'];
       const stateValues: StateValue[] = [];
@@ -1613,34 +1610,30 @@ describe('invoke', () => {
       const someCallback = fromCallback(({ sendBack }) => {
         sendBack({ type: 'CALLBACK' });
       });
-      const callbackMachine = createMachine(
-        {
-          id: 'callback',
-          initial: 'idle',
-          context: { foo: true },
-          states: {
-            idle: {
-              invoke: {
-                src: someCallback
-              },
-              on: { CALLBACK: 'intermediate' }
+      const callbackMachine = createMachine({
+        id: 'callback',
+        schemas: {
+          context: z.object({
+            foo: z.boolean()
+          })
+        },
+        initial: 'idle',
+        context: { foo: true },
+        states: {
+          idle: {
+            invoke: {
+              src: someCallback
             },
-            intermediate: {
-              on: { NEXT: 'last' }
-            },
-            last: {
-              type: 'final'
-            }
+            on: { CALLBACK: 'intermediate' }
+          },
+          intermediate: {
+            on: { NEXT: 'last' }
+          },
+          last: {
+            type: 'final'
           }
         }
-        // {
-        //   actors: {
-        //     someCallback: fromCallback(({ sendBack }) => {
-        //       sendBack({ type: 'CALLBACK' });
-        //     })
-        //   }
-        // }
-      );
+      });
 
       const expectedStateValues = ['idle', 'intermediate'];
       const stateValues: StateValue[] = [];
@@ -1660,6 +1653,11 @@ describe('invoke', () => {
       const callbackMachine = createMachine(
         {
           id: 'callback',
+          schemas: {
+            context: z.object({
+              foo: z.boolean()
+            })
+          },
           initial: 'pending',
           context: { foo: true },
           states: {
@@ -2214,37 +2212,27 @@ describe('invoke', () => {
         of(input)
       );
 
-      const machine = createMachine(
-        {
-          // types: {} as {
-          //   actors: {
-          //     src: 'childLogic';
-          //     logic: typeof childLogic;
-          //   };
-          // },
-          schemas: {},
-          context: { received: undefined },
-          invoke: {
-            src: childLogic,
-            input: 42,
-            onSnapshot: ({ event }, enq) => {
-              if (
-                event.snapshot.status === 'active' &&
-                event.snapshot.context === 42
-              ) {
-                enq(() => {
-                  resolve();
-                });
-              }
+      const machine = createMachine({
+        schemas: {
+          context: z.object({
+            received: z.number().optional()
+          })
+        },
+        context: { received: undefined },
+        invoke: {
+          src: () => childLogic.createActor(42),
+          onSnapshot: ({ event }, enq) => {
+            if (
+              event.snapshot.status === 'active' &&
+              event.snapshot.context === 42
+            ) {
+              enq(() => {
+                resolve();
+              });
             }
           }
         }
-        // {
-        //   actors: {
-        //     childLogic
-        //   }
-        // }
-      );
+      });
 
       createActor(machine).start();
       await promise;
@@ -2430,17 +2418,17 @@ describe('invoke', () => {
       const machine = createMachine({
         schemas: {
           events: {
-            OBS_EVENT: z.object({ value: z.number() })
+            'obs.event': z.object({ value: z.number() })
           }
         },
         invoke: {
-          src: fromEventObservable(({ input }) =>
-            of({
-              type: 'obs.event',
-              value: input
-            })
-          ),
-          input: 42
+          src: () =>
+            fromEventObservable(({ input }) =>
+              of({
+                type: 'obs.event',
+                value: input
+              })
+            ).createActor(42)
         },
         on: {
           'obs.event': ({ event }, enq) => {
@@ -3576,6 +3564,11 @@ describe('invoke input', () => {
   it('should provide input to an actor creator', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
     const machine = createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       initial: 'pending',
       context: {
         count: 42

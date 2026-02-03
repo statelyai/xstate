@@ -203,7 +203,7 @@ describe('spawning machines', () => {
         }
       }
     });
-    const service = createActor(todosMachine);
+    const service = todosMachine.createActor();
     service.subscribe({
       complete: () => {
         resolve();
@@ -254,14 +254,14 @@ describe('spawning machines', () => {
       }
     });
 
-    const actor = createActor(parentMachine);
+    const actor = parentMachine.createActor();
     actor.start();
     expect(actor.getSnapshot().value).toBe('success');
   });
 
   it('should allow bidirectional communication between parent/child actors', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const actor = createActor(clientMachine);
+    const actor = clientMachine.createActor();
     actor.subscribe({
       complete: () => {
         resolve();
@@ -312,7 +312,7 @@ describe('spawning promises', () => {
       }
     });
 
-    const promiseService = createActor(promiseMachine);
+    const promiseService = promiseMachine.createActor();
     promiseService.subscribe({
       complete: () => {
         resolve();
@@ -362,7 +362,7 @@ describe('spawning promises', () => {
       }
     });
 
-    const promiseService = createActor(promiseMachine);
+    const promiseService = promiseMachine.createActor();
     promiseService.subscribe({
       complete: () => {
         resolve();
@@ -431,7 +431,7 @@ describe('spawning callbacks', () => {
       }
     });
 
-    const callbackService = createActor(callbackMachine);
+    const callbackService = callbackMachine.createActor();
     callbackService.subscribe({
       complete: () => {
         resolve();
@@ -476,7 +476,7 @@ describe('spawning callbacks', () => {
       }
     });
 
-    const actorRef = createActor(machine).start();
+    const actorRef = machine.createActor().start();
     actorRef.send({ type: 'NEXT' });
 
     sendToParent!();
@@ -526,7 +526,7 @@ describe('spawning observables', () => {
       }
     });
 
-    const observableService = createActor(observableMachine);
+    const observableService = observableMachine.createActor();
     observableService.subscribe({
       complete: () => {
         resolve();
@@ -579,7 +579,7 @@ describe('spawning observables', () => {
       }
     });
 
-    const observableService = createActor(observableMachine);
+    const observableService = observableMachine.createActor();
     observableService.subscribe({
       complete: () => {
         resolve();
@@ -633,7 +633,7 @@ describe('spawning observables', () => {
       }
     });
 
-    const observableService = createActor(observableMachine);
+    const observableService = observableMachine.createActor();
     observableService.subscribe({
       complete: () => {
         resolve();
@@ -685,7 +685,7 @@ describe('spawning observables', () => {
       }
     });
 
-    const actorRef = createActor(parentMachine);
+    const actorRef = parentMachine.createActor();
     actorRef.start();
 
     await waitFor(actorRef, (state) => state.matches('active'));
@@ -742,7 +742,7 @@ describe('spawning observables', () => {
       }
     });
 
-    const actorRef = createActor(parentMachine);
+    const actorRef = parentMachine.createActor();
     actorRef.start();
 
     await waitFor(actorRef, (state) => state.matches('active'));
@@ -817,7 +817,7 @@ describe('spawning event observables', () => {
       }
     });
 
-    const observableService = createActor(observableMachine);
+    const observableService = observableMachine.createActor();
     observableService.subscribe({
       complete: () => {
         resolve();
@@ -877,7 +877,7 @@ describe('spawning event observables', () => {
       }
     });
 
-    const observableService = createActor(observableMachine);
+    const observableService = observableMachine.createActor();
     observableService.subscribe({
       complete: () => {
         resolve();
@@ -914,7 +914,7 @@ describe('communicating with spawned actors', () => {
       }
     });
 
-    const existingService = createActor(existingMachine).start();
+    const existingService = existingMachine.createActor().start();
 
     const parentMachine = createMachine({
       schemas: {
@@ -959,7 +959,7 @@ describe('communicating with spawned actors', () => {
       }
     });
 
-    const parentService = createActor(parentMachine);
+    const parentService = parentMachine.createActor();
     parentService.subscribe({
       complete: () => {
         resolve();
@@ -1006,7 +1006,7 @@ describe('actors', () => {
       }
     });
 
-    const actor = createActor(startMachine);
+    const actor = startMachine.createActor();
     actor.subscribe(() => {
       expect(count).toEqual(1);
     });
@@ -1067,7 +1067,7 @@ describe('actors', () => {
         end: { type: 'final' }
       }
     });
-    createActor(parent).start();
+    parent.createActor().start();
     expect(spawnCounter).toBe(1);
   });
 
@@ -1113,7 +1113,7 @@ describe('actors', () => {
       }
     });
 
-    const service = createActor(testMachine).start();
+    const service = testMachine.createActor().start();
     expect(service.getSnapshot().value).toEqual('done');
   });
 
@@ -1141,9 +1141,9 @@ describe('actors', () => {
       }
     });
 
-    // expect(createActor(nullActorMachine).getSnapshot().context.ref!.id).toBe('null'); // TODO: identify null actors
+    // expect(nullActorMachine.createActor().getSnapshot().context.ref!.id).toBe('null'); // TODO: identify null actors
     expect(
-      createActor(nullActorMachine).getSnapshot().context.ref!.send
+      nullActorMachine.createActor().getSnapshot().context.ref!.send
     ).toBeDefined();
   });
 
@@ -1163,7 +1163,7 @@ describe('actors', () => {
         ref2: spawn(fromCallback(() => cleanup2))
       })
     });
-    const actorRef = createActor(parent).start();
+    const actorRef = parent.createActor().start();
 
     expect(Object.keys(actorRef.getSnapshot().children).length).toBe(2);
 
@@ -1193,7 +1193,7 @@ describe('actors', () => {
         child2: fromCallback(() => cleanup2)
       }
     });
-    const actorRef = createActor(parent).start();
+    const actorRef = parent.createActor().start();
 
     expect(Object.keys(actorRef.getSnapshot().children).length).toBe(2);
 
@@ -1245,7 +1245,7 @@ describe('actors', () => {
         }
       });
 
-      const countService = createActor(countMachine);
+      const countService = countMachine.createActor();
       countService.subscribe((state) => {
         if (state.context.count?.getSnapshot().context === 2) {
           resolve();
@@ -1329,7 +1329,7 @@ describe('actors', () => {
         }
       });
 
-      const countService = createActor(countMachine);
+      const countService = countMachine.createActor();
       countService.subscribe({
         complete: () => {
           resolve();
@@ -1387,7 +1387,7 @@ describe('actors', () => {
         }
       });
 
-      const countService = createActor(countMachine);
+      const countService = countMachine.createActor();
       countService.subscribe({
         complete: () => {
           resolve();
@@ -1456,7 +1456,7 @@ describe('actors', () => {
         }
       });
 
-      const pingService = createActor(pingMachine);
+      const pingService = pingMachine.createActor();
       pingService.subscribe({
         complete: () => {
           resolve();
@@ -1494,7 +1494,7 @@ describe('actors', () => {
       }
     });
 
-    const actor = createActor(machine);
+    const actor = machine.createActor();
     actor.subscribe({
       complete: () => {
         resolve();
@@ -1534,7 +1534,7 @@ describe('actors', () => {
       }
     });
 
-    const actor = createActor(machine);
+    const actor = machine.createActor();
     actor.subscribe({
       complete: () => {
         resolve();
@@ -1578,7 +1578,7 @@ describe('actors', () => {
         }
       })
     });
-    const service = createActor(parentMachine);
+    const service = parentMachine.createActor();
     expect(() => {
       service.start();
     }).not.toThrow();
@@ -1610,7 +1610,7 @@ describe('actors', () => {
         }
       })
     });
-    const service = createActor(parentMachine);
+    const service = parentMachine.createActor();
     expect(() => {
       service.start();
     }).not.toThrow();
@@ -1652,7 +1652,7 @@ describe('actors', () => {
         }
       })
     });
-    const service = createActor(parentMachine);
+    const service = parentMachine.createActor();
     expect(() => {
       service.start();
     }).not.toThrow();
@@ -1688,7 +1688,7 @@ describe('actors', () => {
         done: {}
       }
     });
-    const service = createActor(parentMachine);
+    const service = parentMachine.createActor();
 
     service.start();
 
@@ -1707,12 +1707,14 @@ describe('actors', () => {
       }
     });
 
-    const actor = createActor(machine).start();
+    const actor = machine.createActor().start();
     const persistedState = actor.getPersistedSnapshot();
 
-    createActor(machine, {
-      snapshot: persistedState
-    }).start();
+    machine
+      .createActor(undefined, {
+        snapshot: persistedState
+      })
+      .start();
 
     // Will be 2 if the observable is resubscribed
     expect(subscriptionCount).toBe(1);
@@ -1730,12 +1732,14 @@ describe('actors', () => {
       }
     });
 
-    const actor = createActor(machine).start();
+    const actor = machine.createActor().start();
     const persistedState = actor.getPersistedSnapshot();
 
-    createActor(machine, {
-      snapshot: persistedState
-    }).start();
+    machine
+      .createActor(undefined, {
+        snapshot: persistedState
+      })
+      .start();
 
     // Will be 2 if the event observable is resubscribed
     expect(subscriptionCount).toBe(1);
@@ -1821,7 +1825,7 @@ describe('actors', () => {
       }
     });
 
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     actual.length = 0;
 
@@ -1909,7 +1913,7 @@ describe('actors', () => {
       }
     });
 
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     actual.length = 0;
 
@@ -1977,7 +1981,7 @@ describe('actors', () => {
       }
     });
 
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     actual.length = 0;
 
@@ -2045,7 +2049,7 @@ describe('actors', () => {
       }
     });
 
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     actual.length = 0;
 
@@ -2104,7 +2108,7 @@ describe('actors', () => {
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
@@ -2124,7 +2128,7 @@ describe('actors', () => {
       }
     });
 
-    const actor = createActor(machine);
+    const actor = machine.createActor();
     actor.subscribe({
       error: (err) => {
         expect((err as Error).message).toBe('uh oh');
@@ -2158,7 +2162,7 @@ describe('actors', () => {
       invoke: { src: fromPromise(async () => 100) }
     }).provide({ actors: sharedActors });
 
-    createActor(m1).start();
+    m1.createActor().start();
 
     await sleep(1);
 
@@ -2176,7 +2180,7 @@ describe('actors', () => {
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(actors).toEqual({});
   });

@@ -32,7 +32,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      createActor(machine).start();
+      machine.createActor().start();
 
       expect(tracked).toEqual(['enter: __root__', 'enter: green']);
     });
@@ -61,7 +61,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      createActor(machine).start();
+      machine.createActor().start();
 
       expect(tracked).toEqual(['enter: __root__', 'enter: a', 'enter: a.a1']);
     });
@@ -93,7 +93,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      createActor(machine).start();
+      machine.createActor().start();
 
       expect(tracked).toEqual([
         'enter: __root__',
@@ -123,7 +123,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'TIMER' });
@@ -159,7 +159,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'TIMER' });
@@ -197,7 +197,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'PED_COUNTDOWN' });
@@ -217,7 +217,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'FAKE' });
@@ -250,7 +250,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'FAKE' });
@@ -276,7 +276,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'RESTART' });
@@ -317,7 +317,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'RESTART' });
@@ -405,7 +405,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       actual.length = 0;
 
       actor.send({ type: 'CHANGE' });
@@ -452,7 +452,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'CHANGE' });
@@ -489,7 +489,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'NEXT' });
@@ -549,7 +549,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'NEXT_FN' });
@@ -613,7 +613,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'to-A' });
@@ -652,7 +652,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'UPDATE' });
@@ -688,7 +688,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const service = createActor(machine).start();
+      const service = machine.createActor().start();
 
       entrySpy.mockClear();
       exitSpy.mockClear();
@@ -726,7 +726,7 @@ describe('entry/exit actions', () => {
           }
         });
 
-        const actor = createActor(machine).start();
+        const actor = machine.createActor().start();
         tracked.length = 0;
 
         actor.send({ type: 'TACK' });
@@ -765,7 +765,7 @@ describe('entry/exit actions', () => {
           }
         });
 
-        const actor = createActor(machine).start();
+        const actor = machine.createActor().start();
         tracked.length = 0;
 
         actor.send({ type: 'ABSOLUTE_TACK' });
@@ -790,7 +790,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      createActor(machine).start();
+      machine.createActor().start();
 
       expect(tracked).toEqual(['enter: __root__', 'enter: green']);
     });
@@ -814,7 +814,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'TIMER' });
@@ -850,7 +850,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'TIMER' });
@@ -888,7 +888,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'PED_COUNTDOWN' });
@@ -908,7 +908,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'FAKE' });
@@ -935,7 +935,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'FAKE' });
@@ -961,7 +961,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'RESTART' });
@@ -994,7 +994,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'RESTART' });
@@ -1043,7 +1043,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'NEXT' });
@@ -1094,7 +1094,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'NEXT' });
@@ -1150,7 +1150,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'NEXT' });
@@ -1194,7 +1194,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'EV' });
@@ -1244,7 +1244,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'EV' });
@@ -1279,7 +1279,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'EV' });
@@ -1312,7 +1312,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'EV' });
@@ -1350,7 +1350,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'EV' });
@@ -1397,7 +1397,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'EV' });
@@ -1449,7 +1449,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'ENTER_PARALLEL' });
@@ -1510,7 +1510,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'FOO' });
@@ -1575,7 +1575,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'FOO' });
@@ -1610,7 +1610,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(parent).start();
+      const actor = parent.createActor().start();
       tracked.length = 0;
 
       actor.send({ type: 'WHATEVER' });
@@ -1637,7 +1637,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       tracked.length = 0;
 
       await sleep(50);
@@ -1682,7 +1682,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(parentMachine);
+      const actor = parentMachine.createActor();
       actor.subscribe({
         complete: () => {
           expect(exitCalled).toBeTruthy();
@@ -1710,7 +1710,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const service = createActor(machine).start();
+      const service = machine.createActor().start();
       service.stop();
 
       expect(rootSpy).not.toHaveBeenCalled();
@@ -1736,7 +1736,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const service = createActor(machine).start();
+      const service = machine.createActor().start();
       service.send({ type: 'NEXT' });
 
       expect(receivedEvent).toEqual({ type: 'NEXT' });
@@ -1764,7 +1764,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(parent);
+      const actor = parent.createActor();
       actor.start();
 
       expect(() => actor.stop()).not.toThrow();
@@ -1819,7 +1819,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const interpreter = createActor(parent).start();
+      const interpreter = parent.createActor().start();
       interpreter.send({ type: 'STOP_CHILD' });
     });
 
@@ -1878,7 +1878,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(parent).start();
+      const actor = parent.createActor().start();
       actor.send({ type: 'FINISH_CHILD' });
 
       expect(eventReceived).toBe(true);
@@ -1921,7 +1921,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(parent).start();
+      const actor = parent.createActor().start();
       actor.send({ type: 'NEXT' });
 
       expect(spy).not.toHaveBeenCalled();
@@ -1993,7 +1993,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(parent).start();
+      const actor = parent.createActor().start();
       actor.send({ type: 'NEXT' });
 
       expect(spy).toHaveBeenCalledTimes(1);
@@ -2022,7 +2022,7 @@ describe('entry/exit actions', () => {
         })
       });
 
-      const actor = createActor(parent).start();
+      const actor = parent.createActor().start();
       actor.stop();
     });
 
@@ -2040,7 +2040,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(parent).start();
+      const actor = parent.createActor().start();
       actor.stop();
 
       expect(spy).not.toHaveBeenCalled();
@@ -2054,7 +2054,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       actor.stop();
 
       expect(action).not.toHaveBeenCalled();
@@ -2080,7 +2080,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const service = createActor(machine).start();
+      const service = machine.createActor().start();
 
       service.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
     });
@@ -2124,7 +2124,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const actor = createActor(machine).start();
+      const actor = machine.createActor().start();
       actor.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
       expect(exitActions).toEqual(['foo action']);
     });
@@ -2171,7 +2171,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const service = createActor(machine).start();
+      const service = machine.createActor().start();
 
       service.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
 
@@ -2206,7 +2206,7 @@ describe('actions on invalid transition', () => {
         stop: {}
       }
     });
-    const actor = createActor(machine).start();
+    const actor = machine.createActor().start();
 
     actor.send({ type: 'STOP' });
     expect(spy).toHaveBeenCalledTimes(1);
@@ -2262,7 +2262,7 @@ describe('actions config', () => {
       }
     });
 
-    const actor = createActor(machine).start();
+    const actor = machine.createActor().start();
     actor.send({ type: 'EVENT' });
 
     expect(spy).toHaveBeenCalledTimes(1);
@@ -2280,7 +2280,7 @@ describe('actions config', () => {
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
@@ -2329,7 +2329,7 @@ describe('actions config', () => {
         b: {}
       }
     });
-    const actorRef = createActor(machine).start();
+    const actorRef = machine.createActor().start();
     actorRef.send({ type: 'EVENT' });
     const snapshot = actorRef.getSnapshot();
 
@@ -2375,7 +2375,7 @@ describe('actions config', () => {
       }
     });
 
-    const actor = createActor(anonMachine).start();
+    const actor = anonMachine.createActor().start();
 
     expect(entryCalled).toBe(true);
 
@@ -2413,7 +2413,7 @@ describe('action meta', () => {
       }
     });
 
-    createActor(testMachine).start();
+    testMachine.createActor().start();
 
     expect(spy).toHaveBeenCalledWith({
       value: 'something'
@@ -2438,7 +2438,7 @@ describe('action meta', () => {
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(spy).toHaveBeenCalledWith({
       stuff: 100
@@ -2471,7 +2471,7 @@ describe('action meta', () => {
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(spy).toHaveBeenCalledWith({
       secret: 42
@@ -2505,7 +2505,7 @@ describe('action meta', () => {
       }
     });
 
-    const actorRef = createActor(machine).start();
+    const actorRef = machine.createActor().start();
 
     actorRef.send({ type: 'FOO', secret: 77 });
 
@@ -2589,7 +2589,7 @@ describe('forwardTo()', () => {
       }
     });
 
-    const service = createActor(parent);
+    const service = parent.createActor();
     service.subscribe({ complete: () => resolve() });
     service.start();
 
@@ -2669,7 +2669,7 @@ describe('forwardTo()', () => {
       }
     });
 
-    const service = createActor(parent);
+    const service = parent.createActor();
     service.subscribe({ complete: () => resolve() });
     service.start();
 
@@ -2688,7 +2688,7 @@ describe('forwardTo()', () => {
 
     const errorSpy = vi.fn();
 
-    const actorRef = createActor(machine);
+    const actorRef = machine.createActor();
     actorRef.subscribe({
       error: errorSpy
     });
@@ -2715,7 +2715,7 @@ describe('log()', () => {
         enq.log('some string', 'string label');
       }
     });
-    createActor(machine, { logger: consoleSpy }).start();
+    machine.createActor(undefined, { logger: consoleSpy }).start();
 
     expect(consoleSpy.mock.calls).toMatchInlineSnapshot(`
       [
@@ -2744,7 +2744,7 @@ describe('log()', () => {
         enq.log(`expr ${context.count}`, 'expr label');
       }
     });
-    createActor(machine, { logger: consoleSpy }).start();
+    machine.createActor(undefined, { logger: consoleSpy }).start();
 
     expect(consoleSpy.mock.calls).toMatchInlineSnapshot(`
       [
@@ -2767,7 +2767,7 @@ describe('enqueueActions', () => {
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
@@ -2783,7 +2783,7 @@ describe('enqueueActions', () => {
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(spy1).toHaveBeenCalledTimes(1);
     expect(spy2).toHaveBeenCalledTimes(1);
@@ -2799,7 +2799,7 @@ describe('enqueueActions', () => {
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(spy).toHaveBeenCalledTimes(2);
   });
@@ -2813,7 +2813,7 @@ describe('enqueueActions', () => {
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(spy.mock.calls).toMatchInlineSnapshot(`
       [
@@ -2833,7 +2833,7 @@ describe('enqueueActions', () => {
       entry: (_, enq) => enq(spy)
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
@@ -2853,7 +2853,7 @@ describe('enqueueActions', () => {
       }
     });
 
-    const actorRef = createActor(machine).start();
+    const actorRef = machine.createActor().start();
 
     actorRef.send({ type: 'FOO' });
 
@@ -2875,7 +2875,7 @@ describe('enqueueActions', () => {
       }
     });
 
-    const actorRef = createActor(machine).start();
+    const actorRef = machine.createActor().start();
 
     actorRef.send({ type: 'FOO' });
 
@@ -2899,7 +2899,7 @@ describe('enqueueActions', () => {
       })
     });
 
-    const snapshot = createActor(machine).getSnapshot();
+    const snapshot = machine.createActor().getSnapshot();
 
     expect(snapshot.context).toEqual({ count: 42 });
   });
@@ -2922,7 +2922,7 @@ describe('enqueueActions', () => {
       }
     });
 
-    createActor(machine);
+    machine.createActor();
 
     expect(spy).toHaveBeenCalled();
   });
@@ -2945,7 +2945,7 @@ describe('enqueueActions', () => {
       }
     });
 
-    createActor(machine);
+    machine.createActor();
 
     expect(spy.mock.calls[0]).toMatchInlineSnapshot(`
       [
@@ -2965,7 +2965,7 @@ describe('enqueueActions', () => {
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
     await promise;
   });
 
@@ -3020,7 +3020,7 @@ describe('enqueueActions', () => {
         }
       });
 
-    createActor(parentMachine).start();
+    parentMachine.createActor().start();
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
@@ -3051,7 +3051,7 @@ describe('enqueueActions', () => {
       }
     });
 
-    createActor(parentMachine).start();
+    parentMachine.createActor().start();
 
     expect(parentSpy).toHaveBeenCalledTimes(1);
   });
@@ -3118,7 +3118,7 @@ describe('sendTo', () => {
       }
     });
 
-    createActor(parentMachine).start();
+    parentMachine.createActor().start();
     return promise;
   });
 
@@ -3165,7 +3165,7 @@ describe('sendTo', () => {
       }
     });
 
-    createActor(parentMachine).start();
+    parentMachine.createActor().start();
     return promise;
   });
 
@@ -3259,7 +3259,7 @@ describe('sendTo', () => {
       }
     });
 
-    createActor(parentMachine).start();
+    parentMachine.createActor().start();
     return promise;
   });
 
@@ -3305,7 +3305,7 @@ describe('sendTo', () => {
       }
     });
 
-    createActor(parentMachine).start();
+    parentMachine.createActor().start();
     return promise;
   });
 
@@ -3350,7 +3350,7 @@ describe('sendTo', () => {
       }
     });
 
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.send({ type: 'EVENT', value: 'foo' });
   });
@@ -3373,7 +3373,7 @@ describe('sendTo', () => {
 
     const errorSpy = vi.fn();
 
-    const actorRef = createActor(machine);
+    const actorRef = machine.createActor();
     actorRef.subscribe({
       error: errorSpy
     });
@@ -3428,7 +3428,7 @@ describe('sendTo', () => {
       }
     });
 
-    const actorRef = createActor(machine).start();
+    const actorRef = machine.createActor().start();
 
     actorRef.send({ type: 'NEXT' });
     actorRef.send({ type: 'EVENT' });
@@ -3505,7 +3505,7 @@ describe('sendTo', () => {
       }
     });
 
-    const actorRef = createActor(machine).start();
+    const actorRef = machine.createActor().start();
 
     actorRef.send({ type: 'START' });
 
@@ -3583,7 +3583,7 @@ describe('sendTo', () => {
       }
     });
 
-    const actorRef = createActor(machine).start();
+    const actorRef = machine.createActor().start();
 
     actorRef.send({ type: 'START' });
     actorRef.send({ type: 'NEXT' });
@@ -3635,7 +3635,7 @@ describe('raise', () => {
       }
     });
 
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.subscribe({ complete: () => resolve() });
 
@@ -3666,7 +3666,7 @@ describe('raise', () => {
       }
     });
 
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     // The state should not be changed yet; `delay: 0` is equivalent to `setTimeout(..., 0)`
     expect(service.getSnapshot().value).toEqual('a');
@@ -3695,7 +3695,7 @@ describe('raise', () => {
       }
     });
 
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     expect(service.getSnapshot().value).toEqual('b');
   });
@@ -3725,7 +3725,7 @@ describe('raise', () => {
       }
     });
 
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.subscribe({ complete: () => resolve() });
 
@@ -3756,7 +3756,7 @@ describe('raise', () => {
       }
     });
 
-    const actor = createActor(machine).start();
+    const actor = machine.createActor().start();
 
     actor.send({ type: 'NEXT' });
 
@@ -3798,7 +3798,7 @@ describe('raise', () => {
       }
     });
 
-    const actor = createActor(machine).start();
+    const actor = machine.createActor().start();
 
     actor.send({ type: 'NEXT' });
 
@@ -3821,7 +3821,7 @@ describe('raise', () => {
 
     const errorSpy = vi.fn();
 
-    const actorRef = createActor(machine);
+    const actorRef = machine.createActor();
     actorRef.subscribe({
       error: errorSpy
     });
@@ -3863,7 +3863,7 @@ describe('cancel', () => {
       }
     });
 
-    const actor = createActor(machine).start();
+    const actor = machine.createActor().start();
 
     // This should raise the 'RAISED' event after 1ms
     actor.send({ type: 'NEXT' });
@@ -3919,7 +3919,7 @@ describe('cancel', () => {
           enq.sendTo(children.foo, { type: 'cancel' })
       }
     });
-    const actor = createActor(machine).start();
+    const actor = machine.createActor().start();
 
     await sleep(50);
 
@@ -3981,7 +3981,7 @@ describe('cancel', () => {
         }
       }
     });
-    const actor = createActor(machine).start();
+    const actor = machine.createActor().start();
 
     await sleep(50);
 
@@ -4009,12 +4009,14 @@ describe('cancel', () => {
       }
     });
 
-    const actorRef = createActor(machine, {
-      clock: {
-        setTimeout,
-        clearTimeout: spy
-      }
-    }).start();
+    const actorRef = machine
+      .createActor(undefined, {
+        clock: {
+          setTimeout,
+          clearTimeout: spy
+        }
+      })
+      .start();
 
     actorRef.send({
       type: 'FOO'
@@ -4067,7 +4069,7 @@ describe('cancel', () => {
       }
     });
 
-    const actorRef = createActor(machine).start();
+    const actorRef = machine.createActor().start();
 
     actorRef.send({
       type: 'START'
@@ -4117,7 +4119,7 @@ describe('cancel', () => {
       }
     });
 
-    const actorRef = createActor(machine).start();
+    const actorRef = machine.createActor().start();
 
     actorRef.send({
       type: 'START'
@@ -4138,7 +4140,7 @@ describe('action meta', () => {
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
     await promise;
   });
 });
@@ -4172,7 +4174,7 @@ describe('actions', () => {
         }
       }
     });
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
     service.send({ type: 'FOO' });
 
     expect(actual).toEqual(['a', 'b']);
@@ -4211,7 +4213,7 @@ describe('actions', () => {
         }
       }
     });
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
     service.send({ type: 'FOO' });
 
     expect(actual).toEqual(['a1', 'b']);
@@ -4237,7 +4239,7 @@ describe('actions', () => {
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
   });
@@ -4262,7 +4264,7 @@ describe('actions', () => {
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
   });
@@ -4295,7 +4297,7 @@ describe('actions', () => {
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(spy).toHaveBeenCalledWith({ count: 42 });
   });
@@ -4326,7 +4328,7 @@ describe('actions', () => {
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(spy).toHaveBeenCalledWith({ count: 42 });
   });
@@ -4334,20 +4336,20 @@ describe('actions', () => {
   it('should call inline transition custom action with undefined parametrized action object', () => {
     const spy = vi.fn();
 
-    const actorRef = createActor(
-      createMachine({
-        on: {
-          // FOO: {
-          //   actions: (_, params) => {
-          //     spy(params);
-          //   }
-          // }
-          FOO: (_, enq) => {
-            enq(spy);
-          }
+    const actorRef = createMachine({
+      on: {
+        // FOO: {
+        //   actions: (_, params) => {
+        //     spy(params);
+        //   }
+        // }
+        FOO: (_, enq) => {
+          enq(spy);
         }
-      })
-    ).start();
+      }
+    })
+      .createActor()
+      .start();
     actorRef.send({ type: 'FOO' });
 
     // expect not to have any args
@@ -4357,18 +4359,18 @@ describe('actions', () => {
   it('should call a referenced custom action with undefined params when it has no params and it is referenced using a string', () => {
     const spy = vi.fn();
 
-    createActor(
-      createMachine({
-        actions: {
-          myAction: (params?: unknown) => {
-            spy(params);
-          }
-        },
-        entry: ({ actions }) => {
-          actions.myAction();
+    createMachine({
+      actions: {
+        myAction: (params?: unknown) => {
+          spy(params);
         }
-      })
-    ).start();
+      },
+      entry: ({ actions }) => {
+        actions.myAction();
+      }
+    })
+      .createActor()
+      .start();
 
     expect(spy).toHaveBeenCalledWith(undefined);
   });
@@ -4376,18 +4378,18 @@ describe('actions', () => {
   it('should call a referenced custom action with the provided parametrized action object', () => {
     const spy = vi.fn();
 
-    createActor(
-      createMachine({
-        actions: {
-          myAction: (params) => {
-            spy(params);
-          }
-        },
-        entry: ({ actions }) => {
-          actions.myAction({ foo: 'bar' });
+    createMachine({
+      actions: {
+        myAction: (params) => {
+          spy(params);
         }
-      })
-    ).start();
+      },
+      entry: ({ actions }) => {
+        actions.myAction({ foo: 'bar' });
+      }
+    })
+      .createActor()
+      .start();
 
     expect(spy).toHaveBeenCalledWith({
       foo: 'bar'
@@ -4435,7 +4437,7 @@ describe('actions', () => {
       }
     });
 
-    const actorRef = createActor(machine).start();
+    const actorRef = machine.createActor().start();
 
     actorRef.send({ type: 'NEXT' });
     actorRef.send({ type: 'EVENT' });

@@ -309,7 +309,19 @@ export interface InvokeDefinition<
 
   systemId: string | undefined;
 
-  logic: AnyActorLogic | (({ actors }: { actors: TActorMap }) => AnyActorLogic);
+  logic:
+    | AnyActorLogic
+    | (({
+        actors,
+        context,
+        event,
+        self
+      }: {
+        actors: TActorMap;
+        context: TContext;
+        event: TEvent;
+        self: AnyActorRef;
+      }) => AnyActorLogic);
   /** The source of the actor logic to be invoked */
   src: AnyActorLogic | string;
 
@@ -1652,7 +1664,7 @@ export interface ActorRef<
   /** @internal */
   _send: (event: TEvent) => void;
   send: (event: TEvent) => void;
-  start: () => void;
+  start: () => this;
   getSnapshot: () => TSnapshot;
   getPersistedSnapshot: () => Snapshot<unknown>;
   stop: () => void;
@@ -1893,6 +1905,30 @@ export interface ActorLogic<
     options?: unknown
   ) => Snapshot<unknown>;
 }
+
+/**
+ * Actor logic that includes a `createActor` method for creating unstarted
+ * actors.
+ */
+export type CreatableActorLogic<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject,
+  TInput = NonReducibleUnknown,
+  TSystem extends AnyActorSystem = AnyActorSystem,
+  TEmitted extends EventObject = EventObject
+> = ActorLogic<TSnapshot, TEvent, TInput, TSystem, TEmitted> & {
+  /**
+   * Creates an unstarted actor from this logic.
+   *
+   * @param input - The input for the actor.
+   * @param options - Actor options.
+   * @returns An unstarted actor.
+   */
+  createActor: (
+    input?: TInput,
+    options?: ActorOptions<any>
+  ) => ActorRef<TSnapshot, TEvent, TEmitted>;
+};
 
 export type AnyActorLogic = ActorLogic<
   any, // snapshot
