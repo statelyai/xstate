@@ -1,8 +1,13 @@
+import { createInitEvent } from './eventUtils';
 import { createInertActorScope } from './getNextSnapshot';
 import { getProperAncestors, isAtomicStateNode } from './stateUtils';
+import { getInitialStateNodes, macrostep, microstep } from './stateUtils';
 import {
   AnyActorLogic,
+  AnyEventObject,
+  AnyStateMachine,
   EventFromLogic,
+  ExecutableActionObject,
   InputFrom,
   SnapshotFrom,
   ExecutableActionsFrom,
@@ -62,6 +67,95 @@ export function initialTransition<T extends AnyActorLogic>(
 }
 
 /**
+ * Given a state `machine`, a `snapshot`, and an `event`, returns an array of
+ * microsteps, where each microstep is a tuple of `[snapshot, actions]`.
+ *
+ * This is a pure function that does not execute `actions`.
+ */
+export function getMicrosteps<T extends AnyStateMachine>(
+  machine: T,
+  snapshot: SnapshotFrom<T>,
+  event: EventFromLogic<T>
+): Array<[SnapshotFrom<T>, ExecutableActionsFrom<T>[]]> {
+  const actorScope = createInertActorScope(machine);
+
+  const { microsteps } = macrostep(snapshot, event, actorScope, []);
+
+  return microsteps as Array<[SnapshotFrom<T>, ExecutableActionsFrom<T>[]]>;
+}
+
+/**
+ * Given a state `machine` and optional `input`, returns an array of microsteps
+ * from the initial transition, where each microstep is a tuple of `[snapshot,
+ * actions]`.
+ *
+ * This is a pure function that does not execute `actions`.
+ */
+export function getInitialMicrosteps<T extends AnyStateMachine>(
+  machine: T,
+  ...[input]: undefined extends InputFrom<T>
+    ? [input?: InputFrom<T>]
+    : [input: InputFrom<T>]
+): Array<[SnapshotFrom<T>, ExecutableActionsFrom<T>[]]> {
+  const actorScope = createInertActorScope(machine);
+  const initEvent = createInitEvent(input);
+  const internalQueue: AnyEventObject[] = [];
+
+  // Get pre-initial state (mimics StateMachine.getPreInitialState)
+  const preInitialSnapshot = (machine as any).getPreInitialState(
+    actorScope,
+    initEvent,
+    internalQueue
+  );
+
+  // Capture actions for the initial microstep
+  const currentActions: ExecutableActionObject[] = [];
+  actorScope.actionExecutor = (action) => {
+    currentActions.push(action);
+  };
+
+  // Run the initial microstep (entering initial states)
+  const nextState = microstep(
+    [
+      {
+        target: [...getInitialStateNodes(machine.root)],
+        source: machine.root,
+        reenter: true,
+        actions: [],
+        eventType: null as any,
+        toJSON: null as any
+      }
+    ],
+    preInitialSnapshot,
+    actorScope,
+    initEvent,
+    true, // isInitial
+    internalQueue
+  );
+
+  const initialMicrostep: [SnapshotFrom<T>, ExecutableActionsFrom<T>[]] = [
+    nextState as SnapshotFrom<T>,
+    currentActions as ExecutableActionsFrom<T>[]
+  ];
+
+  // Reset to no-op since macrostep captures its own actions
+  actorScope.actionExecutor = () => {};
+
+  // Run macrostep for any eventless transitions or internal queue events
+  const { microsteps } = macrostep(
+    nextState,
+    initEvent,
+    actorScope,
+    internalQueue
+  );
+
+  return [
+    initialMicrostep,
+    ...(microsteps as Array<[SnapshotFrom<T>, ExecutableActionsFrom<T>[]]>)
+  ];
+}
+
+/*
  * Gets all potential next transitions from the current state.
  *
  * Returns all transitions that are available from the current state, including:

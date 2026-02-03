@@ -25,6 +25,7 @@ import {
   AnyTransitionDefinition,
   DelayedTransitionDefinition,
   EventObject,
+  ExecutableActionObject,
   HistoryValue,
   InitialTransitionConfig,
   InitialTransitionDefinition,
@@ -1573,16 +1574,28 @@ export function macrostep(
   internalQueue: AnyEventObject[]
 ): {
   snapshot: typeof snapshot;
-  microstates: Array<typeof snapshot>;
+  microsteps: Array<readonly [AnyMachineSnapshot, ExecutableActionObject[]]>;
 } {
   if (isDevelopment && event.type === WILDCARD) {
     throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
   }
 
-  let nextSnapshot = snapshot;
-  const microstates: AnyMachineSnapshot[] = [];
+  const originalExecutor = actorScope?.actionExecutor;
+  let currentMicrostepActions: ExecutableActionObject[] = [];
 
-  function addMicrostate(
+  if (actorScope) {
+    actorScope.actionExecutor = (action) => {
+      currentMicrostepActions.push(action);
+      originalExecutor?.(action);
+    };
+  }
+
+  let nextSnapshot = snapshot;
+  const microsteps: Array<
+    readonly [AnyMachineSnapshot, ExecutableActionObject[]]
+  > = [];
+
+  function addMicrostep(
     microstate: AnyMachineSnapshot,
     event: AnyEventObject,
     transitions: AnyTransitionDefinition[]
@@ -1594,7 +1607,8 @@ export function macrostep(
       snapshot: microstate,
       _transitions: transitions
     });
-    microstates.push(microstate);
+    microsteps.push([microstate, currentMicrostepActions]);
+    currentMicrostepActions = [];
   }
 
   // Handle stop event
@@ -1605,11 +1619,14 @@ export function macrostep(
         status: 'stopped'
       }
     );
-    addMicrostate(nextSnapshot, event, []);
+    addMicrostep(nextSnapshot, event, []);
+    if (actorScope && originalExecutor) {
+      actorScope.actionExecutor = originalExecutor;
+    }
 
     return {
       snapshot: nextSnapshot,
-      microstates
+      microsteps
     };
   }
 
@@ -1631,10 +1648,13 @@ export function macrostep(
         status: 'error',
         error: currentEvent.error
       });
-      addMicrostate(nextSnapshot, currentEvent, []);
+      addMicrostep(nextSnapshot, currentEvent, []);
+      if (actorScope && originalExecutor) {
+        actorScope.actionExecutor = originalExecutor;
+      }
       return {
         snapshot: nextSnapshot,
-        microstates
+        microsteps
       };
     }
     nextSnapshot = microstep(
@@ -1645,7 +1665,7 @@ export function macrostep(
       false, // isInitial
       internalQueue
     );
-    addMicrostate(nextSnapshot, currentEvent, transitions);
+    addMicrostep(nextSnapshot, currentEvent, transitions);
   }
 
   let shouldSelectEventlessTransitions = true;
@@ -1677,16 +1697,20 @@ export function macrostep(
       internalQueue
     );
     shouldSelectEventlessTransitions = nextSnapshot !== previousState;
-    addMicrostate(nextSnapshot, nextEvent, enabledTransitions);
+    addMicrostep(nextSnapshot, nextEvent, enabledTransitions);
   }
 
   if (nextSnapshot.status !== 'active') {
     stopChildren(nextSnapshot, nextEvent, actorScope);
   }
 
+  if (actorScope && originalExecutor) {
+    actorScope.actionExecutor = originalExecutor;
+  }
+
   return {
     snapshot: nextSnapshot,
-    microstates
+    microsteps
   };
 }
 
