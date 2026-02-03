@@ -2142,6 +2142,7 @@ export type StateSchema = {
   id?: string;
   states?: Record<string, StateSchema>;
   contextSchema?: StandardSchemaV1;
+  params?: unknown;
 
   // Other types
   // Needed because TS treats objects with all optional properties as a "weak" object
@@ -2183,6 +2184,41 @@ export type StateId<
           >;
         }>
       : never);
+
+/** Maps state IDs to their params types based on the StateSchema. */
+export type StateIdParams<
+  TSchema extends StateSchema,
+  TKey extends string = '(machine)',
+  TParentKey extends string | null = null
+> = {
+  [K in TSchema extends { id: string }
+    ? TSchema['id']
+    : TParentKey extends null
+      ? TKey
+      : `${TParentKey}.${TKey}`]: TSchema['params'] extends undefined
+    ? undefined
+    : TSchema['params'];
+} & (TSchema['states'] extends Record<string, StateSchema>
+  ? UnionToIntersection<
+      Values<{
+        [K in keyof TSchema['states'] & string]: StateIdParams<
+          TSchema['states'][K],
+          K,
+          TParentKey extends string
+            ? `${TParentKey}.${TKey}`
+            : TSchema['id'] extends string
+              ? TSchema['id']
+              : TKey
+        >;
+      }>
+    >
+  : {});
+
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+  k: infer I
+) => void
+  ? I
+  : never;
 
 export interface StateMachineTypes {
   context: MachineContext;

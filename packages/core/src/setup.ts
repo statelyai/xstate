@@ -68,6 +68,31 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
   ? I
   : never;
 
+/**
+ * Converts SetupStateSchema to StateSchema with params types included. This
+ * allows getParams() to be strongly typed.
+ */
+export type SetupStateSchemaToStateSchema<
+  TSetupSchema extends SetupStateSchema
+> = {
+  params: StateParams<TSetupSchema>;
+  states: TSetupSchema['states'] extends Record<string, SetupStateSchema>
+    ? {
+        [K in keyof TSetupSchema['states'] &
+          string]: SetupStateSchemaToStateSchema<TSetupSchema['states'][K]>;
+      }
+    : undefined;
+};
+
+/** Converts the root setup states config to a StateSchema. */
+export type SetupStatesToStateSchema<
+  TStates extends Record<string, SetupStateSchema>
+> = {
+  states: {
+    [K in keyof TStates & string]: SetupStateSchemaToStateSchema<TStates[K]>;
+  };
+};
+
 /** Get params type for a state key from the flattened params map */
 type GetStateParams<
   TParamsMap extends Record<string, unknown>,
@@ -296,7 +321,7 @@ export interface SetupReturn<
     InferOutput<TOutputSchema, unknown>,
     WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
     InferOutput<TMetaSchema, MetaObject>,
-    any, // TStateSchema
+    SetupStatesToStateSchema<TStates>,
     TActionMap,
     TActorMap,
     TGuardMap,

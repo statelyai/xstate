@@ -19,6 +19,7 @@ import type {
   MetaObject,
   StateSchema,
   StateId,
+  StateIdParams,
   SnapshotStatus,
   PersistedHistoryValue,
   TODO,
@@ -133,7 +134,7 @@ interface MachineSnapshotBase<
    * Returns the params for the current active state nodes, keyed by state node
    * id.
    */
-  getParams: () => Record<string, Record<string, unknown>>;
+  getParams: () => StateIdParams<TStateSchema>;
 
   toJSON: () => unknown;
 }
@@ -359,7 +360,7 @@ const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
 };
 
 const machineSnapshotGetParams = function getParams(this: AnyMachineSnapshot) {
-  return this._stateParams;
+  return this._stateParams as any;
 };
 
 export function createMachineSnapshot<

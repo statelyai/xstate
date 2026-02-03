@@ -410,4 +410,170 @@ describe('setup', () => {
 
     expect(true).toBe(true);
   });
+
+  it('params should be accessible in snapshot via getParams()', () => {
+    const s = setup({
+      states: {
+        idle: {},
+        loading: {
+          paramsSchema: z.object({
+            userId: z.string()
+          })
+        }
+      }
+    });
+
+    const machine = s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            LOAD: {
+              target: 'loading',
+              params: { userId: 'snapshot-user' }
+            }
+          }
+        },
+        loading: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'LOAD' });
+
+    const snapshot = actor.getSnapshot();
+    const params = snapshot.getParams();
+
+    // Params are keyed by state node ID
+    expect(params['(machine).loading']).toEqual({ userId: 'snapshot-user' });
+  });
+
+  it('nested state params should be accessible in snapshot', () => {
+    const s = setup({
+      states: {
+        parent: {
+          paramsSchema: z.object({ parentId: z.string() }),
+          states: {
+            child: {
+              paramsSchema: z.object({ childId: z.number() })
+            }
+          }
+        }
+      }
+    });
+
+    const machine = s.createMachine({
+      initial: {
+        target: 'parent',
+        params: { parentId: 'p1' }
+      },
+      states: {
+        parent: {
+          initial: {
+            target: 'child',
+            params: { childId: 42 }
+          },
+          states: {
+            child: {}
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    const snapshot = actor.getSnapshot();
+    const params = snapshot.getParams();
+
+    expect(params['(machine).parent']).toEqual({ parentId: 'p1' });
+    expect(params['(machine).parent.child']).toEqual({ childId: 42 });
+  });
+
+  it('getParams() should be strongly typed', () => {
+    const s = setup({
+      states: {
+        idle: {},
+        loading: {
+          paramsSchema: z.object({ userId: z.string() })
+        },
+        active: {
+          paramsSchema: z.object({ sessionId: z.number() }),
+          states: {
+            running: {
+              paramsSchema: z.object({ taskId: z.string() })
+            }
+          }
+        }
+      }
+    });
+
+    const machine = s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {},
+        loading: {},
+        active: {
+          initial: 'running',
+          states: {
+            running: {}
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    const params = actor.getSnapshot().getParams();
+
+    // Type tests for getParams() return type
+    params['(machine).idle'] satisfies undefined;
+    params['(machine).loading'] satisfies { userId: string } | undefined;
+    params['(machine).active'] satisfies { sessionId: number } | undefined;
+    params['(machine).active.running'] satisfies { taskId: string } | undefined;
+
+    // @ts-expect-error - loading params should have userId string, not number
+    params['(machine).loading'] satisfies { userId: number };
+    // @ts-expect-error - active params should have sessionId number, not string
+    params['(machine).active'] satisfies { sessionId: string };
+
+    expect(true).toBe(true);
+  });
+
+  it('params should persist across self-transitions', () => {
+    const s = setup({
+      states: {
+        active: {
+          paramsSchema: z.object({ count: z.number() })
+        }
+      }
+    });
+
+    const machine = s.createMachine({
+      initial: {
+        target: 'active',
+        params: { count: 1 }
+      },
+      states: {
+        active: {
+          on: {
+            // Self-transition without reenter
+            PING: {}
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    // Params should be set initially
+    expect(actor.getSnapshot().getParams()['(machine).active']).toEqual({
+      count: 1
+    });
+
+    // Send event that triggers self-transition
+    actor.send({ type: 'PING' });
+
+    // Params should still be there
+    expect(actor.getSnapshot().getParams()['(machine).active']).toEqual({
+      count: 1
+    });
+  });
 });
