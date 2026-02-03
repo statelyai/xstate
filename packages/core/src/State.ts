@@ -61,25 +61,7 @@ interface MachineSnapshotBase<
   TStateSchema extends StateSchema = StateSchema
 > {
   /** The state machine that produced this state snapshot. */
-  machine: StateMachine<
-    TContext,
-    TEvent,
-    TChildren,
-    ProvidedActor,
-    ParameterizedObject,
-    ParameterizedObject,
-    string,
-    TStateValue,
-    TTag,
-    unknown,
-    TOutput,
-    EventObject, // TEmitted
-    any, // TMeta
-    TStateSchema,
-    TODO, // TActionMap
-    TODO, // TActorMap
-    TODO // TGuardMap
-  >;
+  machine: AnyStateMachine;
   /** The tags of the active state nodes that represent the current state value. */
   tags: Set<string>;
   /**
@@ -109,11 +91,13 @@ interface MachineSnapshotBase<
   error: unknown;
   context: TContext;
 
-  historyValue: Readonly<HistoryValue<TContext, TEvent>>;
+  historyValue: Readonly<HistoryValue>;
   /** The enabled state nodes representative of the state value. */
   _nodes: Array<AnyStateNode>;
   /** An object mapping actor names to spawned/invoked actors. */
   children: TChildren;
+  /** @internal */
+  _stateParams: Record<string, Record<string, unknown>>;
 
   /**
    * Whether the current state value is a subset of the given partial state
@@ -145,6 +129,12 @@ interface MachineSnapshotBase<
     TMeta | undefined // States might not have meta defined
   >;
 
+  /**
+   * Returns the params for the current active state nodes, keyed by state node
+   * id.
+   */
+  getParams: () => Record<string, Record<string, unknown>>;
+
   toJSON: () => unknown;
 }
 
@@ -158,15 +148,15 @@ interface ActiveMachineSnapshot<
   TMeta extends MetaObject,
   TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
-    TContext,
-    TEvent,
-    TChildren,
-    TStateValue,
-    TTag,
-    TOutput,
-    TMeta,
-    TStateSchema
-  > {
+  TContext,
+  TEvent,
+  TChildren,
+  TStateValue,
+  TTag,
+  TOutput,
+  TMeta,
+  TStateSchema
+> {
   status: 'active';
   output: undefined;
   error: undefined;
@@ -182,15 +172,15 @@ interface DoneMachineSnapshot<
   TMeta extends MetaObject,
   TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
-    TContext,
-    TEvent,
-    TChildren,
-    TStateValue,
-    TTag,
-    TOutput,
-    TMeta,
-    TStateSchema
-  > {
+  TContext,
+  TEvent,
+  TChildren,
+  TStateValue,
+  TTag,
+  TOutput,
+  TMeta,
+  TStateSchema
+> {
   status: 'done';
   output: TOutput;
   error: undefined;
@@ -206,15 +196,15 @@ interface ErrorMachineSnapshot<
   TMeta extends MetaObject,
   TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
-    TContext,
-    TEvent,
-    TChildren,
-    TStateValue,
-    TTag,
-    TOutput,
-    TMeta,
-    TStateSchema
-  > {
+  TContext,
+  TEvent,
+  TChildren,
+  TStateValue,
+  TTag,
+  TOutput,
+  TMeta,
+  TStateSchema
+> {
   status: 'error';
   output: undefined;
   error: unknown;
@@ -230,15 +220,15 @@ interface StoppedMachineSnapshot<
   TMeta extends MetaObject,
   TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
-    TContext,
-    TEvent,
-    TChildren,
-    TStateValue,
-    TTag,
-    TOutput,
-    TMeta,
-    TStateSchema
-  > {
+  TContext,
+  TEvent,
+  TChildren,
+  TStateValue,
+  TTag,
+  TOutput,
+  TMeta,
+  TStateSchema
+> {
   status: 'stopped';
   output: undefined;
   error: undefined;
@@ -342,9 +332,11 @@ const machineSnapshotCan = function can(
 const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
     _nodes: nodes,
+    _stateParams,
     tags,
     machine,
     getMeta,
+    getParams,
     toJSON,
     can,
     hasTag,
@@ -364,6 +356,10 @@ const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
     },
     {} as Record<string, any>
   );
+};
+
+const machineSnapshotGetParams = function getParams(this: AnyMachineSnapshot) {
+  return this._stateParams;
 };
 
 export function createMachineSnapshot<
@@ -398,10 +394,12 @@ export function createMachineSnapshot<
     tags: new Set(config._nodes.flatMap((sn) => sn.tags)),
     children: config.children as any,
     historyValue: config.historyValue || {},
+    _stateParams: config._stateParams || {},
     matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
     can: machineSnapshotCan,
     getMeta: machineSnapshotGetMeta,
+    getParams: machineSnapshotGetParams,
     toJSON: machineSnapshotToJSON
   };
 }
@@ -416,10 +414,9 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
   ) as TState;
 }
 
-function serializeHistoryValue<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(historyValue: HistoryValue<TContext, TEvent>): PersistedHistoryValue {
+function serializeHistoryValue(
+  historyValue: HistoryValue
+): PersistedHistoryValue {
   const result: PersistedHistoryValue = {};
 
   for (const key in historyValue) {
@@ -455,6 +452,7 @@ export function getPersistedSnapshot<
 ): Snapshot<unknown> {
   const {
     _nodes: nodes,
+    _stateParams,
     tags,
     machine,
     children,
@@ -463,6 +461,7 @@ export function getPersistedSnapshot<
     hasTag,
     matches,
     getMeta,
+    getParams,
     toJSON,
     ...jsonValues
   } = snapshot;
@@ -490,9 +489,7 @@ export function getPersistedSnapshot<
     ...jsonValues,
     context: persistContext(context) as any,
     children: childrenJson,
-    historyValue: serializeHistoryValue<TContext, TEvent>(
-      jsonValues.historyValue
-    )
+    historyValue: serializeHistoryValue(jsonValues.historyValue)
   };
 
   return persisted;

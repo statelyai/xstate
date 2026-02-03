@@ -213,6 +213,12 @@ export interface Next_InvokeConfig<
   >;
 }
 
+/** Lookup params type from a params map, with fallback to undefined */
+export type LookupParams<
+  TParamsMap extends Record<string, unknown>,
+  K extends string
+> = K extends keyof TParamsMap ? TParamsMap[K] : undefined;
+
 export interface Next_StateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -224,11 +230,24 @@ export interface Next_StateNodeConfig<
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays']
+  TDelayMap extends Implementations['delays'],
+  TParams = Record<string, unknown> | undefined,
+  TParamsMap extends Record<string, unknown> = Record<string, unknown>
 > {
   contextSchema?: StandardSchemaV1;
   /** The initial state transition. */
-  initial?: string | undefined;
+  initial?:
+    | string
+    | {
+        target: string;
+        params?:
+          | Record<string, unknown>
+          | ((args: {
+              context: TContext;
+              event: TEvent;
+            }) => Record<string, unknown>);
+      }
+    | undefined;
   /**
    * The type of this state node:
    *
@@ -260,7 +279,9 @@ export interface Next_StateNodeConfig<
       TActionMap,
       TActorMap,
       TGuardMap,
-      TDelayMap
+      TDelayMap,
+      LookupParams<TParamsMap, K>,
+      TParamsMap
     >;
   };
   /**
@@ -300,7 +321,8 @@ export interface Next_StateNodeConfig<
     TActionMap,
     TActorMap,
     TGuardMap,
-    TDelayMap
+    TDelayMap,
+    TParams
   >;
   exit?: Action<
     TContext,
@@ -309,7 +331,8 @@ export interface Next_StateNodeConfig<
     TActionMap,
     TActorMap,
     TGuardMap,
-    TDelayMap
+    TDelayMap,
+    TParams
   >;
   /**
    * The potential transition(s) to be taken upon reaching a final child state
@@ -444,6 +467,9 @@ export type Next_TransitionConfigOrTarget<
       description?: string;
       reenter?: boolean;
       meta?: TMeta;
+      params?:
+        | Record<string, unknown>
+        | ((args: { context: any; event: any }) => Record<string, unknown>);
     }
   | {
       to?: TransitionConfigFunction<
@@ -460,6 +486,9 @@ export type Next_TransitionConfigOrTarget<
       description?: string;
       reenter?: boolean;
       meta?: TMeta;
+      params?:
+        | Record<string, unknown>
+        | ((args: { context: any; event: any }) => Record<string, unknown>);
     }
   | TransitionConfigFunction<
       TContext,

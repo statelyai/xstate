@@ -1370,6 +1370,9 @@ export interface TransitionDefinition<
   source: AnyStateNode;
   reenter: boolean;
   eventType: EventDescriptor<TEvent>;
+  params?:
+    | Record<string, unknown>
+    | ((args: { context: any; event: any }) => Record<string, unknown>);
 }
 
 export type AnyTransitionDefinition = TransitionDefinition<any, any>;
@@ -1377,6 +1380,12 @@ export type AnyTransitionDefinition = TransitionDefinition<any, any>;
 export type InitialTransitionDefinition = {
   source: AnyStateNode;
   target: AnyStateNode[] | undefined;
+  params?:
+    | Record<string, unknown>
+    | ((args: {
+        context: MachineContext;
+        event: EventObject;
+      }) => Record<string, unknown>);
 };
 
 export type TransitionDefinitionMap<
@@ -1418,6 +1427,8 @@ export interface StateConfig<
   status: SnapshotStatus;
   output?: any;
   error?: unknown;
+  /** @internal */
+  _stateParams?: Record<string, Record<string, unknown>>;
   machine?: StateMachine<
     TContext,
     TEvent,
@@ -2353,7 +2364,8 @@ export type Action<
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays']
+  TDelayMap extends Implementations['delays'],
+  TParams = Record<string, unknown> | undefined
 > = (
   _: {
     context: TContext;
@@ -2369,6 +2381,7 @@ export type Action<
     guards: TGuardMap;
     delays: TDelayMap;
     system?: AnyActorSystem;
+    params: TParams;
   },
   enqueue: EnqueueObject<TEvent, TEmittedEvent>
 ) => {

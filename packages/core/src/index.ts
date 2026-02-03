@@ -8,6 +8,7 @@ export {
   type RequiredActorOptionsKeys as RequiredActorOptionsKeys
 } from './createActor.ts';
 export { createMachine, createStateConfig } from './createMachine.ts';
+export { setup } from './setup.ts';
 export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
 export type { InspectionEvent } from './inspection.ts';
 export { SimulatedClock } from './SimulatedClock.ts';

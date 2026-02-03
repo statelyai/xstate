@@ -444,18 +444,27 @@ export function formatTransitions<
 
 export function formatInitialTransition(
   stateNode: AnyStateNode,
-  _target: string | undefined
+  _target: string | { target: string; params?: any } | undefined
 ): InitialTransitionDefinition {
+  const targetString =
+    typeof _target === 'object' && _target !== null ? _target.target : _target;
+  const params =
+    typeof _target === 'object' && _target !== null
+      ? _target.params
+      : undefined;
   const resolvedTarget =
-    typeof _target === 'string' ? stateNode.states[_target] : undefined;
-  if (!resolvedTarget && _target) {
+    typeof targetString === 'string'
+      ? stateNode.states[targetString]
+      : undefined;
+  if (!resolvedTarget && targetString) {
     throw new Error(
-      `Initial state node "${_target}" not found on parent state node #${stateNode.id}`
+      `Initial state node "${targetString}" not found on parent state node #${stateNode.id}`
     );
   }
   const transition: InitialTransitionDefinition = {
     source: stateNode,
-    target: resolvedTarget ? [resolvedTarget] : undefined
+    target: resolvedTarget ? [resolvedTarget] : undefined,
+    params
   };
 
   return transition;

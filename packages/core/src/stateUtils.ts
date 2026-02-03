@@ -980,6 +980,8 @@ export function microstep(
 
     nextStateNodesToExit.forEach((stateNode) => {
       if (stateNode.exit) {
+        // Get params for this state from the snapshot
+        const stateParams = nextState._stateParams?.[stateNode.id];
         const [actions, , internalEvents] =
           getActionsAndContextFromTransitionFn(stateNode.exit, {
             context: nextState.context,
@@ -988,7 +990,8 @@ export function microstep(
             parent: actorScope.self._parent,
             children: nextState.children,
             actorScope,
-            machine: currentSnapshot.machine
+            machine: currentSnapshot.machine,
+            params: stateParams
           });
         allExitActions.push(...actions);
         if (internalEvents?.length) {
@@ -1086,6 +1089,24 @@ function enterStates(
     statesForDefaultEntry.add(currentSnapshot.machine.root);
   }
 
+  // Collect params from transitions for their target states
+  const stateParamsMap: Record<string, Record<string, unknown>> = {
+    ...currentSnapshot._stateParams
+  };
+  for (const transition of filteredTransitions) {
+    const { targets, params } = getTransitionResult(
+      transition,
+      currentSnapshot,
+      event,
+      actorScope
+    );
+    if (params && targets) {
+      for (const targetNode of targets) {
+        stateParamsMap[targetNode.id] = params;
+      }
+    }
+  }
+
   const completedNodes = new Set();
 
   const children = { ...currentSnapshot.children };
@@ -1180,6 +1201,9 @@ function enterStates(
     }
     let context: MachineContext | undefined;
 
+    // Get params for this state node (from transitions or initial params)
+    const stateParams = stateParamsMap[stateNodeToEnter.id];
+
     if (stateNodeToEnter.entry) {
       const [resultActions, nextContext, internalEvents] =
         getActionsAndContextFromTransitionFn(stateNodeToEnter.entry, {
@@ -1189,7 +1213,8 @@ function enterStates(
           parent: actorScope.self._parent,
           children,
           actorScope,
-          machine: currentSnapshot.machine
+          machine: currentSnapshot.machine,
+          params: stateParams
         });
       actions.push(...resultActions);
       if (internalEvents?.length) {
@@ -1201,13 +1226,21 @@ function enterStates(
     }
 
     if (statesForDefaultEntry.has(stateNodeToEnter)) {
-      const { actions: initialActions } = getTransitionResult(
-        stateNodeToEnter.initial,
-        nextSnapshot,
-        event,
-        actorScope
-      );
+      const { actions: initialActions, params: initialParams } =
+        getTransitionResult(
+          stateNodeToEnter.initial,
+          nextSnapshot,
+          event,
+          actorScope
+        );
       if (initialActions) actions.push(...initialActions);
+      // If initial transition has params, store them for target states
+      if (initialParams && stateNodeToEnter.initial?.target) {
+        const initialTargets = stateNodeToEnter.initial.target;
+        for (const targetNode of initialTargets) {
+          stateParamsMap[targetNode.id] = initialParams;
+        }
+      }
     }
 
     nextSnapshot = resolveAndExecuteActionsWithContext(
@@ -1271,6 +1304,16 @@ function enterStates(
     }
   }
 
+  // Update snapshot with collected state params only if they changed
+  const paramsChanged =
+    JSON.stringify(stateParamsMap) !==
+    JSON.stringify(currentSnapshot._stateParams || {});
+  if (paramsChanged) {
+    nextSnapshot = cloneMachineSnapshot(nextSnapshot, {
+      _stateParams: stateParamsMap
+    });
+  }
+
   return nextSnapshot;
 }
 
@@ -1281,6 +1324,7 @@ function enterStates(
 export function getTransitionResult(
   transition: Pick<AnyTransitionDefinition, 'target' | 'to' | 'source'> & {
     reenter?: AnyTransitionDefinition['reenter'];
+    params?: AnyTransitionDefinition['params'];
   },
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
@@ -1291,6 +1335,7 @@ export function getTransitionResult(
   actions: AnyAction[] | undefined;
   reenter?: boolean;
   internalEvents: EventObject[] | undefined;
+  params: Record<string, unknown> | undefined;
 } {
   if (transition.to) {
     const actions: AnyAction[] = [];
@@ -1398,21 +1443,35 @@ export function getTransitionResult(
       ? resolveTarget(transition.source, [res.target])
       : undefined;
 
+    // Resolve params for .to transitions
+    const resolvedParams =
+      typeof transition.params === 'function'
+        ? transition.params({ context: snapshot.context, event })
+        : transition.params;
+
     return {
       targets: targets,
       context: res?.context,
       reenter: res?.reenter,
       actions,
-      internalEvents
+      internalEvents,
+      params: resolvedParams
     };
   }
+
+  // Resolve params for regular transitions
+  const resolvedParams =
+    typeof transition.params === 'function'
+      ? transition.params({ context: snapshot.context, event })
+      : transition.params;
 
   return {
     targets: transition.target as AnyStateNode[] | undefined,
     context: undefined,
     reenter: transition.reenter,
     actions: undefined,
-    internalEvents: undefined
+    internalEvents: undefined,
+    params: resolvedParams
   };
 }
 
@@ -1710,6 +1769,9 @@ function exitStates(
   }
 
   for (const exitStateNode of statesToExit) {
+    // Get params for this state from the snapshot's state params
+    const stateParams = currentSnapshot._stateParams?.[exitStateNode.id];
+
     const [exitActions, nextContext, internalEvents] = exitStateNode.exit
       ? getActionsAndContextFromTransitionFn(exitStateNode.exit, {
           context: nextSnapshot.context,
@@ -1718,7 +1780,8 @@ function exitStates(
           parent: actorScope.self._parent,
           children: currentSnapshot.children,
           actorScope,
-          machine: currentSnapshot.machine
+          machine: currentSnapshot.machine,
+          params: stateParams
         })
       : [[]];
     if (internalEvents?.length) {
@@ -2095,7 +2158,8 @@ function getActionsAndContextFromTransitionFn(
     self,
     children,
     actorScope,
-    machine
+    machine,
+    params
   }: {
     context: MachineContext;
     event: EventObject;
@@ -2104,6 +2168,7 @@ function getActionsAndContextFromTransitionFn(
     children: Record<string, AnyActorRef>;
     actorScope: AnyActorScope;
     machine: AnyStateMachine;
+    params?: Record<string, unknown>;
   }
 ): [
   actions: any[],
@@ -2227,7 +2292,8 @@ function getActionsAndContextFromTransitionFn(
         actions: machine.implementations.actions,
         actors: machine.implementations.actors,
         guards: machine.implementations.guards,
-        delays: machine.implementations.delays
+        delays: machine.implementations.delays,
+        params
       },
       enqueue
     );
@@ -2239,7 +2305,13 @@ function getActionsAndContextFromTransitionFn(
     return [actions, updatedContext, internalEvents];
   }
 
-  return [[action2], undefined, undefined];
+  // For 1-argument actions, wrap them to include params
+  // Preserve _special flag if present (for entry/exit actions)
+  const wrappedAction = Object.assign(
+    (args: any, enqueue: any) => (action2 as any)({ ...args, params }, enqueue),
+    '_special' in (action2 as any) ? { _special: true } : {}
+  );
+  return [[wrappedAction], undefined, undefined];
 }
 
 export function hasEffect(
