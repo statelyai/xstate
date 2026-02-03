@@ -328,7 +328,9 @@ export class StateMachine<
       TStateSchema
     >
   > {
-    return macrostep(snapshot, event, actorScope, []).microstates;
+    return macrostep(snapshot, event, actorScope, []).microsteps.map(
+      ([s]) => s
+    );
   }
 
   public getTransitionData(
