@@ -26,7 +26,9 @@ it('updates a store with an event without mutating original context', () => {
 
   const initial = store.getInitialSnapshot();
 
-  store.send({ type: 'inc', by: 1 });
+  store.trigger.inc({
+    by: 1
+  });
 
   const next = store.getSnapshot();
 
@@ -50,14 +52,10 @@ it('can update context', () => {
     }
   });
 
-  store.send({
-    type: 'inc'
-  });
+  store.trigger.inc();
   expect(store.getSnapshot().context).toEqual({ count: 1, greeting: 'hello' });
 
-  store.send({
-    type: 'updateBoth'
-  });
+  store.trigger.updateBoth();
   expect(store.getSnapshot().context).toEqual({ count: 42, greeting: 'hi' });
 });
 
@@ -71,10 +69,9 @@ it('handles unknown events (does not do anything)', () => {
     }
   });
 
-  store.send({
+  store.trigger
     // @ts-expect-error
-    type: 'unknown'
-  });
+    .unknown();
   expect(store.getSnapshot().context).toEqual({ count: 0 });
 });
 
@@ -102,11 +99,15 @@ it('updates state from sent events', () => {
     }
   });
 
-  store.send({ type: 'inc', by: 9 });
-  store.send({ type: 'dec', by: 3 });
+  store.trigger.inc({
+    by: 9
+  });
+  store.trigger.dec({
+    by: 3
+  });
 
   expect(store.getSnapshot().context).toEqual({ count: 6 });
-  store.send({ type: 'clear' });
+  store.trigger.clear();
 
   expect(store.getSnapshot().context).toEqual({ count: 0 });
 });
@@ -123,11 +124,12 @@ it('createStoreWithProducer(…) works with an immer producer', () => {
     }
   });
 
-  store.send({ type: 'inc', by: 3 });
-  store.send({
-    // @ts-expect-error
-    type: 'whatever'
+  store.trigger.inc({
+    by: 3
   });
+  store.trigger
+    // @ts-expect-error
+    .whatever();
 
   expect(store.getSnapshot().context).toEqual({ count: 3 });
   expect(store.getInitialSnapshot().context).toEqual({ count: 0 });
@@ -145,11 +147,12 @@ it('createStoreWithProducer(…) works with an immer producer (object API)', () 
     }
   });
 
-  store.send({ type: 'inc', by: 3 });
-  store.send({
-    // @ts-expect-error
-    type: 'whatever'
+  store.trigger.inc({
+    by: 3
   });
+  store.trigger
+    // @ts-expect-error
+    .whatever();
 
   expect(store.getSnapshot().context).toEqual({ count: 3 });
   expect(store.getInitialSnapshot().context).toEqual({ count: 0 });
@@ -192,17 +195,17 @@ it('can be observed', () => {
 
   expect(counts).toEqual([]);
 
-  store.send({ type: 'inc' }); // 1
-  store.send({ type: 'inc' }); // 2
-  store.send({ type: 'inc' }); // 3
+  store.trigger.inc(); // 1
+  store.trigger.inc(); // 2
+  store.trigger.inc(); // 3
 
   expect(counts).toEqual([1, 2, 3]);
 
   sub.unsubscribe();
 
-  store.send({ type: 'inc' }); // 4
-  store.send({ type: 'inc' }); // 5
-  store.send({ type: 'inc' }); // 6
+  store.trigger.inc(); // 4
+  store.trigger.inc(); // 5
+  store.trigger.inc(); // 6
 
   expect(counts).toEqual([1, 2, 3]);
 });
@@ -223,7 +226,7 @@ it('can be inspected', () => {
 
   store.inspect((ev) => evs.push(ev));
 
-  store.send({ type: 'inc' });
+  store.trigger.inc();
 
   expect(evs).toEqual([
     expect.objectContaining({
@@ -280,7 +283,7 @@ it('emitted events can be subscribed to', () => {
 
   store.on('increased', spy);
 
-  store.send({ type: 'inc' });
+  store.trigger.inc();
 
   expect(spy).toHaveBeenCalledWith({ type: 'increased', upBy: 1 });
 });
@@ -307,12 +310,12 @@ it('emitted events can be unsubscribed to', () => {
 
   const spy = vi.fn();
   const sub = store.on('increased', spy);
-  store.send({ type: 'inc' });
+  store.trigger.inc();
 
   expect(spy).toHaveBeenCalledWith({ type: 'increased', upBy: 1 });
 
   sub.unsubscribe();
-  store.send({ type: 'inc' });
+  store.trigger.inc();
 
   expect(spy).toHaveBeenCalledTimes(1);
 });
@@ -345,7 +348,7 @@ it('emitted events occur after the snapshot is updated', () => {
     expect(s.context.count).toEqual(1);
   });
 
-  store.send({ type: 'inc' });
+  store.trigger.inc();
 });
 
 it('events can be emitted with no payload', () => {
@@ -384,7 +387,7 @@ it('events can be emitted with no payload', () => {
 
   store.on('incremented', spy);
 
-  store.send({ type: 'inc' });
+  store.trigger.inc();
 
   expect(spy).toHaveBeenCalledWith({ type: 'incremented' });
 });
@@ -421,7 +424,7 @@ it('effects can be enqueued', async () => {
       inc: (ctx, _, enq) => {
         enq.effect(() => {
           setTimeout(() => {
-            store.send({ type: 'dec' });
+            store.trigger.dec();
           }, 5);
         });
 
@@ -437,7 +440,7 @@ it('effects can be enqueued', async () => {
     }
   });
 
-  store.send({ type: 'inc' });
+  store.trigger.inc();
 
   expect(store.getSnapshot().context.count).toEqual(1);
 
@@ -492,7 +495,7 @@ it('async effects can be enqueued', async () => {
       inc: (ctx, _, enq) => {
         enq.effect(async () => {
           await new Promise((resolve) => setTimeout(resolve, 5));
-          store.send({ type: 'dec' });
+          store.trigger.dec();
         });
 
         return {
@@ -507,7 +510,7 @@ it('async effects can be enqueued', async () => {
     }
   });
 
-  store.send({ type: 'inc' });
+  store.trigger.inc();
 
   expect(store.getSnapshot().context.count).toEqual(1);
 
@@ -663,8 +666,7 @@ it('the emit type is not overridden by the payload', () => {
     spy(event);
   });
 
-  drawersBridgeStore.send({
-    type: 'openDrawer',
+  drawersBridgeStore.trigger.openDrawer({
     drawer: { id: 'a' }
   });
 
@@ -693,7 +695,9 @@ it('can emit events from createStoreWithProducer', () => {
   const spy = vi.fn();
   store.on('increased', spy);
 
-  store.send({ type: 'inc', by: 3 });
+  store.trigger.inc({
+    by: 3
+  });
 
   expect(spy).toHaveBeenCalledWith({ type: 'increased', by: 3 });
   expect(store.getSnapshot().context).toEqual({ count: 3 });

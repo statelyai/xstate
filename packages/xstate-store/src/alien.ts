@@ -3,14 +3,14 @@
 // https://github.com/stackblitz/alien-signals/
 
 export interface ReactiveNode {
-  _deps?: Link;
-  _depsTail?: Link;
-  _subs?: Link;
-  _subsTail?: Link;
-  _flags: ReactiveFlags;
+  deps?: Link;
+  depsTail?: Link;
+  subs?: Link;
+  subsTail?: Link;
+  flags: ReactiveFlags;
 }
 
-interface Link {
+export interface Link {
   version: number;
   dep: ReactiveNode;
   sub: ReactiveNode;
@@ -25,14 +25,14 @@ interface Stack<T> {
   prev: Stack<T> | undefined;
 }
 
-export enum ReactiveFlags {
+export const enum ReactiveFlags {
   None = 0,
-  Mutable = 1 << 0,
-  Watching = 1 << 1,
-  RecursedCheck = 1 << 2,
-  Recursed = 1 << 3,
-  Dirty = 1 << 4,
-  Pending = 1 << 5
+  Mutable = 1,
+  Watching = 2,
+  RecursedCheck = 4,
+  Recursed = 8,
+  Dirty = 16,
+  Pending = 32
 }
 
 export function createReactiveSystem({
@@ -44,41 +44,38 @@ export function createReactiveSystem({
   notify(sub: ReactiveNode): void;
   unwatched(sub: ReactiveNode): void;
 }) {
-  let currentVersion = 0;
   return {
     link,
     unlink,
     propagate,
     checkDirty,
-    endTracking,
-    startTracking,
     shallowPropagate
   };
 
-  function link(dep: ReactiveNode, sub: ReactiveNode): void {
-    const prevDep = sub._depsTail;
+  function link(dep: ReactiveNode, sub: ReactiveNode, version: number): void {
+    const prevDep = sub.depsTail;
     if (prevDep !== undefined && prevDep.dep === dep) {
       return;
     }
-    const nextDep = prevDep !== undefined ? prevDep.nextDep : sub._deps;
+    const nextDep = prevDep !== undefined ? prevDep.nextDep : sub.deps;
     if (nextDep !== undefined && nextDep.dep === dep) {
-      nextDep.version = currentVersion;
-      sub._depsTail = nextDep;
+      nextDep.version = version;
+      sub.depsTail = nextDep;
       return;
     }
-    const prevSub = dep._subsTail;
+    const prevSub = dep.subsTail;
     if (
       prevSub !== undefined &&
-      prevSub.version === currentVersion &&
+      prevSub.version === version &&
       prevSub.sub === sub
     ) {
       return;
     }
     const newLink =
-      (sub._depsTail =
-      dep._subsTail =
+      (sub.depsTail =
+      dep.subsTail =
         {
-          version: currentVersion,
+          version,
           dep,
           sub,
           prevDep,
@@ -92,12 +89,12 @@ export function createReactiveSystem({
     if (prevDep !== undefined) {
       prevDep.nextDep = newLink;
     } else {
-      sub._deps = newLink;
+      sub.deps = newLink;
     }
     if (prevSub !== undefined) {
       prevSub.nextSub = newLink;
     } else {
-      dep._subs = newLink;
+      dep.subs = newLink;
     }
   }
 
@@ -110,21 +107,21 @@ export function createReactiveSystem({
     if (nextDep !== undefined) {
       nextDep.prevDep = prevDep;
     } else {
-      sub._depsTail = prevDep;
+      sub.depsTail = prevDep;
     }
     if (prevDep !== undefined) {
       prevDep.nextDep = nextDep;
     } else {
-      sub._deps = nextDep;
+      sub.deps = nextDep;
     }
     if (nextSub !== undefined) {
       nextSub.prevSub = prevSub;
     } else {
-      dep._subsTail = prevSub;
+      dep.subsTail = prevSub;
     }
     if (prevSub !== undefined) {
       prevSub.nextSub = nextSub;
-    } else if ((dep._subs = nextSub) === undefined) {
+    } else if ((dep.subs = nextSub) === undefined) {
       unwatched(dep);
     }
     return nextDep;
@@ -136,44 +133,40 @@ export function createReactiveSystem({
 
     top: do {
       const sub = link.sub;
-      let flags = sub._flags;
+      let flags = sub.flags;
 
       if (
         !(
           flags &
-          (60 as
-            | ReactiveFlags.RecursedCheck
-            | ReactiveFlags.Recursed
-            | ReactiveFlags.Dirty
-            | ReactiveFlags.Pending)
+          (ReactiveFlags.RecursedCheck |
+            ReactiveFlags.Recursed |
+            ReactiveFlags.Dirty |
+            ReactiveFlags.Pending)
         )
       ) {
-        sub._flags = flags | (32 satisfies ReactiveFlags.Pending);
+        sub.flags = flags | ReactiveFlags.Pending;
       } else if (
-        !(flags & (12 as ReactiveFlags.RecursedCheck | ReactiveFlags.Recursed))
+        !(flags & (ReactiveFlags.RecursedCheck | ReactiveFlags.Recursed))
       ) {
-        flags = 0 satisfies ReactiveFlags.None;
-      } else if (!(flags & (4 satisfies ReactiveFlags.RecursedCheck))) {
-        sub._flags =
-          (flags & ~(8 satisfies ReactiveFlags.Recursed)) |
-          (32 satisfies ReactiveFlags.Pending);
+        flags = ReactiveFlags.None;
+      } else if (!(flags & ReactiveFlags.RecursedCheck)) {
+        sub.flags = (flags & ~ReactiveFlags.Recursed) | ReactiveFlags.Pending;
       } else if (
-        !(flags & (48 as ReactiveFlags.Dirty | ReactiveFlags.Pending)) &&
+        !(flags & (ReactiveFlags.Dirty | ReactiveFlags.Pending)) &&
         isValidLink(link, sub)
       ) {
-        sub._flags =
-          flags | (40 as ReactiveFlags.Recursed | ReactiveFlags.Pending);
-        flags &= 1 satisfies ReactiveFlags.Mutable;
+        sub.flags = flags | (ReactiveFlags.Recursed | ReactiveFlags.Pending);
+        flags &= ReactiveFlags.Mutable;
       } else {
-        flags = 0 satisfies ReactiveFlags.None;
+        flags = ReactiveFlags.None;
       }
 
-      if (flags & (2 satisfies ReactiveFlags.Watching)) {
+      if (flags & ReactiveFlags.Watching) {
         notify(sub);
       }
 
-      if (flags & (1 satisfies ReactiveFlags.Mutable)) {
-        const subSubs = sub._subs;
+      if (flags & ReactiveFlags.Mutable) {
+        const subSubs = sub.subs;
         if (subSubs !== undefined) {
           const nextSub = (link = subSubs).nextSub;
           if (nextSub !== undefined) {
@@ -202,57 +195,36 @@ export function createReactiveSystem({
     } while (true);
   }
 
-  function startTracking(sub: ReactiveNode): void {
-    ++currentVersion;
-    sub._depsTail = undefined;
-    sub._flags =
-      (sub._flags &
-        ~(56 as
-          | ReactiveFlags.Recursed
-          | ReactiveFlags.Dirty
-          | ReactiveFlags.Pending)) |
-      (4 satisfies ReactiveFlags.RecursedCheck);
-  }
-
-  function endTracking(sub: ReactiveNode): void {
-    const depsTail = sub._depsTail;
-    let toRemove = depsTail !== undefined ? depsTail.nextDep : sub._deps;
-    while (toRemove !== undefined) {
-      toRemove = unlink(toRemove, sub);
-    }
-    sub._flags &= ~(4 satisfies ReactiveFlags.RecursedCheck);
-  }
-
   function checkDirty(link: Link, sub: ReactiveNode): boolean {
     let stack: Stack<Link> | undefined;
     let checkDepth = 0;
+    let dirty = false;
 
     top: do {
       const dep = link.dep;
-      const flags = dep._flags;
-      let dirty = false;
+      const flags = dep.flags;
 
-      if (sub._flags & (16 satisfies ReactiveFlags.Dirty)) {
+      if (sub.flags & ReactiveFlags.Dirty) {
         dirty = true;
       } else if (
-        (flags & (17 as ReactiveFlags.Mutable | ReactiveFlags.Dirty)) ===
-        (17 as ReactiveFlags.Mutable | ReactiveFlags.Dirty)
+        (flags & (ReactiveFlags.Mutable | ReactiveFlags.Dirty)) ===
+        (ReactiveFlags.Mutable | ReactiveFlags.Dirty)
       ) {
         if (update(dep)) {
-          const subs = dep._subs!;
+          const subs = dep.subs!;
           if (subs.nextSub !== undefined) {
             shallowPropagate(subs);
           }
           dirty = true;
         }
       } else if (
-        (flags & (33 as ReactiveFlags.Mutable | ReactiveFlags.Pending)) ===
-        (33 as ReactiveFlags.Mutable | ReactiveFlags.Pending)
+        (flags & (ReactiveFlags.Mutable | ReactiveFlags.Pending)) ===
+        (ReactiveFlags.Mutable | ReactiveFlags.Pending)
       ) {
         if (link.nextSub !== undefined || link.prevSub !== undefined) {
           stack = { value: link, prev: stack };
         }
-        link = dep._deps!;
+        link = dep.deps!;
         sub = dep;
         ++checkDepth;
         continue;
@@ -267,7 +239,7 @@ export function createReactiveSystem({
       }
 
       while (checkDepth--) {
-        const firstSub = sub._subs!;
+        const firstSub = sub.subs!;
         const hasMultipleSubs = firstSub.nextSub !== undefined;
         if (hasMultipleSubs) {
           link = stack!.value;
@@ -283,8 +255,9 @@ export function createReactiveSystem({
             sub = link.sub;
             continue;
           }
+          dirty = false;
         } else {
-          sub._flags &= ~(32 satisfies ReactiveFlags.Pending);
+          sub.flags &= ~ReactiveFlags.Pending;
         }
         sub = link.sub;
         const nextDep = link.nextDep;
@@ -292,7 +265,6 @@ export function createReactiveSystem({
           link = nextDep;
           continue top;
         }
-        dirty = false;
       }
 
       return dirty;
@@ -302,13 +274,16 @@ export function createReactiveSystem({
   function shallowPropagate(link: Link): void {
     do {
       const sub = link.sub;
-      const flags = sub._flags;
+      const flags = sub.flags;
       if (
-        (flags & (48 as ReactiveFlags.Pending | ReactiveFlags.Dirty)) ===
-        (32 satisfies ReactiveFlags.Pending)
+        (flags & (ReactiveFlags.Pending | ReactiveFlags.Dirty)) ===
+        ReactiveFlags.Pending
       ) {
-        sub._flags = flags | (16 satisfies ReactiveFlags.Dirty);
-        if (flags & (2 satisfies ReactiveFlags.Watching)) {
+        sub.flags = flags | ReactiveFlags.Dirty;
+        if (
+          (flags & (ReactiveFlags.Watching | ReactiveFlags.RecursedCheck)) ===
+          ReactiveFlags.Watching
+        ) {
           notify(sub);
         }
       }
@@ -316,7 +291,7 @@ export function createReactiveSystem({
   }
 
   function isValidLink(checkLink: Link, sub: ReactiveNode): boolean {
-    let link = sub._depsTail;
+    let link = sub.depsTail;
     while (link !== undefined) {
       if (link === checkLink) {
         return true;
@@ -324,5 +299,356 @@ export function createReactiveSystem({
       link = link.prevDep;
     }
     return false;
+  }
+}
+
+interface EffectNode extends ReactiveNode {
+  fn(): void;
+}
+
+interface ComputedNode<T = any> extends ReactiveNode {
+  value: T | undefined;
+  getter: (previousValue?: T) => T;
+}
+
+interface SignalNode<T = any> extends ReactiveNode {
+  currentValue: T;
+  pendingValue: T;
+}
+
+let cycle = 0;
+let batchDepth = 0;
+let notifyIndex = 0;
+let queuedLength = 0;
+let activeSub: ReactiveNode | undefined;
+
+const queued: (EffectNode | undefined)[] = [];
+const { link, unlink, propagate, checkDirty, shallowPropagate } =
+  createReactiveSystem({
+    update(node: SignalNode | ComputedNode): boolean {
+      if (node.depsTail !== undefined) {
+        return updateComputed(node as ComputedNode);
+      } else {
+        return updateSignal(node as SignalNode);
+      }
+    },
+    notify(effect: EffectNode) {
+      let insertIndex = queuedLength;
+      let firstInsertedIndex = insertIndex;
+
+      do {
+        queued[insertIndex++] = effect;
+        effect.flags &= ~ReactiveFlags.Watching;
+        effect = effect.subs?.sub as EffectNode;
+        if (effect === undefined || !(effect.flags & ReactiveFlags.Watching)) {
+          break;
+        }
+      } while (true);
+
+      queuedLength = insertIndex;
+
+      while (firstInsertedIndex < --insertIndex) {
+        const left = queued[firstInsertedIndex];
+        queued[firstInsertedIndex++] = queued[insertIndex];
+        queued[insertIndex] = left;
+      }
+    },
+    unwatched(node) {
+      if (!(node.flags & ReactiveFlags.Mutable)) {
+        effectScopeOper.call(node);
+      } else if (node.depsTail !== undefined) {
+        node.depsTail = undefined;
+        node.flags = ReactiveFlags.Mutable | ReactiveFlags.Dirty;
+        purgeDeps(node);
+      }
+    }
+  });
+
+export function getActiveSub(): ReactiveNode | undefined {
+  return activeSub;
+}
+
+export function setActiveSub(sub?: ReactiveNode) {
+  const prevSub = activeSub;
+  activeSub = sub;
+  return prevSub;
+}
+
+export function getBatchDepth(): number {
+  return batchDepth;
+}
+
+export function startBatch() {
+  ++batchDepth;
+}
+
+export function endBatch() {
+  if (!--batchDepth) {
+    flush();
+  }
+}
+
+export function isSignal(fn: () => void): boolean {
+  return fn.name === 'bound ' + signalOper.name;
+}
+
+export function isComputed(fn: () => void): boolean {
+  return fn.name === 'bound ' + computedOper.name;
+}
+
+export function isEffect(fn: () => void): boolean {
+  return fn.name === 'bound ' + effectOper.name;
+}
+
+export function isEffectScope(fn: () => void): boolean {
+  return fn.name === 'bound ' + effectScopeOper.name;
+}
+
+export function signal<T>(): {
+  (): T | undefined;
+  (value: T | undefined): void;
+};
+export function signal<T>(initialValue: T): {
+  (): T;
+  (value: T): void;
+};
+export function signal<T>(initialValue?: T): {
+  (): T | undefined;
+  (value: T | undefined): void;
+} {
+  return signalOper.bind({
+    currentValue: initialValue,
+    pendingValue: initialValue,
+    subs: undefined,
+    subsTail: undefined,
+    flags: ReactiveFlags.Mutable
+  }) as () => T | undefined;
+}
+
+export function computed<T>(getter: (previousValue?: T) => T): () => T {
+  return computedOper.bind({
+    value: undefined,
+    subs: undefined,
+    subsTail: undefined,
+    deps: undefined,
+    depsTail: undefined,
+    flags: ReactiveFlags.None,
+    getter: getter as (previousValue?: unknown) => unknown
+  }) as () => T;
+}
+
+export function effect(fn: () => void): () => void {
+  const e: EffectNode = {
+    fn,
+    subs: undefined,
+    subsTail: undefined,
+    deps: undefined,
+    depsTail: undefined,
+    flags: ReactiveFlags.Watching | ReactiveFlags.RecursedCheck
+  };
+  const prevSub = setActiveSub(e);
+  if (prevSub !== undefined) {
+    link(e, prevSub, 0);
+  }
+  try {
+    e.fn();
+  } finally {
+    activeSub = prevSub;
+    e.flags &= ~ReactiveFlags.RecursedCheck;
+  }
+  return effectOper.bind(e);
+}
+
+export function effectScope(fn: () => void): () => void {
+  const e: ReactiveNode = {
+    deps: undefined,
+    depsTail: undefined,
+    subs: undefined,
+    subsTail: undefined,
+    flags: ReactiveFlags.None
+  };
+  const prevSub = setActiveSub(e);
+  if (prevSub !== undefined) {
+    link(e, prevSub, 0);
+  }
+  try {
+    fn();
+  } finally {
+    activeSub = prevSub;
+  }
+  return effectScopeOper.bind(e);
+}
+
+export function trigger(fn: () => void) {
+  const sub: ReactiveNode = {
+    deps: undefined,
+    depsTail: undefined,
+    flags: ReactiveFlags.Watching
+  };
+  const prevSub = setActiveSub(sub);
+  try {
+    fn();
+  } finally {
+    activeSub = prevSub;
+    let link = sub.deps;
+    while (link !== undefined) {
+      const dep = link.dep;
+      link = unlink(link, sub);
+      const subs = dep.subs;
+      if (subs !== undefined) {
+        sub.flags = ReactiveFlags.None;
+        propagate(subs);
+        shallowPropagate(subs);
+      }
+    }
+    if (!batchDepth) {
+      flush();
+    }
+  }
+}
+
+function updateComputed(c: ComputedNode): boolean {
+  ++cycle;
+  c.depsTail = undefined;
+  c.flags = ReactiveFlags.Mutable | ReactiveFlags.RecursedCheck;
+  const prevSub = setActiveSub(c);
+  try {
+    const oldValue = c.value;
+    return oldValue !== (c.value = c.getter(oldValue));
+  } finally {
+    activeSub = prevSub;
+    c.flags &= ~ReactiveFlags.RecursedCheck;
+    purgeDeps(c);
+  }
+}
+
+function updateSignal(s: SignalNode): boolean {
+  s.flags = ReactiveFlags.Mutable;
+  return s.currentValue !== (s.currentValue = s.pendingValue);
+}
+
+function run(e: EffectNode): void {
+  const flags = e.flags;
+  if (
+    flags & ReactiveFlags.Dirty ||
+    (flags & ReactiveFlags.Pending && checkDirty(e.deps!, e))
+  ) {
+    ++cycle;
+    e.depsTail = undefined;
+    e.flags = ReactiveFlags.Watching | ReactiveFlags.RecursedCheck;
+    const prevSub = setActiveSub(e);
+    try {
+      (e as EffectNode).fn();
+    } finally {
+      activeSub = prevSub;
+      e.flags &= ~ReactiveFlags.RecursedCheck;
+      purgeDeps(e);
+    }
+  } else {
+    e.flags = ReactiveFlags.Watching;
+  }
+}
+
+function flush(): void {
+  try {
+    while (notifyIndex < queuedLength) {
+      const effect = queued[notifyIndex]!;
+      queued[notifyIndex++] = undefined;
+      run(effect);
+    }
+  } finally {
+    while (notifyIndex < queuedLength) {
+      const effect = queued[notifyIndex]!;
+      queued[notifyIndex++] = undefined;
+      effect.flags |= ReactiveFlags.Watching | ReactiveFlags.Recursed;
+    }
+    notifyIndex = 0;
+    queuedLength = 0;
+  }
+}
+
+function computedOper<T>(this: ComputedNode<T>): T {
+  const flags = this.flags;
+  if (
+    flags & ReactiveFlags.Dirty ||
+    (flags & ReactiveFlags.Pending &&
+      (checkDirty(this.deps!, this) ||
+        ((this.flags = flags & ~ReactiveFlags.Pending), false)))
+  ) {
+    if (updateComputed(this)) {
+      const subs = this.subs;
+      if (subs !== undefined) {
+        shallowPropagate(subs);
+      }
+    }
+  } else if (!flags) {
+    this.flags = ReactiveFlags.Mutable | ReactiveFlags.RecursedCheck;
+    const prevSub = setActiveSub(this);
+    try {
+      this.value = this.getter();
+    } finally {
+      activeSub = prevSub;
+      this.flags &= ~ReactiveFlags.RecursedCheck;
+    }
+  }
+  const sub = activeSub;
+  if (sub !== undefined) {
+    link(this, sub, cycle);
+  }
+  return this.value!;
+}
+
+function signalOper<T>(this: SignalNode<T>, ...value: [T]): T | void {
+  if (value.length) {
+    if (this.pendingValue !== (this.pendingValue = value[0])) {
+      this.flags = ReactiveFlags.Mutable | ReactiveFlags.Dirty;
+      const subs = this.subs;
+      if (subs !== undefined) {
+        propagate(subs);
+        if (!batchDepth) {
+          flush();
+        }
+      }
+    }
+  } else {
+    if (this.flags & ReactiveFlags.Dirty) {
+      if (updateSignal(this)) {
+        const subs = this.subs;
+        if (subs !== undefined) {
+          shallowPropagate(subs);
+        }
+      }
+    }
+    let sub = activeSub;
+    while (sub !== undefined) {
+      if (sub.flags & (ReactiveFlags.Mutable | ReactiveFlags.Watching)) {
+        link(this, sub, cycle);
+        break;
+      }
+      sub = sub.subs?.sub;
+    }
+    return this.currentValue;
+  }
+}
+
+function effectOper(this: EffectNode): void {
+  effectScopeOper.call(this);
+}
+
+function effectScopeOper(this: ReactiveNode): void {
+  this.depsTail = undefined;
+  this.flags = ReactiveFlags.None;
+  purgeDeps(this);
+  const sub = this.subs;
+  if (sub !== undefined) {
+    unlink(sub);
+  }
+}
+
+function purgeDeps(sub: ReactiveNode) {
+  const depsTail = sub.depsTail;
+  let dep = depsTail !== undefined ? depsTail.nextDep : sub.deps;
+  while (dep !== undefined) {
+    dep = unlink(dep, sub);
   }
 }

@@ -37,8 +37,9 @@ function useSelectorWithCompare<TStore extends Readable<any>, T>(
 
 /**
  * A React hook that subscribes to the `store` and selects a value from the
- * store's snapshot, with an optional compare function.
+ * store's snapshot via a selector function, with an optional compare function.
  *
+ * @deprecated Use `useSelector` from `@xstate/store-react` instead.
  * @example
  *
  * ```ts
@@ -59,6 +60,43 @@ function useSelectorWithCompare<TStore extends Readable<any>, T>(
 export function useSelector<TStore extends Readable<any>, T>(
   store: TStore,
   selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
+  compare?: (a: T | undefined, b: T) => boolean
+): T;
+/**
+ * A React hook that subscribes to the `store` and selects a value from the
+ * store's snapshot via an optional selector function (identity by default),
+ * with an optional compare function.
+ *
+ * @example
+ *
+ * ```ts
+ * function Component() {
+ *   const countSnapshot = useSelector(store);
+ *
+ *   return <div>{countSnapshot.context.count}</div>;
+ * }
+ * ```
+ *
+ * @param store The store, created from `createStore(…)`
+ * @param selector An optional function which takes in the `snapshot` and
+ *   returns a selected value
+ * @param compare An optional function which compares the selected value to the
+ *   previous value
+ * @returns The selected value
+ */
+export function useSelector<TStore extends Readable<any>>(
+  store: TStore,
+  selector?: undefined,
+  compare?: (
+    a: TStore extends Readable<infer T> ? T : never | undefined,
+    b: TStore extends Readable<infer T> ? T : never | undefined
+  ) => boolean
+): TStore extends Readable<infer T> ? T : never;
+export function useSelector<TStore extends Readable<any>, T>(
+  store: TStore,
+  selector: (
+    snapshot: TStore extends Readable<infer T> ? T : never
+  ) => T = identity,
   compare: (a: T | undefined, b: T) => boolean = defaultCompare
 ): T {
   const selectorWithCompare = useSelectorWithCompare(selector, compare);
@@ -73,6 +111,7 @@ export function useSelector<TStore extends Readable<any>, T>(
   );
 }
 
+/** @deprecated Use `useStore` from `@xstate/store-react` instead. */
 export const useStore: {
   <
     TContext extends StoreContext,
@@ -80,14 +119,14 @@ export const useStore: {
     TEmitted extends EventPayloadMap
   >(
     definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
-  ): Store<TContext, ExtractEvents<TEventPayloadMap>, ExtractEvents<TEmitted>>;
+  ): Store<TContext, TEventPayloadMap, ExtractEvents<TEmitted>>;
   <
     TContext extends StoreContext,
     TEventPayloadMap extends EventPayloadMap,
     TEmitted extends EventPayloadMap
   >(
     definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
-  ): Store<TContext, ExtractEvents<TEventPayloadMap>, ExtractEvents<TEmitted>>;
+  ): Store<TContext, TEventPayloadMap, ExtractEvents<TEmitted>>;
 } = function useStoreImpl<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
@@ -106,6 +145,7 @@ export const useStore: {
  * A React hook that subscribes to the `atom` and returns the current value of
  * the atom.
  *
+ * @deprecated Use `useAtom` from `@xstate/store-react` instead.
  * @example
  *
  * ```ts
@@ -149,6 +189,7 @@ export function useAtom(
  * Creates a custom hook that returns the selected value and the store from a
  * store configuration object.
  *
+ * @deprecated Use `createStoreHook` from `@xstate/store-react` instead.
  * @example
  *
  * ```ts
@@ -182,11 +223,7 @@ export function createStoreHook<
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventPayloadMap
 >(definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>) {
-  type TStore = Store<
-    TContext,
-    ExtractEvents<TEventPayloadMap>,
-    ExtractEvents<TEmitted>
-  >;
+  type TStore = Store<TContext, TEventPayloadMap, ExtractEvents<TEmitted>>;
   type TSnapshot = StoreSnapshot<TContext>;
 
   const store = createStore(definition);

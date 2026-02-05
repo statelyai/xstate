@@ -1,5 +1,106 @@
 # xstate
 
+## 5.26.0
+
+### Minor Changes
+
+- [#5406](https://github.com/statelyai/xstate/pull/5406) [`703c3a1`](https://github.com/statelyai/xstate/commit/703c3a109c824f2334ede31d8428e923d2727e6e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `getNextTransitions(state)` utility to get all transitions available from current `state`.
+
+  ```ts
+  import { getNextTransitions } from 'xstate';
+
+  // ...
+
+  const state = actor.getSnapshot();
+  const transitions = getNextTransitions(state);
+
+  transitions.forEach((t) => {
+    console.log(`Event: ${t.eventType}, Source: ${t.source.key}`);
+  });
+  ```
+
+## 5.25.1
+
+### Patch Changes
+
+- [#5440](https://github.com/statelyai/xstate/pull/5440) [`e36e299`](https://github.com/statelyai/xstate/commit/e36e299a319bc8d0f124f0435b30f095cbbd0ce6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `systemId` cleanup for nested children on `stopChild`
+
+## 5.25.0
+
+### Minor Changes
+
+- [#5422](https://github.com/statelyai/xstate/pull/5422) [`329297b`](https://github.com/statelyai/xstate/commit/329297b3bf859668ed1dfc260c14e773a0413fd4) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add partial descriptor support to `assertEvent(…)`
+
+  ```ts
+  // Matches any event with a type that starts with `FEEDBACK.`
+  assertEvent(event, 'FEEDBACK.*');
+  ```
+
+### Patch Changes
+
+- [#5420](https://github.com/statelyai/xstate/pull/5420) [`2eb8274`](https://github.com/statelyai/xstate/commit/2eb82745dbdf4ac8dfbcc3c426ed4d81c732844b) Thanks [@assertnotnull](https://github.com/assertnotnull)! - Fix a bug in Cordova when iterating an empty Map
+
+## 5.24.0
+
+### Minor Changes
+
+- [#5371](https://github.com/statelyai/xstate/pull/5371) [`b8ec3b1`](https://github.com/statelyai/xstate/commit/b8ec3b153fbacae078c03cd07678271e0456679a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `setup.extend()` method to incrementally extend machine setup configurations with additional actions, guards, and delays. This enables composable and reusable machine setups where extended actions, guards, and delays can reference base actions, guards, and delays and support chaining multiple extensions:
+
+  ```ts
+  import { setup, not, and } from 'xstate';
+
+  const baseSetup = setup({
+    guards: {
+      isAuthenticated: () => true,
+      hasPermission: () => false
+    }
+  });
+
+  const extendedSetup = baseSetup.extend({
+    guards: {
+      // Type-safe guard references
+      isUnauthenticated: not('isAuthenticated'),
+      canAccess: and(['isAuthenticated', 'hasPermission'])
+    }
+  });
+
+  // Both base and extended guards are available
+  extendedSetup.createMachine({
+    on: {
+      LOGIN: {
+        guard: 'isAuthenticated',
+        target: 'authenticated'
+      },
+      LOGOUT: {
+        guard: 'isUnauthenticated',
+        target: 'unauthenticated'
+      }
+    }
+  });
+  ```
+
+## 5.23.0
+
+### Minor Changes
+
+- [#5387](https://github.com/statelyai/xstate/pull/5387) [`53dd7f1`](https://github.com/statelyai/xstate/commit/53dd7f1abe18f430d578072086e896ea8a22ee7f) Thanks [@farskid](https://github.com/farskid)! - Adds `system.getAll` that returns a record of running actors within the system by their system id
+
+  ```ts
+  const childMachine = createMachine({});
+  const machine = createMachine({
+    // ...
+    invoke: [
+      {
+        src: childMachine,
+        systemId: 'test'
+      }
+    ]
+  });
+  const system = createActor(machine);
+
+  system.getAll(); // { test: ActorRefFrom<typeof childMachine> }
+  ```
+
 ## 5.22.1
 
 ### Patch Changes

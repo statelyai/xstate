@@ -27,6 +27,7 @@ function useSelectorWithCompare<TStore extends AnyStore, T>(
  * Creates a selector which subscribes to the store and selects a value from the
  * store's snapshot, using an optional comparison function.
  *
+ * @deprecated Use `useSelector` from `@xstate/store-solid` instead.
  * @example
  *
  * ```tsx
@@ -38,7 +39,7 @@ function useSelectorWithCompare<TStore extends AnyStore, T>(
  *
  *   return (
  *     <div>
- *       <button onClick={() => donutStore.send({ type: 'addDonut' })}>
+ *       <button onClick={() => donutStore.trigger.addDonut()}>
  *         Add donut ({donutCount()})
  *       </button>
  *     </div>
