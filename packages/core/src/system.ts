@@ -87,7 +87,6 @@ export interface ActorSystem<T extends ActorSystemInfo> {
 
 export type AnyActorSystem = ActorSystem<any>;
 
-let idCounter = 0;
 export function createSystem<T extends ActorSystemInfo>(
   rootActor: AnyActorRef,
   options: {
@@ -96,6 +95,7 @@ export function createSystem<T extends ActorSystemInfo>(
     snapshot?: unknown;
   }
 ): ActorSystem<T> {
+  let idCounter = 0;
   const children = new Map<string, AnyActorRef>();
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
@@ -160,7 +160,7 @@ export function createSystem<T extends ActorSystemInfo>(
     }
     const resolvedInspectionEvent: InspectionEvent = {
       ...event,
-      rootId: rootActor.sessionId
+      rootId: rootActor.sessionId!
     };
     inspectionObservers.forEach((observer) =>
       observer.next?.(resolvedInspectionEvent)
@@ -168,6 +168,9 @@ export function createSystem<T extends ActorSystemInfo>(
   };
 
   const system: ActorSystem<T> = {
+    children,
+    reverseKeyedActors,
+    keyedActors,
     _snapshot: {
       _scheduledEvents:
         (options?.snapshot && (options.snapshot as any).scheduler) ?? {}
@@ -195,6 +198,7 @@ export function createSystem<T extends ActorSystemInfo>(
     _set: (systemId, actorRef) => {
       const existing = keyedActors.get(systemId);
       if (existing && existing !== actorRef) {
+        debugger;
         throw new Error(
           `Actor with system ID '${systemId as string}' already exists.`
         );
@@ -215,13 +219,8 @@ export function createSystem<T extends ActorSystemInfo>(
     },
     _sendInspectionEvent: sendInspectionEvent as any,
     _relay: (source, target, event) => {
-      system._sendInspectionEvent({
-        type: '@xstate.event',
-        sourceRef: source,
-        actorRef: target,
-        event
-      });
-
+      // remember the last source for unified transition inspect event
+      (target as any)._lastSourceRef = source;
       target._send(event);
     },
     scheduler,

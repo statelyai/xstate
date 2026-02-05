@@ -1,6 +1,34 @@
 import { createActor, createMachine } from '../src/index.ts';
 
 describe('Initial states', () => {
+  it('should support object syntax for initial', () => {
+    const machine = createMachine({
+      initial: { target: 'a' },
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    expect(createActor(machine).getSnapshot().value).toEqual('a');
+  });
+
+  it('should support nested object syntax for initial', () => {
+    const machine = createMachine({
+      initial: { target: 'a' },
+      states: {
+        a: {
+          initial: { target: 'a1' },
+          states: {
+            a1: {},
+            a2: {}
+          }
+        },
+        b: {}
+      }
+    });
+    expect(createActor(machine).getSnapshot().value).toEqual({ a: 'a1' });
+  });
+
   it('should return the correct initial state', () => {
     const machine = createMachine({
       initial: 'a',

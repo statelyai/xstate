@@ -1,447 +1,384 @@
-import { StateMachine } from './StateMachine';
-import { assign } from './actions/assign';
-import { cancel } from './actions/cancel';
-import { emit } from './actions/emit';
-import { enqueueActions } from './actions/enqueueActions';
-import { log } from './actions/log';
-import { raise } from './actions/raise';
-import { sendTo } from './actions/send';
-import { spawnChild } from './actions/spawnChild';
-import { stopChild } from './actions/stopChild';
-import { createMachine } from './createMachine';
-import { GuardPredicate } from './guards';
-
+import { StandardSchemaV1 } from './schema.types.ts';
+import { StateMachine } from './StateMachine.ts';
 import {
-  ActionFunction,
   AnyActorRef,
-  AnyEventObject,
-  Cast,
-  DelayConfig,
   EventObject,
-  Invert,
-  IsNever,
-  MachineConfig,
+  AnyEventObject,
   MachineContext,
-  MetaObject,
-  NonReducibleUnknown,
-  ParameterizedObject,
-  SetupTypes,
-  StateNodeConfig,
-  StateSchema,
+  ProvidedActor,
+  StateValue,
   ToChildren,
-  ToStateValue,
-  UnknownActorLogic,
-  Values
-} from './types';
+  MetaObject,
+  Cast
+} from './types.ts';
+import {
+  Implementations,
+  InferOutput,
+  InferEvents,
+  Next_MachineConfig,
+  Next_StateNodeConfig,
+  WithDefault
+} from './types.v6.ts';
 
-type ToParameterizedObject<
-  TParameterizedMap extends Record<
+/** State schema with optional paramsSchema and nested states */
+export interface SetupStateSchema {
+  paramsSchema?: StandardSchemaV1;
+  states?: Record<string, SetupStateSchema>;
+}
+
+/** Configuration for setup() */
+export interface SetupConfig<
+  TStates extends Record<string, SetupStateSchema> = Record<
     string,
-    ParameterizedObject['params'] | undefined
+    SetupStateSchema
   >
-> = Values<{
-  [K in keyof TParameterizedMap as K & string]: {
-    type: K & string;
-    params: TParameterizedMap[K];
-  };
-}>;
+> {
+  states?: TStates;
+}
 
-// at the moment we allow extra actors - ones that are not specified by `children`
-// this could be reconsidered in the future
-type ToProvidedActor<
-  TChildrenMap extends Record<string, string>,
-  TActors extends Record<string, UnknownActorLogic>
-> = Values<{
-  [K in keyof TActors as K & string]: {
-    src: K & string;
-    logic: TActors[K];
-    id: IsNever<TChildrenMap> extends true
-      ? string | undefined
-      : K extends keyof Invert<TChildrenMap>
-        ? Invert<TChildrenMap>[K] & string
-        : string | undefined;
-  };
-}>;
+/** Extracts params type from a state schema */
+export type StateParams<TStateSchema extends SetupStateSchema> =
+  TStateSchema['paramsSchema'] extends StandardSchemaV1
+    ? StandardSchemaV1.InferOutput<TStateSchema['paramsSchema']>
+    : undefined;
 
-// used to keep only StateSchema relevant keys
-// this helps with type serialization as it makes the inferred type much shorter when dealing with huge configs
-type ToStateSchema<TSchema extends StateSchema> = {
-  -readonly [K in keyof TSchema as K & ('id' | 'states')]: K extends 'states'
+/**
+ * Flattens nested state schemas into a flat map of state keys to params types.
+ * This includes both top-level states and nested states.
+ */
+export type FlattenStateParamsMap<
+  TStates extends Record<string, SetupStateSchema>
+> = {
+  [K in keyof TStates & string]: StateParams<TStates[K]>;
+} & UnionToIntersection<
+  {
+    [K in keyof TStates & string]: TStates[K]['states'] extends Record<
+      string,
+      SetupStateSchema
+    >
+      ? FlattenStateParamsMap<TStates[K]['states']>
+      : {};
+  }[keyof TStates & string]
+>;
+
+/** Helper type to convert union to intersection */
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+  k: infer I
+) => void
+  ? I
+  : never;
+
+/**
+ * Converts SetupStateSchema to StateSchema with params types included. This
+ * allows getParams() to be strongly typed.
+ */
+export type SetupStateSchemaToStateSchema<
+  TSetupSchema extends SetupStateSchema
+> = {
+  params: StateParams<TSetupSchema>;
+  states: TSetupSchema['states'] extends Record<string, SetupStateSchema>
     ? {
-        [SK in keyof TSchema['states']]: ToStateSchema<
-          NonNullable<TSchema['states'][SK]>
-        >;
+        [K in keyof TSetupSchema['states'] &
+          string]: SetupStateSchemaToStateSchema<TSetupSchema['states'][K]>;
       }
-    : TSchema[K];
+    : undefined;
 };
 
-type RequiredSetupKeys<TChildrenMap> =
-  IsNever<keyof TChildrenMap> extends true ? never : 'actors';
-
-type SetupReturn<
-  TContext extends MachineContext,
-  TEvent extends AnyEventObject,
-  TActors extends Record<string, UnknownActorLogic>,
-  TChildrenMap extends Record<string, string>,
-  TActions extends Record<string, ParameterizedObject['params'] | undefined>,
-  TGuards extends Record<string, ParameterizedObject['params'] | undefined>,
-  TDelay extends string,
-  TTag extends string,
-  TInput,
-  TOutput extends NonReducibleUnknown,
-  TEmitted extends EventObject,
-  TMeta extends MetaObject
+/** Converts the root setup states config to a StateSchema. */
+export type SetupStatesToStateSchema<
+  TStates extends Record<string, SetupStateSchema>
 > = {
-  extend: <
-    TExtendActions extends Record<
-      string,
-      ParameterizedObject['params'] | undefined
-    > = {},
-    TExtendGuards extends Record<
-      string,
-      ParameterizedObject['params'] | undefined
-    > = {},
-    TExtendDelays extends string = never
-  >({
-    actions,
-    guards,
-    delays
-  }: {
-    actions?: {
-      [K in keyof TExtendActions]: ActionFunction<
-        TContext,
-        TEvent,
-        TEvent,
-        TExtendActions[K],
-        ToProvidedActor<TChildrenMap, TActors>,
-        ToParameterizedObject<TActions & TExtendActions>,
-        ToParameterizedObject<TGuards & TExtendGuards>,
-        TDelay | TExtendDelays,
-        TEmitted
-      >;
-    };
-    guards?: {
-      [K in keyof TExtendGuards]: GuardPredicate<
-        TContext,
-        TEvent,
-        TExtendGuards[K],
-        ToParameterizedObject<TGuards & TExtendGuards>
-      >;
-    };
-    delays?: {
-      [K in TExtendDelays]: DelayConfig<
-        TContext,
-        TEvent,
-        ToParameterizedObject<TActions & TExtendActions>['params'],
-        TEvent
-      >;
-    };
-  }) => SetupReturn<
-    TContext,
-    TEvent,
-    TActors,
-    TChildrenMap,
-    TActions & TExtendActions,
-    TGuards & TExtendGuards,
-    TDelay | TExtendDelays,
-    TTag,
-    TInput,
-    TOutput,
-    TEmitted,
-    TMeta
-  >;
-  /**
-   * Creates a state config that is strongly typed. This state config can be
-   * used to create a machine.
-   *
-   * @example
-   *
-   * ```ts
-   * const lightMachineSetup = setup({
-   *   // ...
-   * });
-   *
-   * const green = lightMachineSetup.createStateConfig({
-   *   on: {
-   *     timer: {
-   *       actions: 'doSomething'
-   *     }
-   *   }
-   * });
-   *
-   * const machine = lightMachineSetup.createMachine({
-   *   initial: 'green',
-   *   states: {
-   *     green,
-   *     yellow,
-   *     red
-   *   }
-   * });
-   * ```
-   */
-  createStateConfig: <
-    TStateConfig extends StateNodeConfig<
-      TContext,
-      TEvent,
-      ToProvidedActor<TChildrenMap, TActors>,
-      ToParameterizedObject<TActions>,
-      ToParameterizedObject<TGuards>,
-      TDelay,
-      TTag,
-      unknown,
-      TEmitted,
-      TMeta
-    >
-  >(
-    config: TStateConfig
-  ) => TStateConfig;
-  /**
-   * Creates a type-safe action.
-   *
-   * @example
-   *
-   * ```ts
-   * const machineSetup = setup({
-   *   // ...
-   * });
-   *
-   * const action = machineSetup.createAction(({ context, event }) => {
-   *   console.log(context.count, event.value);
-   * });
-   *
-   * const incrementAction = machineSetup.createAction(
-   *   assign({ count: ({ context }) => context.count + 1 })
-   * );
-   *
-   * const machine = machineSetup.createMachine({
-   *   context: { count: 0 },
-   *   entry: [action, incrementAction]
-   * });
-   * ```
-   */
-  createAction: (
-    action: ActionFunction<
-      TContext,
-      TEvent,
-      TEvent,
-      unknown,
-      ToProvidedActor<TChildrenMap, TActors>,
-      ToParameterizedObject<TActions>,
-      ToParameterizedObject<TGuards>,
-      TDelay,
-      TEmitted
-    >
-  ) => typeof action;
+  states: {
+    [K in keyof TStates & string]: SetupStateSchemaToStateSchema<TStates[K]>;
+  };
+};
 
-  createMachine: <
-    const TConfig extends MachineConfig<
-      TContext,
-      TEvent,
-      ToProvidedActor<TChildrenMap, TActors>,
-      ToParameterizedObject<TActions>,
-      ToParameterizedObject<TGuards>,
-      TDelay,
-      TTag,
-      TInput,
-      TOutput,
-      TEmitted,
-      TMeta
-    >
-  >(
-    config: TConfig
-  ) => StateMachine<
+/** Get params type for a state key from the flattened params map */
+type GetStateParams<
+  TParamsMap extends Record<string, unknown>,
+  K extends string
+> = K extends keyof TParamsMap ? TParamsMap[K] : undefined;
+
+/** Machine config with typed state params */
+export type SetupMachineConfig<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContextSchema extends StandardSchemaV1,
+  TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
+  TInputSchema extends StandardSchemaV1,
+  TOutputSchema extends StandardSchemaV1,
+  TMetaSchema extends StandardSchemaV1,
+  TTagSchema extends StandardSchemaV1,
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TDelays extends string,
+  TTag extends string,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
+> = Omit<
+  Next_MachineConfig<
+    TContextSchema,
+    TEventSchemaMap,
+    TEmittedSchemaMap,
+    TInputSchema,
+    TOutputSchema,
+    TMetaSchema,
+    TTagSchema,
     TContext,
     TEvent,
-    Cast<
-      ToChildren<ToProvidedActor<TChildrenMap, TActors>>,
-      Record<string, AnyActorRef | undefined>
-    >,
-    ToProvidedActor<TChildrenMap, TActors>,
-    ToParameterizedObject<TActions>,
-    ToParameterizedObject<TGuards>,
-    TDelay,
-    ToStateValue<TConfig>,
+    TDelays,
     TTag,
-    TInput,
-    TOutput,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >,
+  'states' | 'initial'
+> & {
+  initial?:
+    | string
+    | InitialTransitionWithParams<TStateSchemas, TContext, TEvent>
+    | { target: string; params?: Record<string, unknown> }
+    | undefined;
+  states?: StatesWithParams<
+    TStateSchemas,
+    TContext,
+    TEvent,
+    TDelays,
+    TTag,
+    InferEvents<TEmittedSchemaMap> extends EventObject
+      ? InferEvents<TEmittedSchemaMap>
+      : EventObject,
+    InferOutput<TMetaSchema, MetaObject>,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >;
+};
+
+/** States config type that provides typed params for known states */
+type StatesWithParams<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TDelays extends string,
+  TTag extends string,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
+> = {
+  [K in keyof TStateSchemas & string]?: StateNodeConfigWithNestedParams<
+    TStateSchemas[K],
+    TContext,
+    TEvent,
+    TDelays,
+    TTag,
     TEmitted,
     TMeta,
-    ToStateSchema<TConfig>
-  >;
-
-  assign: typeof assign<
-    TContext,
-    TEvent,
-    undefined,
-    TEvent,
-    ToProvidedActor<TChildrenMap, TActors>
-  >;
-  sendTo: <TTargetActor extends AnyActorRef>(
-    ...args: Parameters<
-      typeof sendTo<
-        TContext,
-        TEvent,
-        undefined,
-        TTargetActor,
-        TEvent,
-        TDelay,
-        TDelay
-      >
-    >
-  ) => ReturnType<
-    typeof sendTo<
-      TContext,
-      TEvent,
-      undefined,
-      TTargetActor,
-      TEvent,
-      TDelay,
-      TDelay
-    >
-  >;
-  raise: typeof raise<TContext, TEvent, TEvent, undefined, TDelay, TDelay>;
-  log: typeof log<TContext, TEvent, undefined, TEvent>;
-  cancel: typeof cancel<TContext, TEvent, undefined, TEvent>;
-  stopChild: typeof stopChild<TContext, TEvent, undefined, TEvent>;
-  enqueueActions: typeof enqueueActions<
-    TContext,
-    TEvent,
-    undefined,
-    TEvent,
-    ToProvidedActor<TChildrenMap, TActors>,
-    ToParameterizedObject<TActions>,
-    ToParameterizedObject<TGuards>,
-    TDelay,
-    TEmitted
-  >;
-  emit: typeof emit<TContext, TEvent, undefined, TEvent, TEmitted>;
-  spawnChild: typeof spawnChild<
-    TContext,
-    TEvent,
-    undefined,
-    TEvent,
-    ToProvidedActor<TChildrenMap, TActors>
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
   >;
 };
 
-export function setup<
+/** State node config that recursively applies typed params for nested states */
+type StateNodeConfigWithNestedParams<
+  TStateSchema extends SetupStateSchema,
   TContext extends MachineContext,
-  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TActors extends Record<string, UnknownActorLogic> = {},
-  TChildrenMap extends Record<string, string> = {},
-  TActions extends Record<
-    string,
-    ParameterizedObject['params'] | undefined
-  > = {},
-  TGuards extends Record<
-    string,
-    ParameterizedObject['params'] | undefined
-  > = {},
-  TDelay extends string = never,
-  TTag extends string = string,
-  TInput = NonReducibleUnknown,
-  TOutput extends NonReducibleUnknown = NonReducibleUnknown,
-  TEmitted extends EventObject = EventObject,
-  TMeta extends MetaObject = MetaObject
->({
-  schemas,
-  actors,
-  actions,
-  guards,
-  delays
-}: {
-  schemas?: unknown;
-  types?: SetupTypes<
+  TEvent extends EventObject,
+  TDelays extends string,
+  TTag extends string,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
+> = Omit<
+  Next_StateNodeConfig<
     TContext,
     TEvent,
-    TChildrenMap,
+    TDelays,
     TTag,
-    TInput,
-    TOutput,
+    any,
     TEmitted,
-    TMeta
-  >;
-  actors?: {
-    // union here enforces that all configured children have to be provided in actors
-    // it makes those values required here
-    [K in keyof TActors | Values<TChildrenMap>]: K extends keyof TActors
-      ? TActors[K]
-      : never;
+    TMeta,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    StateParams<TStateSchema>
+  >,
+  'states'
+> & {
+  states?: TStateSchema['states'] extends Record<string, SetupStateSchema>
+    ? StatesWithParams<
+        TStateSchema['states'],
+        TContext,
+        TEvent,
+        TDelays,
+        TTag,
+        TEmitted,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap
+      >
+    : {
+        [K in string]?: Next_StateNodeConfig<
+          TContext,
+          TEvent,
+          TDelays,
+          TTag,
+          any,
+          TEmitted,
+          TMeta,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          undefined
+        >;
+      };
+};
+
+/** Initial transition with typed params based on target state */
+export type InitialTransitionWithParams<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> = {
+  [K in keyof TStateSchemas & string]: {
+    target: K;
+    params?:
+      | StateParams<TStateSchemas[K]>
+      | ((args: {
+          context: TContext;
+          event: TEvent;
+        }) => StateParams<TStateSchemas[K]>);
   };
-  actions?: {
-    [K in keyof TActions]: ActionFunction<
-      TContext,
-      TEvent,
-      TEvent,
-      TActions[K],
-      ToProvidedActor<TChildrenMap, TActors>,
-      ToParameterizedObject<TActions>,
-      ToParameterizedObject<TGuards>,
-      TDelay,
-      TEmitted
-    >;
-  };
-  guards?: {
-    [K in keyof TGuards]: GuardPredicate<
-      TContext,
-      TEvent,
-      TGuards[K],
-      ToParameterizedObject<TGuards>
-    >;
-  };
-  delays?: {
-    [K in TDelay]: DelayConfig<
-      TContext,
-      TEvent,
-      ToParameterizedObject<TActions>['params'],
-      TEvent
-    >;
-  };
-} & {
-  [K in RequiredSetupKeys<TChildrenMap>]: unknown;
-}): SetupReturn<
-  TContext,
-  TEvent,
-  TActors,
-  TChildrenMap,
-  TActions,
-  TGuards,
-  TDelay,
-  TTag,
-  TInput,
-  TOutput,
-  TEmitted,
-  TMeta
+}[keyof TStateSchemas & string];
+
+/** Return type of setup() */
+export interface SetupReturn<
+  TStates extends Record<string, SetupStateSchema> = Record<
+    string,
+    SetupStateSchema
+  >
 > {
+  /** Creates a state machine with the setup configuration */
+  createMachine<
+    TContextSchema extends StandardSchemaV1,
+    TEventSchemaMap extends Record<string, StandardSchemaV1>,
+    TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
+    TInputSchema extends StandardSchemaV1,
+    TOutputSchema extends StandardSchemaV1,
+    TMetaSchema extends StandardSchemaV1,
+    TTagSchema extends StandardSchemaV1,
+    _TEvent extends EventObject,
+    TActor extends ProvidedActor,
+    TActionMap extends Implementations['actions'],
+    TActorMap extends Implementations['actors'],
+    TGuardMap extends Implementations['guards'],
+    TDelayMap extends Implementations['delays'],
+    TDelays extends string,
+    TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
+    TInput
+  >(
+    config: SetupMachineConfig<
+      TStates,
+      TContextSchema,
+      TEventSchemaMap,
+      TEmittedSchemaMap,
+      TInputSchema,
+      TOutputSchema,
+      TMetaSchema,
+      TTagSchema,
+      InferOutput<TContextSchema, MachineContext>,
+      InferEvents<TEventSchemaMap>,
+      TDelays,
+      TTag,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap
+    >
+  ): StateMachine<
+    InferOutput<TContextSchema, MachineContext>,
+    InferEvents<TEventSchemaMap>,
+    Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
+    StateValue,
+    TTag & string,
+    TInput,
+    InferOutput<TOutputSchema, unknown>,
+    WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
+    InferOutput<TMetaSchema, MetaObject>,
+    SetupStatesToStateSchema<TStates>,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >;
+
+  /** State param schemas from setup config */
+  states: TStates;
+}
+
+/**
+ * Sets up a state machine with state param schemas and other configuration.
+ *
+ * @example
+ *
+ * ```ts
+ * import { setup } from 'xstate';
+ * import z from 'zod';
+ *
+ * const s = setup({
+ *   states: {
+ *     loading: {
+ *       paramsSchema: z.object({
+ *         userId: z.string()
+ *       })
+ *     }
+ *   }
+ * });
+ *
+ * const machine = s.createMachine({
+ *   initial: {
+ *     target: 'loading',
+ *     params: { userId: '123' }
+ *   },
+ *   states: {
+ *     loading: {
+ *       entry: ({ params }) => {
+ *         console.log(params.userId);
+ *       }
+ *     }
+ *   }
+ * });
+ * ```
+ */
+export function setup<
+  TStates extends Record<string, SetupStateSchema> = Record<
+    string,
+    SetupStateSchema
+  >
+>(config: SetupConfig<TStates> = {}): SetupReturn<TStates> {
+  const { states = {} as TStates } = config;
+
   return {
-    assign,
-    sendTo,
-    raise,
-    log,
-    cancel,
-    stopChild,
-    enqueueActions,
-    emit,
-    spawnChild,
-    createStateConfig: (config) => config,
-    createAction: (fn) => fn,
-    createMachine: (config) =>
-      (createMachine as any)(
-        { ...config, schemas },
-        {
-          actors,
-          actions,
-          guards,
-          delays
-        }
-      ),
-    extend: (extended) =>
-      setup({
-        schemas,
-        actors,
-        actions: { ...actions, ...extended.actions },
-        guards: { ...guards, ...extended.guards },
-        delays: { ...delays, ...extended.delays }
-      } as any)
+    createMachine(machineConfig) {
+      // TODO: merge state param schemas into machine config
+      return new StateMachine(machineConfig as any) as any;
+    },
+    states
   };
 }

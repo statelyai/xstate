@@ -1,8 +1,9 @@
+import { createActor } from '../createActor.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
-  ActorLogic,
   ActorRefFromLogic,
   ActorScope,
+  CreatableActorLogic,
   EventObject,
   NonReducibleUnknown,
   Snapshot
@@ -17,7 +18,7 @@ export type TransitionActorLogic<
   TEvent extends EventObject,
   TInput extends NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
-> = ActorLogic<
+> = CreatableActorLogic<
   TransitionSnapshot<TContext>,
   TEvent,
   TInput,
@@ -191,7 +192,7 @@ export function fromTransition<
         self: TransitionActorRef<TContext, TEvent>;
       }) => TContext) // TODO: type
 ): TransitionActorLogic<TContext, TEvent, TInput, TEmitted> {
-  return {
+  const logic: TransitionActorLogic<TContext, TEvent, TInput, TEmitted> = {
     config: transition,
     transition: (snapshot, event, actorScope) => {
       return {
@@ -211,6 +212,8 @@ export function fromTransition<
       };
     },
     getPersistedSnapshot: (snapshot) => snapshot,
-    restoreSnapshot: (snapshot: any) => snapshot
+    restoreSnapshot: (snapshot: any) => snapshot,
+    createActor: (input, options) => createActor(logic, { ...options, input })
   };
+  return logic;
 }
