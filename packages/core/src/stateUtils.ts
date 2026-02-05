@@ -380,19 +380,28 @@ export function formatTransitions<
     }
     existing.push(delayedTransition);
   }
-  Object.values(stateNode.states).forEach((sn) => {
-    if (sn.config.route) {
-      const eventType = `xstate.route.${sn.id}`;
-      const transition: AnyTransitionConfig = {
-        ...sn.config.route,
-        target: `.${sn.key}`
-      };
+  // Collect routes from all descendants (not just direct children)
+  // so routes are accessible from anywhere in the machine
+  const collectRoutes = (states: Record<string, AnyStateNode>) => {
+    Object.values(states).forEach((sn) => {
+      if (sn.config.route) {
+        const eventType = `xstate.route.${sn.id}`;
+        const transition: AnyTransitionConfig = {
+          ...sn.config.route,
+          target: `#${sn.id}`
+        };
 
-      transitions.set(eventType, [
-        formatTransition(stateNode, eventType, transition)
-      ]);
-    }
-  });
+        transitions.set(eventType, [
+          formatTransition(stateNode, eventType, transition)
+        ]);
+      }
+      // Recursively collect routes from nested states
+      if (sn.states) {
+        collectRoutes(sn.states);
+      }
+    });
+  };
+  collectRoutes(stateNode.states);
   return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
 }
 

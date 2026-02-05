@@ -159,4 +159,131 @@ describe('route', () => {
       type: 'xstate.route.root.blahblah'
     });
   });
+
+  it('machine.root.on should include route events', () => {
+    const machine = setup({}).createMachine({
+      id: 'test',
+      initial: 'a',
+      states: {
+        a: {},
+        b: {
+          route: {}
+        },
+        c: {
+          route: {
+            guard: () => true
+          }
+        }
+      }
+    });
+
+    expect(machine.root.on['xstate.route.test.b']).toBeDefined();
+    expect(machine.root.on['xstate.route.test.c']).toBeDefined();
+    expect(machine.root.on['xstate.route.test.a']).toBeUndefined();
+  });
+
+  it('nested state on should include route events for child routes', () => {
+    const machine = setup({}).createMachine({
+      id: 'app',
+      initial: 'home',
+      states: {
+        home: {
+          route: {}
+        },
+        dashboard: {
+          initial: 'overview',
+          route: {},
+          states: {
+            overview: {
+              route: {}
+            },
+            settings: {
+              route: {}
+            }
+          }
+        }
+      }
+    });
+
+    const a = createActor(machine).start();
+    a.send({
+      type: 'xstate.route.app.dashboard.overview'
+    });
+
+    // All routes should be accessible from root (routable from anywhere)
+    expect(machine.root.on['xstate.route.app.home']).toBeDefined();
+    expect(machine.root.on['xstate.route.app.dashboard']).toBeDefined();
+    expect(
+      machine.root.on['xstate.route.app.dashboard.overview']
+    ).toBeDefined();
+    expect(
+      machine.root.on['xstate.route.app.dashboard.settings']
+    ).toBeDefined();
+  });
+
+  it('parallel state on should include route events', () => {
+    const machine = setup({}).createMachine({
+      id: 'todos',
+      type: 'parallel',
+      states: {
+        list: {
+          initial: 'idle',
+          states: {
+            idle: {},
+            loading: {}
+          }
+        },
+        filter: {
+          initial: 'all',
+          states: {
+            all: {
+              route: {}
+            },
+            active: {
+              route: {}
+            },
+            completed: {
+              route: {}
+            }
+          }
+        }
+      }
+    });
+
+    // Routes should be accessible from root (routable from anywhere)
+    expect(machine.root.on['xstate.route.todos.filter.all']).toBeDefined();
+    expect(machine.root.on['xstate.route.todos.filter.active']).toBeDefined();
+    expect(
+      machine.root.on['xstate.route.todos.filter.completed']
+    ).toBeDefined();
+  });
+
+  it('should route to deeply nested state from anywhere', () => {
+    const machine = setup({}).createMachine({
+      id: 'app',
+      initial: 'home',
+      states: {
+        home: {
+          route: {}
+        },
+        dashboard: {
+          initial: 'overview',
+          states: {
+            overview: {
+              route: {}
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    // Should be able to route to deeply nested state from root
+    expect(actor.getSnapshot().value).toEqual('home');
+
+    actor.send({ type: 'xstate.route.app.dashboard.overview' });
+
+    expect(actor.getSnapshot().value).toEqual({ dashboard: 'overview' });
+  });
 });
