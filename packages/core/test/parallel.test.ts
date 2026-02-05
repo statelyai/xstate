@@ -1343,4 +1343,99 @@ describe('parallel states', () => {
 
     expect(flushTracked()).toEqual([]);
   });
+
+  // https://github.com/statelyai/xstate/issues/5460
+  it('should not allow transitions from final states within parallel regions', () => {
+    const machine = createMachine({
+      id: 'test',
+      type: 'parallel',
+      states: {
+        first: {
+          initial: 'a',
+          states: {
+            a: {
+              on: {
+                NEXT: 'done'
+              }
+            },
+            done: {
+              type: 'final'
+            }
+          }
+        },
+        second: {
+          initial: 'a',
+          states: {
+            a: {
+              on: {
+                BACK: 'b'
+              }
+            },
+            b: {}
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+
+    // Move first region to final state
+    actor.send({ type: 'NEXT' });
+    expect(actor.getSnapshot().value).toEqual({
+      first: 'done',
+      second: 'a'
+    });
+
+    // Send event that would match on parent's 'on' if final was not respected
+    // The final state should not transition, even if there's a matching transition
+    // defined on an ancestor
+
+    // Create a machine where the final state has a transition defined (which should be ignored)
+    const machineWithTransitionOnFinal = createMachine({
+      id: 'test',
+      type: 'parallel',
+      states: {
+        first: {
+          initial: 'a',
+          states: {
+            a: {
+              on: {
+                NEXT: 'done'
+              }
+            },
+            done: {
+              type: 'final',
+              on: {
+                // This transition should never be taken because final states can't transition
+                INVALID: 'a'
+              }
+            }
+          }
+        },
+        second: {
+          initial: 'x',
+          states: {
+            x: {}
+          }
+        }
+      }
+    });
+
+    const actor2 = createActor(machineWithTransitionOnFinal);
+    actor2.start();
+
+    actor2.send({ type: 'NEXT' });
+    expect(actor2.getSnapshot().value).toEqual({
+      first: 'done',
+      second: 'x'
+    });
+
+    // Try to transition from the final state - should have no effect
+    actor2.send({ type: 'INVALID' });
+    expect(actor2.getSnapshot().value).toEqual({
+      first: 'done',
+      second: 'x'
+    });
+  });
 });
