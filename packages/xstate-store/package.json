@@ -68,7 +68,6 @@
     "@solidjs/testing-library": "^0.8.10",
     "@statelyai/inspect": "^0.4.0",
     "@testing-library/react": "^16.2.0",
-    "@testing-library/vue": "^8.1.0",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-vue": "^5.1.2",
