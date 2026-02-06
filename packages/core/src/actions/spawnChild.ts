@@ -127,7 +127,7 @@ export interface SpawnAction<
   _out_TActor?: TActor;
 }
 
-interface SpawnActionOptions<
+export interface SpawnActionOptions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,

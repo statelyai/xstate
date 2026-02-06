@@ -78,7 +78,7 @@ type ToStateSchema<TSchema extends StateSchema> = {
 type RequiredSetupKeys<TChildrenMap> =
   IsNever<keyof TChildrenMap> extends true ? never : 'actors';
 
-type SetupReturn<
+export type SetupReturn<
   TContext extends MachineContext,
   TEvent extends AnyEventObject,
   TActors extends Record<string, UnknownActorLogic>,
