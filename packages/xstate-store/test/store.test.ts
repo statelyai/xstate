@@ -1,9 +1,4 @@
-import { produce } from 'immer';
-import {
-  createStore,
-  createStoreConfig,
-  createStoreWithProducer
-} from '../src/index.ts';
+import { createStore, createStoreConfig } from '../src/index.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
 import {
   AnyStoreConfig,
@@ -110,71 +105,6 @@ it('updates state from sent events', () => {
   store.trigger.clear();
 
   expect(store.getSnapshot().context).toEqual({ count: 0 });
-});
-
-it('createStoreWithProducer(…) works with an immer producer', () => {
-  const store = createStoreWithProducer(produce, {
-    context: {
-      count: 0
-    },
-    on: {
-      inc: (ctx, ev: { by: number }) => {
-        ctx.count += ev.by;
-      }
-    }
-  });
-
-  store.trigger.inc({
-    by: 3
-  });
-  store.trigger
-    // @ts-expect-error
-    .whatever();
-
-  expect(store.getSnapshot().context).toEqual({ count: 3 });
-  expect(store.getInitialSnapshot().context).toEqual({ count: 0 });
-});
-
-it('createStoreWithProducer(…) works with an immer producer (object API)', () => {
-  const store = createStoreWithProducer(produce, {
-    context: {
-      count: 0
-    },
-    on: {
-      inc: (ctx, ev: { by: number }) => {
-        ctx.count += ev.by;
-      }
-    }
-  });
-
-  store.trigger.inc({
-    by: 3
-  });
-  store.trigger
-    // @ts-expect-error
-    .whatever();
-
-  expect(store.getSnapshot().context).toEqual({ count: 3 });
-  expect(store.getInitialSnapshot().context).toEqual({ count: 0 });
-});
-
-it('createStoreWithProducer(…) infers the context type properly with a producer', () => {
-  const store = createStoreWithProducer(produce, {
-    context: {
-      count: 0
-    },
-    on: {
-      inc: (ctx, ev: { by: number }) => {
-        ctx satisfies { count: number };
-        // @ts-expect-error
-        ctx satisfies { count: string };
-
-        ctx.count += ev.by;
-      }
-    }
-  });
-
-  store.getSnapshot().context satisfies { count: number };
 });
 
 it('can be observed', () => {
@@ -676,33 +606,6 @@ it('the emit type is not overridden by the payload', () => {
   });
 });
 
-it('can emit events from createStoreWithProducer', () => {
-  const store = createStoreWithProducer(produce, {
-    context: {
-      count: 0
-    },
-    emits: {
-      increased: (_: { by: number }) => {}
-    },
-    on: {
-      inc: (ctx, ev: { by: number }, enq) => {
-        enq.emit.increased({ by: ev.by });
-        ctx.count += ev.by;
-      }
-    }
-  });
-
-  const spy = vi.fn();
-  store.on('increased', spy);
-
-  store.trigger.inc({
-    by: 3
-  });
-
-  expect(spy).toHaveBeenCalledWith({ type: 'increased', by: 3 });
-  expect(store.getSnapshot().context).toEqual({ count: 3 });
-});
-
 describe('store.transition', () => {
   it('returns next state and effects for a given state and event', () => {
     const store = createStore({
@@ -749,30 +652,6 @@ describe('store.transition', () => {
 
     expect(nextState).toBe(currentState);
     expect(effects).toEqual([]);
-  });
-
-  it('works with producer functions', () => {
-    const store = createStoreWithProducer(produce, {
-      context: { count: 0 },
-      emits: {
-        increased: (_: { by: number }) => {}
-      },
-      on: {
-        inc: (ctx, event: { by: number }, enq) => {
-          enq.emit.increased({ by: event.by });
-          ctx.count += event.by;
-        }
-      }
-    });
-
-    const [nextState, effects] = store.transition(store.getSnapshot(), {
-      type: 'inc',
-      by: 3
-    });
-
-    expect(nextState.context).toEqual({ count: 3 });
-    expect(effects).toHaveLength(1);
-    expect(effects[0]).toEqual({ type: 'increased', by: 3 });
   });
 
   it('collects enqueued effects', () => {
