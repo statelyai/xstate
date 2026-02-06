@@ -11,16 +11,16 @@
   "license": "ISC",
   "dependencies": {
     "@types/body-parser": "^1.19.6",
-    "body-parser": "^1.20.3",
-    "express": "^4.21.2",
-    "mongodb": "^6.20.0",
-    "xstate": "^5.23.0",
+    "body-parser": "^1.20.4",
+    "express": "^4.22.1",
+    "mongodb": "^6.21.0",
+    "xstate": "^5.26.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/express": "^4.17.23",
-    "@types/node": "^20.19.21",
-    "nodemon": "^3.1.10",
+    "@types/express": "^4.17.25",
+    "@types/node": "^20.19.32",
+    "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }

@@ -10,13 +10,13 @@
   },
   "dependencies": {
     "@xstate/vue": "^3.1.4",
-    "vue": "^3.5.22",
-    "xstate": "^5.23.0"
+    "vue": "^3.5.27",
+    "xstate": "^5.26.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.6.2",
     "typescript": "^5.9.3",
-    "vite": "^5.4.20",
+    "vite": "^5.4.21",
     "vue-tsc": "^1.8.27"
   }
 }
