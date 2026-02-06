@@ -207,6 +207,9 @@ importers:
       '@vitejs/plugin-vue':
         specifier: ^5.1.2
         version: 5.2.4(vite@7.0.3(@types/node@25.2.1)(jiti@2.4.2)(sass@1.97.3)(stylus@0.54.8)(terser@5.46.0))(vue@3.5.17(typescript@5.9.3))
+      '@vue/test-utils':
+        specifier: ^2.4.6
+        version: 2.4.6(patch_hash=drgml7uwcocw5qdowdzbfcfg3e)
       '@xstate/react':
         specifier: workspace:^
         version: link:../xstate-react
