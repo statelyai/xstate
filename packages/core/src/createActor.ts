@@ -464,6 +464,55 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
+  /**
+   * Makes the actor async iterable, allowing it to be used in `for await`
+   * loops.
+   *
+   * @remarks
+   * The async iterator yields snapshots as they are emitted by the actor. The
+   * iterator will complete when the actor reaches a "done" state or encounters
+   * an error.
+   * @example
+   *
+   * ```ts
+   * const actor = createActor(someMachine);
+   * actor.start();
+   *
+   * for await (const snapshot of actor) {
+   *   console.log('Current state:', snapshot);
+   *   if (snapshot.status === 'done') {
+   *     break; // Optional: break when done
+   *   }
+   * }
+   * ```
+   */
+  async *[Symbol.asyncIterator](): AsyncIterator<SnapshotFrom<TLogic>> {
+    // Yield the initial snapshot if the actor is already running
+    if (this._processingStatus === ProcessingStatus.Running) {
+      yield this.getSnapshot();
+    }
+
+    while (this._processingStatus !== ProcessingStatus.Stopped) {
+      yield await new Promise<SnapshotFrom<TLogic>>((resolve, reject) => {
+        const subscription = this.subscribe({
+          next: (snapshot) => {
+            resolve(snapshot);
+            subscription.unsubscribe();
+          },
+          error: (error) => {
+            reject(error);
+            subscription.unsubscribe();
+          },
+          complete: () => {
+            // When the actor completes, we should stop yielding
+            // The iterator will naturally end when the while loop condition becomes false
+            subscription.unsubscribe();
+          }
+        });
+      });
+    }
+  }
+
   public on<TType extends EmittedFrom<TLogic>['type'] | '*'>(
     type: TType,
     handler: (
