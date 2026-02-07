@@ -57,7 +57,7 @@ type AnyStateNodeIterable = StateNodeIterable<any, any>;
 
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 
-export function isAtomicStateNode(stateNode: StateNode<any, any>) {
+export function isAtomicStateNode(stateNode: StateNode<any, any>): boolean {
   return stateNode.type === 'atomic' || stateNode.type === 'final';
 }
 

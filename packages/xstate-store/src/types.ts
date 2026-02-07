@@ -76,7 +76,9 @@ export interface Store<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject
-> extends Subscribable<StoreSnapshot<TContext>>,
+>
+  extends
+    Subscribable<StoreSnapshot<TContext>>,
     InteropObservable<StoreSnapshot<TContext>>,
     BaseAtom<StoreSnapshot<TContext>> {
   send: (event: ExtractEvents<TEventPayloadMap>) => void;
@@ -354,15 +356,13 @@ interface StoreBaseInspectionEventProperties {
   actorRef: ActorRefLike;
 }
 
-export interface StoreInspectedSnapshotEvent
-  extends StoreBaseInspectionEventProperties {
+export interface StoreInspectedSnapshotEvent extends StoreBaseInspectionEventProperties {
   type: '@xstate.snapshot';
   event: AnyEventObject; // { type: string, ... }
   snapshot: Snapshot<unknown>;
 }
 
-export interface StoreInspectedActionEvent
-  extends StoreBaseInspectionEventProperties {
+export interface StoreInspectedActionEvent extends StoreBaseInspectionEventProperties {
   type: '@xstate.action';
   action: {
     type: string;
@@ -370,8 +370,7 @@ export interface StoreInspectedActionEvent
   };
 }
 
-export interface StoreInspectedEventEvent
-  extends StoreBaseInspectionEventProperties {
+export interface StoreInspectedEventEvent extends StoreBaseInspectionEventProperties {
   type: '@xstate.event';
   sourceRef: AnyStore | undefined;
   event: AnyEventObject; // { type: string, ... }
@@ -382,8 +381,7 @@ interface AnyEventObject {
   [key: string]: any;
 }
 
-export interface StoreInspectedActorEvent
-  extends StoreBaseInspectionEventProperties {
+export interface StoreInspectedActorEvent extends StoreBaseInspectionEventProperties {
   type: '@xstate.actor';
 }
 
