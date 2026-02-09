@@ -2029,6 +2029,8 @@ describe('setup()', () => {
         a: {
           after: {
             // @x-ts-expect-error https://github.com/microsoft/TypeScript/issues/55709
+            // TypeScript limitation: mapped types with string unions don't narrow properly.
+            // A dev-mode runtime warning will be shown for this.
             unknown: 'b'
           }
         },
@@ -2044,6 +2046,8 @@ describe('setup()', () => {
         a: {
           after: {
             // @x-ts-expect-error https://github.com/microsoft/TypeScript/issues/55709
+            // TypeScript limitation: mapped types with string unions don't narrow properly.
+            // A dev-mode runtime warning will be shown for this.
             unknown: 'b'
           }
         },
