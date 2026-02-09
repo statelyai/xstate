@@ -1583,135 +1583,128 @@ export function macrostep(
   const originalExecutor = actorScope?.actionExecutor;
   let currentMicrostepActions: ExecutableActionObject[] = [];
 
-  if (actorScope) {
+  try {
     actorScope.actionExecutor = (action) => {
       currentMicrostepActions.push(action);
       originalExecutor?.(action);
     };
-  }
 
-  let nextSnapshot = snapshot;
-  const microsteps: Array<
-    readonly [AnyMachineSnapshot, ExecutableActionObject[]]
-  > = [];
+    let nextSnapshot = snapshot;
+    const microsteps: Array<
+      readonly [AnyMachineSnapshot, ExecutableActionObject[]]
+    > = [];
 
-  function addMicrostep(
-    microstate: AnyMachineSnapshot,
-    event: AnyEventObject,
-    transitions: AnyTransitionDefinition[]
-  ) {
-    actorScope.system._sendInspectionEvent({
-      type: '@xstate.microstep',
-      actorRef: actorScope.self,
-      event,
-      snapshot: microstate,
-      _transitions: transitions
-    });
-    microsteps.push([microstate, currentMicrostepActions]);
-    currentMicrostepActions = [];
-  }
+    function addMicrostep(
+      microstate: AnyMachineSnapshot,
+      event: AnyEventObject,
+      transitions: AnyTransitionDefinition[]
+    ) {
+      actorScope.system._sendInspectionEvent({
+        type: '@xstate.microstep',
+        actorRef: actorScope.self,
+        event,
+        snapshot: microstate,
+        _transitions: transitions
+      });
+      microsteps.push([microstate, currentMicrostepActions]);
+      currentMicrostepActions = [];
+    }
 
-  // Handle stop event
-  if (event.type === XSTATE_STOP) {
-    nextSnapshot = cloneMachineSnapshot(
-      stopChildren(nextSnapshot, event, actorScope),
-      {
-        status: 'stopped'
+    // Handle stop event
+    if (event.type === XSTATE_STOP) {
+      nextSnapshot = cloneMachineSnapshot(
+        stopChildren(nextSnapshot, event, actorScope),
+        {
+          status: 'stopped'
+        }
+      );
+      addMicrostep(nextSnapshot, event, []);
+      return {
+        snapshot: nextSnapshot,
+        microsteps
+      };
+    }
+
+    let nextEvent = event;
+
+    // Assume the state is at rest (no raised events)
+    // Determine the next state based on the next microstep
+    if (nextEvent.type !== XSTATE_INIT) {
+      const currentEvent = nextEvent;
+      const isErr = isErrorActorEvent(currentEvent);
+
+      const transitions = selectTransitions(currentEvent, nextSnapshot);
+
+      if (isErr && !transitions.length) {
+        // TODO: we should likely only allow transitions selected by very explicit descriptors
+        // `*` shouldn't be matched, likely `xstate.error.*` shouldn't be either
+        // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
+        nextSnapshot = cloneMachineSnapshot<typeof snapshot>(snapshot, {
+          status: 'error',
+          error: currentEvent.error
+        });
+        addMicrostep(nextSnapshot, currentEvent, []);
+        return {
+          snapshot: nextSnapshot,
+          microsteps
+        };
       }
-    );
-    addMicrostep(nextSnapshot, event, []);
-    if (actorScope && originalExecutor) {
-      actorScope.actionExecutor = originalExecutor;
+      nextSnapshot = microstep(
+        transitions,
+        snapshot,
+        actorScope,
+        nextEvent,
+        false, // isInitial
+        internalQueue
+      );
+      addMicrostep(nextSnapshot, currentEvent, transitions);
+    }
+
+    let shouldSelectEventlessTransitions = true;
+
+    while (nextSnapshot.status === 'active') {
+      let enabledTransitions: AnyTransitionDefinition[] =
+        shouldSelectEventlessTransitions
+          ? selectEventlessTransitions(nextSnapshot, nextEvent)
+          : [];
+
+      // eventless transitions should always be selected after selecting *regular* transitions
+      // by assigning `undefined` to `previousState` we ensure that `shouldSelectEventlessTransitions` gets always computed to true in such a case
+      const previousState = enabledTransitions.length
+        ? nextSnapshot
+        : undefined;
+
+      if (!enabledTransitions.length) {
+        if (!internalQueue.length) {
+          break;
+        }
+        nextEvent = internalQueue.shift()!;
+        enabledTransitions = selectTransitions(nextEvent, nextSnapshot);
+      }
+
+      nextSnapshot = microstep(
+        enabledTransitions,
+        nextSnapshot,
+        actorScope,
+        nextEvent,
+        false,
+        internalQueue
+      );
+      shouldSelectEventlessTransitions = nextSnapshot !== previousState;
+      addMicrostep(nextSnapshot, nextEvent, enabledTransitions);
+    }
+
+    if (nextSnapshot.status !== 'active') {
+      stopChildren(nextSnapshot, nextEvent, actorScope);
     }
 
     return {
       snapshot: nextSnapshot,
       microsteps
     };
-  }
-
-  let nextEvent = event;
-
-  // Assume the state is at rest (no raised events)
-  // Determine the next state based on the next microstep
-  if (nextEvent.type !== XSTATE_INIT) {
-    const currentEvent = nextEvent;
-    const isErr = isErrorActorEvent(currentEvent);
-
-    const transitions = selectTransitions(currentEvent, nextSnapshot);
-
-    if (isErr && !transitions.length) {
-      // TODO: we should likely only allow transitions selected by very explicit descriptors
-      // `*` shouldn't be matched, likely `xstate.error.*` shouldn't be either
-      // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
-      nextSnapshot = cloneMachineSnapshot<typeof snapshot>(snapshot, {
-        status: 'error',
-        error: currentEvent.error
-      });
-      addMicrostep(nextSnapshot, currentEvent, []);
-      if (actorScope && originalExecutor) {
-        actorScope.actionExecutor = originalExecutor;
-      }
-      return {
-        snapshot: nextSnapshot,
-        microsteps
-      };
-    }
-    nextSnapshot = microstep(
-      transitions,
-      snapshot,
-      actorScope,
-      nextEvent,
-      false, // isInitial
-      internalQueue
-    );
-    addMicrostep(nextSnapshot, currentEvent, transitions);
-  }
-
-  let shouldSelectEventlessTransitions = true;
-
-  while (nextSnapshot.status === 'active') {
-    let enabledTransitions: AnyTransitionDefinition[] =
-      shouldSelectEventlessTransitions
-        ? selectEventlessTransitions(nextSnapshot, nextEvent)
-        : [];
-
-    // eventless transitions should always be selected after selecting *regular* transitions
-    // by assigning `undefined` to `previousState` we ensure that `shouldSelectEventlessTransitions` gets always computed to true in such a case
-    const previousState = enabledTransitions.length ? nextSnapshot : undefined;
-
-    if (!enabledTransitions.length) {
-      if (!internalQueue.length) {
-        break;
-      }
-      nextEvent = internalQueue.shift()!;
-      enabledTransitions = selectTransitions(nextEvent, nextSnapshot);
-    }
-
-    nextSnapshot = microstep(
-      enabledTransitions,
-      nextSnapshot,
-      actorScope,
-      nextEvent,
-      false,
-      internalQueue
-    );
-    shouldSelectEventlessTransitions = nextSnapshot !== previousState;
-    addMicrostep(nextSnapshot, nextEvent, enabledTransitions);
-  }
-
-  if (nextSnapshot.status !== 'active') {
-    stopChildren(nextSnapshot, nextEvent, actorScope);
-  }
-
-  if (actorScope && originalExecutor) {
+  } finally {
     actorScope.actionExecutor = originalExecutor;
   }
-
-  return {
-    snapshot: nextSnapshot,
-    microsteps
-  };
 }
 
 function stopChildren(
