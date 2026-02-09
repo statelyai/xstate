@@ -155,7 +155,7 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
   ];
 }
 
-/*
+/**
  * Gets all potential next transitions from the current state.
  *
  * Returns all transitions that are available from the current state, including:
