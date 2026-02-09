@@ -499,7 +499,7 @@ function getInitialStateNodesWithTheirAncestors(stateNode: AnyStateNode) {
   return states;
 }
 
-export function getInitialStateNodes(stateNode: AnyStateNode) {
+function getInitialStateNodes(stateNode: AnyStateNode) {
   const set = new Set<AnyStateNode>();
 
   function iter(descStateNode: AnyStateNode): void {
@@ -967,7 +967,7 @@ export function initialMicrostep(
 }
 
 /** https://www.w3.org/TR/scxml/#microstepProcedure */
-export function microstep(
+function microstep(
   transitions: Array<AnyTransitionDefinition>,
   currentSnapshot: AnyMachineSnapshot,
   actorScope: AnyActorScope,
