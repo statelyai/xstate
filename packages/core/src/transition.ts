@@ -102,7 +102,7 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
   const internalQueue: AnyEventObject[] = [];
 
   // Get pre-initial state (mimics StateMachine.getPreInitialState)
-  const preInitialSnapshot = (machine as any).getPreInitialState(
+  const preInitialSnapshot = machine._getPreInitialState(
     actorScope,
     initEvent,
     internalQueue

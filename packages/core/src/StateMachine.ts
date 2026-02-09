@@ -352,8 +352,10 @@ export class StateMachine<
   /**
    * The initial state _before_ evaluating any microsteps. This "pre-initial"
    * state is provided to initial actions executed in the initial state.
+   *
+   * @internal
    */
-  private getPreInitialState(
+  _getPreInitialState(
     actorScope: AnyActorScope,
     initEvent: any,
     internalQueue: AnyEventObject[]
@@ -429,7 +431,7 @@ export class StateMachine<
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
-    const preInitialState = this.getPreInitialState(
+    const preInitialState = this._getPreInitialState(
       actorScope,
       initEvent,
       internalQueue
