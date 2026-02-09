@@ -1,10 +1,7 @@
 import isDevelopment from '#is-development';
 import { $$ACTOR_TYPE } from './createActor.ts';
-import type { StateNode } from './StateNode.ts';
-import type { StateMachine } from './StateMachine.ts';
 import { getStateValue, getTransitionResult, hasEffect } from './stateUtils.ts';
 import type {
-  ProvidedActor,
   AnyMachineSnapshot,
   AnyStateMachine,
   EventObject,
@@ -14,7 +11,6 @@ import type {
   StateValue,
   AnyActorRef,
   Snapshot,
-  ParameterizedObject,
   IsNever,
   MetaObject,
   StateSchema,
@@ -22,7 +18,6 @@ import type {
   StateIdParams,
   SnapshotStatus,
   PersistedHistoryValue,
-  TODO,
   AnyStateNode
 } from './types.ts';
 import { matchesState } from './utils.ts';
@@ -149,15 +144,15 @@ interface ActiveMachineSnapshot<
   TMeta extends MetaObject,
   TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
-  TContext,
-  TEvent,
-  TChildren,
-  TStateValue,
-  TTag,
-  TOutput,
-  TMeta,
-  TStateSchema
-> {
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TMeta,
+    TStateSchema
+  > {
   status: 'active';
   output: undefined;
   error: undefined;
@@ -173,15 +168,15 @@ interface DoneMachineSnapshot<
   TMeta extends MetaObject,
   TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
-  TContext,
-  TEvent,
-  TChildren,
-  TStateValue,
-  TTag,
-  TOutput,
-  TMeta,
-  TStateSchema
-> {
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TMeta,
+    TStateSchema
+  > {
   status: 'done';
   output: TOutput;
   error: undefined;
@@ -197,15 +192,15 @@ interface ErrorMachineSnapshot<
   TMeta extends MetaObject,
   TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
-  TContext,
-  TEvent,
-  TChildren,
-  TStateValue,
-  TTag,
-  TOutput,
-  TMeta,
-  TStateSchema
-> {
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TMeta,
+    TStateSchema
+  > {
   status: 'error';
   output: undefined;
   error: unknown;
@@ -221,15 +216,15 @@ interface StoppedMachineSnapshot<
   TMeta extends MetaObject,
   TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
-  TContext,
-  TEvent,
-  TChildren,
-  TStateValue,
-  TTag,
-  TOutput,
-  TMeta,
-  TStateSchema
-> {
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TMeta,
+    TStateSchema
+  > {
   status: 'stopped';
   output: undefined;
   error: undefined;

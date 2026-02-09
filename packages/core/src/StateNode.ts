@@ -11,23 +11,19 @@ import type {
   DelayedTransitionDefinition,
   EventObject,
   InitialTransitionDefinition,
-  InvokeDefinition,
   MachineContext,
   Mapper,
   StateNodesConfig,
   TransitionDefinition,
   TransitionDefinitionMap,
-  TODO,
-  ParameterizedObject,
   AnyStateMachine,
   AnyStateNodeConfig,
-  ProvidedActor,
   NonReducibleUnknown,
   EventDescriptor,
   AnyActorRef,
   AnyStateNode,
   AnyEventObject,
-  AnyAction2,
+  AnyAction,
   AnyTransitionDefinition,
   AnyMachineSnapshot,
   AnyInvokeDefinition
@@ -84,9 +80,9 @@ export class StateNode<
    */
   public history: false | 'shallow' | 'deep';
   /** The action(s) to be executed upon entering the state node. */
-  public entry: AnyAction2 | undefined;
+  public entry: AnyAction | undefined;
   /** The action(s) to be executed upon exiting the state node. */
-  public exit: AnyAction2 | undefined;
+  public exit: AnyAction | undefined;
   /** The parent state node. */
   public parent?: StateNode<TContext, TEvent>;
   /** The root machine node. */

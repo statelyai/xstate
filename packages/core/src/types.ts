@@ -270,16 +270,16 @@ export interface InitialTransitionConfig<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays']
 > extends TransitionConfig<
-  TContext,
-  TEvent,
-  TEvent,
-  TEmitted,
-  TMeta,
-  TActionMap,
-  TActorMap,
-  TGuardMap,
-  TDelayMap
-> {
+    TContext,
+    TEvent,
+    TEvent,
+    TEmitted,
+    TMeta,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  > {
   target: string;
 }
 
@@ -450,40 +450,6 @@ export type StateNodesConfig<
   TEvent extends EventObject
 > = {
   [K in string]: StateNode<TContext, TEvent>;
-};
-
-export type StatesConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TTag extends string,
-  TOutput,
-  TEmitted extends EventObject,
-  TMeta extends MetaObject,
-  TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
-  TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays']
-> = {
-  [K in string]: StateNodeConfig<
-    TContext,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TOutput,
-    TEmitted,
-    TMeta,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap
-  >;
 };
 
 export type TransitionConfigTarget = string | undefined;
@@ -870,199 +836,6 @@ export type AnyInvokeConfig = InvokeConfig<
   any // TMeta
 >;
 
-export interface StateNodeConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TTag extends string,
-  _TOutput,
-  TEmitted extends EventObject,
-  TMeta extends MetaObject,
-  TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
-  TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays']
-> {
-  /** The initial state transition. */
-  initial?: string | undefined;
-  /**
-   * The type of this state node:
-   *
-   * - `'atomic'` - no child state nodes
-   * - `'compound'` - nested child state nodes (XOR)
-   * - `'parallel'` - orthogonal nested child state nodes (AND)
-   * - `'history'` - history state node
-   * - `'final'` - final state node
-   */
-  type?: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
-  /**
-   * Indicates whether the state node is a history state node, and what type of
-   * history: shallow, deep, true (shallow), false (none), undefined (none)
-   */
-  history?: 'shallow' | 'deep' | boolean | undefined;
-  /**
-   * The mapping of state node keys to their state node configurations
-   * (recursive).
-   */
-  states?:
-    | StatesConfig<
-        TContext,
-        TEvent,
-        TActor,
-        TAction,
-        TGuard,
-        TDelay,
-        TTag,
-        NonReducibleUnknown,
-        TEmitted,
-        TMeta,
-        TActionMap,
-        TActorMap,
-        TGuardMap,
-        TDelayMap
-      >
-    | undefined;
-  /**
-   * The services to invoke upon entering this state node. These services will
-   * be stopped upon exiting this state node.
-   */
-  invoke?: SingleOrArray<
-    InvokeConfig<
-      TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TEmitted,
-      TMeta
-    >
-  >;
-  /** The mapping of event types to their potential transition(s). */
-  on?: TransitionsConfig<
-    TContext,
-    TEvent,
-    TEmitted,
-    TMeta,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap
-  >;
-  /** The action(s) to be executed upon entering the state node. */
-  entry?: Action<
-    TContext,
-    TEvent,
-    TEmitted,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap
-  >;
-  /** The action(s) to be executed upon exiting the state node. */
-  exit?: Action<
-    TContext,
-    TEvent,
-    TEmitted,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap
-  >;
-  /**
-   * The potential transition(s) to be taken upon reaching a final child state
-   * node.
-   *
-   * This is equivalent to defining a `[done(id)]` transition on this state
-   * node's `on` property.
-   */
-  onDone?:
-    | string
-    | SingleOrArray<
-        TransitionConfig<
-          TContext,
-          DoneStateEvent,
-          TEvent,
-          TEmitted,
-          TMeta,
-          TActionMap,
-          TActorMap,
-          TGuardMap,
-          TDelayMap
-        >
-      >
-    | undefined;
-  /**
-   * The mapping (or array) of delays (in milliseconds) to their potential
-   * transition(s). The delayed transitions are taken after the specified delay
-   * in an interpreter.
-   */
-  after?: DelayedTransitions<
-    TContext,
-    TEvent,
-    TEmitted,
-    TMeta,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap
-  >;
-
-  /**
-   * An eventless transition that is always taken when this state node is
-   * active.
-   */
-  always?: TransitionConfigOrTarget<
-    TContext,
-    TEvent,
-    TEvent,
-    TEmitted,
-    TMeta,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap
-  >;
-  parent?: StateNode<TContext, TEvent>;
-  /**
-   * The meta data associated with this state node, which will be returned in
-   * State instances.
-   */
-  meta?: TMeta;
-  /**
-   * The output data sent with the "xstate.done.state._id_" event if this is a
-   * final state node.
-   *
-   * The output data will be evaluated with the current `context` and placed on
-   * the `.data` property of the event.
-   */
-  output?: Mapper<TContext, TEvent, unknown, TEvent> | NonReducibleUnknown;
-  /**
-   * The unique ID of the state node, which can be referenced as a transition
-   * target via the `#id` syntax.
-   */
-  id?: string | undefined;
-  /**
-   * The order this state node appears. Corresponds to the implicit document
-   * order.
-   */
-  order?: number;
-
-  /**
-   * The tags for this state node, which are accumulated into the `state.tags`
-   * property.
-   */
-  tags?: SingleOrArray<TTag>;
-  /** A text description of the state node */
-  description?: string;
-
-  /** A default target for a history state */
-  target?: string | undefined; // `| undefined` makes `HistoryStateNodeConfig` compatible with this interface (it extends it) under `exactOptionalPropertyTypes`
-}
-
 export type AnyStateNodeConfig = Next_StateNodeConfig<
   any,
   any,
@@ -1157,57 +930,6 @@ export type ContextFactory<
   >;
 }) => TContext;
 
-export type MachineConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor = ProvidedActor,
-  TAction extends ParameterizedObject = ParameterizedObject,
-  TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string,
-  TTag extends string = string,
-  TInput = any,
-  TOutput = unknown,
-  TEmitted extends EventObject = EventObject,
-  TMeta extends MetaObject = MetaObject,
-  TActionMap extends Implementations['actions'] = Implementations['actions'],
-  TActorMap extends Implementations['actors'] = Implementations['actors'],
-  TGuardMap extends Implementations['guards'] = Implementations['guards'],
-  TDelayMap extends Implementations['delays'] = Implementations['delays']
-> = (Omit<
-  StateNodeConfig<
-    DoNotInfer<TContext>,
-    DoNotInfer<TEvent>,
-    DoNotInfer<TActor>,
-    DoNotInfer<TAction>,
-    DoNotInfer<TGuard>,
-    DoNotInfer<TDelay>,
-    DoNotInfer<TTag>,
-    DoNotInfer<TOutput>,
-    DoNotInfer<TEmitted>,
-    DoNotInfer<TMeta>,
-    DoNotInfer<TActionMap>,
-    DoNotInfer<TActorMap>,
-    DoNotInfer<TGuardMap>,
-    DoNotInfer<TDelayMap>
-  >,
-  'output'
-> & {
-  /** The initial context (extended state) */
-  /** The machine's own version. */
-  version?: string;
-  // TODO: make it conditionally required
-  output?: Mapper<TContext, DoneStateEvent, TOutput, TEvent> | TOutput;
-}) &
-  (MachineContext extends TContext
-    ? {
-        context?: InitialContext<LowInfer<TContext>, TActorMap, TInput, TEvent>;
-      }
-    : {
-        context: InitialContext<LowInfer<TContext>, TActorMap, TInput, TEvent>;
-      });
-
-export type UnknownMachineConfig = MachineConfig<MachineContext, EventObject>;
-
 export interface ProvidedActor {
   src: string;
   logic: UnknownActorLogic;
@@ -1247,17 +969,17 @@ export interface MachineTypes<
   TEmitted extends EventObject,
   TMeta extends MetaObject
 > extends SetupTypes<
-  TContext,
-  TEvent,
-  // in machine types we currently don't support `TChildren`
-  // and IDs can still be configured through `TActor['id']`
-  never,
-  TTag,
-  TInput,
-  TOutput,
-  TEmitted,
-  TMeta
-> {
+    TContext,
+    TEvent,
+    // in machine types we currently don't support `TChildren`
+    // and IDs can still be configured through `TActor['id']`
+    never,
+    TTag,
+    TInput,
+    TOutput,
+    TEmitted,
+    TMeta
+  > {
   actors?: TActor;
   actions?: TAction;
   guards?: TGuard;
@@ -1265,9 +987,8 @@ export interface MachineTypes<
   meta?: TMeta;
 }
 
-export interface HistoryStateNode<
-  TContext extends MachineContext
-> extends StateNode<TContext> {
+export interface HistoryStateNode<TContext extends MachineContext>
+  extends StateNode<TContext> {
   history: 'shallow' | 'deep';
   target: string | undefined;
 }
@@ -1286,10 +1007,8 @@ export type StateFrom<
     ? ReturnType<ReturnType<T>['transition']>
     : never;
 
-export interface DoneActorEvent<
-  TOutput = unknown,
-  TId extends string = string
-> extends EventObject {
+export interface DoneActorEvent<TOutput = unknown, TId extends string = string>
+  extends EventObject {
   type: `xstate.done.actor.${TId}`;
   output: TOutput;
   actorId: TId;
@@ -1349,23 +1068,23 @@ export interface TransitionDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject
 > extends Omit<
-  TransitionConfig<
-    TContext,
-    TEvent,
-    TEvent,
-    TODO,
-    TODO,
-    TODO,
-    TODO,
-    TODO, // TEmitted
-    TODO // TMeta
-  >,
-  | 'target'
-  // `guard` is correctly rejected by `extends` here and `actions` should be too
-  // however, `any` passed to `TransitionConfig` as `TAction` collapses its `.actions` to `any` and it's accidentally allowed here
-  // it doesn't exactly have to be incorrect, we are overriding this here anyway but it looks like a lucky accident rather than smth done on purpose
-  | 'guard'
-> {
+    TransitionConfig<
+      TContext,
+      TEvent,
+      TEvent,
+      TODO,
+      TODO,
+      TODO,
+      TODO,
+      TODO, // TEmitted
+      TODO // TMeta
+    >,
+    | 'target'
+    // `guard` is correctly rejected by `extends` here and `actions` should be too
+    // however, `any` passed to `TransitionConfig` as `TAction` collapses its `.actions` to `any` and it's accidentally allowed here
+    // it doesn't exactly have to be incorrect, we are overriding this here anyway but it looks like a lucky accident rather than smth done on purpose
+    | 'guard'
+  > {
   target: ReadonlyArray<AnyStateNode> | undefined;
   source: AnyStateNode;
   reenter: boolean;
@@ -1650,10 +1369,8 @@ export interface BaseActorRef<TEvent extends EventObject> {
   send: (event: TEvent) => void;
 }
 
-export interface ActorLike<
-  TCurrent,
-  TEvent extends EventObject
-> extends Subscribable<TCurrent> {
+export interface ActorLike<TCurrent, TEvent extends EventObject>
+  extends Subscribable<TCurrent> {
   send: (event: TEvent) => void;
 }
 
@@ -1661,8 +1378,8 @@ export interface ActorRef<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TEmitted extends EventObject = EventObject
->
-  extends Subscribable<TSnapshot>, InteropObservable<TSnapshot> {
+> extends Subscribable<TSnapshot>,
+    InteropObservable<TSnapshot> {
   /** The unique identifier for this actor relative to its parent. */
   id: string;
   /**
@@ -2314,9 +2031,8 @@ export type SpecialExecutableAction = Values<{
   };
 }>;
 
-export interface ToExecutableAction<
-  T extends ParameterizedObject
-> extends ExecutableActionObject {
+export interface ToExecutableAction<T extends ParameterizedObject>
+  extends ExecutableActionObject {
   type: T['type'];
   params: T['params'];
   exec: undefined;
