@@ -1,0 +1,551 @@
+import { StandardSchemaV1 } from './schema.types.ts';
+import { MachineSnapshot } from './State';
+import {
+  Action,
+  ActorRef,
+  AnyActorLogic,
+  AnyActorRef,
+  Compute,
+  DoneActorEvent,
+  DoNotInfer,
+  EventDescriptor,
+  EventObject,
+  ExtractEvent,
+  InitialContext,
+  IsNever,
+  MetaObject,
+  NonReducibleUnknown,
+  SingleOrArray,
+  SnapshotEvent,
+  StateValue,
+  TODO,
+  TransitionConfigFunction,
+  Values
+} from './types';
+import { MachineContext, Mapper } from './types';
+import { LowInfer } from './types';
+import { DoneStateEvent } from './types';
+
+export type InferOutput<T extends StandardSchemaV1, U> = Compute<
+  StandardSchemaV1.InferOutput<T> extends U
+    ? StandardSchemaV1.InferOutput<T>
+    : never
+>;
+
+/**
+ * Event payloads from schemas (e.g. Zod) are often inferred as optional in
+ * output types. Wrapping in Required<> ensures properties defined in the schema
+ * are required on the event.
+ */
+export type InferEvents<
+  TEventSchemaMap extends Record<string, StandardSchemaV1>
+> = Values<{
+  [K in keyof TEventSchemaMap & string]: StandardSchemaV1.InferOutput<
+    TEventSchemaMap[K]
+  > extends infer O
+    ? unknown extends O
+      ? O & { type: K }
+      : Required<O> & { type: K }
+    : never;
+}>;
+
+export type Next_MachineConfig<
+  TContextSchema extends StandardSchemaV1,
+  TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
+  TInputSchema extends StandardSchemaV1,
+  TOutputSchema extends StandardSchemaV1,
+  TMetaSchema extends StandardSchemaV1,
+  TTagSchema extends StandardSchemaV1,
+  TContext extends MachineContext = InferOutput<TContextSchema, MachineContext>,
+  TEvent extends EventObject = InferEvents<TEventSchemaMap>,
+  TDelays extends string = string,
+  _TTag extends string = string,
+  TActionMap extends Implementations['actions'] = Implementations['actions'],
+  TActorMap extends Implementations['actors'] = Implementations['actors'],
+  TGuardMap extends Implementations['guards'] = Implementations['guards'],
+  TDelayMap extends Implementations['delays'] = Implementations['delays']
+> = (Omit<
+  Next_StateNodeConfig<
+    InferOutput<TContextSchema, MachineContext>,
+    DoNotInfer<InferEvents<TEventSchemaMap>>,
+    DoNotInfer<TDelays>,
+    DoNotInfer<StandardSchemaV1.InferOutput<TTagSchema> & string>,
+    DoNotInfer<StandardSchemaV1.InferOutput<TOutputSchema>>,
+    DoNotInfer<InferEvents<TEmittedSchemaMap>>,
+    DoNotInfer<InferOutput<TMetaSchema, MetaObject>>,
+    DoNotInfer<TActionMap>,
+    DoNotInfer<TActorMap>,
+    DoNotInfer<TGuardMap>,
+    DoNotInfer<TDelayMap>
+  >,
+  'output'
+> & {
+  schemas?: {
+    events?: TEventSchemaMap;
+    context?: TContextSchema;
+    emitted?: TEmittedSchemaMap;
+    input?: TInputSchema;
+    output?: TOutputSchema;
+    meta?: TMetaSchema;
+    tags?: TTagSchema;
+  };
+  actions?: TActionMap;
+  guards?: TGuardMap;
+  actors?: TActorMap;
+  /** The initial context (extended state) */
+  /** The machine's own version. */
+  version?: string;
+  // TODO: make it conditionally required
+  output?:
+    | Mapper<
+        TContext,
+        DoneStateEvent,
+        InferOutput<TOutputSchema, unknown>,
+        TEvent
+      >
+    | InferOutput<TOutputSchema, unknown>;
+  delays?: {
+    [K in TDelays | number]?:
+      | number
+      | (({ context, event }: { context: TContext; event: TEvent }) => number);
+  };
+}) &
+  (IsNever<TContext> extends true
+    ? {
+        context?: InitialContext<
+          LowInfer<TContext>,
+          TActorMap,
+          InferOutput<TInputSchema, unknown>,
+          TEvent
+        >;
+      }
+    : {
+        context: InitialContext<
+          LowInfer<TContext>,
+          TActorMap,
+          InferOutput<TInputSchema, unknown>,
+          TEvent
+        >;
+      });
+
+export type DelayMap<TContext> = Record<
+  string,
+  number | ((context: TContext) => number)
+>;
+
+export interface Next_InvokeConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TMeta extends MetaObject
+> {
+  src:
+    | AnyActorLogic
+    | AnyActorRef
+    | (({
+        actors,
+        context,
+        event,
+        self
+      }: {
+        actors: TActorMap;
+        context: TContext;
+        event: TEvent;
+        self: AnyActorRef;
+      }) => AnyActorLogic | AnyActorRef);
+  id?: string;
+  systemId?: string;
+  input?: (_: {
+    context: TContext;
+    event: TEvent;
+    self: ActorRef<
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        Record<string, AnyActorRef | undefined>,
+        StateValue,
+        string,
+        unknown,
+        TODO,
+        TODO
+      >,
+      TEvent,
+      TEmitted
+    >;
+  }) => unknown;
+  onDone?: Next_TransitionConfigOrTarget<
+    TContext,
+    DoneActorEvent,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TMeta
+  >;
+  onError?: Next_TransitionConfigOrTarget<
+    TContext,
+    ErrorEvent,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TMeta
+  >;
+  onSnapshot?: Next_TransitionConfigOrTarget<
+    TContext,
+    SnapshotEvent<any>,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TMeta
+  >;
+}
+
+/** Lookup params type from a params map, with fallback to undefined */
+export type LookupParams<
+  TParamsMap extends Record<string, unknown>,
+  K extends string
+> = K extends keyof TParamsMap ? TParamsMap[K] : undefined;
+
+export interface Next_StateNodeConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TDelays extends string,
+  TTag extends string,
+  _TOutput,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TParams = Record<string, unknown> | undefined,
+  TParamsMap extends Record<string, unknown> = Record<string, unknown>
+> {
+  contextSchema?: StandardSchemaV1;
+  /** The initial state transition. */
+  initial?:
+    | string
+    | {
+        target: string;
+        params?:
+          | Record<string, unknown>
+          | ((args: {
+              context: TContext;
+              event: TEvent;
+            }) => Record<string, unknown>);
+      }
+    | undefined;
+  /**
+   * The type of this state node:
+   *
+   * - `'atomic'` - no child state nodes
+   * - `'compound'` - nested child state nodes (XOR)
+   * - `'parallel'` - orthogonal nested child state nodes (AND)
+   * - `'history'` - history state node
+   * - `'final'` - final state node
+   */
+  type?: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
+  /**
+   * Indicates whether the state node is a history state node, and what type of
+   * history: shallow, deep, true (shallow), false (none), undefined (none)
+   */
+  history?: 'shallow' | 'deep' | boolean | undefined;
+  /**
+   * The mapping of state node keys to their state node configurations
+   * (recursive).
+   */
+  states?: {
+    [K in string]: Next_StateNodeConfig<
+      TContext,
+      TEvent,
+      TDelays,
+      TTag,
+      any, // TOutput,
+      TEmitted,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      LookupParams<TParamsMap, K>,
+      TParamsMap
+    >;
+  };
+  /**
+   * The services to invoke upon entering this state node. These services will
+   * be stopped upon exiting this state node.
+   */
+  invoke?: SingleOrArray<
+    Next_InvokeConfig<
+      TContext,
+      TEvent,
+      TEmitted,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TMeta
+    >
+  >;
+  /** The mapping of event types to their potential transition(s). */
+  on?: {
+    [K in EventDescriptor<TEvent>]?: Next_TransitionConfigOrTarget<
+      TContext,
+      ExtractEvent<TEvent, K>,
+      TEvent,
+      TEmitted,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TMeta
+    >;
+  };
+  entry?: Action<
+    TContext,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TParams
+  >;
+  exit?: Action<
+    TContext,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TParams
+  >;
+  /**
+   * The potential transition(s) to be taken upon reaching a final child state
+   * node.
+   *
+   * This is equivalent to defining a `[done(id)]` transition on this state
+   * node's `on` property.
+   */
+  onDone?:
+    | string
+    | TransitionConfigFunction<
+        TContext,
+        DoneStateEvent,
+        TEvent,
+        TEmitted,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TMeta
+      >
+    | undefined;
+  /**
+   * The mapping (or array) of delays (in milliseconds) to their potential
+   * transition(s). The delayed transitions are taken after the specified delay
+   * in an interpreter.
+   */
+  after?: {
+    [K in DoNotInfer<TDelays> | number]?:
+      | string
+      | { target: string }
+      | TransitionConfigFunction<
+          TContext,
+          TEvent,
+          TEvent,
+          TODO, // TEmitted
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          TMeta
+        >;
+  };
+
+  /**
+   * An eventless transition that is always taken when this state node is
+   * active.
+   */
+  always?: Next_TransitionConfigOrTarget<
+    TContext,
+    TEvent,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TMeta
+  >;
+  /**
+   * The meta data associated with this state node, which will be returned in
+   * State instances.
+   */
+  meta?: TMeta;
+  /**
+   * The output data sent with the "xstate.done.state._id_" event if this is a
+   * final state node.
+   *
+   * The output data will be evaluated with the current `context` and placed on
+   * the `.data` property of the event.
+   */
+  output?: Mapper<TContext, TEvent, unknown, TEvent> | NonReducibleUnknown;
+  /**
+   * The unique ID of the state node, which can be referenced as a transition
+   * target via the `#id` syntax.
+   */
+  id?: string | undefined;
+  /**
+   * The order this state node appears. Corresponds to the implicit document
+   * order.
+   */
+  order?: number;
+
+  /**
+   * The tags for this state node, which are accumulated into the `state.tags`
+   * property.
+   */
+  tags?: TTag[];
+  /** A text description of the state node */
+  description?: string;
+
+  /** A default target for a history state */
+  target?: string | undefined; // `| undefined` makes `HistoryStateNodeConfig` compatible with this interface (it extends it) under `exactOptionalPropertyTypes`
+}
+
+export type Next_InitialTransitionConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TMeta extends MetaObject
+> = TransitionConfigFunction<
+  TContext,
+  TEvent,
+  TEvent,
+  TEmitted,
+  TActionMap,
+  TActorMap,
+  TGuardMap,
+  TDelayMap,
+  TMeta
+>;
+
+export type Next_TransitionConfigOrTarget<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TMeta extends MetaObject
+> =
+  | string
+  | undefined
+  | {
+      target?: string | string[];
+      description?: string;
+      reenter?: boolean;
+      meta?: TMeta;
+      params?:
+        | Record<string, unknown>
+        | ((args: { context: any; event: any }) => Record<string, unknown>);
+    }
+  | {
+      to?: TransitionConfigFunction<
+        TContext,
+        TExpressionEvent,
+        TEvent,
+        TEmitted,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TMeta
+      >;
+      description?: string;
+      reenter?: boolean;
+      meta?: TMeta;
+      params?:
+        | Record<string, unknown>
+        | ((args: { context: any; event: any }) => Record<string, unknown>);
+    }
+  | TransitionConfigFunction<
+      TContext,
+      TExpressionEvent,
+      TEvent,
+      TEmitted,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TMeta
+    >;
+
+export interface Next_MachineTypes<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TDelay extends string,
+  TTag extends string,
+  TInput,
+  TOutput,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject
+> {
+  context?: TContext;
+  events?: TEvent;
+  children?: any; // TODO
+  tags?: TTag;
+  input?: TInput;
+  output?: TOutput;
+  emitted?: TEmitted;
+  delays?: TDelay;
+  meta?: TMeta;
+}
+
+export interface Next_SetupTypes<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TTag extends string,
+  TInput,
+  TOutput,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject
+> {
+  context?: TContext;
+  events?: TEvent;
+  tags?: TTag;
+  input?: TInput;
+  output?: TOutput;
+  emitted?: TEmitted;
+  meta?: TMeta;
+}
+
+export type WithDefault<T, Default> = IsNever<T> extends true ? Default : T;
+
+export interface Implementations {
+  actions: Record<string, (...args: any[]) => void>;
+  guards: Record<string, (...args: any[]) => boolean>;
+  delays: Record<string, number | ((...args: any[]) => number)>;
+  actors: Record<string, AnyActorLogic>;
+}

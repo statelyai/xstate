@@ -1,7 +1,13 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { createMachine, createActor } from '../src/index.ts';
+import z from 'zod';
 
 const lightMachine = createMachine({
+  schemas: {
+    context: z.object({
+      canTurnGreen: z.boolean()
+    })
+  },
   id: 'light',
   initial: 'green',
   context: {
@@ -15,7 +21,7 @@ const lightMachine = createMachine({
     },
     yellow: {
       after: {
-        1000: [{ target: 'red' }]
+        1000: { target: 'red' }
       }
     },
     red: {
@@ -129,18 +135,24 @@ describe('delayed transitions', () => {
       states: {
         one: {
           initial: 'two',
-          entry: () => actual.push('entered one'),
+          entry: (_, enq) => enq(() => actual.push('entered one')),
           states: {
             two: {
-              entry: () => actual.push('entered two')
+              entry: (_, enq) => {
+                enq(() => actual.push('entered two'));
+              }
             },
             three: {
-              entry: () => actual.push('entered three'),
+              entry: (_, enq) => {
+                enq(() => actual.push('entered three'));
+              },
               always: '#end'
             }
           },
           after: {
-            10: '.three'
+            10: () => {
+              return { target: '.three' };
+            }
           }
         },
         end: {
@@ -170,22 +182,30 @@ describe('delayed transitions', () => {
       states: {
         X: {
           after: {
-            1: [
-              {
-                target: 'Y',
-                guard: () => true
-              },
-              {
-                target: 'Z'
+            // 1: [
+            //   {
+            //     target: 'Y',
+            //     guard: () => true
+            //   },
+            //   {
+            //     target: 'Z'
+            //   }
+            // ]
+            1: () => {
+              if (1 + 1 === 2) {
+                return { target: 'Y' };
+              } else {
+                return { target: 'Z' };
               }
-            ]
+            }
           }
         },
         Y: {
           on: {
-            '*': {
-              actions: spy
-            }
+            // '*': {
+            //   actions: spy
+            // }
+            '*': (_, enq) => enq(spy)
           }
         },
         Z: {}
@@ -277,26 +297,27 @@ describe('delayed transitions', () => {
       const context = {
         delay: 500
       };
-      const machine = createMachine(
-        {
-          initial: 'inactive',
-          context,
-          states: {
-            inactive: {
-              after: { myDelay: 'active' }
-            },
-            active: {}
+      const machine = createMachine({
+        initial: 'inactive',
+        schemas: {
+          context: z.object({
+            delay: z.number()
+          })
+        },
+        context,
+        delays: {
+          myDelay: ({ context }) => {
+            spy(context);
+            return context.delay;
           }
         },
-        {
-          delays: {
-            myDelay: ({ context }) => {
-              spy(context);
-              return context.delay;
-            }
-          }
+        states: {
+          inactive: {
+            after: { myDelay: 'active' }
+          },
+          active: {}
         }
-      );
+      });
 
       const actor = createActor(machine).start();
 
@@ -313,31 +334,32 @@ describe('delayed transitions', () => {
     it('should evaluate the expression (string) to determine the delay', () => {
       vi.useFakeTimers();
       const spy = vi.fn();
-      const machine = createMachine(
-        {
-          initial: 'inactive',
-          states: {
-            inactive: {
-              on: {
-                ACTIVATE: 'active'
-              }
-            },
-            active: {
-              after: {
-                someDelay: 'inactive'
-              }
-            }
+      const machine = createMachine({
+        initial: 'inactive',
+        schemas: {
+          events: {
+            ACTIVATE: z.object({ delay: z.number() })
           }
         },
-        {
-          delays: {
-            someDelay: ({ event }) => {
-              spy(event);
-              return event.delay;
+        delays: {
+          someDelay: ({ event }) => {
+            spy(event);
+            return event.delay;
+          }
+        },
+        states: {
+          inactive: {
+            on: {
+              ACTIVATE: 'active'
+            }
+          },
+          active: {
+            after: {
+              someDelay: 'inactive'
             }
           }
         }
-      );
+      });
 
       const actor = createActor(machine).start();
 

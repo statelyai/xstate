@@ -5,7 +5,8 @@ import { createBrowserInspector } from '@statelyai/inspect';
 
 const { inspect } = createBrowserInspector({
   // Comment out the line below to start the inspector
-  autoStart: false
+  // autoStart: false
+  url: 'http://localhost:3000/registry/inspect'
 });
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `

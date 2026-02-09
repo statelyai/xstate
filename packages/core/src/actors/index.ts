@@ -27,6 +27,23 @@ export {
   type TransitionActorRef,
   type TransitionSnapshot
 } from './transition.ts';
+export {
+  createListenerLogic,
+  listenerLogic,
+  type ListenerActorLogic,
+  type ListenerActorRef,
+  type ListenerSnapshot,
+  type ListenerInput
+} from './listener.ts';
+export {
+  createSubscriptionLogic,
+  subscriptionLogic,
+  type SubscriptionActorLogic,
+  type SubscriptionActorRef,
+  type SubscriptionSnapshot,
+  type SubscriptionInput,
+  type SubscriptionMappers
+} from './subscription.ts';
 
 const emptyLogic = fromTransition((_) => undefined, undefined);
 

@@ -1,22 +1,26 @@
+import { StandardSchemaV1 } from './schema.types.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
-  ResolvedStateMachineTypes,
-  TODO,
   AnyActorRef,
   EventObject,
   AnyEventObject,
   Cast,
-  InternalMachineImplementations,
-  MachineConfig,
   MachineContext,
-  MachineTypes,
-  NonReducibleUnknown,
-  ParameterizedObject,
   ProvidedActor,
   StateValue,
   ToChildren,
-  MetaObject
+  MetaObject,
+  StateSchema,
+  DoNotInfer
 } from './types.ts';
+import {
+  Implementations,
+  InferOutput,
+  InferEvents,
+  Next_MachineConfig,
+  Next_StateNodeConfig,
+  WithDefault
+} from './types.v6.ts';
 
 type TestValue =
   | string
@@ -74,83 +78,61 @@ type _GroupTestValues<TTestValue extends string | TestValue> =
  *   to provide machine implementations instead.
  */
 export function createMachine<
-  TContext extends MachineContext,
-  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TContextSchema extends StandardSchemaV1,
+  TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
+  TInputSchema extends StandardSchemaV1,
+  TOutputSchema extends StandardSchemaV1,
+  TMetaSchema extends StandardSchemaV1,
+  TTagSchema extends StandardSchemaV1,
+  _TEvent extends EventObject,
   TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TTag extends string,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TDelays extends string,
+  TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
   TInput,
-  TOutput extends NonReducibleUnknown,
-  TEmitted extends EventObject,
-  TMeta extends MetaObject,
-  // it's important to have at least one default type parameter here
-  // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
-  // we should be able to remove this when we start inferring TConfig, with it we'll always have an inference candidate
-  _ = any
+  const TSS extends StateSchema
 >(
-  config: {
-    types?: MachineTypes<
-      TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
+  config: TSS &
+    Next_MachineConfig<
+      TContextSchema,
+      TEventSchemaMap,
+      TEmittedSchemaMap,
+      TInputSchema,
+      TOutputSchema,
+      TMetaSchema,
+      TTagSchema,
+      InferOutput<TContextSchema, MachineContext>,
+      InferEvents<TEventSchemaMap>,
+      TDelays,
       TTag,
-      TInput,
-      TOutput,
-      TEmitted,
-      TMeta
-    >;
-    schemas?: unknown;
-  } & MachineConfig<
-    TContext,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TInput,
-    TOutput,
-    TEmitted,
-    TMeta
-  >,
-  implementations?: InternalMachineImplementations<
-    ResolvedStateMachineTypes<
-      TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TTag,
-      TEmitted
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap
     >
-  >
 ): StateMachine<
-  TContext,
-  TEvent,
+  InferOutput<TContextSchema, MachineContext>,
+  InferEvents<TEventSchemaMap>,
   Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
-  TActor,
-  TAction,
-  TGuard,
-  TDelay,
   StateValue,
   TTag & string,
   TInput,
-  TOutput,
-  TEmitted,
-  TMeta, // TMeta
-  TODO // TStateSchema
-> {
+  InferOutput<TOutputSchema, unknown>,
+  WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
+  InferOutput<TMetaSchema, MetaObject>, // TMeta
+  TSS, // TStateSchema
+  TActionMap,
+  TActorMap,
+  TGuardMap,
+  TDelayMap
+> & {
+  states: TSS;
+} {
   return new StateMachine<
-    any,
-    any,
-    any,
-    any,
     any,
     any,
     any,
@@ -160,6 +142,48 @@ export function createMachine<
     any,
     any, // TEmitted
     any, // TMeta
-    any // TStateSchema
-  >(config as any, implementations as any);
+    any, // TStateSchema
+    any,
+    any,
+    any,
+    any
+  >(config as any) as any;
+}
+
+export function createStateConfig<
+  TContextSchema extends StandardSchemaV1,
+  TEventSchema extends StandardSchemaV1,
+  TEmittedSchema extends StandardSchemaV1,
+  _TInputSchema extends StandardSchemaV1,
+  TOutputSchema extends StandardSchemaV1,
+  TMetaSchema extends StandardSchemaV1,
+  TTagSchema extends StandardSchemaV1,
+  // TContext extends MachineContext,
+  _TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
+  _TActor extends ProvidedActor,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TDelays extends string,
+  _TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
+  _TInput,
+  const TSS extends StateSchema
+>(
+  config: TSS &
+    Next_StateNodeConfig<
+      InferOutput<TContextSchema, MachineContext>,
+      DoNotInfer<StandardSchemaV1.InferOutput<TEventSchema> & EventObject>,
+      DoNotInfer<TDelays>,
+      DoNotInfer<StandardSchemaV1.InferOutput<TTagSchema> & string>,
+      DoNotInfer<StandardSchemaV1.InferOutput<TOutputSchema>>,
+      DoNotInfer<StandardSchemaV1.InferOutput<TEmittedSchema> & EventObject>,
+      DoNotInfer<InferOutput<TMetaSchema, MetaObject>>,
+      DoNotInfer<TActionMap>,
+      DoNotInfer<TActorMap>,
+      DoNotInfer<TGuardMap>,
+      DoNotInfer<TDelayMap>
+    >
+): typeof config {
+  return config;
 }

@@ -1,12 +1,21 @@
-import { ActorRefFrom, assign, createMachine } from '../src';
+import { z } from 'zod';
+import { createMachine } from '../src';
 
 describe('spawn inside machine', () => {
   it('input is required when defined in actor', () => {
     const childMachine = createMachine({
-      types: { input: {} as { value: number } }
+      // types: { input: {} as { value: number } }
+      schemas: {
+        input: z.object({ value: z.number() })
+      }
     });
     createMachine({
-      types: {} as { context: { ref: ActorRefFrom<typeof childMachine> } },
+      // types: {} as { context: { ref: ActorRefFrom<typeof childMachine> } },
+      schemas: {
+        context: z.object({
+          ref: z.object({}).optional()
+        })
+      },
       context: ({ spawn }) => ({
         ref: spawn(childMachine, { input: { value: 42 } })
       }),
@@ -14,11 +23,11 @@ describe('spawn inside machine', () => {
       states: {
         Idle: {
           on: {
-            event: {
-              actions: assign(({ spawn }) => ({
-                ref: spawn(childMachine, { input: { value: 42 } })
-              }))
-            }
+            event: (_, enq) => ({
+              context: {
+                ref: enq.spawn(childMachine, { input: { value: 42 } })
+              }
+            })
           }
         }
       }
@@ -28,7 +37,12 @@ describe('spawn inside machine', () => {
   it('input is not required when not defined in actor', () => {
     const childMachine = createMachine({});
     createMachine({
-      types: {} as { context: { ref: ActorRefFrom<typeof childMachine> } },
+      // types: {} as { context: { ref: ActorRefFrom<typeof childMachine> } },
+      schemas: {
+        context: z.object({
+          ref: z.object({}).optional()
+        })
+      },
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
       }),
@@ -36,11 +50,11 @@ describe('spawn inside machine', () => {
       states: {
         Idle: {
           on: {
-            some: {
-              actions: assign(({ spawn }) => ({
-                ref: spawn(childMachine)
-              }))
-            }
+            some: (_, enq) => ({
+              context: {
+                ref: enq.spawn(childMachine)
+              }
+            })
           }
         }
       }

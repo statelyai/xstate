@@ -1,4 +1,5 @@
-import { assign, createActor, createMachine } from '../src/index.ts';
+import z from 'zod';
+import { createActor, createMachine } from '../src/index.ts';
 
 interface CounterContext {
   count: number;
@@ -8,90 +9,74 @@ interface CounterContext {
 
 const createCounterMachine = (context: Partial<CounterContext> = {}) =>
   createMachine({
-    types: {} as { context: CounterContext },
+    schemas: {
+      context: z.object({
+        count: z.number(),
+        foo: z.string(),
+        maybe: z.string().optional()
+      })
+    },
     initial: 'counting',
     context: { count: 0, foo: 'bar', ...context },
     states: {
       counting: {
         on: {
-          INC: [
-            {
-              target: 'counting',
-              actions: assign(({ context }) => ({
-                count: context.count + 1
-              }))
+          INC: ({ context }) => ({
+            target: 'counting',
+            context: { ...context, count: context.count + 1 }
+          }),
+          DEC: ({ context }) => ({
+            target: 'counting',
+            context: {
+              ...context,
+              count: context.count - 1
             }
-          ],
-          DEC: [
-            {
-              target: 'counting',
-              actions: [
-                assign({
-                  count: ({ context }) => context.count - 1
-                })
-              ]
+          }),
+          WIN_PROP: ({ context }) => ({
+            target: 'counting',
+            context: {
+              ...context,
+              count: 100,
+              foo: 'win'
             }
-          ],
-          WIN_PROP: [
-            {
-              target: 'counting',
-              actions: [
-                assign({
-                  count: () => 100,
-                  foo: () => 'win'
-                })
-              ]
+          }),
+          WIN_STATIC: ({ context }) => ({
+            target: 'counting',
+            context: {
+              ...context,
+              count: 100,
+              foo: 'win'
             }
-          ],
-          WIN_STATIC: [
-            {
-              target: 'counting',
-              actions: [
-                assign({
-                  count: 100,
-                  foo: 'win'
-                })
-              ]
+          }),
+          WIN_MIX: ({ context }) => ({
+            target: 'counting',
+            context: {
+              ...context,
+              count: 100,
+              foo: 'win'
             }
-          ],
-          WIN_MIX: [
-            {
-              target: 'counting',
-              actions: [
-                assign({
-                  count: () => 100,
-                  foo: 'win'
-                })
-              ]
+          }),
+          WIN: ({ context }) => ({
+            target: 'counting',
+            context: {
+              ...context,
+              count: 100,
+              foo: 'win'
             }
-          ],
-          WIN: [
-            {
-              target: 'counting',
-              actions: [
-                assign(() => ({
-                  count: 100,
-                  foo: 'win'
-                }))
-              ]
+          }),
+          SET_MAYBE: ({ context }) => ({
+            context: {
+              ...context,
+              maybe: 'defined'
             }
-          ],
-          SET_MAYBE: [
-            {
-              actions: [
-                assign({
-                  maybe: 'defined'
-                })
-              ]
-            }
-          ]
+          })
         }
       }
     }
   });
 
-describe('assign', () => {
-  it('applies the assignment to the external state (property assignment)', () => {
+describe('assigning to context', () => {
+  it('applies the assignment to context (property assignment)', () => {
     const counterMachine = createCounterMachine();
 
     const actorRef = createActor(counterMachine).start();
@@ -110,7 +95,7 @@ describe('assign', () => {
     expect(twoState.context).toEqual({ count: -2, foo: 'bar' });
   });
 
-  it('applies the assignment to the external state', () => {
+  it('applies the assignment to context', () => {
     const counterMachine = createCounterMachine();
 
     const actorRef = createActor(counterMachine).start();
@@ -252,9 +237,13 @@ describe('assign', () => {
 
   it('can assign from event', () => {
     const machine = createMachine({
-      types: {} as {
-        context: { count: number };
-        events: { type: 'INC'; value: number };
+      schemas: {
+        context: z.object({
+          count: z.number()
+        }),
+        events: {
+          INC: z.object({ value: z.number() })
+        }
       },
       initial: 'active',
       context: {
@@ -263,11 +252,12 @@ describe('assign', () => {
       states: {
         active: {
           on: {
-            INC: {
-              actions: assign({
-                count: ({ event }) => event.value
-              })
-            }
+            INC: ({ context, event }) => ({
+              context: {
+                ...context,
+                count: event.value
+              }
+            })
           }
         }
       }
@@ -277,90 +267,5 @@ describe('assign', () => {
     actorRef.send({ type: 'INC', value: 30 });
 
     expect(actorRef.getSnapshot().context.count).toEqual(30);
-  });
-});
-
-describe('assign meta', () => {
-  it('should provide the parametrized action to the assigner', () => {
-    const machine = createMachine(
-      {
-        types: {} as {
-          actions: { type: 'inc'; params: { by: number } };
-        },
-        context: { count: 1 },
-        entry: {
-          type: 'inc',
-          params: { by: 10 }
-        }
-      },
-      {
-        actions: {
-          inc: assign(({ context }, params) => ({
-            count: context.count + params.by
-          }))
-        }
-      }
-    );
-
-    const actor = createActor(machine).start();
-
-    expect(actor.getSnapshot().context.count).toEqual(11);
-  });
-
-  it('should provide the action parameters to the partial assigner', () => {
-    const machine = createMachine(
-      {
-        types: {} as {
-          actions: { type: 'inc'; params: { by: number } };
-        },
-        context: { count: 1 },
-        entry: {
-          type: 'inc',
-          params: { by: 10 }
-        }
-      },
-      {
-        actions: {
-          inc: assign({
-            count: ({ context }, params) => context.count + params.by
-          })
-        }
-      }
-    );
-
-    const actor = createActor(machine).start();
-
-    expect(actor.getSnapshot().context.count).toEqual(11);
-  });
-
-  it('a parameterized action that resolves to assign() should be provided the params', () => {
-    const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachine(
-      {
-        on: {
-          EVENT: {
-            actions: {
-              type: 'inc',
-              params: { value: 5 }
-            }
-          }
-        }
-      },
-      {
-        actions: {
-          inc: assign(({ context }, params) => {
-            expect(params).toEqual({ value: 5 });
-            resolve();
-            return context;
-          })
-        }
-      }
-    );
-
-    const service = createActor(machine).start();
-
-    service.send({ type: 'EVENT' });
-
-    return promise;
   });
 });

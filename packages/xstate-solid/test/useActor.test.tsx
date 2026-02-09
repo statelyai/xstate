@@ -43,7 +43,7 @@ describe('useActor', () => {
       events: { type: 'FETCH' };
       actors: {
         src: 'fetchData';
-        logic: ActorLogicFrom<Promise<string>>;
+        logic: any; //ActorLogicFrom<Promise<string>>;
       };
     },
     initial: 'idle',

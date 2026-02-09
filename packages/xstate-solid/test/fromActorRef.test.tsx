@@ -18,9 +18,10 @@ import {
   createActor,
   createMachine,
   fromTransition,
-  sendParent
+  next_createMachine
 } from 'xstate';
 import { fromActorRef, useActor } from '../src/index.ts';
+import { z } from 'zod';
 
 const createSimpleActor = <T extends unknown>(value: T) =>
   createActor(fromTransition((s) => s, value));
@@ -72,18 +73,20 @@ describe('fromActorRef', () => {
 
   it('invoked actor should be able to receive (deferred) events that it replays when active', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const childMachine = createMachine({
+    const childMachine = next_createMachine({
       id: 'childMachine',
       initial: 'active',
       states: {
         active: {
           on: {
-            FINISH: { actions: sendParent({ type: 'FINISH' }) }
+            FINISH: ({ parent }, enq) => {
+              enq.sendTo(parent, { type: 'FINISH' });
+            }
           }
         }
       }
     });
-    const machine = createMachine({
+    const machine = next_createMachine({
       initial: 'active',
       invoke: {
         id: 'child',
@@ -175,11 +178,19 @@ describe('fromActorRef', () => {
   });
 
   it('should only trigger effects once for nested context values', () => {
-    const childMachine = createMachine({
-      types: {} as {
-        context: {
-          item: { count: number; total: number };
-        };
+    const childMachine = next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     item: { count: number; total: number };
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          item: z.object({
+            count: z.number(),
+            total: z.number()
+          })
+        })
       },
       id: 'childMachine',
       initial: 'active',
@@ -192,27 +203,48 @@ describe('fromActorRef', () => {
       states: {
         active: {
           on: {
-            FINISH: {
-              actions: [
-                assign({
-                  item: ({ context }) => ({
+            // FINISH: {
+            //   actions: [
+            //     assign({
+            //       item: ({ context }) => ({
+            //         ...context.item,
+            //         total: context.item.total + 1
+            //       })
+            //     }),
+
+            //     sendParent({ type: 'FINISH' })
+            //   ]
+            // },
+            FINISH: ({ parent, context }, enq) => {
+              enq.sendTo(parent, { type: 'FINISH' });
+              return {
+                context: {
+                  item: {
                     ...context.item,
                     total: context.item.total + 1
-                  })
-                }),
-
-                sendParent({ type: 'FINISH' })
-              ]
+                  }
+                }
+              };
             },
-            COUNT: {
-              actions: [
-                assign({
-                  item: ({ context }) => ({
+            // COUNT: {
+            //   actions: [
+            //     assign({
+            //       item: ({ context }) => ({
+            //         ...context.item,
+            //         count: context.item.count + 1
+            //       })
+            //     })
+            //   ]
+            // }
+            COUNT: ({ context }) => {
+              return {
+                context: {
+                  item: {
                     ...context.item,
                     count: context.item.count + 1
-                  })
-                })
-              ]
+                  }
+                }
+              };
             }
           }
         }
@@ -529,22 +561,30 @@ describe('fromActorRef', () => {
 
   it('spawned actor should be able to receive (deferred) events that it replays when active', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const childMachine = createMachine({
+    const childMachine = next_createMachine({
       id: 'childMachine',
       initial: 'active',
       states: {
         active: {
           on: {
-            FINISH: { actions: sendParent({ type: 'FINISH' }) }
+            // FINISH: { actions: sendParent({ type: 'FINISH' }) }
+            FINISH: ({ parent }, enq) => {
+              enq.sendTo(parent, { type: 'FINISH' });
+            }
           }
         }
       }
     });
-    const machine = createMachine({
-      types: {} as {
-        context: {
-          actorRef?: ActorRefFrom<typeof childMachine>;
-        };
+    const machine = next_createMachine({
+      // types: {} as {
+      //   context: {
+      //     actorRef?: ActorRefFrom<typeof childMachine>;
+      //   };
+      // },
+      schemas: {
+        context: z.object({
+          actorRef: z.custom<ActorRefFrom<typeof childMachine>>()
+        })
       },
       initial: 'active',
       context: {
@@ -552,9 +592,12 @@ describe('fromActorRef', () => {
       },
       states: {
         active: {
-          entry: assign({
-            actorRef: ({ spawn }) => spawn(childMachine)
-          }),
+          // entry: assign({
+          //   actorRef: ({ spawn }) => spawn(childMachine)
+          // }),
+          entry: ({ spawn }, enq) => {
+            enq.spawn(childMachine);
+          },
           on: { FINISH: 'success' }
         },
         success: {}

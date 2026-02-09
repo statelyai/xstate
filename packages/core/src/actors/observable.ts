@@ -1,8 +1,9 @@
 import { XSTATE_STOP } from '../constants';
+import { createActor } from '../createActor.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
-  ActorLogic,
   ActorRefFromLogic,
+  CreatableActorLogic,
   EventObject,
   NonReducibleUnknown,
   Snapshot,
@@ -27,7 +28,7 @@ export type ObservableActorLogic<
   TContext,
   TInput extends NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
-> = ActorLogic<
+> = CreatableActorLogic<
   ObservableSnapshot<TContext, TInput>,
   { type: string; [k: string]: unknown },
   TInput,
@@ -216,7 +217,8 @@ export function fromObservable<
     restoreSnapshot: (state) => ({
       ...(state as any),
       _subscription: undefined
-    })
+    }),
+    createActor: (input, options) => createActor(logic, { ...options, input })
   };
 
   return logic;
@@ -368,7 +370,8 @@ export function fromEventObservable<
     restoreSnapshot: (snapshot: any) => ({
       ...snapshot,
       _subscription: undefined
-    })
+    }),
+    createActor: (input, options) => createActor(logic, { ...options, input })
   };
 
   return logic;

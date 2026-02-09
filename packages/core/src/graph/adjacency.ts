@@ -24,6 +24,7 @@ export function getAdjacencyMap<
   logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
   options: TraversalOptions<TSnapshot, TEvent, TInput>
 ): AdjacencyMap<TSnapshot, TEvent> {
+  'use strict';
   const { transition } = logic;
   const {
     serializeEvent,
@@ -45,6 +46,7 @@ export function getAdjacencyMap<
       // TODO: fix this
       options.input as TInput
     );
+
   const adj: AdjacencyMap<TSnapshot, TEvent> = {};
 
   let iterations = 0;
