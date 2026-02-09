@@ -436,7 +436,7 @@ export class StateMachine<
       initEvent,
       internalQueue
     );
-    const nextState = microstep(
+    const [nextState] = microstep(
       [
         {
           target: [...getInitialStateNodes(this.root)],

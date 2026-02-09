@@ -938,6 +938,8 @@ function areStateNodeCollectionsEqual(
   return true;
 }
 
+type Microstep = readonly [AnyMachineSnapshot, ExecutableActionObject[]];
+
 /** https://www.w3.org/TR/scxml/#microstepProcedure */
 export function microstep(
   transitions: Array<AnyTransitionDefinition>,
@@ -946,88 +948,104 @@ export function microstep(
   event: AnyEventObject,
   isInitial: boolean,
   internalQueue: Array<AnyEventObject>
-): AnyMachineSnapshot {
+): Microstep {
+  const actions: ExecutableActionObject[] = [];
+
   if (!transitions.length) {
-    return currentSnapshot;
+    return [currentSnapshot, actions];
   }
-  const mutStateNodeSet = new Set(currentSnapshot._nodes);
-  let historyValue = currentSnapshot.historyValue;
 
-  const filteredTransitions = removeConflictingTransitions(
-    transitions,
-    mutStateNodeSet,
-    historyValue
-  );
+  const originalExecutor = actorScope.actionExecutor;
+  actorScope.actionExecutor = (action) => {
+    actions.push(action);
+    originalExecutor(action);
+  };
 
-  let nextState = currentSnapshot;
+  try {
+    const mutStateNodeSet = new Set(currentSnapshot._nodes);
+    let historyValue = currentSnapshot.historyValue;
 
-  // Exit states
-  if (!isInitial) {
-    [nextState, historyValue] = exitStates(
+    const filteredTransitions = removeConflictingTransitions(
+      transitions,
+      mutStateNodeSet,
+      historyValue
+    );
+
+    let nextState = currentSnapshot;
+
+    // Exit states
+    if (!isInitial) {
+      [nextState, historyValue] = exitStates(
+        nextState,
+        event,
+        actorScope,
+        filteredTransitions,
+        mutStateNodeSet,
+        historyValue,
+        internalQueue,
+        actorScope.actionExecutor
+      );
+    }
+
+    // Execute transition content
+    nextState = resolveActionsAndContext(
+      nextState,
+      event,
+      actorScope,
+      filteredTransitions.flatMap((t) => t.actions),
+      internalQueue,
+      undefined
+    );
+
+    // Enter states
+    nextState = enterStates(
       nextState,
       event,
       actorScope,
       filteredTransitions,
       mutStateNodeSet,
+      internalQueue,
       historyValue,
-      internalQueue,
-      actorScope.actionExecutor
+      isInitial
     );
-  }
 
-  // Execute transition content
-  nextState = resolveActionsAndContext(
-    nextState,
-    event,
-    actorScope,
-    filteredTransitions.flatMap((t) => t.actions),
-    internalQueue,
-    undefined
-  );
+    const nextStateNodes = [...mutStateNodeSet];
 
-  // Enter states
-  nextState = enterStates(
-    nextState,
-    event,
-    actorScope,
-    filteredTransitions,
-    mutStateNodeSet,
-    internalQueue,
-    historyValue,
-    isInitial
-  );
-
-  const nextStateNodes = [...mutStateNodeSet];
-
-  if (nextState.status === 'done') {
-    nextState = resolveActionsAndContext(
-      nextState,
-      event,
-      actorScope,
-      nextStateNodes
-        .sort((a, b) => b.order - a.order)
-        .flatMap((state) => state.exit),
-      internalQueue,
-      undefined
-    );
-  }
-
-  // eslint-disable-next-line no-useless-catch
-  try {
-    if (
-      historyValue === currentSnapshot.historyValue &&
-      areStateNodeCollectionsEqual(currentSnapshot._nodes, mutStateNodeSet)
-    ) {
-      return nextState;
+    if (nextState.status === 'done') {
+      nextState = resolveActionsAndContext(
+        nextState,
+        event,
+        actorScope,
+        nextStateNodes
+          .sort((a, b) => b.order - a.order)
+          .flatMap((state) => state.exit),
+        internalQueue,
+        undefined
+      );
     }
-    return cloneMachineSnapshot(nextState, {
-      _nodes: nextStateNodes,
-      historyValue
-    });
-  } catch (e) {
-    // TODO: Refactor this once proper error handling is implemented.
-    // See https://github.com/statelyai/rfcs/pull/4
-    throw e;
+
+    // eslint-disable-next-line no-useless-catch
+    try {
+      if (
+        historyValue === currentSnapshot.historyValue &&
+        areStateNodeCollectionsEqual(currentSnapshot._nodes, mutStateNodeSet)
+      ) {
+        return [nextState, actions];
+      }
+      return [
+        cloneMachineSnapshot(nextState, {
+          _nodes: nextStateNodes,
+          historyValue
+        }),
+        actions
+      ];
+    } catch (e) {
+      // TODO: Refactor this once proper error handling is implemented.
+      // See https://github.com/statelyai/rfcs/pull/4
+      throw e;
+    }
+  } finally {
+    actorScope.actionExecutor = originalExecutor;
   }
 }
 
@@ -1574,137 +1592,122 @@ export function macrostep(
   internalQueue: AnyEventObject[]
 ): {
   snapshot: typeof snapshot;
-  microsteps: Array<readonly [AnyMachineSnapshot, ExecutableActionObject[]]>;
+  microsteps: Microstep[];
 } {
   if (isDevelopment && event.type === WILDCARD) {
     throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
   }
 
-  const originalExecutor = actorScope?.actionExecutor;
-  let currentMicrostepActions: ExecutableActionObject[] = [];
+  let nextSnapshot = snapshot;
+  const microsteps: Microstep[] = [];
 
-  try {
-    actorScope.actionExecutor = (action) => {
-      currentMicrostepActions.push(action);
-      originalExecutor?.(action);
+  function addMicrostep(
+    step: Microstep,
+    event: AnyEventObject,
+    transitions: AnyTransitionDefinition[]
+  ) {
+    actorScope.system._sendInspectionEvent({
+      type: '@xstate.microstep',
+      actorRef: actorScope.self,
+      event,
+      snapshot: step[0],
+      _transitions: transitions
+    });
+    microsteps.push(step);
+  }
+
+  // Handle stop event
+  if (event.type === XSTATE_STOP) {
+    nextSnapshot = cloneMachineSnapshot(
+      stopChildren(nextSnapshot, event, actorScope),
+      {
+        status: 'stopped'
+      }
+    );
+    addMicrostep([nextSnapshot, []], event, []);
+    return {
+      snapshot: nextSnapshot,
+      microsteps
     };
+  }
 
-    let nextSnapshot = snapshot;
-    const microsteps: Array<
-      readonly [AnyMachineSnapshot, ExecutableActionObject[]]
-    > = [];
+  let nextEvent = event;
 
-    function addMicrostep(
-      microstate: AnyMachineSnapshot,
-      event: AnyEventObject,
-      transitions: AnyTransitionDefinition[]
-    ) {
-      actorScope.system._sendInspectionEvent({
-        type: '@xstate.microstep',
-        actorRef: actorScope.self,
-        event,
-        snapshot: microstate,
-        _transitions: transitions
+  // Assume the state is at rest (no raised events)
+  // Determine the next state based on the next microstep
+  if (nextEvent.type !== XSTATE_INIT) {
+    const currentEvent = nextEvent;
+    const isErr = isErrorActorEvent(currentEvent);
+
+    const transitions = selectTransitions(currentEvent, nextSnapshot);
+
+    if (isErr && !transitions.length) {
+      // TODO: we should likely only allow transitions selected by very explicit descriptors
+      // `*` shouldn't be matched, likely `xstate.error.*` shouldn't be either
+      // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
+      nextSnapshot = cloneMachineSnapshot<typeof snapshot>(snapshot, {
+        status: 'error',
+        error: currentEvent.error
       });
-      microsteps.push([microstate, currentMicrostepActions]);
-      currentMicrostepActions = [];
-    }
-
-    // Handle stop event
-    if (event.type === XSTATE_STOP) {
-      nextSnapshot = cloneMachineSnapshot(
-        stopChildren(nextSnapshot, event, actorScope),
-        {
-          status: 'stopped'
-        }
-      );
-      addMicrostep(nextSnapshot, event, []);
+      addMicrostep([nextSnapshot, []], currentEvent, []);
       return {
         snapshot: nextSnapshot,
         microsteps
       };
     }
-
-    let nextEvent = event;
-
-    // Assume the state is at rest (no raised events)
-    // Determine the next state based on the next microstep
-    if (nextEvent.type !== XSTATE_INIT) {
-      const currentEvent = nextEvent;
-      const isErr = isErrorActorEvent(currentEvent);
-
-      const transitions = selectTransitions(currentEvent, nextSnapshot);
-
-      if (isErr && !transitions.length) {
-        // TODO: we should likely only allow transitions selected by very explicit descriptors
-        // `*` shouldn't be matched, likely `xstate.error.*` shouldn't be either
-        // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
-        nextSnapshot = cloneMachineSnapshot<typeof snapshot>(snapshot, {
-          status: 'error',
-          error: currentEvent.error
-        });
-        addMicrostep(nextSnapshot, currentEvent, []);
-        return {
-          snapshot: nextSnapshot,
-          microsteps
-        };
-      }
-      nextSnapshot = microstep(
-        transitions,
-        snapshot,
-        actorScope,
-        nextEvent,
-        false, // isInitial
-        internalQueue
-      );
-      addMicrostep(nextSnapshot, currentEvent, transitions);
-    }
-
-    let shouldSelectEventlessTransitions = true;
-
-    while (nextSnapshot.status === 'active') {
-      let enabledTransitions: AnyTransitionDefinition[] =
-        shouldSelectEventlessTransitions
-          ? selectEventlessTransitions(nextSnapshot, nextEvent)
-          : [];
-
-      // eventless transitions should always be selected after selecting *regular* transitions
-      // by assigning `undefined` to `previousState` we ensure that `shouldSelectEventlessTransitions` gets always computed to true in such a case
-      const previousState = enabledTransitions.length
-        ? nextSnapshot
-        : undefined;
-
-      if (!enabledTransitions.length) {
-        if (!internalQueue.length) {
-          break;
-        }
-        nextEvent = internalQueue.shift()!;
-        enabledTransitions = selectTransitions(nextEvent, nextSnapshot);
-      }
-
-      nextSnapshot = microstep(
-        enabledTransitions,
-        nextSnapshot,
-        actorScope,
-        nextEvent,
-        false,
-        internalQueue
-      );
-      shouldSelectEventlessTransitions = nextSnapshot !== previousState;
-      addMicrostep(nextSnapshot, nextEvent, enabledTransitions);
-    }
-
-    if (nextSnapshot.status !== 'active') {
-      stopChildren(nextSnapshot, nextEvent, actorScope);
-    }
-
-    return {
-      snapshot: nextSnapshot,
-      microsteps
-    };
-  } finally {
-    actorScope.actionExecutor = originalExecutor;
+    const step = microstep(
+      transitions,
+      snapshot,
+      actorScope,
+      nextEvent,
+      false, // isInitial
+      internalQueue
+    );
+    nextSnapshot = step[0];
+    addMicrostep(step, currentEvent, transitions);
   }
+
+  let shouldSelectEventlessTransitions = true;
+
+  while (nextSnapshot.status === 'active') {
+    let enabledTransitions: AnyTransitionDefinition[] =
+      shouldSelectEventlessTransitions
+        ? selectEventlessTransitions(nextSnapshot, nextEvent)
+        : [];
+
+    // eventless transitions should always be selected after selecting *regular* transitions
+    // by assigning `undefined` to `previousState` we ensure that `shouldSelectEventlessTransitions` gets always computed to true in such a case
+    const previousState = enabledTransitions.length ? nextSnapshot : undefined;
+
+    if (!enabledTransitions.length) {
+      if (!internalQueue.length) {
+        break;
+      }
+      nextEvent = internalQueue.shift()!;
+      enabledTransitions = selectTransitions(nextEvent, nextSnapshot);
+    }
+
+    const step = microstep(
+      enabledTransitions,
+      nextSnapshot,
+      actorScope,
+      nextEvent,
+      false,
+      internalQueue
+    );
+    nextSnapshot = step[0];
+    shouldSelectEventlessTransitions = nextSnapshot !== previousState;
+    addMicrostep(step, nextEvent, enabledTransitions);
+  }
+
+  if (nextSnapshot.status !== 'active') {
+    stopChildren(nextSnapshot, nextEvent, actorScope);
+  }
+
+  return {
+    snapshot: nextSnapshot,
+    microsteps
+  };
 }
 
 function stopChildren(
