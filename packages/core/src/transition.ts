@@ -1,7 +1,11 @@
 import { createInitEvent } from './eventUtils';
 import { createInertActorScope } from './getNextSnapshot';
-import { getProperAncestors, isAtomicStateNode } from './stateUtils';
-import { getInitialStateNodes, macrostep, microstep } from './stateUtils';
+import {
+  getProperAncestors,
+  initialMicrostep,
+  isAtomicStateNode,
+  macrostep
+} from './stateUtils';
 import {
   AnyActorLogic,
   AnyEventObject,
@@ -106,32 +110,22 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
     internalQueue
   );
 
-  const initialMicrostep = microstep(
-    [
-      {
-        target: [...getInitialStateNodes(machine.root)],
-        source: machine.root,
-        reenter: true,
-        actions: [],
-        eventType: null as any,
-        toJSON: null as any
-      }
-    ],
+  const first = initialMicrostep(
+    machine.root,
     preInitialSnapshot,
     actorScope,
     initEvent,
-    true, // isInitial
     internalQueue
   );
 
   const { microsteps } = macrostep(
-    initialMicrostep[0],
+    first[0],
     initEvent,
     actorScope,
     internalQueue
   );
 
-  return [initialMicrostep, ...microsteps] as Array<
+  return [first, ...microsteps] as Array<
     [SnapshotFrom<T>, ExecutableActionsFrom<T>[]]
   >;
 }

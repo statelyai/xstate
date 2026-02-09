@@ -10,13 +10,12 @@ import {
 import { StateNode } from './StateNode.ts';
 import {
   getAllStateNodes,
-  getInitialStateNodes,
   getStateNodeByPath,
   getStateNodes,
+  initialMicrostep,
   isInFinalState,
   isStateId,
   macrostep,
-  microstep,
   resolveActionsAndContext,
   resolveStateValue,
   transitionNode
@@ -436,21 +435,11 @@ export class StateMachine<
       initEvent,
       internalQueue
     );
-    const [nextState] = microstep(
-      [
-        {
-          target: [...getInitialStateNodes(this.root)],
-          source: this.root,
-          reenter: true,
-          actions: [],
-          eventType: null as any,
-          toJSON: null as any // TODO: fix
-        }
-      ],
+    const [nextState] = initialMicrostep(
+      this.root,
       preInitialState,
       actorScope,
       initEvent,
-      true,
       internalQueue
     );
 

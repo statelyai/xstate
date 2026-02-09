@@ -940,6 +940,32 @@ function areStateNodeCollectionsEqual(
 
 type Microstep = readonly [AnyMachineSnapshot, ExecutableActionObject[]];
 
+export function initialMicrostep(
+  root: AnyStateNode,
+  preInitialState: AnyMachineSnapshot,
+  actorScope: AnyActorScope,
+  initEvent: AnyEventObject,
+  internalQueue: AnyEventObject[]
+): Microstep {
+  return microstep(
+    [
+      {
+        target: [...getInitialStateNodes(root)],
+        source: root,
+        reenter: true,
+        actions: [],
+        eventType: null as any,
+        toJSON: null as any
+      }
+    ],
+    preInitialState,
+    actorScope,
+    initEvent,
+    true,
+    internalQueue
+  );
+}
+
 /** https://www.w3.org/TR/scxml/#microstepProcedure */
 export function microstep(
   transitions: Array<AnyTransitionDefinition>,
