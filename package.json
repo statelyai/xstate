@@ -35,8 +35,8 @@
     "test:core": "vitest run --project xstate",
     "test:core:watch": "vitest --project xstate",
     "test:core:coverage": "vitest run --project xstate --coverage --coverage.provider=istanbul --coverage.include=packages/core/src/**/*.ts --coverage.exclude=**/*.test.ts",
-    "test:store": "vitest run --project @xstate/store",
-    "test:store:watch": "vitest --project @xstate/store",
+    "test:store": "vitest run --project @xstate/store*",
+    "test:store:watch": "vitest --project @xstate/store*",
     "changeset": "changeset",
     "release": "pnpm -r publish --access=public && changeset tag",
     "version": "changeset version"
@@ -62,7 +62,7 @@
     "@eslint/js": "^9.26.0",
     "@manypkg/cli": "^0.21.4",
     "@preconstruct/cli": "^2.8.12",
-    "@types/node": "^20.14.13",
+    "@types/node": "^25.2.1",
     "@vitest/coverage-istanbul": "^3",
     "babel-preset-solid": "^1.8.4",
     "eslint": "^9.26.0",
@@ -91,6 +91,9 @@
     ]
   },
   "pnpm": {
+    "overrides": {
+      "@types/node": "25.2.1"
+    },
     "patchedDependencies": {
       "@vue/test-utils@2.4.6": "patches/@vue__test-utils@2.4.6.patch"
     }
