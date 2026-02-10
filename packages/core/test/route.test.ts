@@ -337,4 +337,61 @@ describe('route', () => {
 
     expect(actor.getSnapshot().value).toEqual({ dashboard: 'overview' });
   });
+
+  it('should re-enter when routing to the current state', () => {
+    let entries = 0;
+    const machine = setup({}).createMachine({
+      id: 'test',
+      initial: 'a',
+      states: {
+        a: {
+          id: 'a',
+          route: {},
+          entry: () => {
+            entries++;
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().value).toEqual('a');
+    entries = 0;
+
+    actor.send({ type: 'xstate.route', to: 'a' });
+
+    expect(actor.getSnapshot().value).toEqual('a');
+    expect(entries).toEqual(1);
+  });
+
+  it('should route to self with guard', () => {
+    let allowed = false;
+    let entries = 0;
+    const machine = setup({}).createMachine({
+      id: 'test',
+      initial: 'a',
+      states: {
+        a: {
+          id: 'a',
+          route: {
+            guard: () => allowed
+          },
+          entry: () => {
+            entries++;
+          }
+        },
+        b: { id: 'b', route: {} }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    entries = 0;
+
+    actor.send({ type: 'xstate.route', to: 'a' });
+    expect(entries).toEqual(0);
+
+    allowed = true;
+    actor.send({ type: 'xstate.route', to: 'a' });
+    expect(entries).toEqual(1);
+  });
 });

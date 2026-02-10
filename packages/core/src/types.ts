@@ -1072,7 +1072,6 @@ export interface RouteTransitionConfig<
     TDelay,
     TEmitted
   >;
-  reenter?: boolean;
   meta?: Record<string, any>;
   description?: string;
 }
