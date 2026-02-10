@@ -253,9 +253,12 @@ type SetupReturn<
   ) => StateMachine<
     TContext,
     | TEvent
-    | {
-        type: `xstate.route.${RoutableStateId<TConfig>}`;
-      },
+    | ([RoutableStateId<TConfig>] extends [never]
+        ? never
+        : {
+            type: 'xstate.route';
+            to: RoutableStateId<TConfig>;
+          }),
     Cast<
       ToChildren<ToProvidedActor<TChildrenMap, TActors>>,
       Record<string, AnyActorRef | undefined>

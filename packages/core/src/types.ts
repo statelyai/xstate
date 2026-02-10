@@ -2580,28 +2580,12 @@ export type StateId<
         }>
       : never);
 
-export type RoutableStateId<
-  TSchema extends StateSchema,
-  TKey extends string = '(machine)',
-  TParentKey extends string | null = null
-> =
-  | (TSchema extends { route: any }
-      ? TSchema extends { id: string }
-        ? TSchema['id']
-        : TParentKey extends null
-          ? TKey
-          : `${TParentKey}.${TKey}`
-      : never)
+export type RoutableStateId<TSchema extends StateSchema> =
+  | (TSchema extends { route: any; id: string } ? TSchema['id'] : never)
   | (TSchema['states'] extends Record<string, any>
       ? Values<{
           [K in keyof TSchema['states'] & string]: RoutableStateId<
-            TSchema['states'][K],
-            K,
-            TParentKey extends string
-              ? `${TParentKey}.${TKey}`
-              : TSchema['id'] extends string
-                ? TSchema['id']
-                : TKey
+            TSchema['states'][K]
           >;
         }>
       : never);

@@ -8,6 +8,7 @@ describe('route', () => {
       states: {
         a: {},
         b: {
+          id: 'b',
           route: {}
         },
         c: {}
@@ -17,14 +18,17 @@ describe('route', () => {
     const actor = createActor(machine).start();
 
     actor.send({
-      type: 'xstate.route.test.b'
+      type: 'xstate.route',
+      to: 'b'
     });
 
     expect(actor.getSnapshot().value).toEqual('b');
 
+    // c has no route, so this should not transition
     actor.send({
-      type: 'xstate.route.test.c'
-    });
+      type: 'xstate.route',
+      to: 'c'
+    } as any);
 
     expect(actor.getSnapshot().value).toEqual('b');
   });
@@ -36,11 +40,13 @@ describe('route', () => {
       states: {
         a: {},
         b: {
+          id: 'b',
           route: {
             guard: () => false
           }
         },
         c: {
+          id: 'c',
           route: {
             guard: () => true
           }
@@ -53,13 +59,15 @@ describe('route', () => {
     expect(actor.getSnapshot().value).toEqual('a');
 
     actor.send({
-      type: 'xstate.route.test.b'
+      type: 'xstate.route',
+      to: 'b'
     });
 
     expect(actor.getSnapshot().value).toEqual('a');
 
     actor.send({
-      type: 'xstate.route.test.c'
+      type: 'xstate.route',
+      to: 'c'
     });
 
     expect(actor.getSnapshot().value).toEqual('c');
@@ -81,12 +89,15 @@ describe('route', () => {
           initial: 'all',
           states: {
             all: {
+              id: 'filter-all',
               route: {}
             },
             active: {
+              id: 'filter-active',
               route: {}
             },
             completed: {
+              id: 'filter-completed',
               route: {}
             }
           }
@@ -102,7 +113,8 @@ describe('route', () => {
     });
 
     todoActor.send({
-      type: 'xstate.route.todos.filter.active'
+      type: 'xstate.route',
+      to: 'filter-active'
     });
 
     expect(todoActor.getSnapshot().value).toEqual({
@@ -121,12 +133,14 @@ describe('route', () => {
       initial: 'aRoute',
       states: {
         aRoute: {
+          id: 'aRoute',
           route: {}
         },
         notARoute: {
           initial: 'childRoute',
           states: {
             childRoute: {
+              id: 'childRoute',
               route: {}
             }
           }
@@ -137,27 +151,63 @@ describe('route', () => {
     const actor = createActor(machine).start();
 
     actor.send({
-      type: 'xstate.route.root.aRoute'
+      type: 'xstate.route',
+      to: 'aRoute'
     });
 
     actor.send({
-      type: 'xstate.route.root.notARoute.childRoute'
+      type: 'xstate.route',
+      to: 'childRoute'
     });
 
     actor.send({
-      // @ts-expect-error
-      type: 'xstate.route.root.notARoute'
+      type: 'xstate.route',
+      // @ts-expect-error - 'notARoute' has no route config
+      to: 'notARoute'
     });
 
     actor.send({
-      // @ts-expect-error
-      type: 'xstate.route.root'
+      type: 'xstate.route',
+      // @ts-expect-error - 'root' is not routable
+      to: 'root'
     });
 
     actor.send({
-      // @ts-expect-error
-      type: 'xstate.route.root.blahblah'
+      type: 'xstate.route',
+      // @ts-expect-error - 'blahblah' does not exist
+      to: 'blahblah'
     });
+  });
+
+  it('route config without id should not generate route events', () => {
+    const machine = setup({
+      types: {
+        events: {} as never
+      }
+    }).createMachine({
+      id: 'test',
+      initial: 'a',
+      states: {
+        a: {
+          // route without id — should NOT be routable
+          route: {}
+        },
+        b: {
+          id: 'b',
+          route: {}
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    // Only 'b' should be a valid route target
+    actor.send({
+      type: 'xstate.route',
+      to: 'b'
+    });
+
+    expect(actor.getSnapshot().value).toEqual('b');
   });
 
   it('machine.root.on should include route events', () => {
@@ -167,9 +217,11 @@ describe('route', () => {
       states: {
         a: {},
         b: {
+          id: 'b',
           route: {}
         },
         c: {
+          id: 'c',
           route: {
             guard: () => true
           }
@@ -177,9 +229,7 @@ describe('route', () => {
       }
     });
 
-    expect(machine.root.on['xstate.route.test.b']).toBeDefined();
-    expect(machine.root.on['xstate.route.test.c']).toBeDefined();
-    expect(machine.root.on['xstate.route.test.a']).toBeUndefined();
+    expect(machine.root.on['xstate.route']).toBeDefined();
   });
 
   it('nested state on should include route events for child routes', () => {
@@ -188,16 +238,20 @@ describe('route', () => {
       initial: 'home',
       states: {
         home: {
+          id: 'home',
           route: {}
         },
         dashboard: {
+          id: 'dashboard',
           initial: 'overview',
           route: {},
           states: {
             overview: {
+              id: 'overview',
               route: {}
             },
             settings: {
+              id: 'settings',
               route: {}
             }
           }
@@ -207,18 +261,14 @@ describe('route', () => {
 
     const a = createActor(machine).start();
     a.send({
-      type: 'xstate.route.app.dashboard.overview'
+      type: 'xstate.route',
+      to: 'overview'
     });
 
-    // All routes should be accessible from root (routable from anywhere)
-    expect(machine.root.on['xstate.route.app.home']).toBeDefined();
-    expect(machine.root.on['xstate.route.app.dashboard']).toBeDefined();
-    expect(
-      machine.root.on['xstate.route.app.dashboard.overview']
-    ).toBeDefined();
-    expect(
-      machine.root.on['xstate.route.app.dashboard.settings']
-    ).toBeDefined();
+    expect(a.getSnapshot().value).toEqual({ dashboard: 'overview' });
+
+    // All routes should be accessible via 'xstate.route'
+    expect(machine.root.on['xstate.route']).toBeDefined();
   });
 
   it('parallel state on should include route events', () => {
@@ -237,12 +287,15 @@ describe('route', () => {
           initial: 'all',
           states: {
             all: {
+              id: 'filter-all',
               route: {}
             },
             active: {
+              id: 'filter-active',
               route: {}
             },
             completed: {
+              id: 'filter-completed',
               route: {}
             }
           }
@@ -250,12 +303,8 @@ describe('route', () => {
       }
     });
 
-    // Routes should be accessible from root (routable from anywhere)
-    expect(machine.root.on['xstate.route.todos.filter.all']).toBeDefined();
-    expect(machine.root.on['xstate.route.todos.filter.active']).toBeDefined();
-    expect(
-      machine.root.on['xstate.route.todos.filter.completed']
-    ).toBeDefined();
+    // Routes should be accessible
+    expect(machine.root.on['xstate.route']).toBeDefined();
   });
 
   it('should route to deeply nested state from anywhere', () => {
@@ -264,12 +313,14 @@ describe('route', () => {
       initial: 'home',
       states: {
         home: {
+          id: 'home',
           route: {}
         },
         dashboard: {
           initial: 'overview',
           states: {
             overview: {
+              id: 'overview',
               route: {}
             }
           }
@@ -282,7 +333,7 @@ describe('route', () => {
     // Should be able to route to deeply nested state from root
     expect(actor.getSnapshot().value).toEqual('home');
 
-    actor.send({ type: 'xstate.route.app.dashboard.overview' });
+    actor.send({ type: 'xstate.route', to: 'overview' });
 
     expect(actor.getSnapshot().value).toEqual({ dashboard: 'overview' });
   });

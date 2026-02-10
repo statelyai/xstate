@@ -380,28 +380,48 @@ export function formatTransitions<
     }
     existing.push(delayedTransition);
   }
-  // Collect routes from all descendants (not just direct children)
-  // so routes are accessible from anywhere in the machine
+  // Collect routes from all descendants with explicit IDs
+  // Routes use a single 'xstate.route' event type with a `to` property
+  const routeTransitions: TransitionDefinition<TContext, TEvent>[] = [];
   const collectRoutes = (states: Record<string, AnyStateNode>) => {
     Object.values(states).forEach((sn) => {
-      if (sn.config.route) {
-        const eventType = `xstate.route.${sn.id}`;
+      if (sn.config.route && sn.config.id) {
+        const routeId = sn.config.id;
+        const userGuard = sn.config.route.guard;
+        const routeGuard = (
+          args: { context: any; event: any },
+          params: any
+        ) => {
+          if (args.event.to !== routeId) {
+            return false;
+          }
+          if (!userGuard) {
+            return true;
+          }
+          if (typeof userGuard === 'function') {
+            return userGuard(args, params);
+          }
+          return true;
+        };
         const transition: AnyTransitionConfig = {
           ...sn.config.route,
-          target: `#${sn.id}`
+          guard: routeGuard,
+          target: `#${routeId}`
         };
 
-        transitions.set(eventType, [
-          formatTransition(stateNode, eventType, transition)
-        ]);
+        routeTransitions.push(
+          formatTransition(stateNode, 'xstate.route', transition)
+        );
       }
-      // Recursively collect routes from nested states
       if (sn.states) {
         collectRoutes(sn.states);
       }
     });
   };
   collectRoutes(stateNode.states);
+  if (routeTransitions.length > 0) {
+    transitions.set('xstate.route', routeTransitions);
+  }
   return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
 }
 

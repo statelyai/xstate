@@ -2,19 +2,19 @@
 'xstate': minor
 ---
 
-Added routable states. States with `route: {}` can be navigated to from anywhere via `xstate.route.{statePath}` events.
+Added routable states. States with `route: {}` and an explicit `id` can be navigated to from anywhere via a single `{ type: 'xstate.route', to: id }` event.
 
 ```ts
 const machine = setup({}).createMachine({
   id: 'app',
   initial: 'home',
   states: {
-    home: { route: {} },
+    home: { id: 'home', route: {} },
     dashboard: {
       initial: 'overview',
       states: {
-        overview: { route: {} },
-        settings: { route: {} }
+        overview: { id: 'overview', route: {} },
+        settings: { id: 'settings', route: {} }
       }
     }
   }
@@ -23,15 +23,16 @@ const machine = setup({}).createMachine({
 const actor = createActor(machine).start();
 
 // Route directly to deeply nested state from anywhere
-actor.send({ type: 'xstate.route.app.dashboard.settings' });
+actor.send({ type: 'xstate.route', to: 'settings' });
 ```
 
 Routes support guards for conditional navigation:
 
 ```ts
 settings: {
+  id: 'settings',
   route: {
-    guard: ({ context }) => context.role === 'admin';
+    guard: ({ context }) => context.role === 'admin'
   }
 }
 ```
