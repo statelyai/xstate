@@ -9,6 +9,7 @@ import {
 } from './State.ts';
 import { StateNode } from './StateNode.ts';
 import {
+  formatRouteTransitions,
   getAllStateNodes,
   getInitialStateNodes,
   getStateNodeByPath,
@@ -148,6 +149,7 @@ export class StateMachine<
     });
 
     this.root._initialize();
+    formatRouteTransitions(this.root);
 
     this.states = this.root.states; // TODO: remove!
     this.events = this.root.events;

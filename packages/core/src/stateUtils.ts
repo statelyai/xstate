@@ -380,9 +380,15 @@ export function formatTransitions<
     }
     existing.push(delayedTransition);
   }
-  // Collect routes from all descendants with explicit IDs
-  // Routes use a single 'xstate.route' event type with a `to` property
-  const routeTransitions: TransitionDefinition<TContext, TEvent>[] = [];
+  return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
+}
+
+/**
+ * Collects route transitions from all descendants with explicit IDs. Called
+ * once on the root node to avoid O(N²) repeated traversals.
+ */
+export function formatRouteTransitions(rootStateNode: AnyStateNode): void {
+  const routeTransitions: AnyTransitionDefinition[] = [];
   const collectRoutes = (states: Record<string, AnyStateNode>) => {
     Object.values(states).forEach((sn) => {
       if (sn.config.route && sn.config.id) {
@@ -410,7 +416,7 @@ export function formatTransitions<
         };
 
         routeTransitions.push(
-          formatTransition(stateNode, 'xstate.route', transition)
+          formatTransition(rootStateNode, 'xstate.route', transition)
         );
       }
       if (sn.states) {
@@ -418,11 +424,10 @@ export function formatTransitions<
       }
     });
   };
-  collectRoutes(stateNode.states);
+  collectRoutes(rootStateNode.states);
   if (routeTransitions.length > 0) {
-    transitions.set('xstate.route', routeTransitions);
+    rootStateNode.transitions.set('xstate.route', routeTransitions);
   }
-  return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
 }
 
 export function formatInitialTransition<
