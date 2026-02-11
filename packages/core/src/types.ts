@@ -1343,6 +1343,32 @@ export type ContextFactory<
   >;
 }) => TContext;
 
+/**
+ * Runtime options for state machine execution.
+ *
+ * @example
+ *
+ * ```ts
+ * const machine = createMachine({
+ *   // ... machine config
+ *   options: {
+ *     maxIterations: 5000
+ *     // other runtime options can be added here
+ *   }
+ * });
+ * ```
+ */
+export interface MachineOptions {
+  /**
+   * Maximum number of microsteps allowed before throwing an infinite loop
+   * error. Defaults to `Infinity` (no limit). Set to a number to enable
+   * infinite loop detection, or `-1` to explicitly disable the limit.
+   *
+   * @default Infinity
+   */
+  maxIterations?: number;
+}
+
 export type MachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1375,6 +1401,8 @@ export type MachineConfig<
   version?: string;
   // TODO: make it conditionally required
   output?: Mapper<TContext, DoneStateEvent, TOutput, TEvent> | TOutput;
+  /** Runtime options for machine execution. */
+  options?: MachineOptions;
 }) &
   (MachineContext extends TContext
     ? { context?: InitialContext<LowInfer<TContext>, TActor, TInput, TEvent> }
