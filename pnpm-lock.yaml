@@ -195,9 +195,6 @@ importers:
       '@testing-library/react':
         specifier: ^16.2.0
         version: 16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      '@testing-library/vue':
-        specifier: ^8.1.0
-        version: 8.1.0(@vue/compiler-sfc@3.5.27)(vue@3.5.17(typescript@5.9.3))
       '@types/react':
         specifier: ^19.0.10
         version: 19.1.8
@@ -207,6 +204,9 @@ importers:
       '@vitejs/plugin-vue':
         specifier: ^5.1.2
         version: 5.2.4(vite@7.0.3(@types/node@25.2.1)(jiti@2.4.2)(sass@1.97.3)(stylus@0.54.8)(terser@5.46.0))(vue@3.5.17(typescript@5.9.3))
+      '@vue/test-utils':
+        specifier: ^2.4.6
+        version: 2.4.6(patch_hash=drgml7uwcocw5qdowdzbfcfg3e)
       '@xstate/react':
         specifier: workspace:^
         version: link:../xstate-react
@@ -10705,7 +10705,6 @@ snapshots:
   fdir@6.5.0(picomatch@4.0.3):
     optionalDependencies:
       picomatch: 4.0.3
-    optional: true
 
   figures@1.7.0:
     dependencies:
@@ -12527,8 +12526,7 @@ snapshots:
 
   picomatch@4.0.2: {}
 
-  picomatch@4.0.3:
-    optional: true
+  picomatch@4.0.3: {}
 
   pify@2.3.0: {}
 
@@ -13548,7 +13546,6 @@ snapshots:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.3)
       picomatch: 4.0.3
-    optional: true
 
   tinypool@1.1.1: {}
 
@@ -13854,11 +13851,11 @@ snapshots:
   vite@7.0.3(@types/node@25.2.1)(jiti@2.4.2)(sass@1.97.3)(stylus@0.54.8)(terser@5.46.0):
     dependencies:
       esbuild: 0.25.6
-      fdir: 6.4.6(picomatch@4.0.2)
-      picomatch: 4.0.2
+      fdir: 6.5.0(picomatch@4.0.3)
+      picomatch: 4.0.3
       postcss: 8.5.6
       rollup: 4.44.2
-      tinyglobby: 0.2.14
+      tinyglobby: 0.2.15
     optionalDependencies:
       '@types/node': 25.2.1
       fsevents: 2.3.3
