@@ -10,13 +10,12 @@ import {
 import { StateNode } from './StateNode.ts';
 import {
   getAllStateNodes,
-  getInitialStateNodes,
   getStateNodeByPath,
   getStateNodes,
+  initialMicrostep,
   isInFinalState,
   isStateId,
   macrostep,
-  microstep,
   resolveActionsAndContext,
   resolveStateValue,
   transitionNode
@@ -328,7 +327,9 @@ export class StateMachine<
       TStateSchema
     >
   > {
-    return macrostep(snapshot, event, actorScope, []).microstates;
+    return macrostep(snapshot, event, actorScope, []).microsteps.map(
+      ([s]) => s
+    );
   }
 
   public getTransitionData(
@@ -350,8 +351,10 @@ export class StateMachine<
   /**
    * The initial state _before_ evaluating any microsteps. This "pre-initial"
    * state is provided to initial actions executed in the initial state.
+   *
+   * @internal
    */
-  private getPreInitialState(
+  _getPreInitialState(
     actorScope: AnyActorScope,
     initEvent: any,
     internalQueue: AnyEventObject[]
@@ -427,26 +430,16 @@ export class StateMachine<
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
-    const preInitialState = this.getPreInitialState(
+    const preInitialState = this._getPreInitialState(
       actorScope,
       initEvent,
       internalQueue
     );
-    const nextState = microstep(
-      [
-        {
-          target: [...getInitialStateNodes(this.root)],
-          source: this.root,
-          reenter: true,
-          actions: [],
-          eventType: null as any,
-          toJSON: null as any // TODO: fix
-        }
-      ],
+    const [nextState] = initialMicrostep(
+      this.root,
       preInitialState,
       actorScope,
       initEvent,
-      true,
       internalQueue
     );
 
