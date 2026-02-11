@@ -33,8 +33,8 @@
     "test:watch": "vitest",
     "test:core": "vitest run --project xstate",
     "test:core:watch": "vitest --project xstate",
-    "test:store": "vitest run --project @xstate/store",
-    "test:store:watch": "vitest --project @xstate/store",
+    "test:store": "vitest run --project @xstate/store*",
+    "test:store:watch": "vitest --project @xstate/store*",
     "changeset": "changeset",
     "release": "pnpm -r publish --access=public && changeset tag",
     "version": "changeset version"
@@ -60,7 +60,7 @@
     "@eslint/js": "^9.26.0",
     "@manypkg/cli": "^0.21.4",
     "@preconstruct/cli": "^2.8.1",
-    "@types/node": "^20.14.13",
+    "@types/node": "^25.2.1",
     "babel-preset-solid": "^1.8.4",
     "eslint": "^9.26.0",
     "eslint-plugin-jsdoc": "^50.6.14",
@@ -88,6 +88,9 @@
     ]
   },
   "pnpm": {
+    "overrides": {
+      "@types/node": "25.2.1"
+    },
     "patchedDependencies": {
       "@vue/test-utils@2.4.6": "patches/@vue__test-utils@2.4.6.patch"
     }
