@@ -2535,7 +2535,7 @@ export type ToChildren<TActor extends ProvidedActor> =
 
 export type StateSchema = {
   id?: string;
-  route?: any;
+  route?: unknown;
   states?: Record<string, StateSchema>;
 
   // Other types
