@@ -1,5 +1,48 @@
 # xstate
 
+## 5.28.0
+
+### Minor Changes
+
+- [#4184](https://github.com/statelyai/xstate/pull/4184) [`a741fe7`](https://github.com/statelyai/xstate/commit/a741fe75901d3c4f08314e7c6d888bcb37866c04) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added routable states. States with `route: {}` and an explicit `id` can be navigated to from anywhere via a single `{ type: 'xstate.route', to: '#id' }` event.
+
+  ```ts
+  const machine = setup({}).createMachine({
+    id: 'app',
+    initial: 'home',
+    states: {
+      home: { id: 'home', route: {} },
+      dashboard: {
+        initial: 'overview',
+        states: {
+          overview: { id: 'overview', route: {} },
+          settings: { id: 'settings', route: {} }
+        }
+      }
+    }
+  });
+
+  const actor = createActor(machine).start();
+
+  // Route directly to deeply nested state from anywhere
+  actor.send({ type: 'xstate.route', to: '#settings' });
+  ```
+
+  Routes support guards for conditional navigation:
+
+  ```ts
+  settings: {
+    id: 'settings',
+    route: {
+      guard: ({ context }) => context.role === 'admin'
+    }
+  }
+  ```
+
+### Patch Changes
+
+- [#5464](https://github.com/statelyai/xstate/pull/5464) [`ad809a0`](https://github.com/statelyai/xstate/commit/ad809a0a7084f57a30a47aade90b83caa2eb65d9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix: export types so setup() declaration emit works (fixes #5462)
+
 ## 5.27.0
 
 ### Minor Changes
