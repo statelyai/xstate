@@ -394,4 +394,46 @@ describe('route', () => {
     actor.send({ type: 'xstate.route', to: '#a' });
     expect(entries).toEqual(1);
   });
+
+  it('should not route using dot-separated nested id like #id.nested', () => {
+    const machine = setup({
+      types: {
+        // needed to avoid AnyEventObject widening
+        events: {} as never
+      }
+    }).createMachine({
+      id: 'app',
+      initial: 'home',
+      states: {
+        home: {
+          id: 'home',
+          route: {}
+        },
+        dashboard: {
+          id: 'dashboard',
+          initial: 'overview',
+          route: {},
+          states: {
+            overview: {
+              id: 'overview',
+              route: {}
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().value).toEqual('home');
+
+    // Dot-separated ids should not work as route targets
+    actor.send({
+      type: 'xstate.route',
+      // @ts-expect-error - dot-separated ids are not valid route targets
+      to: '#dashboard.overview'
+    });
+
+    expect(actor.getSnapshot().value).toEqual('home');
+  });
 });
