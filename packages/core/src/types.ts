@@ -1857,6 +1857,7 @@ export type ToChildren<TActor extends ProvidedActor> =
 
 export type StateSchema = {
   id?: string;
+  route?: unknown;
   states?: Record<string, StateSchema>;
   contextSchema?: StandardSchemaV1;
   params?: unknown;
@@ -1936,6 +1937,15 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
 ) => void
   ? I
   : never;
+export type RoutableStateId<TSchema extends StateSchema> =
+  | (TSchema extends { route: any; id: string } ? `#${TSchema['id']}` : never)
+  | (TSchema['states'] extends Record<string, any>
+      ? Values<{
+          [K in keyof TSchema['states'] & string]: RoutableStateId<
+            TSchema['states'][K]
+          >;
+        }>
+      : never);
 
 export interface StateMachineTypes {
   context: MachineContext;

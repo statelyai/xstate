@@ -9,14 +9,14 @@ import {
 } from './State.ts';
 import { StateNode } from './StateNode.ts';
 import {
+  formatRouteTransitions,
   getAllStateNodes,
-  getInitialStateNodes,
   getStateNodeByPath,
   getStateNodes,
+  initialMicrostep,
   isInFinalState,
   isStateId,
   macrostep,
-  microstep,
   resolveAndExecuteActionsWithContext,
   resolveStateValue,
   transitionNode
@@ -65,22 +65,24 @@ export class StateMachine<
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays']
-> implements ActorLogic<
-  MachineSnapshot<
-    TContext,
-    TEvent,
-    TChildren,
-    TStateValue,
-    TTag,
-    TOutput,
-    TMeta,
-    TConfig
-  >,
-  TEvent,
-  TInput,
-  AnyActorSystem,
-  TEmitted
-> {
+> implements
+    ActorLogic<
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        TChildren,
+        TStateValue,
+        TTag,
+        TOutput,
+        TMeta,
+        TConfig
+      >,
+      TEvent,
+      TInput,
+      AnyActorSystem,
+      TEmitted
+    >
+{
   /** The machine's own version. */
   public version?: string;
 
@@ -139,6 +141,7 @@ export class StateMachine<
     });
 
     this.root._initialize();
+    formatRouteTransitions(this.root);
 
     this.states = this.root.states; // TODO: remove!
     this.events = this.root.events;
@@ -323,7 +326,9 @@ export class StateMachine<
       TConfig
     >
   > {
-    return macrostep(snapshot, event, actorScope, []).microstates;
+    return macrostep(snapshot, event, actorScope, []).microsteps.map(
+      ([s]) => s
+    );
   }
 
   public getTransitionData(
@@ -348,8 +353,10 @@ export class StateMachine<
   /**
    * The initial state _before_ evaluating any microsteps. This "pre-initial"
    * state is provided to initial actions executed in the initial state.
+   *
+   * @internal
    */
-  private getPreInitialState(
+  _getPreInitialState(
     actorScope: AnyActorScope,
     initEvent: any
   ): MachineSnapshot<
@@ -438,20 +445,12 @@ export class StateMachine<
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
-    const preInitialState = this.getPreInitialState(actorScope, initEvent);
-    const nextState = microstep(
-      [
-        {
-          target: [...getInitialStateNodes(this.root)],
-          source: this.root,
-          reenter: true,
-          eventType: null as any
-        }
-      ],
+    const preInitialState = this._getPreInitialState(actorScope, initEvent);
+    const [nextState] = initialMicrostep(
+      this.root,
       preInitialState,
       actorScope,
       initEvent,
-      true,
       internalQueue
     );
 

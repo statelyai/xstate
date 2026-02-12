@@ -37,14 +37,6 @@ Special thanks to the sponsors who support this open-source project:
 
 <img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
 
- <a href="https://go.warp.dev/xstate">
-    <img alt="Warp sponsorship" width="400" src="https://github.com/warpdotdev/brand-assets/blob/main/Github/Sponsor/Warp-Github-LG-04.png?raw=true](https://github.com/warpdotdev/brand-assets/blob/main/Github/Sponsor/Warp-Github-LG-03.png?raw=true)">
- </a>
-
-### [Warp, the intelligent terminal for developers](https://go.warp.dev/xstate)
-
-<small><a href="https://go.warp.dev/xstate">Warp is built for coding with multiple AI agents</a></small>
-
 <a href="https://transloadit.com/?utm_source=xstate&utm_medium=referral&utm_campaign=sponsorship&utm_content=github">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://assets.transloadit.com/assets/images/sponsorships/logo-dark.svg">

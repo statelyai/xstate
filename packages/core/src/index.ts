@@ -30,6 +30,8 @@ export {
 export {
   transition,
   initialTransition,
+  getMicrosteps,
+  getInitialMicrosteps,
   getNextTransitions
 } from './transition.ts';
 export { waitFor } from './waitFor.ts';
