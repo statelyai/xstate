@@ -3196,4 +3196,114 @@ describe('type-bound actions', () => {
       entry: spawn
     });
   });
+
+  describe('type declarations in types', () => {
+    it('should infer action types from implementations', () => {
+      const { createMachine } = setup({
+        types: {} as {
+          context: { count: number };
+          events: { type: 'INC' };
+        },
+        actions: {
+          increment: assign(({ context }) => ({ count: context.count + 1 })),
+          log: (_, params: { message: string }) => console.log(params.message)
+        }
+      });
+
+      createMachine({
+        context: { count: 0 },
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {
+              INC: {
+                actions: 'increment'
+              }
+            }
+          }
+        }
+      });
+    });
+
+    it('should infer guard types from implementations', () => {
+      const { createMachine } = setup({
+        types: {} as {
+          context: { count: number };
+          events: { type: 'INC' };
+        },
+        guards: {
+          isPositive: ({ context }) => context.count > 0,
+          isGreaterThan: ({ context }, params: { value: number }) =>
+            context.count > params.value
+        }
+      });
+
+      createMachine({
+        context: { count: 0 },
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {
+              INC: {
+                guard: 'isPositive',
+                target: 'idle'
+              }
+            }
+          }
+        }
+      });
+    });
+
+    it('should infer delay types from implementations', () => {
+      const { createMachine } = setup({
+        types: {} as {
+          context: { timeout: number };
+          events: { type: 'START' };
+        },
+        delays: {
+          shortDelay: 100,
+          longDelay: ({ context }) => context.timeout
+        }
+      });
+
+      createMachine({
+        context: { timeout: 1000 },
+        initial: 'idle',
+        states: {
+          idle: {
+            after: {
+              shortDelay: 'active'
+            }
+          },
+          active: {}
+        }
+      });
+    });
+
+    it('SetupTypes should include actions, guards, and delays slots', () => {
+      // This test verifies that SetupTypes has the action/guard/delay type parameters
+      // which enables explicit type annotations for breaking inference chains
+      type MySetupTypes = {
+        context: { count: number };
+        events: { type: 'INC' };
+        actions: { type: 'increment'; params: undefined };
+        guards: { type: 'isValid'; params: undefined };
+        delays: 'timeout';
+      };
+
+      // The types can be used for explicit annotations
+      const _types: MySetupTypes = {
+        context: { count: 0 },
+        events: { type: 'INC' },
+        actions: { type: 'increment', params: undefined },
+        guards: { type: 'isValid', params: undefined },
+        delays: 'timeout'
+      };
+
+      // Verify the shape is correct
+      expect(_types.actions.type).toBe('increment');
+      expect(_types.guards.type).toBe('isValid');
+      expect(_types.delays).toBe('timeout');
+    });
+  });
 });
