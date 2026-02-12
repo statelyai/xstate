@@ -1793,7 +1793,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * delayed events and transitions.
    *
    * @remarks
-   * You can create your own “clock”. The clock interface is an object with two
+   * You can create your own "clock". The clock interface is an object with two
    * functions/methods:
    *
    * - `setTimeout` - same arguments as `window.setTimeout(fn, timeout)`
@@ -2011,6 +2011,11 @@ export interface ActorRef<
   getSnapshot: () => TSnapshot;
   getPersistedSnapshot: () => Snapshot<unknown>;
   stop: () => void;
+  /**
+   * Register a callback to be called when the actor is stopped. Returns a
+   * subscription that can be used to unsubscribe the callback.
+   */
+  onStop: (callback: () => void) => Subscription;
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: AnyActorRef;
