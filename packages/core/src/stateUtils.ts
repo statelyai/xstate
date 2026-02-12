@@ -398,7 +398,7 @@ export function formatRouteTransitions(rootStateNode: AnyStateNode): void {
           args: { context: any; event: any },
           params: any
         ) => {
-          if (args.event.to !== routeId) {
+          if (args.event.to !== `#${routeId}`) {
             return false;
           }
           if (!userGuard) {

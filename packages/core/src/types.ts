@@ -2580,7 +2580,7 @@ export type StateId<
       : never);
 
 export type RoutableStateId<TSchema extends StateSchema> =
-  | (TSchema extends { route: any; id: string } ? TSchema['id'] : never)
+  | (TSchema extends { route: any; id: string } ? `#${TSchema['id']}` : never)
   | (TSchema['states'] extends Record<string, any>
       ? Values<{
           [K in keyof TSchema['states'] & string]: RoutableStateId<

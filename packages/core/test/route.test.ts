@@ -19,7 +19,7 @@ describe('route', () => {
 
     actor.send({
       type: 'xstate.route',
-      to: 'b'
+      to: '#b'
     });
 
     expect(actor.getSnapshot().value).toEqual('b');
@@ -27,7 +27,7 @@ describe('route', () => {
     // c has no route, so this should not transition
     actor.send({
       type: 'xstate.route',
-      to: 'c'
+      to: '#c'
     } as any);
 
     expect(actor.getSnapshot().value).toEqual('b');
@@ -60,14 +60,14 @@ describe('route', () => {
 
     actor.send({
       type: 'xstate.route',
-      to: 'b'
+      to: '#b'
     });
 
     expect(actor.getSnapshot().value).toEqual('a');
 
     actor.send({
       type: 'xstate.route',
-      to: 'c'
+      to: '#c'
     });
 
     expect(actor.getSnapshot().value).toEqual('c');
@@ -114,7 +114,7 @@ describe('route', () => {
 
     todoActor.send({
       type: 'xstate.route',
-      to: 'filter-active'
+      to: '#filter-active'
     });
 
     expect(todoActor.getSnapshot().value).toEqual({
@@ -152,12 +152,12 @@ describe('route', () => {
 
     actor.send({
       type: 'xstate.route',
-      to: 'aRoute'
+      to: '#aRoute'
     });
 
     actor.send({
       type: 'xstate.route',
-      to: 'childRoute'
+      to: '#childRoute'
     });
 
     actor.send({
@@ -204,7 +204,7 @@ describe('route', () => {
     // Only 'b' should be a valid route target
     actor.send({
       type: 'xstate.route',
-      to: 'b'
+      to: '#b'
     });
 
     expect(actor.getSnapshot().value).toEqual('b');
@@ -262,7 +262,7 @@ describe('route', () => {
     const a = createActor(machine).start();
     a.send({
       type: 'xstate.route',
-      to: 'overview'
+      to: '#overview'
     });
 
     expect(a.getSnapshot().value).toEqual({ dashboard: 'overview' });
@@ -333,7 +333,7 @@ describe('route', () => {
     // Should be able to route to deeply nested state from root
     expect(actor.getSnapshot().value).toEqual('home');
 
-    actor.send({ type: 'xstate.route', to: 'overview' });
+    actor.send({ type: 'xstate.route', to: '#overview' });
 
     expect(actor.getSnapshot().value).toEqual({ dashboard: 'overview' });
   });
@@ -358,7 +358,7 @@ describe('route', () => {
     expect(actor.getSnapshot().value).toEqual('a');
     entries = 0;
 
-    actor.send({ type: 'xstate.route', to: 'a' });
+    actor.send({ type: 'xstate.route', to: '#a' });
 
     expect(actor.getSnapshot().value).toEqual('a');
     expect(entries).toEqual(1);
@@ -387,11 +387,11 @@ describe('route', () => {
     const actor = createActor(machine).start();
     entries = 0;
 
-    actor.send({ type: 'xstate.route', to: 'a' });
+    actor.send({ type: 'xstate.route', to: '#a' });
     expect(entries).toEqual(0);
 
     allowed = true;
-    actor.send({ type: 'xstate.route', to: 'a' });
+    actor.send({ type: 'xstate.route', to: '#a' });
     expect(entries).toEqual(1);
   });
 });

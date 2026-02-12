@@ -2,7 +2,7 @@
 'xstate': minor
 ---
 
-Added routable states. States with `route: {}` and an explicit `id` can be navigated to from anywhere via a single `{ type: 'xstate.route', to: id }` event.
+Added routable states. States with `route: {}` and an explicit `id` can be navigated to from anywhere via a single `{ type: 'xstate.route', to: '#id' }` event.
 
 ```ts
 const machine = setup({}).createMachine({
@@ -23,7 +23,7 @@ const machine = setup({}).createMachine({
 const actor = createActor(machine).start();
 
 // Route directly to deeply nested state from anywhere
-actor.send({ type: 'xstate.route', to: 'settings' });
+actor.send({ type: 'xstate.route', to: '#settings' });
 ```
 
 Routes support guards for conditional navigation:
