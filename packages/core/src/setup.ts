@@ -25,6 +25,7 @@ import {
   MetaObject,
   NonReducibleUnknown,
   ParameterizedObject,
+  RoutableStateId,
   SetupTypes,
   StateNodeConfig,
   StateSchema,
@@ -251,7 +252,13 @@ export type SetupReturn<
     config: TConfig
   ) => StateMachine<
     TContext,
-    TEvent,
+    | TEvent
+    | ([RoutableStateId<TConfig>] extends [never]
+        ? never
+        : {
+            type: 'xstate.route';
+            to: RoutableStateId<TConfig>;
+          }),
     Cast<
       ToChildren<ToProvidedActor<TChildrenMap, TActors>>,
       Record<string, AnyActorRef | undefined>

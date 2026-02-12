@@ -384,6 +384,53 @@ export function formatTransitions<
   return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
 }
 
+/**
+ * Collects route transitions from all descendants with explicit IDs. Called
+ * once on the root node to avoid O(N²) repeated traversals.
+ */
+export function formatRouteTransitions(rootStateNode: AnyStateNode): void {
+  const routeTransitions: AnyTransitionDefinition[] = [];
+  const collectRoutes = (states: Record<string, AnyStateNode>) => {
+    Object.values(states).forEach((sn) => {
+      if (sn.config.route && sn.config.id) {
+        const routeId = sn.config.id;
+        const userGuard = sn.config.route.guard;
+        const routeGuard = (
+          args: { context: any; event: any },
+          params: any
+        ) => {
+          if (args.event.to !== `#${routeId}`) {
+            return false;
+          }
+          if (!userGuard) {
+            return true;
+          }
+          if (typeof userGuard === 'function') {
+            return userGuard(args, params);
+          }
+          return true;
+        };
+        const transition: AnyTransitionConfig = {
+          ...sn.config.route,
+          guard: routeGuard,
+          target: `#${routeId}`
+        };
+
+        routeTransitions.push(
+          formatTransition(rootStateNode, 'xstate.route', transition)
+        );
+      }
+      if (sn.states) {
+        collectRoutes(sn.states);
+      }
+    });
+  };
+  collectRoutes(rootStateNode.states);
+  if (routeTransitions.length > 0) {
+    rootStateNode.transitions.set('xstate.route', routeTransitions);
+  }
+}
+
 export function formatInitialTransition<
   TContext extends MachineContext,
   TEvent extends EventObject

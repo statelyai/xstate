@@ -1038,6 +1038,42 @@ export interface StateNodeConfig<
 
   /** A default target for a history state */
   target?: string | undefined; // `| undefined` makes `HistoryStateNodeConfig` compatible with this interface (it extends it) under `exactOptionalPropertyTypes`
+  route?: RouteTransitionConfig<
+    TContext,
+    TEvent,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TEmitted
+  >;
+}
+
+export interface RouteTransitionConfig<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TEmitted extends EventObject
+> {
+  guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
+  actions?: Actions<
+    TContext,
+    TExpressionEvent,
+    TEvent,
+    undefined,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TEmitted
+  >;
+  meta?: Record<string, any>;
+  description?: string;
 }
 
 export type AnyStateNodeConfig = StateNodeConfig<
@@ -2499,6 +2535,7 @@ export type ToChildren<TActor extends ProvidedActor> =
 
 export type StateSchema = {
   id?: string;
+  route?: unknown;
   states?: Record<string, StateSchema>;
 
   // Other types
@@ -2538,6 +2575,16 @@ export type StateId<
               : TSchema['id'] extends string
                 ? TSchema['id']
                 : TKey
+          >;
+        }>
+      : never);
+
+export type RoutableStateId<TSchema extends StateSchema> =
+  | (TSchema extends { route: any; id: string } ? `#${TSchema['id']}` : never)
+  | (TSchema['states'] extends Record<string, any>
+      ? Values<{
+          [K in keyof TSchema['states'] & string]: RoutableStateId<
+            TSchema['states'][K]
           >;
         }>
       : never);
