@@ -1,0 +1,166 @@
+[
+  {
+    "status": "active",
+    "value": { "Up": "Done" },
+    "historyValue": {},
+    "context": {},
+    "children": {}
+  },
+  {
+    "status": "active",
+    "value": { "Up": "Step5 system3" },
+    "historyValue": {},
+    "context": {},
+    "children": {
+      "up-step5-system3": {
+        "snapshot": {
+          "status": "active",
+          "value": "running",
+          "historyValue": {},
+          "context": { "errorCount": 0, "threshold": 3 },
+          "children": {
+            "upDownService": {
+              "snapshot": { "status": "active" },
+              "src": "upDownService",
+              "syncSnapshot": false
+            }
+          }
+        },
+        "src": "up-step5-system3",
+        "syncSnapshot": false
+      }
+    }
+  },
+  {
+    "status": "active",
+    "value": { "Up": "Step4 System1" },
+    "historyValue": {},
+    "context": {},
+    "children": {
+      "up-step4-system1": {
+        "snapshot": {
+          "status": "active",
+          "value": "running",
+          "historyValue": {},
+          "context": { "errorCount": 0, "threshold": 3 },
+          "children": {
+            "upDownService": {
+              "snapshot": { "status": "active" },
+              "src": "upDownService",
+              "syncSnapshot": false
+            }
+          }
+        },
+        "src": "up-step4-system1",
+        "syncSnapshot": false
+      }
+    }
+  },
+  {
+    "status": "active",
+    "value": { "Up": "Step3 system2" },
+    "historyValue": {},
+    "context": {},
+    "children": {
+      "up-step3-system2": {
+        "snapshot": {
+          "status": "active",
+          "value": "running",
+          "historyValue": {},
+          "context": { "errorCount": 0, "threshold": 3 },
+          "children": {
+            "upDownService": {
+              "snapshot": { "status": "active" },
+              "src": "upDownService",
+              "syncSnapshot": false
+            }
+          }
+        },
+        "src": "up-step3-system2",
+        "syncSnapshot": false
+      }
+    }
+  },
+  {
+    "status": "active",
+    "value": { "Up": "Step2 system1" },
+    "historyValue": {},
+    "context": {},
+    "children": {
+      "up-step2-system1": {
+        "snapshot": {
+          "status": "active",
+          "value": "running",
+          "historyValue": {},
+          "context": { "errorCount": 0, "threshold": 3 },
+          "children": {
+            "upDownService": {
+              "snapshot": { "status": "active" },
+              "src": "upDownService",
+              "syncSnapshot": false
+            }
+          }
+        },
+        "src": "up-step2-system1",
+        "syncSnapshot": false
+      }
+    }
+  },
+  {
+    "status": "done",
+    "value": "NotDone",
+    "historyValue": {},
+    "context": {},
+    "children": {}
+  },
+  {
+    "status": "active",
+    "value": { "Up": "Step2 system1" },
+    "historyValue": {},
+    "context": {},
+    "children": {
+      "up-step2-system1": {
+        "snapshot": {
+          "status": "active",
+          "value": "running",
+          "historyValue": {},
+          "context": { "errorCount": 0, "threshold": 3 },
+          "children": {
+            "upDownService": {
+              "snapshot": { "status": "active" },
+              "src": "upDownService",
+              "syncSnapshot": false
+            }
+          }
+        },
+        "src": "up-step2-system1",
+        "syncSnapshot": false
+      }
+    }
+  },
+  {
+    "status": "active",
+    "value": { "Up": "Step1 system1" },
+    "historyValue": {},
+    "context": {},
+    "children": {
+      "up-step1-system1": {
+        "snapshot": {
+          "status": "active",
+          "value": "running",
+          "historyValue": {},
+          "context": { "errorCount": 0, "threshold": 3 },
+          "children": {
+            "upDownService": {
+              "snapshot": { "status": "active" },
+              "src": "upDownService",
+              "syncSnapshot": false
+            }
+          }
+        },
+        "src": "up-step1-system1",
+        "syncSnapshot": false
+      }
+    }
+  }
+]
