@@ -176,6 +176,19 @@ export type OutputFrom<T> =
       ? (TSnapshot & { status: 'done' })['output']
       : never;
 
+export type ErrorFrom<T> =
+  T extends ActorLogic<
+    infer TSnapshot,
+    infer _TEvent,
+    infer _TInput,
+    infer _TSystem,
+    infer _TEmitted
+  >
+    ? (TSnapshot & { status: 'error' })['error']
+    : T extends ActorRef<infer TSnapshot, infer _TEvent, infer _TEmitted>
+      ? (TSnapshot & { status: 'error' })['error']
+      : never;
+
 export type ActionFunction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -420,7 +433,7 @@ export interface InvokeDefinition<
     | SingleOrArray<
         TransitionConfig<
           TContext,
-          ErrorActorEvent,
+          ErrorActorEvent<unknown>,
           TEvent,
           TActor,
           TAction,
@@ -670,7 +683,7 @@ type DistributeActors<
               | SingleOrArray<
                   TransitionConfigOrTarget<
                     TContext,
-                    ErrorActorEvent,
+                    ErrorActorEvent<ErrorFrom<TSpecificActor['logic']>>,
                     TEvent,
                     TActor,
                     TAction,
@@ -725,7 +738,7 @@ type DistributeActors<
             | SingleOrArray<
                 TransitionConfigOrTarget<
                   TContext,
-                  ErrorActorEvent,
+                  ErrorActorEvent<unknown>,
                   TEvent,
                   TActor,
                   TAction,
@@ -818,7 +831,7 @@ export type InvokeConfig<
           | SingleOrArray<
               TransitionConfigOrTarget<
                 TContext,
-                ErrorActorEvent,
+                ErrorActorEvent<unknown>,
                 TEvent,
                 TActor,
                 TAction,
@@ -2218,7 +2231,7 @@ export type AnyActorScope = ActorScope<
 
 export type SnapshotStatus = 'active' | 'done' | 'error' | 'stopped';
 
-export type Snapshot<TOutput> =
+export type Snapshot<TOutput, TError = unknown> =
   | {
       status: 'active';
       output: undefined;
@@ -2232,7 +2245,7 @@ export type Snapshot<TOutput> =
   | {
       status: 'error';
       output: undefined;
-      error: unknown;
+      error: TError;
     }
   | {
       status: 'stopped';
