@@ -33,6 +33,7 @@ import type {
   EventFromLogic,
   InputFrom,
   IsNotNever,
+  Readable,
   Snapshot,
   SnapshotFrom
 } from './types.ts';
@@ -483,6 +484,28 @@ export class Actor<TLogic extends AnyActorLogic>
       unsubscribe: () => {
         listeners.delete(wrappedHandler);
       }
+    };
+  }
+
+  public select<TSelected, TSnapshot = SnapshotFrom<TLogic>>(
+    selector: (snapshot: TSnapshot) => TSelected,
+    equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
+  ): Readable<TSelected> {
+    return {
+      subscribe: (observerOrFn) => {
+        const observer = toObserver(observerOrFn);
+        const snapshot: TSnapshot = this.getSnapshot();
+        let previousSelected = selector(snapshot);
+
+        return this.subscribe((snapshot) => {
+          const nextSelected = selector(snapshot);
+          if (!equalityFn(previousSelected, nextSelected)) {
+            previousSelected = nextSelected;
+            observer.next?.(nextSelected);
+          }
+        });
+      },
+      get: () => selector(this.getSnapshot())
     };
   }
 
