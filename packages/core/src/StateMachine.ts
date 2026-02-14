@@ -220,6 +220,7 @@ export class StateMachine<
       status?: SnapshotStatus;
       output?: TOutput;
       error?: unknown;
+      event?: TEvent;
     } & (Equals<TContext, MachineContext> extends false
       ? { context: unknown }
       : {})
@@ -248,7 +249,8 @@ export class StateMachine<
           : config.status || 'active',
         output: config.output,
         error: config.error,
-        historyValue: config.historyValue
+        historyValue: config.historyValue,
+        event: config.event
       },
       this
     ) as MachineSnapshot<
@@ -378,7 +380,8 @@ export class StateMachine<
           typeof context !== 'function' && context ? context : ({} as TContext),
         _nodes: [this.root],
         children: {},
-        status: 'active'
+        status: 'active',
+        event: initEvent
       },
       this
     );

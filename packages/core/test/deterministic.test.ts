@@ -92,14 +92,19 @@ describe('deterministic machine', () => {
 
       const actor = createActor(machine).start();
 
-      const previousSnapshot = actor.getSnapshot();
+      // First send of FAKE event - snapshot changes because event is different from init
+      actor.send({ type: 'FAKE' });
+      const snapshotAfterFirstFake = actor.getSnapshot();
 
-      actor.send({
-        type: 'FAKE'
-      });
+      expect(snapshotAfterFirstFake.value).toBe('a');
+      expect(snapshotAfterFirstFake.event).toEqual({ type: 'FAKE' });
+
+      // Second send of structurally equal FAKE event - snapshot should be same reference
+      // due to structural sharing (no transition + same event = same snapshot)
+      actor.send({ type: 'FAKE' });
 
       expect(actor.getSnapshot().value).toBe('a');
-      expect(actor.getSnapshot()).toBe(previousSnapshot);
+      expect(actor.getSnapshot()).toBe(snapshotAfterFirstFake);
     });
 
     it('should throw an error if not given an event', () => {
@@ -212,14 +217,18 @@ describe('deterministic machine', () => {
 
       const actor = createActor(machine).start();
 
-      const previousSnapshot = actor.getSnapshot();
+      // First FAKE event changes snapshot (different from init event)
+      actor.send({ type: 'FAKE' });
+      const snapshotAfterFirstFake = actor.getSnapshot();
 
-      actor.send({
-        type: 'FAKE'
-      });
+      expect(snapshotAfterFirstFake.value).toEqual({ a: 'b' });
+      expect(snapshotAfterFirstFake.event).toEqual({ type: 'FAKE' });
+
+      // Second structurally equal FAKE event - snapshot should be same reference
+      actor.send({ type: 'FAKE' });
 
       expect(actor.getSnapshot().value).toEqual({ a: 'b' });
-      expect(actor.getSnapshot()).toBe(previousSnapshot);
+      expect(actor.getSnapshot()).toBe(snapshotAfterFirstFake);
     });
 
     it('should transition to the deepest initial state', () => {
@@ -236,17 +245,27 @@ describe('deterministic machine', () => {
       });
     });
 
-    it('should return the same state if no transition occurs', () => {
+    it('should return the same snapshot if no transition occurs and event is structurally equal', () => {
       const init = getInitialSnapshot(lightMachine, undefined);
-      const [initialState] = transition(lightMachine, init, {
+      // First NOTHING event - snapshot changes (different from init event)
+      const [stateAfterFirstNothing] = transition(lightMachine, init, {
         type: 'NOTHING'
       });
-      const [nextState] = transition(lightMachine, initialState, {
-        type: 'NOTHING'
-      });
+      // Second structurally equal NOTHING event - snapshot should be same reference
+      const [stateAfterSecondNothing] = transition(
+        lightMachine,
+        stateAfterFirstNothing,
+        {
+          type: 'NOTHING'
+        }
+      );
 
-      expect(initialState.value).toEqual(nextState.value);
-      expect(nextState).toBe(initialState);
+      expect(stateAfterFirstNothing.value).toEqual(
+        stateAfterSecondNothing.value
+      );
+      expect(stateAfterSecondNothing.event).toEqual({ type: 'NOTHING' });
+      // Structural sharing: same event + no transition = same snapshot reference
+      expect(stateAfterSecondNothing).toBe(stateAfterFirstNothing);
     });
   });
 
