@@ -5890,8 +5890,10 @@
 - [`99bc5fb9`](https://github.com/statelyai/xstate/commit/99bc5fb9d1d7be35f4c767dcbbf5287755b306d0) [#2275](https://github.com/statelyai/xstate/pull/2275) Thanks [@davidkpiano](https://github.com/statelyai)! - The `SpawnedActorRef` TypeScript interface has been deprecated in favor of a unified `ActorRef` interface, which contains the following:
 
   ```ts
-  interface ActorRef<TEvent extends EventObject, TEmitted = any>
-    extends Subscribable<TEmitted> {
+  interface ActorRef<
+    TEvent extends EventObject,
+    TEmitted = any
+  > extends Subscribable<TEmitted> {
     send: (event: TEvent) => void;
     id: string;
     subscribe(observer: Observer<T>): Subscription;
