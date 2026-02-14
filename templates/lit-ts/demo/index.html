@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Demo - feedback-element</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:image/x-icon;base64,B" />
+    <meta name="description" content="feedback-element" />
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        font-family: sans-serif;
+      }
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #eaeaea;
+      }
+      :not(:defined) {
+        visibility: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <feedback-element>
+      <a href="./counter.html">View counter demo</a>
+    </feedback-element>
+    <script src="./entry.js" type="module"></script>
+  </body>
+</html>
