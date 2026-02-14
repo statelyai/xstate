@@ -376,6 +376,11 @@ export class StateNode<
     >,
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
+    // Final states are terminal and cannot have outgoing transitions
+    if (this.type === 'final') {
+      return undefined;
+    }
+
     const eventType = event.type;
     const actions: UnknownAction[] = [];
 
