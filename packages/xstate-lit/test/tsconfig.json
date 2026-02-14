@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "experimentalDecorators": true,
+    "noEmit": true
+  }
+}

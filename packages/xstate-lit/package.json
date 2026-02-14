@@ -1,0 +1,66 @@
+{
+  "name": "@xstate/lit",
+  "version": "1.0.0",
+  "description": "XState tools for Lit",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "state",
+    "graph",
+    "store",
+    "lit",
+    "reactive controller",
+    "web components"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-lit#readme",
+  "license": "MIT",
+  "main": "dist/xstate-lit.cjs.js",
+  "module": "dist/xstate-lit.esm.js",
+  "type": "module",
+  "preconstruct": {
+    "exports": true,
+    "___experimentalFlags_WILL_CHANGE_IN_PATCH": {
+      "typeModule": true,
+      "distInRoot": true,
+      "importsConditions": true
+    }
+  },
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-lit.cjs.mjs",
+        "default": "./dist/xstate-lit.cjs.js"
+      },
+      "module": "./dist/xstate-lit.esm.js",
+      "import": "./dist/xstate-lit.cjs.mjs",
+      "default": "./dist/xstate-lit.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "peerDependencies": {
+    "lit": "^3.3.1",
+    "xstate": "workspace:^"
+  },
+  "devDependencies": {
+    "@vitest/browser": "^3.2.2",
+    "lit": "^3.3.1",
+    "playwright": "^1.54.1",
+    "vitest": "^3.2.2",
+    "vitest-browser-lit": "^0.1.0",
+    "xstate": "workspace:^"
+  }
+}
