@@ -97,10 +97,12 @@ export interface Store<
       | ((inspectionEvent: StoreInspectionEvent) => void)
   ) => Subscription;
   sessionId: string;
-  on: <TEmittedType extends TEmitted['type']>(
+  on: <TEmittedType extends TEmitted['type'] | '*'>(
     eventType: TEmittedType,
     emittedEventHandler: (
-      emittedEvent: Compute<TEmitted & { type: TEmittedType }>
+      emittedEvent: TEmittedType extends '*'
+        ? TEmitted
+        : Compute<TEmitted & { type: TEmittedType }>
     ) => void
   ) => Subscription;
   /**
@@ -185,7 +187,9 @@ export type StoreConfig<
 > = {
   context: TContext;
   emits?: {
-    [K in keyof TEmitted]: (payload: TEmitted[K]) => void;
+    [K in keyof TEmitted]: K extends '*'
+      ? never
+      : (payload: TEmitted[K]) => void;
   };
   on: {
     [K in keyof TEventPayloadMap & string]: StoreAssigner<
@@ -203,7 +207,9 @@ export type SpecificStoreConfig<
 > = {
   context: TContext;
   emits?: {
-    [E in TEmitted as E['type']]: (payload: E) => void;
+    [E in TEmitted as E['type']]: E['type'] extends '*'
+      ? never
+      : (payload: E) => void;
   };
   on: {
     [E in TEvent as E['type']]: StoreAssigner<TContext, E, TEmitted>;

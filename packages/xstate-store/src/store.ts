@@ -57,6 +57,10 @@ function createStoreCore<
     if (typeListeners) {
       typeListeners.forEach((listener) => listener(ev));
     }
+    const wildcardListeners = listeners.get('*' as TEmitted['type']);
+    if (wildcardListeners) {
+      wildcardListeners.forEach((listener) => listener(ev));
+    }
   };
 
   const transition = logic.transition;
@@ -354,9 +358,9 @@ export function createStoreWithProducer<
       ) => void;
     };
     emits?: {
-      [K in keyof TEmittedPayloadMap & string]: (
-        payload: TEmittedPayloadMap[K]
-      ) => void;
+      [K in keyof TEmittedPayloadMap & string]: K extends '*'
+        ? never
+        : (payload: TEmittedPayloadMap[K]) => void;
     };
   }
 ): Store<TContext, TEventPayloadMap, ExtractEvents<TEmittedPayloadMap>> {
