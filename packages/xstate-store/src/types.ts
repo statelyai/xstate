@@ -100,7 +100,9 @@ export interface Store<
   on: <TType extends TEmitted['type'] | '*'>(
     type: TType,
     handler: (
-      emitted: TEmitted & (TType extends '*' ? unknown : { type: TType })
+      emitted: Compute<
+        TEmitted & (TType extends '*' ? unknown : { type: TType })
+      >
     ) => void
   ) => Subscription;
   /**
@@ -211,6 +213,8 @@ export type SpecificStoreConfig<
 };
 
 type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
+
+type Compute<A> = A extends any ? { [K in keyof A]: A[K] } : never;
 
 export type AnyStore = Store<any, any, any>;
 
