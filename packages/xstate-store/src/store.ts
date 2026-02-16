@@ -274,6 +274,7 @@ export function createStore(
   if ('transition' in definitionOrLogic) {
     return createStoreCore(definitionOrLogic);
   }
+
   const transition = createStoreTransition(definitionOrLogic.on);
   const logic: AnyStoreLogic = {
     getInitialSnapshot: () => ({
@@ -358,9 +359,9 @@ export function createStoreWithProducer<
       ) => void;
     };
     emits?: {
-      [K in keyof TEmittedPayloadMap & string]: K extends '*'
-        ? never
-        : (payload: TEmittedPayloadMap[K]) => void;
+      [K in keyof TEmittedPayloadMap & string]: (
+        payload: TEmittedPayloadMap[K]
+      ) => void;
     };
   }
 ): Store<TContext, TEventPayloadMap, ExtractEvents<TEmittedPayloadMap>> {

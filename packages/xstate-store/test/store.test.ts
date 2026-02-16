@@ -541,9 +541,8 @@ it('wildcard listener can be unsubscribed', () => {
   expect(spy).toHaveBeenCalledTimes(1);
 });
 
-it('wildcard listener and specific listener both fire', () => {
-  const wildcardSpy = vi.fn();
-  const specificSpy = vi.fn();
+it('wildcard listener is called after specific listener', () => {
+  const order: string[] = [];
   const store = createStore({
     context: { count: 0 },
     emits: {
@@ -557,13 +556,12 @@ it('wildcard listener and specific listener both fire', () => {
     }
   });
 
-  store.on('increased', specificSpy);
-  store.on('*', wildcardSpy);
+  store.on('increased', () => order.push('specific'));
+  store.on('*', () => order.push('wildcard'));
 
   store.trigger.inc();
 
-  expect(specificSpy).toHaveBeenCalledTimes(1);
-  expect(wildcardSpy).toHaveBeenCalledTimes(1);
+  expect(order).toEqual(['specific', 'wildcard']);
 });
 
 it('async effects can be enqueued', async () => {
