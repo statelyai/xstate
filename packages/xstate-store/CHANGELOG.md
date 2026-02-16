@@ -1,5 +1,33 @@
 # @xstate/store
 
+## 3.16.0
+
+### Minor Changes
+
+- [#5467](https://github.com/statelyai/xstate/pull/5467) [`d54cc47`](https://github.com/statelyai/xstate/commit/d54cc4760513ba05e9c0fc7a4a783d0c47a882f2) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add wildcard `'*'` support for `store.on('*', …)` to listen to all emitted events. The handler receives the union of all emitted event types.
+
+  ```ts
+  const store = createStore({
+    context: { count: 0 },
+    emits: {
+      increased: (_: { upBy: number }) => {},
+      decreased: (_: { downBy: number }) => {}
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit.increased({ upBy: 1 });
+        return { ...ctx, count: ctx.count + 1 };
+      }
+    }
+  });
+
+  store.on('*', (ev) => {
+    // ev:
+    // | { type: 'increased'; upBy: number }
+    // | { type: 'decreased'; downBy: number }
+  });
+  ```
+
 ## 3.15.0
 
 ### Minor Changes
