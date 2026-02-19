@@ -486,6 +486,84 @@ it('emits-only transitions should emit events', () => {
   expect(spy).toHaveBeenCalledTimes(1);
 });
 
+it('wildcard listener receives all emitted events', () => {
+  const spy = vi.fn();
+  const store = createStore({
+    context: { count: 0 },
+    emits: {
+      increased: (_: { upBy: number }) => {},
+      decreased: (_: { downBy: number }) => {}
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit.increased({ upBy: 1 });
+        return { ...ctx, count: ctx.count + 1 };
+      },
+      dec: (ctx, _, enq) => {
+        enq.emit.decreased({ downBy: 1 });
+        return { ...ctx, count: ctx.count - 1 };
+      }
+    }
+  });
+
+  store.on('*', spy);
+
+  store.trigger.inc();
+  expect(spy).toHaveBeenCalledWith({ type: 'increased', upBy: 1 });
+
+  store.trigger.dec();
+  expect(spy).toHaveBeenCalledWith({ type: 'decreased', downBy: 1 });
+
+  expect(spy).toHaveBeenCalledTimes(2);
+});
+
+it('wildcard listener can be unsubscribed', () => {
+  const spy = vi.fn();
+  const store = createStore({
+    context: { count: 0 },
+    emits: {
+      increased: (_: { upBy: number }) => {}
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit.increased({ upBy: 1 });
+        return { ...ctx, count: ctx.count + 1 };
+      }
+    }
+  });
+
+  const sub = store.on('*', spy);
+  store.trigger.inc();
+  expect(spy).toHaveBeenCalledTimes(1);
+
+  sub.unsubscribe();
+  store.trigger.inc();
+  expect(spy).toHaveBeenCalledTimes(1);
+});
+
+it('wildcard listener is called after specific listener', () => {
+  const order: string[] = [];
+  const store = createStore({
+    context: { count: 0 },
+    emits: {
+      increased: (_: { upBy: number }) => {}
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit.increased({ upBy: 1 });
+        return { ...ctx, count: ctx.count + 1 };
+      }
+    }
+  });
+
+  store.on('increased', () => order.push('specific'));
+  store.on('*', () => order.push('wildcard'));
+
+  store.trigger.inc();
+
+  expect(order).toEqual(['specific', 'wildcard']);
+});
+
 it('async effects can be enqueued', async () => {
   const store = createStore({
     context: {

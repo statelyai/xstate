@@ -57,6 +57,10 @@ function createStoreCore<
     if (typeListeners) {
       typeListeners.forEach((listener) => listener(ev));
     }
+    const wildcardListeners = listeners.get('*' as TEmitted['type']);
+    if (wildcardListeners) {
+      wildcardListeners.forEach((listener) => listener(ev));
+    }
   };
 
   const transition = logic.transition;
@@ -270,6 +274,7 @@ export function createStore(
   if ('transition' in definitionOrLogic) {
     return createStoreCore(definitionOrLogic);
   }
+
   const transition = createStoreTransition(definitionOrLogic.on);
   const logic: AnyStoreLogic = {
     getInitialSnapshot: () => ({

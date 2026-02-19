@@ -97,10 +97,12 @@ export interface Store<
       | ((inspectionEvent: StoreInspectionEvent) => void)
   ) => Subscription;
   sessionId: string;
-  on: <TEmittedType extends TEmitted['type']>(
-    eventType: TEmittedType,
-    emittedEventHandler: (
-      emittedEvent: Compute<TEmitted & { type: TEmittedType }>
+  on: <TType extends TEmitted['type'] | '*'>(
+    type: TType,
+    handler: (
+      emitted: Compute<
+        TEmitted & (TType extends '*' ? unknown : { type: TType })
+      >
     ) => void
   ) => Subscription;
   /**
@@ -212,9 +214,9 @@ export type SpecificStoreConfig<
 
 type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
 
-export type AnyStore = Store<any, any, any>;
+type Compute<A> = A extends any ? { [K in keyof A]: A[K] } : never;
 
-type Compute<A> = { [K in keyof A]: A[K] };
+export type AnyStore = Store<any, any, any>;
 
 export type SnapshotFromStore<TStore extends Store<any, any, any>> =
   TStore extends Store<infer TContext, any, any>
