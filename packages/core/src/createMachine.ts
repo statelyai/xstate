@@ -11,7 +11,8 @@ import {
   ToChildren,
   MetaObject,
   StateSchema,
-  DoNotInfer
+  DoNotInfer,
+  RoutableStateId
 } from './types.ts';
 import {
   Implementations,
@@ -116,7 +117,13 @@ export function createMachine<
     >
 ): StateMachine<
   InferOutput<TContextSchema, MachineContext>,
-  InferEvents<TEventSchemaMap>,
+  | InferEvents<TEventSchemaMap>
+  | ([RoutableStateId<TSS>] extends [never]
+      ? never
+      : {
+          type: 'xstate.route';
+          to: RoutableStateId<TSS>;
+        }),
   Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
   StateValue,
   TTag & string,

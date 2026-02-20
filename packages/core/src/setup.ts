@@ -6,6 +6,8 @@ import {
   AnyEventObject,
   MachineContext,
   ProvidedActor,
+  RoutableStateId,
+  StateSchema,
   StateValue,
   ToChildren,
   MetaObject,
@@ -33,6 +35,7 @@ export interface SetupConfig<
     SetupStateSchema
   >
 > {
+  types?: unknown;
   states?: TStates;
 }
 
@@ -291,9 +294,8 @@ export interface SetupReturn<
     TDelayMap extends Implementations['delays'],
     TDelays extends string,
     TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
-    TInput
-  >(
-    config: SetupMachineConfig<
+    TInput,
+    TConfig extends SetupMachineConfig<
       TStates,
       TContextSchema,
       TEventSchemaMap,
@@ -311,9 +313,17 @@ export interface SetupReturn<
       TGuardMap,
       TDelayMap
     >
+  >(
+    config: TConfig
   ): StateMachine<
     InferOutput<TContextSchema, MachineContext>,
-    InferEvents<TEventSchemaMap>,
+    | InferEvents<TEventSchemaMap>
+    | ([RoutableStateId<Cast<TConfig, StateSchema>>] extends [never]
+        ? never
+        : {
+            type: 'xstate.route';
+            to: RoutableStateId<Cast<TConfig, StateSchema>>;
+          }),
     Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
     StateValue,
     TTag & string,

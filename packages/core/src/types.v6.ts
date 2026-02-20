@@ -314,6 +314,21 @@ export interface Next_StateNodeConfig<
       TMeta
     >;
   };
+  /**
+   * Enables routing to this state via `{ type: 'xstate.route', to: '#id' }`.
+   * Requires this state node to have an explicit `id`.
+   */
+  route?:
+    | {
+        description?: string;
+        reenter?: boolean;
+        meta?: TMeta;
+        guard?: unknown;
+        params?:
+          | Record<string, unknown>
+          | ((args: { context: any; event: any }) => Record<string, unknown>);
+      }
+    | undefined;
   entry?: Action<
     TContext,
     TEvent,
