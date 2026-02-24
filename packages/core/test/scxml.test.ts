@@ -368,15 +368,6 @@ async function runW3TestToCompletion(
   const actor = createActor(machine, {
     logger: () => void 0
   });
-  actor.system.inspect((e) => {
-    console.log({
-      type: e.type,
-      microsteps: e.microsteps.map((m) => ({
-        type: m.eventType,
-        state: m.target
-      }))
-    });
-  });
   actor.subscribe({
     next: (state) => {
       prevState = nextState;
@@ -390,15 +381,11 @@ async function runW3TestToCompletion(
       if (['final', 'pass'].includes(nextState.value as string)) {
         resolve();
       } else {
-        console.log(transitions.join('\n'));
-        console.log(scxmlDefinition);
-        console.log(toMachineJSON(scxmlDefinition));
-        console.log(JSON.stringify(test, null, 2));
         reject(
           new Error(
             `${name}: Reached "fail" state from state ${JSON.stringify(
               prevState?.value
-            )}`
+            )}\nTransitions:\n${transitions.join('\n')}`
           )
         );
       }
@@ -427,16 +414,6 @@ async function runTestToCompletion(
     clock: new SimulatedClock()
   });
 
-  actor.system.inspect((e) => {
-    console.log({
-      type: e.type,
-      microsteps: e.microsteps.map((m) => ({
-        type: m.eventType,
-        state: m.target
-      }))
-    });
-  });
-
   let nextState: AnyMachineSnapshot = actor.getSnapshot();
   let prevState: AnyMachineSnapshot;
   actor.subscribe((state) => {
@@ -446,14 +423,10 @@ async function runTestToCompletion(
   actor.subscribe({
     complete: () => {
       if (nextState.value === 'fail') {
-        console.log(scxmlDefinition);
-        console.log(JSON.stringify(machineJSON, null, 2));
-        console.log(JSON.stringify(test, null, 2));
-
         throw new Error(
           `${name}: Reached "fail" state from state ${JSON.stringify(
             prevState?.value
-          )}`
+          )}\nTransitions:\n${transitions.join('\n')}`
         );
       }
       done = true;
@@ -478,21 +451,13 @@ async function runTestToCompletion(
       (stateNode) => stateNode.id
     );
 
-    if (!stateIds.includes(sanitizeStateId(nextConfiguration[0]))) {
-      console.log(transitions.join('\n'));
-      console.log(scxmlDefinition);
-      console.log(JSON.stringify(machineJSON, null, 2));
-      console.log(JSON.stringify(test, null, 2));
-    }
-
     expect(stateIds).toContain(sanitizeStateId(nextConfiguration[0]));
   });
 }
 
-describe.skip('scxml', () => {
+describe('scxml', () => {
   const onlyTests: string[] = [
     // e.g., 'test399.txml'
-    'test147.txml'
   ];
   const testGroupKeys = Object.keys(testGroups);
 

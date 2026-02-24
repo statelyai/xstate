@@ -1066,6 +1066,7 @@ function microstep(
   try {
     const mutStateNodeSet = new Set(currentSnapshot._nodes as StateNode[]);
     let historyValue = currentSnapshot.historyValue;
+    const originalContext = currentSnapshot.context;
 
     const filteredTransitions = removeConflictingTransitions(
       transitions,
@@ -1180,6 +1181,11 @@ function microstep(
         mutStateNodeSet
       )
     ) {
+      // If context was changed (e.g. by entry actions during self-transition),
+      // clone to ensure reference inequality for eventless transition re-evaluation
+      if (nextState.context !== originalContext) {
+        return [cloneMachineSnapshot(nextState), actions];
+      }
       return [nextState, actions];
     }
 
@@ -1608,7 +1614,6 @@ export function getTransitionResult(
     const targets = res?.target
       ? resolveTarget(transition.source, [res.target])
       : undefined;
-
     // Resolve params for .to transitions
     const resolvedParams =
       typeof transition.params === 'function'

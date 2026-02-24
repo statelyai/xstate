@@ -74,6 +74,41 @@ function getTargets(targetAttr?: string | number): string[] | undefined {
     : undefined;
 }
 
+interface ScxmlIfBranch {
+  cond?: string;
+  actions: ActionJSON[];
+}
+
+function parseIfElement(element: XMLElement): ActionJSON {
+  const branches: ScxmlIfBranch[] = [];
+  let currentCond: string | undefined = element.attributes?.cond as string;
+  let currentActions: ActionJSON[] = [];
+
+  if (element.elements) {
+    for (const child of element.elements) {
+      if (child.type === 'comment') continue;
+      if (child.name === 'elseif') {
+        branches.push({ cond: currentCond, actions: currentActions });
+        currentCond = child.attributes?.cond as string;
+        currentActions = [];
+      } else if (child.name === 'else') {
+        branches.push({ cond: currentCond, actions: currentActions });
+        currentCond = undefined; // else has no condition
+        currentActions = [];
+      } else {
+        currentActions.push(mapAction(child));
+      }
+    }
+  }
+  // Push the last branch
+  branches.push({ cond: currentCond, actions: currentActions });
+
+  return {
+    type: 'scxml.if',
+    branches
+  } as any;
+}
+
 function mapAction(element: XMLElement): ActionJSON {
   switch (element.name) {
     case 'raise': {
@@ -129,35 +164,47 @@ function mapAction(element: XMLElement): ActionJSON {
       }
 
       const isInternal = target === SpecialTargets.Internal;
+      const isParentTarget = target === '#_parent';
       // External events (non-internal) go to external queue via delay:0
-      // This ensures internal events are processed first within a macrostep
+      // This ensures internal events are processed first within a macrostep.
+      // #_parent sends use undefined delay for immediate relay.
       const resolvedDelay = delay
         ? delayToMs(delay)
-        : isInternal
+        : isInternal || isParentTarget
           ? undefined
           : 0;
 
-      // If no params and no expressions, use simple RaiseJSON
-      if (!params.length && !eventexpr && !delayexpr && !targetexpr) {
-        const action: RaiseJSON = {
-          type: '@xstate.raise',
-          event: { type: (event as string) || 'unknown' },
+      // Any send with a special target (except internal), params, or expressions
+      // uses ScxmlRaiseJSON. Target resolution happens at runtime in executeActions.
+      const hasNonInternalTarget =
+        typeof target === 'string' && target.length > 0 && !isInternal;
+      if (
+        hasNonInternalTarget ||
+        params.length ||
+        eventexpr ||
+        delayexpr ||
+        targetexpr
+      ) {
+        const action: ScxmlRaiseJSON = {
+          type: 'scxml.raise',
+          event: event as string | undefined,
+          eventexpr: eventexpr as string | undefined,
+          params: params.length ? params : undefined,
           id: id as string | undefined,
-          delay: resolvedDelay
+          delay: resolvedDelay,
+          delayexpr: delayexpr as string | undefined,
+          target: target as string | undefined,
+          targetexpr: targetexpr as string | undefined
         };
         return action;
       }
 
-      // Use ScxmlRaiseJSON for params/expressions that need runtime evaluation
-      const action: ScxmlRaiseJSON = {
-        type: 'scxml.raise',
-        event: event as string | undefined,
-        eventexpr: eventexpr as string | undefined,
-        params: params.length ? params : undefined,
+      // Simple send (no special target, no expressions)
+      const action: RaiseJSON = {
+        type: '@xstate.raise',
+        event: { type: (event as string) || 'unknown' },
         id: id as string | undefined,
-        delay: resolvedDelay,
-        delayexpr: delayexpr as string | undefined,
-        targetexpr: targetexpr as string | undefined
+        delay: resolvedDelay
       };
       return action;
     }
@@ -172,9 +219,7 @@ function mapAction(element: XMLElement): ActionJSON {
       return action;
     }
     case 'if': {
-      // if/elseif/else - we'll flatten this into a single custom action for now
-      // The full implementation would require runtime conditional logic
-      return { type: 'scxml.if', params: { element } };
+      return parseIfElement(element);
     }
     case 'script': {
       // Get the script text content
@@ -420,13 +465,23 @@ function toStateNodeJSON(
       (el) => el.name === 'content'
     ) as XMLElement;
 
-    // For nested SCXML, we need to convert it to a machine
-    // For now, we'll store a reference
+    // Convert nested SCXML content to a machine JSON
+    const nestedScxml = content?.elements?.find(
+      (el) => el.name === 'scxml'
+    ) as XMLElement;
+
+    let _nestedMachineJSON: MachineJSON | undefined;
+    if (nestedScxml) {
+      // Create a wrapper that looks like xml2js output: { elements: [scxmlElement] }
+      const wrapper: XMLElement = { elements: [nestedScxml] };
+      _nestedMachineJSON = scxmlToMachineJSON(wrapper);
+    }
+
     return {
       ...(element.attributes!.id && { id: element.attributes!.id as string }),
-      src: 'scxml.nested', // Placeholder - would need to convert nested SCXML
-      _scxmlContent: content // Store for later processing
-    } as InvokeJSON;
+      src: 'scxml.nested',
+      _nestedMachineJSON
+    } as InvokeJSON & { _nestedMachineJSON?: MachineJSON };
   });
 
   const resolvedInitial = initial && String(initial).split(' ');
