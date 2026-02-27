@@ -8,7 +8,7 @@ import {
 } from './eventUtils.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
-import { AnyActorSystem, Clock, createSystem } from './system.ts';
+import { AnyActorSystem, Clock, createActorSystem } from './system.ts';
 
 // those are needed to make JSDoc `@link` work properly
 import type {
@@ -71,11 +71,10 @@ const defaultOptions = {
  * its behavior based on the events it receives, which can cause effects outside
  * of the actor. When you run a state machine, it becomes an actor.
  */
-export class Actor<TLogic extends AnyActorLogic> implements ActorRef<
-  SnapshotFrom<TLogic>,
-  EventFromLogic<TLogic>,
-  EmittedFrom<TLogic>
-> {
+export class Actor<TLogic extends AnyActorLogic>
+  implements
+    ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>, EmittedFrom<TLogic>>
+{
   /** The current internal state of the actor. */
   private _snapshot!: SnapshotFrom<TLogic>;
   /**
@@ -156,15 +155,24 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorRef<
       ...options
     };
 
-    const { clock, logger, parent, syncSnapshot, id, systemId, inspect } =
-      resolvedOptions;
+    const {
+      clock,
+      logger,
+      parent,
+      syncSnapshot,
+      id,
+      systemId,
+      inspect,
+      system
+    } = resolvedOptions;
 
     this.system = parent
       ? parent.system
-      : createSystem(this, {
+      : (system ??
+        createActorSystem(this, {
           clock,
           logger
-        });
+        }));
 
     if (inspect && !parent) {
       // Always inspect at the system-level

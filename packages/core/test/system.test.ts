@@ -5,6 +5,7 @@ import {
   ActorRef,
   Snapshot,
   createActor,
+  createSystem,
   createMachine,
   fromEventObservable,
   fromObservable,
@@ -14,6 +15,24 @@ import {
 import { ActorSystem } from '../src/system.ts';
 
 describe('system', () => {
+  it('should create actors from an explicit system', () => {
+    const sys = createSystem();
+    const machine = createMachine({});
+
+    const actor = sys.createActor(machine, { systemId: 'root' });
+
+    expect(sys.get('root')).toBe(actor);
+  });
+
+  it('should allow explicit receptionist registration', () => {
+    const sys = createSystem();
+    const actor = createActor(createMachine({}));
+
+    sys.register('receiver' as never, actor as never);
+
+    expect(sys.get('receiver' as never)).toBe(actor);
+  });
+
   it('should register an invoked actor', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     type MySystem = ActorSystem<{

@@ -24,6 +24,11 @@ export interface Clock {
   clearTimeout(id: any): void;
 }
 
+const defaultClock: Clock = {
+  setTimeout: (fn, ms) => setTimeout(fn, ms),
+  clearTimeout: (id) => clearTimeout(id)
+};
+
 interface Scheduler {
   schedule(
     source: AnyActorRef,
@@ -87,21 +92,23 @@ export interface ActorSystem<T extends ActorSystemInfo> {
 
 export type AnyActorSystem = ActorSystem<any>;
 
-export function createSystem<T extends ActorSystemInfo>(
-  rootActor: AnyActorRef,
-  options: {
-    clock: Clock;
-    logger: (...args: any[]) => void;
+export function createActorSystem<T extends ActorSystemInfo>(
+  rootActor: AnyActorRef | undefined,
+  options?: {
+    clock?: Clock;
+    logger?: (...args: any[]) => void;
     snapshot?: unknown;
   }
 ): ActorSystem<T> {
+  let rootSessionId = rootActor?.sessionId;
   let idCounter = 0;
   const children = new Map<string, AnyActorRef>();
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
   const inspectionObservers = new Set<Observer<InspectionEvent>>();
   const timerMap: { [id: ScheduledEventId]: number } = {};
-  const { clock, logger } = options;
+  const clock = options?.clock ?? defaultClock;
+  const logger = options?.logger ?? console.log.bind(console);
 
   const scheduler: Scheduler = {
     schedule: (
@@ -160,7 +167,10 @@ export function createSystem<T extends ActorSystemInfo>(
     }
     const resolvedInspectionEvent: InspectionEvent = {
       ...event,
-      rootId: rootActor.sessionId!
+      rootId:
+        rootSessionId ??
+        (event.actorRef as AnyActorRef | undefined)?.sessionId ??
+        ''
     };
     inspectionObservers.forEach((observer) =>
       observer.next?.(resolvedInspectionEvent)
@@ -178,6 +188,9 @@ export function createSystem<T extends ActorSystemInfo>(
     _bookId: () => `x:${idCounter++}`,
     _register: (sessionId, actorRef) => {
       children.set(sessionId, actorRef);
+      if (!rootSessionId && !(actorRef as any)._parent) {
+        rootSessionId = sessionId;
+      }
       return sessionId;
     },
     _unregister: (actorRef) => {
@@ -198,7 +211,6 @@ export function createSystem<T extends ActorSystemInfo>(
     _set: (systemId, actorRef) => {
       const existing = keyedActors.get(systemId);
       if (existing && existing !== actorRef) {
-        debugger;
         throw new Error(
           `Actor with system ID '${systemId as string}' already exists.`
         );

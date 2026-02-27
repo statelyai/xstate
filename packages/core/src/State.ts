@@ -21,7 +21,7 @@ import type {
   AnyStateNode
 } from './types.ts';
 import { matchesState } from './utils.ts';
-import { createSystem } from './system.ts';
+import { createActorSystem } from './system.ts';
 import { createEmptyActor } from './actors/index.ts';
 
 type ToTestStateValue<TStateValue extends StateValue> =
@@ -313,7 +313,7 @@ const machineSnapshotCan = function can(
     transitionData.some((t) => {
       const res = getTransitionResult(t, this, event, {
         self: createEmptyActor(),
-        system: createSystem(createEmptyActor(), {})
+        system: createActorSystem(createEmptyActor(), {})
       } as any);
       return (
         t.target !== undefined ||

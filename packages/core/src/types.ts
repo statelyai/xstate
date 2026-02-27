@@ -1190,6 +1190,13 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * native `console.log(...)` method.
    */
   logger?: (...args: any[]) => void;
+  /**
+   * The actor system to join.
+   *
+   * @remarks
+   * If omitted for a root actor, an implicit system is created.
+   */
+  system?: AnyActorSystem;
   parent?: AnyActorRef;
   /** @internal */
   syncSnapshot?: boolean;
