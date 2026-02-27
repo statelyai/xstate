@@ -59,8 +59,20 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   _unregister: (actorRef: AnyActorRef) => void;
   /** @internal */
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
+  register: <K extends keyof T['actors']>(
+    key: K,
+    actorRef: T['actors'][K]
+  ) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
   getAll: () => Partial<T['actors']>;
+  receptionist: {
+    register: <K extends keyof T['actors']>(
+      key: K,
+      actorRef: T['actors'][K]
+    ) => void;
+    get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
+    getAll: () => Partial<T['actors']>;
+  };
 
   inspect: (
     observer:
@@ -178,9 +190,6 @@ export function createActorSystem<T extends ActorSystemInfo>(
   };
 
   const system: ActorSystem<T> = {
-    children,
-    reverseKeyedActors,
-    keyedActors,
     _snapshot: {
       _scheduledEvents:
         (options?.snapshot && (options.snapshot as any).scheduler) ?? {}
@@ -194,7 +203,9 @@ export function createActorSystem<T extends ActorSystemInfo>(
       return sessionId;
     },
     _unregister: (actorRef) => {
-      children.delete(actorRef.sessionId);
+      if (actorRef.sessionId !== undefined) {
+        children.delete(actorRef.sessionId);
+      }
       const systemId = reverseKeyedActors.get(actorRef);
 
       if (systemId !== undefined) {
@@ -218,6 +229,22 @@ export function createActorSystem<T extends ActorSystemInfo>(
 
       keyedActors.set(systemId, actorRef);
       reverseKeyedActors.set(actorRef, systemId);
+    },
+    register: (systemId, actorRef) => {
+      system._set(systemId, actorRef);
+    },
+    receptionist: {
+      register: (systemId, actorRef) => {
+        system._set(systemId, actorRef);
+      },
+      get: (systemId) => {
+        return keyedActors.get(systemId) as T['actors'][any] | undefined;
+      },
+      getAll: () => {
+        return Object.fromEntries(keyedActors.entries()) as Partial<
+          T['actors']
+        >;
+      }
     },
     inspect: (observerOrFn) => {
       const observer = toObserver(observerOrFn);

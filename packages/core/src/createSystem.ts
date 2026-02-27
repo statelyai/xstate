@@ -8,18 +8,6 @@ const defaultClock: Clock = {
 };
 
 export interface System<T extends ActorSystemInfo> extends ActorSystem<T> {
-  register: <K extends keyof T['actors']>(
-    key: K,
-    actorRef: T['actors'][K]
-  ) => void;
-  receptionist: {
-    register: <K extends keyof T['actors']>(
-      key: K,
-      actorRef: T['actors'][K]
-    ) => void;
-    get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
-    getAll: () => Partial<T['actors']>;
-  };
   createActor: <TLogic extends AnyActorLogic>(
     logic: TLogic,
     options?: ActorOptions<TLogic>
@@ -38,16 +26,6 @@ export function createSystem<
     logger: options?.logger ?? console.log.bind(console),
     snapshot: options?.snapshot
   }) as System<T>;
-
-  system.register = ((key, actorRef) => {
-    system._set(key as never, actorRef as never);
-  }) as System<T>['register'];
-
-  system.receptionist = {
-    register: system.register,
-    get: system.get,
-    getAll: system.getAll
-  };
 
   system.createActor = ((logic, actorOptions) => {
     return createActor(logic, {

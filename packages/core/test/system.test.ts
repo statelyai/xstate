@@ -28,9 +28,27 @@ describe('system', () => {
     const sys = createSystem();
     const actor = createActor(createMachine({}));
 
-    sys.register('receiver' as never, actor as never);
+    sys.register('receiver', actor);
 
-    expect(sys.get('receiver' as never)).toBe(actor);
+    expect(sys.get('receiver')).toBe(actor);
+  });
+
+  it('should expose register/get on implicit systems', () => {
+    const root = createActor(createMachine({}));
+    const actor = createActor(createMachine({}));
+
+    root.system.register('receiver', actor);
+
+    expect(root.system.get('receiver')).toBe(actor);
+  });
+
+  it('should expose receptionist on implicit systems', () => {
+    const root = createActor(createMachine({}));
+    const actor = createActor(createMachine({}));
+
+    root.system.receptionist.register('receiver', actor);
+
+    expect(root.system.receptionist.get('receiver')).toBe(actor);
   });
 
   it('should register an invoked actor', () => {

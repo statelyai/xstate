@@ -6,7 +6,6 @@ import {
   fromTransition,
   toPromise,
   transition,
-  SpecialExecutableAction,
   createActor,
   getNextTransitions
 } from '../src';
@@ -453,7 +452,7 @@ describe('transition function', () => {
       }
     });
 
-    async function execute(action: SpecialExecutableAction) {
+    async function execute(action: any) {
       if (action.type === '@xstate.raise' && action.args[2]?.delay) {
         const currentTime = Date.now();
         const startedAt = currentTime;
@@ -534,19 +533,20 @@ describe('transition function', () => {
 
     const calls: string[] = [];
 
-    async function execute(action: SpecialExecutableAction) {
-      switch (action.type) {
-        case '@xstate.start': {
-          action.exec.apply(null, action.args);
-          const startedActor = action.args[0];
-          const output = await toPromise(startedActor);
-          postEvent(createDoneActorEvent(startedActor.id, output));
+    const system = {
+      async execute(action: any) {
+        switch (action.type) {
+          case '@xstate.start': {
+            action.exec.apply(null, action.args);
+            const startedActor = action.args[0];
+            const output = await toPromise(startedActor);
+            await postEvent(createDoneActorEvent(startedActor.id, output));
+          }
+          default:
+            break;
         }
-
-        default:
-          break;
       }
-    }
+    };
 
     // POST /workflow
     async function postStart() {
@@ -554,9 +554,9 @@ describe('transition function', () => {
 
       db.state = JSON.stringify(state);
 
-      // execute actions
+      // execute actions through the system
       for (const action of actions) {
-        await execute(action);
+        await system.execute(action);
       }
     }
 
@@ -573,7 +573,7 @@ describe('transition function', () => {
       // "sync" built-in actions: assign, raise, cancel, stop
       // "external" built-in actions: sendTo, raise w/delay, log
       for (const action of actions) {
-        await execute(action);
+        await system.execute(action);
       }
     }
 
