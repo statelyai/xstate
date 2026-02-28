@@ -24,7 +24,7 @@ const store = createStore({
 Features:
 
 - Sync and async storage adapters (localStorage, AsyncStorage, etc.)
-- `partialize` — persist only selected fields
+- `pick` — persist only selected fields
 - `version` + `migrate` — schema versioning and migration
 - `merge` — custom merge strategy on rehydration
 - `throttle` — batched/throttled writes

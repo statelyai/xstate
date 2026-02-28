@@ -21,7 +21,7 @@ export interface StateStorage {
 /** The envelope persisted to storage. */
 export interface PersistStorageValue<TContext> {
   context: Partial<TContext>;
-  version: number;
+  version: string | number;
 }
 
 /** Options for the `persist` store extension. */
@@ -34,11 +34,11 @@ export interface PersistOptions<
   /** Storage adapter. Defaults to `localStorage`. */
   storage?: StateStorage;
   /** Select which parts of context to persist. Defaults to full context. */
-  partialize?: (context: TContext) => Partial<TContext>;
-  /** Schema version number. Defaults to 0. */
-  version?: number;
+  pick?: (context: TContext) => Partial<TContext>;
+  /** Schema version. Defaults to 0. */
+  version?: string | number;
   /** Migration function for version upgrades. */
-  migrate?: (persistedContext: any, version: number) => TContext;
+  migrate?: (persistedContext: any, version: string | number) => TContext;
   /**
    * Custom merge strategy when rehydrating. Defaults to shallow merge (`{
    * ...currentContext, ...persistedContext }`).
@@ -119,9 +119,7 @@ function writeToStorage<TContext>(
   context: TContext
 ): void {
   const { options, storage } = internals;
-  const contextToPersist = options.partialize
-    ? options.partialize(context)
-    : context;
+  const contextToPersist = options.pick ? options.pick(context) : context;
 
   const value: PersistStorageValue<TContext> = {
     context: contextToPersist,
@@ -298,8 +296,8 @@ function persistFromLogic<
       // Schedule storage write
       if (throttleMs > 0) {
         // Throttled: buffer context, schedule delayed write
-        internals.pendingContext = options.partialize
-          ? (options.partialize(nextSnapshot.context) as any)
+        internals.pendingContext = options.pick
+          ? (options.pick(nextSnapshot.context) as any)
           : nextSnapshot.context;
 
         if (internals.flushTimeoutId === null) {

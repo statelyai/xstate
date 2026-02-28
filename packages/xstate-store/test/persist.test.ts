@@ -101,7 +101,7 @@ describe('persist', () => {
   });
 });
 
-describe('persist - partialize', () => {
+describe('persist - pick', () => {
   it('should only persist selected fields', () => {
     const storage = createMockStorage();
     const store = createStore({
@@ -113,7 +113,7 @@ describe('persist - partialize', () => {
       persist({
         name: 'test',
         storage,
-        partialize: (ctx) => ({ count: ctx.count })
+        pick: (ctx) => ({ count: ctx.count })
       })
     );
 
@@ -124,7 +124,7 @@ describe('persist - partialize', () => {
     expect(stored.context.secret).toBeUndefined();
   });
 
-  it('should merge partialized data with full context on restore', () => {
+  it('should merge pickd data with full context on restore', () => {
     const storage = createMockStorage();
     storage.setItem(
       'test',
@@ -141,7 +141,7 @@ describe('persist - partialize', () => {
       persist({
         name: 'test',
         storage,
-        partialize: (ctx) => ({ count: ctx.count })
+        pick: (ctx) => ({ count: ctx.count })
       })
     );
 
