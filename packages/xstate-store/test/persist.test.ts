@@ -124,7 +124,7 @@ describe('persist - pick', () => {
     expect(stored.context.secret).toBeUndefined();
   });
 
-  it('should merge pickd data with full context on restore', () => {
+  it('should merge picked data with full context on restore', () => {
     const storage = createMockStorage();
     storage.setItem(
       'test',
@@ -170,6 +170,37 @@ describe('persist - version + migrate', () => {
         version: 2,
         migrate: (persisted, version) => {
           if (version === 1) {
+            return { ...persisted, label: 'migrated' };
+          }
+          return persisted;
+        }
+      })
+    );
+
+    expect(store.getSnapshot().context.count).toBe(10);
+    expect(store.getSnapshot().context.label).toBe('migrated');
+  });
+
+  it('should migrate with string versions', () => {
+    const storage = createMockStorage();
+    storage.setItem(
+      'test',
+      JSON.stringify({
+        context: { count: 10 },
+        version: '1.0.0'
+      })
+    );
+
+    const store = createStore({
+      context: { count: 0, label: 'default' },
+      on: { inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }) }
+    }).with(
+      persist({
+        name: 'test',
+        storage,
+        version: '2.0.0',
+        migrate: (persisted, version) => {
+          if (version === '1.0.0') {
             return { ...persisted, label: 'migrated' };
           }
           return persisted;
@@ -377,6 +408,29 @@ describe('persist - onDone / onError', () => {
     store.trigger.inc();
 
     expect(onDone).toHaveBeenCalledWith({ count: 1 });
+  });
+
+  it('should call onDone with picked context when pick is used', () => {
+    const storage = createMockStorage();
+    const onDone = vi.fn();
+    const store = createStore({
+      context: { count: 0, secret: 'hidden' },
+      on: { inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }) }
+    }).with(
+      persist({
+        name: 'test',
+        storage,
+        onDone,
+        pick: (ctx) => ({ count: ctx.count })
+      })
+    );
+
+    store.trigger.inc();
+
+    expect(onDone).toHaveBeenCalledWith({ count: 1 });
+    expect(onDone).not.toHaveBeenCalledWith(
+      expect.objectContaining({ secret: 'hidden' })
+    );
   });
 
   it('should call onError on write failure', () => {

@@ -53,8 +53,11 @@ export interface PersistOptions<
   serialize?: (value: PersistStorageValue<TContext>) => string;
   /** Custom deserializer. Defaults to `JSON.parse`. */
   deserialize?: (str: string) => PersistStorageValue<TContext>;
-  /** Called after a successful storage write with the persisted context. */
-  onDone?: (context: TContext) => void;
+  /**
+   * Called after a successful storage write with the persisted context (after
+   * `pick`, if provided).
+   */
+  onDone?: (context: Partial<TContext>) => void;
   /** Called when a storage read or write fails. */
   onError?: (error: unknown) => void;
   /**
@@ -67,6 +70,8 @@ export interface PersistOptions<
 }
 
 // Internal helpers
+const PERSIST_INTERNALS: unique symbol = Symbol.for('xstate-store-persist');
+
 interface PersistInternals<TContext> {
   options: PersistOptions<TContext, any>;
   storage: StateStorage;
@@ -132,10 +137,10 @@ function writeToStorage<TContext>(
     // Handle async storage writes
     if (result instanceof Promise) {
       result
-        .then(() => options.onDone?.(context))
+        .then(() => options.onDone?.(contextToPersist))
         .catch((err) => options.onError?.(err));
     } else {
-      options.onDone?.(context);
+      options.onDone?.(contextToPersist);
     }
   } catch (err) {
     options.onError?.(err);
@@ -188,7 +193,8 @@ function persistFromLogic<
       if (options.skipHydration) {
         return {
           ...baseSnapshot,
-          _persist: { hydrated: false, __config: internals }
+          _persist: { hydrated: false },
+          [PERSIST_INTERNALS]: internals
         };
       }
 
@@ -200,14 +206,16 @@ function persistFromLogic<
         if (storedValue instanceof Promise) {
           return {
             ...baseSnapshot,
-            _persist: { hydrated: false, __config: internals }
+            _persist: { hydrated: false },
+            [PERSIST_INTERNALS]: internals
           };
         }
 
         if (storedValue === null) {
           return {
             ...baseSnapshot,
-            _persist: { hydrated: true, __config: internals }
+            _persist: { hydrated: true },
+            [PERSIST_INTERNALS]: internals
           };
         }
 
@@ -222,13 +230,15 @@ function persistFromLogic<
         return {
           ...baseSnapshot,
           context: mergedContext,
-          _persist: { hydrated: true, __config: internals }
+          _persist: { hydrated: true },
+          [PERSIST_INTERNALS]: internals
         };
       } catch (err) {
         options.onError?.(err);
         return {
           ...baseSnapshot,
-          _persist: { hydrated: true, __config: internals }
+          _persist: { hydrated: true },
+          [PERSIST_INTERNALS]: internals
         };
       }
     },
@@ -280,7 +290,8 @@ function persistFromLogic<
       // Preserve _persist metadata
       const snapshotWithMeta = {
         ...nextSnapshot,
-        _persist: snapshot._persist ?? { hydrated: false, __config: internals }
+        _persist: snapshot._persist ?? { hydrated: false },
+        [PERSIST_INTERNALS]: internals
       };
 
       // Don't write to storage until hydrated
@@ -459,7 +470,7 @@ export function createJSONStorage(
  * ```
  */
 export function clearStorage(store: { getSnapshot: () => any }): void {
-  const internals = store.getSnapshot()?._persist?.__config as
+  const internals = store.getSnapshot()?.[PERSIST_INTERNALS] as
     | PersistInternals<any>
     | undefined;
   if (!internals) {
@@ -483,7 +494,7 @@ export function clearStorage(store: { getSnapshot: () => any }): void {
  * ```
  */
 export function flushStorage(store: { getSnapshot: () => any }): void {
-  const internals = store.getSnapshot()?._persist?.__config as
+  const internals = store.getSnapshot()?.[PERSIST_INTERNALS] as
     | PersistInternals<any>
     | undefined;
   if (!internals) {
@@ -515,7 +526,7 @@ export async function rehydrateStore(store: {
   getSnapshot: () => any;
   send: (event: any) => void;
 }): Promise<void> {
-  const internals = store.getSnapshot()?._persist?.__config as
+  const internals = store.getSnapshot()?.[PERSIST_INTERNALS] as
     | PersistInternals<any>
     | undefined;
   if (!internals) {
