@@ -1,6 +1,7 @@
 import { of } from 'rxjs';
 import { z } from 'zod';
 import { fromCallback } from '../src/actors/callback.ts';
+import { SimulatedClock } from '../src/SimulatedClock.ts';
 import {
   ActorRef,
   Snapshot,
@@ -31,6 +32,39 @@ describe('system', () => {
     sys.register('receiver', actor);
 
     expect(sys.get('receiver')).toBe(actor);
+  });
+
+  it('should support deterministic session ID generation', () => {
+    const sys = createSystem({
+      sessionIdGenerator: (index) => `test-${index}`
+    });
+
+    const actorA = sys.createActor(createMachine({}));
+    const actorB = sys.createActor(createMachine({}));
+
+    expect(actorA.sessionId).toBe('test-0');
+    expect(actorB.sessionId).toBe('test-1');
+  });
+
+  it('should use clock.now for scheduled event timestamps', () => {
+    const clock = new SimulatedClock();
+    clock.set(42);
+
+    const sys = createSystem({ clock });
+    const actor = sys.createActor(createMachine({})).start();
+
+    sys.scheduler.schedule({
+      source: actor,
+      target: actor,
+      event: { type: 'PING' },
+      delay: 100,
+      id: 't1'
+    });
+
+    const snapshot = sys.getSnapshot();
+    const scheduled = Object.values(snapshot._scheduledEvents)[0];
+
+    expect(scheduled.startedAt).toBe(42);
   });
 
   it('should expose register/get on implicit systems', () => {

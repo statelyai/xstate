@@ -22,21 +22,25 @@ interface ScheduledEvent {
 export interface Clock {
   setTimeout(fn: (...args: any[]) => void, timeout: number): any;
   clearTimeout(id: any): void;
+  now?: () => number;
 }
+
+export type SessionIdGenerator = (index: number) => string;
 
 const defaultClock: Clock = {
   setTimeout: (fn, ms) => setTimeout(fn, ms),
-  clearTimeout: (id) => clearTimeout(id)
+  clearTimeout: (id) => clearTimeout(id),
+  now: () => Date.now()
 };
 
 interface Scheduler {
-  schedule(
-    source: AnyActorRef,
-    target: AnyActorRef,
-    event: EventObject,
-    delay: number,
-    id: string | undefined
-  ): void;
+  schedule(input: {
+    source: AnyActorRef;
+    target: AnyActorRef;
+    event: EventObject;
+    delay: number;
+    id?: string;
+  }): void;
   cancel(source: AnyActorRef, id: string): void;
   cancelAll(actorRef: AnyActorRef): void;
 }
@@ -109,6 +113,7 @@ export function createActorSystem<T extends ActorSystemInfo>(
   options?: {
     clock?: Clock;
     logger?: (...args: any[]) => void;
+    sessionIdGenerator?: SessionIdGenerator;
     snapshot?: unknown;
   }
 ): ActorSystem<T> {
@@ -121,22 +126,48 @@ export function createActorSystem<T extends ActorSystemInfo>(
   const timerMap: { [id: ScheduledEventId]: number } = {};
   const clock = options?.clock ?? defaultClock;
   const logger = options?.logger ?? console.log.bind(console);
+  const now = clock.now ? () => clock.now!() : Date.now;
+  const sessionIdGenerator =
+    options?.sessionIdGenerator ?? ((index) => `x:${index}`);
+
+  const get = <K extends keyof T['actors']>(
+    key: K
+  ): T['actors'][K] | undefined =>
+    keyedActors.get(key) as T['actors'][K] | undefined;
+
+  const getAll = (): Partial<T['actors']> =>
+    Object.fromEntries(keyedActors.entries()) as Partial<T['actors']>;
+
+  const set = <K extends keyof T['actors']>(
+    key: K,
+    actorRef: T['actors'][K]
+  ) => {
+    const existing = keyedActors.get(key);
+    if (existing && existing !== actorRef) {
+      throw new Error(
+        `Actor with system ID '${key as string}' already exists.`
+      );
+    }
+
+    keyedActors.set(key, actorRef);
+    reverseKeyedActors.set(actorRef, key);
+  };
 
   const scheduler: Scheduler = {
-    schedule: (
+    schedule: ({
       source,
       target,
       event,
       delay,
       id = Math.random().toString(36).slice(2)
-    ) => {
+    }) => {
       const scheduledEvent: ScheduledEvent = {
         source,
         target,
         event,
         delay,
         id,
-        startedAt: Date.now()
+        startedAt: now()
       };
       const scheduledEventId = createScheduledEventId(source, id);
       system._snapshot._scheduledEvents[scheduledEventId] = scheduledEvent;
@@ -194,7 +225,7 @@ export function createActorSystem<T extends ActorSystemInfo>(
       _scheduledEvents:
         (options?.snapshot && (options.snapshot as any).scheduler) ?? {}
     },
-    _bookId: () => `x:${idCounter++}`,
+    _bookId: () => sessionIdGenerator(idCounter++),
     _register: (sessionId, actorRef) => {
       children.set(sessionId, actorRef);
       if (!rootSessionId && !(actorRef as any)._parent) {
@@ -213,38 +244,18 @@ export function createActorSystem<T extends ActorSystemInfo>(
         reverseKeyedActors.delete(actorRef);
       }
     },
-    get: (systemId) => {
-      return keyedActors.get(systemId) as T['actors'][any] | undefined;
-    },
-    getAll: () => {
-      return Object.fromEntries(keyedActors.entries()) as Partial<T['actors']>;
-    },
-    _set: (systemId, actorRef) => {
-      const existing = keyedActors.get(systemId);
-      if (existing && existing !== actorRef) {
-        throw new Error(
-          `Actor with system ID '${systemId as string}' already exists.`
-        );
-      }
-
-      keyedActors.set(systemId, actorRef);
-      reverseKeyedActors.set(actorRef, systemId);
-    },
+    get,
+    getAll,
+    _set: set,
     register: (systemId, actorRef) => {
-      system._set(systemId, actorRef);
+      set(systemId, actorRef);
     },
     receptionist: {
       register: (systemId, actorRef) => {
-        system._set(systemId, actorRef);
+        set(systemId, actorRef);
       },
-      get: (systemId) => {
-        return keyedActors.get(systemId) as T['actors'][any] | undefined;
-      },
-      getAll: () => {
-        return Object.fromEntries(keyedActors.entries()) as Partial<
-          T['actors']
-        >;
-      }
+      get,
+      getAll
     },
     inspect: (observerOrFn) => {
       const observer = toObserver(observerOrFn);
@@ -274,7 +285,7 @@ export function createActorSystem<T extends ActorSystemInfo>(
       for (const scheduledId in scheduledEvents) {
         const { source, target, event, delay, id } =
           scheduledEvents[scheduledId as ScheduledEventId];
-        scheduler.schedule(source, target, event, delay, id);
+        scheduler.schedule({ source, target, event, delay, id });
       }
     },
     _clock: clock,

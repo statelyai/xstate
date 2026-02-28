@@ -9,13 +9,13 @@ export const builtInActions = {
     event: EventObject,
     options: { id?: string; delay?: number }
   ) => {
-    actorScope.system.scheduler.schedule(
-      actorScope.self,
-      actorScope.self,
+    actorScope.system.scheduler.schedule({
+      source: actorScope.self,
+      target: actorScope.self,
       event,
-      options?.delay ?? 0,
-      options?.id
-    );
+      delay: options?.delay ?? 0,
+      id: options?.id
+    });
   },
   ['@xstate.sendTo']: (
     actorScope: AnyActorScope,
@@ -30,13 +30,13 @@ export const builtInActions = {
       );
     }
     if (options?.delay !== undefined) {
-      actorScope.system.scheduler.schedule(
-        actorScope.self,
-        actorRef,
+      actorScope.system.scheduler.schedule({
+        source: actorScope.self,
+        target: actorRef,
         event,
-        options?.delay ?? 0,
-        options?.id
-      );
+        delay: options?.delay ?? 0,
+        id: options?.id
+      });
     } else {
       actorScope.defer(() => {
         actorScope.system._relay(actorScope.self, actorRef, event);

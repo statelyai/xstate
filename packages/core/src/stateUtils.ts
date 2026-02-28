@@ -1526,13 +1526,13 @@ export function getTransitionResult(
             // actions.push(raise(event, options));
             actions.push({
               action: () => {
-                actorScope.system.scheduler.schedule(
-                  actorScope.self,
-                  actorScope.self,
+                actorScope.system.scheduler.schedule({
+                  source: actorScope.self,
+                  target: actorScope.self,
                   event,
                   delay,
-                  options?.id
-                );
+                  id: options?.id
+                });
               },
               args: []
             });
