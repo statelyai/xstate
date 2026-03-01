@@ -56,6 +56,12 @@ function createScheduledEventId(
 
 export interface ActorSystem<T extends ActorSystemInfo> {
   /** @internal */
+  children: Map<string, AnyActorRef>;
+  /** @internal */
+  reverseKeyedActors: WeakMap<AnyActorRef, keyof T['actors']>;
+  /** @internal */
+  keyedActors: Map<keyof T['actors'], AnyActorRef | undefined>;
+  /** @internal */
   _bookId: () => string;
   /** @internal */
   _register: (sessionId: string, actorRef: AnyActorRef) => string;

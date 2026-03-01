@@ -183,6 +183,9 @@ importers:
       xstate:
         specifier: workspace:^
         version: link:../core
+      zod:
+        specifier: ^3.25.51
+        version: 3.25.76
 
   packages/xstate-store:
     devDependencies:

@@ -14,9 +14,9 @@ export interface TypeState {
   states?: Record<string, TypeState>;
 }
 
-export interface TypeStates {
+export type TypeStates = {
   [K in string]: TypeState;
-}
+};
 
 export type TypeStateFromSchema<T extends TypeStateSchema> = (T extends {
   context: infer Ctx;

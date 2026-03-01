@@ -71,7 +71,7 @@ export class StateNode<
   /** The string path from the root machine node to this node. */
   public path: string[];
   /** The child state nodes. */
-  public states: StateNodesConfig<TContext, TEvent>;
+  public states: StateNodesConfig<any, any>;
   /**
    * The type of history on this state node. Can be:
    *
@@ -84,24 +84,9 @@ export class StateNode<
   /** The action(s) to be executed upon exiting the state node. */
   public exit: AnyAction | undefined;
   /** The parent state node. */
-  public parent?: StateNode<TContext, TEvent>;
+  public parent?: StateNode<any, any>;
   /** The root machine node. */
-  public machine: StateMachine<
-    TContext,
-    TEvent,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any
-  >;
+  public machine: AnyStateMachine;
   /**
    * The meta data associated with this state node, which will be returned in
    * State instances.
@@ -124,24 +109,12 @@ export class StateNode<
   public description?: string;
 
   public tags: string[] = [];
-  public transitions!: Map<string, TransitionDefinition<TContext, TEvent>[]>;
+  public transitions!: Map<string, AnyTransitionDefinition[]>;
   public always?: Array<AnyTransitionDefinition>;
 
   constructor(
     /** The raw config used to create the machine. */
-    public config: Next_StateNodeConfig<
-      TContext,
-      TEvent,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any
-    >,
+    public config: AnyStateNodeConfig,
     options: StateNodeOptions<TContext, TEvent>
   ) {
     this.parent = options._parent;
@@ -192,8 +165,8 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this.entry = this.config.entry;
-    this.exit = this.config.exit;
+    this.entry = this.config.entry as AnyAction | undefined;
+    this.exit = this.config.exit as AnyAction | undefined;
 
     if (this.entry) {
       // @ts-ignore
@@ -239,13 +212,13 @@ export class StateNode<
           logic: src,
           id: resolvedId,
           systemId: systemId
-        };
+        } as AnyInvokeDefinition;
       })
     );
   }
 
   /** The mapping of events to transitions. */
-  public get on(): TransitionDefinitionMap<TContext, TEvent> {
+  public get on(): TransitionDefinitionMap<any, any> {
     return memo(this, 'on', () => {
       const transitions = this.transitions;
 
@@ -262,7 +235,7 @@ export class StateNode<
     });
   }
 
-  public get after(): Array<DelayedTransitionDefinition<TContext, TEvent>> {
+  public get after(): Array<DelayedTransitionDefinition<any, any>> {
     return memo(
       this,
       'delayedTransitions',
@@ -279,7 +252,7 @@ export class StateNode<
   /** @internal */
   public next(
     snapshot: AnyMachineSnapshot,
-    event: TEvent,
+    event: AnyEventObject,
     self: AnyActorRef
   ): Array<AnyTransitionDefinition> | undefined {
     const eventType = event.type;
@@ -312,7 +285,7 @@ export class StateNode<
   }
 
   /** All the event types accepted by this state node and its descendants. */
-  public get events(): Array<EventDescriptor<TEvent>> {
+  public get events(): Array<EventDescriptor<any>> {
     return memo(this, 'events', () => {
       const { states } = this;
       const events = new Set(this.ownEvents);
@@ -337,7 +310,7 @@ export class StateNode<
    *
    * Excludes any inert events.
    */
-  public get ownEvents(): Array<EventDescriptor<TEvent>> {
+  public get ownEvents(): Array<EventDescriptor<any>> {
     const keys = Object.keys(Object.fromEntries(this.transitions));
     const events = new Set(
       keys.filter((descriptor) => {
@@ -375,7 +348,7 @@ export function formatTransitions<
       const transitionsConfig = stateNode.config.on[descriptor];
       transitions.set(
         descriptor,
-        toTransitionConfigArray(transitionsConfig).map((t) =>
+        toTransitionConfigArray(transitionsConfig as any).map((t) =>
           typeof t === 'function'
             ? t
             : formatTransition(stateNode, descriptor, t)
@@ -387,7 +360,7 @@ export function formatTransitions<
     const descriptor = `xstate.done.state.${stateNode.id}`;
     transitions.set(
       descriptor,
-      toTransitionConfigArray(stateNode.config.onDone).map((t) =>
+      toTransitionConfigArray(stateNode.config.onDone as any).map((t) =>
         typeof t === 'function' ? t : formatTransition(stateNode, descriptor, t)
       )
     );
@@ -397,7 +370,7 @@ export function formatTransitions<
       const descriptor = `xstate.done.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onDone).map((t) =>
+        toTransitionConfigArray(invokeDef.onDone as any).map((t) =>
           typeof t === 'function'
             ? t
             : formatTransition(stateNode, descriptor, t)
@@ -408,7 +381,7 @@ export function formatTransitions<
       const descriptor = `xstate.error.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onError).map((t) =>
+        toTransitionConfigArray(invokeDef.onError as any).map((t) =>
           typeof t === 'function'
             ? t
             : formatTransition(stateNode, descriptor, t)
@@ -419,7 +392,7 @@ export function formatTransitions<
       const descriptor = `xstate.snapshot.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onSnapshot).map((t) =>
+        toTransitionConfigArray(invokeDef.onSnapshot as any).map((t) =>
           typeof t === 'function'
             ? t
             : formatTransition(stateNode, descriptor, t)
@@ -433,7 +406,9 @@ export function formatTransitions<
       existing = [];
       transitions.set(delayedTransition.eventType, existing);
     }
-    existing.push(delayedTransition);
+    existing.push(
+      delayedTransition as TransitionDefinition<TContext, AnyEventObject>
+    );
   }
   return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
 }

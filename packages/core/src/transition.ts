@@ -14,6 +14,7 @@ import {
   InputFrom,
   SnapshotFrom,
   ExecutableActionObject,
+  ExecutableActionsFrom,
   AnyTransitionDefinition,
   AnyMachineSnapshot
 } from './types';
@@ -174,7 +175,9 @@ export function getNextTransitions(
       // Include ALL transitions, even if the same event type appears in multiple state nodes
       // This is important for guarded transitions - all are "potential" regardless of guard evaluation
       for (const [, transitions] of s.transitions.entries()) {
-        potentialTransitions.push(...transitions);
+        potentialTransitions.push(
+          ...(transitions as AnyTransitionDefinition[])
+        );
       }
 
       // Also include always (eventless) transitions
