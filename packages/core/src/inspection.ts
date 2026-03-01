@@ -15,11 +15,12 @@ export type InspectionEvent = {
    * - For actor events, this is the `actorRef` of the registered actor.
    */
   actorRef: ActorRefLike;
-  type: '@xstate.transition';
-  eventType: string;
+  type: '@xstate.transition' | '@xstate.microstep';
+  eventType?: string;
   event: AnyEventObject; // { type: string, ... }
-  sourceRef: ActorRefLike | undefined;
-  targetRef: ActorRefLike | undefined;
+  sourceRef?: ActorRefLike | undefined;
+  targetRef?: ActorRefLike | undefined;
   snapshot: Snapshot<unknown>;
-  microsteps: AnyTransitionDefinition[];
+  microsteps?: AnyTransitionDefinition[];
+  _transitions?: AnyTransitionDefinition[];
 };

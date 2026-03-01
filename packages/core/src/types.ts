@@ -243,6 +243,7 @@ export interface TransitionConfig<
   TDelayMap extends Implementations['delays']
 > {
   actions?: never;
+  guard?: unknown;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
   to?: TransitionConfigFunction<
@@ -499,7 +500,8 @@ export type TransitionConfigFunction<
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  _TCtx = [TContext] extends [never] ? any : TContext
 > = (
   {
     context,
@@ -510,10 +512,19 @@ export type TransitionConfigFunction<
     children,
     actions
   }: {
-    context: TContext;
+    context: _TCtx;
     event: TCurrentEvent;
     self: ActorRef<
-      MachineSnapshot<TContext, TEvent, TODO, TODO, TODO, TODO, TODO, TODO>,
+      MachineSnapshot<
+        _TCtx & MachineContext,
+        TEvent,
+        TODO,
+        TODO,
+        TODO,
+        TODO,
+        TODO,
+        TODO
+      >,
       TEvent
     >;
     parent: UnknownActorRef | undefined;
@@ -528,7 +539,7 @@ export type TransitionConfigFunction<
 ) => {
   target?: string | string[];
   // target?: keyof TSS['states'];
-  context?: TContext;
+  context?: _TCtx;
   reenter?: boolean;
   meta?: TMeta;
 } | void;
@@ -916,7 +927,7 @@ export type ContextFactory<
   input: TInput;
   self: ActorRef<
     MachineSnapshot<
-      TContext,
+      [TContext] extends [never] ? any : TContext,
       TEvent,
       Record<string, AnyActorRef | undefined>, // TODO: this should be replaced with `TChildren`
       StateValue,
@@ -928,7 +939,7 @@ export type ContextFactory<
     TEvent,
     AnyEventObject
   >;
-}) => TContext;
+}) => [TContext] extends [never] ? MachineContext : TContext;
 
 export interface ProvidedActor {
   src: string;
@@ -1044,13 +1055,14 @@ export type Mapper<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TResult,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  _TCtx = [TContext] extends [never] ? any : TContext
 > = (args: {
-  context: TContext;
+  context: _TCtx;
   event: TExpressionEvent;
   self: ActorRef<
     MachineSnapshot<
-      TContext,
+      _TCtx & MachineContext,
       TEvent,
       Record<string, AnyActorRef>, // TODO: this should be replaced with `TChildren`
       StateValue,
@@ -1079,16 +1091,13 @@ export interface TransitionDefinition<
       TODO, // TEmitted
       TODO // TMeta
     >,
-    | 'target'
-    // `guard` is correctly rejected by `extends` here and `actions` should be too
-    // however, `any` passed to `TransitionConfig` as `TAction` collapses its `.actions` to `any` and it's accidentally allowed here
-    // it doesn't exactly have to be incorrect, we are overriding this here anyway but it looks like a lucky accident rather than smth done on purpose
-    | 'guard'
+    'target' | 'to'
   > {
   target: ReadonlyArray<AnyStateNode> | undefined;
   source: AnyStateNode;
   reenter: boolean;
   eventType: EventDescriptor<TEvent>;
+  to?: ((...args: any[]) => any) | undefined;
   params?:
     | Record<string, unknown>
     | ((args: { context: any; event: any }) => Record<string, unknown>);
@@ -1099,6 +1108,8 @@ export type AnyTransitionDefinition = TransitionDefinition<any, any>;
 export type InitialTransitionDefinition = {
   source: AnyStateNode;
   target: AnyStateNode[] | undefined;
+  reenter?: boolean;
+  eventType?: EventDescriptor<any>;
   params?:
     | Record<string, unknown>
     | ((args: {
@@ -1119,7 +1130,10 @@ export type TransitionDefinitionMap<
 export type DelayExpr<
   TContext extends MachineContext,
   TEvent extends EventObject
-> = (args: { context: TContext; event: TEvent }) => number;
+> = (args: {
+  context: [TContext] extends [never] ? any : TContext;
+  event: TEvent;
+}) => number;
 
 export interface DelayedTransitionDefinition<
   TContext extends MachineContext,
@@ -2050,6 +2064,9 @@ export interface ToExecutableAction<T extends ParameterizedObject>
 
 export type ActionExecutor = (actionToExecute: ExecutableActionObject) => void;
 
+export type ExecutableActionsFrom<T extends AnyActorLogic> =
+  ExecutableActionObject;
+
 /** Mappers for subscribeTo - maps lifecycle events to machine events */
 export interface SubscribeToMappers<
   TSnapshot extends Snapshot<unknown>,
@@ -2127,14 +2144,24 @@ export type Action<
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TParams = Record<string, unknown> | undefined
+  TParams = Record<string, unknown> | undefined,
+  _TCtx = [TContext] extends [never] ? any : TContext
 > = (
   _: {
-    context: TContext;
+    context: _TCtx;
     event: TEvent;
     parent: AnyActorRef | undefined;
     self: ActorRef<
-      MachineSnapshot<TContext, TEvent, TODO, TODO, TODO, TODO, TODO, TODO>,
+      MachineSnapshot<
+        _TCtx & MachineContext,
+        TEvent,
+        TODO,
+        TODO,
+        TODO,
+        TODO,
+        TODO,
+        TODO
+      >,
       TEvent
     >;
     children: Record<string, AnyActorRef | undefined>;
@@ -2147,16 +2174,19 @@ export type Action<
   },
   enqueue: EnqueueObject<TEvent, TEmittedEvent>
 ) => {
-  context?: TContext;
+  context?: _TCtx;
   children?: Record<string, AnyActorRef | undefined>;
 } | void;
 
-export type AnyAction = Action<
-  MachineContext,
-  EventObject,
-  EventObject,
-  Implementations['actions'],
-  Implementations['actors'],
-  Implementations['guards'],
-  Implementations['delays']
->;
+export type AnyAction =
+  | Action<
+      MachineContext,
+      EventObject,
+      EventObject,
+      Implementations['actions'],
+      Implementations['actors'],
+      Implementations['guards'],
+      Implementations['delays']
+    >
+  | { action: (...args: any[]) => any; args: any[] }
+  | AnyEventObject;

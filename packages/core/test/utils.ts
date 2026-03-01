@@ -73,8 +73,8 @@ export function testAll(
 type StateNodeLike = {
   states: Record<string, StateNodeLike>;
   path?: string[];
-  entry?: (...args: any[]) => void;
-  exit?: (...args: any[]) => void;
+  entry?: any;
+  exit?: any;
 };
 const seen = new WeakSet<StateNodeLike>();
 
@@ -89,11 +89,11 @@ export function trackEntries(machine: StateNodeLike & { root: StateNodeLike }) {
   function addTrackingActions(state: StateNodeLike, stateDescription: string) {
     const originalEntry2 = state.entry;
     const originalExit2 = state.exit;
-    state.entry = (_, enq) => {
+    state.entry = (_: any, enq: any) => {
       enq(() => logs.push(`enter: ${stateDescription}`));
       return originalEntry2?.(_, enq);
     };
-    state.exit = (_, enq) => {
+    state.exit = (_: any, enq: any) => {
       enq(() => logs.push(`exit: ${stateDescription}`));
       return originalExit2?.(_, enq);
     };

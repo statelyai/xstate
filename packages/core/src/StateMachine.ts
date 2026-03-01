@@ -29,6 +29,7 @@ import type {
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
+  AnyTransitionDefinition,
   Equals,
   EventDescriptor,
   EventObject,
@@ -120,10 +121,10 @@ export class StateMachine<
   ) {
     this.id = config.id || '(machine)';
     this.implementations = {
-      actors: config.actors ?? {},
-      actions: config.actions ?? {},
-      delays: config.delays ?? {},
-      guards: config.guards ?? {},
+      actors: (config.actors ?? {}) as Implementations['actors'],
+      actions: (config.actions ?? {}) as Implementations['actions'],
+      delays: (config.delays ?? {}) as Implementations['delays'],
+      guards: (config.guards ?? {}) as Implementations['guards'],
       ...implementations
     };
     this.version = this.config.version;
@@ -135,7 +136,7 @@ export class StateMachine<
     this.restoreSnapshot = this.restoreSnapshot.bind(this);
     this.start = this.start.bind(this);
 
-    this.root = new StateNode(config, {
+    this.root = new StateNode(config as any, {
       _key: this.id,
       _machine: this as any
     });
@@ -170,7 +171,7 @@ export class StateMachine<
     input?: TInput,
     options?: ActorOptions<any>
   ): ActorRef<SnapshotFrom<this>, TEvent, TEmitted> {
-    return createActor<any>(this, { ...options, input });
+    return createActor<any>(this, { ...options, input }) as any;
   }
 
   /**
@@ -203,10 +204,22 @@ export class StateMachine<
     const { actions, guards, actors, delays } = this.implementations;
 
     return new StateMachine(this.config, {
-      actions: { ...actions, ...implementations.actions },
-      guards: { ...guards, ...implementations.guards },
-      actors: { ...actors, ...implementations.actors },
-      delays: { ...delays, ...implementations.delays }
+      actions: {
+        ...actions,
+        ...implementations.actions
+      } as Implementations['actions'],
+      guards: {
+        ...guards,
+        ...implementations.guards
+      } as Implementations['guards'],
+      actors: {
+        ...actors,
+        ...implementations.actors
+      } as Implementations['actors'],
+      delays: {
+        ...delays,
+        ...(implementations as any).delays
+      } as Implementations['delays']
     });
   }
 
@@ -218,9 +231,11 @@ export class StateMachine<
       status?: SnapshotStatus;
       output?: TOutput;
       error?: unknown;
-    } & (Equals<TContext, MachineContext> extends false
-      ? { context: unknown }
-      : {})
+    } & ([TContext] extends [never]
+      ? {}
+      : Equals<TContext, MachineContext> extends false
+        ? { context: unknown }
+        : {})
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -344,7 +359,7 @@ export class StateMachine<
     >,
     event: TEvent,
     self: AnyActorRef
-  ): Array<TransitionDefinition<TContext, TEvent>> {
+  ): Array<AnyTransitionDefinition> {
     return (
       transitionNode(this.root, snapshot.value, snapshot, event, self) || []
     );
@@ -396,7 +411,7 @@ export class StateMachine<
         initEvent,
         actorScope,
         []
-      ) as SnapshotFrom<this>;
+      ) as any;
       if (resolvedContext) {
         nextState.context = resolvedContext;
       }
@@ -406,7 +421,7 @@ export class StateMachine<
           ...children
         };
       }
-      return nextState;
+      return nextState as SnapshotFrom<this>;
     }
 
     return preInitial as SnapshotFrom<this>;
@@ -499,7 +514,10 @@ export class StateMachine<
         `Child state node '#${resolvedStateId}' does not exist on machine '${this.id}'`
       );
     }
-    return getStateNodeByPath(stateNode, relativePath);
+    return getStateNodeByPath(stateNode, relativePath) as StateNode<
+      TContext,
+      TEvent
+    >;
   }
 
   public getPersistedSnapshot(

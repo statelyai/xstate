@@ -313,7 +313,13 @@ const machineSnapshotCan = function can(
     transitionData.some((t) => {
       const res = getTransitionResult(t, this, event, {
         self: createEmptyActor(),
-        system: createSystem(createEmptyActor(), {})
+        system: createSystem(createEmptyActor(), {
+          clock: {
+            setTimeout: globalThis.setTimeout,
+            clearTimeout: globalThis.clearTimeout
+          },
+          logger: () => {}
+        })
       } as any);
       return (
         t.target !== undefined ||

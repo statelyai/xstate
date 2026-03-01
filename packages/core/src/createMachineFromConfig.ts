@@ -331,6 +331,8 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
       any,
       any,
       any,
+      any,
+      any,
       any
     > = {
       id: node.id,
@@ -703,11 +705,11 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
   // Register SCXML guard implementations
   return machine.provide({
     guards: {
-      'scxml.cond': ({ context, event }, params) => {
+      'scxml.cond': ({ context, event }: any, params: any) => {
         const expr = (params as any)?.expr as string;
         return expr ? !!evaluateExpr(context, expr, event) : true;
       },
-      'xstate.stateIn': (_args, params) => {
+      'xstate.stateIn': (_args: any, params: any) => {
         // This is handled by XState's built-in stateIn guard
         // but we provide a fallback
         return true;

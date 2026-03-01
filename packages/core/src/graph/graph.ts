@@ -2,6 +2,7 @@ import {
   EventObject,
   AnyStateMachine,
   StateMachine,
+  StateNode,
   AnyActorLogic,
   EventFromLogic,
   Snapshot,

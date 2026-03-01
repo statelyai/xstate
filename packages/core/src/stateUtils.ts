@@ -6,7 +6,8 @@ import {
   XSTATE_INIT,
   STATE_DELIMITER,
   STATE_IDENTIFIER,
-  XSTATE_STOP
+  XSTATE_STOP,
+  NULL_EVENT
 } from './constants.ts';
 import { matchesEventDescriptor } from './utils.ts';
 import {
@@ -36,7 +37,8 @@ import {
   normalizeTarget,
   toArray,
   toStatePath,
-  isErrorActorEvent
+  isErrorActorEvent,
+  toTransitionConfigArray
 } from './utils.ts';
 import { createActor, ProcessingStatus } from './createActor.ts';
 import { builtInActions } from './actions.ts';
@@ -221,16 +223,16 @@ export function mutateEntryExit(
 ) {
   if (entryFn) {
     const oldEntry = stateNode.entry;
-    stateNode.entry = (x, enq) => {
+    stateNode.entry = (x: any, enq: any) => {
       entryFn(x, enq);
-      return oldEntry?.(x, enq);
+      return typeof oldEntry === 'function' ? oldEntry(x, enq) : undefined;
     };
   }
   if (exitFn) {
     const oldExit = stateNode.exit;
-    stateNode.exit = (x, enq) => {
+    stateNode.exit = (x: any, enq: any) => {
       exitFn(x, enq);
-      return oldExit?.(x, enq);
+      return typeof oldExit === 'function' ? oldExit(x, enq) : undefined;
     };
   }
   return stateNode;
@@ -294,7 +296,7 @@ export function getDelayedTransitions(
       ...formatTransition(
         stateNode,
         delayedTransition.event,
-        delayedTransition
+        delayedTransition as AnyTransitionConfig
       ),
       delay
     };
@@ -353,7 +355,7 @@ export function formatTransitions<
       const transitionsConfig = stateNode.config.on[descriptor];
       transitions.set(
         descriptor,
-        toTransitionConfigArray(transitionsConfig).map((t) =>
+        toTransitionConfigArray(transitionsConfig as any).map((t) =>
           formatTransition(stateNode, descriptor, t)
         )
       );
@@ -363,7 +365,7 @@ export function formatTransitions<
     const descriptor = `xstate.done.state.${stateNode.id}`;
     transitions.set(
       descriptor,
-      toTransitionConfigArray(stateNode.config.onDone).map((t) =>
+      toTransitionConfigArray(stateNode.config.onDone as any).map((t) =>
         formatTransition(stateNode, descriptor, t)
       )
     );
@@ -373,7 +375,7 @@ export function formatTransitions<
       const descriptor = `xstate.done.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onDone).map((t) =>
+        toTransitionConfigArray(invokeDef.onDone as any).map((t) =>
           formatTransition(stateNode, descriptor, t)
         )
       );
@@ -382,7 +384,7 @@ export function formatTransitions<
       const descriptor = `xstate.error.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onError).map((t) =>
+        toTransitionConfigArray(invokeDef.onError as any).map((t) =>
           formatTransition(stateNode, descriptor, t)
         )
       );
@@ -391,7 +393,7 @@ export function formatTransitions<
       const descriptor = `xstate.snapshot.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onSnapshot).map((t) =>
+        toTransitionConfigArray(invokeDef.onSnapshot as any).map((t) =>
           formatTransition(stateNode, descriptor, t)
         )
       );
@@ -403,7 +405,9 @@ export function formatTransitions<
       existing = [];
       transitions.set(delayedTransition.eventType, existing);
     }
-    existing.push(delayedTransition);
+    existing.push(
+      delayedTransition as TransitionDefinition<TContext, AnyEventObject>
+    );
   }
   return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
 }
@@ -451,7 +455,7 @@ export function formatRouteTransitions(rootStateNode: AnyStateNode): void {
   };
   collectRoutes(rootStateNode.states);
   if (routeTransitions.length > 0) {
-    rootStateNode.transitions.set('xstate.route', routeTransitions);
+    rootStateNode.transitions.set('xstate.route', routeTransitions as any);
   }
 }
 
@@ -515,13 +519,15 @@ function resolveHistoryDefaultTransition(
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(stateNode.config.target);
   if (!normalizedTarget) {
-    return stateNode.parent!.initial;
+    return stateNode.parent!.initial as AnyTransitionDefinition;
   }
   return {
     target: normalizedTarget.map((t) =>
       typeof t === 'string' ? getStateNodeByPath(stateNode.parent!, t) : t
     ),
-    source: stateNode
+    source: stateNode,
+    reenter: false,
+    eventType: '' as any
   };
 }
 
@@ -1029,10 +1035,9 @@ export function initialMicrostep(
         target: [...getInitialStateNodes(root)],
         source: root,
         reenter: true,
-        actions: [],
         eventType: null as any,
         toJSON: null as any
-      }
+      } as AnyTransitionDefinition
     ],
     preInitialState,
     actorScope,
@@ -1150,7 +1155,7 @@ function microstep(
         if (stateNode.exit) {
           const stateParams = nextState._stateParams?.[stateNode.id];
           const [exitActions, , nextInternalEvents] =
-            getActionsAndContextFromTransitionFn(stateNode.exit, {
+            getActionsAndContextFromTransitionFn(stateNode.exit as any, {
               context: nextState.context,
               event,
               self: actorScope.self,
@@ -1378,7 +1383,7 @@ function enterStates(
 
     if (stateNodeToEnter.entry) {
       const [resultActions, nextContext, internalEvents] =
-        getActionsAndContextFromTransitionFn(stateNodeToEnter.entry, {
+        getActionsAndContextFromTransitionFn(stateNodeToEnter.entry as any, {
           context: nextSnapshot.context,
           event,
           self: actorScope.self,
@@ -1612,7 +1617,7 @@ export function getTransitionResult(
     );
 
     const targets = res?.target
-      ? resolveTarget(transition.source, [res.target])
+      ? resolveTarget(transition.source, toArray(res.target) as string[])
       : undefined;
     // Resolve params for .to transitions
     const resolvedParams =
@@ -1944,7 +1949,7 @@ function exitStates(
     const stateParams = currentSnapshot._stateParams?.[exitStateNode.id];
 
     const [exitActions, nextContext, internalEvents] = exitStateNode.exit
-      ? getActionsAndContextFromTransitionFn(exitStateNode.exit, {
+      ? getActionsAndContextFromTransitionFn(exitStateNode.exit as any, {
           context: nextSnapshot.context,
           event,
           self: actorScope.self,
@@ -2056,7 +2061,7 @@ export function resolveAndExecuteActionsWithContext(
         any
       >;
 
-      const res = specialAction(actionArgs, emptyEnqueueObject);
+      const res = specialAction(actionArgs as any, emptyEnqueueObject);
 
       if (res?.context || res?.children) {
         intermediateSnapshot = cloneMachineSnapshot(intermediateSnapshot, {
@@ -2073,8 +2078,8 @@ export function resolveAndExecuteActionsWithContext(
           typeof action === 'object'
             ? 'action' in action && typeof action.action === 'function'
               ? (action.action.name ?? '(anonymous)')
-              : action.type
-            : action.name || '(anonymous)',
+              : (action as AnyEventObject).type
+            : (action as Function).name || '(anonymous)',
         params: actionParams,
         args:
           typeof action === 'object' && 'action' in action ? action.args : [],
@@ -2230,10 +2235,12 @@ function stopChildren(
   nextState: AnyMachineSnapshot,
   actorScope: AnyActorScope
 ) {
-  let children;
+  let children: AnyActorRef[];
   if (
     !nextState.children ||
-    (children = Object.values(nextState.children).filter(Boolean)).length === 0
+    (children = Object.values(nextState.children).filter(
+      Boolean
+    ) as AnyActorRef[]).length === 0
   ) {
     return nextState;
   }
@@ -2341,7 +2348,7 @@ function createEnqueueObject(
 export const emptyEnqueueObject = createEnqueueObject({}, () => {});
 
 function getActionsAndContextFromTransitionFn(
-  action2: Action<any, any, any, any>,
+  action2: Action<any, any, any, any, any, any, any>,
   {
     context,
     event,
