@@ -3,13 +3,11 @@ import {
   EventObject,
   EventPayloadMap,
   ExtractEvents,
-  StoreConfig,
   StoreContext,
   StoreExtension,
   StoreLogic,
   StoreSnapshot
 } from './types';
-import { createStoreTransition } from './store';
 
 interface UndoRedoEventOptions<
   TContext extends StoreContext,
@@ -325,7 +323,6 @@ function undoRedoFromLogic<
  * @example
  *
  * ```ts
- * // Using with .with() (recommended)
  * const store = createStore({
  *   context: { count: 0 },
  *   on: {
@@ -340,29 +337,14 @@ function undoRedoFromLogic<
  * @example
  *
  * ```ts
- * // Legacy: wrapping config directly
- * const store = createStore(
- *   undoRedo({
- *     context: { count: 0 },
- *     on: {
- *       inc: (ctx) => ({ count: ctx.count + 1 })
- *     }
- *   })
- * );
- * ```
- *
- * @example
- *
- * ```ts
- * // Snapshot strategy with .with()
+ * // Snapshot strategy
  * const store = createStore({
  *   context: { count: 0 },
  *   on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
  * }).with(undoRedo({ strategy: 'snapshot', historyLimit: 10 }));
  * ```
  *
- * @returns Store extension or store logic with additional `undo` and `redo`
- *   event handlers
+ * @returns Store extension with additional `undo` and `redo` event handlers
  */
 // Overload: extension pattern (no config, just options)
 export function undoRedo<
@@ -380,48 +362,7 @@ export function undoRedo<
   },
   TEmitted
 >;
-/**
- * @deprecated Use the .with() pattern instead.
- * @example
- *
- * ```ts
- * const store = createStore({
- *   context: { count: 0 },
- *   on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
- * }).with(undoRedo({ strategy: 'snapshot', historyLimit: 10 }));
- * ```
- */
-export function undoRedo<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
-  TEmittedPayloadMap extends EventPayloadMap
->(
-  storeConfig: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap>,
-  options?: UndoRedoStrategyOptions<TContext, ExtractEvents<TEventPayloadMap>>
-): StoreLogic<
-  StoreSnapshot<TContext>,
-  ExtractEvents<TEventPayloadMap> | { type: 'undo' } | { type: 'redo' },
-  ExtractEvents<TEmittedPayloadMap>
->;
 // Implementation
-export function undoRedo(configOrOptions?: any, options?: any): any {
-  // Detect if first arg is a store config (has 'context' property)
-  if (configOrOptions && 'context' in configOrOptions) {
-    // Legacy pattern: undoRedo(config, options?)
-    const storeConfig = configOrOptions;
-    const logic: AnyStoreLogic = {
-      getInitialSnapshot: () => ({
-        status: 'active',
-        context: storeConfig.context,
-        output: undefined,
-        error: undefined
-      }),
-      transition: createStoreTransition(storeConfig.on)
-    };
-    return undoRedoFromLogic(logic, options);
-  }
-
-  // Extension pattern: undoRedo(options?) returns a function
-  const extensionOptions = configOrOptions;
-  return (logic: AnyStoreLogic) => undoRedoFromLogic(logic, extensionOptions);
+export function undoRedo(options?: any): any {
+  return (logic: AnyStoreLogic) => undoRedoFromLogic(logic, options);
 }

@@ -1,54 +1,6 @@
 import { createStore } from '../src/index.ts';
 import { undoRedo } from '../src/undo.ts';
 
-describe('undoRedo (deprecated pattern)', () => {
-  it('should work with deprecated createStore(undoRedo(config)) pattern', () => {
-    const store = createStore(
-      undoRedo({
-        context: { count: 0 },
-        on: {
-          inc: (ctx) => ({ count: ctx.count + 1 }),
-          dec: (ctx) => ({ count: ctx.count - 1 })
-        }
-      })
-    );
-
-    store.trigger.inc();
-    expect(store.getSnapshot().context.count).toBe(1);
-
-    store.trigger.undo();
-    expect(store.getSnapshot().context.count).toBe(0);
-
-    store.trigger.redo();
-    expect(store.getSnapshot().context.count).toBe(1);
-  });
-
-  it('should work with deprecated pattern and options', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 })
-          }
-        },
-        { strategy: 'snapshot', historyLimit: 2 }
-      )
-    );
-
-    store.trigger.inc(); // 1
-    store.trigger.inc(); // 2
-    store.trigger.inc(); // 3
-
-    store.trigger.undo(); // 2
-    expect(store.getSnapshot().context.count).toBe(2);
-    store.trigger.undo(); // 1
-    expect(store.getSnapshot().context.count).toBe(1);
-    store.trigger.undo(); // stays at 1 due to limit
-    expect(store.getSnapshot().context.count).toBe(1);
-  });
-});
-
 it('should undo a single event', () => {
   const store = createStore({
     context: { count: 0 },
