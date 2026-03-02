@@ -442,14 +442,14 @@ export function createJSONStorage(
     },
     setItem: (name, value) => {
       try {
-        storage.setItem(name, value);
+        void storage.setItem(name, value);
       } catch {
         // Swallow write errors (quota exceeded, etc.)
       }
     },
     removeItem: (name) => {
       try {
-        storage.removeItem(name);
+        void storage.removeItem(name);
       } catch {
         // Swallow errors
       }
@@ -476,7 +476,7 @@ export function clearStorage(store: { getSnapshot: () => any }): void {
   if (!internals) {
     throw new Error('clearStorage: store does not have a persist extension');
   }
-  internals.storage.removeItem(internals.options.name);
+  void internals.storage.removeItem(internals.options.name);
 }
 
 /**
