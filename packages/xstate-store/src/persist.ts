@@ -18,13 +18,13 @@ export interface StateStorage {
   removeItem: (name: string) => void | Promise<void>;
 }
 
-/** The envelope persisted to storage. */
+/** The envelope persisted to storage. @public */
 export interface PersistStorageValue<TContext> {
   context: Partial<TContext>;
   version: string | number;
 }
 
-/** Options for the `persist` store extension. */
+/** Options for the `persist` store extension. @public */
 export interface PersistOptions<
   TContext = StoreContext,
   TEvent extends EventObject = EventObject
