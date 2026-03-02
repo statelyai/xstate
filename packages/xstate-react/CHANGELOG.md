@@ -1,5 +1,54 @@
 # Changelog
 
+## 6.1.0
+
+### Minor Changes
+
+- [#5470](https://github.com/statelyai/xstate/pull/5470) [`3e03427`](https://github.com/statelyai/xstate/commit/3e03427639154a021c85e99e0518ab92cc42dc6d) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `useActor` and `useSelector` now throw when the actor reaches an error state, allowing errors to be caught by React error boundaries.
+
+  ```tsx
+  import { createMachine } from 'xstate';
+  import { useActor } from '@xstate/react';
+  import { ErrorBoundary } from 'react-error-boundary';
+
+  const machine = createMachine({
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          fetch: 'loading'
+        }
+      },
+      loading: {
+        invoke: {
+          src: fromPromise(async () => {
+            throw new Error('Network error');
+          }),
+          onDone: 'success'
+          // Without onError, the actor enters an error state
+        }
+      },
+      success: {}
+    }
+  });
+
+  function App() {
+    return (
+      <ErrorBoundary fallback={<p>Something went wrong</p>}>
+        <ActorComponent />
+      </ErrorBoundary>
+    );
+  }
+
+  function ActorComponent() {
+    // If the actor errors, the error will be thrown
+    // and caught by the nearest error boundary
+    const [snapshot, send] = useActor(machine);
+
+    return <div>{snapshot.value}</div>;
+  }
+  ```
+
 ## 6.0.0
 
 ### Patch Changes
@@ -419,7 +468,6 @@
 ### Minor Changes
 
 - [#3778](https://github.com/statelyai/xstate/pull/3778) [`f12248b23`](https://github.com/statelyai/xstate/commit/f12248b2379e4e554d69a238019216feea5211f6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createActorContext(...)` helper has been introduced to make global actors easier to use with React. It outputs a React Context object with the following properties:
-
   - `.Provider` - The React Context provider
   - `.useActor(...)` - A hook that can be used to get the current state and send events to the actor
   - `.useSelector(...)` - A hook that can be used to select some derived state from the actor's state

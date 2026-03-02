@@ -1,7 +1,15 @@
+import { createInitEvent } from './eventUtils';
 import { createInertActorScope } from './getNextSnapshot';
-import { getProperAncestors, isAtomicStateNode } from './stateUtils';
+import {
+  getProperAncestors,
+  initialMicrostep,
+  isAtomicStateNode,
+  macrostep
+} from './stateUtils';
 import {
   AnyActorLogic,
+  AnyEventObject,
+  AnyStateMachine,
   EventFromLogic,
   InputFrom,
   SnapshotFrom,
@@ -59,6 +67,67 @@ export function initialTransition<T extends AnyActorLogic>(
   ) as SnapshotFrom<T>;
 
   return [nextSnapshot, executableActions];
+}
+
+/**
+ * Given a state `machine`, a `snapshot`, and an `event`, returns an array of
+ * microsteps, where each microstep is a tuple of `[snapshot, actions]`.
+ *
+ * This is a pure function that does not execute `actions`.
+ */
+export function getMicrosteps<T extends AnyStateMachine>(
+  machine: T,
+  snapshot: SnapshotFrom<T>,
+  event: EventFromLogic<T>
+): Array<[SnapshotFrom<T>, ExecutableActionsFrom<T>[]]> {
+  const actorScope = createInertActorScope(machine);
+
+  const { microsteps } = macrostep(snapshot, event, actorScope, []);
+
+  return microsteps as Array<[SnapshotFrom<T>, ExecutableActionsFrom<T>[]]>;
+}
+
+/**
+ * Given a state `machine` and optional `input`, returns an array of microsteps
+ * from the initial transition, where each microstep is a tuple of `[snapshot,
+ * actions]`.
+ *
+ * This is a pure function that does not execute `actions`.
+ */
+export function getInitialMicrosteps<T extends AnyStateMachine>(
+  machine: T,
+  ...[input]: undefined extends InputFrom<T>
+    ? [input?: InputFrom<T>]
+    : [input: InputFrom<T>]
+): Array<[SnapshotFrom<T>, ExecutableActionsFrom<T>[]]> {
+  const actorScope = createInertActorScope(machine);
+  const initEvent = createInitEvent(input);
+  const internalQueue: AnyEventObject[] = [];
+
+  const preInitialSnapshot = machine._getPreInitialState(
+    actorScope,
+    initEvent,
+    internalQueue
+  );
+
+  const first = initialMicrostep(
+    machine.root,
+    preInitialSnapshot,
+    actorScope,
+    initEvent,
+    internalQueue
+  );
+
+  const { microsteps } = macrostep(
+    first[0],
+    initEvent,
+    actorScope,
+    internalQueue
+  );
+
+  return [first, ...microsteps] as Array<
+    [SnapshotFrom<T>, ExecutableActionsFrom<T>[]]
+  >;
 }
 
 /**

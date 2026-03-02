@@ -89,6 +89,26 @@ describe('emitted', () => {
     );
   });
 
+  it('wildcard listener receives union of all emitted events', () => {
+    const store = createStore({
+      emits: {
+        increased: (_: { upBy: number }) => {},
+        decreased: (_: { downBy: number }) => {}
+      },
+      context: {},
+      on: {}
+    });
+
+    store.on('*', (ev) => {
+      ev satisfies
+        | { type: 'increased'; upBy: number }
+        | { type: 'decreased'; downBy: number };
+
+      // @ts-expect-error
+      ev satisfies { type: 'unknown' };
+    });
+  });
+
   it('works with a discriminated union event payload', () => {
     createStore({
       context: {},
