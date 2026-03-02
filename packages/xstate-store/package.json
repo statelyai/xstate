@@ -57,6 +57,15 @@
       "import": "./persist/dist/xstate-store-persist.cjs.mjs",
       "default": "./persist/dist/xstate-store-persist.cjs.js"
     },
+    "./reset": {
+      "types": {
+        "import": "./reset/dist/xstate-store-reset.cjs.mjs",
+        "default": "./reset/dist/xstate-store-reset.cjs.js"
+      },
+      "module": "./reset/dist/xstate-store-reset.esm.js",
+      "import": "./reset/dist/xstate-store-reset.cjs.mjs",
+      "default": "./reset/dist/xstate-store-reset.cjs.js"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": false,
@@ -65,7 +74,8 @@
     "react",
     "solid",
     "undo",
-    "persist"
+    "persist",
+    "reset"
   ],
   "repository": {
     "type": "git",
@@ -111,7 +121,8 @@
       "./react.ts",
       "./solid.ts",
       "./undo.ts",
-      "./persist.ts"
+      "./persist.ts",
+      "./reset.ts"
     ]
   }
 }
