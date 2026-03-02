@@ -21,15 +21,6 @@
       "import": "./undo/dist/xstate-store-undo.cjs.mjs",
       "default": "./undo/dist/xstate-store-undo.cjs.js"
     },
-    "./persist": {
-      "types": {
-        "import": "./persist/dist/xstate-store-persist.cjs.mjs",
-        "default": "./persist/dist/xstate-store-persist.cjs.js"
-      },
-      "module": "./persist/dist/xstate-store-persist.esm.js",
-      "import": "./persist/dist/xstate-store-persist.cjs.mjs",
-      "default": "./persist/dist/xstate-store-persist.cjs.js"
-    },
     ".": {
       "types": {
         "import": "./dist/xstate-store.cjs.mjs",
@@ -56,6 +47,15 @@
       "module": "./solid/dist/xstate-store-solid.esm.js",
       "import": "./solid/dist/xstate-store-solid.cjs.mjs",
       "default": "./solid/dist/xstate-store-solid.cjs.js"
+    },
+    "./persist": {
+      "types": {
+        "import": "./persist/dist/xstate-store-persist.cjs.mjs",
+        "default": "./persist/dist/xstate-store-persist.cjs.js"
+      },
+      "module": "./persist/dist/xstate-store-persist.esm.js",
+      "import": "./persist/dist/xstate-store-persist.cjs.mjs",
+      "default": "./persist/dist/xstate-store-persist.cjs.js"
     },
     "./package.json": "./package.json"
   },
