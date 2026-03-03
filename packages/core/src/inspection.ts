@@ -10,11 +10,12 @@ export type InspectionEvent = {
   /**
    * The relevant actorRef for the inspection event.
    *
-   * - For snapshot events, this is the `actorRef` of the snapshot.
+   * - For snapshot events, 5this is the `actorRef` of the snapshot.
    * - For event events, this is the target `actorRef` (recipient of event).
    * - For actor events, this is the `actorRef` of the registered actor.
    */
   actorRef: ActorRefLike;
+  // TODO: discriminated union
   type: '@xstate.transition' | '@xstate.microstep';
   eventType?: string;
   event: AnyEventObject; // { type: string, ... }
