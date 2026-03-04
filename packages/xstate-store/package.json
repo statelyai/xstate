@@ -39,6 +39,15 @@
       "import": "./react/dist/xstate-store-react.cjs.mjs",
       "default": "./react/dist/xstate-store-react.cjs.js"
     },
+    "./reset": {
+      "types": {
+        "import": "./reset/dist/xstate-store-reset.cjs.mjs",
+        "default": "./reset/dist/xstate-store-reset.cjs.js"
+      },
+      "module": "./reset/dist/xstate-store-reset.esm.js",
+      "import": "./reset/dist/xstate-store-reset.cjs.mjs",
+      "default": "./reset/dist/xstate-store-reset.cjs.js"
+    },
     "./solid": {
       "types": {
         "import": "./solid/dist/xstate-store-solid.cjs.mjs",
@@ -56,15 +65,6 @@
       "module": "./persist/dist/xstate-store-persist.esm.js",
       "import": "./persist/dist/xstate-store-persist.cjs.mjs",
       "default": "./persist/dist/xstate-store-persist.cjs.js"
-    },
-    "./reset": {
-      "types": {
-        "import": "./reset/dist/xstate-store-reset.cjs.mjs",
-        "default": "./reset/dist/xstate-store-reset.cjs.js"
-      },
-      "module": "./reset/dist/xstate-store-reset.esm.js",
-      "import": "./reset/dist/xstate-store-reset.cjs.mjs",
-      "default": "./reset/dist/xstate-store-reset.cjs.js"
     },
     "./package.json": "./package.json"
   },
