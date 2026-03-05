@@ -21,6 +21,15 @@
       "import": "./undo/dist/xstate-store-undo.cjs.mjs",
       "default": "./undo/dist/xstate-store-undo.cjs.js"
     },
+    "./zustand": {
+      "types": {
+        "import": "./zustand/dist/xstate-store-zustand.cjs.mjs",
+        "default": "./zustand/dist/xstate-store-zustand.cjs.js"
+      },
+      "module": "./zustand/dist/xstate-store-zustand.esm.js",
+      "import": "./zustand/dist/xstate-store-zustand.cjs.mjs",
+      "default": "./zustand/dist/xstate-store-zustand.cjs.js"
+    },
     ".": {
       "types": {
         "import": "./dist/xstate-store.cjs.mjs",
@@ -55,7 +64,8 @@
     "dist",
     "react",
     "solid",
-    "undo"
+    "undo",
+    "zustand"
   ],
   "repository": {
     "type": "git",
@@ -100,7 +110,8 @@
       "./index.ts",
       "./react.ts",
       "./solid.ts",
-      "./undo.ts"
+      "./undo.ts",
+      "./zustand.ts"
     ]
   }
 }

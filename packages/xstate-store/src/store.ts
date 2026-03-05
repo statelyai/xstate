@@ -174,11 +174,27 @@ function createStoreCore<
       {} as Store<TContext, TEventPayloadMap, TEmitted>['trigger'],
       {
         get: (_, eventType: string) => {
-          return (payload: any) => {
-            store.send({
-              ...payload,
-              type: eventType
-            });
+          return (...args: any[]) => {
+            if (
+              args.length === 1 &&
+              args[0] !== null &&
+              typeof args[0] === 'object' &&
+              !Array.isArray(args[0])
+            ) {
+              store.send({
+                ...args[0],
+                type: eventType
+              });
+            } else if (args.length > 0) {
+              store.send({
+                type: eventType,
+                args
+              } as any);
+            } else {
+              store.send({
+                type: eventType
+              } as any);
+            }
           };
         }
       }

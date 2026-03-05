@@ -118,11 +118,15 @@ export interface Store<
    * ```
    */
   trigger: {
-    [K in keyof TEventPayloadMap]: IsEmptyObject<
-      DistributiveOmit<TEventPayloadMap[K], 'type'>
-    > extends true
-      ? () => void
-      : (eventPayload: DistributiveOmit<TEventPayloadMap[K], 'type'>) => void;
+    [K in keyof TEventPayloadMap]: TEventPayloadMap[K] extends {
+      args: infer A extends any[];
+    }
+      ? (...args: A) => void
+      : IsEmptyObject<
+            DistributiveOmit<TEventPayloadMap[K], 'type'>
+          > extends true
+        ? () => void
+        : (eventPayload: DistributiveOmit<TEventPayloadMap[K], 'type'>) => void;
   };
   select<TSelected>(
     selector: Selector<TContext, TSelected>,
