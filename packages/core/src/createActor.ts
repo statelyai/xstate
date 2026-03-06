@@ -73,10 +73,11 @@ const defaultOptions = {
  * its behavior based on the events it receives, which can cause effects outside
  * of the actor. When you run a state machine, it becomes an actor.
  */
-export class Actor<TLogic extends AnyActorLogic>
-  implements
-    ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>, EmittedFrom<TLogic>>
-{
+export class Actor<TLogic extends AnyActorLogic> implements ActorRef<
+  SnapshotFrom<TLogic>,
+  EventFromLogic<TLogic>,
+  EmittedFrom<TLogic>
+> {
   /** The current internal state of the actor. */
   private _snapshot!: SnapshotFrom<TLogic>;
   /**
