@@ -280,7 +280,7 @@ export interface SetupReturn<
   /** Creates a state machine with the setup configuration */
   createMachine<
     TContextSchema extends StandardSchemaV1,
-    TEventSchemaMap extends Record<string, StandardSchemaV1>,
+    const TEventSchemaMap extends Record<string, StandardSchemaV1>,
     TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
     TInputSchema extends StandardSchemaV1,
     TOutputSchema extends StandardSchemaV1,
