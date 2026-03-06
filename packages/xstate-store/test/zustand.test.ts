@@ -164,7 +164,7 @@ describe('createStoreFromZustand', () => {
     expect(snapshots).toEqual([{ count: 1 }, { count: 2 }]);
   });
 
-  it('handles async set via zustand.set event', async () => {
+  it('handles async set via dangerouslySet event', async () => {
     const store = createStoreFromZustand((set) => ({
       count: 0,
       loading: false,
@@ -294,5 +294,137 @@ describe('createStoreFromZustand', () => {
     await new Promise((r) => setTimeout(r, 20));
 
     expect(store.getSnapshot().context).toEqual({ a: 1, b: 1 });
+  });
+
+  it('store.trigger.dangerouslySet works for external set', () => {
+    const store = createStoreFromZustand((set) => ({
+      count: 0,
+      increment: () => set((s) => ({ count: s.count + 1 }))
+    }));
+
+    store.trigger.dangerouslySet({ partial: { count: 99 }, replace: false });
+    expect(store.getSnapshot().context).toEqual({ count: 99 });
+  });
+
+  it('store.trigger.dangerouslySet with replace=true', () => {
+    const store = createStoreFromZustand((set) => ({
+      count: 0,
+      name: 'test',
+      noop: () => {}
+    }));
+
+    store.trigger.dangerouslySet({
+      partial: { count: 42 } as any,
+      replace: true
+    });
+    expect(store.getSnapshot().context).toEqual({ count: 42 });
+  });
+
+  it('set() during init updates initial context', () => {
+    const store = createStoreFromZustand((set) => {
+      // set called during creator body (init phase)
+      set({ count: 10 });
+      return {
+        count: 0,
+        name: 'test',
+        increment: () => set((s) => ({ count: s.count + 1 }))
+      };
+    });
+
+    // The creator returns count: 0 which overwrites the set({count: 10}),
+    // but name should be 'test'
+    expect(store.getSnapshot().context).toEqual({ count: 0, name: 'test' });
+  });
+
+  it('set() during init does not crash (no storeRef)', () => {
+    // Should not throw
+    const store = createStoreFromZustand((set) => {
+      set({ initialized: true });
+      return {
+        initialized: false,
+        value: 'hello',
+        update: () => set({ value: 'updated' })
+      };
+    });
+
+    // Creator return values overwrite init set() values
+    expect(store.getSnapshot().context.initialized).toBe(false);
+    store.trigger.update();
+    expect(store.getSnapshot().context.value).toBe('updated');
+  });
+
+  it('set() during init with values not in return is preserved', () => {
+    const store = createStoreFromZustand((set) => {
+      set({ extra: 'from-init' } as any);
+      return {
+        count: 0,
+        increment: () => set((s) => ({ count: s.count + 1 }))
+      };
+    });
+
+    // 'extra' was set during init and not overwritten by return
+    expect((store.getSnapshot().context as any).extra).toBe('from-init');
+  });
+
+  it('api third parameter provides setState/getState', () => {
+    let capturedApi: any = null;
+
+    const store = createStoreFromZustand((set, get, api) => {
+      capturedApi = api;
+      return {
+        count: 0,
+        increment: () => set((s) => ({ count: s.count + 1 }))
+      };
+    });
+
+    expect(typeof capturedApi.setState).toBe('function');
+    expect(typeof capturedApi.getState).toBe('function');
+    expect(typeof capturedApi.getInitialState).toBe('function');
+    expect(typeof capturedApi.subscribe).toBe('function');
+
+    // getState works
+    store.trigger.increment();
+    expect(capturedApi.getState().count).toBe(1);
+  });
+
+  it('api.subscribe notifies on changes', () => {
+    let capturedApi: any = null;
+
+    const store = createStoreFromZustand((set, get, api) => {
+      capturedApi = api;
+      return {
+        count: 0,
+        increment: () => set((s) => ({ count: s.count + 1 }))
+      };
+    });
+
+    const states: any[] = [];
+    capturedApi.subscribe((state: any, prev: any) => {
+      states.push({ state: state.count, prev: prev.count });
+    });
+
+    store.trigger.increment();
+    store.trigger.increment();
+
+    expect(states).toEqual([
+      { state: 1, prev: 0 },
+      { state: 2, prev: 1 }
+    ]);
+  });
+
+  it('api.subscribe during init returns no-op unsubscribe', () => {
+    let initUnsub: any = null;
+
+    const store = createStoreFromZustand((set, get, api) => {
+      initUnsub = api.subscribe(() => {});
+      return {
+        count: 0,
+        increment: () => set((s) => ({ count: s.count + 1 }))
+      };
+    });
+
+    // Should be a function (no-op), and calling it should not throw
+    expect(typeof initUnsub).toBe('function');
+    expect(() => initUnsub()).not.toThrow();
   });
 });
