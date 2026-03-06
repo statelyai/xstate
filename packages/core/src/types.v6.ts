@@ -49,6 +49,12 @@ export type InferEvents<
     : never;
 }>;
 
+type InternalEventDescriptorFor<TEvent extends EventObject> = [TEvent] extends [
+  never
+]
+  ? string
+  : EventDescriptor<TEvent>;
+
 export type Next_MachineConfig<
   TContextSchema extends StandardSchemaV1,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
@@ -81,6 +87,12 @@ export type Next_MachineConfig<
   >,
   'output'
 > & {
+  setup?: {
+    events?: TEventSchemaMap;
+    internalEvents?: readonly InternalEventDescriptorFor<
+      InferEvents<TEventSchemaMap>
+    >[];
+  };
   schemas?: {
     events?: TEventSchemaMap;
     context?: TContextSchema;

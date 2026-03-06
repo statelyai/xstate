@@ -29,6 +29,7 @@ import type {
   DoneActorEvent,
   EmittedFrom,
   EventFromLogic,
+  SendableEventFromLogic,
   InputFrom,
   Snapshot,
   SnapshotFrom,
@@ -71,11 +72,15 @@ const defaultOptions = {
  * its behavior based on the events it receives, which can cause effects outside
  * of the actor. When you run a state machine, it becomes an actor.
  */
-export class Actor<TLogic extends AnyActorLogic> implements ActorRef<
-  SnapshotFrom<TLogic>,
-  EventFromLogic<TLogic>,
-  EmittedFrom<TLogic>
-> {
+export class Actor<TLogic extends AnyActorLogic>
+  implements
+    ActorRef<
+      SnapshotFrom<TLogic>,
+      EventFromLogic<TLogic>,
+      EmittedFrom<TLogic>,
+      SendableEventFromLogic<TLogic>
+    >
+{
   /** The current internal state of the actor. */
   private _snapshot!: SnapshotFrom<TLogic>;
   /**
@@ -109,14 +114,16 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorRef<
   public ref: ActorRef<
     SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
-    EmittedFrom<TLogic>
+    EmittedFrom<TLogic>,
+    SendableEventFromLogic<TLogic>
   >;
   // TODO: add typings for system
   private _actorScope: ActorScope<
     SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
     AnyActorSystem,
-    EmittedFrom<TLogic>
+    EmittedFrom<TLogic>,
+    SendableEventFromLogic<TLogic>
   >;
 
   /** @internal */
@@ -135,7 +142,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorRef<
   public trigger: ActorRef<
     SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
-    EmittedFrom<TLogic>
+    EmittedFrom<TLogic>,
+    SendableEventFromLogic<TLogic>
   >['trigger'];
 
   public src: string | AnyActorLogic;
@@ -196,7 +204,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorRef<
             `Cannot stop child actor ${child.id} of ${this.id} because it is not a child`
           );
         }
-        (child as any)._stop();
+        child._stop();
       },
       emit: (emittedEvent) => {
         const listeners = this.eventListeners.get(emittedEvent.type);
@@ -245,7 +253,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorRef<
       {} as ActorRef<
         SnapshotFrom<TLogic>,
         EventFromLogic<TLogic>,
-        EmittedFrom<TLogic>
+        EmittedFrom<TLogic>,
+        SendableEventFromLogic<TLogic>
       >['trigger'],
       {
         get: (_, eventType: string) => {
@@ -737,7 +746,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorRef<
    *
    * @param event The event to send
    */
-  public send(event: EventFromLogic<TLogic>) {
+  public send(event: SendableEventFromLogic<TLogic>) {
     if (isDevelopment && typeof event === 'string') {
       throw new Error(
         `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`

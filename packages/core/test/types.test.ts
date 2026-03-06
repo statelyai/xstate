@@ -170,6 +170,85 @@ describe('Raise events', () => {
   });
 });
 
+describe('internalEvents', () => {
+  it('should allow raising internal and external events', () => {
+    const machine = createMachine({
+      setup: {
+        events: {
+          foo: z.object({}),
+          tick: z.object({}),
+          'change.value': z.object({ value: z.string() })
+        },
+        internalEvents: ['tick', 'change.*'] as const
+      },
+      on: {
+        foo: (_, enq) => {
+          enq.raise({ type: 'foo' });
+          enq.raise({ type: 'tick' });
+          enq.raise({ type: 'change.value', value: 'ok' });
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.send({ type: 'foo' });
+  });
+
+  it('should reject sending internal events from outside', () => {
+    const machine = createMachine({
+      setup: {
+        events: {
+          foo: z.object({}),
+          tick: z.object({}),
+          'change.value': z.object({ value: z.string() })
+        },
+        internalEvents: ['tick', 'change.*'] as const
+      },
+      on: {
+        foo: {}
+      }
+    });
+
+    const actor = createActor(machine);
+
+    actor.send({ type: 'foo' });
+    // @ts-expect-error
+    actor.send({ type: 'tick' });
+    // @ts-expect-error
+    actor.send({ type: 'change.value', value: 'blocked' });
+
+    actor.trigger.foo();
+    // @ts-expect-error
+    actor.trigger.tick();
+    // @ts-expect-error
+    actor.trigger['change.value']({ value: 'blocked' });
+  });
+
+  it('should reject nonexistent and invalid internal event descriptors', () => {
+    createMachine({
+      setup: {
+        events: {
+          foo: z.object({}),
+          'change.value': z.object({ value: z.string() })
+        },
+        // @ts-expect-error
+        internalEvents: ['nonexistent'] as const
+      }
+    });
+
+    createMachine({
+      setup: {
+        events: {
+          foo: z.object({}),
+          'change.value': z.object({ value: z.string() })
+        },
+        // @ts-expect-error
+        internalEvents: ['foo.*.invalid'] as const
+      }
+    });
+  });
+});
+
 describe('context', () => {
   it('defined context in next_createMachine() should be an object', () => {
     createMachine({

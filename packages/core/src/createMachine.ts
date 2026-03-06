@@ -95,7 +95,7 @@ export function createMachine<
   TDelays extends string,
   TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
   TInput,
-  const TSS extends StateSchema
+  const TSS extends StateSchema & { setup?: unknown }
 >(
   config: TSS &
     Next_MachineConfig<

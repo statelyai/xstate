@@ -166,7 +166,7 @@ export function createSystem<T extends ActorSystemInfo>(
     }
     const resolvedInspectionEvent: InspectionEvent = {
       ...event,
-      rootId: rootActor.sessionId!
+      rootId: rootActor.sessionId
     };
     inspectionObservers.forEach((observer) =>
       observer.next?.(resolvedInspectionEvent)
@@ -187,7 +187,7 @@ export function createSystem<T extends ActorSystemInfo>(
       return sessionId;
     },
     _unregister: (actorRef) => {
-      children.delete(actorRef.sessionId!);
+      children.delete(actorRef.sessionId);
       const systemId = reverseKeyedActors.get(actorRef);
 
       if (systemId !== undefined) {
@@ -204,7 +204,6 @@ export function createSystem<T extends ActorSystemInfo>(
     _set: (systemId, actorRef) => {
       const existing = keyedActors.get(systemId);
       if (existing && existing !== actorRef) {
-        debugger;
         throw new Error(
           `Actor with system ID '${systemId as string}' already exists.`
         );
@@ -225,6 +224,17 @@ export function createSystem<T extends ActorSystemInfo>(
     },
     _sendInspectionEvent: sendInspectionEvent as any,
     _relay: (source, target, event) => {
+      const targetMachine = (target as any).logic;
+      const isInternalEvent =
+        typeof targetMachine?.isInternalEventType === 'function' &&
+        targetMachine.isInternalEventType(event.type);
+
+      if (isInternalEvent && source !== target) {
+        throw new Error(
+          `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
+        );
+      }
+
       // remember the last source for unified transition inspect event
       (target as any)._lastSourceRef = source;
       target._send(event);

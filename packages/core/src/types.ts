@@ -589,11 +589,37 @@ export type EventDescriptor<TEvent extends EventObject> =
   | PartialEventDescriptor<TEvent['type']>
   | '*';
 
-type NormalizeDescriptor<TDescriptor extends string> = TDescriptor extends '*'
-  ? string
-  : TDescriptor extends `${infer TLeading}.*`
-    ? `${TLeading}.${string}`
-    : TDescriptor;
+export type NormalizeDescriptor<TDescriptor extends string> =
+  TDescriptor extends '*'
+    ? string
+    : TDescriptor extends `${infer TLeading}.*`
+      ? `${TLeading}.${string}`
+      : TDescriptor;
+
+type EventTypeMatchesDescriptor<
+  TEventType extends string,
+  TDescriptor extends string
+> = TEventType extends NormalizeDescriptor<TDescriptor> ? true : false;
+
+type IsInternalEventType<
+  TEventType extends string,
+  TDescriptors extends string
+> = true extends (
+  TDescriptors extends any
+    ? EventTypeMatchesDescriptor<TEventType, TDescriptors>
+    : never
+)
+  ? true
+  : false;
+
+type ExcludeInternalEvents<
+  TEvent extends EventObject,
+  TDescriptors extends string
+> = TEvent extends any
+  ? IsInternalEventType<TEvent['type'], TDescriptors> extends true
+    ? never
+    : TEvent
+  : never;
 
 export type IsLiteralString<T extends string> = string extends T ? false : true;
 
@@ -1391,7 +1417,8 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
 export interface ActorRef<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TEmitted extends EventObject = EventObject
+  TEmitted extends EventObject = EventObject,
+  TSendEvent extends EventObject = TEvent
 > extends Subscribable<TSnapshot>,
     InteropObservable<TSnapshot> {
   /** The unique identifier for this actor relative to its parent. */
@@ -1405,7 +1432,7 @@ export interface ActorRef<
   sessionId: string | undefined;
   /** @internal */
   _send: (event: TEvent) => void;
-  send: (event: TEvent) => void;
+  send: (event: TSendEvent) => void;
   start: () => this;
   getSnapshot: () => TSnapshot;
   getPersistedSnapshot: () => Snapshot<unknown>;
@@ -1426,22 +1453,13 @@ export interface ActorRef<
     ) => void
   ) => Subscription;
   trigger: {
-    [K in TEvent['type']]: IsEmptyObject<
-      Omit<Extract<TEvent, { type: K }>, 'type'>
+    [K in TSendEvent['type']]: IsEmptyObject<
+      Omit<Extract<TSendEvent, { type: K }>, 'type'>
     > extends true
       ? () => void
-      : (payload: Omit<Extract<TEvent, { type: K }>, 'type'>) => void;
+      : (payload: Omit<Extract<TSendEvent, { type: K }>, 'type'>) => void;
   };
 }
-
-export type AnyActorRef = ActorRef<any, any, any>;
-
-export type ActorRefLike = Pick<
-  AnyActorRef,
-  'sessionId' | 'send' | 'getSnapshot'
->;
-
-export type UnknownActorRef = ActorRef<Snapshot<unknown>, EventObject>;
 
 // TODO: in v6, this should only accept AnyActorLogic, like ActorRefFromLogic
 export type ActorRefFrom<T> =
@@ -1455,26 +1473,55 @@ export type ActorRefFrom<T> =
     infer TOutput,
     infer TEmitted,
     infer TMeta,
-    infer _TConfig,
+    infer TConfig,
     infer _TActionMap,
     infer _TActorMap,
     infer _TGuardMap,
     infer _TDelayMap
   >
-    ? ActorRef<
-        MachineSnapshot<
-          TContext,
+    ? TConfig extends {
+        setup?: {
+          internalEvents?: readonly EventDescriptor<TEvent>[];
+        };
+      }
+      ? ActorRef<
+          MachineSnapshot<
+            TContext,
+            TEvent,
+            TChildren,
+            TStateValue,
+            TTag,
+            TOutput,
+            TMeta,
+            any //TStateSchema
+          >,
           TEvent,
-          TChildren,
-          TStateValue,
-          TTag,
-          TOutput,
-          TMeta,
-          any //TStateSchema
-        >,
-        TEvent,
-        TEmitted
-      >
+          TEmitted,
+          ExcludeInternalEvents<
+            TEvent,
+            TConfig['setup'] extends {
+              internalEvents?: readonly EventDescriptor<TEvent>[];
+            }
+              ? TConfig['setup']['internalEvents'] extends readonly (infer TDesc)[]
+                ? Extract<TDesc, string>
+                : never
+              : never
+          >
+        >
+      : ActorRef<
+          MachineSnapshot<
+            TContext,
+            TEvent,
+            TChildren,
+            TStateValue,
+            TTag,
+            TOutput,
+            TMeta,
+            any //TStateSchema
+          >,
+          TEvent,
+          TEmitted
+        >
     : T extends Promise<infer U>
       ? ActorRefFrom<PromiseActorLogic<U>>
       : T extends ActorLogic<
@@ -1487,12 +1534,58 @@ export type ActorRefFrom<T> =
         ? ActorRef<TSnapshot, TEvent, TEmitted>
         : never;
 
+export type SendableEventFromLogic<TLogic extends AnyActorLogic> =
+  TLogic extends StateMachine<
+    infer _TContext,
+    infer TEvent,
+    infer _TChildren,
+    infer _TStateValue,
+    infer _TTag,
+    infer _TInput,
+    infer _TOutput,
+    infer _TEmitted,
+    infer _TMeta,
+    infer TConfig,
+    infer _TActionMap,
+    infer _TActorMap,
+    infer _TGuardMap,
+    infer _TDelayMap
+  >
+    ? TConfig extends {
+        setup?: {
+          internalEvents?: readonly EventDescriptor<TEvent>[];
+        };
+      }
+      ? ExcludeInternalEvents<
+          TEvent,
+          TConfig['setup'] extends {
+            internalEvents?: readonly EventDescriptor<TEvent>[];
+          }
+            ? TConfig['setup']['internalEvents'] extends readonly (infer TDesc)[]
+              ? Extract<TDesc, string>
+              : never
+            : never
+        >
+      : TEvent
+    : EventFromLogic<TLogic>;
+
 export type ActorRefFromLogic<T extends AnyActorLogic> = ActorRef<
   SnapshotFrom<T>,
   EventFromLogic<T>,
-  EmittedFrom<T>
+  EmittedFrom<T>,
+  SendableEventFromLogic<T>
 >;
 
+export type AnyActorRef = ActorRef<any, any, any, any>;
+
+export type ActorRefLike = Pick<
+  AnyActorRef,
+  'sessionId' | 'send' | 'getSnapshot'
+>;
+
+export type UnknownActorRef = ActorRef<Snapshot<unknown>, EventObject>;
+
+// TODO: in v6, this should only accept AnyActorLogic, like ActorRefFromLogic
 export type DevToolsAdapter = (service: AnyActor) => void;
 
 export type MachineImplementationsFrom<
@@ -1526,9 +1619,10 @@ export interface ActorScope<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TSystem extends AnyActorSystem = AnyActorSystem,
-  TEmitted extends EventObject = EventObject
+  TEmitted extends EventObject = EventObject,
+  TSendEvent extends EventObject = TEvent
 > {
-  self: ActorRef<TSnapshot, TEvent, TEmitted>;
+  self: ActorRef<TSnapshot, TEvent, TEmitted, TSendEvent>;
   id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
@@ -1543,7 +1637,8 @@ export type AnyActorScope = ActorScope<
   any, // TSnapshot
   any, // TEvent
   AnyActorSystem,
-  any // TEmitted
+  any, // TEmitted
+  any // TSendEvent
 >;
 
 export type SnapshotStatus = 'active' | 'done' | 'error' | 'stopped';
