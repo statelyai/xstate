@@ -1,32 +1,33 @@
 import { createMachine, createActor } from '../src/index';
-import { assign } from '../src/actions/assign';
 import { fromCallback } from '../src/actors/callback';
-
-type Events =
-  | { type: 'BAR_EVENT' }
-  | { type: 'DEEP_EVENT' }
-  | { type: 'EXTERNAL' }
-  | { type: 'FOO_EVENT' }
-  | { type: 'FORBIDDEN_EVENT' }
-  | { type: 'INERT' }
-  | { type: 'INTERNAL' }
-  | { type: 'MACHINE_EVENT' }
-  | { type: 'P31' }
-  | { type: 'P32' }
-  | { type: 'THREE_EVENT' }
-  | { type: 'TO_THREE' }
-  | { type: 'TO_TWO'; foo: string }
-  | { type: 'TO_TWO_MAYBE' }
-  | { type: 'TO_FINAL' };
+import { z } from 'zod';
 
 const exampleMachine = createMachine({
-  types: {} as {
-    events: Events;
+  // types: {} as {
+  //   events: Events;
+  // },
+  schemas: {
+    events: {
+      BAR_EVENT: z.object({}),
+      DEEP_EVENT: z.object({}),
+      EXTERNAL: z.object({}),
+      FOO_EVENT: z.object({}),
+      FORBIDDEN_EVENT: z.object({}),
+      INERT: z.object({}),
+      INTERNAL: z.object({}),
+      MACHINE_EVENT: z.object({}),
+      P31: z.object({}),
+      P32: z.object({}),
+      THREE_EVENT: z.object({}),
+      TO_THREE: z.object({}),
+      TO_TWO: z.object({ foo: z.string() }),
+      TO_TWO_MAYBE: z.object({}),
+      TO_FINAL: z.object({})
+    }
   },
   initial: 'one',
   states: {
     one: {
-      entry: ['enter'],
       on: {
         EXTERNAL: {
           target: 'one',
@@ -34,13 +35,12 @@ const exampleMachine = createMachine({
         },
         INERT: {},
         INTERNAL: {
-          actions: ['doSomething']
+          // actions: ['doSomething']
         },
         TO_TWO: 'two',
-        TO_TWO_MAYBE: {
-          target: 'two',
-          guard: function maybe() {
-            return true;
+        TO_TWO_MAYBE: () => {
+          if (true) {
+            return { target: 'two' };
           }
         },
         TO_THREE: 'three',
@@ -156,13 +156,14 @@ describe('State', () => {
     });
 
     it('should return true for an event object that results in a new action', () => {
+      const newAction = () => {};
       const machine = createMachine({
         initial: 'a',
         states: {
           a: {
             on: {
-              NEXT: {
-                actions: 'newAction'
+              NEXT: (_, enq) => {
+                enq(newAction);
               }
             }
           }
@@ -176,13 +177,22 @@ describe('State', () => {
 
     it('should return true for an event object that results in a context change', () => {
       const machine = createMachine({
+        schemas: {
+          context: z.object({
+            count: z.number()
+          })
+        },
         initial: 'a',
         context: { count: 0 },
         states: {
           a: {
             on: {
-              NEXT: {
-                actions: assign({ count: 1 })
+              NEXT: () => {
+                return {
+                  context: {
+                    count: 1
+                  }
+                };
               }
             }
           }
@@ -231,9 +241,9 @@ describe('State', () => {
         states: {
           a: {
             on: {
-              EV: {
-                target: 'a',
-                actions: () => {}
+              EV: (_, enq) => {
+                enq(() => {});
+                return { target: 'a' };
               }
             }
           }
@@ -249,8 +259,8 @@ describe('State', () => {
         states: {
           a: {
             on: {
-              EV: {
-                actions: () => {}
+              EV: (_, enq) => {
+                enq(() => {});
               }
             }
           }
@@ -301,9 +311,10 @@ describe('State', () => {
         states: {
           a: {
             on: {
-              CHECK: {
-                target: 'b',
-                guard: () => true
+              CHECK: () => {
+                if (true) {
+                  return { target: 'b' };
+                }
               }
             }
           },
@@ -324,9 +335,10 @@ describe('State', () => {
         states: {
           a: {
             on: {
-              CHECK: {
-                target: 'b',
-                guard: () => false
+              CHECK: () => {
+                if (1 + 1 !== 2) {
+                  return { target: 'b' };
+                }
               }
             }
           },
@@ -344,19 +356,26 @@ describe('State', () => {
     it('should not spawn actors when determining if an event is accepted', () => {
       let spawned = false;
       const machine = createMachine({
+        schemas: {
+          context: z.object({
+            ref: z.any()
+          })
+        },
         context: {},
         initial: 'a',
         states: {
           a: {
             on: {
-              SPAWN: {
-                actions: assign(({ spawn }) => ({
-                  ref: spawn(
-                    fromCallback(() => {
-                      spawned = true;
-                    })
-                  )
-                }))
+              SPAWN: (_, enq) => {
+                return {
+                  context: {
+                    ref: enq.spawn(
+                      fromCallback(() => {
+                        spawned = true;
+                      })
+                    )
+                  }
+                };
               }
             }
           },
@@ -369,17 +388,12 @@ describe('State', () => {
       expect(spawned).toBe(false);
     });
 
-    it('should not execute assignments when used with non-started actor', () => {
+    it('should not execute actions when used with non-started actor', () => {
       let executed = false;
       const machine = createMachine({
-        context: {},
         on: {
-          EVENT: {
-            actions: assign((ctx) => {
-              // Side-effect just for testing
-              executed = true;
-              return ctx;
-            })
+          EVENT: (_, enq) => {
+            enq(() => (executed = true));
           }
         }
       });
@@ -391,17 +405,12 @@ describe('State', () => {
       expect(executed).toBeFalsy();
     });
 
-    it('should not execute assignments when used with started actor', () => {
+    it('should not execute actions when used with started actor', () => {
       let executed = false;
       const machine = createMachine({
-        context: {},
         on: {
-          EVENT: {
-            actions: assign((ctx) => {
-              // Side-effect just for testing
-              executed = true;
-              return ctx;
-            })
+          EVENT: (_, enq) => {
+            enq(() => (executed = true));
           }
         }
       });
@@ -482,7 +491,7 @@ describe('State', () => {
         initial: 'a',
         states: {
           a: {
-            tags: 'foo'
+            tags: ['foo']
           }
         }
       });

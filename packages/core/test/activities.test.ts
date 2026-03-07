@@ -1,6 +1,6 @@
+import z from 'zod';
 import { fromCallback } from '../src/actors/index.ts';
-import { createActor, createMachine, assign } from '../src/index.ts';
-import { setup } from '../src/setup.ts';
+import { createActor, createMachine } from '../src/index.ts';
 
 // TODO: remove this file but before doing that ensure that things tested here are covered by other tests
 
@@ -14,7 +14,7 @@ describe('invocations (activities)', () => {
         })
       }
     });
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(active).toBe(true);
   });
@@ -33,7 +33,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(active).toBe(true);
   });
@@ -57,7 +57,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    createActor(machine).start();
+    machine.createActor().start();
 
     expect(active).toBe(true);
   });
@@ -82,7 +82,7 @@ describe('invocations (activities)', () => {
       }
     });
 
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.send({ type: 'TIMER' });
 
@@ -118,7 +118,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = createActor(machine);
+    const service = machine.createActor();
 
     service.start();
     service.send({ type: 'TIMER' });
@@ -161,7 +161,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.send({ type: 'TIMER' });
     service.send({ type: 'TIMER' });
@@ -206,7 +206,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = createActor(machine);
+    const service = machine.createActor();
 
     service.start();
     service.send({ type: 'TIMER' });
@@ -233,12 +233,16 @@ describe('invocations (activities)', () => {
               return () => (active = false);
             })
           },
-          always: [{ guard: () => false, target: 'A' }]
+          always: () => {
+            if (1 + 1 !== 2) {
+              return { target: 'A' };
+            }
+          }
         }
       }
     });
 
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.send({ type: 'E' });
 
@@ -269,7 +273,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.send({ type: 'E' });
     service.send({ type: 'IGNORE' });
@@ -306,7 +310,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.send({ type: 'E' });
 
@@ -329,16 +333,15 @@ describe('invocations (activities)', () => {
       };
     });
 
-    const machine = setup({
+    const machine = createMachine({
       actors: {
         fooActor
-      }
-    }).createMachine({
+      },
       initial: 'a',
       states: {
         a: {
           invoke: {
-            src: 'fooActor'
+            src: ({ actors }) => actors.fooActor
           },
           on: {
             NEXT: 'b'
@@ -346,12 +349,12 @@ describe('invocations (activities)', () => {
         },
         b: {
           invoke: {
-            src: 'fooActor'
+            src: ({ actors }) => actors.fooActor
           }
         }
       }
     });
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.send({ type: 'NEXT' });
 
@@ -373,16 +376,15 @@ describe('invocations (activities)', () => {
       };
     });
 
-    const machine = setup({
+    const machine = createMachine({
       actors: {
         fooActor
-      }
-    }).createMachine({
+      },
       initial: 'a',
       states: {
         a: {
           invoke: {
-            src: 'fooActor'
+            src: ({ actors }) => actors.fooActor
           },
           on: {
             NEXT: {
@@ -393,7 +395,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = createActor(machine).start();
+    const service = machine.createActor().start();
 
     service.send({ type: 'NEXT' });
 
@@ -403,6 +405,11 @@ describe('invocations (activities)', () => {
   it('should have stopped after automatic transitions', () => {
     let active = false;
     const machine = createMachine({
+      schemas: {
+        context: z.object({
+          counter: z.number()
+        })
+      },
       context: {
         counter: 0
       },
@@ -415,26 +422,27 @@ describe('invocations (activities)', () => {
               return () => (active = false);
             })
           },
-          always: {
-            guard: ({ context }) => context.counter !== 0,
-            target: 'b'
+          always: ({ context }) => {
+            if (context.counter !== 0) {
+              return { target: 'b' };
+            }
           },
           on: {
-            INC: {
-              actions: assign(({ context }) => ({
+            INC: ({ context }) => ({
+              context: {
                 counter: context.counter + 1
-              }))
-            }
+              }
+            })
           }
         },
         b: {}
       }
     });
-    const service = createActor(machine).start();
+    const actor = machine.createActor().start();
 
     expect(active).toBe(true);
 
-    service.send({ type: 'INC' });
+    actor.send({ type: 'INC' });
 
     expect(active).toBe(false);
   });

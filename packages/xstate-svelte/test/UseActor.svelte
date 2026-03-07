@@ -4,7 +4,7 @@
   import { useActor } from '../src/index.ts';
   import { fetchMachine } from './fetchMachine.ts';
   import type { AnyMachineSnapshot } from 'xstate';
-  import { fromPromise } from 'xstate/actors';
+  import { fromPromise } from 'xstate';
 
   const onFetch = () =>
     new Promise<string>((res) => setTimeout(() => res('some data'), 50));

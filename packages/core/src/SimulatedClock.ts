@@ -77,6 +77,11 @@ export class SimulatedClock implements SimulatedClock {
     }
 
     this._flushing = false;
+    // Check if new timeouts were added during the last iteration
+    if (this._flushingInvalidated) {
+      this._flushingInvalidated = false;
+      this.flushTimeouts();
+    }
   }
   public increment(ms: number): void {
     this._now += ms;

@@ -1,15 +1,9 @@
 <script lang="ts">
-  import { createActor, createMachine, assign } from 'xstate';
+  import { createActor, createMachine } from 'xstate';
   import { useActorRef, useSelector } from '../src/index.ts';
 
   const machine = createMachine({
     initial: 'idle',
-    types: {
-      context: {} as {
-        count: number;
-        anotherCount: number;
-      }
-    },
     context: {
       count: 0,
       anotherCount: 0
@@ -17,14 +11,12 @@
     states: {
       idle: {
         on: {
-          INCREMENT: {
-            actions: assign({ count: ({ context: { count } }) => count + 1 })
-          },
-          INCREMENT_ANOTHER: {
-            actions: assign({
-              anotherCount: ({ context: { anotherCount } }) => anotherCount + 1
-            })
-          }
+          INCREMENT: ({ context }) => ({
+            context: { ...context, count: context.count + 1 }
+          }),
+          INCREMENT_ANOTHER: ({ context }) => ({
+            context: { ...context, anotherCount: context.anotherCount + 1 }
+          })
         }
       }
     }

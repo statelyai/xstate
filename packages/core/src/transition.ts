@@ -13,6 +13,7 @@ import {
   EventFromLogic,
   InputFrom,
   SnapshotFrom,
+  ExecutableActionObject,
   ExecutableActionsFrom,
   AnyTransitionDefinition,
   AnyMachineSnapshot
@@ -28,12 +29,12 @@ export function transition<T extends AnyActorLogic>(
   logic: T,
   snapshot: SnapshotFrom<T>,
   event: EventFromLogic<T>
-): [nextSnapshot: SnapshotFrom<T>, actions: ExecutableActionsFrom<T>[]] {
-  const executableActions = [] as ExecutableActionsFrom<T>[];
+): [nextSnapshot: SnapshotFrom<T>, actions: ExecutableActionObject[]] {
+  const executableActions = [] as ExecutableActionObject[];
 
   const actorScope = createInertActorScope(logic);
   actorScope.actionExecutor = (action) => {
-    executableActions.push(action as ExecutableActionsFrom<T>);
+    executableActions.push(action);
   };
 
   const nextSnapshot = logic.transition(snapshot, event, actorScope);
@@ -53,12 +54,12 @@ export function initialTransition<T extends AnyActorLogic>(
   ...[input]: undefined extends InputFrom<T>
     ? [input?: InputFrom<T>]
     : [input: InputFrom<T>]
-): [SnapshotFrom<T>, ExecutableActionsFrom<T>[]] {
-  const executableActions = [] as ExecutableActionsFrom<T>[];
+): [SnapshotFrom<T>, ExecutableActionObject[]] {
+  const executableActions = [] as ExecutableActionObject[];
 
   const actorScope = createInertActorScope(logic);
   actorScope.actionExecutor = (action) => {
-    executableActions.push(action as ExecutableActionsFrom<T>);
+    executableActions.push(action);
   };
 
   const nextSnapshot = logic.getInitialSnapshot(
@@ -104,11 +105,7 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
   const initEvent = createInitEvent(input);
   const internalQueue: AnyEventObject[] = [];
 
-  const preInitialSnapshot = machine._getPreInitialState(
-    actorScope,
-    initEvent,
-    internalQueue
-  );
+  const preInitialSnapshot = machine._getPreInitialState(actorScope, initEvent);
 
   const first = initialMicrostep(
     machine.root,
@@ -177,8 +174,10 @@ export function getNextTransitions(
       // Get all transitions for each event type
       // Include ALL transitions, even if the same event type appears in multiple state nodes
       // This is important for guarded transitions - all are "potential" regardless of guard evaluation
-      for (const [, transitions] of s.transitions) {
-        potentialTransitions.push(...transitions);
+      for (const [, transitions] of s.transitions.entries()) {
+        potentialTransitions.push(
+          ...(transitions as AnyTransitionDefinition[])
+        );
       }
 
       // Also include always (eventless) transitions

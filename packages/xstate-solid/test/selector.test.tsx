@@ -5,7 +5,6 @@ import {
   ActorRefFrom,
   AnyMachineSnapshot,
   StateFrom,
-  assign,
   createMachine
 } from 'xstate';
 import { useActorRef, useMachine, fromActorRef } from '../src/index.ts';
@@ -13,22 +12,21 @@ describe('usage of selectors with reactive service state', () => {
   // TODO: rewrite this test to not use `from()`
   it.skip('only rerenders for selected values', () => {
     const machine = createMachine({
-      types: {} as { context: { count: number; other: number } },
       initial: 'active',
       context: {
         other: 0,
         count: 0
-      },
+      } as any,
       states: {
         active: {}
       },
       on: {
-        OTHER: {
-          actions: assign({ other: ({ context }) => context.other + 1 })
-        },
-        INCREMENT: {
-          actions: assign({ count: ({ context }) => context.count + 1 })
-        }
+        OTHER: ({ context }) => ({
+          context: { ...context, other: context.other + 1 }
+        }),
+        INCREMENT: ({ context }) => ({
+          context: { ...context, count: context.count + 1 }
+        })
       }
     });
 
@@ -39,7 +37,7 @@ describe('usage of selectors with reactive service state', () => {
       const serviceState = from(service);
 
       const selector = (state: StateFrom<typeof machine> | undefined) =>
-        state?.context.count;
+        (state as any)?.context.count;
       rerenders++;
 
       return (
@@ -81,21 +79,17 @@ describe('usage of selectors with reactive service state', () => {
   // TODO: rewrite this test to not use `from()`
   it.skip('should work with a custom comparison function', () => {
     const machine = createMachine({
-      types: {} as {
-        context: { name: string };
-        events: { type: 'CHANGE'; value: string };
-      },
       initial: 'active',
       context: {
         name: 'david'
-      },
+      } as any,
       states: {
         active: {}
       },
       on: {
-        CHANGE: {
-          actions: assign({ name: ({ event }) => event.value })
-        }
+        CHANGE: ({ event }: any) => ({
+          context: { name: event.value }
+        })
       }
     });
 
@@ -103,9 +97,9 @@ describe('usage of selectors with reactive service state', () => {
       const service = useActorRef(machine);
       const serviceState = from(service);
       const name = createMemo(
-        () => serviceState()!.context.name,
+        () => (serviceState() as any)!.context.name,
         serviceState(),
-        { equals: (a, b) => a.toUpperCase() === b.toUpperCase() }
+        { equals: (a: any, b: any) => a.toUpperCase() === b.toUpperCase() }
       );
 
       return (
@@ -113,11 +107,15 @@ describe('usage of selectors with reactive service state', () => {
           <div data-testid="name">{name()}</div>
           <button
             data-testid="sendUpper"
-            onclick={() => service.send({ type: 'CHANGE', value: 'DAVID' })}
+            onclick={() =>
+              service.send({ type: 'CHANGE', value: 'DAVID' } as any)
+            }
           />
           <button
             data-testid="sendOther"
-            onclick={() => service.send({ type: 'CHANGE', value: 'other' })}
+            onclick={() =>
+              service.send({ type: 'CHANGE', value: 'other' } as any)
+            }
           />
         </div>
       );
@@ -146,42 +144,37 @@ describe('usage of selectors with reactive service state', () => {
 
   it('should work with selecting values from initially spawned actors', () => {
     const childMachine = createMachine({
-      types: {} as { context: { count: number } },
       context: {
         count: 0
-      },
+      } as any,
       on: {
-        UPDATE_COUNT: {
-          actions: assign({
-            count: ({ context }) => context.count + 1
-          })
-        }
+        UPDATE_COUNT: ({ context }) => ({
+          context: { count: context.count + 1 }
+        })
       }
     });
 
     const parentMachine = createMachine({
-      types: {} as {
+      context: {
+        childActor: undefined as ActorRefFrom<typeof childMachine> | undefined
+      } as any,
+      entry: (_, enq) => ({
         context: {
-          childActor?: ActorRefFrom<typeof childMachine>;
-        };
-      },
-      context: {},
-      entry: assign({
-        childActor: ({ spawn }) => spawn(childMachine)
+          childActor: enq.spawn(childMachine)
+        }
       })
     });
 
-    const selector = (state: StateFrom<typeof childMachine>) =>
-      state.context.count;
+    const selector = (state: any) => state.context.count;
 
     const App = () => {
       const [state] = useMachine(parentMachine);
-      const childActor = state.context.childActor!;
+      const childActor = (state as any).context.childActor!;
       const childSnapshot = fromActorRef(childActor);
 
       return (
         <div>
-          <div data-testid="count">{selector(childSnapshot())}</div>
+          <div data-testid="count">{selector(childSnapshot() as any)}</div>
 
           <button
             onclick={() => childActor.send({ type: 'UPDATE_COUNT' })}
@@ -203,28 +196,24 @@ describe('usage of selectors with reactive service state', () => {
 
   it('should rerender with a new value when the selector changes', () => {
     const childMachine = createMachine({
-      types: {} as { context: { count: number } },
       context: {
         count: 0
-      },
+      } as any,
       on: {
-        INC: {
-          actions: assign({
-            count: ({ context }) => context.count + 1
-          })
-        }
+        INC: ({ context }) => ({
+          context: { count: context.count + 1 }
+        })
       }
     });
 
     const parentMachine = createMachine({
-      types: {} as {
+      context: {
+        childActor: undefined as ActorRefFrom<typeof childMachine> | undefined
+      } as any,
+      entry: (_, enq) => ({
         context: {
-          childActor?: ActorRefFrom<typeof childMachine>;
-        };
-      },
-      context: {},
-      entry: assign({
-        childActor: ({ spawn }) => spawn(childMachine)
+          childActor: enq.spawn(childMachine)
+        }
       })
     });
     const [prop, setProp] = createSignal('first');
@@ -235,7 +224,7 @@ describe('usage of selectors with reactive service state', () => {
         `${prop()} ${stateValue.context.count}`;
       return (
         <div data-testid="value">
-          {value(state.context.childActor!.getSnapshot()!)}
+          {value((state as any).context.childActor!.getSnapshot()!)}
         </div>
       );
     };
@@ -250,11 +239,10 @@ describe('usage of selectors with reactive service state', () => {
   it('should update selector value when actor changes', () => {
     const childMachine = (count: number) =>
       createMachine({
-        types: {} as { context: { count: number } },
         initial: 'active',
         context: {
           count
-        },
+        } as any,
         states: {
           active: {}
         }
@@ -266,20 +254,20 @@ describe('usage of selectors with reactive service state', () => {
         actorRef: undefined as any as ActorRefFrom<
           ReturnType<typeof childMachine>
         >
-      },
+      } as any,
       states: {
         active: {
-          entry: assign({
-            actorRef: ({ spawn }) => spawn(childMachine(1))
+          entry: (_, enq) => ({
+            context: {
+              actorRef: enq.spawn(childMachine(1))
+            }
           }),
           on: {
-            CHANGE: {
-              actions: [
-                assign({
-                  actorRef: ({ spawn }) => spawn(childMachine(0))
-                })
-              ]
-            }
+            CHANGE: (_, enq) => ({
+              context: {
+                actorRef: enq.spawn(childMachine(0))
+              }
+            })
           }
         },
         success: {}
@@ -291,7 +279,7 @@ describe('usage of selectors with reactive service state', () => {
       return (
         <div>
           <div data-testid="count">
-            {state.context.actorRef!.getSnapshot()!.context.count}
+            {(state as any).context.actorRef!.getSnapshot()!.context.count}
           </div>
           <button
             data-testid="change-actor"
@@ -313,35 +301,31 @@ describe('usage of selectors with reactive service state', () => {
 
   it('should use a fresh selector for subscription updates after selector change', () => {
     const childMachine = createMachine({
-      types: {} as { context: { count: number } },
       context: {
         count: 0
-      },
+      } as any,
       on: {
-        INC: {
-          actions: assign({
-            count: ({ context }) => context.count + 1
-          })
-        }
+        INC: ({ context }) => ({
+          context: { count: context.count + 1 }
+        })
       }
     });
 
     const parentMachine = createMachine({
-      types: {} as {
+      context: {
+        childActor: undefined as ActorRefFrom<typeof childMachine> | undefined
+      } as any,
+      entry: (_, enq) => ({
         context: {
-          childActor?: ActorRefFrom<typeof childMachine>;
-        };
-      },
-      context: {},
-      entry: assign({
-        childActor: ({ spawn }) => spawn(childMachine)
+          childActor: enq.spawn(childMachine)
+        }
       })
     });
     const [prop, setProp] = createSignal('first');
 
     const App = () => {
       const [snapshot] = useMachine(parentMachine);
-      const childActor = () => snapshot.context.childActor!;
+      const childActor = () => (snapshot as any).context.childActor!;
       const childSnapshot = fromActorRef(childActor);
       const value = createMemo(
         () => `${prop()} ${childSnapshot().context.count}`

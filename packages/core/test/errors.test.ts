@@ -1,15 +1,13 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
-  AnyEventObject,
-  assign,
   createActor,
   createMachine,
-  emit,
   fromCallback,
   fromPromise,
   fromTransition,
-  setup
+  AnyEventObject
 } from '../src';
+import z from 'zod';
 
 // mocked reportUnhandledError due to unknown issue with vitest and global error
 // handlers not catching thrown errors
@@ -42,6 +40,11 @@ describe('error handling', () => {
     const machine = createMachine({
       id: 'machine',
       initial: 'initial',
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 0
       },
@@ -82,6 +85,11 @@ describe('error handling', () => {
     const machine = createMachine({
       id: 'machine',
       initial: 'initial',
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 0
       },
@@ -91,8 +99,8 @@ describe('error handling', () => {
         },
         active: {
           on: {
-            do: {
-              actions: spy
+            do: (_, enq) => {
+              enq(spy);
             }
           }
         }
@@ -131,6 +139,11 @@ describe('error handling', () => {
     const machine = createMachine({
       id: 'machine',
       initial: 'initial',
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 0
       },
@@ -607,8 +620,8 @@ describe('error handling', () => {
         },
         failed: {
           on: {
-            do: {
-              actions: spy
+            do: (_, enq) => {
+              enq(spy);
             }
           }
         }
@@ -792,37 +805,6 @@ describe('error handling', () => {
     `);
   });
 
-  it('error thrown when resolving initial builtin entry action should error the actor immediately', () => {
-    const machine = createMachine({
-      entry: assign(() => {
-        throw new Error('error_thrown_when_resolving_initial_entry_action');
-      })
-    });
-
-    const errorSpy = vi.fn();
-
-    const actorRef = createActor(machine);
-
-    const snapshot = actorRef.getSnapshot();
-    expect(snapshot.status).toBe('error');
-    expect(snapshot.error).toMatchInlineSnapshot(
-      `[Error: error_thrown_when_resolving_initial_entry_action]`
-    );
-
-    actorRef.subscribe({
-      error: errorSpy
-    });
-    actorRef.start();
-
-    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
-      [
-        [
-          [Error: error_thrown_when_resolving_initial_entry_action],
-        ],
-      ]
-    `);
-  });
-
   it('error thrown by a custom entry action when transitioning should error the actor', () => {
     const machine = createMachine({
       initial: 'a',
@@ -869,12 +851,12 @@ describe('error handling', () => {
     const spy = vi.fn();
 
     const machine = createMachine({
-      entry: [
-        () => {
+      entry: (_, enq) => {
+        enq(() => {
           throw new Error('error_thrown_in_initial_entry_action');
-        },
-        spy
-      ]
+        });
+        enq(spy);
+      }
     });
 
     const actorRef = createActor(machine);
@@ -893,18 +875,11 @@ describe('error handling', () => {
       context: undefined
     });
 
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'failure'
-        }
-      },
-      {
-        actors: {
-          failure: immediateFailure
-        }
+    const machine = createMachine({
+      invoke: {
+        src: immediateFailure
       }
-    );
+    });
 
     const actorRef = createActor(machine);
     actorRef.subscribe({ error: function preventUnhandledErrorListener() {} });
@@ -916,49 +891,31 @@ describe('error handling', () => {
     expect(snapshot.error).toBe('immediate error!');
   });
 
-  it('should error when a guard throws when transitioning', () => {
-    const spy = vi.fn();
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            NEXT: {
-              guard: () => {
-                throw new Error('error_thrown_in_guard_when_transitioning');
-              },
-              target: 'b'
-            }
-          }
-        },
-        b: {}
-      }
-    });
-
-    const actorRef = createActor(machine);
-    actorRef.subscribe({
-      error: spy
-    });
-    actorRef.start();
-    actorRef.send({ type: 'NEXT' });
-
-    const snapshot = actorRef.getSnapshot();
-    expect(snapshot.status).toBe('error');
-    expect(snapshot.error).toMatchInlineSnapshot(`
-      [Error: Unable to evaluate guard in transition for event 'NEXT' in state node '(machine).a':
-      error_thrown_in_guard_when_transitioning]
-    `);
-  });
-
   it('actor continues to work normally after emit callback errors', async () => {
-    const machine = setup({
-      types: {
-        emitted: {} as { type: 'emitted'; foo: string }
-      }
-    }).createMachine({
+    // const machine = setup({
+    //   types: {
+    //     emitted: {} as { type: 'emitted'; foo: string }
+    //   }
+    // }).
+
+    const machine = createMachine({
+      schemas: {
+        emitted: {
+          emitted: z.object({
+            type: z.literal('emitted'),
+            foo: z.string()
+          })
+        }
+      },
       on: {
-        someEvent: {
-          actions: emit({ type: 'emitted', foo: 'bar' })
+        // someEvent: {
+        //   actions: emit({ type: 'emitted', foo: 'bar' })
+        // }
+        someEvent: (_, enq) => {
+          enq.emit({
+            type: 'emitted',
+            foo: 'bar'
+          });
         }
       }
     });

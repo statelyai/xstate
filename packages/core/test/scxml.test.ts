@@ -7,7 +7,7 @@ import {
   AnyStateMachine,
   createActor
 } from '../src/index.ts';
-import { toMachine, sanitizeStateId } from '../src/scxml';
+import { toMachine, sanitizeStateId, toMachineJSON } from '../src/scxml';
 import { getStateNodes } from '../src/stateUtils';
 
 const TEST_FRAMEWORK = path.dirname(
@@ -164,7 +164,7 @@ const testGroups: Record<string, string[]> = {
     // 'test198.txml', // origintype not implemented yet
     // 'test199.txml', // send type not checked
     'test200.txml',
-    'test201.txml',
+    // 'test201.txml', // optional
     'test205.txml',
     // 'test207.txml', // delayexpr
     'test208.txml',
@@ -352,10 +352,18 @@ interface SCIONTest {
   }>;
 }
 
-async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
+async function runW3TestToCompletion(
+  name: string,
+  scxmlDefinition: string,
+  test: SCIONTest
+): Promise<void> {
+  const machine = toMachine(scxmlDefinition);
+
   const { resolve, reject, promise } = Promise.withResolvers<void>();
   let nextState: AnyMachineSnapshot;
   let prevState: AnyMachineSnapshot;
+
+  const transitions: string[] = [];
 
   const actor = createActor(machine, {
     logger: () => void 0
@@ -364,6 +372,9 @@ async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
     next: (state) => {
       prevState = nextState;
       nextState = state;
+      transitions.push(
+        `${JSON.stringify(state.value)} ${JSON.stringify(state.context)}`
+      );
     },
     complete: () => {
       // Add 'final' for test230.txml which does not have a 'pass' state
@@ -372,9 +383,9 @@ async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
       } else {
         reject(
           new Error(
-            `Reached "fail" state from state ${JSON.stringify(
+            `${name}: Reached "fail" state from state ${JSON.stringify(
               prevState?.value
-            )}`
+            )}\nTransitions:\n${transitions.join('\n')}`
           )
         );
       }
@@ -385,45 +396,56 @@ async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
 }
 
 async function runTestToCompletion(
-  machine: AnyStateMachine,
+  name: string,
+  scxmlDefinition: string,
   test: SCIONTest
 ): Promise<void> {
+  const machineJSON = toMachineJSON(scxmlDefinition);
+
+  const machine = toMachine(scxmlDefinition);
+
   if (!test.events.length && test.initialConfiguration[0] === 'pass') {
-    await runW3TestToCompletion(machine);
+    await runW3TestToCompletion(name, scxmlDefinition, test);
     return;
   }
 
   let done = false;
-  const service = createActor(machine, {
+  const actor = createActor(machine, {
     clock: new SimulatedClock()
   });
 
-  let nextState: AnyMachineSnapshot = service.getSnapshot();
+  let nextState: AnyMachineSnapshot = actor.getSnapshot();
   let prevState: AnyMachineSnapshot;
-  service.subscribe((state) => {
+  actor.subscribe((state) => {
     prevState = nextState;
     nextState = state;
   });
-  service.subscribe({
+  actor.subscribe({
     complete: () => {
       if (nextState.value === 'fail') {
         throw new Error(
-          `Reached "fail" state from state ${JSON.stringify(prevState?.value)}`
+          `${name}: Reached "fail" state from state ${JSON.stringify(
+            prevState?.value
+          )}\nTransitions:\n${transitions.join('\n')}`
         );
       }
       done = true;
     }
   });
-  service.start();
+  actor.start();
 
+  const transitions: string[] = [];
   test.events.forEach(({ event, nextConfiguration, after }) => {
     if (done) {
       return;
     }
     if (after) {
-      (service.clock as SimulatedClock).increment(after);
+      (actor.clock as SimulatedClock).increment(after);
     }
-    service.send({ type: event.name });
+    actor.send({ type: event.name });
+    transitions.push(
+      `${event.name} -> ${JSON.stringify(actor.getSnapshot().value)} ${JSON.stringify(actor.getSnapshot().context)}`
+    );
 
     const stateIds = getStateNodes(machine.root, nextState.value).map(
       (stateNode) => stateNode.id
@@ -436,7 +458,6 @@ async function runTestToCompletion(
 describe('scxml', () => {
   const onlyTests: string[] = [
     // e.g., 'test399.txml'
-    // 'test208.txml'
   ];
   const testGroupKeys = Object.keys(testGroups);
 
@@ -445,7 +466,8 @@ describe('scxml', () => {
 
     testNames.forEach((testName) => {
       const execTest = onlyTests.length
-        ? onlyTests.includes(testName)
+        ? onlyTests.includes(testName) ||
+          onlyTests.includes(`${testGroupName}/${testName}`)
           ? it.only
           : it.skip
         : it;
@@ -470,12 +492,14 @@ describe('scxml', () => {
       ) as SCIONTest;
 
       execTest(`${testGroupName}/${testName}`, async () => {
-        const machine = toMachine(scxmlDefinition);
-
         try {
-          await runTestToCompletion(machine, scxmlTest);
+          await runTestToCompletion(
+            `${testGroupName}/${testName}`,
+            scxmlDefinition,
+            scxmlTest
+          );
         } catch (e) {
-          console.log(JSON.stringify(machine.config, null, 2));
+          // console.log(JSON.stringify(machine.config, null, 2));
           throw e;
         }
       });
