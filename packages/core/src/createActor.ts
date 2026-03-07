@@ -204,7 +204,7 @@ export class Actor<TLogic extends AnyActorLogic>
             `Cannot stop child actor ${child.id} of ${this.id} because it is not a child`
           );
         }
-        child._stop();
+        (child as Actor<AnyActorLogic>)._stop();
       },
       emit: (emittedEvent) => {
         const listeners = this.eventListeners.get(emittedEvent.type);
@@ -626,7 +626,8 @@ export class Actor<TLogic extends AnyActorLogic>
     }
   }
 
-  private _stop(): this {
+  /** @internal */
+  public _stop(): this {
     if (this._processingStatus === ProcessingStatus.Stopped) {
       return this;
     }

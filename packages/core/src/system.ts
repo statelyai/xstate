@@ -166,7 +166,7 @@ export function createSystem<T extends ActorSystemInfo>(
     }
     const resolvedInspectionEvent: InspectionEvent = {
       ...event,
-      rootId: rootActor.sessionId
+      rootId: rootActor.sessionId!
     };
     inspectionObservers.forEach((observer) =>
       observer.next?.(resolvedInspectionEvent)
@@ -187,7 +187,7 @@ export function createSystem<T extends ActorSystemInfo>(
       return sessionId;
     },
     _unregister: (actorRef) => {
-      children.delete(actorRef.sessionId);
+      children.delete(actorRef.sessionId!);
       const systemId = reverseKeyedActors.get(actorRef);
 
       if (systemId !== undefined) {

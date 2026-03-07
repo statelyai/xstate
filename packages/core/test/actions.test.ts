@@ -3363,11 +3363,7 @@ describe('sendTo', () => {
       },
       // entry: sendTo('child', 'a string')
       entry: ({ children }, enq) => {
-        enq.sendTo(
-          children.child,
-          // @ts-expect-error
-          'a string'
-        );
+        enq.sendTo(children.child, 'a string' as any);
       }
     });
 

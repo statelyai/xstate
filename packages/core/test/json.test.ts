@@ -73,7 +73,7 @@ describe.skip('json', () => {
       output: { result: 42 }
     });
 
-    const json = JSON.parse(JSON.stringify(machine.definition));
+    const json = JSON.parse(JSON.stringify((machine as any).definition));
 
     try {
       validate(json);

@@ -6,10 +6,10 @@ import {
   fromTransition,
   toPromise,
   transition,
-  SpecialExecutableAction,
   createActor,
   getNextTransitions
 } from '../src';
+import type { ExecutableActionObject } from '../src/types';
 import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
 import { z } from 'zod';
@@ -453,15 +453,18 @@ describe('transition function', () => {
       }
     });
 
-    async function execute(action: SpecialExecutableAction) {
-      if (action.type === '@xstate.raise' && action.args[2]?.delay) {
+    async function execute(action: ExecutableActionObject) {
+      if (action.type === '@xstate.raise' && (action.args[2] as any)?.delay) {
         const currentTime = Date.now();
         const startedAt = currentTime;
         const elapsed = currentTime - startedAt;
-        const timeRemaining = Math.max(0, action.args[2]?.delay - elapsed);
+        const timeRemaining = Math.max(
+          0,
+          (action.args[2] as any)?.delay - elapsed
+        );
 
         await new Promise((res) => setTimeout(res, timeRemaining));
-        postEvent(action.args[1]);
+        postEvent(action.args[1] as EventFrom<typeof machine>);
       }
     }
 
@@ -534,11 +537,11 @@ describe('transition function', () => {
 
     const calls: string[] = [];
 
-    async function execute(action: SpecialExecutableAction) {
+    async function execute(action: ExecutableActionObject) {
       switch (action.type) {
         case '@xstate.start': {
-          action.exec.apply(null, action.args);
-          const startedActor = action.args[0];
+          action.exec?.apply(null, action.args as []);
+          const startedActor = action.args[0] as ReturnType<typeof createActor>;
           const output = await toPromise(startedActor);
           postEvent(createDoneActorEvent(startedActor.id, output));
         }

@@ -5,14 +5,13 @@ import {
   Actor,
   ActorOptions,
   AnyActorLogic,
-  AnyActorRef,
   Snapshot,
   SnapshotFrom,
+  createActor,
   type ConditionalRequired,
   type IsNotNever,
   type RequiredActorOptionsKeys
 } from 'xstate';
-import { stopRootWithRehydration } from './stopRootWithRehydration.ts';
 import { useIdleActorRef } from './useActorRef.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
@@ -37,7 +36,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     );
   }
 
-  const actorRef = useIdleActorRef(logic, options);
+  const [actorRef, setActorRef] = useIdleActorRef(logic, options);
 
   const getSnapshot = useCallback(() => {
     return actorRef.getSnapshot();
@@ -69,10 +68,19 @@ export function useActor<TLogic extends AnyActorLogic>(
   }
 
   useEffect(() => {
+    if (
+      (actorRef as any)._processingStatus ===
+        2 /* ProcessingStatus.Stopped */ &&
+      (actorRef.getSnapshot() as any)?.status === 'stopped'
+    ) {
+      const newActor = createActor(logic, options) as Actor<TLogic>;
+      newActor.start();
+      setActorRef(newActor);
+      return;
+    }
     actorRef.start();
-
     return () => {
-      stopRootWithRehydration(actorRef as unknown as AnyActorRef);
+      actorRef.stop();
     };
   }, [actorRef]);
 

@@ -68,14 +68,18 @@ describe.skip('spawnChild action', () => {
       },
       states: {
         idle: {
-          entry: (_, enq) => {
+          entry: (_: unknown, enq: any) => {
             enq.spawn(observableLogic, {
               id: 'int',
               syncSnapshot: true
             });
           },
           on: {
-            'xstate.snapshot.int': ({ event }) => {
+            'xstate.snapshot.int': ({
+              event
+            }: {
+              event: { snapshot: { context: number } };
+            }) => {
               if (event.snapshot.context === 5) {
                 return {
                   target: 'success'
@@ -87,7 +91,7 @@ describe.skip('spawnChild action', () => {
         success: {
           type: 'final'
         }
-      }
+      } as any
     });
 
     const observableService = createActor(observableMachine);

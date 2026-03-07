@@ -204,7 +204,7 @@ describe('getMicrosteps', () => {
           }
         },
         c: {}
-      }
+      } as any
     });
 
     const actorScope = createInertActorScope(machine);
@@ -229,7 +229,7 @@ describe('getMicrosteps', () => {
       states: {
         a: {
           on: {
-            GO: (_, enq) => {
+            GO: (_: any, enq: any) => {
               enq.raise({ type: 'NEXT' });
               return {
                 target: 'b',
@@ -247,7 +247,7 @@ describe('getMicrosteps', () => {
           }
         },
         c: {}
-      }
+      } as any
     });
 
     const actorScope = createInertActorScope(machine);
@@ -293,7 +293,7 @@ describe('getInitialMicrosteps', () => {
         b: {
           entry: () => {}
         }
-      }
+      } as any
     });
 
     const microsteps = getInitialMicrosteps(machine);
@@ -330,9 +330,9 @@ describe('getInitialMicrosteps', () => {
 
   it('should pass input to context function', () => {
     const machine = createMachine({
-      context: ({ input }: { input: { value: number } }) => ({
+      context: (({ input }: { input: { value: number } }) => ({
         count: input.value
-      }),
+      })) as any,
       initial: 'a',
       states: {
         a: {}

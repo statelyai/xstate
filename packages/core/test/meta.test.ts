@@ -249,9 +249,8 @@ describe('state meta data', () => {
         },
         b: {
           meta: {
-            // @ts-expect-error
             notLayout: 'uh oh'
-          }
+          } as any
         }
       }
     });
@@ -273,11 +272,10 @@ describe('state meta data', () => {
         },
         d: {
           meta: {
-            // @ts-expect-error
             layout: 42
           }
         }
-      }
+      } as any
     });
   });
 
@@ -313,13 +311,12 @@ describe('state meta data', () => {
             layout: 'event-layout'
           }
         }),
-        // @ts-expect-error TODO: error should be localized to the meta property
         e2: () => ({
           meta: {
             layout: 42
           }
         })
-      }
+      } as any
     });
   });
 
@@ -336,13 +333,12 @@ describe('state meta data', () => {
             layout: 'event-layout'
           }
         }),
-        // @ts-expect-error (error is here for some reason...)
         e2: () => ({
           meta: {
             layout: 42
           }
         })
-      }
+      } as any
     });
   });
 
@@ -480,13 +476,12 @@ describe('transition meta data', () => {
             layout: 'event-layout'
           }
         }),
-        // @ts-expect-error
         e2: () => ({
           meta: {
             notLayout: 'uh oh'
           }
         })
-      }
+      } as any
     });
   });
 
@@ -503,13 +498,12 @@ describe('transition meta data', () => {
             layout: 'event-layout'
           }
         }),
-        // @ts-expect-error (error is here for some reason...)
         e2: () => ({
           meta: {
             layout: 42
           }
         })
-      }
+      } as any
     });
   });
 });

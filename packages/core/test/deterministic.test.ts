@@ -106,7 +106,7 @@ describe('deterministic machine', () => {
       expect(() =>
         transition(
           lightMachine,
-          testMachine.resolveState({ value: 'red' }),
+          testMachine.resolveState({ value: 'red' }) as any,
           undefined as any
         )
       ).toThrow();

@@ -177,7 +177,7 @@ describe('transition coverage', () => {
           on: {
             // NEXT: [{ guard: 'valid', target: 'b' }, { target: 'b' }]
             NEXT: ({ event }) => {
-              if (valid(event.value)) {
+              if (valid((event as any).value)) {
                 return { target: 'b' };
               }
               return { target: 'b' };
@@ -192,9 +192,9 @@ describe('transition coverage', () => {
 
     const paths = model.getShortestPaths({
       events: [
-        { type: 'NEXT', value: 0 },
-        { type: 'NEXT', value: 100 },
-        { type: 'NEXT', value: 1000 }
+        { type: 'NEXT', value: 0 } as any,
+        { type: 'NEXT', value: 100 } as any,
+        { type: 'NEXT', value: 1000 } as any
       ]
     });
 

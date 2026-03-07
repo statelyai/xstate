@@ -320,7 +320,7 @@ it('Event in event executor should contain payload from case', async () => {
   const nonSerializableData = () => 42;
 
   const model = createTestModel(machine, {
-    events: [{ type: 'NEXT', payload: 10, fn: nonSerializableData }]
+    events: [{ type: 'NEXT', payload: 10, fn: nonSerializableData } as any]
   });
 
   const paths = model.getShortestPaths({
