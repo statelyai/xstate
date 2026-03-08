@@ -346,6 +346,21 @@ type ValidateTransitionValue<
         ? { target?: ValidateTargetProp<T, TSiblingKeys> } & Record<string, any>
         : TValue;
 
+type ValidateInvokeTargets<TInvoke, TSiblingKeys extends string> =
+  TInvoke extends readonly (infer TEl)[]
+    ? readonly ValidateInvokeTargets<TEl, TSiblingKeys>[]
+    : TInvoke extends {
+          onDone?: infer TD;
+          onError?: infer TE;
+          onSnapshot?: infer TS;
+        }
+      ? {
+          onDone?: ValidateTransitionValue<TD, TSiblingKeys>;
+          onError?: ValidateTransitionValue<TE, TSiblingKeys>;
+          onSnapshot?: ValidateTransitionValue<TS, TSiblingKeys>;
+        }
+      : TInvoke;
+
 type ValidateStateTargetsTyped<TConfig, TSiblingKeys extends string> = {
   on?: TConfig extends { on: infer TOn extends Record<string, any> }
     ? { [K in keyof TOn]?: ValidateTransitionValue<TOn[K], TSiblingKeys> }
@@ -358,6 +373,9 @@ type ValidateStateTargetsTyped<TConfig, TSiblingKeys extends string> = {
     : Record<string, unknown>;
   onDone?: TConfig extends { onDone: infer T }
     ? ValidateTransitionValue<T, TSiblingKeys>
+    : unknown;
+  invoke?: TConfig extends { invoke: infer T }
+    ? ValidateInvokeTargets<T, TSiblingKeys>
     : unknown;
 };
 

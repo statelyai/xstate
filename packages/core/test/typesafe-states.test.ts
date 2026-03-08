@@ -164,6 +164,22 @@ describe('type-safe state names', () => {
       });
     });
 
+    it('should reject invalid always target (array of objects)', () => {
+      expect(() => {
+        createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              // @ts-expect-error - 'nonExistent' is not a valid sibling state
+              always: [{ target: 'b' }, { target: 'nonExistent' }]
+            },
+            b: {},
+            c: {}
+          }
+        });
+      }).toThrow();
+    });
+
     // --- after ---
     it('should allow valid after target (bare string)', () => {
       createMachine({
@@ -341,6 +357,104 @@ describe('type-safe state names', () => {
           b: {}
         }
       });
+    });
+
+    it('should reject invalid invoke.onDone target (object-form)', () => {
+      expect(() => {
+        createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              invoke: {
+                src: fromPromise(() => Promise.resolve()),
+                onDone: {
+                  // @ts-expect-error - 'nonExistent' is not a valid sibling state
+                  target: 'nonExistent'
+                }
+              }
+            },
+            b: {}
+          }
+        });
+      }).toThrow();
+    });
+
+    it('should reject invalid invoke.onDone target (bare string)', () => {
+      expect(() => {
+        createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              invoke: {
+                // @ts-expect-error - bare string onDone collapses invoke type
+                src: fromPromise(() => Promise.resolve()),
+                // @ts-expect-error - 'nonExistent' is not a valid sibling state
+                onDone: 'nonExistent'
+              }
+            },
+            b: {}
+          }
+        });
+      }).toThrow();
+    });
+
+    it('should reject invalid invoke.onDone target (object-form)', () => {
+      expect(() => {
+        createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              invoke: {
+                src: fromPromise(() => Promise.resolve()),
+                onDone: {
+                  // @ts-expect-error - 'nonExistent' is not a valid sibling state
+                  target: 'nonExistent'
+                }
+              }
+            },
+            b: {}
+          }
+        });
+      }).toThrow();
+    });
+
+    it('should reject invalid invoke.onError target (object-form)', () => {
+      expect(() => {
+        createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              invoke: {
+                src: fromPromise(() => Promise.resolve()),
+                onError: {
+                  // @ts-expect-error - 'nonExistent' is not a valid sibling state
+                  target: 'nonExistent'
+                }
+              }
+            },
+            b: {}
+          }
+        });
+      }).toThrow();
+    });
+
+    it('should reject invalid invoke.onError target (bare string)', () => {
+      expect(() => {
+        createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              invoke: {
+                // @ts-expect-error - bare string onError collapses invoke type
+                src: fromPromise(() => Promise.resolve()),
+                // @ts-expect-error - 'nonExistent' is not a valid sibling state
+                onError: 'nonExistent'
+              }
+            },
+            b: {}
+          }
+        });
+      }).toThrow();
     });
 
     // --- target patterns ---
@@ -619,6 +733,33 @@ describe('type-safe state names', () => {
       }).toThrow();
     });
 
+    it('should allow valid always target (array of objects)', () => {
+      setup({}).createMachine({
+        initial: 'a',
+        states: {
+          a: { always: [{ target: 'b' }, { target: 'c' }] },
+          b: {},
+          c: {}
+        }
+      });
+    });
+
+    it('should reject invalid always target (array of objects)', () => {
+      expect(() => {
+        setup({}).createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              // @ts-expect-error - 'nonExistent' is not a valid sibling state
+              always: [{ target: 'b' }, { target: 'nonExistent' }]
+            },
+            b: {},
+            c: {}
+          }
+        });
+      }).toThrow();
+    });
+
     // --- after ---
     it('should allow valid after target (bare string)', () => {
       setup({}).createMachine({
@@ -804,6 +945,92 @@ describe('type-safe state names', () => {
           b: {}
         }
       });
+    });
+
+    it('should reject invalid invoke.onDone target (bare string)', () => {
+      expect(() => {
+        setup({
+          actors: { myActor: fromPromise(() => Promise.resolve()) }
+        }).createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              invoke: {
+                // @ts-expect-error - bare string onDone collapses invoke type
+                src: 'myActor',
+                // @ts-expect-error - 'nonExistent' is not a valid sibling state
+                onDone: 'nonExistent'
+              }
+            },
+            b: {}
+          }
+        });
+      }).toThrow();
+    });
+
+    it('should reject invalid invoke.onDone target (object-form)', () => {
+      expect(() => {
+        setup({
+          actors: { myActor: fromPromise(() => Promise.resolve()) }
+        }).createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              invoke: {
+                src: 'myActor',
+                onDone: {
+                  // @ts-expect-error - 'nonExistent' is not a valid sibling state
+                  target: 'nonExistent'
+                }
+              }
+            },
+            b: {}
+          }
+        });
+      }).toThrow();
+    });
+
+    it('should reject invalid invoke.onError target (object-form)', () => {
+      expect(() => {
+        setup({
+          actors: { myActor: fromPromise(() => Promise.resolve()) }
+        }).createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              invoke: {
+                src: 'myActor',
+                onError: {
+                  // @ts-expect-error - 'nonExistent' is not a valid sibling state
+                  target: 'nonExistent'
+                }
+              }
+            },
+            b: {}
+          }
+        });
+      }).toThrow();
+    });
+
+    it('should reject invalid invoke.onError target (bare string)', () => {
+      expect(() => {
+        setup({
+          actors: { myActor: fromPromise(() => Promise.resolve()) }
+        }).createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              invoke: {
+                // @ts-expect-error - bare string onError collapses invoke type
+                src: 'myActor',
+                // @ts-expect-error - 'nonExistent' is not a valid sibling state
+                onError: 'nonExistent'
+              }
+            },
+            b: {}
+          }
+        });
+      }).toThrow();
     });
 
     // --- target patterns ---
