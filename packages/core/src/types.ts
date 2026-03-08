@@ -2146,6 +2146,7 @@ export type ToStateValue<T extends StateSchema> = T extends {
   : {};
 
 export interface ExecutableActionObject {
+  id?: string;
   type: string & {};
   params: NonReducibleUnknown;
   args: unknown[];

@@ -141,6 +141,36 @@ describe('system', () => {
     expect(actionsViaSystem).toHaveLength(actionsDirect.length);
   });
 
+  it('should support custom effect ID generation for system transitions', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          entry: (_, enq) => {
+            enq.log('init');
+          },
+          on: {
+            NEXT: (_, enq) => {
+              enq.log('next');
+            }
+          }
+        }
+      }
+    });
+
+    const sys = createSystem({
+      effectIdGenerator: ({ event, index }) => `custom-${event.type}-${index}`
+    });
+
+    const [initState, initActions] = sys.initialTransition(machine);
+    expect(initActions[0].id).toBe('custom-@xstate.init-0');
+
+    const [, nextActions] = sys.transition(machine, initState, {
+      type: 'NEXT'
+    });
+    expect(nextActions[0].id).toBe('custom-NEXT-0');
+  });
+
   it('should expose register/get on implicit systems', () => {
     const root = createActor(createMachine({}));
     const actor = createActor(createMachine({}));

@@ -18,6 +18,33 @@ import {
   AnyMachineSnapshot
 } from './types';
 
+export type EffectIdGenerator = (input: {
+  event: AnyEventObject;
+  index: number;
+  action: ExecutableActionObject;
+}) => string;
+
+function stampEffectIds(
+  actions: ExecutableActionObject[],
+  event: AnyEventObject,
+  effectIdGenerator?: EffectIdGenerator
+) {
+  const generator =
+    effectIdGenerator ??
+    ((input: {
+      event: AnyEventObject;
+      index: number;
+      action: ExecutableActionObject;
+    }) => {
+      const eventId = (input.event as any)['@xstate.id'] ?? input.event.type;
+      return `${eventId}:${input.index}`;
+    });
+
+  actions.forEach((action, index) => {
+    action.id = generator({ event, index, action });
+  });
+}
+
 /**
  * Given actor `logic`, a `snapshot`, and an `event`, returns a tuple of the
  * `nextSnapshot` and `actions` to execute.
@@ -27,7 +54,10 @@ import {
 export function transition<T extends AnyActorLogic>(
   logic: T,
   snapshot: SnapshotFrom<T>,
-  event: EventFromLogic<T>
+  event: EventFromLogic<T>,
+  options?: {
+    effectIdGenerator?: EffectIdGenerator;
+  }
 ): [nextSnapshot: SnapshotFrom<T>, actions: ExecutableActionObject[]] {
   const executableActions = [] as ExecutableActionObject[];
 
@@ -37,6 +67,11 @@ export function transition<T extends AnyActorLogic>(
   };
 
   const nextSnapshot = logic.transition(snapshot, event, actorScope);
+  stampEffectIds(
+    executableActions,
+    event as AnyEventObject,
+    options?.effectIdGenerator
+  );
 
   return [nextSnapshot, executableActions];
 }
@@ -55,6 +90,7 @@ export function initialTransition<T extends AnyActorLogic>(
     : [input: InputFrom<T>]
 ): [SnapshotFrom<T>, ExecutableActionObject[]] {
   const executableActions = [] as ExecutableActionObject[];
+  const initEvent = createInitEvent(input) as AnyEventObject;
 
   const actorScope = createInertActorScope(logic);
   actorScope.actionExecutor = (action) => {
@@ -65,6 +101,7 @@ export function initialTransition<T extends AnyActorLogic>(
     actorScope,
     input
   ) as SnapshotFrom<T>;
+  stampEffectIds(executableActions, initEvent);
 
   return [nextSnapshot, executableActions];
 }

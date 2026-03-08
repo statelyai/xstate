@@ -7,7 +7,12 @@ import {
   ScheduledEventIdGenerator,
   SessionIdGenerator
 } from './system.ts';
-import { initialTransition, transition } from './transition.ts';
+import {
+  EffectIdGenerator,
+  initialTransition,
+  transition
+} from './transition.ts';
+import { createInitEvent } from './eventUtils.ts';
 import {
   ActorOptions,
   ActorSystemInfo,
@@ -49,6 +54,7 @@ export function createSystem<
   sessionIdGenerator?: SessionIdGenerator;
   actorIdGenerator?: ActorIdGenerator;
   scheduledEventIdGenerator?: ScheduledEventIdGenerator;
+  effectIdGenerator?: EffectIdGenerator;
   snapshot?: unknown;
 }): System<T> {
   const system = createActorSystem<T>(undefined, {
@@ -66,8 +72,27 @@ export function createSystem<
       system
     });
   }) as System<T>['createActor'];
-  system.transition = transition;
-  system.initialTransition = initialTransition;
+  system.transition = ((logic, snapshot, event) =>
+    transition(logic, snapshot, event, {
+      effectIdGenerator: options?.effectIdGenerator
+    })) as System<T>['transition'];
+  system.initialTransition = ((logic, ...inputOrNothing) => {
+    const [snapshot, actions] = initialTransition(
+      logic as AnyActorLogic,
+      ...(inputOrNothing as [unknown?])
+    );
+    if (options?.effectIdGenerator) {
+      const initEvent = createInitEvent(inputOrNothing[0]) as any;
+      actions.forEach((action, index) => {
+        action.id = options.effectIdGenerator!({
+          event: initEvent,
+          index,
+          action
+        });
+      });
+    }
+    return [snapshot, actions];
+  }) as System<T>['initialTransition'];
 
   return system;
 }

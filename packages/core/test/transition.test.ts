@@ -127,6 +127,30 @@ describe('transition function', () => {
       expect.objectContaining({ type: 'stringAction' }),
       expect.objectContaining({ type: 'objectAction' })
     ]);
+    expect(actions[0].id).toBe('@xstate.init:0');
+    expect(actions[1].id).toBe('@xstate.init:1');
+  });
+
+  it('should include deterministic effect IDs for transition actions', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: (_, enq) => {
+              enq.log('first');
+              enq.log('second');
+            }
+          }
+        }
+      }
+    });
+
+    const [state] = initialTransition(machine);
+    const [, actions] = transition(machine, state, { type: 'NEXT' });
+
+    expect(actions[0].id).toBe('NEXT:0');
+    expect(actions[1].id).toBe('NEXT:1');
   });
 
   it.todo('delayed raise actions should be returned', async () => {
