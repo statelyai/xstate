@@ -17,10 +17,10 @@ import {
   ActorOptions,
   ActorSystemInfo,
   AnyActorLogic,
+  DurableEffect,
   EventFromLogic,
   InputFrom,
-  SnapshotFrom,
-  ExecutableActionObject
+  SnapshotFrom
 } from './types.ts';
 
 const defaultClock: Clock = {
@@ -37,13 +37,13 @@ export interface System<T extends ActorSystemInfo> extends ActorSystem<T> {
     logic: TLogic,
     snapshot: SnapshotFrom<TLogic>,
     event: EventFromLogic<TLogic>
-  ) => [nextSnapshot: SnapshotFrom<TLogic>, actions: ExecutableActionObject[]];
+  ) => [nextSnapshot: SnapshotFrom<TLogic>, actions: DurableEffect[]];
   initialTransition: <TLogic extends AnyActorLogic>(
     logic: TLogic,
     ...[input]: undefined extends InputFrom<TLogic>
       ? [input?: InputFrom<TLogic>]
       : [input: InputFrom<TLogic>]
-  ) => [SnapshotFrom<TLogic>, ExecutableActionObject[]];
+  ) => [SnapshotFrom<TLogic>, DurableEffect[]];
 }
 
 export function createSystem<
@@ -81,16 +81,19 @@ export function createSystem<
       logic as AnyActorLogic,
       ...(inputOrNothing as [unknown?])
     );
-    if (options?.effectIdGenerator) {
-      const initEvent = createInitEvent(inputOrNothing[0]) as any;
-      actions.forEach((action, index) => {
-        action.id = options.effectIdGenerator!({
-          event: initEvent,
-          index,
-          action
-        });
-      });
+
+    if (!options?.effectIdGenerator) {
+      return [snapshot, actions];
     }
+
+    const initEvent = createInitEvent(inputOrNothing[0]) as any;
+    actions.forEach((action, index) => {
+      action.id = options.effectIdGenerator!({
+        event: initEvent,
+        index,
+        action
+      });
+    });
     return [snapshot, actions];
   }) as System<T>['initialTransition'];
 

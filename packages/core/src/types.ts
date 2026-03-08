@@ -2153,6 +2153,10 @@ export interface ExecutableActionObject {
   exec: (() => void) | undefined;
 }
 
+export interface DurableEffect extends ExecutableActionObject {
+  id: string;
+}
+
 export type SpecialExecutableAction = Values<{
   [K in keyof typeof builtInActions]: {
     type: K;

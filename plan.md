@@ -212,6 +212,36 @@ const worker = sys.receptionist.get('worker');
   - lifecycle event emission
   - stop/error cleanup behavior
 
+## Durable Adapter Loop (Stateless-First)
+
+```ts
+const system = createSystem({
+  effectIdGenerator: ({ event, index }) =>
+    `${(event as any)['@xstate.id'] ?? event.type}:${index}`
+});
+
+let [state] = system.initialTransition(machine, input);
+
+async function handleEvent(eventEnvelope: { id: string; event: EventObject }) {
+  const [nextState, effects] = system.transition(machine, state, {
+    ...eventEnvelope.event,
+    '@xstate.id': eventEnvelope.id
+  });
+
+  await persistSnapshot(nextState);
+  await persistOutbox(
+    effects.map((effect) => ({
+      effectId: effect.id,
+      eventId: eventEnvelope.id,
+      effect
+    }))
+  );
+
+  state = nextState;
+  await dispatchDueEffects();
+}
+```
+
 ## Candidate Code Touchpoints
 
 - `packages/core/src/system.ts`

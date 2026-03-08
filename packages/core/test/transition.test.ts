@@ -9,7 +9,6 @@ import {
   createActor,
   getNextTransitions
 } from '../src';
-import type { ExecutableActionObject } from '../src/types';
 import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
 import { z } from 'zod';
@@ -151,6 +150,46 @@ describe('transition function', () => {
 
     expect(actions[0].id).toBe('NEXT:0');
     expect(actions[1].id).toBe('NEXT:1');
+  });
+
+  it('should produce stable effect IDs for replayed event streams', () => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            STEP: (_, enq) => {
+              enq.log('step-a');
+              enq.log('step-b');
+            }
+          }
+        }
+      }
+    });
+    const events = [{ type: 'STEP', '@xstate.id': 'evt-1' }] as const;
+
+    const [run1Initial] = initialTransition(machine);
+    const [run1State, run1Effects] = transition(
+      machine,
+      run1Initial,
+      events[0]
+    );
+
+    const [run2Initial] = initialTransition(machine);
+    const [run2State, run2Effects] = transition(
+      machine,
+      run2Initial,
+      events[0]
+    );
+
+    expect(run1State.value).toEqual(run2State.value);
+    expect(run1Effects.map((effect) => effect.id)).toEqual(
+      run2Effects.map((effect) => effect.id)
+    );
+    expect(run1Effects.map((effect) => effect.id)).toEqual([
+      'evt-1:0',
+      'evt-1:1'
+    ]);
   });
 
   it.todo('delayed raise actions should be returned', async () => {

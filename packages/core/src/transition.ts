@@ -10,6 +10,7 @@ import {
   AnyActorLogic,
   AnyEventObject,
   AnyStateMachine,
+  DurableEffect,
   EventFromLogic,
   InputFrom,
   SnapshotFrom,
@@ -21,28 +22,31 @@ import {
 export type EffectIdGenerator = (input: {
   event: AnyEventObject;
   index: number;
-  action: ExecutableActionObject;
+  action: DurableEffect;
 }) => string;
 
 function stampEffectIds(
   actions: ExecutableActionObject[],
   event: AnyEventObject,
   effectIdGenerator?: EffectIdGenerator
-) {
+): DurableEffect[] {
   const generator =
     effectIdGenerator ??
     ((input: {
       event: AnyEventObject;
       index: number;
-      action: ExecutableActionObject;
+      action: DurableEffect;
     }) => {
       const eventId = (input.event as any)['@xstate.id'] ?? input.event.type;
       return `${eventId}:${input.index}`;
     });
 
+  const durableEffects = actions as DurableEffect[];
   actions.forEach((action, index) => {
-    action.id = generator({ event, index, action });
+    const durableEffect = action as DurableEffect;
+    durableEffect.id = generator({ event, index, action: durableEffect });
   });
+  return durableEffects;
 }
 
 /**
@@ -58,7 +62,7 @@ export function transition<T extends AnyActorLogic>(
   options?: {
     effectIdGenerator?: EffectIdGenerator;
   }
-): [nextSnapshot: SnapshotFrom<T>, actions: ExecutableActionObject[]] {
+): [nextSnapshot: SnapshotFrom<T>, actions: DurableEffect[]] {
   const executableActions = [] as ExecutableActionObject[];
 
   const actorScope = createInertActorScope(logic);
@@ -67,13 +71,13 @@ export function transition<T extends AnyActorLogic>(
   };
 
   const nextSnapshot = logic.transition(snapshot, event, actorScope);
-  stampEffectIds(
+  const durableEffects = stampEffectIds(
     executableActions,
     event as AnyEventObject,
     options?.effectIdGenerator
   );
 
-  return [nextSnapshot, executableActions];
+  return [nextSnapshot, durableEffects];
 }
 
 /**
@@ -88,7 +92,7 @@ export function initialTransition<T extends AnyActorLogic>(
   ...[input]: undefined extends InputFrom<T>
     ? [input?: InputFrom<T>]
     : [input: InputFrom<T>]
-): [SnapshotFrom<T>, ExecutableActionObject[]] {
+): [SnapshotFrom<T>, DurableEffect[]] {
   const executableActions = [] as ExecutableActionObject[];
   const initEvent = createInitEvent(input) as AnyEventObject;
 
@@ -101,9 +105,9 @@ export function initialTransition<T extends AnyActorLogic>(
     actorScope,
     input
   ) as SnapshotFrom<T>;
-  stampEffectIds(executableActions, initEvent);
+  const durableEffects = stampEffectIds(executableActions, initEvent);
 
-  return [nextSnapshot, executableActions];
+  return [nextSnapshot, durableEffects];
 }
 
 /**
