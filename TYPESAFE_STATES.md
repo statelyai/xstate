@@ -420,7 +420,7 @@ The `TSiblingKeys` threading through `TransitionConfigOrTarget`, `TransitionsCon
 
 ### Known Limitations
 
-1. **Escaped period targets** (`'foo\\.bar'`): The type system can't distinguish escaped periods from invalid targets. Use `as 'foo.bar'` type assertion.
+1. **Escaped period targets** (`'foo\\.bar'`): Handled by `EscapeDots<TSiblingKeys>` — state names containing dots automatically accept their escaped form without `as` assertions.
 2. **`initial` is not constrained**: Backward compatibility with spread/variable patterns requires `initial` to accept any string.
 3. **Spread variables bypass constraint**: When a variable is spread into config, TypeScript widens literal targets to `string`. The `string extends TValue` escape hatch lets them pass through. This is by design — constraining spread variables would cause false positives.
 
@@ -432,3 +432,294 @@ The `TSiblingKeys` threading through `TransitionConfigOrTarget`, `TransitionsCon
 - **Constrained**: bare string targets (`GO: 'invalid'`), object-form targets (`GO: { target: 'invalid' }`), nested states
 - **NOT constrained**: `initial` (backward compat with spread/variable patterns)
 - **Escape hatch**: spread variables widen to `string` → bypass constraint (no false positives on `graph.test.ts` patterns)
+
+---
+
+## PR Description
+
+### Type-safe state targets via intersection-based validation
+
+This PR adds compile-time validation for `target` properties in XState v5 machine configs. Invalid state names in `on`, `always`, `after`, `onDone`, and `invoke` transitions are now caught by TypeScript, while remaining fully backward-compatible (all defaults are `string`).
+
+### Step-by-step review guide
+
+---
+
+#### Step 1: `EscapeDots<S>` — `types.ts:314-317`
+
+Recursive template literal type that transforms state names containing dots into their escaped form:
+
+```ts
+type EscapeDots<S extends string> =
+  S extends `${infer Head}.${infer Tail}`
+    ? `${Head}\\.${EscapeDots<Tail>}`
+    : S;
+```
+
+Given `'foo.bar'` → produces `'foo\\.bar'`. Given `'start'` (no dots) → unchanged. This allows escaped-dot targets to be accepted without `as` type assertions.
+
+---
+
+#### Step 2: `ValidTarget<TSiblingKeys>` — `types.ts:319-325`
+
+The foundation type. A union of all valid target string patterns given a set of sibling state keys:
+
+```ts
+export type ValidTarget<TSiblingKeys extends string> =
+  | TSiblingKeys                    // direct sibling: 'b'
+  | `.${string}`                    // child path: '.child'
+  | `#${string}`                    // ID target: '#myId'
+  | `${TSiblingKeys}.${string}`     // sibling + descendant: 'b.child'
+  | EscapeDots<TSiblingKeys>;       // escaped-dot state names: 'foo\\.bar'
+```
+
+No dependents yet — this is a standalone utility type. Everything below builds on it.
+
+---
+
+#### Step 3: `TSiblingKeys` added to `TransitionConfigOrTarget` — `types.ts:619`
+
+New type parameter `TSiblingKeys extends string = string` (default `string` = non-breaking).
+
+The bare string alternative changes from `TransitionConfigTarget` (which is `string | undefined`) to `ValidTarget<TSiblingKeys> | undefined`. This is where shorthand targets like `GO: 'b'` get constrained.
+
+**Why not `TransitionConfig.target`?** That stays as plain `string` intentionally. Spread variables widen `target: 'wait'` → `target: string`, which would fail `ValidTarget<...>`. Only the **shorthand** form is constrained here.
+
+---
+
+#### Step 4: `TSiblingKeys` added to `TransitionsConfig` — `types.ts:645`
+
+New type parameter `TSiblingKeys extends string = string`.
+
+Passes `TSiblingKeys` through to `TransitionConfigOrTarget` (from Step 3) for each event key. This is the type of a state's `on` property.
+
+---
+
+#### Step 5: `TSiblingKeys` added to `DelayedTransitions` — `types.ts:536`
+
+New type parameter `TSiblingKeys extends string = string`.
+
+Bare string alternatives in `after` transitions change from `string` to `ValidTarget<TSiblingKeys>`. This is the type of a state's `after` property.
+
+---
+
+#### Step 6: `TSiblingKeys` added to `DistributeActors` — `types.ts:689`
+
+New type parameter `TSiblingKeys extends string = string`.
+
+Six bare string positions change from `string` to `ValidTarget<TSiblingKeys>`:
+- `onDone` bare string — line 720
+- `onDone` → `TransitionConfigOrTarget` — line 732
+- `onError` bare string — line 740
+- `onError` → `TransitionConfigOrTarget` — line 752
+- `onSnapshot` bare string — line 757
+- `onSnapshot` → `TransitionConfigOrTarget` — line 769
+
+Same pattern repeats for the non-literal-src branch:
+- `onDone` — line 782, 794
+- `onError` — line 798, 810
+- `onSnapshot` — line 815, 827
+
+---
+
+#### Step 7: `TSiblingKeys` added to `InvokeConfig` — `types.ts:842`
+
+New type parameter `TSiblingKeys extends string = string`.
+
+Passes `TSiblingKeys` to `DistributeActors` (Step 6) for the literal-src branch (line 855). For the non-literal-src fallback branch, `onDone`/`onError`/`onSnapshot` bare strings change from `string` to `ValidTarget<TSiblingKeys>` (lines 876, 896, 913) and their `TransitionConfigOrTarget` usages receive `TSiblingKeys` (lines 888, 908, 925).
+
+---
+
+#### Step 8: `TSiblingKeys` added to `StateNodeConfig` — `types.ts:952`
+
+New type parameter `TSiblingKeys extends string = string`.
+
+Passes `TSiblingKeys` to:
+- `invoke` → `InvokeConfig` (Step 7) — line 1006
+- `on` → `TransitionsConfig` (Step 4) — line 1019
+- `onDone` bare string → `ValidTarget<TSiblingKeys>` — line 1053
+- `after` → `DelayedTransitions` (Step 5) — line 1080
+- `always` → `TransitionConfigOrTarget` (Step 3) — line 1097
+
+This is the central config interface for a single state node.
+
+---
+
+#### Step 9: `TSiblingKeys` added to `StatesConfig` — `types.ts:583`
+
+New type parameter `TSiblingKeys extends string = string`.
+
+Passes `TSiblingKeys` to child `StateNodeConfig` (Step 8) — line 596. This is the type of the `states` property.
+
+---
+
+#### Step 10: `TSiblingKeys` added to `MachineConfig` — `types.ts:1487`
+
+New type parameter `TSiblingKeys extends string = string`.
+
+Passes `DoNotInfer<TSiblingKeys>` to `StateNodeConfig` (Step 8) — line 1500. `DoNotInfer` prevents TypeScript from using this position as an inference site, which is consistent with how all other params are wrapped in `MachineConfig`.
+
+**Steps 3–10 are non-breaking**: all default to `string`, so existing code sees no change.
+
+---
+
+#### Step 11: `ValidateTargetProp` — `types.ts:327-333`
+
+Validates an individual `target` property value:
+
+```ts
+type ValidateTargetProp<T, TSiblingKeys extends string> =
+  string extends T ? T :                    // spread-widened → pass through
+  T extends string ? ValidTarget<TSiblingKeys> :  // literal → constrain
+  T extends readonly (infer TEl)[]
+    ? readonly (string extends TEl ? TEl : ValidTarget<TSiblingKeys>)[] :
+  T;
+```
+
+The `string extends T ? T` check is the **spread variable escape hatch**. When a variable is spread into config, TypeScript widens `target: 'wait'` → `target: string`. Since `string extends string` is `true`, the value passes through. Literal `'nonExistent'` has `string extends 'nonExistent'` = `false`, so it gets constrained.
+
+---
+
+#### Step 12: `ValidateTransitionValue` — `types.ts:335-346`
+
+Validates a full transition value (bare string, array, or object `{ target }`):
+
+- Bare string → constrain via `ValidTarget<TSiblingKeys>` (with spread escape hatch)
+- Array → recursively validate each element
+- Object with `target` → delegate to `ValidateTargetProp` (Step 11)
+- Other (e.g. `undefined`) → pass through
+
+---
+
+#### Step 13: `ValidateStateTargetsTyped` — `types.ts:348-361`
+
+Validates all transition-bearing properties within a **single state config**:
+
+- `on` → map over each event key, validate via `ValidateTransitionValue` (Step 12)
+- `always` → validate via `ValidateTransitionValue`
+- `after` → map over each delay key, validate via `ValidateTransitionValue`
+- `onDone` → validate via `ValidateTransitionValue`
+
+Takes `TSiblingKeys` as a parameter — the caller provides the correct sibling keys.
+
+---
+
+#### Step 14: `ValidateStatesTargetsTyped` — `types.ts:363-371`
+
+Recursively validates **all states at a given level**:
+
+```ts
+type ValidateStatesTargetsTyped<TStates> = {
+  [K in keyof TStates]?: ValidateStateTargetsTyped<
+    TStates[K],
+    keyof TStates & string    // sibling keys = all keys at THIS level
+  > & (TStates[K] extends { states: infer S extends Record<string, any> }
+    ? { states?: ValidateStatesTargetsTyped<S> }   // recurse into children
+    : {});
+};
+```
+
+The sibling keys are `keyof TStates & string` — i.e., all state names at the same nesting level. Child states are handled by the recursive `{ states?: ValidateStatesTargetsTyped<S> }` arm.
+
+---
+
+#### Step 15: `ValidateConfigTargets` — `types.ts:373-379`
+
+Top-level entry point. Exported. Given a full machine config, validates:
+
+1. Root-level transitions (`on`, `always`, `after`, `onDone`) against root sibling keys (`keyof S & string`)
+2. Nested states recursively via `ValidateStatesTargetsTyped` (Step 14)
+
+Returns `{}` if the config has no `states` property.
+
+---
+
+#### Step 16: `setup().createMachine` integration — `setup.ts:253`
+
+```ts
+config: TConfig & ValidateConfigTargets<TConfig>
+```
+
+`TConfig` already has a `const` modifier (pre-existing), so literal target types are preserved. The intersection adds validation without touching `MachineConfig`'s structure. One-line change.
+
+---
+
+#### Step 17: `const TStates` type parameter — `createMachine.ts:92-94`
+
+```ts
+const TStates extends Record<string, any> | undefined =
+  | Record<string, any>
+  | undefined
+```
+
+New `const` type parameter on `createMachine`. Captures literal state keys from the config argument (e.g., `{ a: {...}, b: {...} }` instead of `Record<string, any>`).
+
+---
+
+#### Step 18: `createMachine` config intersection — `createMachine.ts:124-127`
+
+```ts
+& { states?: TStates }
+& ([TStates] extends [Record<string, any>]
+    ? ValidateConfigTargets<{ states: TStates }>
+    : {})
+```
+
+Added after the existing `MachineConfig<...>` intersection. Three things happen:
+
+1. **`{ states?: TStates }`** — additive intersection that lets `const TStates` capture the literal state shape. Coexists with `MachineConfig`'s own `states` property (the literal type is always a subtype of `StatesConfig<..., string>`, so the intersection resolves to the narrower type).
+
+2. **`[TStates] extends [Record<string, any>]`** — non-distributive conditional. Without the tuple wrapper, `(Record<string, any> | undefined) extends Record<string, any>` would **distribute** over the union, producing `ValidateConfigTargets<...> | {}` which interferes with event/delay inference. The tuple wrapper makes it evaluate as a single check: `[Record<string, any> | undefined] extends [Record<string, any>]` → `false` → `{}`.
+
+3. **`ValidateConfigTargets<{ states: TStates }>`** — the validation intersection from Step 15.
+
+**`MachineConfig` is never restructured** — no `Omit`, no `Pick`. All 11 generic parameters continue to infer correctly.
+
+---
+
+#### Step 19: `types.test.ts:472` — moved `@ts-expect-error` directive
+
+```ts
+// Before:
+states: {
+  // @ts-expect-error
+  underline: underlineState
+}
+
+// After:
+// @ts-expect-error
+states: {
+  underline: underlineState
+}
+```
+
+The intersection type changes where TypeScript reports the error — it now reports on the `states` property rather than on the individual state entry.
+
+---
+
+#### Step 20: `typesafe-states.test.ts` — new test file
+
+Covers both `createMachine` and `setup().createMachine`:
+
+- Valid sibling targets (bare string and object-form)
+- Invalid targets with `@ts-expect-error` (3 for `createMachine`, 3 for `setup`)
+- `initial` accepts any string (backward compat)
+- Nested states with correct sibling scoping
+- Child paths (`.child`), ID targets (`#id`), sibling descendant paths (`sibling.child`)
+- `always`, `after`, `onDone` transitions
+- `invoke.onDone`, `invoke.onError`
+- Spread variable escape hatch (widened targets pass through)
+
+---
+
+### What is constrained
+
+- Bare string targets: `GO: 'invalid'`
+- Object-form targets: `GO: { target: 'invalid' }`
+- Nested state targets at each level
+- `always`, `after`, `onDone`, `invoke.onDone`, `invoke.onError`, `invoke.onSnapshot`
+
+### What is NOT constrained (by design)
+
+- **`initial`**: Accepts any string for backward compatibility with spread/variable patterns
+- **Spread variables**: Widened to `string` at compile time → bypass constraint via `string extends T` escape hatch (no false positives)

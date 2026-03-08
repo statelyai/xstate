@@ -311,11 +311,17 @@ export type StateValue = string | StateValueMap;
 
 export type TransitionTarget = SingleOrArray<string>;
 
+type EscapeDots<S extends string> =
+  S extends `${infer Head}.${infer Tail}`
+    ? `${Head}\\.${EscapeDots<Tail>}`
+    : S;
+
 export type ValidTarget<TSiblingKeys extends string> =
   | TSiblingKeys
   | `.${string}`
   | `#${string}`
-  | `${TSiblingKeys}.${string}`;
+  | `${TSiblingKeys}.${string}`
+  | EscapeDots<TSiblingKeys>;
 
 // --- Type-safe state target validation (intersection approach) ---
 
