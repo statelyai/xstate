@@ -109,24 +109,20 @@ export function createMachine<
       TMeta
     >;
     schemas?: unknown;
-    states?: TStates;
-  } & Omit<
-    MachineConfig<
-      TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TTag,
-      TInput,
-      TOutput,
-      TEmitted,
-      TMeta,
-      TStates extends Record<string, any> ? keyof TStates & string : string
-    >,
-    'states'
+  } & MachineConfig<
+    TContext,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TTag,
+    TInput,
+    TOutput,
+    TEmitted,
+    TMeta
   > &
+    { states?: TStates } &
     ([TStates] extends [Record<string, any>]
       ? ValidateConfigTargets<{ states: TStates }>
       : {}),
