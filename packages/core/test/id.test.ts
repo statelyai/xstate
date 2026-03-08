@@ -120,7 +120,7 @@ describe('State node IDs', () => {
       states: {
         start: {
           on: {
-            escaped: 'foo\\.bar',
+            escaped: 'foo\\.bar' as 'foo.bar',
             unescaped: 'foo.bar'
           }
         },

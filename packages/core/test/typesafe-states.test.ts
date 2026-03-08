@@ -18,6 +18,42 @@ describe('type-safe state names', () => {
       });
     });
 
+    it('should reject invalid bare string targets in createMachine', () => {
+      expect(() => {
+        createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              on: {
+                // @ts-expect-error - 'nonExistent' is not a valid sibling state
+                GO: 'nonExistent'
+              }
+            },
+            b: {}
+          }
+        });
+      }).toThrow();
+    });
+
+    it('should reject invalid object-form targets in createMachine', () => {
+      expect(() => {
+        createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              on: {
+                GO: {
+                  // @ts-expect-error - 'nonExistent' is not a valid sibling state
+                  target: 'nonExistent'
+                }
+              }
+            },
+            b: {}
+          }
+        });
+      }).toThrow();
+    });
+
     it('should allow valid initial state', () => {
       createMachine({
         initial: 'a',
@@ -122,6 +158,28 @@ describe('type-safe state names', () => {
           }
         }
       });
+    });
+
+    it('should reject invalid nested targets in createMachine', () => {
+      expect(() => {
+        createMachine({
+          initial: 'parent',
+          states: {
+            parent: {
+              initial: 'child1',
+              states: {
+                child1: {
+                  on: {
+                    // @ts-expect-error - 'nonExistent' is not a valid sibling of child1
+                    GO: 'nonExistent'
+                  }
+                },
+                child2: {}
+              }
+            }
+          }
+        });
+      }).toThrow();
     });
 
     it('should constrain always targets', () => {

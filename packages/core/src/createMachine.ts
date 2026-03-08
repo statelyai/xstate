@@ -15,7 +15,8 @@ import {
   ResolvedStateMachineTypes,
   StateValue,
   TODO,
-  ToChildren
+  ToChildren,
+  ValidateConfigTargets
 } from './types.ts';
 
 type TestValue =
@@ -125,7 +126,10 @@ export function createMachine<
       TStates extends Record<string, any> ? keyof TStates & string : string
     >,
     'states'
-  >,
+  > &
+    ([TStates] extends [Record<string, any>]
+      ? ValidateConfigTargets<{ states: TStates }>
+      : {}),
   implementations?: InternalMachineImplementations<
     ResolvedStateMachineTypes<
       TContext,
