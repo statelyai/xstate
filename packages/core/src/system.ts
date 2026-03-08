@@ -26,6 +26,7 @@ export interface Clock {
 }
 
 export type SessionIdGenerator = (index: number) => string;
+export type ScheduledEventIdGenerator = (index: number) => string;
 
 const defaultClock: Clock = {
   setTimeout: (fn, ms) => setTimeout(fn, ms),
@@ -120,6 +121,7 @@ export function createActorSystem<T extends ActorSystemInfo>(
     clock?: Clock;
     logger?: (...args: any[]) => void;
     sessionIdGenerator?: SessionIdGenerator;
+    scheduledEventIdGenerator?: ScheduledEventIdGenerator;
     snapshot?: unknown;
   }
 ): ActorSystem<T> {
@@ -133,8 +135,11 @@ export function createActorSystem<T extends ActorSystemInfo>(
   const clock = options?.clock ?? defaultClock;
   const logger = options?.logger ?? console.log.bind(console);
   const now = clock.now ? () => clock.now!() : Date.now;
+  let scheduledEventCounter = 0;
   const sessionIdGenerator =
     options?.sessionIdGenerator ?? ((index) => `x:${index}`);
+  const scheduledEventIdGenerator =
+    options?.scheduledEventIdGenerator ?? ((index) => `s:${index}`);
 
   const get = <K extends keyof T['actors']>(
     key: K
@@ -165,7 +170,7 @@ export function createActorSystem<T extends ActorSystemInfo>(
       target,
       event,
       delay,
-      id = Math.random().toString(36).slice(2)
+      id = scheduledEventIdGenerator(scheduledEventCounter++)
     }) => {
       const scheduledEvent: ScheduledEvent = {
         source,
@@ -227,6 +232,9 @@ export function createActorSystem<T extends ActorSystemInfo>(
   };
 
   const system: ActorSystem<T> = {
+    children,
+    reverseKeyedActors,
+    keyedActors,
     _snapshot: {
       _scheduledEvents:
         (options?.snapshot && (options.snapshot as any).scheduler) ?? {}

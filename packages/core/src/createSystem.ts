@@ -3,6 +3,7 @@ import {
   ActorSystem,
   Clock,
   createActorSystem,
+  ScheduledEventIdGenerator,
   SessionIdGenerator
 } from './system.ts';
 import { ActorOptions, ActorSystemInfo, AnyActorLogic } from './types.ts';
@@ -25,12 +26,14 @@ export function createSystem<
   clock?: Clock;
   logger?: (...args: any[]) => void;
   sessionIdGenerator?: SessionIdGenerator;
+  scheduledEventIdGenerator?: ScheduledEventIdGenerator;
   snapshot?: unknown;
 }): System<T> {
   const system = createActorSystem<T>(undefined, {
     clock: options?.clock ?? defaultClock,
     logger: options?.logger ?? console.log.bind(console),
     sessionIdGenerator: options?.sessionIdGenerator,
+    scheduledEventIdGenerator: options?.scheduledEventIdGenerator,
     snapshot: options?.snapshot
   }) as System<T>;
 

@@ -67,6 +67,32 @@ describe('system', () => {
     expect(scheduled.scheduledAt).toBe(42);
   });
 
+  it('should support deterministic scheduled event ID generation', () => {
+    const clock = new SimulatedClock();
+    const sys = createSystem({
+      clock,
+      sessionIdGenerator: (index) => `test-${index}`,
+      scheduledEventIdGenerator: (index) => `evt-${index}`
+    });
+    const actor = sys.createActor(createMachine({})).start();
+
+    sys.scheduler.schedule({
+      source: actor,
+      target: actor,
+      event: { type: 'PING' },
+      delay: 100
+    });
+    sys.scheduler.schedule({
+      source: actor,
+      target: actor,
+      event: { type: 'PONG' },
+      delay: 100
+    });
+
+    const ids = Object.keys(sys.getSnapshot()._scheduledEvents).sort();
+    expect(ids).toEqual(['test-0.evt-0', 'test-0.evt-1']);
+  });
+
   it('should expose register/get on implicit systems', () => {
     const root = createActor(createMachine({}));
     const actor = createActor(createMachine({}));
