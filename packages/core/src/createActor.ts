@@ -189,7 +189,7 @@ export class Actor<TLogic extends AnyActorLogic>
     }
 
     this.sessionId = this.system._bookId();
-    this.id = id ?? this.sessionId;
+    this.id = id ?? this.system._bookActorId();
     this.logger = options?.logger ?? this.system._logger;
     this.clock = options?.clock ?? this.system._clock;
     this._parent = parent;

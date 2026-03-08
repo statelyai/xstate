@@ -1,5 +1,6 @@
 import { Actor, createActor } from './createActor.ts';
 import {
+  ActorIdGenerator,
   ActorSystem,
   Clock,
   createActorSystem,
@@ -26,6 +27,7 @@ export function createSystem<
   clock?: Clock;
   logger?: (...args: any[]) => void;
   sessionIdGenerator?: SessionIdGenerator;
+  actorIdGenerator?: ActorIdGenerator;
   scheduledEventIdGenerator?: ScheduledEventIdGenerator;
   snapshot?: unknown;
 }): System<T> {
@@ -33,6 +35,7 @@ export function createSystem<
     clock: options?.clock ?? defaultClock,
     logger: options?.logger ?? console.log.bind(console),
     sessionIdGenerator: options?.sessionIdGenerator,
+    actorIdGenerator: options?.actorIdGenerator,
     scheduledEventIdGenerator: options?.scheduledEventIdGenerator,
     snapshot: options?.snapshot
   }) as System<T>;

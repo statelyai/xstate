@@ -26,6 +26,7 @@ export interface Clock {
 }
 
 export type SessionIdGenerator = (index: number) => string;
+export type ActorIdGenerator = (index: number) => string;
 export type ScheduledEventIdGenerator = (index: number) => string;
 
 const defaultClock: Clock = {
@@ -64,6 +65,8 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   keyedActors: Map<keyof T['actors'], AnyActorRef | undefined>;
   /** @internal */
   _bookId: () => string;
+  /** @internal */
+  _bookActorId: () => string;
   /** @internal */
   _register: (sessionId: string, actorRef: AnyActorRef) => string;
   /** @internal */
@@ -121,12 +124,14 @@ export function createActorSystem<T extends ActorSystemInfo>(
     clock?: Clock;
     logger?: (...args: any[]) => void;
     sessionIdGenerator?: SessionIdGenerator;
+    actorIdGenerator?: ActorIdGenerator;
     scheduledEventIdGenerator?: ScheduledEventIdGenerator;
     snapshot?: unknown;
   }
 ): ActorSystem<T> {
   let rootSessionId = rootActor?.sessionId;
-  let idCounter = 0;
+  let sessionIdCounter = 0;
+  let actorIdCounter = 0;
   const children = new Map<string, AnyActorRef>();
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
@@ -138,6 +143,8 @@ export function createActorSystem<T extends ActorSystemInfo>(
   let scheduledEventCounter = 0;
   const sessionIdGenerator =
     options?.sessionIdGenerator ?? ((index) => `x:${index}`);
+  const actorIdGenerator =
+    options?.actorIdGenerator ?? ((index) => `x:${index}`);
   const scheduledEventIdGenerator =
     options?.scheduledEventIdGenerator ?? ((index) => `s:${index}`);
 
@@ -239,7 +246,8 @@ export function createActorSystem<T extends ActorSystemInfo>(
       _scheduledEvents:
         (options?.snapshot && (options.snapshot as any).scheduler) ?? {}
     },
-    _bookId: () => sessionIdGenerator(idCounter++),
+    _bookId: () => sessionIdGenerator(sessionIdCounter++),
+    _bookActorId: () => actorIdGenerator(actorIdCounter++),
     _register: (sessionId, actorRef) => {
       children.set(sessionId, actorRef);
       if (!rootSessionId && !(actorRef as any)._parent) {

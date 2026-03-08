@@ -46,6 +46,21 @@ describe('system', () => {
     expect(actorB.sessionId).toBe('test-1');
   });
 
+  it('should support deterministic actor ID generation independently', () => {
+    const sys = createSystem({
+      sessionIdGenerator: (index) => `session-${index}`,
+      actorIdGenerator: (index) => `actor-${index}`
+    });
+
+    const actorA = sys.createActor(createMachine({}));
+    const actorB = sys.createActor(createMachine({}));
+
+    expect(actorA.id).toBe('actor-0');
+    expect(actorB.id).toBe('actor-1');
+    expect(actorA.sessionId).toBe('session-0');
+    expect(actorB.sessionId).toBe('session-1');
+  });
+
   it('should use clock.now for scheduled event timestamps', () => {
     const clock = new SimulatedClock();
     clock.set(42);
