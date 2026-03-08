@@ -13,7 +13,7 @@ import { toObserver } from './utils.ts';
 interface ScheduledEvent {
   id: string;
   event: EventObject;
-  startedAt: number; // timestamp
+  scheduledAt: number; // timestamp
   delay: number;
   source: AnyActorRef;
   target: AnyActorRef;
@@ -173,7 +173,7 @@ export function createActorSystem<T extends ActorSystemInfo>(
         event,
         delay,
         id,
-        startedAt: now()
+        scheduledAt: now()
       };
       const scheduledEventId = createScheduledEventId(source, id);
       system._snapshot._scheduledEvents[scheduledEventId] = scheduledEvent;

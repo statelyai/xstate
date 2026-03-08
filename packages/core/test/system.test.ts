@@ -64,7 +64,7 @@ describe('system', () => {
     const snapshot = sys.getSnapshot();
     const scheduled = Object.values(snapshot._scheduledEvents)[0];
 
-    expect(scheduled.startedAt).toBe(42);
+    expect(scheduled.scheduledAt).toBe(42);
   });
 
   it('should expose register/get on implicit systems', () => {
