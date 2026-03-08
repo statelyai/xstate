@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useActor } from '../src/index.ts';
   import UseActorNonPersistentSubscriptionChild from './UseActorNonPersistentSubscriptionChild.svelte';
-  import { assign, createMachine } from 'xstate';
+  import { createMachine } from 'xstate';
 
   let visible = true;
 
@@ -10,11 +10,9 @@
       count: 0
     },
     on: {
-      INC: {
-        actions: assign({
-          count: ({ context }) => ++context.count
-        })
-      }
+      INC: ({ context }) => ({
+        context: { ...context, count: context.count + 1 }
+      })
     }
   });
 

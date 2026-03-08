@@ -1,11 +1,8 @@
 <script lang="ts">
-  import { createActor, createMachine, assign } from 'xstate';
+  import { createActor, createMachine } from 'xstate';
   import { useActorRef, useSelector } from '../src/index.ts';
 
   const machine = createMachine({
-    types: {} as {
-      context: { name: string };
-    },
     initial: 'active',
     context: {
       name: 'david'
@@ -14,9 +11,9 @@
       active: {}
     },
     on: {
-      CHANGE: {
-        actions: assign({ name: ({ event }) => event.value })
-      }
+      CHANGE: ({ context, event }) => ({
+        context: { ...context, name: event.value }
+      })
     }
   });
 

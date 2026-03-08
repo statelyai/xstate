@@ -482,7 +482,7 @@ describe.skip('rehydration', () => {
     const grandchild = createMachine({
       context: {
         count: 0
-      },
+      } as any,
       on: {
         INC: ({ context }) => ({
           context: {

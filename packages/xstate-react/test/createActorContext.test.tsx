@@ -290,11 +290,13 @@ describe('createActorContext', () => {
     const App = () => {
       return (
         <SomeContext.Provider
-          logic={someMachine.provide({
-            actions: {
-              testAction: stubFn
-            }
-          })}
+          logic={
+            someMachine.provide({
+              actions: {
+                testAction: stubFn
+              }
+            }) as any
+          }
         >
           <Component />
         </SomeContext.Provider>
@@ -370,11 +372,13 @@ describe('createActorContext', () => {
     const App = () => {
       return (
         <SomeContext.Provider
-          logic={someMachine.provide({
-            actions: {
-              testAction: stubFn
-            }
-          })}
+          logic={
+            someMachine.provide({
+              actions: {
+                testAction: stubFn
+              }
+            }) as any
+          }
         >
           <Component />
         </SomeContext.Provider>

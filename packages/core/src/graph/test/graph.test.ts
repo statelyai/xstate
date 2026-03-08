@@ -111,7 +111,7 @@ describe('@xstate/graph', () => {
           POWER_OUTAGE: 'red.flashing'
         },
         ...pedestrianStates
-      }
+      } as any
     }
   });
 

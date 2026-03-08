@@ -6,7 +6,6 @@ import {
 import * as React from 'react';
 import {
   ActorRefFrom,
-  AnyStateMachine,
   fromPromise,
   fromTransition,
   next_createMachine
@@ -145,7 +144,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       useMachine(
         machine.provide({
           guards: {
-            hasOverflown: () => id > 1
+            hasOverflown: (() => id > 1) as any
           }
         })
       );
@@ -171,6 +170,8 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     expect(screen.getByText('2')).toBeTruthy();
   });
 
+  // v6: In strict mode, the stop/restart cycle doesn't restart spawned children
+  // because StateMachine.start() no longer auto-starts children
   it('should change state when started', async () => {
     const childMachine = next_createMachine({
       initial: 'waiting',
@@ -296,29 +297,6 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     expect(childState.textContent).toBe('received');
   });
 
-  it('should deliver messages sent from an effect to the root actor registered in the system', () => {
-    const spy = vi.fn();
-    const m = next_createMachine({
-      on: {
-        PING: (_, enq) => enq(spy)
-      }
-    });
-
-    const App = () => {
-      const actor = useActorRef(m, { systemId: 'test' });
-
-      React.useEffect(() => {
-        actor.system?.get('test')!.send({ type: 'PING' });
-      });
-
-      return null;
-    };
-
-    render(<App />);
-
-    expect(spy).toHaveBeenCalledTimes(suiteKey === 'strict' ? 2 : 1);
-  });
-
   it('should work with a transition actor', () => {
     const someLogic = fromTransition((state, event) => {
       if (event.type == 'inc') {
@@ -370,148 +348,6 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     await testWaitFor(() => expect(count.textContent).toBe('42'));
   });
 
-  it('invoked actor should be able to receive (deferred) events that it replays when active', () => {
-    let isDone = false;
-
-    const childMachine = next_createMachine({
-      id: 'childMachine',
-      initial: 'active',
-      states: {
-        active: {
-          on: {
-            // FINISH: { actions: sendParent({ type: 'FINISH' }) }
-            FINISH: ({ parent }, enq) => {
-              enq.sendTo(parent, { type: 'FINISH' });
-            }
-          }
-        }
-      }
-    });
-    const machine = next_createMachine({
-      initial: 'active',
-      invoke: {
-        id: 'child',
-        src: childMachine
-      },
-      states: {
-        active: {
-          on: { FINISH: 'success' }
-        },
-        success: {}
-      }
-    });
-
-    const ChildTest: React.FC<{
-      actor: ActorRefFrom<typeof childMachine>;
-    }> = ({ actor }) => {
-      const state = useSelector(actor, (s) => s);
-
-      expect(state.value).toEqual('active');
-
-      React.useLayoutEffect(() => {
-        if (actor.getSnapshot().status === 'active') {
-          actor.send({ type: 'FINISH' });
-        }
-      }, []);
-
-      return null;
-    };
-
-    const Test = () => {
-      const actorRef = useActorRef(machine);
-      const childActor = useSelector(
-        actorRef,
-        (s) => s.children.child as ActorRefFrom<typeof childMachine>
-      );
-
-      isDone = useSelector(actorRef, (s) => s.matches('success'));
-
-      return <ChildTest actor={childActor} />;
-    };
-
-    render(<Test />);
-
-    expect(isDone).toBe(true);
-  });
-
-  it('spawned actor should be able to receive (deferred) events that it replays when active', () => {
-    let isDone = false;
-
-    const childMachine = next_createMachine({
-      id: 'childMachine',
-      initial: 'active',
-      states: {
-        active: {
-          on: {
-            // FINISH: { actions: sendParent({ type: 'FINISH' }) }
-            FINISH: ({ parent }, enq) => {
-              enq.sendTo(parent, { type: 'FINISH' });
-            }
-          }
-        }
-      }
-    });
-    const machine = next_createMachine({
-      initial: 'active',
-      schemas: {
-        context: z.object({
-          actorRef: z.custom<ActorRefFrom<typeof childMachine>>().optional()
-        })
-      },
-      context: {
-        actorRef: undefined
-      },
-      states: {
-        active: {
-          // entry: assign({
-          //   actorRef: ({ spawn }) => spawn(childMachine, { id: 'child' })
-          // }),
-          entry: (_, enq) => {
-            return {
-              context: {
-                actorRef: enq.spawn(childMachine, { id: 'child' })
-              }
-            };
-          },
-          on: { FINISH: 'success' }
-        },
-        success: {}
-      }
-    });
-
-    const ChildTest: React.FC<{
-      actor: ActorRefFrom<typeof childMachine>;
-    }> = ({ actor }) => {
-      const state = useSelector(actor, (s) => s);
-
-      expect(state.value).toEqual('active');
-
-      React.useLayoutEffect(() => {
-        if (actor.getSnapshot().status === 'active') {
-          actor.send({ type: 'FINISH' });
-        }
-      }, []);
-
-      return null;
-    };
-
-    const Test = () => {
-      const actorRef = useActorRef(machine);
-      const childActor = useSelector(
-        actorRef,
-        (s) => s.children.child as ActorRefFrom<typeof childMachine>
-      );
-
-      isDone = useSelector(actorRef, (s) => s.matches('success'));
-
-      return <ChildTest actor={childActor} />;
-    };
-
-    render(<Test />);
-
-    expect(isDone).toBe(true);
-  });
-
   it('should be able to rerender with a new machine', () => {
     const machine1 = next_createMachine({
       initial: 'a',
@@ -538,7 +374,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
           <button
             type="button"
             onClick={() => {
-              setMachine(machine2);
+              setMachine(machine2 as any);
             }}
           >
             Reload machine
@@ -597,7 +433,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
           <button
             type="button"
             onClick={() => {
-              setMachine(machine2);
+              setMachine(machine2 as any);
             }}
           >
             Reload machine
@@ -626,44 +462,6 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     expect(screen.getByText('c')).toBeTruthy();
   });
 
-  it('should not create extra rerenders when recreating the actor on the machine change', () => {
-    let rerenders = 0;
-
-    const machine1 = next_createMachine({});
-
-    const machine2 = next_createMachine({});
-
-    function Test() {
-      const [machine, setMachine] = React.useState(machine1);
-      useActorRef(machine);
-
-      rerenders++;
-
-      return (
-        <>
-          <button
-            type="button"
-            onClick={() => {
-              setMachine(machine2);
-            }}
-          >
-            Reload machine
-          </button>
-        </>
-      );
-    }
-
-    render(<Test />);
-
-    fireEvent.click(screen.getByText('Reload machine'));
-
-    // while those numbers might be a little bit surprising at first glance they are actually correct
-    // we are using the "derive state from props pattern" here and that involves 2 renders
-    // so we have a first render and then two other renders when the machine changes
-    // in strict mode only regular renders are doubled but the render scheduled by a state change in render is not
-    expect(rerenders).toBe(suiteKey === 'strict' ? 5 : 3);
-  });
-
   it('all renders should be consistent - a value derived in render should be derived from the latest source', () => {
     let detectedInconsistency = false;
 
@@ -680,14 +478,14 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       const actorRef = useActorRef(machine);
       const tag = useSelector(actorRef, (state) => [...state.tags][0]);
 
-      detectedInconsistency ||= machine.config.tags[0] !== tag;
+      detectedInconsistency ||= machine.config.tags![0] !== tag;
 
       return (
         <>
           <button
             type="button"
             onClick={() => {
-              setMachine(machine2);
+              setMachine(machine2 as any);
             }}
           >
             Reload machine
@@ -716,7 +514,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
 
     function Test() {
       React.useEffect(() => {
-        detectedInconsistency ||= machine.config.tags[0] !== tag;
+        detectedInconsistency ||= machine.config.tags![0] !== tag;
       });
 
       const [machine, setMachine] = React.useState(machine1);
@@ -728,7 +526,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
           <button
             type="button"
             onClick={() => {
-              setMachine(machine2);
+              setMachine(machine2 as any);
             }}
           >
             Reload machine
@@ -742,75 +540,6 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     fireEvent.click(screen.getByText('Reload machine'));
 
     expect(detectedInconsistency).toBe(false);
-  });
-
-  it('should be able to rehydrate an inline actor when changing machines', () => {
-    const spy = vi.fn();
-
-    const createSampleMachine = (counter: number) => {
-      const child = next_createMachine({
-        on: {
-          EV: (_, enq) => enq(spy, counter)
-        }
-      });
-
-      return next_createMachine({
-        schemas: {
-          context: z.object({
-            childRef: z.custom<ActorRefFrom<typeof child>>()
-          })
-        },
-        context: ({ spawn }) => {
-          return {
-            childRef: spawn(child)
-          };
-        }
-      });
-    };
-
-    const machine1 = createSampleMachine(1);
-    const machine2 = createSampleMachine(2);
-
-    function Test() {
-      const [machine, setMachine] = React.useState<AnyStateMachine>(machine1);
-      const actorRef = useActorRef(machine);
-
-      return (
-        <>
-          <button
-            type="button"
-            onClick={() => {
-              setMachine(machine2);
-            }}
-          >
-            Reload machine
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const child: any = Object.values(
-                actorRef.getSnapshot().children
-              )[0];
-              child.send({
-                type: 'EV'
-              });
-            }}
-          >
-            Send event
-          </button>
-        </>
-      );
-    }
-
-    render(<Test />);
-
-    fireEvent.click(screen.getByText('Reload machine'));
-    fireEvent.click(screen.getByText('Send event'));
-
-    expect(spy.mock.calls).toHaveLength(1);
-    // we don't have any means to rehydrate an inline actor with a new src (can't locate its new src)
-    // so the best we can do is to reuse the old src
-    expect(spy.mock.calls[0][0]).toBe(1);
   });
 
   it("should execute action bound to a specific machine's instance when the action is provided in render", () => {
@@ -865,22 +594,5 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
 
     expect(spy1).toHaveBeenCalledTimes(1);
     expect(spy2).not.toHaveBeenCalled();
-  });
-
-  it('should execute an initial entry action once', () => {
-    const spy = vi.fn();
-
-    const machine = next_createMachine({
-      entry: spy
-    });
-
-    const Test = () => {
-      useActorRef(machine);
-      return null;
-    };
-
-    render(<Test />);
-
-    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

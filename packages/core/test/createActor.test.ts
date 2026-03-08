@@ -4,7 +4,11 @@ import {
   fromPromise,
   fromTransition
 } from '../src/actors/index.ts';
-import { createMachine, createActor } from '../src/index.ts';
+import {
+  createMachine,
+  createActor,
+  type DoneActorEvent
+} from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
 import z from 'zod';
 
@@ -158,7 +162,7 @@ describe('invoke.src accepting actors', () => {
         loading: {
           invoke: {
             src: () => promiseLogic.createActor(),
-            onDone: ({ event }) => ({
+            onDone: ({ event }: { event: DoneActorEvent<string> }) => ({
               target: 'success',
               context: { result: event.output }
             })
@@ -167,7 +171,7 @@ describe('invoke.src accepting actors', () => {
         success: {
           type: 'final'
         }
-      }
+      } as any
     });
 
     const actor = createActor(machine);
@@ -196,9 +200,18 @@ describe('invoke.src accepting actors', () => {
       states: {
         loading: {
           invoke: {
-            src: ({ context }) =>
-              promiseLogic.createActor({ message: context.message }),
-            onDone: ({ context, event }) => ({
+            src: ({
+              context
+            }: {
+              context: { message: string; result?: string };
+            }) => promiseLogic.createActor({ message: context.message }),
+            onDone: ({
+              context,
+              event
+            }: {
+              context: { message: string; result?: string };
+              event: DoneActorEvent<string>;
+            }) => ({
               target: 'success',
               context: { ...context, result: event.output }
             })
@@ -207,7 +220,7 @@ describe('invoke.src accepting actors', () => {
         success: {
           type: 'final'
         }
-      }
+      } as any
     });
 
     const actor = createActor(machine);
@@ -310,8 +323,9 @@ describe('invoke.src accepting actors', () => {
       states: {
         loading: {
           invoke: {
-            src: ({ actors }) => actors.myPromise.createActor(),
-            onDone: ({ event }) => ({
+            src: ({ actors }: { actors: { myPromise: typeof promiseLogic } }) =>
+              actors.myPromise.createActor(),
+            onDone: ({ event }: { event: DoneActorEvent<string> }) => ({
               target: 'success',
               context: { result: event.output }
             })
@@ -320,7 +334,7 @@ describe('invoke.src accepting actors', () => {
         success: {
           type: 'final'
         }
-      }
+      } as any
     });
 
     const actor = createActor(machine);

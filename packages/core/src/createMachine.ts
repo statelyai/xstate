@@ -80,7 +80,7 @@ type _GroupTestValues<TTestValue extends string | TestValue> =
  */
 export function createMachine<
   TContextSchema extends StandardSchemaV1,
-  TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  const TEventSchemaMap extends Record<string, StandardSchemaV1>,
   TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,

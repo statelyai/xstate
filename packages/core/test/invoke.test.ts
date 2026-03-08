@@ -190,7 +190,10 @@ describe('invoke', () => {
               }),
             onDone: ({ event }) => {
               // Should receive { user: { name: 'David' } } as event data
-              if ((event.output as any).user.name === 'David') {
+              if (
+                (event.output as { user: { name: string } }).user.name ===
+                'David'
+              ) {
                 return { target: 'received' };
               }
             }
@@ -590,7 +593,9 @@ describe('invoke', () => {
                   id: 'pong',
                   src: pongMachine,
                   onDone: ({ event }) => {
-                    if (event.output.secret === 'pingpong') {
+                    if (
+                      (event.output as { secret: string }).secret === 'pingpong'
+                    ) {
                       return { target: 'success' };
                     }
                   }
@@ -839,7 +844,11 @@ describe('invoke', () => {
                   }
                 })
               ),
-              input: ({ context }: any) => context,
+              input: ({
+                context
+              }: {
+                context: { id: number; succeed: boolean };
+              }) => context,
               onDone: ({ context, event }) => {
                 if (event.output === context.id) {
                   return { target: 'success' };
@@ -922,7 +931,9 @@ describe('invoke', () => {
         const service = createActor(promiseMachine);
         service.subscribe({
           error(err) {
-            expect((err as any).message).toEqual(expect.stringMatching(/test/));
+            expect((err as Error).message).toEqual(
+              expect.stringMatching(/test/)
+            );
             resolve();
           }
         });
@@ -960,7 +971,7 @@ describe('invoke', () => {
         actor.subscribe({
           error: (err) => {
             expect(err).toBeInstanceOf(Error);
-            expect((err as any).message).toBe('test');
+            expect((err as Error).message).toBe('test');
             expect(completeSpy).not.toHaveBeenCalled();
             resolve();
           },
@@ -1068,7 +1079,7 @@ describe('invoke', () => {
                 onDone: ({ context, event }) => ({
                   context: {
                     ...context,
-                    count: event.output.count
+                    count: (event.output as { count: number }).count
                   },
                   target: 'success'
                 })
@@ -1113,7 +1124,7 @@ describe('invoke', () => {
                   onDone: ({ context, event }) => ({
                     context: {
                       ...context,
-                      count: event.output.count
+                      count: (event.output as { count: number }).count
                     },
                     target: 'success'
                   })
@@ -1164,11 +1175,11 @@ describe('invoke', () => {
                   createPromise((resolve) => resolve({ count: 1 }))
                 ),
                 onDone: ({ context, event }) => {
-                  count = (event.output as any).count;
+                  count = (event.output as { count: number }).count;
                   return {
                     context: {
                       ...context,
-                      count: (event.output as any).count
+                      count: (event.output as { count: number }).count
                     },
                     target: 'success'
                   };
@@ -1209,7 +1220,7 @@ describe('invoke', () => {
                   src: somePromise,
                   onDone: ({ event }, enq) => {
                     enq(() => {
-                      count = event.output.count;
+                      count = (event.output as { count: number }).count;
                     });
                     return {
                       target: 'success'
@@ -1351,7 +1362,8 @@ describe('invoke', () => {
                             return {
                               context: {
                                 ...context,
-                                result1: event.output.result
+                                result1: (event.output as { result: number })
+                                  .result
                               },
                               target: 'success'
                             };
@@ -1372,7 +1384,8 @@ describe('invoke', () => {
                           onDone: ({ context, event }) => ({
                             context: {
                               ...context,
-                              result2: (event.output as any).result
+                              result2: (event.output as { result: number })
+                                .result
                             },
                             target: 'success'
                           })
@@ -1438,7 +1451,7 @@ describe('invoke', () => {
             inactive: {
               on: {
                 '*': ({ event }) => {
-                  if ((event as any).snapshot) {
+                  if ('snapshot' in event) {
                     throw new Error(`Received unexpected event: ${event.type}`);
                   }
                 }
@@ -2004,7 +2017,7 @@ describe('invoke', () => {
                 expect(input).toEqual({ foo: 'bar' });
                 resolve();
               }),
-              input: ({ context }: any) => context
+              input: ({ context }: { context: { foo: string } }) => context
             }
           }
         }
@@ -2180,10 +2193,10 @@ describe('invoke', () => {
                 }
               }),
               onError: ({ context, event }) => {
-                expect((event.error as any).message).toEqual('some error');
+                expect((event.error as Error).message).toEqual('some error');
                 if (
                   context.count === 4 &&
-                  (event.error as any).message === 'some error'
+                  (event.error as Error).message === 'some error'
                 ) {
                   return { target: 'success' };
                 }
@@ -2379,10 +2392,10 @@ describe('invoke', () => {
                 )
               ),
               onError: ({ context, event }) => {
-                expect((event.error as any).message).toEqual('some error');
+                expect((event.error as Error).message).toEqual('some error');
                 if (
                   context.count === 4 &&
-                  (event.error as any).message === 'some error'
+                  (event.error as Error).message === 'some error'
                 ) {
                   return { target: 'success' };
                 }
@@ -2597,7 +2610,7 @@ describe('invoke', () => {
       const countReducer = (
         count: number,
         event: CountEvents,
-        { self }: ActorScope<any, CountEvents>
+        { self }: ActorScope<Snapshot<unknown>, CountEvents>
       ): number => {
         if (event.type === 'INC') {
           self.send({ type: 'DOUBLE' });
@@ -3090,11 +3103,13 @@ describe('invoke', () => {
       states: {
         searching: {
           invoke: {
-            src: fromPromise(async ({ input }) => {
-              expect(input.endpoint).toEqual('example.com');
+            src: fromPromise(
+              async ({ input }: { input: { endpoint: string } }) => {
+                expect(input.endpoint).toEqual('example.com');
 
-              return 42;
-            }),
+                return 42;
+              }
+            ),
             input: {
               endpoint: 'example.com'
             },
@@ -3104,7 +3119,7 @@ describe('invoke', () => {
         success: {
           type: 'final'
         }
-      }
+      } as any
     });
     const actor = createActor(machine);
     actor.subscribe({ complete: () => resolve() });
@@ -3116,6 +3131,11 @@ describe('invoke', () => {
     const { promise, resolve } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'searching',
+      schemas: {
+        context: z.object({
+          url: z.string()
+        })
+      },
       context: {
         url: 'example.com'
       },
@@ -3127,7 +3147,9 @@ describe('invoke', () => {
 
               return 42;
             }),
-            input: ({ context }) => ({ endpoint: context.url }),
+            input: ({ context }: { context: { url: string } }) => ({
+              endpoint: context.url
+            }),
             onDone: 'success'
           }
         },
@@ -3245,7 +3267,7 @@ describe('invoke', () => {
               invoked = true;
               return Promise.resolve(42);
             }),
-            onDone: (_, enq) => {
+            onDone: (_: any, enq: any) => {
               enq(handleSuccess);
             }
           }
@@ -3518,7 +3540,12 @@ describe('invoke', () => {
       },
       on: {
         PING: ({ event }) => {
-          event.origin.send({ type: 'PONG' });
+          (
+            event as {
+              type: 'PING';
+              origin: ActorRef<Snapshot<unknown>, { type: 'PONG' }>;
+            }
+          ).origin.send({ type: 'PONG' });
         }
       }
     });

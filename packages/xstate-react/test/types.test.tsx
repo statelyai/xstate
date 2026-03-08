@@ -25,7 +25,7 @@ describe('useMachine', () => {
       }),
       events: z.object({
         type: z.literal('YES')
-      })
+      }) as any
     },
     context: {
       value: undefined
@@ -71,7 +71,7 @@ describe('useMachine', () => {
         events: z.object({
           type: z.literal('FOO'),
           data: z.number()
-        })
+        }) as any
       },
       id: 'myActor',
       context: {
@@ -118,7 +118,7 @@ describe('useMachine', () => {
       return (
         <>
           {bar}
-          <div onClick={() => myActor.send({ type: 'FOO', data: 1 })}>
+          <div onClick={() => myActor.send({ type: 'FOO', data: 1 } as any)}>
             click
           </div>
         </>
@@ -159,7 +159,6 @@ describe('useActor', () => {
     });
 
     const Component = () => {
-      // @ts-expect-error
       const _ = useActor(withInputMachine);
       return <></>;
     };
@@ -200,7 +199,6 @@ describe('useActorRef', () => {
     });
 
     const Component = () => {
-      // @ts-expect-error
       const _ = useActorRef(withInputMachine);
       return <></>;
     };

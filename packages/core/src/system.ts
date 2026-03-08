@@ -275,6 +275,17 @@ export function createActorSystem<T extends ActorSystemInfo>(
     },
     _sendInspectionEvent: sendInspectionEvent as any,
     _relay: (source, target, event) => {
+      const targetMachine = (target as any).logic;
+      const isInternalEvent =
+        typeof targetMachine?.isInternalEventType === 'function' &&
+        targetMachine.isInternalEventType(event.type);
+
+      if (isInternalEvent && source !== target) {
+        throw new Error(
+          `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
+        );
+      }
+
       // remember the last source for unified transition inspect event
       (target as any)._lastSourceRef = source;
       target._send(event);

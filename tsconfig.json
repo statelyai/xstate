@@ -14,5 +14,5 @@
     "stripInternal": true,
     "types": ["vitest/globals"]
   },
-  "exclude": ["**/examples", "**/templates", "packages/xstate-inspect"]
+  "exclude": ["**/examples", "**/templates"]
 }

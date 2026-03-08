@@ -14,7 +14,6 @@ import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
 import {
   ActorRef,
   ActorRefFrom,
-  assign,
   createActor,
   createMachine,
   fromTransition,
@@ -251,19 +250,16 @@ describe('fromActorRef', () => {
       }
     });
     const machine = createMachine({
-      types: {} as {
-        context: {
-          actorRef?: ActorRefFrom<typeof childMachine>;
-        };
-      },
       initial: 'active',
       context: {
-        actorRef: undefined
-      },
+        actorRef: undefined as ActorRefFrom<typeof childMachine> | undefined
+      } as any,
       states: {
         active: {
-          entry: assign({
-            actorRef: ({ spawn }) => spawn(childMachine)
+          entry: (_, enq) => ({
+            context: {
+              actorRef: enq.spawn(childMachine)
+            }
           }),
           on: { FINISH: 'success' }
         },
@@ -279,7 +275,7 @@ describe('fromActorRef', () => {
       const [total, setTotal] = createSignal(0);
       createEffect(
         on(
-          () => snapshot().context.item.count,
+          () => (snapshot() as any).context.item.count,
           () => {
             setCount(() => count() + 1);
           },
@@ -289,7 +285,7 @@ describe('fromActorRef', () => {
 
       createEffect(
         on(
-          () => snapshot().context.item.total,
+          () => (snapshot() as any).context.item.total,
           () => {
             setTotal(() => total() + 1);
           },
@@ -313,7 +309,7 @@ describe('fromActorRef', () => {
     const Test = () => {
       const [state] = useActor(machine);
 
-      return <ChildTest actor={state.context.actorRef!} />;
+      return <ChildTest actor={(state as any).context.actorRef!} />;
     };
 
     render(() => <Test />);
@@ -334,20 +330,17 @@ describe('fromActorRef', () => {
       }
     });
 
-    interface Ctx {
-      actorRef?: ActorRefFrom<typeof childMachine>;
-    }
-
     const machine = createMachine({
-      types: {} as { context: Ctx },
       initial: 'active',
       context: {
-        actorRef: undefined
-      },
+        actorRef: undefined as ActorRefFrom<typeof childMachine> | undefined
+      } as any,
       states: {
         active: {
-          entry: assign({
-            actorRef: ({ spawn }) => spawn(childMachine)
+          entry: (_, enq) => ({
+            context: {
+              actorRef: enq.spawn(childMachine)
+            }
           })
         }
       }
@@ -365,7 +358,7 @@ describe('fromActorRef', () => {
 
     const Test = () => {
       const [snapshot] = useActor(machine);
-      const { actorRef } = snapshot.context;
+      const { actorRef } = (snapshot as any).context;
 
       return <ChildTest actor={actorRef!} />;
     };
@@ -460,7 +453,7 @@ describe('fromActorRef', () => {
             TRANSITION: 'green'
           }
         }
-      }
+      } as any
     });
 
     const App = () => {
@@ -518,7 +511,9 @@ describe('fromActorRef', () => {
         },
         active: {
           on: {
-            DO_SOMETHING: { actions: ['something'] }
+            DO_SOMETHING: (_, enq) => {
+              enq(() => {});
+            }
           }
         }
       }
@@ -588,15 +583,13 @@ describe('fromActorRef', () => {
       },
       initial: 'active',
       context: {
-        actorRef: undefined
+        actorRef: undefined as any
       },
       states: {
         active: {
-          // entry: assign({
-          //   actorRef: ({ spawn }) => spawn(childMachine)
-          // }),
-          entry: ({ spawn }, enq) => {
-            enq.spawn(childMachine);
+          entry: ({ context }, enq) => {
+            const actorRef = enq.spawn(childMachine);
+            return { context: { ...context, actorRef } };
           },
           on: { FINISH: 'success' }
         },
@@ -788,40 +781,33 @@ describe('fromActorRef', () => {
 
   it('should properly handle array updates', () => {
     const numberListMachine = createMachine({
-      types: {} as { context: { numbers: number[] } },
       context: {
         numbers: [1, 2, 3, 4, 5, 6]
-      },
+      } as any,
       initial: 'idle',
       states: {
         idle: {
           on: {
-            REMOVE_START: {
-              actions: assign({
-                numbers: ({ context }) => {
-                  return context.numbers.filter((_, i) => i !== 0);
-                }
-              })
-            },
-            REMOVE_END: {
-              actions: assign({
-                numbers: ({ context }) => {
-                  return context.numbers.filter(
-                    (_, i) => i !== context.numbers.length - 1
-                  );
-                }
-              })
-            },
-            ADD: {
-              actions: assign({
-                numbers: ({ context }) => {
-                  return [
-                    ...context.numbers,
-                    context.numbers[context.numbers.length - 1] + 1
-                  ];
-                }
-              })
-            }
+            REMOVE_START: ({ context }: any) => ({
+              context: {
+                numbers: context.numbers.filter((_: any, i: any) => i !== 0)
+              }
+            }),
+            REMOVE_END: ({ context }: any) => ({
+              context: {
+                numbers: context.numbers.filter(
+                  (_: any, i: any) => i !== context.numbers.length - 1
+                )
+              }
+            }),
+            ADD: ({ context }) => ({
+              context: {
+                numbers: [
+                  ...context.numbers,
+                  context.numbers[context.numbers.length - 1] + 1
+                ]
+              }
+            })
           }
         }
       }
@@ -831,7 +817,9 @@ describe('fromActorRef', () => {
       const [state, send] = useActor(numberListMachine);
       return (
         <div>
-          <div data-testid="state">{state.context.numbers.join(',')}</div>
+          <div data-testid="state">
+            {(state as any).context.numbers.join(',')}
+          </div>
           <button
             data-testid="remove-start"
             onclick={() => send({ type: 'REMOVE_START' })}
@@ -867,29 +855,24 @@ describe('fromActorRef', () => {
       { id: '2', value: 20 }
     ];
     const actorMachine = createMachine({
-      types: {} as {
-        context: { arr: Array<{ id: string; value: number }> };
-        events: { type: 'CHANGE'; index: number; value: number };
-      },
       context: {
         arr
-      },
+      } as any,
       initial: 'idle',
       states: {
         idle: {
           on: {
-            CHANGE: {
-              actions: [
-                assign(({ context, event }) => {
-                  const newCtx = { ...context };
-                  newCtx.arr = [...newCtx.arr];
-                  newCtx.arr[event.index] = {
-                    ...newCtx.arr[event.index],
-                    value: event.value
-                  };
-                  return newCtx;
-                })
-              ]
+            CHANGE: ({ context, event }: any) => {
+              const newArr = [...context.arr];
+              newArr[event.index] = {
+                ...newArr[event.index],
+                value: event.value
+              };
+              return {
+                context: {
+                  arr: newArr
+                }
+              };
             }
           }
         }
@@ -904,18 +887,18 @@ describe('fromActorRef', () => {
       const [changeRoot, setChangeRoot] = createSignal(0);
 
       createEffect(() => {
-        if (snapshot().context.arr) {
+        if ((snapshot() as any).context.arr) {
           setChangeRoot((val) => val + 1);
         }
       });
       createEffect(() => {
-        if (snapshot().context.arr[0].value) {
+        if ((snapshot() as any).context.arr[0].value) {
           setChangeIndex0((val) => val + 1);
         }
       });
 
       createEffect(() => {
-        if (snapshot().context.arr[1].value) {
+        if ((snapshot() as any).context.arr[1].value) {
           setChangeIndex1((val) => val + 1);
         }
       });
@@ -925,18 +908,22 @@ describe('fromActorRef', () => {
           <div data-testid="change-root">{changeRoot()}</div>
           <div data-testid="change-index-0">{changeIndex0()}</div>
           <div data-testid="change-index-1">{changeIndex1()}</div>
-          <div data-testid="state-0">{snapshot().context.arr[0].value}</div>
-          <div data-testid="state-1">{snapshot().context.arr[1].value}</div>
+          <div data-testid="state-0">
+            {(snapshot() as any).context.arr[0].value}
+          </div>
+          <div data-testid="state-1">
+            {(snapshot() as any).context.arr[1].value}
+          </div>
           <button
             data-testid="index-0-btn"
             onclick={() =>
-              actorRef.send({ type: 'CHANGE', index: 0, value: -10 })
+              actorRef.send({ type: 'CHANGE', index: 0, value: -10 } as any)
             }
           />
           <button
             data-testid="index-1-btn"
             onclick={() =>
-              actorRef.send({ type: 'CHANGE', index: 1, value: 22 })
+              actorRef.send({ type: 'CHANGE', index: 1, value: 22 } as any)
             }
           />
         </div>
@@ -1129,34 +1116,25 @@ describe('fromActorRef', () => {
   });
 
   it('should also work with services', () => {
-    const counterMachine = createMachine(
-      {
-        types: {} as {
-          context: { count: number };
-          events: { type: 'INC' } | { type: 'SOMETHING' };
-        },
-        id: 'counter',
-        initial: 'active',
-        context: { count: 0 },
-        states: {
-          active: {
-            on: {
-              INC: {
-                actions: assign({ count: ({ context }) => context.count + 1 })
-              },
-              SOMETHING: { actions: 'doSomething' }
-            }
-          }
-        }
-      },
-      {
-        actions: {
-          doSomething: () => {
-            /* do nothing */
+    const counterMachine = createMachine({
+      id: 'counter',
+      initial: 'active',
+      context: { count: 0 } as any,
+      states: {
+        active: {
+          on: {
+            INC: ({ context }) => ({
+              context: { count: context.count + 1 }
+            }),
+            SOMETHING: {
+              actions: () => {
+                /* do nothing */
+              }
+            } as any
           }
         }
       }
-    );
+    });
     const counterService = createActor(counterMachine).start();
 
     const Counter = () => {
@@ -1167,11 +1145,10 @@ describe('fromActorRef', () => {
           data-testid="count"
           onclick={() => {
             counterService.send({ type: 'INC' });
-            // @ts-expect-error
             counterService.send({ type: 'FAKE' });
           }}
         >
-          {snapshot().context.count}
+          {(snapshot() as any).context.count}
         </div>
       );
     };
@@ -1202,26 +1179,17 @@ describe('fromActorRef', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     vi.useFakeTimers();
 
-    interface MachineContext {
-      counter: number;
-    }
-
     const machine = createMachine({
-      types: {} as {
-        context: MachineContext;
-      },
       context: {
         counter: 0
-      },
+      } as any,
       initial: 'idle',
       states: {
         idle: {
           on: {
-            INC: {
-              actions: assign({
-                counter: ({ context }) => context.counter + 1
-              })
-            }
+            INC: ({ context }) => ({
+              context: { counter: context.counter + 1 }
+            })
           }
         }
       }
@@ -1265,17 +1233,16 @@ describe('fromActorRef', () => {
 
   it('actor should be updated when it changes shallow', () => {
     const counterMachine = createMachine({
-      types: {} as { context: { count: number } },
       id: 'counter',
       initial: 'active',
-      context: { count: 0 },
+      context: { count: 0 } as any,
       states: {
         active: {
           on: {
-            INC: {
-              actions: assign({ count: ({ context }) => context.count + 1 })
-            },
-            SOMETHING: { actions: 'doSomething' }
+            INC: ({ context }) => ({
+              context: { count: context.count + 1 }
+            }),
+            SOMETHING: { actions: 'doSomething' } as any
           }
         }
       }
@@ -1295,7 +1262,7 @@ describe('fromActorRef', () => {
             data-testid="inc"
             onclick={(_) => props.counterRef().send({ type: 'INC' })}
           />
-          <div data-testid="count">{snapshot().context.count}</div>
+          <div data-testid="count">{(snapshot() as any).context.count}</div>
         </div>
       );
     };
@@ -1328,20 +1295,15 @@ describe('fromActorRef', () => {
 
   it('actor should be updated when it changes deep', () => {
     const counterMachine2 = createMachine({
-      types: {} as {
-        context: {
-          subCount: { subCount1: { subCount2: { count: number } } };
-        };
-      },
       id: 'counter',
       initial: 'active',
-      context: { subCount: { subCount1: { subCount2: { count: 0 } } } },
+      context: { subCount: { subCount1: { subCount2: { count: 0 } } } } as any,
       states: {
         active: {
           on: {
-            INC: {
-              actions: assign({
-                subCount: ({ context }) => ({
+            INC: ({ context }) => ({
+              context: {
+                subCount: {
                   ...context.subCount,
                   subCount1: {
                     ...context.subCount.subCount1,
@@ -1350,10 +1312,10 @@ describe('fromActorRef', () => {
                       count: context.subCount.subCount1.subCount2.count + 1
                     }
                   }
-                })
-              })
-            },
-            SOMETHING: { actions: 'doSomething' }
+                }
+              }
+            }),
+            SOMETHING: { actions: 'doSomething' } as any
           }
         }
       }
@@ -1373,7 +1335,7 @@ describe('fromActorRef', () => {
             onclick={(_) => props.counterRef().send({ type: 'INC' })}
           />
           <div data-testid="count">
-            {snapshot().context.subCount.subCount1.subCount2.count}
+            {(snapshot() as any).context.subCount.subCount1.subCount2.count}
           </div>
         </div>
       );
@@ -1409,20 +1371,15 @@ describe('fromActorRef', () => {
 
   it('actor should only trigger effect of directly tracked value', () => {
     const counterMachine2 = createMachine({
-      types: {} as {
-        context: {
-          subCount: { subCount1: { subCount2: { count: number } } };
-        };
-      },
       id: 'counter',
       initial: 'active',
-      context: { subCount: { subCount1: { subCount2: { count: 0 } } } },
+      context: { subCount: { subCount1: { subCount2: { count: 0 } } } } as any,
       states: {
         active: {
           on: {
-            INC: {
-              actions: assign({
-                subCount: ({ context }) => ({
+            INC: ({ context }) => ({
+              context: {
+                subCount: {
                   ...context.subCount,
                   subCount1: {
                     ...context.subCount.subCount1,
@@ -1431,10 +1388,10 @@ describe('fromActorRef', () => {
                       count: context.subCount.subCount1.subCount2.count + 1
                     }
                   }
-                })
-              })
-            },
-            SOMETHING: { actions: 'doSomething' }
+                }
+              }
+            }),
+            SOMETHING: { actions: 'doSomething' } as any
           }
         }
       }
@@ -1446,7 +1403,7 @@ describe('fromActorRef', () => {
       const [effectCount, setEffectCount] = createSignal(0);
       createEffect(
         on(
-          () => snapshot().context.subCount.subCount1,
+          () => (snapshot() as any).context.subCount.subCount1,
           () => {
             setEffectCount((prev) => prev + 1);
           },
@@ -1463,7 +1420,7 @@ describe('fromActorRef', () => {
           />
           <div data-testid="effect-count">{effectCount()}</div>
           <div data-testid="count">
-            {snapshot().context.subCount.subCount1.subCount2.count}
+            {(snapshot() as any).context.subCount.subCount1.subCount2.count}
           </div>
         </div>
       );
@@ -1486,30 +1443,21 @@ describe('fromActorRef', () => {
 
   it('referenced object in context should not update both services', () => {
     const latestValue = { value: 100 };
-    interface Context {
-      latestValue: { value: number };
-    }
     const machine = createMachine({
-      types: {} as {
-        context: Context;
-        events: { type: 'INC' };
-      },
       initial: 'initial',
       context: {
         latestValue
-      },
+      } as any,
       states: {
         initial: {
           on: {
-            INC: {
-              actions: [
-                assign({
-                  latestValue: ({ context }) => ({
-                    value: context.latestValue.value + 1
-                  })
-                })
-              ]
-            }
+            INC: ({ context }) => ({
+              context: {
+                latestValue: {
+                  value: context.latestValue.value + 1
+                }
+              }
+            })
           }
         }
       }
@@ -1531,7 +1479,7 @@ describe('fromActorRef', () => {
               INC 1
             </button>
             <div data-testid="value-machine1">
-              {snapshot1().context.latestValue.value}
+              {(snapshot1() as any).context.latestValue.value}
             </div>
           </div>
           <div>
@@ -1542,7 +1490,7 @@ describe('fromActorRef', () => {
               INC 1
             </button>
             <div data-testid="value-machine2">
-              {snapshot2().context.latestValue.value}
+              {(snapshot2() as any).context.latestValue.value}
             </div>
           </div>
         </div>
@@ -1582,8 +1530,7 @@ describe('fromActorRef', () => {
     });
 
     const machine = createMachine({
-      types: {} as { context: { ref: ActorRef<any, any> } },
-      context: ({ spawn }) => ({
+      context: ({ spawn }): { ref: ActorRef<any, any> } => ({
         ref: spawn(childMachine)
       }),
       initial: 'waiting',
@@ -1599,7 +1546,7 @@ describe('fromActorRef', () => {
 
     const App = () => {
       const [snapshot] = useActor(machine);
-      const childRef = snapshot.context.ref;
+      const childRef = (snapshot as any).context.ref;
       const childSnapshot = fromActorRef(childRef);
 
       return (

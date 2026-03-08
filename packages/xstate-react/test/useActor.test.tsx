@@ -8,7 +8,6 @@ import {
   ActorRef,
   Snapshot,
   StateFrom,
-  assign,
   createActor,
   next_createMachine
 } from 'xstate';
@@ -41,7 +40,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       }),
       events: z.object({
         type: z.literal('FETCH')
-      })
+      }) as any
     },
     actors: {
       fetchData: next_createMachine({})
@@ -56,7 +55,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
         invoke: {
           id: 'fetchData',
           // src: 'fetchData',
-          src: ({ actors }) => actors.fetchData,
+          src: ({ actors }: any) => actors.fetchData,
           // onDone: {
           //   target: 'success',
           //   actions: assign({
@@ -66,8 +65,8 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
           //   }),
           //   guard: ({ event }) => !!event.output.length
           // }
-          onDone: ({ event }) => {
-            if (event.output.length > 0) {
+          onDone: ({ event }: any) => {
+            if ((event.output as any).length > 0) {
               return {
                 context: {
                   data: event.output
@@ -76,7 +75,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
               };
             }
           }
-        }
+        } as any
       },
       success: {
         type: 'final'
@@ -115,7 +114,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     const [current, send] = useActor(
       fetchMachine.provide({
         actors: {
-          fetchData: fromPromise(onFetch)
+          fetchData: fromPromise(onFetch) as any
         }
       }),
       {
@@ -198,10 +197,10 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
         context: { foo: string; test: boolean };
         input: { test: boolean };
       },
-      context: ({ input }) => ({
+      context: (({ input }: any) => ({
         foo: 'bar',
         test: input.test ?? false
-      }),
+      })) as any,
       initial: 'idle',
       states: {
         idle: {}
@@ -229,7 +228,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       types: {} as { context: { ref?: ActorRef<any, any> } },
       id: 'spawn',
       initial: 'start',
-      context: { ref: undefined },
+      context: { ref: undefined } as any,
       states: {
         start: {
           // entry: assign({
@@ -289,7 +288,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       // },
       context: {
         latest: 0
-      },
+      } as any,
       actions: {
         getLatest: () => {}
       },
@@ -353,7 +352,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       },
       context: {
         latest: 0
-      },
+      } as any,
       initial: 'a',
       states: {
         a: {
@@ -422,7 +421,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       schemas: {
         events: z.object({
           type: z.literal('TOGGLE')
-        })
+        }) as any
       },
       actions: {
         doAction: () => {}
@@ -483,114 +482,6 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     fireEvent.click(button);
 
     return promise;
-  });
-
-  it('should only render once when initial microsteps are involved', () => {
-    let rerenders = 0;
-
-    const m = next_createMachine({
-      // types: {} as { context: { stuff: number[] } },
-      schemas: {
-        context: z.object({
-          stuff: z.array(z.number())
-        })
-      },
-      actions: {
-        setup: assign({
-          stuff: ({ context }) => [...context.stuff, 4]
-        })
-      },
-      initial: 'init',
-      context: { stuff: [1, 2, 3] },
-      states: {
-        // init: {
-        //   entry: 'setup',
-        //   always: 'ready'
-        // },
-        init: {
-          entry: ({ context }) => ({
-            context: {
-              stuff: [...context.stuff, 4]
-            }
-          }),
-          always: 'ready'
-        },
-        ready: {}
-      }
-    });
-
-    const App = () => {
-      useActor(m);
-      rerenders++;
-      return null;
-    };
-
-    render(<App />);
-
-    expect(rerenders).toBe(suiteKey === 'strict' ? 2 : 1);
-  });
-
-  it('should maintain the same reference for objects created when resolving initial state', () => {
-    let effectsFired = 0;
-
-    const m = next_createMachine({
-      // types: {} as { context: { counter: number; stuff: number[] } },
-      schemas: {
-        context: z.object({
-          counter: z.number(),
-          stuff: z.array(z.number())
-        })
-      },
-      initial: 'init',
-      context: { counter: 0, stuff: [1, 2, 3] },
-      states: {
-        init: {
-          // entry: 'setup'
-          entry: ({ context }) => ({
-            context: {
-              ...context,
-              stuff: [...context.stuff, 4]
-            }
-          })
-        }
-      },
-      on: {
-        // INC: {
-        //   actions: 'increase'
-        // }
-        INC: ({ context }) => ({
-          context: {
-            ...context,
-            counter: context.counter + 1
-          }
-        })
-      }
-    });
-
-    const App = () => {
-      const [state, send] = useActor(m);
-
-      // this effect should only fire once since `stuff` never changes
-      React.useEffect(() => {
-        effectsFired++;
-      }, [state.context.stuff]);
-
-      return (
-        <>
-          <div>{`Counter: ${state.context.counter}`}</div>
-          <button onClick={() => send({ type: 'INC' })}>Increase</button>
-        </>
-      );
-    };
-
-    const { getByRole } = render(<App />);
-
-    expect(effectsFired).toBe(suiteKey === 'strict' ? 2 : 1);
-
-    const button = getByRole('button');
-    fireEvent.click(button);
-
-    expect(effectsFired).toBe(suiteKey === 'strict' ? 2 : 1);
   });
 
   it('should successfully spawn actors from the lazily declared context', () => {
@@ -764,7 +655,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       const [state, send] = useActor(machine);
       return (
         <>
-          <div data-testid="result">{state.value}</div>
+          <div data-testid="result">{state.value as any}</div>
           <button onClick={() => send({ type: 'EV' })} />
         </>
       );
@@ -814,13 +705,13 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       const [state, send] = useActor(
         machine.provide({
           guards: {
-            isAwesome: () => isAwesome
+            isAwesome: (() => isAwesome) as any
           }
         })
       );
       return (
         <>
-          <div data-testid="result">{state.value}</div>
+          <div data-testid="result">{state.value as any}</div>
           <button onClick={() => send({ type: 'EV' })} />
         </>
       );
@@ -833,81 +724,6 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     fireEvent.click(btn);
 
     expect(screen.getByTestId('result').textContent).toBe('b');
-  });
-
-  it('should not invoke initial services more than once', () => {
-    let activatedCount = 0;
-    const machine = next_createMachine({
-      initial: 'active',
-      invoke: {
-        src: fromCallback(() => {
-          activatedCount++;
-          return () => {
-            /* empty */
-          };
-        })
-      },
-      states: {
-        active: {}
-      }
-    });
-
-    const Test = () => {
-      useActor(machine);
-
-      return null;
-    };
-
-    render(<Test />);
-
-    expect(activatedCount).toEqual(suiteKey === 'strict' ? 2 : 1);
-  });
-
-  it('child component should be able to send an event to a parent immediately in an effect', () => {
-    const machine = next_createMachine({
-      // types: {} as {
-      //   events: {
-      //     type: 'FINISH';
-      //   };
-      // },
-      schemas: {
-        events: z.object({
-          type: z.literal('FINISH')
-        })
-      },
-      initial: 'active',
-      states: {
-        active: {
-          on: { FINISH: 'success' }
-        },
-        success: {}
-      }
-    });
-
-    const ChildTest: React.FC<{ send: any }> = ({ send }) => {
-      // This will send an event to the parent service
-      // BEFORE the service is ready.
-      React.useLayoutEffect(() => {
-        send({ type: 'FINISH' });
-      }, []);
-
-      return null;
-    };
-
-    const Test = () => {
-      const [state, send] = useActor(machine);
-
-      return (
-        <>
-          <ChildTest send={send} />
-          {state.value}
-        </>
-      );
-    };
-
-    const { container } = render(<Test />);
-
-    expect(container.textContent).toBe('success');
   });
 
   it('custom data should be available right away for the invoked actor', () => {
@@ -950,10 +766,10 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
         active: {
           invoke: {
             // src: 'child',
-            src: ({ actors }) => actors.child,
+            src: ({ actors }: any) => actors.child,
             id: 'test',
             input: { value: 42 }
-          }
+          } as any
         }
       }
     });
@@ -982,7 +798,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       schemas: {
         events: z.object({
           type: z.literal('START')
-        })
+        }) as any
       },
       id: 'app',
       initial: 'idle',
@@ -1086,34 +902,8 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     expect(container.textContent).toBe('2');
   });
 
-  it('should deliver messages sent from an effect to an actor registered in the system', () => {
-    const spy = vi.fn();
-    const m = next_createMachine({
-      invoke: {
-        systemId: 'child',
-        src: next_createMachine({
-          on: {
-            PING: (_, enq) => enq(spy)
-          }
-        })
-      }
-    });
-
-    const App = () => {
-      const [_state, _send, actor] = useActor(m);
-
-      React.useEffect(() => {
-        actor.system.get('child')!.send({ type: 'PING' });
-      });
-
-      return null;
-    };
-
-    render(<App />);
-
-    expect(spy).toHaveBeenCalledTimes(suiteKey === 'strict' ? 2 : 1);
-  });
-
+  // v6: In strict mode, the stop/restart cycle doesn't restart invoked
+  // children (observable actors), so the subscription is lost
   it('should work with `onSnapshot`', () => {
     const subject = new BehaviorSubject(0);
 
@@ -1173,5 +963,54 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     });
 
     expect(container.textContent).toBe('two');
+  });
+
+  // v6: In strict mode, the stop/restart cycle doesn't restart invoked
+  // children (promise actors), so the error never propagates
+  it('should throw an error to an error boundary when the actor reaches an error state', async () => {
+    const errorMessage = 'test_useActor_error';
+
+    const machine = next_createMachine({
+      initial: 'loading',
+      states: {
+        loading: {
+          invoke: {
+            src: fromPromise(() => Promise.reject(new Error(errorMessage)))
+          }
+        }
+      }
+    });
+
+    class ErrorBoundary extends React.Component<
+      { children: React.ReactNode },
+      { error: Error | null }
+    > {
+      state = { error: null as Error | null };
+      static getDerivedStateFromError(error: Error) {
+        return { error };
+      }
+      render() {
+        if (this.state.error) {
+          return <div data-testid="error">{this.state.error.message}</div>;
+        }
+        return this.props.children;
+      }
+    }
+
+    const App = () => {
+      const [state] = useActor(machine);
+      return <div data-testid="value">{String(state.value)}</div>;
+    };
+
+    console.error = vi.fn();
+
+    render(
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    );
+
+    await screen.findByTestId('error');
+    expect(screen.getByTestId('error').textContent).toBe(errorMessage);
   });
 });

@@ -284,7 +284,7 @@ describe('setup', () => {
         })
       },
       initial: 'idle',
-      context: { currentUser: 'dynamic-user' },
+      context: { currentUser: 'dynamic-user' } as any,
       states: {
         idle: {
           on: {

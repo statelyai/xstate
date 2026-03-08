@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { $$ACTOR_TYPE, createActor, Actor } from './createActor.ts';
+import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import { createInitEvent } from './eventUtils.ts';
 import { createSpawner } from './spawn.ts';
 import {
@@ -39,7 +39,6 @@ import type {
   Snapshot,
   SnapshotFrom,
   StateValue,
-  TransitionDefinition,
   StateSchema,
   SnapshotStatus,
   AnyStateNode,
@@ -47,7 +46,11 @@ import type {
   ActorRef
 } from './types.ts';
 import { Implementations, Next_MachineConfig } from './types.v6.ts';
-import { resolveReferencedActor, toStatePath } from './utils.ts';
+import {
+  matchesEventDescriptor,
+  resolveReferencedActor,
+  toStatePath
+} from './utils.ts';
 
 const STATE_IDENTIFIER = '#';
 
@@ -100,6 +103,7 @@ export class StateMachine<
 
   public states: StateNode<TContext, TEvent>['states'];
   public events: Array<EventDescriptor<TEvent>>;
+  public internalEventDescriptors: ReadonlyArray<string>;
 
   constructor(
     /** The raw config used to create the machine. */
@@ -116,19 +120,23 @@ export class StateMachine<
       any // TEmitted
     > & {
       schemas?: unknown;
+      setup?: {
+        internalEvents?: readonly string[];
+      };
     },
     implementations?: Implementations
   ) {
     this.id = config.id || '(machine)';
     this.implementations = {
-      actors: (config.actors ?? {}) as Implementations['actors'],
-      actions: (config.actions ?? {}) as Implementations['actions'],
+      actors: config.actors ?? {},
+      actions: config.actions ?? {},
       delays: (config.delays ?? {}) as Implementations['delays'],
-      guards: (config.guards ?? {}) as Implementations['guards'],
+      guards: config.guards ?? {},
       ...implementations
     };
     this.version = this.config.version;
     this.schemas = this.config.schemas;
+    this.internalEventDescriptors = this.config.setup?.internalEvents ?? [];
 
     this.transition = this.transition.bind(this);
     this.getInitialSnapshot = this.getInitialSnapshot.bind(this);
@@ -362,6 +370,12 @@ export class StateMachine<
   ): Array<AnyTransitionDefinition> {
     return (
       transitionNode(this.root, snapshot.value, snapshot, event, self) || []
+    );
+  }
+
+  public isInternalEventType(eventType: string): boolean {
+    return this.internalEventDescriptors.some((descriptor) =>
+      matchesEventDescriptor(eventType, descriptor)
     );
   }
 

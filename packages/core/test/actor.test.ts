@@ -17,9 +17,12 @@ import {
   ActorRef,
   ActorRefFrom,
   AnyActorRef,
+  DoneActorEvent,
+  ErrorActorEvent,
   EventObject,
   Observer,
   Snapshot,
+  SnapshotEvent,
   Subscribable,
   createActor,
   waitFor,
@@ -288,7 +291,7 @@ describe('spawning promises', () => {
       },
       states: {
         idle: {
-          entry: (_, enq) => ({
+          entry: (_: unknown, enq: any) => ({
             context: {
               promiseRef: enq.spawn(
                 fromPromise(() => Promise.resolve('response')),
@@ -297,7 +300,11 @@ describe('spawning promises', () => {
             }
           }),
           on: {
-            'xstate.done.actor.my-promise': ({ event }) => {
+            'xstate.done.actor.my-promise': ({
+              event
+            }: {
+              event: DoneActorEvent<string>;
+            }) => {
               if (event.output === 'response') {
                 return {
                   target: 'success'
@@ -309,7 +316,7 @@ describe('spawning promises', () => {
         success: {
           type: 'final'
         }
-      }
+      } as any
     });
 
     const promiseService = promiseMachine.createActor();
@@ -341,13 +348,17 @@ describe('spawning promises', () => {
       },
       states: {
         idle: {
-          entry: ({ actors }, enq) => ({
+          entry: ({ actors }: any, enq: any) => ({
             context: {
               promiseRef: enq.spawn(actors.somePromise, { id: 'my-promise' })
             }
           }),
           on: {
-            'xstate.done.actor.my-promise': ({ event }) => {
+            'xstate.done.actor.my-promise': ({
+              event
+            }: {
+              event: DoneActorEvent<string>;
+            }) => {
               if (event.output === 'response') {
                 return {
                   target: 'success'
@@ -359,7 +370,7 @@ describe('spawning promises', () => {
         success: {
           type: 'final'
         }
-      }
+      } as any
     });
 
     const promiseService = promiseMachine.createActor();
@@ -502,7 +513,7 @@ describe('spawning observables', () => {
       },
       states: {
         idle: {
-          entry: (_, enq) => ({
+          entry: (_: unknown, enq: any) => ({
             context: {
               observableRef: enq.spawn(observableLogic, {
                 id: 'int',
@@ -511,7 +522,11 @@ describe('spawning observables', () => {
             }
           }),
           on: {
-            'xstate.snapshot.int': ({ event }) => {
+            'xstate.snapshot.int': ({
+              event
+            }: {
+              event: SnapshotEvent<Snapshot<unknown> & { context: number }>;
+            }) => {
               if (event.snapshot.context === 5) {
                 return {
                   target: 'success'
@@ -523,7 +538,7 @@ describe('spawning observables', () => {
         success: {
           type: 'final'
         }
-      }
+      } as any
     });
 
     const observableService = observableMachine.createActor();
@@ -555,7 +570,7 @@ describe('spawning observables', () => {
       },
       states: {
         idle: {
-          entry: (_, enq) => ({
+          entry: (_: unknown, enq: any) => ({
             context: {
               observableRef: enq.spawn(
                 fromObservable(() => interval(10)),
@@ -564,7 +579,11 @@ describe('spawning observables', () => {
             }
           }),
           on: {
-            'xstate.snapshot.int': ({ event }) => {
+            'xstate.snapshot.int': ({
+              event
+            }: {
+              event: SnapshotEvent<Snapshot<unknown> & { context: number }>;
+            }) => {
               if (event.snapshot.context === 5) {
                 return {
                   target: 'success'
@@ -576,7 +595,7 @@ describe('spawning observables', () => {
         success: {
           type: 'final'
         }
-      }
+      } as any
     });
 
     const observableService = observableMachine.createActor();
@@ -609,7 +628,7 @@ describe('spawning observables', () => {
       },
       states: {
         idle: {
-          entry: (_, enq) => ({
+          entry: (_: any, enq: any) => ({
             context: {
               observableRef: enq.spawn(observableLogic, {
                 id: 'int',
@@ -618,7 +637,11 @@ describe('spawning observables', () => {
             }
           }),
           on: {
-            'xstate.snapshot.int': ({ event }) => {
+            'xstate.snapshot.int': ({
+              event
+            }: {
+              event: SnapshotEvent<Snapshot<unknown> & { context: number }>;
+            }) => {
               if (event.snapshot.context === 1) {
                 return {
                   target: 'success'
@@ -630,7 +653,7 @@ describe('spawning observables', () => {
         success: {
           type: 'final'
         }
-      }
+      } as any
     });
 
     const observableService = observableMachine.createActor();
@@ -670,7 +693,11 @@ describe('spawning observables', () => {
             //     return event.snapshot.context === 3;
             //   }
             // }
-            onSnapshot: ({ event }) => {
+            onSnapshot: ({
+              event
+            }: {
+              event: SnapshotEvent<Snapshot<unknown> & { context: number }>;
+            }) => {
               if (event.snapshot.context === 3) {
                 return {
                   target: 'success'
@@ -727,7 +754,11 @@ describe('spawning observables', () => {
             //     return event.snapshot.context === 3;
             //   }
             // }
-            onSnapshot: ({ event }) => {
+            onSnapshot: ({
+              event
+            }: {
+              event: SnapshotEvent<Snapshot<unknown> & { context: number }>;
+            }) => {
               if (event.snapshot.context === 3) {
                 return {
                   target: 'success'
@@ -916,7 +947,7 @@ describe('communicating with spawned actors', () => {
 
     const existingService = existingMachine.createActor().start();
 
-    const parentMachine = createMachine({
+    const parentMachine: any = createMachine({
       schemas: {
         context: z.object({
           existingRef: z.custom<typeof existingService>().optional()
@@ -959,7 +990,7 @@ describe('communicating with spawned actors', () => {
       }
     });
 
-    const parentService = parentMachine.createActor();
+    const parentService: any = parentMachine.createActor();
     parentService.subscribe({
       complete: () => {
         resolve();
@@ -1314,7 +1345,11 @@ describe('actors', () => {
               //   target: 'success',
               //   guard: ({ event }) => event.output === 42
               // }
-              'xstate.done.actor.test': ({ event }) => {
+              'xstate.done.actor.test': ({
+                event
+              }: {
+                event: DoneActorEvent<number>;
+              }) => {
                 if (event.output === 42) {
                   return {
                     target: 'success'
@@ -1326,7 +1361,7 @@ describe('actors', () => {
           success: {
             type: 'final'
           }
-        }
+        } as any
       });
 
       const countService = countMachine.createActor();
@@ -1372,7 +1407,11 @@ describe('actors', () => {
               //     return event.error === errorMessage;
               //   }
               // }
-              'xstate.error.actor.test': ({ event }) => {
+              'xstate.error.actor.test': ({
+                event
+              }: {
+                event: ErrorActorEvent;
+              }) => {
                 if (event.error === errorMessage) {
                   return {
                     target: 'success'
@@ -1384,7 +1423,7 @@ describe('actors', () => {
           success: {
             type: 'final'
           }
-        }
+        } as any
       });
 
       const countService = countMachine.createActor();

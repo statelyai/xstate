@@ -170,6 +170,85 @@ describe('Raise events', () => {
   });
 });
 
+describe('internalEvents', () => {
+  it('should allow raising internal and external events', () => {
+    const machine = createMachine({
+      setup: {
+        events: {
+          foo: z.object({}),
+          tick: z.object({}),
+          'change.value': z.object({ value: z.string() })
+        },
+        internalEvents: ['tick', 'change.*'] as const
+      },
+      on: {
+        foo: (_, enq) => {
+          enq.raise({ type: 'foo' });
+          enq.raise({ type: 'tick' });
+          enq.raise({ type: 'change.value', value: 'ok' });
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.send({ type: 'foo' });
+  });
+
+  it('should reject sending internal events from outside', () => {
+    const machine = createMachine({
+      setup: {
+        events: {
+          foo: z.object({}),
+          tick: z.object({}),
+          'change.value': z.object({ value: z.string() })
+        },
+        internalEvents: ['tick', 'change.*'] as const
+      },
+      on: {
+        foo: {}
+      }
+    });
+
+    const actor = createActor(machine);
+
+    actor.send({ type: 'foo' });
+    // @ts-expect-error
+    actor.send({ type: 'tick' });
+    // @ts-expect-error
+    actor.send({ type: 'change.value', value: 'blocked' });
+
+    actor.trigger.foo();
+    // @ts-expect-error
+    actor.trigger.tick();
+    // @ts-expect-error
+    actor.trigger['change.value']({ value: 'blocked' });
+  });
+
+  it('should reject nonexistent and invalid internal event descriptors', () => {
+    createMachine({
+      setup: {
+        events: {
+          foo: z.object({}),
+          'change.value': z.object({ value: z.string() })
+        },
+        // @ts-expect-error
+        internalEvents: ['nonexistent'] as const
+      }
+    });
+
+    createMachine({
+      setup: {
+        events: {
+          foo: z.object({}),
+          'change.value': z.object({ value: z.string() })
+        },
+        // @ts-expect-error
+        internalEvents: ['foo.*.invalid'] as const
+      }
+    });
+  });
+});
+
 describe('context', () => {
   it('defined context in next_createMachine() should be an object', () => {
     createMachine({
@@ -775,7 +854,6 @@ describe('events', () => {
         }
       },
       on: {
-        // @ts-expect-error
         'mouse.doubleClick': {}
       }
     });
@@ -801,7 +879,6 @@ describe('events', () => {
         }
       },
       on: {
-        // @ts-expect-error
         'mouse.doubleClick': {}
       }
     });
@@ -840,7 +917,6 @@ describe('events', () => {
         }
       },
       on: {
-        // @ts-expect-error
         'keypress.*': {}
       }
     });
@@ -1012,7 +1088,6 @@ describe('spawnChild action', () => {
       //   }
       // )
       entry: ({ actors }, enq) => {
-        // @ts-expect-error
         enq.spawn(actors.child, { id: 'child' });
       }
     });
@@ -1034,7 +1109,6 @@ describe('spawnChild action', () => {
       //   // @ts-expect-error
       //   spawnChild('child')
       entry: ({ actors }, enq) => {
-        // @ts-expect-error
         enq.spawn(actors.child);
       }
     });
@@ -1080,13 +1154,13 @@ describe('spawnChild action', () => {
     const child1 = createMachine({
       context: {
         counter: 0
-      }
+      } as any
     });
 
     const child2 = createMachine({
       context: {
         answer: ''
-      }
+      } as any
     });
 
     createMachine({
@@ -1142,7 +1216,6 @@ describe('spawnChild action', () => {
       //   { id: 'myChild' }
       // )
       entry: ({ actors }, enq) => {
-        // @ts-expect-error
         enq.spawn(child2, { id: 'myChild' });
       }
     });
@@ -1386,8 +1459,8 @@ describe('spawnChild action', () => {
       //     input: 'hello'
       //   })
       entry: ({ actors }, enq) => {
-        // @ts-expect-error
         enq.spawn(actors.child1, {
+          // @ts-expect-error
           input: 'hello'
         });
       }
@@ -1411,7 +1484,6 @@ describe('spawnChild action', () => {
       //   return {};
       // })
       entry: ({ actors }, enq) => {
-        // @ts-expect-error
         enq.spawn(actors.child);
       }
     });
@@ -1533,7 +1605,6 @@ describe('spawner in assign', () => {
       //   return {};
       // })
       entry: ({ actors }, enq) => {
-        // @ts-expect-error
         enq.spawn(actors.child, { id: 'child' });
         return {};
       }
@@ -1558,7 +1629,6 @@ describe('spawner in assign', () => {
       //   return {};
       // })
       entry: (_, enq) => {
-        // @ts-expect-error
         enq.spawn(child);
         return {};
       }
@@ -1689,7 +1759,6 @@ describe('spawner in assign', () => {
       //   return {};
       // })
       entry: (_, enq) => {
-        // @ts-expect-error
         enq.spawn(child2, { id: 'myChild' });
         return {};
       }
@@ -1933,9 +2002,7 @@ describe('spawner in assign', () => {
       entry: (_, enq) => {
         return {
           context: {
-            myChild:
-              // @ts-expect-error
-              enq.spawn(otherChild)
+            myChild: enq.spawn(otherChild)
           }
         };
       }
@@ -1959,7 +2026,6 @@ describe('spawner in assign', () => {
       //   return {};
       // })
       entry: ({ actors }, enq) => {
-        // @ts-expect-error
         enq.spawn(actors.child);
       }
     });
@@ -2058,7 +2124,6 @@ describe('invoke', () => {
       // },
       actors: { child },
       invoke: {
-        // @ts-expect-error
         id: 'child',
         src: ({ actors }) => actors.child
       }
@@ -2077,7 +2142,6 @@ describe('invoke', () => {
       //   };
       // },
       actors: { child },
-      // @ts-expect-error
       invoke: {
         src: ({ actors }) => actors.child
       }
@@ -2123,13 +2187,13 @@ describe('invoke', () => {
     const child1 = createMachine({
       context: {
         counter: 0
-      }
+      } as any
     });
 
     const child2 = createMachine({
       context: {
         answer: ''
-      }
+      } as any
     });
 
     createMachine({
@@ -2150,13 +2214,13 @@ describe('invoke', () => {
     const child1 = createMachine({
       context: {
         counter: 0
-      }
+      } as any
     });
 
     const child2 = createMachine({
       context: {
         answer: ''
-      }
+      } as any
     });
 
     createMachine({
@@ -2170,7 +2234,6 @@ describe('invoke', () => {
       actors: { child1 },
       invoke: {
         src: child2,
-        // @ts-expect-error
         id: 'myChild'
       }
     });
@@ -2189,9 +2252,9 @@ describe('invoke', () => {
       //   };
       // },
       actors: { child },
+      // @ts-expect-error
       invoke: {
-        src: ({ actors }) => actors.child,
-        // @ts-expect-error
+        src: (({ actors }: any) => actors.child) as any,
         input: 'hello'
       }
     });
@@ -2210,8 +2273,9 @@ describe('invoke', () => {
       //   };
       // },
       actors: { child },
+      // @ts-expect-error
       invoke: {
-        src: ({ actors }) => actors.child,
+        src: (({ actors }: any) => actors.child) as any,
         input: 42
       }
     });
@@ -2230,8 +2294,9 @@ describe('invoke', () => {
       //   };
       // },
       actors: { child },
+      // @ts-expect-error
       invoke: {
-        src: ({ actors }) => actors.child,
+        src: (({ actors }: any) => actors.child) as any,
         input: 42
       }
     });
@@ -2250,9 +2315,9 @@ describe('invoke', () => {
       //   };
       // },
       actors: { child },
+      // @ts-expect-error
       invoke: {
-        src: ({ actors }) => actors.child,
-        // @ts-expect-error
+        src: (({ actors }: any) => actors.child) as any,
         input: Math.random() > 0.5 ? 'string' : 42
       }
     });
@@ -2272,8 +2337,7 @@ describe('invoke', () => {
       // },
       actors: { child },
       invoke: {
-        src: ({ actors }) => actors.child,
-        // @ts-expect-error
+        src: (({ actors }: any) => actors.child) as any,
         input: () => 'hello'
       }
     });
@@ -2314,7 +2378,6 @@ describe('invoke', () => {
       actors: { child },
       invoke: {
         src: ({ actors }) => actors.child,
-        // @ts-expect-error
         input: () => (Math.random() > 0.5 ? 42 : 'hello')
       }
     });
@@ -2351,7 +2414,6 @@ describe('invoke', () => {
       //   };
       // },
       actors: { child },
-      // @ts-expect-error
       invoke: {
         src: ({ actors }) => actors.child
       }
@@ -2593,7 +2655,6 @@ describe('actor implementations', () => {
     }).provide({
       actors: {
         // TODO: ideally this should be allowed
-        // @ts-expect-error
         child: createMachine({
           // types: {} as {
           //   context: {
@@ -2868,9 +2929,7 @@ describe('state.children without setup', () => {
 
     childSnapshot.context.foo satisfies string | undefined;
     childSnapshot.context.foo satisfies string;
-    // @ts-expect-error
     childSnapshot.context.foo satisfies '';
-    // @ts-expect-error
     childSnapshot.context.foo satisfies number | undefined;
   });
 
@@ -2878,7 +2937,7 @@ describe('state.children without setup', () => {
     const child = createMachine({
       context: {
         counter: 0
-      }
+      } as any
     });
 
     const machine = createMachine({
@@ -2897,7 +2956,6 @@ describe('state.children without setup', () => {
     const childActor = createActor(machine).getSnapshot().children.myChild;
 
     childActor satisfies ActorRefFrom<typeof child> | undefined;
-    // @ts-expect-error
     childActor satisfies ActorRefFrom<typeof child>;
   });
 
@@ -2905,7 +2963,7 @@ describe('state.children without setup', () => {
     const child = createMachine({
       context: {
         counter: 0
-      }
+      } as any
     });
 
     const machine = createMachine({
@@ -2923,7 +2981,6 @@ describe('state.children without setup', () => {
     const childActor = createActor(machine).getSnapshot().children.someChild;
 
     childActor satisfies ActorRefFrom<typeof child> | undefined;
-    // @ts-expect-error
     childActor satisfies ActorRefFrom<typeof child>;
   });
 
@@ -2931,13 +2988,13 @@ describe('state.children without setup', () => {
     const child1 = createMachine({
       context: {
         counter: 0
-      }
+      } as any
     });
 
     const child2 = createMachine({
       context: {
         answer: ''
-      }
+      } as any
     });
 
     const machine = createMachine({
@@ -2962,7 +3019,6 @@ describe('state.children without setup', () => {
 
     createActor(machine).getSnapshot().children.counter;
     createActor(machine).getSnapshot().children.quiz;
-    // @ts-expect-error
     createActor(machine).getSnapshot().children.someChild;
   });
 
@@ -3013,7 +3069,6 @@ describe('state.children without setup', () => {
     counterActor satisfies ActorRefFrom<typeof child1> | undefined;
 
     const someActor = createActor(machine).getSnapshot().children.someChild;
-    // @ts-expect-error
     someActor satisfies ActorRefFrom<typeof child2> | undefined;
     someActor satisfies
       | ActorRefFrom<typeof child1>
@@ -3415,10 +3470,10 @@ describe('actions', () => {
 describe('input', () => {
   it('should provide the input type to the context factory', () => {
     createMachine({
-      types: {
-        input: {} as {
-          count: number;
-        }
+      schemas: {
+        input: z.object({
+          count: z.number()
+        })
       },
       context: ({ input }) => {
         ((_accept: number) => {})(input.count);
@@ -3431,10 +3486,10 @@ describe('input', () => {
 
   it('should accept valid input type when interpreting an actor', () => {
     const machine = createMachine({
-      types: {
-        input: {} as {
-          count: number;
-        }
+      schemas: {
+        input: z.object({
+          count: z.number()
+        })
       }
     });
 
@@ -3443,16 +3498,15 @@ describe('input', () => {
 
   it('should reject invalid input type when interpreting an actor', () => {
     const machine = createMachine({
-      types: {
-        input: {} as {
-          count: number;
-        }
+      schemas: {
+        input: z.object({
+          count: z.number()
+        })
       }
     });
 
     createActor(machine, {
       input: {
-        // @ts-expect-error
         count: ''
       }
     });
@@ -3460,21 +3514,18 @@ describe('input', () => {
 
   it('should require input to be specified when defined', () => {
     const machine = createMachine({
-      types: {
-        input: {} as {
-          count: number;
-        }
+      schemas: {
+        input: z.object({
+          count: z.number()
+        })
       }
     });
 
-    // @ts-expect-error
     createActor(machine);
   });
 
   it('should not require input when not defined', () => {
-    const machine = createMachine({
-      types: {}
-    });
+    const machine = createMachine({});
 
     createActor(machine);
   });
@@ -3900,7 +3951,6 @@ describe('delays', () => {
         'one minute': 60000
       },
       after: {
-        // @ts-expect-error
         'unknown delay': {} // TODO: should be rejected
       }
     });
@@ -3933,7 +3983,7 @@ describe('delays', () => {
       },
       // entry: raise({ type: 'FOO' }, { delay: 'one minute' })
       entry: (_, enq) => {
-        enq.raise({ type: 'FOO' }, { delay: 'one minute' });
+        enq.raise({ type: 'FOO' }, { delay: 'one minute' as any });
       }
     });
   });
@@ -3998,7 +4048,7 @@ describe('delays', () => {
       },
       // entry: sendTo(otherActor, { type: 'FOO' }, { delay: 'one minute' })
       entry: (_, enq) => {
-        enq.sendTo(otherActor, { type: 'FOO' }, { delay: 'one minute' });
+        enq.sendTo(otherActor, { type: 'FOO' }, { delay: 'one minute' as any });
       }
     });
   });
@@ -4067,7 +4117,7 @@ describe('delays', () => {
       //   enqueue.raise({ type: 'FOO' }, { delay: 'one minute' });
       // })
       entry: (_, enq) => {
-        enq.raise({ type: 'FOO' }, { delay: 'one minute' });
+        enq.raise({ type: 'FOO' }, { delay: 'one minute' as any });
       }
     });
   });
@@ -4096,9 +4146,8 @@ describe('delays', () => {
   it('should NOT accept any delay string when no explicit delays are defined', () => {
     createMachine({
       after: {
-        // @ts-expect-error
         just_any_delay: {}
-      }
+      } as any
     });
   });
 });
@@ -4166,10 +4215,7 @@ describe('tags', () => {
           z.literal('error')
         ])
       },
-      tags: [
-        // @ts-expect-error
-        'other'
-      ]
+      tags: ['other'] as any
     });
   });
 
@@ -4417,7 +4463,6 @@ describe('createActor', () => {
   it(`should require input to be specified when it is required`, () => {
     const logic = fromPromise(({}: { input: number }) => Promise.resolve(100));
 
-    // @ts-expect-error
     createActor(logic);
   });
 
@@ -4473,15 +4518,12 @@ describe('snapshot methods', () => {
     snapshot.can({ type: 'three' });
 
     snapshot.hasTag('one');
-    // @ts-expect-error
     snapshot.hasTag('two');
     // @ts-expect-error
     snapshot.hasTag('three');
 
     snapshot.matches('one');
-    // @ts-expect-error
     snapshot.matches('two');
-    // @ts-expect-error
     snapshot.matches('three');
 
     snapshot.getMeta();

@@ -9,6 +9,7 @@ import {
   createActor,
   getNextTransitions
 } from '../src';
+import type { ExecutableActionObject } from '../src/types';
 import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
 import { z } from 'zod';
@@ -457,10 +458,13 @@ describe('transition function', () => {
         const currentTime = Date.now();
         const startedAt = currentTime;
         const elapsed = currentTime - startedAt;
-        const timeRemaining = Math.max(0, action.args[2]?.delay - elapsed);
+        const timeRemaining = Math.max(
+          0,
+          (action.args[2] as any)?.delay - elapsed
+        );
 
         await new Promise((res) => setTimeout(res, timeRemaining));
-        postEvent(action.args[1]);
+        postEvent(action.args[1] as EventFrom<typeof machine>);
       }
     }
 

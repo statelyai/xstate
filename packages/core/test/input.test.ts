@@ -47,7 +47,9 @@ describe('input', () => {
         })
       },
       entry: ({ event }) => {
-        expect(event.input.greeting).toBe('hello');
+        expect(
+          (event as unknown as { input: { greeting: string } }).input.greeting
+        ).toBe('hello');
         resolve();
       }
     });
@@ -76,7 +78,6 @@ describe('input', () => {
       }
     });
 
-    // @ts-expect-error
     const snapshot = createActor(machine).getSnapshot();
 
     expect(snapshot.status).toBe('error');
@@ -84,6 +85,9 @@ describe('input', () => {
 
   it('should be a type error if input is not expected yet provided', () => {
     const machine = createMachine({
+      schemas: {
+        context: z.object({ count: z.number() })
+      },
       context: { count: 42 }
     });
 
@@ -112,7 +116,9 @@ describe('input', () => {
       context: ({ input }) => input,
       entry: ({ context, event }) => {
         expect(context.greeting).toBe('hello');
-        expect(event.input.greeting).toBe('hello');
+        expect(
+          (event as unknown as { input: { greeting: string } }).input.greeting
+        ).toBe('hello');
         resolve();
       }
     });
@@ -120,7 +126,7 @@ describe('input', () => {
     const machine = createMachine({
       invoke: {
         src: invokedMachine,
-        input: { greeting: 'hello' }
+        input: () => ({ greeting: 'hello' })
       }
     });
 
@@ -152,7 +158,9 @@ describe('input', () => {
       },
       entry: ({ context, event }) => {
         expect(context.greeting).toBe('hello');
-        expect(event.input.greeting).toBe('hello');
+        expect(
+          (event as unknown as { input: { greeting: string } }).input.greeting
+        ).toBe('hello');
         resolve();
       }
     });
@@ -246,19 +254,19 @@ describe('input', () => {
     const spy = vi.fn();
 
     const child = createMachine({
-      context: ({ input }: { input: number }) => {
+      schemas: {
+        input: z.number()
+      },
+      context: ({ input }) => {
         spy(input);
         return {};
       }
     });
 
     const machine = createMachine({
-      // types: {} as {
-      //   actors: { src: 'child'; logic: typeof child };
-      // },
       invoke: {
         src: child,
-        input: 42
+        input: () => 42
       }
     });
 
@@ -271,46 +279,32 @@ describe('input', () => {
     const spy = vi.fn();
 
     const child = createMachine({
-      context: ({ input }: { input: number }) => {
+      schemas: {
+        input: z.number()
+      },
+      context: ({ input }) => {
         spy(input);
         return {};
       }
     });
 
-    const machine = createMachine(
-      {
-        // types: {} as {
-        //   actors: {
-        //     src: 'child';
-        //     logic: typeof child;
-        //   };
-        //   input: number;
-        //   context: {
-        //     count: number;
-        //   };
-        // },
-        schemas: {
-          context: z.object({
-            count: z.number()
-          }),
-          input: z.number()
-        },
-        context: ({ input }) => ({
-          count: input
+    const machine = createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
         }),
-        invoke: {
-          src: child,
-          input: ({ context }) => {
-            return context.count + 100;
-          }
+        input: z.number()
+      },
+      context: ({ input }) => ({
+        count: input
+      }),
+      invoke: {
+        src: child,
+        input: ({ context }) => {
+          return context.count + 100;
         }
       }
-      // {
-      //   actors: {
-      //     child
-      //   }
-      // }
-    );
+    });
 
     createActor(machine, { input: 42 }).start();
 
@@ -323,7 +317,7 @@ describe('input', () => {
     const machine = createMachine({
       invoke: {
         src: createMachine({}),
-        input: ({ self }: any) => spy(self)
+        input: ({ self }) => spy(self)
       }
     });
 

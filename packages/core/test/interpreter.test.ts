@@ -1023,7 +1023,7 @@ describe('interpreter', () => {
               id: 'child',
               src: childMachine,
               input: { password: 'foo' }
-            },
+            } as any,
             on: {
               // NEXT: {
               //   target: 'finish',
