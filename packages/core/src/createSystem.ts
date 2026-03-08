@@ -7,7 +7,16 @@ import {
   ScheduledEventIdGenerator,
   SessionIdGenerator
 } from './system.ts';
-import { ActorOptions, ActorSystemInfo, AnyActorLogic } from './types.ts';
+import { initialTransition, transition } from './transition.ts';
+import {
+  ActorOptions,
+  ActorSystemInfo,
+  AnyActorLogic,
+  EventFromLogic,
+  InputFrom,
+  SnapshotFrom,
+  ExecutableActionObject
+} from './types.ts';
 
 const defaultClock: Clock = {
   setTimeout: (fn, ms) => setTimeout(fn, ms),
@@ -19,6 +28,17 @@ export interface System<T extends ActorSystemInfo> extends ActorSystem<T> {
     logic: TLogic,
     options?: ActorOptions<TLogic>
   ) => Actor<TLogic>;
+  transition: <TLogic extends AnyActorLogic>(
+    logic: TLogic,
+    snapshot: SnapshotFrom<TLogic>,
+    event: EventFromLogic<TLogic>
+  ) => [nextSnapshot: SnapshotFrom<TLogic>, actions: ExecutableActionObject[]];
+  initialTransition: <TLogic extends AnyActorLogic>(
+    logic: TLogic,
+    ...[input]: undefined extends InputFrom<TLogic>
+      ? [input?: InputFrom<TLogic>]
+      : [input: InputFrom<TLogic>]
+  ) => [SnapshotFrom<TLogic>, ExecutableActionObject[]];
 }
 
 export function createSystem<
@@ -46,6 +66,8 @@ export function createSystem<
       system
     });
   }) as System<T>['createActor'];
+  system.transition = transition;
+  system.initialTransition = initialTransition;
 
   return system;
 }

@@ -8,6 +8,8 @@ import {
   createActor,
   createSystem,
   createMachine,
+  initialTransition as pureInitialTransition,
+  transition as pureTransition,
   fromEventObservable,
   fromObservable,
   fromPromise,
@@ -106,6 +108,37 @@ describe('system', () => {
 
     const ids = Object.keys(sys.getSnapshot()._scheduledEvents).sort();
     expect(ids).toEqual(['test-0.evt-0', 'test-0.evt-1']);
+  });
+
+  it('should expose pure transition helpers on system', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {}
+      }
+    });
+    const sys = createSystem();
+
+    const [initViaSystem] = sys.initialTransition(machine);
+    const [initDirect] = pureInitialTransition(machine);
+    expect(initViaSystem.value).toEqual(initDirect.value);
+
+    const [nextViaSystem, actionsViaSystem] = sys.transition(
+      machine,
+      initViaSystem,
+      {
+        type: 'NEXT'
+      }
+    );
+    const [nextDirect, actionsDirect] = pureTransition(machine, initDirect, {
+      type: 'NEXT'
+    });
+
+    expect(nextViaSystem.value).toEqual(nextDirect.value);
+    expect(actionsViaSystem).toHaveLength(actionsDirect.length);
   });
 
   it('should expose register/get on implicit systems', () => {
