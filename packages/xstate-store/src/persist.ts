@@ -91,7 +91,7 @@ export interface PersistEventOptions<
   /** Maximum number of events to keep. Oldest are dropped. Defaults to Infinity. */
   maxEvents?: number;
   /** Migration function for version upgrades. Receives the stored events array. */
-  migrate?: (persistedEvents: any[], version: string | number) => TEvent[];
+  migrate?: (persistedEvents: any[], version: string | number) => any[];
   /** Custom serializer. Defaults to `JSON.stringify`. */
   serialize?: (value: PersistEventStorageValue<TEvent>) => string;
   /** Custom deserializer. Defaults to `JSON.parse`. */
@@ -183,7 +183,7 @@ function migrateEventsIfNeeded<TEvent extends EventObject>(
 ): TEvent[] {
   const currentVersion = options.version ?? 0;
   if (stored.version !== currentVersion && options.migrate) {
-    return options.migrate(stored.events, stored.version);
+    return options.migrate(stored.events, stored.version) as TEvent[];
   }
   return stored.events;
 }
@@ -714,7 +714,7 @@ export function persist<
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject
 >(
-  options: PersistOptions<TContext>
+  options: PersistOptions<NoInfer<TContext>>
 ): StoreExtension<TContext, TEventPayloadMap, {}, TEmitted> {
   return (logic: any) => persistFromLogic(logic, options);
 }
