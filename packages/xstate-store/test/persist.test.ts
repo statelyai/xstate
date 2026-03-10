@@ -6,6 +6,7 @@ import {
   clearStorage,
   flushStorage,
   rehydrateStore,
+  isHydrated,
   type StateStorage
 } from '../src/persist.ts';
 
@@ -76,7 +77,7 @@ describe('persist', () => {
       on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
     }).with(persist({ name: 'test', storage }));
 
-    expect((store.getSnapshot() as any)._persist.hydrated).toBe(true);
+    expect(isHydrated(store)).toBe(true);
   });
 
   it('should set _persist.hydrated to true when storage is empty', () => {
@@ -86,7 +87,7 @@ describe('persist', () => {
       on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
     }).with(persist({ name: 'test', storage }));
 
-    expect((store.getSnapshot() as any)._persist.hydrated).toBe(true);
+    expect(isHydrated(store)).toBe(true);
   });
 
   it('should preserve _persist metadata across transitions', () => {
@@ -97,7 +98,7 @@ describe('persist', () => {
     }).with(persist({ name: 'test', storage }));
 
     store.trigger.inc();
-    expect((store.getSnapshot() as any)._persist.hydrated).toBe(true);
+    expect(isHydrated(store)).toBe(true);
   });
 });
 
@@ -520,7 +521,7 @@ describe('persist - skipHydration', () => {
     }).with(persist({ name: 'test', storage, skipHydration: true }));
 
     expect(store.getSnapshot().context.count).toBe(0);
-    expect((store.getSnapshot() as any)._persist.hydrated).toBe(false);
+    expect(isHydrated(store)).toBe(false);
   });
 });
 
@@ -545,7 +546,7 @@ describe('persist - rehydrateStore', () => {
     await rehydrateStore(store);
 
     expect(store.getSnapshot().context.count).toBe(99);
-    expect((store.getSnapshot() as any)._persist.hydrated).toBe(true);
+    expect(isHydrated(store)).toBe(true);
   });
 
   it('should rehydrate from async storage', async () => {
@@ -568,7 +569,7 @@ describe('persist - rehydrateStore', () => {
     await rehydrateStore(store);
 
     expect(store.getSnapshot().context.count).toBe(77);
-    expect((store.getSnapshot() as any)._persist.hydrated).toBe(true);
+    expect(isHydrated(store)).toBe(true);
   });
 
   it('should merge with events sent before rehydration', async () => {
@@ -606,7 +607,7 @@ describe('persist - rehydrateStore', () => {
     await rehydrateStore(store);
 
     expect(store.getSnapshot().context.count).toBe(0);
-    expect((store.getSnapshot() as any)._persist.hydrated).toBe(true);
+    expect(isHydrated(store)).toBe(true);
   });
 
   it('should apply migration during rehydration', async () => {
@@ -723,7 +724,7 @@ describe('persist - async storage auto-detection', () => {
 
     // Should NOT have hydrated (async storage detected)
     expect(store.getSnapshot().context.count).toBe(0);
-    expect((store.getSnapshot() as any)._persist.hydrated).toBe(false);
+    expect(isHydrated(store)).toBe(false);
   });
 });
 
@@ -775,5 +776,332 @@ describe('persist - composability', () => {
 
     expect(store2.getSnapshot().context.count).toBe(2);
     expect(store2.getSnapshot().context.name).toBe('updated');
+  });
+});
+
+describe('persist - strategy: event', () => {
+  it('should persist events to storage', () => {
+    const storage = createMockStorage();
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(persist({ name: 'test', storage, strategy: 'event' }));
+
+    store.trigger.inc();
+    store.trigger.inc();
+
+    const stored = JSON.parse(storage.getItem('test') as string);
+    expect(stored.events).toHaveLength(2);
+    expect(stored.events[0].type).toBe('inc');
+    expect(stored.version).toBe(0);
+  });
+
+  it('should restore state by replaying events', () => {
+    const storage = createMockStorage();
+
+    // Store 1: produce events
+    const store1 = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(persist({ name: 'test', storage, strategy: 'event' }));
+
+    store1.trigger.inc();
+    store1.trigger.inc();
+    store1.trigger.inc();
+
+    // Store 2: restore from events
+    const store2 = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(persist({ name: 'test', storage, strategy: 'event' }));
+
+    expect(store2.getSnapshot().context.count).toBe(3);
+  });
+
+  it('should restore state with event payloads', () => {
+    const storage = createMockStorage();
+
+    const store1 = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 }),
+        add: (ctx, e: { amount: number }) => ({ count: ctx.count + e.amount })
+      }
+    }).with(persist({ name: 'test', storage, strategy: 'event' }));
+
+    store1.trigger.inc();
+    store1.trigger.add({ amount: 10 });
+
+    const store2 = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 }),
+        add: (ctx, e: { amount: number }) => ({ count: ctx.count + e.amount })
+      }
+    }).with(persist({ name: 'test', storage, strategy: 'event' }));
+
+    expect(store2.getSnapshot().context.count).toBe(11);
+  });
+
+  it('should set _persist.hydrated to true on sync hydration', () => {
+    const storage = createMockStorage();
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(persist({ name: 'test', storage, strategy: 'event' }));
+
+    expect(isHydrated(store)).toBe(true);
+  });
+
+  it('should respect maxEvents option', () => {
+    const storage = createMockStorage();
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(
+      persist({ name: 'test', storage, strategy: 'event', maxEvents: 2 })
+    );
+
+    store.trigger.inc(); // 1
+    store.trigger.inc(); // 2
+    store.trigger.inc(); // 3
+
+    const stored = JSON.parse(storage.getItem('test') as string);
+    expect(stored.events).toHaveLength(2);
+
+    // New store replays only last 2 events from initial state
+    const store2 = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(
+      persist({ name: 'test', storage, strategy: 'event', maxEvents: 2 })
+    );
+
+    expect(store2.getSnapshot().context.count).toBe(2);
+  });
+
+  it('should respect filter option', () => {
+    const storage = createMockStorage();
+    const store = createStore({
+      context: { count: 0, mouse: { x: 0, y: 0 } },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }),
+        mousemove: (ctx, e: { x: number; y: number }) => ({
+          ...ctx,
+          mouse: { x: e.x, y: e.y }
+        })
+      }
+    }).with(
+      persist({
+        name: 'test',
+        storage,
+        strategy: 'event',
+        filter: (event) => event.type !== 'mousemove'
+      })
+    );
+
+    store.trigger.mousemove({ x: 10, y: 20 });
+    store.trigger.inc();
+
+    const stored = JSON.parse(storage.getItem('test') as string);
+    expect(stored.events).toHaveLength(1);
+    expect(stored.events[0].type).toBe('inc');
+  });
+
+  it('should not hydrate when skipHydration is true', () => {
+    const storage = createMockStorage();
+    storage.setItem(
+      'test',
+      JSON.stringify({
+        events: [{ type: 'inc' }, { type: 'inc' }],
+        version: 0
+      })
+    );
+
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(
+      persist({ name: 'test', storage, strategy: 'event', skipHydration: true })
+    );
+
+    expect(store.getSnapshot().context.count).toBe(0);
+    expect(isHydrated(store)).toBe(false);
+  });
+
+  it('should rehydrate from async storage', async () => {
+    const storage = createAsyncMockStorage();
+    storage.setItem(
+      'test',
+      JSON.stringify({
+        events: [{ type: 'inc' }, { type: 'inc' }, { type: 'inc' }],
+        version: 0
+      })
+    );
+
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(
+      persist({ name: 'test', storage, strategy: 'event', skipHydration: true })
+    );
+
+    expect(store.getSnapshot().context.count).toBe(0);
+
+    await rehydrateStore(store);
+
+    expect(store.getSnapshot().context.count).toBe(3);
+    expect(isHydrated(store)).toBe(true);
+  });
+
+  it('should continue accumulating events after rehydration', () => {
+    const storage = createMockStorage();
+
+    // Store 1
+    const store1 = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(persist({ name: 'test', storage, strategy: 'event' }));
+
+    store1.trigger.inc();
+    store1.trigger.inc();
+
+    // Store 2: restore then continue
+    const store2 = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(persist({ name: 'test', storage, strategy: 'event' }));
+
+    expect(store2.getSnapshot().context.count).toBe(2);
+
+    store2.trigger.inc();
+
+    const stored = JSON.parse(storage.getItem('test') as string);
+    expect(stored.events).toHaveLength(3);
+    expect(store2.getSnapshot().context.count).toBe(3);
+  });
+
+  it('should migrate events when version differs', () => {
+    const storage = createMockStorage();
+    storage.setItem(
+      'test',
+      JSON.stringify({
+        events: [{ type: 'increment' }, { type: 'increment' }],
+        version: 1
+      })
+    );
+
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(
+      persist({
+        name: 'test',
+        storage,
+        strategy: 'event',
+        version: 2,
+        migrate: (events, _version) =>
+          events.map((e: any) =>
+            e.type === 'increment' ? { ...e, type: 'inc' } : e
+          )
+      })
+    );
+
+    expect(store.getSnapshot().context.count).toBe(2);
+  });
+
+  it('should work with clearStorage', () => {
+    const storage = createMockStorage();
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(persist({ name: 'test', storage, strategy: 'event' }));
+
+    store.trigger.inc();
+    expect(storage.getItem('test')).not.toBeNull();
+
+    clearStorage(store);
+    expect(storage.getItem('test')).toBeNull();
+  });
+
+  it('should handle empty storage gracefully', () => {
+    const storage = createMockStorage();
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(persist({ name: 'test', storage, strategy: 'event' }));
+
+    expect(store.getSnapshot().context.count).toBe(0);
+    expect(isHydrated(store)).toBe(true);
+  });
+
+  it('should call onError on read failure during hydration', () => {
+    const failStorage: StateStorage = {
+      getItem: () => {
+        throw new Error('read failed');
+      },
+      setItem: () => {},
+      removeItem: () => {}
+    };
+    const onError = vi.fn();
+
+    createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(
+      persist({
+        name: 'test',
+        storage: failStorage,
+        strategy: 'event',
+        onError
+      })
+    );
+
+    expect(onError).toHaveBeenCalled();
+  });
+
+  it('should work with throttle', () => {
+    vi.useFakeTimers();
+    const storage = createMockStorage();
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(
+      persist({ name: 'test', storage, strategy: 'event', throttle: 100 })
+    );
+
+    store.trigger.inc();
+    store.trigger.inc();
+    store.trigger.inc();
+
+    expect(storage.getItem('test')).toBeNull();
+
+    vi.advanceTimersByTime(100);
+
+    const stored = JSON.parse(storage.getItem('test') as string);
+    expect(stored.events).toHaveLength(3);
+    vi.useRealTimers();
+  });
+
+  it('should work with flushStorage', () => {
+    vi.useFakeTimers();
+    const storage = createMockStorage();
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(
+      persist({ name: 'test', storage, strategy: 'event', throttle: 1000 })
+    );
+
+    store.trigger.inc();
+    store.trigger.inc();
+
+    expect(storage.getItem('test')).toBeNull();
+
+    flushStorage(store);
+
+    const stored = JSON.parse(storage.getItem('test') as string);
+    expect(stored.events).toHaveLength(2);
+    vi.useRealTimers();
   });
 });
