@@ -20,6 +20,7 @@ export type {
   InspectedSnapshotEvent,
   InspectionEvent
 } from './inspection.ts';
+export { scopedSetup } from './scopedSetup.ts';
 export { setup, type SetupReturn } from './setup.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
 export { type Spawner } from './spawn.ts';
