@@ -38,3 +38,4 @@ api/
 
 # pnpm
 .pnpm-lock.yaml
+v8-compile-cache-0/
