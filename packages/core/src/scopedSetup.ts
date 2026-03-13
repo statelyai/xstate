@@ -31,7 +31,12 @@
  *   guards: ['isPositive'],
  *   on: {
  *     INC: { actions: 'inc', guard: 'isPositive' },
- *     DEC: 'counting'
+ *     DEC: {
+ *       actions: ({ context, event }) => {
+ *         // context: { count: number; query: string }
+ *         // event:   { type: 'DEC'; by: number }
+ *       }
+ *     }
  *   }
  * });
  *
@@ -44,36 +49,50 @@
  */
 
 import { StateMachine } from './StateMachine';
+import type { EventObject, MachineContext } from './types';
 
 // ---------------------------------------------------------------------------
 // Type extraction from a setup() return value
 // ---------------------------------------------------------------------------
+
+// Extract TContext and TEvent from setup()'s createAction method.
+// createAction is NOT generic, so inference is reliable.
+// Its parameter is ActionFunction<TContext, TEvent, TEvent, unknown, ...>
+// which is callable: (args: { context: TContext; event: TEvent; ... }, params) => void
+
+type ContextOf<T> = T extends {
+  createAction: (
+    action: (
+      args: { context: infer C } & Record<string, any>,
+      ...rest: any[]
+    ) => any
+  ) => any;
+}
+  ? C
+  : any;
+
+type EventOf<T> = T extends {
+  createAction: (
+    action: (
+      args: { event: infer E } & Record<string, any>,
+      ...rest: any[]
+    ) => any
+  ) => any;
+}
+  ? E
+  : any;
+
+type EventTypeOf<T> =
+  EventOf<T> extends { type: infer U } ? U & string : string;
+
+// For action/guard names, extract from StateMachine return type of createMachine.
+// This works because TAction/TGuard are non-generic params in the return position.
 
 type SetupMachine<T> = T extends {
   createMachine: (...args: any[]) => infer M;
 }
   ? M
   : never;
-
-type _Event<M> =
-  M extends StateMachine<
-    any,
-    infer E,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any
-  >
-    ? E
-    : never;
 
 type _Action<M> =
   M extends StateMachine<
@@ -115,9 +134,6 @@ type _Guard<M> =
     ? G
     : never;
 
-type EventTypeOf<T> =
-  _Event<SetupMachine<T>> extends { type: infer U } ? U & string : string;
-
 type ActionNameOf<T> =
   _Action<SetupMachine<T>> extends { type: infer U } ? U & string : string;
 
@@ -125,34 +141,64 @@ type GuardNameOf<T> =
   _Guard<SetupMachine<T>> extends { type: infer U } ? U & string : string;
 
 // ---------------------------------------------------------------------------
-// Simplified (lightweight) state config types
+// Simplified (lightweight) state config types — with typed inline functions
 // ---------------------------------------------------------------------------
 
-type ActionRef<TActionName extends string> =
+// Prevents TS from back-inferring generic params through function arguments.
+// Same pattern as xstate's internal DoNotInfer.
+type Frozen<T> = [T][T extends any ? 0 : any];
+
+type ActionRef<
+  TActionName extends string,
+  TContext extends MachineContext = any,
+  TEvent extends EventObject = any
+> =
   | TActionName
   | { type: TActionName; params?: any }
-  | ((...args: any[]) => any);
+  | ((args: { context: Frozen<TContext>; event: Frozen<TEvent> }) => void);
 
-type GuardRef<TGuardName extends string> =
+// Accepts results from enqueueActions(), assign(), raise(), etc.
+// Uses `object` as escape hatch — TS prefers the more specific function
+// type in ActionRef for contextual typing of inline arrow functions.
+type ActionValue<
+  TActionName extends string,
+  TContext extends MachineContext = any,
+  TEvent extends EventObject = any
+> = ActionRef<TActionName, TContext, TEvent> | (object & { _out_TEvent?: any });
+
+type GuardRef<
+  TGuardName extends string,
+  TContext extends MachineContext = any,
+  TEvent extends EventObject = any
+> =
   | TGuardName
   | { type: TGuardName; params?: any }
-  | ((...args: any[]) => any);
+  | ((args: { context: Frozen<TContext>; event: Frozen<TEvent> }) => boolean);
 
 interface ScopedTransition<
   TActionName extends string,
-  TGuardName extends string
+  TGuardName extends string,
+  TContext extends MachineContext = any,
+  TEvent extends EventObject = any
 > {
   target?: string;
-  guard?: GuardRef<TGuardName>;
-  actions?: ActionRef<TActionName> | Array<ActionRef<TActionName>>;
+  guard?: GuardRef<TGuardName, TContext, TEvent>;
+  actions?:
+    | ActionValue<TActionName, TContext, TEvent>
+    | Array<ActionValue<TActionName, TContext, TEvent>>;
   reenter?: boolean;
   description?: string;
 }
 
-type TransitionValue<TActionName extends string, TGuardName extends string> =
+type TransitionValue<
+  TActionName extends string,
+  TGuardName extends string,
+  TContext extends MachineContext = any,
+  TEvent extends EventObject = any
+> =
   | string
-  | ScopedTransition<TActionName, TGuardName>
-  | Array<ScopedTransition<TActionName, TGuardName>>;
+  | ScopedTransition<TActionName, TGuardName, TContext, TEvent>
+  | Array<ScopedTransition<TActionName, TGuardName, TContext, TEvent>>;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -170,12 +216,54 @@ export function createScopedState<
     actions?: TActionNames[];
     guards?: TGuardNames[];
     on?: {
-      [K in TEventNames]?: TransitionValue<TActionNames, TGuardNames>;
+      [K in TEventNames]?: TransitionValue<
+        TActionNames,
+        TGuardNames,
+        ContextOf<TSetup>,
+        Extract<EventOf<TSetup>, { type: K }>
+      >;
     };
-    entry?: ActionRef<TActionNames> | Array<ActionRef<TActionNames>>;
-    exit?: ActionRef<TActionNames> | Array<ActionRef<TActionNames>>;
-    always?: TransitionValue<TActionNames, TGuardNames>;
-    after?: Record<string | number, TransitionValue<TActionNames, TGuardNames>>;
+    entry?:
+      | ActionValue<
+          TActionNames,
+          ContextOf<TSetup>,
+          Extract<EventOf<TSetup>, { type: TEventNames }>
+        >
+      | Array<
+          ActionValue<
+            TActionNames,
+            ContextOf<TSetup>,
+            Extract<EventOf<TSetup>, { type: TEventNames }>
+          >
+        >;
+    exit?:
+      | ActionValue<
+          TActionNames,
+          ContextOf<TSetup>,
+          Extract<EventOf<TSetup>, { type: TEventNames }>
+        >
+      | Array<
+          ActionValue<
+            TActionNames,
+            ContextOf<TSetup>,
+            Extract<EventOf<TSetup>, { type: TEventNames }>
+          >
+        >;
+    always?: TransitionValue<
+      TActionNames,
+      TGuardNames,
+      ContextOf<TSetup>,
+      Extract<EventOf<TSetup>, { type: TEventNames }>
+    >;
+    after?: Record<
+      string | number,
+      TransitionValue<
+        TActionNames,
+        TGuardNames,
+        ContextOf<TSetup>,
+        Extract<EventOf<TSetup>, { type: TEventNames }>
+      >
+    >;
     initial?: string;
     type?: 'parallel' | 'final' | 'history';
     history?: 'shallow' | 'deep';

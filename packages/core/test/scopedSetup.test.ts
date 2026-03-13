@@ -1,4 +1,4 @@
-import { assign, setup, createActor } from '../src';
+import { assign, setup, createActor, enqueueActions } from '../src';
 import { createScopedState } from '../src/scopedSetup';
 
 // ============================================================================
@@ -336,5 +336,139 @@ describe('createScopedState', () => {
     actor.send({ type: 'RESET' });
     expect(actor.getSnapshot().value).toBe('a');
     expect(actor.getSnapshot().context.count).toBe(0);
+  });
+
+  it('types inline action functions with narrowed event per on-key', () => {
+    const captured: { context: any; event: any }[] = [];
+
+    const scoped = createScopedState(s, {
+      events: ['INCREMENT', 'DECREMENT'],
+      on: {
+        INCREMENT: {
+          actions: ({ context, event }) => {
+            // event is narrowed to { type: 'INCREMENT' }
+            captured.push({ context, event });
+          }
+        },
+        DECREMENT: {
+          actions: ({ context, event }) => {
+            // event is narrowed to { type: 'DECREMENT'; by: number }
+            captured.push({ context, event });
+          }
+        }
+      }
+    });
+
+    const m = s.createMachine({
+      id: 'inlineTyped',
+      initial: 'only',
+      context: {
+        count: 0,
+        query: '',
+        results: [],
+        selectedIndex: -1,
+        isLoading: false
+      },
+      states: { only: scoped }
+    });
+
+    const actor = createActor(m);
+    actor.start();
+
+    actor.send({ type: 'INCREMENT' });
+    expect(captured[0]!.event.type).toBe('INCREMENT');
+    expect(captured[0]!.context.count).toBe(0);
+
+    actor.send({ type: 'DECREMENT', by: 3 });
+    expect(captured[1]!.event.type).toBe('DECREMENT');
+    expect(captured[1]!.event.by).toBe(3);
+  });
+
+  it('supports enqueueActions as inline action', () => {
+    const enqueued: string[] = [];
+
+    const scoped = createScopedState(s, {
+      events: ['INCREMENT', 'DECREMENT'],
+      actions: ['increment'],
+      guards: ['isPositive'],
+      on: {
+        INCREMENT: {
+          actions: enqueueActions(({ context, event, enqueue, check }) => {
+            enqueued.push(`inc:${context.count}`);
+            if (check('isPositive')) {
+              enqueue('increment');
+            }
+          })
+        },
+        DECREMENT: {
+          actions: enqueueActions(({ context, event, enqueue }) => {
+            enqueued.push(`dec:${event.by}`);
+            enqueue('decrement');
+          })
+        }
+      }
+    });
+
+    const m = s.createMachine({
+      id: 'enqueueTest',
+      initial: 'only',
+      context: {
+        count: 1,
+        query: '',
+        results: [],
+        selectedIndex: -1,
+        isLoading: false
+      },
+      states: { only: scoped }
+    });
+
+    const actor = createActor(m);
+    actor.start();
+
+    actor.send({ type: 'INCREMENT' });
+    expect(enqueued).toContain('inc:1');
+    expect(actor.getSnapshot().context.count).toBe(2);
+
+    actor.send({ type: 'DECREMENT', by: 1 });
+    expect(enqueued).toContain('dec:1');
+    expect(actor.getSnapshot().context.count).toBe(1);
+  });
+
+  it('types inline guard functions', () => {
+    let guardCalled = false;
+
+    const scoped = createScopedState(s, {
+      events: ['INCREMENT'],
+      on: {
+        INCREMENT: {
+          guard: ({ context }) => {
+            guardCalled = true;
+            // context is typed as AppContext
+            return context.count < 5;
+          },
+          actions: 'increment'
+        }
+      }
+    });
+
+    const m = s.createMachine({
+      id: 'inlineGuard',
+      initial: 'only',
+      context: {
+        count: 0,
+        query: '',
+        results: [],
+        selectedIndex: -1,
+        isLoading: false
+      },
+      states: { only: scoped }
+    });
+
+    const actor = createActor(m);
+    actor.start();
+
+    actor.send({ type: 'INCREMENT' });
+    expect(guardCalled).toBe(true);
+    expect(actor.getSnapshot().context.count).toBe(1);
   });
 });
