@@ -1,12 +1,9 @@
-import { assign, createActor } from '../src';
-import { scopedSetup } from '../src/scopedSetup';
+import { assign, setup, createActor } from '../src';
+import { createScopedState } from '../src/scopedSetup';
 
 // ============================================================================
-// Type-level test: Verify that scoped setups narrow types correctly
-// and that composeMachine produces a working machine.
+// Setup — full machine with all events/actions/guards
 // ============================================================================
-
-// --- Shared context (defined once) ---
 
 type AppContext = {
   count: number;
@@ -15,8 +12,6 @@ type AppContext = {
   selectedIndex: number;
   isLoading: boolean;
 };
-
-// --- Event groups (each scope only sees its events) ---
 
 type CounterEvents =
   | { type: 'INCREMENT' }
@@ -34,44 +29,23 @@ type NavigationEvents =
 
 type AllEvents = CounterEvents | SearchEvents | NavigationEvents;
 
-// --- Create the scoped setup ---
-
-const s = scopedSetup({
-  types: { context: {} as AppContext }
-});
-
-// --- Counter scope (only sees CounterEvents) ---
-
-const counterScope = s.createScope<CounterEvents>().extend({
+const s = setup({
+  types: {
+    context: {} as AppContext,
+    events: {} as AllEvents
+  },
   actions: {
     increment: assign({
-      count: ({ context }) => {
-        // TypeScript knows: context.count is number
-        // TypeScript knows: only INCREMENT, DECREMENT, RESET events exist here
-        return context.count + 1;
-      }
+      count: ({ context }) => context.count + 1
     }),
     decrement: assign({
       count: ({ context, event }) => {
         return context.count - (event as { type: 'DECREMENT'; by: number }).by;
       }
     }),
-    resetCount: assign({ count: 0 })
-  },
-  guards: {
-    isPositive: ({ context }) => context.count > 0,
-    isNotZero: ({ context }) => context.count !== 0
-  }
-});
-
-// --- Search scope (only sees SearchEvents) ---
-
-const searchScope = s.createScope<SearchEvents>().extend({
-  actions: {
+    resetCount: assign({ count: 0 }),
     setQuery: assign({
-      query: ({ event }) => {
-        return (event as { type: 'SEARCH'; query: string }).query;
-      },
+      query: ({ event }) => (event as { type: 'SEARCH'; query: string }).query,
       isLoading: true
     }),
     setResults: assign({
@@ -79,85 +53,62 @@ const searchScope = s.createScope<SearchEvents>().extend({
         (event as { type: 'SEARCH_SUCCESS'; data: string[] }).data,
       isLoading: false
     }),
-    clearResults: assign({ results: [], isLoading: false })
-  },
-  guards: {
-    hasQuery: ({ context }) => context.query.length > 0
-  }
-});
-
-// --- Navigation scope (only sees NavigationEvents) ---
-
-const navScope = s.createScope<NavigationEvents>().extend({
-  actions: {
+    clearResults: assign({ results: [], isLoading: false }),
     selectItem: assign({
       selectedIndex: ({ event }) =>
         (event as { type: 'SELECT'; index: number }).index
     }),
     goBack: assign({ selectedIndex: -1 })
+  },
+  guards: {
+    isPositive: ({ context }) => context.count > 0,
+    isNotZero: ({ context }) => context.count !== 0,
+    hasQuery: ({ context }) => context.query.length > 0
   }
 });
 
-// --- Scope with NO named actions (just inline actions) ---
+// ============================================================================
+// Scoped state configs — each only sees its relevant events/actions/guards
+// ============================================================================
 
-const simpleScope = s.createScope<{ type: 'PING' } | { type: 'PONG' }>();
-
-// --- Create state configs from each scope ---
-
-const idle = counterScope.createStateConfig({
+const idle = createScopedState(s, {
+  events: ['INCREMENT', 'DECREMENT', 'RESET'],
+  actions: ['increment', 'decrement', 'resetCount'],
+  guards: ['isPositive'],
   on: {
-    // Only INCREMENT, DECREMENT, RESET are valid keys here
     INCREMENT: { actions: 'increment' },
     DECREMENT: {
       actions: 'decrement',
-      guard: 'isPositive' // only 'isPositive' and 'isNotZero' offered
+      guard: 'isPositive'
     },
     RESET: { actions: 'resetCount' }
   }
 });
 
-const searching = searchScope.createStateConfig({
+const searching = createScopedState(s, {
+  events: ['SEARCH', 'SEARCH_SUCCESS', 'SEARCH_FAILURE'],
+  actions: ['setQuery', 'setResults', 'clearResults'],
   on: {
-    // Only SEARCH, SEARCH_SUCCESS, SEARCH_FAILURE are valid keys here
     SEARCH: { actions: 'setQuery' },
     SEARCH_SUCCESS: { actions: 'setResults', target: 'results' },
     SEARCH_FAILURE: { actions: 'clearResults', target: 'idle' }
   }
 });
 
-const results = navScope.createStateConfig({
+const results = createScopedState(s, {
+  events: ['SELECT', 'NAVIGATE_BACK'],
+  actions: ['selectItem', 'goBack'],
   on: {
-    // Only SELECT and NAVIGATE_BACK are valid keys here
     SELECT: { actions: 'selectItem' },
     NAVIGATE_BACK: { actions: 'goBack', target: 'idle' }
   }
 });
 
-// --- State with inline actions (no named actions in scope) ---
+// ============================================================================
+// Machine composition — uses setup.createMachine as normal
+// ============================================================================
 
-const pingPong = simpleScope.createStateConfig({
-  on: {
-    PING: 'ponging',
-    PONG: 'pinging'
-  }
-});
-
-// --- State with inline assign from the scope ---
-
-const inlineState = s.createScope<{ type: 'BUMP' }>().createStateConfig({
-  on: {
-    BUMP: {
-      // Using the scope's typed assign directly in the config
-      actions: assign({
-        count: ({ context }: { context: AppContext }) => context.count + 10
-      })
-    }
-  }
-});
-
-// --- Compose everything into a real machine ---
-
-const machine = s.composeMachine<AllEvents>({
+const machine = s.createMachine({
   id: 'app',
   initial: 'idle',
   context: {
@@ -171,7 +122,7 @@ const machine = s.composeMachine<AllEvents>({
     idle,
     searching,
     results,
-    // Unscoped states work too — just plain objects
+    // Plain (unscoped) states work alongside scoped ones
     error: {
       on: {
         RESET: 'idle'
@@ -184,7 +135,7 @@ const machine = s.composeMachine<AllEvents>({
 // Runtime tests
 // ============================================================================
 
-describe('scopedSetup', () => {
+describe('createScopedState', () => {
   it('creates a working machine from scoped state configs', () => {
     const actor = createActor(machine);
     actor.start();
@@ -223,16 +174,6 @@ describe('scopedSetup', () => {
     expect(actor.getSnapshot().context.count).toBe(0);
   });
 
-  it('handles transitions between scoped states', () => {
-    const actor = createActor(machine);
-    actor.start();
-
-    expect(actor.getSnapshot().value).toBe('idle');
-
-    // SEARCH transitions from idle... wait, idle uses counterScope
-    // which doesn't have SEARCH. Let's make a better test.
-  });
-
   it('handles reset action', () => {
     const actor = createActor(machine);
     actor.start();
@@ -246,24 +187,128 @@ describe('scopedSetup', () => {
     expect(actor.getSnapshot().context.count).toBe(0);
   });
 
-  it('works with nested scoped states', () => {
-    const innerScope = s.createScope<{ type: 'TOGGLE' }>().extend({
-      actions: {
-        toggleLoading: assign({
-          isLoading: ({ context }) => !context.isLoading
-        })
-      }
-    });
-
-    const nestedInner = innerScope.createStateConfig({
+  it('returns a plain state config (strips scoping arrays)', () => {
+    const stateConfig = createScopedState(s, {
+      events: ['INCREMENT'],
+      actions: ['increment'],
+      guards: ['isPositive'],
       on: {
-        TOGGLE: { actions: 'toggleLoading' }
+        INCREMENT: { actions: 'increment' }
       }
     });
 
-    const nestedMachine = s.composeMachine<{ type: 'TOGGLE' }>({
-      id: 'nested',
-      initial: 'parent',
+    // Should have `on` but NOT `events`, `actions`, `guards`
+    expect(stateConfig).toHaveProperty('on');
+    expect(stateConfig).not.toHaveProperty('events');
+    expect(stateConfig).not.toHaveProperty('actions');
+    expect(stateConfig).not.toHaveProperty('guards');
+  });
+
+  it('works with no actions or guards specified (all available)', () => {
+    const stateConfig = createScopedState(s, {
+      events: ['INCREMENT', 'RESET'],
+      // actions and guards omitted — all available
+      on: {
+        INCREMENT: { actions: 'increment' },
+        RESET: { actions: 'resetCount' }
+      }
+    });
+
+    const m = s.createMachine({
+      id: 'simple',
+      initial: 'only',
+      context: {
+        count: 0,
+        query: '',
+        results: [],
+        selectedIndex: -1,
+        isLoading: false
+      },
+      states: { only: stateConfig }
+    });
+
+    const actor = createActor(m);
+    actor.start();
+
+    actor.send({ type: 'INCREMENT' });
+    expect(actor.getSnapshot().context.count).toBe(1);
+  });
+
+  it('works with entry/exit actions', () => {
+    const withEntry = createScopedState(s, {
+      events: ['INCREMENT'],
+      actions: ['increment', 'resetCount'],
+      on: {
+        INCREMENT: { actions: 'increment' }
+      },
+      entry: 'resetCount'
+    });
+
+    const m = s.createMachine({
+      id: 'entryTest',
+      initial: 'main',
+      context: {
+        count: 5,
+        query: '',
+        results: [],
+        selectedIndex: -1,
+        isLoading: false
+      },
+      states: { main: withEntry }
+    });
+
+    const actor = createActor(m);
+    actor.start();
+
+    // entry action resets count to 0
+    expect(actor.getSnapshot().context.count).toBe(0);
+  });
+
+  it('supports array of transitions', () => {
+    const withArrayTransitions = createScopedState(s, {
+      events: ['INCREMENT'],
+      actions: ['increment', 'resetCount'],
+      guards: ['isPositive'],
+      on: {
+        INCREMENT: [
+          { guard: 'isPositive', actions: 'increment' },
+          { actions: 'resetCount' }
+        ]
+      }
+    });
+
+    const m = s.createMachine({
+      id: 'arrayTransitions',
+      initial: 'only',
+      context: {
+        count: 1,
+        query: '',
+        results: [],
+        selectedIndex: -1,
+        isLoading: false
+      },
+      states: { only: withArrayTransitions }
+    });
+
+    const actor = createActor(m);
+    actor.start();
+
+    // count is 1, isPositive is true → increment
+    actor.send({ type: 'INCREMENT' });
+    expect(actor.getSnapshot().context.count).toBe(2);
+  });
+
+  it('works alongside plain unscoped states', () => {
+    const scoped = createScopedState(s, {
+      events: ['INCREMENT'],
+      on: {
+        INCREMENT: { actions: 'increment', target: 'b' }
+      }
+    });
+
+    const m = s.createMachine({
+      id: 'mixed',
+      initial: 'a',
       context: {
         count: 0,
         query: '',
@@ -272,85 +317,24 @@ describe('scopedSetup', () => {
         isLoading: false
       },
       states: {
-        parent: {
-          initial: 'child',
-          states: {
-            child: nestedInner
+        a: scoped,
+        b: {
+          on: {
+            RESET: { actions: 'resetCount', target: 'a' }
           }
         }
       }
     });
 
-    const actor = createActor(nestedMachine);
+    const actor = createActor(m);
     actor.start();
-
-    expect(actor.getSnapshot().context.isLoading).toBe(false);
-    actor.send({ type: 'TOGGLE' });
-    expect(actor.getSnapshot().context.isLoading).toBe(true);
-  });
-
-  it('supports composeMachine without any scoped states', () => {
-    const plainMachine = s.composeMachine({
-      id: 'plain',
-      initial: 'a',
-      context: {
-        count: 42,
-        query: '',
-        results: [],
-        selectedIndex: -1,
-        isLoading: false
-      },
-      states: {
-        a: { on: { INCREMENT: 'b' } },
-        b: { on: { DECREMENT: 'a' } }
-      }
-    });
-
-    const actor = createActor(plainMachine);
-    actor.start();
-    expect(actor.getSnapshot().value).toBe('a');
 
     actor.send({ type: 'INCREMENT' });
     expect(actor.getSnapshot().value).toBe('b');
-  });
+    expect(actor.getSnapshot().context.count).toBe(1);
 
-  it('supports multiple scopes sharing the same action names', () => {
-    // If two scopes define the same action name, last one wins
-    const scopeA = s.createScope<{ type: 'DO' }>().extend({
-      actions: { shared: assign({ count: 10 }) }
-    });
-
-    const scopeB = s.createScope<{ type: 'DO' }>().extend({
-      actions: { shared: assign({ count: 99 }) }
-    });
-
-    const stateA = scopeA.createStateConfig({
-      on: { DO: { actions: 'shared', target: 'b' } }
-    });
-
-    const stateB = scopeB.createStateConfig({
-      on: { DO: { actions: 'shared', target: 'a' } }
-    });
-
-    // scopeB's implementation wins because it's iterated second
-    const m = s.composeMachine<{ type: 'DO' }>({
-      id: 'overlap',
-      initial: 'a',
-      context: {
-        count: 0,
-        query: '',
-        results: [],
-        selectedIndex: -1,
-        isLoading: false
-      },
-      states: { a: stateA, b: stateB }
-    });
-
-    const actor = createActor(m);
-    actor.start();
-    actor.send({ type: 'DO' });
-    // The 'shared' action was from scopeB (last wins)
-    // Both point to the same assign, but order-dependent
-    expect(actor.getSnapshot().context.count).toBe(99);
+    actor.send({ type: 'RESET' });
+    expect(actor.getSnapshot().value).toBe('a');
+    expect(actor.getSnapshot().context.count).toBe(0);
   });
 });

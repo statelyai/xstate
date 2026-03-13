@@ -1,8 +1,8 @@
 /**
- * ScopedSetup — Copy-paste this file into your project.
+ * CreateScopedState — Copy-paste this file into your project.
  *
- * Userland helper for defining XState machines with per-state type scoping.
- * Improves TypeScript performance for large machines by narrowing the
+ * Userland helper for defining XState state configs with per-state type
+ * scoping. Improves TypeScript performance for large machines by narrowing the
  * event/action/guard types per state, so TS doesn't evaluate the entire type
  * universe at every state definition.
  *
@@ -14,255 +14,282 @@
  *
  * This helper lets you define each state with a **scope** that only includes
  * the events/actions/guards it uses. TypeScript evaluates a tiny type universe
- * per state. Then `composeMachine` merges everything into a real machine.
+ * per state.
  *
  * ## Quick start
  *
  * ```ts
- * import { assign } from 'xstate';
- * import { scopedSetup } from './scopedSetup.standalone';
+ * import { setup, assign } from 'xstate';
+ * import { createScopedState } from './scopedSetup.standalone';
  *
- * type Ctx = { count: number; query: string; results: string[] };
+ * const s = setup({
+ *   types: {
+ *     context: {} as { count: number; query: string },
+ *     events: {} as
+ *       | { type: 'INC' }
+ *       | { type: 'DEC'; by: number }
+ *       | { type: 'SEARCH'; q: string }
+ *       | { type: 'RESULTS'; data: string[] }
+ *   },
+ *   actions: {
+ *     inc: assign({ count: ({ context }) => context.count + 1 }),
+ *     setQuery: assign({ query: ({ event }) => event.q })
+ *   },
+ *   guards: {
+ *     isPositive: ({ context }) => context.count > 0
+ *   }
+ * });
  *
- * // 1. Create the builder with your shared context type
- * const s = scopedSetup({ types: { context: {} as Ctx } });
- *
- * // 2. Create scopes — each narrows to just its events
- * const counter = s
- *   .createScope<{ type: 'INC' } | { type: 'DEC'; by: number }>()
- *   .extend({
- *     actions: {
- *       inc: assign({ count: ({ context }) => context.count + 1 })
- *       //           ^ instant autocomplete — only 2 events in scope
- *     },
- *     guards: {
- *       isPositive: ({ context }) => context.count > 0
- *     }
- *   });
- *
- * const search = s
- *   .createScope<
- *     { type: 'SEARCH'; q: string } | { type: 'RESULTS'; data: string[] }
- *   >()
- *   .extend({
- *     actions: {
- *       setQuery: assign({ query: ({ event }) => event.q }),
- *       setResults: assign({ results: ({ event }) => event.data })
- *     }
- *   });
- *
- * // 3. Create state configs from scopes
- * const idle = counter.createStateConfig({
+ * // Each state only sees its relevant events — TS is fast here
+ * const idle = createScopedState(s, {
+ *   events: ['INC', 'DEC'], // autocomplete from all event types
+ *   actions: ['inc'], // autocomplete from all action names
+ *   guards: ['isPositive'], // autocomplete from all guard names
  *   on: {
  *     INC: { actions: 'inc', guard: 'isPositive' },
- *     DEC: 'decrementing'
+ *     DEC: 'counting'
  *   }
  * });
  *
- * const searching = search.createStateConfig({
+ * const searching = createScopedState(s, {
+ *   events: ['SEARCH', 'RESULTS'],
+ *   actions: ['setQuery'],
  *   on: {
  *     SEARCH: { actions: 'setQuery' },
- *     RESULTS: { actions: 'setResults', target: 'idle' }
+ *     RESULTS: { target: 'idle' }
  *   }
  * });
  *
- * // 4. Compose — auto-collects implementations from all scoped states
- * type AllEvents =
- *   | { type: 'INC' }
- *   | { type: 'DEC'; by: number }
- *   | { type: 'SEARCH'; q: string }
- *   | { type: 'RESULTS'; data: string[] };
- *
- * const machine = s.composeMachine<AllEvents>({
- *   id: 'app',
+ * // Use states in createMachine as normal
+ * const machine = s.createMachine({
  *   initial: 'idle',
- *   context: { count: 0, query: '', results: [] },
- *   states: { idle, searching, decrementing: { on: { INC: 'idle' } } }
+ *   context: { count: 0, query: '' },
+ *   states: { idle, searching, counting: { on: { INC: 'idle' } } }
  * });
  * ```
  */
 
-import { setup } from 'xstate';
-import type { EventObject, MachineContext, NonReducibleUnknown } from 'xstate';
+import type { StateMachine } from 'xstate';
 
 // ---------------------------------------------------------------------------
-// Internal plumbing
+// Type extraction from a setup() return value
 // ---------------------------------------------------------------------------
 
-const SCOPE_META = Symbol.for('xstate.scopedSetup.meta');
+/** Extracts the StateMachine type from a setup return's createMachine method */
+type SetupMachine<T> = T extends {
+  createMachine: (...args: any[]) => infer M;
+}
+  ? M
+  : never;
 
-interface ScopeMeta {
-  actions?: Record<string, any>;
-  guards?: Record<string, any>;
-  delays?: Record<string, any>;
+// StateMachine has 14 type params:
+// TContext(1), TEvent(2), TChildren(3), TActor(4), TAction(5), TGuard(6),
+// TDelay(7), TStateValue(8), TTag(9), TInput(10), TOutput(11),
+// TEmitted(12), TMeta(13), TStateSchema(14)
+
+type _Event<M> =
+  M extends StateMachine<
+    any,
+    infer E,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  >
+    ? E
+    : never;
+
+type _Action<M> =
+  M extends StateMachine<
+    any,
+    any,
+    any,
+    any,
+    infer A,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  >
+    ? A
+    : never;
+
+type _Guard<M> =
+  M extends StateMachine<
+    any,
+    any,
+    any,
+    any,
+    any,
+    infer G,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  >
+    ? G
+    : never;
+
+type _Delay<M> =
+  M extends StateMachine<
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    infer D,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  >
+    ? D
+    : never;
+
+/** Event type strings from a setup() return */
+type EventTypeOf<T> =
+  _Event<SetupMachine<T>> extends { type: infer U } ? U & string : string;
+
+/** Action name strings from a setup() return */
+type ActionNameOf<T> =
+  _Action<SetupMachine<T>> extends {
+    type: infer U;
+  }
+    ? U & string
+    : string;
+
+/** Guard name strings from a setup() return */
+type GuardNameOf<T> =
+  _Guard<SetupMachine<T>> extends {
+    type: infer U;
+  }
+    ? U & string
+    : string;
+
+/** Delay name strings from a setup() return */
+type DelayNameOf<T> =
+  _Delay<SetupMachine<T>> extends string ? _Delay<SetupMachine<T>> : string;
+
+// ---------------------------------------------------------------------------
+// Simplified (lightweight) state config types
+// ---------------------------------------------------------------------------
+
+type ActionRef<TActionName extends string> =
+  | TActionName
+  | { type: TActionName; params?: any }
+  | ((...args: any[]) => any); // inline actions (assign, raise, etc.)
+
+type GuardRef<TGuardName extends string> =
+  | TGuardName
+  | { type: TGuardName; params?: any }
+  | ((...args: any[]) => any); // inline guard predicates
+
+interface ScopedTransition<
+  TActionName extends string,
+  TGuardName extends string
+> {
+  target?: string;
+  guard?: GuardRef<TGuardName>;
+  actions?: ActionRef<TActionName> | Array<ActionRef<TActionName>>;
+  reenter?: boolean;
+  description?: string;
 }
 
-/**
- * Wraps a `setup()` return so that `createStateConfig()` tags results with
- * implementation metadata, and `extend()` preserves the wrapping.
- */
-function wrapSetupReturn<T>(setupReturn: T, implementations: ScopeMeta): T {
-  const wrapped: any = {};
-  for (const key of Object.getOwnPropertyNames(setupReturn)) {
-    wrapped[key] = (setupReturn as any)[key];
-  }
-
-  wrapped.createStateConfig = (config: any) => {
-    const result = (setupReturn as any).createStateConfig(config);
-    Object.defineProperty(result, SCOPE_META, {
-      value: implementations,
-      enumerable: false,
-      configurable: true
-    });
-    return result;
-  };
-
-  wrapped.extend = (extOpts: any) => {
-    const extResult = (setupReturn as any).extend(extOpts);
-    const merged: ScopeMeta = {
-      actions: { ...implementations.actions, ...extOpts.actions },
-      guards: { ...implementations.guards, ...extOpts.guards },
-      delays: { ...implementations.delays, ...extOpts.delays }
-    };
-    return wrapSetupReturn(extResult, merged);
-  };
-
-  return wrapped as T;
-}
-
-/** Recursively collects scope metadata from state configs. */
-function collectImplementations(
-  states: Record<string, any>,
-  into: {
-    actions: Record<string, any>;
-    guards: Record<string, any>;
-    delays: Record<string, any>;
-  }
-): void {
-  for (const state of Object.values(states)) {
-    if (!state || typeof state !== 'object') continue;
-
-    const meta: ScopeMeta | undefined = state[SCOPE_META];
-    if (meta) {
-      if (meta.actions) Object.assign(into.actions, meta.actions);
-      if (meta.guards) Object.assign(into.guards, meta.guards);
-      if (meta.delays) Object.assign(into.delays, meta.delays);
-    }
-
-    if (state.states && typeof state.states === 'object') {
-      collectImplementations(state.states, into);
-    }
-  }
-}
+type TransitionValue<TActionName extends string, TGuardName extends string> =
+  | string
+  | ScopedTransition<TActionName, TGuardName>
+  | Array<ScopedTransition<TActionName, TGuardName>>;
 
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
 /**
- * Creates a scoped machine builder. Define the shared context type once, then
- * create scopes that narrow to subsets of events/actions/guards.
+ * Creates a state config with narrowed types for better TypeScript performance.
+ * Pass the `setup()` return and specify which events, actions, and guards this
+ * state uses. The `on` config will only accept the listed events, and
+ * action/guard references are scoped to the listed names.
  *
- * @param _opts - Must include `types.context` for the shared context type.
+ * At runtime this is nearly identity — it just strips the `events`, `actions`,
+ * and `guards` arrays and returns the rest as a plain state config object.
+ *
+ * @param _setup - The return value of xstate's `setup()`
+ * @param config - Scoping arrays + state node configuration
+ * @returns A plain state config object compatible with `createMachine`
  */
-export function scopedSetup<TContext extends MachineContext>(_opts: {
-  types: { context: TContext };
-}) {
-  /**
-   * Creates a scope with narrowed event types. Returns a wrapped xstate
-   * `setup()` result — you get full type safety for `createStateConfig`,
-   * `assign`, `raise`, etc., but only the events you specified are in scope.
-   *
-   * Chain `.extend()` to add named actions/guards/delays with full contextual
-   * typing (uses xstate's own `.extend()` under the hood).
-   *
-   * @example
-   *
-   * ```ts
-   * const scope = s.createScope<
-   *   { type: 'FOO' } | { type: 'BAR'; x: number }
-   * >().extend({
-   *   actions: { doFoo: assign({ ... }) },
-   *   guards:  { canBar: ({ context }) => ... },
-   * });
-   *
-   * const myState = scope.createStateConfig({
-   *   on: { FOO: { actions: 'doFoo' } }
-   * });
-   * ```
-   */
-  function createScope<TEvent extends EventObject>() {
-    const s = setup({
-      types: {} as {
-        context: TContext;
-        events: TEvent;
-      }
-    });
-    return wrapSetupReturn(s, {});
-  }
+export function createScopedState<
+  TSetup extends { createStateConfig: (config: any) => any },
+  const TEventNames extends EventTypeOf<TSetup>,
+  const TActionNames extends ActionNameOf<TSetup> = ActionNameOf<TSetup>,
+  const TGuardNames extends GuardNameOf<TSetup> = GuardNameOf<TSetup>
+>(
+  _setup: TSetup,
+  config: {
+    /** Which event types this state handles (autocompletes from setup) */
+    events: TEventNames[];
+    /**
+     * Which named actions this state uses (autocompletes from setup). Optional
+     * — if omitted, all actions are available.
+     */
+    actions?: TActionNames[];
+    /**
+     * Which named guards this state uses (autocompletes from setup). Optional —
+     * if omitted, all guards are available.
+     */
+    guards?: TGuardNames[];
 
-  /**
-   * Composes scoped state configs into a real xstate `StateMachine`.
-   *
-   * Walks all states (including nested), collects action/guard/delay
-   * implementations from scopes, and builds the machine via
-   * `setup().createMachine()`.
-   *
-   * Optionally pass a type parameter for the full event union to get typed
-   * `actor.send()` on the result.
-   *
-   * @example
-   *
-   * ```ts
-   * type AllEvents = CounterEvents | SearchEvents;
-   * const machine = s.composeMachine<AllEvents>({
-   *   id: 'app',
-   *   initial: 'idle',
-   *   context: { ... },
-   *   states: { idle, searching },
-   * });
-   * ```
-   */
-  function composeMachine<
-    TEvent extends EventObject = EventObject,
-    TInput = NonReducibleUnknown,
-    TOutput extends NonReducibleUnknown = NonReducibleUnknown
-  >(config: {
-    id?: string;
-    initial?: string;
-    context: TContext | (({ input }: { input: TInput }) => TContext);
-    states: Record<string, any>;
-    type?: 'parallel';
-    on?: Record<string, any>;
-    entry?: any;
-    exit?: any;
-    output?: any;
-  }) {
-    const collected = {
-      actions: {} as Record<string, any>,
-      guards: {} as Record<string, any>,
-      delays: {} as Record<string, any>
+    // ---- State node configuration (narrowed to the scope) ----
+
+    on?: {
+      [K in TEventNames]?: TransitionValue<TActionNames, TGuardNames>;
     };
-    collectImplementations(config.states, collected);
+    entry?: ActionRef<TActionNames> | Array<ActionRef<TActionNames>>;
+    exit?: ActionRef<TActionNames> | Array<ActionRef<TActionNames>>;
+    always?: TransitionValue<TActionNames, TGuardNames>;
+    after?: Record<string | number, TransitionValue<TActionNames, TGuardNames>>;
 
-    const hasActions = Object.keys(collected.actions).length > 0;
-    const hasGuards = Object.keys(collected.guards).length > 0;
-    const hasDelays = Object.keys(collected.delays).length > 0;
+    // ---- Structural ----
 
-    const s = setup({
-      types: {} as {
-        context: TContext;
-        events: TEvent;
-        input: TInput;
-        output: TOutput;
-      },
-      ...(hasActions ? { actions: collected.actions } : {}),
-      ...(hasGuards ? { guards: collected.guards } : {}),
-      ...(hasDelays ? { delays: collected.delays } : {})
-    } as any);
-
-    return s.createMachine(config as any);
+    initial?: string;
+    type?: 'parallel' | 'final' | 'history';
+    history?: 'shallow' | 'deep';
+    states?: Record<string, any>;
+    invoke?: any;
+    tags?: string | string[];
+    description?: string;
+    output?: any;
+    meta?: any;
   }
-
-  return { createScope, composeMachine };
+) {
+  // Strip the scoping arrays, return just the state config.
+  // Type safety is enforced on the INPUT (config parameter).
+  // The output is cast so it's assignable to createMachine's states.
+  const {
+    events: _events,
+    actions: _actions,
+    guards: _guards,
+    ...stateConfig
+  } = config;
+  return stateConfig as any;
 }
