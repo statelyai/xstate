@@ -25,6 +25,7 @@
  *   }
  * });
  *
+ * // Scoped to specific events — TS only evaluates these types
  * const idle = createScopedState(s, {
  *   events: ['INC', 'DEC'],
  *   actions: ['inc'],
@@ -38,6 +39,12 @@
  *       }
  *     }
  *   }
+ * });
+ *
+ * // Use '*' for all events/actions/guards (no scoping)
+ * const other = createScopedState(s, {
+ *   events: '*',
+ *   on: { INC: { actions: 'inc' } }
  * });
  *
  * const machine = s.createMachine({
@@ -206,15 +213,15 @@ type TransitionValue<
 
 export function createScopedState<
   TSetup extends { createStateConfig: (config: any) => any },
-  const TEventNames extends EventTypeOf<TSetup>,
+  const TEventNames extends EventTypeOf<TSetup> = EventTypeOf<TSetup>,
   const TActionNames extends ActionNameOf<TSetup> = ActionNameOf<TSetup>,
   const TGuardNames extends GuardNameOf<TSetup> = GuardNameOf<TSetup>
 >(
   _setup: TSetup,
   config: {
-    events: TEventNames[];
-    actions?: TActionNames[];
-    guards?: TGuardNames[];
+    events: TEventNames[] | '*';
+    actions?: TActionNames[] | '*';
+    guards?: TGuardNames[] | '*';
     on?: {
       [K in TEventNames]?: TransitionValue<
         TActionNames,

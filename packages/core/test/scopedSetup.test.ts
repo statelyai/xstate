@@ -434,6 +434,72 @@ describe('createScopedState', () => {
     expect(actor.getSnapshot().context.count).toBe(1);
   });
 
+  it("supports events: '*' for all events", () => {
+    const scoped = createScopedState(s, {
+      events: '*',
+      on: {
+        INCREMENT: { actions: 'increment' },
+        SEARCH: { actions: 'setQuery' },
+        SELECT: { actions: 'selectItem' }
+      }
+    });
+
+    const m = s.createMachine({
+      id: 'wildcard',
+      initial: 'only',
+      context: {
+        count: 0,
+        query: '',
+        results: [],
+        selectedIndex: -1,
+        isLoading: false
+      },
+      states: { only: scoped }
+    });
+
+    const actor = createActor(m);
+    actor.start();
+
+    actor.send({ type: 'INCREMENT' });
+    expect(actor.getSnapshot().context.count).toBe(1);
+
+    actor.send({ type: 'SEARCH', query: 'test' });
+    expect(actor.getSnapshot().context.query).toBe('test');
+  });
+
+  it("supports actions: '*' for all actions", () => {
+    const scoped = createScopedState(s, {
+      events: ['INCREMENT', 'RESET'],
+      actions: '*',
+      on: {
+        INCREMENT: { actions: 'increment' },
+        RESET: { actions: 'resetCount' }
+      }
+    });
+
+    const m = s.createMachine({
+      id: 'wildcardActions',
+      initial: 'only',
+      context: {
+        count: 0,
+        query: '',
+        results: [],
+        selectedIndex: -1,
+        isLoading: false
+      },
+      states: { only: scoped }
+    });
+
+    const actor = createActor(m);
+    actor.start();
+
+    actor.send({ type: 'INCREMENT' });
+    expect(actor.getSnapshot().context.count).toBe(1);
+
+    actor.send({ type: 'RESET' });
+    expect(actor.getSnapshot().context.count).toBe(0);
+  });
+
   it('types inline guard functions', () => {
     let guardCalled = false;
 

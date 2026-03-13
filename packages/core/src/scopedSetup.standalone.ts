@@ -262,18 +262,18 @@ type TransitionValue<
  */
 export function createScopedState<
   TSetup extends { createStateConfig: (config: any) => any },
-  const TEventNames extends EventTypeOf<TSetup>,
+  const TEventNames extends EventTypeOf<TSetup> = EventTypeOf<TSetup>,
   const TActionNames extends ActionNameOf<TSetup> = ActionNameOf<TSetup>,
   const TGuardNames extends GuardNameOf<TSetup> = GuardNameOf<TSetup>
 >(
   _setup: TSetup,
   config: {
-    /** Which event types this state handles (autocompletes from setup) */
-    events: TEventNames[];
-    /** Which named actions this state uses (optional — all if omitted) */
-    actions?: TActionNames[];
-    /** Which named guards this state uses (optional — all if omitted) */
-    guards?: TGuardNames[];
+    /** Which event types this state handles. Use '*' for all events. */
+    events: TEventNames[] | '*';
+    /** Which named actions this state uses. Use '*' for all. Omit for all. */
+    actions?: TActionNames[] | '*';
+    /** Which named guards this state uses. Use '*' for all. Omit for all. */
+    guards?: TGuardNames[] | '*';
 
     // ---- State node configuration (narrowed to the scope) ----
 
