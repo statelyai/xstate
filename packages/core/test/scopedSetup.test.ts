@@ -389,7 +389,7 @@ describe('createScopedState', () => {
 
     const scoped = createScopedState(s, {
       events: ['INCREMENT', 'DECREMENT'],
-      actions: ['increment'],
+      actions: ['increment', 'decrement'],
       guards: ['isPositive'],
       on: {
         INCREMENT: {
@@ -498,6 +498,52 @@ describe('createScopedState', () => {
 
     actor.send({ type: 'RESET' });
     expect(actor.getSnapshot().context.count).toBe(0);
+  });
+
+  it('provides type-safe enqueue() and check() in enqueueActions', () => {
+    // This test verifies that enqueue() and check() are constrained
+    // to the scoped action/guard names. The type system should reject:
+    //   enqueue('nonExistentAction')
+    //   check('nonExistentGuard')
+    // while accepting valid scoped names.
+    const scoped = createScopedState(s, {
+      events: ['INCREMENT'],
+      actions: ['increment', 'resetCount'],
+      guards: ['isPositive'],
+      on: {
+        INCREMENT: {
+          actions: enqueueActions(({ enqueue, check }) => {
+            // These should be type-safe — only scoped names accepted
+            enqueue('increment');
+            enqueue('resetCount');
+            if (check('isPositive')) {
+              enqueue('increment');
+            }
+          })
+        }
+      }
+    });
+
+    const m = s.createMachine({
+      id: 'typeSafeEnqueue',
+      initial: 'only',
+      context: {
+        count: 1,
+        query: '',
+        results: [],
+        selectedIndex: -1,
+        isLoading: false
+      },
+      states: { only: scoped }
+    });
+
+    const actor = createActor(m);
+    actor.start();
+
+    // enqueue('increment'), enqueue('resetCount'), check isPositive (count=1 → true),
+    // enqueue('increment') again. Then all execute: 1→2→0→1
+    actor.send({ type: 'INCREMENT' });
+    expect(actor.getSnapshot().context.count).toBe(1);
   });
 
   it('types inline guard functions', () => {

@@ -56,7 +56,7 @@
  */
 
 import { StateMachine } from './StateMachine';
-import type { EventObject, MachineContext } from './types';
+import type { ActionFunction, EventObject, MachineContext } from './types';
 
 // ---------------------------------------------------------------------------
 // Type extraction from a setup() return value
@@ -148,30 +148,34 @@ type GuardNameOf<T> =
   _Guard<SetupMachine<T>> extends { type: infer U } ? U & string : string;
 
 // ---------------------------------------------------------------------------
-// Simplified (lightweight) state config types — with typed inline functions
+// Simplified (lightweight) state config types
 // ---------------------------------------------------------------------------
-
-// Prevents TS from back-inferring generic params through function arguments.
-// Same pattern as xstate's internal DoNotInfer.
-type Frozen<T> = [T][T extends any ? 0 : any];
+// Uses ActionFunction as the single function type in the union — same as
+// XState's own Action type. This means:
+//   1. Inline `({ context, event }) => void` gets contextual typing
+//   2. enqueueActions() results carry _out_TAction/_out_TGuard phantoms,
+//      so enqueue('actionName') and check('guardName') are type-safe
+//   3. No competing function types = no contextual typing conflicts
 
 type ActionRef<
   TActionName extends string,
+  TGuardName extends string = string,
   TContext extends MachineContext = any,
   TEvent extends EventObject = any
 > =
   | TActionName
   | { type: TActionName; params?: any }
-  | ((args: { context: Frozen<TContext>; event: Frozen<TEvent> }) => void);
-
-// Accepts results from enqueueActions(), assign(), raise(), etc.
-// Uses `object` as escape hatch — TS prefers the more specific function
-// type in ActionRef for contextual typing of inline arrow functions.
-type ActionValue<
-  TActionName extends string,
-  TContext extends MachineContext = any,
-  TEvent extends EventObject = any
-> = ActionRef<TActionName, TContext, TEvent> | (object & { _out_TEvent?: any });
+  | ActionFunction<
+      TContext,
+      TEvent,
+      TEvent,
+      any,
+      any,
+      { type: TActionName; params: any },
+      { type: TGuardName; params: any },
+      any,
+      any
+    >;
 
 type GuardRef<
   TGuardName extends string,
@@ -180,7 +184,17 @@ type GuardRef<
 > =
   | TGuardName
   | { type: TGuardName; params?: any }
-  | ((args: { context: Frozen<TContext>; event: Frozen<TEvent> }) => boolean);
+  | ActionFunction<
+      TContext,
+      TEvent,
+      TEvent,
+      any,
+      any,
+      any,
+      { type: TGuardName; params: any },
+      any,
+      any
+    >;
 
 interface ScopedTransition<
   TActionName extends string,
@@ -191,8 +205,8 @@ interface ScopedTransition<
   target?: string;
   guard?: GuardRef<TGuardName, TContext, TEvent>;
   actions?:
-    | ActionValue<TActionName, TContext, TEvent>
-    | Array<ActionValue<TActionName, TContext, TEvent>>;
+    | ActionRef<TActionName, TGuardName, TContext, TEvent>
+    | Array<ActionRef<TActionName, TGuardName, TContext, TEvent>>;
   reenter?: boolean;
   description?: string;
 }
@@ -231,27 +245,31 @@ export function createScopedState<
       >;
     };
     entry?:
-      | ActionValue<
+      | ActionRef<
           TActionNames,
+          TGuardNames,
           ContextOf<TSetup>,
           Extract<EventOf<TSetup>, { type: TEventNames }>
         >
       | Array<
-          ActionValue<
+          ActionRef<
             TActionNames,
+            TGuardNames,
             ContextOf<TSetup>,
             Extract<EventOf<TSetup>, { type: TEventNames }>
           >
         >;
     exit?:
-      | ActionValue<
+      | ActionRef<
           TActionNames,
+          TGuardNames,
           ContextOf<TSetup>,
           Extract<EventOf<TSetup>, { type: TEventNames }>
         >
       | Array<
-          ActionValue<
+          ActionRef<
             TActionNames,
+            TGuardNames,
             ContextOf<TSetup>,
             Extract<EventOf<TSetup>, { type: TEventNames }>
           >
