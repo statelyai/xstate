@@ -2,7 +2,7 @@
 '@xstate/store': minor
 ---
 
-Add `strategy: 'event'` option to the `persist` extension. Instead of persisting context snapshots, this persists the event log and replays events on rehydration to reconstruct state.
+Add `strategy: 'event'` option to the `persist` extension. Instead of persisting context snapshots, this persists the event log and replays events on rehydration to reconstruct state. When `maxEvents` is set, a snapshot checkpoint is automatically saved so that replay starts from the checkpoint rather than initial context, preserving correctness.
 
 Also adds `isHydrated(store)` helper to check hydration status.
 
