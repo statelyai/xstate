@@ -868,8 +868,9 @@ describe('persist - strategy: event', () => {
 
     const stored = JSON.parse(storage.getItem('test') as string);
     expect(stored.events).toHaveLength(2);
+    expect(stored.checkpoint).toEqual({ count: 1 });
 
-    // New store replays only last 2 events from initial state
+    // New store replays last 2 events from checkpoint, getting correct total
     const store2 = createStore({
       context: { count: 0 },
       on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
@@ -877,7 +878,7 @@ describe('persist - strategy: event', () => {
       persist({ name: 'test', storage, strategy: 'event', maxEvents: 2 })
     );
 
-    expect(store2.getSnapshot().context.count).toBe(2);
+    expect(store2.getSnapshot().context.count).toBe(3);
   });
 
   it('should not hydrate when skipHydration is true', () => {

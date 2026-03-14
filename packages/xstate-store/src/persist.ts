@@ -25,8 +25,16 @@ export interface PersistStorageValue<TContext> {
 }
 
 /** The envelope persisted to storage for event strategy. @public */
-export interface PersistEventStorageValue<TEvent extends EventObject> {
+export interface PersistEventStorageValue<
+  TEvent extends EventObject = EventObject
+> {
   events: TEvent[];
+  /**
+   * Snapshot checkpoint from which to replay events. When events are truncated
+   * by `maxEvents`, this stores the context at the truncation point so replay
+   * produces the correct state.
+   */
+  checkpoint?: unknown;
   version: string | number;
 }
 
@@ -85,7 +93,11 @@ export interface PersistEventOptions<
 > extends PersistBaseOptions {
   /** Persist strategy. */
   strategy: 'event';
-  /** Maximum number of events to keep. Oldest are dropped. Defaults to Infinity. */
+  /**
+   * Maximum number of events to keep. When exceeded, a snapshot checkpoint is
+   * saved and oldest events are dropped. Replay starts from the checkpoint.
+   * Defaults to Infinity.
+   */
   maxEvents?: number;
   /** Migration function for version upgrades. Receives the stored events array. */
   migrate?: (persistedEvents: any[], version: string | number) => any[];
@@ -111,6 +123,7 @@ interface PersistInternals<TContext, TEvent extends EventObject = EventObject> {
   storage: StateStorage;
   pendingContext: Partial<TContext> | null;
   pendingEvents: TEvent[] | null;
+  pendingCheckpoint: unknown;
   flushTimeoutId: ReturnType<typeof setTimeout> | null;
   flush: () => void;
 }
@@ -215,29 +228,29 @@ function writeSnapshotToStorage<TContext>(
 
 function writeEventsToStorage<TEvent extends EventObject>(
   internals: PersistInternals<any, TEvent>,
-  events: TEvent[]
+  events: TEvent[],
+  checkpoint?: unknown
 ): void {
   const options = internals.options as PersistEventOptions<any, TEvent>;
   const { storage } = internals;
 
-  const maxEvents = options.maxEvents ?? Infinity;
-  const eventsToPersist =
-    events.length > maxEvents ? events.slice(-maxEvents) : events;
-
   const value: PersistEventStorageValue<TEvent> = {
-    events: eventsToPersist,
+    events,
     version: options.version ?? 0
   };
+  if (checkpoint !== undefined) {
+    value.checkpoint = checkpoint;
+  }
 
   try {
     const serialized = serializeEventValue(options, value);
     const result = storage.setItem(options.name, serialized);
     if (result instanceof Promise) {
       result
-        .then(() => options.onDone?.(eventsToPersist))
+        .then(() => options.onDone?.(events))
         .catch((err) => options.onError?.(err));
     } else {
-      options.onDone?.(eventsToPersist);
+      options.onDone?.(events);
     }
   } catch (err) {
     options.onError?.(err);
@@ -254,6 +267,7 @@ function createInternals<TContext, TEvent extends EventObject>(
     storage,
     pendingContext: null,
     pendingEvents: null,
+    pendingCheckpoint: null,
     flushTimeoutId: null,
     flush: () => {
       if (internals.flushTimeoutId !== null) {
@@ -262,8 +276,13 @@ function createInternals<TContext, TEvent extends EventObject>(
       }
       if (isEventStrategy(options)) {
         if (internals.pendingEvents !== null) {
-          writeEventsToStorage(internals, internals.pendingEvents);
+          writeEventsToStorage(
+            internals,
+            internals.pendingEvents,
+            internals.pendingCheckpoint
+          );
           internals.pendingEvents = null;
+          internals.pendingCheckpoint = null;
         }
       } else {
         if (internals.pendingContext !== null) {
@@ -475,6 +494,7 @@ function persistEventFromLogic<
         return {
           ...baseSnapshot,
           _persistEvents: [],
+          _persistCheckpoint: null,
           _persist: { hydrated: false },
           [PERSIST_INTERNALS]: internals
         };
@@ -488,6 +508,7 @@ function persistEventFromLogic<
           return {
             ...baseSnapshot,
             _persistEvents: [],
+            _persistCheckpoint: null,
             _persist: { hydrated: false },
             [PERSIST_INTERNALS]: internals
           };
@@ -497,6 +518,7 @@ function persistEventFromLogic<
           return {
             ...baseSnapshot,
             _persistEvents: [],
+            _persistCheckpoint: null,
             _persist: { hydrated: true },
             [PERSIST_INTERNALS]: internals
           };
@@ -504,11 +526,15 @@ function persistEventFromLogic<
 
         const parsed = deserializeEventValue(options, storedValue);
         const events = migrateEventsIfNeeded(options, parsed);
-        const replayedSnapshot = replayEvents(baseSnapshot, events);
+        const checkpointSnapshot = parsed.checkpoint
+          ? { ...baseSnapshot, context: parsed.checkpoint }
+          : baseSnapshot;
+        const replayedSnapshot = replayEvents(checkpointSnapshot, events);
 
         return {
           ...replayedSnapshot,
           _persistEvents: events,
+          _persistCheckpoint: parsed.checkpoint ?? null,
           _persist: { hydrated: true },
           [PERSIST_INTERNALS]: internals
         };
@@ -517,6 +543,7 @@ function persistEventFromLogic<
         return {
           ...baseSnapshot,
           _persistEvents: [],
+          _persistCheckpoint: null,
           _persist: { hydrated: true },
           [PERSIST_INTERNALS]: internals
         };
@@ -533,6 +560,7 @@ function persistEventFromLogic<
             {
               ...snapshot,
               _persistEvents: snapshot._persistEvents ?? [],
+              _persistCheckpoint: snapshot._persistCheckpoint ?? null,
               _persist: { ...snapshot._persist, hydrated: true }
             },
             []
@@ -543,12 +571,16 @@ function persistEventFromLogic<
           const parsed = deserializeEventValue(options, rawState);
           const events = migrateEventsIfNeeded(options, parsed);
           const baseSnapshot = logic.getInitialSnapshot();
-          const replayedSnapshot = replayEvents(baseSnapshot, events);
+          const checkpointSnapshot = parsed.checkpoint
+            ? { ...baseSnapshot, context: parsed.checkpoint }
+            : baseSnapshot;
+          const replayedSnapshot = replayEvents(checkpointSnapshot, events);
 
           return [
             {
               ...replayedSnapshot,
               _persistEvents: events,
+              _persistCheckpoint: parsed.checkpoint ?? null,
               _persist: { ...snapshot._persist, hydrated: true },
               [PERSIST_INTERNALS]: internals
             },
@@ -560,6 +592,7 @@ function persistEventFromLogic<
             {
               ...snapshot,
               _persistEvents: snapshot._persistEvents ?? [],
+              _persistCheckpoint: snapshot._persistCheckpoint ?? null,
               _persist: { ...snapshot._persist, hydrated: true }
             },
             []
@@ -570,11 +603,13 @@ function persistEventFromLogic<
       // Delegate to wrapped logic
       const [nextSnapshot, effects] = logic.transition(snapshot, event);
       const prevEvents: TEvent[] = snapshot._persistEvents ?? [];
+      const prevCheckpoint: unknown = snapshot._persistCheckpoint ?? null;
 
       // Preserve metadata
       const snapshotWithMeta = {
         ...nextSnapshot,
         _persistEvents: prevEvents,
+        _persistCheckpoint: prevCheckpoint,
         _persist: snapshot._persist ?? { hydrated: false },
         [PERSIST_INTERNALS]: internals
       };
@@ -586,18 +621,30 @@ function persistEventFromLogic<
 
       // Append event to persisted list
       let nextEvents = [...prevEvents, event as TEvent];
+      let nextCheckpoint = prevCheckpoint;
+
       if (nextEvents.length > maxEvents) {
+        // Compute checkpoint by replaying dropped events from previous checkpoint
+        const droppedEvents = nextEvents.slice(0, -maxEvents);
+        const baseSnapshot = logic.getInitialSnapshot();
+        const checkpointBase = prevCheckpoint
+          ? { ...baseSnapshot, context: prevCheckpoint }
+          : baseSnapshot;
+        const checkpointSnapshot = replayEvents(checkpointBase, droppedEvents);
+        nextCheckpoint = checkpointSnapshot.context;
         nextEvents = nextEvents.slice(-maxEvents);
       }
 
       const snapshotWithEvents = {
         ...snapshotWithMeta,
-        _persistEvents: nextEvents
+        _persistEvents: nextEvents,
+        _persistCheckpoint: nextCheckpoint
       };
 
       // Schedule storage write
       if (throttleMs > 0) {
         internals.pendingEvents = nextEvents;
+        internals.pendingCheckpoint = nextCheckpoint;
 
         if (internals.flushTimeoutId === null) {
           const persistEffect = () => {
@@ -613,7 +660,7 @@ function persistEventFromLogic<
 
       // Immediate write as effect
       const persistEffect = () => {
-        writeEventsToStorage(internals, nextEvents);
+        writeEventsToStorage(internals, nextEvents, nextCheckpoint);
       };
 
       return [snapshotWithEvents, [...effects, persistEffect]];
