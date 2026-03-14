@@ -31,10 +31,7 @@ export interface PersistEventStorageValue<TEvent extends EventObject> {
 }
 
 /** Base options shared by both persist strategies. @public */
-export interface PersistBaseOptions<
-  _TContext = StoreContext,
-  TEvent extends EventObject = EventObject
-> {
+export interface PersistBaseOptions {
   /** Storage key (required). */
   name: string;
   /** Storage adapter. Defaults to `localStorage`. */
@@ -47,11 +44,6 @@ export interface PersistBaseOptions<
   onDone?: (data: any) => void;
   /** Called when a storage read or write fails. */
   onError?: (error: unknown) => void;
-  /**
-   * Controls whether an event should trigger a storage write. Return `false` to
-   * skip persisting for that event.
-   */
-  filter?: (event: TEvent) => boolean;
   /** Skip automatic hydration on store creation. Defaults to `false`. */
   skipHydration?: boolean;
 }
@@ -60,9 +52,14 @@ export interface PersistBaseOptions<
 export interface PersistSnapshotOptions<
   TContext = StoreContext,
   TEvent extends EventObject = EventObject
-> extends PersistBaseOptions<TContext, TEvent> {
+> extends PersistBaseOptions {
   /** Persist strategy. Defaults to `'snapshot'`. */
   strategy?: 'snapshot';
+  /**
+   * Controls whether an event should trigger a storage write. Return `false` to
+   * skip persisting for that event.
+   */
+  filter?: (event: TEvent) => boolean;
   /** Select which parts of context to persist. Defaults to full context. */
   pick?: (context: TContext) => Partial<TContext>;
   /** Migration function for version upgrades. */
@@ -83,9 +80,9 @@ export interface PersistSnapshotOptions<
 
 /** Options for the event persist strategy. @public */
 export interface PersistEventOptions<
-  TContext = StoreContext,
+  _TContext = StoreContext,
   TEvent extends EventObject = EventObject
-> extends PersistBaseOptions<TContext, TEvent> {
+> extends PersistBaseOptions {
   /** Persist strategy. */
   strategy: 'event';
   /** Maximum number of events to keep. Oldest are dropped. Defaults to Infinity. */
@@ -584,11 +581,6 @@ function persistEventFromLogic<
 
       // Don't write to storage until hydrated
       if (!snapshotWithMeta._persist?.hydrated) {
-        return [snapshotWithMeta, effects];
-      }
-
-      // Check filter
-      if (options.filter && !options.filter(event as TEvent)) {
         return [snapshotWithMeta, effects];
       }
 

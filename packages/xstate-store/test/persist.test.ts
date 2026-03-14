@@ -880,34 +880,6 @@ describe('persist - strategy: event', () => {
     expect(store2.getSnapshot().context.count).toBe(2);
   });
 
-  it('should respect filter option', () => {
-    const storage = createMockStorage();
-    const store = createStore({
-      context: { count: 0, mouse: { x: 0, y: 0 } },
-      on: {
-        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }),
-        mousemove: (ctx, e: { x: number; y: number }) => ({
-          ...ctx,
-          mouse: { x: e.x, y: e.y }
-        })
-      }
-    }).with(
-      persist({
-        name: 'test',
-        storage,
-        strategy: 'event',
-        filter: (event) => event.type !== 'mousemove'
-      })
-    );
-
-    store.trigger.mousemove({ x: 10, y: 20 });
-    store.trigger.inc();
-
-    const stored = JSON.parse(storage.getItem('test') as string);
-    expect(stored.events).toHaveLength(1);
-    expect(stored.events[0].type).toBe('inc');
-  });
-
   it('should not hydrate when skipHydration is true', () => {
     const storage = createMockStorage();
     storage.setItem(
