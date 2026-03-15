@@ -92,10 +92,9 @@ export function createMachine<
   _ = any,
   const TStates extends Record<string, any> | undefined =
     | Record<string, any>
-    | undefined,
-  const TConfig extends Record<string, any> = Record<string, any>
+    | undefined
 >(
-  config: TConfig & {
+  config: {
     types?: MachineTypes<
       TContext,
       TEvent,
@@ -125,7 +124,7 @@ export function createMachine<
   > &
     { states?: TStates } &
     ([TStates] extends [Record<string, any>]
-      ? ValidateConfigTargets<TConfig & { states: TStates }>
+      ? ValidateConfigTargets<{ states: TStates }>
       : {}),
   implementations?: InternalMachineImplementations<
     ResolvedStateMachineTypes<

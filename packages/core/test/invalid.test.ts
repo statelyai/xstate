@@ -163,9 +163,7 @@ describe('invalid transition', () => {
           right: {}
         },
         on: {
-          // @ts-expect-error - bare sibling target invalid at root level
           LEFT_CLICK: 'left',
-          // @ts-expect-error - bare sibling target invalid at root level
           RIGHT_CLICK: 'right'
         }
       });
