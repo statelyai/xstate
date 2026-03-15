@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { fromPromise } from '../src/actors/promise';
 import { createMachine } from '../src/createMachine';
 import { setup } from '../src/setup';
-import { fromPromise } from '../src/actors/promise';
 
 describe('type-safe state names', () => {
   describe('createMachine', () => {
@@ -87,10 +87,7 @@ describe('type-safe state names', () => {
             a: {
               on: {
                 // @ts-expect-error - 'nonExistent' is not a valid sibling state
-                GO: [
-                  { target: 'b' },
-                  { target: 'nonExistent' }
-                ]
+                GO: [{ target: 'b' }, { target: 'nonExistent' }]
               }
             },
             b: {},
@@ -574,6 +571,99 @@ describe('type-safe state names', () => {
         }
       });
     });
+
+    // --- root-level on (no siblings) ---
+    it('should allow dot-prefixed child target in root-level on', () => {
+      createMachine({
+        initial: 'STATE_A',
+        on: {
+          CANCEL: '.END'
+        },
+        states: {
+          STATE_A: {},
+          END: { type: 'final' }
+        }
+      });
+    });
+
+    it('should allow hash-prefixed id target in root-level on', () => {
+      createMachine({
+        initial: 'STATE_A',
+        on: {
+          CANCEL: '#myEnd'
+        },
+        states: {
+          STATE_A: {},
+          END: { type: 'final', id: 'myEnd' }
+        }
+      });
+    });
+
+    it('should reject bare string target in root-level on', () => {
+      expect(() => {
+        createMachine({
+          initial: 'STATE_A',
+          on: {
+            // @ts-expect-error - bare sibling target invalid at root level (root has no siblings)
+            CANCEL: 'END'
+          },
+          states: {
+            STATE_A: {},
+            END: { type: 'final' }
+          }
+        });
+      }).toThrow();
+    });
+
+    it('should reject bare string target in root-level on (object-form)', () => {
+      expect(() => {
+        createMachine({
+          initial: 'STATE_A',
+          on: {
+            CANCEL: {
+              // @ts-expect-error - bare sibling target invalid at root level (root has no siblings)
+              target: 'END'
+            }
+          },
+          states: {
+            STATE_A: {},
+            END: { type: 'final' }
+          }
+        });
+      }).toThrow();
+    });
+
+    it('should reject object-form target in root-level always', () => {
+      expect(() => {
+        createMachine({
+          initial: 'STATE_A',
+          always: {
+            // @ts-expect-error - bare sibling target invalid at root level (root has no siblings)
+            target: 'END'
+          },
+          states: {
+            STATE_A: {},
+            END: { type: 'final' }
+          }
+        });
+      }).toThrow();
+    });
+
+    it('should reject bare string target in root-level after', () => {
+      expect(() => {
+        createMachine({
+          initial: 'STATE_A',
+          after: {
+            // @ts-expect-error - bare sibling target invalid at root level (root has no siblings)
+            1000: 'END'
+          },
+          states: {
+            STATE_A: {},
+            END: { type: 'final' }
+          }
+        });
+      }).toThrow();
+    });
   });
 
   describe('setup().createMachine', () => {
@@ -667,10 +757,7 @@ describe('type-safe state names', () => {
             a: {
               on: {
                 // @ts-expect-error - 'nonExistent' is not a valid sibling state
-                GO: [
-                  { target: 'b' },
-                  { target: 'nonExistent' }
-                ]
+                GO: [{ target: 'b' }, { target: 'nonExistent' }]
               }
             },
             b: {},
@@ -1156,6 +1243,107 @@ describe('type-safe state names', () => {
           }
         }
       });
+    });
+
+    // --- root-level on (no siblings) ---
+    it('should allow dot-prefixed child target in root-level on', () => {
+      setup({
+        types: {} as { events: { type: 'CANCEL' } }
+      }).createMachine({
+        initial: 'STATE_A',
+        on: {
+          CANCEL: '.END'
+        },
+        states: {
+          STATE_A: {},
+          END: { type: 'final' }
+        }
+      });
+    });
+
+    it('should allow hash-prefixed id target in root-level on', () => {
+      setup({
+        types: {} as { events: { type: 'CANCEL' } }
+      }).createMachine({
+        initial: 'STATE_A',
+        on: {
+          CANCEL: '#myEnd'
+        },
+        states: {
+          STATE_A: {},
+          END: { type: 'final', id: 'myEnd' }
+        }
+      });
+    });
+
+    it('should reject bare string target in root-level on', () => {
+      expect(() => {
+        setup({
+          types: {} as { events: { type: 'CANCEL' } }
+        }).createMachine({
+          initial: 'STATE_A',
+          on: {
+            // @ts-expect-error - bare sibling target invalid at root level (root has no siblings)
+            CANCEL: 'END'
+          },
+          states: {
+            STATE_A: {},
+            END: { type: 'final' }
+          }
+        });
+      }).toThrow();
+    });
+
+    it('should reject bare string target in root-level on (object-form)', () => {
+      expect(() => {
+        setup({
+          types: {} as { events: { type: 'CANCEL' } }
+        }).createMachine({
+          initial: 'STATE_A',
+          on: {
+            CANCEL: {
+              // @ts-expect-error - bare sibling target invalid at root level (root has no siblings)
+              target: 'END'
+            }
+          },
+          states: {
+            STATE_A: {},
+            END: { type: 'final' }
+          }
+        });
+      }).toThrow();
+    });
+
+    it('should reject object-form target in root-level always', () => {
+      expect(() => {
+        setup({}).createMachine({
+          initial: 'STATE_A',
+          always: {
+            // @ts-expect-error - bare sibling target invalid at root level (root has no siblings)
+            target: 'END'
+          },
+          states: {
+            STATE_A: {},
+            END: { type: 'final' }
+          }
+        });
+      }).toThrow();
+    });
+
+    it('should reject bare string target in root-level after', () => {
+      expect(() => {
+        setup({}).createMachine({
+          initial: 'STATE_A',
+          after: {
+            // @ts-expect-error - bare sibling target invalid at root level (root has no siblings)
+            1000: 'END'
+          },
+          states: {
+            STATE_A: {},
+            END: { type: 'final' }
+          }
+        });
+      }).toThrow();
     });
   });
 });

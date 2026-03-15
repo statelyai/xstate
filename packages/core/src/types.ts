@@ -392,7 +392,7 @@ type ValidateStatesTargetsTyped<TStates> = {
 export type ValidateConfigTargets<TConfig> = TConfig extends {
   states: infer S extends Record<string, any>;
 }
-  ? ValidateStateTargetsTyped<TConfig, keyof S & string> & {
+  ? ValidateStateTargetsTyped<TConfig, never> & {
       states?: ValidateStatesTargetsTyped<S>;
     }
   : {};
