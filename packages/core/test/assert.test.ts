@@ -1,4 +1,4 @@
-import { createActor, createMachine, assertEvent } from '../src';
+import { createActor, createMachine, assertEvent, InspectionEvent } from '../src';
 
 describe('assertion helpers', () => {
   it('assertEvent asserts the correct event type', () => {
@@ -102,5 +102,24 @@ describe('assertion helpers', () => {
     actor.send({ type: 'count', value: 42 });
 
     return promise;
+  });
+
+  it('assertEvent works with generics', () => {
+    // Test with InspectionEvent and generic type parameter
+    function test<TEVENT extends InspectionEvent>(event: TEVENT) {
+      assertEvent(event, '@xstate.event');
+      event.event satisfies any;
+    }
+
+    // This should compile without errors
+    const mockEvent: InspectionEvent = {
+      type: '@xstate.event',
+      rootId: 'root',
+      actorRef: { id: '1' } as any,
+      sourceRef: undefined,
+      event: { type: 'test' }
+    };
+
+    expect(() => test(mockEvent as any)).not.toThrow();
   });
 });

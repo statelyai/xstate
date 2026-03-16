@@ -26,7 +26,7 @@ import { matchesEventDescriptor, toArray } from './utils.ts';
  */
 export function assertEvent<
   TEvent extends EventObject,
-  TAssertedDescriptor extends EventDescriptor<TEvent>
+  TAssertedDescriptor extends string = string
 >(
   event: TEvent,
   type: TAssertedDescriptor | readonly TAssertedDescriptor[]
