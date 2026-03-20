@@ -308,12 +308,53 @@ export function formatTransition(
   return transition;
 }
 
+function assertFinalStateHasNoOutgoingDefinition(stateNode: AnyStateNode) {
+  if (stateNode.type !== 'final') {
+    return;
+  }
+  const id = stateNode.id;
+  const c = stateNode.config;
+
+  if (c.on && Object.keys(c.on).length > 0) {
+    throw new Error(
+      `Final state node "#${id}" cannot declare transitions in \`on\`. Final states are terminal and cannot have outgoing transitions.`
+    );
+  }
+  if (c.onDone != null) {
+    throw new Error(
+      `Final state node "#${id}" cannot declare \`onDone\`. Final states are terminal and cannot have outgoing transitions.`
+    );
+  }
+  if (toArray(c.invoke).length > 0) {
+    throw new Error(
+      `Final state node "#${id}" cannot declare \`invoke\`. Final states are terminal and cannot have outgoing transitions.`
+    );
+  }
+  if (c.after && Object.keys(c.after).length > 0) {
+    throw new Error(
+      `Final state node "#${id}" cannot declare \`after\`. Final states are terminal and cannot have outgoing transitions.`
+    );
+  }
+  if (c.always != null) {
+    throw new Error(
+      `Final state node "#${id}" cannot declare \`always\`. Final states are terminal and cannot have outgoing transitions.`
+    );
+  }
+  if (c.route) {
+    throw new Error(
+      `Final state node "#${id}" cannot declare \`route\`. Final states are terminal and cannot have outgoing transitions.`
+    );
+  }
+}
+
 export function formatTransitions<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
   stateNode: AnyStateNode
 ): Map<string, TransitionDefinition<TContext, TEvent>[]> {
+  assertFinalStateHasNoOutgoingDefinition(stateNode);
+
   const transitions = new Map<
     string,
     TransitionDefinition<TContext, AnyEventObject>[]

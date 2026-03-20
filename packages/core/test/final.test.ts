@@ -3,7 +3,8 @@ import {
   createActor,
   assign,
   AnyActorRef,
-  sendParent
+  sendParent,
+  fromPromise
 } from '../src/index.ts';
 import { trackEntries } from './utils.ts';
 
@@ -1289,5 +1290,100 @@ describe('final states', () => {
     actorRef.send({ type: 'NEXT' });
 
     expect(actorRef.getSnapshot().output).toBe(null);
+  });
+});
+
+describe('final state invalid configuration', () => {
+  it('rejects `on` transitions', () => {
+    expect(() =>
+      createMachine({
+        initial: 'a',
+        states: {
+          a: {},
+          end: {
+            type: 'final',
+            on: { E: 'a' }
+          }
+        }
+      })
+    ).toThrow(/cannot declare transitions in `on`/);
+  });
+
+  it('rejects `onDone`', () => {
+    expect(() =>
+      createMachine({
+        initial: 'a',
+        states: {
+          a: {},
+          end: {
+            type: 'final',
+            onDone: 'a'
+          }
+        }
+      })
+    ).toThrow(/cannot declare `onDone`/);
+  });
+
+  it('rejects `invoke`', () => {
+    expect(() =>
+      createMachine({
+        initial: 'end',
+        states: {
+          end: {
+            type: 'final',
+            invoke: {
+              src: fromPromise(() => Promise.resolve())
+            }
+          }
+        }
+      })
+    ).toThrow(/cannot declare `invoke`/);
+  });
+
+  it('rejects `after`', () => {
+    expect(() =>
+      createMachine({
+        initial: 'end',
+        states: {
+          end: {
+            type: 'final',
+            after: {
+              10: 'a'
+            }
+          },
+          a: {}
+        }
+      })
+    ).toThrow(/cannot declare `after`/);
+  });
+
+  it('rejects `always`', () => {
+    expect(() =>
+      createMachine({
+        initial: 'end',
+        states: {
+          end: {
+            type: 'final',
+            always: 'a'
+          },
+          a: {}
+        }
+      })
+    ).toThrow(/cannot declare `always`/);
+  });
+
+  it('rejects `route`', () => {
+    expect(() =>
+      createMachine({
+        initial: 'end',
+        states: {
+          end: {
+            id: 'end',
+            type: 'final',
+            route: {}
+          }
+        }
+      })
+    ).toThrow(/cannot declare `route`/);
   });
 });
