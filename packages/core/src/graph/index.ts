@@ -1,5 +1,13 @@
 export { TestModel, createTestModel } from './TestModel.ts';
 export { adjacencyMapToArray, getAdjacencyMap } from './adjacency.ts';
+export { ALWAYS_SIGNAL, compileMachineSignals } from './signals.ts';
+export type {
+  CompileMachineSignalsOptions,
+  CompiledMachineSignals,
+  CompiledSignal,
+  CompiledSignalRoute,
+  SignalKind
+} from './signals.ts';
 export {
   getStateNodes,
   joinPaths,
