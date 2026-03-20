@@ -1345,7 +1345,7 @@ describe('parallel states', () => {
   });
 
   // https://github.com/statelyai/xstate/issues/5460
-  it('should not allow transitions from final states within parallel regions', () => {
+  it('should keep parallel state stable once a region reaches a final state (no matching handlers)', () => {
     const machine = createMachine({
       id: 'test',
       type: 'parallel',
@@ -1380,62 +1380,49 @@ describe('parallel states', () => {
     const actor = createActor(machine);
     actor.start();
 
-    // Move first region to final state
     actor.send({ type: 'NEXT' });
     expect(actor.getSnapshot().value).toEqual({
       first: 'done',
       second: 'a'
     });
 
-    // Send event that would match on parent's 'on' if final was not respected
-    // The final state should not transition, even if there's a matching transition
-    // defined on an ancestor
+    actor.send({ type: 'NO_HANDLER' });
+    expect(actor.getSnapshot().value).toEqual({
+      first: 'done',
+      second: 'a'
+    });
+  });
 
-    // Create a machine where the final state has a transition defined (which should be ignored)
-    const machineWithTransitionOnFinal = createMachine({
-      id: 'test',
-      type: 'parallel',
-      states: {
-        first: {
-          initial: 'a',
-          states: {
-            a: {
-              on: {
-                NEXT: 'done'
-              }
-            },
-            done: {
-              type: 'final',
-              on: {
-                // This transition should never be taken because final states can't transition
-                INVALID: 'a'
+  it('rejects outgoing `on` transitions on a final state inside a parallel region (#5460)', () => {
+    expect(() =>
+      createMachine({
+        id: 'test',
+        type: 'parallel',
+        states: {
+          first: {
+            initial: 'a',
+            states: {
+              a: {
+                on: {
+                  NEXT: 'done'
+                }
+              },
+              done: {
+                type: 'final',
+                on: {
+                  INVALID: 'a'
+                }
               }
             }
-          }
-        },
-        second: {
-          initial: 'x',
-          states: {
-            x: {}
+          },
+          second: {
+            initial: 'x',
+            states: {
+              x: {}
+            }
           }
         }
-      }
-    });
-
-    const actor2 = createActor(machineWithTransitionOnFinal);
-    actor2.start();
-
-    actor2.send({ type: 'NEXT' });
-    expect(actor2.getSnapshot().value).toEqual({
-      first: 'done',
-      second: 'x'
-    });
-
-    // Try to transition from the final state - should have no effect
-    actor2.send({ type: 'INVALID' });
-    expect(actor2.getSnapshot().value).toEqual({
-      first: 'done',
-      second: 'x'
-    });
+      })
+    ).toThrow(/Final state node .* cannot declare transitions in `on`/);
   });
 });
