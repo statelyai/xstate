@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store",
-  "version": "3.16.0",
+  "version": "3.17.0",
   "description": "Simple stores",
   "keywords": [
     "store",
@@ -30,12 +30,32 @@
       "import": "./dist/xstate-store.cjs.mjs",
       "default": "./dist/xstate-store.cjs.js"
     },
+    "./reset": {
+      "types": {
+        "import": "./reset/dist/xstate-store-reset.cjs.mjs",
+        "default": "./reset/dist/xstate-store-reset.cjs.js"
+      },
+      "module": "./reset/dist/xstate-store-reset.esm.js",
+      "import": "./reset/dist/xstate-store-reset.cjs.mjs",
+      "default": "./reset/dist/xstate-store-reset.cjs.js"
+    },
+    "./persist": {
+      "types": {
+        "import": "./persist/dist/xstate-store-persist.cjs.mjs",
+        "default": "./persist/dist/xstate-store-persist.cjs.js"
+      },
+      "module": "./persist/dist/xstate-store-persist.esm.js",
+      "import": "./persist/dist/xstate-store-persist.cjs.mjs",
+      "default": "./persist/dist/xstate-store-persist.cjs.js"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": false,
   "files": [
     "dist",
-    "undo"
+    "undo",
+    "persist",
+    "reset"
   ],
   "repository": {
     "type": "git",
@@ -66,7 +86,9 @@
     "umdName": "XStateStore",
     "entrypoints": [
       "./index.ts",
-      "./undo.ts"
+      "./undo.ts",
+      "./persist.ts",
+      "./reset.ts"
     ]
   }
 }

@@ -16,6 +16,6 @@
   },
   "dependencies": {
     "mongodb": "^6.21.0",
-    "xstate": "^5.26.0"
+    "xstate": "^5.28.0"
   }
 }

@@ -15,6 +15,6 @@
   },
   "dependencies": {
     "ts-node": "^10.9.2",
-    "xstate": "^5.26.0"
+    "xstate": "^5.28.0"
   }
 }
