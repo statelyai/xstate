@@ -20,7 +20,8 @@ import {
   StateValue,
   TODO,
   TransitionConfigFunction,
-  Values
+  Values,
+  AnyStateNode
 } from './types';
 import { MachineContext, Mapper } from './types';
 import { LowInfer } from './types';
@@ -120,7 +121,15 @@ export type Next_MachineConfig<
   delays?: {
     [K in TDelays | number]?:
       | number
-      | (({ context, event }: { context: TContext; event: TEvent }) => number);
+      | (({
+          context,
+          event,
+          stateNode
+        }: {
+          context: TContext;
+          event: TEvent;
+          stateNode: AnyStateNode;
+        }) => number);
   };
 }) &
   (IsNever<TContext> extends true

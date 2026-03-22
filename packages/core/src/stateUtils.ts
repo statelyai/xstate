@@ -258,7 +258,7 @@ export function getDelayedTransitions(
         let resolvedDelay = typeof delay === 'string' ? x.delays[delay] : delay;
 
         if (typeof resolvedDelay === 'function') {
-          resolvedDelay = resolvedDelay(x);
+          resolvedDelay = resolvedDelay({ ...x, stateNode });
         }
         enq.raise(afterEvent, {
           id: eventType,

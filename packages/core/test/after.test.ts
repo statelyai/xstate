@@ -379,4 +379,79 @@ describe('delayed transitions', () => {
       expect(actor.getSnapshot().value).toBe('inactive');
     });
   });
+
+  describe('stateNode in delay functions', () => {
+    it('should pass stateNode to delay expression', () => {
+      vi.useFakeTimers();
+      const spy = vi.fn();
+
+      const machine = createMachine({
+        initial: 'waiting',
+        schemas: {
+          context: z.object({
+            durations: z.record(z.number())
+          })
+        },
+        context: {
+          durations: {
+            waiting: 300,
+            active: 500
+          }
+        },
+        delays: {
+          phaseDuration: ({ context, stateNode }) => {
+            spy(stateNode.key);
+            return context.durations[stateNode.key];
+          }
+        },
+        states: {
+          waiting: {
+            after: { phaseDuration: 'active' }
+          },
+          active: {
+            after: { phaseDuration: 'done' }
+          },
+          done: { type: 'final' }
+        }
+      });
+
+      const actor = createActor(machine).start();
+
+      expect(spy).toHaveBeenCalledWith('waiting');
+      expect(actor.getSnapshot().value).toBe('waiting');
+
+      vi.advanceTimersByTime(300);
+      expect(actor.getSnapshot().value).toBe('active');
+      expect(spy).toHaveBeenCalledWith('active');
+
+      vi.advanceTimersByTime(500);
+      expect(actor.getSnapshot().value).toBe('done');
+    });
+
+    it('should pass stateNode with correct id', () => {
+      vi.useFakeTimers();
+      const spy = vi.fn();
+
+      const machine = createMachine({
+        id: 'test',
+        initial: 'a',
+        delays: {
+          myDelay: ({ stateNode }) => {
+            spy(stateNode.id);
+            return 100;
+          }
+        },
+        states: {
+          a: {
+            after: { myDelay: 'b' }
+          },
+          b: { type: 'final' }
+        }
+      });
+
+      createActor(machine).start();
+
+      expect(spy).toHaveBeenCalledWith('test.a');
+    });
+  });
 });

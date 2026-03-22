@@ -1159,6 +1159,7 @@ export type DelayExpr<
 > = (args: {
   context: [TContext] extends [never] ? any : TContext;
   event: TEvent;
+  stateNode: AnyStateNode;
 }) => number;
 
 export interface DelayedTransitionDefinition<
