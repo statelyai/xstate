@@ -1,4 +1,5 @@
-import { createMachine, createActor, setup, assertEvent } from '../src/index';
+import z from 'zod';
+import { createMachine, createActor, assertEvent } from '../src/index';
 
 describe('event descriptors', () => {
   it('should fallback to using wildcard transition definition (if specified)', () => {
@@ -87,9 +88,10 @@ describe('event descriptors', () => {
       states: {
         A: {
           on: {
-            'foo.bar.*': {
-              target: 'fail',
-              guard: () => false
+            'foo.bar.*': () => {
+              if (1 + 1 !== 2) {
+                return { target: 'fail' };
+              }
             },
             'foo.*': 'pass'
           }
@@ -368,9 +370,12 @@ describe('event descriptors', () => {
       | { type: 'OTHER' };
 
     const handleEventSpy = vi.fn();
-    const machine = setup({
-      types: {
-        events: {} as FeedbackEvents
+    const machine = createMachine({
+      schemas: {
+        events: {
+          'FEEDBACK.MESSAGE': z.object({ message: z.string() }),
+          'FEEDBACK.RATE': z.object({ rate: z.number() })
+        }
       },
       actions: {
         handleEvent: ({ event }: { event: FeedbackEvents }) => {
@@ -378,20 +383,29 @@ describe('event descriptors', () => {
 
           if (event.type === 'FEEDBACK.MESSAGE') {
             event.message satisfies string;
+
+            // @ts-expect-error
+            event.message satisfies number;
+            // @ts-expect-error
+            event.rate;
           } else {
             event.rate satisfies number;
+
+            // @ts-expect-error
+            event.rate satisfies string;
+            // @ts-expect-error
+            event.message;
           }
 
           handleEventSpy(event);
         }
-      }
-    }).createMachine({
+      },
       initial: 'listening',
       states: {
         listening: {
           on: {
-            'FEEDBACK.*': {
-              actions: 'handleEvent'
+            'FEEDBACK.*': ({ actions, event }, enq) => {
+              enq(actions.handleEvent, { event });
             }
           }
         }

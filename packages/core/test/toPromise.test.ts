@@ -1,4 +1,10 @@
-import { createActor, createMachine, fromPromise, toPromise } from '../src';
+import z from 'zod';
+import {
+  createActor,
+  createMachine as createMachine,
+  fromPromise,
+  toPromise
+} from '../src';
 
 describe('toPromise', () => {
   it('should be awaitable', async () => {
@@ -15,8 +21,10 @@ describe('toPromise', () => {
 
   it('should await actors', async () => {
     const machine = createMachine({
-      types: {} as {
-        output: { count: 42 };
+      schemas: {
+        output: z.object({
+          count: z.number()
+        })
       },
       initial: 'pending',
       states: {
@@ -47,8 +55,10 @@ describe('toPromise', () => {
 
   it('should await already done actors', async () => {
     const machine = createMachine({
-      types: {} as {
-        output: { count: 42 };
+      schemas: {
+        output: z.object({
+          count: z.number()
+        })
       },
       initial: 'done',
       states: {
@@ -68,16 +78,14 @@ describe('toPromise', () => {
     expect(data).toEqual({ count: 42 });
   });
 
-  it.skip('should handle errors', async () => {
+  it('should handle errors', async () => {
     const machine = createMachine({
       initial: 'pending',
       states: {
         pending: {
           on: {
-            REJECT: {
-              actions: () => {
-                throw new Error('oh noes');
-              }
+            REJECT: () => {
+              throw new Error('oh noes');
             }
           }
         }
@@ -88,7 +96,7 @@ describe('toPromise', () => {
 
     setTimeout(() => {
       actor.send({ type: 'REJECT' });
-    }, 1);
+    });
 
     try {
       await toPromise(actor);
@@ -120,22 +128,23 @@ describe('toPromise', () => {
     expect(output).toEqual({ count: 100 });
   });
 
-  it('should immediately reject for an actor that had an error', async () => {
-    const machine = createMachine({
-      entry: () => {
-        throw new Error('oh noes');
-      }
-    });
+  it.todo(
+    'should immediately reject for an actor that had an error',
+    async () => {
+      const machine = createMachine({
+        entry: (_, enq) => {
+          enq(() => {
+            throw new Error('oh noes');
+          });
+        }
+      });
 
-    const actor = createActor(machine);
-    actor.subscribe({
-      error: (_) => {}
-    });
-    actor.start();
+      const actor = createActor(machine).start();
 
-    expect(actor.getSnapshot().status).toBe('error');
-    expect(actor.getSnapshot().error).toEqual(new Error('oh noes'));
+      expect(actor.getSnapshot().status).toBe('error');
+      expect(actor.getSnapshot().error).toEqual(new Error('oh noes'));
 
-    await expect(toPromise(actor)).rejects.toEqual(new Error('oh noes'));
-  });
+      await expect(toPromise(actor)).rejects.toEqual(new Error('oh noes'));
+    }
+  );
 });

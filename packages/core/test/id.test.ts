@@ -2,8 +2,9 @@ import { testAll } from './utils';
 import {
   createMachine,
   createActor,
-  getNextSnapshot,
-  getInitialSnapshot
+  transition,
+  initialTransition,
+  getNextSnapshot
 } from '../src/index.ts';
 
 const idMachine = createMachine({
@@ -134,14 +135,14 @@ describe('State node IDs', () => {
       }
     });
 
-    const initialState = getInitialSnapshot(machine);
-    const escapedState = getNextSnapshot(machine, initialState, {
+    const [initialState] = initialTransition(machine);
+    const [escapedState] = transition(machine, initialState, {
       type: 'escaped'
     });
 
     expect(escapedState.value).toEqual('foo.bar');
 
-    const unescapedState = getNextSnapshot(machine, initialState, {
+    const [unescapedState] = transition(machine, initialState, {
       type: 'unescaped'
     });
     expect(unescapedState.value).toEqual({ foo: 'bar' });
@@ -170,14 +171,14 @@ describe('State node IDs', () => {
       }
     });
 
-    const initialState = getInitialSnapshot(machine);
-    const escapedState = getNextSnapshot(machine, initialState, {
+    const [initialState] = initialTransition(machine);
+    const [escapedState] = transition(machine, initialState, {
       type: 'escaped'
     });
 
     expect(escapedState.value).toEqual('stateWithDot');
 
-    const unescapedState = getNextSnapshot(machine, initialState, {
+    const [unescapedState] = transition(machine, initialState, {
       type: 'unescaped'
     });
     expect(unescapedState.value).toEqual({ foo: 'bar' });
@@ -206,8 +207,8 @@ describe('State node IDs', () => {
       }
     });
 
-    const initialState = getInitialSnapshot(machine);
-    const escapedState = getNextSnapshot(machine, initialState, {
+    const [initialState] = initialTransition(machine);
+    const [escapedState] = transition(machine, initialState, {
       type: 'EV'
     });
 

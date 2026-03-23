@@ -126,8 +126,8 @@ describe('path.description', () => {
     const paths = model.getShortestPaths();
 
     expect(paths.map((path) => path.description)).toEqual([
-      'Reaches state "d": xstate.init → EVENT → EVENT → EVENT',
-      'Reaches state "e": xstate.init → EVENT → EVENT → EVENT_2'
+      'Reaches state "d": @xstate.init → EVENT → EVENT → EVENT',
+      'Reaches state "e": @xstate.init → EVENT → EVENT → EVENT_2'
     ]);
   });
 });
@@ -158,51 +158,52 @@ describe('transition coverage', () => {
 
     expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
       [
-        "Reaches state "a": xstate.init → NEXT → PREV",
-        "Reaches state "a": xstate.init → NEXT → RESTART",
-        "Reaches state "b": xstate.init → END",
+        "Reaches state "a": @xstate.init → NEXT → PREV",
+        "Reaches state "a": @xstate.init → NEXT → RESTART",
+        "Reaches state "b": @xstate.init → END",
       ]
     `);
   });
 
   it('transition coverage should consider guarded transitions', () => {
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              NEXT: [{ guard: 'valid', target: 'b' }, { target: 'b' }]
+    function valid(value: number): boolean {
+      return value > 10;
+    }
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            // NEXT: [{ guard: 'valid', target: 'b' }, { target: 'b' }]
+            NEXT: ({ event }) => {
+              if (valid((event as any).value)) {
+                return { target: 'b' };
+              }
+              return { target: 'b' };
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          valid: ({ event }) => {
-            return event.value > 10;
           }
-        }
+        },
+        b: {}
       }
-    );
+    });
 
     const model = createTestModel(machine);
 
     const paths = model.getShortestPaths({
       events: [
-        { type: 'NEXT', value: 0 },
-        { type: 'NEXT', value: 100 },
-        { type: 'NEXT', value: 1000 }
+        { type: 'NEXT', value: 0 } as any,
+        { type: 'NEXT', value: 100 } as any,
+        { type: 'NEXT', value: 1000 } as any
       ]
     });
 
     // { value: 1000 } already covered by first guarded transition
     expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
       [
-        "Reaches state "b": xstate.init → NEXT ({"value":0}) → NEXT ({"value":0})",
-        "Reaches state "b": xstate.init → NEXT ({"value":100})",
-        "Reaches state "b": xstate.init → NEXT ({"value":1000})",
+        "Reaches state "b": @xstate.init → NEXT ({"value":0}) → NEXT ({"value":0})",
+        "Reaches state "b": @xstate.init → NEXT ({"value":100})",
+        "Reaches state "b": @xstate.init → NEXT ({"value":1000})",
       ]
     `);
   });
@@ -235,8 +236,8 @@ describe('transition coverage', () => {
     const paths = model.getShortestPaths();
 
     expect(paths.map((p) => p.description)).toEqual([
-      `Reaches state "a": xstate.init → GO_TO_B → GO_TO_A`,
-      `Reaches state "a": xstate.init → GO_TO_C → GO_TO_A`
+      `Reaches state "a": @xstate.init → GO_TO_B → GO_TO_A`,
+      `Reaches state "a": @xstate.init → GO_TO_C → GO_TO_A`
     ]);
   });
 });

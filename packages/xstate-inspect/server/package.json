@@ -1,4 +1,0 @@
-{
-  "main": "dist/xstate-inspect-server.cjs.js",
-  "module": "dist/xstate-inspect-server.esm.js"
-}

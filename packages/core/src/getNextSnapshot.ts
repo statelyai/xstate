@@ -20,7 +20,7 @@ export function createInertActorScope<T extends AnyActorLogic>(
     any,
     EmittedFrom<T>
   > = {
-    self,
+    self: self as any,
     defer: () => {},
     id: '',
     logger: () => {},

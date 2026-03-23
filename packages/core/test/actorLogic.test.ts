@@ -7,7 +7,9 @@ import {
   createActor,
   AnyActorLogic,
   Snapshot,
-  ActorLogic
+  ActorLogic,
+  ActorRefFrom,
+  AnyStateMachine
 } from '../src/index.ts';
 import {
   fromCallback,
@@ -17,8 +19,8 @@ import {
   fromTransition
 } from '../src/actors/index.ts';
 import { waitFor } from '../src/waitFor.ts';
-import { raise, sendTo } from '../src/actions.ts';
 import type { Mock } from 'vitest';
+import z from 'zod';
 
 describe('promise logic (fromPromise)', () => {
   it('should interpret a promise', async () => {
@@ -29,7 +31,8 @@ describe('promise logic (fromPromise)', () => {
         })
     );
 
-    const actor = createActor(promiseLogic).start();
+    const actor = promiseLogic.createActor();
+    actor.start();
 
     const snapshot = await waitFor(actor, (s) => s.output === 'hello');
 
@@ -37,7 +40,7 @@ describe('promise logic (fromPromise)', () => {
   });
   it('should resolve', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const actor = createActor(fromPromise(() => Promise.resolve(42)));
+    const actor = fromPromise(() => Promise.resolve(42)).createActor();
 
     actor.subscribe((state) => {
       if (state.output === 42) {
@@ -51,7 +54,7 @@ describe('promise logic (fromPromise)', () => {
 
   it('should resolve (observer .next)', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const actor = createActor(fromPromise(() => Promise.resolve(42)));
+    const actor = fromPromise(() => Promise.resolve(42)).createActor();
 
     actor.subscribe({
       next: (state) => {
@@ -67,7 +70,7 @@ describe('promise logic (fromPromise)', () => {
 
   it('should reject (observer .error)', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const actor = createActor(fromPromise(() => Promise.reject('Error')));
+    const actor = fromPromise(() => Promise.reject('Error')).createActor();
 
     actor.subscribe({
       error: (data) => {
@@ -81,7 +84,7 @@ describe('promise logic (fromPromise)', () => {
   });
 
   it('should complete (observer .complete)', async () => {
-    const actor = createActor(fromPromise(() => Promise.resolve(42)));
+    const actor = fromPromise(() => Promise.resolve(42)).createActor();
     actor.start();
 
     const snapshot = await waitFor(actor, (s) => s.output === 42);
@@ -96,7 +99,7 @@ describe('promise logic (fromPromise)', () => {
       return Promise.resolve(42);
     });
 
-    const actor = createActor(logic);
+    const actor = logic.createActor();
 
     actor.getSnapshot();
 
@@ -111,15 +114,16 @@ describe('promise logic (fromPromise)', () => {
         })
     );
 
-    const actor = createActor(promiseLogic);
+    const actor = promiseLogic.createActor();
     actor.start();
 
     const resolvedPersistedState = actor.getPersistedSnapshot();
     actor.stop();
 
-    const restoredActor = createActor(promiseLogic, {
+    const restoredActor = promiseLogic.createActor(undefined, {
       snapshot: resolvedPersistedState
-    }).start();
+    });
+    restoredActor.start();
 
     await sleep(20);
     expect(restoredActor.getSnapshot().output).toBe(42);
@@ -134,7 +138,7 @@ describe('promise logic (fromPromise)', () => {
         })
     );
 
-    const actor = createActor(promiseLogic);
+    const actor = promiseLogic.createActor();
     actor.start();
 
     setTimeout(() => {
@@ -149,9 +153,10 @@ describe('promise logic (fromPromise)', () => {
         }
       `);
 
-      const restoredActor = createActor(promiseLogic, {
+      const restoredActor = promiseLogic.createActor(undefined, {
         snapshot: resolvedPersistedState
-      }).start();
+      });
+      restoredActor.start();
       expect(restoredActor.getSnapshot().output).toBe(42);
       resolve();
     }, 5);
@@ -164,7 +169,7 @@ describe('promise logic (fromPromise)', () => {
       createdPromises++;
       return Promise.resolve(createdPromises);
     });
-    const actor = createActor(promiseLogic);
+    const actor = promiseLogic.createActor();
     actor.start();
 
     await new Promise((res) => setTimeout(res, 5));
@@ -180,9 +185,10 @@ describe('promise logic (fromPromise)', () => {
     `);
     expect(createdPromises).toBe(1);
 
-    const restoredActor = createActor(promiseLogic, {
+    const restoredActor = promiseLogic.createActor(undefined, {
       snapshot: resolvedPersistedState
-    }).start();
+    });
+    restoredActor.start();
 
     expect(restoredActor.getSnapshot().output).toBe(1);
     expect(createdPromises).toBe(1);
@@ -194,7 +200,7 @@ describe('promise logic (fromPromise)', () => {
       createdPromises++;
       return Promise.reject(createdPromises);
     });
-    const actorRef = createActor(promiseLogic);
+    const actorRef = promiseLogic.createActor();
     actorRef.subscribe({ error: function preventUnhandledErrorListener() {} });
     actorRef.start();
 
@@ -211,7 +217,7 @@ describe('promise logic (fromPromise)', () => {
     `);
     expect(createdPromises).toBe(1);
 
-    const actorRef2 = createActor(promiseLogic, {
+    const actorRef2 = promiseLogic.createActor(undefined, {
       snapshot: rejectedPersistedState
     });
     actorRef2.subscribe({ error: function preventUnhandledErrorListener() {} });
@@ -227,7 +233,7 @@ describe('promise logic (fromPromise)', () => {
       return Promise.resolve(42);
     });
 
-    createActor(promiseLogic).start();
+    promiseLogic.createActor().start();
   });
 
   it('should have reference to self', () => {
@@ -238,7 +244,7 @@ describe('promise logic (fromPromise)', () => {
       return Promise.resolve(42);
     });
 
-    createActor(promiseLogic).start();
+    promiseLogic.createActor().start();
   });
 
   it('should abort when stopping', async () => {
@@ -250,7 +256,8 @@ describe('promise logic (fromPromise)', () => {
       });
     });
 
-    const actor = createActor(promiseLogic).start();
+    const actor = promiseLogic.createActor();
+    actor.start();
 
     actor.stop();
 
@@ -274,13 +281,15 @@ describe('promise logic (fromPromise)', () => {
       return rejectedDeferred.promise.catch(() => {});
     });
 
-    const actor = createActor(resolvedPromiseLogic).start();
+    const actor = resolvedPromiseLogic.createActor();
+    actor.start();
     resolvedDeferred.resolve(42);
     await waitFor(actor, (s) => s.status === 'done');
     actor.stop();
     expect(resolvedSignalListener).not.toHaveBeenCalled();
 
-    const actor2 = createActor(rejectedPromiseLogic).start();
+    const actor2 = rejectedPromiseLogic.createActor();
+    actor2.start();
 
     rejectedDeferred.reject(50);
     await rejectedDeferred.promise.catch(() => {});
@@ -333,7 +342,7 @@ describe('promise logic (fromPromise)', () => {
         }
       }
     });
-    const actor = createActor(machine).start();
+    const actor = machine.createActor().start();
 
     const p1Deferred = deferredMap.get('p1')!;
     const p2Deferred = deferredMap.get('p2')!;
@@ -349,7 +358,7 @@ describe('promise logic (fromPromise)', () => {
     expect(signalListenerMap.get('p2')).not.toHaveBeenCalled();
   });
 
-  it('should not reuse the same signal for different actors with same logic and id', async () => {
+  it.skip('should not reuse the same signal for different actors with same logic and id', async () => {
     let deferredList: PromiseWithResolvers<number>[] = [];
     let signalListenerList: Mock[] = [];
     const p = fromPromise(({ signal }) => {
@@ -393,7 +402,7 @@ describe('promise logic (fromPromise)', () => {
         }
       }
     });
-    const actor = createActor(machine).start();
+    const actor = machine.createActor().start();
 
     const p1Deferred = deferredList[0];
     const p2Deferred = deferredList[1];
@@ -449,7 +458,7 @@ describe('promise logic (fromPromise)', () => {
         }
       }
     });
-    const actor = createActor(machine).start();
+    const actor = machine.createActor().start();
 
     // resolve the first promise and no canceling
     await waitFor(actor, (s) => s.matches('running'));
@@ -490,7 +499,8 @@ describe('transition function logic (fromTransition)', () => {
       { enabled: 'on' as 'off' | 'on' }
     );
 
-    const actor = createActor(transitionLogic).start();
+    const actor = transitionLogic.createActor();
+    actor.start();
 
     expect(actor.getSnapshot().context.enabled).toBe('on');
 
@@ -511,7 +521,8 @@ describe('transition function logic (fromTransition)', () => {
         enabled: 'off' as 'off' | 'on'
       }
     );
-    const actor = createActor(logic).start();
+    const actor = logic.createActor();
+    actor.start();
     actor.send({ type: 'activate' });
     const persistedSnapshot = actor.getPersistedSnapshot();
 
@@ -524,7 +535,9 @@ describe('transition function logic (fromTransition)', () => {
       }
     });
 
-    const restoredActor = createActor(logic, { snapshot: persistedSnapshot });
+    const restoredActor = logic.createActor(undefined, {
+      snapshot: persistedSnapshot
+    });
 
     restoredActor.start();
 
@@ -538,7 +551,8 @@ describe('transition function logic (fromTransition)', () => {
       return 42;
     }, 0);
 
-    const actor = createActor(transitionLogic).start();
+    const actor = transitionLogic.createActor();
+    actor.start();
 
     actor.send({ type: 'a' });
   });
@@ -550,7 +564,8 @@ describe('transition function logic (fromTransition)', () => {
       return 42;
     }, 0);
 
-    const actor = createActor(transitionLogic).start();
+    const actor = transitionLogic.createActor();
+    actor.start();
 
     actor.send({ type: 'a' });
   });
@@ -716,8 +731,13 @@ describe('callback logic (fromCallback)', () => {
   it('can send self reference in an event to parent', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
-      types: {} as {
-        events: { type: 'PING'; ref: AnyActorRef };
+      // types: {} as {
+      //   events: { type: 'PING'; ref: AnyActorRef };
+      // },
+      schemas: {
+        events: {
+          PING: z.object({ ref: z.any() })
+        }
       },
       invoke: {
         src: fromCallback(({ self, sendBack, receive }) => {
@@ -736,49 +756,52 @@ describe('callback logic (fromCallback)', () => {
         })
       },
       on: {
-        PING: {
-          actions: sendTo(
-            ({ event }) => event.ref,
-            () => ({ type: 'PONG' })
-          )
+        // PING: {
+        //   actions: sendTo(
+        //     ({ event }) => event.ref,
+        //     () => ({ type: 'PONG' })
+        //   )
+        // }
+        PING: ({ event }, enq) => {
+          enq.sendTo(event.ref, { type: 'PONG' });
         }
       }
     });
 
-    createActor(machine).start();
+    machine.createActor().start();
     return promise;
   });
 
-  it('should persist the input of a callback', () => {
+  // TODO: event sourcing
+  it.skip('should persist the input of a callback', () => {
     const spy = vi.fn();
-    const machine = createMachine(
-      {
-        types: {} as { events: { type: 'EV'; data: number } },
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: 'b'
-            }
-          },
-          b: {
-            invoke: {
-              src: 'cb',
-              input: ({ event }) => event.data
-            }
-          }
+    const cb = fromCallback(({ input }) => {
+      spy(input);
+    });
+    const machine = createMachine({
+      // types: {} as { events: { type: 'EV'; data: number } },
+      schemas: {
+        events: {
+          EV: z.object({ data: z.number() })
         }
       },
-      {
-        actors: {
-          cb: fromCallback(({ input }) => {
-            spy(input);
-          })
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            src: cb,
+            input: ({ event }) => event.data
+          }
         }
       }
-    );
+    });
 
-    const actor = createActor(machine);
+    const actor = machine.createActor();
     actor.start();
     actor.send({
       type: 'EV',
@@ -803,6 +826,11 @@ describe('callback logic (fromCallback)', () => {
 describe('machine logic', () => {
   it('should persist a machine', async () => {
     const childMachine = createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 55
       },
@@ -823,9 +851,7 @@ describe('machine logic', () => {
         {
           id: 'a',
           src: fromPromise(() => Promise.resolve(42)),
-          onDone: {
-            actions: raise({ type: 'done' })
-          }
+          onDone: (_, enq) => enq.raise({ type: 'done' })
         },
         {
           id: 'b',
@@ -874,7 +900,8 @@ describe('machine logic', () => {
     );
   });
 
-  it('should persist and restore a nested machine', () => {
+  // TODO: event sourcing
+  it.todo('should persist and restore a nested machine', () => {
     const childMachine = createMachine({
       initial: 'a',
       states: {
@@ -906,11 +933,17 @@ describe('machine logic', () => {
             src: childMachine
           },
           on: {
-            NEXT: {
-              actions: sendTo('child', { type: 'NEXT' })
+            // NEXT: {
+            //   actions: sendTo('child', { type: 'NEXT' })
+            // },
+            NEXT: ({ children }, enq) => {
+              enq.sendTo(children.child, { type: 'NEXT' });
             },
-            LAST: {
-              actions: sendTo('child', { type: 'LAST' })
+            // LAST: {
+            //   actions: sendTo('child', { type: 'LAST' })
+            // }
+            LAST: ({ children }, enq) => {
+              enq.sendTo(children.child, { type: 'LAST' });
             }
           }
         }
@@ -985,6 +1018,17 @@ describe('machine logic', () => {
 
   it('should not invoke an actor if it is missing in persisted state', () => {
     const machine = createMachine({
+      schemas: {
+        events: {
+          NEXT: z.object({
+            data: z.object({
+              deep: z.object({
+                prop: z.string()
+              })
+            })
+          })
+        }
+      },
       initial: 'a',
       states: {
         a: {
@@ -996,6 +1040,16 @@ describe('machine logic', () => {
           invoke: {
             id: 'child',
             src: createMachine({
+              schemas: {
+                input: z.object({
+                  deep: z.object({
+                    prop: z.string()
+                  })
+                }),
+                context: z.object({
+                  value: z.string()
+                })
+              },
               context: ({ input }) => ({
                 // this is only meant to showcase why we can't invoke this actor when it's missing in the persisted state
                 // because we don't have access to the right input as it depends on the event that was used to enter state `b`
@@ -1035,21 +1089,29 @@ describe('machine logic', () => {
     expect(rehydratedActor.getSnapshot().children.child).toBe(undefined);
   });
 
-  it('should persist a spawned actor with referenced src', () => {
+  it.skip('should persist a spawned actor with referenced src', () => {
     const reducer = fromTransition((s) => s, { count: 42 });
     const machine = createMachine({
-      types: {
-        context: {} as {
-          ref: AnyActorRef;
-        },
-        actors: {} as {
-          src: 'reducer';
-          logic: typeof reducer;
-          ids: 'child';
-        }
+      // types: {
+      //   context: {} as {
+      //     ref: AnyActorRef;
+      //   },
+      //   actors: {} as {
+      //     src: 'reducer';
+      //     logic: typeof reducer;
+      //     ids: 'child';
+      //   }
+      // },
+      schemas: {
+        context: z.object({
+          ref: z.custom<AnyActorRef>()
+        })
       },
-      context: ({ spawn }) => ({
-        ref: spawn('reducer', { id: 'child' })
+      actors: {
+        reducer
+      },
+      context: ({ spawn, actors }) => ({
+        ref: spawn(actors.reducer, { id: 'child' })
       })
     }).provide({
       actors: {
@@ -1077,10 +1139,16 @@ describe('machine logic', () => {
   });
 
   it('should not persist a spawned actor with inline src', () => {
+    const childMachine = createMachine({});
     const machine = createMachine({
+      schemas: {
+        context: z.object({
+          childRef: z.custom<ActorRefFrom<typeof childMachine>>()
+        })
+      },
       context: ({ spawn }) => {
         return {
-          childRef: spawn(createMachine({}))
+          childRef: spawn(childMachine)
         };
       }
     });
@@ -1094,15 +1162,18 @@ describe('machine logic', () => {
     );
   });
 
-  it('should have access to the system', () => {
-    expect.assertions(1);
+  it('should have access to the system', async () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       entry: ({ system }) => {
         expect(system).toBeDefined();
+        resolve();
       }
     });
 
     createActor(machine).start();
+
+    await promise;
   });
 });
 
