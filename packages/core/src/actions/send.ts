@@ -214,13 +214,13 @@ export function sendTo<
   TDelay extends string = never,
   TUsedDelay extends TDelay = never
 >(
-  to:
-    | TTargetActor
-    | string
-    | ((
-        args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-        params: TParams
-      ) => TTargetActor | string),
+  to: SendToActionTarget<
+    TContext,
+    TExpressionEvent,
+    TParams,
+    TTargetActor,
+    TEvent
+  >,
   eventOrExpr:
     | EventFrom<TTargetActor>
     | SendExpr<
@@ -313,18 +313,19 @@ export function sendParent<
   >(SpecialTargets.Parent, event, options as any);
 }
 
-type Target<
+type SendToActionTarget<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
+  TTargetActor extends AnyActorRef,
   TEvent extends EventObject
 > =
   | string
-  | AnyActorRef
+  | TTargetActor
   | ((
       args: ActionArgs<TContext, TExpressionEvent, TEvent>,
       params: TParams
-    ) => string | AnyActorRef);
+    ) => string | TTargetActor);
 
 /**
  * Forwards (sends) an event to the `target` actor.
@@ -340,7 +341,13 @@ export function forwardTo<
   TDelay extends string = never,
   TUsedDelay extends TDelay = never
 >(
-  target: Target<TContext, TExpressionEvent, TParams, TEvent>,
+  target: SendToActionTarget<
+    TContext,
+    TExpressionEvent,
+    TParams,
+    AnyActorRef,
+    TEvent
+  >,
   options?: SendToActionOptions<
     TContext,
     TExpressionEvent,

@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { isMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
-import { TARGETLESS_KEY } from './constants.ts';
+import { TARGETLESS_KEY, WILDCARD } from './constants.ts';
 import type {
   AnyActorRef,
   AnyEventObject,
@@ -278,4 +278,69 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
 
 export function getAllOwnEventDescriptors(snapshot: AnyMachineSnapshot) {
   return [...new Set([...snapshot._nodes.flatMap((sn) => sn.ownEvents)])];
+}
+
+/**
+ * Checks if an event type matches an event descriptor, supporting wildcards.
+ * Event descriptors can be:
+ *
+ * - Exact matches: "event.type"
+ * - Wildcard: "*"
+ * - Partial matches: "event.*"
+ *
+ * @param eventType - The actual event type string
+ * @param descriptor - The event descriptor to match against
+ * @returns True if the event type matches the descriptor
+ */
+export function matchesEventDescriptor(
+  eventType: string,
+  descriptor: string
+): boolean {
+  if (descriptor === eventType) {
+    return true;
+  }
+
+  if (descriptor === WILDCARD) {
+    return true;
+  }
+
+  if (!descriptor.endsWith('.*')) {
+    return false;
+  }
+
+  if (isDevelopment && /.*\*.+/.test(descriptor)) {
+    console.warn(
+      `Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "${descriptor}" event.`
+    );
+  }
+
+  const partialEventTokens = descriptor.split('.');
+  const eventTokens = eventType.split('.');
+
+  for (
+    let tokenIndex = 0;
+    tokenIndex < partialEventTokens.length;
+    tokenIndex++
+  ) {
+    const partialEventToken = partialEventTokens[tokenIndex];
+    const eventToken = eventTokens[tokenIndex];
+
+    if (partialEventToken === '*') {
+      const isLastToken = tokenIndex === partialEventTokens.length - 1;
+
+      if (isDevelopment && !isLastToken) {
+        console.warn(
+          `Infix wildcards in transition events are not allowed. Check the "${descriptor}" transition.`
+        );
+      }
+
+      return isLastToken;
+    }
+
+    if (partialEventToken !== eventToken) {
+      return false;
+    }
+  }
+
+  return true;
 }

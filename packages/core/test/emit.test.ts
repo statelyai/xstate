@@ -12,6 +12,17 @@ import {
 } from '../src';
 import { emit } from '../src/actions/emit';
 
+// mocked reportUnhandledError due to unknown issue with vitest and global error
+// handlers not catching thrown errors
+// see: https://github.com/vitest-dev/vitest/issues/6292
+vi.mock('../src/reportUnhandledError.ts', () => {
+  return {
+    reportUnhandledError: (err: unknown) => {
+      console.error(err);
+    }
+  };
+});
+
 describe('event emitter', () => {
   it('only emits expected events if specified in setup', () => {
     setup({
@@ -125,14 +136,10 @@ describe('event emitter', () => {
         type: 'someEvent'
       });
     });
-    const err = await new Promise((res) =>
-      actor.subscribe({
-        error: res
-      })
-    );
 
-    expect(err).toBeInstanceOf(Error);
-    expect((err as Error).message).toEqual('oops');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(actor.getSnapshot().status).toEqual('active');
   });
 
   it('dynamically emits events that can be listened to on actorRef.on(…)', async () => {

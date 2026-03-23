@@ -14,6 +14,7 @@ export type {
   StoreSnapshot,
   Store,
   StoreConfig,
+  StoreContext,
   AnyStore,
   SnapshotFromStore,
   EventFromStore,
@@ -37,5 +38,6 @@ export type {
   ReadonlyAtom,
   EventFromStoreConfig,
   EmitsFromStoreConfig,
-  ContextFromStoreConfig
+  ContextFromStoreConfig,
+  StoreExtension
 } from './types';

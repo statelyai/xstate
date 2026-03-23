@@ -1,11 +1,14 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
+  AnyEventObject,
   assign,
   createActor,
   createMachine,
+  emit,
   fromCallback,
   fromPromise,
-  fromTransition
+  fromTransition,
+  setup
 } from '../src';
 
 // mocked reportUnhandledError due to unknown issue with vitest and global error
@@ -945,5 +948,43 @@ describe('error handling', () => {
       [Error: Unable to evaluate guard in transition for event 'NEXT' in state node '(machine).a':
       error_thrown_in_guard_when_transitioning]
     `);
+  });
+
+  it('actor continues to work normally after emit callback errors', async () => {
+    const machine = setup({
+      types: {
+        emitted: {} as { type: 'emitted'; foo: string }
+      }
+    }).createMachine({
+      on: {
+        someEvent: {
+          actions: emit({ type: 'emitted', foo: 'bar' })
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    let errorThrown = false;
+
+    actor.on('emitted', () => {
+      errorThrown = true;
+      throw new Error('oops');
+    });
+
+    // Send first event - should trigger error but actor should remain active
+    actor.send({ type: 'someEvent' });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(errorThrown).toBe(true);
+    expect(actor.getSnapshot().status).toEqual('active');
+
+    // Send second event - should work normally without error
+    const event = await new Promise<AnyEventObject>((res) => {
+      actor.on('emitted', res);
+      actor.send({ type: 'someEvent' });
+    });
+
+    expect(event.foo).toBe('bar');
+    expect(actor.getSnapshot().status).toEqual('active');
   });
 });

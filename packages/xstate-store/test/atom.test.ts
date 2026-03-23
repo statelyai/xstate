@@ -594,6 +594,21 @@ it('Atom-specific properties should not be exposed', () => {
   store._depsTail;
 });
 
+it('computed atoms can use their previous value in the getter', () => {
+  const count = createAtom(1);
+  const accumulated = createAtom<number>(
+    (_, prev) => count.get() + (prev ?? 0)
+  );
+
+  expect(accumulated.get()).toBe(1); // 0 + 1 = 1
+
+  count.set(2);
+  expect(accumulated.get()).toBe(3); // 1 + 2 = 3
+
+  count.set(3);
+  expect(accumulated.get()).toBe(6); // 3 + 3 = 6
+});
+
 describe('async atoms', () => {
   it('async atoms should work (fulfilled)', async () => {
     const atom = createAsyncAtom(async () => 'hello');

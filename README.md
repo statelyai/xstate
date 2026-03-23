@@ -31,6 +31,21 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 ✍️ Browse through the many [XState examples](https://github.com/statelyai/xstate/tree/main/examples)
 
+## Sponsors
+
+Special thanks to the sponsors who support this open-source project:
+
+<img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
+
+<a href="https://transloadit.com/?utm_source=xstate&utm_medium=referral&utm_campaign=sponsorship&utm_content=github">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://assets.transloadit.com/assets/images/sponsorships/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://assets.transloadit.com/assets/images/sponsorships/logo-default.svg">
+    <img src="https://assets.transloadit.com/assets/images/sponsorships/logo-default.svg" alt="Transloadit Logo">
+  </picture>
+</a>
+
+
 ## Templates
 
 Get started by forking one of these templates on CodeSandbox:
@@ -174,7 +189,7 @@ toggleActor.send({ type: 'TOGGLE' });
 
 Statecharts are a formalism for modeling stateful, reactive systems. This is useful for declaratively describing the _behavior_ of your application, from the individual components to the overall application logic.
 
-Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) ([🎥 video](https://www.youtube.com/watch?v=VU1NKX6Qkxc)) or check out these resources for learning about the importance of finite state machines and statecharts in user interfaces:
+Read [📽 the slides](http://slides.com/davidkpiano/finite-state-machines) ([🎥 video](https://www.youtube.com/watch?v=VU1NKX6Qkxc)) or check out these resources for learning about the importance of finite state machines and statecharts in user interfaces:
 
 - [Statecharts - A Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) by David Harel
 - [The World of Statecharts](https://statecharts.github.io/) by Erik Mogensen
@@ -236,20 +251,6 @@ actor.start();
 actor.send({ type: 'TIMER' });
 // logs 'yellow'
 ```
-
-<table>
-<thead><tr><th>Code</th><th>Statechart</th></tr></thead>
-<tbody>
-<tr>
-<td>
-
-</td>
-<td>
-
-</td>
-</tr>
-</tbody>
-</table>
 
 </td>
 <td>
@@ -542,19 +543,6 @@ actor.send({ type: 'PREVIOUS' });
 </tbody>
 </table>
 
-## Sponsors
-
-Special thanks to the sponsors who support this open-source project:
-
-<img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
-
-<a href="https://transloadit.com/?utm_source=xstate&utm_medium=referral&utm_campaign=sponsorship&utm_content=github">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://assets.transloadit.com/assets/images/sponsorships/logo-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://assets.transloadit.com/assets/images/sponsorships/logo-default.svg">
-    <img src="https://assets.transloadit.com/assets/images/sponsorships/logo-default.svg" alt="Transloadit Logo">
-  </picture>
-</a>
 
 ## SemVer Policy
 

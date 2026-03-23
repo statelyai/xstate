@@ -1,5 +1,337 @@
 # @xstate/store
 
+## 3.17.1
+
+### Patch Changes
+
+- [#5486](https://github.com/statelyai/xstate/pull/5486) [`582e43a`](https://github.com/statelyai/xstate/commit/582e43ac57c935712fbed74d6769e78b721eb0f7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix emitted events not firing on stores with extensions (`.with()`)
+
+## 3.17.0
+
+### Minor Changes
+
+- [#5479](https://github.com/statelyai/xstate/pull/5479) [`3b8c68e`](https://github.com/statelyai/xstate/commit/3b8c68e20057885f19b8897f4b4cb29380e8f7de) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `strategy: 'event'` option to the `persist` extension. Instead of persisting context snapshots, this persists the event log and replays events on rehydration to reconstruct state. When `maxEvents` is set, a snapshot checkpoint is automatically saved so that replay starts from the checkpoint rather than initial context, preserving correctness.
+
+  Also adds `isHydrated(store)` helper to check hydration status.
+
+  ```ts
+  const store = createStore({
+    context: { count: 0 },
+    on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+  }).with(
+    persist({
+      name: 'my-store',
+      strategy: 'event',
+      maxEvents: 100
+    })
+  );
+  ```
+
+- [#5474](https://github.com/statelyai/xstate/pull/5474) [`e299d40`](https://github.com/statelyai/xstate/commit/e299d404444685857fb8e8cc68eab9c681673d08) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `reset` store extension for resetting store context to its initial state via `.with(reset())`.
+
+  ```ts
+  import { createStore } from '@xstate/store';
+  import { reset } from '@xstate/store/reset';
+
+  const store = createStore({
+    context: { count: 0, user: null },
+    on: {
+      inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }),
+      login: (ctx, e: { user: string }) => ({ ...ctx, user: e.user })
+    }
+  }).with(reset());
+
+  store.trigger.inc();
+  store.trigger.reset(); // resets to { count: 0, user: null }
+  ```
+
+  Supports custom reset logic via `to` for partial resets:
+
+  ```ts
+  .with(reset({
+    to: (initial, current) => ({ ...initial, user: current.user })
+  }))
+  ```
+
+- [#5472](https://github.com/statelyai/xstate/pull/5472) [`f7c2beb`](https://github.com/statelyai/xstate/commit/f7c2beb9a90f21828cab0ce6d85a1afa30f4ae0a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `persist` store extension for persisting store context to storage (localStorage, sessionStorage, async adapters, etc.) via `.with(persist({ name: 'my-store' }))`.
+
+  ```ts
+  import { createStore } from '@xstate/store';
+  import {
+    persist,
+    rehydrateStore,
+    clearStorage,
+    flushStorage,
+    createJSONStorage
+  } from '@xstate/store/persist';
+
+  const store = createStore({
+    context: { count: 0 },
+    on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+  }).with(persist({ name: 'my-store' }));
+  // Default storage is localStorage
+  ```
+
+  Features:
+  - Sync and async storage adapters (localStorage, AsyncStorage, etc.)
+  - `pick` — persist only selected fields
+  - `version` + `migrate` — schema versioning and migration
+  - `merge` — custom merge strategy on rehydration
+  - `throttle` — batched/throttled writes
+  - `serialize` / `deserialize` — custom serialization
+  - `filter` — skip persisting for specific events
+  - `skipHydration` + `rehydrateStore()` — manual/async rehydration
+  - `clearStorage()` — remove persisted data
+  - `flushStorage()` — force immediate write of pending throttled data
+  - `createJSONStorage()` — SSR-safe storage adapter factory
+  - `onDone` / `onError` callbacks
+
+## 3.16.0
+
+### Minor Changes
+
+- [#5467](https://github.com/statelyai/xstate/pull/5467) [`d54cc47`](https://github.com/statelyai/xstate/commit/d54cc4760513ba05e9c0fc7a4a783d0c47a882f2) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add wildcard `'*'` support for `store.on('*', …)` to listen to all emitted events. The handler receives the union of all emitted event types.
+
+  ```ts
+  const store = createStore({
+    context: { count: 0 },
+    emits: {
+      increased: (_: { upBy: number }) => {},
+      decreased: (_: { downBy: number }) => {}
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit.increased({ upBy: 1 });
+        return { ...ctx, count: ctx.count + 1 };
+      }
+    }
+  });
+
+  store.on('*', (ev) => {
+    // ev:
+    // | { type: 'increased'; upBy: number }
+    // | { type: 'decreased'; downBy: number }
+  });
+  ```
+
+## 3.15.0
+
+### Minor Changes
+
+- [#5441](https://github.com/statelyai/xstate/pull/5441) [`6ba9538`](https://github.com/statelyai/xstate/commit/6ba9538e05022c9aad9e4a4f089a87aaed54c06a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added new framework adapter packages for `@xstate/store` and deprecated:
+  - `@xstate/store/react` (use `@xstate/store-react` instead)
+  - `@xstate/store/solid` (use `@xstate/store-solid` instead)
+
+  ```diff
+  - import { useSelector } from '@xstate/store/react';
+  + import { useSelector } from '@xstate/store-react';
+  ```
+
+  ```diff
+  - import { useSelector } from '@xstate/store/solid';
+  + import { useSelector } from '@xstate/store-solid';
+  ```
+
+## 3.14.1
+
+### Patch Changes
+
+- [#5437](https://github.com/statelyai/xstate/pull/5437) [`ae93af1`](https://github.com/statelyai/xstate/commit/ae93af1a9813c9e7f6ad5eb34fe0f087c147e890) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Update the internal atom implementation (alien-signals)
+
+## 3.14.0
+
+### Minor Changes
+
+- [#5427](https://github.com/statelyai/xstate/pull/5427) [`77ec4ad`](https://github.com/statelyai/xstate/commit/77ec4ad34e3f7e7109a41edd13353bec640cd1a7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `.with()` method for store extensions.
+
+  ```ts
+  import { createStore } from '@xstate/store';
+  import { undoRedo } from '@xstate/store/undo';
+
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ count: ctx.count + 1 }),
+      dec: (ctx) => ({ count: ctx.count - 1 })
+    }
+  }).with(undoRedo());
+
+  store.trigger.inc(); // count = 1
+
+  // Added from the undoRedo extension
+  store.trigger.undo(); // count = 0
+  store.trigger.redo(); // count = 1
+  ```
+
+## 3.13.0
+
+### Minor Changes
+
+- [#5415](https://github.com/statelyai/xstate/pull/5415) [`068f2a7`](https://github.com/statelyai/xstate/commit/068f2a7932343a3a7d418fa87e172a9de9f5e6cb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add snapshot-based undo/redo strategy to `undoRedo(…)`:
+
+  ```ts
+  // Snapshot strategy (faster undo/redo, more memory)
+  undoRedo(config, {
+    strategy: 'snapshot',
+    historyLimit: 10
+  });
+  ```
+
+## 3.12.0
+
+### Minor Changes
+
+- [#5410](https://github.com/statelyai/xstate/pull/5410) [`45d97de`](https://github.com/statelyai/xstate/commit/45d97de0a174b274aea69d02e27a59b224c2b855) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix go-to-definition for triggers
+
+- [#5414](https://github.com/statelyai/xstate/pull/5414) [`524a207`](https://github.com/statelyai/xstate/commit/524a207e20ee07560170817052763ad7f3c71d66) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Computed atoms can now access their previous value via an optional second parameter:
+
+  ```ts
+  const count = createAtom(1);
+  const double = createAtom<number>((_, prev) => count.get() + (prev ?? 0));
+  ```
+
+## 3.11.2
+
+### Patch Changes
+
+- [#5401](https://github.com/statelyai/xstate/pull/5401) [`d345e1f`](https://github.com/statelyai/xstate/commit/d345e1fa497c2196e296512937ed52e1c76fd6be) Thanks [@davidkpiano](https://github.com/davidkpiano)! - - Fix type inference for emitted event types when using `undoRedo`.
+
+## 3.11.1
+
+### Patch Changes
+
+- [#5395](https://github.com/statelyai/xstate/pull/5395) [`8408430`](https://github.com/statelyai/xstate/commit/84084304a1daf19593e8a1c4b13fb73b901a06e8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix redo logic bug where redo would apply too many events when no transaction grouping is used
+
+## 3.11.0
+
+### Minor Changes
+
+- [#5393](https://github.com/statelyai/xstate/pull/5393) [`6d00d3f`](https://github.com/statelyai/xstate/commit/6d00d3fd3cdb27b3bb19557cc9ee84f85bd38fe8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `snapshot` parameter to `getTransactionId` function.
+
+  ```ts
+  const store = createStore(
+    undo(
+      {
+        // ...
+      },
+      {
+        getTransactionId: (event, snapshot) =>
+          snapshot.context.currentTransactionId
+      }
+    )
+  );
+  ```
+
+- [#5392](https://github.com/statelyai/xstate/pull/5392) [`5854b52`](https://github.com/statelyai/xstate/commit/5854b52c3fa1915f7f4620f144482d164af535e8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added an overload to `useSelector` that allows you to select the entire snapshot:
+
+  ```ts
+  // No selector provided, return the entire snapshot
+  const snapshot = useSelector(store);
+  ```
+
+- [#5393](https://github.com/statelyai/xstate/pull/5393) [`6d00d3f`](https://github.com/statelyai/xstate/commit/6d00d3fd3cdb27b3bb19557cc9ee84f85bd38fe8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `skipEvent` option to `undoRedo()` to exclude certain events from undo/redo history.
+
+  ```ts
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 }),
+          log: (ctx) => ctx // No state change
+        }
+      },
+      {
+        skipEvent: (event, snapshot) => event.type === 'log'
+      }
+    )
+  );
+  ```
+
+## 3.10.0
+
+### Minor Changes
+
+- [#5323](https://github.com/statelyai/xstate/pull/5323) [`cb08332`](https://github.com/statelyai/xstate/commit/cb0833241cb2c0d2a908c413e79fc07b3d7a5fd9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added support for effect-only transitions that don't trigger state updates. Now, when a transition returns the same state but includes effects, subscribers won't be notified of a state change, but the effects will still be executed. This helps prevent unnecessary re-renders while maintaining side effect functionality.
+
+  ```ts
+  it('should not trigger update if the snapshot is the same even if there are effects', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        doNothing: (ctx, _, enq) => {
+          enq.effect(() => {
+            // …
+          });
+          return ctx; // Context is the same, so no update is triggered
+          // This is the same as not returning anything (void)
+        }
+      }
+    });
+
+    const spy = vi.fn();
+    store.subscribe(spy);
+
+    store.trigger.doNothing();
+    store.trigger.doNothing();
+
+    expect(spy).toHaveBeenCalledTimes(0);
+  });
+  ```
+
+## 3.9.3
+
+### Patch Changes
+
+- [#5383](https://github.com/statelyai/xstate/pull/5383) [`4b6a513`](https://github.com/statelyai/xstate/commit/4b6a513ebd7ee1ab067856be4b431651b491cba5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix: `trigger` methods now work when passed directly as event handlers, even for events with no payload. Before, the React `event.type` would overwrite the intended event type.
+
+## 3.9.2
+
+### Patch Changes
+
+- [#5361](https://github.com/statelyai/xstate/pull/5361) [`7f8d90a`](https://github.com/statelyai/xstate/commit/7f8d90a5a6e851ade55e94a9569f746aaebc160a) Thanks [@johnsoncodehk](https://github.com/johnsoncodehk)! - Synchronize the alien-signals algorithm to 2.0.7.
+
+  This is primarily to fix the severe performance degradation discovered in vuejs/core: vuejs/core#13654
+
+## 3.9.1
+
+### Patch Changes
+
+- [#5359](https://github.com/statelyai/xstate/pull/5359) [`3f4bffc`](https://github.com/statelyai/xstate/commit/3f4bffc3dc9e4797207617f8166d5b8aac8d64ea) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `createStoreHook` to create a single shared store instance across all components. Previously, the implementation was creating independent store instances, but now multiple components using the same hook will share state as expected.
+
+## 3.9.0
+
+### Minor Changes
+
+- [#5354](https://github.com/statelyai/xstate/pull/5354) [`515cc31`](https://github.com/statelyai/xstate/commit/515cc31063f04a7cd238006a485ae9368a8c1278) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `createStoreHook(…)` function for React. Creates a store hook that returns `[selectedValue, store]` instead of managing store instances manually.
+
+  ```tsx
+  const useCountStore = createStoreHook({
+    context: { count: 0 },
+    on: {
+      inc: (ctx, event: { by: number }) => ({
+        ...ctx,
+        count: ctx.count + event.by
+      })
+    }
+  });
+
+  // Usage
+  const [count, store] = useCountStore((s) => s.context.count);
+  store.trigger.inc({ by: 3 });
+
+  // Usage (no selector)
+  const [snapshot, store] = useCountStore();
+  ```
+
+## 3.8.5
+
+### Patch Changes
+
+- [#5347](https://github.com/statelyai/xstate/pull/5347) [`4dff4e9`](https://github.com/statelyai/xstate/commit/4dff4e94d6aa547f0b1ae37e51e96281a252d236) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix TypeScript error localization in `createStore(…)` overloads
+
+  Previously, TS errors in transitions would appear on the `createStore` call itself rather than on the specific transition.
+
 ## 3.8.4
 
 ### Patch Changes

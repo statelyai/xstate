@@ -1,12 +1,8 @@
-import type { ReactiveNode } from './alien';
-
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
 export type ExtractEvents<T extends EventPayloadMap> = Values<{
   [K in keyof T & string]: T[K] & { type: K };
 }>;
-
-export type Recipe<T, TReturn> = (state: T) => TReturn;
 
 type AllKeys<T> = T extends any ? keyof T : never;
 
@@ -78,12 +74,12 @@ export type StoreSnapshot<TContext> = Snapshot<undefined> & {
  */
 export interface Store<
   TContext extends StoreContext,
-  TEvent extends EventObject,
+  TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject
 > extends Subscribable<StoreSnapshot<TContext>>,
     InteropObservable<StoreSnapshot<TContext>>,
     BaseAtom<StoreSnapshot<TContext>> {
-  send: (event: TEvent) => void;
+  send: (event: ExtractEvents<TEventPayloadMap>) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
   /** @alias getSnapshot */
   get: () => StoreSnapshot<TContext>;
@@ -101,10 +97,12 @@ export interface Store<
       | ((inspectionEvent: StoreInspectionEvent) => void)
   ) => Subscription;
   sessionId: string;
-  on: <TEmittedType extends TEmitted['type']>(
-    eventType: TEmittedType,
-    emittedEventHandler: (
-      emittedEvent: Compute<TEmitted & { type: TEmittedType }>
+  on: <TType extends TEmitted['type'] | '*'>(
+    type: TType,
+    handler: (
+      emitted: Compute<
+        TEmitted & (TType extends '*' ? unknown : { type: TType })
+      >
     ) => void
   ) => Subscription;
   /**
@@ -120,11 +118,11 @@ export interface Store<
    * ```
    */
   trigger: {
-    [E in TEvent as E['type'] & string]: IsEmptyObject<
-      DistributiveOmit<E, 'type'>
+    [K in keyof TEventPayloadMap]: IsEmptyObject<
+      DistributiveOmit<TEventPayloadMap[K], 'type'>
     > extends true
       ? () => void
-      : (eventPayload: DistributiveOmit<E, 'type'>) => void;
+      : (eventPayload: DistributiveOmit<TEventPayloadMap[K], 'type'>) => void;
   };
   select<TSelected>(
     selector: Selector<TContext, TSelected>,
@@ -143,7 +141,34 @@ export interface Store<
    * });
    * ```
    */
-  transition: StoreTransition<TContext, TEvent, TEmitted>;
+  transition: StoreTransition<
+    TContext,
+    ExtractEvents<TEventPayloadMap>,
+    TEmitted
+  >;
+  /**
+   * Extends the store with additional functionality via a store extension.
+   *
+   * @example
+   *
+   * ```ts
+   * const store = createStore({
+   *   context: { count: 0 },
+   *   on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+   * }).with(undoRedo());
+   *
+   * store.trigger.inc();
+   * store.trigger.undo(); // undoes the increment
+   * ```
+   */
+  with<TNewEventPayloadMap extends EventPayloadMap>(
+    extension: StoreExtension<
+      TContext,
+      TEventPayloadMap,
+      TNewEventPayloadMap,
+      TEmitted
+    >
+  ): Store<TContext, TEventPayloadMap & TNewEventPayloadMap, TEmitted>;
 }
 
 export type StoreTransition<
@@ -162,7 +187,7 @@ export type StoreConfig<
 > = {
   context: TContext;
   emits?: {
-    [K in keyof TEmitted & string]: (payload: TEmitted[K]) => void;
+    [K in keyof TEmitted]: (payload: TEmitted[K]) => void;
   };
   on: {
     [K in keyof TEventPayloadMap & string]: StoreAssigner<
@@ -189,9 +214,9 @@ export type SpecificStoreConfig<
 
 type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
 
-export type AnyStore = Store<any, any, any>;
+type Compute<A> = A extends any ? { [K in keyof A]: A[K] } : never;
 
-type Compute<A> = { [K in keyof A]: A[K] };
+export type AnyStore = Store<any, any, any>;
 
 export type SnapshotFromStore<TStore extends Store<any, any, any>> =
   TStore extends Store<infer TContext, any, any>
@@ -269,8 +294,8 @@ export type SnapshotFromStore<TStore extends Store<any, any, any>> =
  * ```
  */
 export type EventFromStore<TStore extends Store<any, any, any>> =
-  TStore extends Store<infer _TContext, infer TEvent, infer _TEmitted>
-    ? TEvent
+  TStore extends Store<infer _TContext, infer TEventPayloadMap, infer _TEmitted>
+    ? ExtractEvents<TEventPayloadMap>
     : never;
 
 // Copied from XState core
@@ -406,10 +431,6 @@ export interface AtomOptions<T> {
 
 export type AnyAtom = BaseAtom<any>;
 
-export interface InternalReadonlyAtom<T>
-  extends InternalBaseAtom<T>,
-    ReactiveNode {}
-
 /**
  * An atom that is read-only and cannot be set.
  *
@@ -440,6 +461,35 @@ export type StoreLogic<
   ) => [TSnapshot, StoreEffect<TEmitted>[]];
 };
 export type AnyStoreLogic = StoreLogic<any, any, any>;
+
+/**
+ * A store extension that transforms store logic, optionally adding new events.
+ *
+ * @example
+ *
+ * ```ts
+ * const store = createStore({
+ *   context: { count: 0 },
+ *   on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+ * }).with(undoRedo());
+ * ```
+ */
+export type StoreExtension<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TNewEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject
+> = (
+  logic: StoreLogic<
+    StoreSnapshot<TContext>,
+    ExtractEvents<TEventPayloadMap>,
+    TEmitted
+  >
+) => StoreLogic<
+  StoreSnapshot<TContext>,
+  ExtractEvents<TEventPayloadMap> | ExtractEvents<TNewEventPayloadMap>,
+  TEmitted
+>;
 
 export type AnyStoreConfig = StoreConfig<any, any, any>;
 export type EventFromStoreConfig<TStore extends AnyStoreConfig> =

@@ -1,4 +1,5 @@
 name: 'CI setup'
+description: ''
 runs:
   using: 'composite'
   steps:
@@ -11,6 +12,10 @@ runs:
         node-version: 22.x
         cache: 'pnpm'
         registry-url: 'https://registry.npmjs.org'
+
+    - name: Ensure npm 11.5.1 or later for trusted publishing
+      run: npm install -g npm@latest
+      shell: bash
 
     - name: Install Dependencies
       run: pnpm install

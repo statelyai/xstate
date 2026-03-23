@@ -7,7 +7,6 @@ import {
   ExtractEvents,
   InteropSubscribable,
   Observer,
-  Recipe,
   Store,
   StoreAssigner,
   StoreContext,
@@ -29,20 +28,6 @@ const symbolObservable: typeof Symbol.observable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) ||
   '@@observable')() as any;
 
-/**
- * Updates a context object using a recipe function.
- *
- * @param context - The current context
- * @param recipe - A function that describes how to update the context
- * @returns The updated context
- */
-function setter<TContext extends StoreContext>(
-  context: TContext,
-  recipe: Recipe<TContext, TContext>
-): TContext {
-  return recipe(context);
-}
-
 const inspectionObservers = new WeakMap<
   Store<any, any, any>,
   Set<Observer<StoreInspectionEvent>>
@@ -56,7 +41,7 @@ function createStoreCore<
 >(
   logic: StoreLogic<TSnapshot, ExtractEvents<TEventPayloadMap>, TEmitted>,
   emits?: Record<string, (payload: any) => void> // TODO: improve this type
-): Store<TContext, ExtractEvents<TEventPayloadMap>, TEmitted> {
+): Store<TContext, TEventPayloadMap, TEmitted> {
   type StoreEvent = ExtractEvents<TEventPayloadMap>;
   let listeners: Map<TEmitted['type'], Set<any>> | undefined;
   const initialSnapshot = logic.getInitialSnapshot();
@@ -72,25 +57,29 @@ function createStoreCore<
     if (typeListeners) {
       typeListeners.forEach((listener) => listener(ev));
     }
+    const wildcardListeners = listeners.get('*' as TEmitted['type']);
+    if (wildcardListeners) {
+      wildcardListeners.forEach((listener) => listener(ev));
+    }
   };
 
   const transition = logic.transition;
 
   function receive(event: StoreEvent) {
-    let effects: StoreEffect<TEmitted>[];
-    [currentSnapshot, effects] = transition(currentSnapshot, event);
+    const [nextSnapshot, effects] = transition(currentSnapshot, event);
+    currentSnapshot = nextSnapshot;
 
     inspectionObservers.get(store)?.forEach((observer) => {
       observer.next?.({
         type: '@xstate.snapshot',
         event,
-        snapshot: currentSnapshot,
+        snapshot: nextSnapshot,
         actorRef: store,
         rootId: store.sessionId
       });
     });
 
-    atom.set(currentSnapshot);
+    atom.set(nextSnapshot);
 
     for (const effect of effects) {
       if (typeof effect === 'function') {
@@ -103,7 +92,7 @@ function createStoreCore<
     }
   }
 
-  const store: Store<TContext, StoreEvent, TEmitted> &
+  const store: Store<TContext, TEventPayloadMap, TEmitted> &
     Pick<InternalBaseAtom<any>, '_snapshot'> = {
     get _snapshot() {
       return (atom as unknown as InternalBaseAtom<any>)._snapshot;
@@ -181,16 +170,19 @@ function createStoreCore<
         }
       };
     },
-    trigger: new Proxy({} as Store<TContext, StoreEvent, TEmitted>['trigger'], {
-      get: (_, eventType: string) => {
-        return (payload: any) => {
-          store.send({
-            type: eventType,
-            ...payload
-          });
-        };
+    trigger: new Proxy(
+      {} as Store<TContext, TEventPayloadMap, TEmitted>['trigger'],
+      {
+        get: (_, eventType: string) => {
+          return (payload: any) => {
+            store.send({
+              ...payload,
+              type: eventType
+            });
+          };
+        }
       }
-    }),
+    ),
     select<TSelected>(
       selector: Selector<TContext, TSelected>,
       equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
@@ -198,6 +190,10 @@ function createStoreCore<
       return createAtom(() => selector(store.get().context), {
         compare: equalityFn
       });
+    },
+    with(extension) {
+      const extendedLogic = extension(logic as any);
+      return createStoreCore(extendedLogic, emits) as any;
     }
   };
 
@@ -252,35 +248,33 @@ export type TransitionsFromEventPayloadMap<
  */
 export function createStore<
   TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
+  const TEventPayloadMap extends EventPayloadMap,
   TEmittedPayloadMap extends EventPayloadMap
 >(
   definition: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap>
+): Store<TContext, TEventPayloadMap, ExtractEvents<TEmittedPayloadMap>>;
+export function createStore<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+>(
+  definition:
+    | SpecificStoreConfig<TContext, TEvent, TEmitted>
+    | StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>
 ): Store<
   TContext,
-  ExtractEvents<TEventPayloadMap>,
-  ExtractEvents<TEmittedPayloadMap>
+  {
+    [E in TEvent as E['type']]: E;
+  },
+  TEmitted
 >;
-export function createStore<
-  TContext extends StoreContext,
-  TEvent extends EventObject,
-  TEmitted extends EventObject
->(
-  definition: SpecificStoreConfig<TContext, TEvent, TEmitted>
-): Store<TContext, TEvent, TEmitted>;
-export function createStore<
-  TContext extends StoreContext,
-  TEvent extends EventObject,
-  TEmitted extends EventObject
->(
-  logic: StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>
-): Store<TContext, TEvent, TEmitted>;
 export function createStore(
   definitionOrLogic: StoreConfig<any, any, any> | AnyStoreLogic
 ) {
   if ('transition' in definitionOrLogic) {
     return createStoreCore(definitionOrLogic);
   }
+
   const transition = createStoreTransition(definitionOrLogic.on);
   const logic: AnyStoreLogic = {
     getInitialSnapshot: () => ({
@@ -370,11 +364,7 @@ export function createStoreWithProducer<
       ) => void;
     };
   }
-): Store<
-  TContext,
-  ExtractEvents<TEventPayloadMap>,
-  ExtractEvents<TEmittedPayloadMap>
-> {
+): Store<TContext, TEventPayloadMap, ExtractEvents<TEmittedPayloadMap>> {
   const transition = createStoreTransition(config.on, producer);
   const logic = {
     getInitialSnapshot: () => ({
@@ -427,7 +417,7 @@ export function createStoreTransition<
     event: ExtractEvents<TEventPayloadMap>
   ): [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]] => {
     type StoreEvent = ExtractEvents<TEventPayloadMap>;
-    let currentContext = snapshot.context;
+    const currentContext = snapshot.context;
     const assigner = transitions?.[event.type as StoreEvent['type']];
     const effects: StoreEffect<TEmitted>[] = [];
 
@@ -451,43 +441,22 @@ export function createStoreTransition<
       return [snapshot, effects];
     }
 
-    if (typeof assigner === 'function') {
-      currentContext = producer
-        ? producer(currentContext, (draftContext) =>
-            (assigner as StoreProducerAssigner<TContext, StoreEvent, TEmitted>)(
-              draftContext,
-              event,
-              enqueue
-            )
+    const nextContext = producer
+      ? producer(currentContext, (draftContext) =>
+          (assigner as StoreProducerAssigner<TContext, StoreEvent, TEmitted>)(
+            draftContext,
+            event,
+            enqueue
           )
-        : setter(currentContext, (draftContext) =>
-            Object.assign(
-              {},
-              currentContext,
-              assigner?.(
-                draftContext,
-                event as any, // TODO: help me
-                enqueue
-              )
-            )
-          );
-    } else {
-      const partialUpdate: Record<string, unknown> = {};
-      for (const key of Object.keys(assigner)) {
-        const propAssignment = assigner[key];
-        partialUpdate[key] =
-          typeof propAssignment === 'function'
-            ? (propAssignment as StoreAssigner<TContext, StoreEvent, TEmitted>)(
-                currentContext,
-                event,
-                enqueue
-              )
-            : propAssignment;
-      }
-      currentContext = Object.assign({}, currentContext, partialUpdate);
-    }
+        )
+      : (assigner(currentContext, event as any, enqueue) ?? currentContext);
 
-    return [{ ...snapshot, context: currentContext }, effects];
+    return [
+      nextContext === currentContext
+        ? snapshot
+        : { ...snapshot, context: nextContext },
+      effects
+    ];
   };
 }
 

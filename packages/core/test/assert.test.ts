@@ -36,7 +36,7 @@ describe('assertion helpers', () => {
     actor.subscribe({
       error(err) {
         expect(err).toMatchInlineSnapshot(
-          `[Error: Expected event {"type":"count","value":42} to have type "greet"]`
+          `[Error: Expected event {"type":"count","value":42} to have type matching "greet"]`
         );
         resolve();
       }
@@ -91,7 +91,7 @@ describe('assertion helpers', () => {
     actor.subscribe({
       error(err) {
         expect(err).toMatchInlineSnapshot(
-          `[Error: Expected event {"type":"count","value":42} to have one of types "greet", "notify"]`
+          `[Error: Expected event {"type":"count","value":42} to have one of types matching "greet", "notify"]`
         );
         resolve();
       }
