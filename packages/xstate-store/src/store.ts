@@ -193,7 +193,7 @@ function createStoreCore<
     },
     with(extension) {
       const extendedLogic = extension(logic as any);
-      return createStoreCore(extendedLogic) as any;
+      return createStoreCore(extendedLogic, emits) as any;
     }
   };
 

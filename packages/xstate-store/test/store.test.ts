@@ -4,6 +4,7 @@ import {
   createStoreConfig,
   createStoreWithProducer
 } from '../src/index.ts';
+import { reset } from '../src/reset.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
 import {
   AnyStoreConfig,
@@ -1081,4 +1082,32 @@ describe('types', () => {
       }
     });
   });
+});
+
+it('emitted events work with store extensions', () => {
+  const store = createStore({
+    context: {
+      count: 0
+    },
+    emits: {
+      increased: (_: { upBy: number }) => {}
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit.increased({ upBy: 1 });
+        return {
+          ...ctx,
+          count: ctx.count + 1
+        };
+      }
+    }
+  }).with(reset());
+
+  const spy = vi.fn();
+
+  store.on('increased', spy);
+
+  store.trigger.inc();
+
+  expect(spy).toHaveBeenCalledWith({ type: 'increased', upBy: 1 });
 });
