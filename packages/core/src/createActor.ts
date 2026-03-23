@@ -487,14 +487,14 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
-  public select<TSelected, TSnapshot = SnapshotFrom<TLogic>>(
-    selector: (snapshot: TSnapshot) => TSelected,
+  public select<TSelected>(
+    selector: (snapshot: SnapshotFrom<TLogic>) => TSelected,
     equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
   ): Readable<TSelected> {
     return {
       subscribe: (observerOrFn) => {
         const observer = toObserver(observerOrFn);
-        const snapshot: TSnapshot = this.getSnapshot();
+        const snapshot = this.getSnapshot();
         let previousSelected = selector(snapshot);
 
         return this.subscribe((snapshot) => {
