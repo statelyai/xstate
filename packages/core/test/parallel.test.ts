@@ -1328,3 +1328,316 @@ describe('parallel states', () => {
     expect(flushTracked()).toEqual([]);
   });
 });
+
+describe('parallel onDone output aggregation', () => {
+  it('should aggregate region outputs into a keyed object', () => {
+    const outputSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'processing',
+      states: {
+        processing: {
+          type: 'parallel',
+          states: {
+            upload: {
+              initial: 'pending',
+              states: {
+                pending: { on: { UPLOADED: 'done' } },
+                done: {
+                  type: 'final',
+                  output: { url: '/file.png' }
+                }
+              }
+            },
+            validate: {
+              initial: 'checking',
+              states: {
+                checking: { on: { VALID: 'done' } },
+                done: {
+                  type: 'final',
+                  output: { valid: true }
+                }
+              }
+            }
+          },
+          onDone: ({ event }, enq) => {
+            enq(() => {
+              outputSpy(event.output);
+            });
+            return { target: 'success' };
+          }
+        },
+        success: { type: 'final' }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+    actor.send({ type: 'UPLOADED' });
+    actor.send({ type: 'VALID' });
+
+    expect(actor.getSnapshot().value).toBe('success');
+    expect(outputSpy).toHaveBeenCalledWith({
+      upload: { url: '/file.png' },
+      validate: { valid: true }
+    });
+  });
+
+  it('should include undefined for regions without output', () => {
+    const outputSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'processing',
+      states: {
+        processing: {
+          type: 'parallel',
+          states: {
+            withOutput: {
+              initial: 'active',
+              states: {
+                active: { on: { DONE_A: 'done' } },
+                done: {
+                  type: 'final',
+                  output: { data: 42 }
+                }
+              }
+            },
+            withoutOutput: {
+              initial: 'active',
+              states: {
+                active: { on: { DONE_B: 'done' } },
+                done: { type: 'final' }
+              }
+            }
+          },
+          onDone: ({ event }, enq) => {
+            enq(() => {
+              outputSpy(event.output);
+            });
+            return { target: 'success' };
+          }
+        },
+        success: { type: 'final' }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+    actor.send({ type: 'DONE_A' });
+    actor.send({ type: 'DONE_B' });
+
+    expect(outputSpy).toHaveBeenCalledWith({
+      withOutput: { data: 42 },
+      withoutOutput: undefined
+    });
+  });
+
+  it('should resolve dynamic output functions before aggregation', () => {
+    const outputSpy = vi.fn();
+    const machine = createMachine({
+      types: {} as { context: { count: number } },
+      context: { count: 10 },
+      initial: 'processing',
+      states: {
+        processing: {
+          type: 'parallel',
+          states: {
+            a: {
+              initial: 'active',
+              states: {
+                active: { on: { DONE: 'done' } },
+                done: {
+                  type: 'final',
+                  output: ({ context }) => ({ doubled: context.count * 2 })
+                }
+              }
+            },
+            b: {
+              initial: 'active',
+              states: {
+                active: { on: { DONE: 'done' } },
+                done: {
+                  type: 'final',
+                  output: 'static-value'
+                }
+              }
+            }
+          },
+          onDone: ({ event }, enq) => {
+            enq(() => {
+              outputSpy(event.output);
+            });
+            return { target: 'success' };
+          }
+        },
+        success: { type: 'final' }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+    actor.send({ type: 'DONE' });
+
+    expect(outputSpy).toHaveBeenCalledWith({
+      a: { doubled: 20 },
+      b: 'static-value'
+    });
+  });
+
+  it('should aggregate nested parallel outputs', () => {
+    const outputSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'outer',
+      states: {
+        outer: {
+          type: 'parallel',
+          states: {
+            branch1: {
+              initial: 'active',
+              states: {
+                active: { on: { DONE: 'done' } },
+                done: {
+                  type: 'final',
+                  output: { from: 'branch1' }
+                }
+              }
+            },
+            branch2: {
+              type: 'parallel',
+              states: {
+                inner1: {
+                  initial: 'active',
+                  states: {
+                    active: { on: { DONE: 'done' } },
+                    done: {
+                      type: 'final',
+                      output: { from: 'inner1' }
+                    }
+                  }
+                },
+                inner2: {
+                  initial: 'active',
+                  states: {
+                    active: { on: { DONE: 'done' } },
+                    done: {
+                      type: 'final',
+                      output: { from: 'inner2' }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          onDone: ({ event }, enq) => {
+            enq(() => {
+              outputSpy(event.output);
+            });
+            return { target: 'success' };
+          }
+        },
+        success: { type: 'final' }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+    actor.send({ type: 'DONE' });
+
+    expect(outputSpy).toHaveBeenCalledWith({
+      branch1: { from: 'branch1' },
+      branch2: {
+        inner1: { from: 'inner1' },
+        inner2: { from: 'inner2' }
+      }
+    });
+  });
+
+  it('should provide aggregated output to onDone guard', () => {
+    const machine = createMachine({
+      initial: 'processing',
+      states: {
+        processing: {
+          type: 'parallel',
+          states: {
+            a: {
+              initial: 'active',
+              states: {
+                active: { on: { DONE: 'done' } },
+                done: {
+                  type: 'final',
+                  output: { ok: true }
+                }
+              }
+            },
+            b: {
+              initial: 'active',
+              states: {
+                active: { on: { DONE: 'done' } },
+                done: {
+                  type: 'final',
+                  output: { ok: false }
+                }
+              }
+            }
+          },
+          onDone: [
+            {
+              guard: ({ event }) =>
+                (event.output as any).a.ok && (event.output as any).b.ok,
+              target: 'allOk'
+            },
+            { target: 'someNotOk' }
+          ]
+        },
+        allOk: { type: 'final' },
+        someNotOk: { type: 'final' }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+    actor.send({ type: 'DONE' });
+
+    expect(actor.getSnapshot().value).toBe('someNotOk');
+  });
+
+  it('should provide aggregated output for root parallel machine', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: 'active',
+          states: {
+            active: { on: { DONE: 'final' } },
+            final: {
+              type: 'final',
+              output: { from: 'a' }
+            }
+          }
+        },
+        b: {
+          initial: 'active',
+          states: {
+            active: { on: { DONE: 'final' } },
+            final: {
+              type: 'final',
+              output: { from: 'b' }
+            }
+          }
+        }
+      },
+      output: ({ event }) => ({
+        aggregated: event.output
+      })
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+    actor.send({ type: 'DONE' });
+
+    expect(actor.getSnapshot().output).toEqual({
+      aggregated: {
+        a: { from: 'a' },
+        b: { from: 'b' }
+      }
+    });
+  });
+});

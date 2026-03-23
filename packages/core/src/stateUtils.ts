@@ -30,7 +30,8 @@ import {
   AnyStateMachine,
   EnqueueObject,
   Action,
-  AnyActorRef
+  AnyActorRef,
+  DoneStateEvent
 } from './types.ts';
 import {
   resolveOutput,
@@ -1211,21 +1212,34 @@ function getMachineOutput(
   event: AnyEventObject,
   actorScope: AnyActorScope,
   rootNode: AnyStateNode,
-  rootCompletionNode: AnyStateNode
+  rootCompletionNode: AnyStateNode,
+  internalQueue: AnyEventObject[]
 ) {
   if (rootNode.output === undefined) {
     return;
   }
+
+  let completionOutput: unknown;
+  if (rootCompletionNode.output !== undefined && rootCompletionNode.parent) {
+    completionOutput = resolveOutput(
+      rootCompletionNode.output,
+      snapshot.context,
+      event,
+      actorScope.self
+    );
+  } else if (rootCompletionNode.type === 'parallel') {
+    // For parallel root completion nodes, find the aggregated output
+    // from the already-queued done event
+    const parallelDoneType = `xstate.done.state.${rootCompletionNode.id}`;
+    const parallelDoneEvent = internalQueue.find(
+      (e) => e.type === parallelDoneType
+    ) as DoneStateEvent | undefined;
+    completionOutput = parallelDoneEvent?.output;
+  }
+
   const doneStateEvent = createDoneStateEvent(
     rootCompletionNode.id,
-    rootCompletionNode.output !== undefined && rootCompletionNode.parent
-      ? resolveOutput(
-          rootCompletionNode.output,
-          snapshot.context,
-          event,
-          actorScope.self
-        )
-      : undefined
+    completionOutput
   );
   return resolveOutput(
     rootNode.output,
@@ -1460,7 +1474,47 @@ function enterStates(
         isInFinalState(mutStateNodeSet, ancestorMarker)
       ) {
         completedNodes.add(ancestorMarker);
-        internalQueue.push(createDoneStateEvent(ancestorMarker.id));
+        const regionOutput: Record<string, unknown> = {};
+        for (const region of getChildren(ancestorMarker)) {
+          if (region.type === 'final') {
+            // Direct final child of parallel state
+            regionOutput[region.key] =
+              region.output !== undefined
+                ? resolveOutput(
+                    region.output,
+                    nextSnapshot.context,
+                    event,
+                    actorScope.self
+                  )
+                : undefined;
+          } else if (region.type === 'parallel') {
+            // Parallel region — its done event was already queued by
+            // an earlier iteration of this while loop
+            const regionDoneType = `xstate.done.state.${region.id}`;
+            const regionDoneEvent = internalQueue.find(
+              (e) => e.type === regionDoneType
+            ) as DoneStateEvent | undefined;
+            regionOutput[region.key] = regionDoneEvent?.output;
+          } else {
+            // Compound region — find the active final state within it
+            // and resolve its output directly
+            const finalChild = getChildren(region).find(
+              (s) => s.type === 'final' && mutStateNodeSet.has(s)
+            );
+            regionOutput[region.key] =
+              finalChild?.output !== undefined
+                ? resolveOutput(
+                    finalChild.output,
+                    nextSnapshot.context,
+                    event,
+                    actorScope.self
+                  )
+                : undefined;
+          }
+        }
+        internalQueue.push(
+          createDoneStateEvent(ancestorMarker.id, regionOutput)
+        );
         rootCompletionNode = ancestorMarker;
         ancestorMarker = ancestorMarker.parent;
       }
@@ -1475,7 +1529,8 @@ function enterStates(
           event,
           actorScope,
           nextSnapshot.machine.root,
-          rootCompletionNode
+          rootCompletionNode,
+          internalQueue
         )
       });
     }

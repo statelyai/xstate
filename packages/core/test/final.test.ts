@@ -607,7 +607,9 @@ describe('final states', () => {
       [
         [
           {
-            "output": undefined,
+            "output": {
+              "a": undefined,
+            },
             "type": "xstate.done.state.(machine)",
           },
         ],
@@ -640,7 +642,9 @@ describe('final states', () => {
       [
         [
           {
-            "output": undefined,
+            "output": {
+              "a": undefined,
+            },
             "type": "xstate.done.state.(machine)",
           },
         ],
@@ -678,7 +682,11 @@ describe('final states', () => {
       [
         [
           {
-            "output": undefined,
+            "output": {
+              "a": {
+                "b": undefined,
+              },
+            },
             "type": "xstate.done.state.(machine)",
           },
         ],
@@ -718,7 +726,11 @@ describe('final states', () => {
       [
         [
           {
-            "output": undefined,
+            "output": {
+              "b": {
+                "c": undefined,
+              },
+            },
             "type": "xstate.done.state.(machine).a",
           },
         ],
