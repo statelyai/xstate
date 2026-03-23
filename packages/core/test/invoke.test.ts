@@ -20,9 +20,10 @@ import {
   createActor,
   sendParent,
   Snapshot,
-  ActorRef
+  ActorRef,
+  AnyEventObject
 } from '../src/index.ts';
-import { sleep } from '@xstate-repo/jest-utils';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 const user = { name: 'David' };
 
@@ -103,7 +104,8 @@ describe('invoke', () => {
     expect(actorRef.getSnapshot().context).toEqual({ count: -3 });
   });
 
-  it('should start services (explicit machine, invoke = config)', (done) => {
+  it('should start services (explicit machine, invoke = config)', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
       id: 'fetch',
       types: {} as {
@@ -186,14 +188,16 @@ describe('invoke', () => {
     const actor = createActor(machine);
     actor.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
     actor.start();
     actor.send({ type: 'GO_TO_WAITING' });
+    return promise;
   });
 
-  it('should start services (explicit machine, invoke = machine)', (done) => {
+  it('should start services (explicit machine, invoke = machine)', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
       types: {} as {
         events: { type: 'RESOLVE' };
@@ -237,14 +241,16 @@ describe('invoke', () => {
     const actor = createActor(machine);
     actor.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
     actor.start();
     actor.send({ type: 'GO_TO_WAITING' });
+    return promise;
   });
 
-  it('should start services (machine as invoke config)', (done) => {
+  it('should start services (machine as invoke config)', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machineInvokeMachine = createMachine({
       types: {} as {
         events: {
@@ -282,11 +288,13 @@ describe('invoke', () => {
       }
     });
     const actor = createActor(machineInvokeMachine);
-    actor.subscribe({ complete: () => done() });
+    actor.subscribe({ complete: () => resolve() });
     actor.start();
+    return promise;
   });
 
-  it('should start deeply nested service (machine as invoke config)', (done) => {
+  it('should start deeply nested service (machine as invoke config)', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machineInvokeMachine = createMachine({
       types: {} as {
         events: {
@@ -330,11 +338,13 @@ describe('invoke', () => {
       }
     });
     const actor = createActor(machineInvokeMachine);
-    actor.subscribe({ complete: () => done() });
+    actor.subscribe({ complete: () => resolve() });
     actor.start();
+    return promise;
   });
 
-  it('should use the service overwritten by .provide(...)', (done) => {
+  it('should use the service overwritten by .provide(...)', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
       id: 'child',
       initial: 'init',
@@ -395,10 +405,11 @@ describe('invoke', () => {
     );
     actor.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
     actor.start();
+    return promise;
   });
 
   describe('parent to child', () => {
@@ -415,7 +426,8 @@ describe('invoke', () => {
       }
     });
 
-    it('should communicate with the child machine (invoke on machine)', (done) => {
+    it('should communicate with the child machine (invoke on machine)', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const mainMachine = createMachine({
         id: 'parent',
         initial: 'one',
@@ -437,13 +449,15 @@ describe('invoke', () => {
       const actor = createActor(mainMachine);
       actor.subscribe({
         complete: () => {
-          done();
+          resolve();
         }
       });
       actor.start();
+      return promise;
     });
 
-    it('should communicate with the child machine (invoke on state)', (done) => {
+    it('should communicate with the child machine (invoke on state)', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const mainMachine = createMachine({
         id: 'parent',
         initial: 'one',
@@ -465,10 +479,11 @@ describe('invoke', () => {
       const actor = createActor(mainMachine);
       actor.subscribe({
         complete: () => {
-          done();
+          resolve();
         }
       });
       actor.start();
+      return promise;
     });
 
     it('should transition correctly if child invocation causes it to directly go to final state', () => {
@@ -511,7 +526,8 @@ describe('invoke', () => {
       expect(actor.getSnapshot().value).toBe('two');
     });
 
-    it('should work with invocations defined in orthogonal state nodes', (done) => {
+    it('should work with invocations defined in orthogonal state nodes', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const pongMachine = createMachine({
         id: 'pong',
         initial: 'active',
@@ -551,10 +567,11 @@ describe('invoke', () => {
       const actor = createActor(pingMachine);
       actor.subscribe({
         complete: () => {
-          done();
+          resolve();
         }
       });
       actor.start();
+      return promise;
     });
 
     it('should not reinvoke root-level invocations on root non-reentering transitions', () => {
@@ -632,7 +649,8 @@ describe('invoke', () => {
       expect(actorStopped).toBe(true);
     });
 
-    it('child should not invoke an actor when it transitions to an invoking state when it gets stopped by its parent', (done) => {
+    it('child should not invoke an actor when it transitions to an invoking state when it gets stopped by its parent', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       let invokeCount = 0;
 
       const child = createMachine({
@@ -698,12 +716,13 @@ describe('invoke', () => {
       service.subscribe({
         complete: () => {
           expect(invokeCount).toBe(1);
-          done();
+          resolve();
         }
       });
       service.start();
 
       service.send({ type: 'START' });
+      return promise;
     });
   });
 
@@ -781,7 +800,8 @@ describe('invoke', () => {
         }
       });
 
-      it('should be invoked with a promise factory and resolve through onDone', (done) => {
+      it('should be invoked with a promise factory and resolve through onDone', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
         const machine = createMachine({
           initial: 'pending',
           states: {
@@ -803,21 +823,25 @@ describe('invoke', () => {
         const service = createActor(machine);
         service.subscribe({
           complete: () => {
-            done();
+            resolve();
           }
         });
         service.start();
+        return promise;
       });
 
-      it('should be invoked with a promise factory and reject with ErrorExecution', (done) => {
+      it('should be invoked with a promise factory and reject with ErrorExecution', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
         const actor = createActor(invokePromiseMachine, {
           input: { id: 31, succeed: false }
         });
-        actor.subscribe({ complete: () => done() });
+        actor.subscribe({ complete: () => resolve() });
         actor.start();
+        return promise;
       });
 
-      it('should be invoked with a promise factory and surface any unhandled errors', (done) => {
+      it('should be invoked with a promise factory and surface any unhandled errors', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
         const promiseMachine = createMachine({
           id: 'invokePromise',
           initial: 'pending',
@@ -842,15 +866,17 @@ describe('invoke', () => {
         service.subscribe({
           error(err) {
             expect((err as any).message).toEqual(expect.stringMatching(/test/));
-            done();
+            resolve();
           }
         });
 
         service.start();
+        return promise;
       });
 
-      it('should be invoked with a promise factory and stop on unhandled onError target', (done) => {
-        const completeSpy = jest.fn();
+      it('should be invoked with a promise factory and stop on unhandled onError target', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
+        const completeSpy = vi.fn();
 
         const promiseMachine = createMachine({
           id: 'invokePromise',
@@ -879,14 +905,16 @@ describe('invoke', () => {
             expect(err).toBeInstanceOf(Error);
             expect((err as any).message).toBe('test');
             expect(completeSpy).not.toHaveBeenCalled();
-            done();
+            resolve();
           },
           complete: completeSpy
         });
         actor.start();
+        return promise;
       });
 
-      it('should be invoked with a promise factory and resolve through onDone for compound state nodes', (done) => {
+      it('should be invoked with a promise factory and resolve through onDone for compound state nodes', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
         const promiseMachine = createMachine({
           id: 'promise',
           initial: 'parent',
@@ -914,11 +942,13 @@ describe('invoke', () => {
           }
         });
         const actor = createActor(promiseMachine);
-        actor.subscribe({ complete: () => done() });
+        actor.subscribe({ complete: () => resolve() });
         actor.start();
+        return promise;
       });
 
-      it('should be invoked with a promise service and resolve through onDone for compound state nodes', (done) => {
+      it('should be invoked with a promise service and resolve through onDone for compound state nodes', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
         const promiseMachine = createMachine(
           {
             id: 'promise',
@@ -953,10 +983,12 @@ describe('invoke', () => {
           }
         );
         const actor = createActor(promiseMachine);
-        actor.subscribe({ complete: () => done() });
+        actor.subscribe({ complete: () => resolve() });
         actor.start();
+        return promise;
       });
-      it('should assign the resolved data when invoked with a promise factory', (done) => {
+      it('should assign the resolved data when invoked with a promise factory', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
         const promiseMachine = createMachine({
           types: {} as { context: { count: number } },
           id: 'promise',
@@ -986,13 +1018,15 @@ describe('invoke', () => {
         actor.subscribe({
           complete: () => {
             expect(actor.getSnapshot().context.count).toEqual(1);
-            done();
+            resolve();
           }
         });
         actor.start();
+        return promise;
       });
 
-      it('should assign the resolved data when invoked with a promise service', (done) => {
+      it('should assign the resolved data when invoked with a promise service', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
         const promiseMachine = createMachine(
           {
             types: {} as { context: { count: number } },
@@ -1029,13 +1063,15 @@ describe('invoke', () => {
         actor.subscribe({
           complete: () => {
             expect(actor.getSnapshot().context.count).toEqual(1);
-            done();
+            resolve();
           }
         });
         actor.start();
+        return promise;
       });
 
-      it('should provide the resolved data when invoked with a promise factory', (done) => {
+      it('should provide the resolved data when invoked with a promise factory', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
         let count = 0;
 
         const promiseMachine = createMachine({
@@ -1066,13 +1102,15 @@ describe('invoke', () => {
         actor.subscribe({
           complete: () => {
             expect(count).toEqual(1);
-            done();
+            resolve();
           }
         });
         actor.start();
+        return promise;
       });
 
-      it('should provide the resolved data when invoked with a promise service', (done) => {
+      it('should provide the resolved data when invoked with a promise service', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
         let count = 0;
 
         const promiseMachine = createMachine(
@@ -1109,13 +1147,15 @@ describe('invoke', () => {
         actor.subscribe({
           complete: () => {
             expect(count).toEqual(1);
-            done();
+            resolve();
           }
         });
         actor.start();
+        return promise;
       });
 
-      it('should be able to specify a Promise as a service', (done) => {
+      it('should be able to specify a Promise as a service', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
         interface BeginEvent {
           type: 'BEGIN';
           payload: boolean;
@@ -1173,15 +1213,17 @@ describe('invoke', () => {
         );
 
         const actor = createActor(promiseMachine);
-        actor.subscribe({ complete: () => done() });
+        actor.subscribe({ complete: () => resolve() });
         actor.start();
         actor.send({
           type: 'BEGIN',
           payload: true
         });
+        return promise;
       });
 
-      it('should be able to reuse the same promise logic multiple times and create unique promise for each created actor', (done) => {
+      it('should be able to reuse the same promise logic multiple times and create unique promise for each created actor', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
         const machine = createMachine(
           {
             types: {} as {
@@ -1269,13 +1311,15 @@ describe('invoke', () => {
             expect(typeof snapshot.context.result1).toBe('number');
             expect(typeof snapshot.context.result2).toBe('number');
             expect(snapshot.context.result1).not.toBe(snapshot.context.result2);
-            done();
+            resolve();
           }
         });
         service.start();
+        return promise;
       });
 
-      it('should not emit onSnapshot if stopped', (done) => {
+      it('should not emit onSnapshot if stopped', () => {
+        const { resolve, promise } = Promise.withResolvers<void>();
         const machine = createMachine({
           initial: 'active',
           states: {
@@ -1312,14 +1356,16 @@ describe('invoke', () => {
         actor.send({ type: 'deactivate' });
 
         setTimeout(() => {
-          done();
+          resolve();
         }, 10);
+        return promise;
       });
     });
   });
 
   describe('with callbacks', () => {
-    it('should be able to specify a callback as a service', (done) => {
+    it('should be able to specify a callback as a service', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       interface BeginEvent {
         type: 'BEGIN';
         payload: boolean;
@@ -1403,12 +1449,13 @@ describe('invoke', () => {
       );
 
       const actor = createActor(callbackMachine);
-      actor.subscribe({ complete: () => done() });
+      actor.subscribe({ complete: () => resolve() });
       actor.start();
       actor.send({
         type: 'BEGIN',
         payload: true
       });
+      return promise;
     });
 
     it('should transition correctly if callback function sends an event', () => {
@@ -1544,7 +1591,8 @@ describe('invoke', () => {
       }
     });
 
-    it('should treat a callback source as an event stream', (done) => {
+    it('should treat a callback source as an event stream', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const intervalMachine = createMachine({
         types: {} as { context: { count: number } },
         id: 'interval',
@@ -1580,12 +1628,13 @@ describe('invoke', () => {
         }
       });
       const actor = createActor(intervalMachine);
-      actor.subscribe({ complete: () => done() });
+      actor.subscribe({ complete: () => resolve() });
       actor.start();
+      return promise;
     });
 
     it('should dispose of the callback (if disposal function provided)', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       const intervalMachine = createMachine({
         id: 'interval',
         initial: 'counting',
@@ -1609,7 +1658,8 @@ describe('invoke', () => {
       expect(spy).toHaveBeenCalled();
     });
 
-    it('callback should be able to receive messages from parent', (done) => {
+    it('callback should be able to receive messages from parent', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const pingPongMachine = createMachine({
         id: 'ping-pong',
         initial: 'active',
@@ -1636,11 +1686,13 @@ describe('invoke', () => {
         }
       });
       const actor = createActor(pingPongMachine);
-      actor.subscribe({ complete: () => done() });
+      actor.subscribe({ complete: () => resolve() });
       actor.start();
+      return promise;
     });
 
-    it('should call onError upon error (sync)', (done) => {
+    it('should call onError upon error (sync)', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const errorMachine = createMachine({
         id: 'error',
         initial: 'safe',
@@ -1667,8 +1719,9 @@ describe('invoke', () => {
         }
       });
       const actor = createActor(errorMachine);
-      actor.subscribe({ complete: () => done() });
+      actor.subscribe({ complete: () => resolve() });
       actor.start();
+      return promise;
     });
 
     it('should transition correctly upon error (sync)', () => {
@@ -1794,7 +1847,7 @@ describe('invoke', () => {
           }
         }
       });
-      const spy = jest.fn();
+      const spy = vi.fn();
 
       const actorRef = createActor(errorMachine);
       actorRef.subscribe({
@@ -1810,7 +1863,8 @@ describe('invoke', () => {
       `);
     });
 
-    it('should work with input', (done) => {
+    it('should work with input', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const machine = createMachine({
         types: {} as {
           context: { foo: string };
@@ -1822,7 +1876,7 @@ describe('invoke', () => {
             invoke: {
               src: fromCallback(({ input }) => {
                 expect(input).toEqual({ foo: 'bar' });
-                done();
+                resolve();
               }),
               input: ({ context }: any) => context
             }
@@ -1831,6 +1885,7 @@ describe('invoke', () => {
       });
 
       createActor(machine).start();
+      return promise;
     });
 
     it('sub invoke race condition ends on the completed state', () => {
@@ -1877,7 +1932,8 @@ describe('invoke', () => {
   });
 
   describe('with observables', () => {
-    it('should work with an infinite observable', (done) => {
+    it('should work with an infinite observable', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       interface Events {
         type: 'COUNT';
         value: number;
@@ -1911,13 +1967,15 @@ describe('invoke', () => {
       const service = createActor(obsMachine);
       service.subscribe({
         complete: () => {
-          done();
+          resolve();
         }
       });
       service.start();
+      return promise;
     });
 
-    it('should work with a finite observable', (done) => {
+    it('should work with a finite observable', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       interface Ctx {
         count: number | undefined;
       }
@@ -1956,13 +2014,15 @@ describe('invoke', () => {
       const actor = createActor(obsMachine);
       actor.subscribe({
         complete: () => {
-          done();
+          resolve();
         }
       });
       actor.start();
+      return promise;
     });
 
-    it('should receive an emitted error', (done) => {
+    it('should receive an emitted error', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       interface Ctx {
         count: number | undefined;
       }
@@ -2015,13 +2075,15 @@ describe('invoke', () => {
       const actor = createActor(obsMachine);
       actor.subscribe({
         complete: () => {
-          done();
+          resolve();
         }
       });
       actor.start();
+      return promise;
     });
 
-    it('should work with input', (done) => {
+    it('should work with input', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const childLogic = fromObservable(({ input }: { input: number }) =>
         of(input)
       );
@@ -2044,7 +2106,7 @@ describe('invoke', () => {
                   event.snapshot.status === 'active' &&
                   event.snapshot.context === 42
                 ) {
-                  done();
+                  resolve();
                 }
               }
             }
@@ -2058,11 +2120,13 @@ describe('invoke', () => {
       );
 
       createActor(machine).start();
+      return promise;
     });
   });
 
   describe('with event observables', () => {
-    it('should work with an infinite event observable', (done) => {
+    it('should work with an infinite event observable', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       interface Events {
         type: 'COUNT';
         value: number;
@@ -2098,13 +2162,15 @@ describe('invoke', () => {
       const service = createActor(obsMachine);
       service.subscribe({
         complete: () => {
-          done();
+          resolve();
         }
       });
       service.start();
+      return promise;
     });
 
-    it('should work with a finite event observable', (done) => {
+    it('should work with a finite event observable', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       interface Ctx {
         count: number | undefined;
       }
@@ -2150,13 +2216,15 @@ describe('invoke', () => {
       const actor = createActor(obsMachine);
       actor.subscribe({
         complete: () => {
-          done();
+          resolve();
         }
       });
       actor.start();
+      return promise;
     });
 
-    it('should receive an emitted error', (done) => {
+    it('should receive an emitted error', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       interface Ctx {
         count: number | undefined;
       }
@@ -2209,13 +2277,15 @@ describe('invoke', () => {
       const actor = createActor(obsMachine);
       actor.subscribe({
         complete: () => {
-          done();
+          resolve();
         }
       });
       actor.start();
+      return promise;
     });
 
-    it('should work with input', (done) => {
+    it('should work with input', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const machine = createMachine({
         invoke: {
           src: fromEventObservable(({ input }) =>
@@ -2230,18 +2300,20 @@ describe('invoke', () => {
           'obs.event': {
             actions: ({ event }) => {
               expect(event.value).toEqual(42);
-              done();
+              resolve();
             }
           }
         }
       });
 
       createActor(machine).start();
+      return promise;
     });
   });
 
   describe('with logic', () => {
-    it('should work with actor logic', (done) => {
+    it('should work with actor logic', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const countLogic: ActorLogic<
         Snapshot<undefined> & { context: number },
         EventObject
@@ -2284,16 +2356,18 @@ describe('invoke', () => {
       const countService = createActor(countMachine);
       countService.subscribe((state) => {
         if (state.children['count']?.getSnapshot().context === 2) {
-          done();
+          resolve();
         }
       });
       countService.start();
 
       countService.send({ type: 'INC' });
       countService.send({ type: 'INC' });
+      return promise;
     });
 
-    it('logic should have reference to the parent', (done) => {
+    it('logic should have reference to the parent', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const pongLogic: ActorLogic<Snapshot<undefined>, EventObject> = {
         transition: (state, event, { self }) => {
           if (event.type === 'PING') {
@@ -2332,15 +2406,17 @@ describe('invoke', () => {
       const pingService = createActor(pingMachine);
       pingService.subscribe({
         complete: () => {
-          done();
+          resolve();
         }
       });
       pingService.start();
+      return promise;
     });
   });
 
   describe('with transition functions', () => {
-    it('should work with a transition function', (done) => {
+    it('should work with a transition function', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const countReducer = (
         count: number,
         event: { type: 'INC' } | { type: 'DEC' }
@@ -2368,16 +2444,18 @@ describe('invoke', () => {
       const countService = createActor(countMachine);
       countService.subscribe((state) => {
         if (state.children['count']?.getSnapshot().context === 2) {
-          done();
+          resolve();
         }
       });
       countService.start();
 
       countService.send({ type: 'INC' });
       countService.send({ type: 'INC' });
+      return promise;
     });
 
-    it('should schedule events in a FIFO queue', (done) => {
+    it('should schedule events in a FIFO queue', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       type CountEvents = { type: 'INC' } | { type: 'DOUBLE' };
 
       const countReducer = (
@@ -2411,15 +2489,17 @@ describe('invoke', () => {
       const countService = createActor(countMachine);
       countService.subscribe((state) => {
         if (state.children['count']?.getSnapshot().context === 2) {
-          done();
+          resolve();
         }
       });
       countService.start();
 
       countService.send({ type: 'INC' });
+      return promise;
     });
 
-    it('should emit onSnapshot', (done) => {
+    it('should emit onSnapshot', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const doublerLogic = fromTransition(
         (_, event: { type: 'update'; value: number }) => event.value * 2,
         0
@@ -2435,7 +2515,7 @@ describe('invoke', () => {
             onSnapshot: {
               actions: ({ event }) => {
                 if (event.snapshot.context === 42) {
-                  done();
+                  resolve();
                 }
               }
             }
@@ -2450,6 +2530,7 @@ describe('invoke', () => {
       );
 
       createActor(machine).start();
+      return promise;
     });
   });
 
@@ -2498,13 +2579,16 @@ describe('invoke', () => {
       }
     });
 
-    it('should create invocations from machines in nested states', (done) => {
+    it('should create invocations from machines in nested states', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const actor = createActor(pingMachine);
-      actor.subscribe({ complete: () => done() });
+      actor.subscribe({ complete: () => resolve() });
       actor.start();
+      return promise;
     });
 
-    it('should emit onSnapshot', (done) => {
+    it('should emit onSnapshot', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const childMachine = createMachine({
         initial: 'a',
         states: {
@@ -2526,7 +2610,7 @@ describe('invoke', () => {
             onSnapshot: {
               actions: ({ event }) => {
                 if (event.snapshot.value === 'b') {
-                  done();
+                  resolve();
                 }
               }
             }
@@ -2540,6 +2624,7 @@ describe('invoke', () => {
       );
 
       createActor(machine).start();
+      return promise;
     });
   });
 
@@ -2590,7 +2675,8 @@ describe('invoke', () => {
       }
     });
 
-    it('should start all services at once', (done) => {
+    it('should start all services at once', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const service = createActor(multiple);
       service.subscribe({
         complete: () => {
@@ -2598,11 +2684,12 @@ describe('invoke', () => {
             one: 'one',
             two: 'two'
           });
-          done();
+          resolve();
         }
       });
 
       service.start();
+      return promise;
     });
 
     const parallel = createMachine({
@@ -2665,7 +2752,8 @@ describe('invoke', () => {
       }
     });
 
-    it('should run services in parallel', (done) => {
+    it('should run services in parallel', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const service = createActor(parallel);
       service.subscribe({
         complete: () => {
@@ -2673,11 +2761,12 @@ describe('invoke', () => {
             one: 'one',
             two: 'two'
           });
-          done();
+          resolve();
         }
       });
 
       service.start();
+      return promise;
     });
 
     it('should not invoke an actor if it gets stopped immediately by transitioning away in immediate microstep', () => {
@@ -2748,7 +2837,8 @@ describe('invoke', () => {
       expect(actorStarted).toBe(false);
     });
 
-    it('should invoke a service if other service gets stopped in subsequent microstep (#1180)', (done) => {
+    it('should invoke a service if other service gets stopped in subsequent microstep (#1180)', () => {
+      const { resolve, promise } = Promise.withResolvers<void>();
       const machine = createMachine({
         initial: 'running',
         states: {
@@ -2803,10 +2893,11 @@ describe('invoke', () => {
       });
 
       const service = createActor(machine);
-      service.subscribe({ complete: () => done() });
+      service.subscribe({ complete: () => resolve() });
       service.start();
 
       service.send({ type: 'NEXT' });
+      return promise;
     });
 
     it('should invoke an actor when reentering invoking state within a single macrostep', () => {
@@ -2845,7 +2936,8 @@ describe('invoke', () => {
     });
   });
 
-  it('invoke `src` can be used with invoke `input`', (done) => {
+  it('invoke `src` can be used with invoke `input`', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine(
       {
         types: {} as {
@@ -2886,8 +2978,9 @@ describe('invoke', () => {
       }
     );
     const actor = createActor(machine);
-    actor.subscribe({ complete: () => done() });
+    actor.subscribe({ complete: () => resolve() });
     actor.start();
+    return promise;
   });
 
   it('invoke `src` can be used with dynamic invoke `input`', async () => {
@@ -2940,7 +3033,8 @@ describe('invoke', () => {
     });
   });
 
-  it('invoke generated ID should be predictable based on the state node where it is defined', (done) => {
+  it('invoke generated ID should be predictable based on the state node where it is defined', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine(
       {
         initial: 'a',
@@ -2974,10 +3068,11 @@ describe('invoke', () => {
     const actor = createActor(machine);
     actor.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
     actor.start();
+    return promise;
   });
 
   it.each([
@@ -3024,7 +3119,7 @@ describe('invoke', () => {
   );
 
   // https://github.com/statelyai/xstate/issues/464
-  it('xstate.done.actor events should only select onDone transition on the invoking state when invokee is referenced using a string', (done) => {
+  it('xstate.done.actor events should only select onDone transition on the invoking state when invokee is referenced using a string', async () => {
     let counter = 0;
     let invoked = false;
 
@@ -3074,14 +3169,13 @@ describe('invoke', () => {
     createActor(testMachine).start();
 
     // check within a macrotask so all promise-induced microtasks have a chance to resolve first
-    setTimeout(() => {
-      expect(counter).toEqual(1);
-      done();
-    }, 0);
+    await sleep(0);
+    expect(counter).toEqual(1);
   });
 
-  it('xstate.done.actor events should have unique names when invokee is a machine with an id property', (done) => {
-    const actual: string[] = [];
+  it('xstate.done.actor events should have unique names when invokee is a machine with an id property', async () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const actual: AnyEventObject[] = [];
 
     const childMachine = createMachine({
       id: 'child',
@@ -3121,7 +3215,7 @@ describe('invoke', () => {
       on: {
         '*': {
           actions: ({ event }) => {
-            actual.push(event.type);
+            actual.push(event);
           }
         }
       }
@@ -3130,13 +3224,19 @@ describe('invoke', () => {
     createActor(testMachine).start();
 
     // check within a macrotask so all promise-induced microtasks have a chance to resolve first
-    setTimeout(() => {
-      expect(actual).toEqual([
-        'xstate.done.actor.0.(machine).first.fetch',
-        'xstate.done.actor.0.(machine).second.fetch'
-      ]);
-      done();
-    }, 100);
+    await sleep(0);
+    expect(actual).toEqual([
+      {
+        type: 'xstate.done.actor.0.(machine).first.fetch',
+        output: undefined,
+        actorId: '0.(machine).first.fetch'
+      },
+      {
+        type: 'xstate.done.actor.0.(machine).second.fetch',
+        output: undefined,
+        actorId: '0.(machine).second.fetch'
+      }
+    ]);
   });
 
   it('should get reinstantiated after reentering the invoking state in a microstep', () => {
@@ -3355,7 +3455,8 @@ describe('invoke', () => {
 });
 
 describe('invoke input', () => {
-  it('should provide input to an actor creator', (done) => {
+  it('should provide input to an actor creator', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine(
       {
         types: {} as {
@@ -3405,19 +3506,21 @@ describe('invoke input', () => {
     const service = createActor(machine);
     service.subscribe({
       complete: () => {
-        done();
+        resolve();
       }
     });
 
     service.start();
+    return promise;
   });
 
-  it('should provide self to input mapper', (done) => {
+  it('should provide self to input mapper', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       invoke: {
         src: fromCallback(({ input }) => {
           expect(input.responder.send).toBeDefined();
-          done();
+          resolve();
         }),
         input: ({ self }) => ({
           responder: self
@@ -3426,5 +3529,6 @@ describe('invoke input', () => {
     });
 
     createActor(machine).start();
+    return promise;
   });
 });

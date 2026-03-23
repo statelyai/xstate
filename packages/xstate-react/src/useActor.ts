@@ -1,13 +1,29 @@
 import isDevelopment from '#is-development';
 import { useCallback, useEffect } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
-import { Actor, ActorOptions, AnyActorLogic, SnapshotFrom } from 'xstate';
+import {
+  Actor,
+  ActorOptions,
+  AnyActorLogic,
+  Snapshot,
+  SnapshotFrom,
+  type ConditionalRequired,
+  type IsNotNever,
+  type RequiredActorOptionsKeys
+} from 'xstate';
 import { stopRootWithRehydration } from './stopRootWithRehydration.ts';
 import { useIdleActorRef } from './useActorRef.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  options: ActorOptions<TLogic> = {}
+  ...[options]: ConditionalRequired<
+    [
+      options?: ActorOptions<TLogic> & {
+        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
+      }
+    ],
+    IsNotNever<RequiredActorOptionsKeys<TLogic>>
+  >
 ): [SnapshotFrom<TLogic>, Actor<TLogic>['send'], Actor<TLogic>] {
   if (
     isDevelopment &&
@@ -27,8 +43,11 @@ export function useActor<TLogic extends AnyActorLogic>(
   }, [actorRef]);
 
   const subscribe = useCallback(
-    (handleStoreChange) => {
-      const { unsubscribe } = actorRef.subscribe(handleStoreChange);
+    (handleStoreChange: () => void) => {
+      const { unsubscribe } = actorRef.subscribe({
+        next: handleStoreChange,
+        error: handleStoreChange
+      });
       return unsubscribe;
     },
     [actorRef]
@@ -39,6 +58,14 @@ export function useActor<TLogic extends AnyActorLogic>(
     getSnapshot,
     getSnapshot
   );
+
+  const snapshotWithStatus =
+    'status' in actorSnapshot
+      ? (actorSnapshot as Snapshot<unknown>)
+      : undefined;
+  if (snapshotWithStatus?.status === 'error') {
+    throw snapshotWithStatus.error;
+  }
 
   useEffect(() => {
     actorRef.start();

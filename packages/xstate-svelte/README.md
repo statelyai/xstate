@@ -2,7 +2,7 @@
 
 This package contains utilities for using [XState](https://github.com/statelyai/xstate) with [Svelte](https://github.com/sveltejs/svelte).
 
-- [Read the full documentation in the XState docs](https://xstate.js.org/docs/packages/xstate-svelte/).
+- [Read the full documentation in the XState docs](https://stately.ai/docs/xstate-svelte).
 - [Read our contribution guidelines](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md).
 
 ## Quick Start

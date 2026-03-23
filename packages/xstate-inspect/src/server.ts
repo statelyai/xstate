@@ -1,5 +1,5 @@
 import { WebSocketServer } from 'ws';
-import { Actor, EventFromLogic, EventObject, createActor } from 'xstate';
+import { Actor, EventObject, createActor } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
 import { InspectMachineEvent, createInspectMachine } from './inspectMachine.ts';
 import { Inspector, Replacer } from './types.ts';
@@ -53,7 +53,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   const inspectService = createActor(
     createInspectMachine(devTools, options)
   ).start();
-  let client = {
+  const client = {
     name: '@@xstate/ws-client',
     send: (event: any) => {
       server.clients.forEach((wsClient) => {
@@ -68,12 +68,12 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   };
 
   server.on('connection', function connection(wsClient) {
-    wsClient.on('message', function incoming(data, isBinary) {
+    wsClient.on('message', function incoming(data: unknown, isBinary) {
       if (isBinary) {
         return;
       }
 
-      const jsonMessage = JSON.parse(data.toString());
+      const jsonMessage = JSON.parse(String(data));
       inspectService.send({
         ...jsonMessage,
         client

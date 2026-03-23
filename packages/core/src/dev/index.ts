@@ -40,7 +40,7 @@ export function getGlobal(): typeof globalThis | undefined {
 
 function getDevTools(): DevInterface | undefined {
   const w = getGlobal();
-  if (!!(w as any).__xstate__) {
+  if ((w as any).__xstate__) {
     return (w as any).__xstate__;
   }
 

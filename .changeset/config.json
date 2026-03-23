@@ -5,12 +5,7 @@
   "linked": [],
   "access": "public",
   "baseBranch": "main",
-  "ignore": [
-    "@xstate/immer",
-    "@xstate/graph",
-    "@xstate/inspect",
-    "@xstate/test"
-  ],
+  "ignore": ["@xstate/immer", "@xstate/inspect"],
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
     "onlyUpdatePeerDependentsWhenOutOfRange": true,
     "useCalculatedVersionForSnapshots": true

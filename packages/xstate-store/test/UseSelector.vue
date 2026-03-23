@@ -1,6 +1,6 @@
 <template>
   <div data-testid="count">{{ count }}</div>
-  <button data-testid="increment" @click="store.send({ type: 'inc' })">
+  <button data-testid="increment" @click="store.trigger.inc()">
     Increment
   </button>
 </template>
@@ -15,10 +15,13 @@ export default defineComponent({
   emits: ['rerender'],
   setup() {
     const store = createStore({
-      count: 0
-    }, {
-      inc: (ctx) => ({ count: ctx.count + 1 })
-    })
+      context: {
+        count: 0
+      },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    });
     const count = useSelector(store, (state) => state.context.count);
 
     count satisfies Ref<number>;

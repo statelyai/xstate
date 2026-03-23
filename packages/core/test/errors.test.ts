@@ -1,12 +1,28 @@
-import { sleep } from '@xstate-repo/jest-utils';
+import { setTimeout as sleep } from 'node:timers/promises';
 import {
+  AnyEventObject,
   assign,
   createActor,
   createMachine,
+  emit,
   fromCallback,
   fromPromise,
-  fromTransition
+  fromTransition,
+  setup
 } from '../src';
+
+// mocked reportUnhandledError due to unknown issue with vitest and global error
+// handlers not catching thrown errors
+// see: https://github.com/vitest-dev/vitest/issues/6292
+vi.mock('../src/reportUnhandledError.ts', () => {
+  return {
+    reportUnhandledError: (err: unknown) => {
+      setTimeout(() => {
+        dispatchEvent(new ErrorEvent('error', { error: err }));
+      });
+    }
+  };
+});
 
 const cleanups: (() => void)[] = [];
 function installGlobalOnErrorHandler(handler: (ev: ErrorEvent) => void) {
@@ -21,7 +37,8 @@ afterEach(() => {
 
 describe('error handling', () => {
   // https://github.com/statelyai/xstate/issues/4004
-  it('does not cause an infinite loop when an error is thrown in subscribe', (done) => {
+  it('does not cause an infinite loop when an error is thrown in subscribe', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       id: 'machine',
       initial: 'initial',
@@ -36,7 +53,7 @@ describe('error handling', () => {
       }
     });
 
-    const spy = jest.fn().mockImplementation(() => {
+    const spy = vi.fn().mockImplementation(() => {
       throw new Error('no_infinite_loop_when_error_is_thrown_in_subscribe');
     });
 
@@ -52,12 +69,15 @@ describe('error handling', () => {
       expect(ev.error.message).toEqual(
         'no_infinite_loop_when_error_is_thrown_in_subscribe'
       );
-      done();
+      resolve();
     });
+
+    return promise;
   });
 
-  it(`doesn't crash the actor when an error is thrown in subscribe`, (done) => {
-    const spy = jest.fn();
+  it(`doesn't crash the actor when an error is thrown in subscribe`, () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const spy = vi.fn();
 
     const machine = createMachine({
       id: 'machine',
@@ -79,7 +99,7 @@ describe('error handling', () => {
       }
     });
 
-    const subscriber = jest.fn().mockImplementationOnce(() => {
+    const subscriber = vi.fn().mockImplementationOnce(() => {
       throw new Error('doesnt_crash_actor_when_error_is_thrown_in_subscribe');
     });
 
@@ -100,11 +120,14 @@ describe('error handling', () => {
       actor.send({ type: 'do' });
       expect(spy).toHaveBeenCalledTimes(1);
 
-      done();
+      resolve();
     });
+
+    return promise;
   });
 
-  it(`doesn't notify error listener when an error is thrown in subscribe`, (done) => {
+  it(`doesn't notify error listener when an error is thrown in subscribe`, () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       id: 'machine',
       initial: 'initial',
@@ -119,12 +142,12 @@ describe('error handling', () => {
       }
     });
 
-    const nextSpy = jest.fn().mockImplementation(() => {
+    const nextSpy = vi.fn().mockImplementation(() => {
       throw new Error(
         'doesnt_notify_error_listener_when_error_is_thrown_in_subscribe'
       );
     });
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actor = createActor(machine).start();
 
@@ -142,11 +165,14 @@ describe('error handling', () => {
       expect(ev.error.message).toEqual(
         'doesnt_notify_error_listener_when_error_is_thrown_in_subscribe'
       );
-      done();
+      resolve();
     });
+
+    return promise;
   });
 
-  it('unhandled sync errors thrown when starting a child actor should be reported globally', (done) => {
+  it('unhandled sync errors thrown when starting a child actor should be reported globally', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'pending',
       states: {
@@ -169,11 +195,14 @@ describe('error handling', () => {
     installGlobalOnErrorHandler((ev) => {
       ev.preventDefault();
       expect(ev.error.message).toEqual('unhandled_sync_error_in_actor_start');
-      done();
+      resolve();
     });
+
+    return promise;
   });
 
-  it('unhandled rejection of a promise actor should be reported globally in absence of error listener', (done) => {
+  it('unhandled rejection of a promise actor should be reported globally in absence of error listener', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'pending',
       states: {
@@ -202,12 +231,14 @@ describe('error handling', () => {
       expect(ev.error.message).toEqual(
         'unhandled_rejection_in_promise_actor_without_error_listener'
       );
-      done();
+      resolve();
     });
+
+    return promise;
   });
 
   it('unhandled rejection of a promise actor should be reported to the existing error listener of its parent', async () => {
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const machine = createMachine({
       initial: 'pending',
@@ -238,7 +269,7 @@ describe('error handling', () => {
 
     await sleep(0);
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: unhandled_rejection_in_promise_actor_with_parent_listener],
@@ -248,7 +279,7 @@ describe('error handling', () => {
   });
 
   it('unhandled rejection of a promise actor should be reported to the existing error listener of its grandparent', async () => {
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const child = createMachine({
       initial: 'pending',
@@ -294,7 +325,7 @@ describe('error handling', () => {
 
     await sleep(0);
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: unhandled_rejection_in_promise_actor_with_grandparent_listener],
@@ -303,7 +334,8 @@ describe('error handling', () => {
     `);
   });
 
-  it('handled sync errors thrown when starting a child actor should not be reported globally', (done) => {
+  it('handled sync errors thrown when starting a child actor should not be reported globally', () => {
+    const { resolve, reject, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'pending',
       states: {
@@ -324,15 +356,18 @@ describe('error handling', () => {
     createActor(machine).start();
 
     installGlobalOnErrorHandler(() => {
-      done.fail();
+      reject(new Error('Fail'));
     });
 
     setTimeout(() => {
-      done();
+      resolve();
     }, 10);
+
+    return promise;
   });
 
-  it('handled sync errors thrown when starting a child actor should be reported globally when not all of its own observers come with an error listener', (done) => {
+  it('handled sync errors thrown when starting a child actor should be reported globally when not all of its own observers come with an error listener', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'pending',
       states: {
@@ -361,11 +396,14 @@ describe('error handling', () => {
     installGlobalOnErrorHandler((ev) => {
       ev.preventDefault();
       expect(ev.error.message).toEqual('handled_sync_error_in_actor_start');
-      done();
+      resolve();
     });
+
+    return promise;
   });
 
-  it('handled sync errors thrown when starting a child actor should not be reported globally when all of its own observers come with an error listener', (done) => {
+  it('handled sync errors thrown when starting a child actor should not be reported globally when all of its own observers come with an error listener', () => {
+    const { resolve, reject, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'pending',
       states: {
@@ -394,15 +432,18 @@ describe('error handling', () => {
     actorRef.start();
 
     installGlobalOnErrorHandler(() => {
-      done.fail();
+      reject(new Error('Fail'));
     });
 
     setTimeout(() => {
-      done();
+      resolve();
     }, 10);
+
+    return promise;
   });
 
-  it('unhandled sync errors thrown when starting a child actor should be reported twice globally when not all of its own observers come with an error listener and when the root has no error listener of its own', (done) => {
+  it('unhandled sync errors thrown when starting a child actor should be reported twice globally when not all of its own observers come with an error listener and when the root has no error listener of its own', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'pending',
       states: {
@@ -435,9 +476,11 @@ describe('error handling', () => {
           'handled_sync_error_in_actor_start',
           'handled_sync_error_in_actor_start'
         ]);
-        done();
+        resolve();
       }
     });
+
+    return promise;
   });
 
   it(`handled sync errors shouldn't notify the error listener`, () => {
@@ -458,7 +501,7 @@ describe('error handling', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -489,7 +532,7 @@ describe('error handling', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -497,7 +540,7 @@ describe('error handling', () => {
     });
     actorRef.start();
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: unhandled_sync_error_in_actor_start_with_root_error_listener],
@@ -506,7 +549,8 @@ describe('error handling', () => {
     `);
   });
 
-  it(`unhandled sync errors should not notify the global listener when the root error listener is present`, (done) => {
+  it(`unhandled sync errors should not notify the global listener when the root error listener is present`, () => {
+    const { resolve, reject, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'pending',
       states: {
@@ -526,7 +570,7 @@ describe('error handling', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -537,16 +581,18 @@ describe('error handling', () => {
     expect(errorSpy).toHaveBeenCalledTimes(1);
 
     installGlobalOnErrorHandler(() => {
-      done.fail();
+      reject(new Error('Fail'));
     });
 
     setTimeout(() => {
-      done();
+      resolve();
     }, 10);
+
+    return promise;
   });
 
   it(`handled sync errors thrown when starting an actor shouldn't crash the parent`, () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'pending',
@@ -578,7 +624,8 @@ describe('error handling', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it(`unhandled sync errors thrown when starting an actor should crash the parent`, (done) => {
+  it(`unhandled sync errors thrown when starting an actor should crash the parent`, () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'pending',
       states: {
@@ -600,11 +647,14 @@ describe('error handling', () => {
     installGlobalOnErrorHandler((ev) => {
       ev.preventDefault();
       expect(ev.error.message).toEqual('unhandled_sync_error_in_actor_start');
-      done();
+      resolve();
     });
+
+    return promise;
   });
 
-  it(`error thrown by the error listener should be reported globally`, (done) => {
+  it(`error thrown by the error listener should be reported globally`, () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'pending',
       states: {
@@ -629,11 +679,14 @@ describe('error handling', () => {
     installGlobalOnErrorHandler((ev) => {
       ev.preventDefault();
       expect(ev.error.message).toEqual('error_thrown_by_error_listener');
-      done();
+      resolve();
     });
+
+    return promise;
   });
 
-  it(`error should be reported globally if not every observer comes with an error listener`, (done) => {
+  it(`error should be reported globally if not every observer comes with an error listener`, () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'pending',
       states: {
@@ -661,11 +714,13 @@ describe('error handling', () => {
       expect(ev.error.message).toEqual(
         'error_thrown_when_not_every_observer_comes_with_an_error_listener'
       );
-      done();
+      resolve();
     });
+    return promise;
   });
 
-  it(`uncaught error and an error thrown by the error listener should both be reported globally when not every observer comes with an error listener`, (done) => {
+  it(`uncaught error and an error thrown by the error listener should both be reported globally when not every observer comes with an error listener`, () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       initial: 'pending',
       states: {
@@ -701,9 +756,11 @@ describe('error handling', () => {
           'error_thrown_by_error_listener',
           'error_thrown_when_not_every_observer_comes_with_an_error_listener'
         ]);
-        done();
+        resolve();
       }
     });
+
+    return promise;
   });
 
   it('error thrown in initial custom entry action should error the actor', () => {
@@ -713,7 +770,7 @@ describe('error handling', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -726,7 +783,7 @@ describe('error handling', () => {
     expect(snapshot.error).toMatchInlineSnapshot(
       `[Error: error_thrown_in_initial_entry_action]`
     );
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: error_thrown_in_initial_entry_action],
@@ -742,7 +799,7 @@ describe('error handling', () => {
       })
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
 
@@ -757,7 +814,7 @@ describe('error handling', () => {
     });
     actorRef.start();
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: error_thrown_when_resolving_initial_entry_action],
@@ -785,7 +842,7 @@ describe('error handling', () => {
       }
     });
 
-    const errorSpy = jest.fn();
+    const errorSpy = vi.fn();
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
@@ -799,7 +856,7 @@ describe('error handling', () => {
     expect(snapshot.error).toMatchInlineSnapshot(
       `[Error: error_thrown_in_a_custom_entry_action_when_transitioning]`
     );
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           [Error: error_thrown_in_a_custom_entry_action_when_transitioning],
@@ -809,7 +866,7 @@ describe('error handling', () => {
   });
 
   it(`shouldn't execute deferred initial actions that come after an action that errors`, () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       entry: [
@@ -860,7 +917,7 @@ describe('error handling', () => {
   });
 
   it('should error when a guard throws when transitioning', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -891,5 +948,43 @@ describe('error handling', () => {
       [Error: Unable to evaluate guard in transition for event 'NEXT' in state node '(machine).a':
       error_thrown_in_guard_when_transitioning]
     `);
+  });
+
+  it('actor continues to work normally after emit callback errors', async () => {
+    const machine = setup({
+      types: {
+        emitted: {} as { type: 'emitted'; foo: string }
+      }
+    }).createMachine({
+      on: {
+        someEvent: {
+          actions: emit({ type: 'emitted', foo: 'bar' })
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    let errorThrown = false;
+
+    actor.on('emitted', () => {
+      errorThrown = true;
+      throw new Error('oops');
+    });
+
+    // Send first event - should trigger error but actor should remain active
+    actor.send({ type: 'someEvent' });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(errorThrown).toBe(true);
+    expect(actor.getSnapshot().status).toEqual('active');
+
+    // Send second event - should work normally without error
+    const event = await new Promise<AnyEventObject>((res) => {
+      actor.on('emitted', res);
+      actor.send({ type: 'someEvent' });
+    });
+
+    expect(event.foo).toBe('bar');
+    expect(actor.getSnapshot().status).toEqual('active');
   });
 });

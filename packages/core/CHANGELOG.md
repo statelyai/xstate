@@ -1,5 +1,844 @@
 # xstate
 
+## 5.28.0
+
+### Minor Changes
+
+- [#4184](https://github.com/statelyai/xstate/pull/4184) [`a741fe7`](https://github.com/statelyai/xstate/commit/a741fe75901d3c4f08314e7c6d888bcb37866c04) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added routable states. States with `route: {}` and an explicit `id` can be navigated to from anywhere via a single `{ type: 'xstate.route', to: '#id' }` event.
+
+  ```ts
+  const machine = setup({}).createMachine({
+    id: 'app',
+    initial: 'home',
+    states: {
+      home: { id: 'home', route: {} },
+      dashboard: {
+        initial: 'overview',
+        states: {
+          overview: { id: 'overview', route: {} },
+          settings: { id: 'settings', route: {} }
+        }
+      }
+    }
+  });
+
+  const actor = createActor(machine).start();
+
+  // Route directly to deeply nested state from anywhere
+  actor.send({ type: 'xstate.route', to: '#settings' });
+  ```
+
+  Routes support guards for conditional navigation:
+
+  ```ts
+  settings: {
+    id: 'settings',
+    route: {
+      guard: ({ context }) => context.role === 'admin'
+    }
+  }
+  ```
+
+### Patch Changes
+
+- [#5464](https://github.com/statelyai/xstate/pull/5464) [`ad809a0`](https://github.com/statelyai/xstate/commit/ad809a0a7084f57a30a47aade90b83caa2eb65d9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix: export types so setup() declaration emit works (fixes #5462)
+
+## 5.27.0
+
+### Minor Changes
+
+- [#5457](https://github.com/statelyai/xstate/pull/5457) [`287b51e`](https://github.com/statelyai/xstate/commit/287b51eb80abc521f8c35fa73df177a0b9dfd3bc) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `getInitialMicrosteps(…)` and `getMicrosteps(…)` functions that return an array of `[snapshot, actions]` tuples for each microstep in a transition.
+
+  ```ts
+  import { createMachine, getInitialMicrosteps, getMicrosteps } from 'xstate';
+
+  const machine = createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        entry: () => console.log('enter a'),
+        on: {
+          NEXT: 'b'
+        }
+      },
+      b: {
+        entry: () => console.log('enter b'),
+        always: 'c'
+      },
+      c: {}
+    }
+  });
+
+  // Get microsteps from initial transition
+  const initialMicrosteps = getInitialMicrosteps(machine);
+  // Returns: [
+  //  [snapshotA, [entryActionA]]
+  // ]
+
+  // Get microsteps from a transition
+  const microsteps = getMicrosteps(machine, initialMicrosteps[0][0], {
+    type: 'NEXT'
+  });
+  // Returns: [
+  //  [snapshotB, [entryActionB]],
+  //  [snapshotC, []]
+  // ]
+
+  // Each microstep is a tuple of [snapshot, actions]
+  for (const [snapshot, actions] of microsteps) {
+    console.log('State:', snapshot.value);
+    console.log('Actions:', actions.length);
+  }
+  ```
+
+## 5.26.0
+
+### Minor Changes
+
+- [#5406](https://github.com/statelyai/xstate/pull/5406) [`703c3a1`](https://github.com/statelyai/xstate/commit/703c3a109c824f2334ede31d8428e923d2727e6e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `getNextTransitions(state)` utility to get all transitions available from current `state`.
+
+  ```ts
+  import { getNextTransitions } from 'xstate';
+
+  // ...
+
+  const state = actor.getSnapshot();
+  const transitions = getNextTransitions(state);
+
+  transitions.forEach((t) => {
+    console.log(`Event: ${t.eventType}, Source: ${t.source.key}`);
+  });
+  ```
+
+## 5.25.1
+
+### Patch Changes
+
+- [#5440](https://github.com/statelyai/xstate/pull/5440) [`e36e299`](https://github.com/statelyai/xstate/commit/e36e299a319bc8d0f124f0435b30f095cbbd0ce6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `systemId` cleanup for nested children on `stopChild`
+
+## 5.25.0
+
+### Minor Changes
+
+- [#5422](https://github.com/statelyai/xstate/pull/5422) [`329297b`](https://github.com/statelyai/xstate/commit/329297b3bf859668ed1dfc260c14e773a0413fd4) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add partial descriptor support to `assertEvent(…)`
+
+  ```ts
+  // Matches any event with a type that starts with `FEEDBACK.`
+  assertEvent(event, 'FEEDBACK.*');
+  ```
+
+### Patch Changes
+
+- [#5420](https://github.com/statelyai/xstate/pull/5420) [`2eb8274`](https://github.com/statelyai/xstate/commit/2eb82745dbdf4ac8dfbcc3c426ed4d81c732844b) Thanks [@assertnotnull](https://github.com/assertnotnull)! - Fix a bug in Cordova when iterating an empty Map
+
+## 5.24.0
+
+### Minor Changes
+
+- [#5371](https://github.com/statelyai/xstate/pull/5371) [`b8ec3b1`](https://github.com/statelyai/xstate/commit/b8ec3b153fbacae078c03cd07678271e0456679a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `setup.extend()` method to incrementally extend machine setup configurations with additional actions, guards, and delays. This enables composable and reusable machine setups where extended actions, guards, and delays can reference base actions, guards, and delays and support chaining multiple extensions:
+
+  ```ts
+  import { setup, not, and } from 'xstate';
+
+  const baseSetup = setup({
+    guards: {
+      isAuthenticated: () => true,
+      hasPermission: () => false
+    }
+  });
+
+  const extendedSetup = baseSetup.extend({
+    guards: {
+      // Type-safe guard references
+      isUnauthenticated: not('isAuthenticated'),
+      canAccess: and(['isAuthenticated', 'hasPermission'])
+    }
+  });
+
+  // Both base and extended guards are available
+  extendedSetup.createMachine({
+    on: {
+      LOGIN: {
+        guard: 'isAuthenticated',
+        target: 'authenticated'
+      },
+      LOGOUT: {
+        guard: 'isUnauthenticated',
+        target: 'unauthenticated'
+      }
+    }
+  });
+  ```
+
+## 5.23.0
+
+### Minor Changes
+
+- [#5387](https://github.com/statelyai/xstate/pull/5387) [`53dd7f1`](https://github.com/statelyai/xstate/commit/53dd7f1abe18f430d578072086e896ea8a22ee7f) Thanks [@farskid](https://github.com/farskid)! - Adds `system.getAll` that returns a record of running actors within the system by their system id
+
+  ```ts
+  const childMachine = createMachine({});
+  const machine = createMachine({
+    // ...
+    invoke: [
+      {
+        src: childMachine,
+        systemId: 'test'
+      }
+    ]
+  });
+  const system = createActor(machine);
+
+  system.getAll(); // { test: ActorRefFrom<typeof childMachine> }
+  ```
+
+## 5.22.1
+
+### Patch Changes
+
+- [#5379](https://github.com/statelyai/xstate/pull/5379) [`98f9ddd`](https://github.com/statelyai/xstate/commit/98f9ddde939320fb698ef382f6712a0753d55ca5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Make `actor.systemId` public:
+
+  ```ts
+  const actor = createActor(machine, { systemId: 'test' });
+  actor.systemId; // 'test'
+  ```
+
+- [#5380](https://github.com/statelyai/xstate/pull/5380) [`e7e5e44`](https://github.com/statelyai/xstate/commit/e7e5e44c3758eec4c1380bd604539406ad71115a) Thanks [@Nirajkashyap](https://github.com/Nirajkashyap)! - fix: remove 'eventType' from required fields in initialTransitionObject
+
+## 5.22.0
+
+### Minor Changes
+
+- [#5367](https://github.com/statelyai/xstate/pull/5367) [`76c857e`](https://github.com/statelyai/xstate/commit/76c857e36f4ae3fae4b410759fb4f420bae31388) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add type-bound action helpers to `setup()`:
+  - `createAction(fn)` – create type-safe custom actions
+  - `setup().assign(...)`, `setup().sendTo(...)`, `setup().raise(...)`, `setup().log(...)`, `setup().cancel(...)`, `setup().stopChild(...)`, `setup().enqueueActions(...)`, `setup().emit(...)`, `setup().spawnChild(...)` – setup-scoped helpers that are fully typed to the setup's context/events/actors/guards/delays/emitted.
+
+  These helpers return actions that are bound to the specific `setup()` they were created from and can be used directly in the machine produced by that setup.
+
+  ```ts
+  const machineSetup = setup({
+    types: {} as {
+      context: {
+        count: number;
+      };
+      events: { type: 'inc'; value: number } | { type: 'TEST' };
+      emitted: { type: 'PING' };
+    }
+  });
+
+  // Custom action
+  const action = machineSetup.createAction(({ context, event }) => {
+    console.log(context.count, event.value);
+  });
+
+  // Type-bound built-ins (no wrapper needed)
+  const increment = machineSetup.assign({
+    count: ({ context }) => context.count + 1
+  });
+  const raiseTest = machineSetup.raise({ type: 'TEST' });
+  const ping = machineSetup.emit({ type: 'PING' });
+  const batch = machineSetup.enqueueActions(({ enqueue, check }) => {
+    if (check(() => true)) {
+      enqueue(increment);
+    }
+  });
+
+  const machine = machineSetup.createMachine({
+    context: { count: 0 },
+    entry: [action, increment, raiseTest, ping, batch]
+  });
+  ```
+
+## 5.21.0
+
+### Minor Changes
+
+- [#5364](https://github.com/statelyai/xstate/pull/5364) [`15e15b5`](https://github.com/statelyai/xstate/commit/15e15b5e38e2fb3c2bd67ae584aa4e019d12699c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `.createStateConfig(…)` to the setup API. This makes it possible to create state configs that are strongly typed and modular.
+
+  ```ts
+  const lightMachineSetup = setup({
+    // ...
+  });
+
+  const green = lightMachineSetup.createStateConfig({
+    //...
+  });
+
+  const yellow = lightMachineSetup.createStateConfig({
+    //...
+  });
+
+  const red = lightMachineSetup.createStateConfig({
+    //...
+  });
+
+  const machine = lightMachineSetup.createMachine({
+    initial: 'green',
+    states: {
+      green,
+      yellow,
+      red
+    }
+  });
+  ```
+
+## 5.20.2
+
+### Patch Changes
+
+- [#5351](https://github.com/statelyai/xstate/pull/5351) [`71387ff`](https://github.com/statelyai/xstate/commit/71387ff0af86715fe233c33236fe6e6a8746e56f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix: Emit callback errors no longer crash the actor
+
+  ```ts
+  actor.on('event', () => {
+    // Will no longer crash the actor
+    throw new Error('oops');
+  });
+  ```
+
+## 5.20.1
+
+### Patch Changes
+
+- [#5315](https://github.com/statelyai/xstate/pull/5315) [`9a0ae82`](https://github.com/statelyai/xstate/commit/9a0ae82d460131d864be4deafeaffc18b42d3bda) Thanks [@sfc-gh-dperezalvarez](https://github.com/sfc-gh-dperezalvarez)! - Exported `InspectedActionEvent` type
+
+## 5.20.0
+
+### Minor Changes
+
+- [#5287](https://github.com/statelyai/xstate/pull/5287) [`e07a7cd8462473188a0fb646a965e61be1ce6ae3`](https://github.com/statelyai/xstate/commit/e07a7cd8462473188a0fb646a965e61be1ce6ae3) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The graph and model-based testing utilities from @xstate/graph (and @xstate/test previously) were moved to the core `xstate` package.
+
+  ```ts
+  import { createMachine } from 'xstate';
+  import { getShortestPaths } from 'xstate/graph';
+
+  const machine = createMachine({
+    // ...
+  });
+
+  const paths = getShortestPaths(machine, {
+    fromState: 'a',
+    toState: 'b'
+  });
+  ```
+
+## 5.19.4
+
+### Patch Changes
+
+- [#5289](https://github.com/statelyai/xstate/pull/5289) [`479c74b83fa77c57c48f54cf0e9dcfab5fe6cae5`](https://github.com/statelyai/xstate/commit/479c74b83fa77c57c48f54cf0e9dcfab5fe6cae5) Thanks [@ebadyz](https://github.com/ebadyz)! - Removed outdated `context` parameter reference from `provide` method documentation.
+
+## 5.19.3
+
+### Patch Changes
+
+- [#5269](https://github.com/statelyai/xstate/pull/5269) [`b453b2d72ba12d0fe46a995f9ccced8000fd0cc9`](https://github.com/statelyai/xstate/commit/b453b2d72ba12d0fe46a995f9ccced8000fd0cc9) Thanks [@chladog](https://github.com/chladog)! - Add proper history value persistence and restoration
+
+## 5.19.2
+
+### Patch Changes
+
+- [#5170](https://github.com/statelyai/xstate/pull/5170) [`d99df1d8f4fe49145c9974465b65028bf19b365f`](https://github.com/statelyai/xstate/commit/d99df1d8f4fe49145c9974465b65028bf19b365f) Thanks [@Andarist](https://github.com/Andarist)! - Improved compatibility of inferred types in projects with `exactOptionalPropertyTypes` enabled
+
+## 5.19.1
+
+### Patch Changes
+
+- [#5139](https://github.com/statelyai/xstate/pull/5139) [`bf6119a7310a878afbf4f5b01f5e24288f9a0f16`](https://github.com/statelyai/xstate/commit/bf6119a7310a878afbf4f5b01f5e24288f9a0f16) Thanks [@SandroMaglione](https://github.com/SandroMaglione)! - Make `spawn` input required when defined inside referenced actor:
+
+  ```ts
+  const childMachine = createMachine({
+    types: { input: {} as { value: number } }
+  });
+
+  const machine = createMachine({
+    types: {} as { context: { ref: ActorRefFrom<typeof childMachine> } },
+    context: ({ spawn }) => ({
+      ref: spawn(
+        childMachine,
+        // Input is now required!
+        { input: { value: 42 } }
+      )
+    })
+  });
+  ```
+
+## 5.19.0
+
+### Minor Changes
+
+- [#4954](https://github.com/statelyai/xstate/pull/4954) [`8c4b70652acaef2702f32435362e4755679a516d`](https://github.com/statelyai/xstate/commit/8c4b70652acaef2702f32435362e4755679a516d) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added a new `transition` function that takes an actor logic, a snapshot, and an event, and returns a tuple containing the next snapshot and the actions to execute. This function is a pure function and does not execute the actions itself. It can be used like this:
+
+  ```ts
+  import { transition } from 'xstate';
+
+  const [nextState, actions] = transition(actorLogic, currentState, event);
+  // Execute actions as needed
+  ```
+
+  Added a new `initialTransition` function that takes an actor logic and an optional input, and returns a tuple containing the initial snapshot and the actions to execute from the initial transition. This function is also a pure function and does not execute the actions itself. It can be used like this:
+
+  ```ts
+  import { initialTransition } from 'xstate';
+
+  const [initialState, actions] = initialTransition(actorLogic, input);
+  // Execute actions as needed
+  ```
+
+  These new functions provide a way to separate the calculation of the next snapshot and actions from the execution of those actions, allowing for more control and flexibility in the transition process.
+
+## 5.18.2
+
+### Patch Changes
+
+- [#5079](https://github.com/statelyai/xstate/pull/5079) [`25963966c394fc904dc9b701a420b6e204ebe7f7`](https://github.com/statelyai/xstate/commit/25963966c394fc904dc9b701a420b6e204ebe7f7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The inspection event interfaces now expect `ActorRefLike` instead of `AnyActorRef`
+
+## 5.18.1
+
+### Patch Changes
+
+- [#5055](https://github.com/statelyai/xstate/pull/5055) [`ad38c35c37`](https://github.com/statelyai/xstate/commit/ad38c35c377d4ec5c97710fda12512abbe5f7140) Thanks [@SandroMaglione](https://github.com/SandroMaglione)! - Exported `RequiredActorOptionsKeys` type meant to be used by integration packages like `@xstate/react`
+
+## 5.18.0
+
+### Minor Changes
+
+- [#5042](https://github.com/statelyai/xstate/pull/5042) [`54c9d9e6a4`](https://github.com/statelyai/xstate/commit/54c9d9e6a49ab8af8b58d700ed967536f9c06fb4) Thanks [@boneskull](https://github.com/boneskull)! - `waitFor()` now accepts a `{signal: AbortSignal}` in `WaitForOptions`
+
+- [#5006](https://github.com/statelyai/xstate/pull/5006) [`1ab974547f`](https://github.com/statelyai/xstate/commit/1ab974547f2e1f1b656279f144f6b88a4419d87e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The state value typings for setup state machine actors (`setup({}).createMachine({ ... })`) have been improved to represent the actual expected state values.
+
+  ```ts
+  const machine = setup({}).createMachine({
+    initial: 'green',
+    states: {
+      green: {},
+      yellow: {},
+      red: {
+        initial: 'walk',
+        states: {
+          walk: {},
+          wait: {},
+          stop: {}
+        }
+      },
+      emergency: {
+        type: 'parallel',
+        states: {
+          main: {
+            initial: 'blinking',
+            states: {
+              blinking: {}
+            }
+          },
+          cross: {
+            initial: 'blinking',
+            states: {
+              blinking: {}
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const actor = createActor(machine).start();
+
+  const stateValue = actor.getSnapshot().value;
+
+  if (stateValue === 'green') {
+    // ...
+  } else if (stateValue === 'yellow') {
+    // ...
+  } else if ('red' in stateValue) {
+    stateValue;
+    // {
+    //   red: "walk" | "wait" | "stop";
+    // }
+  } else {
+    stateValue;
+    // {
+    //   emergency: {
+    //     main: "blinking";
+    //     cross: "blinking";
+    //   };
+    // }
+  }
+  ```
+
+### Patch Changes
+
+- [#5054](https://github.com/statelyai/xstate/pull/5054) [`853f6daa0b`](https://github.com/statelyai/xstate/commit/853f6daa0b58bab6ea4153043f9efcfb18d18172) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `CallbackLogicFunction` type (previously `InvokeCallback`) is now exported. This is the callback function that you pass into `fromCallback(callbackLogicFn)` to create an actor from a callback function.
+
+  ```ts
+  import { type CallbackLogicFunction } from 'xstate';
+
+  // ...
+  ```
+
+## 5.17.4
+
+### Patch Changes
+
+- [#5039](https://github.com/statelyai/xstate/pull/5039) [`d6df8fb470`](https://github.com/statelyai/xstate/commit/d6df8fb470020a5798f27ed667432535a509712f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an inference issue that prevented `emit` used directly in `setup` (or bare `createMachine`) to benefit from `types.emitted` types.
+
+## 5.17.3
+
+### Patch Changes
+
+- [#5034](https://github.com/statelyai/xstate/pull/5034) [`7bed484c38`](https://github.com/statelyai/xstate/commit/7bed484c38f8028416c93656372f1463c47fdd58) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `EventFrom` and `ContextFrom` types
+
+## 5.17.2
+
+### Patch Changes
+
+- [#5029](https://github.com/statelyai/xstate/pull/5029) [`88bd87ab41`](https://github.com/statelyai/xstate/commit/88bd87ab412f22fb251a6060f45ba3b6f39ac208) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Revert `ActorRefFrom` change
+
+- [#5011](https://github.com/statelyai/xstate/pull/5011) [`a275d274de`](https://github.com/statelyai/xstate/commit/a275d274deb07ed17bb582e63d9428c5616067db) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is a new type helper: `ActorRefFromLogic<TLogic>`. This type is a stricter form of `ActorRefFrom<TLogic>` that only accepts actor logic types. See https://github.com/statelyai/xstate/issues/4997 for more details.
+
+## 5.17.1
+
+### Patch Changes
+
+- [#5009](https://github.com/statelyai/xstate/pull/5009) [`51d4c4fc5`](https://github.com/statelyai/xstate/commit/51d4c4fc5bd303a00a554534956d8b994ea82e99) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The internal types for `StateMachine<...>` have been improved so that all type params are required, to prevent errors when using the types. This fixes weird issues like #5008.
+
+## 5.17.0
+
+### Minor Changes
+
+- [#4979](https://github.com/statelyai/xstate/pull/4979) [`a0e9ebcef`](https://github.com/statelyai/xstate/commit/a0e9ebcef26552659ac6c2c785c138387eafc766) Thanks [@davidkpiano](https://github.com/davidkpiano)! - State IDs are now strongly typed as keys of `snapshot.getMeta()` for state machine actor snapshots.
+
+  ```ts
+  const machine = setup({
+    // ...
+  }).createMachine({
+    id: 'root',
+    initial: 'parentState',
+    states: {
+      parentState: {
+        meta: {},
+        initial: 'childState',
+        states: {
+          childState: {
+            meta: {}
+          },
+          stateWithId: {
+            id: 'state with id',
+            meta: {}
+          }
+        }
+      }
+    }
+  });
+
+  const actor = createActor(machine);
+
+  const metaValues = actor.getSnapshot().getMeta();
+
+  // Auto-completed keys:
+  metaValues.root;
+  metaValues['root.parentState'];
+  metaValues['root.parentState.childState'];
+  metaValues['state with id'];
+
+  // @ts-expect-error
+  metaValues['root.parentState.stateWithId'];
+
+  // @ts-expect-error
+  metaValues['unknown state'];
+  ```
+
+### Patch Changes
+
+- [#5002](https://github.com/statelyai/xstate/pull/5002) [`9877d548b`](https://github.com/statelyai/xstate/commit/9877d548b3cab1bbc5db4e3a51bbcf223868bd46) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix an issue where `clearTimeout(undefined)` was sometimes being called, which can cause errors for some clock implementations. See https://github.com/statelyai/xstate/issues/5001 for details.
+
+## 5.16.0
+
+### Minor Changes
+
+- [#4996](https://github.com/statelyai/xstate/pull/4996) [`5be796cd2`](https://github.com/statelyai/xstate/commit/5be796cd252f024ed29a589d1f2d6c8e626167db) Thanks [@ronvoluted](https://github.com/ronvoluted)! - The actor snapshot `status` type (`'active' | 'done' | 'error' | 'stopped'`) is now exposed as `SnapshotStatus`
+
+- [#4981](https://github.com/statelyai/xstate/pull/4981) [`c4ae156b2`](https://github.com/statelyai/xstate/commit/c4ae156b278779e898aeb8d86b089de2cf959683) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `sendParent` to the `enqueueActions` feature. This allows users to enqueue actions that send events to the parent actor within the `enqueueActions` block.
+
+  ```js
+  import { createMachine, enqueueActions } from 'xstate';
+
+  const childMachine = createMachine({
+    entry: enqueueActions(({ enqueue }) => {
+      enqueue.sendParent({ type: 'CHILD_READY' });
+    })
+  });
+  ```
+
+## 5.15.0
+
+### Minor Changes
+
+- [#4976](https://github.com/statelyai/xstate/pull/4976) [`452bce71e`](https://github.com/statelyai/xstate/commit/452bce71e56fb28bfd85294b44138cf1bd5a9608) Thanks [@with-heart](https://github.com/with-heart)! - Added exports for actor logic-specific `ActorRef` types: `CallbackActorRef`, `ObservableActorRef`, `PromiseActorRef`, and `TransitionActorRef`.
+
+  Each type represents `ActorRef` narrowed to the corresponding type of logic (the type of `self` within the actor's logic):
+  - `CallbackActorRef`: actor created by [`fromCallback`](https://stately.ai/docs/actors#fromcallback)
+
+    ```ts
+    import { fromCallback, createActor } from 'xstate';
+
+    /** The events the actor receives. */
+    type Event = { type: 'someEvent' };
+    /** The actor's input. */
+    type Input = { name: string };
+
+    /** Actor logic that logs whenever it receives an event of type `someEvent`. */
+    const logic = fromCallback<Event, Input>(({ self, input, receive }) => {
+      self;
+      // ^? CallbackActorRef<Event, Input>
+
+      receive((event) => {
+        if (event.type === 'someEvent') {
+          console.log(`${input.name}: received "someEvent" event`);
+          // logs 'myActor: received "someEvent" event'
+        }
+      });
+    });
+
+    const actor = createActor(logic, { input: { name: 'myActor' } });
+    //    ^? CallbackActorRef<Event, Input>
+    ```
+
+  - `ObservableActorRef`: actor created by [`fromObservable`](https://stately.ai/docs/actors#fromobservable) and [`fromEventObservable`](https://stately.ai/docs/actors#fromeventobservable)
+
+    ```ts
+    import { fromObservable, createActor } from 'xstate';
+    import { interval } from 'rxjs';
+
+    /** The type of the value observed by the actor's logic. */
+    type Context = number;
+    /** The actor's input. */
+    type Input = { period?: number };
+
+    /**
+     * Actor logic that observes a number incremented every `input.period`
+     * milliseconds (default: 1_000).
+     */
+    const logic = fromObservable<Context, Input>(({ input, self }) => {
+      self;
+      // ^? ObservableActorRef<Event, Input>
+
+      return interval(input.period ?? 1_000);
+    });
+
+    const actor = createActor(logic, { input: { period: 2_000 } });
+    //    ^? ObservableActorRef<Event, Input>
+    ```
+
+  - `PromiseActorRef`: actor created by [`fromPromise`](https://stately.ai/docs/actors#actors-as-promises)
+
+    ```ts
+    import { fromPromise, createActor } from 'xstate';
+
+    /** The actor's resolved output. */
+    type Output = string;
+    /** The actor's input. */
+    type Input = { message: string };
+
+    /** Actor logic that fetches the url of an image of a cat saying `input.message`. */
+    const logic = fromPromise<Output, Input>(async ({ input, self }) => {
+      self;
+      // ^? PromiseActorRef<Output, Input>
+
+      const data = await fetch(`https://cataas.com/cat/says/${input.message}`);
+      const url = await data.json();
+      return url;
+    });
+
+    const actor = createActor(logic, { input: { message: 'hello world' } });
+    //    ^? PromiseActorRef<Output, Input>
+    ```
+
+  - `TransitionActorRef`: actor created by [`fromTransition`](https://stately.ai/docs/actors#fromtransition)
+
+    ```ts
+    import { fromTransition, createActor, type AnyActorSystem } from 'xstate';
+
+    /** The actor's stored context. */
+    type Context = {
+      /** The current count. */
+      count: number;
+      /** The amount to increase `count` by. */
+      step: number;
+    };
+    /** The events the actor receives. */
+    type Event = { type: 'increment' };
+    /** The actor's input. */
+    type Input = { step?: number };
+
+    /**
+     * Actor logic that increments `count` by `step` when it receives an event of
+     * type `increment`.
+     */
+    const logic = fromTransition<Context, Event, AnyActorSystem, Input>(
+      (state, event, actorScope) => {
+        actorScope.self;
+        //         ^? TransitionActorRef<Context, Event>
+
+        if (event.type === 'increment') {
+          return {
+            ...state,
+            count: state.count + state.step
+          };
+        }
+        return state;
+      },
+      ({ input, self }) => {
+        self;
+        // ^? TransitionActorRef<Context, Event>
+
+        return {
+          count: 0,
+          step: input.step ?? 1
+        };
+      }
+    );
+
+    const actor = createActor(logic, { input: { step: 10 } });
+    //    ^? TransitionActorRef<Context, Event>
+    ```
+
+- [#4949](https://github.com/statelyai/xstate/pull/4949) [`8aa4c2b90`](https://github.com/statelyai/xstate/commit/8aa4c2b90c6a07a4678202181420b5ddd33edacf) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The TypeGen-related types have been removed from XState, simplifying the internal types without affecting normal XState usage.
+
+## 5.14.0
+
+### Minor Changes
+
+- [#4936](https://github.com/statelyai/xstate/pull/4936) [`c58b36dc3`](https://github.com/statelyai/xstate/commit/c58b36dc35991e20ba5d3c6e212e075f9b27f37d) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Inspecting an actor system via `actor.system.inspect(ev => …)` now accepts a function or observer, and returns a subscription:
+
+  ```ts
+  const actor = createActor(someMachine);
+
+  const sub = actor.system.inspect((inspectionEvent) => {
+    console.log(inspectionEvent);
+  });
+
+  // Inspection events will be logged
+  actor.start();
+  actor.send({ type: 'anEvent' });
+
+  // ...
+
+  sub.unsubscribe();
+
+  // Will no longer log inspection events
+  actor.send({ type: 'someEvent' });
+  ```
+
+- [#4942](https://github.com/statelyai/xstate/pull/4942) [`9caaa1f70`](https://github.com/statelyai/xstate/commit/9caaa1f7039f2f50096afd3885560dd40f6f17c0) Thanks [@boneskull](https://github.com/boneskull)! - `DoneActorEvent` and `ErrorActorEvent` now contain property `actorId`, which refers to the ID of the actor the event refers to.
+
+- [#4935](https://github.com/statelyai/xstate/pull/4935) [`2ac08b700`](https://github.com/statelyai/xstate/commit/2ac08b70054e8c6699051b7fafa450af95f7e483) Thanks [@davidkpiano](https://github.com/davidkpiano)! - All actor logic creators now support [emitting events](https://stately.ai/docs/event-emitter):
+
+  **Promise actors**
+
+  ```ts
+  const logic = fromPromise(async ({ emit }) => {
+    // ...
+    emit({
+      type: 'emitted',
+      msg: 'hello'
+    });
+    // ...
+  });
+  ```
+
+  **Transition actors**
+
+  ```ts
+  const logic = fromTransition((state, event, { emit }) => {
+    // ...
+    emit({
+      type: 'emitted',
+      msg: 'hello'
+    });
+    // ...
+    return state;
+  }, {});
+  ```
+
+  **Observable actors**
+
+  ```ts
+  const logic = fromObservable(({ emit }) => {
+    // ...
+
+    emit({
+      type: 'emitted',
+      msg: 'hello'
+    });
+
+    // ...
+  });
+  ```
+
+  **Callback actors**
+
+  ```ts
+  const logic = fromCallback(({ emit }) => {
+    // ...
+    emit({
+      type: 'emitted',
+      msg: 'hello'
+    });
+    // ...
+  });
+  ```
+
+### Patch Changes
+
+- [#4929](https://github.com/statelyai/xstate/pull/4929) [`417f35a11`](https://github.com/statelyai/xstate/commit/417f35a119d2d5a579927af4a971a41857836b4a) Thanks [@boneskull](https://github.com/boneskull)! - Expose type `UnknownActorRef` for use when calling `getSnapshot()` on an unknown `ActorRef`.
+
+## 5.13.2
+
+### Patch Changes
+
+- [#4932](https://github.com/statelyai/xstate/pull/4932) [`71a7f8692`](https://github.com/statelyai/xstate/commit/71a7f8692beabfea97d1741098cf406e66cf4b0b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actors with emitted events should no longer cause type issues: https://github.com/statelyai/xstate/issues/4931
+
+## 5.13.1
+
+### Patch Changes
+
+- [#4905](https://github.com/statelyai/xstate/pull/4905) [`dbeafeb25`](https://github.com/statelyai/xstate/commit/dbeafeb25eed63ee1d2b027f10bc63d9937ab073) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now use a wildcard to listen for _any_ emitted event from an actor:
+
+  ```ts
+  actor.on('*', (emitted) => {
+    console.log(emitted); // Any emitted event
+  });
+  ```
+
+## 5.13.0
+
+### Minor Changes
+
+- [#4832](https://github.com/statelyai/xstate/pull/4832) [`148d8fcef`](https://github.com/statelyai/xstate/commit/148d8fcef7f7467d05bbd427942a3668cb46afe7) Thanks [@cevr](https://github.com/cevr)! - `fromPromise` now passes a signal into its creator function.
+
+  ```ts
+  const logic = fromPromise(({ signal }) =>
+    fetch('https://api.example.com', { signal })
+  );
+  ```
+
+  This will be called whenever the state transitions before the promise is resolved. This is useful for cancelling the promise if the state changes.
+
+### Patch Changes
+
+- [#4876](https://github.com/statelyai/xstate/pull/4876) [`3f6a73b56`](https://github.com/statelyai/xstate/commit/3f6a73b56cb82b43897bc9d583483e0256dbc05c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - XState will now warn when calling built-in actions like `assign`, `sendTo`, `raise`, `emit`, etc. directly inside of a custom action. See https://stately.ai/docs/actions#built-in-actions for more details.
+
+  ```ts
+  const machine = createMachine({
+    entry: () => {
+      // Will warn:
+      // "Custom actions should not call \`assign()\` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details."
+      assign({
+        // ...
+      });
+    }
+  });
+  ```
+
 ## 5.12.0
 
 ### Minor Changes
@@ -450,7 +1289,6 @@
   ```
 
 - d3d6149c7: - The third argument of `machine.transition(state, event)` has been removed. The `context` should always be given as part of the `state`.
-
   - There is a new method: `machine.microstep(snapshot, event)` which returns the resulting intermediate `MachineSnapshot` object that represents a single microstep being taken when transitioning from `snapshot` via the `event`. This is the `MachineSnapshot` that does not take into account transient transitions nor raised events, and is useful for debugging.
   - The `state.events` property has been removed from the `State` object
   - The `state.historyValue` property now more closely represents the original SCXML algorithm, and is a mapping of state node IDs to their historic descendent state nodes. This is used for resolving history states, and should be considered internal.
@@ -593,7 +1431,6 @@
 
 - d3d6149c7: `isState`/`isStateConfig` were replaced by `isMachineSnapshot`. Similarly, `AnyState` type was deprecated and it's replaced by `AnyMachineSnapshot` type.
 - d3d6149c7: All actor snapshots now have a consistent, predictable shape containing these common properties:
-
   - `status`: `'active' | 'done' | 'error' | 'stopped'`
   - `output`: The output data of the actor when it has reached `status: 'done'`
   - `error`: The error thrown by the actor when it has reached `status: 'error'`
@@ -637,7 +1474,6 @@
   ```
 
 - d3d6149c7: - The `execute` option for an interpreted service has been removed. If you don't want to execute actions, it's recommended that you don't hardcode implementation details into the base `machine` that will be interpreted, and extend the machine's `options.actions` instead. By default, the interpreter will execute all actions according to SCXML semantics (immediately upon transition).
-
   - Dev tools integration has been simplified, and Redux dev tools support is no longer the default. It can be included from `xstate/devTools/redux`:
 
   ```js
@@ -676,7 +1512,6 @@
   ```
 
   - These handlers have been removed, as they are redundant and can all be accomplished with `.onTransition(...)` and/or `.subscribe(...)`:
-
     - `actorRef.onEvent()`
     - `actorRef.onSend()`
     - `actorRef.onChange()`
@@ -775,7 +1610,6 @@
 
 - d3d6149c7: Returning promises when creating a callback actor doesn't work anymore. Only cleanup functions can be returned now (or `undefined`).
 - d3d6149c7: There is now support for higher-level guards, which are guards that can compose other guards:
-
   - `and([guard1, guard2, /* ... */])` returns `true` if _all_ guards evaluate to truthy, otherwise `false`
   - `or([guard1, guard2, /* ... */])` returns `true` if _any_ guard evaluates to truthy, otherwise `false`
   - `not(guard1)` returns `true` if a single guard evaluates to `false`, otherwise `true`
@@ -798,7 +1632,6 @@
   ```
 
 - d3d6149c7: The `.send(...)` method on `actorRef.send(...)` now requires the first argument (the event to send) to be an _object_; that is, either:
-
   - an event object (e.g. `{ type: 'someEvent' }`)
   - an SCXML event object.
 
@@ -1220,7 +2053,6 @@
   **Breaking:** The `origin` of an `SCXML.Event` is no longer a string, but an `ActorRef` instance.
 
 - d3d6149c7: The `services` option passed as the second argument to `createMachine(config, options)` is renamed to `actors`. Each value in `actors` should be a function that takes in `context` and `event` and returns a [behavior](TODO: link) for an actor. The provided behavior creators are:
-
   - `fromMachine`
   - `fromPromise`
   - `fromCallback`
@@ -1385,7 +2217,6 @@
   ```
 
   Note: wildcards are only valid as the entire event type (`"*"`) or at the end of an event type, preceded by a period (`".*"`):
-
   - ✅ `"*"`
   - ✅ `"event.*"`
   - ✅ `"event.something.*"`
@@ -1464,7 +2295,6 @@
 
 - d3d6149c7: `spawn` can now benefit from the actor types. Its arguments are strongly-typed based on them.
 - d3d6149c7: Significant improvements to error handling have been made:
-
   - Actors will no longer crash when an error is thrown in an observer (`actor.subscribe(observer)`).
   - Errors will be handled by observer's `.error()` handler:
     ```ts
@@ -1728,7 +2558,6 @@
   ```
 
 - d3d6149c7: You can now inspect actor system updates using the `inspect` option in `createActor(logic, { inspect })`. The types of **inspection events** you can observe include:
-
   - `@xstate.actor` - An actor ref has been created in the system
   - `@xstate.event` - An event was sent from a source actor ref to a target actor ref in the system
   - `@xstate.snapshot` - An actor ref emitted a snapshot due to a received event
@@ -2521,7 +3350,6 @@
 ### Minor Changes
 
 - [#4082](https://github.com/statelyai/xstate/pull/4082) [`13480c3a9`](https://github.com/statelyai/xstate/commit/13480c3a9183231ddf1c9c195f310a6d38c68c5b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now inspect actor system updates using the `inspect` option in `createActor(logic, { inspect })`. The types of **inspection events** you can observe include:
-
   - `@xstate.actor` - An actor ref has been created in the system
   - `@xstate.event` - An event was sent from a source actor ref to a target actor ref in the system
   - `@xstate.snapshot` - An actor ref emitted a snapshot due to a received event
@@ -2642,7 +3470,6 @@
 ### Major Changes
 
 - [#4299](https://github.com/statelyai/xstate/pull/4299) [`bd9a1a599`](https://github.com/statelyai/xstate/commit/bd9a1a5997cab0f56d1bb18edba17a013cf87db9) Thanks [@Andarist](https://github.com/Andarist)! - All actor snapshots now have a consistent, predictable shape containing these common properties:
-
   - `status`: `'active' | 'done' | 'error' | 'stopped'`
   - `output`: The output data of the actor when it has reached `status: 'done'`
   - `error`: The error thrown by the actor when it has reached `status: 'error'`
@@ -2895,7 +3722,6 @@
 ### Minor Changes
 
 - [#4145](https://github.com/statelyai/xstate/pull/4145) [`5cc902531`](https://github.com/statelyai/xstate/commit/5cc902531477964cb614736ea628cbb3eb42309b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Significant improvements to error handling have been made:
-
   - Actors will no longer crash when an error is thrown in an observer (`actor.subscribe(observer)`).
   - Errors will be handled by observer's `.error()` handler:
     ```ts
@@ -3668,7 +4494,6 @@
 - [#3455](https://github.com/statelyai/xstate/pull/3455) [`ec39214c8`](https://github.com/statelyai/xstate/commit/ec39214c8eba11d75f6af72bae51ddb65ce003a0) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `interpreter.onStop(...)` method has been removed. Use an observer instead via `interpreter.subscribe({ complete() { ... } })` instead.
 
 * [#3455](https://github.com/statelyai/xstate/pull/3455) [`ec39214c8`](https://github.com/statelyai/xstate/commit/ec39214c8eba11d75f6af72bae51ddb65ce003a0) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `.send(...)` method on `interpreter.send(...)` now requires the first argument (the event to send) to be an _object_; that is, either:
-
   - an event object (e.g. `{ type: 'someEvent' }`)
   - an SCXML event object.
 
@@ -3825,7 +4650,6 @@
 ### Minor Changes
 
 - [#3289](https://github.com/statelyai/xstate/pull/3289) [`c0a147e25`](https://github.com/statelyai/xstate/commit/c0a147e256e9d32d2bbe4bc098839c9dee25213a) Thanks [@Andarist](https://github.com/Andarist)! - A new [`predictableActionArguments`](https://xstate.js.org/docs/guides/actions.html) feature flag has been added that allows you to opt into some fixed behaviors that will be the default in v5. With this flag:
-
   - XState will always call an action with the event directly responsible for the related transition,
   - you also automatically opt-into [`preserveActionOrder`](https://xstate.js.org/docs/guides/context.html#action-order).
 
@@ -3852,7 +4676,6 @@
 ### Major Changes
 
 - [#1045](https://github.com/statelyai/xstate/pull/1045) [`7f3b84816`](https://github.com/statelyai/xstate/commit/7f3b84816564d951b6b29afdd7075256f1f59501) Thanks [@davidkpiano](https://github.com/davidkpiano)! - - The third argument of `machine.transition(state, event)` has been removed. The `context` should always be given as part of the `state`.
-
   - There is a new method: `machine.microstep(state, event)` which returns the resulting intermediate `State` object that represents a single microstep being taken when transitioning from `state` via the `event`. This is the `State` that does not take into account transient transitions nor raised events, and is useful for debugging.
 
   - The `state.events` property has been removed from the `State` object, and is replaced internally by `state._internalQueue`, which represents raised events to be processed in a macrostep loop. The `state._internalQueue` property should be considered internal (not used in normal development).
@@ -3924,7 +4747,6 @@
   ```
 
 * [#1260](https://github.com/statelyai/xstate/pull/1260) [`172d6a7e1`](https://github.com/statelyai/xstate/commit/172d6a7e1e4ab0fa73485f76c52675be8a1f3362) Thanks [@davidkpiano](https://github.com/davidkpiano)! - All generic types containing `TContext` and `TEvent` will now follow the same, consistent order:
-
   1. `TContext`
   2. `TEvent`
   3. ... All other generic types, including `TStateSchema,`TTypestate`, etc.
@@ -3939,7 +4761,6 @@
 * [#878](https://github.com/statelyai/xstate/pull/878) [`e09efc720`](https://github.com/statelyai/xstate/commit/e09efc720f05246b692d0fdf17cf5d8ac0344ee6) Thanks [@Andarist](https://github.com/Andarist)! - Removed third parameter (context) from Machine's transition method. If you want to transition with a particular context value you should create appropriate `State` using `State.from`. So instead of this - `machine.transition('green', 'TIMER', { elapsed: 100 })`, you should do this - `machine.transition(State.from('green', { elapsed: 100 }), 'TIMER')`.
 
 - [#1203](https://github.com/statelyai/xstate/pull/1203) [`145539c4c`](https://github.com/statelyai/xstate/commit/145539c4cfe1bde5aac247792622428e44342dd6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - - The `execute` option for an interpreted service has been removed. If you don't want to execute actions, it's recommended that you don't hardcode implementation details into the base `machine` that will be interpreted, and extend the machine's `options.actions` instead. By default, the interpreter will execute all actions according to SCXML semantics (immediately upon transition).
-
   - Dev tools integration has been simplified, and Redux dev tools support is no longer the default. It can be included from `xstate/devTools/redux`:
 
   ```js
@@ -3978,7 +4799,6 @@
   ```
 
   - These handlers have been removed, as they are redundant and can all be accomplished with `.onTransition(...)` and/or `.subscribe(...)`:
-
     - `service.onEvent()`
     - `service.onSend()`
     - `service.onChange()`
@@ -4016,7 +4836,6 @@
   ```
 
 * [#1456](https://github.com/statelyai/xstate/pull/1456) [`8fcbddd51`](https://github.com/statelyai/xstate/commit/8fcbddd51d66716ab1d326d934566a7664a4e175) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is now support for higher-level guards, which are guards that can compose other guards:
-
   - `and([guard1, guard2, /* ... */])` returns `true` if _all_ guards evaluate to truthy, otherwise `false`
   - `or([guard1, guard2, /* ... */])` returns `true` if _any_ guard evaluates to truthy, otherwise `false`
   - `not(guard1)` returns `true` if a single guard evaluates to `false`, otherwise `true`
@@ -4222,7 +5041,6 @@
   **Breaking:** The `origin` of an `SCXML.Event` is no longer a string, but an `ActorRef` instance.
 
 - [#3148](https://github.com/statelyai/xstate/pull/3148) [`7a68cbb61`](https://github.com/statelyai/xstate/commit/7a68cbb615afb6556c83868535dae67af366a117) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `services` option passed as the second argument to `createMachine(config, options)` is renamed to `actors`. Each value in `actors` should be a function that takes in `context` and `event` and returns a [behavior](TODO: link) for an actor. The provided behavior creators are:
-
   - `fromMachine`
   - `fromPromise`
   - `fromCallback`
@@ -4280,7 +5098,6 @@
   ```
 
   Note: wildcards are only valid as the entire event type (`"*"`) or at the end of an event type, preceded by a period (`".*"`):
-
   - ✅ `"*"`
   - ✅ `"event.*"`
   - ✅ `"event.something.*"`
@@ -4830,7 +5647,6 @@
   ```
 
   A state is considered "changed" if any of the following are true:
-
   - its `state.value` changes
   - there are new `state.actions` to be executed
   - its `state.context` changes
@@ -4861,7 +5677,6 @@
 ### Patch Changes
 
 - [#2606](https://github.com/statelyai/xstate/pull/2606) [`01e5d7984`](https://github.com/statelyai/xstate/commit/01e5d7984a5441a6980eacdb06d42c2a9398bdff) Thanks [@davidkpiano](https://github.com/statelyai)! - The following utility types were previously returning `never` in some unexpected cases, and are now working as expected:
-
   - `ContextFrom<T>`
   - `EventFrom<T>`
   - `EmittedFrom<T>`
@@ -5002,7 +5817,6 @@
   ```
 
 - [`da6861e3`](https://github.com/statelyai/xstate/commit/da6861e34a2b28bf6eeaa7c04a2d4cf9a90f93f1) [#2391](https://github.com/statelyai/xstate/pull/2391) Thanks [@davidkpiano](https://github.com/statelyai)! - There are two new helper types for extracting `context` and `event` types:
-
   - `ContextFrom<T>` which extracts the `context` from any type that uses context
   - `EventFrom<T>` which extracts the `event` type (which extends `EventObject`) from any type which uses events
 
@@ -5278,7 +6092,6 @@
 ### Minor Changes
 
 - [`7763db8d`](https://github.com/statelyai/xstate/commit/7763db8d3615321d03839b2bd31c9b118ddee50c) [#1977](https://github.com/statelyai/xstate/pull/1977) Thanks [@davidkpiano](https://github.com/statelyai)! - The `schema` property has been introduced to the machine config passed into `createMachine(machineConfig)`, which allows you to provide metadata for the following:
-
   - Context
   - Events
   - Actions
@@ -5390,7 +6203,6 @@
 ### Minor Changes
 
 - [`d2e328f8`](https://github.com/statelyai/xstate/commit/d2e328f8efad7e8d3500d39976d1153a26e835a3) [#1439](https://github.com/statelyai/xstate/pull/1439) Thanks [@davidkpiano](https://github.com/statelyai)! - An opt-in `createModel()` helper has been introduced to make it easier to work with typed `context` and events.
-
   - `createModel(initialContext)` creates a `model` object
   - `model.initialContext` returns the `initialContext`
   - `model.assign(assigner, event?)` creates an `assign` action that is properly scoped to the `event` in TypeScript
@@ -5772,7 +6584,6 @@
 - [`e88aa18`](https://github.com/statelyai/xstate/commit/e88aa18431629e1061b74dfd4a961b910e274e0b) [#1085](https://github.com/statelyai/xstate/pull/1085) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with data expressions of root's final nodes being called twice.
 
 - [`88b17b2`](https://github.com/statelyai/xstate/commit/88b17b2476ff9a0fbe810df9d00db32c2241cd6e) [#1090](https://github.com/statelyai/xstate/pull/1090) Thanks [@rjdestigter](https://github.com/rjdestigter)! - This change carries forward the typestate type information encoded in the arguments of the following functions and assures that the return type also has the same typestate type information:
-
   - Cloned state machine returned by `.withConfig`.
   - `.state` getter defined for services.
   - `start` method of services.

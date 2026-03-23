@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store",
-  "version": "0.0.3",
+  "version": "3.17.0",
   "description": "Simple stores",
   "keywords": [
     "store",
@@ -12,6 +12,15 @@
   "main": "dist/xstate-store.cjs.js",
   "module": "dist/xstate-store.esm.js",
   "exports": {
+    "./undo": {
+      "types": {
+        "import": "./undo/dist/xstate-store-undo.cjs.mjs",
+        "default": "./undo/dist/xstate-store-undo.cjs.js"
+      },
+      "module": "./undo/dist/xstate-store-undo.esm.js",
+      "import": "./undo/dist/xstate-store-undo.cjs.mjs",
+      "default": "./undo/dist/xstate-store-undo.cjs.js"
+    },
     ".": {
       "types": {
         "import": "./dist/xstate-store.cjs.mjs",
@@ -30,35 +39,78 @@
       "import": "./react/dist/xstate-store-react.cjs.mjs",
       "default": "./react/dist/xstate-store-react.cjs.js"
     },
+    "./reset": {
+      "types": {
+        "import": "./reset/dist/xstate-store-reset.cjs.mjs",
+        "default": "./reset/dist/xstate-store-reset.cjs.js"
+      },
+      "module": "./reset/dist/xstate-store-reset.esm.js",
+      "import": "./reset/dist/xstate-store-reset.cjs.mjs",
+      "default": "./reset/dist/xstate-store-reset.cjs.js"
+    },
+    "./solid": {
+      "types": {
+        "import": "./solid/dist/xstate-store-solid.cjs.mjs",
+        "default": "./solid/dist/xstate-store-solid.cjs.js"
+      },
+      "module": "./solid/dist/xstate-store-solid.esm.js",
+      "import": "./solid/dist/xstate-store-solid.cjs.mjs",
+      "default": "./solid/dist/xstate-store-solid.cjs.js"
+    },
+    "./persist": {
+      "types": {
+        "import": "./persist/dist/xstate-store-persist.cjs.mjs",
+        "default": "./persist/dist/xstate-store-persist.cjs.js"
+      },
+      "module": "./persist/dist/xstate-store-persist.esm.js",
+      "import": "./persist/dist/xstate-store-persist.cjs.mjs",
+      "default": "./persist/dist/xstate-store-persist.cjs.js"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": false,
   "files": [
     "dist",
-    "react"
+    "react",
+    "solid",
+    "undo",
+    "persist",
+    "reset"
   ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
-  "scripts": {},
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
-  "dependencies": {
-    "use-sync-external-store": "^1.2.0"
-  },
   "devDependencies": {
-    "@testing-library/react": "^14.2.1",
+    "@solidjs/testing-library": "^0.8.10",
+    "@statelyai/inspect": "^0.4.0",
+    "@testing-library/react": "^16.2.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-vue": "^5.1.2",
+    "@vue/test-utils": "^2.4.6",
+    "@xstate/react": "workspace:^",
+    "@xstate/vue": "workspace:^",
     "immer": "^10.0.2",
-    "react": "^18.0.0",
-    "xstate": "^5.9.1"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "solid-js": "^1.9.7",
+    "vite-plugin-solid": "^2.11.6",
+    "vue": "^3.4.35",
+    "xstate": "workspace:^"
   },
   "peerDependencies": {
-    "react": "^18.2.0"
+    "react": "^18.2.0 || ^19.0.0",
+    "solid-js": "^1.7.6"
   },
   "peerDependenciesMeta": {
     "react": {
+      "optional": true
+    },
+    "solid-js": {
       "optional": true
     }
   },
@@ -66,7 +118,11 @@
     "umdName": "XStateStore",
     "entrypoints": [
       "./index.ts",
-      "./react.ts"
+      "./react.ts",
+      "./solid.ts",
+      "./undo.ts",
+      "./persist.ts",
+      "./reset.ts"
     ]
   }
 }

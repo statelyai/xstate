@@ -43,7 +43,7 @@ Example response:
 
 ```json
 {
-  {"message":"New worflow created successfully","workflowId":"uzkjyy"}
+  {"message":"New workflow created successfully","workflowId":"uzkjyy"}
 }
 ```
 

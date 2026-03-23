@@ -35,22 +35,16 @@ export interface Inspector {
   ) => {
     unsubscribe: () => void;
   };
-  /**
-   * Disconnects the inspector.
-   */
+  /** Disconnects the inspector. */
   disconnect: () => void;
 }
 
-/**
- * Events that the receiver sends to the inspector
- */
+/** Events that the receiver sends to the inspector */
 export type ReceiverCommand =
   | { type: 'xstate.event'; event: string; service: string }
   | { type: 'xstate.inspecting' };
 
-/**
- * Events that the receiver receives from the inspector
- */
+/** Events that the receiver receives from the inspector */
 export type ReceiverEvent =
   | {
       type: 'service.register';

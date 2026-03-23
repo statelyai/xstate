@@ -8,9 +8,6 @@ import {
   InspectionEvent,
   isMachineSnapshot,
   assign,
-  ContextFrom,
-  EventObject,
-  AnyTransitionDefinition,
   raise,
   setup
 } from '../src';
@@ -368,6 +365,7 @@ describe('inspect', () => {
         },
         {
           "event": {
+            "actorId": "0.(machine).loading",
             "output": 42,
             "type": "xstate.done.actor.0.(machine).loading",
           },
@@ -396,6 +394,7 @@ describe('inspect', () => {
         },
         {
           "event": {
+            "actorId": "child",
             "output": undefined,
             "type": "xstate.done.actor.child",
           },
@@ -406,6 +405,7 @@ describe('inspect', () => {
         {
           "actorId": "x:1",
           "event": {
+            "actorId": "child",
             "output": undefined,
             "type": "xstate.done.actor.child",
           },
@@ -418,6 +418,7 @@ describe('inspect', () => {
         {
           "actorId": "x:2",
           "event": {
+            "actorId": "0.(machine).loading",
             "output": 42,
             "type": "xstate.done.actor.0.(machine).loading",
           },
@@ -693,64 +694,90 @@ describe('inspect', () => {
     }).start();
 
     expect(simplifyEvents(events)).toMatchInlineSnapshot(`
-      [
-        {
-          "actorId": "x:5",
-          "type": "@xstate.actor",
+[
+  {
+    "actorId": "x:5",
+    "type": "@xstate.actor",
+  },
+  {
+    "event": {
+      "type": "to_b",
+    },
+    "transitions": [
+      {
+        "eventType": "to_b",
+        "target": [
+          "(machine).b",
+        ],
+      },
+    ],
+    "type": "@xstate.microstep",
+    "value": "b",
+  },
+  {
+    "event": {
+      "type": "to_c",
+    },
+    "transitions": [
+      {
+        "eventType": "to_c",
+        "target": [
+          "(machine).c",
+        ],
+      },
+    ],
+    "type": "@xstate.microstep",
+    "value": "c",
+  },
+  {
+    "event": {
+      "input": undefined,
+      "type": "xstate.init",
+    },
+    "sourceId": undefined,
+    "targetId": "x:5",
+    "type": "@xstate.event",
+  },
+  {
+    "action": {
+      "params": {
+        "delay": undefined,
+        "event": {
+          "type": "to_b",
         },
-        {
-          "event": {
-            "type": "to_b",
-          },
-          "transitions": [
-            {
-              "eventType": "to_b",
-              "target": [
-                "(machine).b",
-              ],
-            },
-          ],
-          "type": "@xstate.microstep",
-          "value": "b",
+        "id": undefined,
+      },
+      "type": "xstate.raise",
+    },
+    "type": "@xstate.action",
+  },
+  {
+    "action": {
+      "params": {
+        "delay": undefined,
+        "event": {
+          "type": "to_c",
         },
-        {
-          "event": {
-            "type": "to_c",
-          },
-          "transitions": [
-            {
-              "eventType": "to_c",
-              "target": [
-                "(machine).c",
-              ],
-            },
-          ],
-          "type": "@xstate.microstep",
-          "value": "c",
-        },
-        {
-          "event": {
-            "input": undefined,
-            "type": "xstate.init",
-          },
-          "sourceId": undefined,
-          "targetId": "x:5",
-          "type": "@xstate.event",
-        },
-        {
-          "actorId": "x:5",
-          "event": {
-            "input": undefined,
-            "type": "xstate.init",
-          },
-          "snapshot": {
-            "value": "c",
-          },
-          "status": "active",
-          "type": "@xstate.snapshot",
-        },
-      ]
-    `);
+        "id": undefined,
+      },
+      "type": "xstate.raise",
+    },
+    "type": "@xstate.action",
+  },
+  {
+    "actorId": "x:5",
+    "event": {
+      "input": undefined,
+      "type": "xstate.init",
+    },
+    "snapshot": {
+      "value": "c",
+    },
+    "status": "active",
+    "type": "@xstate.snapshot",
+  },
+]
+`);
   });
 
   it('should inspect microsteps for normal transitions', () => {
@@ -975,45 +1002,151 @@ describe('inspect', () => {
 
     expect(simplifyEvents(events, (ev) => ev.type === '@xstate.action'))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "action": {
-            "params": undefined,
-            "type": "enter1",
-          },
-          "type": "@xstate.action",
-        },
-        {
-          "action": {
-            "params": undefined,
-            "type": "stringAction",
-          },
-          "type": "@xstate.action",
-        },
-        {
-          "action": {
-            "params": {
-              "foo": "bar",
-            },
-            "type": "namedAction",
-          },
-          "type": "@xstate.action",
-        },
-        {
-          "action": {
-            "params": undefined,
-            "type": "(anonymous)",
-          },
-          "type": "@xstate.action",
-        },
-        {
-          "action": {
-            "params": undefined,
-            "type": "exit1",
-          },
-          "type": "@xstate.action",
-        },
-      ]
-    `);
+[
+  {
+    "action": {
+      "params": undefined,
+      "type": "enter1",
+    },
+    "type": "@xstate.action",
+  },
+  {
+    "action": {
+      "params": undefined,
+      "type": "stringAction",
+    },
+    "type": "@xstate.action",
+  },
+  {
+    "action": {
+      "params": {
+        "foo": "bar",
+      },
+      "type": "namedAction",
+    },
+    "type": "@xstate.action",
+  },
+  {
+    "action": {
+      "params": undefined,
+      "type": "(anonymous)",
+    },
+    "type": "@xstate.action",
+  },
+  {
+    "action": {
+      "params": undefined,
+      "type": "exit1",
+    },
+    "type": "@xstate.action",
+  },
+]
+`);
+  });
+
+  it('@xstate.microstep inspection events should report no transitions if an unknown event was sent', () => {
+    const machine = createMachine({});
+    expect.assertions(1);
+
+    const actor = createActor(machine, {
+      inspect: (ev) => {
+        if (ev.type === '@xstate.microstep') {
+          expect(ev._transitions.length).toBe(0);
+        }
+      }
+    });
+
+    actor.start();
+    actor.send({ type: 'any' });
+  });
+
+  it('actor.system.inspect(…) can inspect actors', () => {
+    const actor = createActor(createMachine({}));
+    const events: InspectionEvent[] = [];
+
+    actor.system.inspect((ev) => {
+      events.push(ev);
+    });
+
+    actor.start();
+
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: '@xstate.event'
+      })
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: '@xstate.snapshot'
+      })
+    );
+  });
+
+  it('actor.system.inspect(…) can inspect actors (observer)', () => {
+    const actor = createActor(createMachine({}));
+    const events: InspectionEvent[] = [];
+
+    actor.system.inspect({
+      next: (ev) => {
+        events.push(ev);
+      }
+    });
+
+    actor.start();
+
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: '@xstate.event'
+      })
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: '@xstate.snapshot'
+      })
+    );
+  });
+
+  it('actor.system.inspect(…) can be unsubscribed', () => {
+    const actor = createActor(createMachine({}));
+    const events: InspectionEvent[] = [];
+
+    const sub = actor.system.inspect((ev) => {
+      events.push(ev);
+    });
+
+    actor.start();
+
+    expect(events.length).toEqual(2);
+
+    events.length = 0;
+
+    sub.unsubscribe();
+
+    actor.send({ type: 'someEvent' });
+
+    expect(events.length).toEqual(0);
+  });
+
+  it('actor.system.inspect(…) can be unsubscribed (observer)', () => {
+    const actor = createActor(createMachine({}));
+    const events: InspectionEvent[] = [];
+
+    const sub = actor.system.inspect({
+      next: (ev) => {
+        events.push(ev);
+      }
+    });
+
+    actor.start();
+
+    expect(events.length).toEqual(2);
+
+    events.length = 0;
+
+    sub.unsubscribe();
+
+    actor.send({ type: 'someEvent' });
+
+    expect(events.length).toEqual(0);
   });
 });

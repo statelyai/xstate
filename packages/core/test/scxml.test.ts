@@ -1,4 +1,3 @@
-import { clearConsoleMocks } from '@xstate-repo/jest-utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
@@ -124,7 +123,7 @@ const testGroups: Record<string, string[]> = {
   // script: ['test0', 'test1', 'test2'], // <script/> conversion not implemented
   // 'script-src': ['test0', 'test1', 'test2', 'test3'], // <script/> conversion not implemented
   'scxml-prefix-event-name-matching': [
-    // 'star0' // this relies on the source order of transitions where * is first and it's supposed to get macthed over an explicit descriptor
+    // 'star0' // this relies on the source order of transitions where * is first and it's supposed to get matched over an explicit descriptor
     // prefix event matching not implemented yet
     // 'test0',
     // 'test1'
@@ -194,7 +193,7 @@ const testGroups: Record<string, string[]> = {
     // 'test244.txml', // conversion of namelist not implemented yet
     // 'test245.txml', // conversion of namelist not implemented yet
     'test247.txml',
-    // 'test250.txml', // this is a manual test - we could test it by snapshoting logged valued
+    // 'test250.txml', // this is a manual test - we could test it by snapshotting logged valued
     // 'test252.txml', // this expects the parent to not receive the event sent from the canceled child's exit action
     // 'test253.txml', // _event.origintype not implemented yet
     // 'test276.txml', // <invoke src="...">
@@ -354,35 +353,35 @@ interface SCIONTest {
 }
 
 async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    let nextState: AnyMachineSnapshot;
-    let prevState: AnyMachineSnapshot;
+  const { resolve, reject, promise } = Promise.withResolvers<void>();
+  let nextState: AnyMachineSnapshot;
+  let prevState: AnyMachineSnapshot;
 
-    const actor = createActor(machine, {
-      logger: () => void 0
-    });
-    actor.subscribe({
-      next: (state) => {
-        prevState = nextState;
-        nextState = state;
-      },
-      complete: () => {
-        // Add 'final' for test230.txml which does not have a 'pass' state
-        if (['final', 'pass'].includes(nextState.value as string)) {
-          resolve();
-        } else {
-          reject(
-            new Error(
-              `Reached "fail" state from state ${JSON.stringify(
-                prevState?.value
-              )}`
-            )
-          );
-        }
-      }
-    });
-    actor.start();
+  const actor = createActor(machine, {
+    logger: () => void 0
   });
+  actor.subscribe({
+    next: (state) => {
+      prevState = nextState;
+      nextState = state;
+    },
+    complete: () => {
+      // Add 'final' for test230.txml which does not have a 'pass' state
+      if (['final', 'pass'].includes(nextState.value as string)) {
+        resolve();
+      } else {
+        reject(
+          new Error(
+            `Reached "fail" state from state ${JSON.stringify(
+              prevState?.value
+            )}`
+          )
+        );
+      }
+    }
+  });
+  actor.start();
+  return promise;
 }
 
 async function runTestToCompletion(
@@ -437,7 +436,7 @@ async function runTestToCompletion(
 describe('scxml', () => {
   const onlyTests: string[] = [
     // e.g., 'test399.txml'
-    // 'test175.txml'
+    // 'test208.txml'
   ];
   const testGroupKeys = Object.keys(testGroups);
 
@@ -478,8 +477,6 @@ describe('scxml', () => {
         } catch (e) {
           console.log(JSON.stringify(machine.config, null, 2));
           throw e;
-        } finally {
-          clearConsoleMocks();
         }
       });
     });

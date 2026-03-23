@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { executingCustomAction } from '../createActor.ts';
 import {
   ActionArgs,
   ActionFunction,
@@ -8,10 +9,12 @@ import {
   DelayExpr,
   DoNotInfer,
   EventObject,
+  ExecutableActionObject,
   MachineContext,
   ParameterizedObject,
   RaiseActionOptions,
-  SendExpr
+  SendExpr,
+  BuiltinActionResolution
 } from '../types.ts';
 
 function resolveRaise(
@@ -46,11 +49,12 @@ function resolveRaise(
       | undefined;
   },
   { internalQueue }: { internalQueue: AnyEventObject[] }
-) {
+): BuiltinActionResolution {
   const delaysMap = snapshot.machine.implementations.delays;
 
   if (typeof eventOrExpr === 'string') {
     throw new Error(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       `Only event objects may be used with raise; use raise({ type: "${eventOrExpr}" }) instead`
     );
   }
@@ -73,7 +77,15 @@ function resolveRaise(
   if (typeof resolvedDelay !== 'number') {
     internalQueue.push(resolvedEvent);
   }
-  return [snapshot, { event: resolvedEvent, id, delay: resolvedDelay }];
+  return [
+    snapshot,
+    {
+      event: resolvedEvent,
+      id,
+      delay: resolvedDelay
+    },
+    undefined
+  ];
 }
 
 function executeRaise(
@@ -141,9 +153,15 @@ export function raise<
   TDelay,
   never
 > {
+  if (isDevelopment && executingCustomAction) {
+    console.warn(
+      'Custom actions should not call `raise()` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.'
+    );
+  }
+
   function raise(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    _args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    _params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
@@ -159,4 +177,13 @@ export function raise<
   raise.execute = executeRaise;
 
   return raise;
+}
+
+export interface ExecutableRaiseAction extends ExecutableActionObject {
+  type: 'xstate.raise';
+  params: {
+    event: EventObject;
+    id: string | undefined;
+    delay: number | undefined;
+  };
 }

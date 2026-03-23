@@ -1,5 +1,5 @@
 {
-  "name": "7guis-flight-booker-react",
+  "name": "@xstate/example-7guis-flight-booker-react",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,22 +10,22 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@xstate/react": "^4.1.0",
-    "lucide-react": "^0.366.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "xstate": "^5.10.0"
+    "@xstate/react": "^4.1.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite-tsconfig-paths": "^4.3.2",
+    "xstate": "^5.28.0"
   },
   "devDependencies": {
-    "@types/react": "^18.2.66",
-    "@types/react-dom": "^18.2.22",
-    "@typescript-eslint/eslint-plugin": "^7.2.0",
-    "@typescript-eslint/parser": "^7.2.0",
-    "@vitejs/plugin-react": "^4.2.1",
-    "eslint": "^8.57.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.6",
-    "typescript": "^5.2.2",
-    "vite": "^5.2.0"
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-react-refresh": "^0.4.26",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21"
   }
 }

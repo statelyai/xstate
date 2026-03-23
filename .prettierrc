@@ -5,5 +5,7 @@
   "semi": true,
   "singleQuote": true,
   "trailingComma": "none",
-  "bracketSpacing": true
+  "bracketSpacing": true,
+  "plugins": ["prettier-plugin-jsdoc"],
+  "tsdoc": true
 }

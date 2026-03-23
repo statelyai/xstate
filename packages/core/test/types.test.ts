@@ -2,23 +2,31 @@ import { from } from 'rxjs';
 import { log } from '../src/actions/log';
 import { raise } from '../src/actions/raise';
 import { stopChild } from '../src/actions/stopChild';
-import { PromiseActorLogic, fromCallback, fromPromise } from '../src/actors';
+import {
+  PromiseActorLogic,
+  createEmptyActor,
+  fromCallback,
+  fromPromise
+} from '../src/actors';
 import {
   ActorRefFrom,
-  InputFrom,
+  ActorRefFromLogic,
+  AnyActorLogic,
   MachineContext,
   ProvidedActor,
   Spawner,
   StateMachine,
+  UnknownActorRef,
   assign,
   createActor,
   createMachine,
   enqueueActions,
   not,
   sendTo,
+  setup,
   spawnChild,
   stateIn,
-  setup
+  toPromise
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -204,7 +212,7 @@ describe('output', () => {
       }
     });
 
-    const state = machine.getInitialSnapshot(null as any);
+    const state = machine.getInitialSnapshot({} as any);
 
     ((_accept: number | undefined) => {})(state.output);
     // @ts-expect-error
@@ -391,6 +399,7 @@ it('should work with generic context', () => {
     any,
     any,
     any,
+    any,
     any, // TMeta
     any
   > {
@@ -525,6 +534,7 @@ describe('events', () => {
       _machine: StateMachine<
         TContext,
         TEvent,
+        any,
         any,
         any,
         any,
@@ -3511,6 +3521,27 @@ describe('input', () => {
       }
     });
   });
+
+  it('should require input to be specified when defined', () => {
+    const machine = createMachine({
+      types: {
+        input: {} as {
+          count: number;
+        }
+      }
+    });
+
+    // @ts-expect-error
+    createActor(machine);
+  });
+
+  it('should not require input when not defined', () => {
+    const machine = createMachine({
+      types: {}
+    });
+
+    createActor(machine);
+  });
 });
 
 describe('guards', () => {
@@ -4552,4 +4583,40 @@ describe('snapshot methods', () => {
     snapshot.getMeta();
     snapshot.toJSON();
   });
+});
+
+// https://github.com/statelyai/xstate/issues/4931
+it('fromPromise should not have issues with actors with emitted types', () => {
+  const machine = setup({
+    types: {
+      emitted: {} as { type: 'FOO' }
+    }
+  }).createMachine({});
+
+  const actor = createActor(machine).start();
+
+  toPromise(actor);
+});
+
+it('UnknownActorRef should return a Snapshot-typed value from getSnapshot()', () => {
+  const actor: UnknownActorRef = createEmptyActor();
+
+  // @ts-expect-error
+  actor.getSnapshot().status === 'FOO';
+});
+
+it('Actor<T> should be assignable to ActorRefFromLogic<T>', () => {
+  const logic = createMachine({});
+
+  class ActorThing<T extends AnyActorLogic> {
+    actorRef: ActorRefFromLogic<T>;
+    constructor(actorLogic: T) {
+      const actor = createActor(actorLogic);
+
+      actor satisfies ActorRefFromLogic<typeof actorLogic>;
+      this.actorRef = actor;
+    }
+  }
+
+  new ActorThing(logic);
 });

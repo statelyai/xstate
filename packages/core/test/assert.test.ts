@@ -1,7 +1,8 @@
 import { createActor, createMachine, assertEvent } from '../src';
 
 describe('assertion helpers', () => {
-  it('assertEvent asserts the correct event type', (done) => {
+  it('assertEvent asserts the correct event type', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine(
       {
         types: {
@@ -35,18 +36,21 @@ describe('assertion helpers', () => {
     actor.subscribe({
       error(err) {
         expect(err).toMatchInlineSnapshot(
-          `[Error: Expected event {"type":"count","value":42} to have type "greet"]`
+          `[Error: Expected event {"type":"count","value":42} to have type matching "greet"]`
         );
-        done();
+        resolve();
       }
     });
 
     actor.start();
 
     actor.send({ type: 'count', value: 42 });
+
+    return promise;
   });
 
-  it('assertEvent asserts multiple event types', (done) => {
+  it('assertEvent asserts multiple event types', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine(
       {
         types: {
@@ -87,14 +91,16 @@ describe('assertion helpers', () => {
     actor.subscribe({
       error(err) {
         expect(err).toMatchInlineSnapshot(
-          `[Error: Expected event {"type":"count","value":42} to have one of types "greet", "notify"]`
+          `[Error: Expected event {"type":"count","value":42} to have one of types matching "greet", "notify"]`
         );
-        done();
+        resolve();
       }
     });
 
     actor.start();
 
     actor.send({ type: 'count', value: 42 });
+
+    return promise;
   });
 });

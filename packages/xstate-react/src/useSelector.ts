@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
-import { AnyActorRef, SnapshotFrom } from 'xstate';
+import { AnyActorRef } from 'xstate';
 
 type SyncExternalStoreSubscribe = Parameters<
   typeof useSyncExternalStoreWithSelector
@@ -27,13 +27,22 @@ export function useSelector<
       if (!actor) {
         return () => {};
       }
-      const { unsubscribe } = actor.subscribe(handleStoreChange);
+      const { unsubscribe } = actor.subscribe({
+        next: handleStoreChange,
+        error: handleStoreChange
+      });
       return unsubscribe;
     },
     [actor]
   );
 
-  const boundGetSnapshot = useCallback(() => actor?.getSnapshot(), [actor]);
+  const boundGetSnapshot = useCallback(() => {
+    const snapshot = actor?.getSnapshot();
+    if (snapshot && 'status' in snapshot && snapshot.status === 'error') {
+      throw snapshot.error;
+    }
+    return snapshot;
+  }, [actor]);
 
   const selectedSnapshot = useSyncExternalStoreWithSelector(
     subscribe,

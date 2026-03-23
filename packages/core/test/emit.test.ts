@@ -3,9 +3,25 @@ import {
   createActor,
   createMachine,
   enqueueActions,
+  fromCallback,
+  fromEventObservable,
+  fromObservable,
+  fromPromise,
+  fromTransition,
   setup
 } from '../src';
 import { emit } from '../src/actions/emit';
+
+// mocked reportUnhandledError due to unknown issue with vitest and global error
+// handlers not catching thrown errors
+// see: https://github.com/vitest-dev/vitest/issues/6292
+vi.mock('../src/reportUnhandledError.ts', () => {
+  return {
+    reportUnhandledError: (err: unknown) => {
+      console.error(err);
+    }
+  };
+});
 
 describe('event emitter', () => {
   it('only emits expected events if specified in setup', () => {
@@ -120,14 +136,10 @@ describe('event emitter', () => {
         type: 'someEvent'
       });
     });
-    const err = await new Promise((res) =>
-      actor.subscribe({
-        error: res
-      })
-    );
 
-    expect(err).toBeInstanceOf(Error);
-    expect((err as Error).message).toEqual('oops');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(actor.getSnapshot().status).toEqual('active');
   });
 
   it('dynamically emits events that can be listened to on actorRef.on(…)', async () => {
@@ -160,7 +172,7 @@ describe('event emitter', () => {
   });
 
   it('listener should be able to read the updated snapshot of the emitting actor', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       initial: 'a',
@@ -187,5 +199,285 @@ describe('event emitter', () => {
 
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith('b');
+  });
+
+  it('wildcard listeners should be able to receive all emitted events', () => {
+    const spy = vi.fn();
+
+    const machine = setup({
+      types: {
+        events: {} as { type: 'event' },
+        emitted: {} as { type: 'emitted' } | { type: 'anotherEmitted' }
+      }
+    }).createMachine({
+      on: {
+        event: {
+          actions: emit({ type: 'emitted' })
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+
+    actor.on('*', (ev) => {
+      ev.type satisfies 'emitted' | 'anotherEmitted';
+
+      // @ts-expect-error
+      ev.type satisfies 'whatever';
+      spy(ev);
+    });
+
+    actor.start();
+
+    actor.send({ type: 'event' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('events can be emitted from promise logic', () => {
+    const spy = vi.fn();
+
+    const logic = fromPromise<any, any, { type: 'emitted'; msg: string }>(
+      async ({ emit }) => {
+        emit({
+          type: 'emitted',
+          msg: 'hello'
+        });
+      }
+    );
+
+    const actor = createActor(logic);
+
+    actor.on('emitted', (ev) => {
+      ev.type satisfies 'emitted';
+
+      // @ts-expect-error
+      ev.type satisfies 'whatever';
+
+      ev satisfies { msg: string };
+
+      spy(ev);
+    });
+
+    actor.start();
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'emitted',
+        msg: 'hello'
+      })
+    );
+  });
+
+  it('events can be emitted from transition logic', () => {
+    const spy = vi.fn();
+
+    const logic = fromTransition<
+      any,
+      any,
+      any,
+      any,
+      { type: 'emitted'; msg: string }
+    >((s, e, { emit }) => {
+      if (e.type === 'emit') {
+        emit({
+          type: 'emitted',
+          msg: 'hello'
+        });
+      }
+      return s;
+    }, {});
+
+    const actor = createActor(logic);
+
+    actor.on('emitted', (ev) => {
+      ev.type satisfies 'emitted';
+
+      // @ts-expect-error
+      ev.type satisfies 'whatever';
+
+      ev satisfies { msg: string };
+
+      spy(ev);
+    });
+
+    actor.start();
+
+    actor.send({ type: 'emit' });
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'emitted',
+        msg: 'hello'
+      })
+    );
+  });
+
+  it('events can be emitted from observable logic', () => {
+    const spy = vi.fn();
+
+    const logic = fromObservable<any, any, { type: 'emitted'; msg: string }>(
+      ({ emit }) => {
+        emit({
+          type: 'emitted',
+          msg: 'hello'
+        });
+
+        return {
+          subscribe: () => {
+            return {
+              unsubscribe: () => {}
+            };
+          }
+        };
+      }
+    );
+
+    const actor = createActor(logic);
+
+    actor.on('emitted', (ev) => {
+      ev.type satisfies 'emitted';
+
+      // @ts-expect-error
+      ev.type satisfies 'whatever';
+
+      ev satisfies { msg: string };
+
+      spy(ev);
+    });
+
+    actor.start();
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'emitted',
+        msg: 'hello'
+      })
+    );
+  });
+
+  it('events can be emitted from event observable logic', () => {
+    const spy = vi.fn();
+
+    const logic = fromEventObservable<
+      any,
+      any,
+      { type: 'emitted'; msg: string }
+    >(({ emit }) => {
+      emit({
+        type: 'emitted',
+        msg: 'hello'
+      });
+
+      return {
+        subscribe: () => {
+          return {
+            unsubscribe: () => {}
+          };
+        }
+      };
+    });
+
+    const actor = createActor(logic);
+
+    actor.on('emitted', (ev) => {
+      ev.type satisfies 'emitted';
+
+      // @ts-expect-error
+      ev.type satisfies 'whatever';
+
+      ev satisfies { msg: string };
+
+      spy(ev);
+    });
+
+    actor.start();
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'emitted',
+        msg: 'hello'
+      })
+    );
+  });
+
+  it('events can be emitted from callback logic', () => {
+    const spy = vi.fn();
+
+    const logic = fromCallback<any, any, { type: 'emitted'; msg: string }>(
+      ({ emit }) => {
+        emit({
+          type: 'emitted',
+          msg: 'hello'
+        });
+      }
+    );
+
+    const actor = createActor(logic);
+
+    actor.on('emitted', (ev) => {
+      ev.type satisfies 'emitted';
+
+      // @ts-expect-error
+      ev.type satisfies 'whatever';
+
+      ev satisfies { msg: string };
+
+      spy(ev);
+    });
+
+    actor.start();
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'emitted',
+        msg: 'hello'
+      })
+    );
+  });
+
+  it('events can be emitted from callback logic (restored root)', () => {
+    const spy = vi.fn();
+
+    const logic = fromCallback<any, any, { type: 'emitted'; msg: string }>(
+      ({ emit }) => {
+        emit({
+          type: 'emitted',
+          msg: 'hello'
+        });
+      }
+    );
+
+    const machine = setup({
+      actors: { logic }
+    }).createMachine({
+      invoke: {
+        id: 'cb',
+        src: 'logic'
+      }
+    });
+
+    const actor = createActor(machine);
+
+    // Persist the root actor
+    const persistedSnapshot = actor.getPersistedSnapshot();
+
+    // Rehydrate a new instance of the root actor using the persisted snapshot
+    const restoredActor = createActor(machine, {
+      snapshot: persistedSnapshot
+    });
+
+    restoredActor.getSnapshot().children.cb!.on('emitted', (ev) => {
+      spy(ev);
+    });
+
+    restoredActor.start();
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'emitted',
+        msg: 'hello'
+      })
+    );
   });
 });

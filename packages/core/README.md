@@ -29,6 +29,8 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 💬 Chat on the [Stately Discord Community](https://discord.gg/xstate)
 
+✍️ Browse through the many [XState examples](https://github.com/statelyai/xstate/tree/main/examples)
+
 ## Templates
 
 Get started by forking one of these templates on CodeSandbox:
@@ -182,12 +184,10 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 | Package                                                                                       | Description                                                                  |
 | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | 🤖 `xstate`                                                                                   | Core finite state machine and statecharts library + interpreter              |
-| [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph)     | Graph traversal utilities for XState                                         |
 | [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react)     | React hooks and utilities for using XState in React applications             |
 | [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)         | Vue composition functions and utilities for using XState in Vue applications |
 | [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte)   | Svelte utilities for using XState in Svelte applications                     |
 | [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid)     | Solid hooks and utilities for using XState in Solid applications             |
-| [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/main/packages/xstate-test)       | Model-Based-Testing utilities (using XState) for testing any software        |
 | [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) | Inspection utilities for XState                                              |
 
 ## Finite State Machines

@@ -1,4 +1,4 @@
-import { createMachine, createActor } from '../src/index.ts';
+import { createMachine, createActor, setup } from '../src/index.ts';
 
 describe('state meta data', () => {
   const pedestrianStates = {
@@ -132,6 +132,335 @@ describe('state meta data', () => {
     expect(actor.getSnapshot().getMeta()).toEqual({
       'test.second': {
         name: 'second state'
+      }
+    });
+  });
+
+  it('meta keys are strongly-typed', () => {
+    const machine = setup({
+      types: {
+        meta: {} as { template: string }
+      }
+    }).createMachine({
+      id: 'root',
+      initial: 'a',
+      states: {
+        a: {},
+        b: {},
+        c: {
+          initial: 'one',
+          states: {
+            one: {
+              id: 'one'
+            },
+            two: {},
+            three: {}
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    const snapshot = actor.getSnapshot();
+    const meta = snapshot.getMeta();
+
+    meta['root'];
+    meta['root.c'];
+    meta['one'] satisfies { template: string } | undefined;
+    // @ts-expect-error
+    meta['one'] satisfies { template: number } | undefined;
+    // @ts-expect-error
+    meta['one'] satisfies { template: string };
+
+    // @ts-expect-error
+    meta['(machine)'];
+
+    // @ts-expect-error
+    meta['c'];
+
+    // @ts-expect-error
+    meta['root.c.one'];
+  });
+
+  it('TS should error with unexpected meta property', () => {
+    setup({
+      types: {
+        meta: {} as {
+          layout: string;
+        }
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          meta: {
+            layout: 'a-layout'
+          }
+        },
+        b: {
+          meta: {
+            // @ts-expect-error
+            notLayout: 'uh oh'
+          }
+        }
+      }
+    });
+  });
+
+  it('TS should error with wrong meta value type', () => {
+    setup({
+      types: {
+        meta: {} as {
+          layout: string;
+        }
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          meta: {
+            layout: 'a-layout'
+          }
+        },
+        d: {
+          meta: {
+            // @ts-expect-error
+            layout: 42
+          }
+        }
+      }
+    });
+  });
+
+  it('should allow states to omit meta', () => {
+    setup({
+      types: {
+        meta: {} as {
+          layout: string;
+        }
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          meta: {
+            layout: 'a-layout'
+          }
+        },
+        c: {} // no meta
+      }
+    });
+  });
+
+  it('TS should error with unexpected transition meta property', () => {
+    setup({
+      types: {
+        meta: {} as {
+          layout: string;
+        }
+      }
+    }).createMachine({
+      on: {
+        e1: {
+          meta: {
+            layout: 'event-layout'
+          }
+        },
+        e2: {
+          meta: {
+            // @ts-expect-error
+            notLayout: 'uh oh'
+          }
+        }
+      }
+    });
+  });
+
+  it('TS should error with wrong transition meta value type', () => {
+    setup({
+      types: {
+        meta: {} as {
+          layout: string;
+        }
+      }
+    }).createMachine({
+      on: {
+        e1: {
+          meta: {
+            layout: 'event-layout'
+          }
+        },
+        // @ts-expect-error (error is here for some reason...)
+        e2: {
+          meta: {
+            layout: 42
+          }
+        }
+      }
+    });
+  });
+
+  it('should support typing meta properties (no ts-expected errors)', () => {
+    const machine = setup({
+      types: {
+        meta: {} as {
+          layout: string;
+        }
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          meta: {
+            layout: 'a-layout'
+          }
+        },
+        b: {},
+        c: {},
+        d: {}
+      },
+      on: {
+        e1: {
+          meta: {
+            layout: 'event-layout'
+          }
+        },
+        e2: {},
+        e3: {},
+        e4: {}
+      }
+    });
+
+    const actor = createActor(machine);
+
+    actor.getSnapshot().getMeta()['(machine)'] satisfies
+      | { layout: string }
+      | undefined;
+
+    actor.getSnapshot().getMeta()['(machine).a'];
+  });
+
+  it('should strongly type the state IDs in snapshot.getMeta()', () => {
+    const machine = setup({}).createMachine({
+      id: 'root',
+      initial: 'parentState',
+      states: {
+        parentState: {
+          meta: {},
+          initial: 'childState',
+          states: {
+            childState: {
+              meta: {}
+            },
+            stateWithId: {
+              id: 'state with id',
+              meta: {}
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+
+    const metaValues = actor.getSnapshot().getMeta();
+
+    metaValues.root;
+    metaValues['root.parentState'];
+    metaValues['root.parentState.childState'];
+    metaValues['state with id'];
+
+    // @ts-expect-error
+    metaValues['root.parentState.stateWithId'];
+
+    // @ts-expect-error
+    metaValues['unknown state'];
+  });
+
+  it('should strongly type the state IDs in snapshot.getMeta() (no root ID)', () => {
+    const machine = setup({}).createMachine({
+      // id is (machine)
+      initial: 'parentState',
+      states: {
+        parentState: {
+          meta: {},
+          initial: 'childState',
+          states: {
+            childState: {
+              meta: {}
+            },
+            stateWithId: {
+              id: 'state with id',
+              meta: {}
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+
+    const metaValues = actor.getSnapshot().getMeta();
+
+    metaValues['(machine)'];
+    metaValues['(machine).parentState'];
+    metaValues['(machine).parentState.childState'];
+    metaValues['state with id'];
+
+    // @ts-expect-error
+    metaValues['(machine).parentState.stateWithId'];
+
+    // @ts-expect-error
+    metaValues['unknown state'];
+  });
+});
+
+describe('transition meta data', () => {
+  it('TS should error with unexpected transition meta property', () => {
+    setup({
+      types: {
+        meta: {} as {
+          layout: string;
+        }
+      }
+    }).createMachine({
+      on: {
+        e1: {
+          meta: {
+            layout: 'event-layout'
+          }
+        },
+        e2: {
+          meta: {
+            // @ts-expect-error
+            notLayout: 'uh oh'
+          }
+        }
+      }
+    });
+  });
+
+  it('TS should error with wrong transition meta value type', () => {
+    setup({
+      types: {
+        meta: {} as {
+          layout: string;
+        }
+      }
+    }).createMachine({
+      on: {
+        e1: {
+          meta: {
+            layout: 'event-layout'
+          }
+        },
+        // @ts-expect-error (error is here for some reason...)
+        e2: {
+          meta: {
+            layout: 42
+          }
+        }
       }
     });
   });

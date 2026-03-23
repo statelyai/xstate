@@ -1,10 +1,10 @@
 import { Accessor, createEffect, createMemo, onCleanup } from 'solid-js';
-import { ActorRef, SnapshotFrom } from 'xstate';
+import { AnyActorRef, SnapshotFrom } from 'xstate';
 import { createImmutable } from './createImmutable.ts';
 
 const noop = () => {};
 
-export function fromActorRef<TActor extends ActorRef<any, any> | undefined>(
+export function fromActorRef<TActor extends AnyActorRef | undefined>(
   actorRef: Accessor<TActor> | TActor
 ): Accessor<
   | SnapshotFrom<NonNullable<TActor>>

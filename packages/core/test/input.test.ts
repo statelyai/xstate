@@ -10,7 +10,7 @@ import {
 
 describe('input', () => {
   it('should create a machine with input', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       types: {} as {
@@ -30,15 +30,18 @@ describe('input', () => {
     expect(spy).toHaveBeenCalledWith(42);
   });
 
-  it('initial event should have input property', (done) => {
+  it('initial event should have input property', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
       entry: ({ event }) => {
         expect(event.input.greeting).toBe('hello');
-        done();
+        resolve();
       }
     });
 
     createActor(machine, { input: { greeting: 'hello' } }).start();
+
+    return promise;
   });
 
   it('should error if input is expected but not provided', () => {
@@ -69,7 +72,8 @@ describe('input', () => {
     }).not.toThrowError();
   });
 
-  it('should provide input data to invoked machines', (done) => {
+  it('should provide input data to invoked machines', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const invokedMachine = createMachine({
       types: {} as {
         input: { greeting: string };
@@ -79,7 +83,7 @@ describe('input', () => {
       entry: ({ context, event }) => {
         expect(context.greeting).toBe('hello');
         expect(event.input.greeting).toBe('hello');
-        done();
+        resolve();
       }
     });
 
@@ -91,9 +95,12 @@ describe('input', () => {
     });
 
     createActor(machine).start();
+
+    return promise;
   });
 
-  it('should provide input data to spawned machines', (done) => {
+  it('should provide input data to spawned machines', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const spawnedMachine = createMachine({
       types: {} as {
         input: { greeting: string };
@@ -105,7 +112,7 @@ describe('input', () => {
       entry: ({ context, event }) => {
         expect(context.greeting).toBe('hello');
         expect(event.input.greeting).toBe('hello');
-        done();
+        resolve();
       }
     });
 
@@ -118,6 +125,8 @@ describe('input', () => {
     });
 
     createActor(machine).start();
+
+    return promise;
   });
 
   it('should create a promise with input', async () => {
@@ -147,7 +156,8 @@ describe('input', () => {
     expect(transitionActor.getSnapshot().context).toEqual({ count: 42 });
   });
 
-  it('should create an observable actor with input', (done) => {
+  it('should create an observable actor with input', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const observableLogic = fromObservable<
       { count: number },
       { count: number }
@@ -160,26 +170,31 @@ describe('input', () => {
     const sub = observableActor.subscribe((state) => {
       if (state.context?.count !== 42) return;
       expect(state.context).toEqual({ count: 42 });
-      done();
       sub.unsubscribe();
+      resolve();
     });
 
     observableActor.start();
+
+    return promise;
   });
 
-  it('should create a callback actor with input', (done) => {
+  it('should create a callback actor with input', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const callbackLogic = fromCallback(({ input }) => {
       expect(input).toEqual({ count: 42 });
-      done();
+      resolve();
     });
 
     createActor(callbackLogic, {
       input: { count: 42 }
     }).start();
+
+    return promise;
   });
 
   it('should provide a static inline input to the referenced actor', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const child = createMachine({
       context: ({ input }: { input: number }) => {
@@ -211,7 +226,7 @@ describe('input', () => {
   });
 
   it('should provide a dynamic inline input to the referenced actor', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const child = createMachine({
       context: ({ input }: { input: number }) => {
@@ -255,7 +270,7 @@ describe('input', () => {
   });
 
   it('should call the input factory with self when invoking', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine({
       invoke: {
@@ -270,7 +285,7 @@ describe('input', () => {
   });
 
   it('should call the input factory with self when spawning', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     const machine = createMachine(
       {

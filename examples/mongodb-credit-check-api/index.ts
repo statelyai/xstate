@@ -25,7 +25,7 @@ app.post("/workflows", async (_req, res) => {
     });
     res
       .status(201)
-      .json({ message: "New worflow created successfully", workflowId });
+      .json({ message: "New workflow created successfully", workflowId });
   } catch (err) {
     console.log(err);
     res.status(500).send("Error starting workflow. Details: " + err);

@@ -18,6 +18,7 @@ import {
   ParameterizedObject,
   ProvidedActor,
   RequiredActorOptions,
+  BuiltinActionResolution,
   UnifiedArg
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
@@ -47,35 +48,37 @@ function resolveSpawn(
     input?: unknown;
     syncSnapshot: boolean;
   }
-) {
+): BuiltinActionResolution {
   const logic =
     typeof src === 'string'
       ? resolveReferencedActor(snapshot.machine, src)
       : src;
   const resolvedId = typeof id === 'function' ? id(actionArgs) : id;
-
   let actorRef: AnyActorRef | undefined;
+  let resolvedInput: unknown | undefined = undefined;
 
   if (logic) {
+    resolvedInput =
+      typeof input === 'function'
+        ? input({
+            context: snapshot.context,
+            event: actionArgs.event,
+            self: actorScope.self
+          })
+        : input;
     actorRef = createActor(logic, {
       id: resolvedId,
       src,
       parent: actorScope.self,
       syncSnapshot,
       systemId,
-      input:
-        typeof input === 'function'
-          ? input({
-              context: snapshot.context,
-              event: actionArgs.event,
-              self: actorScope.self
-            })
-          : input
+      input: resolvedInput
     });
   }
 
   if (isDevelopment && !actorRef) {
     console.warn(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions,@typescript-eslint/no-base-to-string
       `Actor type '${src}' not found in machine '${actorScope.id}'.`
     );
   }
@@ -88,14 +91,18 @@ function resolveSpawn(
     }),
     {
       id,
-      actorRef
-    }
+      systemId,
+      actorRef,
+      src,
+      input: resolvedInput
+    },
+    undefined
   ];
 }
 
 function executeSpawn(
   actorScope: AnyActorScope,
-  { id, actorRef }: { id: string; actorRef: AnyActorRef }
+  { actorRef }: { id: string; actorRef: AnyActorRef }
 ) {
   if (!actorRef) {
     return;
@@ -120,7 +127,7 @@ export interface SpawnAction<
   _out_TActor?: TActor;
 }
 
-interface SpawnActionOptions<
+export interface SpawnActionOptions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
@@ -171,17 +178,18 @@ type SpawnArguments<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TActor extends ProvidedActor
-> = IsLiteralString<TActor['src']> extends true
-  ? DistributeActors<TContext, TExpressionEvent, TEvent, TActor>
-  : [
-      src: string | AnyActorLogic,
-      options?: {
-        id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
-        systemId?: string;
-        input?: unknown;
-        syncSnapshot?: boolean;
-      }
-    ];
+> =
+  IsLiteralString<TActor['src']> extends true
+    ? DistributeActors<TContext, TExpressionEvent, TEvent, TActor>
+    : [
+        src: string | AnyActorLogic,
+        options?: {
+          id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
+          systemId?: string;
+          input?: unknown;
+          syncSnapshot?: boolean;
+        }
+      ];
 
 export function spawnChild<
   TContext extends MachineContext,
@@ -206,15 +214,15 @@ export function spawnChild<
   never
 > {
   function spawnChild(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    _args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    _params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
   }
 
-  spawnChild.type = 'snapshot.spawnChild';
+  spawnChild.type = 'xstate.spawnChild';
   spawnChild.id = id;
   spawnChild.systemId = systemId;
   spawnChild.src = src;

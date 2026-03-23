@@ -1,5 +1,5 @@
 {
-  "name": "mediaScanner",
+  "name": "@xstate/example-workflow-media-scanner",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
@@ -7,13 +7,13 @@
     "start": "ts-node src/index.ts"
   },
   "dependencies": {
-    "@types/node": "^20.12.5",
-    "fs-extra": "^11.2.0",
+    "@types/node": "^20.19.35",
+    "fs-extra": "^11.3.4",
     "mv": "^2.1.1",
     "node-ffprobe": "^3.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.4",
-    "winston": "^3.13.0",
-    "xstate": "^5.9.1"
+    "typescript": "^5.9.3",
+    "winston": "^3.19.0",
+    "xstate": "^5.28.0"
   }
 }

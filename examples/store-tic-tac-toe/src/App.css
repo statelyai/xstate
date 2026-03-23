@@ -1,0 +1,150 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+.game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  color: #ffffff;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  background: #333;
+  padding: 0.5rem;
+  border-radius: 8px;
+}
+
+.square {
+  appearance: none;
+  padding: 0;
+  width: 100px;
+  height: 100px;
+  background: #242424;
+  border: none;
+  border-radius: 4px;
+  font-size: 3rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.square.winning::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: greenyellow;
+  opacity: 0.2;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
+.square:hover:not(:disabled) {
+  background: #2a2a2a;
+  transform: scale(1.02);
+}
+
+.square:disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.status {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #fff;
+  text-align: center;
+}
+
+.reset {
+  padding: 0.75rem 1.5rem;
+  font-size: 1.1rem;
+  background: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.reset:hover {
+  background: #357abd;
+  transform: translateY(-1px);
+}
+
+.reset:active {
+  transform: translateY(0);
+}
+
+h1 {
+  color: #fff;
+  margin: 0;
+  font-size: 3.5rem;
+  text-align: center;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}

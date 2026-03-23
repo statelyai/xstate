@@ -15,6 +15,7 @@ import {
   WILDCARD
 } from './constants.ts';
 import { evaluateGuard } from './guards.ts';
+import { matchesEventDescriptor } from './utils.ts';
 import {
   ActionArgs,
   AnyEventObject,
@@ -22,9 +23,9 @@ import {
   AnyMachineSnapshot,
   AnyStateNode,
   AnyTransitionDefinition,
-  DelayExpr,
   DelayedTransitionDefinition,
   EventObject,
+  ExecutableActionObject,
   HistoryValue,
   InitialTransitionConfig,
   InitialTransitionDefinition,
@@ -35,10 +36,10 @@ import {
   TODO,
   UnknownAction,
   ParameterizedObject,
-  ActionFunction,
   AnyTransitionConfig,
-  ProvidedActor,
-  AnyActorScope
+  AnyActorScope,
+  ActionExecutor,
+  AnyStateMachine
 } from './types.ts';
 import {
   resolveOutput,
@@ -48,7 +49,6 @@ import {
   toTransitionConfigArray,
   isErrorActorEvent
 } from './utils.ts';
-import { ProcessingStatus } from './createActor.ts';
 
 type StateNodeIterable<
   TContext extends MachineContext,
@@ -58,8 +58,9 @@ type AnyStateNodeIterable = StateNodeIterable<any, any>;
 
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 
-export const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
-  stateNode.type === 'atomic' || stateNode.type === 'final';
+export function isAtomicStateNode(stateNode: StateNode<any, any>) {
+  return stateNode.type === 'atomic' || stateNode.type === 'final';
+}
 
 function getChildren<TContext extends MachineContext, TE extends EventObject>(
   stateNode: StateNode<TContext, TE>
@@ -67,7 +68,7 @@ function getChildren<TContext extends MachineContext, TE extends EventObject>(
   return Object.values(stateNode.states).filter((sn) => sn.type !== 'history');
 }
 
-function getProperAncestors(
+export function getProperAncestors(
   stateNode: AnyStateNode,
   toStateNode: AnyStateNode | undefined
 ): Array<typeof stateNode> {
@@ -158,10 +159,9 @@ function getValueFromAdj(baseNode: AnyStateNode, adjList: AdjList): StateValue {
   return stateValue;
 }
 
-export function getAdjList<
-  TContext extends MachineContext,
-  TE extends EventObject
->(stateNodes: StateNodeIterable<TContext, TE>): AdjList {
+function getAdjList<TContext extends MachineContext, TE extends EventObject>(
+  stateNodes: StateNodeIterable<TContext, TE>
+): AdjList {
   const adjList: AdjList = new Map();
 
   for (const s of stateNodes) {
@@ -216,62 +216,16 @@ export function getCandidates<TEvent extends EventObject>(
   const candidates =
     stateNode.transitions.get(receivedEventType) ||
     [...stateNode.transitions.keys()]
-      .filter((eventDescriptor) => {
-        // check if transition is a wildcard transition,
-        // which matches any non-transient events
-        if (eventDescriptor === WILDCARD) {
-          return true;
-        }
-
-        if (!eventDescriptor.endsWith('.*')) {
-          return false;
-        }
-
-        if (isDevelopment && /.*\*.+/.test(eventDescriptor)) {
-          console.warn(
-            `Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "${eventDescriptor}" event.`
-          );
-        }
-
-        const partialEventTokens = eventDescriptor.split('.');
-        const eventTokens = receivedEventType.split('.');
-
-        for (
-          let tokenIndex = 0;
-          tokenIndex < partialEventTokens.length;
-          tokenIndex++
-        ) {
-          const partialEventToken = partialEventTokens[tokenIndex];
-          const eventToken = eventTokens[tokenIndex];
-
-          if (partialEventToken === '*') {
-            const isLastToken = tokenIndex === partialEventTokens.length - 1;
-
-            if (isDevelopment && !isLastToken) {
-              console.warn(
-                `Infix wildcards in transition events are not allowed. Check the "${eventDescriptor}" transition.`
-              );
-            }
-
-            return isLastToken;
-          }
-
-          if (partialEventToken !== eventToken) {
-            return false;
-          }
-        }
-
-        return true;
-      })
+      .filter((eventDescriptor) =>
+        matchesEventDescriptor(receivedEventType, eventDescriptor)
+      )
       .sort((a, b) => b.length - a.length)
       .flatMap((key) => stateNode.transitions.get(key)!);
 
   return candidates;
 }
 
-/**
- * All delayed transitions from the config.
- */
+/** All delayed transitions from the config. */
 export function getDelayedTransitions(
   stateNode: AnyStateNode
 ): Array<DelayedTransitionDefinition<MachineContext, EventObject>> {
@@ -280,22 +234,28 @@ export function getDelayedTransitions(
     return [];
   }
 
-  const mutateEntryExit = (delay: string | number, i: number) => {
+  const mutateEntryExit = (delay: string | number) => {
     const afterEvent = createAfterEvent(delay, stateNode.id);
     const eventType = afterEvent.type;
-    stateNode.entry.push(raise(afterEvent, { id: eventType, delay }));
+
+    stateNode.entry.push(
+      raise(afterEvent, {
+        id: eventType,
+        delay
+      })
+    );
     stateNode.exit.push(cancel(eventType));
     return eventType;
   };
 
-  const delayedTransitions = Object.keys(afterConfig).flatMap((delay, i) => {
+  const delayedTransitions = Object.keys(afterConfig).flatMap((delay) => {
     const configTransition = afterConfig[delay];
     const resolvedTransition =
       typeof configTransition === 'string'
         ? { target: configTransition }
         : configTransition;
     const resolvedDelay = Number.isNaN(+delay) ? delay : +delay;
-    const eventType = mutateEntryExit(resolvedDelay, i);
+    const eventType = mutateEntryExit(resolvedDelay);
     return toArray(resolvedTransition).map((transition) => ({
       ...transition,
       event: eventType,
@@ -315,10 +275,7 @@ export function getDelayedTransitions(
   });
 }
 
-export function formatTransition<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
+export function formatTransition(
   stateNode: AnyStateNode,
   descriptor: string,
   transitionConfig: AnyTransitionConfig
@@ -333,6 +290,7 @@ export function formatTransition<
       `State "${stateNode.id}" has declared \`cond\` for one of its transitions. This property has been renamed to \`guard\`. Please update your code.`
     );
   }
+
   const transition = {
     ...transitionConfig,
     actions: toArray(transitionConfig.actions),
@@ -426,6 +384,53 @@ export function formatTransitions<
   return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
 }
 
+/**
+ * Collects route transitions from all descendants with explicit IDs. Called
+ * once on the root node to avoid O(N²) repeated traversals.
+ */
+export function formatRouteTransitions(rootStateNode: AnyStateNode): void {
+  const routeTransitions: AnyTransitionDefinition[] = [];
+  const collectRoutes = (states: Record<string, AnyStateNode>) => {
+    Object.values(states).forEach((sn) => {
+      if (sn.config.route && sn.config.id) {
+        const routeId = sn.config.id;
+        const userGuard = sn.config.route.guard;
+        const routeGuard = (
+          args: { context: any; event: any },
+          params: any
+        ) => {
+          if (args.event.to !== `#${routeId}`) {
+            return false;
+          }
+          if (!userGuard) {
+            return true;
+          }
+          if (typeof userGuard === 'function') {
+            return userGuard(args, params);
+          }
+          return true;
+        };
+        const transition: AnyTransitionConfig = {
+          ...sn.config.route,
+          guard: routeGuard,
+          target: `#${routeId}`
+        };
+
+        routeTransitions.push(
+          formatTransition(rootStateNode, 'xstate.route', transition)
+        );
+      }
+      if (sn.states) {
+        collectRoutes(sn.states);
+      }
+    });
+  };
+  collectRoutes(rootStateNode.states);
+  if (routeTransitions.length > 0) {
+    rootStateNode.transitions.set('xstate.route', routeTransitions);
+  }
+}
+
 export function formatInitialTransition<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -444,6 +449,7 @@ export function formatInitialTransition<
         : undefined;
   if (!resolvedTarget && _target) {
     throw new Error(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-base-to-string
       `Initial state node "${_target}" not found on parent state node #${stateNode.id}`
     );
   }
@@ -464,7 +470,7 @@ export function formatInitialTransition<
   return transition;
 }
 
-export function resolveTarget(
+function resolveTarget(
   stateNode: AnyStateNode,
   targets: ReadonlyArray<string | AnyStateNode> | undefined
 ): ReadonlyArray<AnyStateNode> | undefined {
@@ -530,9 +536,7 @@ function isHistoryNode(
   return stateNode.type === 'history';
 }
 
-export function getInitialStateNodesWithTheirAncestors(
-  stateNode: AnyStateNode
-) {
+function getInitialStateNodesWithTheirAncestors(stateNode: AnyStateNode) {
   const states = getInitialStateNodes(stateNode);
   for (const initialState of states) {
     for (const ancestor of getProperAncestors(initialState, stateNode)) {
@@ -542,7 +546,7 @@ export function getInitialStateNodesWithTheirAncestors(
   return states;
 }
 
-export function getInitialStateNodes(stateNode: AnyStateNode) {
+function getInitialStateNodes(stateNode: AnyStateNode) {
   const set = new Set<AnyStateNode>();
 
   function iter(descStateNode: AnyStateNode): void {
@@ -563,13 +567,8 @@ export function getInitialStateNodes(stateNode: AnyStateNode) {
 
   return set;
 }
-/**
- * Returns the child state node from its relative `stateKey`, or throws.
- */
-export function getStateNode(
-  stateNode: AnyStateNode,
-  stateKey: string
-): AnyStateNode {
+/** Returns the child state node from its relative `stateKey`, or throws. */
+function getStateNode(stateNode: AnyStateNode, stateKey: string): AnyStateNode {
   if (isStateId(stateKey)) {
     return stateNode.machine.getStateNodeById(stateKey);
   }
@@ -599,7 +598,7 @@ export function getStateNodeByPath(
   if (typeof statePath === 'string' && isStateId(statePath)) {
     try {
       return stateNode.machine.getStateNodeById(statePath);
-    } catch (e) {
+    } catch {
       // try individual paths
       // throw e;
     }
@@ -621,10 +620,10 @@ export function getStateNodeByPath(
  *
  * @param stateValue The state value or State instance
  */
-export function getStateNodes<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(stateNode: AnyStateNode, stateValue: StateValue): Array<AnyStateNode> {
+export function getStateNodes(
+  stateNode: AnyStateNode,
+  stateValue: StateValue
+): Array<AnyStateNode> {
   if (typeof stateValue === 'string') {
     const childStateNode = stateNode.states[stateValue];
     if (!childStateNode) {
@@ -657,7 +656,7 @@ export function getStateNodes<
   );
 }
 
-export function transitionAtomicNode<
+function transitionAtomicNode<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
@@ -670,7 +669,8 @@ export function transitionAtomicNode<
     any,
     any,
     any,
-    any // TMeta
+    any, // TMeta
+    any // TStateSchema
   >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
@@ -684,7 +684,7 @@ export function transitionAtomicNode<
   return next;
 }
 
-export function transitionCompoundNode<
+function transitionCompoundNode<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
@@ -697,7 +697,8 @@ export function transitionCompoundNode<
     any,
     any,
     any,
-    any // TMeta
+    any, // TMeta
+    any // TStateSchema
   >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
@@ -718,7 +719,7 @@ export function transitionCompoundNode<
   return next;
 }
 
-export function transitionParallelNode<
+function transitionParallelNode<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
@@ -731,7 +732,8 @@ export function transitionParallelNode<
     any,
     any,
     any,
-    any // TMeta
+    any, // TMeta
+    any // TStateSchema
   >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
@@ -768,7 +770,16 @@ export function transitionNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValue,
-  snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any, any>,
+  snapshot: MachineSnapshot<
+    TContext,
+    TEvent,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any // TStateSchema
+  >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
@@ -803,18 +814,6 @@ function isDescendant(
   return marker.parent === parentStateNode;
 }
 
-function getPathFromRootToNode(stateNode: AnyStateNode): Array<AnyStateNode> {
-  const path: Array<AnyStateNode> = [];
-  let marker = stateNode.parent;
-
-  while (marker) {
-    path.unshift(marker);
-    marker = marker.parent;
-  }
-
-  return path;
-}
-
 function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
   const set1 = new Set(s1);
   const set2 = new Set(s2);
@@ -832,7 +831,7 @@ function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
   return false;
 }
 
-export function removeConflictingTransitions(
+function removeConflictingTransitions(
   enabledTransitions: Array<AnyTransitionDefinition>,
   stateNodeSet: Set<AnyStateNode>,
   historyValue: AnyHistoryValue
@@ -972,8 +971,8 @@ function computeExitSet(
 }
 
 function areStateNodeCollectionsEqual(
-  prevStateNodes: StateNode<any, any>[],
-  nextStateNodeSet: Set<StateNode<any, any>>
+  prevStateNodes: StateNode[],
+  nextStateNodeSet: Set<StateNode>
 ) {
   if (prevStateNodes.length !== nextStateNodeSet.size) {
     return false;
@@ -986,97 +985,140 @@ function areStateNodeCollectionsEqual(
   return true;
 }
 
-/**
- * https://www.w3.org/TR/scxml/#microstepProcedure
- */
-export function microstep<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
+type Microstep = readonly [AnyMachineSnapshot, ExecutableActionObject[]];
+
+export function initialMicrostep(
+  root: AnyStateNode,
+  preInitialState: AnyMachineSnapshot,
+  actorScope: AnyActorScope,
+  initEvent: AnyEventObject,
+  internalQueue: AnyEventObject[]
+): Microstep {
+  return microstep(
+    [
+      {
+        target: [...getInitialStateNodes(root)],
+        source: root,
+        reenter: true,
+        actions: [],
+        eventType: null as any,
+        toJSON: null as any
+      }
+    ],
+    preInitialState,
+    actorScope,
+    initEvent,
+    true,
+    internalQueue
+  );
+}
+
+/** https://www.w3.org/TR/scxml/#microstepProcedure */
+function microstep(
   transitions: Array<AnyTransitionDefinition>,
   currentSnapshot: AnyMachineSnapshot,
   actorScope: AnyActorScope,
   event: AnyEventObject,
   isInitial: boolean,
   internalQueue: Array<AnyEventObject>
-): AnyMachineSnapshot {
+): Microstep {
+  const actions: ExecutableActionObject[] = [];
+
   if (!transitions.length) {
-    return currentSnapshot;
+    return [currentSnapshot, actions];
   }
-  const mutStateNodeSet = new Set(currentSnapshot._nodes);
-  let historyValue = currentSnapshot.historyValue;
 
-  const filteredTransitions = removeConflictingTransitions(
-    transitions,
-    mutStateNodeSet,
-    historyValue
-  );
+  const originalExecutor = actorScope.actionExecutor;
+  actorScope.actionExecutor = (action) => {
+    actions.push(action);
+    originalExecutor(action);
+  };
 
-  let nextState = currentSnapshot;
+  try {
+    const mutStateNodeSet = new Set(currentSnapshot._nodes);
+    let historyValue = currentSnapshot.historyValue;
 
-  // Exit states
-  if (!isInitial) {
-    [nextState, historyValue] = exitStates(
+    const filteredTransitions = removeConflictingTransitions(
+      transitions,
+      mutStateNodeSet,
+      historyValue
+    );
+
+    let nextState = currentSnapshot;
+
+    // Exit states
+    if (!isInitial) {
+      [nextState, historyValue] = exitStates(
+        nextState,
+        event,
+        actorScope,
+        filteredTransitions,
+        mutStateNodeSet,
+        historyValue,
+        internalQueue,
+        actorScope.actionExecutor
+      );
+    }
+
+    // Execute transition content
+    nextState = resolveActionsAndContext(
+      nextState,
+      event,
+      actorScope,
+      filteredTransitions.flatMap((t) => t.actions),
+      internalQueue,
+      undefined
+    );
+
+    // Enter states
+    nextState = enterStates(
       nextState,
       event,
       actorScope,
       filteredTransitions,
       mutStateNodeSet,
+      internalQueue,
       historyValue,
-      internalQueue
+      isInitial
     );
-  }
 
-  // Execute transition content
-  nextState = resolveActionsAndContext(
-    nextState,
-    event,
-    actorScope,
-    filteredTransitions.flatMap((t) => t.actions),
-    internalQueue
-  );
+    const nextStateNodes = [...mutStateNodeSet];
 
-  // Enter states
-  nextState = enterStates(
-    nextState,
-    event,
-    actorScope,
-    filteredTransitions,
-    mutStateNodeSet,
-    internalQueue,
-    historyValue,
-    isInitial
-  );
-
-  const nextStateNodes = [...mutStateNodeSet];
-
-  if (nextState.status === 'done') {
-    nextState = resolveActionsAndContext(
-      nextState,
-      event,
-      actorScope,
-      nextStateNodes
-        .sort((a, b) => b.order - a.order)
-        .flatMap((state) => state.exit),
-      internalQueue
-    );
-  }
-
-  try {
-    if (
-      historyValue === currentSnapshot.historyValue &&
-      areStateNodeCollectionsEqual(currentSnapshot._nodes, mutStateNodeSet)
-    ) {
-      return nextState;
+    if (nextState.status === 'done') {
+      nextState = resolveActionsAndContext(
+        nextState,
+        event,
+        actorScope,
+        nextStateNodes
+          .sort((a, b) => b.order - a.order)
+          .flatMap((state) => state.exit),
+        internalQueue,
+        undefined
+      );
     }
-    return cloneMachineSnapshot(nextState, {
-      _nodes: nextStateNodes,
-      historyValue
-    });
-  } catch (e) {
-    // TODO: Refactor this once proper error handling is implemented.
-    // See https://github.com/statelyai/rfcs/pull/4
-    throw e;
+
+    // eslint-disable-next-line no-useless-catch
+    try {
+      if (
+        historyValue === currentSnapshot.historyValue &&
+        areStateNodeCollectionsEqual(currentSnapshot._nodes, mutStateNodeSet)
+      ) {
+        return [nextState, actions];
+      }
+      return [
+        cloneMachineSnapshot(nextState, {
+          _nodes: nextStateNodes,
+          historyValue
+        }),
+        actions
+      ];
+    } catch (e) {
+      // TODO: Refactor this once proper error handling is implemented.
+      // See https://github.com/statelyai/rfcs/pull/4
+      throw e;
+    }
+  } finally {
+    actorScope.actionExecutor = originalExecutor;
   }
 }
 
@@ -1158,7 +1200,7 @@ function enterStates(
     }
 
     if (statesForDefaultEntry.has(stateNodeToEnter)) {
-      const initialActions = stateNodeToEnter.initial!.actions;
+      const initialActions = stateNodeToEnter.initial.actions;
       actions.push(...initialActions);
     }
 
@@ -1181,7 +1223,7 @@ function enterStates(
       if (parent?.type === 'compound') {
         internalQueue.push(
           createDoneStateEvent(
-            parent!.id,
+            parent.id,
             stateNodeToEnter.output !== undefined
               ? resolveOutput(
                   stateNodeToEnter.output,
@@ -1257,7 +1299,7 @@ function computeEntrySet(
     for (const s of targetStates) {
       const ancestors = getProperAncestors(s, domain);
       if (domain?.type === 'parallel') {
-        ancestors.push(domain!);
+        ancestors.push(domain);
       }
       addAncestorStatesToEnter(
         statesToEnter,
@@ -1295,7 +1337,7 @@ function addDescendantStatesToEnter<
       for (const s of historyStateNodes) {
         addProperAncestorStatesToEnter(
           s,
-          stateNode.parent!,
+          stateNode.parent,
           statesToEnter,
           historyValue,
           statesForDefaultEntry
@@ -1324,7 +1366,7 @@ function addDescendantStatesToEnter<
       for (const s of historyDefaultTransition.target) {
         addProperAncestorStatesToEnter(
           s,
-          stateNode.parent!,
+          stateNode.parent,
           statesToEnter,
           historyValue,
           statesForDefaultEntry
@@ -1425,7 +1467,8 @@ function exitStates(
   transitions: AnyTransitionDefinition[],
   mutStateNodeSet: Set<AnyStateNode>,
   historyValue: HistoryValue<any, any>,
-  internalQueue: AnyEventObject[]
+  internalQueue: AnyEventObject[],
+  _actionExecutor: ActionExecutor
 ) {
   let nextSnapshot = currentSnapshot;
   const statesToExit = computeExitSet(
@@ -1462,15 +1505,17 @@ function exitStates(
       event,
       actorScope,
       [...s.exit, ...s.invoke.map((def) => stopChild(def.id))],
-      internalQueue
+      internalQueue,
+      undefined
     );
     mutStateNodeSet.delete(s);
   }
   return [nextSnapshot, changedHistory || historyValue] as const;
 }
 
-interface BuiltinAction {
+export interface BuiltinAction {
   (): void;
+  type: `xstate.${string}`;
   resolve: (
     actorScope: AnyActorScope,
     snapshot: AnyMachineSnapshot,
@@ -1489,6 +1534,10 @@ interface BuiltinAction {
     params: unknown
   ) => void;
   execute: (actorScope: AnyActorScope, params: unknown) => void;
+}
+
+function getAction(machine: AnyStateMachine, actionType: string) {
+  return machine.implementations.actions[actionType];
 }
 
 function resolveAndExecuteActionsWithContext(
@@ -1512,27 +1561,8 @@ function resolveAndExecuteActionsWithContext(
       : // the existing type of `.actions` assumes non-nullable `TExpressionAction`
         // it's fine to cast this here to get a common type and lack of errors in the rest of the code
         // our logic below makes sure that we call those 2 "variants" correctly
-        (
-          machine.implementations.actions as Record<
-            string,
-            ActionFunction<
-              MachineContext,
-              EventObject,
-              EventObject,
-              ParameterizedObject['params'] | undefined,
-              ProvidedActor,
-              ParameterizedObject,
-              ParameterizedObject,
-              string,
-              EventObject
-            >
-          >
-        )[typeof action === 'string' ? action : action.type];
 
-    if (!resolvedAction) {
-      continue;
-    }
-
+        getAction(machine, typeof action === 'string' ? action : action.type);
     const actionArgs = {
       context: intermediateSnapshot.context,
       event,
@@ -1549,31 +1579,18 @@ function resolveAndExecuteActionsWithContext(
             : action.params
           : undefined;
 
-    function executeAction() {
-      actorScope.system._sendInspectionEvent({
-        type: '@xstate.action',
-        actorRef: actorScope.self,
-        action: {
-          type:
-            typeof action === 'string'
-              ? action
-              : typeof action === 'object'
-                ? action.type
-                : action.name || '(anonymous)',
-          params: actionParams
-        }
+    if (!resolvedAction || !('resolve' in resolvedAction)) {
+      actorScope.actionExecutor({
+        type:
+          typeof action === 'string'
+            ? action
+            : typeof action === 'object'
+              ? action.type
+              : action.name || '(anonymous)',
+        info: actionArgs,
+        params: actionParams,
+        exec: resolvedAction
       });
-      resolvedAction(actionArgs, actionParams);
-    }
-
-    if (!('resolve' in resolvedAction)) {
-      if (actorScope.self._processingStatus === ProcessingStatus.Running) {
-        executeAction();
-      } else {
-        actorScope.defer(() => {
-          executeAction();
-        });
-      }
       continue;
     }
 
@@ -1594,11 +1611,12 @@ function resolveAndExecuteActionsWithContext(
     }
 
     if ('execute' in builtinAction) {
-      if (actorScope.self._processingStatus === ProcessingStatus.Running) {
-        builtinAction.execute(actorScope, params);
-      } else {
-        actorScope.defer(builtinAction.execute.bind(null, actorScope, params));
-      }
+      actorScope.actionExecutor({
+        type: builtinAction.type,
+        info: actionArgs,
+        params,
+        exec: builtinAction.execute.bind(null, actorScope, params)
+      });
     }
 
     if (actions) {
@@ -1622,7 +1640,7 @@ export function resolveActionsAndContext(
   actorScope: AnyActorScope,
   actions: UnknownAction[],
   internalQueue: AnyEventObject[],
-  deferredActorIds?: string[]
+  deferredActorIds: string[] | undefined
 ): AnyMachineSnapshot {
   const retries: (readonly [BuiltinAction, unknown])[] | undefined =
     deferredActorIds ? [] : undefined;
@@ -1644,20 +1662,20 @@ export function macrostep(
   snapshot: AnyMachineSnapshot,
   event: EventObject,
   actorScope: AnyActorScope,
-  internalQueue: AnyEventObject[] = []
+  internalQueue: AnyEventObject[]
 ): {
   snapshot: typeof snapshot;
-  microstates: Array<typeof snapshot>;
+  microsteps: Microstep[];
 } {
   if (isDevelopment && event.type === WILDCARD) {
     throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
   }
 
   let nextSnapshot = snapshot;
-  const microstates: AnyMachineSnapshot[] = [];
+  const microsteps: Microstep[] = [];
 
-  function addMicrostate(
-    microstate: AnyMachineSnapshot,
+  function addMicrostep(
+    step: Microstep,
     event: AnyEventObject,
     transitions: AnyTransitionDefinition[]
   ) {
@@ -1665,10 +1683,10 @@ export function macrostep(
       type: '@xstate.microstep',
       actorRef: actorScope.self,
       event,
-      snapshot: microstate,
+      snapshot: step[0],
       _transitions: transitions
     });
-    microstates.push(microstate);
+    microsteps.push(step);
   }
 
   // Handle stop event
@@ -1679,11 +1697,10 @@ export function macrostep(
         status: 'stopped'
       }
     );
-    addMicrostate(nextSnapshot, event, []);
-
+    addMicrostep([nextSnapshot, []], event, []);
     return {
       snapshot: nextSnapshot,
-      microstates
+      microsteps
     };
   }
 
@@ -1699,19 +1716,19 @@ export function macrostep(
 
     if (isErr && !transitions.length) {
       // TODO: we should likely only allow transitions selected by very explicit descriptors
-      // `*` shouldn't be matched, likely `xstate.error.*` shouldnt be either
+      // `*` shouldn't be matched, likely `xstate.error.*` shouldn't be either
       // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
       nextSnapshot = cloneMachineSnapshot<typeof snapshot>(snapshot, {
         status: 'error',
         error: currentEvent.error
       });
-      addMicrostate(nextSnapshot, currentEvent, []);
+      addMicrostep([nextSnapshot, []], currentEvent, []);
       return {
         snapshot: nextSnapshot,
-        microstates
+        microsteps
       };
     }
-    nextSnapshot = microstep(
+    const step = microstep(
       transitions,
       snapshot,
       actorScope,
@@ -1719,7 +1736,8 @@ export function macrostep(
       false, // isInitial
       internalQueue
     );
-    addMicrostate(nextSnapshot, currentEvent, transitions);
+    nextSnapshot = step[0];
+    addMicrostep(step, currentEvent, transitions);
   }
 
   let shouldSelectEventlessTransitions = true;
@@ -1742,7 +1760,7 @@ export function macrostep(
       enabledTransitions = selectTransitions(nextEvent, nextSnapshot);
     }
 
-    nextSnapshot = microstep(
+    const step = microstep(
       enabledTransitions,
       nextSnapshot,
       actorScope,
@@ -1750,8 +1768,9 @@ export function macrostep(
       false,
       internalQueue
     );
+    nextSnapshot = step[0];
     shouldSelectEventlessTransitions = nextSnapshot !== previousState;
-    addMicrostate(nextSnapshot, nextEvent, enabledTransitions);
+    addMicrostep(step, nextEvent, enabledTransitions);
   }
 
   if (nextSnapshot.status !== 'active') {
@@ -1760,7 +1779,7 @@ export function macrostep(
 
   return {
     snapshot: nextSnapshot,
-    microstates
+    microsteps
   };
 }
 
@@ -1774,7 +1793,8 @@ function stopChildren(
     event,
     actorScope,
     Object.values(nextState.children).map((child: any) => stopChild(child)),
-    []
+    [],
+    undefined
   );
 }
 
@@ -1819,7 +1839,8 @@ function selectEventlessTransitions(
 }
 
 /**
- * Resolves a partial state value with its full representation in the state node's machine.
+ * Resolves a partial state value with its full representation in the state
+ * node's machine.
  *
  * @param stateValue The partial state value to resolve.
  */
@@ -1829,29 +1850,4 @@ export function resolveStateValue(
 ): StateValue {
   const allStateNodes = getAllStateNodes(getStateNodes(rootNode, stateValue));
   return getStateValue(rootNode, [...allStateNodes]);
-}
-
-export function stateValuesEqual(
-  a: StateValue | undefined,
-  b: StateValue | undefined
-): boolean {
-  if (a === b) {
-    return true;
-  }
-
-  if (a === undefined || b === undefined) {
-    return false;
-  }
-
-  if (typeof a === 'string' || typeof b === 'string') {
-    return a === b;
-  }
-
-  const aKeys = Object.keys(a as StateValueMap);
-  const bKeys = Object.keys(b as StateValueMap);
-
-  return (
-    aKeys.length === bKeys.length &&
-    aKeys.every((key) => stateValuesEqual(a[key], b[key]))
-  );
 }

@@ -1,9 +1,4 @@
-import {
-  assign,
-  createActor,
-  createMachine,
-  enqueueActions
-} from '../src/index.ts';
+import { assign, createActor, createMachine } from '../src/index.ts';
 
 interface CounterContext {
   count: number;
@@ -338,7 +333,8 @@ describe('assign meta', () => {
     expect(actor.getSnapshot().context.count).toEqual(11);
   });
 
-  it('a parameterized action that resolves to assign() should be provided the params', (done) => {
+  it('a parameterized action that resolves to assign() should be provided the params', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine(
       {
         on: {
@@ -354,7 +350,7 @@ describe('assign meta', () => {
         actions: {
           inc: assign(({ context }, params) => {
             expect(params).toEqual({ value: 5 });
-            done();
+            resolve();
             return context;
           })
         }
@@ -364,5 +360,7 @@ describe('assign meta', () => {
     const service = createActor(machine).start();
 
     service.send({ type: 'EVENT' });
+
+    return promise;
   });
 });

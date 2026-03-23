@@ -3,7 +3,6 @@ import { $$ACTOR_TYPE } from './createActor.ts';
 import type { StateNode } from './StateNode.ts';
 import type { StateMachine } from './StateMachine.ts';
 import { getStateValue } from './stateUtils.ts';
-import { TypegenDisabled } from './typegenTypes.ts';
 import type {
   ProvidedActor,
   AnyMachineSnapshot,
@@ -17,7 +16,11 @@ import type {
   Snapshot,
   ParameterizedObject,
   IsNever,
-  MetaObject
+  MetaObject,
+  StateSchema,
+  StateId,
+  SnapshotStatus,
+  PersistedHistoryValue
 } from './types.ts';
 import { matchesState } from './utils.ts';
 
@@ -34,10 +37,7 @@ type ToTestStateValue<TStateValue extends StateValue> =
               >;
             };
 
-export function isMachineSnapshot<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(value: unknown): value is AnyMachineSnapshot {
+export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
   return (
     !!value &&
     typeof value === 'object' &&
@@ -54,11 +54,9 @@ interface MachineSnapshotBase<
   TTag extends string,
   TOutput,
   TMeta,
-  _TUnusedButLeftForCompatReasons = never
+  TStateSchema extends StateSchema = StateSchema
 > {
-  /**
-   * The state machine that produced this state snapshot.
-   */
+  /** The state machine that produced this state snapshot. */
   machine: StateMachine<
     TContext,
     TEvent,
@@ -72,63 +70,62 @@ interface MachineSnapshotBase<
     unknown,
     TOutput,
     EventObject, // TEmitted
-    any // TMeta
+    any, // TMeta
+    TStateSchema
   >;
-  /**
-   * The tags of the active state nodes that represent the current state value.
-   */
+  /** The tags of the active state nodes that represent the current state value. */
   tags: Set<string>;
   /**
    * The current state value.
    *
    * This represents the active state nodes in the state machine.
-   * - For atomic state nodes, it is a string. 
+   *
+   * - For atomic state nodes, it is a string.
    * - For compound parent state nodes, it is an object where:
+   *
    *   - The key is the parent state node's key
    *   - The value is the current state value of the active child state node(s)
-   * 
+   *
    * @example
-  ```ts
-  // single-level state node
-  snapshot.value; // => 'yellow'
-
-  // nested state nodes
-  snapshot.value; // => { red: 'wait' }
-  ```
+   *
+   * ```ts
+   * // single-level state node
+   * snapshot.value; // => 'yellow'
+   *
+   * // nested state nodes
+   * snapshot.value; // => { red: 'wait' }
+   * ```
    */
   value: TStateValue;
-  /**
-   * The current status of this snapshot.
-   */
-  status: 'active' | 'done' | 'error' | 'stopped';
+  /** The current status of this snapshot. */
+  status: SnapshotStatus;
   error: unknown;
   context: TContext;
 
   historyValue: Readonly<HistoryValue<TContext, TEvent>>;
-  /**
-   * The enabled state nodes representative of the state value.
-   */
+  /** The enabled state nodes representative of the state value. */
   _nodes: Array<StateNode<TContext, TEvent>>;
-  /**
-   * An object mapping actor names to spawned/invoked actors.
-   */
+  /** An object mapping actor names to spawned/invoked actors. */
   children: TChildren;
 
   /**
-   * Whether the current state value is a subset of the given partial state value.
+   * Whether the current state value is a subset of the given partial state
+   * value.
+   *
    * @param partialStateValue
    */
   matches: (partialStateValue: ToTestStateValue<TStateValue>) => boolean;
 
   /**
    * Whether the current state nodes has a state node with the specified `tag`.
+   *
    * @param tag
    */
   hasTag: (tag: TTag) => boolean;
 
   /**
-   * Determines whether sending the `event` will cause a non-forbidden transition
-   * to be selected, even if the transitions have no actions nor
+   * Determines whether sending the `event` will cause a non-forbidden
+   * transition to be selected, even if the transitions have no actions nor
    * change the state value.
    *
    * @param event The event to test
@@ -137,7 +134,7 @@ interface MachineSnapshotBase<
   can: (event: TEvent) => boolean;
 
   getMeta: () => Record<
-    string,
+    StateId<TStateSchema> & string,
     TMeta | undefined // States might not have meta defined
   >;
 
@@ -151,7 +148,8 @@ interface ActiveMachineSnapshot<
   TStateValue extends StateValue,
   TTag extends string,
   TOutput,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -159,7 +157,8 @@ interface ActiveMachineSnapshot<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    TStateSchema
   > {
   status: 'active';
   output: undefined;
@@ -173,7 +172,8 @@ interface DoneMachineSnapshot<
   TStateValue extends StateValue,
   TTag extends string,
   TOutput,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -181,7 +181,8 @@ interface DoneMachineSnapshot<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    TStateSchema
   > {
   status: 'done';
   output: TOutput;
@@ -195,7 +196,8 @@ interface ErrorMachineSnapshot<
   TStateValue extends StateValue,
   TTag extends string,
   TOutput,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -203,7 +205,8 @@ interface ErrorMachineSnapshot<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    TStateSchema
   > {
   status: 'error';
   output: undefined;
@@ -217,7 +220,8 @@ interface StoppedMachineSnapshot<
   TStateValue extends StateValue,
   TTag extends string,
   TOutput,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -225,7 +229,8 @@ interface StoppedMachineSnapshot<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    TStateSchema
   > {
   status: 'stopped';
   output: undefined;
@@ -240,7 +245,7 @@ export type MachineSnapshot<
   TTag extends string,
   TOutput,
   TMeta extends MetaObject,
-  _TUnusedButLeftForCompatReasons = never
+  TStateSchema extends StateSchema
 > =
   | ActiveMachineSnapshot<
       TContext,
@@ -249,7 +254,8 @@ export type MachineSnapshot<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      TStateSchema
     >
   | DoneMachineSnapshot<
       TContext,
@@ -258,7 +264,8 @@ export type MachineSnapshot<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      TStateSchema
     >
   | ErrorMachineSnapshot<
       TContext,
@@ -267,7 +274,8 @@ export type MachineSnapshot<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      TStateSchema
     >
   | StoppedMachineSnapshot<
       TContext,
@@ -276,7 +284,8 @@ export type MachineSnapshot<
       TStateValue,
       TTag,
       TOutput,
-      TMeta
+      TMeta,
+      TStateSchema
     >;
 
 const machineSnapshotMatches = function matches(
@@ -345,7 +354,8 @@ export function createMachineSnapshot<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TStateValue extends StateValue,
   TTag extends string,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TStateSchema extends StateSchema
 >(
   config: StateConfig<TContext, TEvent>,
   machine: AnyStateMachine
@@ -356,7 +366,8 @@ export function createMachineSnapshot<
   TStateValue,
   TTag,
   undefined,
-  TMeta
+  TMeta,
+  TStateSchema
 > {
   return {
     status: config.status as never,
@@ -387,6 +398,25 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
   ) as TState;
 }
 
+function serializeHistoryValue<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(historyValue: HistoryValue<TContext, TEvent>): PersistedHistoryValue {
+  if (typeof historyValue !== 'object' || historyValue === null) {
+    return {};
+  }
+  const result: PersistedHistoryValue = {};
+
+  for (const key in historyValue) {
+    const value = historyValue[key];
+    if (Array.isArray(value)) {
+      result[key] = value.map((item) => ({ id: item.id }));
+    }
+  }
+
+  return result;
+}
+
 export function getPersistedSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -403,7 +433,8 @@ export function getPersistedSnapshot<
     TStateValue,
     TTag,
     TOutput,
-    TMeta
+    TMeta,
+    any // state schema
   >,
   options?: unknown
 ): Snapshot<unknown> {
@@ -435,7 +466,7 @@ export function getPersistedSnapshot<
     childrenJson[id as keyof typeof childrenJson] = {
       snapshot: child.getPersistedSnapshot(options),
       src: child.src,
-      systemId: child._systemId,
+      systemId: child.systemId,
       syncSnapshot: child._syncSnapshot
     };
   }
@@ -443,7 +474,10 @@ export function getPersistedSnapshot<
   const persisted = {
     ...jsonValues,
     context: persistContext(context) as any,
-    children: childrenJson
+    children: childrenJson,
+    historyValue: serializeHistoryValue<TContext, TEvent>(
+      jsonValues.historyValue
+    )
   };
 
   return persisted;

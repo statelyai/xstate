@@ -52,7 +52,7 @@ function getAttribute(
   return element.attributes ? element.attributes[attribute] : undefined;
 }
 
-function indexedRecord<T extends {}>(
+function indexedRecord<T>(
   items: T[],
   identifierFn: (item: T) => string
 ): Record<string, T> {
@@ -106,7 +106,7 @@ function delayToMs(delay?: string | number): number | undefined {
     if (!hasDecimal) {
       return parseInt(secondsMatch[3], 10) * 1000;
     }
-    const secondsPart = !!secondsMatch[1]
+    const secondsPart = secondsMatch[1]
       ? parseInt(secondsMatch[1], 10) * 1000
       : 0;
     const millisecondsPart = parseInt(
@@ -147,6 +147,7 @@ with (context) {
 }
   `;
 
+  // eslint-disable-next-line @typescript-eslint/no-implied-eval
   const fn = new Function(...args, ...extraArgs, fnBody);
 
   return fn(context, { name: event.type, data: event });
@@ -196,7 +197,7 @@ return {'${element.attributes!.location}': ${element.attributes!.expr}};
     }
     case 'cancel':
       if ('sendid' in element.attributes!) {
-        return cancel(element.attributes!.sendid! as string);
+        return cancel(element.attributes.sendid! as string);
       }
       return cancel(({ context, event, ...meta }) => {
         const fnBody = `
@@ -246,11 +247,14 @@ return { type: ${event ? `"${event}"` : eventexpr}, ${params ? params : ''} }
       }
 
       if ('delay' in element.attributes!) {
-        convertedDelay = delayToMs(element.attributes!.delay);
+        convertedDelay = delayToMs(element.attributes.delay);
       } else if (element.attributes!.delayexpr) {
         convertedDelay = ({ context, event: _ev, ...meta }) => {
           const fnBody = `
-return (${delayToMs})(${element.attributes!.delayexpr});
+return (${
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+            delayToMs
+          })(${element.attributes!.delayexpr});
             `;
 
           return evaluateExecutableContent(context, _ev, meta, fnBody);
@@ -313,14 +317,14 @@ return ${element.attributes!.expr};
             current = { actions: [] };
             break;
           default:
-            (current.actions as any[]).push(mapAction(el));
+            current.actions.push(mapAction(el));
             break;
         }
       }
 
       branches.push(current);
 
-      return enqueueActions(({ context, event, enqueue, check, ...meta }) => {
+      return enqueueActions(({ enqueue, check }) => {
         for (const branch of branches) {
           if (!branch.guard || check(branch.guard)) {
             branch.actions.forEach(enqueue);
@@ -443,7 +447,7 @@ function toConfig(nodeJson: XMLElement, id: string): AnyStateNodeConfig {
         let guardObject = {};
 
         if (value.attributes?.cond) {
-          const guard = value.attributes!.cond;
+          const guard = value.attributes.cond;
           if ((guard as string).startsWith('In')) {
             const inMatch = (guard as string).trim().match(/^In\('(.*)'\)/);
 
@@ -462,7 +466,7 @@ function toConfig(nodeJson: XMLElement, id: string): AnyStateNodeConfig {
             }
           } else {
             guardObject = {
-              guard: createGuard(value.attributes!.cond as string)
+              guard: createGuard(value.attributes.cond as string)
             };
           }
         }

@@ -6,18 +6,20 @@ import {
   ActionFunction,
   AnyActorRef,
   AnyActorScope,
+  AnyEventObject,
   AnyMachineSnapshot,
   EventObject,
   MachineContext,
   ParameterizedObject,
   ProvidedActor,
+  BuiltinActionResolution,
   UnifiedArg
 } from '../types.ts';
 import { assign } from './assign.ts';
 import { cancel } from './cancel.ts';
 import { emit } from './emit.ts';
 import { raise } from './raise.ts';
-import { sendTo } from './send.ts';
+import { sendParent, sendTo } from './send.ts';
 import { spawnChild } from './spawnChild.ts';
 import { stopChild } from './stopChild.ts';
 
@@ -79,6 +81,19 @@ interface ActionEnqueuer<
       >
     >
   ) => void;
+  sendParent: (
+    ...args: Parameters<
+      typeof sendParent<
+        TContext,
+        TExpressionEvent,
+        undefined,
+        AnyEventObject,
+        TEvent,
+        TDelay,
+        TDelay
+      >
+    >
+  ) => void;
   spawnChild: (
     ...args: Parameters<
       typeof spawnChild<TContext, TExpressionEvent, undefined, TEvent, TActor>
@@ -116,7 +131,7 @@ function resolveEnqueueActions(
       EventObject
     >;
   }
-) {
+): BuiltinActionResolution {
   const actions: any[] = [];
   const enqueue: Parameters<typeof collect>[0]['enqueue'] = function enqueue(
     action
@@ -138,6 +153,9 @@ function resolveEnqueueActions(
     // for some reason it fails to infer `TDelay` from `...args` here and picks its default (`never`)
     // then it fails to typecheck that because `...args` use `string` in place of `TDelay
     actions.push((sendTo as typeof enqueue.sendTo)(...args));
+  };
+  enqueue.sendParent = (...args) => {
+    actions.push((sendParent as typeof enqueue.sendParent)(...args));
   };
   enqueue.spawnChild = (...args) => {
     actions.push(spawnChild(...args));
@@ -239,24 +257,26 @@ type CollectActions<
 ) => void;
 
 /**
- * Creates an action object that will execute actions that are queued by the `enqueue(action)` function.
+ * Creates an action object that will execute actions that are queued by the
+ * `enqueue(action)` function.
  *
  * @example
-  ```ts
-  import { createMachine, enqueueActions } from 'xstate';
-
-  const machine = createMachine({
-    entry: enqueueActions(({ enqueue, check }) => {
-      enqueue.assign({ count: 0 });
-
-      if (check('someGuard')) {
-        enqueue.assign({ count: 1 });
-      }
-
-      enqueue('someAction');
-    })
-  })
-  ```
+ *
+ * ```ts
+ * import { createMachine, enqueueActions } from 'xstate';
+ *
+ * const machine = createMachine({
+ *   entry: enqueueActions(({ enqueue, check }) => {
+ *     enqueue.assign({ count: 0 });
+ *
+ *     if (check('someGuard')) {
+ *       enqueue.assign({ count: 1 });
+ *     }
+ *
+ *     enqueue('someAction');
+ *   })
+ * });
+ * ```
  */
 export function enqueueActions<
   TContext extends MachineContext,
@@ -292,8 +312,8 @@ export function enqueueActions<
   TEmitted
 > {
   function enqueueActions(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: unknown
+    _args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    _params: unknown
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

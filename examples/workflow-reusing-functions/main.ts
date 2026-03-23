@@ -69,12 +69,14 @@ export const workflow = setup({
       }
     ),
     sendSuccessEmail: fromPromise(async ({ input }) => {
+      console.log({ input });
       console.log('Running sendSuccessEmail');
       await delay(1000);
 
       console.log('sendSuccessEmail done');
     }),
     sendInsufficientFundsEmail: fromPromise(async ({ input }) => {
+      console.log({ input });
       console.log('Running sendInsufficientFundsEmail');
       await delay(1000);
 

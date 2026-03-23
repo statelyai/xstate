@@ -6,12 +6,13 @@ import {
   AnyMachineSnapshot,
   assign,
   createMachine,
+  fromCallback,
+  fromPromise,
   fromTransition,
   createActor,
   StateFrom,
-  Snapshot,
   TransitionSnapshot,
-  AnyEventObject
+  setup
 } from 'xstate';
 import {
   shallowEqual,
@@ -537,7 +538,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
       return (
         <>
-          {value}
+          {value as number}
           <button
             type="button"
             onClick={() => forceRerender((s) => s + 1)}
@@ -615,7 +616,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       return null;
     }
 
-    console.error = jest.fn();
+    console.error = vi.fn();
     render(<App />);
 
     const [snapshot1] = snapshots;
@@ -647,7 +648,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should work with initially deferred actors spawned in lazy context', () => {
-    const childMachine = createMachine({
+    const childMachine = setup({}).createMachine({
       initial: 'one',
       states: {
         one: {
@@ -657,10 +658,11 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const machine = createMachine({
+    const machine = setup({
       types: {} as {
         context: { ref: ActorRefFrom<typeof childMachine> };
-      },
+      }
+    }).createMachine({
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
       }),
@@ -703,7 +705,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should not log any spurious errors when used with a not-started actor', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     console.error = spy;
 
     const machine = createMachine({});
@@ -762,5 +764,53 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     fireEvent.click(button);
 
     expect(stateEl.textContent).toBe('42');
+  });
+
+  it('should throw an error to an error boundary when the actor reaches an error state', async () => {
+    const errorMessage = 'test_useSelector_error';
+
+    const machine = createMachine({
+      initial: 'loading',
+      states: {
+        loading: {
+          invoke: {
+            src: fromPromise(() => Promise.reject(new Error(errorMessage)))
+          }
+        }
+      }
+    });
+
+    class ErrorBoundary extends React.Component<
+      { children: React.ReactNode },
+      { error: Error | null }
+    > {
+      state = { error: null as Error | null };
+      static getDerivedStateFromError(error: Error) {
+        return { error };
+      }
+      render() {
+        if (this.state.error) {
+          return <div data-testid="error">{this.state.error.message}</div>;
+        }
+        return this.props.children;
+      }
+    }
+
+    const App = () => {
+      const actorRef = useActorRef(machine);
+      const value = useSelector(actorRef, (s) => s.value);
+      return <div data-testid="value">{String(value)}</div>;
+    };
+
+    console.error = vi.fn();
+
+    render(
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    );
+
+    await screen.findByTestId('error');
+    expect(screen.getByTestId('error').textContent).toBe(errorMessage);
   });
 });

@@ -6,7 +6,8 @@ import {
   EventObject,
   LogExpr,
   MachineContext,
-  ParameterizedObject
+  ParameterizedObject,
+  BuiltinActionResolution
 } from '../types.ts';
 
 type ResolvableLogValue<
@@ -28,14 +29,15 @@ function resolveLog(
     value: ResolvableLogValue<any, any, any, any>;
     label: string | undefined;
   }
-) {
+): BuiltinActionResolution {
   return [
     snapshot,
     {
       value:
         typeof value === 'function' ? value(actionArgs, actionParams) : value,
       label
-    }
+    },
+    undefined
   ];
 }
 
@@ -60,11 +62,12 @@ export interface LogAction<
 }
 
 /**
+ * @param expr The expression function to evaluate which will be logged. Takes
+ *   in 2 arguments:
  *
- * @param expr The expression function to evaluate which will be logged.
- *  Takes in 2 arguments:
- *  - `ctx` - the current state context
- *  - `event` - the event that caused this action to be executed.
+ *   - `ctx` - the current state context
+ *   - `event` - the event that caused this action to be executed.
+ *
  * @param label The label to give to the logged expression.
  */
 export function log<
@@ -80,8 +83,8 @@ export function log<
   label?: string
 ): LogAction<TContext, TExpressionEvent, TParams, TEvent> {
   function log(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    _args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    _params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

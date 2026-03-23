@@ -1,10 +1,9 @@
 name: Bug Report
 description: File a bug report
-title: "Bug: "
+title: 'Bug: '
 labels: [bug, triage]
 body:
   - type: markdown
-    id: intro
     attributes:
       value: |
         Report an issue with XState or XState tooling within this repo.

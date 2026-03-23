@@ -11,7 +11,7 @@ const simpleActor = createActor(fromTransition((s) => s, 42));
 
 export default defineComponent({
   setup() {
-    const selected  = useSelector(simpleActor, (s) => s.context);
+    const selected = useSelector(simpleActor, (s) => s.context);
     return { selected };
   }
 });

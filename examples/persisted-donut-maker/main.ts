@@ -1,4 +1,4 @@
-import { createActor } from 'xstate';
+import { __unsafe_getAllOwnEventDescriptors, createActor } from 'xstate';
 import { promises as fs } from 'fs';
 import { donutMachine } from './donutMachine';
 
@@ -18,13 +18,14 @@ const actor = createActor(donutMachine, {
 
 actor.subscribe({
   next(snapshot) {
+    const nextEvents = __unsafe_getAllOwnEventDescriptors(snapshot);
     console.log(
       'Current state:',
       // the current state, bolded
       `\x1b[1m${JSON.stringify(snapshot.value)}\x1b[0m\n`,
       'Next events:',
       // the next events, each of them bolded
-      snapshot.nextEvents
+      nextEvents
         .filter((event) => !event.startsWith('done.'))
         .map((event) => `\n  \x1b[1m${event}\x1b[0m`)
         .join(''),
@@ -32,7 +33,7 @@ actor.subscribe({
     );
 
     // save persisted state to json file
-    const persistedState = actor.getPersistedState();
+    const persistedState = actor.getPersistedSnapshot();
     fs.writeFile(FILENAME, JSON.stringify(persistedState));
   },
   complete() {

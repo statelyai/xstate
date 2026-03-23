@@ -1,22 +1,17 @@
 import { StateMachine } from './StateMachine.ts';
 import {
-  ResolveTypegenMeta,
-  TypegenConstraint,
-  TypegenDisabled
-} from './typegenTypes.ts';
-import {
+  ResolvedStateMachineTypes,
+  TODO,
   AnyActorRef,
   EventObject,
   AnyEventObject,
   Cast,
   InternalMachineImplementations,
-  IsNever,
   MachineConfig,
   MachineContext,
   MachineTypes,
   NonReducibleUnknown,
   ParameterizedObject,
-  Prop,
   ProvidedActor,
   StateValue,
   ToChildren,
@@ -35,77 +30,48 @@ type _GroupTestValues<TTestValue extends string | TestValue> =
       ? [never, never]
       : [TTestValue, never]
     : [never, TTestValue];
-type GroupTestValues<TTestValue extends string | TestValue> = {
-  leafCandidates: _GroupTestValues<TTestValue>[0];
-  nonLeaf: _GroupTestValues<TTestValue>[1];
-};
-
-type FilterLeafValues<
-  TLeafCandidate extends string,
-  TNonLeaf extends { [k: string]: TestValue | undefined }
-> = IsNever<TNonLeaf> extends true
-  ? TLeafCandidate
-  : TLeafCandidate extends string
-    ? TLeafCandidate extends keyof TNonLeaf
-      ? never
-      : TLeafCandidate
-    : never;
-
-// this is not 100% accurate since we can't make parallel regions required in the result
-// `TTestValue` doesn't encode this information anyhow for us to be able to do that
-// this is fine for most practical use cases anyway though
-type ToStateValue<TTestValue extends string | TestValue> =
-  | FilterLeafValues<
-      GroupTestValues<TTestValue>['leafCandidates'],
-      GroupTestValues<TTestValue>['nonLeaf']
-    >
-  | (IsNever<GroupTestValues<TTestValue>['nonLeaf']> extends false
-      ? {
-          [K in keyof GroupTestValues<TTestValue>['nonLeaf']]: ToStateValue<
-            NonNullable<GroupTestValues<TTestValue>['nonLeaf'][K]>
-          >;
-        }
-      : never);
 
 /**
  * Creates a state machine (statechart) with the given configuration.
  *
  * The state machine represents the pure logic of a state machine actor.
  *
- * @param config The state machine configuration.
- * @param options DEPRECATED: use `setup({ ... })` or `machine.provide({ ... })` to provide machine implementations instead.
- *
  * @example
-  ```ts
-  import { createMachine } from 'xstate';
-
-  const lightMachine = createMachine({
-    id: 'light',
-    initial: 'green',
-    states: {
-      green: {
-        on: {
-          TIMER: { target: 'yellow' }
-        }
-      },
-      yellow: {
-        on: {
-          TIMER: { target: 'red' }
-        }
-      },
-      red: {
-        on: {
-          TIMER: { target: 'green' }
-        }
-      }
-    }
-  });
-
-  const lightActor = createActor(lightMachine);
-  lightActor.start();
-
-  lightActor.send({ type: 'TIMER' });
-  ```
+ *
+ * ```ts
+ * import { createMachine } from 'xstate';
+ *
+ * const lightMachine = createMachine({
+ *   id: 'light',
+ *   initial: 'green',
+ *   states: {
+ *     green: {
+ *       on: {
+ *         TIMER: { target: 'yellow' }
+ *       }
+ *     },
+ *     yellow: {
+ *       on: {
+ *         TIMER: { target: 'red' }
+ *       }
+ *     },
+ *     red: {
+ *       on: {
+ *         TIMER: { target: 'green' }
+ *       }
+ *     }
+ *   }
+ * });
+ *
+ * const lightActor = createActor(lightMachine);
+ * lightActor.start();
+ *
+ * lightActor.send({ type: 'TIMER' });
+ * ```
+ *
+ * @param config The state machine configuration.
+ * @param options DEPRECATED: use `setup({ ... })` or `machine.provide({ ... })`
+ *   to provide machine implementations instead.
  */
 export function createMachine<
   TContext extends MachineContext,
@@ -122,7 +88,7 @@ export function createMachine<
   // it's important to have at least one default type parameter here
   // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
   // we should be able to remove this when we start inferring TConfig, with it we'll always have an inference candidate
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
+  _ = any
 >(
   config: {
     types?: MachineTypes<
@@ -136,8 +102,7 @@ export function createMachine<
       TInput,
       TOutput,
       TEmitted,
-      TMeta,
-      TTypesMeta
+      TMeta
     >;
     schemas?: unknown;
   } & MachineConfig<
@@ -151,13 +116,11 @@ export function createMachine<
     TInput,
     TOutput,
     TEmitted,
-    TMeta,
-    TTypesMeta
+    TMeta
   >,
   implementations?: InternalMachineImplementations<
-    TContext,
-    ResolveTypegenMeta<
-      TTypesMeta,
+    ResolvedStateMachineTypes<
+      TContext,
       TEvent,
       TActor,
       TAction,
@@ -175,37 +138,13 @@ export function createMachine<
   TAction,
   TGuard,
   TDelay,
-  'matchesStates' extends keyof TTypesMeta
-    ? ToStateValue<Cast<TTypesMeta['matchesStates'], TestValue>>
-    : StateValue,
-  Prop<
-    ResolveTypegenMeta<
-      TTypesMeta,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TTag,
-      TEmitted
-    >['resolved'],
-    'tags'
-  > &
-    string,
+  StateValue,
+  TTag & string,
   TInput,
   TOutput,
   TEmitted,
   TMeta, // TMeta
-  ResolveTypegenMeta<
-    TTypesMeta,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TEmitted
-  >
+  TODO // TStateSchema
 > {
   return new StateMachine<
     any,
@@ -221,6 +160,6 @@ export function createMachine<
     any,
     any, // TEmitted
     any, // TMeta
-    any
+    any // TStateSchema
   >(config as any, implementations as any);
 }

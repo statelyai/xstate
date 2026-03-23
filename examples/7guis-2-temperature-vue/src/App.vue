@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import TempConverter from './TempConverter.vue'
+import TempConverter from './TempConverter.vue';
 </script>
 
 <template>

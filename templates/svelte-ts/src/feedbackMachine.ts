@@ -54,7 +54,12 @@ export const feedbackMachine = setup({
     thanks: {},
     closed: {
       on: {
-        restart: 'prompt'
+        restart: {
+          target: 'prompt',
+          actions: assign({
+            feedback: ''
+          })
+        }
       }
     }
   },

@@ -2,16 +2,17 @@
   "compilerOptions": {
     "target": "esnext",
     "isolatedModules": true,
-    "moduleResolution": "node16",
-    "module": "node16",
+    "moduleResolution": "nodenext",
+    "module": "nodenext",
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "jsx": "react-jsx",
-    "lib": ["es2019", "dom"],
+    "lib": ["es2019", "ESNext.Promise", "dom"],
     "strict": true,
-    "stripInternal": true
+    "stripInternal": true,
+    "types": ["vitest/globals"]
   },
-  "exclude": ["examples", "templates"]
+  "exclude": ["**/examples", "**/templates"]
 }

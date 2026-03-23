@@ -1,18 +1,20 @@
 import { ProcessingStatus, createActor } from './createActor.ts';
 import {
-  ActorRefFrom,
+  ActorRefFromLogic,
   AnyActorLogic,
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
   AnyMachineSnapshot,
   ConditionalRequired,
+  GetConcreteByKey,
   InputFrom,
   IsLiteralString,
   IsNotNever,
   ProvidedActor,
   RequiredActorOptions,
-  TODO
+  TODO,
+  type RequiredLogicInput
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
 
@@ -35,41 +37,48 @@ type SpawnOptions<
     >
   : never;
 
-// it's likely-ish that `(TActor & { src: TSrc })['logic']` would be faster
-// but it's only possible to do it since https://github.com/microsoft/TypeScript/pull/53098 (TS 5.1)
-// and we strive to support TS 5.0 whenever possible
-type GetConcreteLogic<
-  TActor extends ProvidedActor,
-  TSrc extends TActor['src']
-> = Extract<TActor, { src: TSrc }>['logic'];
-
-export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
-  TActor['src']
-> extends true
-  ? {
-      <TSrc extends TActor['src']>(
-        logic: TSrc,
-        ...[options]: SpawnOptions<TActor, TSrc>
-      ): ActorRefFrom<GetConcreteLogic<TActor, TSrc>>;
-      <TLogic extends AnyActorLogic>(
-        src: TLogic,
-        options?: {
-          id?: never;
-          systemId?: string;
-          input?: InputFrom<TLogic>;
-          syncSnapshot?: boolean;
-        }
-      ): ActorRefFrom<TLogic>;
-    }
-  : <TLogic extends AnyActorLogic | string>(
-      src: TLogic,
-      options?: {
-        id?: string;
-        systemId?: string;
-        input?: TLogic extends string ? unknown : InputFrom<TLogic>;
-        syncSnapshot?: boolean;
+export type Spawner<TActor extends ProvidedActor> =
+  IsLiteralString<TActor['src']> extends true
+    ? {
+        <TSrc extends TActor['src']>(
+          logic: TSrc,
+          ...[options]: SpawnOptions<TActor, TSrc>
+        ): ActorRefFromLogic<GetConcreteByKey<TActor, 'src', TSrc>['logic']>;
+        <TLogic extends AnyActorLogic>(
+          src: TLogic,
+          ...[options]: ConditionalRequired<
+            [
+              options?: {
+                id?: never;
+                systemId?: string;
+                input?: InputFrom<TLogic>;
+                syncSnapshot?: boolean;
+              } & { [K in RequiredLogicInput<TLogic>]: unknown }
+            ],
+            IsNotNever<RequiredLogicInput<TLogic>>
+          >
+        ): ActorRefFromLogic<TLogic>;
       }
-    ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;
+    : <TLogic extends AnyActorLogic | string>(
+        src: TLogic,
+        ...[options]: ConditionalRequired<
+          [
+            options?: {
+              id?: string;
+              systemId?: string;
+              input?: TLogic extends string ? unknown : InputFrom<TLogic>;
+              syncSnapshot?: boolean;
+            } & (TLogic extends AnyActorLogic
+              ? { [K in RequiredLogicInput<TLogic>]: unknown }
+              : {})
+          ],
+          IsNotNever<
+            TLogic extends AnyActorLogic ? RequiredLogicInput<TLogic> : never
+          >
+        >
+      ) => TLogic extends AnyActorLogic
+        ? ActorRefFromLogic<TLogic>
+        : AnyActorRef;
 
 export function createSpawner(
   actorScope: AnyActorScope,
@@ -77,8 +86,7 @@ export function createSpawner(
   event: AnyEventObject,
   spawnedChildren: Record<string, AnyActorRef>
 ): Spawner<any> {
-  const spawn: Spawner<any> = (src, options = {}) => {
-    const { systemId, input } = options;
+  const spawn: Spawner<any> = ((src, options) => {
     if (typeof src === 'string') {
       const logic = resolveReferencedActor(machine, src);
 
@@ -89,19 +97,19 @@ export function createSpawner(
       }
 
       const actorRef = createActor(logic, {
-        id: options.id,
+        id: options?.id,
         parent: actorScope.self,
-        syncSnapshot: options.syncSnapshot,
+        syncSnapshot: options?.syncSnapshot,
         input:
-          typeof input === 'function'
-            ? input({
+          typeof options?.input === 'function'
+            ? options.input({
                 context,
                 event,
                 self: actorScope.self
               })
-            : input,
+            : options?.input,
         src,
-        systemId
+        systemId: options?.systemId
       }) as any;
 
       spawnedChildren[actorRef.id] = actorRef;
@@ -109,18 +117,18 @@ export function createSpawner(
       return actorRef;
     } else {
       const actorRef = createActor(src, {
-        id: options.id,
+        id: options?.id,
         parent: actorScope.self,
-        syncSnapshot: options.syncSnapshot,
-        input: options.input,
+        syncSnapshot: options?.syncSnapshot,
+        input: options?.input,
         src,
-        systemId
+        systemId: options?.systemId
       });
 
       return actorRef;
     }
-  };
-  return (src, options) => {
+  }) as Spawner<any>;
+  return ((src, options) => {
     const actorRef = spawn(src, options) as TODO; // TODO: fix types
     spawnedChildren[actorRef.id] = actorRef;
     actorScope.defer(() => {
@@ -130,5 +138,5 @@ export function createSpawner(
       actorRef.start();
     });
     return actorRef;
-  };
+  }) as Spawner<any>;
 }

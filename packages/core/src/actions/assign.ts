@@ -1,5 +1,6 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
+import { executingCustomAction } from '../createActor.ts';
 import { Spawner, createSpawner } from '../spawn.ts';
 import type {
   ActionArgs,
@@ -14,7 +15,8 @@ import type {
   ParameterizedObject,
   PropertyAssigner,
   ProvidedActor,
-  ActionFunction
+  ActionFunction,
+  BuiltinActionResolution
 } from '../types.ts';
 
 export interface AssignArgs<
@@ -38,7 +40,7 @@ function resolveAssign(
       | Assigner<any, any, any, any, any>
       | PropertyAssigner<any, any, any, any, any>;
   }
-) {
+): BuiltinActionResolution {
   if (!snapshot.context) {
     throw new Error(
       'Cannot assign to undefined `context`. Ensure that `context` is defined in the machine config.'
@@ -82,7 +84,9 @@ function resolveAssign(
             ...spawnedChildren
           }
         : snapshot.children
-    })
+    }),
+    undefined,
+    undefined
   ];
 }
 
@@ -100,34 +104,36 @@ export interface AssignAction<
 /**
  * Updates the current context of the machine.
  *
- * @param assignment An object that represents the partial context to update, or a
- * function that returns an object that represents the partial context to update.
- *
  * @example
-  ```ts
-  import { createMachine, assign } from 'xstate';
-
-  const countMachine = createMachine({
-    context: {
-      count: 0,
-      message: ''
-    },
-    on: {
-      inc: {
-        actions: assign({
-          count: ({ context }) => context.count + 1
-        })
-      },
-      updateMessage: {
-        actions: assign(({ context, event }) => {
-          return {
-            message: event.message.trim()
-          }
-        })
-      }
-    }
-  });
-  ```
+ *
+ * ```ts
+ * import { createMachine, assign } from 'xstate';
+ *
+ * const countMachine = createMachine({
+ *   context: {
+ *     count: 0,
+ *     message: ''
+ *   },
+ *   on: {
+ *     inc: {
+ *       actions: assign({
+ *         count: ({ context }) => context.count + 1
+ *       })
+ *     },
+ *     updateMessage: {
+ *       actions: assign(({ context, event }) => {
+ *         return {
+ *           message: event.message.trim()
+ *         };
+ *       })
+ *     }
+ *   }
+ * });
+ * ```
+ *
+ * @param assignment An object that represents the partial context to update, or
+ *   a function that returns an object that represents the partial context to
+ *   update.
  */
 export function assign<
   TContext extends MachineContext,
@@ -156,9 +162,15 @@ export function assign<
   never,
   never
 > {
+  if (isDevelopment && executingCustomAction) {
+    console.warn(
+      'Custom actions should not call `assign()` directly, as it is not imperative. See https://stately.ai/docs/actions#built-in-actions for more details.'
+    );
+  }
+
   function assign(
-    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    _args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    _params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

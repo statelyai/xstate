@@ -1,8 +1,14 @@
 blank_issues_enabled: true
 contact_links:
   - name: ✨ Feature Request
-    url: https://github.com/statelyai/xstate/discussions/new
-    about: Have an idea for a new feature or integration? Share it here!
+    url: https://github.com/statelyai/xstate/discussions/new?category=ideas
+    about: Propose new features or integrations to enhance XState's functionality.
   - name: ❓ Ask a Question
-    url: https://github.com/statelyai/xstate/discussions/new
-    about: If you have any questions about how to do something in XState, ask it here.
+    url: https://github.com/statelyai/xstate/discussions/new?category=q-a
+    about: Need help with XState? Ask your questions and get support from the community.
+  - name: 📖 Documentation
+    url: https://github.com/statelyai/docs/issues/new
+    about: Found a problem or have suggestions for improving our documentation? Let us know here.
+  - name: 🛠️ Stately Studio
+    url: https://github.com/statelyai/studio-issues/issues/new/choose
+    about: Report issues or request features specific to Stately Studio.
