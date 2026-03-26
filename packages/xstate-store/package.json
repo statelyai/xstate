@@ -66,6 +66,15 @@
       "import": "./persist/dist/xstate-store-persist.cjs.mjs",
       "default": "./persist/dist/xstate-store-persist.cjs.js"
     },
+    "./devtools": {
+      "types": {
+        "import": "./devtools/dist/xstate-store-devtools.cjs.mjs",
+        "default": "./devtools/dist/xstate-store-devtools.cjs.js"
+      },
+      "module": "./devtools/dist/xstate-store-devtools.esm.js",
+      "import": "./devtools/dist/xstate-store-devtools.cjs.mjs",
+      "default": "./devtools/dist/xstate-store-devtools.cjs.js"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": false,
@@ -75,7 +84,8 @@
     "solid",
     "undo",
     "persist",
-    "reset"
+    "reset",
+    "devtools"
   ],
   "repository": {
     "type": "git",
@@ -122,7 +132,8 @@
       "./solid.ts",
       "./undo.ts",
       "./persist.ts",
-      "./reset.ts"
+      "./reset.ts",
+      "./devtools.ts"
     ]
   }
 }
