@@ -1658,6 +1658,89 @@ export function resolveActionsAndContext(
   return nextState;
 }
 
+// Structural sharing utilities adapted from TanStack Query
+// https://github.com/TanStack/query/blob/26e1a95a4a15ea17af1e79e5d43c4a1f7e518ea8/packages/query-core/src/utils.ts#L215
+
+function isPlainArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === Object.keys(value).length;
+}
+
+function hasObjectPrototype(o: any): boolean {
+  return Object.prototype.toString.call(o) === '[object Object]';
+}
+
+function isPlainObject(o: any): o is object {
+  if (!hasObjectPrototype(o)) {
+    return false;
+  }
+
+  // If has no constructor
+  const ctor = o.constructor;
+  if (ctor === undefined) {
+    return true;
+  }
+
+  // If has modified prototype
+  const prot = ctor.prototype;
+  if (!hasObjectPrototype(prot)) {
+    return false;
+  }
+
+  // If constructor does not have an Object-specific method
+  if (!Object.prototype.hasOwnProperty.call(prot, 'isPrototypeOf')) {
+    return false;
+  }
+
+  // Most likely a plain Object
+  return true;
+}
+
+/**
+ * This function returns `a` if `b` is deeply equal. If not, it will replace any
+ * deeply equal children of `b` with those of `a`. This can be used for
+ * structural sharing between JSON values for example.
+ */
+function structuralReplace<T>(a: unknown, b: T): T;
+function structuralReplace(a: any, b: any): any {
+  if (a === b) {
+    return a;
+  }
+
+  const array = isPlainArray(a) && isPlainArray(b);
+
+  if (array || (isPlainObject(a) && isPlainObject(b))) {
+    const aItems = array ? a : Object.keys(a);
+    const aSize = aItems.length;
+    const bItems = array ? b : Object.keys(b);
+    const bSize = bItems.length;
+    const copy: any = array ? [] : {};
+
+    let equalItems = 0;
+
+    for (let i = 0; i < bSize; i++) {
+      const key = array ? i : bItems[i];
+      if (
+        !array &&
+        a[key] === undefined &&
+        b[key] === undefined &&
+        aItems.includes(key)
+      ) {
+        copy[key] = undefined;
+        equalItems++;
+      } else {
+        copy[key] = structuralReplace(a[key], b[key]);
+        if (copy[key] === a[key] && a[key] !== undefined) {
+          equalItems++;
+        }
+      }
+    }
+
+    return aSize === bSize && equalItems === aSize ? a : copy;
+  }
+
+  return b;
+}
+
 export function macrostep(
   snapshot: AnyMachineSnapshot,
   event: EventObject,
@@ -1694,7 +1777,8 @@ export function macrostep(
     nextSnapshot = cloneMachineSnapshot(
       stopChildren(nextSnapshot, event, actorScope),
       {
-        status: 'stopped'
+        status: 'stopped',
+        event
       }
     );
     addMicrostep([nextSnapshot, []], event, []);
@@ -1702,6 +1786,16 @@ export function macrostep(
       snapshot: nextSnapshot,
       microsteps
     };
+  }
+
+  // Update the event on the snapshot for the incoming external event
+  // Use structural sharing: if the event is deeply equal to the previous event, reuse it
+  // This preserves snapshot identity when no transition occurs and event hasn't changed
+  const eventToUse = structuralReplace(snapshot.event, event);
+
+  // Only clone if the event actually changed
+  if (eventToUse !== snapshot.event) {
+    nextSnapshot = cloneMachineSnapshot(nextSnapshot, { event: eventToUse });
   }
 
   let nextEvent = event;
@@ -1718,7 +1812,7 @@ export function macrostep(
       // TODO: we should likely only allow transitions selected by very explicit descriptors
       // `*` shouldn't be matched, likely `xstate.error.*` shouldn't be either
       // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
-      nextSnapshot = cloneMachineSnapshot<typeof snapshot>(snapshot, {
+      nextSnapshot = cloneMachineSnapshot<typeof snapshot>(nextSnapshot, {
         status: 'error',
         error: currentEvent.error
       });
@@ -1730,7 +1824,7 @@ export function macrostep(
     }
     const step = microstep(
       transitions,
-      snapshot,
+      nextSnapshot,
       actorScope,
       nextEvent,
       false, // isInitial
