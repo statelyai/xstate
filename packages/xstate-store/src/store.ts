@@ -57,7 +57,7 @@ function attachSelectors<
     );
   }
 
-  const originalWith = store.with.bind(store);
+  const originalWith = store.with;
   const storeWithSelectors = store as StoreWithSelectors<
     TContext,
     TEventPayloadMap,
@@ -315,7 +315,7 @@ export function createStore<
   TSelectors extends Record<string, (context: TContext) => any>
 >(
   definition: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap> & {
-    selectors: TSelectors & Record<string, (context: TContext) => any>;
+    selectors: TSelectors;
   }
 ): StoreWithSelectors<
   TContext,
@@ -594,14 +594,15 @@ export function createStoreTransition<
  * const store = todoLogic.createStore();
  * ```
  */
+// Overload: with input + selectors
 export function createStoreLogic<
   TContext extends StoreContext,
   const TEventPayloadMap extends EventPayloadMap,
   TEmittedPayloadMap extends EventPayloadMap,
-  TInput = void,
-  TSelectors extends Record<string, (context: TContext) => any> = {}
+  TInput,
+  TSelectors extends Record<string, (context: TContext) => any>
 >(config: {
-  context: [TInput] extends [void] ? TContext : (input: TInput) => TContext;
+  context: (input: TInput) => TContext;
   on: {
     [K in keyof TEventPayloadMap & string]: StoreAssigner<
       TContext,
@@ -614,20 +615,108 @@ export function createStoreLogic<
       payload: TEmittedPayloadMap[K]
     ) => void;
   };
-  selectors?: TSelectors & Record<string, (context: TContext) => any>;
+  selectors: TSelectors;
 }): StoreLogicCreator<
   TContext,
   TEventPayloadMap,
   ExtractEvents<TEmittedPayloadMap>,
   TInput,
   TSelectors
-> {
+>;
+// Overload: with input, no selectors
+export function createStoreLogic<
+  TContext extends StoreContext,
+  const TEventPayloadMap extends EventPayloadMap,
+  TEmittedPayloadMap extends EventPayloadMap,
+  TInput
+>(config: {
+  context: (input: TInput) => TContext;
+  on: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      TContext,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEvents<TEmittedPayloadMap>
+    >;
+  };
+  emits?: {
+    [K in keyof TEmittedPayloadMap & string]: (
+      payload: TEmittedPayloadMap[K]
+    ) => void;
+  };
+}): StoreLogicCreator<
+  TContext,
+  TEventPayloadMap,
+  ExtractEvents<TEmittedPayloadMap>,
+  TInput,
+  {}
+>;
+// Overload: static context + selectors
+export function createStoreLogic<
+  TContext extends StoreContext,
+  const TEventPayloadMap extends EventPayloadMap,
+  TEmittedPayloadMap extends EventPayloadMap,
+  TSelectors extends Record<string, (context: TContext) => any>
+>(config: {
+  context: TContext;
+  on: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      TContext,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEvents<TEmittedPayloadMap>
+    >;
+  };
+  emits?: {
+    [K in keyof TEmittedPayloadMap & string]: (
+      payload: TEmittedPayloadMap[K]
+    ) => void;
+  };
+  selectors: TSelectors;
+}): StoreLogicCreator<
+  TContext,
+  TEventPayloadMap,
+  ExtractEvents<TEmittedPayloadMap>,
+  void,
+  TSelectors
+>;
+// Overload: static context, no selectors
+export function createStoreLogic<
+  TContext extends StoreContext,
+  const TEventPayloadMap extends EventPayloadMap,
+  TEmittedPayloadMap extends EventPayloadMap
+>(config: {
+  context: TContext;
+  on: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      TContext,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEvents<TEmittedPayloadMap>
+    >;
+  };
+  emits?: {
+    [K in keyof TEmittedPayloadMap & string]: (
+      payload: TEmittedPayloadMap[K]
+    ) => void;
+  };
+}): StoreLogicCreator<
+  TContext,
+  TEventPayloadMap,
+  ExtractEvents<TEmittedPayloadMap>,
+  void,
+  {}
+>;
+// Implementation
+export function createStoreLogic(config: {
+  context: any;
+  on: any;
+  emits?: any;
+  selectors?: any;
+}): any {
   const { on, emits, selectors } = config;
 
-  const createStoreFn = (input?: TInput) => {
+  const createStoreFn = (input?: any) => {
     const context =
       typeof config.context === 'function'
-        ? (config.context as (input: TInput) => TContext)(input as TInput)
+        ? config.context(input)
         : config.context;
 
     const transition = createStoreTransition(on);
@@ -644,21 +733,13 @@ export function createStoreLogic<
     const store = createStoreCore(logic, emits);
 
     if (selectors && Object.keys(selectors).length > 0) {
-      return attachSelectors(store, selectors as any);
+      return attachSelectors(store, selectors);
     }
 
     return store;
   };
 
-  return {
-    createStore: createStoreFn
-  } as unknown as StoreLogicCreator<
-    TContext,
-    TEventPayloadMap,
-    ExtractEvents<TEmittedPayloadMap>,
-    TInput,
-    TSelectors
-  >;
+  return { createStore: createStoreFn };
 }
 
 /**
