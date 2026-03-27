@@ -3,7 +3,8 @@ export { fromStore } from './fromStore';
 export {
   createStore,
   createStoreWithProducer,
-  createStoreConfig
+  createStoreConfig,
+  createStoreLogic
 } from './store';
 export { createAtom, createAsyncAtom } from './atom';
 export type {
@@ -39,5 +40,9 @@ export type {
   EventFromStoreConfig,
   EmitsFromStoreConfig,
   ContextFromStoreConfig,
-  StoreExtension
+  StoreExtension,
+  StoreSelectorsConfig,
+  ResolvedStoreSelectors,
+  StoreWithSelectors,
+  StoreLogicCreator
 } from './types';

@@ -491,6 +491,56 @@ export type StoreExtension<
   TEmitted
 >;
 
+// Selectors
+export type StoreSelectorsConfig<TContext extends StoreContext> = Record<
+  string,
+  Selector<TContext, any>
+>;
+
+export type ResolvedStoreSelectors<
+  TContext extends StoreContext,
+  TSelectors extends Record<string, (context: TContext) => any>
+> = {
+  [K in keyof TSelectors]: Selection<ReturnType<TSelectors[K]>>;
+};
+
+export type StoreWithSelectors<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject,
+  TSelectors extends Record<string, (context: TContext) => any>
+> = Omit<Store<TContext, TEventPayloadMap, TEmitted>, 'with'> & {
+  selectors: ResolvedStoreSelectors<TContext, TSelectors>;
+  with<TNewEventPayloadMap extends EventPayloadMap>(
+    extension: StoreExtension<
+      TContext,
+      TEventPayloadMap,
+      TNewEventPayloadMap,
+      TEmitted
+    >
+  ): StoreWithSelectors<
+    TContext,
+    TEventPayloadMap & TNewEventPayloadMap,
+    TEmitted,
+    TSelectors
+  >;
+};
+
+export interface StoreLogicCreator<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject,
+  TInput,
+  TSelectors extends Record<string, (context: TContext) => any>
+> {
+  /** Creates a new store instance from this logic definition. */
+  createStore: [TInput] extends [void]
+    ? () => StoreWithSelectors<TContext, TEventPayloadMap, TEmitted, TSelectors>
+    : (
+        input: TInput
+      ) => StoreWithSelectors<TContext, TEventPayloadMap, TEmitted, TSelectors>;
+}
+
 export type AnyStoreConfig = StoreConfig<any, any, any>;
 export type EventFromStoreConfig<TStore extends AnyStoreConfig> =
   TStore extends StoreConfig<any, infer TEventPayloadMap, any>
