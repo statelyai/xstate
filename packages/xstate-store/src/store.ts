@@ -312,7 +312,7 @@ export function createStore<
   TContext extends StoreContext,
   const TEventPayloadMap extends EventPayloadMap,
   TEmittedPayloadMap extends EventPayloadMap,
-  TSelectors extends Record<string, (context: TContext) => any>
+  TSelectors extends Record<string, (context: TContext) => unknown>
 >(
   definition: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap> & {
     selectors: TSelectors & Record<string, (context: TContext) => any>;
