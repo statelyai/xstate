@@ -908,3 +908,123 @@ export async function rehydrateStore(store: {
   const data = await internals.storage.getItem(internals.options.name);
   store.send({ type: '__persist.rehydrate', state: data });
 }
+
+/** Options for `createBroadcastStorage`. @public */
+export interface BroadcastStorageOptions {
+  /** Custom BroadcastChannel name. Defaults to `'xstate-store'`. */
+  channel?: string;
+}
+
+/**
+ * Wraps a `StateStorage` adapter so that `setItem` calls broadcast the update
+ * to other tabs/windows via the `BroadcastChannel` API. Receiving tabs
+ * automatically call `rehydrateStore()` on any stores registered with
+ * `subscribeToBroadcastStorage()`.
+ *
+ * @example
+ *
+ * ```ts
+ * import {
+ *   persist,
+ *   createJSONStorage,
+ *   createBroadcastStorage,
+ *   subscribeToBroadcastStorage
+ * } from '@xstate/store/persist';
+ *
+ * const storage = createBroadcastStorage(
+ *   createJSONStorage(() => localStorage)
+ * );
+ *
+ * const store = createStore({
+ *   context: { count: 0 },
+ *   on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+ * }).with(persist({ name: 'my-store', storage }));
+ *
+ * // Listen for updates from other tabs and rehydrate this store
+ * const unsubscribe = subscribeToBroadcastStorage(store, { storage });
+ *
+ * // Clean up on page unload
+ * window.addEventListener('beforeunload', unsubscribe);
+ * ```
+ */
+export function createBroadcastStorage(
+  baseStorage: StateStorage,
+  options?: BroadcastStorageOptions
+): StateStorage & { readonly channel: BroadcastChannel } {
+  const channelName = options?.channel ?? 'xstate-store';
+  const bc = new BroadcastChannel(channelName);
+
+  return {
+    channel: bc,
+    getItem: (name) => baseStorage.getItem(name),
+    setItem: (name, value) => {
+      const result = baseStorage.setItem(name, value);
+      // Broadcast after writing. For async storage, broadcast after the
+      // write resolves so listeners read fresh data.
+      if (result instanceof Promise) {
+        return result.then(() => {
+          bc.postMessage({ type: 'xstate-store-update', name });
+        });
+      }
+      bc.postMessage({ type: 'xstate-store-update', name });
+      return result;
+    },
+    removeItem: (name) => baseStorage.removeItem(name)
+  };
+}
+
+/**
+ * Subscribes a persisted store to cross-tab updates from a
+ * `createBroadcastStorage` adapter. When another tab writes to the same storage
+ * key the store will automatically rehydrate.
+ *
+ * Returns an `unsubscribe` function that closes the listener. Call it on page
+ * unload or when the store is no longer needed.
+ *
+ * @example
+ *
+ * ```ts
+ * const unsub = subscribeToBroadcastStorage(store, { storage });
+ * // later…
+ * unsub();
+ * ```
+ */
+export function subscribeToBroadcastStorage(
+  store: {
+    getSnapshot: () => any;
+    send: (event: any) => void;
+  },
+  options?: BroadcastStorageOptions
+): () => void {
+  const internals = store.getSnapshot()?.[PERSIST_INTERNALS] as
+    | PersistInternals<any>
+    | undefined;
+  if (!internals) {
+    throw new Error(
+      'subscribeToBroadcastStorage: store does not have a persist extension'
+    );
+  }
+
+  const channelName = options?.channel ?? 'xstate-store';
+  const bc = new BroadcastChannel(channelName);
+  const storeName = internals.options.name;
+
+  const handler = (event: MessageEvent) => {
+    const data = event.data;
+    if (
+      data &&
+      data.type === 'xstate-store-update' &&
+      data.name === storeName
+    ) {
+      // Re-read from storage and rehydrate
+      void rehydrateStore(store);
+    }
+  };
+
+  bc.addEventListener('message', handler);
+
+  return () => {
+    bc.removeEventListener('message', handler);
+    bc.close();
+  };
+}
