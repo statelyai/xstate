@@ -152,7 +152,7 @@ export interface TraversalConfig<
   TEvent extends EventObject
 > extends SerializationConfig<TSnapshot, TEvent> {
   events: readonly TEvent[] | ((state: TSnapshot) => readonly TEvent[]);
-  filterEvents: ((state: TSnapshot, event: TEvent) => boolean) | undefined;
+  filterEvents: ((snapshot: TSnapshot, event: TEvent) => boolean) | undefined;
   /**
    * The maximum number of traversals to perform when calculating the state
    * transition adjacency map.
