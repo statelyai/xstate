@@ -143,7 +143,7 @@ export type TraversalOptions<
   Partial<
     Pick<
       TraversalConfig<TSnapshot, TEvent>,
-      'events' | 'limit' | 'fromState' | 'stopWhen' | 'toState'
+      'events' | 'filterEvents' | 'limit' | 'fromState' | 'stopWhen' | 'toState'
     >
   >;
 
@@ -152,6 +152,7 @@ export interface TraversalConfig<
   TEvent extends EventObject
 > extends SerializationConfig<TSnapshot, TEvent> {
   events: readonly TEvent[] | ((state: TSnapshot) => readonly TEvent[]);
+  filterEvents: ((snapshot: TSnapshot, event: TEvent) => boolean) | undefined;
   /**
    * The maximum number of traversals to perform when calculating the state
    * transition adjacency map.

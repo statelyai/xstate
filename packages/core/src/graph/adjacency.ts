@@ -29,6 +29,7 @@ export function getAdjacencyMap<
     serializeEvent,
     serializeState,
     events: getEvents,
+    filterEvents,
     limit,
     fromState: customFromState,
     stopWhen
@@ -85,6 +86,10 @@ export function getAdjacencyMap<
       typeof getEvents === 'function' ? getEvents(state) : getEvents;
 
     for (const nextEvent of events) {
+      if (filterEvents && !filterEvents(state, nextEvent)) {
+        continue;
+      }
+
       const nextSnapshot = transition(state, nextEvent, actorScope);
 
       adj[serializedState].transitions[
