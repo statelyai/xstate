@@ -499,7 +499,7 @@ export type StoreSelectorsConfig<TContext extends StoreContext> = Record<
 
 export type ResolvedStoreSelectors<
   TContext extends StoreContext,
-  TSelectors extends Record<string, (context: TContext) => any>
+  TSelectors extends Record<string, (context: TContext) => unknown>
 > = {
   [K in keyof TSelectors]: Selection<ReturnType<TSelectors[K]>>;
 };
@@ -508,7 +508,7 @@ export type StoreWithSelectors<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject,
-  TSelectors extends Record<string, (context: TContext) => any>
+  TSelectors extends Record<string, (context: TContext) => unknown>
 > = Omit<Store<TContext, TEventPayloadMap, TEmitted>, 'with'> & {
   selectors: ResolvedStoreSelectors<TContext, TSelectors>;
   with<TNewEventPayloadMap extends EventPayloadMap>(
@@ -531,7 +531,7 @@ export interface StoreLogicCreator<
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject,
   TInput,
-  TSelectors extends Record<string, (context: TContext) => any>
+  TSelectors extends Record<string, (context: TContext) => unknown>
 > {
   /** Creates a new store instance from this logic definition. */
   createStore: [TInput] extends [void]

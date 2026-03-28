@@ -600,7 +600,7 @@ export function createStoreLogic<
   const TEventPayloadMap extends EventPayloadMap,
   TEmittedPayloadMap extends EventPayloadMap,
   TInput,
-  TSelectors extends Record<string, (context: TContext) => any>
+  TSelectors extends Record<string, (context: TContext) => unknown>
 >(config: {
   context: (input: TInput) => TContext;
   on: {
@@ -655,7 +655,7 @@ export function createStoreLogic<
   TContext extends StoreContext,
   const TEventPayloadMap extends EventPayloadMap,
   TEmittedPayloadMap extends EventPayloadMap,
-  TSelectors extends Record<string, (context: TContext) => any>
+  TSelectors extends Record<string, (context: TContext) => unknown>
 >(config: {
   context: TContext;
   on: {
