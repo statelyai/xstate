@@ -24,7 +24,6 @@ import {
   ActorLogic,
   Snapshot,
   isMachineSnapshot,
-  __unsafe_getAllOwnEventDescriptors,
   AnyActorRef,
   AnyEventObject,
   AnyStateMachine,
@@ -47,6 +46,7 @@ import {
   simpleStringify
 } from './utils.ts';
 import { validateMachine } from './validateMachine.ts';
+import { getDefaultMachineEvents } from './graph.ts';
 
 type GetPathOptions<
   TSnapshot extends Snapshot<unknown>,
@@ -314,7 +314,33 @@ export class TestModel<
   private _resolveOptions(
     options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
   ): TestModelOptions<TSnapshot, TEvent, TInput> {
-    return { ...this.defaultTraversalOptions, ...this.options, ...options };
+    const resolvedOptions = {
+      ...this.defaultTraversalOptions,
+      ...this.options,
+      ...options
+    };
+
+    if ('getStateNodeById' in this.testLogic) {
+      const getEvents = resolvedOptions.events;
+      resolvedOptions.events = ((state: TSnapshot) =>
+        getDefaultMachineEvents(
+          state as MachineSnapshot<
+            MachineContext,
+            EventObject,
+            Record<string, AnyActorRef | undefined>,
+            StateValue,
+            string,
+            unknown,
+            TODO,
+            TODO
+          >,
+          getEvents as
+            | readonly TEvent[]
+            | ((state: TSnapshot) => readonly TEvent[])
+        )) as typeof resolvedOptions.events;
+    }
+
+    return resolvedOptions;
   }
 }
 
@@ -451,20 +477,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
         ? (state as any)._nodes.includes(machine.getStateNodeById(key))
         : (state as any).matches(key);
     },
-    events: (state) => {
-      const events =
-        typeof getEvents === 'function' ? getEvents(state) : (getEvents ?? []);
-
-      return __unsafe_getAllOwnEventDescriptors(state).flatMap(
-        (eventType: string) => {
-          if (events.some((e) => (e as EventObject).type === eventType)) {
-            return events.filter((e) => (e as EventObject).type === eventType);
-          }
-
-          return [{ type: eventType } as any]; // TODO: fix types
-        }
-      );
-    },
+    events: (state) => getDefaultMachineEvents(state, getEvents) as any[],
     ...otherOptions
   });
 

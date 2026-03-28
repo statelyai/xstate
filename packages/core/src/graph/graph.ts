@@ -6,7 +6,8 @@ import {
   EventFromLogic,
   Snapshot,
   __unsafe_getAllOwnEventDescriptors,
-  InputFrom
+  InputFrom,
+  AnyMachineSnapshot
 } from '../index.ts';
 import type {
   SerializedEvent,
@@ -66,6 +67,27 @@ function serializeEvent<TEvent extends EventObject>(
   return JSON.stringify(event) as SerializedEvent;
 }
 
+function getDefaultMachineEvents<TEvent extends EventObject>(
+  state: AnyMachineSnapshot,
+  getEvents?: readonly TEvent[] | ((state: any) => readonly TEvent[])
+): readonly TEvent[] {
+  const providedEvents =
+    typeof getEvents === 'function' ? getEvents(state) : (getEvents ?? []);
+  const candidateEvents = __unsafe_getAllOwnEventDescriptors(state).flatMap(
+    (type) => {
+      const matchingEvents = providedEvents.filter(
+        (ev) => (ev as any).type === type
+      );
+      if (matchingEvents.length) {
+        return matchingEvents;
+      }
+      return [{ type }];
+    }
+  ) as TEvent[];
+
+  return candidateEvents.filter((event) => state.can(event));
+}
+
 export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: TraversalOptions<
@@ -86,17 +108,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   > = {
     serializeState: serializeSnapshot,
     serializeEvent,
-    events: (state) => {
-      const events =
-        typeof getEvents === 'function' ? getEvents(state) : (getEvents ?? []);
-      return __unsafe_getAllOwnEventDescriptors(state).flatMap((type) => {
-        const matchingEvents = events.filter((ev) => (ev as any).type === type);
-        if (matchingEvents.length) {
-          return matchingEvents;
-        }
-        return [{ type }];
-      }) as any[];
-    },
+    events: (state) => getDefaultMachineEvents(state, getEvents) as any[],
     fromState: machine.getInitialSnapshot(
       createMockActorScope(),
       options?.input
@@ -212,6 +224,8 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
 
   return traversalConfig;
 }
+
+export { getDefaultMachineEvents };
 
 export function joinPaths<
   TSnapshot extends Snapshot<unknown>,

@@ -448,6 +448,51 @@ describe('@xstate/graph', () => {
       `);
       expect(getPathsSnapshot(paths)).toMatchSnapshot('simple paths context');
     });
+
+    it('should not traverse guard-blocked transitions by default', () => {
+      const machine = createMachine({
+        id: 'guarded-default-events',
+        initial: 'start',
+        context: { allowed: false },
+        states: {
+          start: {
+            on: { NEXT: 'idle' }
+          },
+          idle: {
+            on: {
+              PROCEED: {
+                target: 'done',
+                guard: ({ context }) => context.allowed
+              },
+              ALLOW: {
+                actions: assign({
+                  allowed: true
+                })
+              }
+            }
+          },
+          done: {
+            type: 'final'
+          }
+        }
+      });
+
+      const paths = getSimplePaths(machine, {
+        toState: (state) => state.status === 'done'
+      });
+
+      expect(paths.map((path) => path.steps.map((step) => step.event.type)))
+        .toMatchInlineSnapshot(`
+        [
+          [
+            "xstate.init",
+            "NEXT",
+            "ALLOW",
+            "PROCEED",
+          ],
+        ]
+      `);
+    });
   });
 
   describe('getPathFromEvents()', () => {
