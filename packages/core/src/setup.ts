@@ -32,6 +32,7 @@ import {
   ToChildren,
   ToStateValue,
   UnknownActorLogic,
+  ValidateConfigTargets,
   Values
 } from './types';
 
@@ -249,7 +250,7 @@ export type SetupReturn<
       TMeta
     >
   >(
-    config: TConfig
+    config: TConfig & ValidateConfigTargets<TConfig>
   ) => StateMachine<
     TContext,
     | TEvent

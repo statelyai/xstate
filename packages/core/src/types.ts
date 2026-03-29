@@ -311,6 +311,92 @@ export type StateValue = string | StateValueMap;
 
 export type TransitionTarget = SingleOrArray<string>;
 
+type EscapeDots<S extends string> =
+  S extends `${infer Head}.${infer Tail}`
+    ? `${Head}\\.${EscapeDots<Tail>}`
+    : S;
+
+export type ValidTarget<TSiblingKeys extends string> =
+  | TSiblingKeys
+  | `.${string}`
+  | `#${string}`
+  | `${TSiblingKeys}.${string}`
+  | EscapeDots<TSiblingKeys>;
+
+// --- Type-safe state target validation (intersection approach) ---
+
+type ValidateTargetProp<T, TSiblingKeys extends string> = string extends T
+  ? T
+  : T extends string
+    ? ValidTarget<TSiblingKeys>
+    : T extends readonly (infer TEl)[]
+      ? readonly (string extends TEl ? TEl : ValidTarget<TSiblingKeys>)[]
+      : T;
+
+type ValidateTransitionValue<
+  TValue,
+  TSiblingKeys extends string
+> = string extends TValue
+  ? TValue
+  : TValue extends string
+    ? ValidTarget<TSiblingKeys>
+    : TValue extends readonly (infer TEl)[]
+      ? readonly ValidateTransitionValue<TEl, TSiblingKeys>[]
+      : TValue extends { target: infer T }
+        ? { target?: ValidateTargetProp<T, TSiblingKeys> } & Record<string, any>
+        : TValue;
+
+type ValidateInvokeTargets<TInvoke, TSiblingKeys extends string> =
+  TInvoke extends readonly (infer TEl)[]
+    ? readonly ValidateInvokeTargets<TEl, TSiblingKeys>[]
+    : TInvoke extends {
+          onDone?: infer TD;
+          onError?: infer TE;
+          onSnapshot?: infer TS;
+        }
+      ? {
+          onDone?: ValidateTransitionValue<TD, TSiblingKeys>;
+          onError?: ValidateTransitionValue<TE, TSiblingKeys>;
+          onSnapshot?: ValidateTransitionValue<TS, TSiblingKeys>;
+        }
+      : TInvoke;
+
+type ValidateStateTargetsTyped<TConfig, TSiblingKeys extends string> = {
+  on?: TConfig extends { on: infer TOn extends Record<string, any> }
+    ? { [K in keyof TOn]?: ValidateTransitionValue<TOn[K], TSiblingKeys> }
+    : Record<string, ValidateTransitionValue<unknown, TSiblingKeys>>;
+  always?: TConfig extends { always: infer T }
+    ? ValidateTransitionValue<T, TSiblingKeys>
+    : unknown;
+  after?: TConfig extends { after: infer TAfter extends Record<string, any> }
+    ? { [K in keyof TAfter]?: ValidateTransitionValue<TAfter[K], TSiblingKeys> }
+    : Record<string, unknown>;
+  onDone?: TConfig extends { onDone: infer T }
+    ? ValidateTransitionValue<T, TSiblingKeys>
+    : unknown;
+  invoke?: TConfig extends { invoke: infer T }
+    ? ValidateInvokeTargets<T, TSiblingKeys>
+    : unknown;
+};
+
+type ValidateStatesTargetsTyped<TStates> = {
+  [K in keyof TStates]?: ValidateStateTargetsTyped<
+    TStates[K],
+    keyof TStates & string
+  > &
+    (TStates[K] extends { states: infer S extends Record<string, any> }
+      ? { states?: ValidateStatesTargetsTyped<S> }
+      : {});
+};
+
+export type ValidateConfigTargets<TConfig> = TConfig extends {
+  states: infer S extends Record<string, any>;
+}
+  ? ValidateStateTargetsTyped<TConfig, never> & {
+      states?: ValidateStatesTargetsTyped<S>;
+    }
+  : {};
+
 export interface TransitionConfig<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -470,10 +556,11 @@ export type DelayedTransitions<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
+  TDelay extends string,
+  TSiblingKeys extends string = string
 > = {
   [K in Delay<TDelay>]?:
-    | string
+    | ValidTarget<TSiblingKeys>
     | SingleOrArray<
         TransitionConfig<
           TContext,
@@ -516,7 +603,8 @@ export type StatesConfig<
   TTag extends string,
   TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TSiblingKeys extends string = string
 > = {
   [K in string]: StateNodeConfig<
     TContext,
@@ -528,7 +616,8 @@ export type StatesConfig<
     TTag,
     TOutput,
     TEmitted,
-    TMeta
+    TMeta,
+    TSiblingKeys
   >;
 };
 
@@ -550,9 +639,11 @@ export type TransitionConfigOrTarget<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TSiblingKeys extends string = string
 > = SingleOrArray<
-  | TransitionConfigTarget
+  | ValidTarget<TSiblingKeys>
+  | undefined
   | TransitionConfig<
       TContext,
       TExpressionEvent,
@@ -574,7 +665,8 @@ export type TransitionsConfig<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TSiblingKeys extends string = string
 > = {
   [K in EventDescriptor<TEvent>]?: TransitionConfigOrTarget<
     TContext,
@@ -585,7 +677,8 @@ export type TransitionsConfig<
     TGuard,
     TDelay,
     TEmitted,
-    TMeta
+    TMeta,
+    TSiblingKeys
   >;
 };
 
@@ -616,7 +709,8 @@ type DistributeActors<
   TDelay extends string,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
-  TSpecificActor extends ProvidedActor
+  TSpecificActor extends ProvidedActor,
+  TSiblingKeys extends string = string
 > = TSpecificActor extends { src: infer TSrc }
   ?
       | Compute<
@@ -647,7 +741,7 @@ type DistributeActors<
              * its final top-level state.
              */
             onDone?:
-              | string
+              | ValidTarget<TSiblingKeys>
               | SingleOrArray<
                   TransitionConfigOrTarget<
                     TContext,
@@ -658,7 +752,8 @@ type DistributeActors<
                     TGuard,
                     TDelay,
                     TEmitted,
-                    TMeta
+                    TMeta,
+                    TSiblingKeys
                   >
                 >;
             /**
@@ -666,7 +761,7 @@ type DistributeActors<
              * error event.
              */
             onError?:
-              | string
+              | ValidTarget<TSiblingKeys>
               | SingleOrArray<
                   TransitionConfigOrTarget<
                     TContext,
@@ -677,12 +772,13 @@ type DistributeActors<
                     TGuard,
                     TDelay,
                     TEmitted,
-                    TMeta
+                    TMeta,
+                    TSiblingKeys
                   >
                 >;
 
             onSnapshot?:
-              | string
+              | ValidTarget<TSiblingKeys>
               | SingleOrArray<
                   TransitionConfigOrTarget<
                     TContext,
@@ -693,7 +789,8 @@ type DistributeActors<
                     TGuard,
                     TDelay,
                     TEmitted,
-                    TMeta
+                    TMeta,
+                    TSiblingKeys
                   >
                 >;
           } & { [K in RequiredActorOptions<TSpecificActor>]: unknown }
@@ -706,7 +803,7 @@ type DistributeActors<
             | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
             | NonReducibleUnknown;
           onDone?:
-            | string
+            | ValidTarget<TSiblingKeys>
             | SingleOrArray<
                 TransitionConfigOrTarget<
                   TContext,
@@ -717,11 +814,12 @@ type DistributeActors<
                   TGuard,
                   TDelay,
                   TEmitted,
-                  TMeta
+                  TMeta,
+                  TSiblingKeys
                 >
               >;
           onError?:
-            | string
+            | ValidTarget<TSiblingKeys>
             | SingleOrArray<
                 TransitionConfigOrTarget<
                   TContext,
@@ -732,12 +830,13 @@ type DistributeActors<
                   TGuard,
                   TDelay,
                   TEmitted,
-                  TMeta
+                  TMeta,
+                  TSiblingKeys
                 >
               >;
 
           onSnapshot?:
-            | string
+            | ValidTarget<TSiblingKeys>
             | SingleOrArray<
                 TransitionConfigOrTarget<
                   TContext,
@@ -748,7 +847,8 @@ type DistributeActors<
                   TGuard,
                   TDelay,
                   TEmitted,
-                  TMeta
+                  TMeta,
+                  TSiblingKeys
                 >
               >;
         }
@@ -762,7 +862,8 @@ export type InvokeConfig<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TSiblingKeys extends string = string
 > =
   IsLiteralString<TActor['src']> extends true
     ? DistributeActors<
@@ -774,7 +875,8 @@ export type InvokeConfig<
         TDelay,
         TEmitted,
         TMeta,
-        TActor
+        TActor,
+        TSiblingKeys
       >
     : {
         /**
@@ -795,7 +897,7 @@ export type InvokeConfig<
          * final top-level state.
          */
         onDone?:
-          | string
+          | ValidTarget<TSiblingKeys>
           | SingleOrArray<
               TransitionConfigOrTarget<
                 TContext,
@@ -806,7 +908,8 @@ export type InvokeConfig<
                 TGuard,
                 TDelay,
                 TEmitted,
-                TMeta
+                TMeta,
+                TSiblingKeys
               >
             >;
         /**
@@ -814,7 +917,7 @@ export type InvokeConfig<
          * error event.
          */
         onError?:
-          | string
+          | ValidTarget<TSiblingKeys>
           | SingleOrArray<
               TransitionConfigOrTarget<
                 TContext,
@@ -825,12 +928,13 @@ export type InvokeConfig<
                 TGuard,
                 TDelay,
                 TEmitted,
-                TMeta
+                TMeta,
+                TSiblingKeys
               >
             >;
 
         onSnapshot?:
-          | string
+          | ValidTarget<TSiblingKeys>
           | SingleOrArray<
               TransitionConfigOrTarget<
                 TContext,
@@ -841,7 +945,8 @@ export type InvokeConfig<
                 TGuard,
                 TDelay,
                 TEmitted,
-                TMeta
+                TMeta,
+                TSiblingKeys
               >
             >;
       };
@@ -867,7 +972,8 @@ export interface StateNodeConfig<
   TTag extends string,
   _TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TSiblingKeys extends string = string
 > {
   /** The initial state transition. */
   initial?:
@@ -920,7 +1026,8 @@ export interface StateNodeConfig<
       TGuard,
       TDelay,
       TEmitted,
-      TMeta
+      TMeta,
+      TSiblingKeys
     >
   >;
   /** The mapping of event types to their potential transition(s). */
@@ -932,7 +1039,8 @@ export interface StateNodeConfig<
     TGuard,
     TDelay,
     TEmitted,
-    TMeta
+    TMeta,
+    TSiblingKeys
   >;
   /** The action(s) to be executed upon entering the state node. */
   entry?: Actions<
@@ -966,7 +1074,7 @@ export interface StateNodeConfig<
    * node's `on` property.
    */
   onDone?:
-    | string
+    | ValidTarget<TSiblingKeys>
     | SingleOrArray<
         TransitionConfig<
           TContext,
@@ -986,7 +1094,15 @@ export interface StateNodeConfig<
    * transition(s). The delayed transitions are taken after the specified delay
    * in an interpreter.
    */
-  after?: DelayedTransitions<TContext, TEvent, TActor, TAction, TGuard, TDelay>;
+  after?: DelayedTransitions<
+    TContext,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TSiblingKeys
+  >;
 
   /**
    * An eventless transition that is always taken when this state node is
@@ -1001,7 +1117,8 @@ export interface StateNodeConfig<
     TGuard,
     TDelay,
     TEmitted,
-    TMeta
+    TMeta,
+    TSiblingKeys
   >;
   parent?: StateNode<TContext, TEvent>;
   /**
@@ -1390,7 +1507,8 @@ export type MachineConfig<
   TInput = any,
   TOutput = unknown,
   TEmitted extends EventObject = EventObject,
-  TMeta extends MetaObject = MetaObject
+  TMeta extends MetaObject = MetaObject,
+  TSiblingKeys extends string = string
 > = (Omit<
   StateNodeConfig<
     DoNotInfer<TContext>,
@@ -1402,7 +1520,8 @@ export type MachineConfig<
     DoNotInfer<TTag>,
     DoNotInfer<TOutput>,
     DoNotInfer<TEmitted>,
-    DoNotInfer<TMeta>
+    DoNotInfer<TMeta>,
+    DoNotInfer<TSiblingKeys>
   >,
   'output'
 > & {
