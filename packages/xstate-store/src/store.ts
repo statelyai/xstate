@@ -21,7 +21,11 @@ import {
   StoreLogic,
   StoreTransition,
   AnyStoreLogic,
-  SpecificStoreConfig
+  SpecificStoreConfig,
+  StoreSelectorsConfig,
+  ResolvedStoreSelectors,
+  StoreWithSelectors,
+  StoreLogicCreator
 } from './types';
 
 const symbolObservable: typeof Symbol.observable = (() =>
@@ -32,6 +36,42 @@ const inspectionObservers = new WeakMap<
   Store<any, any, any>,
   Set<Observer<StoreInspectionEvent>>
 >();
+
+/**
+ * Attaches resolved selectors to a store instance and wraps `.with()` to
+ * preserve selectors through extensions.
+ */
+function attachSelectors<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject,
+  TSelectors extends StoreSelectorsConfig<TContext>
+>(
+  store: Store<TContext, TEventPayloadMap, TEmitted>,
+  selectorsConfig: TSelectors
+): StoreWithSelectors<TContext, TEventPayloadMap, TEmitted, TSelectors> {
+  const selectors = {} as ResolvedStoreSelectors<TContext, TSelectors>;
+  for (const key of Object.keys(selectorsConfig) as (keyof TSelectors)[]) {
+    (selectors as any)[key] = store.select(
+      selectorsConfig[key] as Selector<TContext, any>
+    );
+  }
+
+  const originalWith = store.with;
+  const storeWithSelectors = store as StoreWithSelectors<
+    TContext,
+    TEventPayloadMap,
+    TEmitted,
+    TSelectors
+  >;
+  storeWithSelectors.selectors = selectors;
+  storeWithSelectors.with = ((extension: any) => {
+    const extended = originalWith(extension);
+    return attachSelectors(extended, selectorsConfig);
+  }) as any;
+
+  return storeWithSelectors;
+}
 
 function createStoreCore<
   TContext extends StoreContext,
@@ -239,13 +279,50 @@ export type TransitionsFromEventPayloadMap<
  * // Logs { context: { count: 5, name: 'Ada' }, status: 'active', ... }
  * ```
  *
+ * @example
+ *
+ * ```ts
+ * // With selectors
+ * const store = createStore({
+ *   context: { count: 0 },
+ *   on: {
+ *     inc: (ctx) => ({ count: ctx.count + 1 })
+ *   },
+ *   selectors: {
+ *     doubled: (ctx) => ctx.count * 2
+ *   }
+ * });
+ *
+ * store.selectors.doubled.get(); // 0
+ * store.trigger.inc();
+ * store.selectors.doubled.get(); // 2
+ * ```
+ *
  * @param config - The store configuration object
  * @param config.context - The initial state of the store
  * @param config.on - An object mapping event types to transition functions
  * @param config.emits - An object mapping emitted event types to handlers
+ * @param config.selectors - An object mapping selector names to selector
+ *   functions that derive values from context. Each selector becomes a reactive
+ *   `ReadonlyAtom` on `store.selectors`.
  * @returns A store instance with methods to send events and subscribe to state
  *   changes
  */
+export function createStore<
+  TContext extends StoreContext,
+  const TEventPayloadMap extends EventPayloadMap,
+  TEmittedPayloadMap extends EventPayloadMap,
+  TSelectors extends Record<string, (context: TContext) => unknown>
+>(
+  definition: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap> & {
+    selectors: TSelectors;
+  }
+): StoreWithSelectors<
+  TContext,
+  TEventPayloadMap,
+  ExtractEvents<TEmittedPayloadMap>,
+  TSelectors
+>;
 export function createStore<
   TContext extends StoreContext,
   const TEventPayloadMap extends EventPayloadMap,
@@ -269,8 +346,12 @@ export function createStore<
   TEmitted
 >;
 export function createStore(
-  definitionOrLogic: StoreConfig<any, any, any> | AnyStoreLogic
-) {
+  definitionOrLogic:
+    | (StoreConfig<any, any, any> & {
+        selectors?: Record<string, (context: any) => any>;
+      })
+    | AnyStoreLogic
+): any {
   if ('transition' in definitionOrLogic) {
     return createStoreCore(definitionOrLogic);
   }
@@ -285,7 +366,13 @@ export function createStore(
     }),
     transition
   } satisfies AnyStoreLogic;
-  return createStoreCore(logic, definitionOrLogic.emits);
+  const store = createStoreCore(logic, definitionOrLogic.emits);
+
+  if (definitionOrLogic.selectors) {
+    return attachSelectors(store, definitionOrLogic.selectors);
+  }
+
+  return store;
 }
 
 function _createStoreConfig<
@@ -458,6 +545,201 @@ export function createStoreTransition<
       effects
     ];
   };
+}
+
+/**
+ * Creates a reusable store logic definition that can be instantiated multiple
+ * times with different inputs.
+ *
+ * @example
+ *
+ * ```ts
+ * const counterLogic = createStoreLogic({
+ *   context: (input: { initialCount: number }) => ({
+ *     count: input.initialCount
+ *   }),
+ *   on: {
+ *     inc: (ctx) => ({ count: ctx.count + 1 }),
+ *     dec: (ctx) => ({ count: ctx.count - 1 })
+ *   },
+ *   selectors: {
+ *     doubled: (ctx) => ctx.count * 2,
+ *     isPositive: (ctx) => ctx.count > 0
+ *   }
+ * });
+ *
+ * const counter1 = counterLogic.createStore({ initialCount: 42 });
+ * const counter2 = counterLogic.createStore({ initialCount: 0 });
+ *
+ * counter1.selectors.doubled.get(); // 84
+ * counter2.selectors.doubled.get(); // 0
+ * ```
+ *
+ * @example
+ *
+ * ```ts
+ * // Without input
+ * const todoLogic = createStoreLogic({
+ *   context: { todos: [] as string[] },
+ *   on: {
+ *     add: (ctx, ev: { text: string }) => ({
+ *       todos: [...ctx.todos, ev.text]
+ *     })
+ *   },
+ *   selectors: {
+ *     count: (ctx) => ctx.todos.length
+ *   }
+ * });
+ *
+ * const store = todoLogic.createStore();
+ * ```
+ */
+// Overload: with input + selectors
+export function createStoreLogic<
+  TContext extends StoreContext,
+  const TEventPayloadMap extends EventPayloadMap,
+  TEmittedPayloadMap extends EventPayloadMap,
+  TInput,
+  TSelectors extends Record<string, (context: TContext) => unknown>
+>(config: {
+  context: (input: TInput) => TContext;
+  on: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      TContext,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEvents<TEmittedPayloadMap>
+    >;
+  };
+  emits?: {
+    [K in keyof TEmittedPayloadMap & string]: (
+      payload: TEmittedPayloadMap[K]
+    ) => void;
+  };
+  selectors: TSelectors;
+}): StoreLogicCreator<
+  TContext,
+  TEventPayloadMap,
+  ExtractEvents<TEmittedPayloadMap>,
+  TInput,
+  TSelectors
+>;
+// Overload: with input, no selectors
+export function createStoreLogic<
+  TContext extends StoreContext,
+  const TEventPayloadMap extends EventPayloadMap,
+  TEmittedPayloadMap extends EventPayloadMap,
+  TInput
+>(config: {
+  context: (input: TInput) => TContext;
+  on: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      TContext,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEvents<TEmittedPayloadMap>
+    >;
+  };
+  emits?: {
+    [K in keyof TEmittedPayloadMap & string]: (
+      payload: TEmittedPayloadMap[K]
+    ) => void;
+  };
+}): StoreLogicCreator<
+  TContext,
+  TEventPayloadMap,
+  ExtractEvents<TEmittedPayloadMap>,
+  TInput,
+  {}
+>;
+// Overload: static context + selectors
+export function createStoreLogic<
+  TContext extends StoreContext,
+  const TEventPayloadMap extends EventPayloadMap,
+  TEmittedPayloadMap extends EventPayloadMap,
+  TSelectors extends Record<string, (context: TContext) => unknown>
+>(config: {
+  context: TContext;
+  on: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      TContext,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEvents<TEmittedPayloadMap>
+    >;
+  };
+  emits?: {
+    [K in keyof TEmittedPayloadMap & string]: (
+      payload: TEmittedPayloadMap[K]
+    ) => void;
+  };
+  selectors: TSelectors;
+}): StoreLogicCreator<
+  TContext,
+  TEventPayloadMap,
+  ExtractEvents<TEmittedPayloadMap>,
+  void,
+  TSelectors
+>;
+// Overload: static context, no selectors
+export function createStoreLogic<
+  TContext extends StoreContext,
+  const TEventPayloadMap extends EventPayloadMap,
+  TEmittedPayloadMap extends EventPayloadMap
+>(config: {
+  context: TContext;
+  on: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      TContext,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEvents<TEmittedPayloadMap>
+    >;
+  };
+  emits?: {
+    [K in keyof TEmittedPayloadMap & string]: (
+      payload: TEmittedPayloadMap[K]
+    ) => void;
+  };
+}): StoreLogicCreator<
+  TContext,
+  TEventPayloadMap,
+  ExtractEvents<TEmittedPayloadMap>,
+  void,
+  {}
+>;
+// Implementation
+export function createStoreLogic(config: {
+  context: any;
+  on: any;
+  emits?: any;
+  selectors?: any;
+}): any {
+  const { on, emits, selectors } = config;
+
+  const createStoreFn = (input?: any) => {
+    const context =
+      typeof config.context === 'function'
+        ? config.context(input)
+        : config.context;
+
+    const transition = createStoreTransition(on);
+    const logic: AnyStoreLogic = {
+      getInitialSnapshot: () => ({
+        status: 'active' as const,
+        context,
+        output: undefined,
+        error: undefined
+      }),
+      transition
+    } satisfies AnyStoreLogic;
+
+    const store = createStoreCore(logic, emits);
+
+    if (selectors && Object.keys(selectors).length > 0) {
+      return attachSelectors(store, selectors);
+    }
+
+    return store;
+  };
+
+  return { createStore: createStoreFn };
 }
 
 /**
