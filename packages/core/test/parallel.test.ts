@@ -1343,4 +1343,86 @@ describe('parallel states', () => {
 
     expect(flushTracked()).toEqual([]);
   });
+
+  // https://github.com/statelyai/xstate/issues/5460
+  it('should keep parallel state stable once a region reaches a final state (no matching handlers)', () => {
+    const machine = createMachine({
+      id: 'test',
+      type: 'parallel',
+      states: {
+        first: {
+          initial: 'a',
+          states: {
+            a: {
+              on: {
+                NEXT: 'done'
+              }
+            },
+            done: {
+              type: 'final'
+            }
+          }
+        },
+        second: {
+          initial: 'a',
+          states: {
+            a: {
+              on: {
+                BACK: 'b'
+              }
+            },
+            b: {}
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+
+    actor.send({ type: 'NEXT' });
+    expect(actor.getSnapshot().value).toEqual({
+      first: 'done',
+      second: 'a'
+    });
+
+    actor.send({ type: 'NO_HANDLER' });
+    expect(actor.getSnapshot().value).toEqual({
+      first: 'done',
+      second: 'a'
+    });
+  });
+
+  it('rejects outgoing `on` transitions on a final state inside a parallel region (#5460)', () => {
+    expect(() =>
+      createMachine({
+        id: 'test',
+        type: 'parallel',
+        states: {
+          first: {
+            initial: 'a',
+            states: {
+              a: {
+                on: {
+                  NEXT: 'done'
+                }
+              },
+              done: {
+                type: 'final',
+                on: {
+                  INVALID: 'a'
+                }
+              }
+            }
+          },
+          second: {
+            initial: 'x',
+            states: {
+              x: {}
+            }
+          }
+        }
+      })
+    ).toThrow(/Final state node .* cannot declare transitions in `on`/);
+  });
 });
