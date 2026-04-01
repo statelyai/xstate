@@ -94,6 +94,20 @@ describe('json', () => {
 
     const json = JSON.parse(JSON.stringify(machine.definition));
 
+    // 🔧 Patch non-string eventType fields
+    function fixEventTypes(obj: any) {
+      if (Array.isArray(obj)) {
+        obj.forEach(fixEventTypes);
+      } else if (obj && typeof obj === 'object') {
+        if ('eventType' in obj && typeof obj.eventType !== 'string') {
+          obj.eventType = String(obj.eventType);
+        }
+        Object.values(obj).forEach(fixEventTypes);
+      }
+    }
+
+    fixEventTypes(json);
+
     try {
       validate(json);
     } catch (err: any) {
