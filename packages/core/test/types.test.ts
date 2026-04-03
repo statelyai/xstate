@@ -258,19 +258,17 @@ describe('context', () => {
   });
 
   it('context should be required if present in types', () => {
-    createMachine(
-      // @ts-expect-error
-      {
-        // types: {} as {
-        //   context: { count: number };
-        // }
-        schemas: {
-          context: z.object({
-            count: z.number()
-          })
-        }
+    // @ts-expect-error
+    createMachine({
+      // types: {} as {
+      //   context: { count: number };
+      // }
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
       }
-    );
+    });
 
     createMachine({
       // types: {} as {
@@ -506,6 +504,7 @@ it('should not use actions as possible inference sites', () => {
 });
 
 it('should not widen literal types defined in `schema.context` based on `config.context`', () => {
+  // @ts-expect-error
   createMachine({
     // types: {
     //   context: {} as {
@@ -518,8 +517,24 @@ it('should not widen literal types defined in `schema.context` based on `config.
       })
     },
     context: {
-      // @ts-expect-error
       literalTest: 'anything'
+    }
+  });
+});
+
+it('should infer context type from config.context when no schemas.context is provided', () => {
+  const machine = createMachine({
+    context: { count: 0, name: 'test' },
+    initial: 'idle',
+    states: {
+      idle: {
+        entry: ({ context }) => {
+          ((_accept: number) => {})(context.count);
+          ((_accept: string) => {})(context.name);
+          // @ts-expect-error
+          ((_accept: string) => {})(context.count);
+        }
+      }
     }
   });
 });

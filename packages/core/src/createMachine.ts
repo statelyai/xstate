@@ -78,6 +78,7 @@ type _GroupTestValues<TTestValue extends string | TestValue> =
  * @param options DEPRECATED: use `setup({ ... })` or `machine.provide({ ... })`
  *   to provide machine implementations instead.
  */
+// Overload 1: With schemas.context — context type inferred from schema
 export function createMachine<
   TContextSchema extends StandardSchemaV1,
   const TEventSchemaMap extends Record<string, StandardSchemaV1>,
@@ -114,7 +115,9 @@ export function createMachine<
       TActorMap,
       TGuardMap,
       TDelayMap
-    >
+    > & {
+      schemas: { context: TContextSchema };
+    }
 ): StateMachine<
   InferOutput<TContextSchema, MachineContext>,
   | InferEvents<TEventSchemaMap>
@@ -138,7 +141,83 @@ export function createMachine<
   TDelayMap
 > & {
   states: TSS;
-} {
+};
+
+// Overload 2: Without schemas.context — context type inferred from config.context
+export function createMachine<
+  TContext extends MachineContext = never,
+  const TEventSchemaMap extends Record<string, StandardSchemaV1> = Record<
+    string,
+    StandardSchemaV1
+  >,
+  TEmittedSchemaMap extends Record<string, StandardSchemaV1> = Record<
+    string,
+    StandardSchemaV1
+  >,
+  TInputSchema extends StandardSchemaV1 = StandardSchemaV1,
+  TOutputSchema extends StandardSchemaV1 = StandardSchemaV1,
+  TMetaSchema extends StandardSchemaV1 = StandardSchemaV1,
+  TTagSchema extends StandardSchemaV1 = StandardSchemaV1,
+  _TEvent extends EventObject = EventObject,
+  TActor extends ProvidedActor = ProvidedActor,
+  TActionMap extends Implementations['actions'] = Implementations['actions'],
+  TActorMap extends Implementations['actors'] = Implementations['actors'],
+  TGuardMap extends Implementations['guards'] = Implementations['guards'],
+  TDelayMap extends Implementations['delays'] = Implementations['delays'],
+  TDelays extends string = string,
+  TTag extends StandardSchemaV1.InferOutput<TTagSchema> &
+    string = StandardSchemaV1.InferOutput<TTagSchema> & string,
+  TInput = unknown,
+  const TSS extends StateSchema = StateSchema
+>(
+  config: TSS &
+    Next_MachineConfig<
+      StandardSchemaV1,
+      TEventSchemaMap,
+      TEmittedSchemaMap,
+      TInputSchema,
+      TOutputSchema,
+      TMetaSchema,
+      TTagSchema,
+      TContext,
+      InferEvents<TEventSchemaMap>,
+      TDelays,
+      TTag,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      false
+    > & {
+      schemas?: { context?: never };
+    }
+): StateMachine<
+  TContext,
+  | InferEvents<TEventSchemaMap>
+  | ([RoutableStateId<TSS>] extends [never]
+      ? never
+      : {
+          type: 'xstate.route';
+          to: RoutableStateId<TSS>;
+        }),
+  Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
+  StateValue,
+  TTag & string,
+  TInput,
+  InferOutput<TOutputSchema, unknown>,
+  WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
+  InferOutput<TMetaSchema, MetaObject>, // TMeta
+  TSS, // TStateSchema
+  TActionMap,
+  TActorMap,
+  TGuardMap,
+  TDelayMap
+> & {
+  states: TSS;
+};
+
+// Implementation
+export function createMachine(config: any): any {
   return new StateMachine<
     any,
     any,

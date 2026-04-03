@@ -71,10 +71,13 @@ export type Next_MachineConfig<
   TActionMap extends Implementations['actions'] = Implementations['actions'],
   TActorMap extends Implementations['actors'] = Implementations['actors'],
   TGuardMap extends Implementations['guards'] = Implementations['guards'],
-  TDelayMap extends Implementations['delays'] = Implementations['delays']
+  TDelayMap extends Implementations['delays'] = Implementations['delays'],
+  TContextRequired extends boolean = IsNever<TContext> extends true
+    ? false
+    : true
 > = (Omit<
   Next_StateNodeConfig<
-    InferOutput<TContextSchema, MachineContext>,
+    TContext,
     DoNotInfer<InferEvents<TEventSchemaMap>>,
     DoNotInfer<TDelays>,
     DoNotInfer<StandardSchemaV1.InferOutput<TTagSchema> & string>,
@@ -132,7 +135,7 @@ export type Next_MachineConfig<
         }) => number);
   };
 }) &
-  (IsNever<TContext> extends true
+  (TContextRequired extends false
     ? {
         context?: InitialContext<
           LowInfer<TContext>,
