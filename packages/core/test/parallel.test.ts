@@ -1578,14 +1578,12 @@ describe('parallel onDone output aggregation', () => {
               }
             }
           },
-          onDone: [
-            {
-              guard: ({ event }) =>
-                (event.output as any).a.ok && (event.output as any).b.ok,
-              target: 'allOk'
-            },
-            { target: 'someNotOk' }
-          ]
+          onDone: ({ event }) => {
+            if ((event.output as any).a.ok && (event.output as any).b.ok) {
+              return { target: 'allOk' };
+            }
+            return { target: 'someNotOk' };
+          }
         },
         allOk: { type: 'final' },
         someNotOk: { type: 'final' }

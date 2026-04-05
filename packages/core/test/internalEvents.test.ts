@@ -4,13 +4,13 @@ import z from 'zod';
 describe('internalEvents', () => {
   it('allows raising internal events', () => {
     const machine = createMachine({
-      setup: {
+      schemas: {
         events: {
           foo: z.object({}),
           tick: z.object({})
-        },
-        internalEvents: ['tick'] as const
+        }
       },
+      internalEvents: ['tick'] as const,
       initial: 'idle',
       states: {
         idle: {
@@ -33,13 +33,13 @@ describe('internalEvents', () => {
 
   it('rejects sending internal events from outside', () => {
     const machine = createMachine({
-      setup: {
+      schemas: {
         events: {
           foo: z.object({}),
           tick: z.object({})
-        },
-        internalEvents: ['tick'] as const
+        }
       },
+      internalEvents: ['tick'] as const,
       initial: 'idle',
       states: {
         idle: {
@@ -62,12 +62,12 @@ describe('internalEvents', () => {
 
   it('rejects sending wildcard-matched internal events from outside', () => {
     const machine = createMachine({
-      setup: {
+      schemas: {
         events: {
           'change.value': z.object({ value: z.string() })
-        },
-        internalEvents: ['change.*'] as const
+        }
       },
+      internalEvents: ['change.*'] as const,
       initial: 'idle',
       states: {
         idle: {

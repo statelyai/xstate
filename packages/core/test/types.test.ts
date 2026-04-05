@@ -173,14 +173,14 @@ describe('Raise events', () => {
 describe('internalEvents', () => {
   it('should allow raising internal and external events', () => {
     const machine = createMachine({
-      setup: {
+      schemas: {
         events: {
           foo: z.object({}),
           tick: z.object({}),
           'change.value': z.object({ value: z.string() })
-        },
-        internalEvents: ['tick', 'change.*'] as const
+        }
       },
+      internalEvents: ['tick', 'change.*'],
       on: {
         foo: (_, enq) => {
           enq.raise({ type: 'foo' });
@@ -196,14 +196,14 @@ describe('internalEvents', () => {
 
   it('should reject sending internal events from outside', () => {
     const machine = createMachine({
-      setup: {
+      schemas: {
         events: {
           foo: z.object({}),
           tick: z.object({}),
           'change.value': z.object({ value: z.string() })
-        },
-        internalEvents: ['tick', 'change.*'] as const
+        }
       },
+      internalEvents: ['tick', 'change.*'] as const,
       on: {
         foo: {}
       }
@@ -212,39 +212,60 @@ describe('internalEvents', () => {
     const actor = createActor(machine);
 
     actor.send({ type: 'foo' });
-    // @ts-expect-error
-    actor.send({ type: 'tick' });
-    // @ts-expect-error
-    actor.send({ type: 'change.value', value: 'blocked' });
+
+    expect(() => actor.send({ type: 'tick' } as any)).toThrow(
+      'Internal event "tick" cannot be sent to actor'
+    );
+    expect(() =>
+      actor.send({ type: 'change.value', value: 'blocked' } as any)
+    ).toThrow('Internal event "change.value" cannot be sent to actor');
 
     actor.trigger.foo();
-    // @ts-expect-error
-    actor.trigger.tick();
-    // @ts-expect-error
-    actor.trigger['change.value']({ value: 'blocked' });
+    expect(() => (actor.trigger as any).tick()).toThrow(
+      'Internal event "tick" cannot be sent to actor'
+    );
+    expect(() =>
+      (actor.trigger as any)['change.value']({ value: 'blocked' })
+    ).toThrow('Internal event "change.value" cannot be sent to actor');
+
+    function _expectSendRejected(a: typeof actor) {
+      // @ts-expect-error internal events are not sendable from outside
+      a.send({ type: 'tick' });
+      // @ts-expect-error internal events are not sendable from outside
+      a.send({ type: 'change.value', value: 'blocked' });
+    }
+    void _expectSendRejected;
+
+    function _expectTriggerRejected(a: typeof actor) {
+      // @ts-expect-error internal events are not sendable from outside
+      a.trigger.tick();
+      // @ts-expect-error internal events are not sendable from outside
+      a.trigger['change.value']({ value: 'blocked' });
+    }
+    void _expectTriggerRejected;
   });
 
   it('should reject nonexistent and invalid internal event descriptors', () => {
     createMachine({
-      setup: {
+      schemas: {
         events: {
           foo: z.object({}),
           'change.value': z.object({ value: z.string() })
-        },
-        // @ts-expect-error
-        internalEvents: ['nonexistent'] as const
-      }
+        }
+      },
+      // @ts-expect-error
+      internalEvents: ['nonexistent'] as const
     });
 
     createMachine({
-      setup: {
+      schemas: {
         events: {
           foo: z.object({}),
           'change.value': z.object({ value: z.string() })
-        },
-        // @ts-expect-error
-        internalEvents: ['foo.*.invalid'] as const
-      }
+        }
+      },
+      // @ts-expect-error
+      internalEvents: ['foo.*.invalid'] as const
     });
   });
 });
@@ -3832,7 +3853,7 @@ describe('guards', () => {
     });
   });
 
-  it.only('should disallow dynamic params that return invalid params type', () => {
+  it('should disallow dynamic params that return invalid params type', () => {
     createMachine({
       // types: {} as {
       //   guards:

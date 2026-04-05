@@ -1481,9 +1481,7 @@ export type ActorRefFrom<T> =
     infer _TDelayMap
   >
     ? TConfig extends {
-        setup?: {
-          internalEvents?: readonly EventDescriptor<TEvent>[];
-        };
+        internalEvents?: readonly EventDescriptor<TEvent>[];
       }
       ? ActorRef<
           MachineSnapshot<
@@ -1500,10 +1498,8 @@ export type ActorRefFrom<T> =
           TEmitted,
           ExcludeInternalEvents<
             TEvent,
-            TConfig['setup'] extends {
-              internalEvents?: readonly EventDescriptor<TEvent>[];
-            }
-              ? TConfig['setup']['internalEvents'] extends readonly (infer TDesc)[]
+            TConfig['internalEvents'] extends readonly EventDescriptor<TEvent>[]
+              ? TConfig['internalEvents'] extends readonly (infer TDesc)[]
                 ? Extract<TDesc, string>
                 : never
               : never
@@ -1553,16 +1549,12 @@ export type SendableEventFromLogic<TLogic extends AnyActorLogic> =
     infer _TDelayMap
   >
     ? TConfig extends {
-        setup?: {
-          internalEvents?: readonly EventDescriptor<TEvent>[];
-        };
+        internalEvents?: readonly EventDescriptor<TEvent>[];
       }
       ? ExcludeInternalEvents<
           TEvent,
-          TConfig['setup'] extends {
-            internalEvents?: readonly EventDescriptor<TEvent>[];
-          }
-            ? TConfig['setup']['internalEvents'] extends readonly (infer TDesc)[]
+          TConfig['internalEvents'] extends readonly EventDescriptor<TEvent>[]
+            ? TConfig['internalEvents'] extends readonly (infer TDesc)[]
               ? Extract<TDesc, string>
               : never
             : never

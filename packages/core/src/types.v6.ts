@@ -91,12 +91,9 @@ export type Next_MachineConfig<
   >,
   'output'
 > & {
-  setup?: {
-    events?: TEventSchemaMap;
-    internalEvents?: readonly InternalEventDescriptorFor<
-      InferEvents<TEventSchemaMap>
-    >[];
-  };
+  internalEvents?: readonly InternalEventDescriptorFor<
+    InferEvents<TEventSchemaMap>
+  >[];
   schemas?: {
     events?: TEventSchemaMap;
     context?: TContextSchema;

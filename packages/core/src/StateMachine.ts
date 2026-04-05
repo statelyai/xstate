@@ -120,9 +120,7 @@ export class StateMachine<
       any // TEmitted
     > & {
       schemas?: unknown;
-      setup?: {
-        internalEvents?: readonly string[];
-      };
+      internalEvents?: readonly string[];
     },
     implementations?: Implementations
   ) {
@@ -136,7 +134,7 @@ export class StateMachine<
     };
     this.version = this.config.version;
     this.schemas = this.config.schemas;
-    this.internalEventDescriptors = this.config.setup?.internalEvents ?? [];
+    this.internalEventDescriptors = this.config.internalEvents ?? [];
 
     this.transition = this.transition.bind(this);
     this.getInitialSnapshot = this.getInitialSnapshot.bind(this);
