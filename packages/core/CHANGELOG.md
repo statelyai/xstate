@@ -1,5 +1,26 @@
 # xstate
 
+## 5.30.0
+
+### Minor Changes
+
+- [#5493](https://github.com/statelyai/xstate/pull/5493) [`871857d`](https://github.com/statelyai/xstate/commit/871857d730b7c333728da2b17bc36844697e8f88) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add a `filterEvents` option to `xstate/graph` traversal helpers and
+  `createTestModel(...)` to control which events should be explored from each
+  state.
+
+  This makes it possible to opt into enabled-only traversal for machine snapshots,
+  such as when you only want to explore events that currently pass guards:
+
+  ```ts
+  import { createTestModel } from 'xstate/graph';
+
+  const model = createTestModel(machine);
+
+  const paths = model.getSimplePaths({
+    filterEvents: (state, event) => state.can(event)
+  });
+  ```
+
 ## 5.29.0
 
 ### Minor Changes
