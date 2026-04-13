@@ -34,7 +34,7 @@ import type {
   Snapshot,
   SnapshotFrom,
   AnyTransitionDefinition,
-  AnyActorScope
+  Readable
 } from './types.ts';
 import {
   ActorOptions,
@@ -516,6 +516,28 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
+  public select<TSelected>(
+    selector: (snapshot: SnapshotFrom<TLogic>) => TSelected,
+    equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
+  ): Readable<TSelected> {
+    return {
+      subscribe: (observerOrFn) => {
+        const observer = toObserver(observerOrFn);
+        const snapshot = this.getSnapshot();
+        let previousSelected = selector(snapshot);
+
+        return this.subscribe((snapshot) => {
+          const nextSelected = selector(snapshot);
+          if (!equalityFn(previousSelected, nextSelected)) {
+            previousSelected = nextSelected;
+            observer.next?.(nextSelected);
+          }
+        });
+      },
+      get: () => selector(this.getSnapshot())
+    };
+  }
+
   /** Starts the Actor from the initial state */
   public start(): this {
     if (this._processingStatus === ProcessingStatus.Running) {
@@ -857,35 +879,4 @@ export function createActor<TLogic extends AnyActorLogic>(
   }
 ): Actor<TLogic> {
   return new Actor(logic, options);
-}
-
-/**
- * Creates a new Interpreter instance for the given machine with the provided
- * options, if any.
- *
- * @deprecated Use `createActor` instead
- * @alias
- */
-export const interpret = createActor;
-
-/**
- * @deprecated Use `Actor` instead.
- * @alias
- */
-export type Interpreter = typeof Actor;
-
-function unregisterRecursively(
-  actorScope: AnyActorScope,
-  actorRef: AnyActorRef
-) {
-  // unregister children first (depth-first)
-  const snapshot = actorRef.getSnapshot();
-  if (snapshot && 'children' in snapshot) {
-    for (const child of Object.values(
-      snapshot.children as Record<string, AnyActorRef>
-    )) {
-      unregisterRecursively(actorScope, child);
-    }
-  }
-  actorScope.system._unregister(actorRef);
 }

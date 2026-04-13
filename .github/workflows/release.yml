@@ -26,7 +26,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/ci-setup
       - uses: ./.github/actions/ci-checks
 
@@ -35,6 +37,3 @@ jobs:
         with:
           publish: pnpm run release
           version: pnpm run version
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true

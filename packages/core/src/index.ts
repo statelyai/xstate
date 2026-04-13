@@ -3,8 +3,6 @@ export { assertEvent } from './assert.ts';
 export {
   Actor,
   createActor,
-  interpret,
-  type Interpreter,
   type RequiredActorOptionsKeys as RequiredActorOptionsKeys
 } from './createActor.ts';
 export {

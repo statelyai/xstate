@@ -201,6 +201,7 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
     serializeState,
     serializeEvent,
     events: [],
+    filterEvents: undefined,
     limit: Infinity,
     fromState: undefined,
     toState: undefined,

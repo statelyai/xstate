@@ -1,4 +1,5 @@
 import {
+  assign,
   createMachine,
   getInitialSnapshot,
   getNextSnapshot
@@ -115,6 +116,46 @@ describe('testModel.testPaths(...)', () => {
       });
 
       expect(paths).toHaveLength(5);
+    });
+
+    it('should support filtering disabled events', () => {
+      const machine = createMachine({
+        id: 'guarded-test-model',
+        initial: 'start',
+        context: { allowed: false },
+        states: {
+          start: {
+            on: { NEXT: 'idle' }
+          },
+          idle: {
+            on: {
+              PROCEED: {
+                target: 'done',
+                guard: ({ context }) => context.allowed
+              },
+              ALLOW: {
+                actions: assign({
+                  allowed: true
+                })
+              }
+            }
+          },
+          done: {
+            type: 'final'
+          }
+        }
+      });
+
+      const model = createTestModel(machine);
+
+      const paths = model.getSimplePaths({
+        filterEvents: (state, event) => state.can(event),
+        toState: (state) => state.status === 'done'
+      });
+
+      expect(paths.map((path) => path.description)).toEqual([
+        'Reaches state "done"({"allowed":true}): xstate.init → NEXT → ALLOW → PROCEED'
+      ]);
     });
   });
 });

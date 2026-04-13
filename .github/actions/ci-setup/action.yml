@@ -4,18 +4,14 @@ runs:
   using: 'composite'
   steps:
     - name: Install pnpm
-      uses: pnpm/action-setup@v4
+      uses: pnpm/action-setup@08c4be7e2e672a47d11bd04269e27e5f3e8529cb # 6.0.0
 
-    - name: Use Node.js 22.x
-      uses: actions/setup-node@v4
+    - name: Use Node.js 24.x
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # 6.3.0
       with:
-        node-version: 22.x
+        node-version: 24.x
         cache: 'pnpm'
         registry-url: 'https://registry.npmjs.org'
-
-    - name: Ensure npm 11.5.1 or later for trusted publishing
-      run: npm install -g npm@latest
-      shell: bash
 
     - name: Install Dependencies
       run: pnpm install

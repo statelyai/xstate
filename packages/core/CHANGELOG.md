@@ -1,5 +1,45 @@
 # xstate
 
+## 5.30.0
+
+### Minor Changes
+
+- [#5493](https://github.com/statelyai/xstate/pull/5493) [`871857d`](https://github.com/statelyai/xstate/commit/871857d730b7c333728da2b17bc36844697e8f88) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add a `filterEvents` option to `xstate/graph` traversal helpers and
+  `createTestModel(...)` to control which events should be explored from each
+  state.
+
+  This makes it possible to opt into enabled-only traversal for machine snapshots,
+  such as when you only want to explore events that currently pass guards:
+
+  ```ts
+  import { createTestModel } from 'xstate/graph';
+
+  const model = createTestModel(machine);
+
+  const paths = model.getSimplePaths({
+    filterEvents: (state, event) => state.can(event)
+  });
+  ```
+
+## 5.29.0
+
+### Minor Changes
+
+- [#5299](https://github.com/statelyai/xstate/pull/5299) [`ca8306f`](https://github.com/statelyai/xstate/commit/ca8306f865475fa0404c419730a24e3a5e392521) Thanks [@Uniqen](https://github.com/Uniqen)! - Add `actor.select(selector, equalityFn?)` method to derive a `Readable<TSelected>` from an actor's snapshot. The returned object has `.subscribe()` (only emits when the selected value changes, using `Object.is` by default) and `.get()` for synchronous access.
+
+  ```ts
+  const actor = createActor(machine);
+  actor.start();
+
+  const count = actor.select((snap) => snap.context.count);
+
+  count.get(); // current value
+
+  count.subscribe((value) => {
+    console.log(value); // only fires when count changes
+  });
+  ```
+
 ## 5.28.0
 
 ### Minor Changes

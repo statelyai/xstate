@@ -1367,6 +1367,10 @@ export interface Subscription {
   unsubscribe(): void;
 }
 
+export interface Readable<T> extends Subscribable<T> {
+  get: () => T;
+}
+
 export interface InteropObservable<T> {
   [Symbol.observable]: () => InteropSubscribable<T>;
 }
@@ -1460,6 +1464,10 @@ export interface ActorRef<
       ? () => void
       : (payload: Omit<Extract<TSendEvent, { type: K }>, 'type'>) => void;
   };
+  select<TSelected>(
+    selector: (snapshot: TSnapshot) => TSelected,
+    equalityFn?: (a: TSelected, b: TSelected) => boolean
+  ): Readable<TSelected>;
 }
 
 // TODO: in v6, this should only accept AnyActorLogic, like ActorRefFromLogic
