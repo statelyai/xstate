@@ -15,7 +15,7 @@ import type {
   MetaObject,
   StateSchema,
   StateId,
-  StateIdParams,
+  StateIdInputs,
   SnapshotStatus,
   PersistedHistoryValue,
   AnyStateNode
@@ -93,7 +93,7 @@ interface MachineSnapshotBase<
   /** An object mapping actor names to spawned/invoked actors. */
   children: TChildren;
   /** @internal */
-  _stateParams: Record<string, Record<string, unknown>>;
+  _stateInputs: Record<string, Record<string, unknown>>;
 
   /**
    * Whether the current state value is a subset of the given partial state
@@ -126,10 +126,10 @@ interface MachineSnapshotBase<
   >;
 
   /**
-   * Returns the params for the current active state nodes, keyed by state node
+   * Returns the inputs for the current active state nodes, keyed by state node
    * id.
    */
-  getParams: () => StateIdParams<TStateSchema>;
+  getInputs: () => StateIdInputs<TStateSchema>;
 
   toJSON: () => unknown;
 }
@@ -334,11 +334,11 @@ const machineSnapshotCan = function can(
 const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
     _nodes: nodes,
-    _stateParams,
+    _stateInputs,
     tags,
     machine,
     getMeta,
-    getParams,
+    getInputs,
     toJSON,
     can,
     hasTag,
@@ -360,8 +360,8 @@ const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
   );
 };
 
-const machineSnapshotGetParams = function getParams(this: AnyMachineSnapshot) {
-  return this._stateParams as any;
+const machineSnapshotGetInputs = function getInputs(this: AnyMachineSnapshot) {
+  return this._stateInputs as any;
 };
 
 export function createMachineSnapshot<
@@ -396,12 +396,12 @@ export function createMachineSnapshot<
     tags: new Set(config._nodes.flatMap((sn) => sn.tags)),
     children: config.children as any,
     historyValue: config.historyValue || {},
-    _stateParams: config._stateParams || {},
+    _stateInputs: config._stateInputs || {},
     matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
     can: machineSnapshotCan,
     getMeta: machineSnapshotGetMeta,
-    getParams: machineSnapshotGetParams,
+    getInputs: machineSnapshotGetInputs,
     toJSON: machineSnapshotToJSON
   };
 }
@@ -454,7 +454,7 @@ export function getPersistedSnapshot<
 ): Snapshot<unknown> {
   const {
     _nodes: nodes,
-    _stateParams,
+    _stateInputs,
     tags,
     machine,
     children,
@@ -463,7 +463,7 @@ export function getPersistedSnapshot<
     hasTag,
     matches,
     getMeta,
-    getParams,
+    getInputs,
     toJSON,
     ...jsonValues
   } = snapshot;

@@ -22,9 +22,9 @@ import {
   WithDefault
 } from './types.v6.ts';
 
-/** State schema with optional paramsSchema and nested states */
+/** State schema with optional inputSchema and nested states */
 export interface SetupStateSchema {
-  paramsSchema?: StandardSchemaV1;
+  inputSchema?: StandardSchemaV1;
   states?: Record<string, SetupStateSchema>;
 }
 
@@ -39,27 +39,27 @@ export interface SetupConfig<
   states?: TStates;
 }
 
-/** Extracts params type from a state schema */
-export type StateParams<TStateSchema extends SetupStateSchema> =
-  TStateSchema['paramsSchema'] extends StandardSchemaV1
-    ? StandardSchemaV1.InferOutput<TStateSchema['paramsSchema']>
+/** Extracts input type from a state schema */
+export type StateInput<TStateSchema extends SetupStateSchema> =
+  TStateSchema['inputSchema'] extends StandardSchemaV1
+    ? StandardSchemaV1.InferOutput<TStateSchema['inputSchema']>
     : undefined;
 
 /**
- * Flattens nested state schemas into a flat map of state keys to params types.
+ * Flattens nested state schemas into a flat map of state keys to input types.
  * This includes both top-level states and nested states.
  */
-export type FlattenStateParamsMap<
+export type FlattenStateInputMap<
   TStates extends Record<string, SetupStateSchema>
 > = {
-  [K in keyof TStates & string]: StateParams<TStates[K]>;
+  [K in keyof TStates & string]: StateInput<TStates[K]>;
 } & UnionToIntersection<
   {
     [K in keyof TStates & string]: TStates[K]['states'] extends Record<
       string,
       SetupStateSchema
     >
-      ? FlattenStateParamsMap<TStates[K]['states']>
+      ? FlattenStateInputMap<TStates[K]['states']>
       : {};
   }[keyof TStates & string]
 >;
@@ -72,13 +72,13 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
   : never;
 
 /**
- * Converts SetupStateSchema to StateSchema with params types included. This
- * allows getParams() to be strongly typed.
+ * Converts SetupStateSchema to StateSchema with input types included. This
+ * allows getInputs() to be strongly typed.
  */
 export type SetupStateSchemaToStateSchema<
   TSetupSchema extends SetupStateSchema
 > = {
-  params: StateParams<TSetupSchema>;
+  input: StateInput<TSetupSchema>;
   states: TSetupSchema['states'] extends Record<string, SetupStateSchema>
     ? {
         [K in keyof TSetupSchema['states'] &
@@ -96,13 +96,13 @@ export type SetupStatesToStateSchema<
   };
 };
 
-/** Get params type for a state key from the flattened params map */
-type GetStateParams<
-  TParamsMap extends Record<string, unknown>,
+/** Get input type for a state key from the flattened input map */
+type GetStateInput<
+  TInputMap extends Record<string, unknown>,
   K extends string
-> = K extends keyof TParamsMap ? TParamsMap[K] : undefined;
+> = K extends keyof TInputMap ? TInputMap[K] : undefined;
 
-/** Machine config with typed state params */
+/** Machine config with typed state input */
 export type SetupMachineConfig<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContextSchema extends StandardSchemaV1,
@@ -142,10 +142,10 @@ export type SetupMachineConfig<
 > & {
   initial?:
     | string
-    | InitialTransitionWithParams<TStateSchemas, TContext, TEvent>
-    | { target: string; params?: Record<string, unknown> }
+    | InitialTransitionWithInput<TStateSchemas, TContext, TEvent>
+    | { target: string; input?: Record<string, unknown> }
     | undefined;
-  states?: StatesWithParams<
+  states?: StatesWithInput<
     TStateSchemas,
     TContext,
     TEvent,
@@ -162,8 +162,8 @@ export type SetupMachineConfig<
   >;
 };
 
-/** States config type that provides typed params for known states */
-type StatesWithParams<
+/** States config type that provides typed input for known states */
+type StatesWithInput<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -176,7 +176,7 @@ type StatesWithParams<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays']
 > = {
-  [K in keyof TStateSchemas & string]?: StateNodeConfigWithNestedParams<
+  [K in keyof TStateSchemas & string]?: StateNodeConfigWithNestedInput<
     TStateSchemas[K],
     TContext,
     TEvent,
@@ -191,8 +191,8 @@ type StatesWithParams<
   >;
 };
 
-/** State node config that recursively applies typed params for nested states */
-type StateNodeConfigWithNestedParams<
+/** State node config that recursively applies typed input for nested states */
+type StateNodeConfigWithNestedInput<
   TStateSchema extends SetupStateSchema,
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -217,12 +217,12 @@ type StateNodeConfigWithNestedParams<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    StateParams<TStateSchema>
+    StateInput<TStateSchema>
   >,
   'states'
 > & {
   states?: TStateSchema['states'] extends Record<string, SetupStateSchema>
-    ? StatesWithParams<
+    ? StatesWithInput<
         TStateSchema['states'],
         TContext,
         TEvent,
@@ -253,20 +253,20 @@ type StateNodeConfigWithNestedParams<
       };
 };
 
-/** Initial transition with typed params based on target state */
-export type InitialTransitionWithParams<
+/** Initial transition with typed input based on target state */
+export type InitialTransitionWithInput<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
   TEvent extends EventObject
 > = {
   [K in keyof TStateSchemas & string]: {
     target: K;
-    params?:
-      | StateParams<TStateSchemas[K]>
+    input?:
+      | StateInput<TStateSchemas[K]>
       | ((args: {
           context: TContext;
           event: TEvent;
-        }) => StateParams<TStateSchemas[K]>);
+        }) => StateInput<TStateSchemas[K]>);
   };
 }[keyof TStateSchemas & string];
 
@@ -338,12 +338,12 @@ export interface SetupReturn<
     TDelayMap
   >;
 
-  /** State param schemas from setup config */
+  /** State input schemas from setup config */
   states: TStates;
 }
 
 /**
- * Sets up a state machine with state param schemas and other configuration.
+ * Sets up a state machine with state input schemas and other configuration.
  *
  * @example
  *
@@ -354,7 +354,7 @@ export interface SetupReturn<
  * const s = setup({
  *   states: {
  *     loading: {
- *       paramsSchema: z.object({
+ *       inputSchema: z.object({
  *         userId: z.string()
  *       })
  *     }
@@ -364,12 +364,12 @@ export interface SetupReturn<
  * const machine = s.createMachine({
  *   initial: {
  *     target: 'loading',
- *     params: { userId: '123' }
+ *     input: { userId: '123' }
  *   },
  *   states: {
  *     loading: {
- *       entry: ({ params }) => {
- *         console.log(params.userId);
+ *       entry: ({ input }) => {
+ *         console.log(input.userId);
  *       }
  *     }
  *   }
@@ -386,7 +386,7 @@ export function setup<
 
   return {
     createMachine(machineConfig) {
-      // TODO: merge state param schemas into machine config
+      // TODO: merge state input schemas into machine config
       return new StateMachine(machineConfig as any) as any;
     },
     states

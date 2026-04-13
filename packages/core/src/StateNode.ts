@@ -415,14 +415,12 @@ export function formatTransitions<
 
 export function formatInitialTransition(
   stateNode: AnyStateNode,
-  _target: string | { target: string; params?: any } | undefined
+  _target: string | { target: string; input?: any } | undefined
 ): InitialTransitionDefinition {
   const targetString =
     typeof _target === 'object' && _target !== null ? _target.target : _target;
-  const params =
-    typeof _target === 'object' && _target !== null
-      ? _target.params
-      : undefined;
+  const input =
+    typeof _target === 'object' && _target !== null ? _target.input : undefined;
   const resolvedTarget =
     typeof targetString === 'string'
       ? stateNode.states[targetString]
@@ -435,7 +433,7 @@ export function formatInitialTransition(
   const transition: InitialTransitionDefinition = {
     source: stateNode,
     target: resolvedTarget ? [resolvedTarget] : undefined,
-    params
+    input
   };
 
   return transition;

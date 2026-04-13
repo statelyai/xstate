@@ -388,8 +388,8 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
         : undefined,
       always: node.always ? getTransitionConfig(node.always) : undefined,
       // after: node.after,
-      entry: entryFn,
-      exit: node.exit ? iterActions(node.exit) : undefined,
+      entry: entryFn as any,
+      exit: node.exit ? (iterActions(node.exit) as any) : undefined,
       invoke: node.invoke ? iterInvokeConfigs(node.invoke) : undefined,
       meta: node.meta
     };

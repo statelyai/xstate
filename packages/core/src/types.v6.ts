@@ -234,11 +234,61 @@ export interface Next_InvokeConfig<
   >;
 }
 
-/** Lookup params type from a params map, with fallback to undefined */
-export type LookupParams<
-  TParamsMap extends Record<string, unknown>,
+/** Lookup state input type from an input map, with fallback to undefined */
+export type LookupInput<
+  TInputMap extends Record<string, unknown>,
   K extends string
-> = K extends keyof TParamsMap ? TParamsMap[K] : undefined;
+> = K extends keyof TInputMap ? TInputMap[K] : undefined;
+
+export type StateAction<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TEmittedEvent extends EventObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TInput = Record<string, unknown> | undefined
+> = (
+  _: Omit<
+    Parameters<
+      Action<
+        TContext,
+        TEvent,
+        TEmittedEvent,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        never
+      >
+    >[0],
+    'params'
+  > & { input: TInput },
+  enqueue: Parameters<
+    Action<
+      TContext,
+      TEvent,
+      TEmittedEvent,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      never
+    >
+  >[1]
+) => ReturnType<
+  Action<
+    TContext,
+    TEvent,
+    TEmittedEvent,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    never
+  >
+>;
 
 export interface Next_StateNodeConfig<
   TContext extends MachineContext,
@@ -252,8 +302,8 @@ export interface Next_StateNodeConfig<
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TParams = Record<string, unknown> | undefined,
-  TParamsMap extends Record<string, unknown> = Record<string, unknown>
+  TInput = Record<string, unknown> | undefined,
+  TInputMap extends Record<string, unknown> = Record<string, unknown>
 > {
   contextSchema?: StandardSchemaV1;
   /** The initial state transition. */
@@ -261,7 +311,7 @@ export interface Next_StateNodeConfig<
     | string
     | {
         target: string;
-        params?:
+        input?:
           | Record<string, unknown>
           | ((args: {
               context: TContext;
@@ -301,8 +351,8 @@ export interface Next_StateNodeConfig<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      LookupParams<TParamsMap, K>,
-      TParamsMap
+      LookupInput<TInputMap, K>,
+      TInputMap
     >;
   };
   /**
@@ -345,12 +395,12 @@ export interface Next_StateNodeConfig<
         reenter?: boolean;
         meta?: TMeta;
         guard?: unknown;
-        params?:
+        input?:
           | Record<string, unknown>
           | ((args: { context: any; event: any }) => Record<string, unknown>);
       }
     | undefined;
-  entry?: Action<
+  entry?: StateAction<
     TContext,
     TEvent,
     TEmitted,
@@ -358,9 +408,9 @@ export interface Next_StateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TParams
+    TInput
   >;
-  exit?: Action<
+  exit?: StateAction<
     TContext,
     TEvent,
     TEmitted,
@@ -368,7 +418,7 @@ export interface Next_StateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TParams
+    TInput
   >;
   /**
    * The potential transition(s) to be taken upon reaching a final child state
@@ -503,7 +553,7 @@ export type Next_TransitionConfigOrTarget<
       description?: string;
       reenter?: boolean;
       meta?: TMeta;
-      params?:
+      input?:
         | Record<string, unknown>
         | ((args: { context: any; event: any }) => Record<string, unknown>);
     }
@@ -522,7 +572,7 @@ export type Next_TransitionConfigOrTarget<
       description?: string;
       reenter?: boolean;
       meta?: TMeta;
-      params?:
+      input?:
         | Record<string, unknown>
         | ((args: { context: any; event: any }) => Record<string, unknown>);
     }

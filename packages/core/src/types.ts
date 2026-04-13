@@ -1124,7 +1124,7 @@ export interface TransitionDefinition<
   reenter: boolean;
   eventType: EventDescriptor<TEvent>;
   to?: ((...args: any[]) => any) | undefined;
-  params?:
+  input?:
     | Record<string, unknown>
     | ((args: { context: any; event: any }) => Record<string, unknown>);
 }
@@ -1136,7 +1136,7 @@ export type InitialTransitionDefinition = {
   target: AnyStateNode[] | undefined;
   reenter?: boolean;
   eventType?: EventDescriptor<any>;
-  params?:
+  input?:
     | Record<string, unknown>
     | ((args: {
         context: MachineContext;
@@ -1188,7 +1188,7 @@ export interface StateConfig<
   output?: any;
   error?: unknown;
   /** @internal */
-  _stateParams?: Record<string, Record<string, unknown>>;
+  _stateInputs?: Record<string, Record<string, unknown>>;
   machine?: StateMachine<
     TContext,
     TEvent,
@@ -1970,7 +1970,7 @@ export type StateSchema = {
   route?: unknown;
   states?: Record<string, StateSchema>;
   contextSchema?: StandardSchemaV1;
-  params?: unknown;
+  input?: unknown;
 
   // Other types
   // Needed because TS treats objects with all optional properties as a "weak" object
@@ -2013,8 +2013,8 @@ export type StateId<
         }>
       : never);
 
-/** Maps state IDs to their params types based on the StateSchema. */
-export type StateIdParams<
+/** Maps state IDs to their input types based on the StateSchema. */
+export type StateIdInputs<
   TSchema extends StateSchema,
   TKey extends string = '(machine)',
   TParentKey extends string | null = null
@@ -2023,13 +2023,13 @@ export type StateIdParams<
     ? TSchema['id']
     : TParentKey extends null
       ? TKey
-      : `${TParentKey}.${TKey}`]: TSchema['params'] extends undefined
+      : `${TParentKey}.${TKey}`]: TSchema['input'] extends undefined
     ? undefined
-    : TSchema['params'];
+    : TSchema['input'];
 } & (TSchema['states'] extends Record<string, StateSchema>
   ? UnionToIntersection<
       Values<{
-        [K in keyof TSchema['states'] & string]: StateIdParams<
+        [K in keyof TSchema['states'] & string]: StateIdInputs<
           TSchema['states'][K],
           K,
           TParentKey extends string
