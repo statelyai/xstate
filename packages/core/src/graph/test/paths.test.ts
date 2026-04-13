@@ -1,5 +1,4 @@
 import {
-  assign,
   createMachine,
   getInitialSnapshot,
   getNextSnapshot
@@ -122,22 +121,23 @@ describe('testModel.testPaths(...)', () => {
       const machine = createMachine({
         id: 'guarded-test-model',
         initial: 'start',
-        context: { allowed: false },
+        context: { allowed: false as boolean },
         states: {
           start: {
-            on: { NEXT: 'idle' }
+            on: { NEXT: { target: 'idle' } }
           },
           idle: {
             on: {
-              PROCEED: {
-                target: 'done',
-                guard: ({ context }) => context.allowed
+              PROCEED: ({ context }) => {
+                if (context.allowed) {
+                  return { target: 'done' };
+                }
               },
-              ALLOW: {
-                actions: assign({
+              ALLOW: () => ({
+                context: {
                   allowed: true
-                })
-              }
+                }
+              })
             }
           },
           done: {
@@ -154,7 +154,7 @@ describe('testModel.testPaths(...)', () => {
       });
 
       expect(paths.map((path) => path.description)).toEqual([
-        'Reaches state "done"({"allowed":true}): xstate.init → NEXT → ALLOW → PROCEED'
+        'Reaches state "done"({"allowed":true}): @xstate.init → NEXT → ALLOW → PROCEED'
       ]);
     });
   });

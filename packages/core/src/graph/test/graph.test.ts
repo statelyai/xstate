@@ -506,22 +506,23 @@ describe('@xstate/graph', () => {
       const machine = createMachine({
         id: 'guarded-default-events',
         initial: 'start',
-        context: { allowed: false },
+        context: { allowed: false as boolean },
         states: {
           start: {
-            on: { NEXT: 'idle' }
+            on: { NEXT: { target: 'idle' } }
           },
           idle: {
             on: {
-              PROCEED: {
-                target: 'done',
-                guard: ({ context }) => context.allowed
+              PROCEED: ({ context }) => {
+                if (context.allowed) {
+                  return { target: 'done' };
+                }
               },
-              ALLOW: {
-                actions: assign({
+              ALLOW: () => ({
+                context: {
                   allowed: true
-                })
-              }
+                }
+              })
             }
           },
           done: {
@@ -540,7 +541,7 @@ describe('@xstate/graph', () => {
         .toMatchInlineSnapshot(`
         [
           [
-            "xstate.init",
+            "@xstate.init",
             "NEXT",
             "ALLOW",
             "PROCEED",
