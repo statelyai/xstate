@@ -160,4 +160,42 @@ describe('trigger', () => {
       message: 'foo'
     });
   });
+
+  it('types enq.step(...) and optional snapshot.async.pending', () => {
+    createStore({
+      context: {
+        count: 0
+      },
+      on: {
+        incrementLater: async (ctx, event: { by: number }, enq) => {
+          const amount = await enq.step('increment', async () => event.by);
+
+          amount satisfies number;
+
+          return {
+            count: ctx.count + amount
+          };
+        }
+      }
+    });
+
+    const store = createStore({
+      context: {
+        count: 0
+      },
+      on: {}
+    });
+
+    store.getSnapshot().async satisfies
+      | {
+          pending: Record<
+            string,
+            {
+              eventType: string;
+              stepId: string;
+            }
+          >;
+        }
+      | undefined;
+  });
 });

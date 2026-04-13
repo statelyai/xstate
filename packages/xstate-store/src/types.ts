@@ -19,6 +19,7 @@ export type EnqueueObject<TEmittedEvent extends EventObject> = {
     [E in TEmittedEvent as E['type']]: EmitterFunction<E>;
   };
   effect: (fn: () => void) => void;
+  step: <T>(stepId: string, exec: () => T | Promise<T>) => Promise<T>;
 };
 
 export type StoreEffect<TEmitted extends EventObject> = (() => void) | TEmitted;
@@ -31,7 +32,7 @@ export type StoreAssigner<
   context: TContext,
   event: TEvent,
   enq: EnqueueObject<TEmitted>
-) => TContext | void;
+) => TContext | void | Promise<TContext | void>;
 
 export type StoreProducerAssigner<
   TContext extends StoreContext,
@@ -63,6 +64,15 @@ export type Snapshot<TOutput> =
 
 export type StoreSnapshot<TContext> = Snapshot<undefined> & {
   context: TContext;
+  async?: {
+    pending: Record<
+      string,
+      {
+        eventType: string;
+        stepId: string;
+      }
+    >;
+  };
 };
 
 /**
@@ -92,9 +102,7 @@ export interface Store<
    * "@xstate.actor" inspection event.
    */
   inspect: (
-    observer:
-      | Observer<StoreInspectionEvent>
-      | ((inspectionEvent: StoreInspectionEvent) => void)
+    observer: Observer<any> | ((inspectionEvent: StoreInspectionEvent) => void)
   ) => Subscription;
   sessionId: string;
   on: <TType extends TEmitted['type'] | '*'>(

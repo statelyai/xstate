@@ -30,8 +30,309 @@ const symbolObservable: typeof Symbol.observable = (() =>
 
 const inspectionObservers = new WeakMap<
   Store<any, any, any>,
-  Set<Observer<StoreInspectionEvent>>
+  Set<Observer<any>>
 >();
+
+const XSTATE_ASYNC_STEP_EFFECT = '@@xstate.store.async.step';
+const XSTATE_ASYNC_EXECUTION_EFFECT = '@@xstate.store.async.execution';
+const XSTATE_ASYNC_STEP_REQUESTED = '@@xstate.store.async.step.requested';
+const XSTATE_ASYNC_STEP_RESOLVE = '@@xstate.store.async.step.resolve';
+const XSTATE_ASYNC_STEP_REJECT = '@@xstate.store.async.step.reject';
+const XSTATE_ASYNC_EXECUTION_RESOLVE = '@@xstate.store.async.execution.resolve';
+const XSTATE_ASYNC_EXECUTION_REJECT = '@@xstate.store.async.execution.reject';
+const STEP_SUSPENDED = Symbol('xstate.store.step.suspended');
+
+type InternalAsyncStepEffect = {
+  type: typeof XSTATE_ASYNC_STEP_EFFECT;
+  executionId: string;
+  stepId: string;
+  exec: () => unknown | Promise<unknown>;
+};
+
+type InternalAsyncExecutionEffect<
+  TContext extends StoreContext,
+  TEmitted extends EventObject
+> = {
+  type: typeof XSTATE_ASYNC_EXECUTION_EFFECT;
+  executionId: string;
+  promise: Promise<TContext | void>;
+  effects: StoreEffect<TEmitted>[];
+  getRequestedStep: () => InternalAsyncStepEffect | undefined;
+};
+
+type InternalAsyncStepRequestedEvent = {
+  type: typeof XSTATE_ASYNC_STEP_REQUESTED;
+  executionId: string;
+  stepId: string;
+  exec: () => unknown | Promise<unknown>;
+};
+
+type InternalAsyncStepResolveEvent = {
+  type: typeof XSTATE_ASYNC_STEP_RESOLVE;
+  executionId: string;
+  stepId: string;
+  value: unknown;
+};
+
+type InternalAsyncStepRejectEvent = {
+  type: typeof XSTATE_ASYNC_STEP_REJECT;
+  executionId: string;
+  error: unknown;
+};
+
+type InternalAsyncExecutionResolveEvent<
+  TContext extends StoreContext,
+  TEmitted extends EventObject
+> = {
+  type: typeof XSTATE_ASYNC_EXECUTION_RESOLVE;
+  executionId: string;
+  value: TContext | void;
+  effects: StoreEffect<TEmitted>[];
+};
+
+type InternalAsyncExecutionRejectEvent = {
+  type: typeof XSTATE_ASYNC_EXECUTION_REJECT;
+  executionId: string;
+  error: unknown;
+};
+
+type AsyncExecution<TEvent extends EventObject> = {
+  event: TEvent;
+  stepResults: Record<string, unknown>;
+};
+
+type InternalAsyncState<TEvent extends EventObject> =
+  StoreSnapshot<any>['async'] & {
+    executions: Record<string, AsyncExecution<TEvent>>;
+  };
+
+type InternalStoreSnapshot<
+  TContext extends StoreContext,
+  TEvent extends EventObject = EventObject
+> = StoreSnapshot<TContext> & {
+  async: InternalAsyncState<TEvent>;
+};
+
+function createEmptyPendingAsyncState<
+  TEvent extends EventObject
+>(): InternalAsyncState<TEvent> {
+  return {
+    pending: {},
+    executions: {}
+  };
+}
+
+function ensureStoreSnapshot<
+  TContext extends StoreContext,
+  TEvent extends EventObject = EventObject
+>(snapshot: StoreSnapshot<TContext>): InternalStoreSnapshot<TContext, TEvent> {
+  if ('async' in snapshot && snapshot.async && 'executions' in snapshot.async) {
+    return snapshot as InternalStoreSnapshot<TContext, TEvent>;
+  }
+
+  return {
+    ...snapshot,
+    async: {
+      ...snapshot.async,
+      pending: snapshot.async?.pending ?? {},
+      executions: {}
+    }
+  };
+}
+
+function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'then' in value &&
+    typeof value.then === 'function'
+  );
+}
+
+function isInternalAsyncStepEffect(
+  effect: unknown
+): effect is InternalAsyncStepEffect {
+  return (
+    typeof effect === 'object' &&
+    effect !== null &&
+    'type' in effect &&
+    effect.type === XSTATE_ASYNC_STEP_EFFECT
+  );
+}
+
+function isInternalAsyncExecutionEffect<
+  TContext extends StoreContext,
+  TEmitted extends EventObject
+>(effect: unknown): effect is InternalAsyncExecutionEffect<TContext, TEmitted> {
+  return (
+    typeof effect === 'object' &&
+    effect !== null &&
+    'type' in effect &&
+    effect.type === XSTATE_ASYNC_EXECUTION_EFFECT
+  );
+}
+
+function isInternalAsyncStepResolveEvent(
+  event: EventObject
+): event is InternalAsyncStepResolveEvent {
+  return event.type === XSTATE_ASYNC_STEP_RESOLVE;
+}
+
+function isInternalAsyncStepRequestedEvent(
+  event: EventObject
+): event is InternalAsyncStepRequestedEvent {
+  return event.type === XSTATE_ASYNC_STEP_REQUESTED;
+}
+
+function isInternalAsyncStepRejectEvent(
+  event: EventObject
+): event is InternalAsyncStepRejectEvent {
+  return event.type === XSTATE_ASYNC_STEP_REJECT;
+}
+
+function isInternalAsyncExecutionResolveEvent<
+  TContext extends StoreContext,
+  TEmitted extends EventObject
+>(
+  event: EventObject
+): event is InternalAsyncExecutionResolveEvent<TContext, TEmitted> {
+  return event.type === XSTATE_ASYNC_EXECUTION_RESOLVE;
+}
+
+function isInternalAsyncExecutionRejectEvent(
+  event: EventObject
+): event is InternalAsyncExecutionRejectEvent {
+  return event.type === XSTATE_ASYNC_EXECUTION_REJECT;
+}
+
+function addPendingAsync<
+  TContext extends StoreContext,
+  TEvent extends EventObject
+>(
+  snapshot: InternalStoreSnapshot<TContext, TEvent>,
+  executionId: string,
+  eventType: string,
+  stepId: string
+): InternalStoreSnapshot<TContext, TEvent> {
+  const ensuredSnapshot = ensureStoreSnapshot<TContext, TEvent>(snapshot);
+
+  return {
+    ...ensuredSnapshot,
+    async: {
+      ...ensuredSnapshot.async,
+      pending: {
+        ...ensuredSnapshot.async.pending,
+        [executionId]: { eventType, stepId }
+      }
+    }
+  };
+}
+
+function getAsyncExecution<
+  TContext extends StoreContext,
+  TEvent extends EventObject
+>(
+  snapshot: InternalStoreSnapshot<TContext, TEvent>,
+  executionId: string
+): AsyncExecution<TEvent> | undefined {
+  return snapshot.async.executions[executionId];
+}
+
+function setAsyncExecution<
+  TContext extends StoreContext,
+  TEvent extends EventObject
+>(
+  snapshot: InternalStoreSnapshot<TContext, TEvent>,
+  executionId: string,
+  execution: AsyncExecution<TEvent>
+): InternalStoreSnapshot<TContext, TEvent> {
+  return {
+    ...snapshot,
+    async: {
+      ...snapshot.async,
+      executions: {
+        ...snapshot.async.executions,
+        [executionId]: execution
+      }
+    }
+  };
+}
+
+function updateAsyncExecutionStepResult<
+  TContext extends StoreContext,
+  TEvent extends EventObject
+>(
+  snapshot: InternalStoreSnapshot<TContext, TEvent>,
+  executionId: string,
+  stepId: string,
+  value: unknown
+): InternalStoreSnapshot<TContext, TEvent> {
+  const execution = getAsyncExecution(snapshot, executionId);
+
+  if (!execution) {
+    return snapshot;
+  }
+
+  return setAsyncExecution(snapshot, executionId, {
+    ...execution,
+    stepResults: {
+      ...execution.stepResults,
+      [stepId]: value
+    }
+  });
+}
+
+function removeAsyncExecution<
+  TContext extends StoreContext,
+  TEvent extends EventObject
+>(
+  snapshot: InternalStoreSnapshot<TContext, TEvent>,
+  executionId: string
+): InternalStoreSnapshot<TContext, TEvent> {
+  if (!snapshot.async.executions[executionId]) {
+    return snapshot;
+  }
+
+  const { [executionId]: _removed, ...rest } = snapshot.async.executions;
+
+  return {
+    ...snapshot,
+    async: {
+      ...snapshot.async,
+      executions: rest
+    }
+  };
+}
+
+function removePendingAsync<
+  TContext extends StoreContext,
+  TEvent extends EventObject
+>(
+  snapshot: InternalStoreSnapshot<TContext, TEvent>,
+  executionId: string
+): InternalStoreSnapshot<TContext, TEvent> {
+  const ensuredSnapshot = ensureStoreSnapshot<TContext, TEvent>(snapshot);
+
+  if (!ensuredSnapshot.async.pending[executionId]) {
+    return ensuredSnapshot;
+  }
+
+  const { [executionId]: _removed, ...rest } = ensuredSnapshot.async.pending;
+
+  return {
+    ...ensuredSnapshot,
+    async: {
+      ...ensuredSnapshot.async,
+      pending: rest
+    }
+  };
+}
+
+function reportUnhandledStoreError(error: unknown) {
+  setTimeout(() => {
+    throw error;
+  });
+}
 
 function createStoreCore<
   TContext extends StoreContext,
@@ -44,9 +345,11 @@ function createStoreCore<
 ): Store<TContext, TEventPayloadMap, TEmitted> {
   type StoreEvent = ExtractEvents<TEventPayloadMap>;
   let listeners: Map<TEmitted['type'], Set<any>> | undefined;
-  const initialSnapshot = logic.getInitialSnapshot();
+  const initialSnapshot = ensureStoreSnapshot(
+    logic.getInitialSnapshot() as StoreSnapshot<TContext>
+  ) as unknown as TSnapshot;
   let currentSnapshot: TSnapshot = initialSnapshot;
-  const atom = createAtom<StoreSnapshot<TContext>>(currentSnapshot);
+  const atom = createAtom<TSnapshot>(currentSnapshot);
 
   const emit = (ev: TEmitted) => {
     if (!listeners) {
@@ -66,7 +369,10 @@ function createStoreCore<
   const transition = logic.transition;
 
   function receive(event: StoreEvent) {
-    const [nextSnapshot, effects] = transition(currentSnapshot, event);
+    const [transitionSnapshot, effects] = transition(currentSnapshot, event);
+    const nextSnapshot = ensureStoreSnapshot(
+      transitionSnapshot as StoreSnapshot<TContext>
+    ) as unknown as TSnapshot;
     currentSnapshot = nextSnapshot;
 
     inspectionObservers.get(store)?.forEach((observer) => {
@@ -84,6 +390,54 @@ function createStoreCore<
     for (const effect of effects) {
       if (typeof effect === 'function') {
         effect();
+      } else if (isInternalAsyncStepEffect(effect)) {
+        Promise.resolve(effect.exec()).then(
+          (value) => {
+            receive({
+              type: XSTATE_ASYNC_STEP_RESOLVE,
+              executionId: effect.executionId,
+              stepId: effect.stepId,
+              value
+            } as unknown as StoreEvent);
+          },
+          (error) => {
+            receive({
+              type: XSTATE_ASYNC_STEP_REJECT,
+              executionId: effect.executionId,
+              error
+            } as unknown as StoreEvent);
+          }
+        );
+      } else if (isInternalAsyncExecutionEffect<TContext, TEmitted>(effect)) {
+        effect.promise.then(
+          (value) => {
+            receive({
+              type: XSTATE_ASYNC_EXECUTION_RESOLVE,
+              executionId: effect.executionId,
+              value,
+              effects: [...effect.effects]
+            } as unknown as StoreEvent);
+          },
+          (error) => {
+            const requestedStep = effect.getRequestedStep();
+
+            if (error === STEP_SUSPENDED && requestedStep) {
+              receive({
+                type: XSTATE_ASYNC_STEP_REQUESTED,
+                executionId: requestedStep.executionId,
+                stepId: requestedStep.stepId,
+                exec: requestedStep.exec
+              } as unknown as StoreEvent);
+              return;
+            }
+
+            receive({
+              type: XSTATE_ASYNC_EXECUTION_REJECT,
+              executionId: effect.executionId,
+              error
+            } as unknown as StoreEvent);
+          }
+        );
       } else {
         // handle the inherent effect first
         emits?.[effect.type]?.(effect);
@@ -214,6 +568,268 @@ export type TransitionsFromEventPayloadMap<
   >;
 };
 
+function createStoreTransitionWithSteps<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject
+>(transitions: {
+  [K in keyof TEventPayloadMap & string]: StoreAssigner<
+    TContext,
+    { type: K } & TEventPayloadMap[K],
+    TEmitted
+  >;
+}): StoreTransition<TContext, ExtractEvents<TEventPayloadMap>, TEmitted> {
+  type StoreEvent = ExtractEvents<TEventPayloadMap>;
+  type InternalEvent =
+    | StoreEvent
+    | InternalAsyncStepRequestedEvent
+    | InternalAsyncStepResolveEvent
+    | InternalAsyncStepRejectEvent
+    | InternalAsyncExecutionResolveEvent<TContext, TEmitted>
+    | InternalAsyncExecutionRejectEvent;
+
+  const createUnsupportedAsyncHandlerError = () =>
+    new Error(
+      'Async transition handlers in createStore(...) must await enq.step(stepId, exec).'
+    );
+
+  const createUnsupportedStepUsageError = () =>
+    new Error(
+      'enq.step(...) must be awaited from an async transition handler.'
+    );
+
+  const runExecution = (
+    snapshot: InternalStoreSnapshot<TContext, StoreEvent>,
+    executionId: string,
+    executionOverride?: AsyncExecution<StoreEvent>
+  ): [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]] => {
+    const ensuredSnapshot = ensureStoreSnapshot<TContext, StoreEvent>(snapshot);
+    const execution =
+      executionOverride ?? getAsyncExecution(ensuredSnapshot, executionId);
+
+    if (!execution) {
+      return [ensuredSnapshot, []];
+    }
+
+    const assigner = transitions?.[execution.event.type as StoreEvent['type']];
+
+    if (!assigner) {
+      return [removeAsyncExecution(ensuredSnapshot, executionId), []];
+    }
+
+    const effects: StoreEffect<TEmitted>[] = [];
+    let requestedStep: InternalAsyncStepEffect | undefined;
+
+    const enqueue: EnqueueObject<TEmitted> = {
+      emit: new Proxy({} as any, {
+        get: (_, eventType: string) => {
+          return (payload: any) => {
+            effects.push({
+              ...payload,
+              type: eventType
+            });
+          };
+        }
+      }),
+      effect: (fn) => {
+        effects.push(fn);
+      },
+      step: <T>(stepId: string, exec: () => T | Promise<T>) => {
+        if (stepId in execution.stepResults) {
+          return Promise.resolve(execution.stepResults[stepId] as T);
+        }
+
+        requestedStep = {
+          type: XSTATE_ASYNC_STEP_EFFECT,
+          executionId,
+          stepId,
+          exec
+        };
+
+        return Promise.reject(STEP_SUSPENDED);
+      }
+    };
+
+    const nextContext = assigner(
+      ensuredSnapshot.context,
+      execution.event as any,
+      enqueue
+    );
+
+    if (requestedStep) {
+      if (!isPromiseLike(nextContext)) {
+        throw createUnsupportedStepUsageError();
+      }
+
+      Promise.resolve(nextContext).catch(() => {});
+
+      const snapshotWithExecution = setAsyncExecution(
+        ensuredSnapshot,
+        executionId,
+        execution
+      );
+
+      return [
+        addPendingAsync(
+          snapshotWithExecution,
+          executionId,
+          execution.event.type,
+          requestedStep.stepId
+        ),
+        [requestedStep as never]
+      ];
+    }
+
+    if (isPromiseLike(nextContext)) {
+      if (Object.keys(execution.stepResults).length === 0) {
+        Promise.resolve(nextContext).catch(() => {});
+        throw createUnsupportedAsyncHandlerError();
+      }
+
+      const snapshotWithExecution = setAsyncExecution(
+        ensuredSnapshot,
+        executionId,
+        execution
+      );
+
+      return [
+        snapshotWithExecution,
+        [
+          {
+            type: XSTATE_ASYNC_EXECUTION_EFFECT,
+            executionId,
+            promise: Promise.resolve(nextContext),
+            effects,
+            getRequestedStep: () => requestedStep
+          } as never
+        ]
+      ];
+    }
+
+    return [
+      nextContext === ensuredSnapshot.context
+        ? ensuredSnapshot
+        : {
+            ...ensuredSnapshot,
+            context: nextContext ?? ensuredSnapshot.context
+          },
+      effects
+    ];
+  };
+
+  return (
+    snapshot: StoreSnapshot<TContext>,
+    event: StoreEvent
+  ): [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]] => {
+    const internalSnapshot = ensureStoreSnapshot<TContext, StoreEvent>(
+      snapshot
+    );
+    const internalEvent = event as InternalEvent;
+
+    if (isInternalAsyncStepRequestedEvent(internalEvent)) {
+      const execution = getAsyncExecution(
+        internalSnapshot,
+        internalEvent.executionId
+      );
+
+      if (!execution) {
+        return [internalSnapshot, []];
+      }
+
+      return [
+        addPendingAsync(
+          internalSnapshot,
+          internalEvent.executionId,
+          execution.event.type,
+          internalEvent.stepId
+        ),
+        [
+          {
+            type: XSTATE_ASYNC_STEP_EFFECT,
+            executionId: internalEvent.executionId,
+            stepId: internalEvent.stepId,
+            exec: internalEvent.exec
+          } as never
+        ]
+      ];
+    }
+
+    if (isInternalAsyncStepResolveEvent(internalEvent)) {
+      if (!getAsyncExecution(internalSnapshot, internalEvent.executionId)) {
+        return [internalSnapshot, []];
+      }
+
+      return runExecution(
+        removePendingAsync(
+          updateAsyncExecutionStepResult(
+            internalSnapshot,
+            internalEvent.executionId,
+            internalEvent.stepId,
+            internalEvent.value
+          ),
+          internalEvent.executionId
+        ),
+        internalEvent.executionId
+      );
+    }
+
+    if (isInternalAsyncStepRejectEvent(internalEvent)) {
+      return [
+        removeAsyncExecution(
+          removePendingAsync(internalSnapshot, internalEvent.executionId),
+          internalEvent.executionId
+        ),
+        [
+          () => {
+            reportUnhandledStoreError(internalEvent.error);
+          }
+        ]
+      ];
+    }
+
+    if (
+      isInternalAsyncExecutionResolveEvent<TContext, TEmitted>(internalEvent)
+    ) {
+      return [
+        internalEvent.value === undefined
+          ? removeAsyncExecution(internalSnapshot, internalEvent.executionId)
+          : removeAsyncExecution(
+              {
+                ...internalSnapshot,
+                context: internalEvent.value
+              },
+              internalEvent.executionId
+            ),
+        internalEvent.effects
+      ];
+    }
+
+    if (isInternalAsyncExecutionRejectEvent(internalEvent)) {
+      return [
+        removeAsyncExecution(internalSnapshot, internalEvent.executionId),
+        [
+          () => {
+            reportUnhandledStoreError(internalEvent.error);
+          }
+        ]
+      ];
+    }
+
+    const assigner = transitions?.[internalEvent.type as StoreEvent['type']];
+
+    if (!assigner) {
+      return [snapshot, []];
+    }
+
+    const executionId = uniqueId();
+
+    return runExecution(internalSnapshot, executionId, {
+      event: internalEvent,
+      stepResults: {}
+    });
+  };
+}
+
 /**
  * Creates a **store** that has its own internal state and can be sent events
  * that update its internal state based on transitions.
@@ -275,11 +891,12 @@ export function createStore(
     return createStoreCore(definitionOrLogic);
   }
 
-  const transition = createStoreTransition(definitionOrLogic.on);
+  const transition = createStoreTransitionWithSteps(definitionOrLogic.on);
   const logic: AnyStoreLogic = {
     getInitialSnapshot: () => ({
       status: 'active' as const,
       context: definitionOrLogic.context,
+      async: createEmptyPendingAsyncState(),
       output: undefined,
       error: undefined
     }),
@@ -370,6 +987,7 @@ export function createStoreWithProducer<
     getInitialSnapshot: () => ({
       status: 'active' as const,
       context: config.context,
+      async: createEmptyPendingAsyncState(),
       output: undefined,
       error: undefined
     }),
@@ -420,6 +1038,7 @@ export function createStoreTransition<
     const currentContext = snapshot.context;
     const assigner = transitions?.[event.type as StoreEvent['type']];
     const effects: StoreEffect<TEmitted>[] = [];
+    let producerAssignerResult: unknown;
 
     const enqueue: EnqueueObject<TEmitted> = {
       emit: new Proxy({} as any, {
@@ -434,6 +1053,11 @@ export function createStoreTransition<
       }),
       effect: (fn) => {
         effects.push(fn);
+      },
+      step: () => {
+        throw new Error(
+          'enq.step(...) is only supported by createStore(...), not createStoreTransition(...) or createStoreWithProducer(...).'
+        );
       }
     };
 
@@ -441,20 +1065,35 @@ export function createStoreTransition<
       return [snapshot, effects];
     }
 
+    if (assigner.constructor.name === 'AsyncFunction') {
+      throw new Error(
+        'Async transition handlers are only supported by createStore(...), not createStoreTransition(...) or createStoreWithProducer(...).'
+      );
+    }
+
     const nextContext = producer
-      ? producer(currentContext, (draftContext) =>
-          (assigner as StoreProducerAssigner<TContext, StoreEvent, TEmitted>)(
-            draftContext,
-            event,
-            enqueue
-          )
+      ? producer(
+          currentContext,
+          (draftContext) =>
+            (producerAssignerResult = (
+              assigner as StoreProducerAssigner<TContext, StoreEvent, TEmitted>
+            )(draftContext, event, enqueue))
         )
       : (assigner(currentContext, event as any, enqueue) ?? currentContext);
+
+    if (isPromiseLike(producer ? producerAssignerResult : nextContext)) {
+      Promise.resolve(
+        (producer ? producerAssignerResult : nextContext) as Promise<unknown>
+      ).catch(() => {});
+      throw new Error(
+        'Async transition handlers are only supported by createStore(...), not createStoreTransition(...) or createStoreWithProducer(...).'
+      );
+    }
 
     return [
       nextContext === currentContext
         ? snapshot
-        : { ...snapshot, context: nextContext },
+        : { ...snapshot, context: nextContext as TContext },
       effects
     ];
   };

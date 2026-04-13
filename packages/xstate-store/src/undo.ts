@@ -185,6 +185,7 @@ function undoRedoFromLogic<
         const currentSnapshot = {
           status: snapshot.status,
           context: snapshot.context,
+          async: snapshot.async,
           output: snapshot.output,
           error: snapshot.error
         };
