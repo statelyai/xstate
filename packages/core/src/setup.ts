@@ -22,9 +22,13 @@ import {
   WithDefault
 } from './types.v6.ts';
 
-/** State schema with optional inputSchema and nested states */
+type SetupStateSchemas = {
+  input?: StandardSchemaV1;
+};
+
+/** State schema with optional schemas.input and nested states */
 export interface SetupStateSchema {
-  inputSchema?: StandardSchemaV1;
+  schemas?: SetupStateSchemas;
   states?: Record<string, SetupStateSchema>;
 }
 
@@ -41,8 +45,10 @@ export interface SetupConfig<
 
 /** Extracts input type from a state schema */
 export type StateInput<TStateSchema extends SetupStateSchema> =
-  TStateSchema['inputSchema'] extends StandardSchemaV1
-    ? StandardSchemaV1.InferOutput<TStateSchema['inputSchema']>
+  TStateSchema['schemas'] extends { input: infer TInputSchema }
+    ? TInputSchema extends StandardSchemaV1
+      ? StandardSchemaV1.InferOutput<TInputSchema>
+      : undefined
     : undefined;
 
 /**
@@ -354,9 +360,11 @@ export interface SetupReturn<
  * const s = setup({
  *   states: {
  *     loading: {
- *       inputSchema: z.object({
- *         userId: z.string()
- *       })
+ *       schemas: {
+ *         input: z.object({
+ *           userId: z.string()
+ *         })
+ *       }
  *     }
  *   }
  * });

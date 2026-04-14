@@ -6,16 +6,20 @@ describe('setup', () => {
     const s = setup({
       states: {
         loading: {
-          inputSchema: z.object({
-            userId: z.string()
-          })
+          schemas: {
+            input: z.object({
+              userId: z.string()
+            })
+          }
         }
       }
     });
 
     expect(s.states).toEqual({
       loading: {
-        inputSchema: expect.any(Object)
+        schemas: {
+          input: expect.any(Object)
+        }
       }
     });
   });
@@ -24,21 +28,25 @@ describe('setup', () => {
     const s = setup({
       states: {
         parent: {
-          inputSchema: z.object({
-            parentId: z.string()
-          }),
+          schemas: {
+            input: z.object({
+              parentId: z.string()
+            })
+          },
           states: {
             child: {
-              inputSchema: z.object({
-                childId: z.string()
-              })
+              schemas: {
+                input: z.object({
+                  childId: z.string()
+                })
+              }
             }
           }
         }
       }
     });
 
-    expect(s.states.parent.states?.child.inputSchema).toBeDefined();
+    expect(s.states.parent.states?.child.schemas?.input).toBeDefined();
   });
 
   it('should create a machine from setup', () => {
@@ -46,9 +54,11 @@ describe('setup', () => {
       states: {
         idle: {},
         loading: {
-          inputSchema: z.object({
-            userId: z.string()
-          })
+          schemas: {
+            input: z.object({
+              userId: z.string()
+            })
+          }
         }
       }
     });
@@ -93,19 +103,19 @@ describe('setup', () => {
     expect(machine).toBeDefined();
   });
 
-  it('should preserve inputSchema for multiple states', () => {
+  it('should preserve schemas.input for multiple states', () => {
     const userIdSchema = z.object({ userId: z.string() });
     const nameSchema = z.object({ name: z.string() });
 
     const s = setup({
       states: {
-        loading: { inputSchema: userIdSchema },
-        creating: { inputSchema: nameSchema }
+        loading: { schemas: { input: userIdSchema } },
+        creating: { schemas: { input: nameSchema } }
       }
     });
 
-    expect(s.states.loading.inputSchema).toBe(userIdSchema);
-    expect(s.states.creating.inputSchema).toBe(nameSchema);
+    expect(s.states.loading.schemas?.input).toBe(userIdSchema);
+    expect(s.states.creating.schemas?.input).toBe(nameSchema);
   });
 
   it('entry action should receive input', () => {
@@ -115,9 +125,11 @@ describe('setup', () => {
       states: {
         idle: {},
         loading: {
-          inputSchema: z.object({
-            userId: z.string()
-          })
+          schemas: {
+            input: z.object({
+              userId: z.string()
+            })
+          }
         }
       }
     });
@@ -154,9 +166,11 @@ describe('setup', () => {
       states: {
         idle: {},
         loading: {
-          inputSchema: z.object({
-            userId: z.string()
-          })
+          schemas: {
+            input: z.object({
+              userId: z.string()
+            })
+          }
         }
       }
     });
@@ -197,10 +211,12 @@ describe('setup', () => {
       states: {
         idle: {},
         fetching: {
-          inputSchema: z.object({
-            url: z.string(),
-            method: z.enum(['GET', 'POST'])
-          })
+          schemas: {
+            input: z.object({
+              url: z.string(),
+              method: z.enum(['GET', 'POST'])
+            })
+          }
         }
       }
     });
@@ -236,9 +252,11 @@ describe('setup', () => {
     const s = setup({
       states: {
         loading: {
-          inputSchema: z.object({
-            userId: z.string()
-          })
+          schemas: {
+            input: z.object({
+              userId: z.string()
+            })
+          }
         }
       }
     });
@@ -269,10 +287,12 @@ describe('setup', () => {
       states: {
         idle: {},
         loading: {
-          inputSchema: z.object({
-            userId: z.string(),
-            timestamp: z.number()
-          })
+          schemas: {
+            input: z.object({
+              userId: z.string(),
+              timestamp: z.number()
+            })
+          }
         }
       }
     });
@@ -321,9 +341,11 @@ describe('setup', () => {
         parent: {
           states: {
             child: {
-              inputSchema: z.object({
-                childValue: z.string()
-              })
+              schemas: {
+                input: z.object({
+                  childValue: z.string()
+                })
+              }
             }
           }
         }
@@ -359,10 +381,14 @@ describe('setup', () => {
       states: {
         idle: {},
         active: {
-          inputSchema: z.object({ activeId: z.number() }),
+          schemas: {
+            input: z.object({ activeId: z.number() })
+          },
           states: {
             loading: {
-              inputSchema: z.object({ loadingUrl: z.string() })
+              schemas: {
+                input: z.object({ loadingUrl: z.string() })
+              }
             },
             ready: {}
           }
@@ -416,9 +442,11 @@ describe('setup', () => {
       states: {
         idle: {},
         loading: {
-          inputSchema: z.object({
-            userId: z.string()
-          })
+          schemas: {
+            input: z.object({
+              userId: z.string()
+            })
+          }
         }
       }
     });
@@ -452,10 +480,14 @@ describe('setup', () => {
     const s = setup({
       states: {
         parent: {
-          inputSchema: z.object({ parentId: z.string() }),
+          schemas: {
+            input: z.object({ parentId: z.string() })
+          },
           states: {
             child: {
-              inputSchema: z.object({ childId: z.number() })
+              schemas: {
+                input: z.object({ childId: z.number() })
+              }
             }
           }
         }
@@ -493,13 +525,19 @@ describe('setup', () => {
       states: {
         idle: {},
         loading: {
-          inputSchema: z.object({ userId: z.string() })
+          schemas: {
+            input: z.object({ userId: z.string() })
+          }
         },
         active: {
-          inputSchema: z.object({ sessionId: z.number() }),
+          schemas: {
+            input: z.object({ sessionId: z.number() })
+          },
           states: {
             running: {
-              inputSchema: z.object({ taskId: z.string() })
+              schemas: {
+                input: z.object({ taskId: z.string() })
+              }
             }
           }
         }
@@ -541,7 +579,9 @@ describe('setup', () => {
     const s = setup({
       states: {
         active: {
-          inputSchema: z.object({ count: z.number() })
+          schemas: {
+            input: z.object({ count: z.number() })
+          }
         }
       }
     });
