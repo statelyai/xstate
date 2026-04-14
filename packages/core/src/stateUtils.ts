@@ -10,6 +10,7 @@ import {
   NULL_EVENT
 } from './constants.ts';
 import { matchesEventDescriptor } from './utils.ts';
+import { createDraft, unwrapDrafts } from './draft.ts';
 import {
   AnyActorLogic,
   AnyEventObject,
@@ -1655,9 +1656,11 @@ export function getTransitionResult(
       }
     );
 
+    const { draft, finish } = createDraft(snapshot.context);
+
     const res = transition.to(
       {
-        context: snapshot.context,
+        context: draft,
         event,
         value: snapshot.value,
         children: snapshot.children,
@@ -1671,6 +1674,8 @@ export function getTransitionResult(
       enqueue
     );
 
+    const drafted = finish();
+
     const targets = res?.target
       ? resolveTarget(transition.source, toArray(res.target) as string[])
       : undefined;
@@ -1682,7 +1687,7 @@ export function getTransitionResult(
 
     return {
       targets: targets,
-      context: res?.context,
+      context: res?.context ? unwrapDrafts(res.context) : drafted,
       reenter: res?.reenter,
       actions,
       internalEvents,
@@ -2534,9 +2539,11 @@ function getActionsAndContextFromTransitionFn(
       }
     );
 
+    const { draft, finish } = createDraft(context);
+
     const res = action2(
       {
-        context,
+        context: draft,
         event,
         parent,
         self,
@@ -2551,8 +2558,12 @@ function getActionsAndContextFromTransitionFn(
       enqueue
     );
 
+    const drafted = finish();
+
     if (res?.context) {
-      updatedContext = res.context;
+      updatedContext = unwrapDrafts(res.context);
+    } else if (drafted !== undefined) {
+      updatedContext = drafted;
     }
 
     return [actions, updatedContext, internalEvents];
@@ -2577,6 +2588,7 @@ export function hasEffect(
   if (transition.to) {
     let hasEffect = false;
     let res;
+    const { draft, finish } = createDraft(context);
 
     try {
       const triggerEffect = () => {
@@ -2585,7 +2597,7 @@ export function hasEffect(
       };
       res = transition.to(
         {
-          context,
+          context: draft,
           event,
           self,
           value: snapshot.value,
@@ -2618,7 +2630,7 @@ export function hasEffect(
       throw err;
     }
 
-    return res !== undefined;
+    return res !== undefined || finish() !== undefined;
   }
 
   return false;
@@ -2666,7 +2678,7 @@ export function evaluateCandidate(
   if (candidate.to) {
     let hasEffect = false;
     let res;
-    const context = snapshot.context;
+    const { draft, finish } = createDraft(snapshot.context);
 
     try {
       const triggerEffect = () => {
@@ -2675,7 +2687,7 @@ export function evaluateCandidate(
       };
       res = candidate.to(
         {
-          context,
+          context: draft,
           event,
           self,
           // @ts-ignore
@@ -2709,7 +2721,7 @@ export function evaluateCandidate(
       throw err;
     }
 
-    return res !== undefined;
+    return res !== undefined || finish() !== undefined;
   }
 
   return true;
