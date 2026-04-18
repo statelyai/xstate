@@ -41,6 +41,14 @@ const XSTATE_ASYNC_STEP_REJECT = '@@xstate.store.async.step.reject';
 const XSTATE_ASYNC_EXECUTION_RESOLVE = '@@xstate.store.async.execution.resolve';
 const XSTATE_ASYNC_EXECUTION_REJECT = '@@xstate.store.async.execution.reject';
 const STEP_SUSPENDED = Symbol('xstate.store.step.suspended');
+const UNSUPPORTED_ASYNC_HANDLER_ERROR =
+  'Async transition handlers in createStore(...) must await enq.step(stepId, exec).';
+const UNSUPPORTED_STEP_USAGE_ERROR =
+  'enq.step(...) must be awaited from an async transition handler.';
+const UNSUPPORTED_STEP_API_ERROR =
+  'enq.step(...) is only supported by createStore(...), not createStoreTransition(...) or createStoreWithProducer(...).';
+const UNSUPPORTED_ASYNC_TRANSITION_ERROR =
+  'Async transition handlers are only supported by createStore(...), not createStoreTransition(...) or createStoreWithProducer(...).';
 
 type InternalAsyncStepEffect = {
   type: typeof XSTATE_ASYNC_STEP_EFFECT;
@@ -101,10 +109,10 @@ type AsyncExecution<TEvent extends EventObject> = {
   stepResults: Record<string, unknown>;
 };
 
-type InternalAsyncState<TEvent extends EventObject> =
-  StoreSnapshot<any>['async'] & {
-    executions: Record<string, AsyncExecution<TEvent>>;
-  };
+type PublicAsyncState = NonNullable<StoreSnapshot<any>['async']>;
+type InternalAsyncState<TEvent extends EventObject> = PublicAsyncState & {
+  executions: Record<string, AsyncExecution<TEvent>>;
+};
 
 type InternalStoreSnapshot<
   TContext extends StoreContext,
@@ -113,7 +121,7 @@ type InternalStoreSnapshot<
   async: InternalAsyncState<TEvent>;
 };
 
-function createEmptyPendingAsyncState<
+function createEmptyAsyncState<
   TEvent extends EventObject
 >(): InternalAsyncState<TEvent> {
   return {
@@ -147,6 +155,32 @@ function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
     'then' in value &&
     typeof value.then === 'function'
   );
+}
+
+function ignorePromiseRejection(value: PromiseLike<unknown>) {
+  Promise.resolve(value).catch(() => {});
+}
+
+function createEnqueueObject<TEmitted extends EventObject>(
+  effects: StoreEffect<TEmitted>[],
+  step: EnqueueObject<TEmitted>['step']
+): EnqueueObject<TEmitted> {
+  return {
+    emit: new Proxy({} as any, {
+      get: (_, eventType: string) => {
+        return (payload: any) => {
+          effects.push({
+            ...payload,
+            type: eventType
+          });
+        };
+      }
+    }),
+    effect: (fn) => {
+      effects.push(fn);
+    },
+    step
+  };
 }
 
 function isInternalAsyncStepEffect(
@@ -588,16 +622,6 @@ function createStoreTransitionWithSteps<
     | InternalAsyncExecutionResolveEvent<TContext, TEmitted>
     | InternalAsyncExecutionRejectEvent;
 
-  const createUnsupportedAsyncHandlerError = () =>
-    new Error(
-      'Async transition handlers in createStore(...) must await enq.step(stepId, exec).'
-    );
-
-  const createUnsupportedStepUsageError = () =>
-    new Error(
-      'enq.step(...) must be awaited from an async transition handler.'
-    );
-
   const runExecution = (
     snapshot: InternalStoreSnapshot<TContext, StoreEvent>,
     executionId: string,
@@ -620,35 +644,22 @@ function createStoreTransitionWithSteps<
     const effects: StoreEffect<TEmitted>[] = [];
     let requestedStep: InternalAsyncStepEffect | undefined;
 
-    const enqueue: EnqueueObject<TEmitted> = {
-      emit: new Proxy({} as any, {
-        get: (_, eventType: string) => {
-          return (payload: any) => {
-            effects.push({
-              ...payload,
-              type: eventType
-            });
-          };
-        }
-      }),
-      effect: (fn) => {
-        effects.push(fn);
-      },
-      step<T>(stepId: string, exec: () => T | Promise<T>) {
-        if (stepId in execution.stepResults) {
-          return Promise.resolve(execution.stepResults[stepId] as T);
-        }
-
-        requestedStep = {
-          type: XSTATE_ASYNC_STEP_EFFECT,
-          executionId,
-          stepId,
-          exec
-        };
-
-        return Promise.reject(STEP_SUSPENDED);
+    const enqueue = createEnqueueObject<TEmitted>(effects, function step<
+      T
+    >(stepId: string, exec: () => T | Promise<T>) {
+      if (stepId in execution.stepResults) {
+        return Promise.resolve(execution.stepResults[stepId] as T);
       }
-    };
+
+      requestedStep = {
+        type: XSTATE_ASYNC_STEP_EFFECT,
+        executionId,
+        stepId,
+        exec
+      };
+
+      return Promise.reject(STEP_SUSPENDED);
+    });
 
     const nextContext = assigner(
       ensuredSnapshot.context,
@@ -658,10 +669,10 @@ function createStoreTransitionWithSteps<
 
     if (requestedStep) {
       if (!isPromiseLike(nextContext)) {
-        throw createUnsupportedStepUsageError();
+        throw new Error(UNSUPPORTED_STEP_USAGE_ERROR);
       }
 
-      Promise.resolve(nextContext).catch(() => {});
+      ignorePromiseRejection(nextContext);
 
       const snapshotWithExecution = setAsyncExecution(
         ensuredSnapshot,
@@ -682,8 +693,8 @@ function createStoreTransitionWithSteps<
 
     if (isPromiseLike(nextContext)) {
       if (Object.keys(execution.stepResults).length === 0) {
-        Promise.resolve(nextContext).catch(() => {});
-        throw createUnsupportedAsyncHandlerError();
+        ignorePromiseRejection(nextContext);
+        throw new Error(UNSUPPORTED_ASYNC_HANDLER_ERROR);
       }
 
       const snapshotWithExecution = setAsyncExecution(
@@ -896,7 +907,7 @@ export function createStore(
     getInitialSnapshot: () => ({
       status: 'active' as const,
       context: definitionOrLogic.context,
-      async: createEmptyPendingAsyncState(),
+      async: createEmptyAsyncState(),
       output: undefined,
       error: undefined
     }),
@@ -987,7 +998,7 @@ export function createStoreWithProducer<
     getInitialSnapshot: () => ({
       status: 'active' as const,
       context: config.context,
-      async: createEmptyPendingAsyncState(),
+      async: createEmptyAsyncState(),
       output: undefined,
       error: undefined
     }),
@@ -1040,35 +1051,16 @@ export function createStoreTransition<
     const effects: StoreEffect<TEmitted>[] = [];
     let producerAssignerResult: unknown;
 
-    const enqueue: EnqueueObject<TEmitted> = {
-      emit: new Proxy({} as any, {
-        get: (_, eventType: string) => {
-          return (payload: any) => {
-            effects.push({
-              ...payload,
-              type: eventType
-            });
-          };
-        }
-      }),
-      effect: (fn) => {
-        effects.push(fn);
-      },
-      step: () => {
-        throw new Error(
-          'enq.step(...) is only supported by createStore(...), not createStoreTransition(...) or createStoreWithProducer(...).'
-        );
-      }
-    };
+    const enqueue = createEnqueueObject<TEmitted>(effects, () => {
+      throw new Error(UNSUPPORTED_STEP_API_ERROR);
+    });
 
     if (!assigner) {
       return [snapshot, effects];
     }
 
     if (assigner.constructor.name === 'AsyncFunction') {
-      throw new Error(
-        'Async transition handlers are only supported by createStore(...), not createStoreTransition(...) or createStoreWithProducer(...).'
-      );
+      throw new Error(UNSUPPORTED_ASYNC_TRANSITION_ERROR);
     }
 
     const nextContext = producer
@@ -1082,12 +1074,12 @@ export function createStoreTransition<
       : (assigner(currentContext, event as any, enqueue) ?? currentContext);
 
     if (isPromiseLike(producer ? producerAssignerResult : nextContext)) {
-      Promise.resolve(
-        (producer ? producerAssignerResult : nextContext) as Promise<unknown>
-      ).catch(() => {});
-      throw new Error(
-        'Async transition handlers are only supported by createStore(...), not createStoreTransition(...) or createStoreWithProducer(...).'
+      ignorePromiseRejection(
+        (producer
+          ? producerAssignerResult
+          : nextContext) as PromiseLike<unknown>
       );
+      throw new Error(UNSUPPORTED_ASYNC_TRANSITION_ERROR);
     }
 
     return [
