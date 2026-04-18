@@ -2256,9 +2256,6 @@ export interface ToExecutableAction<T extends ParameterizedObject>
 
 export type ActionExecutor = (actionToExecute: ExecutableActionObject) => void;
 
-export type ExecutableActionsFrom<T extends AnyActorLogic> =
-  ExecutableActionObject;
-
 /** Mappers for subscribeTo - maps lifecycle events to machine events */
 export interface SubscribeToMappers<
   TSnapshot extends Snapshot<unknown>,
