@@ -50,6 +50,10 @@ export type InferEvents<
     : never;
 }>;
 
+type DistributiveOmit<T, K extends keyof any> = T extends any
+  ? Omit<T, K>
+  : never;
+
 type InternalEventDescriptorFor<TEvent extends EventObject> = [TEvent] extends [
   never
 ]
@@ -104,7 +108,7 @@ export type Next_MachineConfig<
   TContextRequired extends boolean = IsNever<TContext> extends true
     ? false
     : true
-> = (Omit<
+> = (DistributiveOmit<
   Next_StateNodeConfig<
     TContext,
     DoNotInfer<InferEvents<TEventSchemaMap>>,
@@ -354,7 +358,222 @@ export type StateAction<
   >
 >;
 
-export interface Next_StateNodeConfig<
+export type Next_ChoiceTarget<TMeta extends MetaObject> = {
+  target: string | string[];
+  description?: string;
+  reenter?: boolean;
+  meta?: TMeta;
+  input?:
+    | Record<string, unknown>
+    | ((args: { context: any; event: any }) => Record<string, unknown>);
+};
+
+type Next_ChoiceArgs<
+  TContext extends MachineContext,
+  TCurrentEvent extends EventObject,
+  TEvent extends EventObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  _TCtx = [TContext] extends [never] ? any : TContext
+> = Parameters<
+  TransitionConfigFunction<
+    TContext,
+    TCurrentEvent,
+    TEvent,
+    EventObject,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    MetaObject,
+    _TCtx
+  >
+>[0];
+
+export type Next_ChoiceGuardObject<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> = {
+  type: string;
+  params?:
+    | NonReducibleUnknown
+    | ((args: { context: TContext; event: TEvent }) => NonReducibleUnknown);
+};
+
+export type Next_ChoiceGuardFunction<
+  TContext extends MachineContext,
+  TCurrentEvent extends EventObject,
+  TEvent extends EventObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
+> = (
+  args: Next_ChoiceArgs<
+    TContext,
+    TCurrentEvent,
+    TEvent,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >,
+  params: NonReducibleUnknown
+) => boolean;
+
+export type Next_ChoiceConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
+> = Next_ChoiceTarget<TMeta> & {
+  guard?:
+    | Next_ChoiceGuardObject<TContext, TEvent>
+    | Next_ChoiceGuardFunction<
+        TContext,
+        TEvent,
+        TEvent,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap
+      >;
+};
+
+export type Next_ChoiceConfigFunction<
+  TContext extends MachineContext,
+  TCurrentEvent extends EventObject,
+  TEvent extends EventObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TMeta extends MetaObject,
+  _TCtx = [TContext] extends [never] ? any : TContext
+> = (
+  args: Next_ChoiceArgs<
+    TContext,
+    TCurrentEvent,
+    TEvent,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    _TCtx
+  >
+) => Next_ChoiceTarget<TMeta>;
+
+export type Next_StateNodeConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TDelays extends string,
+  TTag extends string,
+  _TOutput,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TInput = Record<string, unknown> | undefined,
+  TInputMap extends Record<string, unknown> = Record<string, unknown>
+> =
+  | Next_RegularStateNodeConfig<
+      TContext,
+      TEvent,
+      TDelays,
+      TTag,
+      _TOutput,
+      TEmitted,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TInput,
+      TInputMap
+    >
+  | Next_ChoiceStateNodeConfig<
+      TContext,
+      TEvent,
+      TTag,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap
+    >;
+
+export interface Next_ChoiceStateNodeConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TTag extends string,
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
+> {
+  contextSchema?: StandardSchemaV1;
+  type: 'choice';
+  choices:
+    | readonly Next_ChoiceConfig<
+        TContext,
+        TEvent,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap
+      >[]
+    | Next_ChoiceConfigFunction<
+        TContext,
+        TEvent,
+        TEvent,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TMeta
+      >;
+  id?: string | undefined;
+  order?: number;
+  tags?: TTag[];
+  description?: string;
+  meta?: TMeta;
+  route?:
+    | {
+        description?: string;
+        reenter?: boolean;
+        meta?: TMeta;
+        guard?: unknown;
+        input?:
+          | Record<string, unknown>
+          | ((args: { context: any; event: any }) => Record<string, unknown>);
+      }
+    | undefined;
+  initial?: never;
+  history?: never;
+  states?: never;
+  invoke?: never;
+  on?: never;
+  entry?: never;
+  exit?: never;
+  onDone?: never;
+  after?: never;
+  timeout?: never;
+  onTimeout?: never;
+  always?: never;
+  output?: never;
+  target?: never;
+}
+
+export interface Next_RegularStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TDelays extends string,
@@ -572,6 +791,7 @@ export interface Next_StateNodeConfig<
     TDelayMap,
     TMeta
   >;
+  choices?: never;
   /**
    * The meta data associated with this state node, which will be returned in
    * State instances.

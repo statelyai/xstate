@@ -12,11 +12,26 @@ import {
   toPromise
 } from '../src/index';
 import { createInertActorScope } from '../src/getNextSnapshot';
+import type { Next_StateNodeConfig } from '../src/types.v6';
 import z from 'zod';
 
 function noop(_x: unknown) {
   return;
 }
+
+type AnyNextStateNodeConfig = Next_StateNodeConfig<
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any
+>;
 
 describe('Raise events', () => {
   it('should accept a valid event type', () => {
@@ -3531,6 +3546,91 @@ describe('actions', () => {
         }
       }
     });
+  });
+});
+
+describe('choice state types', () => {
+  it('should accept declarative and function choices', () => {
+    createMachine({
+      context: {
+        isVip: false
+      },
+      initial: 'routing',
+      states: {
+        routing: {
+          type: 'choice',
+          choices: [
+            {
+              guard: ({ context }) => context.isVip,
+              target: 'vip'
+            },
+            {
+              guard: { type: 'isOverBudget' },
+              target: 'vip'
+            },
+            { target: 'standard' }
+          ]
+        },
+        vip: {},
+        standard: {}
+      }
+    });
+
+    createMachine({
+      context: {
+        isVip: false
+      },
+      initial: 'routing',
+      states: {
+        routing: {
+          type: 'choice',
+          choices: ({ context }) => ({
+            target: context.isVip ? 'vip' : 'standard'
+          })
+        },
+        vip: {},
+        standard: {}
+      }
+    });
+  });
+
+  it('should reject normal state capabilities on choice states', () => {
+    // @ts-expect-error
+    const invalidOn: AnyNextStateNodeConfig = {
+      type: 'choice',
+      choices: [{ target: 'done' }],
+      on: {
+        NEXT: 'done'
+      }
+    };
+
+    // @ts-expect-error
+    const invalidInvoke: AnyNextStateNodeConfig = {
+      type: 'choice',
+      choices: [{ target: 'done' }],
+      invoke: {
+        src: fromPromise(async () => undefined)
+      }
+    };
+
+    noop(invalidOn);
+    noop(invalidInvoke);
+  });
+
+  it('should reject string guards on choice states', () => {
+    const invalidStringGuard: AnyNextStateNodeConfig = {
+      type: 'choice',
+      choices: [
+        {
+          // @ts-expect-error
+          guard: 'isVip',
+          target: 'vip'
+        },
+        { target: 'standard' }
+      ]
+    };
+
+    noop(invalidStringGuard);
   });
 });
 

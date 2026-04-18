@@ -1,4 +1,3 @@
-import type { StateMachine } from './StateMachine.ts';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
 import { createInvokeTimeoutEvent } from './eventUtils.ts';
 import { memo } from './memo.ts';
@@ -30,7 +29,6 @@ import type {
   AnyMachineSnapshot,
   AnyInvokeDefinition
 } from './types.ts';
-import { Next_StateNodeConfig } from './types.v6.ts';
 import {
   createInvokeId,
   mapValues,
@@ -39,6 +37,22 @@ import {
 } from './utils.ts';
 
 const EMPTY_OBJECT = {};
+const CHOICE_CONFIG_KEYS = [
+  'invoke',
+  'after',
+  'on',
+  'entry',
+  'exit',
+  'always',
+  'states',
+  'initial',
+  'onDone',
+  'timeout',
+  'onTimeout',
+  'history',
+  'target',
+  'output'
+] as const;
 
 interface StateNodeOptions<
   TContext extends MachineContext,
@@ -67,9 +81,16 @@ export class StateNode<
    * - `'compound'` - nested child state nodes (XOR)
    * - `'parallel'` - orthogonal nested child state nodes (AND)
    * - `'history'` - history state node
+   * - `'choice'` - pure routing decision state node
    * - `'final'` - final state node
    */
-  public type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
+  public type:
+    | 'atomic'
+    | 'compound'
+    | 'parallel'
+    | 'final'
+    | 'history'
+    | 'choice';
   /** The string path from the root machine node to this node. */
   public path: string[];
   /** The child state nodes. */
@@ -134,6 +155,8 @@ export class StateNode<
           : 'atomic');
     this.description = this.config.description;
 
+    validateStateNodeConfig(this);
+
     this.order = this.machine.idMap.size;
     this.machine.idMap.set(this.id, this);
 
@@ -189,7 +212,9 @@ export class StateNode<
   /** @internal */
   public _initialize() {
     this.transitions = formatTransitions(this);
-    if (this.config.always) {
+    if (this.type === 'choice') {
+      this.always = formatChoiceTransitions(this);
+    } else if (this.config.always) {
       this.always = toTransitionConfigArray(this.config.always).map((t) =>
         typeof t === 'function' ? t : formatTransition(this, NULL_EVENT, t)
       );
@@ -328,6 +353,110 @@ export class StateNode<
 
     return Array.from(events);
   }
+}
+
+function validateStateNodeConfig(stateNode: AnyStateNode) {
+  const config = stateNode.config as any;
+
+  if (stateNode.type !== 'choice') {
+    if (config.choices !== undefined) {
+      throw new Error(
+        `State "${stateNode.id}" has \`choices\`, but \`choices\` can only be used with \`type: 'choice'\`.`
+      );
+    }
+    return;
+  }
+
+  if (config.choices === undefined) {
+    throw new Error(`Choice state "${stateNode.id}" must declare \`choices\`.`);
+  }
+
+  for (const key of CHOICE_CONFIG_KEYS) {
+    if (config[key] !== undefined) {
+      throw new Error(
+        `Choice state "${stateNode.id}" cannot declare \`${key}\`.`
+      );
+    }
+  }
+}
+
+function validateChoiceTarget(
+  stateNode: AnyStateNode,
+  choice: AnyTransitionConfig,
+  index: number
+) {
+  if (choice.target === undefined) {
+    throw new Error(
+      `Choice state "${stateNode.id}" has a choice at index ${index} without a target.`
+    );
+  }
+  if (typeof choice.guard === 'string') {
+    throw new Error(
+      `Choice state "${stateNode.id}" cannot declare a string guard. Use a guard object or inline guard function.`
+    );
+  }
+  validatePureChoiceResult(stateNode, choice);
+}
+
+function validatePureChoiceResult(
+  stateNode: AnyStateNode,
+  result: AnyTransitionConfig
+) {
+  for (const key of ['actions', 'to', 'context'] as const) {
+    if ((result as any)[key] !== undefined) {
+      throw new Error(
+        `Choice state "${stateNode.id}" cannot declare \`${key}\` on a choice.`
+      );
+    }
+  }
+}
+
+function validateChoiceResult(
+  stateNode: AnyStateNode,
+  result: any
+): AnyTransitionConfig {
+  if (!result || result.target === undefined) {
+    throw new Error(`Choice state "${stateNode.id}" must resolve to a target.`);
+  }
+  validatePureChoiceResult(stateNode, result);
+  return result;
+}
+
+function formatChoiceTransitions(
+  stateNode: AnyStateNode
+): AnyTransitionDefinition[] {
+  const choices = (stateNode.config as any).choices;
+
+  if (typeof choices === 'function') {
+    return [
+      formatTransition(stateNode, NULL_EVENT, {
+        to: (args: any) => validateChoiceResult(stateNode, choices(args))
+      } as AnyTransitionConfig)
+    ];
+  }
+
+  if (!Array.isArray(choices) || choices.length === 0) {
+    throw new Error(
+      `Choice state "${stateNode.id}" must declare at least one choice.`
+    );
+  }
+
+  let hasDefault = false;
+  const transitions = choices.map((choice, index) => {
+    validateChoiceTarget(stateNode, choice, index);
+    if (choice.guard === undefined) {
+      hasDefault = true;
+    }
+    return formatTransition(stateNode, NULL_EVENT, choice);
+  });
+
+  if (!hasDefault) {
+    throw new Error(
+      `Choice state "${stateNode.id}" must declare a default choice without a guard.`
+    );
+  }
+
+  return transitions;
 }
 
 export function formatTransitions<

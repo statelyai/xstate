@@ -146,12 +146,13 @@ export interface TransitionJSON {
 export interface StateNodeJSON {
   id?: string;
   key?: string;
-  type?: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
+  type?: 'atomic' | 'compound' | 'parallel' | 'final' | 'history' | 'choice';
   initial?: string;
   states?: Record<string, StateNodeJSON>;
   on?: Record<string, TransitionJSON | TransitionJSON[]>;
   after?: Record<string, TransitionJSON | TransitionJSON[]>;
   always?: TransitionJSON | TransitionJSON[];
+  choices?: TransitionJSON[];
   invoke?: InvokeJSON | InvokeJSON[];
   entry?: ActionJSON[];
   exit?: ActionJSON[];
@@ -320,21 +321,7 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
       return { context };
     };
 
-    const nodeConfig: Next_StateNodeConfig<
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any
-    > = {
+    const nodeConfig: any = {
       id: node.id,
       initial: node.initial,
       type: node.type,
@@ -387,6 +374,7 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
           )
         : undefined,
       always: node.always ? getTransitionConfig(node.always) : undefined,
+      choices: node.choices ? getTransitionConfig(node.choices) : undefined,
       // after: node.after,
       entry: entryFn as any,
       exit: node.exit ? (iterActions(node.exit) as any) : undefined,

@@ -463,6 +463,7 @@ export type StateTypes =
   | 'compound'
   | 'parallel'
   | 'final'
+  | 'choice'
   | 'history'
   | ({} & string);
 
@@ -2077,6 +2078,7 @@ export type StateSchema = {
   onDone?: unknown;
   after?: unknown;
   always?: unknown;
+  choices?: unknown;
   meta?: unknown;
   output?: unknown;
   tags?: unknown;

@@ -77,6 +77,12 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
   ? I
   : never;
 
+type WithNestedStates<TConfig, TNestedStates> = TConfig extends {
+  type: 'choice';
+}
+  ? TConfig
+  : Omit<TConfig, 'states'> & { states?: TNestedStates };
+
 /**
  * Converts SetupStateSchema to StateSchema with input types included. This
  * allows getInputs() to be strongly typed.
@@ -101,12 +107,6 @@ export type SetupStatesToStateSchema<
     [K in keyof TStates & string]: SetupStateSchemaToStateSchema<TStates[K]>;
   };
 };
-
-/** Get input type for a state key from the flattened input map */
-type GetStateInput<
-  TInputMap extends Record<string, unknown>,
-  K extends string
-> = K extends keyof TInputMap ? TInputMap[K] : undefined;
 
 /** Machine config with typed state input */
 export type SetupMachineConfig<
@@ -210,7 +210,7 @@ type StateNodeConfigWithNestedInput<
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays']
-> = Omit<
+> = WithNestedStates<
   Next_StateNodeConfig<
     TContext,
     TEvent,
@@ -225,9 +225,7 @@ type StateNodeConfigWithNestedInput<
     TDelayMap,
     StateInput<TStateSchema>
   >,
-  'states'
-> & {
-  states?: TStateSchema['states'] extends Record<string, SetupStateSchema>
+  TStateSchema['states'] extends Record<string, SetupStateSchema>
     ? StatesWithInput<
         TStateSchema['states'],
         TContext,
@@ -256,8 +254,8 @@ type StateNodeConfigWithNestedInput<
           TDelayMap,
           undefined
         >;
-      };
-};
+      }
+>;
 
 /** Initial transition with typed input based on target state */
 export type InitialTransitionWithInput<

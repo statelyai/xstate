@@ -16,7 +16,6 @@ import {
 } from './constants.ts';
 import { matchesEventDescriptor } from './utils.ts';
 import {
-  AnyActorLogic,
   AnyEventObject,
   AnyMachineSnapshot,
   AnyStateNode,
@@ -61,7 +60,11 @@ type AnyStateNodeIterable = Iterable<AnyStateNode>;
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 
 export function isAtomicStateNode(stateNode: AnyStateNode) {
-  return stateNode.type === 'atomic' || stateNode.type === 'final';
+  return (
+    stateNode.type === 'atomic' ||
+    stateNode.type === 'final' ||
+    stateNode.type === 'choice'
+  );
 }
 
 function getChildren(stateNode: AnyStateNode): Array<AnyStateNode> {
@@ -368,7 +371,7 @@ export function getDelayedTransitions(
       delayedTransitions.push({
         ...transition,
         event: timeoutEventType,
-        delay: resolvedDelay as any
+        delay: resolvedDelay
       });
     }
   }
