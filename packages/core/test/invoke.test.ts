@@ -184,10 +184,10 @@ describe('invoke', () => {
         },
         waiting: {
           invoke: {
-            src: ({ context }) =>
-              childMachine.createActor({
-                userId: context.selectedUserId
-              }),
+            src: childMachine,
+            input: ({ context }) => ({
+              userId: context.selectedUserId
+            }),
             onDone: ({ event }) => {
               // Should receive { user: { name: 'David' } } as event data
               if (
@@ -1287,12 +1287,13 @@ describe('invoke', () => {
               },
               first: {
                 invoke: {
-                  src: ({ context, event }) => (
+                  src: promiseActor,
+                  input: ({ context, event }) => (
                     assertEvent(event, 'BEGIN'),
-                    promiseActor.createActor({
+                    {
                       foo: context.foo,
                       event: event
-                    })
+                    }
                   ),
                   onDone: 'last'
                 }
@@ -1541,11 +1542,11 @@ describe('invoke', () => {
             },
             first: {
               invoke: {
-                src: ({ context, event }) =>
-                  someCallback.createActor({
-                    foo: context.foo,
-                    event: event
-                  })
+                src: someCallback,
+                input: ({ context, event }) => ({
+                  foo: context.foo,
+                  event: event
+                })
               },
               on: {
                 CALLBACK: ({ event }) => {
@@ -2233,7 +2234,8 @@ describe('invoke', () => {
         },
         context: { received: undefined },
         invoke: {
-          src: () => childLogic.createActor(42),
+          src: childLogic,
+          input: () => 42,
           onSnapshot: ({ event }, enq) => {
             if (
               event.snapshot.status === 'active' &&
@@ -2428,6 +2430,12 @@ describe('invoke', () => {
 
     it('should work with input', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
+      const childLogic = fromEventObservable(({ input }) =>
+        of({
+          type: 'obs.event',
+          value: input
+        })
+      );
       const machine = createMachine({
         schemas: {
           events: {
@@ -2435,13 +2443,8 @@ describe('invoke', () => {
           }
         },
         invoke: {
-          src: () =>
-            fromEventObservable(({ input }) =>
-              of({
-                type: 'obs.event',
-                value: input
-              })
-            ).createActor(42)
+          src: () => childLogic,
+          input: () => 42
         },
         on: {
           'obs.event': ({ event }, enq) => {

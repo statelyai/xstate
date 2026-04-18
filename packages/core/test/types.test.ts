@@ -2128,6 +2128,37 @@ describe('invoke', () => {
     });
   });
 
+  it('should accept a string actor logic reference', () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine({
+      actors: { child },
+      invoke: {
+        src: 'child'
+      }
+    });
+  });
+
+  it('should reject an unknown string actor logic reference', () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine({
+      actors: { child },
+      // @ts-expect-error
+      invoke: {
+        src: 'other'
+      }
+    });
+  });
+
+  it('should allow a string actor logic reference when no actors object exists', () => {
+    createMachine({
+      invoke: {
+        src: 'child'
+      }
+    });
+  });
+
   it('should allow valid configured actor id', () => {
     const child = createMachine({});
 

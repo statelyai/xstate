@@ -39,9 +39,10 @@ import {
   toArray,
   toStatePath,
   isErrorActorEvent,
+  resolveReferencedActor,
   toTransitionConfigArray
 } from './utils.ts';
-import { createActor, ProcessingStatus } from './createActor.ts';
+import { createActor } from './createActor.ts';
 import { builtInActions } from './actions.ts';
 import { listenerLogic, type ListenerInput } from './actors/listener.ts';
 import {
@@ -1311,10 +1312,9 @@ function enterStates(
     for (const invokeDef of stateNodeToEnter.invoke) {
       invoked = true;
 
-      // src can be logic, an actor, or a function returning either
-      let srcResult = invokeDef.logic;
-      if (typeof srcResult === 'function') {
-        srcResult = srcResult({
+      let src = invokeDef.logic;
+      if (typeof src === 'function') {
+        src = src({
           actors: currentSnapshot.machine.implementations.actors,
           context: currentSnapshot.context,
           event,
@@ -1322,65 +1322,37 @@ function enterStates(
         });
       }
 
-      // Check if srcResult is an actor (has _processingStatus) or logic
-      const isActor =
-        srcResult &&
-        typeof srcResult === 'object' &&
-        '_processingStatus' in srcResult;
+      const logic =
+        typeof src === 'string'
+          ? resolveReferencedActor(currentSnapshot.machine, src)
+          : src;
 
-      let actorRef: AnyActorRef;
-
-      if (isActor) {
-        // srcResult is already an actor
-        const existingActor = srcResult as unknown as AnyActorRef;
-        const isAlreadyStarted =
-          existingActor._processingStatus === ProcessingStatus.Running;
-
-        if (isAlreadyStarted) {
-          // External actor - subscribe but don't manage lifecycle
-          actorRef = existingActor;
-          (actorRef as any)._syncSnapshot = !!invokeDef.onSnapshot;
-          (actorRef as any)._isExternal = true;
-        } else {
-          // Unstarted actor - recreate with proper parent context
-          // We need to use the actor's logic to create a new actor
-          // with the parent's system
-          const actorLogic = (existingActor as any).logic;
-          actorRef = createActor(actorLogic, {
-            ...invokeDef,
-            input: (existingActor as any).options?.input,
-            parent: actorScope.self,
-            syncSnapshot: !!invokeDef.onSnapshot
-          });
-
-          actions.push({
-            action: builtInActions['@xstate.start'],
-            args: [actorRef]
-          });
-        }
-      } else {
-        // srcResult is logic, create an actor from it
-        const logic = srcResult;
-        const input =
-          typeof invokeDef.input === 'function'
-            ? invokeDef.input({
-                self: actorScope.self,
-                context: currentSnapshot.context,
-                event
-              })
-            : invokeDef.input;
-        actorRef = createActor(logic, {
-          ...invokeDef,
-          input,
-          parent: actorScope.self,
-          syncSnapshot: !!invokeDef.onSnapshot
-        });
-
-        actions.push({
-          action: builtInActions['@xstate.start'],
-          args: [actorRef]
-        });
+      if (!logic) {
+        throw new Error(
+          `Actor logic '${src}' not implemented in machine '${currentSnapshot.machine.id}'`
+        );
       }
+
+      const input =
+        typeof invokeDef.input === 'function'
+          ? invokeDef.input({
+              self: actorScope.self,
+              context: currentSnapshot.context,
+              event
+            })
+          : invokeDef.input;
+
+      const actorRef = createActor(logic, {
+        ...invokeDef,
+        input,
+        parent: actorScope.self,
+        syncSnapshot: !!invokeDef.onSnapshot
+      });
+
+      actions.push({
+        action: builtInActions['@xstate.start'],
+        args: [actorRef]
+      });
 
       if (invokeDef.id) {
         children[invokeDef.id] = actorRef;

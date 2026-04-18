@@ -193,6 +193,9 @@ export type DelayMap<TContext> = Record<
   number | ((context: TContext) => number)
 >;
 
+type ActorSrcKey<TActorMap extends Implementations['actors']> =
+  string extends keyof TActorMap ? string : keyof TActorMap & string;
+
 export interface Next_InvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -204,8 +207,8 @@ export interface Next_InvokeConfig<
   TMeta extends MetaObject
 > {
   src:
+    | ActorSrcKey<TActorMap>
     | AnyActorLogic
-    | AnyActorRef
     | (({
         actors,
         context,
@@ -216,7 +219,7 @@ export interface Next_InvokeConfig<
         context: TContext;
         event: TEvent;
         self: AnyActorRef;
-      }) => AnyActorLogic | AnyActorRef);
+      }) => ActorSrcKey<TActorMap> | AnyActorLogic);
   id?: string;
   systemId?: string;
   input?: (_: {

@@ -1,11 +1,9 @@
 import { XSTATE_STOP } from '../constants.ts';
-import { createActor } from '../createActor.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
   ActorRefFromLogic,
   AnyActorRef,
-  CreatableActorLogic,
   EventObject,
   NonReducibleUnknown,
   Snapshot
@@ -22,7 +20,7 @@ export type PromiseActorLogic<
   TOutput,
   TInput = unknown,
   TEmitted extends EventObject = EventObject
-> = CreatableActorLogic<
+> = ActorLogic<
   PromiseSnapshot<TOutput, TInput>,
   { type: string; [k: string]: unknown },
   TInput, // input
@@ -228,8 +226,7 @@ export function fromPromise<
       };
     },
     getPersistedSnapshot: (snapshot) => snapshot,
-    restoreSnapshot: (snapshot: any) => snapshot,
-    createActor: (input, options) => createActor(logic, { ...options, input })
+    restoreSnapshot: (snapshot: any) => snapshot
   };
 
   return logic;

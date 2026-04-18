@@ -11,13 +11,10 @@ import {
   createMachine
 } from '../src/index.ts';
 import { z } from 'zod';
-
 const originalConsoleLog = console.log;
-
 afterEach(() => {
   console.log = originalConsoleLog;
 });
-
 describe('entry/exit actions', () => {
   describe('State.actions', () => {
     it('should return the entry actions of an initial state', () => {
@@ -31,12 +28,9 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      machine.createActor().start();
-
+      createActor(machine).start();
       expect(tracked).toEqual(['enter: __root__', 'enter: green']);
     });
-
     it('should return the entry actions of an initial state (deep)', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -60,12 +54,9 @@ describe('entry/exit actions', () => {
           b: {}
         }
       });
-
-      machine.createActor().start();
-
+      createActor(machine).start();
       expect(tracked).toEqual(['enter: __root__', 'enter: a', 'enter: a.a1']);
     });
-
     it('should return the entry actions of an initial state (parallel)', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -92,9 +83,7 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      machine.createActor().start();
-
+      createActor(machine).start();
       expect(tracked).toEqual([
         'enter: __root__',
         'enter: a',
@@ -103,7 +92,6 @@ describe('entry/exit actions', () => {
         'enter: b.b1'
       ]);
     });
-
     it('should return the entry and exit actions of a transition', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -122,15 +110,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'TIMER' });
-
       expect(tracked).toEqual(['exit: green', 'enter: yellow']);
     });
-
     it('should return the entry and exit actions of a deep transition', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -158,19 +142,15 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'TIMER' });
-
       expect(tracked).toEqual([
         'exit: green',
         'enter: yellow',
         'enter: yellow.speed_up'
       ]);
     });
-
     it('should return the entry and exit actions of a nested transition', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -196,15 +176,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'PED_COUNTDOWN' });
-
       expect(tracked).toEqual(['exit: green.walk', 'enter: green.wait']);
     });
-
     it('should not have actions for unhandled events (shallow)', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -216,15 +192,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'FAKE' });
-
       expect(tracked).toEqual([]);
     });
-
     it('should not have actions for unhandled events (deep)', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -249,15 +221,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'FAKE' });
-
       expect(tracked).toEqual([]);
     });
-
     it('should exit and enter the state for reentering self-transitions (shallow)', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -275,15 +243,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'RESTART' });
-
       expect(tracked).toEqual(['exit: green', 'enter: green']);
     });
-
     it('should exit and enter the state for reentering self-transitions (deep)', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -316,12 +280,9 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'RESTART' });
-
       expect(tracked).toEqual([
         'exit: green.walk',
         'exit: green',
@@ -329,7 +290,6 @@ describe('entry/exit actions', () => {
         'enter: green.walk'
       ]);
     });
-
     it('should return actions for parallel machines', () => {
       const actual: string[] = [];
       const machine = createMachine({
@@ -404,12 +364,9 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       actual.length = 0;
-
       actor.send({ type: 'CHANGE' });
-
       expect(actual).toEqual([
         'exit_b1', // reverse document order
         'exit_a1',
@@ -420,7 +377,6 @@ describe('entry/exit actions', () => {
         'enter_b2'
       ]);
     });
-
     it('should return nested actions in the correct (child to parent) order', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -451,12 +407,9 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'CHANGE' });
-
       expect(tracked).toEqual([
         'exit: a.a1',
         'exit: a',
@@ -464,7 +417,6 @@ describe('entry/exit actions', () => {
         'enter: b.b1'
       ]);
     });
-
     it('should ignore parent state actions for same-parent substates', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -488,21 +440,16 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'NEXT' });
-
       expect(tracked).toEqual(['exit: a.a1', 'enter: a.a2']);
     });
-
     it('should work with function actions', () => {
       const entrySpy = vi.fn();
       const exitSpy = vi.fn();
       const transitionSpy = vi.fn();
       const tracked: string[] = [];
-
       const machine = createMachine({
         initial: 'a',
         states: {
@@ -548,24 +495,18 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'NEXT_FN' });
-
       expect(tracked).toEqual(['exit: a.a1', 'enter: a.a3']);
       expect(entrySpy).toHaveBeenCalled();
       tracked.length = 0;
-
       actor.send({ type: 'NEXT' });
-
       expect(tracked).toEqual(['exit: a.a3', 'enter: a.a2']);
       expect(exitSpy).toHaveBeenCalled();
       tracked.length = 0;
       expect(transitionSpy).toHaveBeenCalled();
     });
-
     it('should exit children of parallel state nodes', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -612,12 +553,9 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'to-A' });
-
       expect(tracked).toEqual([
         'exit: B.D.D1',
         'exit: B.D',
@@ -627,7 +565,6 @@ describe('entry/exit actions', () => {
         'enter: A'
       ]);
     });
-
     it("should reenter targeted ancestor (as it's a descendant of the transition domain)", () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -651,12 +588,9 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'UPDATE' });
-
       expect(tracked).toEqual([
         'exit: loaded.idle',
         'exit: loaded',
@@ -664,11 +598,9 @@ describe('entry/exit actions', () => {
         'enter: loaded.idle'
       ]);
     });
-
     it('root entry/exit actions should be called on root reentering transitions', () => {
       let entrySpy = vi.fn();
       let exitSpy = vi.fn();
-
       const machine = createMachine({
         id: 'root',
         entry: (_, enq) => enq(entrySpy),
@@ -687,18 +619,13 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const service = machine.createActor().start();
-
+      const service = createActor(machine).start();
       entrySpy.mockClear();
       exitSpy.mockClear();
-
       service.send({ type: 'EVENT' });
-
       expect(entrySpy).toHaveBeenCalled();
       expect(exitSpy).toHaveBeenCalled();
     });
-
     describe('should ignore same-parent state actions (sparse)', () => {
       it('with a relative transition', () => {
         const tracked: string[] = [];
@@ -725,15 +652,11 @@ describe('entry/exit actions', () => {
             }
           }
         });
-
-        const actor = machine.createActor().start();
+        const actor = createActor(machine).start();
         tracked.length = 0;
-
         actor.send({ type: 'TACK' });
-
         expect(tracked).toEqual(['exit: ping.foo', 'enter: ping.bar']);
       });
-
       it('with an absolute transition', () => {
         const tracked: string[] = [];
         const machine = createMachine({
@@ -764,17 +687,13 @@ describe('entry/exit actions', () => {
             }
           }
         });
-
-        const actor = machine.createActor().start();
+        const actor = createActor(machine).start();
         tracked.length = 0;
-
         actor.send({ type: 'ABSOLUTE_TACK' });
-
         expect(tracked).toEqual(['exit: ping.foo', 'enter: ping.bar']);
       });
     });
   });
-
   describe('entry/exit actions', () => {
     it('should return the entry actions of an initial state', () => {
       const tracked: string[] = [];
@@ -789,12 +708,9 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      machine.createActor().start();
-
+      createActor(machine).start();
       expect(tracked).toEqual(['enter: __root__', 'enter: green']);
     });
-
     it('should return the entry and exit actions of a transition', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -813,15 +729,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'TIMER' });
-
       expect(tracked).toEqual(['exit: green', 'enter: yellow']);
     });
-
     it('should return the entry and exit actions of a deep transition', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -849,19 +761,15 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'TIMER' });
-
       expect(tracked).toEqual([
         'exit: green',
         'enter: yellow',
         'enter: yellow.speed_up'
       ]);
     });
-
     it('should return the entry and exit actions of a nested transition', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -887,15 +795,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'PED_COUNTDOWN' });
-
       expect(tracked).toEqual(['exit: green.walk', 'enter: green.wait']);
     });
-
     it('should keep the same state for unhandled events (shallow)', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -907,15 +811,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'FAKE' });
-
       expect(tracked).toEqual([]);
     });
-
     it('should keep the same state for unhandled events (deep)', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -934,15 +834,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'FAKE' });
-
       expect(tracked).toEqual([]);
     });
-
     it('should exit and enter the state for reentering self-transitions (shallow)', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -960,15 +856,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'RESTART' });
-
       expect(tracked).toEqual(['exit: green', 'enter: green']);
     });
-
     it('should exit and enter the state for reentering self-transitions (deep)', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -993,10 +885,8 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'RESTART' });
       expect(tracked).toEqual([
         'exit: green.walk',
@@ -1005,12 +895,10 @@ describe('entry/exit actions', () => {
         'enter: green.walk'
       ]);
     });
-
     it('should exit current node and enter target node when target is not a descendent or ancestor of current', () => {
       const tracked: string[] = [];
       const machine = createMachine({
         initial: 'A',
-
         states: {
           A: {
             entry: (_, enq) => enq(() => tracked.push('enter: A')),
@@ -1042,19 +930,15 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'NEXT' });
-
       expect(tracked).toEqual([
         'exit: A.A1',
         'enter: A.A2',
         'enter: A.A2.A2_child'
       ]);
     });
-
     it('should exit current node and reenter target node when target is ancestor of current', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -1093,16 +977,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'NEXT' });
-
       tracked.length = 0;
-
       actor.send({ type: 'NEXT' });
-
       expect(tracked).toEqual([
         'exit: A.A2.A2_child',
         'exit: A.A2',
@@ -1111,12 +990,10 @@ describe('entry/exit actions', () => {
         'enter: A.A1'
       ]);
     });
-
     it('should enter all descendents when target is a descendent of the source when using an reentering transition', () => {
       const tracked: string[] = [];
       const machine = createMachine({
         initial: 'A',
-
         states: {
           A: {
             entry: (_, enq) => enq(() => tracked.push('enter: A')),
@@ -1149,12 +1026,9 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'NEXT' });
-
       expect(tracked).toEqual([
         'exit: A.A1',
         'exit: A',
@@ -1163,7 +1037,6 @@ describe('entry/exit actions', () => {
         'enter: A.A2.A2a'
       ]);
     });
-
     it('should exit deep descendant during a default self-transition', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -1193,16 +1066,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'EV' });
-
       tracked.length = 0;
-
       actor.send({ type: 'EV' });
-
       expect(tracked).toEqual([
         'exit: a.a1.a11',
         'exit: a.a1',
@@ -1210,7 +1078,6 @@ describe('entry/exit actions', () => {
         'enter: a.a1.a11'
       ]);
     });
-
     it('should exit deep descendant during a reentering self-transition', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -1243,12 +1110,9 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'EV' });
-
       expect(tracked).toEqual([
         'exit: a.a1.a11',
         'exit: a.a1',
@@ -1258,7 +1122,6 @@ describe('entry/exit actions', () => {
         'enter: a.a1.a11'
       ]);
     });
-
     it('should not reenter leaf state during its default self-transition', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -1278,15 +1141,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'EV' });
-
       expect(tracked).toEqual([]);
     });
-
     it('should reenter leaf state during its reentering self-transition', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -1311,15 +1170,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'EV' });
-
       expect(tracked).toEqual(['exit: a.a1', 'enter: a.a1']);
     });
-
     it('should not enter exited state when targeting its ancestor and when its former descendant gets selected through initial state', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -1349,16 +1204,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'EV' });
-
       tracked.length = 0;
-
       actor.send({ type: 'EV' });
-
       expect(tracked).toEqual([
         'exit: a.a2',
         'exit: a',
@@ -1366,7 +1216,6 @@ describe('entry/exit actions', () => {
         'enter: a.a1'
       ]);
     });
-
     it('should not enter exited state when targeting its ancestor and when its latter descendant gets selected through initial state', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -1396,16 +1245,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'EV' });
-
       tracked.length = 0;
-
       actor.send({ type: 'EV' });
-
       expect(tracked).toEqual([
         'exit: a.a1',
         'exit: a',
@@ -1414,7 +1258,6 @@ describe('entry/exit actions', () => {
       ]);
     });
   });
-
   describe('parallel states', () => {
     it('should return entry action defined on parallel state', () => {
       const tracked: string[] = [];
@@ -1448,12 +1291,9 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'ENTER_PARALLEL' });
-
       expect(tracked).toEqual([
         'exit: start',
         'enter: p1',
@@ -1461,7 +1301,6 @@ describe('entry/exit actions', () => {
         'enter: p1.nested.inner'
       ]);
     });
-
     it('should reenter parallel region when a parallel state gets reentered while targeting another region', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -1509,12 +1348,9 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'FOO' });
-
       expect(tracked).toEqual([
         'exit: ready.camera.on',
         'exit: ready.camera',
@@ -1526,7 +1362,6 @@ describe('entry/exit actions', () => {
         'enter: ready.camera.off'
       ]);
     });
-
     it('should reenter parallel region when a parallel state is reentered while targeting another region', () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -1574,12 +1409,9 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       actor.send({ type: 'FOO' });
-
       expect(tracked).toEqual([
         'exit: ready.camera.on',
         'exit: ready.camera',
@@ -1592,7 +1424,6 @@ describe('entry/exit actions', () => {
       ]);
     });
   });
-
   describe('targetless transitions', () => {
     it("shouldn't exit a state on a parent's targetless transition", () => {
       const tracked: string[] = [];
@@ -1609,15 +1440,11 @@ describe('entry/exit actions', () => {
           one: {}
         }
       });
-
-      const actor = parent.createActor().start();
+      const actor = createActor(parent).start();
       tracked.length = 0;
-
       actor.send({ type: 'WHATEVER' });
-
       expect(tracked).toEqual([]);
     });
-
     it("shouldn't exit (and reenter) state on targetless delayed transition", async () => {
       const tracked: string[] = [];
       const machine = createMachine({
@@ -1636,16 +1463,12 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       tracked.length = 0;
-
       await sleep(50);
-
       expect(tracked).toEqual([]);
     });
   });
-
   describe('when reaching a final state', () => {
     // https://github.com/statelyai/xstate/issues/1109
     it('exit actions should be called when invoked machine reaches its final state', () => {
@@ -1666,7 +1489,6 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
       const parentMachine = createMachine({
         initial: 'active',
         states: {
@@ -1681,8 +1503,7 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = parentMachine.createActor();
+      const actor = createActor(parentMachine);
       actor.subscribe({
         complete: () => {
           expect(exitCalled).toBeTruthy();
@@ -1694,12 +1515,10 @@ describe('entry/exit actions', () => {
       return promise;
     });
   });
-
   describe('when stopped', () => {
     it('exit actions should not be called when stopping a machine', () => {
       const rootSpy = vi.fn();
       const childSpy = vi.fn();
-
       const machine = createMachine({
         exit: (_, enq) => enq(rootSpy),
         initial: 'a',
@@ -1709,14 +1528,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const service = machine.createActor().start();
+      const service = createActor(machine).start();
       service.stop();
-
       expect(rootSpy).not.toHaveBeenCalled();
       expect(childSpy).not.toHaveBeenCalled();
     });
-
     it('an exit action executed when an interpreter reaches its final state should be called with the last received event', () => {
       let receivedEvent;
       const machine = createMachine({
@@ -1735,13 +1551,10 @@ describe('entry/exit actions', () => {
           receivedEvent = event;
         }
       });
-
-      const service = machine.createActor().start();
+      const service = createActor(machine).start();
       service.send({ type: 'NEXT' });
-
       expect(receivedEvent).toEqual({ type: 'NEXT' });
     });
-
     // https://github.com/statelyai/xstate/issues/2880
     it('stopping an interpreter that receives events from its children exit handlers should not throw', () => {
       const child = createMachine({
@@ -1756,20 +1569,16 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
       const parent = createMachine({
         id: 'parent',
         invoke: {
           src: child
         }
       });
-
-      const actor = parent.createActor();
+      const actor = createActor(parent);
       actor.start();
-
       expect(() => actor.stop()).not.toThrow();
     });
-
     // TODO: determine if the sendParent action should execute when the child actor is stopped.
     // If it shouldn't be, we need to clarify whether exit actions in general should be executed on machine stop,
     // since this is contradictory to other tests.
@@ -1785,7 +1594,6 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
       const parent = createMachine({
         // types: {} as {
         //   context: {
@@ -1818,14 +1626,11 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const interpreter = parent.createActor().start();
+      const interpreter = createActor(parent).start();
       interpreter.send({ type: 'STOP_CHILD' });
     });
-
     it('sent events from exit handlers of a done child should be received by the parent ', () => {
       let eventReceived = false;
-
       const child = createMachine({
         id: 'child',
         initial: 'active',
@@ -1844,7 +1649,6 @@ describe('entry/exit actions', () => {
           enq.sendTo(parent, { type: 'CHILD_DONE' });
         }
       });
-
       const parent = createMachine({
         // types: {} as {
         //   context: {
@@ -1877,23 +1681,18 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = parent.createActor().start();
+      const actor = createActor(parent).start();
       actor.send({ type: 'FINISH_CHILD' });
-
       expect(eventReceived).toBe(true);
     });
-
     it('sent events from exit handlers of a stopped child should not be received by its children', () => {
       const spy = vi.fn();
-
       const grandchild = createMachine({
         id: 'grandchild',
         on: {
           STOPPED: (_, enq) => enq(spy)
         }
       });
-
       const child = createMachine({
         id: 'child',
         invoke: {
@@ -1904,7 +1703,6 @@ describe('entry/exit actions', () => {
           enq.sendTo(children.myChild, { type: 'STOPPED' });
         }
       });
-
       const parent = createMachine({
         id: 'parent',
         initial: 'a',
@@ -1920,17 +1718,13 @@ describe('entry/exit actions', () => {
           b: {}
         }
       });
-
-      const actor = parent.createActor().start();
+      const actor = createActor(parent).start();
       actor.send({ type: 'NEXT' });
-
       expect(spy).not.toHaveBeenCalled();
     });
-
     // TODO: figure out order of entry/invoke actions, maybe add defer?
     it.skip('sent events from exit handlers of a done child should be received by its children', () => {
       const spy = vi.fn();
-
       const grandchild = createMachine({
         id: 'grandchild',
         on: {
@@ -1942,7 +1736,6 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
       const child = createMachine({
         id: 'child',
         initial: 'a',
@@ -1971,7 +1764,6 @@ describe('entry/exit actions', () => {
           enq.sendTo(children.myChild, { type: 'STOPPED' });
         }
       });
-
       const parent = createMachine({
         id: 'parent',
         invoke: {
@@ -1992,13 +1784,10 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = parent.createActor().start();
+      const actor = createActor(parent).start();
       actor.send({ type: 'NEXT' });
-
       expect(spy).toHaveBeenCalledTimes(1);
     });
-
     it('actors spawned in exit handlers of a stopped child should not be started', () => {
       const grandchild = createMachine({
         id: 'grandchild',
@@ -2006,7 +1795,6 @@ describe('entry/exit actions', () => {
           throw new Error('This should not be called.');
         }
       });
-
       const parent = createMachine({
         id: 'parent',
         schemas: {
@@ -2021,11 +1809,9 @@ describe('entry/exit actions', () => {
           }
         })
       });
-
-      const actor = parent.createActor().start();
+      const actor = createActor(parent).start();
       actor.stop();
     });
-
     it('should note execute referenced custom actions correctly when stopping an interpreter', () => {
       const spy = vi.fn();
       const parent = createMachine({
@@ -2039,13 +1825,10 @@ describe('entry/exit actions', () => {
           enq(actions.referencedAction);
         }
       });
-
-      const actor = parent.createActor().start();
+      const actor = createActor(parent).start();
       actor.stop();
-
       expect(spy).not.toHaveBeenCalled();
     });
-
     it('should not execute builtin actions when stopping an interpreter', () => {
       const action = vi.fn();
       const machine = createMachine({
@@ -2053,13 +1836,10 @@ describe('entry/exit actions', () => {
           enq(action);
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       actor.stop();
-
       expect(action).not.toHaveBeenCalled();
     });
-
     it('should clear all scheduled events when the interpreter gets stopped', () => {
       const machine = createMachine({
         on: {
@@ -2079,12 +1859,9 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const service = machine.createActor().start();
-
+      const service = createActor(machine).start();
       service.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
     });
-
     it.skip('should execute exit actions of the settled state of the last initiated microstep', () => {
       const exitActions: string[] = [];
       const machine = createMachine({
@@ -2123,12 +1900,10 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const actor = machine.createActor().start();
+      const actor = createActor(machine).start();
       actor.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
       expect(exitActions).toEqual(['foo action']);
     });
-
     it('should not execute exit actions of the settled state of the last initiated microstep after executing all actions from that microstep', () => {
       const executedActions: string[] = [];
       const machine = createMachine({
@@ -2170,11 +1945,8 @@ describe('entry/exit actions', () => {
           }
         }
       });
-
-      const service = machine.createActor().start();
-
+      const service = createActor(machine).start();
       service.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
-
       expect(executedActions).toEqual([
         'foo exit action',
         'foo transition action'
@@ -2182,7 +1954,6 @@ describe('entry/exit actions', () => {
     });
   });
 });
-
 describe('actions on invalid transition', () => {
   it('should not recall previous actions', () => {
     const spy = vi.fn();
@@ -2206,28 +1977,31 @@ describe('actions on invalid transition', () => {
         stop: {}
       }
     });
-    const actor = machine.createActor().start();
-
+    const actor = createActor(machine).start();
     actor.send({ type: 'STOP' });
     expect(spy).toHaveBeenCalledTimes(1);
-
     actor.send({ type: 'INVALID' });
     expect(spy).toHaveBeenCalledTimes(1);
   });
 });
-
 describe('actions config', () => {
   type EventType =
-    | { type: 'definedAction' }
-    | { type: 'updateContext' }
-    | { type: 'EVENT' }
-    | { type: 'E' };
+    | {
+        type: 'definedAction';
+      }
+    | {
+        type: 'updateContext';
+      }
+    | {
+        type: 'EVENT';
+      }
+    | {
+        type: 'E';
+      };
   interface Context {
     count: number;
   }
-
   const definedAction = () => {};
-
   it('should reference actions defined in actions parameter of machine options (entry actions)', () => {
     const spy = vi.fn();
     const machine = createMachine({
@@ -2261,13 +2035,10 @@ describe('actions config', () => {
         definedAction: spy
       }
     });
-
-    const actor = machine.createActor().start();
+    const actor = createActor(machine).start();
     actor.send({ type: 'EVENT' });
-
     expect(spy).toHaveBeenCalledTimes(1);
   });
-
   it('should reference actions defined in actions parameter of machine options (initial state)', () => {
     const spy = vi.fn();
     const machine = createMachine({
@@ -2279,12 +2050,9 @@ describe('actions config', () => {
         enq(actions.definedAction);
       }
     });
-
-    machine.createActor().start();
-
+    createActor(machine).start();
     expect(spy).toHaveBeenCalledTimes(1);
   });
-
   it('should be able to reference action implementations from action objects', () => {
     const updateContext = (): Context => ({
       count: 10
@@ -2329,10 +2097,9 @@ describe('actions config', () => {
         b: {}
       }
     });
-    const actorRef = machine.createActor().start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
     const snapshot = actorRef.getSnapshot();
-
     // expect(snapshot.actions).toEqual([
     //   expect.objectContaining({
     //     type: 'definedAction'
@@ -2342,15 +2109,12 @@ describe('actions config', () => {
     //   })
     // ]);
     // TODO: specify which actions other actions came from
-
     expect(snapshot.context).toEqual({ count: 10 });
   });
-
   it('should work with anonymous functions (with warning)', () => {
     let entryCalled = false;
     let actionCalled = false;
     let exitCalled = false;
-
     const anonMachine = createMachine({
       id: 'anon',
       initial: 'active',
@@ -2374,22 +2138,16 @@ describe('actions config', () => {
         inactive: {}
       }
     });
-
-    const actor = anonMachine.createActor().start();
-
+    const actor = createActor(anonMachine).start();
     expect(entryCalled).toBe(true);
-
     actor.send({ type: 'EVENT' });
-
     expect(exitCalled).toBe(true);
     expect(actionCalled).toBe(true);
   });
 });
-
 describe('action meta', () => {
   it('should provide the original params', () => {
     const spy = vi.fn();
-
     const testMachine = createMachine({
       actions: {
         entryAction: (params) => {
@@ -2412,17 +2170,13 @@ describe('action meta', () => {
         }
       }
     });
-
-    testMachine.createActor().start();
-
+    createActor(testMachine).start();
     expect(spy).toHaveBeenCalledWith({
       value: 'something'
     });
   });
-
   it('should provide the action with resolved params when they are dynamic', () => {
     const spy = vi.fn();
-
     const machine = createMachine({
       actions: {
         entryAction: (params) => {
@@ -2437,17 +2191,13 @@ describe('action meta', () => {
         enq(actions.entryAction, { stuff: 100 });
       }
     });
-
-    machine.createActor().start();
-
+    createActor(machine).start();
     expect(spy).toHaveBeenCalledWith({
       stuff: 100
     });
   });
-
   it('should resolve dynamic params using context value', () => {
     const spy = vi.fn();
-
     const machine = createMachine({
       schemas: {
         context: z.object({
@@ -2470,17 +2220,13 @@ describe('action meta', () => {
         enq(actions.entryAction, { secret: context.secret });
       }
     });
-
-    machine.createActor().start();
-
+    createActor(machine).start();
     expect(spy).toHaveBeenCalledWith({
       secret: 42
     });
   });
-
   it('should resolve dynamic params using event value', () => {
     const spy = vi.fn();
-
     const machine = createMachine({
       schemas: {
         events: {
@@ -2504,17 +2250,13 @@ describe('action meta', () => {
         }
       }
     });
-
-    const actorRef = machine.createActor().start();
-
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'FOO', secret: 77 });
-
     expect(spy).toHaveBeenCalledWith({
       secret: 77
     });
   });
 });
-
 describe('forwardTo()', () => {
   it('should forward an event to a service', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
@@ -2548,7 +2290,6 @@ describe('forwardTo()', () => {
         }
       }
     });
-
     const parent = createMachine({
       // types: {} as {
       //   events:
@@ -2588,18 +2329,14 @@ describe('forwardTo()', () => {
         }
       }
     });
-
-    const service = parent.createActor();
+    const service = createActor(parent);
     service.subscribe({ complete: () => resolve() });
     service.start();
-
     service.send({ type: 'EVENT', value: 42 });
     return promise;
   });
-
   it('should forward an event to a service (dynamic)', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-
     const child = createMachine({
       // types: {} as {
       //   events: {
@@ -2626,7 +2363,6 @@ describe('forwardTo()', () => {
         }
       }
     });
-
     const parent = createMachine({
       // types: {} as {
       //   context: { child?: AnyActorRef };
@@ -2668,15 +2404,12 @@ describe('forwardTo()', () => {
         }
       }
     });
-
-    const service = parent.createActor();
+    const service = createActor(parent);
     service.subscribe({ complete: () => resolve() });
     service.start();
-
     service.send({ type: 'EVENT', value: 42 });
     return promise;
   });
-
   it.skip('should not cause an infinite loop when forwarding to undefined', () => {
     const machine = createMachine({
       on: {
@@ -2685,16 +2418,13 @@ describe('forwardTo()', () => {
         }
       }
     });
-
     const errorSpy = vi.fn();
-
-    const actorRef = machine.createActor();
+    const actorRef = createActor(machine);
     actorRef.subscribe({
       error: errorSpy
     });
     actorRef.start();
     actorRef.send({ type: 'TEST' });
-
     expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -2704,7 +2434,6 @@ describe('forwardTo()', () => {
     `);
   });
 });
-
 describe('log()', () => {
   it('should log a string', () => {
     const consoleSpy = vi.fn();
@@ -2715,8 +2444,7 @@ describe('log()', () => {
         enq.log('some string', 'string label');
       }
     });
-    machine.createActor(undefined, { logger: consoleSpy }).start();
-
+    createActor(machine, { logger: consoleSpy }).start();
     expect(consoleSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -2726,7 +2454,6 @@ describe('log()', () => {
       ]
     `);
   });
-
   it('should log an expression', () => {
     const consoleSpy = vi.fn();
     console.log = consoleSpy;
@@ -2744,8 +2471,7 @@ describe('log()', () => {
         enq.log(`expr ${context.count}`, 'expr label');
       }
     });
-    machine.createActor(undefined, { logger: consoleSpy }).start();
-
+    createActor(machine, { logger: consoleSpy }).start();
     expect(consoleSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -2756,65 +2482,49 @@ describe('log()', () => {
     `);
   });
 });
-
 describe('enqueueActions', () => {
   it('should execute a simple referenced action', () => {
     const spy = vi.fn();
-
     const machine = createMachine({
       entry: (_, enq) => {
         enq(spy);
       }
     });
-
-    machine.createActor().start();
-
+    createActor(machine).start();
     expect(spy).toHaveBeenCalledTimes(1);
   });
-
   it('should execute multiple different referenced actions', () => {
     const spy1 = vi.fn();
     const spy2 = vi.fn();
-
     const machine = createMachine({
       entry: (_, enq) => {
         enq(spy1);
         enq(spy2);
       }
     });
-
-    machine.createActor().start();
-
+    createActor(machine).start();
     expect(spy1).toHaveBeenCalledTimes(1);
     expect(spy2).toHaveBeenCalledTimes(1);
   });
-
   it('should execute multiple same referenced actions', () => {
     const spy = vi.fn();
-
     const machine = createMachine({
       entry: (_, enq) => {
         enq(spy);
         enq(spy);
       }
     });
-
-    machine.createActor().start();
-
+    createActor(machine).start();
     expect(spy).toHaveBeenCalledTimes(2);
   });
-
   it('should execute a parameterized action', () => {
     const spy = vi.fn((_: { answer: number }) => void 0);
-
     const machine = createMachine({
       entry: (_, enq) => {
         enq(spy, { answer: 42 });
       }
     });
-
-    machine.createActor().start();
-
+    createActor(machine).start();
     expect(spy.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -2825,22 +2535,16 @@ describe('enqueueActions', () => {
       ]
     `);
   });
-
   it('should execute a function', () => {
     const spy = vi.fn();
-
     const machine = createMachine({
       entry: (_, enq) => enq(spy)
     });
-
-    machine.createActor().start();
-
+    createActor(machine).start();
     expect(spy).toHaveBeenCalledTimes(1);
   });
-
   it('should execute a builtin action using its own action creator', () => {
     const spy = vi.fn();
-
     const machine = createMachine({
       on: {
         FOO: (_, enq) => {
@@ -2852,17 +2556,12 @@ describe('enqueueActions', () => {
         RAISED: (_, enq) => enq(spy)
       }
     });
-
-    const actorRef = machine.createActor().start();
-
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'FOO' });
-
     expect(spy).toHaveBeenCalledTimes(1);
   });
-
   it('should execute a builtin action using its bound action creator', () => {
     const spy = vi.fn();
-
     const machine = createMachine({
       on: {
         FOO: (_, enq) => {
@@ -2874,14 +2573,10 @@ describe('enqueueActions', () => {
         RAISED: (_, enq) => enq(spy)
       }
     });
-
-    const actorRef = machine.createActor().start();
-
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'FOO' });
-
     expect(spy).toHaveBeenCalledTimes(1);
   });
-
   it('should execute assigns when resolving the initial snapshot', () => {
     const machine = createMachine({
       schemas: {
@@ -2898,12 +2593,9 @@ describe('enqueueActions', () => {
         }
       })
     });
-
-    const snapshot = machine.createActor().getSnapshot();
-
+    const snapshot = createActor(machine).getSnapshot();
     expect(snapshot.context).toEqual({ count: 42 });
   });
-
   it('should be able to check a simple referenced guard', () => {
     const spy = vi.fn().mockImplementation(() => true);
     const machine = createMachine({
@@ -2915,21 +2607,16 @@ describe('enqueueActions', () => {
       context: {
         count: 0
       },
-
       entry: () => {
         if (spy()) {
         }
       }
     });
-
-    machine.createActor();
-
+    createActor(machine);
     expect(spy).toHaveBeenCalled();
   });
-
   it('should be able to check a parameterized guard', () => {
     const spy = vi.fn((_: { max: number }) => true);
-
     const machine = createMachine({
       schemas: {
         context: z.object({
@@ -2944,9 +2631,7 @@ describe('enqueueActions', () => {
         }
       }
     });
-
-    machine.createActor();
-
+    createActor(machine);
     expect(spy.mock.calls[0]).toMatchInlineSnapshot(`
       [
         {
@@ -2955,7 +2640,6 @@ describe('enqueueActions', () => {
       ]
     `);
   });
-
   it('should provide self', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
     const machine = createMachine({
@@ -2964,11 +2648,9 @@ describe('enqueueActions', () => {
         resolve();
       }
     });
-
-    machine.createActor().start();
+    createActor(machine).start();
     await promise;
   });
-
   it('should be able to communicate with the parent using params', () => {
     const childMachine = createMachine({
       schemas: {
@@ -2993,9 +2675,7 @@ describe('enqueueActions', () => {
         enq.sendTo(context.parent, { type: 'FOO' });
       }
     });
-
     const spy = vi.fn();
-
     const parentMachine =
       // setup({
       //   types: {} as { events: ParentEvent },
@@ -3019,21 +2699,16 @@ describe('enqueueActions', () => {
           input: ({ self }) => ({ parent: self })
         }
       });
-
-    parentMachine.createActor().start();
-
+    createActor(parentMachine).start();
     expect(spy).toHaveBeenCalledTimes(1);
   });
-
   it('should enqueue.sendParent', () => {
     const childMachine = createMachine({
       entry: ({ parent }, enq) => {
         enq.sendTo(parent, { type: 'PARENT_EVENT' });
       }
     });
-
     const parentSpy = vi.fn();
-
     const parentMachine = createMachine({
       actors: {
         child: childMachine
@@ -3050,13 +2725,10 @@ describe('enqueueActions', () => {
         src: ({ actors }) => actors.child
       }
     });
-
-    parentMachine.createActor().start();
-
+    createActor(parentMachine).start();
     expect(parentSpy).toHaveBeenCalledTimes(1);
   });
 });
-
 describe('sendParent', () => {
   // https://github.com/statelyai/xstate/issues/711
   it('TS: should compile for any event', () => {
@@ -3076,11 +2748,9 @@ describe('sendParent', () => {
         }
       }
     });
-
     expect(child).toBeTruthy();
   });
 });
-
 describe('sendTo', () => {
   it('should be able to send an event to an actor', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
@@ -3102,7 +2772,6 @@ describe('sendTo', () => {
         }
       }
     });
-
     const parentMachine = createMachine({
       schemas: {
         context: z.object({
@@ -3117,11 +2786,9 @@ describe('sendTo', () => {
         enq.sendTo(context.child, { type: 'EVENT' });
       }
     });
-
-    parentMachine.createActor().start();
+    createActor(parentMachine).start();
     return promise;
   });
-
   it('should be able to send an event from expression to an actor', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
@@ -3142,7 +2809,6 @@ describe('sendTo', () => {
         }
       }
     });
-
     const parentMachine = createMachine({
       schemas: {
         context: z.object({
@@ -3164,11 +2830,9 @@ describe('sendTo', () => {
         enq.sendTo(context.child, { type: 'EVENT', count: context.count });
       }
     });
-
-    parentMachine.createActor().start();
+    createActor(parentMachine).start();
     return promise;
   });
-
   it('should report a type error for an invalid event', () => {
     const childMachine = createMachine({
       // types: {} as {
@@ -3188,7 +2852,6 @@ describe('sendTo', () => {
         }
       }
     });
-
     createMachine({
       // types: {} as {
       //   context: {
@@ -3215,7 +2878,6 @@ describe('sendTo', () => {
       }
     });
   });
-
   it('should be able to send an event to a named actor', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
@@ -3239,7 +2901,6 @@ describe('sendTo', () => {
         }
       }
     });
-
     const parentMachine = createMachine({
       // types: {} as {
       //   context: { child: ActorRefFromLogic<typeof childMachine> };
@@ -3258,11 +2919,9 @@ describe('sendTo', () => {
         enq.sendTo(context.child, { type: 'EVENT' });
       }
     });
-
-    parentMachine.createActor().start();
+    createActor(parentMachine).start();
     return promise;
   });
-
   it('should be able to send an event directly to an ActorRef', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({
@@ -3286,7 +2945,6 @@ describe('sendTo', () => {
         }
       }
     });
-
     const parentMachine = createMachine({
       // types: {} as {
       //   context: { child: ActorRefFromLogic<typeof childMachine> };
@@ -3304,11 +2962,9 @@ describe('sendTo', () => {
         enq.sendTo(context.child, { type: 'EVENT' });
       }
     });
-
-    parentMachine.createActor().start();
+    createActor(parentMachine).start();
     return promise;
   });
-
   it('should be able to read from event', () => {
     expect.assertions(1);
     const machine = createMachine({
@@ -3349,12 +3005,9 @@ describe('sendTo', () => {
         }
       }
     });
-
-    const service = machine.createActor().start();
-
+    const service = createActor(machine).start();
     service.send({ type: 'EVENT', value: 'foo' });
   });
-
   it('should error if given a string', () => {
     const machine = createMachine({
       invoke: {
@@ -3366,15 +3019,12 @@ describe('sendTo', () => {
         enq.sendTo(children.child, 'a string' as any);
       }
     });
-
     const errorSpy = vi.fn();
-
-    const actorRef = machine.createActor();
+    const actorRef = createActor(machine);
     actorRef.subscribe({
       error: errorSpy
     });
     actorRef.start();
-
     expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -3383,7 +3033,6 @@ describe('sendTo', () => {
       ]
     `);
   });
-
   it('a self-event "handler" of an event sent using sendTo should be able to read updated snapshot of self', () => {
     const spy = vi.fn();
     const machine = createMachine({
@@ -3423,12 +3072,9 @@ describe('sendTo', () => {
         c: {}
       }
     });
-
-    const actorRef = machine.createActor().start();
-
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'NEXT' });
     actorRef.send({ type: 'EVENT' });
-
     expect(spy.mock.calls).toMatchInlineSnapshot(`
 [
   [
@@ -3439,11 +3085,9 @@ describe('sendTo', () => {
 ]
 `);
   });
-
   it("should not attempt to deliver a delayed event to the spawned actor's ID that was stopped since the event was scheduled", async () => {
     const warnSpy = vi.spyOn(console, 'warn');
     const spy1 = vi.fn();
-
     const child1 = createMachine({
       on: {
         // PING: {
@@ -3452,9 +3096,7 @@ describe('sendTo', () => {
         PING: (_, enq) => enq(spy1)
       }
     });
-
     const spy2 = vi.fn();
-
     const child2 = createMachine({
       on: {
         // PING: {
@@ -3463,7 +3105,6 @@ describe('sendTo', () => {
         PING: (_, enq) => enq(spy2)
       }
     });
-
     const machine = createMachine({
       initial: 'a',
       actors: {
@@ -3500,16 +3141,11 @@ describe('sendTo', () => {
         }
       }
     });
-
-    const actorRef = machine.createActor().start();
-
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'START' });
-
     await sleep(10);
-
     expect(spy1).toHaveBeenCalledTimes(0);
     expect(spy2).toHaveBeenCalledTimes(0);
-
     expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
 [
   [
@@ -3518,12 +3154,10 @@ describe('sendTo', () => {
 ]
 `);
   });
-
   // TODO: need to fix stale value problem
   it.skip("should not attempt to deliver a delayed event to the invoked actor's ID that was stopped since the event was scheduled", async () => {
     const warnSpy = vi.spyOn(console, 'warn');
     const spy1 = vi.fn();
-
     const child1 = createMachine({
       on: {
         // PING: {
@@ -3532,9 +3166,7 @@ describe('sendTo', () => {
         PING: (_, enq) => enq(spy1)
       }
     });
-
     const spy2 = vi.fn();
-
     const child2 = createMachine({
       on: {
         // PING: {
@@ -3543,7 +3175,6 @@ describe('sendTo', () => {
         PING: (_, enq) => enq(spy2)
       }
     });
-
     const machine = createMachine({
       actors: {
         child1,
@@ -3578,17 +3209,12 @@ describe('sendTo', () => {
         }
       }
     });
-
-    const actorRef = machine.createActor().start();
-
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'START' });
     actorRef.send({ type: 'NEXT' });
-
     await sleep(10);
-
     expect(spy1).toHaveBeenCalledTimes(0);
     expect(spy2).toHaveBeenCalledTimes(0);
-
     expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
 [
   [
@@ -3599,7 +3225,6 @@ Event: {"type":"PING"}",
 `);
   });
 });
-
 describe('raise', () => {
   it('should be able to send a delayed event to itself', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
@@ -3630,16 +3255,12 @@ describe('raise', () => {
         }
       }
     });
-
-    const service = machine.createActor().start();
-
+    const service = createActor(machine).start();
     service.subscribe({ complete: () => resolve() });
-
     // Ensures that the delayed self-event is sent when in the `b` state
     service.send({ type: 'TO_B' });
     return promise;
   });
-
   it('should be able to send a delayed event to itself with delay = 0', async () => {
     const machine = createMachine({
       initial: 'a',
@@ -3661,17 +3282,13 @@ describe('raise', () => {
         b: {}
       }
     });
-
-    const service = machine.createActor().start();
-
+    const service = createActor(machine).start();
     // The state should not be changed yet; `delay: 0` is equivalent to `setTimeout(..., 0)`
     expect(service.getSnapshot().value).toEqual('a');
-
     await sleep(0);
     // The state should be changed now
     expect(service.getSnapshot().value).toEqual('b');
   });
-
   it('should be able to raise an event and respond to it in the same state', () => {
     const machine = createMachine({
       initial: 'a',
@@ -3690,12 +3307,9 @@ describe('raise', () => {
         }
       }
     });
-
-    const service = machine.createActor().start();
-
+    const service = createActor(machine).start();
     expect(service.getSnapshot().value).toEqual('b');
   });
-
   it('should be able to raise a delayed event and respond to it in the same state', async () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
@@ -3720,19 +3334,13 @@ describe('raise', () => {
         }
       }
     });
-
-    const service = machine.createActor().start();
-
+    const service = createActor(machine).start();
     service.subscribe({ complete: () => resolve() });
-
     await sleep(50);
-
     // didn't transition yet
     expect(service.getSnapshot().value).toEqual('a');
-
     return promise;
   });
-
   it('should accept event expression', () => {
     const machine = createMachine({
       initial: 'a',
@@ -3751,14 +3359,10 @@ describe('raise', () => {
         b: {}
       }
     });
-
-    const actor = machine.createActor().start();
-
+    const actor = createActor(machine).start();
     actor.send({ type: 'NEXT' });
-
     expect(actor.getSnapshot().value).toBe('b');
   });
-
   it('should be possible to access context in the event expression', () => {
     const machine = createMachine({
       schemas: {
@@ -3793,14 +3397,10 @@ describe('raise', () => {
         b: {}
       }
     });
-
-    const actor = machine.createActor().start();
-
+    const actor = createActor(machine).start();
     actor.send({ type: 'NEXT' });
-
     expect(actor.getSnapshot().value).toBe('b');
   });
-
   it('should error if given a string', () => {
     const machine = createMachine({
       // entry: raise(
@@ -3814,15 +3414,12 @@ describe('raise', () => {
         );
       }
     });
-
     const errorSpy = vi.fn();
-
-    const actorRef = machine.createActor();
+    const actorRef = createActor(machine);
     actorRef.subscribe({
       error: errorSpy
     });
     actorRef.start();
-
     expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -3832,7 +3429,6 @@ describe('raise', () => {
     `);
   });
 });
-
 describe('cancel', () => {
   it('should be possible to cancel a raised delayed event', async () => {
     const machine = createMachine({
@@ -3858,23 +3454,17 @@ describe('cancel', () => {
         b: {}
       }
     });
-
-    const actor = machine.createActor().start();
-
+    const actor = createActor(machine).start();
     // This should raise the 'RAISED' event after 1ms
     actor.send({ type: 'NEXT' });
-
     // This should cancel the 'RAISED' event
     actor.send({ type: 'CANCEL' });
-
     await sleep(10);
     expect(actor.getSnapshot().value).toBe('a');
   });
-
   it('should cancel only the delayed event in the machine that scheduled it when canceling the event with the same ID in the machine that sent it first', async () => {
     const fooSpy = vi.fn();
     const barSpy = vi.fn();
-
     const machine = createMachine({
       invoke: [
         {
@@ -3915,24 +3505,18 @@ describe('cancel', () => {
           enq.sendTo(children.foo, { type: 'cancel' })
       }
     });
-    const actor = machine.createActor().start();
-
+    const actor = createActor(machine).start();
     await sleep(50);
-
     // This will cause the foo actor to cancel its 'sameId' delayed event
     // This should NOT cancel the 'sameId' delayed event in the other actor
     actor.send({ type: 'cancelFoo' });
-
     await sleep(55);
-
     expect(fooSpy).not.toHaveBeenCalled();
     expect(barSpy).toHaveBeenCalledTimes(1);
   });
-
   it('should cancel only the delayed event in the machine that scheduled it when canceling the event with the same ID in the machine that sent it second', async () => {
     const fooSpy = vi.fn();
     const barSpy = vi.fn();
-
     const machine = createMachine({
       invoke: [
         {
@@ -3977,23 +3561,17 @@ describe('cancel', () => {
         }
       }
     });
-    const actor = machine.createActor().start();
-
+    const actor = createActor(machine).start();
     await sleep(50);
-
     // This will cause the bar actor to cancel its 'sameId' delayed event
     // This should NOT cancel the 'sameId' delayed event in the other actor
     actor.send({ type: 'cancelBar' });
-
     await sleep(55);
-
     expect(fooSpy).toHaveBeenCalledTimes(1);
     expect(barSpy).not.toHaveBeenCalled();
   });
-
   it('should not try to clear an undefined timeout when canceling an unscheduled timer', async () => {
     const spy = vi.fn();
-
     const machine = createMachine({
       on: {
         // FOO: {
@@ -4004,26 +3582,19 @@ describe('cancel', () => {
         }
       }
     });
-
-    const actorRef = machine
-      .createActor(undefined, {
-        clock: {
-          setTimeout,
-          clearTimeout: spy
-        }
-      })
-      .start();
-
+    const actorRef = createActor(machine, {
+      clock: {
+        setTimeout,
+        clearTimeout: spy
+      }
+    }).start();
     actorRef.send({
       type: 'FOO'
     });
-
     expect(spy.mock.calls.length).toBe(0);
   });
-
   it('should be able to cancel a just scheduled delayed event to a just invoked child', async () => {
     const spy = vi.fn();
-
     const child = createMachine({
       on: {
         // PING: {
@@ -4032,7 +3603,6 @@ describe('cancel', () => {
         PING: (_, enq) => enq(spy)
       }
     });
-
     const machine = createMachine({
       actors: {
         child
@@ -4064,20 +3634,15 @@ describe('cancel', () => {
         }
       }
     });
-
-    const actorRef = machine.createActor().start();
-
+    const actorRef = createActor(machine).start();
     actorRef.send({
       type: 'START'
     });
-
     await sleep(10);
     expect(spy.mock.calls.length).toBe(0);
   });
-
   it('should not be able to cancel a just scheduled non-delayed event to a just invoked child', async () => {
     const spy = vi.fn();
-
     const child = createMachine({
       on: {
         // PING: {
@@ -4086,7 +3651,6 @@ describe('cancel', () => {
         PING: (_, enq) => enq(spy)
       }
     });
-
     const machine = createMachine({
       initial: 'a',
       actors: {
@@ -4114,37 +3678,29 @@ describe('cancel', () => {
         }
       }
     });
-
-    const actorRef = machine.createActor().start();
-
+    const actorRef = createActor(machine).start();
     actorRef.send({
       type: 'START'
     });
-
     expect(spy.mock.calls.length).toBe(1);
   });
 });
-
 describe('action meta', () => {
   it('should provide self', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
-
     const machine = createMachine({
       entry: ({ self }) => {
         expect(self.send).toBeDefined();
         resolve();
       }
     });
-
-    machine.createActor().start();
+    createActor(machine).start();
     await promise;
   });
 });
-
 describe('actions', () => {
   it('should call transition actions in document order for same-level parallel regions', () => {
     const actual: string[] = [];
-
     const machine = createMachine({
       type: 'parallel',
       states: {
@@ -4170,15 +3726,12 @@ describe('actions', () => {
         }
       }
     });
-    const service = machine.createActor().start();
+    const service = createActor(machine).start();
     service.send({ type: 'FOO' });
-
     expect(actual).toEqual(['a', 'b']);
   });
-
   it('should call transition actions in document order for states at different levels of parallel regions', () => {
     const actual: string[] = [];
-
     const machine = createMachine({
       type: 'parallel',
       states: {
@@ -4209,15 +3762,12 @@ describe('actions', () => {
         }
       }
     });
-    const service = machine.createActor().start();
+    const service = createActor(machine).start();
     service.send({ type: 'FOO' });
-
     expect(actual).toEqual(['a1', 'b']);
   });
-
   it('should call an inline action responding to an initial raise with the raised event', () => {
     const spy = vi.fn();
-
     const machine = createMachine({
       // entry: raise({ type: 'HELLO' }),
       entry: (_, enq) => {
@@ -4234,15 +3784,11 @@ describe('actions', () => {
         }
       }
     });
-
-    machine.createActor().start();
-
+    createActor(machine).start();
     expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
   });
-
   it('should call a referenced action responding to an initial raise with the raised event', () => {
     const spy = vi.fn();
-
     const machine = createMachine({
       // entry: raise({ type: 'HELLO' }),
       entry: (_, enq) => {
@@ -4259,15 +3805,11 @@ describe('actions', () => {
         }
       }
     });
-
-    machine.createActor().start();
-
+    createActor(machine).start();
     expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
   });
-
   it('should call an inline action responding to an initial raise with updated (non-initial) context', () => {
     const spy = vi.fn();
-
     const machine = createMachine({
       schemas: {
         context: z.object({
@@ -4292,15 +3834,11 @@ describe('actions', () => {
         }
       }
     });
-
-    machine.createActor().start();
-
+    createActor(machine).start();
     expect(spy).toHaveBeenCalledWith({ count: 42 });
   });
-
   it('should call a referenced action responding to an initial raise with updated (non-initial) context', () => {
     const spy = vi.fn();
-
     const machine = createMachine({
       schemas: {
         context: z.object({
@@ -4323,75 +3861,63 @@ describe('actions', () => {
         }
       }
     });
-
-    machine.createActor().start();
-
+    createActor(machine).start();
     expect(spy).toHaveBeenCalledWith({ count: 42 });
   });
-
   it('should call inline transition custom action with undefined parametrized action object', () => {
     const spy = vi.fn();
-
-    const actorRef = createMachine({
-      on: {
-        // FOO: {
-        //   actions: (_, params) => {
-        //     spy(params);
-        //   }
-        // }
-        FOO: (_, enq) => {
-          enq(spy);
+    const actorRef = createActor(
+      createMachine({
+        on: {
+          // FOO: {
+          //   actions: (_, params) => {
+          //     spy(params);
+          //   }
+          // }
+          FOO: (_, enq) => {
+            enq(spy);
+          }
         }
-      }
-    })
-      .createActor()
-      .start();
+      })
+    ).start();
     actorRef.send({ type: 'FOO' });
-
     // expect not to have any args
     expect(spy).toHaveBeenCalledWith();
   });
-
   it('should call a referenced custom action with undefined params when it has no params and it is referenced using a string', () => {
     const spy = vi.fn();
-
-    createMachine({
-      actions: {
-        myAction: (params?: unknown) => {
-          spy(params);
+    createActor(
+      createMachine({
+        actions: {
+          myAction: (params?: unknown) => {
+            spy(params);
+          }
+        },
+        entry: ({ actions }) => {
+          actions.myAction();
         }
-      },
-      entry: ({ actions }) => {
-        actions.myAction();
-      }
-    })
-      .createActor()
-      .start();
-
+      })
+    ).start();
     expect(spy).toHaveBeenCalledWith(undefined);
   });
-
   it('should call a referenced custom action with the provided parametrized action object', () => {
     const spy = vi.fn();
-
-    createMachine({
-      actions: {
-        myAction: (params) => {
-          spy(params);
+    createActor(
+      createMachine({
+        actions: {
+          myAction: (params) => {
+            spy(params);
+          }
+        },
+        entry: ({ actions }) => {
+          actions.myAction({ foo: 'bar' });
         }
-      },
-      entry: ({ actions }) => {
-        actions.myAction({ foo: 'bar' });
-      }
-    })
-      .createActor()
-      .start();
-
+      })
+    ).start();
     expect(spy).toHaveBeenCalledWith({
       foo: 'bar'
     });
   });
-
   // From https://github.com/statelyai/xstate/pull/5101
   it('a raised event "handler" should be able to read updated snapshot of self', () => {
     const spy = vi.fn();
@@ -4413,7 +3939,6 @@ describe('actions', () => {
           // entry: [assign({ counter: 1 }), raise({ type: 'EVENT' })],
           entry: (_, enq) => {
             enq.raise({ type: 'EVENT' });
-
             return {
               context: {
                 counter: 1
@@ -4432,12 +3957,9 @@ describe('actions', () => {
         c: {}
       }
     });
-
-    const actorRef = machine.createActor().start();
-
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'NEXT' });
     actorRef.send({ type: 'EVENT' });
-
     expect(spy).toHaveBeenCalledWith({ counter: 1 });
   });
 });

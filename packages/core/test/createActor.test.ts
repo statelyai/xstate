@@ -11,97 +11,87 @@ import {
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
 import z from 'zod';
-
-describe('logic.createActor()', () => {
+describe('createActor()', () => {
   describe('fromPromise', () => {
     it('should create an unstarted actor from promise logic', () => {
       const promiseLogic = fromPromise(async () => 42);
-      const actor = promiseLogic.createActor();
-
+      const actor = createActor(promiseLogic);
       expect(actor).toBeDefined();
       expect(actor.getSnapshot().status).toBe('active');
     });
-
     it('should accept input when creating actor', async () => {
-      const promiseLogic = fromPromise<number, { value: number }>(
-        async ({ input }) => input.value * 2
-      );
-      const actor = promiseLogic.createActor({ value: 21 });
-
+      const promiseLogic = fromPromise<
+        number,
+        {
+          value: number;
+        }
+      >(async ({ input }) => input.value * 2);
+      const actor = createActor(promiseLogic, { input: { value: 21 } });
       actor.start();
       await sleep(10);
-
       expect(actor.getSnapshot().output).toBe(42);
     });
-
     it('should accept options when creating actor', () => {
       const promiseLogic = fromPromise(async () => 42);
-      const actor = promiseLogic.createActor(undefined, { id: 'my-promise' });
-
+      const actor = createActor(promiseLogic, { id: 'my-promise' });
       expect(actor.id).toBe('my-promise');
     });
   });
-
   describe('fromCallback', () => {
     it('should create an unstarted actor from callback logic', () => {
       const callbackLogic = fromCallback(() => {});
-      const actor = callbackLogic.createActor();
-
+      const actor = createActor(callbackLogic);
       expect(actor).toBeDefined();
       expect(actor.getSnapshot().status).toBe('active');
     });
-
     it('should accept input when creating actor', () => {
       let capturedInput: string | undefined;
       const callbackLogic = fromCallback<any, string>(({ input }) => {
         capturedInput = input;
       });
-      const actor = callbackLogic.createActor('hello');
-
+      const actor = createActor(callbackLogic, { input: 'hello' });
       actor.start();
-
       expect(capturedInput).toBe('hello');
     });
   });
-
   describe('fromObservable', () => {
     it('should create an unstarted actor from observable logic', () => {
       const observableLogic = fromObservable(() => ({
         subscribe: () => ({ unsubscribe: () => {} })
       }));
-      const actor = observableLogic.createActor();
-
+      const actor = createActor(observableLogic);
       expect(actor).toBeDefined();
       expect(actor.getSnapshot().status).toBe('active');
     });
   });
-
   describe('fromTransition', () => {
     it('should create an unstarted actor from transition logic', () => {
       const transitionLogic = fromTransition((state) => state, { count: 0 });
-      const actor = transitionLogic.createActor();
-
+      const actor = createActor(transitionLogic);
       expect(actor).toBeDefined();
       expect(actor.getSnapshot().status).toBe('active');
       expect(actor.getSnapshot().context.count).toBe(0);
     });
-
     it('should accept input when creating actor', () => {
       const transitionLogic = fromTransition<
-        { count: number },
+        {
+          count: number;
+        },
         any,
         any,
-        { initialCount: number }
+        {
+          initialCount: number;
+        }
       >(
         (state) => state,
         ({ input }) => ({ count: input.initialCount })
       );
-      const actor = transitionLogic.createActor({ initialCount: 10 });
-
+      const actor = createActor(transitionLogic, {
+        input: { initialCount: 10 }
+      });
       expect(actor.getSnapshot().context.count).toBe(10);
     });
   });
-
   describe('StateMachine', () => {
     it('should create an unstarted actor from machine logic', () => {
       const machine = createMachine({
@@ -110,13 +100,11 @@ describe('logic.createActor()', () => {
           idle: {}
         }
       });
-      const actor = machine.createActor();
-
+      const actor = createActor(machine);
       expect(actor).toBeDefined();
       expect(actor.getSnapshot().status).toBe('active');
       expect(actor.getSnapshot().value).toBe('idle');
     });
-
     it('should accept input when creating actor', () => {
       const machine = createMachine({
         schemas: {
@@ -129,11 +117,9 @@ describe('logic.createActor()', () => {
           idle: {}
         }
       });
-      const actor = machine.createActor({ initialValue: 42 });
-
+      const actor = createActor(machine, { input: { initialValue: 42 } });
       expect(actor.getSnapshot().context.value).toBe(42);
     });
-
     it('should accept options when creating actor', () => {
       const machine = createMachine({
         initial: 'idle',
@@ -141,17 +127,14 @@ describe('logic.createActor()', () => {
           idle: {}
         }
       });
-      const actor = machine.createActor(undefined, { id: 'my-machine' });
-
+      const actor = createActor(machine, { id: 'my-machine' });
       expect(actor.id).toBe('my-machine');
     });
   });
 });
-
-describe('invoke.src accepting actors', () => {
-  it('should accept a created actor as invoke src', async () => {
+describe('invoke.src accepting actor logic', () => {
+  it('should accept a function returning actor logic', async () => {
     const promiseLogic = fromPromise(async () => 'done');
-
     const machine = createMachine({
       schemas: {
         context: z.object({ result: z.string().optional() })
@@ -161,7 +144,7 @@ describe('invoke.src accepting actors', () => {
       states: {
         loading: {
           invoke: {
-            src: () => promiseLogic.createActor(),
+            src: () => promiseLogic,
             onDone: ({ event }: { event: DoneActorEvent<string> }) => ({
               target: 'success',
               context: { result: event.output }
@@ -173,21 +156,19 @@ describe('invoke.src accepting actors', () => {
         }
       } as any
     });
-
     const actor = createActor(machine);
     actor.start();
-
     await sleep(20);
-
     expect(actor.getSnapshot().value).toBe('success');
     expect(actor.getSnapshot().context.result).toBe('done');
   });
-
-  it('should accept a function returning a created actor', async () => {
-    const promiseLogic = fromPromise<string, { message: string }>(
-      async ({ input }) => input.message
-    );
-
+  it('should pass mapped input to returned actor logic', async () => {
+    const promiseLogic = fromPromise<
+      string,
+      {
+        message: string;
+      }
+    >(async ({ input }) => input.message);
     const machine = createMachine({
       schemas: {
         context: z.object({
@@ -201,15 +182,28 @@ describe('invoke.src accepting actors', () => {
         loading: {
           invoke: {
             src: ({
+              actors
+            }: {
+              actors: {
+                promiseLogic: typeof promiseLogic;
+              };
+            }) => actors.promiseLogic,
+            input: ({
               context
             }: {
-              context: { message: string; result?: string };
-            }) => promiseLogic.createActor({ message: context.message }),
+              context: {
+                message: string;
+                result?: string;
+              };
+            }) => ({ message: context.message }),
             onDone: ({
               context,
               event
             }: {
-              context: { message: string; result?: string };
+              context: {
+                message: string;
+                result?: string;
+              };
               event: DoneActorEvent<string>;
             }) => ({
               target: 'success',
@@ -220,97 +214,19 @@ describe('invoke.src accepting actors', () => {
         success: {
           type: 'final'
         }
-      } as any
+      } as any,
+      actors: {
+        promiseLogic
+      }
     });
-
     const actor = createActor(machine);
     actor.start();
-
     await sleep(20);
-
     expect(actor.getSnapshot().value).toBe('success');
     expect(actor.getSnapshot().context.result).toBe('hello');
   });
-
-  it('should accept an already started actor and not stop it on exit', async () => {
-    let stopped = false;
-    const callbackLogic = fromCallback(() => {
-      return () => {
-        stopped = true;
-      };
-    });
-
-    const externalActor = createActor(callbackLogic);
-    externalActor.start();
-
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          invoke: {
-            src: externalActor,
-            id: 'external'
-          },
-          on: {
-            NEXT: 'b'
-          }
-        },
-        b: {
-          type: 'final'
-        }
-      }
-    });
-
-    const actor = createActor(machine);
-    actor.start();
-
-    expect(actor.getSnapshot().children.external).toBe(externalActor);
-
-    actor.send({ type: 'NEXT' });
-
-    // External actor should NOT be stopped when state exits
-    expect(stopped).toBe(false);
-    expect(externalActor.getSnapshot().status).toBe('active');
-  });
-
-  it('should stop owned actors on exit', async () => {
-    let stopped = false;
-    const callbackLogic = fromCallback(() => {
-      return () => {
-        stopped = true;
-      };
-    });
-
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          invoke: {
-            src: callbackLogic.createActor(),
-            id: 'owned'
-          },
-          on: {
-            NEXT: 'b'
-          }
-        },
-        b: {
-          type: 'final'
-        }
-      }
-    });
-
-    const actor = createActor(machine);
-    actor.start();
-
-    actor.send({ type: 'NEXT' });
-
-    // Owned actor should be stopped when state exits
-    expect(stopped).toBe(true);
-  });
-
-  it('should work with actors from machine implementations', async () => {
+  it('should accept a string actor logic reference', async () => {
     const promiseLogic = fromPromise(async () => 'from-actors');
-
     const machine = createMachine({
       actors: {
         myPromise: promiseLogic
@@ -323,8 +239,7 @@ describe('invoke.src accepting actors', () => {
       states: {
         loading: {
           invoke: {
-            src: ({ actors }: { actors: { myPromise: typeof promiseLogic } }) =>
-              actors.myPromise.createActor(),
+            src: 'myPromise',
             onDone: ({ event }: { event: DoneActorEvent<string> }) => ({
               target: 'success',
               context: { result: event.output }
@@ -336,59 +251,10 @@ describe('invoke.src accepting actors', () => {
         }
       } as any
     });
-
     const actor = createActor(machine);
     actor.start();
-
     await sleep(20);
-
     expect(actor.getSnapshot().value).toBe('success');
     expect(actor.getSnapshot().context.result).toBe('from-actors');
-  });
-
-  it('should use actor from context as external (already started)', async () => {
-    // When using an already-started actor from context, it runs as external
-    // The machine can subscribe to its snapshot changes but not receive sendBack events
-    // because the external actor's parent is not the machine
-    const transitionLogic = fromTransition(
-      (state, event) => {
-        if (event.type === 'INC') {
-          return { count: state.count + 1 };
-        }
-        return state;
-      },
-      { count: 0 }
-    );
-
-    const externalActor = createActor(transitionLogic);
-    externalActor.start();
-
-    const machine = createMachine({
-      schemas: {
-        context: z.object({
-          actorRef: z.any()
-        })
-      },
-      context: { actorRef: externalActor },
-      initial: 'running',
-      states: {
-        running: {
-          invoke: {
-            src: ({ context }) => context.actorRef,
-            id: 'external'
-          }
-        }
-      }
-    });
-
-    const actor = createActor(machine);
-    actor.start();
-
-    // The external actor is registered as a child
-    expect(actor.getSnapshot().children.external).toBe(externalActor);
-
-    // We can interact with the external actor directly
-    externalActor.send({ type: 'INC' });
-    expect(externalActor.getSnapshot().context.count).toBe(1);
   });
 });

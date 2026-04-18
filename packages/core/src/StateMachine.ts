@@ -41,9 +41,7 @@ import type {
   StateValue,
   StateSchema,
   SnapshotStatus,
-  AnyStateNode,
-  ActorOptions,
-  ActorRef
+  AnyStateNode
 } from './types.ts';
 import { Implementations, Next_MachineConfig, Trigger } from './types.v6.ts';
 import {
@@ -172,20 +170,6 @@ export class StateMachine<
         'Missing `machine.output` declaration (top-level final state with output detected)'
       );
     }
-  }
-
-  /**
-   * Creates an unstarted actor from this logic.
-   *
-   * @param input - The input for the actor.
-   * @param options - Actor options.
-   * @returns An unstarted actor.
-   */
-  public createActor(
-    input?: TInput,
-    options?: ActorOptions<any>
-  ): ActorRef<SnapshotFrom<this>, TEvent, TEmitted> {
-    return createActor<any>(this, { ...options, input }) as any;
   }
 
   /**

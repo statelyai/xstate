@@ -311,6 +311,7 @@ export interface InvokeDefinition<
   systemId: string | undefined;
 
   logic:
+    | string
     | AnyActorLogic
     | (({
         actors,
@@ -322,7 +323,7 @@ export interface InvokeDefinition<
         context: TContext;
         event: TEvent;
         self: AnyActorRef;
-      }) => AnyActorLogic);
+      }) => string | AnyActorLogic);
   /** The source of the actor logic to be invoked */
   src: AnyActorLogic | string;
 
@@ -623,10 +624,14 @@ type ExcludeInternalEvents<
 
 export type IsLiteralString<T extends string> = string extends T ? false : true;
 
+type ActorImplementationsBySrc<TActor extends ProvidedActor> = {
+  [A in TActor as A['src']]: A['logic'];
+};
+
 type DistributeActors<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  _TActor extends ProvidedActor,
+  TActor extends ProvidedActor,
   _TAction extends ParameterizedObject,
   _TGuard extends ParameterizedObject,
   _TDelay extends string,
@@ -639,7 +644,19 @@ type DistributeActors<
           {
             systemId?: string;
             /** The source of the machine to be invoked, or the machine itself. */
-            src: TSrc;
+            src:
+              | TSrc
+              | (({
+                  actors,
+                  context,
+                  event,
+                  self
+                }: {
+                  actors: ActorImplementationsBySrc<TActor>;
+                  context: TContext;
+                  event: TEvent;
+                  self: AnyActorRef;
+                }) => TSrc | TSpecificActor['logic']);
 
             /**
              * The unique identifier for the invoked machine. If not specified,
@@ -717,7 +734,20 @@ type DistributeActors<
       | {
           id?: never;
           systemId?: string;
-          src: AnyActorLogic;
+          src:
+            | string
+            | AnyActorLogic
+            | (({
+                actors,
+                context,
+                event,
+                self
+              }: {
+                actors: ActorImplementationsBySrc<TActor>;
+                context: TContext;
+                event: TEvent;
+                self: AnyActorRef;
+              }) => string | AnyActorLogic);
           input?:
             | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
             | NonReducibleUnknown;
@@ -801,7 +831,20 @@ export type InvokeConfig<
 
         systemId?: string;
         /** The source of the machine to be invoked, or the machine itself. */
-        src: AnyActorLogic | string; // TODO: fix types
+        src:
+          | string
+          | AnyActorLogic
+          | (({
+              actors,
+              context,
+              event,
+              self
+            }: {
+              actors: ActorImplementationsBySrc<TActor>;
+              context: TContext;
+              event: TEvent;
+              self: AnyActorRef;
+            }) => string | AnyActorLogic);
 
         input?:
           | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
@@ -1743,30 +1786,6 @@ export interface ActorLogic<
     options?: unknown
   ) => Snapshot<unknown>;
 }
-
-/**
- * Actor logic that includes a `createActor` method for creating unstarted
- * actors.
- */
-export type CreatableActorLogic<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject,
-  TInput = NonReducibleUnknown,
-  TSystem extends AnyActorSystem = AnyActorSystem,
-  TEmitted extends EventObject = EventObject
-> = ActorLogic<TSnapshot, TEvent, TInput, TSystem, TEmitted> & {
-  /**
-   * Creates an unstarted actor from this logic.
-   *
-   * @param input - The input for the actor.
-   * @param options - Actor options.
-   * @returns An unstarted actor.
-   */
-  createActor: (
-    input?: TInput,
-    options?: ActorOptions<any>
-  ) => ActorRef<TSnapshot, TEvent, TEmitted>;
-};
 
 export type AnyActorLogic = ActorLogic<
   any, // snapshot
