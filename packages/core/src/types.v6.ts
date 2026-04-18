@@ -273,6 +273,29 @@ export interface Next_InvokeConfig<
     TDelayMap,
     TMeta
   >;
+  /**
+   * The duration (in ms) after which this invocation will time out if it has
+   * not completed. "This task is taking too long."
+   *
+   * When the timeout expires, the `onTimeout` transition is taken. If the
+   * invoke completes first, the timeout is cancelled.
+   */
+  timeout?: number | ((args: { context: TContext; event: TEvent }) => number);
+  /**
+   * Transition taken when the invoke-level `timeout` expires. Required when
+   * `timeout` is set on an invoke.
+   */
+  onTimeout?: Next_TransitionConfigOrTarget<
+    TContext,
+    TEvent,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TMeta
+  >;
 }
 
 /** Lookup state input type from an input map, with fallback to undefined */
@@ -503,6 +526,36 @@ export interface Next_StateNodeConfig<
           TMeta
         >;
   };
+
+  /**
+   * The duration (in ms) after which this state will transition via `onTimeout`
+   * if still active. "We've been in this state too long."
+   *
+   * Independent of `after` - both can coexist on the same state. Both cancel on
+   * state exit.
+   *
+   * Can be a static number, a delay reference string, or a dynamic function.
+   */
+  timeout?:
+    | number
+    | DoNotInfer<TDelays>
+    | ((args: {
+        context: TContext;
+        event: TEvent;
+        stateNode: AnyStateNode;
+      }) => number);
+  /** Transition taken when `timeout` expires. Required when `timeout` is set. */
+  onTimeout?: Next_TransitionConfigOrTarget<
+    TContext,
+    TEvent,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TMeta
+  >;
 
   /**
    * An eventless transition that is always taken when this state node is

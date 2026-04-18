@@ -13,6 +13,26 @@ export function createAfterEvent(delayRef: number | string, id: string) {
 }
 
 /**
+ * Returns an event that represents an implicit state-level timeout. Fired when
+ * a state's `timeout` duration elapses without the state being exited.
+ *
+ * @param id The state node ID where this timeout is configured
+ */
+export function createTimeoutEvent(id: string) {
+  return { type: `xstate.timeout.${id}` } as const;
+}
+
+/**
+ * Returns an event that represents an implicit invoke-level timeout. Fired when
+ * an invoked actor has not completed within its `timeout` duration.
+ *
+ * @param invokeId The invoked actor's ID
+ */
+export function createInvokeTimeoutEvent(invokeId: string) {
+  return { type: `xstate.timeout.actor.${invokeId}` } as const;
+}
+
+/**
  * Returns an event that represents that a final state node has been reached in
  * the parent state node.
  *

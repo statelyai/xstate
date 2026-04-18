@@ -1,5 +1,6 @@
 import type { StateMachine } from './StateMachine.ts';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
+import { createInvokeTimeoutEvent } from './eventUtils.ts';
 import { memo } from './memo.ts';
 import {
   evaluateCandidate,
@@ -24,6 +25,7 @@ import type {
   AnyStateNode,
   AnyEventObject,
   AnyAction,
+  AnyTransitionConfig,
   AnyTransitionDefinition,
   AnyMachineSnapshot,
   AnyInvokeDefinition
@@ -366,24 +368,59 @@ export function formatTransitions<
     );
   }
   for (const invokeDef of stateNode.invoke) {
+    const invokeTimeoutEventType =
+      invokeDef.timeout !== undefined
+        ? createInvokeTimeoutEvent(invokeDef.id).type
+        : undefined;
+
     if (invokeDef.onDone) {
       const descriptor = `xstate.done.actor.${invokeDef.id}`;
-      transitions.set(
-        descriptor,
-        toTransitionConfigArray(invokeDef.onDone as any).map((t) =>
-          typeof t === 'function'
-            ? t
-            : formatTransition(stateNode, descriptor, t)
-        )
+      const invokeDoneTransitions = toTransitionConfigArray(
+        invokeDef.onDone as any
+      ).map((t) =>
+        invokeTimeoutEventType
+          ? formatInvokeCompletionTransition(
+              stateNode,
+              descriptor,
+              t,
+              invokeTimeoutEventType
+            )
+          : formatTransition(stateNode, descriptor, t)
       );
+
+      if (invokeTimeoutEventType) {
+        invokeDoneTransitions.push(
+          createCancelInvokeTimeoutTransition(
+            stateNode,
+            descriptor,
+            invokeTimeoutEventType
+          )
+        );
+      }
+
+      transitions.set(descriptor, invokeDoneTransitions);
+    } else if (invokeTimeoutEventType) {
+      const descriptor = `xstate.done.actor.${invokeDef.id}`;
+      transitions.set(descriptor, [
+        createCancelInvokeTimeoutTransition(
+          stateNode,
+          descriptor,
+          invokeTimeoutEventType
+        )
+      ]);
     }
     if (invokeDef.onError) {
       const descriptor = `xstate.error.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
         toTransitionConfigArray(invokeDef.onError as any).map((t) =>
-          typeof t === 'function'
-            ? t
+          invokeTimeoutEventType
+            ? formatInvokeCompletionTransition(
+                stateNode,
+                descriptor,
+                t,
+                invokeTimeoutEventType
+              )
             : formatTransition(stateNode, descriptor, t)
         )
       );
@@ -393,9 +430,7 @@ export function formatTransitions<
       transitions.set(
         descriptor,
         toTransitionConfigArray(invokeDef.onSnapshot as any).map((t) =>
-          typeof t === 'function'
-            ? t
-            : formatTransition(stateNode, descriptor, t)
+          formatTransition(stateNode, descriptor, t)
         )
       );
     }
@@ -411,6 +446,69 @@ export function formatTransitions<
     );
   }
   return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
+}
+
+function createCancelInvokeTimeoutTransition(
+  stateNode: AnyStateNode,
+  descriptor: string,
+  timeoutEventType: string
+): AnyTransitionDefinition {
+  return formatTransition(stateNode, descriptor, {
+    to: (_args: any, enq: any) => {
+      enq.cancel(timeoutEventType);
+      return {};
+    }
+  } as AnyTransitionConfig);
+}
+
+function formatInvokeCompletionTransition(
+  stateNode: AnyStateNode,
+  descriptor: string,
+  transitionConfig: AnyTransitionConfig,
+  timeoutEventType: string
+): AnyTransitionDefinition {
+  const { target, to, reenter, ...rest } = transitionConfig;
+
+  return formatTransition(stateNode, descriptor, {
+    ...rest,
+    reenter,
+    to: (args: any, enq: any) => {
+      if (to) {
+        let didEnqueue = false;
+        const trackingEnqueue = new Proxy(enq, {
+          apply(target, thisArg, argArray) {
+            didEnqueue = true;
+            return Reflect.apply(target, thisArg, argArray);
+          },
+          get(target, prop, receiver) {
+            const value = Reflect.get(target, prop, receiver);
+
+            if (typeof value !== 'function') {
+              return value;
+            }
+
+            return (...argArray: any[]) => {
+              didEnqueue = true;
+              return value.apply(target, argArray);
+            };
+          }
+        });
+        const result = to(args, trackingEnqueue);
+
+        if (result !== undefined || didEnqueue) {
+          enq.cancel(timeoutEventType);
+        }
+
+        return result;
+      }
+
+      enq.cancel(timeoutEventType);
+      return {
+        target,
+        reenter
+      };
+    }
+  } as AnyTransitionConfig);
 }
 
 export function formatInitialTransition(

@@ -384,6 +384,27 @@ export interface InvokeDefinition<
           TDelayMap
         >
       >;
+  /**
+   * The duration (in ms) after which this invocation times out if it has not
+   * completed.
+   */
+  timeout?: number | ((args: { context: TContext; event: TEvent }) => number);
+  /** The transition to take when the invoke-level `timeout` expires. */
+  onTimeout?:
+    | string
+    | SingleOrArray<
+        TransitionConfig<
+          TContext,
+          TEvent,
+          TEvent,
+          TEmitted,
+          TMeta,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap
+        >
+      >;
 }
 
 export type AnyInvokeDefinition = InvokeDefinition<
@@ -729,6 +750,24 @@ type DistributeActors<
                     any
                   >
                 >;
+            timeout?:
+              | number
+              | ((args: { context: TContext; event: TEvent }) => number);
+            onTimeout?:
+              | string
+              | SingleOrArray<
+                  TransitionConfigOrTarget<
+                    TContext,
+                    TEvent,
+                    TEvent,
+                    TEmitted,
+                    TMeta,
+                    any,
+                    any,
+                    any,
+                    any
+                  >
+                >;
           } & { [K in RequiredActorOptions<TSpecificActor>]: unknown }
         >
       | {
@@ -788,6 +827,24 @@ type DistributeActors<
                 TransitionConfigOrTarget<
                   TContext,
                   SnapshotEvent,
+                  TEvent,
+                  TEmitted,
+                  TMeta,
+                  any,
+                  any,
+                  any,
+                  any
+                >
+              >;
+          timeout?:
+            | number
+            | ((args: { context: TContext; event: TEvent }) => number);
+          onTimeout?:
+            | string
+            | SingleOrArray<
+                TransitionConfigOrTarget<
+                  TContext,
+                  TEvent,
                   TEvent,
                   TEmitted,
                   TMeta,
@@ -894,6 +951,24 @@ export type InvokeConfig<
               TransitionConfigOrTarget<
                 TContext,
                 SnapshotEvent,
+                TEvent,
+                TEmitted,
+                TMeta,
+                any,
+                any,
+                any,
+                any
+              >
+            >;
+        timeout?:
+          | number
+          | ((args: { context: TContext; event: TEvent }) => number);
+        onTimeout?:
+          | string
+          | SingleOrArray<
+              TransitionConfigOrTarget<
+                TContext,
+                TEvent,
                 TEvent,
                 TEmitted,
                 TMeta,

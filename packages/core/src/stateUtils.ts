@@ -1,7 +1,12 @@
 import isDevelopment from '#is-development';
 import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
-import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
+import {
+  createAfterEvent,
+  createDoneStateEvent,
+  createInvokeTimeoutEvent,
+  createTimeoutEvent
+} from './eventUtils.ts';
 import {
   XSTATE_INIT,
   STATE_DELIMITER,
@@ -245,8 +250,30 @@ export function getDelayedTransitions(
   stateNode: AnyStateNode
 ): Array<DelayedTransitionDefinition<MachineContext, EventObject>> {
   const afterConfig = stateNode.config.after;
-  if (!afterConfig) {
+  const timeoutConfig = (stateNode.config as any).timeout;
+  const onTimeoutConfig = (stateNode.config as any).onTimeout;
+  const invokeDefs = stateNode.invoke.filter(
+    (invokeDef) => invokeDef.timeout !== undefined
+  );
+
+  if (!afterConfig && timeoutConfig === undefined && invokeDefs.length === 0) {
     return [];
+  }
+
+  if (isDevelopment && timeoutConfig !== undefined && !onTimeoutConfig) {
+    throw new Error(
+      `State "${stateNode.id}" has \`timeout\` but no \`onTimeout\` transition.`
+    );
+  }
+
+  if (isDevelopment) {
+    for (const invokeDef of invokeDefs) {
+      if (!invokeDef.onTimeout) {
+        throw new Error(
+          `Invoke on state "${stateNode.id}" has \`timeout\` but no \`onTimeout\` transition.`
+        );
+      }
+    }
   }
 
   const mutateEntryExitWithDelay = (delay: string | number) => {
@@ -276,22 +303,121 @@ export function getDelayedTransitions(
     return eventType;
   };
 
-  const delayedTransitions = Object.keys(afterConfig).flatMap((delay) => {
-    const configTransition = afterConfig[delay];
+  const delayedTransitions: Array<
+    AnyTransitionConfig & { event: string; delay: any }
+  > = afterConfig
+    ? Object.keys(afterConfig).flatMap((delay) => {
+        const configTransition = afterConfig[delay];
+        const resolvedTransition =
+          typeof configTransition === 'string'
+            ? { target: configTransition }
+            : typeof configTransition === 'function'
+              ? { to: configTransition }
+              : configTransition;
+        const resolvedDelay = Number.isNaN(+delay) ? delay : +delay;
+        const eventType = mutateEntryExitWithDelay(resolvedDelay);
+        return toArray(resolvedTransition).map((transition) => ({
+          ...transition,
+          event: eventType,
+          delay: resolvedDelay
+        }));
+      })
+    : [];
+
+  // Desugar state-level `timeout` + `onTimeout` into a delayed transition.
+  // Uses a dedicated `xstate.timeout.<id>` event so it cannot collide with
+  // explicit `after` entries on the same state.
+  if (timeoutConfig !== undefined && onTimeoutConfig) {
+    const timeoutEvent = createTimeoutEvent(stateNode.id);
+    const timeoutEventType = timeoutEvent.type;
+
+    mutateEntryExit(
+      stateNode,
+      // entry
+      (x, enq) => {
+        let resolvedDelay =
+          typeof timeoutConfig === 'string'
+            ? x.delays[timeoutConfig]
+            : timeoutConfig;
+
+        if (typeof resolvedDelay === 'function') {
+          resolvedDelay = resolvedDelay({ ...x, stateNode });
+        }
+        enq.raise(timeoutEvent as any, {
+          id: timeoutEventType,
+          delay: resolvedDelay as number
+        });
+      },
+      // exit
+      (_, enq) => {
+        enq.cancel(timeoutEventType);
+      }
+    );
+
     const resolvedTransition =
-      typeof configTransition === 'string'
-        ? { target: configTransition }
-        : typeof configTransition === 'function'
-          ? { to: configTransition }
-          : configTransition;
-    const resolvedDelay = Number.isNaN(+delay) ? delay : +delay;
-    const eventType = mutateEntryExitWithDelay(resolvedDelay);
-    return toArray(resolvedTransition).map((transition) => ({
-      ...transition,
-      event: eventType,
-      delay: resolvedDelay
-    }));
-  });
+      typeof onTimeoutConfig === 'string'
+        ? { target: onTimeoutConfig }
+        : typeof onTimeoutConfig === 'function'
+          ? { to: onTimeoutConfig }
+          : onTimeoutConfig;
+
+    const resolvedDelay =
+      typeof timeoutConfig === 'number' ? timeoutConfig : timeoutConfig;
+
+    for (const transition of toArray(resolvedTransition)) {
+      delayedTransitions.push({
+        ...transition,
+        event: timeoutEventType,
+        delay: resolvedDelay as any
+      });
+    }
+  }
+
+  // Desugar invoke-level `timeout` + `onTimeout` into a delayed transition on
+  // the enclosing state. Completion transitions cancel this timer separately,
+  // so the timeout is cleared even when the parent state stays active.
+  for (const invokeDef of invokeDefs) {
+    const invokeTimeoutEvent = createInvokeTimeoutEvent(invokeDef.id);
+    const invokeTimeoutEventType = invokeTimeoutEvent.type;
+    const invokeTimeout = invokeDef.timeout;
+
+    mutateEntryExit(
+      stateNode,
+      // entry
+      (x, enq) => {
+        const resolvedDelay =
+          typeof invokeTimeout === 'function'
+            ? invokeTimeout({ context: x.context, event: x.event })
+            : invokeTimeout;
+
+        enq.raise(invokeTimeoutEvent as any, {
+          id: invokeTimeoutEventType,
+          delay: resolvedDelay as number
+        });
+      },
+      // exit
+      (_, enq) => {
+        enq.cancel(invokeTimeoutEventType);
+      }
+    );
+
+    const invokeOnTimeout = invokeDef.onTimeout;
+    const resolvedTransition =
+      typeof invokeOnTimeout === 'string'
+        ? { target: invokeOnTimeout }
+        : typeof invokeOnTimeout === 'function'
+          ? { to: invokeOnTimeout }
+          : invokeOnTimeout;
+
+    for (const transition of toArray(resolvedTransition)) {
+      delayedTransitions.push({
+        ...transition,
+        event: invokeTimeoutEventType,
+        delay: invokeTimeout as any
+      });
+    }
+  }
+
   return delayedTransitions.map((delayedTransition) => {
     const { delay } = delayedTransition;
     return {
