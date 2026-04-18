@@ -45,7 +45,7 @@ import type {
   ActorOptions,
   ActorRef
 } from './types.ts';
-import { Implementations, Next_MachineConfig } from './types.v6.ts';
+import { Implementations, Next_MachineConfig, Trigger } from './types.v6.ts';
 import {
   matchesEventDescriptor,
   resolveReferencedActor,
@@ -104,6 +104,12 @@ export class StateMachine<
   public states: StateNode<TContext, TEvent>['states'];
   public events: Array<EventDescriptor<TEvent>>;
   public internalEventDescriptors: ReadonlyArray<string>;
+  /**
+   * Triggers describing how this machine is activated by external
+   * infrastructure (webhooks, cron, events, etc.). Metadata only — does not
+   * affect runtime execution.
+   */
+  public triggers: ReadonlyArray<Trigger>;
 
   constructor(
     /** The raw config used to create the machine. */
@@ -121,6 +127,7 @@ export class StateMachine<
     > & {
       schemas?: unknown;
       internalEvents?: readonly string[];
+      triggers?: readonly Trigger[];
     },
     implementations?: Implementations
   ) {
@@ -135,6 +142,7 @@ export class StateMachine<
     this.version = this.config.version;
     this.schemas = this.config.schemas;
     this.internalEventDescriptors = this.config.internalEvents ?? [];
+    this.triggers = this.config.triggers ?? [];
 
     this.transition = this.transition.bind(this);
     this.getInitialSnapshot = this.getInitialSnapshot.bind(this);

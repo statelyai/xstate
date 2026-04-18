@@ -56,6 +56,35 @@ type InternalEventDescriptorFor<TEvent extends EventObject> = [TEvent] extends [
   ? string
   : EventDescriptor<TEvent>;
 
+/**
+ * A trigger declares how a machine is activated by external infrastructure.
+ *
+ * Triggers are metadata for platforms and tooling — they do not affect runtime
+ * execution. The machine behaves identically whether input arrived from a
+ * webhook, a cron job, an event source, or `actor.start({ input })` in a test.
+ *
+ * The `type` field is an open string so platforms can declare their own trigger
+ * kinds (e.g. 'webhook', 'cron', 'event', 'manual', 'queue'). Additional
+ * properties are platform-defined.
+ *
+ * @example
+ *
+ * ```ts
+ * createMachine({
+ *   triggers: [
+ *     { type: 'webhook', path: '/api/orders' },
+ *     { type: 'cron', schedule: '0 9 * * *' }
+ *   ]
+ *   // ...
+ * });
+ * ```
+ */
+export interface Trigger {
+  type: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
 export type Next_MachineConfig<
   TContextSchema extends StandardSchemaV1,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
@@ -94,6 +123,15 @@ export type Next_MachineConfig<
   internalEvents?: readonly InternalEventDescriptorFor<
     InferEvents<TEventSchemaMap>
   >[];
+  /**
+   * Declares how this machine is activated by external infrastructure
+   * (webhooks, cron schedules, event sources, etc.). Triggers are metadata for
+   * platforms and tooling — they do not affect runtime execution.
+   *
+   * Plural because workflow tools commonly allow multiple triggers mapping to
+   * the same input schema.
+   */
+  triggers?: readonly Trigger[];
   schemas?: {
     events?: TEventSchemaMap;
     context?: TContextSchema;
