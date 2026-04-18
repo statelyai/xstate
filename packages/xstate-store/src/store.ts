@@ -634,7 +634,7 @@ function createStoreTransitionWithSteps<
       effect: (fn) => {
         effects.push(fn);
       },
-      step: <T>(stepId: string, exec: () => T | Promise<T>) => {
+      step<T>(stepId: string, exec: () => T | Promise<T>) {
         if (stepId in execution.stepResults) {
           return Promise.resolve(execution.stepResults[stepId] as T);
         }
