@@ -1,5 +1,137 @@
 # @xstate/store
 
+## 3.17.1
+
+### Patch Changes
+
+- [#5486](https://github.com/statelyai/xstate/pull/5486) [`582e43a`](https://github.com/statelyai/xstate/commit/582e43ac57c935712fbed74d6769e78b721eb0f7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix emitted events not firing on stores with extensions (`.with()`)
+
+## 3.17.0
+
+### Minor Changes
+
+- [#5479](https://github.com/statelyai/xstate/pull/5479) [`3b8c68e`](https://github.com/statelyai/xstate/commit/3b8c68e20057885f19b8897f4b4cb29380e8f7de) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `strategy: 'event'` option to the `persist` extension. Instead of persisting context snapshots, this persists the event log and replays events on rehydration to reconstruct state. When `maxEvents` is set, a snapshot checkpoint is automatically saved so that replay starts from the checkpoint rather than initial context, preserving correctness.
+
+  Also adds `isHydrated(store)` helper to check hydration status.
+
+  ```ts
+  const store = createStore({
+    context: { count: 0 },
+    on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+  }).with(
+    persist({
+      name: 'my-store',
+      strategy: 'event',
+      maxEvents: 100
+    })
+  );
+  ```
+
+- [#5474](https://github.com/statelyai/xstate/pull/5474) [`e299d40`](https://github.com/statelyai/xstate/commit/e299d404444685857fb8e8cc68eab9c681673d08) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `reset` store extension for resetting store context to its initial state via `.with(reset())`.
+
+  ```ts
+  import { createStore } from '@xstate/store';
+  import { reset } from '@xstate/store/reset';
+
+  const store = createStore({
+    context: { count: 0, user: null },
+    on: {
+      inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }),
+      login: (ctx, e: { user: string }) => ({ ...ctx, user: e.user })
+    }
+  }).with(reset());
+
+  store.trigger.inc();
+  store.trigger.reset(); // resets to { count: 0, user: null }
+  ```
+
+  Supports custom reset logic via `to` for partial resets:
+
+  ```ts
+  .with(reset({
+    to: (initial, current) => ({ ...initial, user: current.user })
+  }))
+  ```
+
+- [#5472](https://github.com/statelyai/xstate/pull/5472) [`f7c2beb`](https://github.com/statelyai/xstate/commit/f7c2beb9a90f21828cab0ce6d85a1afa30f4ae0a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `persist` store extension for persisting store context to storage (localStorage, sessionStorage, async adapters, etc.) via `.with(persist({ name: 'my-store' }))`.
+
+  ```ts
+  import { createStore } from '@xstate/store';
+  import {
+    persist,
+    rehydrateStore,
+    clearStorage,
+    flushStorage,
+    createJSONStorage
+  } from '@xstate/store/persist';
+
+  const store = createStore({
+    context: { count: 0 },
+    on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+  }).with(persist({ name: 'my-store' }));
+  // Default storage is localStorage
+  ```
+
+  Features:
+  - Sync and async storage adapters (localStorage, AsyncStorage, etc.)
+  - `pick` — persist only selected fields
+  - `version` + `migrate` — schema versioning and migration
+  - `merge` — custom merge strategy on rehydration
+  - `throttle` — batched/throttled writes
+  - `serialize` / `deserialize` — custom serialization
+  - `filter` — skip persisting for specific events
+  - `skipHydration` + `rehydrateStore()` — manual/async rehydration
+  - `clearStorage()` — remove persisted data
+  - `flushStorage()` — force immediate write of pending throttled data
+  - `createJSONStorage()` — SSR-safe storage adapter factory
+  - `onDone` / `onError` callbacks
+
+## 3.16.0
+
+### Minor Changes
+
+- [#5467](https://github.com/statelyai/xstate/pull/5467) [`d54cc47`](https://github.com/statelyai/xstate/commit/d54cc4760513ba05e9c0fc7a4a783d0c47a882f2) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add wildcard `'*'` support for `store.on('*', …)` to listen to all emitted events. The handler receives the union of all emitted event types.
+
+  ```ts
+  const store = createStore({
+    context: { count: 0 },
+    emits: {
+      increased: (_: { upBy: number }) => {},
+      decreased: (_: { downBy: number }) => {}
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit.increased({ upBy: 1 });
+        return { ...ctx, count: ctx.count + 1 };
+      }
+    }
+  });
+
+  store.on('*', (ev) => {
+    // ev:
+    // | { type: 'increased'; upBy: number }
+    // | { type: 'decreased'; downBy: number }
+  });
+  ```
+
+## 3.15.0
+
+### Minor Changes
+
+- [#5441](https://github.com/statelyai/xstate/pull/5441) [`6ba9538`](https://github.com/statelyai/xstate/commit/6ba9538e05022c9aad9e4a4f089a87aaed54c06a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added new framework adapter packages for `@xstate/store` and deprecated:
+  - `@xstate/store/react` (use `@xstate/store-react` instead)
+  - `@xstate/store/solid` (use `@xstate/store-solid` instead)
+
+  ```diff
+  - import { useSelector } from '@xstate/store/react';
+  + import { useSelector } from '@xstate/store-react';
+  ```
+
+  ```diff
+  - import { useSelector } from '@xstate/store/solid';
+  + import { useSelector } from '@xstate/store-solid';
+  ```
+
 ## 3.14.1
 
 ### Patch Changes

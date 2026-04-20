@@ -1,0 +1,4 @@
+{
+  "main": "dist/xstate-store-persist.cjs.js",
+  "module": "dist/xstate-store-persist.esm.js"
+}

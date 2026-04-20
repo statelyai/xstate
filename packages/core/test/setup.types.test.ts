@@ -916,9 +916,9 @@ describe('setup()', () => {
         known: fromPromise(async () => 'known')
       }
     }).createMachine({
+      // @ts-expect-error
       invoke: {
         src: fromPromise(async () => 'inline'),
-        // @ts-expect-error
         id: 'myChild'
       }
     });
@@ -1031,9 +1031,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
+      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
-        // @ts-expect-error
         input: 4157
       }
     });
@@ -1085,9 +1085,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
+      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
-        // @ts-expect-error
         input:
           Math.random() > 0.5
             ? {
@@ -1109,9 +1109,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
+      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
-        // @ts-expect-error
         input: () => 42
       }
     });
@@ -1148,9 +1148,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
+      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
-        // @ts-expect-error
         input: () =>
           Math.random() > 0.5
             ? {
@@ -1190,9 +1190,9 @@ describe('setup()', () => {
         )
       }
     }).createMachine({
+      // @ts-expect-error
       invoke: {
         src: 'fetchUser',
-        // @ts-expect-error
         input: 0.31
       }
     });
@@ -2397,6 +2397,43 @@ describe('setup()', () => {
     });
 
     ((_accept: ContextFrom<typeof machine>) => {})({ myVar: 'whatever' });
+  });
+
+  it('should strongly type the state IDs in snapshot.getMeta()', () => {
+    const machine = setup({}).createMachine({
+      id: 'root',
+      initial: 'parentState',
+      states: {
+        parentState: {
+          meta: {},
+          initial: 'childState',
+          states: {
+            childState: {
+              meta: {}
+            },
+            stateWithId: {
+              id: 'state with id',
+              meta: {}
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+
+    const metaValues = actor.getSnapshot().getMeta();
+
+    metaValues.root;
+    metaValues['root.parentState'];
+    metaValues['root.parentState.childState'];
+    metaValues['state with id'];
+
+    // @ts-expect-error
+    metaValues['root.parentState.stateWithId'];
+
+    // @ts-expect-error
+    metaValues['unknown state'];
   });
 });
 

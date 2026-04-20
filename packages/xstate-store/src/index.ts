@@ -14,6 +14,7 @@ export type {
   StoreSnapshot,
   Store,
   StoreConfig,
+  StoreContext,
   AnyStore,
   SnapshotFromStore,
   EventFromStore,

@@ -52,6 +52,22 @@ function resolveStop(
     undefined
   ];
 }
+function unregisterRecursively(
+  actorScope: AnyActorScope,
+  actorRef: AnyActorRef
+) {
+  // unregister children first (depth-first)
+  const snapshot = actorRef.getSnapshot();
+  if (snapshot && 'children' in snapshot) {
+    for (const child of Object.values(
+      snapshot.children as Record<string, AnyActorRef>
+    )) {
+      unregisterRecursively(actorScope, child);
+    }
+  }
+  actorScope.system._unregister(actorRef);
+}
+
 function executeStop(
   actorScope: AnyActorScope,
   actorRef: AnyActorRef | undefined
@@ -63,7 +79,8 @@ function executeStop(
   // we need to eagerly unregister it here so a new actor with the same systemId can be registered immediately
   // since we defer actual stopping of the actor but we don't defer actor creations (and we can't do that)
   // this could throw on `systemId` collision, for example, when dealing with reentering transitions
-  actorScope.system._unregister(actorRef);
+  // we also need to recursively unregister all nested children's systemIds
+  unregisterRecursively(actorScope, actorRef);
 
   // this allows us to prevent an actor from being started if it gets stopped within the same macrostep
   // this can happen, for example, when the invoking state is being exited immediately by an always transition

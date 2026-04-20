@@ -1,5 +1,161 @@
 # xstate
 
+## 5.30.0
+
+### Minor Changes
+
+- [#5493](https://github.com/statelyai/xstate/pull/5493) [`871857d`](https://github.com/statelyai/xstate/commit/871857d730b7c333728da2b17bc36844697e8f88) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add a `filterEvents` option to `xstate/graph` traversal helpers and
+  `createTestModel(...)` to control which events should be explored from each
+  state.
+
+  This makes it possible to opt into enabled-only traversal for machine snapshots,
+  such as when you only want to explore events that currently pass guards:
+
+  ```ts
+  import { createTestModel } from 'xstate/graph';
+
+  const model = createTestModel(machine);
+
+  const paths = model.getSimplePaths({
+    filterEvents: (state, event) => state.can(event)
+  });
+  ```
+
+## 5.29.0
+
+### Minor Changes
+
+- [#5299](https://github.com/statelyai/xstate/pull/5299) [`ca8306f`](https://github.com/statelyai/xstate/commit/ca8306f865475fa0404c419730a24e3a5e392521) Thanks [@Uniqen](https://github.com/Uniqen)! - Add `actor.select(selector, equalityFn?)` method to derive a `Readable<TSelected>` from an actor's snapshot. The returned object has `.subscribe()` (only emits when the selected value changes, using `Object.is` by default) and `.get()` for synchronous access.
+
+  ```ts
+  const actor = createActor(machine);
+  actor.start();
+
+  const count = actor.select((snap) => snap.context.count);
+
+  count.get(); // current value
+
+  count.subscribe((value) => {
+    console.log(value); // only fires when count changes
+  });
+  ```
+
+## 5.28.0
+
+### Minor Changes
+
+- [#4184](https://github.com/statelyai/xstate/pull/4184) [`a741fe7`](https://github.com/statelyai/xstate/commit/a741fe75901d3c4f08314e7c6d888bcb37866c04) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added routable states. States with `route: {}` and an explicit `id` can be navigated to from anywhere via a single `{ type: 'xstate.route', to: '#id' }` event.
+
+  ```ts
+  const machine = setup({}).createMachine({
+    id: 'app',
+    initial: 'home',
+    states: {
+      home: { id: 'home', route: {} },
+      dashboard: {
+        initial: 'overview',
+        states: {
+          overview: { id: 'overview', route: {} },
+          settings: { id: 'settings', route: {} }
+        }
+      }
+    }
+  });
+
+  const actor = createActor(machine).start();
+
+  // Route directly to deeply nested state from anywhere
+  actor.send({ type: 'xstate.route', to: '#settings' });
+  ```
+
+  Routes support guards for conditional navigation:
+
+  ```ts
+  settings: {
+    id: 'settings',
+    route: {
+      guard: ({ context }) => context.role === 'admin'
+    }
+  }
+  ```
+
+### Patch Changes
+
+- [#5464](https://github.com/statelyai/xstate/pull/5464) [`ad809a0`](https://github.com/statelyai/xstate/commit/ad809a0a7084f57a30a47aade90b83caa2eb65d9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix: export types so setup() declaration emit works (fixes #5462)
+
+## 5.27.0
+
+### Minor Changes
+
+- [#5457](https://github.com/statelyai/xstate/pull/5457) [`287b51e`](https://github.com/statelyai/xstate/commit/287b51eb80abc521f8c35fa73df177a0b9dfd3bc) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `getInitialMicrosteps(…)` and `getMicrosteps(…)` functions that return an array of `[snapshot, actions]` tuples for each microstep in a transition.
+
+  ```ts
+  import { createMachine, getInitialMicrosteps, getMicrosteps } from 'xstate';
+
+  const machine = createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        entry: () => console.log('enter a'),
+        on: {
+          NEXT: 'b'
+        }
+      },
+      b: {
+        entry: () => console.log('enter b'),
+        always: 'c'
+      },
+      c: {}
+    }
+  });
+
+  // Get microsteps from initial transition
+  const initialMicrosteps = getInitialMicrosteps(machine);
+  // Returns: [
+  //  [snapshotA, [entryActionA]]
+  // ]
+
+  // Get microsteps from a transition
+  const microsteps = getMicrosteps(machine, initialMicrosteps[0][0], {
+    type: 'NEXT'
+  });
+  // Returns: [
+  //  [snapshotB, [entryActionB]],
+  //  [snapshotC, []]
+  // ]
+
+  // Each microstep is a tuple of [snapshot, actions]
+  for (const [snapshot, actions] of microsteps) {
+    console.log('State:', snapshot.value);
+    console.log('Actions:', actions.length);
+  }
+  ```
+
+## 5.26.0
+
+### Minor Changes
+
+- [#5406](https://github.com/statelyai/xstate/pull/5406) [`703c3a1`](https://github.com/statelyai/xstate/commit/703c3a109c824f2334ede31d8428e923d2727e6e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `getNextTransitions(state)` utility to get all transitions available from current `state`.
+
+  ```ts
+  import { getNextTransitions } from 'xstate';
+
+  // ...
+
+  const state = actor.getSnapshot();
+  const transitions = getNextTransitions(state);
+
+  transitions.forEach((t) => {
+    console.log(`Event: ${t.eventType}, Source: ${t.source.key}`);
+  });
+  ```
+
+## 5.25.1
+
+### Patch Changes
+
+- [#5440](https://github.com/statelyai/xstate/pull/5440) [`e36e299`](https://github.com/statelyai/xstate/commit/e36e299a319bc8d0f124f0435b30f095cbbd0ce6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `systemId` cleanup for nested children on `stopChild`
+
 ## 5.25.0
 
 ### Minor Changes

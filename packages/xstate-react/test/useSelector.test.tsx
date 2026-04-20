@@ -6,6 +6,8 @@ import {
   AnyMachineSnapshot,
   assign,
   createMachine,
+  fromCallback,
+  fromPromise,
   fromTransition,
   createActor,
   StateFrom,
@@ -762,5 +764,53 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     fireEvent.click(button);
 
     expect(stateEl.textContent).toBe('42');
+  });
+
+  it('should throw an error to an error boundary when the actor reaches an error state', async () => {
+    const errorMessage = 'test_useSelector_error';
+
+    const machine = createMachine({
+      initial: 'loading',
+      states: {
+        loading: {
+          invoke: {
+            src: fromPromise(() => Promise.reject(new Error(errorMessage)))
+          }
+        }
+      }
+    });
+
+    class ErrorBoundary extends React.Component<
+      { children: React.ReactNode },
+      { error: Error | null }
+    > {
+      state = { error: null as Error | null };
+      static getDerivedStateFromError(error: Error) {
+        return { error };
+      }
+      render() {
+        if (this.state.error) {
+          return <div data-testid="error">{this.state.error.message}</div>;
+        }
+        return this.props.children;
+      }
+    }
+
+    const App = () => {
+      const actorRef = useActorRef(machine);
+      const value = useSelector(actorRef, (s) => s.value);
+      return <div data-testid="value">{String(value)}</div>;
+    };
+
+    console.error = vi.fn();
+
+    render(
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    );
+
+    await screen.findByTestId('error');
+    expect(screen.getByTestId('error').textContent).toBe(errorMessage);
   });
 });

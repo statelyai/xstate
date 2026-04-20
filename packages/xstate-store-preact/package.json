@@ -1,0 +1,56 @@
+{
+  "name": "@xstate/store-preact",
+  "version": "1.0.1",
+  "description": "XState Store for Preact",
+  "keywords": [
+    "store",
+    "state",
+    "preact"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store-preact#readme",
+  "license": "MIT",
+  "main": "dist/xstate-store-preact.cjs.js",
+  "module": "dist/xstate-store-preact.esm.js",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-store-preact.cjs.mjs",
+        "default": "./dist/xstate-store-preact.cjs.js"
+      },
+      "module": "./dist/xstate-store-preact.esm.js",
+      "import": "./dist/xstate-store-preact.cjs.mjs",
+      "default": "./dist/xstate-store-preact.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "dist/xstate-store-preact.cjs.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "dependencies": {
+    "@xstate/store": "workspace:^"
+  },
+  "peerDependencies": {
+    "preact": "^10.0.0"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.9.0",
+    "@testing-library/preact": "^3.2.4",
+    "jsdom": "^26.0.0",
+    "preact": "^10.24.0"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      "./index.ts"
+    ]
+  }
+}

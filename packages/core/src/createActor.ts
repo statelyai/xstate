@@ -33,6 +33,7 @@ import type {
   EventFromLogic,
   InputFrom,
   IsNotNever,
+  Readable,
   Snapshot,
   SnapshotFrom
 } from './types.ts';
@@ -486,6 +487,28 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
+  public select<TSelected>(
+    selector: (snapshot: SnapshotFrom<TLogic>) => TSelected,
+    equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
+  ): Readable<TSelected> {
+    return {
+      subscribe: (observerOrFn) => {
+        const observer = toObserver(observerOrFn);
+        const snapshot = this.getSnapshot();
+        let previousSelected = selector(snapshot);
+
+        return this.subscribe((snapshot) => {
+          const nextSelected = selector(snapshot);
+          if (!equalityFn(previousSelected, nextSelected)) {
+            previousSelected = nextSelected;
+            observer.next?.(nextSelected);
+          }
+        });
+      },
+      get: () => selector(this.getSnapshot())
+    };
+  }
+
   /** Starts the Actor from the initial state */
   public start(): this {
     if (this._processingStatus === ProcessingStatus.Running) {
@@ -635,12 +658,14 @@ export class Actor<TLogic extends AnyActorLogic>
       }
     }
     this.observers.clear();
+    this.eventListeners.clear();
   }
   private _reportError(err: unknown): void {
     if (!this.observers.size) {
       if (!this._parent) {
         reportUnhandledError(err);
       }
+      this.eventListeners.clear();
       return;
     }
     let reportError = false;
@@ -655,6 +680,7 @@ export class Actor<TLogic extends AnyActorLogic>
       }
     }
     this.observers.clear();
+    this.eventListeners.clear();
     if (reportError) {
       reportUnhandledError(err);
     }
