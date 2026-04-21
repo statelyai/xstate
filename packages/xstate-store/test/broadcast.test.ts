@@ -173,16 +173,20 @@ describe('subscribeToBroadcastStorage', () => {
 
     expect(store.getSnapshot().context.count).toBe(0);
 
-    // Simulate another tab writing to storage and broadcasting
+    // Simulate another tab writing to storage and broadcasting.
+    // Use a separate BC to represent the other tab's sender — BroadcastChannel
+    // self-exclusion means posting via `storage.channel` would not deliver
+    // to a listener attached to that same instance.
     base.setItem(
       'test-store',
       JSON.stringify({ context: { count: 42 }, version: 0 })
     );
-    // The other tab's broadcast storage would post this message:
-    storage.channel.postMessage({
+    const otherTab = new MockBroadcastChannel('xstate-store');
+    otherTab.postMessage({
       type: 'xstate-store-update',
       name: 'test-store'
     });
+    otherTab.close();
 
     // subscribeToBroadcastStorage calls rehydrateStore which is async
     // but with sync storage the send happens synchronously after await
@@ -207,11 +211,13 @@ describe('subscribeToBroadcastStorage', () => {
 
     const unsub = subscribeToBroadcastStorage(store);
 
-    // Broadcast for a different store name
-    storage.channel.postMessage({
+    // Broadcast for a different store name (from a separate tab)
+    const otherTab = new MockBroadcastChannel('xstate-store');
+    otherTab.postMessage({
       type: 'xstate-store-update',
       name: 'store-b'
     });
+    otherTab.close();
 
     return new Promise<void>((resolve) => {
       setTimeout(() => {
@@ -234,15 +240,17 @@ describe('subscribeToBroadcastStorage', () => {
     const unsub = subscribeToBroadcastStorage(store);
     unsub();
 
-    // Now write and broadcast
+    // Now write and broadcast from another tab
     base.setItem(
       'test-store',
       JSON.stringify({ context: { count: 99 }, version: 0 })
     );
-    storage.channel.postMessage({
+    const otherTab = new MockBroadcastChannel('xstate-store');
+    otherTab.postMessage({
       type: 'xstate-store-update',
       name: 'test-store'
     });
+    otherTab.close();
 
     return new Promise<void>((resolve) => {
       setTimeout(() => {
@@ -264,6 +272,19 @@ describe('subscribeToBroadcastStorage', () => {
     );
   });
 
+  it('should throw if storage is not wrapped with createBroadcastStorage', () => {
+    const base = createMockStorage();
+
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(persist({ name: 'test-store', storage: base }));
+
+    expect(() => subscribeToBroadcastStorage(store)).toThrow(
+      'store.storage must be wrapped with createBroadcastStorage()'
+    );
+  });
+
   it('should use a custom channel name', () => {
     const base = createMockStorage();
     const storage = createBroadcastStorage(base, { channel: 'custom' });
@@ -273,7 +294,7 @@ describe('subscribeToBroadcastStorage', () => {
       on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
     }).with(persist({ name: 'test-store', storage }));
 
-    const unsub = subscribeToBroadcastStorage(store, { channel: 'custom' });
+    const unsub = subscribeToBroadcastStorage(store);
 
     base.setItem(
       'test-store',
@@ -369,14 +390,47 @@ describe('subscribeToBroadcastStorage', () => {
 
     const unsub = subscribeToBroadcastStorage(store);
 
-    // Post an unrelated message
-    storage.channel.postMessage({ type: 'something-else', name: 'test-store' });
-    storage.channel.postMessage('just a string');
-    storage.channel.postMessage(null);
+    // Post unrelated messages from another tab
+    const otherTab = new MockBroadcastChannel('xstate-store');
+    otherTab.postMessage({ type: 'something-else', name: 'test-store' });
+    otherTab.postMessage('just a string');
+    otherTab.postMessage(null);
+    otherTab.close();
 
     return new Promise<void>((resolve) => {
       setTimeout(() => {
         expect(store.getSnapshot().context.count).toBe(0);
+        unsub();
+        resolve();
+      }, 0);
+    });
+  });
+
+  it('should not self-rehydrate from its own writes in the same tab', () => {
+    const base = createMockStorage();
+    const storage = createBroadcastStorage(base);
+
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(persist({ name: 'test-store', storage }));
+
+    const unsub = subscribeToBroadcastStorage(store);
+
+    const rehydrateSpy = vi.fn();
+    store.subscribe(rehydrateSpy);
+
+    // Local write: storage.setItem broadcasts on its own BC. With a shared
+    // BC the subscriber's listener is attached to the same instance, and
+    // BroadcastChannel self-exclusion prevents delivery back to itself.
+    store.trigger.inc();
+    const countAfterLocal = store.getSnapshot().context.count;
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        // Only the local inc triggered an update; no loopback rehydrate.
+        expect(store.getSnapshot().context.count).toBe(countAfterLocal);
+        expect(countAfterLocal).toBe(1);
         unsub();
         resolve();
       }, 0);

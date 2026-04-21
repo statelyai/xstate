@@ -941,7 +941,7 @@ export interface BroadcastStorageOptions {
  * }).with(persist({ name: 'my-store', storage }));
  *
  * // Listen for updates from other tabs and rehydrate this store
- * const unsubscribe = subscribeToBroadcastStorage(store, { storage });
+ * const unsubscribe = subscribeToBroadcastStorage(store);
  *
  * // Clean up on page unload
  * window.addEventListener('beforeunload', unsubscribe);
@@ -984,18 +984,15 @@ export function createBroadcastStorage(
  * @example
  *
  * ```ts
- * const unsub = subscribeToBroadcastStorage(store, { storage });
+ * const unsub = subscribeToBroadcastStorage(store);
  * // later…
  * unsub();
  * ```
  */
-export function subscribeToBroadcastStorage(
-  store: {
-    getSnapshot: () => any;
-    send: (event: any) => void;
-  },
-  options?: BroadcastStorageOptions
-): () => void {
+export function subscribeToBroadcastStorage(store: {
+  getSnapshot: () => any;
+  send: (event: any) => void;
+}): () => void {
   const internals = store.getSnapshot()?.[PERSIST_INTERNALS] as
     | PersistInternals<any>
     | undefined;
@@ -1005,8 +1002,18 @@ export function subscribeToBroadcastStorage(
     );
   }
 
-  const channelName = options?.channel ?? 'xstate-store';
-  const bc = new BroadcastChannel(channelName);
+  // The storage must be wrapped with createBroadcastStorage so the listener
+  // attaches to the same BroadcastChannel that posts updates. Sharing the BC
+  // ensures the spec's self-exclusion prevents this tab's own writes from
+  // triggering rehydration.
+  const bc = (
+    internals.storage as StateStorage & { channel?: BroadcastChannel }
+  ).channel;
+  if (!(bc instanceof BroadcastChannel)) {
+    throw new Error(
+      'subscribeToBroadcastStorage: store.storage must be wrapped with createBroadcastStorage()'
+    );
+  }
   const storeName = internals.options.name;
 
   const handler = (event: MessageEvent) => {
@@ -1025,6 +1032,5 @@ export function subscribeToBroadcastStorage(
 
   return () => {
     bc.removeEventListener('message', handler);
-    bc.close();
   };
 }
