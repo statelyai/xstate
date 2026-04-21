@@ -36,30 +36,12 @@ export function mapState<T extends AnyMachineSnapshot, TResult>(
 ): { stateNode: AnyStateNode; result: TResult }[] {
   const results: { stateNode: AnyStateNode; result: TResult }[] = [];
 
-  // Helper to check if a node is atomic
-  const isAtomicStateNode = (stateNode: AnyStateNode) =>
-    stateNode.type === 'atomic' || stateNode.type === 'final';
-
-  // Helper to get the path from a node to root (including the node itself)
-  const getPathToRoot = (node: AnyStateNode): AnyStateNode[] => {
-    const path: AnyStateNode[] = [node];
-    let current: AnyStateNode | undefined = node.parent;
-    while (current) {
-      path.push(current);
-      current = current.parent;
-    }
-    return path;
-  };
-
-  // Helper to find the mapper for a given node key path
-  // nodePath is from root to the node (e.g., ['a', 'one'])
   const findMapper = (
     currentMapper: StateSchemaMapper<T, StateSchemaFrom<T['machine']>, TResult>,
     nodePath: string[]
   ): StateSchemaMapper<T, any, TResult> | undefined => {
     let mapper: StateSchemaMapper<T, any, TResult> | undefined = currentMapper;
 
-    // Traverse the node path forward (root to node) to find the nested mapper
     for (const key of nodePath) {
       if (!mapper?.states) {
         return undefined;
@@ -77,25 +59,22 @@ export function mapState<T extends AnyMachineSnapshot, TResult>(
     return mapper;
   };
 
-  // Get all atomic nodes
-  const atomicNodes = snapshot._nodes.filter(isAtomicStateNode);
+  const isAtomicStateNode = (stateNode: AnyStateNode) =>
+    stateNode.type === 'atomic' || stateNode.type === 'final';
 
-  // For each atomic node, traverse up to root and collect mapping results
-  for (const atomicNode of atomicNodes) {
-    const pathToRoot = getPathToRoot(atomicNode);
+  const visited = new Set<AnyStateNode>();
 
-    // Process from atomic node up to root
-    for (const stateNode of pathToRoot) {
-      // Get the path from root to this node (for mapper lookup)
-      const nodePathFromRoot = stateNode.path;
+  for (const atomicNode of snapshot._nodes.filter(isAtomicStateNode)) {
+    let current: AnyStateNode | undefined = atomicNode;
+    while (current && !visited.has(current)) {
+      visited.add(current);
 
-      // Find the mapper for this node
-      const nodeMapper = findMapper(mapper, nodePathFromRoot);
-
-      // If mapper exists, call map and add to results
+      const nodeMapper = findMapper(mapper, current.path);
       if (nodeMapper?.map) {
-        results.push({ stateNode, result: nodeMapper.map(snapshot) });
+        results.push({ stateNode: current, result: nodeMapper.map(snapshot) });
       }
+
+      current = current.parent;
     }
   }
 
