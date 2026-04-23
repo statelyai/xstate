@@ -1730,8 +1730,8 @@ describe('invoke', () => {
           logic: typeof child;
         };
       },
+      // @ts-expect-error
       invoke: {
-        // @ts-expect-error
         id: 'child',
         src: 'child'
       }
@@ -1836,9 +1836,9 @@ describe('invoke', () => {
           id: 'myChild';
         };
       },
+      // @ts-expect-error
       invoke: {
         src: child2,
-        // @ts-expect-error
         id: 'myChild'
       }
     });
@@ -1856,9 +1856,9 @@ describe('invoke', () => {
           logic: typeof child;
         };
       },
+      // @ts-expect-error
       invoke: {
         src: 'child',
-        // @ts-expect-error
         input: 'hello'
       }
     });
@@ -1914,9 +1914,9 @@ describe('invoke', () => {
           logic: typeof child;
         };
       },
+      // @ts-expect-error
       invoke: {
         src: 'child',
-        // @ts-expect-error
         input: Math.random() > 0.5 ? 'string' : 42
       }
     });
@@ -1934,9 +1934,9 @@ describe('invoke', () => {
           logic: typeof child;
         };
       },
+      // @ts-expect-error
       invoke: {
         src: 'child',
-        // @ts-expect-error
         input: () => 'hello'
       }
     });
@@ -1973,9 +1973,9 @@ describe('invoke', () => {
           logic: typeof child;
         };
       },
+      // @ts-expect-error
       invoke: {
         src: 'child',
-        // @ts-expect-error
         input: () => (Math.random() > 0.5 ? 42 : 'hello')
       }
     });
@@ -2929,9 +2929,9 @@ describe('actions', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
+      // @ts-expect-error
       entry: {
         type: 'greet',
-        // @ts-expect-error
         params: {}
       }
     });
@@ -3102,9 +3102,9 @@ describe('actions', () => {
           | { type: 'greet'; params: { surname: string } }
           | { type: 'poke' };
       },
+      // @ts-expect-error
       entry: {
         type: 'greet',
-        // @ts-expect-error
         params: () => ({
           surname: 100
         })
@@ -3183,9 +3183,9 @@ describe('enqueueActions', () => {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
       entry: enqueueActions(({ enqueue }) => {
+        // @ts-expect-error
         enqueue({
           type: 'greet',
-          // @ts-expect-error
           params: {}
         });
       })

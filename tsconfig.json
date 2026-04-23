@@ -9,7 +9,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "jsx": "react-jsx",
-    "lib": ["es2019", "ESNext.Promise", "dom"],
+    "lib": ["es2024", "dom"],
     "strict": true,
     "stripInternal": true,
     "types": ["vitest/globals"]

@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.17.1
+
+### Patch Changes
+
+- [#5486](https://github.com/statelyai/xstate/pull/5486) [`582e43a`](https://github.com/statelyai/xstate/commit/582e43ac57c935712fbed74d6769e78b721eb0f7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix emitted events not firing on stores with extensions (`.with()`)
+
 ## 3.17.0
 
 ### Minor Changes
