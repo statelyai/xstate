@@ -36,6 +36,66 @@ const inspectionObservers = new WeakMap<
   Store<any, any, any>,
   Set<Observer<StoreInspectionEvent>>
 >();
+const isDevelopment =
+  (
+    globalThis as {
+      process?: {
+        env?: {
+          NODE_ENV?: string;
+        };
+      };
+    }
+  ).process?.env?.NODE_ENV !== 'production';
+
+function getDistinctEventTypes(eventTypes: readonly string[]): string[] {
+  return [...new Set(eventTypes)];
+}
+
+export function assertNoInternalEventTypeCollisions(
+  existingEventTypes: readonly string[] | undefined,
+  internalEventTypes: readonly string[],
+  extensionName: string
+): void {
+  if (!isDevelopment || !existingEventTypes?.length) {
+    return;
+  }
+
+  const existingEventTypeSet = new Set(existingEventTypes);
+  const collisions = getDistinctEventTypes(
+    internalEventTypes.filter((eventType) =>
+      existingEventTypeSet.has(eventType)
+    )
+  );
+
+  if (collisions.length === 0) {
+    return;
+  }
+
+  throw new Error(
+    `The "${extensionName}" store extension uses reserved event type(s): ${collisions
+      .map((eventType) => `"${eventType}"`)
+      .join(
+        ', '
+      )}. Rename the conflicting store event(s) before applying the extension.`
+  );
+}
+
+export function appendInternalEventTypes(
+  existingEventTypes: readonly string[] | undefined,
+  internalEventTypes: readonly string[],
+  extensionName: string
+): readonly string[] {
+  assertNoInternalEventTypeCollisions(
+    existingEventTypes,
+    internalEventTypes,
+    extensionName
+  );
+
+  return getDistinctEventTypes([
+    ...(existingEventTypes ?? []),
+    ...internalEventTypes
+  ]);
+}
 
 function createConcreteTrigger<
   TContext extends StoreContext,
@@ -176,7 +236,9 @@ function createStoreCore<
         }
       };
     },
-    transition: logic.transition as any, // TODO: fix this
+    transition(state, event) {
+      return transition(state as TSnapshot, event as StoreEvent);
+    },
     sessionId: uniqueId(),
     send,
     getSnapshot() {

@@ -8,6 +8,7 @@ import {
   StoreLogic,
   StoreSnapshot
 } from './types';
+import { appendInternalEventTypes } from './store';
 
 interface UndoRedoEventOptions<
   TContext extends StoreContext,
@@ -84,7 +85,11 @@ function undoRedoFromLogic<
   if (options?.strategy === 'snapshot') {
     // Snapshot strategy
     const enhancedLogic: AnyStoreLogic = {
-      eventTypes: [...(logic.eventTypes ?? []), 'undo', 'redo'],
+      eventTypes: appendInternalEventTypes(
+        logic.eventTypes,
+        ['undo', 'redo'],
+        'undoRedo'
+      ),
       getInitialSnapshot: () => ({
         ...logic.getInitialSnapshot(),
         past: [],
@@ -218,7 +223,11 @@ function undoRedoFromLogic<
   // Event strategy (default)
   type UndoEventItem = { event: TEvent; transactionId?: string };
   const enhancedLogic: AnyStoreLogic = {
-    eventTypes: [...(logic.eventTypes ?? []), 'undo', 'redo'],
+    eventTypes: appendInternalEventTypes(
+      logic.eventTypes,
+      ['undo', 'redo'],
+      'undoRedo'
+    ),
     getInitialSnapshot: () => ({
       ...logic.getInitialSnapshot(),
       events: [] as UndoEventItem[],

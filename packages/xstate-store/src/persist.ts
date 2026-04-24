@@ -7,6 +7,7 @@ import {
   StoreLogic,
   StoreSnapshot
 } from './types';
+import { assertNoInternalEventTypeCollisions } from './store';
 
 /**
  * Storage interface compatible with `localStorage`, `sessionStorage`, and async
@@ -125,11 +126,18 @@ interface PersistInternals<TContext, TEvent extends EventObject = EventObject> {
   pendingEvents: TEvent[] | null;
   pendingCheckpoint: unknown;
   flushTimeoutId: ReturnType<typeof setTimeout> | null;
-  flush: () => void;
+  flush: () => void | Promise<void>;
 }
 
+const PERSIST_REHYDRATE_EVENT_TYPE = '__persist.rehydrate';
+const noopStorage: StateStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {}
+};
+
 function getStorage(options: PersistOptions<any, any>): StateStorage {
-  return options.storage ?? localStorage;
+  return options.storage ?? createJSONStorage(() => localStorage);
 }
 
 function isEventStrategy(
@@ -201,7 +209,7 @@ function migrateEventsIfNeeded<TEvent extends EventObject>(
 function writeSnapshotToStorage<TContext>(
   internals: PersistInternals<TContext>,
   context: TContext
-): void {
+): void | Promise<void> {
   const options = internals.options as PersistSnapshotOptions<TContext, any>;
   const { storage } = internals;
   const contextToPersist = options.pick ? options.pick(context) : context;
@@ -215,12 +223,12 @@ function writeSnapshotToStorage<TContext>(
     const serialized = serializeSnapshotValue(options, value);
     const result = storage.setItem(options.name, serialized);
     if (result instanceof Promise) {
-      result
+      return result
         .then(() => options.onDone?.(contextToPersist))
         .catch((err) => options.onError?.(err));
-    } else {
-      options.onDone?.(contextToPersist);
     }
+
+    options.onDone?.(contextToPersist);
   } catch (err) {
     options.onError?.(err);
   }
@@ -230,7 +238,7 @@ function writeEventsToStorage<TEvent extends EventObject>(
   internals: PersistInternals<any, TEvent>,
   events: TEvent[],
   checkpoint?: unknown
-): void {
+): void | Promise<void> {
   const options = internals.options as PersistEventOptions<any, TEvent>;
   const { storage } = internals;
 
@@ -246,12 +254,12 @@ function writeEventsToStorage<TEvent extends EventObject>(
     const serialized = serializeEventValue(options, value);
     const result = storage.setItem(options.name, serialized);
     if (result instanceof Promise) {
-      result
+      return result
         .then(() => options.onDone?.(events))
         .catch((err) => options.onError?.(err));
-    } else {
-      options.onDone?.(events);
     }
+
+    options.onDone?.(events);
   } catch (err) {
     options.onError?.(err);
   }
@@ -276,21 +284,23 @@ function createInternals<TContext, TEvent extends EventObject>(
       }
       if (isEventStrategy(options)) {
         if (internals.pendingEvents !== null) {
-          writeEventsToStorage(
+          const result = writeEventsToStorage(
             internals,
             internals.pendingEvents,
             internals.pendingCheckpoint
           );
           internals.pendingEvents = null;
           internals.pendingCheckpoint = null;
+          return result;
         }
       } else {
         if (internals.pendingContext !== null) {
-          writeSnapshotToStorage(
+          const result = writeSnapshotToStorage(
             internals as any,
             internals.pendingContext as TContext
           );
           internals.pendingContext = null;
+          return result;
         }
       }
     }
@@ -309,6 +319,12 @@ function persistSnapshotFromLogic<
   logic: StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>,
   options: PersistSnapshotOptions<TContext, TEvent>
 ): StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted> {
+  assertNoInternalEventTypeCollisions(
+    logic.eventTypes,
+    [PERSIST_REHYDRATE_EVENT_TYPE],
+    'persist'
+  );
+
   const internals = createInternals(options);
   const { storage } = internals;
   const throttleMs = options.throttle ?? 0;
@@ -373,7 +389,7 @@ function persistSnapshotFromLogic<
 
     transition: (snapshot, event) => {
       // Internal rehydrate event (not exposed in trigger types)
-      if (event.type === '__persist.rehydrate') {
+      if (event.type === PERSIST_REHYDRATE_EVENT_TYPE) {
         const rawState = event.state as string | null | undefined;
 
         if (!rawState) {
@@ -473,6 +489,12 @@ function persistEventFromLogic<
   logic: StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>,
   options: PersistEventOptions<TContext, TEvent>
 ): StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted> {
+  assertNoInternalEventTypeCollisions(
+    logic.eventTypes,
+    [PERSIST_REHYDRATE_EVENT_TYPE],
+    'persist'
+  );
+
   const internals = createInternals(options);
   const { storage } = internals;
   const throttleMs = options.throttle ?? 0;
@@ -554,7 +576,7 @@ function persistEventFromLogic<
 
     transition: (snapshot, event) => {
       // Internal rehydrate event
-      if (event.type === '__persist.rehydrate') {
+      if (event.type === PERSIST_REHYDRATE_EVENT_TYPE) {
         const rawState = event.state as string | null | undefined;
 
         if (!rawState) {
@@ -782,32 +804,45 @@ export function createJSONStorage(
   try {
     storage = getStorage();
   } catch {
-    // SSR or environments without storage — return noop
-    return {
-      getItem: () => null,
-      setItem: () => {},
-      removeItem: () => {}
-    };
+    return noopStorage;
   }
 
   return {
     getItem: (name) => {
       try {
-        return storage.getItem(name);
+        const result = storage?.getItem(name);
+
+        if (result instanceof Promise) {
+          return result.catch(() => null);
+        }
+
+        return result ?? null;
       } catch {
         return null;
       }
     },
     setItem: (name, value) => {
       try {
-        void storage.setItem(name, value);
+        const result = storage?.setItem(name, value);
+
+        if (result instanceof Promise) {
+          return result.catch(() => {});
+        }
+
+        return result;
       } catch {
         // Swallow write errors (quota exceeded, etc.)
       }
     },
     removeItem: (name) => {
       try {
-        void storage.removeItem(name);
+        const result = storage?.removeItem(name);
+
+        if (result instanceof Promise) {
+          return result.catch(() => {});
+        }
+
+        return result;
       } catch {
         // Swallow errors
       }
@@ -827,14 +862,16 @@ export function createJSONStorage(
  * clearStorage(store);
  * ```
  */
-export function clearStorage(store: { getSnapshot: () => any }): void {
+export function clearStorage(store: {
+  getSnapshot: () => any;
+}): void | Promise<void> {
   const internals = store.getSnapshot()?.[PERSIST_INTERNALS] as
     | PersistInternals<any>
     | undefined;
   if (!internals) {
     throw new Error('clearStorage: store does not have a persist extension');
   }
-  void internals.storage.removeItem(internals.options.name);
+  return internals.storage.removeItem(internals.options.name);
 }
 
 /**
@@ -851,14 +888,16 @@ export function clearStorage(store: { getSnapshot: () => any }): void {
  * });
  * ```
  */
-export function flushStorage(store: { getSnapshot: () => any }): void {
+export function flushStorage(store: {
+  getSnapshot: () => any;
+}): void | Promise<void> {
   const internals = store.getSnapshot()?.[PERSIST_INTERNALS] as
     | PersistInternals<any>
     | undefined;
   if (!internals) {
     throw new Error('flushStorage: store does not have a persist extension');
   }
-  internals.flush();
+  return internals.flush();
 }
 
 /**
@@ -908,5 +947,5 @@ export async function rehydrateStore(store: {
     throw new Error('rehydrateStore: store does not have a persist extension');
   }
   const data = await internals.storage.getItem(internals.options.name);
-  store.send({ type: '__persist.rehydrate', state: data });
+  store.send({ type: PERSIST_REHYDRATE_EVENT_TYPE, state: data });
 }

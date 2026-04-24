@@ -395,6 +395,24 @@ describe('persist - flushStorage', () => {
       'flushStorage: store does not have a persist extension'
     );
   });
+
+  it('should return a promise for async storage flushes', async () => {
+    const storage = createAsyncMockStorage();
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(persist({ name: 'test', storage, throttle: 1000 }));
+
+    await rehydrateStore(store);
+
+    store.trigger.inc();
+    store.trigger.inc();
+
+    await flushStorage(store);
+
+    const stored = JSON.parse((await storage.getItem('test')) as string);
+    expect(stored.context.count).toBe(2);
+  });
 });
 
 describe('persist - onDone / onError', () => {
@@ -681,6 +699,21 @@ describe('persist - clearStorage', () => {
       'clearStorage: store does not have a persist extension'
     );
   });
+
+  it('should return a promise for async storage removals', async () => {
+    const storage = createAsyncMockStorage();
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+    }).with(persist({ name: 'test', storage }));
+
+    store.trigger.inc();
+    await Promise.resolve();
+
+    await clearStorage(store);
+
+    expect(await storage.getItem('test')).toBeNull();
+  });
 });
 
 describe('persist - createJSONStorage', () => {
@@ -703,6 +736,64 @@ describe('persist - createJSONStorage', () => {
 
     storage.removeItem('foo');
     expect(storage.getItem('foo')).toBeNull();
+  });
+
+  it('should preserve async storage semantics', async () => {
+    const mockStorage = createAsyncMockStorage();
+    const storage = createJSONStorage(() => mockStorage);
+
+    await storage.setItem('foo', 'bar');
+    expect(await storage.getItem('foo')).toBe('bar');
+
+    await storage.removeItem('foo');
+    expect(await storage.getItem('foo')).toBeNull();
+  });
+});
+
+describe('persist - SSR-safe defaults', () => {
+  it('should not require localStorage when using default storage', () => {
+    const originalDescriptor = Object.getOwnPropertyDescriptor(
+      globalThis,
+      'localStorage'
+    );
+
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new Error('no localStorage');
+      }
+    });
+
+    try {
+      const store = createStore({
+        context: { count: 0 },
+        on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+      }).with(persist({ name: 'test' }));
+
+      expect(isHydrated(store)).toBe(true);
+      expect(() => store.trigger.inc()).not.toThrow();
+    } finally {
+      if (originalDescriptor) {
+        Object.defineProperty(globalThis, 'localStorage', originalDescriptor);
+      } else {
+        delete (globalThis as { localStorage?: Storage }).localStorage;
+      }
+    }
+  });
+
+  it('should detect persist rehydrate event collisions in development', () => {
+    const storage = createMockStorage();
+
+    expect(() =>
+      createStore({
+        context: { count: 0 },
+        on: {
+          ['__persist.rehydrate']: (ctx) => ctx
+        }
+      }).with(persist({ name: 'test', storage }))
+    ).toThrow(
+      'The "persist" store extension uses reserved event type(s): "__persist.rehydrate".'
+    );
   });
 });
 

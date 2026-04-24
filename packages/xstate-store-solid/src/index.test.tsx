@@ -88,6 +88,27 @@ describe('@xstate/store-solid', () => {
       store.send({ type: 'different' });
       expect(itemsDiv.textContent).toBe('3,4');
     });
+
+    it('should work with atoms', async () => {
+      const atom = createAtom(0);
+
+      const Counter = () => {
+        const count = useSelector(atom, (value) => value);
+        return (
+          <div data-testid="count" onClick={() => atom.set((prev) => prev + 1)}>
+            {count()}
+          </div>
+        );
+      };
+
+      render(() => <Counter />);
+
+      const countDiv = await screen.findByTestId('count');
+      expect(countDiv.textContent).toEqual('0');
+
+      fireEvent.click(countDiv);
+      expect(countDiv.textContent).toEqual('1');
+    });
   });
 
   describe('re-exports', () => {

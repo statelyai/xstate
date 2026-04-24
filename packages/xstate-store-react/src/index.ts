@@ -2,7 +2,6 @@ export * from '@xstate/store';
 
 import { useCallback, useRef, useSyncExternalStore } from 'react';
 import {
-  type AnyStore,
   type StoreContext,
   type EventPayloadMap,
   type StoreConfig,
@@ -12,6 +11,9 @@ import {
   type AnyAtom,
   type BaseAtom,
   type StoreSnapshot,
+  type EventFromStoreConfig,
+  type EmitsFromStoreConfig,
+  type ContextFromStoreConfig,
   createStore
 } from '@xstate/store';
 
@@ -31,11 +33,19 @@ function useSelectorWithCompare<TStore extends Readable<any>, T>(
 
   return (snapshot) => {
     const next = selector(snapshot);
-    return previous.current && compare(previous.current, next)
+    return previous.current !== undefined && compare(previous.current, next)
       ? previous.current
       : (previous.current = next);
   };
 }
+
+type EventPayloadMapFromEvent<
+  TEvent extends {
+    type: string;
+  }
+> = {
+  [E in TEvent as E['type']]: Omit<E, 'type'>;
+};
 
 /**
  * A React hook that subscribes to the `store` and selects a value from the
@@ -113,26 +123,19 @@ export function useSelector<TStore extends Readable<any>, T>(
 }
 
 export const useStore: {
-  <
-    TContext extends StoreContext,
-    TEventPayloadMap extends EventPayloadMap,
-    TEmitted extends EventPayloadMap
-  >(
-    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
-  ): Store<TContext, TEventPayloadMap, ExtractEvents<TEmitted>>;
-  <
-    TContext extends StoreContext,
-    TEventPayloadMap extends EventPayloadMap,
-    TEmitted extends EventPayloadMap
-  >(
-    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
-  ): Store<TContext, TEventPayloadMap, ExtractEvents<TEmitted>>;
+  <TDefinition extends StoreConfig<any, any, any, any, any, any>>(
+    definition: TDefinition
+  ): Store<
+    ContextFromStoreConfig<TDefinition>,
+    EventPayloadMapFromEvent<EventFromStoreConfig<TDefinition>>,
+    EmitsFromStoreConfig<TDefinition>
+  >;
 } = function useStoreImpl<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventPayloadMap
 >(definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>) {
-  const storeRef = useRef<AnyStore | undefined>(undefined);
+  const storeRef = useRef<Store<any, any, any> | undefined>(undefined);
 
   if (!storeRef.current) {
     storeRef.current = createStore(definition);
@@ -217,33 +220,32 @@ export function useAtom(
  * @returns A custom hook that returns [selectedValue, store]
  */
 export function createStoreHook<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends EventPayloadMap
->(definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>) {
-  type TStore = Store<TContext, TEventPayloadMap, ExtractEvents<TEmitted>>;
-  type TSnapshot = StoreSnapshot<TContext>;
+  TDefinition extends StoreConfig<any, any, any, any, any, any>
+>(definition: TDefinition) {
+  type TStore = Store<
+    ContextFromStoreConfig<TDefinition>,
+    EventPayloadMapFromEvent<EventFromStoreConfig<TDefinition>>,
+    EmitsFromStoreConfig<TDefinition>
+  >;
+  type TSnapshot = StoreSnapshot<ContextFromStoreConfig<TDefinition>>;
 
-  const store = createStore(definition);
+  const store = createStore(definition) as TStore;
 
-  function useStoreHook(): [TSnapshot, TStore];
-  function useStoreHook<T>(
-    selector: (snapshot: TSnapshot) => T,
-    compare?: (a: T | undefined, b: T) => boolean
-  ): [T, TStore];
-  function useStoreHook<T>(
+  function useStoreHook<T = TSnapshot>(
     selector?: (snapshot: TSnapshot) => T,
     compare: (a: T | undefined, b: T) => boolean = defaultCompare
-  ) {
-    // If no selector provided, return full snapshot
+  ): [T, TStore] {
     if (!selector) {
-      const snapshot = useSelector(store, identity, defaultCompare);
-      return [snapshot, store] as const;
+      const snapshot = useSelector(
+        store,
+        identity as (snapshot: TSnapshot) => T,
+        defaultCompare
+      );
+      return [snapshot, store];
     }
 
-    // Use selector with comparison
-    const selectedValue = useSelector(store, selector ?? identity, compare);
-    return [selectedValue, store] as const;
+    const selectedValue = useSelector(store, selector, compare);
+    return [selectedValue, store];
   }
 
   return useStoreHook;

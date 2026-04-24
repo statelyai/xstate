@@ -2,16 +2,20 @@
 export * from '@xstate/store';
 
 import { createEffect, createSignal, onCleanup } from 'solid-js';
-import type { SnapshotFromStore, AnyStore } from '@xstate/store';
+import type { Readable } from '@xstate/store';
 
 function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;
 }
 
-function useSelectorWithCompare<TStore extends AnyStore, T>(
-  selector: (snapshot: SnapshotFromStore<TStore>) => T,
+function useSelectorWithCompare<TStore extends Readable<any>, T>(
+  selector: (
+    snapshot: TStore extends Readable<infer TSnapshot> ? TSnapshot : never
+  ) => T,
   compare: (a: T | undefined, b: T) => boolean
-): (snapshot: SnapshotFromStore<TStore>) => T {
+): (
+  snapshot: TStore extends Readable<infer TSnapshot> ? TSnapshot : never
+) => T {
   let previous: T | undefined;
 
   return (state): T => {
@@ -55,21 +59,21 @@ function useSelectorWithCompare<TStore extends AnyStore, T>(
  *   previously selected value
  * @returns A read-only signal of the selected value
  */
-export function useSelector<TStore extends AnyStore, T>(
+export function useSelector<TStore extends Readable<any>, T>(
   store: TStore,
-  selector: (snapshot: SnapshotFromStore<TStore>) => T,
+  selector: (
+    snapshot: TStore extends Readable<infer TSnapshot> ? TSnapshot : never
+  ) => T,
   compare: (a: T | undefined, b: T) => boolean = defaultCompare
 ): () => T {
   const selectorWithCompare = useSelectorWithCompare(selector, compare);
   const [selectedValue, setSelectedValue] = createSignal(
-    selectorWithCompare(store.getSnapshot() as SnapshotFromStore<TStore>)
+    selectorWithCompare(store.get())
   );
 
   createEffect(() => {
     const subscription = store.subscribe(() => {
-      const newValue = selectorWithCompare(
-        store.getSnapshot() as SnapshotFromStore<TStore>
-      );
+      const newValue = selectorWithCompare(store.get());
       setSelectedValue(() => newValue);
     });
 

@@ -69,6 +69,29 @@ describe('@xstate/store-react', () => {
       fireEvent.click(screen.getByTestId('count'));
       expect(screen.getByTestId('count').textContent).toEqual('1');
     });
+
+    it('should run compare for falsy selected values', () => {
+      const store = createStore({
+        context: { count: 0, label: 'ready' },
+        on: {
+          rename: (ctx, ev: { label: string }) => ({ ...ctx, label: ev.label })
+        }
+      });
+      const compare = vi.fn((a: number | undefined, b: number) => a === b);
+
+      const Counter = () => {
+        const count = useSelector(store, (s) => s.context.count, compare);
+        return <div data-testid="count">{count}</div>;
+      };
+
+      render(<Counter />);
+
+      act(() => {
+        store.send({ type: 'rename', label: 'done' });
+      });
+
+      expect(compare).toHaveBeenCalledWith(0, 0);
+    });
   });
 
   describe('useStore', () => {

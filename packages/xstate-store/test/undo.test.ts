@@ -469,6 +469,19 @@ it('emit event types should be correct', () => {
   );
 });
 
+it('should detect undo/redo event collisions in development', () => {
+  expect(() =>
+    createStore({
+      context: { count: 0 },
+      on: {
+        undo: (ctx) => ctx
+      }
+    }).with(undoRedo())
+  ).toThrow(
+    'The "undoRedo" store extension uses reserved event type(s): "undo".'
+  );
+});
+
 describe('undoRedo with snapshot strategy', () => {
   it('should undo a single event', () => {
     const store = createStore({
