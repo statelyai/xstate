@@ -64,6 +64,8 @@ const App = () => {
 
 **Returns:** Read-only signal of the selected value
 
+`useSelector` works with the store's readable snapshot interface, while store-specific code can still use `store.getSnapshot()` directly.
+
 ---
 
 ## Re-exports

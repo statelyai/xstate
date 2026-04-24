@@ -60,7 +60,7 @@ const snapshot = useSelector(store);
 
 **Arguments:**
 
-- `store` - Store created with `createStore()`
+- `store` - Store or other readable value created with `createStore()`
 - `selector?` - Function to select a value from snapshot
 - `compare?` - Equality function (default: `===`)
 
