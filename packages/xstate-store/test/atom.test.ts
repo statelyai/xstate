@@ -61,22 +61,6 @@ it('can unsubscribe from atom changes', () => {
 it('can create a combined atom', () => {
   const nameAtom = createAtom('a');
   const numAtom = createAtom(3);
-  const combinedAtom = createAtom((read) =>
-    read(nameAtom).repeat(read(numAtom))
-  );
-
-  expect(combinedAtom.get()).toBe('aaa');
-
-  nameAtom.set('b');
-
-  expect(combinedAtom.get()).toBe('bbb');
-
-  numAtom.set(5);
-});
-
-it('can create a combined atom (get API)', () => {
-  const nameAtom = createAtom('a');
-  const numAtom = createAtom(3);
   const combinedAtom = createAtom(() => nameAtom.get().repeat(numAtom.get()));
 
   expect(combinedAtom.get()).toBe('aaa');
@@ -89,33 +73,6 @@ it('can create a combined atom (get API)', () => {
 });
 
 it('works with a mix of atoms and stores', () => {
-  const countAtom = createAtom(0);
-  const store = createStore({
-    context: { name: 'David' },
-    on: {
-      nameUpdated: (context, event: { name: string }) => ({
-        ...context,
-        name: event.name
-      })
-    }
-  });
-
-  const combinedAtom = createAtom(
-    (read) => read(store).context.name + ` ${read(countAtom)}`
-  );
-
-  expect(combinedAtom.get()).toBe('David 0');
-
-  store.send({ type: 'nameUpdated', name: 'John' });
-
-  expect(combinedAtom.get()).toBe('John 0');
-
-  countAtom.set(1);
-
-  expect(combinedAtom.get()).toBe('John 1');
-});
-
-it('works with a mix of atoms and stores (get API)', () => {
   const countAtom = createAtom(0);
   const store = createStore({
     context: { name: 'David' },
@@ -168,40 +125,6 @@ it('works with stores', () => {
   });
 
   const combinedAtom = createAtom(
-    (read) =>
-      read(nameStore).context.name + ` ${read(countStore).context.count}`
-  );
-
-  expect(combinedAtom.get()).toBe('David 0');
-
-  nameStore.trigger.nameUpdated({ name: 'John' });
-
-  expect(combinedAtom.get()).toBe('John 0');
-
-  countStore.trigger.increment();
-
-  expect(combinedAtom.get()).toBe('John 1');
-});
-
-it('works with stores (get API)', () => {
-  const nameStore = createStore({
-    context: { name: 'David' },
-    on: {
-      nameUpdated: (context, event: { name: string }) => ({
-        ...context,
-        name: event.name
-      })
-    }
-  });
-
-  const countStore = createStore({
-    context: { count: 0 },
-    on: {
-      increment: (context) => ({ ...context, count: context.count + 1 })
-    }
-  });
-
-  const combinedAtom = createAtom(
     () => nameStore.get().context.name + ` ${countStore.get().context.count}`
   );
 
@@ -225,26 +148,6 @@ it('works with selectors', () => {
   });
 
   const count = store.select((ctx) => ctx.count);
-
-  const combinedAtom = createAtom((read) => 2 * read(count));
-
-  expect(combinedAtom.get()).toBe(0);
-
-  store.trigger.increment();
-
-  expect(combinedAtom.get()).toBe(2);
-});
-
-it('works with selectors (get API)', () => {
-  const store = createStore({
-    context: { name: 'David', count: 0 },
-    on: {
-      increment: (context) => ({ ...context, count: context.count + 1 })
-    }
-  });
-
-  const count = store.select((ctx) => ctx.count);
-
   const combinedAtom = createAtom(() => 2 * count.get());
 
   expect(combinedAtom.get()).toBe(0);
@@ -257,19 +160,6 @@ it('works with selectors (get API)', () => {
 it('combined atoms should be read-only', () => {
   const atom1 = createAtom(0);
   const atom2 = createAtom(1);
-  const combinedAtom = createAtom((read) => read(atom1) + read(atom2));
-
-  expect(combinedAtom.get()).toBe(1);
-
-  // @ts-expect-error
-  combinedAtom.set?.(2);
-
-  expect(combinedAtom.get()).toBe(1);
-});
-
-it('combined atoms should be read-only (get API)', () => {
-  const atom1 = createAtom(0);
-  const atom2 = createAtom(1);
   const combinedAtom = createAtom(() => atom1.get() + atom2.get());
 
   expect(combinedAtom.get()).toBe(1);
@@ -280,26 +170,23 @@ it('combined atoms should be read-only (get API)', () => {
   expect(combinedAtom.get()).toBe(1);
 });
 
-it('conditionally read atoms are properly read in combined atoms', () => {
-  const atom1 = createAtom(true);
-  const atom2 = createAtom(false);
-  const activatorAtom = createAtom<'inactive' | 'active'>('inactive');
-  const combinedAtom = createAtom((read) =>
-    read(activatorAtom) === 'active' ? read(atom1) : read(atom2)
-  );
+it('combined atom getters must be zero-argument functions', () => {
+  const atom = createAtom(1);
 
-  expect(combinedAtom.get()).toBe(false);
+  if (false) {
+    createAtom(
+      // @ts-expect-error
+      (read) => read(atom)
+    );
 
-  activatorAtom.set('active');
-
-  expect(combinedAtom.get()).toBe(true);
-
-  activatorAtom.set('inactive');
-
-  expect(combinedAtom.get()).toBe(false);
+    createAtom<number>(
+      // @ts-expect-error
+      (_, prev) => atom.get() + (prev ?? 0)
+    );
+  }
 });
 
-it('conditionally read atoms are properly read in combined atoms (get API)', () => {
+it('conditionally read atoms are properly read in combined atoms', () => {
   const atom1 = createAtom(true);
   const atom2 = createAtom(false);
   const activatorAtom = createAtom<'inactive' | 'active'>('inactive');
@@ -319,51 +206,6 @@ it('conditionally read atoms are properly read in combined atoms (get API)', () 
 });
 
 it('conditionally read atoms are properly unsubscribed when no longer needed', () => {
-  const atom1 = createAtom(true);
-  const activatorAtom = createAtom<'inactive' | 'active'>('active');
-  const combinedAtom = createAtom((read) =>
-    read(activatorAtom) === 'active' ? read(atom1) : {}
-  );
-
-  const vals: any[] = [];
-
-  combinedAtom.subscribe((val) => vals.push(val));
-
-  atom1.set(false);
-
-  expect(vals).toEqual([false]);
-
-  atom1.set(true);
-
-  expect(vals).toEqual([false, true]);
-
-  activatorAtom.set('inactive');
-
-  // From here, atom1 should no longer be subscribed to
-  // Without the unsubscribe logic, this would be [false, true, {}, {}, ...]
-
-  expect(vals).toEqual([false, true, {}]);
-
-  atom1.set(false);
-
-  expect(vals).toEqual([false, true, {}]);
-
-  atom1.set(true);
-
-  expect(vals).toEqual([false, true, {}]);
-
-  // Subscribing again should cause atom1 to be subscribed again
-
-  activatorAtom.set('active');
-
-  expect(vals).toEqual([false, true, {}, true]);
-
-  atom1.set(false);
-
-  expect(vals).toEqual([false, true, {}, true, false]);
-});
-
-it('conditionally read atoms are properly unsubscribed when no longer needed (get API)', () => {
   const atom1 = createAtom(true);
   const activatorAtom = createAtom<'inactive' | 'active'>('active');
   const combinedAtom = createAtom(() =>
@@ -592,21 +434,6 @@ it('Atom-specific properties should not be exposed', () => {
   store._deps;
   // @ts-expect-error
   store._depsTail;
-});
-
-it('computed atoms can use their previous value in the getter', () => {
-  const count = createAtom(1);
-  const accumulated = createAtom<number>(
-    (_, prev) => count.get() + (prev ?? 0)
-  );
-
-  expect(accumulated.get()).toBe(1); // 0 + 1 = 1
-
-  count.set(2);
-  expect(accumulated.get()).toBe(3); // 1 + 2 = 3
-
-  count.set(3);
-  expect(accumulated.get()).toBe(6); // 3 + 3 = 6
 });
 
 describe('async atoms', () => {

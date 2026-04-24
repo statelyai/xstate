@@ -8,7 +8,6 @@ import {
   Atom,
   AtomOptions,
   Observer,
-  Readable,
   ReadonlyAtom,
   Subscription
 } from './types';
@@ -106,7 +105,7 @@ export function createAsyncAtom<T>(
 }
 
 export function createAtom<T>(
-  getValue: (read: <U>(atom: Readable<U>) => U, prev?: NoInfer<T>) => T,
+  getValue: () => T,
   options?: AtomOptions<T>
 ): ReadonlyAtom<T>;
 export function createAtom<T>(
@@ -114,14 +113,11 @@ export function createAtom<T>(
   options?: AtomOptions<T>
 ): Atom<T>;
 export function createAtom<T>(
-  valueOrFn: T | ((read: <U>(atom: Readable<U>) => U, prev?: T) => T),
+  valueOrFn: T | (() => T),
   options?: AtomOptions<T>
 ): Atom<T> | ReadonlyAtom<T> {
   const isComputed = typeof valueOrFn === 'function';
-  const getter = valueOrFn as (
-    read: <U>(atom: Readable<U>) => U,
-    prev?: T
-  ) => T;
+  const getter = valueOrFn as () => T;
 
   // Create plain object atom
   const atom: InternalAtom<T> = {
@@ -169,12 +165,11 @@ export function createAtom<T>(
       }
       try {
         const oldValue = atom._snapshot;
-        const read = (a: Readable<any>) => a.get();
         const newValue =
           typeof getValue === 'function'
             ? (getValue as (snapshot: T) => T)(oldValue)
             : getValue === undefined && isComputed
-              ? getter(read, oldValue)
+              ? getter()
               : getValue!;
         if (oldValue === undefined || !compare(oldValue, newValue)) {
           atom._snapshot = newValue;
