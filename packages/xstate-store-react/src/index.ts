@@ -2,17 +2,16 @@ export * from '@xstate/store';
 
 import { useCallback, useRef, useSyncExternalStore } from 'react';
 import {
-  type StoreContext,
-  type EventPayloadMap,
-  type StoreConfig,
   type Store,
+  type StoreConfig,
+  type ResolveStoreContext,
+  type ResolveStoreEventPayloadMap,
+  type ResolveStoreEmittedPayloadMap,
   type ExtractEvents,
   type Readable,
   type AnyAtom,
   type BaseAtom,
   type StoreSnapshot,
-  type EventFromStoreConfig,
-  type EmitsFromStoreConfig,
   type ContextFromStoreConfig,
   createStore
 } from '@xstate/store';
@@ -25,10 +24,10 @@ function identity<T>(snapshot: T): T {
   return snapshot;
 }
 
-function useSelectorWithCompare<TStore extends Readable<any>, T>(
-  selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
+function useSelectorWithCompare<TSnapshot, T>(
+  selector: (snapshot: TSnapshot) => T,
   compare: (a: T | undefined, b: T) => boolean
-): (snapshot: TStore extends Readable<infer TValue> ? TValue : never) => T {
+): (snapshot: TSnapshot) => T {
   const previous = useRef<T | undefined>(undefined);
 
   return (snapshot) => {
@@ -39,13 +38,32 @@ function useSelectorWithCompare<TStore extends Readable<any>, T>(
   };
 }
 
-type EventPayloadMapFromEvent<
-  TEvent extends {
-    type: string;
-  }
-> = {
-  [E in TEvent as E['type']]: Omit<E, 'type'>;
-};
+type AnyStoreConfig = StoreConfig<any, any, any, any, any, any>;
+
+type StoreFromDefinition<TDefinition extends AnyStoreConfig> =
+  TDefinition extends StoreConfig<
+    infer TContext,
+    infer TEventPayloadMap,
+    infer TEmittedPayloadMap,
+    infer TContextSchema,
+    infer TEventSchemaMap,
+    infer TEmittedSchemaMap
+  >
+    ? Store<
+        ResolveStoreContext<TContext, TContextSchema>,
+        ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>,
+        ExtractEvents<
+          ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
+        >
+      >
+    : never;
+
+function createStoreFromDefinition<TDefinition extends AnyStoreConfig>(
+  definition: TDefinition
+): StoreFromDefinition<TDefinition>;
+function createStoreFromDefinition(definition: AnyStoreConfig) {
+  return createStore(definition);
+}
 
 /**
  * A React hook that subscribes to the `store` and selects a value from the
@@ -68,9 +86,9 @@ type EventPayloadMapFromEvent<
  *   previous value
  * @returns The selected value
  */
-export function useSelector<TStore extends Readable<any>, T>(
-  store: TStore,
-  selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
+export function useSelector<TSnapshot, T>(
+  store: Readable<TSnapshot>,
+  selector: (snapshot: TSnapshot) => T,
   compare?: (a: T | undefined, b: T) => boolean
 ): T;
 /**
@@ -95,50 +113,57 @@ export function useSelector<TStore extends Readable<any>, T>(
  *   previous value
  * @returns The selected value
  */
-export function useSelector<TStore extends Readable<any>>(
-  store: TStore,
+export function useSelector<TSnapshot>(
+  store: Readable<TSnapshot>,
   selector?: undefined,
-  compare?: (
-    a: TStore extends Readable<infer T> ? T : never | undefined,
-    b: TStore extends Readable<infer T> ? T : never | undefined
-  ) => boolean
-): TStore extends Readable<infer T> ? T : never;
-export function useSelector<TStore extends Readable<any>, T>(
-  store: TStore,
-  selector: (
-    snapshot: TStore extends Readable<infer T> ? T : never
-  ) => T = identity,
+  compare?: (a: TSnapshot | undefined, b: TSnapshot | undefined) => boolean
+): TSnapshot;
+export function useSelector<TSnapshot, T>(
+  store: Readable<TSnapshot>,
+  selector?: (snapshot: TSnapshot) => T,
   compare: (a: T | undefined, b: T) => boolean = defaultCompare
-): T {
+): T | TSnapshot {
+  const subscribe = useCallback(
+    (handleStoreChange: () => void) =>
+      store.subscribe(handleStoreChange).unsubscribe,
+    [store]
+  );
+
+  if (!selector) {
+    const selectorWithCompare = useSelectorWithCompare(
+      identity,
+      defaultCompare
+    );
+
+    return useSyncExternalStore(
+      subscribe,
+      () => selectorWithCompare(store.get()),
+      () => selectorWithCompare(store.get())
+    );
+  }
+
   const selectorWithCompare = useSelectorWithCompare(selector, compare);
 
   return useSyncExternalStore(
-    useCallback(
-      (handleStoreChange) => store.subscribe(handleStoreChange).unsubscribe,
-      [store]
-    ),
+    subscribe,
     () => selectorWithCompare(store.get()),
     () => selectorWithCompare(store.get())
   );
 }
 
 export const useStore: {
-  <TDefinition extends StoreConfig<any, any, any, any, any, any>>(
+  <TDefinition extends AnyStoreConfig>(
     definition: TDefinition
-  ): Store<
-    ContextFromStoreConfig<TDefinition>,
-    EventPayloadMapFromEvent<EventFromStoreConfig<TDefinition>>,
-    EmitsFromStoreConfig<TDefinition>
-  >;
-} = function useStoreImpl<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends EventPayloadMap
->(definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>) {
-  const storeRef = useRef<Store<any, any, any> | undefined>(undefined);
+  ): StoreFromDefinition<TDefinition>;
+} = function useStoreImpl<TDefinition extends AnyStoreConfig>(
+  definition: TDefinition
+) {
+  const storeRef = useRef<StoreFromDefinition<TDefinition> | undefined>(
+    undefined
+  );
 
   if (!storeRef.current) {
-    storeRef.current = createStore(definition);
+    storeRef.current = createStoreFromDefinition(definition);
   }
 
   return storeRef.current;
@@ -219,28 +244,25 @@ export function useAtom(
  * @param definition The store configuration object
  * @returns A custom hook that returns [selectedValue, store]
  */
-export function createStoreHook<
-  TDefinition extends StoreConfig<any, any, any, any, any, any>
->(definition: TDefinition) {
-  type TStore = Store<
-    ContextFromStoreConfig<TDefinition>,
-    EventPayloadMapFromEvent<EventFromStoreConfig<TDefinition>>,
-    EmitsFromStoreConfig<TDefinition>
-  >;
+export function createStoreHook<TDefinition extends AnyStoreConfig>(
+  definition: TDefinition
+) {
+  type TStore = StoreFromDefinition<TDefinition>;
   type TSnapshot = StoreSnapshot<ContextFromStoreConfig<TDefinition>>;
 
-  const store = createStore(definition) as TStore;
+  const store = createStoreFromDefinition(definition);
 
-  function useStoreHook<T = TSnapshot>(
+  function useStoreHook(): [TSnapshot, TStore];
+  function useStoreHook<T>(
+    selector: (snapshot: TSnapshot) => T,
+    compare?: (a: T | undefined, b: T) => boolean
+  ): [T, TStore];
+  function useStoreHook<T>(
     selector?: (snapshot: TSnapshot) => T,
     compare: (a: T | undefined, b: T) => boolean = defaultCompare
-  ): [T, TStore] {
+  ) {
     if (!selector) {
-      const snapshot = useSelector(
-        store,
-        identity as (snapshot: TSnapshot) => T,
-        defaultCompare
-      );
+      const snapshot = useSelector(store);
       return [snapshot, store];
     }
 

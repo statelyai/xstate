@@ -8,14 +8,10 @@ function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;
 }
 
-function useSelectorWithCompare<TStore extends Readable<any>, T>(
-  selector: (
-    snapshot: TStore extends Readable<infer TSnapshot> ? TSnapshot : never
-  ) => T,
+function useSelectorWithCompare<TSnapshot, T>(
+  selector: (snapshot: TSnapshot) => T,
   compare: (a: T | undefined, b: T) => boolean
-): (
-  snapshot: TStore extends Readable<infer TSnapshot> ? TSnapshot : never
-) => T {
+): (snapshot: TSnapshot) => T {
   let previous: T | undefined;
 
   return (state): T => {
@@ -59,11 +55,9 @@ function useSelectorWithCompare<TStore extends Readable<any>, T>(
  *   previously selected value
  * @returns A read-only signal of the selected value
  */
-export function useSelector<TStore extends Readable<any>, T>(
-  store: TStore,
-  selector: (
-    snapshot: TStore extends Readable<infer TSnapshot> ? TSnapshot : never
-  ) => T,
+export function useSelector<TSnapshot, T>(
+  store: Readable<TSnapshot>,
+  selector: (snapshot: TSnapshot) => T,
   compare: (a: T | undefined, b: T) => boolean = defaultCompare
 ): () => T {
   const selectorWithCompare = useSelectorWithCompare(selector, compare);

@@ -96,13 +96,13 @@ describe('@xstate/store-react', () => {
 
   describe('useStore', () => {
     it('should create a stable store reference', () => {
-      let storeRefs: any[] = [];
+      let storeRefs: object[] = [];
 
       const Counter = () => {
         const store = useStore({
           context: { count: 0 },
           on: {
-            inc: (ctx) => ({ ...ctx, count: ctx.count + 1 })
+            inc: (ctx: { count: number }) => ({ ...ctx, count: ctx.count + 1 })
           }
         });
 
@@ -172,7 +172,7 @@ describe('@xstate/store-react', () => {
       const useCountStore = createStoreHook({
         context: { count: 0 },
         on: {
-          inc: (ctx) => ({ ...ctx, count: ctx.count + 1 })
+          inc: (ctx: { count: number }) => ({ ...ctx, count: ctx.count + 1 })
         }
       });
 
