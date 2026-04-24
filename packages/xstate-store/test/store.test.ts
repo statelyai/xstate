@@ -141,6 +141,15 @@ it('can be observed', () => {
   expect(counts).toEqual([1, 2, 3]);
 });
 
+it('does not expose atom internals at runtime', () => {
+  const store = createStore({
+    context: { count: 0 },
+    on: {}
+  });
+
+  expect('_snapshot' in store).toBe(false);
+});
+
 it('can be inspected', () => {
   const store = createStore({
     context: {

@@ -1,6 +1,6 @@
 import './App.css';
 import { createStore } from '@xstate/store';
-import { useSelector } from '@xstate/store/react';
+import { useSelector } from '@xstate/store-react';
 import { useEffect } from 'react';
 import { createBrowserInspector } from '@statelyai/inspect';
 

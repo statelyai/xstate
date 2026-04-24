@@ -17,7 +17,6 @@ import {
   StoreSnapshot,
   Selector,
   Selection,
-  InternalBaseAtom,
   StoreLogic,
   StoreTransition,
   AnyStoreLogic,
@@ -92,11 +91,7 @@ function createStoreCore<
     }
   }
 
-  const store: Store<TContext, TEventPayloadMap, TEmitted> &
-    Pick<InternalBaseAtom<any>, '_snapshot'> = {
-    get _snapshot() {
-      return (atom as unknown as InternalBaseAtom<any>)._snapshot;
-    },
+  const store: Store<TContext, TEventPayloadMap, TEmitted> = {
     on(emittedEventType, handler) {
       if (!listeners) {
         listeners = new Map();

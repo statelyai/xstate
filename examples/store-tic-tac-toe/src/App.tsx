@@ -1,4 +1,4 @@
-import { useSelector } from '@xstate/store/react';
+import { useSelector } from '@xstate/store-react';
 import { gameStore, getGameOutcome } from './store';
 import './App.css';
 

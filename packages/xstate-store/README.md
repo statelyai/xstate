@@ -61,43 +61,13 @@ donutStore.trigger.changeFlavor({ flavor: 'strawberry' });
 // => { donuts: 1, favoriteFlavor: 'strawberry' }
 ```
 
-<details>
-<summary>Note: Deprecated <code>createStore(context, transitions)</code> API
-
-</summary>
-
-The previous version of `createStore` took two arguments: an initial context and an object of event handlers. This API is still supported but deprecated. Here's an example of the old usage:
-
-```ts
-import { createStore } from '@xstate/store';
-
-const donutStore = createStore(
-  {
-    donuts: 0,
-    favoriteFlavor: 'chocolate'
-  },
-  {
-    addDonut: (context) => ({ ...context, donuts: context.donuts + 1 }),
-    changeFlavor: (context, event: { flavor: string }) => ({
-      ...context,
-      favoriteFlavor: event.flavor
-    }),
-    eatAllDonuts: (context) => ({ ...context, donuts: 0 })
-  }
-);
-```
-
-We recommend using the new API for better type inference and more explicit configuration.
-
-</details>
-
 ## Usage with React
 
-Import `useSelector` from `@xstate/store/react`. Select the data you want via `useSelector(…)` and send events using `store.send(eventObject)`:
+Import `useSelector` from `@xstate/store-react`. Select the data you want via `useSelector(…)` and send events using `store.send(eventObject)`:
 
 ```tsx
 import { donutStore } from './donutStore.ts';
-import { useSelector } from '@xstate/store/react';
+import { useSelector } from '@xstate/store-react';
 
 function DonutCounter() {
   const donutCount = useSelector(donutStore, (state) => state.context.donuts);
@@ -114,11 +84,11 @@ function DonutCounter() {
 
 ## Usage with SolidJS
 
-Import `useSelector` from `@xstate/store/solid`. Select the data you want via `useSelector(…)` and send events using `store.send(eventObject)`:
+Import `useSelector` from `@xstate/store-solid`. Select the data you want via `useSelector(…)` and send events using `store.send(eventObject)`:
 
 ```tsx
 import { donutStore } from './donutStore.ts';
-import { useSelector } from '@xstate/store/solid';
+import { useSelector } from '@xstate/store-solid';
 
 function DonutCounter() {
   const donutCount = useSelector(donutStore, (state) => state.context.donuts);
@@ -135,31 +105,32 @@ function DonutCounter() {
 
 ## Usage with Immer
 
-XState Store makes it really easy to integrate with immutable update libraries like [Immer](https://github.com/immerjs/immer) or [Mutative](https://github.com/unadlib/mutative). Pass the `produce` function into `createStoreWithProducer(producer, …)`, and update `context` in transition functions using the convenient pseudo-mutative API:
+XState Store works well with immutable update libraries like [Immer](https://github.com/immerjs/immer) or [Mutative](https://github.com/unadlib/mutative). Use `produce(...)` inside your transition functions:
 
 ```ts
-import { createStoreWithProducer } from '@xstate/store';
+import { createStore } from '@xstate/store';
 import { produce } from 'immer'; // or { create } from 'mutative'
 
-const donutStore = createStoreWithProducer(produce, {
+const donutStore = createStore({
   context: {
     donuts: 0,
     favoriteFlavor: 'chocolate'
   },
   on: {
-    addDonut: (context) => {
-      context.donuts++; // "Mutation" (thanks to the producer)
-    },
-    changeFlavor: (context, event: { flavor: string }) => {
-      context.favoriteFlavor = event.flavor;
-    },
-    eatAllDonuts: (context) => {
-      context.donuts = 0;
-    }
+    addDonut: (context) =>
+      produce(context, (draft) => {
+        draft.donuts++;
+      }),
+    changeFlavor: (context, event: { flavor: string }) =>
+      produce(context, (draft) => {
+        draft.favoriteFlavor = event.flavor;
+      }),
+    eatAllDonuts: (context) =>
+      produce(context, (draft) => {
+        draft.donuts = 0;
+      })
   }
 });
-
-// Everything else is the same!
 ```
 
 ## TypeScript
@@ -191,13 +162,16 @@ const donutStore = createStore({
   }
 });
 
-donutStore.getSnapshot().context.favoriteFlavor; // string
+donutStore.get().context.favoriteFlavor; // string
+donutStore.getSnapshot().context.favoriteFlavor; // same snapshot, explicit actor-style read
 
 donutStore.send({
   type: 'changeFlavor', // Strongly-typed from transition key
   flavor: 'strawberry' // Strongly-typed from { flavor: string }
 });
 ```
+
+Use `store.get()` when consuming the store as a `Readable` value in tracked or reactive code. Use `store.getSnapshot()` when you want an explicit actor-style snapshot read.
 
 If you want to make the `context` type more specific, you can strongly type the `context` outside of `createStore(…)` and pass it in:
 

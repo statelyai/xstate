@@ -1,5 +1,5 @@
 import './App.css';
-import { useStore, useSelector } from '@xstate/store/react';
+import { useStore, useSelector } from '@xstate/store-react';
 import { useEffect } from 'react';
 
 function Counter({ initialCount }: { initialCount: number }) {
