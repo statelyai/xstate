@@ -84,6 +84,7 @@ function undoRedoFromLogic<
   if (options?.strategy === 'snapshot') {
     // Snapshot strategy
     const enhancedLogic: AnyStoreLogic = {
+      eventTypes: [...(logic.eventTypes ?? []), 'undo', 'redo'],
       getInitialSnapshot: () => ({
         ...logic.getInitialSnapshot(),
         past: [],
@@ -217,6 +218,7 @@ function undoRedoFromLogic<
   // Event strategy (default)
   type UndoEventItem = { event: TEvent; transactionId?: string };
   const enhancedLogic: AnyStoreLogic = {
+    eventTypes: [...(logic.eventTypes ?? []), 'undo', 'redo'],
     getInitialSnapshot: () => ({
       ...logic.getInitialSnapshot(),
       events: [] as UndoEventItem[],

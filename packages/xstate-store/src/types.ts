@@ -1,8 +1,59 @@
+import type { StandardSchemaV1 } from './schema';
+
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
 export type ExtractEvents<T extends EventPayloadMap> = Values<{
   [K in keyof T & string]: T[K] & { type: K };
 }>;
+
+export type StandardSchemaMap = Record<string, StandardSchemaV1>;
+
+export type InferSchemaOutput<
+  TSchema extends StandardSchemaV1,
+  TFallback
+> = Compute<
+  StandardSchemaV1.InferOutput<TSchema> extends TFallback
+    ? StandardSchemaV1.InferOutput<TSchema>
+    : never
+>;
+
+export type InferSchemaPayloadMap<TSchemaMap extends StandardSchemaMap> = {
+  [K in keyof TSchemaMap & string]: InferSchemaOutput<
+    TSchemaMap[K],
+    EventPayloadMap[string]
+  >;
+};
+
+export type StoreSchemas<
+  TContextSchema extends StandardSchemaV1 | undefined = undefined,
+  TEventSchemaMap extends StandardSchemaMap | undefined = undefined,
+  TEmittedSchemaMap extends StandardSchemaMap | undefined = undefined
+> = {
+  context?: TContextSchema;
+  events?: TEventSchemaMap;
+  emitted?: TEmittedSchemaMap;
+};
+
+export type ResolveStoreContext<
+  TContext extends StoreContext,
+  TContextSchema extends StandardSchemaV1 | undefined
+> = TContextSchema extends StandardSchemaV1
+  ? InferSchemaOutput<TContextSchema, StoreContext>
+  : TContext;
+
+export type ResolveStoreEventPayloadMap<
+  TEventPayloadMap extends EventPayloadMap,
+  TEventSchemaMap extends StandardSchemaMap | undefined
+> = TEventSchemaMap extends StandardSchemaMap
+  ? InferSchemaPayloadMap<TEventSchemaMap>
+  : TEventPayloadMap;
+
+export type ResolveStoreEmittedPayloadMap<
+  TEmittedPayloadMap extends EventPayloadMap,
+  TEmittedSchemaMap extends StandardSchemaMap | undefined
+> = TEmittedSchemaMap extends StandardSchemaMap
+  ? InferSchemaPayloadMap<TEmittedSchemaMap>
+  : TEmittedPayloadMap;
 
 type AllKeys<T> = T extends any ? keyof T : never;
 
@@ -106,8 +157,8 @@ export interface Store<
     ) => void
   ) => Subscription;
   /**
-   * A proxy object that allows you to send events to the store without manually
-   * constructing event objects.
+   * A trigger object that allows you to send events to the store without
+   * manually constructing event objects.
    *
    * @example
    *
@@ -183,32 +234,56 @@ export type StoreTransition<
 export type StoreConfig<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends EventPayloadMap
+  TEmittedPayloadMap extends EventPayloadMap = {},
+  TContextSchema extends StandardSchemaV1 | undefined = undefined,
+  TEventSchemaMap extends StandardSchemaMap | undefined = undefined,
+  TEmittedSchemaMap extends StandardSchemaMap | undefined = undefined
 > = {
-  context: TContext;
-  emits?: {
-    [K in keyof TEmitted]: (payload: TEmitted[K]) => void;
-  };
-  on: {
-    [K in keyof TEventPayloadMap & string]: StoreAssigner<
-      TContext,
-      { type: K } & TEventPayloadMap[K],
-      ExtractEvents<TEmitted>
-    >;
-  };
+  context: ResolveStoreContext<TContext, TContextSchema>;
+  schemas?: StoreSchemas<TContextSchema, TEventSchemaMap, TEmittedSchemaMap>;
+  on: TEventSchemaMap extends StandardSchemaMap
+    ? {
+        [K in keyof ResolveStoreEventPayloadMap<
+          TEventPayloadMap,
+          TEventSchemaMap
+        > &
+          string]?: StoreAssigner<
+          ResolveStoreContext<TContext, TContextSchema>,
+          {
+            type: K;
+          } & ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>[K],
+          ExtractEvents<
+            ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
+          >
+        >;
+      }
+    : {
+        [K in keyof TEventPayloadMap & string]: StoreAssigner<
+          ResolveStoreContext<TContext, TContextSchema>,
+          { type: K } & TEventPayloadMap[K],
+          ExtractEvents<
+            ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
+          >
+        >;
+      };
 };
 
 export type SpecificStoreConfig<
   TContext extends StoreContext,
   TEvent extends EventObject,
-  TEmitted extends EventObject
+  TEmitted extends EventObject,
+  TContextSchema extends StandardSchemaV1 | undefined = undefined,
+  TEventSchemaMap extends StandardSchemaMap | undefined = undefined,
+  TEmittedSchemaMap extends StandardSchemaMap | undefined = undefined
 > = {
-  context: TContext;
-  emits?: {
-    [E in TEmitted as E['type']]: (payload: E) => void;
-  };
+  context: ResolveStoreContext<TContext, TContextSchema>;
+  schemas?: StoreSchemas<TContextSchema, TEventSchemaMap, TEmittedSchemaMap>;
   on: {
-    [E in TEvent as E['type']]: StoreAssigner<TContext, E, TEmitted>;
+    [E in TEvent as E['type']]?: StoreAssigner<
+      ResolveStoreContext<TContext, TContextSchema>,
+      E,
+      TEmitted
+    >;
   };
 };
 
@@ -454,6 +529,7 @@ export type StoreLogic<
   TEvent extends EventObject,
   TEmitted extends EventObject
 > = {
+  eventTypes?: readonly string[];
   getInitialSnapshot: () => TSnapshot;
   transition: (
     snapshot: TSnapshot,
@@ -491,16 +567,43 @@ export type StoreExtension<
   TEmitted
 >;
 
-export type AnyStoreConfig = StoreConfig<any, any, any>;
+export type AnyStoreConfig = StoreConfig<any, any, any, any, any, any>;
 export type EventFromStoreConfig<TStore extends AnyStoreConfig> =
-  TStore extends StoreConfig<any, infer TEventPayloadMap, any>
-    ? ExtractEvents<TEventPayloadMap>
+  TStore extends StoreConfig<
+    any,
+    infer TEventPayloadMap,
+    any,
+    any,
+    infer TEventSchemaMap,
+    any
+  >
+    ? ExtractEvents<
+        ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>
+      >
     : never;
 
 export type EmitsFromStoreConfig<TStore extends AnyStoreConfig> =
-  TStore extends StoreConfig<any, any, infer TEmitted>
-    ? ExtractEvents<TEmitted>
+  TStore extends StoreConfig<
+    any,
+    any,
+    infer TEmittedPayloadMap,
+    any,
+    any,
+    infer TEmittedSchemaMap
+  >
+    ? ExtractEvents<
+        ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
+      >
     : never;
 
 export type ContextFromStoreConfig<TStore extends AnyStoreConfig> =
-  TStore extends StoreConfig<infer TContext, any, any> ? TContext : never;
+  TStore extends StoreConfig<
+    infer TContext,
+    any,
+    any,
+    infer TContextSchema,
+    any,
+    any
+  >
+    ? ResolveStoreContext<TContext, TContextSchema>
+    : never;

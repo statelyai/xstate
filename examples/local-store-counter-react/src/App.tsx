@@ -1,14 +1,10 @@
 import './App.css';
 import { useStore, useSelector } from '@xstate/store-react';
-import { useEffect } from 'react';
 
 function Counter({ initialCount }: { initialCount: number }) {
   const store = useStore({
     context: {
       count: initialCount
-    },
-    emits: {
-      reset: (_: {}) => {}
     },
     on: {
       inc: (context, event: { by: number }) => {
@@ -16,8 +12,7 @@ function Counter({ initialCount }: { initialCount: number }) {
           count: context.count + event.by
         };
       },
-      reset: (_context, _ev, { emit }) => {
-        emit.reset({});
+      reset: () => {
         return {
           count: 0
         };
@@ -25,14 +20,6 @@ function Counter({ initialCount }: { initialCount: number }) {
     }
   });
   const count = useSelector(store, (s) => s.context.count);
-
-  useEffect(() => {
-    const sub = store.on('reset', () => {
-      console.log('Count reset!');
-    });
-
-    return sub.unsubscribe;
-  }, [store]);
 
   return (
     <>

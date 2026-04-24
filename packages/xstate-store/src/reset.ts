@@ -27,6 +27,7 @@ function resetFromLogic<
   options?: ResetOptions<TContext>
 ): StoreLogic<StoreSnapshot<TContext>, TEvent | { type: 'reset' }, TEmitted> {
   const enhancedLogic: AnyStoreLogic = {
+    eventTypes: [...(logic.eventTypes ?? []), 'reset'],
     getInitialSnapshot: () => logic.getInitialSnapshot(),
     transition: (snapshot, event) => {
       if (event.type === 'reset') {

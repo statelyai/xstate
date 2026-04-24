@@ -162,8 +162,8 @@ const donutStore = createStore({
   }
 });
 
-donutStore.get().context.favoriteFlavor; // string
-donutStore.getSnapshot().context.favoriteFlavor; // same snapshot, explicit actor-style read
+donutStore.getSnapshot().context.favoriteFlavor; // string
+donutStore.get().context.favoriteFlavor; // same snapshot, readable/tracked read
 
 donutStore.send({
   type: 'changeFlavor', // Strongly-typed from transition key
@@ -171,7 +171,46 @@ donutStore.send({
 });
 ```
 
-Use `store.get()` when consuming the store as a `Readable` value in tracked or reactive code. Use `store.getSnapshot()` when you want an explicit actor-style snapshot read.
+If you want to provide event or emitted-event types explicitly, you can use `schemas` with any library that implements the [Standard Schema](https://standardschema.dev/) interface:
+
+```ts
+import { createStore } from '@xstate/store';
+import { z } from 'zod';
+
+const store = createStore({
+  schemas: {
+    context: z.object({
+      donuts: z.number(),
+      favoriteFlavor: z.string()
+    }),
+    events: {
+      changeFlavor: z.object({
+        flavor: z.string()
+      })
+    },
+    emitted: {
+      flavorChanged: z.object({
+        flavor: z.string()
+      })
+    }
+  },
+  context: {
+    donuts: 0,
+    favoriteFlavor: 'chocolate'
+  },
+  on: {
+    changeFlavor: (context, event, enqueue) => {
+      enqueue.emit.flavorChanged({ flavor: event.flavor });
+      return {
+        ...context,
+        favoriteFlavor: event.flavor
+      };
+    }
+  }
+});
+```
+
+Use `store.getSnapshot()` when you want an explicit snapshot read from the store itself. Use `store.get()` when consuming the store as a `Readable` value in tracked or reactive code.
 
 If you want to make the `context` type more specific, you can strongly type the `context` outside of `createStore(…)` and pass it in:
 
@@ -224,18 +263,21 @@ const store = createStore({
 
 ## Emitting Events
 
-You can emit events from transitions by defining them in the `emits` property and using `enqueue.emit`:
+You can emit events from transitions by declaring them in `schemas.emitted` and using `enqueue.emit`:
 
 ```ts
 import { createStore } from '@xstate/store';
+import { z } from 'zod';
 
 const store = createStore({
-  context: { count: 0 },
-  emits: {
-    increased: (payload: { by: number }) => {
-      // Optional side effects can go here
+  schemas: {
+    emitted: {
+      increased: z.object({
+        by: z.number()
+      })
     }
   },
+  context: { count: 0 },
   on: {
     inc: (context, event: { by: number }, enqueue) => {
       enqueue.emit.increased({ by: event.by });

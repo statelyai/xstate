@@ -2,9 +2,17 @@ export { shallowEqual } from './shallowEqual';
 export { fromStore } from './fromStore';
 export { createStore, createStoreConfig } from './store';
 export { createAtom, createAsyncAtom } from './atom';
+export type { StandardSchemaV1 } from './schema';
 export type {
   EventPayloadMap,
   ExtractEvents,
+  StandardSchemaMap,
+  InferSchemaOutput,
+  InferSchemaPayloadMap,
+  StoreSchemas,
+  ResolveStoreContext,
+  ResolveStoreEventPayloadMap,
+  ResolveStoreEmittedPayloadMap,
   StoreEffect,
   StoreAssigner,
   StoreSnapshot,

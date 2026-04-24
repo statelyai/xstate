@@ -8,6 +8,10 @@
 
     /* Bundler mode */
     "moduleResolution": "bundler",
+    "paths": {
+      "@xstate/store": ["../../packages/xstate-store/src/index.ts"],
+      "@xstate/store-react": ["../../packages/xstate-store-react/src/index.ts"]
+    },
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",

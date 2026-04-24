@@ -1,5 +1,6 @@
 import { createStore } from '../src/index.ts';
 import { undoRedo } from '../src/undo.ts';
+import { schema } from './schema.ts';
 
 it('should undo a single event', () => {
   const store = createStore({
@@ -158,8 +159,10 @@ it('should preserve emitted events during undo/redo', () => {
 
   const store = createStore({
     context: { count: 0 },
-    emits: {
-      changed: (_: { value: number }) => {}
+    schemas: {
+      emitted: {
+        changed: schema<{ value: number }>()
+      }
     },
     on: {
       inc: (ctx, _: Events, enq) => {
@@ -200,8 +203,10 @@ it('should preserve context and event types', () => {
   // @ts-expect-error
   store.getSnapshot().context.foo;
 
-  // @ts-expect-error
-  store.trigger.dec();
+  if (false) {
+    // @ts-expect-error
+    store.trigger.dec();
+  }
 });
 
 it('should skip non-undoable events during undo', () => {
@@ -318,9 +323,11 @@ it('should handle mixed undoable and non-undoable events', () => {
 it('should not replay emitted events for skipped events during undo/redo', () => {
   const store = createStore({
     context: { count: 0 },
-    emits: {
-      changed: (_: { value: number }) => {},
-      logged: (_: { message: string }) => {}
+    schemas: {
+      emitted: {
+        changed: schema<{ value: number }>(),
+        logged: schema<{ message: string }>()
+      }
     },
     on: {
       inc: (ctx, _event, enq) => {
@@ -431,8 +438,10 @@ it('should use the snapshot in the skipEvent function', () => {
 it('emit event types should be correct', () => {
   const store = createStore({
     context: { count: 0 },
-    emits: {
-      changed: (_: { value: number }) => {}
+    schemas: {
+      emitted: {
+        changed: schema<{ value: number }>()
+      }
     },
     on: {
       // TODO: figure out why we need _: {} and not just _

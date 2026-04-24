@@ -20,8 +20,13 @@ import {
   StoreLogic,
   StoreTransition,
   AnyStoreLogic,
-  SpecificStoreConfig
+  SpecificStoreConfig,
+  ResolveStoreContext,
+  ResolveStoreEventPayloadMap,
+  ResolveStoreEmittedPayloadMap,
+  StandardSchemaMap
 } from './types';
+import type { StandardSchemaV1 } from './schema';
 
 const symbolObservable: typeof Symbol.observable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) ||
@@ -32,20 +37,51 @@ const inspectionObservers = new WeakMap<
   Set<Observer<StoreInspectionEvent>>
 >();
 
+function createConcreteTrigger<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject
+>(
+  eventTypes: readonly string[],
+  send: Store<TContext, TEventPayloadMap, TEmitted>['send']
+): Store<TContext, TEventPayloadMap, TEmitted>['trigger'] {
+  const trigger = {} as Store<TContext, TEventPayloadMap, TEmitted>['trigger'];
+
+  for (const eventType of eventTypes) {
+    Object.defineProperty(trigger, eventType, {
+      enumerable: true,
+      configurable: false,
+      writable: false,
+      value: (payload?: unknown) => {
+        send(
+          (payload === undefined
+            ? { type: eventType }
+            : {
+                ...(payload as object),
+                type: eventType
+              }) as ExtractEvents<TEventPayloadMap>
+        );
+      }
+    });
+  }
+
+  return Object.freeze(trigger);
+}
+
 function createStoreCore<
   TContext extends StoreContext,
   TSnapshot extends StoreSnapshot<any>,
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject
 >(
-  logic: StoreLogic<TSnapshot, ExtractEvents<TEventPayloadMap>, TEmitted>,
-  emits?: Record<string, (payload: any) => void> // TODO: improve this type
+  logic: StoreLogic<TSnapshot, ExtractEvents<TEventPayloadMap>, TEmitted>
 ): Store<TContext, TEventPayloadMap, TEmitted> {
   type StoreEvent = ExtractEvents<TEventPayloadMap>;
   let listeners: Map<TEmitted['type'], Set<any>> | undefined;
   const initialSnapshot = logic.getInitialSnapshot();
   let currentSnapshot: TSnapshot = initialSnapshot;
   const atom = createAtom<StoreSnapshot<TContext>>(currentSnapshot);
+  const eventTypes = logic.eventTypes;
 
   const emit = (ev: TEmitted) => {
     if (!listeners) {
@@ -63,6 +99,18 @@ function createStoreCore<
   };
 
   const transition = logic.transition;
+  const send: Store<TContext, TEventPayloadMap, TEmitted>['send'] = (event) => {
+    inspectionObservers.get(store)?.forEach((observer) => {
+      observer.next?.({
+        type: '@xstate.event',
+        event,
+        sourceRef: undefined,
+        actorRef: store,
+        rootId: store.sessionId
+      });
+    });
+    receive(event as unknown as StoreEvent);
+  };
 
   function receive(event: StoreEvent) {
     const [nextSnapshot, effects] = transition(currentSnapshot, event);
@@ -84,12 +132,30 @@ function createStoreCore<
       if (typeof effect === 'function') {
         effect();
       } else {
-        // handle the inherent effect first
-        emits?.[effect.type]?.(effect);
         emit(effect);
       }
     }
   }
+
+  const trigger =
+    eventTypes && eventTypes.length > 0
+      ? createConcreteTrigger<TContext, TEventPayloadMap, TEmitted>(
+          eventTypes,
+          (event) => store.send(event)
+        )
+      : new Proxy(
+          {} as Store<TContext, TEventPayloadMap, TEmitted>['trigger'],
+          {
+            get: (_, eventType: string) => {
+              return (payload: any) => {
+                send({
+                  ...payload,
+                  type: eventType
+                } as ExtractEvents<TEventPayloadMap>);
+              };
+            }
+          }
+        );
 
   const store: Store<TContext, TEventPayloadMap, TEmitted> = {
     on(emittedEventType, handler) {
@@ -112,18 +178,7 @@ function createStoreCore<
     },
     transition: logic.transition as any, // TODO: fix this
     sessionId: uniqueId(),
-    send(event) {
-      inspectionObservers.get(store)?.forEach((observer) => {
-        observer.next?.({
-          type: '@xstate.event',
-          event,
-          sourceRef: undefined,
-          actorRef: store,
-          rootId: store.sessionId
-        });
-      });
-      receive(event as unknown as StoreEvent);
-    },
+    send,
     getSnapshot() {
       return currentSnapshot;
     },
@@ -165,19 +220,7 @@ function createStoreCore<
         }
       };
     },
-    trigger: new Proxy(
-      {} as Store<TContext, TEventPayloadMap, TEmitted>['trigger'],
-      {
-        get: (_, eventType: string) => {
-          return (payload: any) => {
-            store.send({
-              ...payload,
-              type: eventType
-            });
-          };
-        }
-      }
-    ),
+    trigger,
     select<TSelected>(
       selector: Selector<TContext, TSelected>,
       equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
@@ -188,7 +231,7 @@ function createStoreCore<
     },
     with(extension) {
       const extendedLogic = extension(logic as any);
-      return createStoreCore(extendedLogic, emits) as any;
+      return createStoreCore(extendedLogic) as any;
     }
   };
 
@@ -200,7 +243,7 @@ export type TransitionsFromEventPayloadMap<
   TContext extends StoreContext,
   TEmitted extends EventObject
 > = {
-  [K in keyof TEventPayloadMap & string]: StoreAssigner<
+  [K in keyof TEventPayloadMap & string]?: StoreAssigner<
     TContext,
     {
       type: K;
@@ -236,42 +279,77 @@ export type TransitionsFromEventPayloadMap<
  *
  * @param config - The store configuration object
  * @param config.context - The initial state of the store
+ * @param config.schemas - Optional standard-schema definitions used as type
+ *   sources for context, events, and emitted events
  * @param config.on - An object mapping event types to transition functions
- * @param config.emits - An object mapping emitted event types to handlers
  * @returns A store instance with methods to send events and subscribe to state
  *   changes
  */
 export function createStore<
   TContext extends StoreContext,
   const TEventPayloadMap extends EventPayloadMap,
-  TEmittedPayloadMap extends EventPayloadMap
+  TEmittedPayloadMap extends EventPayloadMap = {},
+  TContextSchema extends StandardSchemaV1 | undefined = undefined,
+  TEventSchemaMap extends StandardSchemaMap | undefined = undefined,
+  TEmittedSchemaMap extends StandardSchemaMap | undefined = undefined
 >(
-  definition: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap>
-): Store<TContext, TEventPayloadMap, ExtractEvents<TEmittedPayloadMap>>;
+  definition: StoreConfig<
+    TContext,
+    TEventPayloadMap,
+    TEmittedPayloadMap,
+    TContextSchema,
+    TEventSchemaMap,
+    TEmittedSchemaMap
+  >
+): Store<
+  ResolveStoreContext<TContext, TContextSchema>,
+  ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>,
+  ExtractEvents<
+    ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
+  >
+>;
 export function createStore<
   TContext extends StoreContext,
   TEvent extends EventObject,
-  TEmitted extends EventObject
+  TEmitted extends EventObject,
+  TContextSchema extends StandardSchemaV1 | undefined = undefined,
+  TEventSchemaMap extends StandardSchemaMap | undefined = undefined,
+  TEmittedSchemaMap extends StandardSchemaMap | undefined = undefined
 >(
   definition:
-    | SpecificStoreConfig<TContext, TEvent, TEmitted>
-    | StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>
+    | SpecificStoreConfig<
+        TContext,
+        TEvent,
+        TEmitted,
+        TContextSchema,
+        TEventSchemaMap,
+        TEmittedSchemaMap
+      >
+    | StoreLogic<
+        StoreSnapshot<ResolveStoreContext<TContext, TContextSchema>>,
+        TEvent,
+        TEmitted
+      >
 ): Store<
-  TContext,
+  ResolveStoreContext<TContext, TContextSchema>,
   {
     [E in TEvent as E['type']]: E;
   },
   TEmitted
 >;
 export function createStore(
-  definitionOrLogic: StoreConfig<any, any, any> | AnyStoreLogic
+  definitionOrLogic: StoreConfig<any, any, any, any, any, any> | AnyStoreLogic
 ) {
   if ('transition' in definitionOrLogic) {
     return createStoreCore(definitionOrLogic);
   }
 
   const transition = createStoreTransition(definitionOrLogic.on);
+  const eventTypes = definitionOrLogic.schemas?.events
+    ? Object.keys(definitionOrLogic.schemas.events)
+    : Object.keys(definitionOrLogic.on);
   const logic: AnyStoreLogic = {
+    eventTypes,
     getInitialSnapshot: () => ({
       status: 'active' as const,
       context: definitionOrLogic.context,
@@ -280,16 +358,33 @@ export function createStore(
     }),
     transition
   } satisfies AnyStoreLogic;
-  return createStoreCore(logic, definitionOrLogic.emits);
+  return createStoreCore(logic);
 }
 
 function _createStoreConfig<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends EventPayloadMap
+  TEmitted extends EventPayloadMap = {},
+  TContextSchema extends StandardSchemaV1 | undefined = undefined,
+  TEventSchemaMap extends StandardSchemaMap | undefined = undefined,
+  TEmittedSchemaMap extends StandardSchemaMap | undefined = undefined
 >(
-  definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
-): StoreConfig<TContext, TEventPayloadMap, TEmitted> {
+  definition: StoreConfig<
+    TContext,
+    TEventPayloadMap,
+    TEmitted,
+    TContextSchema,
+    TEventSchemaMap,
+    TEmittedSchemaMap
+  >
+): StoreConfig<
+  TContext,
+  TEventPayloadMap,
+  TEmitted,
+  TContextSchema,
+  TEventSchemaMap,
+  TEmittedSchemaMap
+> {
   return definition;
 }
 
@@ -297,17 +392,27 @@ export const createStoreConfig: {
   <
     TContext extends StoreContext,
     TEventPayloadMap extends EventPayloadMap,
-    TEmitted extends EventPayloadMap
+    TEmitted extends EventPayloadMap = {},
+    TContextSchema extends StandardSchemaV1 | undefined = undefined,
+    TEventSchemaMap extends StandardSchemaMap | undefined = undefined,
+    TEmittedSchemaMap extends StandardSchemaMap | undefined = undefined
   >(
-    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
-  ): StoreConfig<TContext, TEventPayloadMap, TEmitted>;
-  <
-    TContext extends StoreContext,
-    TEventPayloadMap extends EventPayloadMap,
-    TEmitted extends EventPayloadMap
-  >(
-    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
-  ): StoreConfig<TContext, TEventPayloadMap, TEmitted>;
+    definition: StoreConfig<
+      TContext,
+      TEventPayloadMap,
+      TEmitted,
+      TContextSchema,
+      TEventSchemaMap,
+      TEmittedSchemaMap
+    >
+  ): StoreConfig<
+    TContext,
+    TEventPayloadMap,
+    TEmitted,
+    TContextSchema,
+    TEventSchemaMap,
+    TEmittedSchemaMap
+  >;
 } = _createStoreConfig;
 
 declare global {
@@ -332,7 +437,7 @@ export function createStoreTransition<
   TEmitted extends EventObject
 >(
   transitions: {
-    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+    [K in keyof TEventPayloadMap & string]?: StoreAssigner<
       TContext,
       { type: K } & TEventPayloadMap[K],
       TEmitted

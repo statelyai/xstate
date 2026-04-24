@@ -1,6 +1,7 @@
 import { createStore, createStoreConfig } from '../src/index.ts';
 import { reset } from '../src/reset.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
+import { schema } from './schema.ts';
 import {
   AnyStoreConfig,
   ContextFromStoreConfig,
@@ -55,7 +56,7 @@ it('can update context', () => {
   expect(store.getSnapshot().context).toEqual({ count: 42, greeting: 'hi' });
 });
 
-it('handles unknown events (does not do anything)', () => {
+it('handles unknown events sent via store.send (does not do anything)', () => {
   const store = createStore({
     context: { count: 0 },
     on: {
@@ -65,9 +66,7 @@ it('handles unknown events (does not do anything)', () => {
     }
   });
 
-  store.trigger
-    // @ts-expect-error
-    .unknown();
+  store.send({ type: 'unknown' } as any);
   expect(store.getSnapshot().context).toEqual({ count: 0 });
 });
 
@@ -205,8 +204,10 @@ it('emitted events can be subscribed to', () => {
     context: {
       count: 0
     },
-    emits: {
-      increased: (a: { upBy: number }) => {}
+    schemas: {
+      emitted: {
+        increased: schema<{ upBy: number }>()
+      }
     },
     on: {
       inc: (ctx, _, enq) => {
@@ -233,8 +234,10 @@ it('emitted events can be unsubscribed to', () => {
     context: {
       count: 0
     },
-    emits: {
-      increased: (_: { upBy: number }) => {}
+    schemas: {
+      emitted: {
+        increased: schema<{ upBy: number }>()
+      }
     },
     on: {
       inc: (ctx, _, enq) => {
@@ -265,8 +268,10 @@ it('emitted events occur after the snapshot is updated', () => {
     context: {
       count: 0
     },
-    emits: {
-      increased: (_: { upBy: number }) => {}
+    schemas: {
+      emitted: {
+        increased: schema<{ upBy: number }>()
+      }
     },
     on: {
       inc: (ctx, _, enq) => {
@@ -295,10 +300,12 @@ it('events can be emitted with no payload', () => {
   const spy = vi.fn();
 
   const store = createStore({
-    emits: {
-      incremented: () => {},
-      decremented: () => {},
-      expectsPayload: (_: { payload: string }) => {}
+    schemas: {
+      emitted: {
+        incremented: schema<{}>(),
+        decremented: schema<{}>(),
+        expectsPayload: schema<{ payload: string }>()
+      }
     },
     context: {
       count: 0
@@ -334,8 +341,10 @@ it('events can be emitted with no payload', () => {
 
 it('events can be emitted with optional payloads (type check)', () => {
   createStore({
-    emits: {
-      optionalPayload: (_: { payload?: string }) => {}
+    schemas: {
+      emitted: {
+        optionalPayload: schema<{ payload?: string }>()
+      }
     },
     context: {},
     on: {
@@ -409,8 +418,10 @@ it('emits-only transitions should emit events', () => {
   const spy = vi.fn();
   const store = createStore({
     context: { count: 0 },
-    emits: {
-      emitted: () => {}
+    schemas: {
+      emitted: {
+        emitted: schema<{}>()
+      }
     },
     on: {
       justEmit: (ctx, _, enq) => {
@@ -430,9 +441,11 @@ it('wildcard listener receives all emitted events', () => {
   const spy = vi.fn();
   const store = createStore({
     context: { count: 0 },
-    emits: {
-      increased: (_: { upBy: number }) => {},
-      decreased: (_: { downBy: number }) => {}
+    schemas: {
+      emitted: {
+        increased: schema<{ upBy: number }>(),
+        decreased: schema<{ downBy: number }>()
+      }
     },
     on: {
       inc: (ctx, _, enq) => {
@@ -461,8 +474,10 @@ it('wildcard listener can be unsubscribed', () => {
   const spy = vi.fn();
   const store = createStore({
     context: { count: 0 },
-    emits: {
-      increased: (_: { upBy: number }) => {}
+    schemas: {
+      emitted: {
+        increased: schema<{ upBy: number }>()
+      }
     },
     on: {
       inc: (ctx, _, enq) => {
@@ -485,8 +500,10 @@ it('wildcard listener is called after specific listener', () => {
   const order: string[] = [];
   const store = createStore({
     context: { count: 0 },
-    emits: {
-      increased: (_: { upBy: number }) => {}
+    schemas: {
+      emitted: {
+        increased: schema<{ upBy: number }>()
+      }
     },
     on: {
       inc: (ctx, _, enq) => {
@@ -564,14 +581,16 @@ describe('store.trigger', () => {
       }
     });
 
-    // @ts-expect-error - missing required 'by' property
-    store.trigger.increment({});
+    if (false) {
+      // @ts-expect-error - missing required 'by' property
+      store.trigger.increment({});
 
-    // @ts-expect-error - extra property not allowed
-    store.trigger.increment({ by: 1, extra: true });
+      // @ts-expect-error - extra property not allowed
+      store.trigger.increment({ by: 1, extra: true });
 
-    // @ts-expect-error - unknown event
-    store.trigger.unknown({});
+      // @ts-expect-error - unknown event
+      store.trigger.unknown({});
+    }
 
     // Valid usage with no payload
     store.trigger.reset();
@@ -598,6 +617,64 @@ describe('store.trigger', () => {
       type: 'increment',
       by: 5
     });
+  });
+
+  it('should fail fast for unknown trigger names on config-based stores', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        increment: (ctx, event: { by: number }) => ({
+          count: ctx.count + event.by
+        }),
+        reset: () => ({ count: 0 })
+      }
+    });
+
+    expect(Object.keys(store.trigger)).toEqual(['increment', 'reset']);
+    expect(() => (store.trigger as any).unknown()).toThrow(TypeError);
+    expect(store.getSnapshot().context.count).toBe(0);
+  });
+
+  it('should include extension events in the concrete trigger object', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        increment: (ctx, event: { by: number }) => ({
+          count: ctx.count + event.by
+        })
+      }
+    }).with(reset());
+
+    expect(Object.keys(store.trigger)).toEqual(['increment', 'reset']);
+
+    store.trigger.increment({ by: 2 });
+    store.trigger.reset();
+
+    expect(store.getSnapshot().context.count).toBe(0);
+  });
+
+  it('should include schema-declared events in the concrete trigger object', () => {
+    const store = createStore({
+      schemas: {
+        events: {
+          increment: schema<{ by: number }>(),
+          reset: schema<{}>()
+        }
+      },
+      context: { count: 0 },
+      on: {
+        increment: (ctx, event) => ({
+          count: ctx.count + event.by
+        })
+      }
+    });
+
+    expect(Object.keys(store.trigger)).toEqual(['increment', 'reset']);
+
+    store.trigger.increment({ by: 2 });
+    store.trigger.reset();
+
+    expect(store.getSnapshot().context.count).toBe(2);
   });
 });
 
@@ -661,9 +738,9 @@ it('the emit type is not overridden by the payload', () => {
   };
 
   const drawersBridgeStore = createStore({
-    emits: {
-      drawerOpened: (_payload: { drawer: Drawer }) => {
-        // ...
+    schemas: {
+      emitted: {
+        drawerOpened: schema<{ drawer: Drawer }>()
       }
     },
     context,
@@ -698,9 +775,11 @@ describe('store.transition', () => {
   it('returns next state and effects for a given state and event', () => {
     const store = createStore({
       context: { count: 0 },
-      emits: {
-        increased: (_: { by: number }) => {},
-        nothing: () => {}
+      schemas: {
+        emitted: {
+          increased: schema<{ by: number }>(),
+          nothing: schema<{}>()
+        }
       },
       on: {
         inc: (ctx, event: { by: number }, enq) => {
@@ -952,8 +1031,10 @@ describe('types', () => {
 
     store.trigger.grindBeans();
 
-    // @ts-expect-error
-    store.trigger.unknown();
+    if (false) {
+      // @ts-expect-error
+      store.trigger.unknown();
+    }
   });
 
   it('localizes TypeScript errors to the specific transition', () => {
@@ -977,8 +1058,10 @@ it('emitted events work with store extensions', () => {
     context: {
       count: 0
     },
-    emits: {
-      increased: (_: { upBy: number }) => {}
+    schemas: {
+      emitted: {
+        increased: schema<{ upBy: number }>()
+      }
     },
     on: {
       inc: (ctx, _, enq) => {

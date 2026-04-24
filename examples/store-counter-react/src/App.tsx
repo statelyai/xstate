@@ -1,7 +1,6 @@
 import './App.css';
 import { createStore } from '@xstate/store';
 import { useSelector } from '@xstate/store-react';
-import { useEffect } from 'react';
 import { createBrowserInspector } from '@statelyai/inspect';
 
 const inspector = createBrowserInspector();
@@ -10,17 +9,13 @@ const store = createStore({
   context: {
     count: 0
   },
-  emits: {
-    reset: (_: {}) => {}
-  },
   on: {
     inc: (context, event: { by: number }) => {
       return {
         count: context.count + event.by
       };
     },
-    reset: (_context, _ev, { emit }) => {
-      emit.reset({});
+    reset: () => {
       return {
         count: 0
       };
@@ -32,14 +27,6 @@ store.inspect(inspector.inspect);
 
 function App() {
   const count = useSelector(store, (s) => s.context.count);
-
-  useEffect(() => {
-    const sub = store.on('reset', () => {
-      console.log('Count reset!');
-    });
-
-    return sub.unsubscribe;
-  }, []);
 
   return (
     <>
