@@ -43,3 +43,17 @@ export function parseDurationToMilliseconds(
     toNumber(seconds) * 1000
   );
 }
+
+export function parseDelayToMilliseconds(
+  delay: string | number | undefined
+): number | undefined {
+  if (delay === undefined) {
+    return undefined;
+  }
+
+  if (typeof delay === 'number') {
+    return delay;
+  }
+
+  return parseDurationToMilliseconds(delay);
+}

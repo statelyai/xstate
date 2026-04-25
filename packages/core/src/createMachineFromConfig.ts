@@ -11,13 +11,12 @@ import {
   Next_TransitionConfigOrTarget
 } from './types.v6';
 import { createMachine } from './createMachine';
-import { parseDurationToMilliseconds } from './delay';
+import { parseDelayToMilliseconds } from './delay';
 
 function delayToMs(delay: string | number): number {
-  if (typeof delay === 'number') return delay;
-  const parsedDelay = parseDurationToMilliseconds(delay);
+  const parsedDelay = parseDelayToMilliseconds(delay);
   if (parsedDelay !== undefined) return parsedDelay;
-  return parseFloat(delay) || 0;
+  return typeof delay === 'string' ? parseFloat(delay) || 0 : delay;
 }
 
 export interface RaiseJSON {
