@@ -7,25 +7,16 @@ import {
   MetaObject
 } from './types';
 import {
-  Next_InvokeConfig,
   Next_StateNodeConfig,
   Next_TransitionConfigOrTarget
 } from './types.v6';
 import { createMachine } from './createMachine';
+import { parseDurationToMilliseconds } from './delay';
 
 function delayToMs(delay: string | number): number {
   if (typeof delay === 'number') return delay;
-  const millisecondsMatch = delay.match(/^(\d+)ms$/);
-  if (millisecondsMatch) return parseInt(millisecondsMatch[1], 10);
-  const secondsMatch = delay.match(/^(\d*)(\.?)(\d*)s$/);
-  if (secondsMatch) {
-    const wholePart = secondsMatch[1] ? parseInt(secondsMatch[1], 10) : 0;
-    const hasDecimal = !!secondsMatch[2];
-    const fracPart = secondsMatch[3]
-      ? parseInt(secondsMatch[3].padEnd(3, '0').slice(0, 3), 10)
-      : 0;
-    return wholePart * 1000 + (hasDecimal ? fracPart : 0);
-  }
+  const parsedDelay = parseDurationToMilliseconds(delay);
+  if (parsedDelay !== undefined) return parsedDelay;
   return parseFloat(delay) || 0;
 }
 

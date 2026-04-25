@@ -54,10 +54,56 @@ import {
   type SubscriptionInput,
   type SubscriptionMappers
 } from './actors/subscription.ts';
+import { parseDurationToMilliseconds } from './delay.ts';
 
 type AnyStateNodeIterable = Iterable<AnyStateNode>;
 
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
+
+function resolveDelay(
+  delay: number | string | ((args: any) => number),
+  delaySource: Record<string, any>,
+  args: {
+    context: MachineContext;
+    event: EventObject;
+    stateNode: AnyStateNode;
+  }
+) {
+  if (typeof delay === 'function') {
+    return delay(args);
+  }
+
+  if (typeof delay !== 'string') {
+    return delay;
+  }
+
+  const referencedDelay = delaySource[delay];
+  if (typeof referencedDelay === 'function') {
+    return referencedDelay(args);
+  }
+
+  if (referencedDelay !== undefined) {
+    return referencedDelay;
+  }
+
+  return parseDurationToMilliseconds(delay) ?? delay;
+}
+
+function getConfiguredDelay(
+  delay: number | string,
+  delaySource: Record<string, any>
+) {
+  if (typeof delay !== 'string') {
+    return delay;
+  }
+
+  const referencedDelay = delaySource[delay];
+  if (referencedDelay !== undefined) {
+    return referencedDelay;
+  }
+
+  return parseDurationToMilliseconds(delay) ?? delay;
+}
 
 export function isAtomicStateNode(stateNode: AnyStateNode) {
   return (
@@ -287,11 +333,11 @@ export function getDelayedTransitions(
       stateNode,
       // entry
       (x, enq) => {
-        let resolvedDelay = typeof delay === 'string' ? x.delays[delay] : delay;
-
-        if (typeof resolvedDelay === 'function') {
-          resolvedDelay = resolvedDelay({ ...x, stateNode });
-        }
+        const resolvedDelay = resolveDelay(delay, x.delays, {
+          context: x.context,
+          event: x.event,
+          stateNode
+        });
         enq.raise(afterEvent, {
           id: eventType,
           delay: resolvedDelay
@@ -317,12 +363,15 @@ export function getDelayedTransitions(
             : typeof configTransition === 'function'
               ? { to: configTransition }
               : configTransition;
-        const resolvedDelay = Number.isNaN(+delay) ? delay : +delay;
-        const eventType = mutateEntryExitWithDelay(resolvedDelay);
+        const parsedDelay = Number.isNaN(+delay) ? delay : +delay;
+        const eventType = mutateEntryExitWithDelay(parsedDelay);
         return toArray(resolvedTransition).map((transition) => ({
           ...transition,
           event: eventType,
-          delay: resolvedDelay
+          delay: getConfiguredDelay(
+            parsedDelay,
+            stateNode.machine.implementations.delays
+          )
         }));
       })
     : [];
@@ -338,14 +387,11 @@ export function getDelayedTransitions(
       stateNode,
       // entry
       (x, enq) => {
-        let resolvedDelay =
-          typeof timeoutConfig === 'string'
-            ? x.delays[timeoutConfig]
-            : timeoutConfig;
-
-        if (typeof resolvedDelay === 'function') {
-          resolvedDelay = resolvedDelay({ ...x, stateNode });
-        }
+        const resolvedDelay = resolveDelay(timeoutConfig, x.delays, {
+          context: x.context,
+          event: x.event,
+          stateNode
+        });
         enq.raise(timeoutEvent as any, {
           id: timeoutEventType,
           delay: resolvedDelay as number
@@ -365,7 +411,12 @@ export function getDelayedTransitions(
           : onTimeoutConfig;
 
     const resolvedDelay =
-      typeof timeoutConfig === 'number' ? timeoutConfig : timeoutConfig;
+      typeof timeoutConfig === 'function'
+        ? timeoutConfig
+        : getConfiguredDelay(
+            timeoutConfig,
+            stateNode.machine.implementations.delays
+          );
 
     for (const transition of toArray(resolvedTransition)) {
       delayedTransitions.push({
@@ -382,16 +433,21 @@ export function getDelayedTransitions(
   for (const invokeDef of invokeDefs) {
     const invokeTimeoutEvent = createInvokeTimeoutEvent(invokeDef.id);
     const invokeTimeoutEventType = invokeTimeoutEvent.type;
-    const invokeTimeout = invokeDef.timeout;
+    const invokeTimeout = invokeDef.timeout!;
 
     mutateEntryExit(
       stateNode,
       // entry
       (x, enq) => {
-        const resolvedDelay =
-          typeof invokeTimeout === 'function'
-            ? invokeTimeout({ context: x.context, event: x.event })
-            : invokeTimeout;
+        const resolvedDelay = resolveDelay(
+          invokeTimeout,
+          {},
+          {
+            context: x.context,
+            event: x.event,
+            stateNode
+          }
+        );
 
         enq.raise(invokeTimeoutEvent as any, {
           id: invokeTimeoutEventType,

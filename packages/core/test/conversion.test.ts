@@ -487,6 +487,23 @@ describe('SCXML to XState conversion', () => {
       const transition = json.states!.a.on!['GO.*'] as any;
       expect(transition.actions[0].delay).toBe(1500);
     });
+
+    it('should parse ISO8601 delays', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <transition event="GO">
+              <send event="DELAYED" delay="PT1.5S"/>
+            </transition>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      const transition = json.states!.a.on!['GO.*'] as any;
+      expect(transition.actions[0].delay).toBe(1500);
+    });
   });
 
   describe('toMachineJSON - state ID sanitization', () => {

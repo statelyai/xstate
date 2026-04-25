@@ -13,6 +13,7 @@ import {
   TransitionJSON,
   createMachineFromConfig
 } from './createMachineFromConfig.ts';
+import { parseDurationToMilliseconds } from './delay.ts';
 import { AnyStateMachine, SpecialTargets } from './types.ts';
 
 export function sanitizeStateId(id: string) {
@@ -35,32 +36,9 @@ function delayToMs(delay?: string | number): number | undefined {
     return delay;
   }
 
-  const millisecondsMatch = delay.match(/(\d+)ms/);
-
-  if (millisecondsMatch) {
-    return parseInt(millisecondsMatch[1], 10);
-  }
-
-  const secondsMatch = delay.match(/(\d*)(\.?)(\d+)s/);
-
-  if (secondsMatch) {
-    const hasDecimal = !!secondsMatch[2];
-    if (!hasDecimal) {
-      return parseInt(secondsMatch[3], 10) * 1000;
-    }
-    const secondsPart = secondsMatch[1]
-      ? parseInt(secondsMatch[1], 10) * 1000
-      : 0;
-    const millisecondsPart = parseInt(
-      (secondsMatch[3] as any).padEnd(3, '0'),
-      10
-    );
-
-    if (millisecondsPart >= 1000) {
-      throw new Error(`Can't parse "${delay} delay."`);
-    }
-
-    return secondsPart + millisecondsPart;
+  const parsedDelay = parseDurationToMilliseconds(delay);
+  if (parsedDelay !== undefined) {
+    return parsedDelay;
   }
 
   throw new Error(`Can't parse "${delay} delay."`);

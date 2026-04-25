@@ -50,6 +50,57 @@ describe('delayed transitions', () => {
     expect(actorRef.getSnapshot().value).toBe('yellow');
   });
 
+  it('should transition after an ISO8601 duration without a delay source', () => {
+    vi.useFakeTimers();
+
+    const actorRef = createActor(
+      createMachine({
+        initial: 'pending',
+        states: {
+          pending: {
+            after: {
+              'PT0.5S': 'done'
+            }
+          },
+          done: {}
+        }
+      })
+    ).start();
+
+    vi.advanceTimersByTime(499);
+    expect(actorRef.getSnapshot().value).toBe('pending');
+
+    vi.advanceTimersByTime(1);
+    expect(actorRef.getSnapshot().value).toBe('done');
+  });
+
+  it('should prefer a delay source value over the parsed ISO8601 duration', () => {
+    vi.useFakeTimers();
+
+    const actorRef = createActor(
+      createMachine({
+        delays: {
+          PT1S: 20
+        },
+        initial: 'pending',
+        states: {
+          pending: {
+            after: {
+              PT1S: 'done'
+            }
+          },
+          done: {}
+        }
+      })
+    ).start();
+
+    vi.advanceTimersByTime(19);
+    expect(actorRef.getSnapshot().value).toBe('pending');
+
+    vi.advanceTimersByTime(2);
+    expect(actorRef.getSnapshot().value).toBe('done');
+  });
+
   it('should not try to clear an undefined timeout when exiting source state of a delayed transition', async () => {
     // https://github.com/statelyai/xstate/issues/5001
     const spy = vi.fn();
