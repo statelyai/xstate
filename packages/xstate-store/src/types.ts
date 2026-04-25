@@ -139,8 +139,8 @@ export interface Store<
    * Subscribes to [inspection events](https://stately.ai/docs/inspection) from
    * the store.
    *
-   * Inspectors that call `store.inspect(…)` will immediately receive an
-   * "@xstate.actor" inspection event.
+   * Inspectors that call `store.inspect(…)` will immediately receive the
+   * current snapshot as an "@xstate.transition" inspection event.
    */
   inspect: (
     observer:
@@ -414,44 +414,21 @@ export type EventObject = {
 };
 type Values<T> = T[keyof T];
 
-export type StoreInspectionEvent =
-  | StoreInspectedSnapshotEvent
-  | StoreInspectedEventEvent
-  | StoreInspectedActorEvent;
-
 interface StoreBaseInspectionEventProperties {
   rootId: string; // the session ID of the root
   /**
    * The relevant actorRef for the inspection event.
    *
-   * - For snapshot events, this is the `actorRef` of the snapshot.
-   * - For event events, this is the target `actorRef` (recipient of event).
-   * - For actor events, this is the `actorRef` of the registered actor.
+   * For store transition events, this is the `actorRef` of the store.
    */
   actorRef: ActorRefLike;
 }
 
-export interface StoreInspectedSnapshotEvent
+export interface StoreInspectionEvent
   extends StoreBaseInspectionEventProperties {
-  type: '@xstate.snapshot';
+  type: '@xstate.transition';
   event: AnyEventObject; // { type: string, ... }
   snapshot: Snapshot<unknown>;
-}
-
-export interface StoreInspectedActionEvent
-  extends StoreBaseInspectionEventProperties {
-  type: '@xstate.action';
-  action: {
-    type: string;
-    params: Record<string, unknown>;
-  };
-}
-
-export interface StoreInspectedEventEvent
-  extends StoreBaseInspectionEventProperties {
-  type: '@xstate.event';
-  sourceRef: AnyStore | undefined;
-  event: AnyEventObject; // { type: string, ... }
 }
 
 interface AnyEventObject {
@@ -459,10 +436,10 @@ interface AnyEventObject {
   [key: string]: any;
 }
 
-export interface StoreInspectedActorEvent
-  extends StoreBaseInspectionEventProperties {
-  type: '@xstate.actor';
-}
+export type StoreInspectedSnapshotEvent = StoreInspectionEvent;
+export type StoreInspectedActionEvent = StoreInspectionEvent;
+export type StoreInspectedEventEvent = StoreInspectionEvent;
+export type StoreInspectedActorEvent = StoreInspectionEvent;
 
 // export type ActorRefLike = Pick<
 //   AnyActorRef,

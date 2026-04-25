@@ -1,5 +1,4 @@
 import { createAtom } from './atom';
-import { toObserver } from './toObserver';
 import {
   EnqueueObject,
   EventObject,
@@ -31,11 +30,6 @@ import type { StandardSchemaV1 } from './schema';
 const symbolObservable: typeof Symbol.observable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) ||
   '@@observable')() as any;
-
-const inspectionObservers = new WeakMap<
-  Store<any, any, any>,
-  Set<Observer<StoreInspectionEvent>>
->();
 const isDevelopment =
   (
     globalThis as {
@@ -108,24 +102,19 @@ function createConcreteTrigger<
   const trigger = {} as Store<TContext, TEventPayloadMap, TEmitted>['trigger'];
 
   for (const eventType of eventTypes) {
-    Object.defineProperty(trigger, eventType, {
-      enumerable: true,
-      configurable: false,
-      writable: false,
-      value: (payload?: unknown) => {
-        send(
-          (payload === undefined
-            ? { type: eventType }
-            : {
-                ...(payload as object),
-                type: eventType
-              }) as ExtractEvents<TEventPayloadMap>
-        );
-      }
-    });
+    trigger[eventType as keyof typeof trigger] = ((payload?: unknown) => {
+      send(
+        (payload === undefined
+          ? { type: eventType }
+          : {
+              ...(payload as object),
+              type: eventType
+            }) as ExtractEvents<TEventPayloadMap>
+      );
+    }) as (typeof trigger)[keyof typeof trigger];
   }
 
-  return Object.freeze(trigger);
+  return trigger;
 }
 
 function createStoreCore<
@@ -138,6 +127,7 @@ function createStoreCore<
 ): Store<TContext, TEventPayloadMap, TEmitted> {
   type StoreEvent = ExtractEvents<TEventPayloadMap>;
   let listeners: Map<TEmitted['type'], Set<any>> | undefined;
+  let inspectionObservers: Set<Observer<StoreInspectionEvent>> | undefined;
   const initialSnapshot = logic.getInitialSnapshot();
   let currentSnapshot: TSnapshot = initialSnapshot;
   const atom = createAtom<StoreSnapshot<TContext>>(currentSnapshot);
@@ -159,16 +149,22 @@ function createStoreCore<
   };
 
   const transition = logic.transition;
-  const send: Store<TContext, TEventPayloadMap, TEmitted>['send'] = (event) => {
-    inspectionObservers.get(store)?.forEach((observer) => {
+  const notifyInspection = (
+    event: EventObject,
+    snapshot: StoreSnapshot<TContext>
+  ) => {
+    inspectionObservers?.forEach((observer) => {
       observer.next?.({
-        type: '@xstate.event',
+        type: '@xstate.transition',
         event,
-        sourceRef: undefined,
+        snapshot,
         actorRef: store,
         rootId: store.sessionId
       });
     });
+  };
+
+  const send: Store<TContext, TEventPayloadMap, TEmitted>['send'] = (event) => {
     receive(event as unknown as StoreEvent);
   };
 
@@ -176,17 +172,8 @@ function createStoreCore<
     const [nextSnapshot, effects] = transition(currentSnapshot, event);
     currentSnapshot = nextSnapshot;
 
-    inspectionObservers.get(store)?.forEach((observer) => {
-      observer.next?.({
-        type: '@xstate.snapshot',
-        event,
-        snapshot: nextSnapshot,
-        actorRef: store,
-        rootId: store.sessionId
-      });
-    });
-
     atom.set(nextSnapshot);
+    notifyInspection(event, nextSnapshot);
 
     for (const effect of effects) {
       if (typeof effect === 'function') {
@@ -237,7 +224,7 @@ function createStoreCore<
       };
     },
     transition(state, event) {
-      return transition(state as TSnapshot, event as StoreEvent);
+      return transition(state as TSnapshot, event);
     },
     sessionId: uniqueId(),
     send,
@@ -255,30 +242,23 @@ function createStoreCore<
       return this;
     },
     inspect: (observerOrFn) => {
-      const observer = toObserver(observerOrFn);
-      inspectionObservers.set(
-        store,
-        inspectionObservers.get(store) ?? new Set()
-      );
-      inspectionObservers.get(store)!.add(observer);
+      const observer =
+        typeof observerOrFn === 'function'
+          ? { next: observerOrFn }
+          : observerOrFn;
+      (inspectionObservers ??= new Set()).add(observer);
 
       observer.next?.({
-        type: '@xstate.actor',
-        actorRef: store,
-        rootId: store.sessionId
-      });
-
-      observer.next?.({
-        type: '@xstate.snapshot',
-        snapshot: initialSnapshot,
+        type: '@xstate.transition',
         event: { type: '@xstate.init' },
+        snapshot: currentSnapshot,
         actorRef: store,
         rootId: store.sessionId
       });
 
       return {
         unsubscribe() {
-          return inspectionObservers.get(store)?.delete(observer);
+          return inspectionObservers?.delete(observer);
         }
       };
     },

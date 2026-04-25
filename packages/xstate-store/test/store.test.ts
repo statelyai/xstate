@@ -169,18 +169,13 @@ it('can be inspected', () => {
 
   expect(evs).toEqual([
     expect.objectContaining({
-      type: '@xstate.actor'
-    }),
-    expect.objectContaining({
-      type: '@xstate.snapshot',
+      type: '@xstate.transition',
+      event: { type: '@xstate.init' },
       snapshot: expect.objectContaining({ context: { count: 0 } })
     }),
     expect.objectContaining({
-      type: '@xstate.event',
-      event: { type: 'inc' }
-    }),
-    expect.objectContaining({
-      type: '@xstate.snapshot',
+      type: '@xstate.transition',
+      event: { type: 'inc' },
       snapshot: expect.objectContaining({ context: { count: 1 } })
     })
   ]);

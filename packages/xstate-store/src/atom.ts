@@ -3,7 +3,6 @@ import {
   type ReactiveNode,
   ReactiveFlags
 } from './alien';
-import { toObserver } from './toObserver';
 import {
   Atom,
   AtomOptions,
@@ -137,14 +136,17 @@ export function createAtom<T>(
     },
 
     subscribe(observerOrFn: Observer<T> | ((value: T) => void)) {
-      const obs = toObserver(observerOrFn);
+      const observer =
+        typeof observerOrFn === 'function'
+          ? { next: observerOrFn }
+          : observerOrFn;
       const observed = { current: false };
       const e = effect(() => {
         atom.get();
         if (!observed.current) {
           observed.current = true;
         } else {
-          obs.next?.(atom._snapshot);
+          observer.next?.(atom._snapshot);
         }
       });
 

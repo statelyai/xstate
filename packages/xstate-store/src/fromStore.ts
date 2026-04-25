@@ -1,4 +1,4 @@
-import { ActorLogic } from 'xstate';
+import type { ActorLogic } from 'xstate';
 import { createStoreTransition, TransitionsFromEventPayloadMap } from './store';
 import {
   EnqueueObject,
