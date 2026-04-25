@@ -60,36 +60,7 @@ type AnyStateNodeIterable = Iterable<AnyStateNode>;
 
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 
-function resolveDelay(
-  delay: number | string | ((args: any) => number),
-  delaySource: Record<string, any>,
-  args: {
-    context: MachineContext;
-    event: EventObject;
-    stateNode: AnyStateNode;
-  }
-) {
-  if (typeof delay === 'function') {
-    return delay(args);
-  }
-
-  if (typeof delay !== 'string') {
-    return delay;
-  }
-
-  const referencedDelay = delaySource[delay];
-  if (typeof referencedDelay === 'function') {
-    return referencedDelay(args);
-  }
-
-  if (referencedDelay !== undefined) {
-    return referencedDelay;
-  }
-
-  return parseDurationToMilliseconds(delay) ?? delay;
-}
-
-function getConfiguredDelay(
+function getConfiguredDelayValue(
   delay: number | string,
   delaySource: Record<string, any>
 ) {
@@ -103,6 +74,34 @@ function getConfiguredDelay(
   }
 
   return parseDurationToMilliseconds(delay) ?? delay;
+}
+
+function resolveDelay(
+  delay: number | string | ((args: any) => number),
+  delaySource: Record<string, any>,
+  args: {
+    context: MachineContext;
+    event: EventObject;
+    stateNode: AnyStateNode;
+  }
+) {
+  if (typeof delay === 'function') {
+    return delay(args);
+  }
+
+  const configuredDelay = getConfiguredDelayValue(delay, delaySource);
+  if (typeof configuredDelay === 'function') {
+    return configuredDelay(args);
+  }
+
+  return configuredDelay;
+}
+
+function getConfiguredDelay(
+  delay: number | string,
+  delaySource: Record<string, any>
+) {
+  return getConfiguredDelayValue(delay, delaySource);
 }
 
 export function isAtomicStateNode(stateNode: AnyStateNode) {
@@ -357,22 +356,18 @@ export function getDelayedTransitions(
   > = afterConfig
     ? Object.keys(afterConfig).flatMap((delay) => {
         const configTransition = afterConfig[delay];
-        const resolvedTransition =
-          typeof configTransition === 'string'
-            ? { target: configTransition }
-            : typeof configTransition === 'function'
-              ? { to: configTransition }
-              : configTransition;
         const parsedDelay = Number.isNaN(+delay) ? delay : +delay;
         const eventType = mutateEntryExitWithDelay(parsedDelay);
-        return toArray(resolvedTransition).map((transition) => ({
-          ...transition,
-          event: eventType,
-          delay: getConfiguredDelay(
-            parsedDelay,
-            stateNode.machine.implementations.delays
-          )
-        }));
+        return toTransitionConfigArray(configTransition as any).map(
+          (transition) => ({
+            ...transition,
+            event: eventType,
+            delay: getConfiguredDelay(
+              parsedDelay,
+              stateNode.machine.implementations.delays
+            )
+          })
+        );
       })
     : [];
 
@@ -403,13 +398,6 @@ export function getDelayedTransitions(
       }
     );
 
-    const resolvedTransition =
-      typeof onTimeoutConfig === 'string'
-        ? { target: onTimeoutConfig }
-        : typeof onTimeoutConfig === 'function'
-          ? { to: onTimeoutConfig }
-          : onTimeoutConfig;
-
     const resolvedDelay =
       typeof timeoutConfig === 'function'
         ? timeoutConfig
@@ -418,7 +406,7 @@ export function getDelayedTransitions(
             stateNode.machine.implementations.delays
           );
 
-    for (const transition of toArray(resolvedTransition)) {
+    for (const transition of toTransitionConfigArray(onTimeoutConfig as any)) {
       delayedTransitions.push({
         ...transition,
         event: timeoutEventType,
@@ -461,14 +449,7 @@ export function getDelayedTransitions(
     );
 
     const invokeOnTimeout = invokeDef.onTimeout;
-    const resolvedTransition =
-      typeof invokeOnTimeout === 'string'
-        ? { target: invokeOnTimeout }
-        : typeof invokeOnTimeout === 'function'
-          ? { to: invokeOnTimeout }
-          : invokeOnTimeout;
-
-    for (const transition of toArray(resolvedTransition)) {
+    for (const transition of toTransitionConfigArray(invokeOnTimeout as any)) {
       delayedTransitions.push({
         ...transition,
         event: invokeTimeoutEventType,
