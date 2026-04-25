@@ -837,6 +837,7 @@ function transitionCompoundNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
+  subStateKey: string,
   snapshot: MachineSnapshot<
     TContext,
     TEvent,
@@ -850,12 +851,10 @@ function transitionCompoundNode<
   event: TEvent,
   self: AnyActorRef
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
-  const subStateKeys = Object.keys(stateValue);
-
-  const childStateNode = getStateNode(stateNode, subStateKeys[0]);
+  const childStateNode = getStateNode(stateNode, subStateKey);
   const next = transitionNode(
     childStateNode,
-    stateValue[subStateKeys[0]]!,
+    stateValue[subStateKey]!,
     snapshot,
     event,
     self
@@ -889,7 +888,7 @@ function transitionParallelNode<
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
 
-  for (const subStateKey of Object.keys(stateValue)) {
+  for (const subStateKey in stateValue) {
     const subStateValue = stateValue[subStateKey];
 
     if (!subStateValue) {
@@ -939,12 +938,32 @@ export function transitionNode<
     return transitionAtomicNode(stateNode, stateValue, snapshot, event, self);
   }
 
-  // compound node
-  if (Object.keys(stateValue).length === 1) {
-    return transitionCompoundNode(stateNode, stateValue, snapshot, event, self);
+  let subStateKey: string | undefined;
+  for (const key in stateValue) {
+    if (subStateKey !== undefined) {
+      return transitionParallelNode(
+        stateNode,
+        stateValue,
+        snapshot,
+        event,
+        self
+      );
+    }
+
+    subStateKey = key;
   }
 
-  // parallel node
+  if (subStateKey !== undefined) {
+    return transitionCompoundNode(
+      stateNode,
+      stateValue,
+      subStateKey,
+      snapshot,
+      event,
+      self
+    );
+  }
+
   return transitionParallelNode(stateNode, stateValue, snapshot, event, self);
 }
 
