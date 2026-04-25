@@ -986,15 +986,17 @@ function isDescendant(
 }
 
 function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
-  const set1 = new Set(s1);
-  const set2 = new Set(s2);
+  const s1Size =
+    s1 instanceof Set ? s1.size : Array.isArray(s1) ? s1.length : undefined;
+  const s2Size =
+    s2 instanceof Set ? s2.size : Array.isArray(s2) ? s2.length : undefined;
 
-  for (const item of set1) {
-    if (set2.has(item)) {
-      return true;
-    }
+  if (s1Size !== undefined && s2Size !== undefined && s2Size < s1Size) {
+    [s1, s2] = [s2, s1];
   }
-  for (const item of set2) {
+
+  const set1 = s1 instanceof Set ? s1 : new Set(s1);
+  for (const item of s2) {
     if (set1.has(item)) {
       return true;
     }
