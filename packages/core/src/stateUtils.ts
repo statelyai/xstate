@@ -977,9 +977,16 @@ export function transitionNode<
 }
 
 function getHistoryNodes(stateNode: AnyStateNode): Array<AnyStateNode> {
-  return Object.keys(stateNode.states)
-    .map((key) => stateNode.states[key])
-    .filter((sn) => sn.type === 'history');
+  const historyNodes: Array<AnyStateNode> = [];
+
+  for (const key in stateNode.states) {
+    const state = stateNode.states[key];
+    if (state.type === 'history') {
+      historyNodes.push(state);
+    }
+  }
+
+  return historyNodes;
 }
 
 function isDescendant(
@@ -1034,17 +1041,29 @@ function removeConflictingTransitions(
   actorScope: AnyActorScope
 ): Array<AnyTransitionDefinition> {
   const filteredTransitions = new Set<AnyTransitionDefinition>();
+  const exitSets = new Map<AnyTransitionDefinition, Array<AnyStateNode>>();
+
+  const getExitSet = (transition: AnyTransitionDefinition) => {
+    let exitSet = exitSets.get(transition);
+    if (!exitSet) {
+      exitSet = computeExitSet(
+        [transition],
+        stateNodeSet,
+        snapshot,
+        event,
+        actorScope
+      );
+      exitSets.set(transition, exitSet);
+    }
+
+    return exitSet;
+  };
 
   for (const t1 of enabledTransitions) {
     let t1Preempted = false;
     const transitionsToRemove = new Set<AnyTransitionDefinition>();
     for (const t2 of filteredTransitions) {
-      if (
-        hasIntersection(
-          computeExitSet([t1], stateNodeSet, snapshot, event, actorScope),
-          computeExitSet([t2], stateNodeSet, snapshot, event, actorScope)
-        )
-      ) {
+      if (hasIntersection(getExitSet(t1), getExitSet(t2))) {
         if (isDescendant(t1.source, t2.source)) {
           transitionsToRemove.add(t2);
         } else {
@@ -2146,6 +2165,7 @@ function exitStates(
   statesToExit.sort((a, b) => b.order - a.order);
 
   let changedHistory: typeof historyValue | undefined;
+  const currentStateNodes = [...mutStateNodeSet];
 
   // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
   for (const exitStateNode of statesToExit) {
@@ -2160,8 +2180,7 @@ function exitStates(
         };
       }
       changedHistory ??= { ...historyValue };
-      changedHistory[historyNode.id] =
-        Array.from(mutStateNodeSet).filter(predicate);
+      changedHistory[historyNode.id] = currentStateNodes.filter(predicate);
     }
   }
 
@@ -2490,9 +2509,11 @@ function selectEventlessTransitions(
   const atomicStates = nextState._nodes.filter(isAtomicStateNode);
 
   for (const atomicStateNode of atomicStates) {
-    loop: for (const stateNode of [atomicStateNode].concat(
-      getProperAncestors(atomicStateNode, undefined)
-    )) {
+    loop: for (
+      let stateNode: AnyStateNode | undefined = atomicStateNode;
+      stateNode;
+      stateNode = stateNode.parent
+    ) {
       if (!stateNode.always) {
         continue;
       }
@@ -2533,7 +2554,7 @@ export function resolveStateValue(
   stateValue: StateValue
 ): StateValue {
   const allStateNodes = getAllStateNodes(getStateNodes(rootNode, stateValue));
-  return getStateValue(rootNode, [...allStateNodes]);
+  return getStateValue(rootNode, allStateNodes);
 }
 
 function createEnqueueObject(
