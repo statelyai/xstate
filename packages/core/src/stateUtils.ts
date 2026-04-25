@@ -293,6 +293,33 @@ export function mutateEntryExit(
   return stateNode;
 }
 
+function scheduleDelayedEvent(
+  stateNode: AnyStateNode,
+  event: AnyEventObject,
+  resolveScheduledDelay: (x: {
+    context: MachineContext;
+    event: EventObject;
+    delays: Record<string, any>;
+  }) => any
+) {
+  const eventType = event.type;
+
+  mutateEntryExit(
+    stateNode,
+    (x, enq) => {
+      enq.raise(event as any, {
+        id: eventType,
+        delay: resolveScheduledDelay(x)
+      });
+    },
+    (_, enq) => {
+      enq.cancel(eventType);
+    }
+  );
+
+  return eventType;
+}
+
 /** All delayed transitions from the config. */
 export function getDelayedTransitions(
   stateNode: AnyStateNode
@@ -326,29 +353,13 @@ export function getDelayedTransitions(
 
   const mutateEntryExitWithDelay = (delay: string | number) => {
     const afterEvent = createAfterEvent(delay, stateNode.id);
-    const eventType = afterEvent.type;
-
-    mutateEntryExit(
-      stateNode,
-      // entry
-      (x, enq) => {
-        const resolvedDelay = resolveDelay(delay, x.delays, {
-          context: x.context,
-          event: x.event,
-          stateNode
-        });
-        enq.raise(afterEvent, {
-          id: eventType,
-          delay: resolvedDelay
-        });
-      },
-      // exit
-      (_, enq) => {
-        enq.cancel(eventType);
-      }
+    return scheduleDelayedEvent(stateNode, afterEvent, (x) =>
+      resolveDelay(delay, x.delays, {
+        context: x.context,
+        event: x.event,
+        stateNode
+      })
     );
-
-    return eventType;
   };
 
   const delayedTransitions: Array<
@@ -376,26 +387,15 @@ export function getDelayedTransitions(
   // explicit `after` entries on the same state.
   if (timeoutConfig !== undefined && onTimeoutConfig) {
     const timeoutEvent = createTimeoutEvent(stateNode.id);
-    const timeoutEventType = timeoutEvent.type;
-
-    mutateEntryExit(
+    const timeoutEventType = scheduleDelayedEvent(
       stateNode,
-      // entry
-      (x, enq) => {
-        const resolvedDelay = resolveDelay(timeoutConfig, x.delays, {
+      timeoutEvent,
+      (x) =>
+        resolveDelay(timeoutConfig, x.delays, {
           context: x.context,
           event: x.event,
           stateNode
-        });
-        enq.raise(timeoutEvent as any, {
-          id: timeoutEventType,
-          delay: resolvedDelay as number
-        });
-      },
-      // exit
-      (_, enq) => {
-        enq.cancel(timeoutEventType);
-      }
+        }) as number
     );
 
     const resolvedDelay =
@@ -420,14 +420,12 @@ export function getDelayedTransitions(
   // so the timeout is cleared even when the parent state stays active.
   for (const invokeDef of invokeDefs) {
     const invokeTimeoutEvent = createInvokeTimeoutEvent(invokeDef.id);
-    const invokeTimeoutEventType = invokeTimeoutEvent.type;
     const invokeTimeout = invokeDef.timeout!;
-
-    mutateEntryExit(
+    const invokeTimeoutEventType = scheduleDelayedEvent(
       stateNode,
-      // entry
-      (x, enq) => {
-        const resolvedDelay = resolveDelay(
+      invokeTimeoutEvent,
+      (x) =>
+        resolveDelay(
           invokeTimeout,
           {},
           {
@@ -435,17 +433,7 @@ export function getDelayedTransitions(
             event: x.event,
             stateNode
           }
-        );
-
-        enq.raise(invokeTimeoutEvent as any, {
-          id: invokeTimeoutEventType,
-          delay: resolvedDelay as number
-        });
-      },
-      // exit
-      (_, enq) => {
-        enq.cancel(invokeTimeoutEventType);
-      }
+        ) as number
     );
 
     const invokeOnTimeout = invokeDef.onTimeout;
