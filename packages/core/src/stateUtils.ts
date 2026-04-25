@@ -792,25 +792,26 @@ export function getStateNodes(
   }
 
   const childStateKeys = Object.keys(stateValue);
-  const childStateNodes: Array<AnyStateNode> = childStateKeys
-    .map((subStateKey) => getStateNode(stateNode, subStateKey))
-    .filter(Boolean);
+  const childStateNodes = childStateKeys.map((subStateKey) => ({
+    subStateKey,
+    subStateNode: getStateNode(stateNode, subStateKey)
+  }));
+  const allStateNodes: Array<AnyStateNode> = [
+    stateNode.machine.root,
+    stateNode
+  ];
 
-  return [stateNode.machine.root, stateNode].concat(
-    childStateNodes,
-    childStateKeys.reduce((allSubStateNodes, subStateKey) => {
-      const subStateNode = getStateNode(stateNode, subStateKey);
-      if (!subStateNode) {
-        return allSubStateNodes;
-      }
-      const subStateNodes = getStateNodes(
-        subStateNode,
-        stateValue[subStateKey]!
-      );
+  for (const { subStateNode } of childStateNodes) {
+    allStateNodes.push(subStateNode);
+  }
 
-      return allSubStateNodes.concat(subStateNodes);
-    }, [] as Array<AnyStateNode>)
-  );
+  for (const { subStateKey, subStateNode } of childStateNodes) {
+    allStateNodes.push(
+      ...getStateNodes(subStateNode, stateValue[subStateKey]!)
+    );
+  }
+
+  return allStateNodes;
 }
 
 function transitionAtomicNode(
