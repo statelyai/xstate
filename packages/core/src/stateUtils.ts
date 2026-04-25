@@ -994,6 +994,19 @@ function isDescendant(
   return marker.parent === parentStateNode;
 }
 
+function hasDescendantState(
+  stateNodes: Set<AnyStateNode>,
+  parentStateNode: AnyStateNode
+): boolean {
+  for (const stateNode of stateNodes) {
+    if (isDescendant(stateNode, parentStateNode)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
   const s1Size =
     s1 instanceof Set ? s1.size : Array.isArray(s1) ? s1.length : undefined;
@@ -2040,11 +2053,9 @@ function addDescendantStatesToEnter(
     } else {
       if (stateNode.type === 'parallel') {
         for (const child of getChildren(stateNode)) {
-          if (![...statesToEnter].some((s) => isDescendant(s, child))) {
-            if (!isHistoryNode(child)) {
-              statesToEnter.add(child);
-              statesForDefaultEntry.add(child);
-            }
+          if (!hasDescendantState(statesToEnter, child)) {
+            statesToEnter.add(child);
+            statesForDefaultEntry.add(child);
             addDescendantStatesToEnter(
               child,
               historyValue,
@@ -2077,7 +2088,7 @@ function addAncestorStatesToEnter(
     }
     if (anc.type === 'parallel') {
       for (const child of getChildren(anc)) {
-        if (![...statesToEnter].some((s) => isDescendant(s, child))) {
+        if (!hasDescendantState(statesToEnter, child)) {
           statesToEnter.add(child);
           addDescendantStatesToEnter(
             child,
