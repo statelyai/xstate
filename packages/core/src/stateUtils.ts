@@ -113,7 +113,16 @@ export function isAtomicStateNode(stateNode: AnyStateNode) {
 }
 
 function getChildren(stateNode: AnyStateNode): Array<AnyStateNode> {
-  return Object.values(stateNode.states).filter((sn) => sn.type !== 'history');
+  const children: Array<AnyStateNode> = [];
+
+  for (const key in stateNode.states) {
+    const child = stateNode.states[key];
+    if (child.type !== 'history') {
+      children.push(child);
+    }
+  }
+
+  return children;
 }
 
 export function getProperAncestors(
@@ -2030,9 +2039,7 @@ function addDescendantStatesToEnter(
       );
     } else {
       if (stateNode.type === 'parallel') {
-        for (const child of getChildren(stateNode).filter(
-          (sn) => !isHistoryNode(sn)
-        )) {
+        for (const child of getChildren(stateNode)) {
           if (![...statesToEnter].some((s) => isDescendant(s, child))) {
             if (!isHistoryNode(child)) {
               statesToEnter.add(child);
@@ -2069,7 +2076,7 @@ function addAncestorStatesToEnter(
       statesToEnter.add(anc);
     }
     if (anc.type === 'parallel') {
-      for (const child of getChildren(anc).filter((sn) => !isHistoryNode(sn))) {
+      for (const child of getChildren(anc)) {
         if (![...statesToEnter].some((s) => isDescendant(s, child))) {
           statesToEnter.add(child);
           addDescendantStatesToEnter(
