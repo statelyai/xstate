@@ -247,18 +247,13 @@ export class StateNode<
   /** The mapping of events to transitions. */
   public get on(): TransitionDefinitionMap<any, any> {
     return memo(this, 'on', () => {
-      const transitions = this.transitions;
+      const map = {} as TransitionDefinitionMap<TContext, TEvent>;
 
-      return [...transitions]
-        .flatMap(([descriptor, t]) => t.map((t) => [descriptor, t] as const))
-        .reduce(
-          (map: any, [descriptor, transition]) => {
-            map[descriptor] = map[descriptor] || [];
-            map[descriptor].push(transition);
-            return map;
-          },
-          {} as TransitionDefinitionMap<TContext, TEvent>
-        );
+      for (const [descriptor, transitions] of this.transitions) {
+        (map as any)[descriptor] = transitions.slice();
+      }
+
+      return map;
     });
   }
 
@@ -314,17 +309,11 @@ export class StateNode<
   /** All the event types accepted by this state node and its descendants. */
   public get events(): Array<EventDescriptor<any>> {
     return memo(this, 'events', () => {
-      const { states } = this;
       const events = new Set(this.ownEvents);
 
-      if (states) {
-        for (const stateId of Object.keys(states)) {
-          const state = states[stateId];
-          if (state.states) {
-            for (const event of state.events) {
-              events.add(`${event}`);
-            }
-          }
+      for (const stateId in this.states) {
+        for (const event of this.states[stateId].events) {
+          events.add(`${event}`);
         }
       }
 
@@ -338,18 +327,21 @@ export class StateNode<
    * Excludes any inert events.
    */
   public get ownEvents(): Array<EventDescriptor<any>> {
-    const keys = Object.keys(Object.fromEntries(this.transitions));
-    const events = new Set(
-      keys.filter((descriptor) => {
-        return this.transitions.get(descriptor)!.some(
+    const events = new Set<EventDescriptor<any>>();
+
+    for (const [descriptor, transitions] of this.transitions) {
+      if (
+        transitions.some(
           (transition) =>
             transition.target ||
             // transition.actions.length ||
             transition.reenter ||
             transition.to
-        );
-      })
-    );
+        )
+      ) {
+        events.add(descriptor);
+      }
+    }
 
     return Array.from(events);
   }
