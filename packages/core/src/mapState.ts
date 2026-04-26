@@ -1,3 +1,4 @@
+import { isAtomicStateNode } from './stateUtils.ts';
 import {
   AnyMachineSnapshot,
   AnyStateNode,
@@ -59,9 +60,6 @@ export function mapState<T extends AnyMachineSnapshot, TResult>(
 
     return mapper;
   };
-
-  const isAtomicStateNode = (stateNode: AnyStateNode) =>
-    stateNode.type === 'atomic' || stateNode.type === 'final';
 
   const visited = new Set<AnyStateNode>();
 
