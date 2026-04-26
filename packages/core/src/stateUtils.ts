@@ -268,16 +268,27 @@ export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, TEvent>,
   receivedEventType: TEvent['type']
 ): Array<TransitionDefinition<any, TEvent>> {
-  const candidates =
-    stateNode.transitions.get(receivedEventType) ||
-    [...stateNode.transitions.keys()]
-      .filter((eventDescriptor) =>
-        matchesEventDescriptor(receivedEventType, eventDescriptor)
-      )
-      .sort((a, b) => b.length - a.length)
-      .flatMap((key) => stateNode.transitions.get(key)!);
+  const candidates = stateNode.transitions.get(receivedEventType);
+  if (candidates) {
+    return candidates;
+  }
 
-  return candidates;
+  const matchingDescriptors: string[] = [];
+
+  for (const eventDescriptor of stateNode.transitions.keys()) {
+    if (matchesEventDescriptor(receivedEventType, eventDescriptor)) {
+      matchingDescriptors.push(eventDescriptor);
+    }
+  }
+
+  matchingDescriptors.sort((a, b) => b.length - a.length);
+
+  const wildcardCandidates: Array<TransitionDefinition<any, TEvent>> = [];
+  for (const descriptor of matchingDescriptors) {
+    wildcardCandidates.push(...stateNode.transitions.get(descriptor)!);
+  }
+
+  return wildcardCandidates;
 }
 
 export function mutateEntryExit(
