@@ -254,13 +254,9 @@ export class StateNode<
   /** @internal */
   public _refreshEventMetadata() {
     const on = {} as TransitionDefinitionMap<TContext, TEvent>;
-    for (const [descriptor, transitions] of this.transitions) {
-      (on as any)[descriptor] = transitions.slice();
-    }
-    this.on = on;
-
     const ownEvents: EventDescriptor<any>[] = [];
     for (const [descriptor, transitions] of this.transitions) {
+      (on as any)[descriptor] = transitions.slice();
       if (
         transitions.some(
           (transition) =>
@@ -270,12 +266,13 @@ export class StateNode<
         ownEvents.push(descriptor);
       }
     }
+    this.on = on;
     this.ownEvents = ownEvents;
 
-    const events = new Set(this.ownEvents);
+    const events = new Set<EventDescriptor<any>>(ownEvents);
     for (const key in this.states) {
       for (const event of this.states[key].events) {
-        events.add(`${event}`);
+        events.add(event);
       }
     }
     this.events = Array.from(events);
@@ -294,9 +291,6 @@ export class StateNode<
     self: AnyActorRef
   ): Array<AnyTransitionDefinition> | undefined {
     const eventType = event.type;
-
-    let selectedTransition: AnyTransitionDefinition | undefined;
-
     const candidates: Array<AnyTransitionDefinition> = memo(
       this,
       `candidates-${eventType}`,
@@ -313,13 +307,11 @@ export class StateNode<
       );
 
       if (guardPassed) {
-        // actions.push(...candidate.actions);
-        selectedTransition = candidate;
-        break;
+        return [candidate];
       }
     }
 
-    return selectedTransition ? [selectedTransition] : undefined;
+    return undefined;
   }
 }
 
@@ -399,13 +391,15 @@ function formatChoiceTransitions(
   }
 
   let hasDefault = false;
-  const transitions = choices.map((choice, index) => {
+  const transitions = new Array<AnyTransitionDefinition>(choices.length);
+  for (let index = 0; index < choices.length; index++) {
+    const choice = choices[index];
     validateChoiceTarget(choice, index);
     if (choice.guard === undefined) {
       hasDefault = true;
     }
-    return formatTransition(stateNode, NULL_EVENT, choice);
-  });
+    transitions[index] = formatTransition(stateNode, NULL_EVENT, choice);
+  }
 
   if (!hasDefault) {
     throw new Error(
@@ -420,7 +414,14 @@ function mapTransitionConfigs<T>(
   transitionsConfig: unknown,
   mapper: (transition: AnyTransitionConfig) => T
 ): T[] {
-  return toTransitionConfigArray(transitionsConfig as any).map(mapper);
+  const transitionConfigs = toTransitionConfigArray(transitionsConfig as any);
+  const transitions = new Array<T>(transitionConfigs.length);
+
+  for (let i = 0; i < transitionConfigs.length; i++) {
+    transitions[i] = mapper(transitionConfigs[i]);
+  }
+
+  return transitions;
 }
 
 export function formatTransitions<
