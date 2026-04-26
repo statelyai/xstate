@@ -113,16 +113,7 @@ export function isAtomicStateNode(stateNode: AnyStateNode) {
 }
 
 function getChildren(stateNode: AnyStateNode): Array<AnyStateNode> {
-  const children: Array<AnyStateNode> = [];
-
-  for (const key in stateNode.states) {
-    const child = stateNode.states[key];
-    if (child.type !== 'history') {
-      children.push(child);
-    }
-  }
-
-  return children;
+  return Object.values(stateNode.states).filter((sn) => sn.type !== 'history');
 }
 
 export function getProperAncestors(
@@ -812,22 +803,21 @@ export function getStateNodes(
   }
 
   const childStateKeys = Object.keys(stateValue);
-  const childStateNodes = childStateKeys.map((subStateKey) => ({
-    subStateKey,
-    subStateNode: getStateNode(stateNode, subStateKey)
-  }));
+  const childStateNodes = new Array<AnyStateNode>(childStateKeys.length);
   const allStateNodes: Array<AnyStateNode> = [
     stateNode.machine.root,
     stateNode
   ];
 
-  for (const { subStateNode } of childStateNodes) {
+  for (let i = 0; i < childStateKeys.length; i++) {
+    const subStateNode = getStateNode(stateNode, childStateKeys[i]);
+    childStateNodes[i] = subStateNode;
     allStateNodes.push(subStateNode);
   }
 
-  for (const { subStateKey, subStateNode } of childStateNodes) {
+  for (let i = 0; i < childStateKeys.length; i++) {
     allStateNodes.push(
-      ...getStateNodes(subStateNode, stateValue[subStateKey]!)
+      ...getStateNodes(childStateNodes[i], stateValue[childStateKeys[i]]!)
     );
   }
 
@@ -908,7 +898,7 @@ function transitionParallelNode<
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
 
-  for (const subStateKey in stateValue) {
+  for (const subStateKey of Object.keys(stateValue)) {
     const subStateValue = stateValue[subStateKey];
 
     if (!subStateValue) {
@@ -958,22 +948,10 @@ export function transitionNode<
     return transitionAtomicNode(stateNode, stateValue, snapshot, event, self);
   }
 
-  let subStateKey: string | undefined;
-  for (const key in stateValue) {
-    if (subStateKey !== undefined) {
-      return transitionParallelNode(
-        stateNode,
-        stateValue,
-        snapshot,
-        event,
-        self
-      );
-    }
+  const subStateKeys = Object.keys(stateValue);
+  const subStateKey = subStateKeys[0];
 
-    subStateKey = key;
-  }
-
-  if (subStateKey !== undefined) {
+  if (subStateKeys.length === 1) {
     return transitionCompoundNode(
       stateNode,
       stateValue,
@@ -1340,8 +1318,7 @@ function microstep(
 
       // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
       for (const exitStateNode of statesToExit) {
-        for (const key in exitStateNode.states) {
-          const historyNode = exitStateNode.states[key];
+        for (const historyNode of Object.values(exitStateNode.states)) {
           if (historyNode.type !== 'history') {
             continue;
           }

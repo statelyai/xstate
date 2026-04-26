@@ -579,7 +579,7 @@ export class StateMachine<
       }
     > = (snapshot as any).children;
 
-    Object.keys(snapshotChildren).forEach((actorId) => {
+    for (const actorId of Object.keys(snapshotChildren)) {
       const actorData = snapshotChildren[actorId];
       const childState = actorData.snapshot;
       const src = actorData.src;
@@ -588,7 +588,7 @@ export class StateMachine<
         typeof src === 'string' ? resolveReferencedActor(this, src) : src;
 
       if (!logic) {
-        return;
+        continue;
       }
 
       const actorRef = createActor(logic, {
@@ -601,40 +601,35 @@ export class StateMachine<
       });
 
       children[actorId] = actorRef;
-    });
-
-    function resolveHistoryReferencedState(
-      root: StateNode<TContext, TEvent>,
-      referenced: { id: string } | StateNode<TContext, TEvent>
-    ) {
-      if (referenced instanceof StateNode) {
-        return referenced;
-      }
-      try {
-        return root.machine.getStateNodeById(referenced.id);
-      } catch {
-        if (isDevelopment) {
-          console.warn(`Could not resolve StateNode for id: ${referenced.id}`);
-        }
-      }
     }
 
-    function reviveHistoryValue(
-      root: StateNode<TContext, TEvent>,
+    const reviveHistoryValue = (
       historyValue: Record<
         string,
         ({ id: string } | StateNode<TContext, TEvent>)[]
       >
-    ): HistoryValue {
+    ): HistoryValue => {
       if (!historyValue || typeof historyValue !== 'object') {
         return {};
       }
       const revived: HistoryValue = {};
-      for (const key in historyValue) {
+      for (const key of Object.keys(historyValue)) {
         const arr = historyValue[key];
 
         for (const item of arr) {
-          const resolved = resolveHistoryReferencedState(root, item);
+          let resolved: StateNode<TContext, TEvent> | undefined;
+
+          if (item instanceof StateNode) {
+            resolved = item;
+          } else {
+            try {
+              resolved = this.root.machine.getStateNodeById(item.id);
+            } catch {
+              if (isDevelopment) {
+                console.warn(`Could not resolve StateNode for id: ${item.id}`);
+              }
+            }
+          }
 
           if (!resolved) {
             continue;
@@ -645,10 +640,9 @@ export class StateMachine<
         }
       }
       return revived;
-    }
+    };
 
     const revivedHistoryValue = reviveHistoryValue(
-      this.root,
       (snapshot as any).historyValue
     );
 
@@ -673,17 +667,14 @@ export class StateMachine<
       TConfig
     >;
 
-    const seen = new Set();
+    const seen = new WeakSet<Record<string, unknown>>();
 
-    function reviveContext(
-      contextPart: Record<string, unknown>,
-      children: Record<string, AnyActorRef>
-    ) {
+    function reviveContext(contextPart: Record<string, unknown>) {
       if (seen.has(contextPart)) {
         return;
       }
       seen.add(contextPart);
-      for (const key in contextPart) {
+      for (const key of Object.keys(contextPart)) {
         const value: unknown = contextPart[key];
 
         if (value && typeof value === 'object') {
@@ -691,12 +682,12 @@ export class StateMachine<
             contextPart[key] = children[(value as any).id];
             continue;
           }
-          reviveContext(value as typeof contextPart, children);
+          reviveContext(value as typeof contextPart);
         }
       }
     }
 
-    reviveContext(restoredSnapshot.context, children);
+    reviveContext(restoredSnapshot.context);
 
     return restoredSnapshot;
   }

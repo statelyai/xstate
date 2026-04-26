@@ -149,12 +149,9 @@ export class StateNode<
     this.key = options._key;
     this.machine = options._machine;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
-    let firstStateKey: string | undefined;
-    if (this.config.states) {
-      for (firstStateKey in this.config.states) {
-        break;
-      }
-    }
+    const firstStateKey = this.config.states
+      ? Object.keys(this.config.states)[0]
+      : undefined;
     this.id =
       this.config.id || [this.machine.id, ...this.path].join(STATE_DELIMITER);
     this.type =
@@ -244,7 +241,7 @@ export class StateNode<
       );
     }
 
-    for (const key in this.states) {
+    for (const key of Object.keys(this.states)) {
       this.states[key]._initialize();
     }
 
@@ -270,8 +267,8 @@ export class StateNode<
     this.ownEvents = ownEvents;
 
     const events = new Set<EventDescriptor<any>>(ownEvents);
-    for (const key in this.states) {
-      for (const event of this.states[key].events) {
+    for (const state of Object.values(this.states)) {
+      for (const event of state.events) {
         events.add(event);
       }
     }
@@ -435,7 +432,7 @@ export function formatTransitions<
     TransitionDefinition<TContext, AnyEventObject>[]
   >();
   if (stateNode.config.on) {
-    for (const descriptor in stateNode.config.on) {
+    for (const descriptor of Object.keys(stateNode.config.on)) {
       if (descriptor === NULL_EVENT) {
         throw new Error(
           'Null events ("") cannot be specified as a transition key. Use `always: { ... }` instead.'
