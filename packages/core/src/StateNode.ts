@@ -380,57 +380,46 @@ function validateStateNodeConfig(stateNode: AnyStateNode) {
   }
 }
 
-function validateChoiceTarget(
-  stateNode: AnyStateNode,
-  choice: AnyTransitionConfig,
-  index: number
-) {
-  if (choice.target === undefined) {
-    throw new Error(
-      `Choice state "${stateNode.id}" has a choice at index ${index} without a target.`
-    );
-  }
-  if (typeof choice.guard === 'string') {
-    throw new Error(
-      `Choice state "${stateNode.id}" cannot declare a string guard. Use a guard object or inline guard function.`
-    );
-  }
-  validatePureChoiceResult(stateNode, choice);
-}
-
-function validatePureChoiceResult(
-  stateNode: AnyStateNode,
-  result: AnyTransitionConfig
-) {
-  for (const key of ['actions', 'to', 'context'] as const) {
-    if ((result as any)[key] !== undefined) {
-      throw new Error(
-        `Choice state "${stateNode.id}" cannot declare \`${key}\` on a choice.`
-      );
-    }
-  }
-}
-
-function validateChoiceResult(
-  stateNode: AnyStateNode,
-  result: any
-): AnyTransitionConfig {
-  if (!result || result.target === undefined) {
-    throw new Error(`Choice state "${stateNode.id}" must resolve to a target.`);
-  }
-  validatePureChoiceResult(stateNode, result);
-  return result;
-}
-
 function formatChoiceTransitions(
   stateNode: AnyStateNode
 ): AnyTransitionDefinition[] {
   const choices = (stateNode.config as any).choices;
+  const validatePureChoiceResult = (result: AnyTransitionConfig) => {
+    for (const key of ['actions', 'to', 'context'] as const) {
+      if ((result as any)[key] !== undefined) {
+        throw new Error(
+          `Choice state "${stateNode.id}" cannot declare \`${key}\` on a choice.`
+        );
+      }
+    }
+  };
+  const validateChoiceResult = (result: any): AnyTransitionConfig => {
+    if (!result || result.target === undefined) {
+      throw new Error(
+        `Choice state "${stateNode.id}" must resolve to a target.`
+      );
+    }
+    validatePureChoiceResult(result);
+    return result;
+  };
+  const validateChoiceTarget = (choice: AnyTransitionConfig, index: number) => {
+    if (choice.target === undefined) {
+      throw new Error(
+        `Choice state "${stateNode.id}" has a choice at index ${index} without a target.`
+      );
+    }
+    if (typeof choice.guard === 'string') {
+      throw new Error(
+        `Choice state "${stateNode.id}" cannot declare a string guard. Use a guard object or inline guard function.`
+      );
+    }
+    validatePureChoiceResult(choice);
+  };
 
   if (typeof choices === 'function') {
     return [
       formatTransition(stateNode, NULL_EVENT, {
-        to: (args: any) => validateChoiceResult(stateNode, choices(args))
+        to: (args: any) => validateChoiceResult(choices(args))
       } as AnyTransitionConfig)
     ];
   }
@@ -443,7 +432,7 @@ function formatChoiceTransitions(
 
   let hasDefault = false;
   const transitions = choices.map((choice, index) => {
-    validateChoiceTarget(stateNode, choice, index);
+    validateChoiceTarget(choice, index);
     if (choice.guard === undefined) {
       hasDefault = true;
     }
@@ -501,6 +490,64 @@ export function formatTransitions<
       )
     );
   }
+  const createCancelInvokeTimeoutTransition = (
+    descriptor: string,
+    timeoutEventType: string
+  ): AnyTransitionDefinition =>
+    formatTransition(stateNode, descriptor, {
+      to: (_args: any, enq: any) => {
+        enq.cancel(timeoutEventType);
+        return {};
+      }
+    } as AnyTransitionConfig);
+  const formatInvokeCompletionTransition = (
+    descriptor: string,
+    transitionConfig: AnyTransitionConfig,
+    timeoutEventType: string
+  ): AnyTransitionDefinition => {
+    const { target, to, reenter, ...rest } = transitionConfig;
+
+    return formatTransition(stateNode, descriptor, {
+      ...rest,
+      reenter,
+      to: (args: any, enq: any) => {
+        if (to) {
+          let didEnqueue = false;
+          const trackingEnqueue = new Proxy(enq, {
+            apply(target, thisArg, argArray) {
+              didEnqueue = true;
+              return Reflect.apply(target, thisArg, argArray);
+            },
+            get(target, prop, receiver) {
+              const value = Reflect.get(target, prop, receiver);
+
+              if (typeof value !== 'function') {
+                return value;
+              }
+
+              return (...argArray: any[]) => {
+                didEnqueue = true;
+                return value.apply(target, argArray);
+              };
+            }
+          });
+          const result = to(args, trackingEnqueue);
+
+          if (result !== undefined || didEnqueue) {
+            enq.cancel(timeoutEventType);
+          }
+
+          return result;
+        }
+
+        enq.cancel(timeoutEventType);
+        return {
+          target,
+          reenter
+        };
+      }
+    } as AnyTransitionConfig);
+  };
   for (const invokeDef of stateNode.invoke) {
     const invokeTimeoutEventType =
       invokeDef.timeout !== undefined
@@ -514,7 +561,6 @@ export function formatTransitions<
         (transition) =>
           invokeTimeoutEventType
             ? formatInvokeCompletionTransition(
-                stateNode,
                 descriptor,
                 transition,
                 invokeTimeoutEventType
@@ -525,7 +571,6 @@ export function formatTransitions<
       if (invokeTimeoutEventType) {
         invokeDoneTransitions.push(
           createCancelInvokeTimeoutTransition(
-            stateNode,
             descriptor,
             invokeTimeoutEventType
           )
@@ -536,11 +581,7 @@ export function formatTransitions<
     } else if (invokeTimeoutEventType) {
       const descriptor = `xstate.done.actor.${invokeDef.id}`;
       transitions.set(descriptor, [
-        createCancelInvokeTimeoutTransition(
-          stateNode,
-          descriptor,
-          invokeTimeoutEventType
-        )
+        createCancelInvokeTimeoutTransition(descriptor, invokeTimeoutEventType)
       ]);
     }
     if (invokeDef.onError) {
@@ -550,7 +591,6 @@ export function formatTransitions<
         mapTransitionConfigs(invokeDef.onError, (transition) =>
           invokeTimeoutEventType
             ? formatInvokeCompletionTransition(
-                stateNode,
                 descriptor,
                 transition,
                 invokeTimeoutEventType
@@ -580,69 +620,6 @@ export function formatTransitions<
     );
   }
   return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
-}
-
-function createCancelInvokeTimeoutTransition(
-  stateNode: AnyStateNode,
-  descriptor: string,
-  timeoutEventType: string
-): AnyTransitionDefinition {
-  return formatTransition(stateNode, descriptor, {
-    to: (_args: any, enq: any) => {
-      enq.cancel(timeoutEventType);
-      return {};
-    }
-  } as AnyTransitionConfig);
-}
-
-function formatInvokeCompletionTransition(
-  stateNode: AnyStateNode,
-  descriptor: string,
-  transitionConfig: AnyTransitionConfig,
-  timeoutEventType: string
-): AnyTransitionDefinition {
-  const { target, to, reenter, ...rest } = transitionConfig;
-
-  return formatTransition(stateNode, descriptor, {
-    ...rest,
-    reenter,
-    to: (args: any, enq: any) => {
-      if (to) {
-        let didEnqueue = false;
-        const trackingEnqueue = new Proxy(enq, {
-          apply(target, thisArg, argArray) {
-            didEnqueue = true;
-            return Reflect.apply(target, thisArg, argArray);
-          },
-          get(target, prop, receiver) {
-            const value = Reflect.get(target, prop, receiver);
-
-            if (typeof value !== 'function') {
-              return value;
-            }
-
-            return (...argArray: any[]) => {
-              didEnqueue = true;
-              return value.apply(target, argArray);
-            };
-          }
-        });
-        const result = to(args, trackingEnqueue);
-
-        if (result !== undefined || didEnqueue) {
-          enq.cancel(timeoutEventType);
-        }
-
-        return result;
-      }
-
-      enq.cancel(timeoutEventType);
-      return {
-        target,
-        reenter
-      };
-    }
-  } as AnyTransitionConfig);
 }
 
 export function formatInitialTransition(

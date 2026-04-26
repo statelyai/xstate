@@ -1297,6 +1297,31 @@ function microstep(
       event,
       actorScope
     );
+    const getCurrentTransitionResult = (
+      transition: Parameters<typeof getTransitionResult>[0]
+    ) => getTransitionResult(transition, currentSnapshot, event, actorScope);
+    const getCurrentEffectiveTargetStates = (
+      transition: Pick<AnyTransitionDefinition, 'target' | 'source'>
+    ) =>
+      getEffectiveTargetStates(transition, currentSnapshot, event, actorScope);
+    const getCurrentTransitionDomain = (transition: AnyTransitionDefinition) =>
+      getTransitionDomain(transition, currentSnapshot, event, actorScope);
+    const getStateActionsAndContext = (
+      transitionFn: any,
+      context: MachineContext,
+      children: AnyMachineSnapshot['children'],
+      input: Record<string, unknown> | undefined
+    ) =>
+      getActionsAndContextFromTransitionFn(transitionFn, {
+        context,
+        event,
+        self: actorScope.self,
+        parent: actorScope.self._parent,
+        children,
+        actorScope,
+        machine: currentSnapshot.machine,
+        input
+      });
 
     let nextState = currentSnapshot;
     const exitStates = () => {
@@ -1336,16 +1361,12 @@ function microstep(
         const stateInput = currentSnapshot._stateInputs?.[exitStateNode.id];
 
         const [exitActions, nextContext, internalEvents] = exitStateNode.exit
-          ? getActionsAndContextFromTransitionFn(exitStateNode.exit as any, {
-              context: nextState.context,
-              event,
-              self: actorScope.self,
-              parent: actorScope.self._parent,
-              children: currentSnapshot.children,
-              actorScope,
-              machine: currentSnapshot.machine,
-              input: stateInput
-            })
+          ? getStateActionsAndContext(
+              exitStateNode.exit,
+              nextState.context,
+              currentSnapshot.children,
+              stateInput
+            )
           : [[]];
         if (internalEvents?.length) {
           internalQueue.push(...internalEvents);
@@ -1388,7 +1409,7 @@ function microstep(
       if (t.actions) {
         transitionActions.push(...toArray(t.actions));
       }
-      const res = getTransitionResult(t, currentSnapshot, event, actorScope);
+      const res = getCurrentTransitionResult(t);
       if (res.context) {
         context = res.context;
       }
@@ -1487,11 +1508,8 @@ function microstep(
             } else {
               const historyDefaultTransition =
                 resolveHistoryDefaultTransition(stateNode);
-              const { targets } = getTransitionResult(
-                historyDefaultTransition,
-                currentSnapshot,
-                event,
-                actorScope
+              const { targets } = getCurrentTransitionResult(
+                historyDefaultTransition
               );
               for (const s of targets ?? []) {
                 statesToEnter.add(s);
@@ -1511,11 +1529,8 @@ function microstep(
           }
 
           if (stateNode.type === 'compound') {
-            const [initialState] = getTransitionResult(
-              stateNode.initial,
-              currentSnapshot,
-              event,
-              actorScope
+            const [initialState] = getCurrentTransitionResult(
+              stateNode.initial
             ).targets!;
 
             if (!isHistoryNode(initialState)) {
@@ -1539,19 +1554,9 @@ function microstep(
         };
 
         for (const transition of filteredTransitions) {
-          const domain = getTransitionDomain(
-            transition,
-            currentSnapshot,
-            event,
-            actorScope
-          );
+          const domain = getCurrentTransitionDomain(transition);
 
-          const { targets, reenter } = getTransitionResult(
-            transition,
-            currentSnapshot,
-            event,
-            actorScope
-          );
+          const { targets, reenter } = getCurrentTransitionResult(transition);
 
           for (const targetNode of targets ?? []) {
             if (
@@ -1565,12 +1570,7 @@ function microstep(
             }
             addDescendantStatesToEnter(targetNode);
           }
-          const targetStates = getEffectiveTargetStates(
-            transition,
-            currentSnapshot,
-            event,
-            actorScope
-          );
+          const targetStates = getCurrentEffectiveTargetStates(transition);
           for (const s of targetStates) {
             const ancestors = getProperAncestors(s, domain);
             if (domain?.type === 'parallel') {
@@ -1593,12 +1593,7 @@ function microstep(
         ...currentSnapshot._stateInputs
       };
       for (const transition of filteredTransitions) {
-        const { targets, input } = getTransitionResult(
-          transition,
-          currentSnapshot,
-          event,
-          actorScope
-        );
+        const { targets, input } = getCurrentTransitionResult(transition);
         if (input && targets) {
           for (const targetNode of targets) {
             stateInputMap[targetNode.id] = input;
@@ -1674,18 +1669,11 @@ function microstep(
 
         if (stateNodeToEnter.entry) {
           const [resultActions, nextContext, nextInternalEvents] =
-            getActionsAndContextFromTransitionFn(
-              stateNodeToEnter.entry as any,
-              {
-                context: nextState.context,
-                event,
-                self: actorScope.self,
-                parent: actorScope.self._parent,
-                children,
-                actorScope,
-                machine: currentSnapshot.machine,
-                input: stateInput
-              }
+            getStateActionsAndContext(
+              stateNodeToEnter.entry,
+              nextState.context,
+              children,
+              stateInput
             );
           actions.push(...resultActions);
           if (nextInternalEvents?.length) {
@@ -1844,17 +1832,12 @@ function microstep(
       nextStateNodesToExit.forEach((stateNode) => {
         if (stateNode.exit) {
           const stateInput = nextState._stateInputs?.[stateNode.id];
-          const [exitActions, , nextInternalEvents] =
-            getActionsAndContextFromTransitionFn(stateNode.exit as any, {
-              context: nextState.context,
-              event,
-              self: actorScope.self,
-              parent: actorScope.self._parent,
-              children: nextState.children,
-              actorScope,
-              machine: currentSnapshot.machine,
-              input: stateInput
-            });
+          const [exitActions, , nextInternalEvents] = getStateActionsAndContext(
+            stateNode.exit,
+            nextState.context,
+            nextState.children,
+            stateInput
+          );
           allExitActions.push(...exitActions);
           if (nextInternalEvents?.length) {
             internalQueue.push(...nextInternalEvents);
