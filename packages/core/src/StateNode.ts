@@ -134,6 +134,11 @@ export class StateNode<
   public tags: string[] = [];
   public transitions!: Map<string, AnyTransitionDefinition[]>;
   public always?: Array<AnyTransitionDefinition>;
+  public invoke: Array<AnyInvokeDefinition>;
+  public on!: TransitionDefinitionMap<any, any>;
+  public after!: Array<DelayedTransitionDefinition<any, any>>;
+  public events!: Array<EventDescriptor<any>>;
+  public ownEvents!: Array<EventDescriptor<any>>;
 
   constructor(
     /** The raw config used to create the machine. */
@@ -211,10 +216,25 @@ export class StateNode<
     this.output =
       this.type === 'final' || !this.parent ? this.config.output : undefined;
     this.tags = toArray(config.tags).slice();
+    this.invoke = toArray(this.config.invoke).map((invokeConfig, i) => {
+      const { src, systemId } = invokeConfig;
+      const invokeId = createInvokeId(this.id, i);
+      const resolvedId = invokeConfig.id ?? invokeId;
+      const sourceName = `xstate.invoke.${invokeId}`;
+
+      return {
+        ...invokeConfig,
+        src: sourceName,
+        logic: src,
+        id: resolvedId,
+        systemId
+      } as AnyInvokeDefinition;
+    });
   }
 
   /** @internal */
   public _initialize() {
+    this.after = getDelayedTransitions(this) as any;
     this.transitions = formatTransitions(this);
     if (this.type === 'choice') {
       this.always = formatChoiceTransitions(this);
@@ -227,47 +247,38 @@ export class StateNode<
     for (const key in this.states) {
       this.states[key]._initialize();
     }
+
+    this._refreshEventMetadata();
   }
 
-  /** The logic invoked as actors by this state node. */
-  public get invoke(): Array<AnyInvokeDefinition> {
-    return memo(this, 'invoke', () =>
-      toArray(this.config.invoke).map((invokeConfig, i) => {
-        const { src, systemId } = invokeConfig;
-        const invokeId = createInvokeId(this.id, i);
-        const resolvedId = invokeConfig.id ?? invokeId;
-        const sourceName = `xstate.invoke.${invokeId}`;
+  /** @internal */
+  public _refreshEventMetadata() {
+    const on = {} as TransitionDefinitionMap<TContext, TEvent>;
+    for (const [descriptor, transitions] of this.transitions) {
+      (on as any)[descriptor] = transitions.slice();
+    }
+    this.on = on;
 
-        return {
-          ...invokeConfig,
-          src: sourceName,
-          logic: src,
-          id: resolvedId,
-          systemId: systemId
-        } as AnyInvokeDefinition;
-      })
-    );
-  }
-
-  /** The mapping of events to transitions. */
-  public get on(): TransitionDefinitionMap<any, any> {
-    return memo(this, 'on', () => {
-      const map = {} as TransitionDefinitionMap<TContext, TEvent>;
-
-      for (const [descriptor, transitions] of this.transitions) {
-        (map as any)[descriptor] = transitions.slice();
+    const ownEvents: EventDescriptor<any>[] = [];
+    for (const [descriptor, transitions] of this.transitions) {
+      if (
+        transitions.some(
+          (transition) =>
+            transition.target || transition.reenter || transition.to
+        )
+      ) {
+        ownEvents.push(descriptor);
       }
+    }
+    this.ownEvents = ownEvents;
 
-      return map;
-    });
-  }
-
-  public get after(): Array<DelayedTransitionDefinition<any, any>> {
-    return memo(
-      this,
-      'delayedTransitions',
-      () => getDelayedTransitions(this) as any
-    );
+    const events = new Set(this.ownEvents);
+    for (const key in this.states) {
+      for (const event of this.states[key].events) {
+        events.add(`${event}`);
+      }
+    }
+    this.events = Array.from(events);
   }
 
   public get initial(): InitialTransitionDefinition {
@@ -309,46 +320,6 @@ export class StateNode<
     }
 
     return selectedTransition ? [selectedTransition] : undefined;
-  }
-
-  /** All the event types accepted by this state node and its descendants. */
-  public get events(): Array<EventDescriptor<any>> {
-    return memo(this, 'events', () => {
-      const events = new Set(this.ownEvents);
-
-      for (const stateId in this.states) {
-        for (const event of this.states[stateId].events) {
-          events.add(`${event}`);
-        }
-      }
-
-      return Array.from(events);
-    });
-  }
-
-  /**
-   * All the events that have transitions directly from this state node.
-   *
-   * Excludes any inert events.
-   */
-  public get ownEvents(): Array<EventDescriptor<any>> {
-    const events: EventDescriptor<any>[] = [];
-
-    for (const [descriptor, transitions] of this.transitions) {
-      if (
-        transitions.some(
-          (transition) =>
-            transition.target ||
-            // transition.actions.length ||
-            transition.reenter ||
-            transition.to
-        )
-      ) {
-        events.push(descriptor);
-      }
-    }
-
-    return events;
   }
 }
 

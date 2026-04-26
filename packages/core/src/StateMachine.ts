@@ -155,6 +155,7 @@ export class StateMachine<
 
     this.root._initialize();
     formatRouteTransitions(this.root);
+    this.root._refreshEventMetadata();
 
     this.states = this.root.states; // TODO: remove!
     this.events = this.root.events;
