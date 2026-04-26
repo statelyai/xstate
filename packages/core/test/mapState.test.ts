@@ -1,5 +1,4 @@
-import { createActor, setup } from '../src/index.ts';
-import { mapState } from '../src/mapState.ts';
+import { createActor, mapState, setup } from '../src/index.ts';
 
 describe('mapState', () => {
   it('should map context from root state', () => {
@@ -160,6 +159,7 @@ describe('mapState', () => {
     expect(mapped).toContain('x');
     expect(mapped).toContain('region2');
     expect(mapped).toContain('p');
+    expect(results).toHaveLength(5);
   });
 
   it('should handle states without mappers', () => {

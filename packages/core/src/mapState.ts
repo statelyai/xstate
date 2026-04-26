@@ -3,7 +3,7 @@ import {
   AnyStateNode,
   StateSchema,
   StateSchemaFrom
-} from './types';
+} from './types.ts';
 
 /**
  * A mapper object that defines how to transform a snapshot based on its state.
@@ -28,7 +28,8 @@ type StateSchemaMapper<
  * Maps a machine snapshot to an array of result objects based on active states.
  *
  * Traverses all active state nodes (from atomic/leaf states up to root) and
- * collects results from matching `map` functions in the mapper object.
+ * collects results from matching `map` functions in the mapper object. Results
+ * are ordered leaf-to-root (most specific state first).
  */
 export function mapState<T extends AnyMachineSnapshot, TResult>(
   snapshot: T,
