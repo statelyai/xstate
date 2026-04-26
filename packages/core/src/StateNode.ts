@@ -144,11 +144,17 @@ export class StateNode<
     this.key = options._key;
     this.machine = options._machine;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
+    let firstStateKey: string | undefined;
+    if (this.config.states) {
+      for (firstStateKey in this.config.states) {
+        break;
+      }
+    }
     this.id =
       this.config.id || [this.machine.id, ...this.path].join(STATE_DELIMITER);
     this.type =
       this.config.type ||
-      (this.config.states && Object.keys(this.config.states).length
+      (firstStateKey !== undefined
         ? 'compound'
         : this.config.history
           ? 'history'
@@ -180,9 +186,7 @@ export class StateNode<
       throw new Error(
         `No initial state specified for compound state node "#${
           this.id
-        }". Try adding { initial: "${
-          Object.keys(this.states)[0]
-        }" } to the state config.`
+        }". Try adding { initial: "${firstStateKey}" } to the state config.`
       );
     }
 
@@ -220,9 +224,9 @@ export class StateNode<
       );
     }
 
-    Object.keys(this.states).forEach((key) => {
+    for (const key in this.states) {
       this.states[key]._initialize();
-    });
+    }
   }
 
   /** The logic invoked as actors by this state node. */
@@ -230,8 +234,9 @@ export class StateNode<
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invokeConfig, i) => {
         const { src, systemId } = invokeConfig;
-        const resolvedId = invokeConfig.id ?? createInvokeId(this.id, i);
-        const sourceName = `xstate.invoke.${createInvokeId(this.id, i)}`;
+        const invokeId = createInvokeId(this.id, i);
+        const resolvedId = invokeConfig.id ?? invokeId;
+        const sourceName = `xstate.invoke.${invokeId}`;
 
         return {
           ...invokeConfig,
@@ -327,7 +332,7 @@ export class StateNode<
    * Excludes any inert events.
    */
   public get ownEvents(): Array<EventDescriptor<any>> {
-    const events = new Set<EventDescriptor<any>>();
+    const events: EventDescriptor<any>[] = [];
 
     for (const [descriptor, transitions] of this.transitions) {
       if (
@@ -339,11 +344,11 @@ export class StateNode<
             transition.to
         )
       ) {
-        events.add(descriptor);
+        events.push(descriptor);
       }
     }
 
-    return Array.from(events);
+    return events;
   }
 }
 
@@ -458,7 +463,7 @@ export function formatTransitions<
     TransitionDefinition<TContext, AnyEventObject>[]
   >();
   if (stateNode.config.on) {
-    for (const descriptor of Object.keys(stateNode.config.on)) {
+    for (const descriptor in stateNode.config.on) {
       if (descriptor === NULL_EVENT) {
         throw new Error(
           'Null events ("") cannot be specified as a transition key. Use `always: { ... }` instead.'
