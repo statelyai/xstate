@@ -1,5 +1,42 @@
 # xstate
 
+## 5.31.0
+
+### Minor Changes
+
+- [#5429](https://github.com/statelyai/xstate/pull/5429) [`9d9c1fe`](https://github.com/statelyai/xstate/commit/9d9c1fe9df43936aa6ab43a4694645a6966ace12) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `mapState(snapshot, mapper)` to map a snapshot to values based on active state(s).
+
+  ```ts
+  import { mapState } from 'xstate';
+
+  const results = mapState(snapshot, {
+    states: {
+      loading: { map: () => 'Loading...' },
+      success: { map: (snap) => snap.context.data },
+      error: { map: (snap) => snap.context.error.message }
+    }
+  });
+
+  console.log(results);
+  // E.g. if snapshot.value === 'loading', then:
+  // [
+  //   { stateNode: { key: 'loading' }, result: 'Loading...' }
+  // ]
+  ```
+
+- [#5430](https://github.com/statelyai/xstate/pull/5430) [`e543599`](https://github.com/statelyai/xstate/commit/e5435993b2dee17c0808c2997665df696865aebd) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `maxIterations` option to configure the maximum number of microsteps allowed before throwing an infinite loop error. The default is `Infinity` (no limit) to avoid breaking existing machines.
+
+  You can configure it when creating a machine:
+
+  ```ts
+  const machine = createMachine({
+    // ... machine config
+    options: {
+      maxIterations: 1000 // set a limit to enable infinite loop detection
+    }
+  });
+  ```
+
 ## 5.30.0
 
 ### Minor Changes
@@ -5930,10 +5967,8 @@
 - [`99bc5fb9`](https://github.com/statelyai/xstate/commit/99bc5fb9d1d7be35f4c767dcbbf5287755b306d0) [#2275](https://github.com/statelyai/xstate/pull/2275) Thanks [@davidkpiano](https://github.com/statelyai)! - The `SpawnedActorRef` TypeScript interface has been deprecated in favor of a unified `ActorRef` interface, which contains the following:
 
   ```ts
-  interface ActorRef<
-    TEvent extends EventObject,
-    TEmitted = any
-  > extends Subscribable<TEmitted> {
+  interface ActorRef<TEvent extends EventObject, TEmitted = any>
+    extends Subscribable<TEmitted> {
     send: (event: TEvent) => void;
     id: string;
     subscribe(observer: Observer<T>): Subscription;
