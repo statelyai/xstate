@@ -2515,53 +2515,71 @@ export function hasEffect(
   self: AnyActorRef
 ): boolean {
   if (transition.to) {
-    let hasEffect = false;
-    let res;
-
-    try {
-      const triggerEffect = () => {
-        hasEffect = true;
-        throw new Error('Effect triggered');
-      };
-      res = transition.to(
-        {
-          context,
-          event,
-          self,
-          value: snapshot.value,
-          children: snapshot.children,
-          parent: {
-            send: triggerEffect
-          } as any,
-          actions: snapshot.machine.implementations.actions,
-          actors: snapshot.machine.implementations.actors,
-          guards: snapshot.machine.implementations.guards,
-          delays: snapshot.machine.implementations.delays
-        },
-        createEnqueueObject(
-          {
-            emit: triggerEffect,
-            cancel: triggerEffect,
-            log: triggerEffect,
-            raise: triggerEffect,
-            spawn: triggerEffect,
-            sendTo: triggerEffect,
-            stop: triggerEffect
-          },
-          triggerEffect
-        )
-      );
-    } catch (err) {
-      if (hasEffect) {
-        return true;
-      }
-      throw err;
-    }
-
-    return res !== undefined;
+    return transitionToHasEffect(
+      transition.to,
+      context,
+      event,
+      snapshot,
+      self,
+      snapshot.machine.implementations
+    );
   }
 
   return false;
+}
+
+function transitionToHasEffect(
+  transitionTo: NonNullable<AnyTransitionDefinition['to']>,
+  context: MachineContext,
+  event: EventObject,
+  snapshot: AnyMachineSnapshot,
+  self: AnyActorRef,
+  implementations: AnyMachineSnapshot['machine']['implementations']
+) {
+  let hasEffect = false;
+  let res;
+
+  try {
+    const triggerEffect = () => {
+      hasEffect = true;
+      throw new Error('Effect triggered');
+    };
+    res = transitionTo(
+      {
+        context,
+        event,
+        self,
+        value: snapshot.value,
+        children: snapshot.children,
+        parent: {
+          send: triggerEffect
+        } as any,
+        actions: implementations.actions,
+        actors: implementations.actors,
+        guards: implementations.guards,
+        delays: implementations.delays
+      },
+      createEnqueueObject(
+        {
+          emit: triggerEffect,
+          cancel: triggerEffect,
+          log: triggerEffect,
+          raise: triggerEffect,
+          spawn: triggerEffect,
+          sendTo: triggerEffect,
+          stop: triggerEffect
+        },
+        triggerEffect
+      )
+    );
+  } catch (err) {
+    if (hasEffect) {
+      return true;
+    }
+    throw err;
+  }
+
+  return res !== undefined;
 }
 
 export function evaluateCandidate(
@@ -2604,52 +2622,14 @@ export function evaluateCandidate(
   }
 
   if (candidate.to) {
-    let hasEffect = false;
-    let res;
-    const context = snapshot.context;
-
-    try {
-      const triggerEffect = () => {
-        hasEffect = true;
-        throw new Error('Effect triggered');
-      };
-      res = candidate.to(
-        {
-          context,
-          event,
-          self,
-          // @ts-ignore
-          parent: {
-            send: triggerEffect
-          },
-          value: snapshot.value,
-          children: snapshot.children,
-          actions: stateNode.machine.implementations.actions,
-          actors: stateNode.machine.implementations.actors,
-          guards: stateNode.machine.implementations.guards,
-          delays: stateNode.machine.implementations.delays
-        },
-        createEnqueueObject(
-          {
-            emit: triggerEffect,
-            cancel: triggerEffect,
-            log: triggerEffect,
-            raise: triggerEffect,
-            spawn: triggerEffect,
-            sendTo: triggerEffect,
-            stop: triggerEffect
-          },
-          triggerEffect
-        )
-      );
-    } catch (err) {
-      if (hasEffect) {
-        return true;
-      }
-      throw err;
-    }
-
-    return res !== undefined;
+    return transitionToHasEffect(
+      candidate.to,
+      snapshot.context,
+      event,
+      snapshot,
+      self,
+      stateNode.machine.implementations
+    );
   }
 
   return true;
