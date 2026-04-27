@@ -332,21 +332,32 @@ const machineSnapshotCan = function can(
     );
   }
 
-  const transitionData = this.machine.getTransitionData(this, event, {} as any);
-
-  return (
-    !!transitionData?.length &&
-    // Check that at least one transition is not forbidden
-    transitionData.some((t) => {
-      const res = getTransitionResult(t, this, event, getEmptyCanActorScope());
-      return (
-        t.target !== undefined ||
-        res.targets?.length ||
-        res.context ||
-        hasEffect(t, this.context, event, this, getEmptyCanActor())
-      );
-    })
+  const emptyActor = getEmptyCanActor();
+  const emptyActorScope = getEmptyCanActorScope();
+  const transitionData = this.machine.getTransitionData(
+    this,
+    event,
+    emptyActor
   );
+
+  if (!transitionData?.length) {
+    return false;
+  }
+
+  // Check that at least one transition is not forbidden
+  for (const transition of transitionData) {
+    const res = getTransitionResult(transition, this, event, emptyActorScope);
+    if (
+      transition.target !== undefined ||
+      res.targets?.length ||
+      res.context ||
+      hasEffect(transition, this.context, event, this, emptyActor)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 };
 
 const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
@@ -436,10 +447,34 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
   snapshot: TState,
   config: Partial<StateConfig<any, any>> = {}
 ): TState {
-  return createMachineSnapshot(
-    { ...snapshot, ...config } as StateConfig<any, any>,
-    snapshot.machine
-  ) as TState;
+  const configWithSnapshot = {
+    ...snapshot,
+    ...config
+  } as StateConfig<any, any>;
+
+  if ((config._nodes ?? snapshot._nodes) === snapshot._nodes) {
+    return {
+      status: configWithSnapshot.status as never,
+      output: configWithSnapshot.output,
+      error: configWithSnapshot.error,
+      machine: snapshot.machine,
+      context: configWithSnapshot.context,
+      _nodes: snapshot._nodes,
+      value: snapshot.value,
+      tags: snapshot.tags,
+      children: configWithSnapshot.children as any,
+      historyValue: configWithSnapshot.historyValue || {},
+      _stateInputs: configWithSnapshot._stateInputs || {},
+      matches: machineSnapshotMatches as never,
+      hasTag: machineSnapshotHasTag,
+      can: machineSnapshotCan,
+      getMeta: machineSnapshotGetMeta,
+      getInputs: machineSnapshotGetInputs,
+      toJSON: machineSnapshotToJSON
+    } as unknown as TState;
+  }
+
+  return createMachineSnapshot(configWithSnapshot, snapshot.machine) as TState;
 }
 
 function serializeHistoryValue(

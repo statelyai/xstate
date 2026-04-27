@@ -340,9 +340,14 @@ export class StateMachine<
       TConfig
     >
   > {
-    return macrostep(snapshot, event, actorScope, []).microsteps.map(
-      ([s]) => s
-    );
+    const { microsteps } = macrostep(snapshot, event, actorScope, []);
+    const snapshots = new Array(microsteps.length);
+
+    for (let i = 0; i < microsteps.length; i++) {
+      snapshots[i] = microsteps[i][0];
+    }
+
+    return snapshots;
   }
 
   public getTransitionData(
@@ -365,9 +370,13 @@ export class StateMachine<
   }
 
   public isInternalEventType(eventType: string): boolean {
-    return this.internalEventDescriptors.some((descriptor) =>
-      matchesEventDescriptor(eventType, descriptor)
-    );
+    for (const descriptor of this.internalEventDescriptors) {
+      if (matchesEventDescriptor(eventType, descriptor)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -568,6 +577,7 @@ export class StateMachine<
     TMeta,
     TConfig
   > {
+    const snapshotData = snapshot as any;
     const children: Record<string, AnyActorRef> = {};
     const snapshotChildren: Record<
       string,
@@ -577,7 +587,7 @@ export class StateMachine<
         syncSnapshot?: boolean;
         systemId?: string;
       }
-    > = (snapshot as any).children;
+    > = snapshotData.children;
 
     for (const actorId of Object.keys(snapshotChildren)) {
       const actorData = snapshotChildren[actorId];
@@ -642,16 +652,14 @@ export class StateMachine<
       return revived;
     };
 
-    const revivedHistoryValue = reviveHistoryValue(
-      (snapshot as any).historyValue
-    );
+    const revivedHistoryValue = reviveHistoryValue(snapshotData.historyValue);
 
     const restoredSnapshot = createMachineSnapshot(
       {
         ...(snapshot as any),
         children,
         _nodes: Array.from(
-          getAllStateNodes(getStateNodes(this.root, (snapshot as any).value))
+          getAllStateNodes(getStateNodes(this.root, snapshotData.value))
         ),
         historyValue: revivedHistoryValue
       },
