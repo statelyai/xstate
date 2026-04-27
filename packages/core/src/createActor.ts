@@ -93,8 +93,10 @@ export class Actor<TLogic extends AnyActorLogic>
   /** The unique identifier for this actor relative to its parent. */
   public id: string;
 
+  private readonly _boundProcess = this._process.bind(this);
+
   private mailbox: Mailbox<EventFromLogic<TLogic>> = new Mailbox(
-    this._process.bind(this)
+    this._boundProcess
   );
 
   private observers: Set<Observer<SnapshotFrom<TLogic>>> = new Set();
@@ -212,11 +214,19 @@ export class Actor<TLogic extends AnyActorLogic>
         if (!listeners && !wildcardListener) {
           return;
         }
-        const allListeners = [
-          ...(listeners ? listeners.values() : []),
-          ...(wildcardListener ? wildcardListener.values() : [])
-        ];
-        for (const handler of allListeners) {
+        if (listeners) {
+          for (const handler of listeners) {
+            try {
+              handler(emittedEvent);
+            } catch (err) {
+              reportUnhandledError(err);
+            }
+          }
+        }
+        if (!wildcardListener) {
+          return;
+        }
+        for (const handler of wildcardListener) {
           try {
             handler(emittedEvent);
           } catch (err) {
@@ -303,14 +313,34 @@ export class Actor<TLogic extends AnyActorLogic>
   // array of functions to defer
   private _deferred: Array<() => void> = [];
 
+  private _setErrorSnapshot(
+    err: unknown,
+    snapshot: SnapshotFrom<TLogic> = this._snapshot
+  ) {
+    this._snapshot = {
+      ...(snapshot as any),
+      status: 'error',
+      error: err
+    };
+  }
+
+  private _next(snapshot: SnapshotFrom<TLogic>) {
+    for (const observer of this.observers) {
+      try {
+        observer.next?.(snapshot);
+      } catch (err) {
+        reportUnhandledError(err);
+      }
+    }
+  }
+
   private update(snapshot: SnapshotFrom<TLogic>, event: EventObject): void {
     // Update state
     this._snapshot = snapshot;
 
     // Execute deferred effects
-    let deferredFn: (typeof this._deferred)[number] | undefined;
-
-    while ((deferredFn = this._deferred.shift())) {
+    for (let i = 0; i < this._deferred.length; i++) {
+      const deferredFn = this._deferred[i];
       try {
         deferredFn();
       } catch (err) {
@@ -320,23 +350,15 @@ export class Actor<TLogic extends AnyActorLogic>
         // no "builtin deferred" should actually throw an error since they are either safe
         // or the control flow is passed through the mailbox and errors should be caught by the `_process` used by the mailbox
         this._deferred.length = 0;
-        this._snapshot = {
-          ...(snapshot as any),
-          status: 'error',
-          error: err
-        };
+        this._setErrorSnapshot(err, snapshot);
+        break;
       }
     }
+    this._deferred.length = 0;
 
     switch ((this._snapshot as any).status) {
       case 'active':
-        for (const observer of this.observers) {
-          try {
-            observer.next?.(snapshot);
-          } catch (err) {
-            reportUnhandledError(err);
-          }
-        }
+        this._next(snapshot);
         break;
       case 'done':
         // next observers are meant to be notified about done snapshots
@@ -345,13 +367,7 @@ export class Actor<TLogic extends AnyActorLogic>
         // it's more ergonomic for XState to treat a done snapshot as a "next" value
         // and the completion event as something that is separate,
         // something that merely follows emitting that done snapshot
-        for (const observer of this.observers) {
-          try {
-            observer.next?.(snapshot);
-          } catch (err) {
-            reportUnhandledError(err);
-          }
-        }
+        this._next(snapshot);
 
         this._stopProcedure();
         this._complete();
@@ -506,12 +522,11 @@ export class Actor<TLogic extends AnyActorLogic>
       listeners = new Set();
       this.eventListeners.set(type, listeners);
     }
-    const wrappedHandler = handler.bind(undefined);
-    listeners.add(wrappedHandler);
+    listeners.add(handler);
 
     return {
       unsubscribe: () => {
-        listeners.delete(wrappedHandler);
+        listeners.delete(handler);
       }
     };
   }
@@ -595,11 +610,7 @@ export class Actor<TLogic extends AnyActorLogic>
       try {
         this.logic.start(this._snapshot, this._actorScope);
       } catch (err) {
-        this._snapshot = {
-          ...(this._snapshot as any),
-          status: 'error',
-          error: err
-        };
+        this._setErrorSnapshot(err);
         this._error(err);
         return this;
       }
@@ -632,11 +643,7 @@ export class Actor<TLogic extends AnyActorLogic>
     if (caughtError) {
       const { err } = caughtError;
 
-      this._snapshot = {
-        ...(this._snapshot as any),
-        status: 'error',
-        error: err
-      };
+      this._setErrorSnapshot(err);
       this._error(err);
       return;
     }
@@ -738,7 +745,7 @@ export class Actor<TLogic extends AnyActorLogic>
     // events sent *after* stop signal must be queued
     // it seems like this should be the common behavior for all of our consumers
     // so perhaps this should be unified somehow for all of them
-    this.mailbox = new Mailbox(this._process.bind(this));
+    this.mailbox = new Mailbox(this._boundProcess);
 
     this._processingStatus = ProcessingStatus.Stopped;
     this.system._unregister(this);
