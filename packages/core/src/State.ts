@@ -2,6 +2,7 @@ import isDevelopment from '#is-development';
 import { $$ACTOR_TYPE } from './createActor.ts';
 import { getStateValue, getTransitionResult, hasEffect } from './stateUtils.ts';
 import type {
+  AnyActorScope,
   AnyMachineSnapshot,
   AnyStateMachine,
   EventObject,
@@ -21,7 +22,6 @@ import type {
   AnyStateNode
 } from './types.ts';
 import { matchesState } from './utils.ts';
-import { createSystem } from './system.ts';
 import { createEmptyActor } from './actors/index.ts';
 
 type ToTestStateValue<TStateValue extends StateValue> =
@@ -44,6 +44,33 @@ export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
     'machine' in value &&
     'value' in value
   );
+}
+
+let emptyCanActor: AnyActorRef | undefined;
+let emptyCanActorScope: AnyActorScope | undefined;
+
+function getEmptyCanActor() {
+  return (emptyCanActor ??= createEmptyActor());
+}
+
+function getEmptyCanActorScope(): AnyActorScope {
+  if (emptyCanActorScope) {
+    return emptyCanActorScope;
+  }
+
+  const actor = getEmptyCanActor();
+  emptyCanActorScope = {
+    self: actor,
+    logger: () => {},
+    id: '',
+    sessionId: '',
+    defer: () => {},
+    system: actor.system,
+    stopChild: () => {},
+    emit: () => {},
+    actionExecutor: () => {}
+  };
+  return emptyCanActorScope;
 }
 
 interface MachineSnapshotBase<
@@ -311,21 +338,12 @@ const machineSnapshotCan = function can(
     !!transitionData?.length &&
     // Check that at least one transition is not forbidden
     transitionData.some((t) => {
-      const res = getTransitionResult(t, this, event, {
-        self: createEmptyActor(),
-        system: createSystem(createEmptyActor(), {
-          clock: {
-            setTimeout: globalThis.setTimeout,
-            clearTimeout: globalThis.clearTimeout
-          },
-          logger: () => {}
-        })
-      } as any);
+      const res = getTransitionResult(t, this, event, getEmptyCanActorScope());
       return (
         t.target !== undefined ||
         res.targets?.length ||
         res.context ||
-        hasEffect(t, this.context, event, this, {} as any)
+        hasEffect(t, this.context, event, this, getEmptyCanActor())
       );
     })
   );
