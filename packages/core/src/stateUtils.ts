@@ -996,17 +996,6 @@ function removeConflictingTransitions(
   return Array.from(filteredTransitions);
 }
 
-function findLeastCommonAncestor(
-  stateNodes: Array<AnyStateNode>
-): AnyStateNode | undefined {
-  const [head, ...tail] = stateNodes;
-  for (const ancestor of getProperAncestors(head, undefined)) {
-    if (tail.every((sn) => isDescendant(sn, ancestor))) {
-      return ancestor;
-    }
-  }
-}
-
 function getEffectiveTargetStates(
   transition: Pick<AnyTransitionDefinition, 'target' | 'source'>,
   snapshot: AnyMachineSnapshot,
@@ -1063,10 +1052,6 @@ function getTransitionDomain(
     actorScope
   );
 
-  if (!targetStates) {
-    return;
-  }
-
   const { reenter } = getTransitionResult(
     transition,
     snapshot,
@@ -1084,10 +1069,12 @@ function getTransitionDomain(
     return transition.source;
   }
 
-  const lca = findLeastCommonAncestor(targetStates.concat(transition.source));
-
-  if (lca) {
-    return lca;
+  const [head, ...tail] = targetStates.concat(transition.source);
+  // Find the least common ancestor (LCA) of the source and effective targets.
+  for (const ancestor of getProperAncestors(head, undefined)) {
+    if (tail.every((sn) => isDescendant(sn, ancestor))) {
+      return ancestor;
+    }
   }
 
   // at this point we know that it's a root transition since LCA couldn't be found
