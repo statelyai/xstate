@@ -2128,10 +2128,10 @@ export function macrostep(
     transitions: AnyTransitionDefinition[]
   ) {
     // collect microsteps for unified '@xstate.transition'
-    (actorScope.self as any)._collectedMicrosteps = [
-      ...(((actorScope.self as any)._collectedMicrosteps as any[]) || []),
-      ...transitions
-    ];
+    const collectedMicrosteps =
+      ((actorScope.self as any)._collectedMicrosteps as any[]) || [];
+    collectedMicrosteps.push(...transitions);
+    (actorScope.self as any)._collectedMicrosteps = collectedMicrosteps;
     actorScope.system._sendInspectionEvent({
       type: '@xstate.microstep',
       actorRef: actorScope.self,
