@@ -97,13 +97,6 @@ function resolveDelay(
   return configuredDelay;
 }
 
-function getConfiguredDelay(
-  delay: number | string,
-  delaySource: Record<string, any>
-) {
-  return getConfiguredDelayValue(delay, delaySource);
-}
-
 export function isAtomicStateNode(stateNode: AnyStateNode) {
   return (
     stateNode.type === 'atomic' ||
@@ -382,7 +375,7 @@ export function getDelayedTransitions(
       const configTransition = afterConfig[delay];
       const parsedDelay = Number.isNaN(+delay) ? delay : +delay;
       const eventType = mutateEntryExitWithDelay(parsedDelay);
-      const resolvedDelay = getConfiguredDelay(
+      const resolvedDelay = getConfiguredDelayValue(
         parsedDelay,
         stateNode.machine.implementations.delays
       );
@@ -418,7 +411,7 @@ export function getDelayedTransitions(
     const resolvedDelay =
       typeof timeoutConfig === 'function'
         ? timeoutConfig
-        : getConfiguredDelay(
+        : getConfiguredDelayValue(
             timeoutConfig,
             stateNode.machine.implementations.delays
           );
