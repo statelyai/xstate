@@ -525,6 +525,13 @@ export function formatTransitions<
     string,
     TransitionDefinition<TContext, AnyEventObject>[]
   >();
+  const formatTransitionConfigs = (
+    descriptor: string,
+    transitionsConfig: unknown
+  ) =>
+    toTransitionConfigArray(transitionsConfig as any).map((t) =>
+      formatTransition(stateNode, descriptor, t)
+    );
   if (stateNode.config.on) {
     for (const descriptor of Object.keys(stateNode.config.on)) {
       if (descriptor === NULL_EVENT) {
@@ -532,12 +539,9 @@ export function formatTransitions<
           'Null events ("") cannot be specified as a transition key. Use `always: { ... }` instead.'
         );
       }
-      const transitionsConfig = stateNode.config.on[descriptor];
       transitions.set(
         descriptor,
-        toTransitionConfigArray(transitionsConfig as any).map((t) =>
-          formatTransition(stateNode, descriptor, t)
-        )
+        formatTransitionConfigs(descriptor, stateNode.config.on[descriptor])
       );
     }
   }
@@ -545,9 +549,7 @@ export function formatTransitions<
     const descriptor = `xstate.done.state.${stateNode.id}`;
     transitions.set(
       descriptor,
-      toTransitionConfigArray(stateNode.config.onDone as any).map((t) =>
-        formatTransition(stateNode, descriptor, t)
-      )
+      formatTransitionConfigs(descriptor, stateNode.config.onDone)
     );
   }
   for (const invokeDef of stateNode.invoke) {
@@ -555,27 +557,21 @@ export function formatTransitions<
       const descriptor = `xstate.done.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onDone as any).map((t) =>
-          formatTransition(stateNode, descriptor, t)
-        )
+        formatTransitionConfigs(descriptor, invokeDef.onDone)
       );
     }
     if (invokeDef.onError) {
       const descriptor = `xstate.error.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onError as any).map((t) =>
-          formatTransition(stateNode, descriptor, t)
-        )
+        formatTransitionConfigs(descriptor, invokeDef.onError)
       );
     }
     if (invokeDef.onSnapshot) {
       const descriptor = `xstate.snapshot.${invokeDef.id}`;
       transitions.set(
         descriptor,
-        toTransitionConfigArray(invokeDef.onSnapshot as any).map((t) =>
-          formatTransition(stateNode, descriptor, t)
-        )
+        formatTransitionConfigs(descriptor, invokeDef.onSnapshot)
       );
     }
   }
