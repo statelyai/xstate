@@ -58,8 +58,6 @@ import { parseDurationToMilliseconds } from './delay.ts';
 
 type AnyStateNodeIterable = Iterable<AnyStateNode>;
 
-type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
-
 function getConfiguredDelayValue(
   delay: number | string,
   delaySource: Record<string, any>
@@ -133,28 +131,29 @@ export function getAllStateNodes(
   stateNodes: Iterable<AnyStateNode>
 ): Set<AnyStateNode> {
   const nodeSet = new Set(stateNodes);
-
-  const adjList = getAdjList(nodeSet);
+  const activeParentSet = new Set<AnyStateNode>();
+  for (const stateNode of nodeSet) {
+    if (stateNode.parent) {
+      activeParentSet.add(stateNode.parent);
+    }
+  }
 
   // add descendants
   for (const s of nodeSet) {
     // if previously active, add existing child nodes
-    if (s.type === 'compound' && (!adjList.get(s) || !adjList.get(s)!.length)) {
+    if (s.type === 'compound' && !activeParentSet.has(s)) {
       for (const sn of getInitialStateNodes(s)) {
         nodeSet.add(sn);
       }
-    } else {
-      if (s.type === 'parallel') {
-        for (const child of getChildren(s)) {
-          if (child.type === 'history') {
-            continue;
-          }
+      continue;
+    }
 
-          if (!nodeSet.has(child)) {
-            const initialStates = getInitialStateNodes(child);
-            for (const initialStateNode of initialStates) {
-              nodeSet.add(initialStateNode);
-            }
+    if (s.type === 'parallel') {
+      for (const child of getChildren(s)) {
+        if (!nodeSet.has(child)) {
+          const initialStates = getInitialStateNodes(child);
+          for (const initialStateNode of initialStates) {
+            nodeSet.add(initialStateNode);
           }
         }
       }
@@ -174,58 +173,55 @@ export function getAllStateNodes(
   return nodeSet;
 }
 
-function getValueFromAdj(baseNode: AnyStateNode, adjList: AdjList): StateValue {
-  const childStateNodes = adjList.get(baseNode);
-
-  if (!childStateNodes) {
-    return {}; // todo: fix?
-  }
-
-  if (baseNode.type === 'compound') {
-    const childStateNode = childStateNodes[0];
-    if (childStateNode) {
-      if (isAtomicStateNode(childStateNode)) {
-        return childStateNode.key;
-      }
-    } else {
-      return {};
-    }
-  }
-
-  const stateValue: StateValue = {};
-  for (const childStateNode of childStateNodes) {
-    stateValue[childStateNode.key] = getValueFromAdj(childStateNode, adjList);
-  }
-
-  return stateValue;
-}
-
-function getAdjList(stateNodes: AnyStateNodeIterable): AdjList {
-  const adjList: AdjList = new Map();
-
-  for (const s of stateNodes) {
-    if (!adjList.has(s)) {
-      adjList.set(s, []);
-    }
-
-    if (s.parent) {
-      if (!adjList.has(s.parent)) {
-        adjList.set(s.parent, []);
-      }
-
-      adjList.get(s.parent)!.push(s);
-    }
-  }
-
-  return adjList;
-}
-
 export function getStateValue(
   rootNode: AnyStateNode,
   stateNodes: AnyStateNodeIterable
 ): StateValue {
   const config = getAllStateNodes(stateNodes);
-  return getValueFromAdj(rootNode, getAdjList(config));
+  const adjList = new Map<AnyStateNode, Array<AnyStateNode>>();
+
+  for (const s of config) {
+    if (!adjList.has(s)) {
+      adjList.set(s, []);
+    }
+
+    if (!s.parent) {
+      continue;
+    }
+
+    if (!adjList.has(s.parent)) {
+      adjList.set(s.parent, []);
+    }
+
+    adjList.get(s.parent)!.push(s);
+  }
+
+  const getValueFromAdj = (baseNode: AnyStateNode): StateValue => {
+    const childStateNodes = adjList.get(baseNode);
+
+    if (!childStateNodes) {
+      return {}; // todo: fix?
+    }
+
+    if (baseNode.type === 'compound') {
+      const childStateNode = childStateNodes[0];
+      if (!childStateNode) {
+        return {};
+      }
+      if (isAtomicStateNode(childStateNode)) {
+        return childStateNode.key;
+      }
+    }
+
+    const stateValue: StateValue = {};
+    for (const childStateNode of childStateNodes) {
+      stateValue[childStateNode.key] = getValueFromAdj(childStateNode);
+    }
+
+    return stateValue;
+  };
+
+  return getValueFromAdj(rootNode);
 }
 
 export function isInFinalState(
@@ -275,28 +271,6 @@ export function getCandidates<TEvent extends EventObject>(
   return wildcardCandidates;
 }
 
-export function mutateEntryExit(
-  stateNode: AnyStateNode,
-  entryFn?: (x: any, enq: EnqueueObject<any, any>) => void,
-  exitFn?: (x: any, enq: EnqueueObject<any, any>) => void
-) {
-  if (entryFn) {
-    const oldEntry = stateNode.entry;
-    stateNode.entry = (x: any, enq: any) => {
-      entryFn(x, enq);
-      return typeof oldEntry === 'function' ? oldEntry(x, enq) : undefined;
-    };
-  }
-  if (exitFn) {
-    const oldExit = stateNode.exit;
-    stateNode.exit = (x: any, enq: any) => {
-      exitFn(x, enq);
-      return typeof oldExit === 'function' ? oldExit(x, enq) : undefined;
-    };
-  }
-  return stateNode;
-}
-
 function scheduleDelayedEvent(
   stateNode: AnyStateNode,
   event: AnyEventObject,
@@ -307,19 +281,19 @@ function scheduleDelayedEvent(
   }) => any
 ) {
   const eventType = event.type;
-
-  mutateEntryExit(
-    stateNode,
-    (x, enq) => {
-      enq.raise(event as any, {
-        id: eventType,
-        delay: resolveScheduledDelay(x)
-      });
-    },
-    (_, enq) => {
-      enq.cancel(eventType);
-    }
-  );
+  const oldEntry = stateNode.entry;
+  stateNode.entry = (x: any, enq: any) => {
+    enq.raise(event as any, {
+      id: eventType,
+      delay: resolveScheduledDelay(x)
+    });
+    return typeof oldEntry === 'function' ? oldEntry(x, enq) : undefined;
+  };
+  const oldExit = stateNode.exit;
+  stateNode.exit = (_: any, enq: any) => {
+    enq.cancel(eventType);
+    return typeof oldExit === 'function' ? oldExit(_, enq) : undefined;
+  };
 
   return eventType;
 }
@@ -369,6 +343,21 @@ export function getDelayedTransitions(
   const delayedTransitions: Array<
     AnyTransitionConfig & { event: string; delay: any }
   > = [];
+  const addDelayedTransitions = (
+    transitionsConfig: unknown,
+    event: string,
+    delay: unknown
+  ) => {
+    for (const transition of toTransitionConfigArray(
+      transitionsConfig as any
+    )) {
+      delayedTransitions.push({
+        ...transition,
+        event,
+        delay
+      });
+    }
+  };
 
   if (afterConfig) {
     for (const delay of Object.keys(afterConfig)) {
@@ -380,15 +369,7 @@ export function getDelayedTransitions(
         stateNode.machine.implementations.delays
       );
 
-      for (const transition of toTransitionConfigArray(
-        configTransition as any
-      )) {
-        delayedTransitions.push({
-          ...transition,
-          event: eventType,
-          delay: resolvedDelay
-        });
-      }
+      addDelayedTransitions(configTransition, eventType, resolvedDelay);
     }
   }
 
@@ -416,13 +397,7 @@ export function getDelayedTransitions(
             stateNode.machine.implementations.delays
           );
 
-    for (const transition of toTransitionConfigArray(onTimeoutConfig as any)) {
-      delayedTransitions.push({
-        ...transition,
-        event: timeoutEventType,
-        delay: resolvedDelay
-      });
-    }
+    addDelayedTransitions(onTimeoutConfig, timeoutEventType, resolvedDelay);
   }
 
   // Desugar invoke-level `timeout` + `onTimeout` into a delayed transition on
@@ -447,33 +422,20 @@ export function getDelayedTransitions(
     );
 
     const invokeOnTimeout = invokeDef.onTimeout;
-    for (const transition of toTransitionConfigArray(invokeOnTimeout as any)) {
-      delayedTransitions.push({
-        ...transition,
-        event: invokeTimeoutEventType,
-        delay: invokeTimeout as any
-      });
-    }
+    addDelayedTransitions(
+      invokeOnTimeout,
+      invokeTimeoutEventType,
+      invokeTimeout as any
+    );
   }
-
-  const formattedDelayedTransitions: Array<
-    DelayedTransitionDefinition<MachineContext, EventObject>
-  > = [];
-
-  for (let i = 0; i < delayedTransitions.length; i++) {
-    const delayedTransition = delayedTransitions[i];
-    const { delay } = delayedTransition;
-    formattedDelayedTransitions.push({
-      ...formatTransition(
-        stateNode,
-        delayedTransition.event,
-        delayedTransition as AnyTransitionConfig
-      ),
-      delay
-    });
-  }
-
-  return formattedDelayedTransitions;
+  return delayedTransitions.map((delayedTransition) => ({
+    ...formatTransition(
+      stateNode,
+      delayedTransition.event,
+      delayedTransition as AnyTransitionConfig
+    ),
+    delay: delayedTransition.delay
+  }));
 }
 
 export function formatTransition(
@@ -1180,17 +1142,152 @@ function microstep(
       context: MachineContext,
       children: AnyMachineSnapshot['children'],
       input: Record<string, unknown> | undefined
-    ) =>
-      getActionsAndContextFromTransitionFn(transitionFn, {
-        context,
-        event,
-        self: actorScope.self,
-        parent: actorScope.self._parent,
-        children,
-        actorScope,
-        machine: currentSnapshot.machine,
-        input
-      });
+    ): [
+      actions: any[],
+      context: MachineContext | undefined,
+      internalEvents: EventObject[] | undefined
+    ] => {
+      if (transitionFn.length === 2) {
+        // enqueue action; retrieve
+        const actions: any[] = [];
+        const internalEvents: EventObject[] = [];
+        let updatedContext: MachineContext | undefined;
+
+        const enqueue = createEnqueueObject(
+          {
+            cancel: (id: string) => {
+              actions.push({
+                action: builtInActions['@xstate.cancel'],
+                args: [actorScope, id]
+              });
+            },
+            emit: (emittedEvent) => {
+              actions.push(emittedEvent);
+            },
+            log: (...args) => {
+              actions.push({
+                action: actorScope.logger,
+                args
+              });
+            },
+            raise: (raisedEvent, options) => {
+              if (typeof raisedEvent === 'string') {
+                throw new Error(
+                  `Only event objects may be used with raise; use raise({ type: "${raisedEvent}" }) instead`
+                );
+              }
+              if (options?.delay !== undefined) {
+                actions.push({
+                  action: builtInActions['@xstate.raise'],
+                  args: [actorScope, raisedEvent, options]
+                });
+              } else {
+                internalEvents.push(raisedEvent);
+              }
+            },
+            spawn: (logic, options) => {
+              const actorRef = createActor(logic, {
+                ...options,
+                parent: actorScope.self
+              });
+              actions.push({
+                action: builtInActions['@xstate.start'],
+                args: [actorRef]
+              });
+              return actorRef;
+            },
+            sendTo: (actorRef, event, options) => {
+              if (actorRef) {
+                actions.push({
+                  action: builtInActions['@xstate.sendTo'],
+                  args: [actorScope, actorRef, event, options]
+                });
+              }
+            },
+            stop: (actorRef) => {
+              if (actorRef) {
+                actions.push({
+                  action: builtInActions['@xstate.stopChild'],
+                  args: [actorScope, actorRef]
+                });
+              }
+            },
+            listen: (actor, eventType, mapper) => {
+              const input: ListenerInput<any, any> = {
+                actor,
+                eventType,
+                mapper
+              };
+              const actorRef = createActor(listenerLogic, {
+                input,
+                parent: actorScope.self
+              });
+              actions.push({
+                action: builtInActions['@xstate.start'],
+                args: [actorRef]
+              });
+              return actorRef;
+            },
+            subscribeTo: (actor, mappers) => {
+              // Handle shorthand: subscribeTo(actor, snapshotMapper)
+              const normalizedMappers: SubscriptionMappers<any, any, any> =
+                typeof mappers === 'function' ? { snapshot: mappers } : mappers;
+
+              const input: SubscriptionInput<any, any, any, any> = {
+                actor,
+                mappers: normalizedMappers
+              };
+              const actorRef = createActor(subscriptionLogic, {
+                input,
+                parent: actorScope.self
+              });
+              actions.push({
+                action: builtInActions['@xstate.start'],
+                args: [actorRef]
+              });
+              return actorRef;
+            }
+          },
+          (action, ...args) => {
+            actions.push({
+              action,
+              args
+            });
+          }
+        );
+
+        const res = transitionFn(
+          {
+            context,
+            event,
+            parent: actorScope.self._parent,
+            self: actorScope.self,
+            children,
+            system: actorScope.system,
+            actions: currentSnapshot.machine.implementations.actions,
+            actors: currentSnapshot.machine.implementations.actors,
+            guards: currentSnapshot.machine.implementations.guards,
+            delays: currentSnapshot.machine.implementations.delays,
+            input
+          },
+          enqueue
+        );
+
+        if (res?.context) {
+          updatedContext = res.context;
+        }
+
+        return [actions, updatedContext, internalEvents];
+      }
+
+      // For 1-argument actions, wrap them to include input
+      // Preserve _special flag if present (for entry/exit actions)
+      const wrappedAction = Object.assign(
+        (args: any, enqueue: any) => transitionFn({ ...args, input }, enqueue),
+        '_special' in transitionFn ? { _special: true } : {}
+      );
+      return [[wrappedAction], undefined, undefined];
+    };
 
     let nextState = currentSnapshot;
     const exitStates = () => {
@@ -1351,16 +1448,6 @@ function microstep(
         }
       };
 
-      const addProperAncestorStatesToEnter = (
-        stateNode: AnyStateNode,
-        toStateNode: AnyStateNode | undefined
-      ) => {
-        addAncestorStatesToEnter(
-          getProperAncestors(stateNode, toStateNode),
-          undefined
-        );
-      };
-
       const addDescendantStatesToEnter = (stateNode: AnyStateNode) => {
         if (isHistoryNode(stateNode)) {
           if (historyValue[stateNode.id]) {
@@ -1370,7 +1457,10 @@ function microstep(
               addDescendantStatesToEnter(s);
             }
             for (const s of historyStateNodes) {
-              addProperAncestorStatesToEnter(s, stateNode.parent);
+              addAncestorStatesToEnter(
+                getProperAncestors(s, stateNode.parent),
+                undefined
+              );
             }
           } else {
             const historyDefaultTransition =
@@ -1389,7 +1479,10 @@ function microstep(
             }
 
             for (const s of targets ?? []) {
-              addProperAncestorStatesToEnter(s, stateNode.parent);
+              addAncestorStatesToEnter(
+                getProperAncestors(s, stateNode.parent),
+                undefined
+              );
             }
           }
           return;
@@ -1405,7 +1498,10 @@ function microstep(
             statesForDefaultEntry.add(initialState);
           }
           addDescendantStatesToEnter(initialState);
-          addProperAncestorStatesToEnter(initialState, stateNode);
+          addAncestorStatesToEnter(
+            getProperAncestors(initialState, stateNode),
+            undefined
+          );
           return;
         }
 
@@ -2255,171 +2351,6 @@ function createEnqueueObject(
 }
 
 export const emptyEnqueueObject = createEnqueueObject({}, () => {});
-
-function getActionsAndContextFromTransitionFn(
-  action2: ((args: any, enqueue: any) => any) & { _special?: boolean },
-  {
-    context,
-    event,
-    parent,
-    self,
-    children,
-    actorScope,
-    machine,
-    input
-  }: {
-    context: MachineContext;
-    event: EventObject;
-    self: AnyActorRef;
-    parent: AnyActorRef | undefined;
-    children: Record<string, AnyActorRef>;
-    actorScope: AnyActorScope;
-    machine: AnyStateMachine;
-    input?: Record<string, unknown>;
-  }
-): [
-  actions: any[],
-  context: MachineContext | undefined,
-  internalEvents: EventObject[] | undefined
-] {
-  if (action2.length === 2) {
-    // enqueue action; retrieve
-    const actions: any[] = [];
-    const internalEvents: EventObject[] = [];
-    let updatedContext: MachineContext | undefined;
-
-    const enqueue = createEnqueueObject(
-      {
-        cancel: (id: string) => {
-          actions.push({
-            action: builtInActions['@xstate.cancel'],
-            args: [actorScope, id]
-          });
-        },
-        emit: (emittedEvent) => {
-          actions.push(emittedEvent);
-        },
-        log: (...args) => {
-          actions.push({
-            action: actorScope.logger,
-            args
-          });
-        },
-        raise: (raisedEvent, options) => {
-          if (typeof raisedEvent === 'string') {
-            throw new Error(
-              `Only event objects may be used with raise; use raise({ type: "${raisedEvent}" }) instead`
-            );
-          }
-          if (options?.delay !== undefined) {
-            actions.push({
-              action: builtInActions['@xstate.raise'],
-              args: [actorScope, raisedEvent, options]
-            });
-          } else {
-            internalEvents.push(raisedEvent);
-          }
-        },
-        spawn: (logic, options) => {
-          const actorRef = createActor(logic, { ...options, parent: self });
-          actions.push({
-            action: builtInActions['@xstate.start'],
-            args: [actorRef]
-          });
-          return actorRef;
-        },
-        sendTo: (actorRef, event, options) => {
-          if (actorRef) {
-            actions.push({
-              action: builtInActions['@xstate.sendTo'],
-              args: [actorScope, actorRef, event, options]
-            });
-          }
-        },
-        stop: (actorRef) => {
-          if (actorRef) {
-            actions.push({
-              action: builtInActions['@xstate.stopChild'],
-              args: [actorScope, actorRef]
-            });
-          }
-        },
-        listen: (actor, eventType, mapper) => {
-          const input: ListenerInput<any, any> = {
-            actor,
-            eventType,
-            mapper
-          };
-          const actorRef = createActor(listenerLogic, {
-            input,
-            parent: self
-          });
-          actions.push({
-            action: builtInActions['@xstate.start'],
-            args: [actorRef]
-          });
-          return actorRef;
-        },
-        subscribeTo: (actor, mappers) => {
-          // Handle shorthand: subscribeTo(actor, snapshotMapper)
-          const normalizedMappers: SubscriptionMappers<any, any, any> =
-            typeof mappers === 'function' ? { snapshot: mappers } : mappers;
-
-          const input: SubscriptionInput<any, any, any, any> = {
-            actor,
-            mappers: normalizedMappers
-          };
-          const actorRef = createActor(subscriptionLogic, {
-            input,
-            parent: self
-          });
-          actions.push({
-            action: builtInActions['@xstate.start'],
-            args: [actorRef]
-          });
-          return actorRef;
-        }
-      },
-      (action, ...args) => {
-        actions.push({
-          action,
-          args
-        });
-      }
-    );
-
-    const res = action2(
-      {
-        context,
-        event,
-        parent,
-        self,
-        children,
-        system: actorScope.system,
-        actions: machine.implementations.actions,
-        actors: machine.implementations.actors,
-        guards: machine.implementations.guards,
-        delays: machine.implementations.delays,
-        input
-      },
-      enqueue
-    );
-
-    if (res?.context) {
-      updatedContext = res.context;
-    }
-
-    return [actions, updatedContext, internalEvents];
-  }
-
-  // For 1-argument actions, wrap them to include input
-  // Preserve _special flag if present (for entry/exit actions)
-  const wrappedAction = Object.assign(
-    (args: any, enqueue: any) => (action2 as any)({ ...args, input }, enqueue),
-    '_special' in (action2 as any) ? { _special: true } : {}
-  );
-  return [[wrappedAction], undefined, undefined];
-}
 
 export function hasEffect(
   transition: AnyTransitionDefinition,
