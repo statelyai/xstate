@@ -282,14 +282,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
     // prepare to collect initial microsteps during getInitialSnapshot
     this._collectedMicrosteps = [] as any;
-    this._initState(options?.snapshot ?? options?.state);
-
-    if (systemId && (this._snapshot as any).status !== 'active') {
-      this.system._unregister(this);
-    }
-  }
-
-  private _initState(persistedState?: Snapshot<unknown>) {
+    const persistedState = options?.snapshot ?? options?.state;
     try {
       this._snapshot = persistedState
         ? this.logic.restoreSnapshot
@@ -305,6 +298,10 @@ export class Actor<TLogic extends AnyActorLogic>
         output: undefined,
         error: err
       } as any;
+    }
+
+    if (systemId && (this._snapshot as any).status !== 'active') {
+      this.system._unregister(this);
     }
   }
 
@@ -687,34 +684,33 @@ export class Actor<TLogic extends AnyActorLogic>
     this.observers.clear();
     this.eventListeners.clear();
   }
-  private _reportError(err: unknown): void {
+
+  private _error(err: unknown): void {
+    this._stopProcedure();
     if (!this.observers.size) {
       if (!this._parent) {
         reportUnhandledError(err);
       }
       this.eventListeners.clear();
-      return;
-    }
-    let reportError = false;
+    } else {
+      let reportError = false;
 
-    for (const observer of this.observers) {
-      const errorListener = observer.error;
-      reportError ||= !errorListener;
-      try {
-        errorListener?.(err);
-      } catch (err2) {
-        reportUnhandledError(err2);
+      for (const observer of this.observers) {
+        const errorListener = observer.error;
+        reportError ||= !errorListener;
+        try {
+          errorListener?.(err);
+        } catch (err2) {
+          reportUnhandledError(err2);
+        }
+      }
+      this.observers.clear();
+      this.eventListeners.clear();
+      if (reportError) {
+        reportUnhandledError(err);
       }
     }
-    this.observers.clear();
-    this.eventListeners.clear();
-    if (reportError) {
-      reportUnhandledError(err);
-    }
-  }
-  private _error(err: unknown): void {
-    this._stopProcedure();
-    this._reportError(err);
+
     if (this._parent) {
       this.system._relay(
         this,
