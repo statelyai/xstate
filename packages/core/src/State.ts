@@ -346,9 +346,12 @@ const machineSnapshotCan = function can(
 
   // Check that at least one transition is not forbidden
   for (const transition of transitionData) {
+    if (transition.target !== undefined) {
+      return true;
+    }
+
     const res = getTransitionResult(transition, this, event, emptyActorScope);
     if (
-      transition.target !== undefined ||
       res.targets?.length ||
       res.context ||
       hasEffect(transition, this.context, event, this, emptyActor)
