@@ -249,10 +249,12 @@ export class StateMachine<
     const nodeSet = getAllStateNodes(
       getStateNodes(this.root, resolvedStateValue)
     );
+    const nodes = [...nodeSet];
 
     return createMachineSnapshot(
       {
-        _nodes: [...nodeSet],
+        _nodes: nodes,
+        value: resolvedStateValue,
         context: config.context || ({} as TContext),
         children: {},
         status: isInFinalState(nodeSet, this.root)
@@ -653,14 +655,16 @@ export class StateMachine<
     };
 
     const revivedHistoryValue = reviveHistoryValue(snapshotData.historyValue);
+    const nodes = Array.from(
+      getAllStateNodes(getStateNodes(this.root, snapshotData.value))
+    );
 
     const restoredSnapshot = createMachineSnapshot(
       {
         ...(snapshot as any),
         children,
-        _nodes: Array.from(
-          getAllStateNodes(getStateNodes(this.root, snapshotData.value))
-        ),
+        _nodes: nodes,
+        value: snapshotData.value,
         historyValue: revivedHistoryValue
       },
       this

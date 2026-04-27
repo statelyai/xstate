@@ -201,7 +201,7 @@ describe('interpreter', () => {
   });
 
   describe('send with delay', () => {
-    it('can send an event after a delay', async () => {
+    it('can send an event after a delay', () => {
       const machine = createMachine({
         initial: 'foo',
         states: {
@@ -217,19 +217,22 @@ describe('interpreter', () => {
           bar: {}
         }
       });
-      const actorRef = createActor(machine);
-      expect(actorRef.getSnapshot().value).toBe('foo');
+      const idleClock = new SimulatedClock();
+      const idleActorRef = createActor(machine, { clock: idleClock });
+      expect(idleActorRef.getSnapshot().value).toBe('foo');
 
-      await new Promise((res) => setTimeout(res, 10));
-      expect(actorRef.getSnapshot().value).toBe('foo');
+      idleClock.increment(10);
+      expect(idleActorRef.getSnapshot().value).toBe('foo');
 
+      const clock = new SimulatedClock();
+      const actorRef = createActor(machine, { clock });
       actorRef.start();
       expect(actorRef.getSnapshot().value).toBe('foo');
 
-      await new Promise((res) => setTimeout(res, 5));
+      clock.increment(5);
       expect(actorRef.getSnapshot().value).toBe('foo');
 
-      await new Promise((res) => setTimeout(res, 10));
+      clock.increment(5);
       expect(actorRef.getSnapshot().value).toBe('bar');
     });
 

@@ -1302,6 +1302,8 @@ export interface StateConfig<
   historyValue?: HistoryValue;
   /** @internal */
   _nodes: Array<AnyStateNode>;
+  /** @internal */
+  value?: StateValue;
   children: Record<string, AnyActorRef | undefined>;
   status: SnapshotStatus;
   output?: any;

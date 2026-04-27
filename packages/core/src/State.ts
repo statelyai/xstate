@@ -429,7 +429,8 @@ export function createMachineSnapshot<
     machine,
     context: config.context,
     _nodes: config._nodes,
-    value: getStateValue(machine.root, config._nodes) as never,
+    value: (config.value ??
+      getStateValue(machine.root, config._nodes)) as never,
     tags: collectTags(config._nodes),
     children: config.children as any,
     historyValue: config.historyValue || {},
@@ -474,7 +475,13 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
     } as unknown as TState;
   }
 
-  return createMachineSnapshot(configWithSnapshot, snapshot.machine) as TState;
+  return createMachineSnapshot(
+    {
+      ...configWithSnapshot,
+      value: undefined
+    },
+    snapshot.machine
+  ) as TState;
 }
 
 function serializeHistoryValue(
