@@ -375,23 +375,29 @@ export function getDelayedTransitions(
 
   const delayedTransitions: Array<
     AnyTransitionConfig & { event: string; delay: any }
-  > = afterConfig
-    ? Object.keys(afterConfig).flatMap((delay) => {
-        const configTransition = afterConfig[delay];
-        const parsedDelay = Number.isNaN(+delay) ? delay : +delay;
-        const eventType = mutateEntryExitWithDelay(parsedDelay);
-        return toTransitionConfigArray(configTransition as any).map(
-          (transition) => ({
-            ...transition,
-            event: eventType,
-            delay: getConfiguredDelay(
-              parsedDelay,
-              stateNode.machine.implementations.delays
-            )
-          })
-        );
-      })
-    : [];
+  > = [];
+
+  if (afterConfig) {
+    for (const delay of Object.keys(afterConfig)) {
+      const configTransition = afterConfig[delay];
+      const parsedDelay = Number.isNaN(+delay) ? delay : +delay;
+      const eventType = mutateEntryExitWithDelay(parsedDelay);
+      const resolvedDelay = getConfiguredDelay(
+        parsedDelay,
+        stateNode.machine.implementations.delays
+      );
+
+      for (const transition of toTransitionConfigArray(
+        configTransition as any
+      )) {
+        delayedTransitions.push({
+          ...transition,
+          event: eventType,
+          delay: resolvedDelay
+        });
+      }
+    }
+  }
 
   // Desugar state-level `timeout` + `onTimeout` into a delayed transition.
   // Uses a dedicated `xstate.timeout.<id>` event so it cannot collide with
@@ -457,17 +463,24 @@ export function getDelayedTransitions(
     }
   }
 
-  return delayedTransitions.map((delayedTransition) => {
+  const formattedDelayedTransitions: Array<
+    DelayedTransitionDefinition<MachineContext, EventObject>
+  > = [];
+
+  for (let i = 0; i < delayedTransitions.length; i++) {
+    const delayedTransition = delayedTransitions[i];
     const { delay } = delayedTransition;
-    return {
+    formattedDelayedTransitions.push({
       ...formatTransition(
         stateNode,
         delayedTransition.event,
         delayedTransition as AnyTransitionConfig
       ),
       delay
-    };
-  });
+    });
+  }
+
+  return formattedDelayedTransitions;
 }
 
 export function formatTransition(
