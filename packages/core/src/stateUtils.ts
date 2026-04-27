@@ -628,18 +628,6 @@ export function formatRouteTransitions(rootStateNode: AnyStateNode): void {
   }
 }
 
-export function formatInitialTransition<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  stateNode: AnyStateNode,
-  targets: ReadonlyArray<string> | undefined
-): ReadonlyArray<AnyStateNode> | undefined {
-  return targets?.map((target) => {
-    return stateNode.states?.[target];
-  });
-}
-
 function resolveTarget(
   stateNode: AnyStateNode,
   targets: ReadonlyArray<string | AnyStateNode> | undefined
