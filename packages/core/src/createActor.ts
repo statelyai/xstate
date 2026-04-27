@@ -26,7 +26,6 @@ import type {
   ActorScope,
   AnyActorLogic,
   AnyActorRef,
-  DoneActorEvent,
   EmittedFrom,
   EventFromLogic,
   SendableEventFromLogic,
@@ -139,7 +138,6 @@ export class Actor<TLogic extends AnyActorLogic>
 
   /** The system to which this actor belongs. */
   public system: AnyActorSystem;
-  private _doneEvent?: DoneActorEvent;
 
   public trigger: ActorRef<
     SnapshotFrom<TLogic>,
@@ -371,12 +369,12 @@ export class Actor<TLogic extends AnyActorLogic>
 
         this._stopProcedure();
         this._complete();
-        this._doneEvent = createDoneActorEvent(
+        const doneEvent = createDoneActorEvent(
           this.id,
           (this._snapshot as any).output
         );
         if (this._parent) {
-          this.system._relay(this, this._parent, this._doneEvent);
+          this.system._relay(this, this._parent, doneEvent);
         }
 
         break;
@@ -730,10 +728,10 @@ export class Actor<TLogic extends AnyActorLogic>
   // so we can't stop them from here but we really should!
   // right now, they are being stopped within the machine's transition
   // but that could throw and leave us with "orphaned" active actors
-  private _stopProcedure(): this {
+  private _stopProcedure(): void {
     if (this._processingStatus !== ProcessingStatus.Running) {
       // Actor already stopped; do nothing
-      return this;
+      return;
     }
 
     // Cancel all delayed events
@@ -749,8 +747,6 @@ export class Actor<TLogic extends AnyActorLogic>
 
     this._processingStatus = ProcessingStatus.Stopped;
     this.system._unregister(this);
-
-    return this;
   }
 
   /** @internal */
