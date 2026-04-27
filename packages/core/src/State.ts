@@ -367,20 +367,28 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
 };
 
 const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
-  return this._nodes.reduce(
-    (acc, stateNode) => {
-      if (stateNode.meta !== undefined) {
-        acc[stateNode.id] = stateNode.meta;
-      }
-      return acc;
-    },
-    {} as Record<string, any>
-  );
+  const meta: Record<string, any> = {};
+  for (const stateNode of this._nodes) {
+    if (stateNode.meta !== undefined) {
+      meta[stateNode.id] = stateNode.meta;
+    }
+  }
+  return meta;
 };
 
 const machineSnapshotGetInputs = function getInputs(this: AnyMachineSnapshot) {
   return this._stateInputs as any;
 };
+
+function collectTags(stateNodes: Array<AnyStateNode>): Set<string> {
+  const tags = new Set<string>();
+  for (const stateNode of stateNodes) {
+    for (const tag of stateNode.tags) {
+      tags.add(tag);
+    }
+  }
+  return tags;
+}
 
 export function createMachineSnapshot<
   TContext extends MachineContext,
@@ -411,7 +419,7 @@ export function createMachineSnapshot<
     context: config.context,
     _nodes: config._nodes,
     value: getStateValue(machine.root, config._nodes) as never,
-    tags: new Set(config._nodes.flatMap((sn) => sn.tags)),
+    tags: collectTags(config._nodes),
     children: config.children as any,
     historyValue: config.historyValue || {},
     _stateInputs: config._stateInputs || {},
