@@ -822,106 +822,6 @@ export function getStateNodes(
   return allStateNodes;
 }
 
-function transitionAtomicNode(
-  stateNode: AnyStateNode,
-  stateValue: string,
-  snapshot: AnyMachineSnapshot,
-  event: EventObject,
-  self: AnyActorRef
-): Array<AnyTransitionDefinition> | undefined {
-  const childStateNode = getStateNode(stateNode, stateValue);
-  const next = childStateNode.next(snapshot, event, self);
-
-  if (!next || !next.length) {
-    return stateNode.next(snapshot, event, self);
-  }
-
-  return next;
-}
-
-function transitionCompoundNode<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  stateNode: AnyStateNode,
-  stateValue: StateValueMap,
-  subStateKey: string,
-  snapshot: MachineSnapshot<
-    TContext,
-    TEvent,
-    any,
-    any,
-    any,
-    any,
-    any, // TMeta
-    any // TStateSchema
-  >,
-  event: TEvent,
-  self: AnyActorRef
-): Array<TransitionDefinition<TContext, TEvent>> | undefined {
-  const childStateNode = getStateNode(stateNode, subStateKey);
-  const next = transitionNode(
-    childStateNode,
-    stateValue[subStateKey]!,
-    snapshot,
-    event,
-    self
-  );
-
-  if (!next || !next.length) {
-    return stateNode.next(snapshot, event, self);
-  }
-
-  return next;
-}
-
-function transitionParallelNode<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  stateNode: AnyStateNode,
-  stateValue: StateValueMap,
-  snapshot: MachineSnapshot<
-    TContext,
-    TEvent,
-    any,
-    any,
-    any,
-    any,
-    any, // TMeta
-    any // TStateSchema
-  >,
-  event: TEvent,
-  self: AnyActorRef
-): Array<TransitionDefinition<TContext, TEvent>> | undefined {
-  const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
-
-  for (const subStateKey of Object.keys(stateValue)) {
-    const subStateValue = stateValue[subStateKey];
-
-    if (!subStateValue) {
-      continue;
-    }
-
-    const subStateNode = getStateNode(stateNode, subStateKey);
-    const innerTransitions = transitionNode(
-      subStateNode,
-      subStateValue,
-      snapshot,
-      event,
-      self
-    );
-    if (innerTransitions) {
-      allInnerTransitions.push(...innerTransitions);
-    }
-  }
-  if (!allInnerTransitions.length) {
-    return stateNode.next(snapshot, event, self);
-  }
-
-  return allInnerTransitions;
-}
-
 export function transitionNode<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -943,24 +843,63 @@ export function transitionNode<
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
   if (typeof stateValue === 'string') {
-    return transitionAtomicNode(stateNode, stateValue, snapshot, event, self);
+    const childStateNode = getStateNode(stateNode, stateValue);
+    const next = childStateNode.next(snapshot, event, self);
+
+    if (!next || !next.length) {
+      return stateNode.next(snapshot, event, self);
+    }
+
+    return next;
   }
 
   const subStateKeys = Object.keys(stateValue);
   const subStateKey = subStateKeys[0];
 
   if (subStateKeys.length === 1) {
-    return transitionCompoundNode(
-      stateNode,
-      stateValue,
-      subStateKey,
+    const childStateNode = getStateNode(stateNode, subStateKey);
+    const next = transitionNode(
+      childStateNode,
+      stateValue[subStateKey]!,
       snapshot,
       event,
       self
     );
+
+    if (!next || !next.length) {
+      return stateNode.next(snapshot, event, self);
+    }
+
+    return next;
   }
 
-  return transitionParallelNode(stateNode, stateValue, snapshot, event, self);
+  const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
+
+  for (const subStateKey of subStateKeys) {
+    const subStateValue = stateValue[subStateKey];
+
+    if (!subStateValue) {
+      continue;
+    }
+
+    const subStateNode = getStateNode(stateNode, subStateKey);
+    const innerTransitions = transitionNode(
+      subStateNode,
+      subStateValue,
+      snapshot,
+      event,
+      self
+    );
+    if (innerTransitions) {
+      allInnerTransitions.push(...innerTransitions);
+    }
+  }
+
+  if (!allInnerTransitions.length) {
+    return stateNode.next(snapshot, event, self);
+  }
+
+  return allInnerTransitions;
 }
 
 function isDescendant(
