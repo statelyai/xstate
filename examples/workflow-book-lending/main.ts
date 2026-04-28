@@ -1,4 +1,4 @@
-import { assign, createMachine, createLogic, createActor } from 'xstate';
+import { assign, createMachine, createAsyncLogic, createActor } from 'xstate';
 import { z } from 'zod';
 async function delay(ms: number, errorProbability: number = 0): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -186,7 +186,7 @@ export const workflow = createMachine(
   },
   {
     actors: {
-      'Get status for book': createLogic({
+      'Get status for book': createAsyncLogic({
         run: async ({ input }) => {
           console.log('Starting Get status for book', input);
           await delay(1000);
@@ -195,13 +195,13 @@ export const workflow = createMachine(
           };
         }
       }),
-      'Send status to lender': createLogic({
+      'Send status to lender': createAsyncLogic({
         run: async ({ input }) => {
           console.log('Starting Send status to lender', input);
           await delay(1000);
         }
       }),
-      'Request hold for lender': createLogic({
+      'Request hold for lender': createAsyncLogic({
         schemas: {
           input: z.custom<{
             bookid: string;
@@ -213,7 +213,7 @@ export const workflow = createMachine(
           await delay(1000);
         }
       }),
-      'Cancel hold request for lender': createLogic({
+      'Cancel hold request for lender': createAsyncLogic({
         schemas: {
           input: z.custom<{
             bookid: string;
@@ -225,7 +225,7 @@ export const workflow = createMachine(
           await delay(1000);
         }
       }),
-      'Check out book with id': createLogic({
+      'Check out book with id': createAsyncLogic({
         schemas: {
           input: z.custom<{
             bookid: string;
@@ -236,7 +236,7 @@ export const workflow = createMachine(
           await delay(1000);
         }
       }),
-      'Notify Lender for checkout': createLogic({
+      'Notify Lender for checkout': createAsyncLogic({
         schemas: {
           input: z.custom<{
             bookid: string;

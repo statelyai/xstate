@@ -2,7 +2,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import {
   createMachine,
   EventFrom,
-  createLogic,
+  createAsyncLogic,
   fromTransition,
   toPromise,
   transition,
@@ -509,7 +509,7 @@ describe('transition function', () => {
 
     const machine = createMachine({
       actors: {
-        sendWelcomeEmail: createLogic({
+        sendWelcomeEmail: createAsyncLogic({
           run: async () => {
             calls.push('sendWelcomeEmail');
             return {
@@ -529,7 +529,7 @@ describe('transition function', () => {
         },
         logSent: {
           invoke: {
-            src: createLogic({ run: async () => {} }),
+            src: createAsyncLogic({ run: async () => {} }),
             onDone: 'finish'
           }
         },

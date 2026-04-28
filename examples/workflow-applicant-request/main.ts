@@ -1,4 +1,4 @@
-import { createActor, createLogic, setup } from 'xstate';
+import { createActor, createAsyncLogic, setup } from 'xstate';
 interface Applicant {
   fname: string;
   lname: string;
@@ -16,14 +16,14 @@ export const workflow = setup({
     };
   },
   actors: {
-    startApplicationWorkflowId: createLogic({
+    startApplicationWorkflowId: createAsyncLogic({
       run: async () => {
         console.log('startApplicationWorkflowId workflow started');
         await new Promise((resolve) => setTimeout(resolve, 1000));
         console.log('startApplicationWorkflowId workflow completed');
       }
     }),
-    sendRejectionEmailFunction: createLogic({
+    sendRejectionEmailFunction: createAsyncLogic({
       run: async () => {
         console.log('sendRejectionEmailFunction workflow started');
         await new Promise((resolve) => setTimeout(resolve, 1000));

@@ -7,7 +7,7 @@ import {
 } from '../src/index.ts';
 import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
-import { AsyncActorLogic, createLogic } from '../src/actors/promise';
+import { AsyncActorLogic, createAsyncLogic } from '../src/actors/promise';
 import { fromCallback } from '../src/actors/callback';
 import { assertEvent } from '../src/assert.ts';
 import z from 'zod';
@@ -77,7 +77,7 @@ describe('interpreter', () => {
             entry: (_, enq) => ({
               context: {
                 actor: enq.spawn(
-                  createLogic({
+                  createAsyncLogic({
                     run: () =>
                       new Promise(() => {
                         promiseSpawned++;
@@ -1726,7 +1726,7 @@ describe('interpreter', () => {
 
     it('state.children should reference invoked child actors (promise)', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
-      const num = createLogic({
+      const num = createAsyncLogic({
         run: () =>
           new Promise<number>((res) => {
             setTimeout(() => {
@@ -1770,7 +1770,7 @@ describe('interpreter', () => {
         }
         // {
         //   actors: {
-        //     num: createLogic(
+        //     num: createAsyncLogic(
         //       () =>
         //         new Promise<number>((res) => {
         //           setTimeout(() => {
@@ -1914,7 +1914,7 @@ describe('interpreter', () => {
         initial: 'present',
         // context: {} as {
         //   machineRef: ActorRefFrom<typeof childMachine>;
-        //   promiseRef: ActorRefFrom<typeof createLogic>;
+        //   promiseRef: ActorRefFrom<typeof createAsyncLogic>;
         //   observableRef: AnyActorRef;
         // },
         schemas: {
@@ -1929,7 +1929,7 @@ describe('interpreter', () => {
           children: {
             machineChild: enq.spawn(childMachine),
             promiseChild: enq.spawn(
-              createLogic({
+              createAsyncLogic({
                 run: () =>
                   new Promise(() => {
                     // ...

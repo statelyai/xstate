@@ -2,7 +2,7 @@ import {
   assign,
   createMachine,
   forwardTo,
-  createLogic,
+  createAsyncLogic,
   createActor,
   sendParent,
   setup
@@ -46,7 +46,7 @@ export const workflow = setup({
     }
   },
   actors: {
-    checkfunds: createLogic({
+    checkfunds: createAsyncLogic({
       schemas: {
         input: z.custom<{
           account: string;
@@ -62,7 +62,7 @@ export const workflow = setup({
         };
       }
     }),
-    sendSuccessEmail: createLogic({
+    sendSuccessEmail: createAsyncLogic({
       run: async ({ input }) => {
         console.log({ input });
         console.log('Running sendSuccessEmail');
@@ -70,7 +70,7 @@ export const workflow = setup({
         console.log('sendSuccessEmail done');
       }
     }),
-    sendInsufficientFundsEmail: createLogic({
+    sendInsufficientFundsEmail: createAsyncLogic({
       run: async ({ input }) => {
         console.log({ input });
         console.log('Running sendInsufficientFundsEmail');

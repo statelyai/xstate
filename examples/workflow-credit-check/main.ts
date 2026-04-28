@@ -1,4 +1,4 @@
-import { assign, createLogic, createActor, setup } from 'xstate';
+import { assign, createAsyncLogic, createActor, setup } from 'xstate';
 import { z } from 'zod';
 interface Customer {
   id: string;
@@ -22,7 +22,7 @@ export const workflow = setup({
     }
   },
   actors: {
-    callCreditCheckMicroservice: createLogic({
+    callCreditCheckMicroservice: createAsyncLogic({
       schemas: {
         input: z.custom<{
           customer: Customer;
@@ -38,7 +38,7 @@ export const workflow = setup({
         };
       }
     }),
-    startApplicationWorkflowId: createLogic({
+    startApplicationWorkflowId: createAsyncLogic({
       schemas: {
         input: z.custom<{
           customer: Customer;
@@ -56,7 +56,7 @@ export const workflow = setup({
         };
       }
     }),
-    sendRejectionEmailFunction: createLogic({
+    sendRejectionEmailFunction: createAsyncLogic({
       schemas: {
         input: z.custom<{
           applicant: Customer;

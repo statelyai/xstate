@@ -5,7 +5,7 @@ import {
   ActorRefFrom,
   AnyMachineSnapshot,
   fromTransition,
-  createLogic,
+  createAsyncLogic,
   createActor,
   StateFrom,
   TransitionSnapshot,
@@ -861,7 +861,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       states: {
         loading: {
           invoke: {
-            src: createLogic({
+            src: createAsyncLogic({
               run: () => Promise.reject(new Error(errorMessage))
             })
           }

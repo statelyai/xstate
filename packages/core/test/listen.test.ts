@@ -2,7 +2,7 @@ import {
   createActor,
   createMachine,
   fromCallback,
-  createLogic,
+  createAsyncLogic,
   fromTransition
 } from '../src';
 import type { AnyActorRef } from '../src';
@@ -177,7 +177,7 @@ describe('enq.listen()', () => {
 
 describe('enq.subscribeTo()', () => {
   it('subscribes to done events from a spawned actor', async () => {
-    const childLogic = createLogic({
+    const childLogic = createAsyncLogic({
       run: async () => {
         await new Promise((resolve) => setTimeout(resolve, 10));
         return { result: 'success' };
@@ -225,7 +225,7 @@ describe('enq.subscribeTo()', () => {
   });
 
   it('subscribes to error events from a spawned actor', async () => {
-    const childLogic = createLogic({
+    const childLogic = createAsyncLogic({
       run: async () => {
         await new Promise((resolve) => setTimeout(resolve, 10));
         throw new Error('child error');
@@ -317,7 +317,7 @@ describe('enq.subscribeTo()', () => {
   });
 
   it('stops subscribing when subscription is stopped', async () => {
-    const childLogic = createLogic({
+    const childLogic = createAsyncLogic({
       run: async () => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         return { result: 'success' };

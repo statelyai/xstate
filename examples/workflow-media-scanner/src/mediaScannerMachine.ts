@@ -1,4 +1,4 @@
-import { assign, createLogic, setup } from 'xstate';
+import { assign, createAsyncLogic, setup } from 'xstate';
 import {
   checkFilePermissions,
   evaluateFiles,
@@ -37,7 +37,7 @@ export const mediaScannerMachine = setup({
     }
   },
   actors: {
-    scanLibrary: createLogic({
+    scanLibrary: createAsyncLogic({
       schemas: {
         input: z.custom<{
           basePath: string;
@@ -45,7 +45,7 @@ export const mediaScannerMachine = setup({
       },
       run: async ({ input }) => await scanDirectories(input.basePath)
     }),
-    checkFilePermissions: createLogic({
+    checkFilePermissions: createAsyncLogic({
       schemas: {
         input: z.custom<{
           directoriesToCheck: string[];
@@ -54,7 +54,7 @@ export const mediaScannerMachine = setup({
       run: async ({ input: { directoriesToCheck } }) =>
         await checkFilePermissions(directoriesToCheck)
     }),
-    evaluateFiles: createLogic({
+    evaluateFiles: createAsyncLogic({
       schemas: {
         input: z.custom<{
           dirsToEvaluate: string[];
@@ -64,7 +64,7 @@ export const mediaScannerMachine = setup({
       run: async ({ input: { dirsToEvaluate, acceptedFileTypes } }) =>
         await evaluateFiles(dirsToEvaluate, acceptedFileTypes)
     }),
-    moveFiles: createLogic({
+    moveFiles: createAsyncLogic({
       schemas: {
         input: z.custom<{
           dirsToMove: string[];

@@ -3,7 +3,7 @@ import {
   AnyEventObject,
   createActor,
   createMachine,
-  createLogic,
+  createAsyncLogic,
   fromCallback,
   fromEventObservable,
   fromObservable,
@@ -298,7 +298,7 @@ describe('event emitter', () => {
   it('events can be emitted from async logic', () => {
     const spy = vi.fn();
 
-    const logic = createLogic<any, any, { type: 'emitted'; msg: string }>({
+    const logic = createAsyncLogic<any, any, { type: 'emitted'; msg: string }>({
       run: async (_, enq) => {
         enq.emit({
           type: 'emitted',

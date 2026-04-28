@@ -1,4 +1,4 @@
-import { createLogic, assign, setup } from "xstate";
+import { createAsyncLogic, assign, setup } from "xstate";
 import {
   checkBureauService,
   checkReportsTable,
@@ -22,7 +22,7 @@ export const creditCheckMachine = setup({
     context: {} as CreditProfile,
   },
   actors: {
-    checkBureau: createLogic({
+    checkBureau: createAsyncLogic({
       schemas: {
         input: z.custom<{
           ssn: string;
@@ -31,7 +31,7 @@ export const creditCheckMachine = setup({
       },
       run: async ({ input }) => await checkBureauService(input),
     }),
-    checkReportsTable: createLogic({
+    checkReportsTable: createAsyncLogic({
       schemas: {
         input: z.custom<{
           ssn: string;
@@ -40,19 +40,19 @@ export const creditCheckMachine = setup({
       },
       run: async ({ input }) => await checkReportsTable(input),
     }),
-    verifyCredentials: createLogic({
+    verifyCredentials: createAsyncLogic({
       schemas: {
         input: z.custom<userCredential>(),
       },
       run: async ({ input }) => await verifyCredentials(input),
     }),
-    determineMiddleScore: createLogic({
+    determineMiddleScore: createAsyncLogic({
       schemas: {
         input: z.custom<number[]>(),
       },
       run: async ({ input }) => await determineMiddleScore(input),
     }),
-    generateInterestRates: createLogic({
+    generateInterestRates: createAsyncLogic({
       schemas: {
         input: z.custom<number>(),
       },

@@ -1,4 +1,4 @@
-import { assign, setup, createLogic, createActor } from 'xstate';
+import { assign, setup, createAsyncLogic, createActor } from 'xstate';
 import { z } from 'zod';
 async function delay(ms: number, errorProbability: number = 0): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -34,7 +34,7 @@ export const workflow = setup({
     PT1H: 10000
   },
   actors: {
-    produceReport: createLogic({
+    produceReport: createAsyncLogic({
       schemas: {
         input: z.custom<{
           temperature: number | null;

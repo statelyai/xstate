@@ -85,5 +85,12 @@ export function getNextSnapshot<T extends AnyActorLogic>(
 ): SnapshotFrom<T> {
   const inertActorScope = createInertActorScope(actorLogic);
   (inertActorScope.self as any)._snapshot = snapshot;
-  return actorLogic.transition(snapshot, event, inertActorScope);
+  const transitionResult = actorLogic.transition(
+    snapshot,
+    event,
+    inertActorScope
+  ) as any;
+  return Array.isArray(transitionResult)
+    ? transitionResult[0]
+    : transitionResult;
 }

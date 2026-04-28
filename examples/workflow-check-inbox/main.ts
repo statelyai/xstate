@@ -1,4 +1,10 @@
-import { assign, fromCallback, createLogic, createActor, setup } from 'xstate';
+import {
+  assign,
+  fromCallback,
+  createAsyncLogic,
+  createActor,
+  setup
+} from 'xstate';
 import { z } from 'zod';
 async function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -32,7 +38,7 @@ export const workflow = setup({
         clearInterval(i);
       };
     }),
-    checkInboxFunction: createLogic({
+    checkInboxFunction: createAsyncLogic({
       run: async () => {
         await delay(1000);
         return [
@@ -47,7 +53,7 @@ export const workflow = setup({
         ] satisfies Message[];
       }
     }),
-    sendTextsFunction: createLogic({
+    sendTextsFunction: createAsyncLogic({
       schemas: {
         input: z.custom<{
           messages: Message[];

@@ -1,5 +1,5 @@
 import z from 'zod';
-import { createActor, createMachine, createLogic } from '../src';
+import { createActor, createMachine, createAsyncLogic } from '../src';
 import { createInertActorScope } from '../src/getNextSnapshot';
 
 describe('choice states', () => {
@@ -174,7 +174,7 @@ describe('choice states', () => {
   it.each([
     [
       'invoke',
-      { invoke: { src: createLogic({ run: async () => undefined }) } }
+      { invoke: { src: createAsyncLogic({ run: async () => undefined }) } }
     ],
     ['after', { after: { 10: 'done' } }],
     ['on', { on: { NEXT: 'done' } }],

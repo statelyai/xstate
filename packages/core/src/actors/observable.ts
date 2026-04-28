@@ -9,6 +9,7 @@ import {
   Subscribable,
   Subscription
 } from '../types';
+import { createLogic as createBaseLogic } from './logic.ts';
 
 const XSTATE_OBSERVABLE_NEXT = 'xstate.observable.next';
 const XSTATE_OBSERVABLE_ERROR = 'xstate.observable.error';
@@ -20,6 +21,12 @@ export type ObservableSnapshot<
 > = Snapshot<undefined> & {
   context: TContext | undefined;
   input: TInput | undefined;
+  effects?: Record<
+    string,
+    | { status: 'active' }
+    | { status: 'done'; output?: unknown }
+    | { status: 'error'; error: unknown }
+  >;
   _subscription: Subscription | undefined;
 };
 
@@ -115,6 +122,88 @@ export type ObservableActorRef<TContext> = ActorRefFromLogic<
  * @see {@link https://rxjs.dev} for documentation on RxJS Observable and observable creators.
  * @see {@link Subscribable} interface in XState, which is based on and compatible with RxJS Observable.
  */
+export function createObservableLogic<
+  TContext,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
+  observableCreator: ({
+    input,
+    system,
+    self
+  }: {
+    input: TInput;
+    system: AnyActorSystem;
+    self: ObservableActorRef<TContext>;
+    emit: (emitted: TEmitted) => void;
+  }) => Subscribable<TContext>
+): ObservableActorLogic<TContext, TInput, TEmitted> {
+  return createBaseLogic<
+    TContext | undefined,
+    undefined,
+    { type: string; [k: string]: unknown },
+    TInput,
+    TEmitted
+  >({
+    context: undefined,
+    run: (args, enq) => {
+      const { event, input, self, system } = args;
+      const emit = (args as any).emit as (emitted: TEmitted) => void;
+      switch (event.type) {
+        case XSTATE_OBSERVABLE_NEXT: {
+          return {
+            context: event.data as TContext
+          };
+        }
+        case XSTATE_OBSERVABLE_ERROR:
+          return {
+            status: 'error',
+            error: (event as any).data,
+            input: undefined as TInput | undefined,
+            effects: {
+              observable: { status: 'error', error: (event as any).data }
+            }
+          };
+        case XSTATE_OBSERVABLE_COMPLETE:
+          return {
+            status: 'done',
+            input: undefined as TInput | undefined,
+            effects: {
+              observable: { status: 'done' }
+            }
+          };
+      }
+
+      enq.effect('observable', () => {
+        const subscription = observableCreator({
+          input,
+          system,
+          self: self as any,
+          emit: emit as (emitted: TEmitted) => void
+        }).subscribe({
+          next: (value) => {
+            system._relay(self, self, {
+              type: XSTATE_OBSERVABLE_NEXT,
+              data: value
+            });
+          },
+          error: (err) => {
+            system._relay(self, self, {
+              type: XSTATE_OBSERVABLE_ERROR,
+              data: err
+            });
+          },
+          complete: () => {
+            system._relay(self, self, { type: XSTATE_OBSERVABLE_COMPLETE });
+          }
+        });
+
+        return () => subscription.unsubscribe();
+      });
+    }
+  }) as unknown as ObservableActorLogic<TContext, TInput, TEmitted>;
+}
+
 export function fromObservable<
   TContext,
   TInput extends NonReducibleUnknown,
@@ -131,95 +220,7 @@ export function fromObservable<
     emit: (emitted: TEmitted) => void;
   }) => Subscribable<TContext>
 ): ObservableActorLogic<TContext, TInput, TEmitted> {
-  // TODO: add event types
-  const logic: ObservableActorLogic<TContext, TInput, TEmitted> = {
-    config: observableCreator,
-    transition: (snapshot, event) => {
-      if (snapshot.status !== 'active') {
-        return snapshot;
-      }
-
-      switch (event.type) {
-        case XSTATE_OBSERVABLE_NEXT: {
-          const newSnapshot = {
-            ...snapshot,
-            context: event.data as TContext
-          };
-          return newSnapshot;
-        }
-        case XSTATE_OBSERVABLE_ERROR:
-          return {
-            ...snapshot,
-            status: 'error',
-            error: (event as any).data,
-            input: undefined,
-            _subscription: undefined
-          };
-        case XSTATE_OBSERVABLE_COMPLETE:
-          return {
-            ...snapshot,
-            status: 'done',
-            input: undefined,
-            _subscription: undefined
-          };
-        case XSTATE_STOP:
-          snapshot._subscription!.unsubscribe();
-          return {
-            ...snapshot,
-            status: 'stopped',
-            input: undefined,
-            _subscription: undefined
-          };
-        default:
-          return snapshot;
-      }
-    },
-    getInitialSnapshot: (_, input) => {
-      return {
-        status: 'active',
-        output: undefined,
-        error: undefined,
-        context: undefined,
-        input,
-        _subscription: undefined
-      };
-    },
-    start: (state, { self, system, emit }) => {
-      if (state.status === 'done') {
-        // Do not restart a completed observable
-        return;
-      }
-      state._subscription = observableCreator({
-        input: state.input!,
-        system,
-        self,
-        emit
-      }).subscribe({
-        next: (value) => {
-          system._relay(self, self, {
-            type: XSTATE_OBSERVABLE_NEXT,
-            data: value
-          });
-        },
-        error: (err) => {
-          system._relay(self, self, {
-            type: XSTATE_OBSERVABLE_ERROR,
-            data: err
-          });
-        },
-        complete: () => {
-          system._relay(self, self, { type: XSTATE_OBSERVABLE_COMPLETE });
-        }
-      });
-    },
-    getPersistedSnapshot: ({ _subscription, ...state }) => state,
-    restoreSnapshot: (state) => ({
-      ...(state as any),
-      _subscription: undefined
-    })
-  };
-
-  return logic;
+  return createObservableLogic(observableCreator);
 }
 
 /**

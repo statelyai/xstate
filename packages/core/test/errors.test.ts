@@ -3,7 +3,7 @@ import {
   createActor,
   createMachine,
   fromCallback,
-  createLogic,
+  createAsyncLogic,
   fromTransition,
   AnyEventObject
 } from '../src';
@@ -221,7 +221,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: createLogic({
+            src: createAsyncLogic({
               run: () =>
                 Promise.reject(
                   new Error(
@@ -259,7 +259,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: createLogic({
+            src: createAsyncLogic({
               run: () =>
                 Promise.reject(
                   new Error(
@@ -301,7 +301,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: createLogic({
+            src: createAsyncLogic({
               run: () =>
                 Promise.reject(
                   new Error(

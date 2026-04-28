@@ -1,4 +1,4 @@
-import { assign, createLogic, createActor, setup } from 'xstate';
+import { assign, createAsyncLogic, createActor, setup } from 'xstate';
 import { z } from 'zod';
 async function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -15,7 +15,7 @@ interface PatientInfo {
 // https://github.com/serverlessworkflow/specification/tree/main/examples#event-based-service-invocation
 export const workflow = setup({
   actors: {
-    MakeAppointmentAction: createLogic({
+    MakeAppointmentAction: createAsyncLogic({
       schemas: {
         input: z.custom<{
           patientInfo: PatientInfo;

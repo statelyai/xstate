@@ -1,4 +1,4 @@
-import { assertEvent, assign, createLogic, not, setup } from 'xstate';
+import { assertEvent, assign, createAsyncLogic, not, setup } from 'xstate';
 import { RMCharacter } from './common/types';
 import { RickCharacters } from './services/RickApi';
 import { getRandomNumber } from './common/constants';
@@ -65,17 +65,17 @@ const triviaMachine = setup({
     })
   },
   actors: {
-    loadHomePageCharacters: createLogic({
+    loadHomePageCharacters: createAsyncLogic({
       run: () => RickCharacters.getCharacters(Math.floor(Math.random() * 34))
     }),
-    loadSingleCharacter: createLogic({
+    loadSingleCharacter: createAsyncLogic({
       run: async () => {
         const randomNumber = getRandomNumber();
         const character = await RickCharacters.getCharacter(randomNumber);
         return character;
       }
     }),
-    loadRandomCharacters: createLogic({
+    loadRandomCharacters: createAsyncLogic({
       run: () => RickCharacters.getRandomCharacters()
     })
   }

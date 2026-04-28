@@ -1,4 +1,4 @@
-import { createMachine, createLogic, createActor } from 'xstate';
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 import { retry, handleWhen, ConstantBackoff } from 'cockatiel';
 const retryPolicy = retry(
   handleWhen((err) => (err as any).type === 'ServiceNotAvailable'),
@@ -110,7 +110,7 @@ export const workflow = createMachine(
       }
     },
     actors: {
-      CancelOrder: createLogic({
+      CancelOrder: createAsyncLogic({
         run: async () => {
           console.log('Starting CancelOrder');
           await delay(1000);

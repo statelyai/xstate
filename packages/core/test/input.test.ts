@@ -3,7 +3,7 @@ import { createActor, createMachine } from '../src';
 import {
   fromCallback,
   fromObservable,
-  createLogic,
+  createAsyncLogic,
   fromTransition
 } from '../src/actors';
 import z from 'zod';
@@ -187,9 +187,11 @@ describe('input', () => {
   });
 
   it('should create a promise with input', async () => {
-    const promiseLogic = createLogic<{ count: number }, { count: number }>({
-      run: ({ input }) => Promise.resolve(input)
-    });
+    const promiseLogic = createAsyncLogic<{ count: number }, { count: number }>(
+      {
+        run: ({ input }) => Promise.resolve(input)
+      }
+    );
 
     const promiseActor = createActor(promiseLogic, {
       input: { count: 42 }
@@ -201,7 +203,7 @@ describe('input', () => {
   });
 
   it('should infer async logic input from schemas', async () => {
-    const promiseLogic = createLogic({
+    const promiseLogic = createAsyncLogic({
       schemas: {
         input: z.object({ count: z.number() })
       },

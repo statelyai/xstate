@@ -1,18 +1,29 @@
-import { XSTATE_STOP } from '../constants.ts';
 import { parseDelayToMilliseconds } from '../delay.ts';
+import { XSTATE_INIT } from '../constants.ts';
 import { StandardSchemaV1 } from '../schema.types.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
   ActorRefFromLogic,
-  AnyActorRef,
   EventObject,
   NonReducibleUnknown,
   Snapshot
 } from '../types.ts';
+import {
+  XSTATE_LOGIC_EFFECT_REJECT,
+  XSTATE_LOGIC_EFFECT_RESOLVE,
+  XSTATE_LOGIC_EFFECT_START,
+  createLogic as createBaseLogic
+} from './logic.ts';
 
 export type AsyncSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
   input: TInput | undefined;
+  effects?: Record<
+    string,
+    | { status: 'active' }
+    | { status: 'done'; output?: unknown }
+    | { status: 'error'; error: unknown }
+  >;
 };
 
 const XSTATE_ASYNC_RESOLVE = 'xstate.async.resolve';
@@ -48,6 +59,11 @@ export interface LogicArgs<TOutput, TInput> {
 export interface LogicEnqueue<TEmitted extends EventObject> {
   /** Emits an event that can be observed with `actor.on(...)`. */
   emit: (emitted: TEmitted) => void;
+  /** Executes async work as a durable effect keyed by `key`. */
+  step: <TStepOutput>(
+    key: string,
+    exec: () => TStepOutput | PromiseLike<TStepOutput>
+  ) => Promise<TStepOutput>;
 }
 
 export type LogicFunction<
@@ -88,14 +104,14 @@ export class TimeoutError extends Error {
 }
 
 /**
- * Represents an actor created by `createLogic`.
+ * Represents an actor created by `createAsyncLogic`.
  *
  * The type of `self` within the actor's logic.
  *
  * @example
  *
  * ```ts
- * import { createLogic, createActor } from 'xstate';
+ * import { createAsyncLogic, createActor } from 'xstate';
  *
  * // The actor's resolved output
  * type Output = string;
@@ -103,7 +119,7 @@ export class TimeoutError extends Error {
  * type Input = { message: string };
  *
  * // Actor logic that fetches the url of an image of a cat saying `input.message`.
- * const logic = createLogic<Output, Input>({
+ * const logic = createAsyncLogic<Output, Input>({
  *   run: async ({ input, self }, enq) => {
  *     self;
  *     // ^? AsyncActorRef<Output>
@@ -121,13 +137,8 @@ export class TimeoutError extends Error {
  * //    ^? AsyncActorRef<Output>
  * ```
  *
- * @see {@link createLogic}
+ * @see {@link createAsyncLogic}
  */
-
-const instanceStates = new WeakMap<
-  AnyActorRef,
-  { controller: AbortController; timeoutId: unknown | undefined }
->();
 
 /**
  * An actor logic creator which returns async logic as defined by an async
@@ -144,7 +155,7 @@ const instanceStates = new WeakMap<
  * @example
  *
  * ```ts
- * const asyncLogic = createLogic({
+ * const asyncLogic = createAsyncLogic({
  *   id: 'fetch-user',
  *   timeout: '30s',
  *   run: async ({ signal }, enq) => {
@@ -190,7 +201,7 @@ const instanceStates = new WeakMap<
  *
  * @see {@link https://stately.ai/docs/input | Input docs} for more information about how input is passed
  */
-export function createLogic<
+export function createAsyncLogic<
   TOutput,
   const TInputSchema extends StandardSchemaV1,
   TEmitted extends EventObject = EventObject
@@ -210,14 +221,14 @@ export function createLogic<
   StandardSchemaV1.InferOutput<TInputSchema>,
   TEmitted
 > & { id?: string };
-export function createLogic<
+export function createAsyncLogic<
   TOutput,
   TInput = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
 >(
   asyncLogic: LogicConfig<TOutput, TInput, TEmitted>
 ): AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string };
-export function createLogic<
+export function createAsyncLogic<
   TOutput,
   TInput = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
@@ -226,128 +237,174 @@ export function createLogic<
 ): AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string } {
   const config = asyncLogic;
 
-  const logic: AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string } = {
-    id: config.id,
-    config,
-    transition: (state, event, scope) => {
-      if (state.status !== 'active') {
-        return state;
-      }
+  function waitForEffect<TStepOutput>(
+    self: AsyncActorRef<TOutput>,
+    key: string
+  ): Promise<TStepOutput> {
+    return new Promise((resolve, reject) => {
+      const subscription = self.subscribe((snapshot) => {
+        const effect = snapshot.effects?.[key];
 
+        if (effect?.status === 'done') {
+          subscription.unsubscribe();
+          resolve(effect.output as TStepOutput);
+        } else if (effect?.status === 'error') {
+          subscription.unsubscribe();
+          reject(effect.error);
+        }
+      });
+    });
+  }
+
+  return createBaseLogic<
+    undefined,
+    TOutput,
+    { type: string; [k: string]: unknown },
+    TInput,
+    TEmitted
+  >({
+    id: config.id,
+    schemas: config.schemas,
+    context: undefined,
+    run: ({ event, input, self, system }, enq) => {
       switch (event.type) {
         case XSTATE_ASYNC_RESOLVE: {
-          const resolvedValue = (event as any).data;
-          const instanceState = instanceStates.get(scope.self);
-          if (instanceState?.timeoutId !== undefined) {
-            scope.system._clock.clearTimeout(instanceState.timeoutId);
-          }
-          instanceStates.delete(scope.self);
+          const resolvedValue = (event as any).data ?? (event as any).output;
           return {
-            ...state,
             status: 'done',
             output: resolvedValue,
-            input: undefined
+            input: undefined as TInput | undefined,
+            effects: {
+              async: { status: 'done', output: resolvedValue }
+            }
           };
         }
         case XSTATE_ASYNC_REJECT: {
-          const instanceState = instanceStates.get(scope.self);
-          if (instanceState?.timeoutId !== undefined) {
-            scope.system._clock.clearTimeout(instanceState.timeoutId);
-          }
-          instanceStates.delete(scope.self);
+          const error = (event as any).data ?? (event as any).error;
           return {
-            ...state,
             status: 'error',
-            error: (event as any).data,
-            input: undefined
+            error,
+            input: undefined as TInput | undefined,
+            effects: {
+              async: { status: 'error', error }
+            }
           };
         }
-        case XSTATE_STOP: {
-          const instanceState = instanceStates.get(scope.self);
-          instanceState?.controller.abort();
-          if (instanceState?.timeoutId !== undefined) {
-            scope.system._clock.clearTimeout(instanceState.timeoutId);
-          }
-          instanceStates.delete(scope.self);
-          return {
-            ...state,
-            status: 'stopped',
-            input: undefined
-          };
-        }
-        default:
-          return state;
       }
-    },
-    start: (state, { self, system, emit }) => {
-      // TODO: determine how to allow customizing this so that async logic can
-      // be restarted if necessary.
-      if (state.status !== 'active') {
+
+      if (event.type !== XSTATE_INIT) {
         return;
       }
-      const controller = new AbortController();
-      const timeout = config.timeout;
-      const timeoutMs = parseDelayToMilliseconds(timeout);
-      const timeoutId =
-        timeoutMs === undefined
-          ? undefined
-          : system._clock.setTimeout(() => {
-              if (self.getSnapshot().status !== 'active') {
-                return;
+
+      enq.effect(() => {
+        const controller = new AbortController();
+        const timeout = config.timeout;
+        const timeoutMs = parseDelayToMilliseconds(timeout);
+        const timeoutId =
+          timeoutMs === undefined
+            ? undefined
+            : system._clock.setTimeout(() => {
+                if (self.getSnapshot().status !== 'active') {
+                  return;
+                }
+                controller.abort();
+                system._relay(self, self, {
+                  type: XSTATE_ASYNC_REJECT,
+                  data: new TimeoutError(timeout!)
+                });
+              }, timeoutMs);
+
+        const clearTimeout = () => {
+          if (timeoutId !== undefined) {
+            system._clock.clearTimeout(timeoutId);
+          }
+        };
+
+        const resolvedPromise = Promise.resolve(
+          config.run(
+            {
+              input,
+              system,
+              self: self as any,
+              signal: controller.signal
+            },
+            {
+              emit: enq.emit,
+              step: async (key, exec) => {
+                const effect = self.getSnapshot().effects?.[key];
+
+                if (effect?.status === 'done') {
+                  return effect.output as any;
+                }
+
+                if (effect?.status === 'error') {
+                  throw effect.error;
+                }
+
+                if (effect?.status === 'active') {
+                  return waitForEffect(self as any, key) as any;
+                }
+
+                system._relay(self, self, {
+                  type: XSTATE_LOGIC_EFFECT_START,
+                  key
+                });
+
+                try {
+                  const output = await exec();
+                  system._relay(self, self, {
+                    type: XSTATE_LOGIC_EFFECT_RESOLVE,
+                    key,
+                    output
+                  });
+                  return output;
+                } catch (error) {
+                  system._relay(self, self, {
+                    type: XSTATE_LOGIC_EFFECT_REJECT,
+                    key,
+                    error
+                  });
+                  throw error;
+                }
               }
-              controller.abort();
-              system._relay(self, self, {
-                type: XSTATE_ASYNC_REJECT,
-                data: new TimeoutError(timeout!)
-              });
-            }, timeoutMs);
+            }
+          )
+        );
 
-      instanceStates.set(self, { controller, timeoutId });
-
-      const resolvedPromise = Promise.resolve(
-        config.run(
-          {
-            input: state.input!,
-            system,
-            self,
-            signal: controller.signal
+        resolvedPromise.then(
+          (response) => {
+            clearTimeout();
+            if (self.getSnapshot().status !== 'active') {
+              return;
+            }
+            system._relay(self, self, {
+              type: XSTATE_ASYNC_RESOLVE,
+              data: response
+            });
           },
-          { emit }
-        )
-      );
+          (errorData) => {
+            clearTimeout();
+            if (self.getSnapshot().status !== 'active') {
+              return;
+            }
+            system._relay(self, self, {
+              type: XSTATE_ASYNC_REJECT,
+              data: errorData
+            });
+          }
+        );
 
-      resolvedPromise.then(
-        (response) => {
-          if (self.getSnapshot().status !== 'active') {
-            return;
-          }
-          system._relay(self, self, {
-            type: XSTATE_ASYNC_RESOLVE,
-            data: response
-          });
-        },
-        (errorData) => {
-          if (self.getSnapshot().status !== 'active') {
-            return;
-          }
-          system._relay(self, self, {
-            type: XSTATE_ASYNC_REJECT,
-            data: errorData
-          });
-        }
-      );
-    },
-    getInitialSnapshot: (_, input) => {
+        return () => {
+          controller.abort();
+          clearTimeout();
+        };
+      });
+
       return {
-        status: 'active',
-        output: undefined,
-        error: undefined,
-        input
+        effects: {
+          async: { status: 'active' }
+        }
       };
-    },
-    getPersistedSnapshot: (snapshot) => snapshot,
-    restoreSnapshot: (snapshot: any) => snapshot
-  };
-
-  return logic;
+    }
+  }) as unknown as AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string };
 }

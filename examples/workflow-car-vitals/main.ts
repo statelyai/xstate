@@ -1,4 +1,10 @@
-import { assign, createMachine, createLogic, createActor, log } from 'xstate';
+import {
+  assign,
+  createMachine,
+  createAsyncLogic,
+  createActor,
+  log
+} from 'xstate';
 async function delay(ms: number, errorProbability: number = 0): Promise<void> {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
@@ -76,7 +82,7 @@ const vitalsWorkflow = createMachine(
   },
   {
     actors: {
-      checkTirePressure: createLogic({
+      checkTirePressure: createAsyncLogic({
         run: async () => {
           console.log('Starting checkTirePressure');
           await delay(1000);
@@ -84,7 +90,7 @@ const vitalsWorkflow = createMachine(
           return { value: 100 };
         }
       }),
-      checkOilPressure: createLogic({
+      checkOilPressure: createAsyncLogic({
         run: async () => {
           console.log('Starting checkOilPressure');
           await delay(1500);
@@ -92,7 +98,7 @@ const vitalsWorkflow = createMachine(
           return { value: 100 };
         }
       }),
-      checkCoolantLevel: createLogic({
+      checkCoolantLevel: createAsyncLogic({
         run: async () => {
           console.log('Starting checkCoolantLevel');
           await delay(500);
@@ -100,7 +106,7 @@ const vitalsWorkflow = createMachine(
           return { value: 100 };
         }
       }),
-      checkBattery: createLogic({
+      checkBattery: createAsyncLogic({
         run: async () => {
           console.log('Starting checkBattery');
           await delay(1200);

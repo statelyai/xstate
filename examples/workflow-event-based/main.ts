@@ -1,25 +1,25 @@
-import { createLogic, createActor, setup } from 'xstate';
+import { createAsyncLogic, createActor, setup } from 'xstate';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#Event-Based-Transitions-Example
 export const workflow = setup({
   delays: {
     visaDecisionTimeout: 1000
   },
   actors: {
-    handleApprovedVisaWorkflowID: createLogic({
+    handleApprovedVisaWorkflowID: createAsyncLogic({
       run: async () => {
         console.log('handleApprovedVisaWorkflowID workflow started');
         await new Promise((resolve) => setTimeout(resolve, 1000));
         console.log('handleApprovedVisaWorkflowID workflow completed');
       }
     }),
-    handleRejectedVisaWorkflowID: createLogic({
+    handleRejectedVisaWorkflowID: createAsyncLogic({
       run: async () => {
         console.log('handleRejectedVisaWorkflowID workflow started');
         await new Promise((resolve) => setTimeout(resolve, 1000));
         console.log('handleRejectedVisaWorkflowID workflow completed');
       }
     }),
-    handleNoVisaDecisionWorkflowId: createLogic({
+    handleNoVisaDecisionWorkflowId: createAsyncLogic({
       run: async () => {
         console.log('handleNoVisaDecisionWorkflowId workflow started');
         await new Promise((resolve) => setTimeout(resolve, 1000));

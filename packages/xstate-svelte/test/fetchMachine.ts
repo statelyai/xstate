@@ -1,4 +1,4 @@
-import { createMachine, createLogic } from 'xstate';
+import { createMachine, createAsyncLogic } from 'xstate';
 
 const context = {
   data: undefined as string | undefined
@@ -7,7 +7,7 @@ const context = {
 export const fetchMachine = createMachine({
   id: 'fetch',
   actors: {
-    fetchData: createLogic({ run: async () => '' })
+    fetchData: createAsyncLogic({ run: async () => '' })
   },
   initial: 'idle',
   context: context as any,

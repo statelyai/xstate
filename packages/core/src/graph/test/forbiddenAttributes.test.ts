@@ -1,11 +1,11 @@
-import { createLogic, createMachine } from '../../index.ts';
+import { createAsyncLogic, createMachine } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 
 describe.skip('Forbidden attributes', () => {
   it('Should not let you declare invocations on your test machine', () => {
     const machine = createMachine({
       invoke: {
-        src: createLogic({ run: async () => {} })
+        src: createAsyncLogic({ run: async () => {} })
       }
     });
 

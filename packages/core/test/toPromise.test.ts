@@ -2,14 +2,14 @@ import z from 'zod';
 import {
   createActor,
   createMachine as createMachine,
-  createLogic,
+  createAsyncLogic,
   toPromise
 } from '../src';
 
 describe('toPromise', () => {
   it('should be awaitable', async () => {
     const promiseActor = createActor(
-      createLogic({ run: () => Promise.resolve(42) })
+      createAsyncLogic({ run: () => Promise.resolve(42) })
     ).start();
 
     const result = await toPromise(promiseActor);

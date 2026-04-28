@@ -2,6 +2,7 @@ import { createActor } from '../createActor.ts';
 import type { ActorRef, AnyEventObject, Snapshot } from '../types.ts';
 import { fromTransition } from './transition.ts';
 export {
+  createCallbackLogic,
   fromCallback,
   type CallbackActorLogic,
   type CallbackActorRef,
@@ -9,6 +10,7 @@ export {
   type CallbackLogicFunction
 } from './callback.ts';
 export {
+  createObservableLogic,
   fromEventObservable,
   fromObservable,
   type ObservableActorLogic,
@@ -17,13 +19,26 @@ export {
 } from './observable.ts';
 export {
   createLogic,
+  type LogicActorLogic,
+  type LogicActorRef,
+  type LogicArgs,
+  type LogicConfig,
+  type LogicEffect,
+  type LogicEffectState,
+  type LogicEnqueue,
+  type LogicFunction,
+  type LogicPatch,
+  type LogicSnapshot
+} from './logic.ts';
+export {
+  createAsyncLogic,
   type AsyncActorLogic,
   type AsyncActorRef,
   type AsyncSnapshot,
-  type LogicArgs,
-  type LogicConfig,
-  type LogicEnqueue,
-  type LogicFunction,
+  type LogicArgs as AsyncLogicArgs,
+  type LogicConfig as AsyncLogicConfig,
+  type LogicEnqueue as AsyncLogicEnqueue,
+  type LogicFunction as AsyncLogicFunction,
   TimeoutError
 } from './promise.ts';
 export {

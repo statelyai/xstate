@@ -1,4 +1,4 @@
-import { assign, createLogic, createActor, setup } from 'xstate';
+import { assign, createAsyncLogic, createActor, setup } from 'xstate';
 import { z } from 'zod';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#finalize-college-application-example
 export const workflow = setup({
@@ -14,7 +14,7 @@ export const workflow = setup({
     }
   },
   actors: {
-    finalizeApplicationFunction: createLogic({
+    finalizeApplicationFunction: createAsyncLogic({
       schemas: {
         input: z.custom<{
           applicantId: string;

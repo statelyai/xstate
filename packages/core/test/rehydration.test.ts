@@ -2,7 +2,7 @@ import { BehaviorSubject } from 'rxjs';
 import {
   createMachine,
   createActor,
-  createLogic,
+  createAsyncLogic,
   fromObservable
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -185,7 +185,7 @@ describe.skip('rehydration', () => {
       states: {
         a: {
           invoke: {
-            src: createLogic({ run: () => Promise.resolve(11) }),
+            src: createAsyncLogic({ run: () => Promise.resolve(11) }),
             onDone: 'b'
           },
           on: {
@@ -298,7 +298,7 @@ describe.skip('rehydration', () => {
   });
 
   it('should be possible to persist a rehydrated actor that got its children rehydrated', () => {
-    const foo = createLogic({ run: () => Promise.resolve(42) });
+    const foo = createAsyncLogic({ run: () => Promise.resolve(42) });
     const machine = createMachine({
       invoke: {
         src: foo
@@ -345,7 +345,7 @@ describe.skip('rehydration', () => {
   });
 
   it('should error on a rehydrated error state', async () => {
-    const failure = createLogic({
+    const failure = createAsyncLogic({
       run: () => Promise.reject(new Error('failure'))
     });
     const machine = createMachine({
@@ -375,7 +375,7 @@ describe.skip('rehydration', () => {
 
   it(`shouldn't re-notify the parent about the error when rehydrating`, async () => {
     const spy = vi.fn();
-    const failure = createLogic({
+    const failure = createAsyncLogic({
       run: () => Promise.reject(new Error('failure'))
     });
     const machine = createMachine({

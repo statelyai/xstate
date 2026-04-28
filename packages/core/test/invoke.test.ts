@@ -4,7 +4,7 @@ import {
   fromCallback,
   fromEventObservable,
   fromObservable,
-  createLogic,
+  createAsyncLogic,
   fromTransition
 } from '../src/actors/index.ts';
 import {
@@ -835,7 +835,7 @@ describe('invoke', () => {
         states: {
           pending: {
             invoke: {
-              src: createLogic({
+              src: createAsyncLogic({
                 run: ({ input }) =>
                   createPromise((resolve) => {
                     if (input.succeed) {
@@ -874,7 +874,7 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: createLogic({
+                src: createAsyncLogic({
                   run: () =>
                     createPromise((resolve) => {
                       resolve();
@@ -916,7 +916,7 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: createLogic({
+                src: createAsyncLogic({
                   run: () =>
                     createPromise(() => {
                       throw new Error('test');
@@ -955,7 +955,7 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: createLogic({
+                src: createAsyncLogic({
                   run: () =>
                     createPromise(() => {
                       throw new Error('test');
@@ -996,7 +996,7 @@ describe('invoke', () => {
               states: {
                 pending: {
                   invoke: {
-                    src: createLogic({
+                    src: createAsyncLogic({
                       run: () => createPromise((resolve) => resolve())
                     }),
                     onDone: 'success'
@@ -1022,7 +1022,7 @@ describe('invoke', () => {
       it('should be invoked with a promise service and resolve through onDone for compound state nodes', async () => {
         const { promise, resolve } = Promise.withResolvers<void>();
 
-        const somePromise = createLogic({
+        const somePromise = createAsyncLogic({
           run: () => createPromise((resolve) => resolve())
         });
         const promiseMachine = createMachine(
@@ -1052,7 +1052,7 @@ describe('invoke', () => {
           }
           // {
           //   actors: {
-          //     somePromise: createLogic(() =>
+          //     somePromise: createAsyncLogic(() =>
           //       createPromise((resolve) => resolve())
           //     )
           //   }
@@ -1077,7 +1077,7 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: createLogic({
+                src: createAsyncLogic({
                   run: () => createPromise((resolve) => resolve({ count: 1 }))
                 }),
                 onDone: ({ context, event }) => ({
@@ -1108,7 +1108,7 @@ describe('invoke', () => {
 
       it('should assign the resolved data when invoked with a promise service', async () => {
         const { promise, resolve } = Promise.withResolvers<void>();
-        const somePromise = createLogic({
+        const somePromise = createAsyncLogic({
           run: () => createPromise((resolve) => resolve({ count: 1 }))
         });
         const promiseMachine = createMachine(
@@ -1141,7 +1141,7 @@ describe('invoke', () => {
           }
           // {
           //   actors: {
-          //     somePromise: createLogic(() =>
+          //     somePromise: createAsyncLogic(() =>
           //       createPromise((resolve) => resolve({ count: 1 }))
           //     )
           //   }
@@ -1175,7 +1175,7 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: createLogic({
+                src: createAsyncLogic({
                   run: () => createPromise((resolve) => resolve({ count: 1 }))
                 }),
                 onDone: ({ context, event }) => {
@@ -1210,7 +1210,7 @@ describe('invoke', () => {
       it('should provide the resolved data when invoked with a promise service', async () => {
         const { promise, resolve } = Promise.withResolvers<void>();
         let count = 0;
-        const somePromise = createLogic({
+        const somePromise = createAsyncLogic({
           run: () => createPromise((resolve) => resolve({ count: 1 }))
         });
 
@@ -1239,7 +1239,7 @@ describe('invoke', () => {
           }
           // {
           //   actors: {
-          //     somePromise: createLogic(() =>
+          //     somePromise: createAsyncLogic(() =>
           //       createPromise((resolve) => resolve({ count: 1 }))
           //     )
           //   }
@@ -1260,7 +1260,7 @@ describe('invoke', () => {
       it('should be able to specify a Promise as a service', async () => {
         const { promise, resolve } = Promise.withResolvers<void>();
 
-        const promiseActor = createLogic({
+        const promiseActor = createAsyncLogic({
           run: ({
             input
           }: {
@@ -1330,7 +1330,7 @@ describe('invoke', () => {
 
       it('should be able to reuse the same promise logic multiple times and create unique promise for each created actor', async () => {
         const { promise, resolve } = Promise.withResolvers<void>();
-        const getRandomNumber = createLogic({
+        const getRandomNumber = createAsyncLogic({
           run: () =>
             createPromise((resolve) => resolve({ result: Math.random() }))
         });
@@ -1417,7 +1417,7 @@ describe('invoke', () => {
           // {
           //   actors: {
           //     // it's important for this actor to be reused, this test shouldn't use a factory or anything like that
-          //     getRandomNumber: createLogic(() => {
+          //     getRandomNumber: createAsyncLogic(() => {
           //       return createPromise((resolve) =>
           //         resolve({ result: Math.random() })
           //       );
@@ -1447,7 +1447,7 @@ describe('invoke', () => {
           states: {
             active: {
               invoke: {
-                src: createLogic({
+                src: createAsyncLogic({
                   run: () =>
                     createPromise((res) => {
                       setTimeout(() => res(42), 5);
@@ -3041,7 +3041,7 @@ describe('invoke', () => {
                   active: {
                     invoke: {
                       id: 'post',
-                      src: createLogic({ run: () => Promise.resolve(42) }),
+                      src: createAsyncLogic({ run: () => Promise.resolve(42) }),
                       onDone: '#done'
                     }
                   }
@@ -3116,7 +3116,7 @@ describe('invoke', () => {
       states: {
         searching: {
           invoke: {
-            src: createLogic({
+            src: createAsyncLogic({
               run: async ({ input }: { input: { endpoint: string } }) => {
                 expect(input.endpoint).toEqual('example.com');
 
@@ -3155,7 +3155,7 @@ describe('invoke', () => {
       states: {
         searching: {
           invoke: {
-            src: createLogic({
+            src: createAsyncLogic({
               run: async ({ input }) => {
                 expect(input.endpoint).toEqual('example.com');
 
@@ -3187,7 +3187,7 @@ describe('invoke', () => {
       states: {
         a: {
           invoke: {
-            src: createLogic({ run: () => Promise.resolve() }),
+            src: createAsyncLogic({ run: () => Promise.resolve() }),
             onDone: ({ event }) => {
               // invoke ID should not be 'someSrc'
               const expectedType = 'xstate.done.actor.0.(machine).a';
@@ -3272,7 +3272,7 @@ describe('invoke', () => {
       states: {
         fetch: {
           invoke: {
-            src: createLogic({
+            src: createAsyncLogic({
               run: () => {
                 if (invoked) {
                   // create a promise that won't ever resolve for the second invoking state
@@ -3320,7 +3320,7 @@ describe('invoke', () => {
       states: {
         a: {
           invoke: {
-            src: createLogic({
+            src: createAsyncLogic({
               run: () => {
                 return Promise.resolve(42);
               }
@@ -3477,7 +3477,7 @@ describe('invoke', () => {
     const machine = createMachine({
       id: 'root',
       invoke: {
-        src: createLogic({
+        src: createAsyncLogic({
           run: () => {
             count++;
             return Promise.resolve(42);
@@ -3624,7 +3624,7 @@ describe('invoke input', () => {
       states: {
         pending: {
           invoke: {
-            src: createLogic({
+            src: createAsyncLogic({
               run: ({ input }) => {
                 expect(input).toEqual({ newCount: 84, staticVal: 'hello' });
 

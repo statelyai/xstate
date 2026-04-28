@@ -1,4 +1,4 @@
-import { createLogic, createActor, setup } from 'xstate';
+import { createAsyncLogic, createActor, setup } from 'xstate';
 import { z } from 'zod';
 interface Order {
   id: string;
@@ -16,7 +16,7 @@ export const workflow = setup({
     }
   },
   actors: {
-    provisionOrderFunction: createLogic({
+    provisionOrderFunction: createAsyncLogic({
       schemas: {
         input: z.custom<{
           order: Order;
@@ -40,7 +40,7 @@ export const workflow = setup({
         };
       }
     }),
-    applyOrderWorkflowId: createLogic({
+    applyOrderWorkflowId: createAsyncLogic({
       run: async () => {
         console.log('starting applyOrderWorkflowId');
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -48,7 +48,7 @@ export const workflow = setup({
         return;
       }
     }),
-    handleMissingIdExceptionWorkflow: createLogic({
+    handleMissingIdExceptionWorkflow: createAsyncLogic({
       run: async () => {
         console.log('starting handleMissingIdExceptionWorkflow');
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -56,7 +56,7 @@ export const workflow = setup({
         return;
       }
     }),
-    handleMissingItemExceptionWorkflow: createLogic({
+    handleMissingItemExceptionWorkflow: createAsyncLogic({
       run: async () => {
         console.log('starting handleMissingItemExceptionWorkflow');
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -64,7 +64,7 @@ export const workflow = setup({
         return;
       }
     }),
-    handleMissingQuantityExceptionWorkflow: createLogic({
+    handleMissingQuantityExceptionWorkflow: createAsyncLogic({
       run: async () => {
         console.log('starting handleMissingQuantityExceptionWorkflow');
         await new Promise((resolve) => setTimeout(resolve, 1000));

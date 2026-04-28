@@ -1,8 +1,8 @@
-import { createLogic, createActor, setup } from 'xstate';
+import { createAsyncLogic, createActor, setup } from 'xstate';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#parallel-execution-example
 export const workflow = setup({
   actors: {
-    shortDelay: createLogic({
+    shortDelay: createAsyncLogic({
       run: async () => {
         await new Promise<void>((resolve) =>
           setTimeout(() => {
@@ -12,7 +12,7 @@ export const workflow = setup({
         );
       }
     }),
-    longDelay: createLogic({
+    longDelay: createAsyncLogic({
       run: async () => {
         await new Promise<void>((resolve) =>
           setTimeout(() => {

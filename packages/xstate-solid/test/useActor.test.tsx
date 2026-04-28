@@ -17,7 +17,7 @@ import {
   createActor,
   createMachine,
   fromCallback,
-  createLogic,
+  createAsyncLogic,
   fromTransition
 } from 'xstate';
 import { useActor } from '../src/index.ts';
@@ -97,7 +97,7 @@ describe('useActor', () => {
     const [snapshot, send] = useActor(
       fetchMachine.provide({
         actors: {
-          fetchData: createLogic({ run: mergedProps.onFetch }) as any
+          fetchData: createAsyncLogic({ run: mergedProps.onFetch }) as any
         }
       }),
       {
@@ -220,7 +220,7 @@ describe('useActor', () => {
         start: {
           entry: (_, enq) => {
             enq.spawn(
-              createLogic({ run: () => new Promise((res) => res(42)) }),
+              createAsyncLogic({ run: () => new Promise((res) => res(42)) }),
               { id: 'my-promise' }
             );
           },
@@ -1180,7 +1180,7 @@ describe('useActor', () => {
     const machine = createMachine({
       initial: 'a',
       actors: {
-        foo: createLogic({
+        foo: createAsyncLogic({
           run: () => {
             serviceCalled = true;
             return Promise.resolve();

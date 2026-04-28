@@ -1,4 +1,4 @@
-import { assign, createMachine, createLogic, createActor } from 'xstate';
+import { assign, createMachine, createAsyncLogic, createActor } from 'xstate';
 import { retry, handleWhen, ConstantBackoff } from 'cockatiel';
 const retryPolicy = retry(
   handleWhen((err) => (err as any).type === 'ServiceNotAvailable'),
@@ -112,21 +112,21 @@ export const workflow = createMachine(
   },
   {
     actors: {
-      StoreNewPatientInfo: createLogic({
+      StoreNewPatientInfo: createAsyncLogic({
         run: async ({ input }) => {
           console.log('Starting StoreNewPatientInfo', input);
           await retryPolicy.execute(() => delay(1000, 0.5));
           console.log('Completed StoreNewPatientInfo');
         }
       }),
-      AssignDoctor: createLogic({
+      AssignDoctor: createAsyncLogic({
         run: async () => {
           console.log('Starting AssignDoctor');
           await retryPolicy.execute(() => delay(1000, 0.5));
           console.log('Completed AssignDoctor');
         }
       }),
-      ScheduleAppt: createLogic({
+      ScheduleAppt: createAsyncLogic({
         run: async () => {
           console.log('Starting ScheduleAppt');
           await retryPolicy.execute(() => delay(1000, 0.5));

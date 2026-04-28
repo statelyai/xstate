@@ -4,7 +4,7 @@ import {
   createActor,
   createMachine,
   fromObservable,
-  createLogic
+  createAsyncLogic
 } from '../src';
 import { z } from 'zod';
 
@@ -14,7 +14,7 @@ describe.skip('spawnChild action', () => {
     const actor = createActor(
       createMachine({
         entry: (_, enq) => {
-          enq.spawn(createLogic({ run: () => Promise.resolve(42) }), {
+          enq.spawn(createAsyncLogic({ run: () => Promise.resolve(42) }), {
             id: 'child'
           });
         }
@@ -27,7 +27,7 @@ describe.skip('spawnChild action', () => {
   });
 
   it('can spawn from named actor', () => {
-    const fetchNum = createLogic({
+    const fetchNum = createAsyncLogic({
       run: ({ input }: { input: number }) => Promise.resolve(input * 2)
     });
     const actor = createActor(

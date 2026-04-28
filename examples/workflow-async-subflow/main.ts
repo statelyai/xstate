@@ -1,4 +1,4 @@
-import { assign, createLogic, createActor, setup } from 'xstate';
+import { assign, createAsyncLogic, createActor, setup } from 'xstate';
 import readline from 'readline';
 import { z } from 'zod';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#async-subflow-invocation-example
@@ -11,7 +11,7 @@ const prompt = (question: string) =>
   new Promise<string>((resolve) => rl.question(question, resolve));
 const onboardingWorkflow = setup({
   actors: {
-    prompt: createLogic({
+    prompt: createAsyncLogic({
       schemas: {
         input: z.custom<{
           question: string;

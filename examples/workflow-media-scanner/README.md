@@ -78,7 +78,7 @@ This project convers how to implement the following with XState:
     input: ({ context: { directoriesToCheck } }) => ({
       directoriesToCheck
     }),
-    src: createLogic({
+    src: createAsyncLogic({
       run: async ({ input: { directoriesToCheck } }) =>
         await checkFilePermissions(directoriesToCheck)
     }),

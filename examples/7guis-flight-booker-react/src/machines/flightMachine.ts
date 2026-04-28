@@ -1,4 +1,4 @@
-import { setup, assign, assertEvent, createLogic } from 'xstate';
+import { setup, assign, assertEvent, createAsyncLogic } from 'xstate';
 import { createActorContext } from '@xstate/react';
 import { TODAY, TOMORROW, sleep } from '../utils';
 export const flightBookerMachine = setup({
@@ -34,7 +34,7 @@ export const flightBookerMachine = setup({
     })
   },
   actors: {
-    Booker: createLogic({
+    Booker: createAsyncLogic({
       run: () => {
         return sleep(2000);
       }

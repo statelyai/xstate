@@ -11,7 +11,7 @@ import {
   createActor,
   next_createMachine
 } from 'xstate';
-import { fromCallback, fromObservable, createLogic } from 'xstate';
+import { fromCallback, fromObservable, createAsyncLogic } from 'xstate';
 import { useActor, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
 import z from 'zod';
@@ -114,7 +114,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     const [current, send] = useActor(
       fetchMachine.provide({
         actors: {
-          fetchData: createLogic({ run: onFetch }) as any
+          fetchData: createAsyncLogic({ run: onFetch }) as any
         }
       }),
       {
@@ -234,7 +234,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
           // entry: assign({
           //   ref: ({ spawn }) =>
           //     spawn(
-          //       createLogic(() => {
+          //       createAsyncLogic(() => {
           //         return new Promise((res) => res(42));
           //       }),
           //       { id: 'my-promise' }
@@ -243,7 +243,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
           entry: (_, enq) => ({
             context: {
               ref: enq.spawn(
-                createLogic({
+                createAsyncLogic({
                   run: () => {
                     return new Promise((res) => res(42));
                   }
@@ -586,7 +586,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     const machine = next_createMachine({
       actors: {
-        foo: createLogic({
+        foo: createAsyncLogic({
           run: () => {
             serviceCalled = true;
             return Promise.resolve();
@@ -979,7 +979,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       states: {
         loading: {
           invoke: {
-            src: createLogic({
+            src: createAsyncLogic({
               run: () => Promise.reject(new Error(errorMessage))
             })
           }

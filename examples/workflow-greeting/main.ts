@@ -1,4 +1,4 @@
-import { assign, createLogic, createActor, setup } from 'xstate';
+import { assign, createAsyncLogic, createActor, setup } from 'xstate';
 import { z } from 'zod';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#greeting-example
 export const workflow = setup({
@@ -13,7 +13,7 @@ export const workflow = setup({
     }
   },
   actors: {
-    greetingFunction: createLogic({
+    greetingFunction: createAsyncLogic({
       schemas: {
         input: z.custom<{
           name: string;

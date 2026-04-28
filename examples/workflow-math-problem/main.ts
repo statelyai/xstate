@@ -1,4 +1,4 @@
-import { assign, createLogic, createActor, setup } from 'xstate';
+import { assign, createAsyncLogic, createActor, setup } from 'xstate';
 import { z } from 'zod';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#solving-math-problems-example
 export const workflow = setup({
@@ -8,7 +8,7 @@ export const workflow = setup({
     }
   },
   actors: {
-    batchMathFunction: createLogic({
+    batchMathFunction: createAsyncLogic({
       schemas: {
         input: z.custom<{
           problems: string[];

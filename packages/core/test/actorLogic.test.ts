@@ -1,4 +1,3 @@
-import { setTimeout as sleep } from 'node:timers/promises';
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
 import {
@@ -12,18 +11,161 @@ import {
   AnyStateMachine
 } from '../src/index.ts';
 import {
+  createCallbackLogic,
+  createLogic,
+  createObservableLogic,
   fromCallback,
   fromEventObservable,
   fromObservable,
-  createLogic,
+  createAsyncLogic,
   fromTransition
 } from '../src/actors/index.ts';
+import { createInertActorScope } from '../src/getNextSnapshot.ts';
 import { waitFor } from '../src/waitFor.ts';
 import type { Mock } from 'vitest';
 import z from 'zod';
-describe('promise logic (createLogic)', () => {
+
+describe('logic (createLogic)', () => {
+  it('returns a snapshot and effects from transition', () => {
+    const logic = createLogic({
+      context: { count: 0 },
+      run: ({ context, event }, enq) => {
+        if (event.type !== 'inc') {
+          return;
+        }
+        enq.emit({ type: 'counted' });
+        return {
+          context: {
+            count: context.count + 1
+          }
+        };
+      }
+    });
+    const scope = createInertActorScope(logic);
+    const snapshot = logic.getInitialSnapshot(scope, undefined);
+    const [nextSnapshot, effects] = logic.transition(
+      snapshot,
+      { type: 'inc' },
+      scope
+    );
+
+    expect(nextSnapshot.context).toEqual({ count: 1 });
+    expect(effects).toEqual([{ type: 'emit', event: { type: 'counted' } }]);
+  });
+
+  it('tracks enqueued effects in the next snapshot', () => {
+    const logic = createLogic({
+      context: {},
+      run: (_, enq) => {
+        enq.effect('subscription', () => {});
+      }
+    });
+    const scope = createInertActorScope(logic);
+    const snapshot = logic.getInitialSnapshot(scope, undefined);
+    const [nextSnapshot, effects] = logic.transition(
+      snapshot,
+      { type: 'next' },
+      scope
+    );
+    const [snapshotAfterSecondTransition, repeatedEffects] = logic.transition(
+      nextSnapshot,
+      { type: 'next' },
+      scope
+    );
+
+    expect(effects).toHaveLength(1);
+    expect(nextSnapshot.effects).toEqual({
+      subscription: { status: 'active' }
+    });
+    expect(repeatedEffects).toEqual([]);
+    expect(snapshotAfterSecondTransition.effects).toEqual(nextSnapshot.effects);
+  });
+
+  it('does not track unnamed effects in the next snapshot', () => {
+    const logic = createLogic({
+      context: {},
+      run: (_, enq) => {
+        enq.effect(() => {});
+      }
+    });
+    const scope = createInertActorScope(logic);
+    const snapshot = logic.getInitialSnapshot(scope, undefined);
+    const [nextSnapshot, effects] = logic.transition(
+      snapshot,
+      { type: 'next' },
+      scope
+    );
+    const [, repeatedEffects] = logic.transition(
+      nextSnapshot,
+      { type: 'next' },
+      scope
+    );
+
+    expect(nextSnapshot.effects).toBeUndefined();
+    expect(effects).toHaveLength(1);
+    expect(repeatedEffects).toHaveLength(1);
+  });
+
+  it('executes enqueued effects once and cleans them up when stopped', () => {
+    let starts = 0;
+    let stops = 0;
+    const logic = createLogic({
+      context: { count: 0 },
+      run: ({ context, event }, enq) => {
+        enq.effect('subscription', () => {
+          starts++;
+          return () => {
+            stops++;
+          };
+        });
+
+        if (event.type === 'inc') {
+          return {
+            context: { count: context.count + 1 }
+          };
+        }
+      }
+    });
+    const actor = createActor(logic).start();
+
+    actor.send({ type: 'inc' });
+    actor.send({ type: 'inc' });
+    actor.stop();
+
+    expect(actor.getSnapshot().context).toEqual({ count: 2 });
+    expect(starts).toBe(1);
+    expect(stops).toBe(1);
+  });
+});
+
+describe('logic helpers', () => {
+  it('creates callback logic', () => {
+    const received: string[] = [];
+    const actor = createActor(
+      createCallbackLogic(({ receive }) => {
+        receive((event) => {
+          received.push(event.type);
+        });
+      })
+    ).start();
+
+    actor.send({ type: 'ping' });
+    actor.stop();
+
+    expect(received).toEqual(['ping']);
+  });
+
+  it('creates observable logic', async () => {
+    const actor = createActor(createObservableLogic(() => of(1, 2))).start();
+    const snapshot = await waitFor(actor, (s) => s.status === 'done');
+
+    expect(snapshot.context).toBe(2);
+  });
+});
+
+describe('promise logic (createAsyncLogic)', () => {
   it('should interpret a promise', async () => {
-    const promiseLogic = createLogic({
+    const promiseLogic = createAsyncLogic({
       run: () =>
         new Promise<string>((res) => {
           setTimeout(() => res('hello'), 10);
@@ -36,7 +178,9 @@ describe('promise logic (createLogic)', () => {
   });
   it('should resolve', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const actor = createActor(createLogic({ run: () => Promise.resolve(42) }));
+    const actor = createActor(
+      createAsyncLogic({ run: () => Promise.resolve(42) })
+    );
     actor.subscribe((state) => {
       if (state.output === 42) {
         resolve();
@@ -47,7 +191,9 @@ describe('promise logic (createLogic)', () => {
   });
   it('should resolve (observer .next)', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const actor = createActor(createLogic({ run: () => Promise.resolve(42) }));
+    const actor = createActor(
+      createAsyncLogic({ run: () => Promise.resolve(42) })
+    );
     actor.subscribe({
       next: (state) => {
         if (state.output === 42) {
@@ -61,7 +207,7 @@ describe('promise logic (createLogic)', () => {
   it('should reject (observer .error)', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const actor = createActor(
-      createLogic({ run: () => Promise.reject('Error') })
+      createAsyncLogic({ run: () => Promise.reject('Error') })
     );
     actor.subscribe({
       error: (data) => {
@@ -73,14 +219,16 @@ describe('promise logic (createLogic)', () => {
     return promise;
   });
   it('should complete (observer .complete)', async () => {
-    const actor = createActor(createLogic({ run: () => Promise.resolve(42) }));
+    const actor = createActor(
+      createAsyncLogic({ run: () => Promise.resolve(42) })
+    );
     actor.start();
     const snapshot = await waitFor(actor, (s) => s.output === 42);
     expect(snapshot.output).toBe(42);
   });
   it('should not execute when reading initial state', async () => {
     let called = false;
-    const logic = createLogic({
+    const logic = createAsyncLogic({
       run: () => {
         called = true;
         return Promise.resolve(42);
@@ -90,27 +238,139 @@ describe('promise logic (createLogic)', () => {
     actor.getSnapshot();
     expect(called).toBe(false);
   });
-  it('should persist an unresolved promise', async () => {
-    const promiseLogic = createLogic({
-      run: () =>
-        new Promise<number>((res) => {
+  it('should await steps and persist their results as effects', async () => {
+    let stepExecutions = 0;
+    const logic = createAsyncLogic({
+      run: async (_, enq) => {
+        const user = await enq.step('fetchUser', async () => {
+          stepExecutions++;
+          return { id: 1 };
+        });
+
+        return user.id;
+      }
+    });
+    const actor = createActor(logic).start();
+    const snapshot = await waitFor(actor, (s) => s.status === 'done');
+
+    expect(snapshot.output).toBe(1);
+    expect(snapshot.effects).toEqual({
+      async: { status: 'done', output: 1 },
+      fetchUser: { status: 'done', output: { id: 1 } }
+    });
+    expect(stepExecutions).toBe(1);
+
+    const restoredActor = createActor(logic, {
+      snapshot: actor.getPersistedSnapshot()
+    }).start();
+
+    expect(restoredActor.getSnapshot().output).toBe(1);
+    expect(stepExecutions).toBe(1);
+  });
+  it('should replay active async logic while skipping completed steps', async () => {
+    let runExecutions = 0;
+    let firstStepExecutions = 0;
+    let secondStepExecutions = 0;
+    const logic = createAsyncLogic({
+      run: async (_, enq) => {
+        runExecutions++;
+        const first = await enq.step('first', async () => {
+          firstStepExecutions++;
+          return 1;
+        });
+        const second = await enq.step('second', async () => {
+          secondStepExecutions++;
+          return new Promise<number>(() => {});
+        });
+
+        return first + second;
+      }
+    });
+    const actor = createActor(logic).start();
+
+    const activeSnapshot = await waitFor(actor, (snapshot) => {
+      return (
+        snapshot.effects?.first?.status === 'done' &&
+        snapshot.effects?.second?.status === 'active'
+      );
+    });
+
+    expect(activeSnapshot.effects).toEqual({
+      async: { status: 'active' },
+      first: { status: 'done', output: 1 },
+      second: { status: 'active' }
+    });
+    expect(runExecutions).toBe(1);
+    expect(firstStepExecutions).toBe(1);
+    expect(secondStepExecutions).toBe(1);
+
+    const persistedSnapshot = actor.getPersistedSnapshot();
+    actor.stop();
+
+    const restoredActor = createActor(logic, {
+      snapshot: persistedSnapshot
+    }).start();
+
+    await waitFor(restoredActor, () => runExecutions === 2);
+
+    expect(firstStepExecutions).toBe(1);
+    expect(secondStepExecutions).toBe(1);
+
+    restoredActor.send({
+      type: 'xstate.logic.effect.resolve',
+      key: 'second',
+      output: 2
+    });
+
+    const doneSnapshot = await waitFor(
+      restoredActor,
+      (snapshot) => snapshot.status === 'done'
+    );
+
+    expect(doneSnapshot.output).toBe(3);
+    expect(doneSnapshot.effects).toEqual({
+      async: { status: 'done', output: 3 },
+      first: { status: 'done', output: 1 },
+      second: { status: 'done', output: 2 }
+    });
+    expect(runExecutions).toBe(2);
+    expect(firstStepExecutions).toBe(1);
+    expect(secondStepExecutions).toBe(1);
+  });
+  it('should rerun an unresolved promise from an active persisted snapshot', async () => {
+    let createdPromises = 0;
+    const promiseLogic = createAsyncLogic({
+      run: () => {
+        createdPromises++;
+        return new Promise<number>((res) => {
           setTimeout(() => res(42), 10);
-        })
+        });
+      }
     });
     const actor = createActor(promiseLogic);
     actor.start();
-    const resolvedPersistedState = actor.getPersistedSnapshot();
+    const activePersistedState = actor.getPersistedSnapshot();
+    expect(createdPromises).toBe(1);
     actor.stop();
     const restoredActor = createActor(promiseLogic, {
-      snapshot: resolvedPersistedState
+      snapshot: activePersistedState
     });
     restoredActor.start();
-    await sleep(20);
-    expect(restoredActor.getSnapshot().output).toBe(42);
+    expect(createdPromises).toBe(2);
+
+    const snapshot = await waitFor(
+      restoredActor,
+      (snapshot) => snapshot.status === 'done'
+    );
+
+    expect(snapshot.output).toBe(42);
+    expect(snapshot.effects).toEqual({
+      async: { status: 'done', output: 42 }
+    });
   });
   it('should persist a resolved promise', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const promiseLogic = createLogic({
+    const promiseLogic = createAsyncLogic({
       run: () =>
         new Promise<number>((res) => {
           res(42);
@@ -122,6 +382,12 @@ describe('promise logic (createLogic)', () => {
       const resolvedPersistedState = actor.getPersistedSnapshot();
       expect(resolvedPersistedState).toMatchInlineSnapshot(`
         {
+          "effects": {
+            "async": {
+              "output": 42,
+              "status": "done",
+            },
+          },
           "error": undefined,
           "input": undefined,
           "output": 42,
@@ -139,7 +405,7 @@ describe('promise logic (createLogic)', () => {
   });
   it('should not invoke a resolved promise again', async () => {
     let createdPromises = 0;
-    const promiseLogic = createLogic({
+    const promiseLogic = createAsyncLogic({
       run: () => {
         createdPromises++;
         return Promise.resolve(createdPromises);
@@ -151,6 +417,12 @@ describe('promise logic (createLogic)', () => {
     const resolvedPersistedState = actor.getPersistedSnapshot();
     expect(resolvedPersistedState).toMatchInlineSnapshot(`
       {
+        "effects": {
+          "async": {
+            "output": 1,
+            "status": "done",
+          },
+        },
         "error": undefined,
         "input": undefined,
         "output": 1,
@@ -167,7 +439,7 @@ describe('promise logic (createLogic)', () => {
   });
   it('should not invoke a rejected promise again', async () => {
     let createdPromises = 0;
-    const promiseLogic = createLogic({
+    const promiseLogic = createAsyncLogic({
       run: () => {
         createdPromises++;
         return Promise.reject(createdPromises);
@@ -180,6 +452,12 @@ describe('promise logic (createLogic)', () => {
     const rejectedPersistedState = actorRef.getPersistedSnapshot();
     expect(rejectedPersistedState).toMatchInlineSnapshot(`
       {
+        "effects": {
+          "async": {
+            "error": 1,
+            "status": "error",
+          },
+        },
         "error": 1,
         "input": undefined,
         "output": undefined,
@@ -196,7 +474,7 @@ describe('promise logic (createLogic)', () => {
   });
   it('should have access to the system', () => {
     expect.assertions(1);
-    const promiseLogic = createLogic({
+    const promiseLogic = createAsyncLogic({
       run: ({ system }) => {
         expect(system).toBeDefined();
         return Promise.resolve(42);
@@ -206,7 +484,7 @@ describe('promise logic (createLogic)', () => {
   });
   it('should have reference to self', () => {
     expect.assertions(1);
-    const promiseLogic = createLogic({
+    const promiseLogic = createAsyncLogic({
       run: ({ self }) => {
         expect(self.send).toBeDefined();
         return Promise.resolve(42);
@@ -217,7 +495,7 @@ describe('promise logic (createLogic)', () => {
   it('should abort when stopping', async () => {
     const deferred = Promise.withResolvers<number>();
     const fn = vi.fn();
-    const promiseLogic = createLogic({
+    const promiseLogic = createAsyncLogic({
       run: (ctx) => {
         return new Promise((res) => {
           ctx.signal.addEventListener('abort', fn);
@@ -234,7 +512,7 @@ describe('promise logic (createLogic)', () => {
   it('should not abort when stopped if promise is resolved/rejected', async () => {
     const resolvedDeferred = Promise.withResolvers<number>();
     const resolvedSignalListener = vi.fn();
-    const resolvedPromiseLogic = createLogic({
+    const resolvedPromiseLogic = createAsyncLogic({
       run: (ctx) => {
         ctx.signal.addEventListener('abort', resolvedSignalListener);
         return resolvedDeferred.promise;
@@ -242,7 +520,7 @@ describe('promise logic (createLogic)', () => {
     });
     const rejectedDeferred = Promise.withResolvers<number>();
     const rejectedSignalListener = vi.fn();
-    const rejectedPromiseLogic = createLogic({
+    const rejectedPromiseLogic = createAsyncLogic({
       run: (ctx) => {
         ctx.signal.addEventListener('abort', rejectedSignalListener);
         return rejectedDeferred.promise.catch(() => {});
@@ -265,7 +543,7 @@ describe('promise logic (createLogic)', () => {
   it('should not reuse the same signal for different actors with same logic', async () => {
     let deferredMap: Map<string, PromiseWithResolvers<number>> = new Map();
     let signalListenerMap: Map<string, Mock> = new Map();
-    const p = createLogic({
+    const p = createAsyncLogic({
       run: ({ self, signal }) => {
         const deferred = Promise.withResolvers<number>();
         const signalListener = vi.fn();
@@ -324,7 +602,7 @@ describe('promise logic (createLogic)', () => {
   it.skip('should not reuse the same signal for different actors with same logic and id', async () => {
     let deferredList: PromiseWithResolvers<number>[] = [];
     let signalListenerList: Mock[] = [];
-    const p = createLogic({
+    const p = createAsyncLogic({
       run: ({ signal }) => {
         const deferred = Promise.withResolvers<number>();
         const fn = vi.fn();
@@ -385,7 +663,7 @@ describe('promise logic (createLogic)', () => {
   it('should not reuse the same signal for the same actor when restarted', async () => {
     let deferredList: PromiseWithResolvers<number>[] = [];
     let signalListenerList: Mock[] = [];
-    const p = createLogic({
+    const p = createAsyncLogic({
       run: ({ signal }) => {
         const deferred = Promise.withResolvers<number>();
         const fn = vi.fn();
@@ -740,7 +1018,7 @@ describe('machine logic', () => {
       invoke: [
         {
           id: 'a',
-          src: createLogic({ run: () => Promise.resolve(42) }),
+          src: createAsyncLogic({ run: () => Promise.resolve(42) }),
           onDone: (_, enq) => enq.raise({ type: 'done' })
         },
         {
@@ -762,6 +1040,12 @@ describe('machine logic', () => {
     const persistedState = actor.getPersistedSnapshot()!;
     expect((persistedState as any).children.a.snapshot).toMatchInlineSnapshot(`
       {
+        "effects": {
+          "async": {
+            "output": 42,
+            "status": "done",
+          },
+        },
         "error": undefined,
         "input": undefined,
         "output": 42,
@@ -1063,13 +1347,14 @@ describe('composable actor logic', () => {
       return {
         ...actorLogic,
         transition: (state: Snapshot<unknown>, event, actorScope) => {
-          const s = actorLogic.transition(state, event, actorScope);
+          const result = actorLogic.transition(state, event, actorScope);
+          const s = Array.isArray(result) ? result[0] : result;
           logs.push(s.output);
-          return s;
+          return result;
         }
       };
     }
-    const promiseLogic = createLogic({ run: () => Promise.resolve(42) });
+    const promiseLogic = createAsyncLogic({ run: () => Promise.resolve(42) });
     const actor = createActor(withLogs(promiseLogic)).start();
     await waitFor(actor, (s) => s.status === 'done');
     expect(logs).toEqual([42]);
@@ -1080,9 +1365,10 @@ describe('composable actor logic', () => {
       return {
         ...actorLogic,
         transition: (state: Snapshot<unknown>, event, actorScope) => {
-          const s = actorLogic.transition(state, event, actorScope);
+          const result = actorLogic.transition(state, event, actorScope);
+          const s = Array.isArray(result) ? result[0] : result;
           logs.push(s.context);
-          return s;
+          return result;
         }
       };
     }
@@ -1107,11 +1393,12 @@ describe('composable actor logic', () => {
       return {
         ...actorLogic,
         transition: (state: Snapshot<unknown>, event, actorScope) => {
-          const s = actorLogic.transition(state, event, actorScope);
+          const result = actorLogic.transition(state, event, actorScope);
+          const s = Array.isArray(result) ? result[0] : result;
           if (s.status === 'active') {
             logs.push(s.context);
           }
-          return s;
+          return result;
         }
       };
     }

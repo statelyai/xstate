@@ -1,6 +1,6 @@
 import {
   next_createMachine,
-  createLogic,
+  createAsyncLogic,
   Snapshot,
   InspectionEvent
 } from 'xstate';
@@ -310,7 +310,7 @@ describe('createActorContext', () => {
 
   it('should work with other types of logic', async () => {
     const PromiseContext = createActorContext(
-      createLogic({ run: () => Promise.resolve(42) })
+      createAsyncLogic({ run: () => Promise.resolve(42) })
     );
 
     const Component = () => {

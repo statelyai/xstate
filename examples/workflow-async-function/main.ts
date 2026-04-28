@@ -1,4 +1,4 @@
-import { createLogic, createActor, setup } from 'xstate';
+import { createAsyncLogic, createActor, setup } from 'xstate';
 import { z } from 'zod';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#async-function-invocation-example
 export const workflow = setup({
@@ -8,7 +8,7 @@ export const workflow = setup({
     }
   },
   actors: {
-    sendEmail: createLogic({
+    sendEmail: createAsyncLogic({
       schemas: {
         input: z.custom<{
           customer: string;

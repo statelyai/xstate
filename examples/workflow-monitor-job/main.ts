@@ -1,4 +1,4 @@
-import { assign, createLogic, createActor, setup } from 'xstate';
+import { assign, createAsyncLogic, createActor, setup } from 'xstate';
 import { z } from 'zod';
 interface Job {
   name: string;
@@ -16,7 +16,7 @@ export const workflow = setup({
     }
   },
   actors: {
-    submitJob: createLogic({
+    submitJob: createAsyncLogic({
       schemas: {
         input: z.custom<{
           name: string;
@@ -27,7 +27,7 @@ export const workflow = setup({
         return { jobuid: '123' };
       }
     }),
-    checkJobStatus: createLogic({
+    checkJobStatus: createAsyncLogic({
       schemas: {
         input: z.custom<{
           name: string;
@@ -38,13 +38,13 @@ export const workflow = setup({
         return { jobStatus: 'SUCCEEDED' as const };
       }
     }),
-    reportJobSucceeded: createLogic({
+    reportJobSucceeded: createAsyncLogic({
       run: ({ input }) => {
         console.log('Starting reportJobSucceeded', input);
         return Promise.resolve();
       }
     }),
-    reportJobFailed: createLogic({
+    reportJobFailed: createAsyncLogic({
       run: ({ input }) => {
         console.log('Starting reportJobFailed', input);
         return Promise.resolve();

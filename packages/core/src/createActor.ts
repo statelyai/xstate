@@ -9,6 +9,7 @@ import {
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { AnyActorSystem, Clock, createSystem } from './system.ts';
+import { executeLogicEffects } from './actors/logic.ts';
 
 // those are needed to make JSDoc `@link` work properly
 import type {
@@ -16,7 +17,8 @@ import type {
   fromEventObservable
 } from './actors/observable.ts';
 import type { fromCallback } from './actors/callback.ts';
-import type { createLogic } from './actors/promise.ts';
+import type { createLogic } from './actors/logic.ts';
+import type { createAsyncLogic } from './actors/promise.ts';
 import type { fromTransition } from './actors/transition.ts';
 import type { createMachine } from './createMachine.ts';
 
@@ -622,7 +624,7 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 
   private _process(event: EventFromLogic<TLogic>) {
-    let nextState;
+    let nextState: any;
     let caughtError;
     try {
       nextState = this.logic.transition(
@@ -643,7 +645,12 @@ export class Actor<TLogic extends AnyActorLogic>
       return;
     }
 
-    this.update(nextState, event);
+    const [snapshot, effects] = Array.isArray(nextState)
+      ? nextState
+      : [nextState, undefined];
+
+    this.update(snapshot, event);
+    executeLogicEffects(effects, this._actorScope);
     if (event.type === XSTATE_STOP) {
       this._stopProcedure();
       this._complete();
@@ -868,7 +875,8 @@ export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
  * @param logic - The actor logic to create an actor from. For a state machine
  *   actor logic creator, see {@link createMachine}. Other actor logic creators
  *   include {@link fromCallback}, {@link fromEventObservable},
- *   {@link fromObservable}, {@link createLogic}, and {@link fromTransition}.
+ *   {@link fromObservable}, {@link createLogic}, {@link createAsyncLogic}, and
+ *   {@link fromTransition}.
  * @param options - Actor options
  */
 export function createActor<TLogic extends AnyActorLogic>(

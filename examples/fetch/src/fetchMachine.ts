@@ -1,4 +1,4 @@
-import { assign, createLogic, setup } from 'xstate';
+import { assign, createAsyncLogic, setup } from 'xstate';
 import { getGreeting } from '.';
 import { z } from 'zod';
 export const fetchMachine = setup({
@@ -11,7 +11,7 @@ export const fetchMachine = setup({
     }
   },
   actors: {
-    fetchUser: createLogic({
+    fetchUser: createAsyncLogic({
       schemas: {
         input: z.custom<{
           name: string;

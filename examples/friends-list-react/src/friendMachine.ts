@@ -1,4 +1,4 @@
-import { assign, createLogic, setup } from 'xstate';
+import { assign, createAsyncLogic, setup } from 'xstate';
 export const friendMachine = setup({
   types: {
     context: {} as {
@@ -25,7 +25,7 @@ export const friendMachine = setup({
     tags: {} as 'read' | 'form' | 'saving'
   },
   actors: {
-    saveUser: createLogic({
+    saveUser: createAsyncLogic({
       run: async () => {
         // Simulate network request
         await new Promise((resolve) => setTimeout(resolve, 1000));

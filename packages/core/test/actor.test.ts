@@ -9,7 +9,7 @@ import {
 import {
   AsyncActorLogic,
   AsyncActorRef,
-  createLogic
+  createAsyncLogic
 } from '../src/actors/promise.ts';
 import { fromTransition } from '../src/actors/transition.ts';
 import {
@@ -286,7 +286,7 @@ describe('spawning promises', () => {
           entry: (_: unknown, enq: any) => ({
             context: {
               promiseRef: enq.spawn(
-                createLogic({ run: () => Promise.resolve('response') }),
+                createAsyncLogic({ run: () => Promise.resolve('response') }),
                 { id: 'my-promise' }
               )
             }
@@ -328,7 +328,7 @@ describe('spawning promises', () => {
         })
       },
       actors: {
-        somePromise: createLogic({
+        somePromise: createAsyncLogic({
           run: () => Promise.resolve('response')
         })
       },
@@ -995,7 +995,7 @@ describe('actors', () => {
                 ...context,
                 refs: context.items.map((item) =>
                   enq.spawn(
-                    createLogic({
+                    createAsyncLogic({
                       run: () => new Promise((res) => res(item))
                     })
                   )
@@ -1032,7 +1032,7 @@ describe('actors', () => {
           // entry: assign({
           //   promise: ({ spawn }) => {
           //     return spawn(
-          //       createLogic(() => {
+          //       createAsyncLogic(() => {
           //         spawnCounter++;
           //         return Promise.resolve('answer');
           //       })
@@ -1042,7 +1042,7 @@ describe('actors', () => {
           entry: (_, enq) => ({
             context: {
               promise: enq.spawn(
-                createLogic({
+                createAsyncLogic({
                   run: () => {
                     spawnCounter++;
                     return Promise.resolve('answer');
@@ -1125,11 +1125,13 @@ describe('actors', () => {
       states: {
         foo: {
           // entry: assign({
-          //   ref: ({ spawn }) => spawn(createLogic(() => Promise.resolve(42)))
+          //   ref: ({ spawn }) => spawn(createAsyncLogic(() => Promise.resolve(42)))
           // })
           entry: (_, enq) => ({
             context: {
-              ref: enq.spawn(createLogic({ run: () => Promise.resolve(42) }))
+              ref: enq.spawn(
+                createAsyncLogic({ run: () => Promise.resolve(42) })
+              )
             }
           })
         }
@@ -1259,7 +1261,7 @@ describe('actors', () => {
         // entry: assign({
         //   count: ({ spawn }) =>
         //     spawn(
-        //       createLogic(
+        //       createAsyncLogic(
         //         () =>
         //           new Promise<number>((res) => {
         //             setTimeout(() => res(42));
@@ -1271,7 +1273,7 @@ describe('actors', () => {
         entry: (_, enq) => ({
           context: {
             count: enq.spawn(
-              createLogic({
+              createAsyncLogic({
                 run: () =>
                   new Promise<number>((res) => {
                     setTimeout(() => res(42));
@@ -1330,7 +1332,7 @@ describe('actors', () => {
         },
         context: ({ spawn }) => ({
           count: spawn(
-            createLogic({
+            createAsyncLogic({
               run: () =>
                 new Promise<number>((_, rej) => {
                   setTimeout(() => rej(errorMessage), 1);
@@ -1553,7 +1555,7 @@ describe('actors', () => {
     }).not.toThrow();
   });
   it('should not crash on child promise-like sync completion during self-initialization', () => {
-    const promiseLogic = createLogic({
+    const promiseLogic = createAsyncLogic({
       run: () => ({ then: (fn: any) => fn(null) }) as any
     });
     const parentMachine = createMachine({
@@ -2032,7 +2034,7 @@ describe('actors', () => {
       on: {
         event: (_, enq) => {
           enq.spawn(
-            createLogic({
+            createAsyncLogic({
               run: async () => {
                 throw new Error('uh oh');
               }
@@ -2057,7 +2059,7 @@ describe('actors', () => {
     const sharedActors = {};
     const m1 = createMachine({
       invoke: {
-        src: createLogic({ run: async () => 'foo' }),
+        src: createAsyncLogic({ run: async () => 'foo' }),
         // onDone: {
         //   actions: ({ event }) => spy(event.output)
         // }
@@ -2067,7 +2069,7 @@ describe('actors', () => {
       }
     }).provide({ actors: sharedActors });
     createMachine({
-      invoke: { src: createLogic({ run: async () => 100 }) }
+      invoke: { src: createAsyncLogic({ run: async () => 100 }) }
     }).provide({ actors: sharedActors });
     createActor(m1).start();
     await sleep(1);
@@ -2079,7 +2081,7 @@ describe('actors', () => {
     const machine = createMachine({
       actors,
       invoke: {
-        src: createLogic({ run: async () => 'foo' })
+        src: createAsyncLogic({ run: async () => 'foo' })
       }
     });
     createActor(machine).start();

@@ -1,4 +1,4 @@
-import { assign, createLogic, createActor, setup } from 'xstate';
+import { assign, createAsyncLogic, createActor, setup } from 'xstate';
 import { z } from 'zod';
 interface Order {
   id: string;
@@ -22,7 +22,7 @@ export const workflow = setup({
     }
   },
   actors: {
-    provisionOrdersFunction: createLogic({
+    provisionOrdersFunction: createAsyncLogic({
       schemas: {
         input: z.custom<{
           orders: Order[];

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   createActor,
   createMachine,
-  createLogic,
+  createAsyncLogic,
   waitFor,
   InspectionEvent,
   isMachineSnapshot
@@ -103,7 +103,7 @@ describe('inspect', () => {
             },
             loading: {
               invoke: {
-                src: createLogic({
+                src: createAsyncLogic({
                   run: () => {
                     return Promise.resolve(42);
                   }
