@@ -11,7 +11,7 @@ import {
   createActor,
   next_createMachine
 } from 'xstate';
-import { fromCallback, fromObservable, fromPromise } from 'xstate';
+import { fromCallback, fromObservable, createLogic } from 'xstate';
 import { useActor, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
 import z from 'zod';
@@ -114,7 +114,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     const [current, send] = useActor(
       fetchMachine.provide({
         actors: {
-          fetchData: fromPromise(onFetch) as any
+          fetchData: createLogic({ run: onFetch }) as any
         }
       }),
       {
@@ -234,7 +234,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
           // entry: assign({
           //   ref: ({ spawn }) =>
           //     spawn(
-          //       fromPromise(() => {
+          //       createLogic(() => {
           //         return new Promise((res) => res(42));
           //       }),
           //       { id: 'my-promise' }
@@ -243,8 +243,10 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
           entry: (_, enq) => ({
             context: {
               ref: enq.spawn(
-                fromPromise(() => {
-                  return new Promise((res) => res(42));
+                createLogic({
+                  run: () => {
+                    return new Promise((res) => res(42));
+                  }
                 }),
                 { id: 'my-promise' }
               )
@@ -584,9 +586,11 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     const machine = next_createMachine({
       actors: {
-        foo: fromPromise(() => {
-          serviceCalled = true;
-          return Promise.resolve();
+        foo: createLogic({
+          run: () => {
+            serviceCalled = true;
+            return Promise.resolve();
+          }
         })
       },
       initial: 'a',
@@ -975,7 +979,9 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       states: {
         loading: {
           invoke: {
-            src: fromPromise(() => Promise.reject(new Error(errorMessage)))
+            src: createLogic({
+              run: () => Promise.reject(new Error(errorMessage))
+            })
           }
         }
       }

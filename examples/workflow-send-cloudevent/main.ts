@@ -1,11 +1,10 @@
-import { assign, fromPromise, createActor, setup } from 'xstate';
-
+import { assign, createLogic, createActor, setup } from 'xstate';
+import { z } from 'zod';
 interface Order {
   id: string;
   item: string;
   quantity: string;
 }
-
 // https://github.com/serverlessworkflow/specification/tree/main/examples#send-cloudevent-on-workflow-completion-example
 export const workflow = setup({
   types: {
@@ -23,8 +22,13 @@ export const workflow = setup({
     }
   },
   actors: {
-    provisionOrdersFunction: fromPromise(
-      async ({ input }: { input: { orders: Order[] } }) => {
+    provisionOrdersFunction: createLogic({
+      schemas: {
+        input: z.custom<{
+          orders: Order[];
+        }>()
+      },
+      run: async ({ input }) => {
         const data = await Promise.all(
           input.orders.map(async (order) => {
             console.log('provisioning order', order);
@@ -36,10 +40,9 @@ export const workflow = setup({
             };
           })
         );
-
         return data;
       }
-    )
+    })
   }
 }).createMachine({
   id: 'sendcloudeventonprovision',
@@ -71,7 +74,6 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow, {
   input: {
     orders: [
@@ -88,11 +90,9 @@ const actor = createActor(workflow, {
     ]
   }
 });
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();

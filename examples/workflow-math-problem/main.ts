@@ -1,5 +1,5 @@
-import { assign, fromPromise, createActor, setup } from 'xstate';
-
+import { assign, createLogic, createActor, setup } from 'xstate';
+import { z } from 'zod';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#solving-math-problems-example
 export const workflow = setup({
   types: {
@@ -8,14 +8,13 @@ export const workflow = setup({
     }
   },
   actors: {
-    batchMathFunction: fromPromise(
-      async ({
-        input
-      }: {
-        input: {
+    batchMathFunction: createLogic({
+      schemas: {
+        input: z.custom<{
           problems: string[];
-        };
-      }) => {
+        }>()
+      },
+      run: async ({ input }) => {
         return await Promise.all(
           input.problems.map(async (problem) => {
             console.log('solving', problem);
@@ -27,7 +26,7 @@ export const workflow = setup({
           })
         );
       }
-    )
+    })
   }
 }).createMachine({
   id: 'math-problem',
@@ -58,17 +57,14 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow, {
   input: {
     expressions: ['2+2', '4-1', '10x3', '20/2']
   }
 });
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();

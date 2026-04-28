@@ -1,5 +1,5 @@
-import { assign, fromPromise, createActor, setup } from 'xstate';
-
+import { assign, createLogic, createActor, setup } from 'xstate';
+import { z } from 'zod';
 async function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -7,32 +7,33 @@ async function delay(ms: number): Promise<void> {
     }, ms);
   });
 }
-
 interface PatientInfo {
   name: string;
   pet: string;
   reason: string;
 }
-
 // https://github.com/serverlessworkflow/specification/tree/main/examples#event-based-service-invocation
 export const workflow = setup({
   actors: {
-    MakeAppointmentAction: fromPromise(
-      async ({ input }: { input: { patientInfo: PatientInfo } }) => {
+    MakeAppointmentAction: createLogic({
+      schemas: {
+        input: z.custom<{
+          patientInfo: PatientInfo;
+        }>()
+      },
+      run: async ({ input }) => {
         console.log('Making vet appointment for', input.patientInfo);
         await delay(2000);
-
         const appointmentInfo = {
           appointmentId: '1234',
           appointmentDate: new Date().toISOString()
         };
-
         console.log('Vet appointment made', appointmentInfo);
         return {
           appointmentInfo
         };
       }
-    )
+    })
   }
 }).createMachine({
   id: 'VetAppointmentWorkflow',
@@ -85,21 +86,17 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow, {
   input: {
     person: { name: 'Jenny' }
   }
 });
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();
-
 actor.send({
   type: 'MakeVetAppointment',
   patientInfo: {

@@ -16,10 +16,15 @@ export {
   type ObservableSnapshot
 } from './observable.ts';
 export {
-  fromPromise,
-  type PromiseActorLogic,
-  type PromiseActorRef,
-  type PromiseSnapshot
+  createLogic,
+  type AsyncActorLogic,
+  type AsyncActorRef,
+  type AsyncSnapshot,
+  type LogicArgs,
+  type LogicConfig,
+  type LogicEnqueue,
+  type LogicFunction,
+  TimeoutError
 } from './promise.ts';
 export {
   fromTransition,

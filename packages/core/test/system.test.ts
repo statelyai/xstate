@@ -8,7 +8,7 @@ import {
   createMachine,
   fromEventObservable,
   fromObservable,
-  fromPromise,
+  createLogic,
   fromTransition
 } from '../src/index.ts';
 import { ActorSystem } from '../src/system.ts';
@@ -261,12 +261,9 @@ describe('system', () => {
         })
       },
       context: ({ spawn }) => ({
-        ref: spawn(
-          fromPromise(() => Promise.resolve()),
-          {
-            systemId: 'test11'
-          }
-        )
+        ref: spawn(createLogic({ run: () => Promise.resolve() }), {
+          systemId: 'test11'
+        })
       }),
       on: {
         // stop: {
@@ -277,7 +274,7 @@ describe('system', () => {
         },
         // start: {
         //   actions: spawnChild(
-        //     fromPromise(() => Promise.resolve()),
+        //     createLogic(() => Promise.resolve()),
         //     {
         //       systemId: 'test11'
         //     }
@@ -288,12 +285,9 @@ describe('system', () => {
           // 1. when getting transition result
           // 2. when actually executing it
           // Since it's set in the system twice, it triggers the error currently
-          enq.spawn(
-            fromPromise(() => Promise.resolve()),
-            {
-              systemId: 'test11'
-            }
-          );
+          enq.spawn(createLogic({ run: () => Promise.resolve() }), {
+            systemId: 'test11'
+          });
         }
       }
     });
@@ -376,9 +370,11 @@ describe('system', () => {
           systemId: 'test6'
         },
         {
-          src: fromPromise(({ system }) => {
-            expect(system.get('test6')).toBeDefined();
-            return Promise.resolve();
+          src: createLogic({
+            run: ({ system }) => {
+              expect(system.get('test6')).toBeDefined();
+              return Promise.resolve();
+            }
           })
         }
       ]

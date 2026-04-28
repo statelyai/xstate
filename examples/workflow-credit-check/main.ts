@@ -1,5 +1,5 @@
-import { assign, fromPromise, createActor, setup } from 'xstate';
-
+import { assign, createLogic, createActor, setup } from 'xstate';
+import { z } from 'zod';
 interface Customer {
   id: string;
   name: string;
@@ -8,7 +8,6 @@ interface Customer {
   address: string;
   employer: string;
 }
-
 // https://github.com/serverlessworkflow/specification/tree/main/examples#perform-customer-credit-check-example
 export const workflow = setup({
   types: {
@@ -23,8 +22,13 @@ export const workflow = setup({
     }
   },
   actors: {
-    callCreditCheckMicroservice: fromPromise(
-      async ({ input }: { input: { customer: Customer } }) => {
+    callCreditCheckMicroservice: createLogic({
+      schemas: {
+        input: z.custom<{
+          customer: Customer;
+        }>()
+      },
+      run: async ({ input }) => {
         console.log('calling credit check microservice', input);
         return {
           id: 'customer123',
@@ -33,9 +37,14 @@ export const workflow = setup({
           reason: 'Good credit score'
         };
       }
-    ),
-    startApplicationWorkflowId: fromPromise(
-      async ({ input }: { input: { customer: Customer } }) => {
+    }),
+    startApplicationWorkflowId: createLogic({
+      schemas: {
+        input: z.custom<{
+          customer: Customer;
+        }>()
+      },
+      run: async ({ input }) => {
         console.log('starting application workflow', input);
         // fake 1s
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -46,9 +55,14 @@ export const workflow = setup({
           }
         };
       }
-    ),
-    sendRejectionEmailFunction: fromPromise(
-      async ({ input }: { input: { applicant: Customer } }) => {
+    }),
+    sendRejectionEmailFunction: createLogic({
+      schemas: {
+        input: z.custom<{
+          applicant: Customer;
+        }>()
+      },
+      run: async ({ input }) => {
         console.log('sending rejection email', input);
         // fake 1s
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -59,7 +73,7 @@ export const workflow = setup({
           }
         };
       }
-    )
+    })
   },
   delays: {
     PT15M: 15 * 60 * 1000
@@ -133,7 +147,6 @@ export const workflow = setup({
     Timeout: {}
   }
 });
-
 const actor = createActor(workflow, {
   input: {
     customer: {
@@ -151,11 +164,9 @@ const actor = createActor(workflow, {
     }
   }
 });
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();

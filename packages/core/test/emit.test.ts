@@ -3,10 +3,10 @@ import {
   AnyEventObject,
   createActor,
   createMachine,
+  createLogic,
   fromCallback,
   fromEventObservable,
   fromObservable,
-  fromPromise,
   fromTransition
 } from '../src';
 
@@ -295,17 +295,17 @@ describe('event emitter', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('events can be emitted from promise logic', () => {
+  it('events can be emitted from async logic', () => {
     const spy = vi.fn();
 
-    const logic = fromPromise<any, any, { type: 'emitted'; msg: string }>(
-      async ({ emit }) => {
-        emit({
+    const logic = createLogic<any, any, { type: 'emitted'; msg: string }>({
+      run: async (_, enq) => {
+        enq.emit({
           type: 'emitted',
           msg: 'hello'
         });
       }
-    );
+    });
 
     const actor = createActor(logic);
 

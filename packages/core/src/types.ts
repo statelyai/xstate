@@ -1,7 +1,7 @@
 import type { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
-import { PromiseActorLogic } from './actors/promise.ts';
+import { AsyncActorLogic } from './actors/promise.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
 import { InspectionEvent } from './inspection.ts';
 import { Spawner } from './spawn.ts';
@@ -1649,7 +1649,7 @@ export type ActorRefFrom<T> =
           TEmitted
         >
     : T extends Promise<infer U>
-      ? ActorRefFrom<PromiseActorLogic<U>>
+      ? ActorRefFrom<AsyncActorLogic<U>>
       : T extends ActorLogic<
             infer TSnapshot,
             infer TEvent,

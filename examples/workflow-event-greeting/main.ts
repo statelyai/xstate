@@ -1,23 +1,32 @@
-import { assign, fromPromise, createActor, setup } from 'xstate';
-
+import { assign, createLogic, createActor, setup } from 'xstate';
+import { z } from 'zod';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#event-based-greeting-example
 export const workflow = setup({
   types: {
-    events: {} as { type: 'greet'; greet: { name: string } }
+    events: {} as {
+      type: 'greet';
+      greet: {
+        name: string;
+      };
+    }
   },
   actors: {
-    greetingFunction: fromPromise(
-      async ({ input }: { input: { name: string } }) => {
+    greetingFunction: createLogic({
+      schemas: {
+        input: z.custom<{
+          name: string;
+        }>()
+      },
+      run: async ({ input }) => {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         return {
           greeting: `Hello, ${input.name}!`
         };
       }
-    )
+    })
   }
 }).createMachine({
   id: 'event-greeting',
-
   initial: 'Waiting',
   states: {
     Waiting: {
@@ -47,17 +56,13 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow);
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();
-
 actor.send({
   type: 'greet',
   greet: { name: 'Jenny' }

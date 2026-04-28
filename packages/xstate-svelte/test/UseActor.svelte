@@ -4,7 +4,7 @@
   import { useActor } from '../src/index.ts';
   import { fetchMachine } from './fetchMachine.ts';
   import type { AnyMachineSnapshot } from 'xstate';
-  import { fromPromise } from 'xstate';
+  import { createLogic } from 'xstate';
 
   const onFetch = () =>
     new Promise<string>((res) => setTimeout(() => res('some data'), 50));
@@ -12,7 +12,7 @@
   const { snapshot, send } = useActor(
     fetchMachine.provide({
       actors: {
-        fetchData: fromPromise(onFetch)
+        fetchData: createLogic({ run: onFetch })
       }
     }),
     {

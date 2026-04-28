@@ -2,7 +2,7 @@ import {
   createActor,
   createMachine,
   fromCallback,
-  fromPromise,
+  createLogic,
   fromTransition
 } from '../src';
 import type { AnyActorRef } from '../src';
@@ -177,9 +177,11 @@ describe('enq.listen()', () => {
 
 describe('enq.subscribeTo()', () => {
   it('subscribes to done events from a spawned actor', async () => {
-    const childLogic = fromPromise(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      return { result: 'success' };
+    const childLogic = createLogic({
+      run: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        return { result: 'success' };
+      }
     });
 
     const receivedEvents: any[] = [];
@@ -223,9 +225,11 @@ describe('enq.subscribeTo()', () => {
   });
 
   it('subscribes to error events from a spawned actor', async () => {
-    const childLogic = fromPromise(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      throw new Error('child error');
+    const childLogic = createLogic({
+      run: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        throw new Error('child error');
+      }
     });
 
     const receivedEvents: any[] = [];
@@ -313,9 +317,11 @@ describe('enq.subscribeTo()', () => {
   });
 
   it('stops subscribing when subscription is stopped', async () => {
-    const childLogic = fromPromise(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      return { result: 'success' };
+    const childLogic = createLogic({
+      run: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return { result: 'success' };
+      }
     });
 
     let receivedDone = false;

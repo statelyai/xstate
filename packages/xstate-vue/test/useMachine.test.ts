@@ -1,6 +1,6 @@
 import { fireEvent, render, waitFor } from '@testing-library/vue';
 import {
-  PromiseActorLogic,
+  AsyncActorLogic,
   createActor,
   next_createMachine as createMachine
 } from 'xstate';
@@ -16,7 +16,7 @@ describe('useMachine', () => {
     types: {} as {
       actors: {
         src: 'fetchData';
-        logic: PromiseActorLogic<string>;
+        logic: AsyncActorLogic<string>;
       };
     },
     initial: 'idle',

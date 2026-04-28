@@ -1,28 +1,30 @@
-import { fromPromise, createActor, setup } from 'xstate';
-
+import { createLogic, createActor, setup } from 'xstate';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#Event-Based-Transitions-Example
 export const workflow = setup({
   delays: {
     visaDecisionTimeout: 1000
   },
   actors: {
-    handleApprovedVisaWorkflowID: fromPromise(async () => {
-      console.log('handleApprovedVisaWorkflowID workflow started');
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('handleApprovedVisaWorkflowID workflow completed');
+    handleApprovedVisaWorkflowID: createLogic({
+      run: async () => {
+        console.log('handleApprovedVisaWorkflowID workflow started');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log('handleApprovedVisaWorkflowID workflow completed');
+      }
     }),
-    handleRejectedVisaWorkflowID: fromPromise(async () => {
-      console.log('handleRejectedVisaWorkflowID workflow started');
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('handleRejectedVisaWorkflowID workflow completed');
+    handleRejectedVisaWorkflowID: createLogic({
+      run: async () => {
+        console.log('handleRejectedVisaWorkflowID workflow started');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log('handleRejectedVisaWorkflowID workflow completed');
+      }
     }),
-    handleNoVisaDecisionWorkflowId: fromPromise(async () => {
-      console.log('handleNoVisaDecisionWorkflowId workflow started');
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('handleNoVisaDecisionWorkflowId workflow completed');
+    handleNoVisaDecisionWorkflowId: createLogic({
+      run: async () => {
+        console.log('handleNoVisaDecisionWorkflowId workflow started');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log('handleNoVisaDecisionWorkflowId workflow completed');
+      }
     })
   }
 }).createMachine({
@@ -61,17 +63,13 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow);
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();
-
 actor.send({
   type: 'visaApprovedEvent'
 });

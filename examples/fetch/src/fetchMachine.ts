@@ -1,6 +1,6 @@
-import { assign, fromPromise, setup } from 'xstate';
+import { assign, createLogic, setup } from 'xstate';
 import { getGreeting } from '.';
-
+import { z } from 'zod';
 export const fetchMachine = setup({
   types: {
     context: {} as {
@@ -11,9 +11,14 @@ export const fetchMachine = setup({
     }
   },
   actors: {
-    fetchUser: fromPromise(({ input }: { input: { name: string } }) =>
-      getGreeting(input.name)
-    )
+    fetchUser: createLogic({
+      schemas: {
+        input: z.custom<{
+          name: string;
+        }>()
+      },
+      run: ({ input }) => getGreeting(input.name)
+    })
   }
 }).createMachine({
   initial: 'idle',

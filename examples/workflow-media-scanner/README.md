@@ -78,9 +78,10 @@ This project convers how to implement the following with XState:
     input: ({ context: { directoriesToCheck } }) => ({
       directoriesToCheck
     }),
-    src: fromPromise(async ({ input: { directoriesToCheck } }) =>
-      await checkFilePermissions(directoriesToCheck)
-    ),
+    src: createLogic({
+      run: async ({ input: { directoriesToCheck } }) =>
+        await checkFilePermissions(directoriesToCheck)
+    }),
     onDone: [
       {
         target: 'EvaluatingFiles',

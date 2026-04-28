@@ -1,8 +1,38 @@
 import { createActor, createMachine } from '../src';
-import { fromPromise } from '../src/actors/promise.ts';
+import { createLogic, TimeoutError } from '../src/actors/promise.ts';
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+describe('async logic timeout', () => {
+  it('aborts and errors when createLogic exceeds its timeout', () => {
+    vi.useFakeTimers();
+
+    let signal: AbortSignal | undefined;
+    const logic = createLogic({
+      id: 'slow-task',
+      timeout: '10ms',
+      run: ({ signal: receivedSignal }) => {
+        signal = receivedSignal;
+        return new Promise(() => {});
+      }
+    });
+    const actor = createActor(logic);
+    actor.subscribe({ error: () => {} });
+
+    actor.start();
+    vi.advanceTimersByTime(10);
+
+    expect(logic.id).toBe('slow-task');
+    expect(signal?.aborted).toBe(true);
+    expect(actor.getSnapshot()).toEqual(
+      expect.objectContaining({
+        status: 'error',
+        error: expect.any(TimeoutError)
+      })
+    );
+  });
 });
 
 describe('state-level timeout', () => {
@@ -199,9 +229,9 @@ describe('invoke-level timeout', () => {
       states: {
         working: {
           invoke: {
-            src: fromPromise(
-              () => new Promise((resolve) => setTimeout(resolve, 10_000))
-            ),
+            src: createLogic({
+              run: () => new Promise((resolve) => setTimeout(resolve, 10_000))
+            }),
             timeout: 1000,
             onTimeout: 'timedOut',
             onDone: 'done'
@@ -227,7 +257,7 @@ describe('invoke-level timeout', () => {
       states: {
         working: {
           invoke: {
-            src: fromPromise(() => Promise.resolve('ok')),
+            src: createLogic({ run: () => Promise.resolve('ok') }),
             timeout: 5000,
             onTimeout: 'timedOut',
             onDone: 'done'
@@ -258,7 +288,7 @@ describe('invoke-level timeout', () => {
       states: {
         working: {
           invoke: {
-            src: fromPromise(() => Promise.resolve('ok')),
+            src: createLogic({ run: () => Promise.resolve('ok') }),
             timeout: 1000,
             onTimeout: 'timedOut'
           }
@@ -287,7 +317,7 @@ describe('invoke-level timeout', () => {
       states: {
         working: {
           invoke: {
-            src: fromPromise(() => Promise.resolve('ok')),
+            src: createLogic({ run: () => Promise.resolve('ok') }),
             timeout: 1000,
             onTimeout: 'timedOut',
             onDone: (_args, enq) => {
@@ -321,9 +351,9 @@ describe('invoke-level timeout', () => {
       states: {
         working: {
           invoke: {
-            src: fromPromise(
-              () => new Promise((resolve) => setTimeout(resolve, 60_000))
-            ),
+            src: createLogic({
+              run: () => new Promise((resolve) => setTimeout(resolve, 60_000))
+            }),
             timeout: ({ context }) => context.timeoutMs,
             onTimeout: 'timedOut',
             onDone: 'done'
@@ -350,7 +380,7 @@ describe('invoke-level timeout', () => {
         states: {
           working: {
             invoke: {
-              src: fromPromise(() => Promise.resolve('ok')),
+              src: createLogic({ run: () => Promise.resolve('ok') }),
               timeout: 1000
             } as any
           },

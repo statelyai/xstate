@@ -3,7 +3,7 @@ import {
   createActor,
   createMachine,
   fromCallback,
-  fromPromise,
+  createLogic,
   fromTransition,
   AnyEventObject
 } from '../src';
@@ -221,13 +221,14 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromPromise(() =>
-              Promise.reject(
-                new Error(
-                  'unhandled_rejection_in_promise_actor_without_error_listener'
+            src: createLogic({
+              run: () =>
+                Promise.reject(
+                  new Error(
+                    'unhandled_rejection_in_promise_actor_without_error_listener'
+                  )
                 )
-              )
-            ),
+            }),
             onDone: 'success'
           }
         },
@@ -258,13 +259,14 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromPromise(() =>
-              Promise.reject(
-                new Error(
-                  'unhandled_rejection_in_promise_actor_with_parent_listener'
+            src: createLogic({
+              run: () =>
+                Promise.reject(
+                  new Error(
+                    'unhandled_rejection_in_promise_actor_with_parent_listener'
+                  )
                 )
-              )
-            ),
+            }),
             onDone: 'success'
           }
         },
@@ -299,13 +301,14 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromPromise(() =>
-              Promise.reject(
-                new Error(
-                  'unhandled_rejection_in_promise_actor_with_grandparent_listener'
+            src: createLogic({
+              run: () =>
+                Promise.reject(
+                  new Error(
+                    'unhandled_rejection_in_promise_actor_with_grandparent_listener'
+                  )
                 )
-              )
-            ),
+            }),
             onDone: 'success'
           }
         },

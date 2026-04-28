@@ -1,16 +1,27 @@
-import { setup, assign, assertEvent, fromPromise } from 'xstate';
+import { setup, assign, assertEvent, createLogic } from 'xstate';
 import { createActorContext } from '@xstate/react';
 import { TODAY, TOMORROW, sleep } from '../utils';
-
 export const flightBookerMachine = setup({
   types: {
     context: {} as FlightData,
     events: {} as
-      | { type: 'BOOK_DEPART' }
-      | { type: 'BOOK_RETURN' }
-      | { type: 'CHANGE_TRIP_TYPE' }
-      | { type: 'CHANGE_DEPART_DATE'; value: string }
-      | { type: 'CHANGE_RETURN_DATE'; value: string }
+      | {
+          type: 'BOOK_DEPART';
+        }
+      | {
+          type: 'BOOK_RETURN';
+        }
+      | {
+          type: 'CHANGE_TRIP_TYPE';
+        }
+      | {
+          type: 'CHANGE_DEPART_DATE';
+          value: string;
+        }
+      | {
+          type: 'CHANGE_RETURN_DATE';
+          value: string;
+        }
   },
   actions: {
     setDepartDate: assign(({ event }) => {
@@ -23,8 +34,10 @@ export const flightBookerMachine = setup({
     })
   },
   actors: {
-    Booker: fromPromise(() => {
-      return sleep(2000);
+    Booker: createLogic({
+      run: () => {
+        return sleep(2000);
+      }
     })
   },
   guards: {
@@ -102,5 +115,4 @@ export const flightBookerMachine = setup({
     }
   }
 });
-
 export default createActorContext(flightBookerMachine);

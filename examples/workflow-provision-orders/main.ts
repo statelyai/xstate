@@ -1,22 +1,28 @@
-import { fromPromise, createActor, setup } from 'xstate';
-
+import { createLogic, createActor, setup } from 'xstate';
+import { z } from 'zod';
 interface Order {
   id: string;
   item: string;
   quantity: string;
 }
-
 // https://github.com/serverlessworkflow/specification/tree/main/examples#provision-orders-example
 export const workflow = setup({
   types: {
     context: {} as {
       order: Order;
     },
-    input: {} as { order: Order }
+    input: {} as {
+      order: Order;
+    }
   },
   actors: {
-    provisionOrderFunction: fromPromise(
-      async ({ input }: { input: { order: Order } }) => {
+    provisionOrderFunction: createLogic({
+      schemas: {
+        input: z.custom<{
+          order: Order;
+        }>()
+      },
+      run: async ({ input }) => {
         console.log('starting provisionOrderFunction');
         await new Promise((resolve) => setTimeout(resolve, 1000));
         if (!input.order.id) {
@@ -33,35 +39,42 @@ export const workflow = setup({
           order: input.order
         };
       }
-    ),
-    applyOrderWorkflowId: fromPromise(async () => {
-      console.log('starting applyOrderWorkflowId');
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('finished applyOrderWorkflowId');
-      return;
     }),
-    handleMissingIdExceptionWorkflow: fromPromise(async () => {
-      console.log('starting handleMissingIdExceptionWorkflow');
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('finished handleMissingIdExceptionWorkflow');
-      return;
+    applyOrderWorkflowId: createLogic({
+      run: async () => {
+        console.log('starting applyOrderWorkflowId');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log('finished applyOrderWorkflowId');
+        return;
+      }
     }),
-    handleMissingItemExceptionWorkflow: fromPromise(async () => {
-      console.log('starting handleMissingItemExceptionWorkflow');
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('finished handleMissingItemExceptionWorkflow');
-      return;
+    handleMissingIdExceptionWorkflow: createLogic({
+      run: async () => {
+        console.log('starting handleMissingIdExceptionWorkflow');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log('finished handleMissingIdExceptionWorkflow');
+        return;
+      }
     }),
-    handleMissingQuantityExceptionWorkflow: fromPromise(async () => {
-      console.log('starting handleMissingQuantityExceptionWorkflow');
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('finished handleMissingQuantityExceptionWorkflow');
-      return;
+    handleMissingItemExceptionWorkflow: createLogic({
+      run: async () => {
+        console.log('starting handleMissingItemExceptionWorkflow');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log('finished handleMissingItemExceptionWorkflow');
+        return;
+      }
+    }),
+    handleMissingQuantityExceptionWorkflow: createLogic({
+      run: async () => {
+        console.log('starting handleMissingQuantityExceptionWorkflow');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log('finished handleMissingQuantityExceptionWorkflow');
+        return;
+      }
     })
   }
 }).createMachine({
   id: 'provisionorders',
-
   initial: 'ProvisionOrder',
   context: ({ input }) => ({
     order: input.order
@@ -131,7 +144,6 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow, {
   input: {
     order: {
@@ -141,11 +153,9 @@ const actor = createActor(workflow, {
     }
   }
 });
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();

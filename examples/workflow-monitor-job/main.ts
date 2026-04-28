@@ -1,9 +1,8 @@
-import { assign, fromPromise, createActor, setup } from 'xstate';
-
+import { assign, createLogic, createActor, setup } from 'xstate';
+import { z } from 'zod';
 interface Job {
   name: string;
 }
-
 // https://github.com/serverlessworkflow/specification/tree/main/examples#monitor-job-example
 export const workflow = setup({
   types: {
@@ -17,29 +16,44 @@ export const workflow = setup({
     }
   },
   actors: {
-    submitJob: fromPromise(async ({ input }: { input: { name: string } }) => {
-      console.log('Starting submitJob', input);
-      return { jobuid: '123' };
+    submitJob: createLogic({
+      schemas: {
+        input: z.custom<{
+          name: string;
+        }>()
+      },
+      run: async ({ input }) => {
+        console.log('Starting submitJob', input);
+        return { jobuid: '123' };
+      }
     }),
-    checkJobStatus: fromPromise(
-      async ({ input }: { input: { name: string } }) => {
+    checkJobStatus: createLogic({
+      schemas: {
+        input: z.custom<{
+          name: string;
+        }>()
+      },
+      run: async ({ input }) => {
         console.log('Starting checkJobStatus', input);
         return { jobStatus: 'SUCCEEDED' as const };
       }
-    ),
-    reportJobSucceeded: fromPromise(({ input }) => {
-      console.log('Starting reportJobSucceeded', input);
-      return Promise.resolve();
     }),
-    reportJobFailed: fromPromise(({ input }) => {
-      console.log('Starting reportJobFailed', input);
-      return Promise.resolve();
+    reportJobSucceeded: createLogic({
+      run: ({ input }) => {
+        console.log('Starting reportJobSucceeded', input);
+        return Promise.resolve();
+      }
+    }),
+    reportJobFailed: createLogic({
+      run: ({ input }) => {
+        console.log('Starting reportJobFailed', input);
+        return Promise.resolve();
+      }
     })
   }
 }).createMachine({
   id: 'jobmonitoring',
   initial: 'SubmitJob',
-
   context: ({ input }) => ({
     job: input.job,
     jobuid: undefined,
@@ -111,7 +125,6 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow, {
   input: {
     job: {
@@ -119,11 +132,9 @@ const actor = createActor(workflow, {
     }
   }
 });
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();

@@ -1,7 +1,7 @@
 import {
   fromCallback,
   fromObservable,
-  fromPromise,
+  createLogic,
   fromTransition
 } from '../src/actors/index.ts';
 import {
@@ -12,27 +12,27 @@ import {
 import { setTimeout as sleep } from 'node:timers/promises';
 import z from 'zod';
 describe('createActor()', () => {
-  describe('fromPromise', () => {
+  describe('createLogic', () => {
     it('should create an unstarted actor from promise logic', () => {
-      const promiseLogic = fromPromise(async () => 42);
+      const promiseLogic = createLogic({ run: async () => 42 });
       const actor = createActor(promiseLogic);
       expect(actor).toBeDefined();
       expect(actor.getSnapshot().status).toBe('active');
     });
     it('should accept input when creating actor', async () => {
-      const promiseLogic = fromPromise<
+      const promiseLogic = createLogic<
         number,
         {
           value: number;
         }
-      >(async ({ input }) => input.value * 2);
+      >({ run: async ({ input }) => input.value * 2 });
       const actor = createActor(promiseLogic, { input: { value: 21 } });
       actor.start();
       await sleep(10);
       expect(actor.getSnapshot().output).toBe(42);
     });
     it('should accept options when creating actor', () => {
-      const promiseLogic = fromPromise(async () => 42);
+      const promiseLogic = createLogic({ run: async () => 42 });
       const actor = createActor(promiseLogic, { id: 'my-promise' });
       expect(actor.id).toBe('my-promise');
     });
@@ -134,7 +134,7 @@ describe('createActor()', () => {
 });
 describe('invoke.src accepting actor logic', () => {
   it('should accept a function returning actor logic', async () => {
-    const promiseLogic = fromPromise(async () => 'done');
+    const promiseLogic = createLogic({ run: async () => 'done' });
     const machine = createMachine({
       schemas: {
         context: z.object({ result: z.string().optional() })
@@ -163,12 +163,12 @@ describe('invoke.src accepting actor logic', () => {
     expect(actor.getSnapshot().context.result).toBe('done');
   });
   it('should pass mapped input to returned actor logic', async () => {
-    const promiseLogic = fromPromise<
+    const promiseLogic = createLogic<
       string,
       {
         message: string;
       }
-    >(async ({ input }) => input.message);
+    >({ run: async ({ input }) => input.message });
     const machine = createMachine({
       schemas: {
         context: z.object({
@@ -226,7 +226,7 @@ describe('invoke.src accepting actor logic', () => {
     expect(actor.getSnapshot().context.result).toBe('hello');
   });
   it('should accept a string actor logic reference', async () => {
-    const promiseLogic = fromPromise(async () => 'from-actors');
+    const promiseLogic = createLogic({ run: async () => 'from-actors' });
     const machine = createMachine({
       actors: {
         myPromise: promiseLogic

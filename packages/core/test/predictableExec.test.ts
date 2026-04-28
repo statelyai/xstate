@@ -1,6 +1,6 @@
 import { createMachine, createActor, waitFor } from '../src/index.ts';
 import { fromCallback } from '../src/actors/index.ts';
-import { fromPromise } from '../src/actors/index.ts';
+import { createLogic } from '../src/actors/index.ts';
 import { z } from 'zod';
 
 describe('predictableExec', () => {
@@ -402,9 +402,11 @@ describe('predictableExec', () => {
             }
           }),
           invoke: {
-            src: fromPromise(({ input }) => {
-              expect(input.updated).toBe(true);
-              return Promise.resolve();
+            src: createLogic({
+              run: ({ input }) => {
+                expect(input.updated).toBe(true);
+                return Promise.resolve();
+              }
             }),
             input: ({ context }: any) => ({
               updated: context.updated

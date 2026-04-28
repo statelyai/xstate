@@ -3,7 +3,7 @@ import { createActor, createMachine } from '../src';
 import {
   fromCallback,
   fromObservable,
-  fromPromise,
+  createLogic,
   fromTransition
 } from '../src/actors';
 import z from 'zod';
@@ -187,13 +187,40 @@ describe('input', () => {
   });
 
   it('should create a promise with input', async () => {
-    const promiseLogic = fromPromise<{ count: number }, { count: number }>(
-      ({ input }) => Promise.resolve(input)
-    );
+    const promiseLogic = createLogic<{ count: number }, { count: number }>({
+      run: ({ input }) => Promise.resolve(input)
+    });
 
     const promiseActor = createActor(promiseLogic, {
       input: { count: 42 }
     }).start();
+
+    await new Promise((res) => setTimeout(res, 5));
+
+    expect(promiseActor.getSnapshot().output).toEqual({ count: 42 });
+  });
+
+  it('should infer async logic input from schemas', async () => {
+    const promiseLogic = createLogic({
+      schemas: {
+        input: z.object({ count: z.number() })
+      },
+      run: ({ input }) => {
+        input.count satisfies number;
+
+        // @ts-expect-error
+        input.missing;
+
+        return Promise.resolve(input);
+      }
+    });
+
+    const promiseActor = createActor(promiseLogic, {
+      input: { count: 42 }
+    }).start();
+
+    // @ts-expect-error
+    createActor(promiseLogic, { input: { count: 'not a number' } });
 
     await new Promise((res) => setTimeout(res, 5));
 

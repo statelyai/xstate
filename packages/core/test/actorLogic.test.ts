@@ -15,20 +15,20 @@ import {
   fromCallback,
   fromEventObservable,
   fromObservable,
-  fromPromise,
+  createLogic,
   fromTransition
 } from '../src/actors/index.ts';
 import { waitFor } from '../src/waitFor.ts';
 import type { Mock } from 'vitest';
 import z from 'zod';
-describe('promise logic (fromPromise)', () => {
+describe('promise logic (createLogic)', () => {
   it('should interpret a promise', async () => {
-    const promiseLogic = fromPromise(
-      () =>
+    const promiseLogic = createLogic({
+      run: () =>
         new Promise<string>((res) => {
           setTimeout(() => res('hello'), 10);
         })
-    );
+    });
     const actor = createActor(promiseLogic);
     actor.start();
     const snapshot = await waitFor(actor, (s) => s.output === 'hello');
@@ -36,7 +36,7 @@ describe('promise logic (fromPromise)', () => {
   });
   it('should resolve', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const actor = createActor(fromPromise(() => Promise.resolve(42)));
+    const actor = createActor(createLogic({ run: () => Promise.resolve(42) }));
     actor.subscribe((state) => {
       if (state.output === 42) {
         resolve();
@@ -47,7 +47,7 @@ describe('promise logic (fromPromise)', () => {
   });
   it('should resolve (observer .next)', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const actor = createActor(fromPromise(() => Promise.resolve(42)));
+    const actor = createActor(createLogic({ run: () => Promise.resolve(42) }));
     actor.subscribe({
       next: (state) => {
         if (state.output === 42) {
@@ -60,7 +60,9 @@ describe('promise logic (fromPromise)', () => {
   });
   it('should reject (observer .error)', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const actor = createActor(fromPromise(() => Promise.reject('Error')));
+    const actor = createActor(
+      createLogic({ run: () => Promise.reject('Error') })
+    );
     actor.subscribe({
       error: (data) => {
         expect(data).toBe('Error');
@@ -71,28 +73,30 @@ describe('promise logic (fromPromise)', () => {
     return promise;
   });
   it('should complete (observer .complete)', async () => {
-    const actor = createActor(fromPromise(() => Promise.resolve(42)));
+    const actor = createActor(createLogic({ run: () => Promise.resolve(42) }));
     actor.start();
     const snapshot = await waitFor(actor, (s) => s.output === 42);
     expect(snapshot.output).toBe(42);
   });
   it('should not execute when reading initial state', async () => {
     let called = false;
-    const logic = fromPromise(() => {
-      called = true;
-      return Promise.resolve(42);
+    const logic = createLogic({
+      run: () => {
+        called = true;
+        return Promise.resolve(42);
+      }
     });
     const actor = createActor(logic);
     actor.getSnapshot();
     expect(called).toBe(false);
   });
   it('should persist an unresolved promise', async () => {
-    const promiseLogic = fromPromise(
-      () =>
+    const promiseLogic = createLogic({
+      run: () =>
         new Promise<number>((res) => {
           setTimeout(() => res(42), 10);
         })
-    );
+    });
     const actor = createActor(promiseLogic);
     actor.start();
     const resolvedPersistedState = actor.getPersistedSnapshot();
@@ -106,12 +110,12 @@ describe('promise logic (fromPromise)', () => {
   });
   it('should persist a resolved promise', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const promiseLogic = fromPromise(
-      () =>
+    const promiseLogic = createLogic({
+      run: () =>
         new Promise<number>((res) => {
           res(42);
         })
-    );
+    });
     const actor = createActor(promiseLogic);
     actor.start();
     setTimeout(() => {
@@ -135,9 +139,11 @@ describe('promise logic (fromPromise)', () => {
   });
   it('should not invoke a resolved promise again', async () => {
     let createdPromises = 0;
-    const promiseLogic = fromPromise(() => {
-      createdPromises++;
-      return Promise.resolve(createdPromises);
+    const promiseLogic = createLogic({
+      run: () => {
+        createdPromises++;
+        return Promise.resolve(createdPromises);
+      }
     });
     const actor = createActor(promiseLogic);
     actor.start();
@@ -161,9 +167,11 @@ describe('promise logic (fromPromise)', () => {
   });
   it('should not invoke a rejected promise again', async () => {
     let createdPromises = 0;
-    const promiseLogic = fromPromise(() => {
-      createdPromises++;
-      return Promise.reject(createdPromises);
+    const promiseLogic = createLogic({
+      run: () => {
+        createdPromises++;
+        return Promise.reject(createdPromises);
+      }
     });
     const actorRef = createActor(promiseLogic);
     actorRef.subscribe({ error: function preventUnhandledErrorListener() {} });
@@ -188,27 +196,33 @@ describe('promise logic (fromPromise)', () => {
   });
   it('should have access to the system', () => {
     expect.assertions(1);
-    const promiseLogic = fromPromise(({ system }) => {
-      expect(system).toBeDefined();
-      return Promise.resolve(42);
+    const promiseLogic = createLogic({
+      run: ({ system }) => {
+        expect(system).toBeDefined();
+        return Promise.resolve(42);
+      }
     });
     createActor(promiseLogic).start();
   });
   it('should have reference to self', () => {
     expect.assertions(1);
-    const promiseLogic = fromPromise(({ self }) => {
-      expect(self.send).toBeDefined();
-      return Promise.resolve(42);
+    const promiseLogic = createLogic({
+      run: ({ self }) => {
+        expect(self.send).toBeDefined();
+        return Promise.resolve(42);
+      }
     });
     createActor(promiseLogic).start();
   });
   it('should abort when stopping', async () => {
     const deferred = Promise.withResolvers<number>();
     const fn = vi.fn();
-    const promiseLogic = fromPromise((ctx) => {
-      return new Promise((res) => {
-        ctx.signal.addEventListener('abort', fn);
-      });
+    const promiseLogic = createLogic({
+      run: (ctx) => {
+        return new Promise((res) => {
+          ctx.signal.addEventListener('abort', fn);
+        });
+      }
     });
     const actor = createActor(promiseLogic);
     actor.start();
@@ -220,15 +234,19 @@ describe('promise logic (fromPromise)', () => {
   it('should not abort when stopped if promise is resolved/rejected', async () => {
     const resolvedDeferred = Promise.withResolvers<number>();
     const resolvedSignalListener = vi.fn();
-    const resolvedPromiseLogic = fromPromise((ctx) => {
-      ctx.signal.addEventListener('abort', resolvedSignalListener);
-      return resolvedDeferred.promise;
+    const resolvedPromiseLogic = createLogic({
+      run: (ctx) => {
+        ctx.signal.addEventListener('abort', resolvedSignalListener);
+        return resolvedDeferred.promise;
+      }
     });
     const rejectedDeferred = Promise.withResolvers<number>();
     const rejectedSignalListener = vi.fn();
-    const rejectedPromiseLogic = fromPromise((ctx) => {
-      ctx.signal.addEventListener('abort', rejectedSignalListener);
-      return rejectedDeferred.promise.catch(() => {});
+    const rejectedPromiseLogic = createLogic({
+      run: (ctx) => {
+        ctx.signal.addEventListener('abort', rejectedSignalListener);
+        return rejectedDeferred.promise.catch(() => {});
+      }
     });
     const actor = createActor(resolvedPromiseLogic);
     actor.start();
@@ -247,13 +265,15 @@ describe('promise logic (fromPromise)', () => {
   it('should not reuse the same signal for different actors with same logic', async () => {
     let deferredMap: Map<string, PromiseWithResolvers<number>> = new Map();
     let signalListenerMap: Map<string, Mock> = new Map();
-    const p = fromPromise(({ self, signal }) => {
-      const deferred = Promise.withResolvers<number>();
-      const signalListener = vi.fn();
-      deferredMap.set(self.id, deferred);
-      signalListenerMap.set(self.id, signalListener);
-      signal.addEventListener('abort', signalListener);
-      return deferred.promise;
+    const p = createLogic({
+      run: ({ self, signal }) => {
+        const deferred = Promise.withResolvers<number>();
+        const signalListener = vi.fn();
+        deferredMap.set(self.id, deferred);
+        signalListenerMap.set(self.id, signalListener);
+        signal.addEventListener('abort', signalListener);
+        return deferred.promise;
+      }
     });
     const machine = createMachine({
       type: 'parallel',
@@ -304,13 +324,15 @@ describe('promise logic (fromPromise)', () => {
   it.skip('should not reuse the same signal for different actors with same logic and id', async () => {
     let deferredList: PromiseWithResolvers<number>[] = [];
     let signalListenerList: Mock[] = [];
-    const p = fromPromise(({ signal }) => {
-      const deferred = Promise.withResolvers<number>();
-      const fn = vi.fn();
-      deferredList.push(deferred);
-      signalListenerList.push(fn);
-      signal.addEventListener('abort', fn);
-      return deferred.promise;
+    const p = createLogic({
+      run: ({ signal }) => {
+        const deferred = Promise.withResolvers<number>();
+        const fn = vi.fn();
+        deferredList.push(deferred);
+        signalListenerList.push(fn);
+        signal.addEventListener('abort', fn);
+        return deferred.promise;
+      }
     });
     const machine = createMachine({
       type: 'parallel',
@@ -363,13 +385,15 @@ describe('promise logic (fromPromise)', () => {
   it('should not reuse the same signal for the same actor when restarted', async () => {
     let deferredList: PromiseWithResolvers<number>[] = [];
     let signalListenerList: Mock[] = [];
-    const p = fromPromise(({ signal }) => {
-      const deferred = Promise.withResolvers<number>();
-      const fn = vi.fn();
-      deferredList.push(deferred);
-      signalListenerList.push(fn);
-      signal.addEventListener('abort', fn);
-      return deferred.promise;
+    const p = createLogic({
+      run: ({ signal }) => {
+        const deferred = Promise.withResolvers<number>();
+        const fn = vi.fn();
+        deferredList.push(deferred);
+        signalListenerList.push(fn);
+        signal.addEventListener('abort', fn);
+        return deferred.promise;
+      }
     });
     const machine = createMachine({
       initial: 'running',
@@ -716,7 +740,7 @@ describe('machine logic', () => {
       invoke: [
         {
           id: 'a',
-          src: fromPromise(() => Promise.resolve(42)),
+          src: createLogic({ run: () => Promise.resolve(42) }),
           onDone: (_, enq) => enq.raise({ type: 'done' })
         },
         {
@@ -1045,7 +1069,7 @@ describe('composable actor logic', () => {
         }
       };
     }
-    const promiseLogic = fromPromise(() => Promise.resolve(42));
+    const promiseLogic = createLogic({ run: () => Promise.resolve(42) });
     const actor = createActor(withLogs(promiseLogic)).start();
     await waitFor(actor, (s) => s.status === 'done');
     expect(logs).toEqual([42]);

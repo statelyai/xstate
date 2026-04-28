@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   createActor,
   createMachine,
-  fromPromise,
+  createLogic,
   waitFor,
   InspectionEvent,
   isMachineSnapshot
@@ -103,8 +103,10 @@ describe('inspect', () => {
             },
             loading: {
               invoke: {
-                src: fromPromise(() => {
-                  return Promise.resolve(42);
+                src: createLogic({
+                  run: () => {
+                    return Promise.resolve(42);
+                  }
                 }),
                 onDone: ({ parent }) => {
                   parent?.send({ type: 'toParent' });

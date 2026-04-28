@@ -6,7 +6,7 @@ import {
 import * as React from 'react';
 import {
   ActorRefFrom,
-  fromPromise,
+  createLogic,
   fromTransition,
   next_createMachine
 } from 'xstate';
@@ -328,9 +328,10 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should work with a promise actor', async () => {
-    const promiseLogic = fromPromise(
-      () => new Promise<number>((resolve) => setTimeout(() => resolve(42), 10))
-    );
+    const promiseLogic = createLogic({
+      run: () =>
+        new Promise<number>((resolve) => setTimeout(() => resolve(42), 10))
+    });
 
     const App = () => {
       const actorRef = useActorRef(promiseLogic);

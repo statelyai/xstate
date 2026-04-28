@@ -1,5 +1,5 @@
-import { assign, fromPromise, createActor, setup } from 'xstate';
-
+import { assign, createLogic, createActor, setup } from 'xstate';
+import { z } from 'zod';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#finalize-college-application-example
 export const workflow = setup({
   types: {
@@ -14,20 +14,23 @@ export const workflow = setup({
     }
   },
   actors: {
-    finalizeApplicationFunction: fromPromise(
-      async ({ input }: { input: { applicantId: string } }) => {
+    finalizeApplicationFunction: createLogic({
+      schemas: {
+        input: z.custom<{
+          applicantId: string;
+        }>()
+      },
+      run: async ({ input }) => {
         console.log(
           `Starting to finalize application for ${input.applicantId}`
         );
-
         await new Promise((resolve) => setTimeout(resolve, 1000));
         console.log('Finalized application for', input.applicantId);
-
         return {
           applicantId: input.applicantId
         };
       }
-    )
+    })
   }
 }).createMachine({
   id: 'finalizeCollegeApplication',
@@ -79,13 +82,11 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow, {
   input: {
     applicantId: '123'
   }
 });
-
 actor.subscribe({
   next(state) {
     console.log(state.value);
@@ -94,26 +95,19 @@ actor.subscribe({
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();
-
 // delay 1000
 await new Promise((resolve) => setTimeout(resolve, 1000));
-
 actor.send({
   type: 'ApplicationSubmitted'
 });
-
 // delay 1000
 await new Promise((resolve) => setTimeout(resolve, 1000));
-
 actor.send({
   type: 'SATScoresReceived'
 });
-
 // delay 1000
 await new Promise((resolve) => setTimeout(resolve, 1000));
-
 actor.send({
   type: 'RecommendationLetterReceived'
 });

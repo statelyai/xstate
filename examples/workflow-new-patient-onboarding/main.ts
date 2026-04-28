@@ -1,6 +1,5 @@
-import { assign, createMachine, fromPromise, createActor } from 'xstate';
+import { assign, createMachine, createLogic, createActor } from 'xstate';
 import { retry, handleWhen, ConstantBackoff } from 'cockatiel';
-
 const retryPolicy = retry(
   handleWhen((err) => (err as any).type === 'ServiceNotAvailable'),
   {
@@ -8,11 +7,9 @@ const retryPolicy = retry(
     backoff: new ConstantBackoff(3000)
   }
 );
-
 retryPolicy.onRetry((data) => {
   console.log('Retrying...', data);
 });
-
 async function delay(ms: number, errorProbability: number): Promise<void> {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
@@ -24,13 +21,16 @@ async function delay(ms: number, errorProbability: number): Promise<void> {
     }, ms);
   });
 }
-
 // https://github.com/serverlessworkflow/specification/blob/main/examples/README.md#New-Patient-Onboarding
 export const workflow = createMachine(
   {
     id: 'patientonboarding',
     types: {} as {
-      events: { type: 'NewPatientEvent'; name: string; condition: string };
+      events: {
+        type: 'NewPatientEvent';
+        name: string;
+        condition: string;
+      };
       context: {
         patient: {
           name: string;
@@ -112,35 +112,37 @@ export const workflow = createMachine(
   },
   {
     actors: {
-      StoreNewPatientInfo: fromPromise(async ({ input }) => {
-        console.log('Starting StoreNewPatientInfo', input);
-        await retryPolicy.execute(() => delay(1000, 0.5));
-        console.log('Completed StoreNewPatientInfo');
+      StoreNewPatientInfo: createLogic({
+        run: async ({ input }) => {
+          console.log('Starting StoreNewPatientInfo', input);
+          await retryPolicy.execute(() => delay(1000, 0.5));
+          console.log('Completed StoreNewPatientInfo');
+        }
       }),
-      AssignDoctor: fromPromise(async () => {
-        console.log('Starting AssignDoctor');
-        await retryPolicy.execute(() => delay(1000, 0.5));
-        console.log('Completed AssignDoctor');
+      AssignDoctor: createLogic({
+        run: async () => {
+          console.log('Starting AssignDoctor');
+          await retryPolicy.execute(() => delay(1000, 0.5));
+          console.log('Completed AssignDoctor');
+        }
       }),
-      ScheduleAppt: fromPromise(async () => {
-        console.log('Starting ScheduleAppt');
-        await retryPolicy.execute(() => delay(1000, 0.5));
-        console.log('Completed ScheduleAppt');
+      ScheduleAppt: createLogic({
+        run: async () => {
+          console.log('Starting ScheduleAppt');
+          await retryPolicy.execute(() => delay(1000, 0.5));
+          console.log('Completed ScheduleAppt');
+        }
       })
     }
   }
 );
-
 const actor = createActor(workflow);
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();
-
 actor.send({
   type: 'NewPatientEvent',
   name: 'John Doe',

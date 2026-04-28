@@ -1,12 +1,10 @@
-import { createActor, fromPromise, setup } from 'xstate';
-
+import { createActor, createLogic, setup } from 'xstate';
 interface Applicant {
   fname: string;
   lname: string;
   age: number;
   email: string;
 }
-
 // https://github.com/serverlessworkflow/specification/tree/main/examples#applicant-request-decision-example
 export const workflow = setup({
   types: {} as {
@@ -18,17 +16,19 @@ export const workflow = setup({
     };
   },
   actors: {
-    startApplicationWorkflowId: fromPromise(async () => {
-      console.log('startApplicationWorkflowId workflow started');
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('startApplicationWorkflowId workflow completed');
+    startApplicationWorkflowId: createLogic({
+      run: async () => {
+        console.log('startApplicationWorkflowId workflow started');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log('startApplicationWorkflowId workflow completed');
+      }
     }),
-    sendRejectionEmailFunction: fromPromise(async () => {
-      console.log('sendRejectionEmailFunction workflow started');
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('sendRejectionEmailFunction workflow completed');
+    sendRejectionEmailFunction: createLogic({
+      run: async () => {
+        console.log('sendRejectionEmailFunction workflow started');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log('sendRejectionEmailFunction workflow completed');
+      }
     })
   },
   guards: {
@@ -36,7 +36,6 @@ export const workflow = setup({
   }
 }).createMachine({
   id: 'applicantrequest',
-
   initial: 'CheckApplication',
   context: ({ input }) => ({
     applicant: input.applicant
@@ -78,7 +77,6 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow, {
   input: {
     applicant: {
@@ -89,15 +87,12 @@ const actor = createActor(workflow, {
     }
   }
 });
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();
-
 process.stdin.on('data', (data) => {
   const eventType = data.toString().trim();
   actor.send({ type: eventType });

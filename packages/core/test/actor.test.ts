@@ -7,9 +7,9 @@ import {
   fromObservable
 } from '../src/actors/observable.ts';
 import {
-  PromiseActorLogic,
-  PromiseActorRef,
-  fromPromise
+  AsyncActorLogic,
+  AsyncActorRef,
+  createLogic
 } from '../src/actors/promise.ts';
 import { fromTransition } from '../src/actors/transition.ts';
 import {
@@ -273,7 +273,7 @@ describe('spawning promises', () => {
     const promiseMachine = createMachine({
       schemas: {
         context: z.object({
-          promiseRef: z.custom<PromiseActorRef<string>>().optional()
+          promiseRef: z.custom<AsyncActorRef<string>>().optional()
         })
       },
       id: 'promise',
@@ -286,7 +286,7 @@ describe('spawning promises', () => {
           entry: (_: unknown, enq: any) => ({
             context: {
               promiseRef: enq.spawn(
-                fromPromise(() => Promise.resolve('response')),
+                createLogic({ run: () => Promise.resolve('response') }),
                 { id: 'my-promise' }
               )
             }
@@ -324,11 +324,13 @@ describe('spawning promises', () => {
     const promiseMachine = createMachine({
       schemas: {
         context: z.object({
-          promiseRef: z.custom<PromiseActorRef<string>>().optional()
+          promiseRef: z.custom<AsyncActorRef<string>>().optional()
         })
       },
       actors: {
-        somePromise: fromPromise(() => Promise.resolve('response'))
+        somePromise: createLogic({
+          run: () => Promise.resolve('response')
+        })
       },
       id: 'promise',
       initial: 'idle',
@@ -992,7 +994,11 @@ describe('actors', () => {
               context: {
                 ...context,
                 refs: context.items.map((item) =>
-                  enq.spawn(fromPromise(() => new Promise((res) => res(item))))
+                  enq.spawn(
+                    createLogic({
+                      run: () => new Promise((res) => res(item))
+                    })
+                  )
                 )
               }
             };
@@ -1026,7 +1032,7 @@ describe('actors', () => {
           // entry: assign({
           //   promise: ({ spawn }) => {
           //     return spawn(
-          //       fromPromise(() => {
+          //       createLogic(() => {
           //         spawnCounter++;
           //         return Promise.resolve('answer');
           //       })
@@ -1036,9 +1042,11 @@ describe('actors', () => {
           entry: (_, enq) => ({
             context: {
               promise: enq.spawn(
-                fromPromise(() => {
-                  spawnCounter++;
-                  return Promise.resolve('answer');
+                createLogic({
+                  run: () => {
+                    spawnCounter++;
+                    return Promise.resolve('answer');
+                  }
                 })
               )
             }
@@ -1106,10 +1114,10 @@ describe('actors', () => {
   });
   it('should spawn null actors if not used within a service', () => {
     const nullActorMachine = createMachine({
-      // types: {} as { context: { ref?: PromiseActorRef<number> } },
+      // types: {} as { context: { ref?: AsyncActorRef<number> } },
       schemas: {
         context: z.object({
-          ref: z.custom<PromiseActorRef<number>>().optional()
+          ref: z.custom<AsyncActorRef<number>>().optional()
         })
       },
       initial: 'foo',
@@ -1117,11 +1125,11 @@ describe('actors', () => {
       states: {
         foo: {
           // entry: assign({
-          //   ref: ({ spawn }) => spawn(fromPromise(() => Promise.resolve(42)))
+          //   ref: ({ spawn }) => spawn(createLogic(() => Promise.resolve(42)))
           // })
           entry: (_, enq) => ({
             context: {
-              ref: enq.spawn(fromPromise(() => Promise.resolve(42)))
+              ref: enq.spawn(createLogic({ run: () => Promise.resolve(42) }))
             }
           })
         }
@@ -1237,14 +1245,12 @@ describe('actors', () => {
       const countMachine = createMachine({
         // types: {} as {
         //   context: {
-        //     count: ActorRefFrom<PromiseActorLogic<number>> | undefined;
+        //     count: ActorRefFrom<AsyncActorLogic<number>> | undefined;
         //   };
         // },
         schemas: {
           context: z.object({
-            count: z
-              .custom<ActorRefFrom<PromiseActorLogic<number>>>()
-              .optional()
+            count: z.custom<ActorRefFrom<AsyncActorLogic<number>>>().optional()
           })
         },
         context: {
@@ -1253,7 +1259,7 @@ describe('actors', () => {
         // entry: assign({
         //   count: ({ spawn }) =>
         //     spawn(
-        //       fromPromise(
+        //       createLogic(
         //         () =>
         //           new Promise<number>((res) => {
         //             setTimeout(() => res(42));
@@ -1265,12 +1271,12 @@ describe('actors', () => {
         entry: (_, enq) => ({
           context: {
             count: enq.spawn(
-              fromPromise(
-                () =>
+              createLogic({
+                run: () =>
                   new Promise<number>((res) => {
                     setTimeout(() => res(42));
                   })
-              ),
+              }),
               { id: 'test' }
             )
           }
@@ -1315,21 +1321,21 @@ describe('actors', () => {
       const errorMessage = 'An error occurred';
       const countMachine = createMachine({
         // types: {} as {
-        //   context: { count: ActorRefFrom<PromiseActorLogic<number>> };
+        //   context: { count: ActorRefFrom<AsyncActorLogic<number>> };
         // },
         schemas: {
           context: z.object({
-            count: z.custom<ActorRefFrom<PromiseActorLogic<number>>>()
+            count: z.custom<ActorRefFrom<AsyncActorLogic<number>>>()
           })
         },
         context: ({ spawn }) => ({
           count: spawn(
-            fromPromise(
-              () =>
+            createLogic({
+              run: () =>
                 new Promise<number>((_, rej) => {
                   setTimeout(() => rej(errorMessage), 1);
                 })
-            ),
+            }),
             { id: 'test' }
           )
         }),
@@ -1547,9 +1553,9 @@ describe('actors', () => {
     }).not.toThrow();
   });
   it('should not crash on child promise-like sync completion during self-initialization', () => {
-    const promiseLogic = fromPromise(
-      () => ({ then: (fn: any) => fn(null) }) as any
-    );
+    const promiseLogic = createLogic({
+      run: () => ({ then: (fn: any) => fn(null) }) as any
+    });
     const parentMachine = createMachine({
       schemas: {
         context: z.object({
@@ -2026,8 +2032,10 @@ describe('actors', () => {
       on: {
         event: (_, enq) => {
           enq.spawn(
-            fromPromise(async () => {
-              throw new Error('uh oh');
+            createLogic({
+              run: async () => {
+                throw new Error('uh oh');
+              }
             })
           );
         }
@@ -2049,7 +2057,7 @@ describe('actors', () => {
     const sharedActors = {};
     const m1 = createMachine({
       invoke: {
-        src: fromPromise(async () => 'foo'),
+        src: createLogic({ run: async () => 'foo' }),
         // onDone: {
         //   actions: ({ event }) => spy(event.output)
         // }
@@ -2059,7 +2067,7 @@ describe('actors', () => {
       }
     }).provide({ actors: sharedActors });
     createMachine({
-      invoke: { src: fromPromise(async () => 100) }
+      invoke: { src: createLogic({ run: async () => 100 }) }
     }).provide({ actors: sharedActors });
     createActor(m1).start();
     await sleep(1);
@@ -2071,7 +2079,7 @@ describe('actors', () => {
     const machine = createMachine({
       actors,
       invoke: {
-        src: fromPromise(async () => 'foo')
+        src: createLogic({ run: async () => 'foo' })
       }
     });
     createActor(machine).start();

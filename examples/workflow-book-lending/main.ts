@@ -1,5 +1,5 @@
-import { assign, createMachine, fromPromise, createActor } from 'xstate';
-
+import { assign, createMachine, createLogic, createActor } from 'xstate';
+import { z } from 'zod';
 async function delay(ms: number, errorProbability: number = 0): Promise<void> {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
@@ -11,13 +11,11 @@ async function delay(ms: number, errorProbability: number = 0): Promise<void> {
     }, ms);
   });
 }
-
 interface Lender {
   name: string;
   address: string;
   phone: string;
 }
-
 // https://github.com/serverlessworkflow/specification/blob/main/examples/README.md#book-lending
 export const workflow = createMachine(
   {
@@ -188,75 +186,72 @@ export const workflow = createMachine(
   },
   {
     actors: {
-      'Get status for book': fromPromise(async ({ input }) => {
-        console.log('Starting Get status for book', input);
-        await delay(1000);
-
-        return {
-          status: 'available'
-        };
+      'Get status for book': createLogic({
+        run: async ({ input }) => {
+          console.log('Starting Get status for book', input);
+          await delay(1000);
+          return {
+            status: 'available'
+          };
+        }
       }),
-      'Send status to lender': fromPromise(async ({ input }) => {
-        console.log('Starting Send status to lender', input);
-        await delay(1000);
+      'Send status to lender': createLogic({
+        run: async ({ input }) => {
+          console.log('Starting Send status to lender', input);
+          await delay(1000);
+        }
       }),
-      'Request hold for lender': fromPromise(
-        async ({
-          input
-        }: {
-          input: {
+      'Request hold for lender': createLogic({
+        schemas: {
+          input: z.custom<{
             bookid: string;
             lender: Lender;
-          };
-        }) => {
+          }>()
+        },
+        run: async ({ input }) => {
           console.log('Starting Request hold for lender', input);
           await delay(1000);
         }
-      ),
-      'Cancel hold request for lender': fromPromise(
-        async ({
-          input
-        }: {
-          input: {
+      }),
+      'Cancel hold request for lender': createLogic({
+        schemas: {
+          input: z.custom<{
             bookid: string;
             lender: Lender;
-          };
-        }) => {
+          }>()
+        },
+        run: async ({ input }) => {
           console.log('Starting Cancel hold request for lender', input);
           await delay(1000);
         }
-      ),
-      'Check out book with id': fromPromise(
-        async ({
-          input
-        }: {
-          input: {
+      }),
+      'Check out book with id': createLogic({
+        schemas: {
+          input: z.custom<{
             bookid: string;
-          };
-        }) => {
+          }>()
+        },
+        run: async ({ input }) => {
           console.log('Starting Check out book with id', input);
           await delay(1000);
         }
-      ),
-      'Notify Lender for checkout': fromPromise(
-        async ({
-          input
-        }: {
-          input: {
+      }),
+      'Notify Lender for checkout': createLogic({
+        schemas: {
+          input: z.custom<{
             bookid: string;
             lender: Lender;
-          };
-        }) => {
+          }>()
+        },
+        run: async ({ input }) => {
           console.log('Starting Notify Lender for checkout', input);
           await delay(1000);
         }
-      )
+      })
     }
   }
 );
-
 const actor = createActor(workflow);
-
 actor.subscribe({
   next(snapshot) {
     console.log(snapshot.context);
@@ -265,9 +260,7 @@ actor.subscribe({
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();
-
 actor.send({
   type: 'bookLendingRequest',
   book: {

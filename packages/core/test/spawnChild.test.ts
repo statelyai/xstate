@@ -4,7 +4,7 @@ import {
   createActor,
   createMachine,
   fromObservable,
-  fromPromise
+  createLogic
 } from '../src';
 import { z } from 'zod';
 
@@ -14,10 +14,9 @@ describe.skip('spawnChild action', () => {
     const actor = createActor(
       createMachine({
         entry: (_, enq) => {
-          enq.spawn(
-            fromPromise(() => Promise.resolve(42)),
-            { id: 'child' }
-          );
+          enq.spawn(createLogic({ run: () => Promise.resolve(42) }), {
+            id: 'child'
+          });
         }
       })
     );
@@ -28,9 +27,9 @@ describe.skip('spawnChild action', () => {
   });
 
   it('can spawn from named actor', () => {
-    const fetchNum = fromPromise(({ input }: { input: number }) =>
-      Promise.resolve(input * 2)
-    );
+    const fetchNum = createLogic({
+      run: ({ input }: { input: number }) => Promise.resolve(input * 2)
+    });
     const actor = createActor(
       createMachine({
         // types: {

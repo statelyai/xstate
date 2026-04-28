@@ -1,18 +1,24 @@
-import { assign, fromPromise, setup } from 'xstate';
+import { assign, createLogic, setup } from 'xstate';
 import {
   checkFilePermissions,
   evaluateFiles,
   moveFiles,
   scanDirectories
 } from './fileHandlers';
-
+import { z } from 'zod';
 export const mediaScannerMachine = setup({
   types: {
     input: {} as {
       basePath: string;
       destinationPath: string;
     },
-    events: {} as { type: 'START_SCAN' } | { type: 'RESTART' },
+    events: {} as
+      | {
+          type: 'START_SCAN';
+        }
+      | {
+          type: 'RESTART';
+        },
     context: {} as {
       basePath: string;
       destinationPath: string;
@@ -31,31 +37,43 @@ export const mediaScannerMachine = setup({
     }
   },
   actors: {
-    scanLibrary: fromPromise(
-      async ({ input }: { input: { basePath: string } }) =>
-        await scanDirectories(input.basePath)
-    ),
-    checkFilePermissions: fromPromise(
-      async ({
-        input: { directoriesToCheck }
-      }: {
-        input: { directoriesToCheck: string[] };
-      }) => await checkFilePermissions(directoriesToCheck)
-    ),
-    evaluateFiles: fromPromise(
-      async ({
-        input: { dirsToEvaluate, acceptedFileTypes }
-      }: {
-        input: { dirsToEvaluate: string[]; acceptedFileTypes: string[] };
-      }) => await evaluateFiles(dirsToEvaluate, acceptedFileTypes)
-    ),
-    moveFiles: fromPromise(
-      async ({
-        input: { dirsToMove, destinationPath }
-      }: {
-        input: { dirsToMove: string[]; destinationPath: string };
-      }) => await moveFiles(dirsToMove, destinationPath)
-    )
+    scanLibrary: createLogic({
+      schemas: {
+        input: z.custom<{
+          basePath: string;
+        }>()
+      },
+      run: async ({ input }) => await scanDirectories(input.basePath)
+    }),
+    checkFilePermissions: createLogic({
+      schemas: {
+        input: z.custom<{
+          directoriesToCheck: string[];
+        }>()
+      },
+      run: async ({ input: { directoriesToCheck } }) =>
+        await checkFilePermissions(directoriesToCheck)
+    }),
+    evaluateFiles: createLogic({
+      schemas: {
+        input: z.custom<{
+          dirsToEvaluate: string[];
+          acceptedFileTypes: string[];
+        }>()
+      },
+      run: async ({ input: { dirsToEvaluate, acceptedFileTypes } }) =>
+        await evaluateFiles(dirsToEvaluate, acceptedFileTypes)
+    }),
+    moveFiles: createLogic({
+      schemas: {
+        input: z.custom<{
+          dirsToMove: string[];
+          destinationPath: string;
+        }>()
+      },
+      run: async ({ input: { dirsToMove, destinationPath } }) =>
+        await moveFiles(dirsToMove, destinationPath)
+    })
   }
 }).createMachine({
   context: ({ input }) => ({
@@ -91,7 +109,6 @@ export const mediaScannerMachine = setup({
         }
       }
     },
-
     Scanning: {
       description:
         'Scan the media library and check for directories \n\nFor every file we can confirm is a directory, we add it to the context. \n\nIgnore the files already present in the ledger. Those are "known good"',
@@ -114,7 +131,6 @@ export const mediaScannerMachine = setup({
         ]
       }
     },
-
     CheckingFilePermissions: {
       description:
         'check the file permissions for all the files we need to scan.\n\nif we do not have read/write permissions, we update the context with the filenames/locations.\n\nif there are no files with read/write permissions, we move to the error state',
@@ -147,7 +163,6 @@ export const mediaScannerMachine = setup({
         ]
       }
     },
-
     ReportingErrors: {
       description:
         'Send a message with error details to the proper destination.\n\nErrors could be the lack of read/write permissions or path not existing',
@@ -160,7 +175,6 @@ export const mediaScannerMachine = setup({
         }
       }
     },
-
     EvaluatingFiles: {
       description:
         'Evaluate the files to determine their resolution. If they are 4K, move them to a new directory',
@@ -183,7 +197,6 @@ export const mediaScannerMachine = setup({
         ]
       }
     },
-
     MovingFiles: {
       description:
         'Move all the files present in context to the destination library',
@@ -194,13 +207,11 @@ export const mediaScannerMachine = setup({
         }),
         src: 'moveFiles',
         id: 'moveFiles',
-
         onError: [
           {
             target: 'ReportingErrors'
           }
         ],
-
         onDone: 'idle'
       }
     }

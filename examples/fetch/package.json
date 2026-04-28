@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "parcel-bundler": "^1.12.5",
-    "xstate": "^5.28.0"
+    "xstate": "workspace:*",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

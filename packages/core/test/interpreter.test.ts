@@ -7,7 +7,7 @@ import {
 } from '../src/index.ts';
 import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
-import { PromiseActorLogic, fromPromise } from '../src/actors/promise';
+import { AsyncActorLogic, createLogic } from '../src/actors/promise';
 import { fromCallback } from '../src/actors/callback';
 import { assertEvent } from '../src/assert.ts';
 import z from 'zod';
@@ -70,19 +70,19 @@ describe('interpreter', () => {
           })
         },
         context: {
-          actor: undefined! as ActorRefFrom<PromiseActorLogic<unknown>>
+          actor: undefined! as ActorRefFrom<AsyncActorLogic<unknown>>
         },
         states: {
           idle: {
             entry: (_, enq) => ({
               context: {
                 actor: enq.spawn(
-                  fromPromise(
-                    () =>
+                  createLogic({
+                    run: () =>
                       new Promise(() => {
                         promiseSpawned++;
                       })
-                  )
+                  })
                 )
               }
             })
@@ -1726,14 +1726,14 @@ describe('interpreter', () => {
 
     it('state.children should reference invoked child actors (promise)', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
-      const num = fromPromise(
-        () =>
+      const num = createLogic({
+        run: () =>
           new Promise<number>((res) => {
             setTimeout(() => {
               res(42);
             }, 100);
           })
-      );
+      });
       const parentMachine = createMachine(
         {
           initial: 'active',
@@ -1770,7 +1770,7 @@ describe('interpreter', () => {
         }
         // {
         //   actors: {
-        //     num: fromPromise(
+        //     num: createLogic(
         //       () =>
         //         new Promise<number>((res) => {
         //           setTimeout(() => {
@@ -1914,7 +1914,7 @@ describe('interpreter', () => {
         initial: 'present',
         // context: {} as {
         //   machineRef: ActorRefFrom<typeof childMachine>;
-        //   promiseRef: ActorRefFrom<typeof fromPromise>;
+        //   promiseRef: ActorRefFrom<typeof createLogic>;
         //   observableRef: AnyActorRef;
         // },
         schemas: {
@@ -1929,12 +1929,12 @@ describe('interpreter', () => {
           children: {
             machineChild: enq.spawn(childMachine),
             promiseChild: enq.spawn(
-              fromPromise(
-                () =>
+              createLogic({
+                run: () =>
                   new Promise(() => {
                     // ...
                   })
-              )
+              })
             ),
             observableChild: enq.spawn(fromObservable(() => interval(1000)))
           }

@@ -5,7 +5,8 @@
   "workspaces": {
     "packages": [
       "packages/*",
-      "scripts/*"
+      "scripts/*",
+      "examples/*"
     ]
   },
   "preconstruct": {
@@ -21,6 +22,11 @@
     "___experimentalFlags_WILL_CHANGE_IN_PATCH": {
       "importsConditions": true
     }
+  },
+  "manypkg": {
+    "ignoredRules": [
+      "EXTERNAL_MISMATCH"
+    ]
   },
   "scripts": {
     "preinstall": "node ./scripts/ensure-pnpm.js",

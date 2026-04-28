@@ -1,6 +1,5 @@
-import { createMachine, fromPromise, createActor } from 'xstate';
+import { createMachine, createLogic, createActor } from 'xstate';
 import { retry, handleWhen, ConstantBackoff } from 'cockatiel';
-
 const retryPolicy = retry(
   handleWhen((err) => (err as any).type === 'ServiceNotAvailable'),
   {
@@ -8,11 +7,9 @@ const retryPolicy = retry(
     backoff: new ConstantBackoff(3000)
   }
 );
-
 retryPolicy.onRetry((data) => {
   console.log('Retrying...', data);
 });
-
 async function delay(ms: number, errorProbability: number = 0): Promise<void> {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
@@ -24,7 +21,6 @@ async function delay(ms: number, errorProbability: number = 0): Promise<void> {
     }, ms);
   });
 }
-
 // https://github.com/serverlessworkflow/specification/blob/main/examples/README.md#purchase-order-deadline
 export const workflow = createMachine(
   {
@@ -114,37 +110,31 @@ export const workflow = createMachine(
       }
     },
     actors: {
-      CancelOrder: fromPromise(async () => {
-        console.log('Starting CancelOrder');
-        await delay(1000);
-        console.log('Completed CancelOrder');
+      CancelOrder: createLogic({
+        run: async () => {
+          console.log('Starting CancelOrder');
+          await delay(1000);
+          console.log('Completed CancelOrder');
+        }
       })
     }
   }
 );
-
 const actor = createActor(workflow);
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();
-
 actor.send({
   type: 'OrderCreatedEvent'
 });
-
-await delay(10_000);
-
+await delay(10000);
 actor.send({
   type: 'OrderConfirmedEvent'
 });
-
-await delay(10_000);
-
+await delay(10000);
 actor.send({
   type: 'ShipmentSentEvent'
 });

@@ -2,7 +2,7 @@ import { BehaviorSubject } from 'rxjs';
 import {
   createMachine,
   createActor,
-  fromPromise,
+  createLogic,
   fromObservable
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -189,7 +189,7 @@ describe.skip('rehydration', () => {
       states: {
         a: {
           invoke: {
-            src: fromPromise(() => Promise.resolve(11)),
+            src: createLogic({ run: () => Promise.resolve(11) }),
             onDone: 'b'
           },
           on: {
@@ -316,7 +316,7 @@ describe.skip('rehydration', () => {
   });
 
   it('should be possible to persist a rehydrated actor that got its children rehydrated', () => {
-    const foo = fromPromise(() => Promise.resolve(42));
+    const foo = createLogic({ run: () => Promise.resolve(42) });
     const machine = createMachine(
       {
         invoke: {
@@ -325,7 +325,7 @@ describe.skip('rehydration', () => {
       }
       // {
       //   actors: {
-      //     foo: fromPromise(() => Promise.resolve(42))
+      //     foo: createLogic(() => Promise.resolve(42))
       //   }
       // }
     );
@@ -370,7 +370,9 @@ describe.skip('rehydration', () => {
   });
 
   it('should error on a rehydrated error state', async () => {
-    const failure = fromPromise(() => Promise.reject(new Error('failure')));
+    const failure = createLogic({
+      run: () => Promise.reject(new Error('failure'))
+    });
     const machine = createMachine(
       {
         invoke: {
@@ -379,7 +381,7 @@ describe.skip('rehydration', () => {
       }
       // {
       //   actors: {
-      //     failure: fromPromise(() => Promise.reject(new Error('failure')))
+      //     failure: createLogic(() => Promise.reject(new Error('failure')))
       //   }
       // }
     );
@@ -405,7 +407,9 @@ describe.skip('rehydration', () => {
 
   it(`shouldn't re-notify the parent about the error when rehydrating`, async () => {
     const spy = vi.fn();
-    const failure = fromPromise(() => Promise.reject(new Error('failure')));
+    const failure = createLogic({
+      run: () => Promise.reject(new Error('failure'))
+    });
     const machine = createMachine(
       {
         invoke: {
@@ -417,7 +421,7 @@ describe.skip('rehydration', () => {
       }
       // {
       //   actors: {
-      //     failure: fromPromise(() => Promise.reject(new Error('failure')))
+      //     failure: createLogic(() => Promise.reject(new Error('failure')))
       //   }
       // }
     );

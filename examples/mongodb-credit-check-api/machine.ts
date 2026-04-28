@@ -1,4 +1,4 @@
-import { fromPromise, assign, setup } from "xstate";
+import { createLogic, assign, setup } from "xstate";
 import {
   checkBureauService,
   checkReportsTable,
@@ -10,7 +10,7 @@ import {
   verifyCredentials,
 } from "./services/machineLogicService";
 import CreditProfile from "./models/creditProfile";
-
+import { z } from "zod";
 export const creditCheckMachine = setup({
   types: {
     events: {} as {
@@ -21,32 +21,54 @@ export const creditCheckMachine = setup({
     },
     context: {} as CreditProfile,
   },
-
   actors: {
-    checkBureau: fromPromise(
-      async ({ input }: { input: { ssn: string; bureauName: string } }) =>
-        await checkBureauService(input),
-    ),
-    checkReportsTable: fromPromise(
-      async ({ input }: { input: { ssn: string; bureauName: string } }) =>
-        await checkReportsTable(input),
-    ),
-    verifyCredentials: fromPromise(
-      async ({ input }: { input: userCredential }) =>
-        await verifyCredentials(input),
-    ),
-    determineMiddleScore: fromPromise(
-      async ({ input }: { input: number[] }) =>
-        await determineMiddleScore(input),
-    ),
-    generateInterestRates: fromPromise(
-      async ({ input }: { input: number }) => await generateInterestRate(input),
-    ),
+    checkBureau: createLogic({
+      schemas: {
+        input: z.custom<{
+          ssn: string;
+          bureauName: string;
+        }>(),
+      },
+      run: async ({ input }) => await checkBureauService(input),
+    }),
+    checkReportsTable: createLogic({
+      schemas: {
+        input: z.custom<{
+          ssn: string;
+          bureauName: string;
+        }>(),
+      },
+      run: async ({ input }) => await checkReportsTable(input),
+    }),
+    verifyCredentials: createLogic({
+      schemas: {
+        input: z.custom<userCredential>(),
+      },
+      run: async ({ input }) => await verifyCredentials(input),
+    }),
+    determineMiddleScore: createLogic({
+      schemas: {
+        input: z.custom<number[]>(),
+      },
+      run: async ({ input }) => await determineMiddleScore(input),
+    }),
+    generateInterestRates: createLogic({
+      schemas: {
+        input: z.custom<number>(),
+      },
+      run: async ({ input }) => await generateInterestRate(input),
+    }),
   },
   actions: {
     saveReport: (
-      { context }: { context: CreditProfile },
-      params: { bureauName: string },
+      {
+        context,
+      }: {
+        context: CreditProfile;
+      },
+      params: {
+        bureauName: string;
+      },
     ) => {
       console.log("saving report to the database...");
       saveCreditReport({
@@ -121,7 +143,6 @@ export const creditCheckMachine = setup({
             },
           },
         },
-
         "Verifying Credentials": {
           invoke: {
             input: ({ event }) => event,
@@ -142,14 +163,15 @@ export const creditCheckMachine = setup({
                     event,
                   }: {
                     context: any;
-                    event: { error: any };
+                    event: {
+                      error: any;
+                    };
                   }) => "Failed to verify credentials. Details: " + event.error,
                 }),
               },
             ],
           },
         },
-
         CheckingCreditScores: {
           description:
             "Kick off a series of requests to the 3 American Credit Bureaus and await their results",
@@ -381,7 +403,6 @@ export const creditCheckMachine = setup({
             },
           ],
         },
-
         DeterminingInterestRateOptions: {
           description:
             "After retrieving results, determine the middle score to be used in home loan interest rate decision",

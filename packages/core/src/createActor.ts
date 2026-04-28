@@ -16,7 +16,7 @@ import type {
   fromEventObservable
 } from './actors/observable.ts';
 import type { fromCallback } from './actors/callback.ts';
-import type { fromPromise } from './actors/promise.ts';
+import type { createLogic } from './actors/promise.ts';
 import type { fromTransition } from './actors/transition.ts';
 import type { createMachine } from './createMachine.ts';
 
@@ -868,7 +868,7 @@ export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
  * @param logic - The actor logic to create an actor from. For a state machine
  *   actor logic creator, see {@link createMachine}. Other actor logic creators
  *   include {@link fromCallback}, {@link fromEventObservable},
- *   {@link fromObservable}, {@link fromPromise}, and {@link fromTransition}.
+ *   {@link fromObservable}, {@link createLogic}, and {@link fromTransition}.
  * @param options - Actor options
  */
 export function createActor<TLogic extends AnyActorLogic>(

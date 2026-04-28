@@ -1,22 +1,35 @@
-import { assertEvent, assign, fromPromise, not, setup } from 'xstate';
+import { assertEvent, assign, createLogic, not, setup } from 'xstate';
 import { RMCharacter } from './common/types';
 import { RickCharacters } from './services/RickApi';
 import { getRandomNumber } from './common/constants';
-
 const triviaMachine = setup({
   types: {
     events: {} as
-      | { type: 'user.play' }
-      | { type: 'user.close' }
-      | { type: 'user.reject' }
-      | { type: 'user.accept' }
+      | {
+          type: 'user.play';
+        }
+      | {
+          type: 'user.close';
+        }
+      | {
+          type: 'user.reject';
+        }
+      | {
+          type: 'user.accept';
+        }
       | {
           type: 'user.selectAnswer';
           answer: number;
         }
-      | { type: 'user.nextQuestion' }
-      | { type: 'user.toggleClue' }
-      | { type: 'user.playAgain' },
+      | {
+          type: 'user.nextQuestion';
+        }
+      | {
+          type: 'user.toggleClue';
+        }
+      | {
+          type: 'user.playAgain';
+        },
     context: {} as {
       homePageCharacters: Array<RMCharacter>;
       hasLoaded: boolean;
@@ -52,17 +65,19 @@ const triviaMachine = setup({
     })
   },
   actors: {
-    loadHomePageCharacters: fromPromise(() =>
-      RickCharacters.getCharacters(Math.floor(Math.random() * 34))
-    ),
-    loadSingleCharacter: fromPromise(async () => {
-      const randomNumber = getRandomNumber();
-      const character = await RickCharacters.getCharacter(randomNumber);
-      return character;
+    loadHomePageCharacters: createLogic({
+      run: () => RickCharacters.getCharacters(Math.floor(Math.random() * 34))
     }),
-    loadRandomCharacters: fromPromise(() =>
-      RickCharacters.getRandomCharacters()
-    )
+    loadSingleCharacter: createLogic({
+      run: async () => {
+        const randomNumber = getRandomNumber();
+        const character = await RickCharacters.getCharacter(randomNumber);
+        return character;
+      }
+    }),
+    loadRandomCharacters: createLogic({
+      run: () => RickCharacters.getRandomCharacters()
+    })
   }
 }).createMachine({
   id: 'triviaMachine',
@@ -244,5 +259,4 @@ const triviaMachine = setup({
     }
   }
 });
-
 export default triviaMachine;

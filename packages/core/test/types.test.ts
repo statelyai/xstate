@@ -1,5 +1,5 @@
 import { from } from 'rxjs';
-import { createEmptyActor, fromCallback, fromPromise } from '../src/actors';
+import { createEmptyActor, fromCallback, createLogic } from '../src/actors';
 import {
   ActorRefFrom,
   ActorRefFromLogic,
@@ -1058,7 +1058,7 @@ describe('interpreter', () => {
 
 describe('spawnChild action', () => {
   it('should reject actor outside of the defined ones at usage site', () => {
-    const child = fromPromise(() => Promise.resolve('foo'));
+    const child = createLogic({ run: () => Promise.resolve('foo') });
 
     createMachine({
       // types: {} as {
@@ -1081,7 +1081,7 @@ describe('spawnChild action', () => {
   });
 
   it('should accept a defined actor at usage site', () => {
-    const child = fromPromise(() => Promise.resolve('foo'));
+    const child = createLogic({ run: () => Promise.resolve('foo') });
 
     createMachine({
       // types: {} as {
@@ -1273,9 +1273,9 @@ describe('spawnChild action', () => {
   });
 
   it(`should reject static wrong input`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -1302,9 +1302,9 @@ describe('spawnChild action', () => {
   });
 
   it(`should allow static correct input`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -1326,9 +1326,9 @@ describe('spawnChild action', () => {
   });
 
   it(`should allow static input that is a subtype of the expected one`, () => {
-    const child = fromPromise(({}: { input: number | string }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number | string }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -1350,9 +1350,9 @@ describe('spawnChild action', () => {
   });
 
   it(`should reject static input that is a supertype of the expected one`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -1379,9 +1379,9 @@ describe('spawnChild action', () => {
   });
 
   it(`should reject dynamic wrong input`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -1408,9 +1408,9 @@ describe('spawnChild action', () => {
   });
 
   it(`should allow dynamic correct input`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -1432,9 +1432,9 @@ describe('spawnChild action', () => {
   });
 
   it(`should reject dynamic input that is a supertype of the expected one`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -1461,9 +1461,9 @@ describe('spawnChild action', () => {
   });
 
   it(`should allow dynamic input that is a subtype of the expected one`, () => {
-    const child = fromPromise(({}: { input: number | string }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number | string }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -1485,11 +1485,13 @@ describe('spawnChild action', () => {
   });
 
   it(`should reject a valid input of a different provided actor`, () => {
-    const child1 = fromPromise(({}: { input: number }) => Promise.resolve(100));
+    const child1 = createLogic({
+      run: ({}: { input: number }) => Promise.resolve(100)
+    });
 
-    const child2 = fromPromise(({}: { input: string }) =>
-      Promise.resolve('foo')
-    );
+    const child2 = createLogic({
+      run: ({}: { input: string }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -1519,7 +1521,9 @@ describe('spawnChild action', () => {
   });
 
   it(`should require input to be specified when it is required`, () => {
-    const child = fromPromise(({}: { input: number }) => Promise.resolve(100));
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve(100)
+    });
 
     createMachine({
       // types: {} as {
@@ -1541,9 +1545,9 @@ describe('spawnChild action', () => {
   });
 
   it(`should not require input when it's optional`, () => {
-    const child = fromPromise(({}: { input: number | undefined }) =>
-      Promise.resolve(100)
-    );
+    const child = createLogic({
+      run: ({}: { input: number | undefined }) => Promise.resolve(100)
+    });
 
     createMachine({
       // types: {} as {
@@ -1566,7 +1570,7 @@ describe('spawnChild action', () => {
 
 describe('spawner in assign', () => {
   it('should reject actor outside of the defined ones at usage site', () => {
-    const child = fromPromise(() => Promise.resolve('foo'));
+    const child = createLogic({ run: () => Promise.resolve('foo') });
 
     createMachine({
       // types: {} as {
@@ -1592,7 +1596,7 @@ describe('spawner in assign', () => {
   });
 
   it('should accept a defined actor at usage site', () => {
-    const child = fromPromise(() => Promise.resolve('foo'));
+    const child = createLogic({ run: () => Promise.resolve('foo') });
 
     createMachine({
       // types: {} as {
@@ -1817,9 +1821,9 @@ describe('spawner in assign', () => {
   });
 
   it(`should reject static wrong input`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -1847,9 +1851,9 @@ describe('spawner in assign', () => {
   });
 
   it(`should allow static correct input`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -1875,9 +1879,9 @@ describe('spawner in assign', () => {
   });
 
   it(`should allow static input that is a subtype of the expected one`, () => {
-    const child = fromPromise(({}: { input: number | string }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number | string }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -1903,9 +1907,9 @@ describe('spawner in assign', () => {
   });
 
   it(`should reject static input that is a supertype of the expected one`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -1933,9 +1937,9 @@ describe('spawner in assign', () => {
   });
 
   it(`should reject an attempt to provide dynamic input`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -2061,7 +2065,9 @@ describe('spawner in assign', () => {
   });
 
   it(`should require input to be specified when it is required`, () => {
-    const child = fromPromise(({}: { input: number }) => Promise.resolve(100));
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve(100)
+    });
 
     createMachine({
       // types: {} as {
@@ -2083,9 +2089,9 @@ describe('spawner in assign', () => {
   });
 
   it(`should not require input when it's optional`, () => {
-    const child = fromPromise(({}: { input: number | undefined }) =>
-      Promise.resolve(100)
-    );
+    const child = createLogic({
+      run: ({}: { input: number | undefined }) => Promise.resolve(100)
+    });
 
     createMachine({
       // types: {} as {
@@ -2108,7 +2114,7 @@ describe('spawner in assign', () => {
 
 describe('invoke', () => {
   it('should reject actor outside of the defined ones at usage site', () => {
-    const child = fromPromise(() => Promise.resolve('foo'));
+    const child = createLogic({ run: () => Promise.resolve('foo') });
 
     createMachine({
       // types: {} as {
@@ -2127,7 +2133,7 @@ describe('invoke', () => {
   });
 
   it('should accept a defined actor at usage site', () => {
-    const child = fromPromise(() => Promise.resolve('foo'));
+    const child = createLogic({ run: () => Promise.resolve('foo') });
 
     createMachine({
       // types: {} as {
@@ -2144,7 +2150,7 @@ describe('invoke', () => {
   });
 
   it('should accept a string actor logic reference', () => {
-    const child = fromPromise(() => Promise.resolve('foo'));
+    const child = createLogic({ run: () => Promise.resolve('foo') });
 
     createMachine({
       actors: { child },
@@ -2155,7 +2161,7 @@ describe('invoke', () => {
   });
 
   it('should reject an unknown string actor logic reference', () => {
-    const child = fromPromise(() => Promise.resolve('foo'));
+    const child = createLogic({ run: () => Promise.resolve('foo') });
 
     createMachine({
       actors: { child },
@@ -2322,9 +2328,9 @@ describe('invoke', () => {
   });
 
   it(`should reject static wrong input`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -2343,9 +2349,9 @@ describe('invoke', () => {
   });
 
   it(`should allow static correct input`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -2364,9 +2370,9 @@ describe('invoke', () => {
   });
 
   it(`should allow static input that is a subtype of the expected one`, () => {
-    const child = fromPromise(({}: { input: number | string }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number | string }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -2385,9 +2391,9 @@ describe('invoke', () => {
   });
 
   it(`should reject static input that is a supertype of the expected one`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -2406,9 +2412,9 @@ describe('invoke', () => {
   });
 
   it(`should reject dynamic wrong input`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -2426,9 +2432,9 @@ describe('invoke', () => {
   });
 
   it(`should allow dynamic correct input`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -2446,9 +2452,9 @@ describe('invoke', () => {
   });
 
   it(`should reject dynamic input that is a supertype of the expected one`, () => {
-    const child = fromPromise(({}: { input: number }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -2466,9 +2472,9 @@ describe('invoke', () => {
   });
 
   it(`should allow dynamic input that is a subtype of the expected one`, () => {
-    const child = fromPromise(({}: { input: number | string }) =>
-      Promise.resolve('foo')
-    );
+    const child = createLogic({
+      run: ({}: { input: number | string }) => Promise.resolve('foo')
+    });
 
     createMachine({
       // types: {} as {
@@ -2486,7 +2492,9 @@ describe('invoke', () => {
   });
 
   it(`should require input to be specified when it is required`, () => {
-    const child = fromPromise(({}: { input: number }) => Promise.resolve(100));
+    const child = createLogic({
+      run: ({}: { input: number }) => Promise.resolve(100)
+    });
 
     createMachine({
       // types: {} as {
@@ -2503,9 +2511,9 @@ describe('invoke', () => {
   });
 
   it(`should not require input when it's optional`, () => {
-    const child = fromPromise(({}: { input: number | undefined }) =>
-      Promise.resolve(100)
-    );
+    const child = createLogic({
+      run: ({}: { input: number | undefined }) => Promise.resolve(100)
+    });
 
     createMachine({
       // types: {} as {
@@ -2524,7 +2532,7 @@ describe('invoke', () => {
 
 describe('actor implementations', () => {
   it('should reject actor outside of the defined ones in provided implementations', () => {
-    const child = fromPromise(() => Promise.resolve('foo'));
+    const child = createLogic({ run: () => Promise.resolve('foo') });
 
     createMachine({
       // types: {} as {
@@ -2543,7 +2551,7 @@ describe('actor implementations', () => {
   });
 
   it('should accept a defined actor in provided implementations', () => {
-    const child = fromPromise(() => Promise.resolve('foo'));
+    const child = createLogic({ run: () => Promise.resolve('foo') });
 
     createMachine({
       // types: {} as {
@@ -2561,7 +2569,7 @@ describe('actor implementations', () => {
   });
 
   it(`should reject the provided actor when the output doesn't match`, () => {
-    const child = fromPromise(() => Promise.resolve('foo'));
+    const child = createLogic({ run: () => Promise.resolve('foo') });
 
     createMachine({
       // types: {} as {
@@ -2574,13 +2582,13 @@ describe('actor implementations', () => {
     }).provide({
       actors: {
         // @ts-expect-error
-        child: fromPromise(() => Promise.resolve(42))
+        child: createLogic({ run: () => Promise.resolve(42) })
       }
     });
   });
 
   it(`should reject the provided actor when its output is a super type of the expected one`, () => {
-    const child = fromPromise(() => Promise.resolve('foo'));
+    const child = createLogic({ run: () => Promise.resolve('foo') });
 
     createMachine({
       // types: {} as {
@@ -2593,17 +2601,17 @@ describe('actor implementations', () => {
     }).provide({
       actors: {
         // @ts-expect-error
-        child: fromPromise(() =>
-          Promise.resolve(Math.random() > 0.5 ? 'foo' : 42)
-        )
+        child: createLogic({
+          run: () => Promise.resolve(Math.random() > 0.5 ? 'foo' : 42)
+        })
       }
     });
   });
 
   it(`should accept the provided actor when its output is a sub type of the expected one`, () => {
-    const child = fromPromise(() =>
-      Promise.resolve(Math.random() > 0.5 ? 'foo' : 42)
-    );
+    const child = createLogic({
+      run: () => Promise.resolve(Math.random() > 0.5 ? 'foo' : 42)
+    });
 
     createMachine({
       // types: {} as {
@@ -2619,7 +2627,7 @@ describe('actor implementations', () => {
       actors: {
         // TODO: ideally this shouldn't error
         // @ts-expect-error
-        child: fromPromise(() => Promise.resolve('foo'))
+        child: createLogic({ run: () => Promise.resolve('foo') })
       }
     });
   });
@@ -3609,7 +3617,7 @@ describe('choice state types', () => {
       type: 'choice',
       choices: [{ target: 'done' }],
       invoke: {
-        src: fromPromise(async () => undefined)
+        src: createLogic({ run: async () => undefined })
       }
     };
 
@@ -4628,15 +4636,17 @@ describe('self', () => {
 
 describe('createActor', () => {
   it(`should require input to be specified when it is required`, () => {
-    const logic = fromPromise(({}: { input: number }) => Promise.resolve(100));
+    const logic = createLogic({
+      run: ({}: { input: number }) => Promise.resolve(100)
+    });
 
     createActor(logic);
   });
 
   it(`should not require input when it's optional`, () => {
-    const logic = fromPromise(({}: { input: number | undefined }) =>
-      Promise.resolve(100)
-    );
+    const logic = createLogic({
+      run: ({}: { input: number | undefined }) => Promise.resolve(100)
+    });
 
     createActor(logic);
   });
@@ -4699,7 +4709,7 @@ describe('snapshot methods', () => {
 });
 
 // https://github.com/statelyai/xstate/issues/4931
-it('fromPromise should not have issues with actors with emitted types', () => {
+it('createLogic should not have issues with actors with emitted types', () => {
   // const machine = setup({
   //   types: {
   //     emitted: {} as { type: 'FOO' }

@@ -2,12 +2,12 @@ import {
   assign,
   createMachine,
   forwardTo,
-  fromPromise,
+  createLogic,
   createActor,
   sendParent,
   setup
 } from 'xstate';
-
+import { z } from 'zod';
 async function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -15,7 +15,6 @@ async function delay(ms: number): Promise<void> {
     }, ms);
   });
 }
-
 interface PaymentReceivedEvent {
   type: 'PaymentReceivedEvent';
   accountId: string;
@@ -29,7 +28,6 @@ interface PaymentReceivedEvent {
     available: boolean;
   };
 }
-
 // https://github.com/serverlessworkflow/specification/tree/main/examples#event-based-service-invocation
 export const workflow = setup({
   types: {
@@ -47,40 +45,38 @@ export const workflow = setup({
       accountId: string | null;
     }
   },
-
   actors: {
-    checkfunds: fromPromise(
-      async ({
-        input
-      }: {
-        input: {
+    checkfunds: createLogic({
+      schemas: {
+        input: z.custom<{
           account: string;
           paymentamount: number;
-        };
-      }) => {
+        }>()
+      },
+      run: async ({ input }) => {
         console.log('Running checkfunds');
         await delay(1000);
-
         console.log('checkfunds done');
-
         return {
           available: input.paymentamount < 1000
         };
       }
-    ),
-    sendSuccessEmail: fromPromise(async ({ input }) => {
-      console.log({ input });
-      console.log('Running sendSuccessEmail');
-      await delay(1000);
-
-      console.log('sendSuccessEmail done');
     }),
-    sendInsufficientFundsEmail: fromPromise(async ({ input }) => {
-      console.log({ input });
-      console.log('Running sendInsufficientFundsEmail');
-      await delay(1000);
-
-      console.log('sendInsufficientFundsEmail done');
+    sendSuccessEmail: createLogic({
+      run: async ({ input }) => {
+        console.log({ input });
+        console.log('Running sendSuccessEmail');
+        await delay(1000);
+        console.log('sendSuccessEmail done');
+      }
+    }),
+    sendInsufficientFundsEmail: createLogic({
+      run: async ({ input }) => {
+        console.log({ input });
+        console.log('Running sendInsufficientFundsEmail');
+        await delay(1000);
+        console.log('sendInsufficientFundsEmail done');
+      }
     })
   },
   guards: {
@@ -88,7 +84,6 @@ export const workflow = setup({
   }
 }).createMachine({
   id: 'paymentconfirmation',
-
   initial: 'Pending',
   context: {
     customer: null,
@@ -166,7 +161,6 @@ export const workflow = setup({
     }
   }
 });
-
 const parentWorkflow = createMachine({
   id: 'parent',
   types: {} as {
@@ -190,17 +184,13 @@ const parentWorkflow = createMachine({
     }
   }
 });
-
 const actor = createActor(parentWorkflow);
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();
-
 actor.send({
   type: 'PaymentReceivedEvent',
   accountId: '1234',
