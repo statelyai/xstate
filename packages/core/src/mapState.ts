@@ -39,26 +39,30 @@ export function mapState<T extends AnyMachineSnapshot, TResult>(
   const results: { stateNode: AnyStateNode; result: TResult }[] = [];
 
   const findMapper = (
-    currentMapper: StateSchemaMapper<T, StateSchemaFrom<T['machine']>, TResult>,
     nodePath: string[]
   ): StateSchemaMapper<T, any, TResult> | undefined => {
-    let mapper: StateSchemaMapper<T, any, TResult> | undefined = currentMapper;
-
-    for (const key of nodePath) {
-      if (!mapper?.states) {
+    if (!nodePath.length) {
+      // root
+      return mapper;
+    }
+    let cursor = mapper;
+    for (let i = 0; i < nodePath.length; i++) {
+      const key = nodePath[i];
+      if (!cursor?.states) {
         return undefined;
       }
-      const states = mapper.states as Record<
+      const states = cursor.states as Record<
         string,
         StateSchemaMapper<T, any, TResult>
       >;
       if (!(key in states)) {
         return undefined;
       }
-      mapper = states[key];
+      cursor = states[key];
+      if (i === nodePath.length - 1) {
+        return cursor;
+      }
     }
-
-    return mapper;
   };
 
   const visited = new Set<AnyStateNode>();
@@ -68,7 +72,7 @@ export function mapState<T extends AnyMachineSnapshot, TResult>(
     while (current && !visited.has(current)) {
       visited.add(current);
 
-      const nodeMapper = findMapper(mapper, current.path);
+      const nodeMapper = findMapper(current.path);
       if (nodeMapper?.map) {
         results.push({ stateNode: current, result: nodeMapper.map(snapshot) });
       }
