@@ -523,9 +523,18 @@ function createStoreCore<
     },
     with(extension) {
       const extendedLogic = extension(logic as any);
-      return createStoreCore(extendedLogic) as any;
+      return createStoreCore(extendedLogic as any, processEffect) as any;
     }
   };
+
+  if (processEffect) {
+    for (const executionId of Object.keys(currentSnapshot.async ?? {})) {
+      store.send({
+        type: XSTATE_ASYNC,
+        i: executionId
+      } as any);
+    }
+  }
 
   return store;
 }
@@ -961,15 +970,6 @@ export function createAsyncStore(
 
     return false;
   });
-
-  const initialSnapshot = store.getSnapshot();
-
-  for (const executionId of Object.keys(initialSnapshot.async ?? {})) {
-    store.send({
-      type: XSTATE_ASYNC,
-      i: executionId
-    } as any);
-  }
 
   return store;
 }

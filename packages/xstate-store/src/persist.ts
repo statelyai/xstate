@@ -22,6 +22,7 @@ export interface StateStorage {
 /** The envelope persisted to storage for snapshot strategy. @public */
 export interface PersistStorageValue<TContext> {
   context: Partial<TContext>;
+  async?: StoreSnapshot<TContext>['async'];
   version: string | number;
 }
 
@@ -122,7 +123,7 @@ const PERSIST_INTERNALS: unique symbol = Symbol.for('xstate-store-persist');
 interface PersistInternals<TContext, TEvent extends EventObject = EventObject> {
   options: PersistOptions<TContext, TEvent>;
   storage: StateStorage;
-  pendingContext: Partial<TContext> | null;
+  pendingSnapshot: StoreSnapshot<TContext> | null;
   pendingEvents: TEvent[] | null;
   pendingCheckpoint: unknown;
   flushTimeoutId: ReturnType<typeof setTimeout> | null;
@@ -208,16 +209,22 @@ function migrateEventsIfNeeded<TEvent extends EventObject>(
 
 function writeSnapshotToStorage<TContext>(
   internals: PersistInternals<TContext>,
-  context: TContext
+  snapshot: StoreSnapshot<TContext>
 ): void | Promise<void> {
   const options = internals.options as PersistSnapshotOptions<TContext, any>;
   const { storage } = internals;
-  const contextToPersist = options.pick ? options.pick(context) : context;
+  const contextToPersist = options.pick
+    ? options.pick(snapshot.context)
+    : snapshot.context;
 
   const value: PersistStorageValue<TContext> = {
     context: contextToPersist,
     version: options.version ?? 0
   };
+
+  if (snapshot.async && Object.keys(snapshot.async).length > 0) {
+    value.async = snapshot.async;
+  }
 
   try {
     const serialized = serializeSnapshotValue(options, value);
@@ -273,7 +280,7 @@ function createInternals<TContext, TEvent extends EventObject>(
   const internals: PersistInternals<TContext, TEvent> = {
     options,
     storage,
-    pendingContext: null,
+    pendingSnapshot: null,
     pendingEvents: null,
     pendingCheckpoint: null,
     flushTimeoutId: null,
@@ -294,12 +301,12 @@ function createInternals<TContext, TEvent extends EventObject>(
           return result;
         }
       } else {
-        if (internals.pendingContext !== null) {
+        if (internals.pendingSnapshot !== null) {
           const result = writeSnapshotToStorage(
             internals as any,
-            internals.pendingContext as TContext
+            internals.pendingSnapshot
           );
-          internals.pendingContext = null;
+          internals.pendingSnapshot = null;
           return result;
         }
       }
@@ -374,6 +381,7 @@ function persistSnapshotFromLogic<
         return {
           ...baseSnapshot,
           context: mergedContext,
+          async: parsed.async,
           _persist: { hydrated: true },
           [PERSIST_INTERNALS]: internals
         };
@@ -412,6 +420,7 @@ function persistSnapshotFromLogic<
             {
               ...snapshot,
               context: mergedContext,
+              async: parsed.async,
               _persist: { ...snapshot._persist, hydrated: true }
             },
             []
@@ -451,14 +460,12 @@ function persistSnapshotFromLogic<
       // Schedule storage write
       if (throttleMs > 0) {
         // Throttled: buffer context, schedule delayed write
-        internals.pendingContext = options.pick
-          ? (options.pick(nextSnapshot.context) as any)
-          : nextSnapshot.context;
+        internals.pendingSnapshot = snapshotWithMeta;
 
         if (internals.flushTimeoutId === null) {
           const persistEffect = () => {
             internals.flushTimeoutId = setTimeout(() => {
-              internals.flush();
+              void internals.flush();
             }, throttleMs);
           };
           return [snapshotWithMeta, [...effects, persistEffect]];
@@ -469,7 +476,7 @@ function persistSnapshotFromLogic<
 
       // Immediate write as effect
       const persistEffect = () => {
-        writeSnapshotToStorage(internals as any, nextSnapshot.context);
+        void writeSnapshotToStorage(internals as any, snapshotWithMeta);
       };
 
       return [snapshotWithMeta, [...effects, persistEffect]];
@@ -673,7 +680,7 @@ function persistEventFromLogic<
         if (internals.flushTimeoutId === null) {
           const persistEffect = () => {
             internals.flushTimeoutId = setTimeout(() => {
-              internals.flush();
+              void internals.flush();
             }, throttleMs);
           };
           return [snapshotWithEvents, [...effects, persistEffect]];
@@ -684,7 +691,7 @@ function persistEventFromLogic<
 
       // Immediate write as effect
       const persistEffect = () => {
-        writeEventsToStorage(internals, nextEvents, nextCheckpoint);
+        void writeEventsToStorage(internals, nextEvents, nextCheckpoint);
       };
 
       return [snapshotWithEvents, [...effects, persistEffect]];
