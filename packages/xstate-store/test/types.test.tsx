@@ -1,5 +1,5 @@
 import { createActor } from 'xstate';
-import { createStore, fromStore } from '../src/index.ts';
+import { createAsyncStore, createStore, fromStore } from '../src/index.ts';
 import { schema } from './schema.ts';
 
 describe('emitted', () => {
@@ -80,7 +80,7 @@ describe('emitted', () => {
   });
 
   it("can't subscribe to a unknown event", () => {
-    const store = createStore({
+    const store = createAsyncStore({
       schemas: {
         emitted: {
           increased: schema<{ upBy: number }>()
@@ -227,6 +227,37 @@ describe('trigger', () => {
 });
 
 describe('schemas', () => {
+  it('types async steps', () => {
+    const store = createAsyncStore({
+      context: {
+        result: 0
+      },
+      on: {
+        load: async (ctx, _event, enq) => {
+          const result = await enq.step('fetchResult', async () => 42);
+
+          result satisfies number;
+          // @ts-expect-error
+          result satisfies string;
+
+          return {
+            result: ctx.result + result
+          };
+        }
+      }
+    });
+
+    const asyncExecution =
+      store.getSnapshot().async?.[
+        Object.keys(store.getSnapshot().async ?? {})[0]
+      ];
+    asyncExecution?.steps.fetchResult?.status satisfies
+      | 'active'
+      | 'done'
+      | 'error'
+      | undefined;
+  });
+
   it('uses schema-declared context for snapshot typing', () => {
     const store = createStore({
       schemas: {

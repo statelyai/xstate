@@ -1,4 +1,9 @@
-import { createStore, createStoreConfig } from '../src/index.ts';
+import {
+  createAsyncStore,
+  createStore,
+  createStoreConfig
+} from '../src/index.ts';
+import { createStoreTransition } from '../src/store.ts';
 import { reset } from '../src/reset.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
 import { schema } from './schema.ts';
@@ -10,7 +15,7 @@ import {
 
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
-  const store = createStore({
+  const store = createAsyncStore({
     context,
     on: {
       inc: (context, event: { by: number }) => {
@@ -35,7 +40,7 @@ it('updates a store with an event without mutating original context', () => {
 });
 
 it('can update context', () => {
-  const store = createStore({
+  const store = createAsyncStore({
     context: { count: 0, greeting: 'hello' },
     on: {
       inc: (ctx) => ({
@@ -57,7 +62,7 @@ it('can update context', () => {
 });
 
 it('handles unknown events sent via store.send (does not do anything)', () => {
-  const store = createStore({
+  const store = createAsyncStore({
     context: { count: 0 },
     on: {
       inc: (ctx) => ({
@@ -71,7 +76,7 @@ it('handles unknown events sent via store.send (does not do anything)', () => {
 });
 
 it('updates state from sent events', () => {
-  const store = createStore({
+  const store = createAsyncStore({
     context: {
       count: 0
     },
@@ -108,7 +113,7 @@ it('updates state from sent events', () => {
 });
 
 it('can be observed', () => {
-  const store = createStore({
+  const store = createAsyncStore({
     context: {
       count: 0
     },
@@ -141,7 +146,7 @@ it('can be observed', () => {
 });
 
 it('does not expose atom internals at runtime', () => {
-  const store = createStore({
+  const store = createAsyncStore({
     context: { count: 0 },
     on: {}
   });
@@ -150,7 +155,7 @@ it('does not expose atom internals at runtime', () => {
 });
 
 it('can be inspected', () => {
-  const store = createStore({
+  const store = createAsyncStore({
     context: {
       count: 0
     },
@@ -182,7 +187,7 @@ it('can be inspected', () => {
 });
 
 it('inspection with @statelyai/inspect typechecks correctly', () => {
-  const store = createStore({
+  const store = createAsyncStore({
     context: {},
     on: {}
   });
@@ -195,7 +200,7 @@ it('inspection with @statelyai/inspect typechecks correctly', () => {
 });
 
 it('emitted events can be subscribed to', () => {
-  const store = createStore({
+  const store = createAsyncStore({
     context: {
       count: 0
     },
@@ -225,7 +230,7 @@ it('emitted events can be subscribed to', () => {
 });
 
 it('emitted events can be unsubscribed to', () => {
-  const store = createStore({
+  const store = createAsyncStore({
     context: {
       count: 0
     },
@@ -259,7 +264,7 @@ it('emitted events can be unsubscribed to', () => {
 });
 
 it('emitted events occur after the snapshot is updated', () => {
-  const store = createStore({
+  const store = createAsyncStore({
     context: {
       count: 0
     },
@@ -294,7 +299,7 @@ it('emitted events occur after the snapshot is updated', () => {
 it('events can be emitted with no payload', () => {
   const spy = vi.fn();
 
-  const store = createStore({
+  const store = createAsyncStore({
     schemas: {
       emitted: {
         incremented: schema<{}>(),
@@ -516,7 +521,7 @@ it('wildcard listener is called after specific listener', () => {
   expect(order).toEqual(['specific', 'wildcard']);
 });
 
-it('async effects can be enqueued', async () => {
+it('async steps can be enqueued', async () => {
   const store = createStore({
     context: {
       count: 0
@@ -547,6 +552,272 @@ it('async effects can be enqueued', async () => {
   await new Promise((resolve) => setTimeout(resolve, 10));
 
   expect(store.getSnapshot().context.count).toEqual(0);
+});
+
+it('supports async step-based transition handlers', async () => {
+  const order: string[] = [];
+  const stepSpy = vi.fn(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    return 42;
+  });
+  const store = createAsyncStore({
+    context: {
+      result: undefined as number | undefined
+    },
+    schemas: {
+      emitted: {
+        loaded: schema<{ result: number }>()
+      }
+    },
+    on: {
+      load: async (_ctx, _event, enq) => {
+        enq.effect(() => {
+          order.push('before');
+        });
+
+        const result = await enq.step('fetchResult', stepSpy);
+
+        enq.effect(() => {
+          order.push('after');
+        });
+        enq.emit.loaded({ result });
+
+        return { result };
+      }
+    }
+  });
+  const loadedSpy = vi.fn();
+
+  store.on('loaded', loadedSpy);
+  store.trigger.load();
+
+  expect(store.getSnapshot().context.result).toBeUndefined();
+  expect(Object.values(store.getSnapshot().async!)[0].steps).toMatchObject({
+    async: { status: 'active' },
+    fetchResult: { status: 'active' }
+  });
+  expect(order).toEqual([]);
+  expect(stepSpy).toHaveBeenCalledTimes(1);
+
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  expect(store.getSnapshot().context.result).toBe(42);
+  expect(store.getSnapshot().async ?? {}).toEqual({});
+  expect(order).toEqual(['before', 'after']);
+  expect(loadedSpy).toHaveBeenCalledWith({ type: 'loaded', result: 42 });
+});
+
+it('replays sequential async steps and updates pending metadata', async () => {
+  let resolveFirst!: (value: number) => void;
+  let resolveSecond!: (value: number) => void;
+  const firstPromise = new Promise<number>((resolve) => {
+    resolveFirst = resolve;
+  });
+  const secondPromise = new Promise<number>((resolve) => {
+    resolveSecond = resolve;
+  });
+  const store = createAsyncStore({
+    context: {
+      result: 0
+    },
+    on: {
+      load: async (ctx, _event, enq) => {
+        const first = await enq.step('first', () => firstPromise);
+        const second = await enq.step('second', () => secondPromise);
+
+        return {
+          result: ctx.result + first + second
+        };
+      }
+    }
+  });
+
+  store.trigger.load();
+
+  expect(Object.values(store.getSnapshot().async!)[0].steps).toMatchObject({
+    async: { status: 'active' },
+    first: { status: 'active' }
+  });
+
+  resolveFirst(2);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(Object.values(store.getSnapshot().async!)[0].steps).toMatchObject({
+    async: { status: 'active' },
+    first: { status: 'done', output: 2 },
+    second: { status: 'active' }
+  });
+
+  resolveSecond(3);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(store.getSnapshot().async ?? {}).toEqual({});
+  expect(store.getSnapshot().context.result).toBe(5);
+});
+
+it('reuses resolved async step values when the same step id is awaited again', async () => {
+  const stepSpy = vi.fn(async () => 5);
+  const store = createAsyncStore({
+    context: {
+      result: 0
+    },
+    on: {
+      load: async (ctx, _event, enq) => {
+        const first = await enq.step('same', stepSpy);
+        const second = await enq.step('same', stepSpy);
+
+        return {
+          result: ctx.result + first + second
+        };
+      }
+    }
+  });
+
+  store.trigger.load();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(stepSpy).toHaveBeenCalledTimes(1);
+  expect(store.getSnapshot().context.result).toBe(10);
+  expect(store.getSnapshot().async ?? {}).toEqual({});
+});
+
+it('replays async transitions against the latest snapshot context', async () => {
+  let resolveStep!: (value: number) => void;
+  const stepPromise = new Promise<number>((resolve) => {
+    resolveStep = resolve;
+  });
+  const store = createAsyncStore({
+    context: {
+      count: 0,
+      result: 0
+    },
+    on: {
+      load: async (ctx, _event, enq) => {
+        const result = await enq.step('fetchResult', () => stepPromise);
+
+        return {
+          ...ctx,
+          count: ctx.count + 1,
+          result
+        };
+      },
+      inc: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      })
+    }
+  });
+
+  store.trigger.load();
+  store.trigger.inc();
+  resolveStep(7);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(store.getSnapshot().context).toEqual({
+    count: 2,
+    result: 7
+  });
+});
+
+it('can resume an in-progress async transition from a persisted snapshot', async () => {
+  const config = {
+    context: {
+      count: 0,
+      result: 0
+    },
+    on: {
+      load: async (
+        ctx: { count: number; result: number },
+        event: { value: number },
+        enq: any
+      ) => {
+        const result = await enq.step('fetchResult', async () => event.value);
+
+        return {
+          count: ctx.count + 1,
+          result
+        };
+      }
+    }
+  };
+  const store = createAsyncStore(config);
+
+  store.trigger.load({ value: 7 });
+
+  const persistedSnapshot = JSON.parse(JSON.stringify(store.getSnapshot()));
+  const executionId = Object.keys(persistedSnapshot.async)[0];
+
+  expect(persistedSnapshot.async[executionId]).toMatchObject({
+    event: { type: 'load', value: 7 },
+    steps: {
+      async: { status: 'active' },
+      fetchResult: { status: 'active' }
+    }
+  });
+
+  const restoredStore = createAsyncStore({
+    ...config,
+    snapshot: persistedSnapshot
+  });
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(restoredStore.getSnapshot().context).toEqual({
+    count: 1,
+    result: 7
+  });
+  expect(restoredStore.getSnapshot().async).toEqual({});
+});
+
+it('rejects async handlers that do not await enq.step(...)', () => {
+  const store = createAsyncStore({
+    context: {
+      count: 0
+    },
+    on: {
+      bad: async (ctx) => ({
+        count: ctx.count + 1
+      })
+    }
+  });
+
+  expect(() => store.trigger.bad()).toThrow(
+    'Async transition must await enq.step(...)'
+  );
+  expect(store.getSnapshot().context.count).toBe(0);
+  expect(store.getSnapshot().async ?? {}).toEqual({});
+});
+
+it('rejects async handlers in createStoreTransition(...)', () => {
+  const store = createStore({
+    context: { count: 0 },
+    on: {}
+  });
+  const transition = store.transition;
+
+  expect(() =>
+    transition(store.getSnapshot(), {
+      type: 'bad'
+    } as any)
+  ).not.toThrow();
+
+  const unsupportedTransition = createStoreTransition({
+    bad: (async (ctx: { count: number }) => ({
+      count: ctx.count + 1
+    })) as any
+  });
+
+  expect(() =>
+    unsupportedTransition(
+      {
+        context: { count: 0 },
+        status: 'active',
+        output: undefined,
+        error: undefined
+      },
+      { type: 'bad' }
+    )
+  ).toThrow('Async transition unsupported here');
 });
 
 describe('store.trigger', () => {
