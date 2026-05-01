@@ -9,6 +9,7 @@ export {
   type RequiredActorOptionsKeys as RequiredActorOptionsKeys
 } from './createActor.ts';
 export { createMachine } from './createMachine.ts';
+export { mapState } from './mapState.ts';
 export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
 export { and, not, or, stateIn } from './guards.ts';
 export type { GuardPredicate, GuardArgs } from './guards.ts';

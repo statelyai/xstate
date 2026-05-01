@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.17.2
+
+### Patch Changes
+
+- [#5510](https://github.com/statelyai/xstate/pull/5510) [`d51fa6d`](https://github.com/statelyai/xstate/commit/d51fa6d640d3aac9e3424417b70f2d6f81466f78) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `atom.subscribe()` callbacks tracking dependencies from `.get()` calls inside the callback (fixes #5509). Previously, calling `otherAtom.get()` inside a subscription callback would cause the callback to re-run whenever `otherAtom` changed, even if the subscribed atom's value didn't change.
+
 ## 3.17.1
 
 ### Patch Changes
