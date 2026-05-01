@@ -170,19 +170,17 @@ it('combined atoms should be read-only', () => {
   expect(combinedAtom.get()).toBe(1);
 });
 
-it('combined atom getters must be zero-argument functions', () => {
+it('combined atom getters accept only prev as an argument', () => {
   const atom = createAtom(1);
 
   if (false) {
-    createAtom(
-      // @ts-expect-error
-      (read) => read(atom)
+    createAtom<number>(
+      // @ts-expect-error — two-arg (read, prev) signature is no longer supported
+      (_read, _prev) => atom.get()
     );
 
-    createAtom<number>(
-      // @ts-expect-error
-      (_, prev) => atom.get() + (prev ?? 0)
-    );
+    // prev is valid
+    createAtom<number>((prev) => atom.get() + (prev ?? 0));
   }
 });
 
@@ -434,6 +432,19 @@ it('Atom-specific properties should not be exposed', () => {
   store._deps;
   // @ts-expect-error
   store._depsTail;
+});
+
+it('computed atoms can use their previous value in the getter', () => {
+  const count = createAtom(1);
+  const accumulated = createAtom<number>((prev) => count.get() + (prev ?? 0));
+
+  expect(accumulated.get()).toBe(1); // 0 + 1 = 1
+
+  count.set(2);
+  expect(accumulated.get()).toBe(3); // 1 + 2 = 3
+
+  count.set(3);
+  expect(accumulated.get()).toBe(6); // 3 + 3 = 6
 });
 
 describe('async atoms', () => {

@@ -19,7 +19,7 @@
       "entry": ["src/index.ts", "src/server.ts"]
     },
     "packages/xstate-store": {
-      "entry": ["src/index.ts", "src/react.ts", "src/solid.ts"]
+      "entry": ["src/index.ts"]
     },
     "packages/xstate-svelte": {
       "typescript": "test/tsconfig.json"
@@ -35,15 +35,12 @@
     "packages/xstate-store/src/alien.ts",
     "scripts/**"
   ],
-  "ignoreBinaries": ["svelte-check", "docs:build"],
   "ignoreDependencies": [
     "synckit",
     // package.json#exports aren't added as entry points, because `dist/` is .gitignored
     "react",
-    "solid-js",
     "xstate",
     "@types/ws",
-    "vitest",
     // peer dependencies that may be needed but not directly imported
     "@angular/compiler-cli",
     "@sveltejs/vite-plugin-svelte",

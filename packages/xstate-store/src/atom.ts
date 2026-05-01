@@ -104,7 +104,7 @@ export function createAsyncAtom<T>(
 }
 
 export function createAtom<T>(
-  getValue: () => T,
+  getValue: (prev?: T) => T,
   options?: AtomOptions<T>
 ): ReadonlyAtom<T>;
 export function createAtom<T>(
@@ -112,11 +112,11 @@ export function createAtom<T>(
   options?: AtomOptions<T>
 ): Atom<T>;
 export function createAtom<T>(
-  valueOrFn: T | (() => T),
+  valueOrFn: T | ((prev?: T) => T),
   options?: AtomOptions<T>
 ): Atom<T> | ReadonlyAtom<T> {
   const isComputed = typeof valueOrFn === 'function';
-  const getter = valueOrFn as () => T;
+  const getter = valueOrFn as (prev?: T) => T;
 
   // Create plain object atom
   const atom: InternalAtom<T> = {
@@ -177,7 +177,7 @@ export function createAtom<T>(
           typeof getValue === 'function'
             ? (getValue as (snapshot: T) => T)(oldValue)
             : getValue === undefined && isComputed
-              ? getter()
+              ? getter(oldValue)
               : getValue!;
         if (oldValue === undefined || !compare(oldValue, newValue)) {
           atom._snapshot = newValue;

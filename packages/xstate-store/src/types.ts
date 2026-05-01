@@ -528,13 +528,6 @@ export interface Readable<T> extends Subscribable<T> {
 
 export interface BaseAtom<T> extends Subscribable<T>, Readable<T> {}
 
-export interface InternalBaseAtom<T> extends Subscribable<T>, Readable<T> {
-  /** @internal */
-  _snapshot: T;
-  /** @internal */
-  _update(getValue?: T | ((snapshot: T) => T)): boolean;
-}
-
 export interface Atom<T> extends BaseAtom<T> {
   /** Sets the value of the atom using a function. */
   set(fn: (prevVal: T) => T): void;
