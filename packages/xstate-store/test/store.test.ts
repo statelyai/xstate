@@ -655,6 +655,65 @@ it('replays sequential async steps and updates pending metadata', async () => {
   expect(store.getSnapshot().context.result).toBe(5);
 });
 
+it('executes effects between async steps only once after completion', async () => {
+  let resolveFirst!: (value: number) => void;
+  let resolveSecond!: (value: number) => void;
+  const firstPromise = new Promise<number>((resolve) => {
+    resolveFirst = resolve;
+  });
+  const secondPromise = new Promise<number>((resolve) => {
+    resolveSecond = resolve;
+  });
+  const order: string[] = [];
+  const store = createAsyncStore({
+    context: {
+      result: 0
+    },
+    on: {
+      load: async (ctx, _event, enq) => {
+        enq.effect(() => {
+          order.push('before first');
+        });
+
+        const first = await enq.step('first', () => firstPromise);
+
+        enq.effect(() => {
+          order.push('between');
+        });
+
+        const second = await enq.step('second', () => secondPromise);
+
+        enq.effect(() => {
+          order.push('after second');
+        });
+
+        return {
+          result: ctx.result + first + second
+        };
+      }
+    }
+  });
+
+  store.trigger.load();
+
+  expect(order).toEqual([]);
+
+  resolveFirst(2);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(Object.values(store.getSnapshot().async!)[0].steps).toMatchObject({
+    first: { status: 'done', output: 2 },
+    second: { status: 'active' }
+  });
+  expect(order).toEqual([]);
+
+  resolveSecond(3);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(store.getSnapshot().context.result).toBe(5);
+  expect(order).toEqual(['before first', 'between', 'after second']);
+});
+
 it('reuses resolved async step values when the same step id is awaited again', async () => {
   const stepSpy = vi.fn(async () => 5);
   const store = createAsyncStore({
