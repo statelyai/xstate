@@ -43,7 +43,12 @@ import type {
   SnapshotStatus,
   AnyStateNode
 } from './types.ts';
-import { Implementations, Next_MachineConfig, Trigger } from './types.v6.ts';
+import {
+  Implementations,
+  Next_MachineConfig,
+  Trigger,
+  MachineOptions
+} from './types.v6.ts';
 import {
   matchesEventDescriptor,
   resolveReferencedActor,
@@ -91,6 +96,9 @@ export class StateMachine<
   public schemas: unknown;
 
   public implementations: Implementations;
+
+  /** Runtime options for machine execution. */
+  public options: MachineOptions;
 
   /** @internal */
   public idMap: Map<string, AnyStateNode> = new Map();
@@ -141,6 +149,10 @@ export class StateMachine<
     this.schemas = this.config.schemas;
     this.internalEventDescriptors = this.config.internalEvents ?? [];
     this.triggers = this.config.triggers ?? [];
+    this.options = {
+      maxIterations: Infinity,
+      ...this.config.options
+    };
 
     this.transition = this.transition.bind(this);
     this.getInitialSnapshot = this.getInitialSnapshot.bind(this);
@@ -495,27 +507,7 @@ export class StateMachine<
     return macroState as SnapshotFrom<this>;
   }
 
-  public start(
-    snapshot: MachineSnapshot<
-      TContext,
-      TEvent,
-      TChildren,
-      TStateValue,
-      TTag,
-      TOutput,
-      TMeta,
-      TConfig
-    >
-  ): void {
-    // if (snapshot.children)
-    //   Object.values(snapshot.children as Record<string, AnyActorRef>).forEach(
-    //     (child: any) => {
-    //       if (child.getSnapshot().status === 'active') {
-    //         child.start();
-    //       }
-    //     }
-    //   );
-  }
+  public start(): void {}
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
     const fullPath = toStatePath(stateId);

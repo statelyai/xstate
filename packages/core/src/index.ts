@@ -5,11 +5,8 @@ export {
   createActor,
   type RequiredActorOptionsKeys as RequiredActorOptionsKeys
 } from './createActor.ts';
-export {
-  createMachine,
-  createMachine as next_createMachine,
-  createStateConfig
-} from './createMachine.ts';
+export { createMachine, createStateConfig } from './createMachine.ts';
+export { mapState } from './mapState.ts';
 export { setup } from './setup.ts';
 export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
 export type { InspectionEvent } from './inspection.ts';

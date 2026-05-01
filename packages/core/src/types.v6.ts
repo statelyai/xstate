@@ -89,6 +89,32 @@ export interface Trigger {
   [key: string]: unknown;
 }
 
+/**
+ * Runtime options for state machine execution.
+ *
+ * @example
+ *
+ * ```ts
+ * const machine = createMachine({
+ *   // ... machine config
+ *   options: {
+ *     maxIterations: 5000
+ *     // other runtime options can be added here
+ *   }
+ * });
+ * ```
+ */
+export interface MachineOptions {
+  /**
+   * Maximum number of microsteps allowed before throwing an infinite loop
+   * error. Defaults to `Infinity` (no limit). Set to a finite number to enable
+   * infinite loop detection.
+   *
+   * @default Infinity
+   */
+  maxIterations?: number;
+}
+
 export type Next_MachineConfig<
   TContextSchema extends StandardSchemaV1,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
@@ -173,6 +199,7 @@ export type Next_MachineConfig<
           stateNode: AnyStateNode;
         }) => number);
   };
+  options?: MachineOptions;
 }) &
   (TContextRequired extends false
     ? {
