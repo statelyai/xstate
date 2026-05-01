@@ -776,4 +776,41 @@ describe('async atoms', () => {
     expect(log2).toHaveBeenCalledTimes(1);
     expect(log2).toHaveBeenCalledWith({ status: 'done', data: 'multi-test' });
   });
+
+  it('subscribe callback should not track dependencies from .get() calls', () => {
+    const items = createAtom<number[]>([]);
+    const ids = createAtom(() => Array.from(items.get()).sort().join(','));
+    const log = vi.fn();
+
+    ids.subscribe(() => {
+      void items.get();
+      log();
+    });
+
+    items.set([1]);
+    items.set([1]);
+    items.set([1, 2]);
+    items.set([1, 2]);
+
+    expect(log).toHaveBeenCalledTimes(2);
+  });
+
+  it('subscribe callback should not track deps on non-computed atoms', () => {
+    const ids = createAtom('');
+    const items = createAtom<number[]>([]);
+    items.subscribe((value) => ids.set(Array.from(value).sort().join(',')));
+    const log = vi.fn();
+
+    ids.subscribe(() => {
+      void items.get();
+      log();
+    });
+
+    items.set([1]);
+    items.set([1]);
+    items.set([1, 2]);
+    items.set([1, 2]);
+
+    expect(log).toHaveBeenCalledTimes(2);
+  });
 });

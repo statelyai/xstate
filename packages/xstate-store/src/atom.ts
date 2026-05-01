@@ -148,7 +148,13 @@ export function createAtom<T>(
         if (!observed.current) {
           observed.current = true;
         } else {
-          obs.next?.(atom._snapshot);
+          const prevSub = activeSub;
+          activeSub = undefined;
+          try {
+            obs.next?.(atom._snapshot);
+          } finally {
+            activeSub = prevSub;
+          }
         }
       });
 
