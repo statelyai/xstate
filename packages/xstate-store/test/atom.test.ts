@@ -103,6 +103,18 @@ it('allows updates to a computed dependency during a subscription callback', () 
   expect(atom.get().b).toBe(3);
 });
 
+it('does not loop when updating a computed dependency which affects an atoms own state', () => {
+  const count = createAtom(0);
+  const a = createAtom(() => count.get());
+
+  a.subscribe(() => count.set((val) => val + 1));
+
+  count.set((val) => val + 1);
+
+  expect(a.get()).toBe(2);
+  expect(count.get()).toBe(2);
+});
+
 it('works with a mix of atoms and stores', () => {
   const countAtom = createAtom(0);
   const store = createStore({
