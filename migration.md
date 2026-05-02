@@ -46,7 +46,7 @@ Beyond simplifying the action/guard surface, v6 introduces a number of features 
 | [Internal events](#12-internal-events)                                     | `internalEvents: ['tick', 'change.*']` — events that can be raised inside the machine but rejected when sent from outside.                                                                                        |
 | [Choice states](#13-choice-states)                                         | First-class `type: 'choice'` for declarative branch routing (replaces transient `always` chains).                                                                                                                 |
 | [State timeouts](#14-state-and-async-timeouts)                             | `timeout` + `onTimeout` per state — independent of `after`; auto-cancelled on exit.                                                                                                                               |
-| [Duration strings](#14-state-and-async-timeouts)                           | `'250ms'`, `'5s'` / `'1.5s'`, and ISO 8601 (`'PT1M30S'`, `'P1DT12H'`) accepted anywhere a delay is allowed.                                                                                                       |
+| [Duration strings](#14-state-and-async-timeouts)                           | `'250ms'`, `'5s'` / `'1.5s'`, and ISO 8601 (`'PT1M30S'`, `'P1DT12H'`) accepted by state timeouts and async-logic timeouts.                                                                                        |
 | [Triggers](#15-triggers)                                                   | Declarative `triggers: [{ type: 'webhook', ... }]` metadata describing how a machine is activated.                                                                                                                |
 | [`createMachineFromConfig`](#22-scxml-and-config-conversion)               | Build a machine from a plain JSON config with serialized actions — useful for SCXML round-trip, persistence, or storing machines as data.                                                                         |
 | [`initial: { target, input }`](#5-state-input)                             | Object form for `initial` lets you provide state input on initialization.                                                                                                                                         |
@@ -813,7 +813,7 @@ states: {
 
 ### Accepted duration formats
 
-`timeout` (and any other delay value) accepts `number` (ms) or `string` in one of these forms:
+State `timeout` and `createAsyncLogic({ timeout })` accept `number` (ms) or `string` in one of these forms:
 
 | Form              | Example                                                        | Notes                           |
 | ----------------- | -------------------------------------------------------------- | ------------------------------- |
@@ -883,7 +883,6 @@ These exports have been **removed** from `xstate`:
 - Guard combinators and helpers: `and`, `or`, `not`, `stateIn`
 - Guard types: `GuardPredicate`, `GuardArgs`
 - Service helpers: `interpret`, `Interpreter`
-- `mapState`
 - `SetupReturn` (no longer re-exported)
 - Promise actor logic surface: `fromPromise`, `PromiseActorLogic`, `PromiseActorRef`, `PromiseSnapshot`
 - Inspection-event subtypes — `InspectedActionEvent`, `InspectedActorEvent`, `InspectedEventEvent`, `InspectedMicrostepEvent`, `InspectedSnapshotEvent` are gone. The remaining `InspectionEvent` type was reshaped: it is no longer a discriminated union, and its `type` is now only `'@xstate.transition' | '@xstate.microstep'`.
@@ -894,7 +893,6 @@ These exports have been **added**:
 
 - `setup` (reshaped — see §4)
 - `createStateConfig`
-- `next_createMachine` (alias of `createMachine` for staged migrations)
 - `checkStateIn`
 - `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
 - `TimeoutError`
@@ -1014,12 +1012,12 @@ The SCXML conversion path was rewritten. Two functions exist in source:
 - `toMachine(scxml)` — parse SCXML XML directly to a `StateMachine`
 - `createMachineFromConfig(config)` — build a machine from a **plain JSON config** that uses serialized action objects (e.g. `{ type: '@xstate.raise', event: ... }`, `{ type: '@xstate.emit', event: ... }`)
 
-These live in `packages/core/src/scxml.ts` and `packages/core/src/createMachineFromConfig.ts` and are **not** part of the published `'xstate'` package's public exports yet (the v6 `package.json` only exposes `.`, `./graph`, and `./actors` subpaths). They are useful for SCXML round-trip, persistence, or storing machines as data — but treat them as internal until the subpath exports are added.
+These live in `packages/core/src/scxml.ts` and `packages/core/src/createMachineFromConfig.ts` and are **not** part of the published `'xstate'` package's public exports yet (the v6 `package.json` only exposes `.`, `./graph`, and `./actors` subpaths). They are useful for SCXML round-trip, persistence, or storing machines as data — but treat them as repo-internal until public exports or subpath exports are added.
 
 ```ts
-// internal usage today
-import { createMachineFromConfig } from 'xstate/src/createMachineFromConfig';
-import { toMachine, toMachineJSON } from 'xstate/src/scxml';
+// repo-internal usage today
+import { createMachineFromConfig } from './createMachineFromConfig';
+import { toMachine, toMachineJSON } from './scxml';
 ```
 
 ---
@@ -1038,7 +1036,7 @@ import { toMachine, toMachineJSON } from 'xstate/src/scxml';
 - [ ] Move `actions`/`guards`/`actors`/`delays` off of `setup({ ... })` and onto `createMachine({ ... })` (or `machine.provide({ ... })`)
 - [ ] Audit `invoke.src` references — `src` may be a logic object directly; the `.createActor` method on machines was removed
 - [ ] Drop dependencies on `@xstate/immer` and `@xstate/inspect`; update inspection to `actor.subscribe`, the `inspect` option, or `@statelyai/inspect`
-- [ ] Remove imports of `mapState`, `SetupReturn`, `GuardArgs`, `GuardPredicate`, `Inspected*Event`, `PromiseActorLogic`, and `fromPromise` (use `createAsyncLogic`)
+- [ ] Remove imports of `SetupReturn`, `GuardArgs`, `GuardPredicate`, `Inspected*Event`, `PromiseActorLogic`, and `fromPromise` (use `createAsyncLogic`)
 - [ ] Drain/migrate any v5 persisted snapshots — the v6 snapshot shape is not binary-compatible
 - [ ] Run `pnpm typecheck` and `pnpm test` to surface remaining issues
 
