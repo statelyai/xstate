@@ -89,18 +89,27 @@ it('can create a combined atom (get API)', () => {
 });
 
 it('allows updates to a computed dependency during a subscription callback', () => {
-  const atom = createAtom({ a: 0, b: 0 });
+  const atom = createAtom({ a: 0, b: 0, c: 0 });
 
-  const a = createAtom(() => atom.get().a);
-  a.subscribe(() => atom.set((ctx) => ({ ...ctx, b: ctx.a })));
+  const a0 = createAtom(() => atom.get().a);
+  const a1 = createAtom(() => a0.get());
+  a1.subscribe(() => atom.set((ctx) => ({ ...ctx, b: ctx.a })));
+
+  const b0 = createAtom(() => atom.get().b);
+  const b1 = createAtom(() => b0.get());
+  b1.subscribe(() => atom.set((ctx) => ({ ...ctx, c: ctx.b })));
 
   atom.set((ctx) => ({ ...ctx, a: ctx.a + 1 }));
   atom.set((ctx) => ({ ...ctx, a: ctx.a + 1 }));
   atom.set((ctx) => ({ ...ctx, a: ctx.a + 1 }));
 
-  expect(a.get()).toBe(3);
+  expect(a0.get()).toBe(3);
+  expect(a1.get()).toBe(3);
+  expect(b0.get()).toBe(3);
+  expect(b1.get()).toBe(3);
   expect(atom.get().a).toBe(3);
   expect(atom.get().b).toBe(3);
+  expect(atom.get().c).toBe(3);
 });
 
 it('does not loop when updating a computed dependency which affects an atoms own state', () => {
