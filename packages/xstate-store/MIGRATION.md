@@ -1,23 +1,32 @@
 # @xstate/store v4 Migration Guide
 
-## New features
+This guide covers changes in `packages/xstate-store` only.
+
+## Added
 
 ### `createAsyncStore`
 
-`createAsyncStore` creates stores with async transition handlers. Use `enq.step(stepId, exec)` for resumable async steps — each step's status is tracked in `snapshot.async`.
+`createAsyncStore(...)` creates stores with async transition handlers. Awaited
+transition work must go through `await enq.step(stepId, exec)` so the store can
+suspend and resume through `snapshot.async`.
 
 ```ts
+import { createAsyncStore } from '@xstate/store';
+import { z } from 'zod';
+
 const store = createAsyncStore({
   context: {
     result: undefined as number | undefined
   },
   schemas: {
     emitted: {
-      loaded: schema<{ result: number }>()
+      loaded: z.object({
+        result: z.number()
+      })
     }
   },
   on: {
-    load: async (_ctx, _event, enq) => {
+    load: async (_context, _event, enq) => {
       enq.effect(() => {
         console.log('before');
       });
@@ -34,160 +43,269 @@ const store = createAsyncStore({
   }
 });
 
-store.on('loaded', (ev) => console.log(ev.result));
 store.trigger.load();
-
-// Immediately after: step is tracked as active
-store.getSnapshot().async;
-// => { "<id>": { event: { type: "load" }, steps: { async: { status: "active" }, fetchResult: { status: "active" } } } }
-
-// After resolution: async state is cleaned up
-// => {}
-store.getSnapshot().context.result; // => 42
 ```
 
-Sequential async steps are replayed one at a time:
+While async work is in progress, `store.getSnapshot().async` contains execution
+state keyed by an internal execution id:
+
+```ts
+{
+  "<execution-id>": {
+    event: { type: "load" },
+    steps: {
+      async: { status: "active" },
+      fetchResult: { status: "active" }
+    }
+  }
+}
+```
+
+Resolved steps are replayed by step id. When the async transition completes,
+the execution entry is removed from `snapshot.async`.
 
 ```ts
 const store = createAsyncStore({
   context: { result: 0 },
   on: {
-    load: async (ctx, _event, enq) => {
+    load: async (context, _event, enq) => {
       const first = await enq.step('first', () => fetchFirst());
       const second = await enq.step('second', () => fetchSecond());
-      return { result: ctx.result + first + second };
+
+      return { result: context.result + first + second };
     }
   }
 });
-
-store.trigger.load();
-// steps.first: { status: "active" }
-// After first resolves → steps.first: { status: "done", output: 2 }, steps.second: { status: "active" }
-// After second resolves → async cleared, context.result === 5
 ```
 
-### Standard Schema support
+Async handlers are not supported by `createStore(...)` or
+`createStoreTransition(...)`. Move async transitions to `createAsyncStore(...)`
+and make each awaited operation an `enq.step(...)`.
 
-Store configs now accept a `schemas` property for deriving types from any [Standard Schema](https://github.com/standard-schema/standard-schema)-compatible library (Zod, Valibot, ArkType, etc.) instead of manual type annotations.
+### Standard Schema typing
 
-**Context schema** — types the snapshot context:
+Store configs now accept `schemas` for type inference from any
+[Standard Schema](https://standardschema.dev/) compatible library. This can type
+context, accepted events, and emitted events.
 
 ```ts
+import { createStore } from '@xstate/store';
+import { z } from 'zod';
+
 const store = createStore({
   schemas: {
-    context: schema<{ count: number; label: string }>()
+    context: z.object({
+      count: z.number(),
+      label: z.string()
+    }),
+    events: {
+      rename: z.object({
+        label: z.string()
+      })
+    },
+    emitted: {
+      renamed: z.object({
+        label: z.string()
+      })
+    }
   },
   context: { count: 0, label: 'ready' },
   on: {
-    rename: (ctx, ev: { label: string }) => ({
-      ...ctx,
-      label: ev.label
-    })
+    rename: (context, event, enq) => {
+      enq.emit.renamed({ label: event.label });
+
+      return {
+        ...context,
+        label: event.label
+      };
+    }
   }
 });
-
-store.getSnapshot().context.label; // typed as string
 ```
 
-**Event schemas** — types events from schemas instead of inline annotations:
+`fromStore(...)` also accepts `schemas` and can infer context, event, and
+emitted-event types from schema definitions.
 
 ```ts
-const store = createStore({
-  schemas: {
-    events: {
-      log: schema<
-        { level: 'warn'; message: string } | { level: 'error'; error: string }
-      >()
-    }
-  },
-  context: {},
-  on: {}
-});
+import { fromStore } from '@xstate/store';
+import { z } from 'zod';
 
-store.trigger.log({ level: 'warn', message: 'hmm' }); // ok
-store.trigger.log({ level: 'error', error: 'uh oh' }); // ok
-store.trigger.log({ level: 'error', message: 'foo' }); // type error
-```
-
-**Emitted schemas** — see [emits → schemas.emitted](#emits-config-property) below.
-
-**Works with `fromStore` too:**
-
-```ts
 const logic = fromStore({
-  context: (count: number) => ({ count }),
+  context: (initialCount: number) => ({ count: initialCount }),
   schemas: {
     emitted: {
-      increased: schema<{ upBy: number }>()
+      increased: z.object({
+        by: z.number()
+      })
     }
   },
   on: {
-    inc: (ctx, ev: { by: number }, enq) => {
-      enq.emit.increased({ upBy: ev.by });
-      return { count: ctx.count + ev.by };
+    inc: (context, event: { by: number }, enq) => {
+      enq.emit.increased({ by: event.by });
+      return { count: context.count + event.by };
     }
   }
 });
-
-const actor = createActor(logic, { input: 1 });
-actor.on('increased', (event) => {
-  event.upBy; // typed as number
-});
 ```
 
-### Optional event handlers
+The root package now exports `StandardSchemaV1`, async store types, and helper
+types such as `AsyncStoreConfig`, `AsyncStoreAssigner`, `AsyncEnqueueObject`,
+`StoreSchemas`, `InferSchemaOutput`, `InferSchemaPayloadMap`,
+`ResolveStoreContext`, `ResolveStoreEventPayloadMap`, and
+`ResolveStoreEmittedPayloadMap`.
 
-Event handler keys in `on` are now optional. A missing handler is a no-op (returns snapshot unchanged). This is especially useful with event schemas — you can declare the event contract up front and implement handlers incrementally:
+### Optional schema-declared handlers
+
+When events are declared through `schemas.events`, matching handlers in `on` are
+optional. Missing handlers are no-ops, but the event still exists for typing and
+`store.trigger`.
 
 ```ts
+import { createStore } from '@xstate/store';
+import { z } from 'zod';
+
 const store = createStore({
   schemas: {
     events: {
-      inc: schema<{ by: number }>(),
-      reset: schema<{}>()
+      inc: z.object({
+        by: z.number()
+      }),
+      reset: z.object({})
     }
   },
   context: { count: 0 },
   on: {
-    inc: (ctx, ev) => ({ count: ctx.count + ev.by })
-    // 'reset' declared but not yet handled — no-ops at runtime
+    inc: (context, event) => ({ count: context.count + event.by })
   }
 });
 
-store.trigger.reset(); // typechecks, no-ops
+store.trigger.reset(); // no-op
 ```
 
----
+### Async persistence support
 
-## Breaking changes
+The `@xstate/store/persist` extension now persists active `snapshot.async`
+state. A `createAsyncStore(...)` created from a persisted snapshot resumes
+in-progress async work automatically.
 
-### `emits` config property
+```ts
+const restoredStore = createAsyncStore({
+  ...config,
+  snapshot: persistedSnapshot
+});
+```
 
-The `emits` config has been replaced by `schemas.emitted`. Emitting still works via `enq.emit` in transition functions — only the type declaration changed.
+## Changed
+
+### Emitted event declarations moved to `schemas.emitted`
+
+The `emits` config property has been replaced by `schemas.emitted`. Emitting
+events with `enq.emit` is unchanged; only the type declaration moved.
 
 ```diff
   const store = createStore({
     context: { count: 0 },
 -   emits: {
--     increased: (_: { upBy: number }) => {}
+-     increased: (_payload: { by: number }) => {}
 -   },
 +   schemas: {
 +     emitted: {
-+       increased: schema<{ upBy: number }>()
++       increased: z.object({
++         by: z.number()
++       })
 +     }
 +   },
     on: {
-      inc: (ctx, _, enq) => {
-        enq.emit.increased({ upBy: 1 });
-        return { ...ctx, count: ctx.count + 1 };
+      inc: (context, event: { by: number }, enq) => {
+        enq.emit.increased({ by: event.by });
+        return { count: context.count + event.by };
       }
     }
   });
 ```
 
-### Framework-specific subpath exports
+### Store inspection emits one transition event
 
-`@xstate/store/react` and `@xstate/store/solid` have been extracted to separate packages.
+`store.inspect(...)` now emits a single `@xstate.transition` event shape instead
+of separate `@xstate.actor`, `@xstate.event`, and `@xstate.snapshot` events.
+
+```diff
+  store.inspect((inspectionEvent) => {
+-   // '@xstate.actor' | '@xstate.event' | '@xstate.snapshot'
++   // '@xstate.transition'
++   inspectionEvent.event;
++   inspectionEvent.snapshot;
+  });
+```
+
+Subscribing to inspection immediately emits the current snapshot as an
+`@xstate.transition` event with `{ type: '@xstate.init' }`. Previously,
+inspection emitted actor/snapshot events and used the initial snapshot on
+subscribe.
+
+### `store.get()` is the readable read
+
+Stores are now `Readable<StoreSnapshot<TContext>>` values. Use:
+
+- `store.getSnapshot()` for explicit snapshot access.
+- `store.get()` when reading the store as a reactive/tracked readable value.
+
+The two methods currently return the same snapshot, but they communicate
+different intent.
+
+### Computed atom getters no longer receive `read`
+
+Computed atoms now read other atoms directly through `.get()`. The previous
+value remains available as the first argument.
+
+```diff
+- const doubled = createAtom((read) => read(countAtom) * 2);
++ const doubled = createAtom(() => countAtom.get() * 2);
+
+- const withPrev = createAtom((read, prev) => read(countAtom) + (prev ?? 0));
++ const withPrev = createAtom((prev) => countAtom.get() + (prev ?? 0));
+```
+
+### `store.trigger` is concrete when event types are known
+
+For config-created stores, `store.trigger` is now built from known event types.
+Those event types come from `schemas.events` when present, otherwise from
+`Object.keys(on)`. Extension events such as `reset`, `undo`, and `redo` are also
+added when those extensions are applied.
+
+Unknown trigger names no longer exist on those concrete trigger objects. If a
+store is created from custom logic without event type metadata, `trigger` keeps
+the previous proxy behavior.
+
+### Store extensions reserve their internal event names
+
+In development, applying `reset()` to a store that already declares a `reset`
+event now throws. Applying `undoRedo()` to a store that already declares `undo`
+or `redo` now throws.
+
+The `persist(...)` extension also reserves its internal rehydration event
+(`__persist.rehydrate`).
+
+Rename the conflicting application event before applying the extension.
+
+### Persistence writes snapshots, not just context
+
+`persist(...)` still stores context by default, but it now derives the persisted
+value from the full store snapshot so active async executions can be included
+when present. The stored shape is still context-based, with an additional
+top-level `async` property only while async executions are active. If you use
+`pick`, it still receives the context value and controls the persisted context
+portion.
+
+`clearStorage(store)` and `flushStorage(store)` may now return a `Promise` when
+the configured storage adapter is async.
+
+## Deleted
+
+### `@xstate/store/react` and `@xstate/store/solid`
+
+The framework-specific subpath exports were removed from `@xstate/store`. Use
+the dedicated framework packages instead.
 
 ```diff
 - import { useSelector } from '@xstate/store/react';
@@ -199,49 +317,78 @@ The `emits` config has been replaced by `schemas.emitted`. Emitting still works 
 + import { useSelector } from '@xstate/store-solid';
 ```
 
-### `createStoreWithProducer` removed
+The `react` and `solid` package folders are no longer published by
+`@xstate/store`, and `react` / `solid-js` are no longer peer dependencies of
+`@xstate/store`.
 
-`createStoreWithProducer` has been removed. Use `createStore` directly.
+### `createStoreWithProducer`
+
+`createStoreWithProducer(...)` was removed. Use `createStore(...)` and call your
+producer inside transition handlers.
 
 ```diff
 - import { createStoreWithProducer } from '@xstate/store';
++ import { createStore } from '@xstate/store';
+  import { produce } from 'immer';
+
 - const store = createStoreWithProducer(produce, {
--   context: { count: 0 },
--   on: {
--     inc: (ctx, ev: { by: number }) => { ctx.count += ev.by; }
--   }
-- });
-```
-
-### `createStore(context, transitions)` two-arg API removed
-
-The deprecated two-argument form of `createStore` has been removed. Use the config object form.
-
-### Inspection events consolidated
-
-The three inspection event types (`@xstate.actor`, `@xstate.snapshot`, `@xstate.event`) have been replaced by a single `@xstate.transition` event. `inspect()` now emits the **current** snapshot on subscribe (not the initial snapshot).
-
-```diff
-  store.inspect((ev) => {
--   // ev.type: '@xstate.actor' | '@xstate.snapshot' | '@xstate.event'
-+   // ev.type: '@xstate.transition'
-+   // ev.event and ev.snapshot always present
++ const store = createStore({
+    context: { count: 0 },
+    on: {
+-     inc: (context) => {
+-       context.count++;
+-     }
++     inc: (context) =>
++       produce(context, (draft) => {
++         draft.count++;
++       })
+    }
   });
-
-  // On subscribe, immediately receives:
-- { type: '@xstate.actor', ... }
-- { type: '@xstate.snapshot', snapshot: initialSnapshot, ... }
-+ { type: '@xstate.transition', event: { type: '@xstate.init' }, snapshot: currentSnapshot, ... }
 ```
 
-### `createAtom` getter simplified
+### `createStore(context, transitions)`
 
-The computed atom getter no longer receives a `read` function. Access other atoms via `.get()` directly. The `prev` argument is still available as the first (and only) parameter.
+The deprecated two-argument `createStore(context, transitions)` API was removed.
+Use the config object form.
 
 ```diff
-- const doubled = createAtom((read) => read(countAtom) * 2);
-+ const doubled = createAtom(() => countAtom.get() * 2);
-
-- const withPrev = createAtom((read, prev) => read(countAtom) + (prev ?? 0));
-+ const withPrev = createAtom((prev) => countAtom.get() + (prev ?? 0));
+- const store = createStore(
+-   { count: 0 },
+-   {
+-     inc: (context) => ({ count: context.count + 1 })
+-   }
+- );
++ const store = createStore({
++   context: { count: 0 },
++   on: {
++     inc: (context) => ({ count: context.count + 1 })
++   }
++ });
 ```
+
+### `undoRedo(config, options)`
+
+The deprecated config-wrapping form of `undoRedo(...)` was removed. Use the
+extension form with `.with(...)`.
+
+```diff
+- const store = createStore(
+-   undoRedo({
+-     context: { count: 0 },
+-     on: {
+-       inc: (context) => ({ count: context.count + 1 })
+-     }
+-   })
+- );
++ const store = createStore({
++   context: { count: 0 },
++   on: {
++     inc: (context) => ({ count: context.count + 1 })
++   }
++ }).with(undoRedo());
+```
+
+### Public `_snapshot` access
+
+Stores no longer expose `_snapshot`. Use `store.getSnapshot()` for explicit
+snapshot reads, or `store.get()` when reading the store as a `Readable`.
