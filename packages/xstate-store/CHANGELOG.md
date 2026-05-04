@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.17.3
+
+### Patch Changes
+
+- [#5513](https://github.com/statelyai/xstate/pull/5513) [`d15455b`](https://github.com/statelyai/xstate/commit/d15455b13c42a48ef139e1381cd3ee57e40defba) Thanks [@thecrypticace](https://github.com/thecrypticace)! - Fix computed `atom.subscribe()` callbacks not re-running after one of it's dependencies is synchronously updated inside the callback. Previously, calling `someDependency.set()` inside a subscription callback would prevent that subscription from being notified of future changes. This also affected store selector subscriptions which triggered an update to the store.
+
 ## 3.17.2
 
 ### Patch Changes

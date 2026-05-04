@@ -72,6 +72,33 @@ it('can create a combined atom', () => {
   numAtom.set(5);
 });
 
+it('allows updates to a computed dependency during a subscription callback', () => {
+  const atom = createAtom({ a: 0, b: 0 });
+
+  const a = createAtom(() => atom.get().a);
+  a.subscribe(() => atom.set((ctx) => ({ ...ctx, b: ctx.a })));
+
+  atom.set((ctx) => ({ ...ctx, a: ctx.a + 1 }));
+  atom.set((ctx) => ({ ...ctx, a: ctx.a + 1 }));
+  atom.set((ctx) => ({ ...ctx, a: ctx.a + 1 }));
+
+  expect(a.get()).toBe(3);
+  expect(atom.get().a).toBe(3);
+  expect(atom.get().b).toBe(3);
+});
+
+it('does not loop when updating a computed dependency which affects an atoms own state', () => {
+  const count = createAtom(0);
+  const a = createAtom(() => count.get());
+
+  a.subscribe(() => count.set((val) => val + 1));
+
+  count.set((val) => val + 1);
+
+  expect(a.get()).toBe(2);
+  expect(count.get()).toBe(2);
+});
+
 it('works with a mix of atoms and stores', () => {
   const countAtom = createAtom(0);
   const store = createStore({
@@ -148,6 +175,46 @@ it('works with selectors', () => {
   });
 
   const count = store.select((ctx) => ctx.count);
+
+  const combinedAtom = createAtom(() => 2 * count.get());
+
+  expect(combinedAtom.get()).toBe(0);
+
+  store.trigger.increment();
+
+  expect(combinedAtom.get()).toBe(2);
+});
+
+it('allows sending events to the store during a selector subscription', () => {
+  const store = createStore({
+    context: { a: 0, b: 0 },
+    on: {
+      a: (context) => ({ ...context, a: context.a + 1 }),
+      b: (context) => ({ ...context, b: context.b + 1 })
+    }
+  });
+
+  const a = store.select((context) => context.a);
+  a.subscribe(() => store.trigger.b());
+
+  store.trigger.a();
+  store.trigger.a();
+  store.trigger.a();
+
+  expect(store.get().context.a).toBe(3);
+  expect(store.get().context.b).toBe(3);
+});
+
+it('works with selectors (get API)', () => {
+  const store = createStore({
+    context: { name: 'David', count: 0 },
+    on: {
+      increment: (context) => ({ ...context, count: context.count + 1 })
+    }
+  });
+
+  const count = store.select((ctx) => ctx.count);
+
   const combinedAtom = createAtom(() => 2 * count.get());
 
   expect(combinedAtom.get()).toBe(0);
@@ -173,15 +240,13 @@ it('combined atoms should be read-only', () => {
 it('combined atom getters accept only prev as an argument', () => {
   const atom = createAtom(1);
 
-  if (false) {
-    createAtom<number>(
-      // @ts-expect-error — two-arg (read, prev) signature is no longer supported
-      (_read, _prev) => atom.get()
-    );
+  createAtom<number>(
+    // @ts-expect-error — two-arg (read, prev) signature is no longer supported
+    (_read, _prev) => atom.get()
+  );
 
-    // prev is valid
-    createAtom<number>((prev) => atom.get() + (prev ?? 0));
-  }
+  // prev is valid
+  createAtom<number>((prev) => atom.get() + (prev ?? 0));
 });
 
 it('conditionally read atoms are properly read in combined atoms', () => {
