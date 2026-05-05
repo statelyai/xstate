@@ -79,6 +79,37 @@ type ToStateSchema<TSchema extends StateSchema> = {
 type RequiredSetupKeys<TChildrenMap> =
   IsNever<keyof TChildrenMap> extends true ? never : 'actors';
 
+// Extract { [invokeId]: src } mappings from a machine config's invoke entries.
+// This allows createMachine to infer TChildrenMap from the invoke config
+// when types.children is not explicitly provided.
+type ExtractInvokeEntry<T> = T extends {
+  id: infer TId extends string;
+  src: infer TSrc extends string;
+}
+  ? { [K in TId]: TSrc }
+  : {};
+
+type ExtractInvokeChildren<T> = T extends readonly (infer E)[]
+  ? UnionToIntersection<ExtractInvokeEntry<E>>
+  : ExtractInvokeEntry<T>;
+
+type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (
+  x: infer I
+) => void
+  ? I
+  : never;
+
+type ExtractConfigChildren<TConfig> = TConfig extends {
+  invoke: infer TInvoke;
+}
+  ? ExtractInvokeChildren<TInvoke>
+  : {};
+
+type MergeChildrenMap<
+  TExplicit extends Record<string, string>,
+  TInferred extends Record<string, string>
+> = IsNever<keyof TExplicit> extends true ? TInferred : TExplicit;
+
 export type SetupReturn<
   TContext extends MachineContext,
   TEvent extends AnyEventObject,
@@ -247,6 +278,10 @@ export type SetupReturn<
       TOutput,
       TEmitted,
       TMeta
+    >,
+    TResolvedChildren extends Record<string, string> = MergeChildrenMap<
+      TChildrenMap,
+      Cast<ExtractConfigChildren<TConfig>, Record<string, string>>
     >
   >(
     config: TConfig
@@ -260,10 +295,10 @@ export type SetupReturn<
             to: RoutableStateId<TConfig>;
           }),
     Cast<
-      ToChildren<ToProvidedActor<TChildrenMap, TActors>>,
+      ToChildren<ToProvidedActor<TResolvedChildren, TActors>>,
       Record<string, AnyActorRef | undefined>
     >,
-    ToProvidedActor<TChildrenMap, TActors>,
+    ToProvidedActor<TResolvedChildren, TActors>,
     ToParameterizedObject<TActions>,
     ToParameterizedObject<TGuards>,
     TDelay,
