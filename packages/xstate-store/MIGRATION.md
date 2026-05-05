@@ -224,6 +224,57 @@ const store = createStore({
 `enq.trigger` is typed from the same event map as `store.trigger`. With
 `schemas.events`, unknown events and invalid payloads are type errors.
 
+### Selectors and reusable store logic
+
+Stores can now create reactive selections with either `select(store, selector)`
+or `store.select(selector)`.
+
+```ts
+import { createStore, select } from '@xstate/store';
+
+const store = createStore({
+  context: { count: 0 },
+  on: {
+    inc: (context) => ({ count: context.count + 1 })
+  }
+});
+
+const count = select(store, (context) => context.count);
+const isEven = store.select((context) => context.count % 2 === 0);
+
+count.subscribe((value) => {
+  console.log(value);
+});
+
+store.trigger.inc();
+```
+
+`createStoreLogic(...)` creates reusable store definitions. If `selectors` are
+provided, each created store exposes them on `store.selectors`, and selectors
+are preserved when the store is extended with `store.with(...)`.
+
+```ts
+import { createStoreLogic } from '@xstate/store';
+
+const counterLogic = createStoreLogic({
+  context: (input: { initialCount: number }) => ({
+    count: input.initialCount
+  }),
+  selectors: {
+    count: (context) => context.count,
+    doubled: (context) => context.count * 2
+  },
+  on: {
+    inc: (context) => ({ count: context.count + 1 })
+  }
+});
+
+const store = counterLogic.createStore({ initialCount: 2 });
+
+store.selectors.count.get(); // 2
+store.selectors.doubled.get(); // 4
+```
+
 ### Async persistence support
 
 The `@xstate/store/persist` extension now persists active `snapshot.async`
