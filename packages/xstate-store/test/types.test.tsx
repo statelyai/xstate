@@ -1,5 +1,11 @@
 import { createActor } from 'xstate';
-import { createAsyncStore, createStore, fromStore } from '../src/index.ts';
+import {
+  createAsyncStore,
+  createStore,
+  createStoreLogic,
+  fromStore,
+  select
+} from '../src/index.ts';
 import { schema } from './schema.ts';
 
 describe('emitted', () => {
@@ -222,6 +228,90 @@ describe('trigger', () => {
 
       // @ts-expect-error
       store.trigger.unknown();
+    }
+  });
+
+  it('uses schema-declared events for enqueued trigger typing', () => {
+    createStore({
+      schemas: {
+        events: {
+          log: schema<
+            | { level: 'warn'; message: string }
+            | { level: 'error'; error: string }
+          >(),
+          flush: schema<{}>()
+        }
+      },
+      context: {},
+      on: {
+        flush: (ctx, _event, enq) => {
+          enq.trigger.log({ level: 'warn', message: 'hmm' });
+          enq.trigger.log({ level: 'error', error: 'uh oh' });
+
+          enq.trigger.log({
+            level: 'error',
+            // @ts-expect-error
+            message: 'foo'
+          });
+
+          // @ts-expect-error
+          enq.trigger.unknown();
+
+          return ctx;
+        }
+      }
+    });
+  });
+});
+
+describe('logic selectors', () => {
+  it('infers selected values from a store', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (context) => ({ count: context.count + 1 })
+      }
+    });
+    const count = select(store, (context) => context.count);
+    const label = select(store, (context) => `Count: ${context.count}`);
+
+    count.get() satisfies number;
+    label.get() satisfies string;
+
+    if (false) {
+      // @ts-expect-error
+      count.get() satisfies string;
+    }
+  });
+
+  it('infers input and selector values from reusable store logic', () => {
+    const counterLogic = createStoreLogic({
+      context: (input: { initialCount: number }) => ({
+        count: input.initialCount
+      }),
+      selectors: {
+        count: (context: { count: number }) => context.count,
+        label: (context: { count: number }) => `Count: ${context.count}`
+      },
+      on: {
+        inc: (context) => ({ count: context.count + 1 })
+      }
+    });
+
+    const store = counterLogic.createStore({ initialCount: 1 });
+
+    store.selectors.count.get() satisfies number;
+    store.selectors.label.get() satisfies string;
+
+    if (false) {
+      // @ts-expect-error
+      counterLogic.createStore();
+
+      // @ts-expect-error
+      counterLogic.createStore({ initialCount: 'one' });
+
+      // @ts-expect-error
+      store.selectors.label.get() satisfies number;
     }
   });
 });

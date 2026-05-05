@@ -65,45 +65,72 @@ type EmitterFunction<TEmittedEvent extends EventObject> = (
     : [DistributiveOmit<TEmittedEvent, 'type'>]
 ) => void;
 
-export type EnqueueObject<TEmittedEvent extends EventObject> = {
+type TriggerFunction<TEvent extends EventObject> = (
+  ...args: { type: TEvent['type'] } extends TEvent
+    ? AllKeys<TEvent> extends 'type'
+      ? []
+      : [DistributiveOmit<TEvent, 'type'>?]
+    : [DistributiveOmit<TEvent, 'type'>]
+) => void;
+
+export type TriggerObject<TEventPayloadMap extends EventPayloadMap> = {
+  [E in ExtractEvents<TEventPayloadMap> as E['type']]: string extends E['type']
+    ? (...args: any[]) => void
+    : TriggerFunction<E>;
+};
+
+export type EnqueueObject<
+  TEmittedEvent extends EventObject,
+  TEventPayloadMap extends EventPayloadMap = {}
+> = {
   emit: {
     [E in TEmittedEvent as E['type']]: EmitterFunction<E>;
   };
+  trigger: TriggerObject<TEventPayloadMap>;
   effect: (fn: () => void) => void;
 };
 
-export type AsyncEnqueueObject<TEmittedEvent extends EventObject> =
-  EnqueueObject<TEmittedEvent> & {
-    step: <T>(stepId: string, exec: () => T | PromiseLike<T>) => Promise<T>;
-  };
+export type AsyncEnqueueObject<
+  TEmittedEvent extends EventObject,
+  TEventPayloadMap extends EventPayloadMap = {}
+> = EnqueueObject<TEmittedEvent, TEventPayloadMap> & {
+  step: <T>(stepId: string, exec: () => T | PromiseLike<T>) => Promise<T>;
+};
 
 export type StoreEffect<TEmitted extends EventObject> = (() => void) | TEmitted;
 
 export type StoreAssigner<
   TContext extends StoreContext,
   TEvent extends EventObject,
-  TEmitted extends EventObject
+  TEmitted extends EventObject,
+  TEventPayloadMap extends EventPayloadMap = {}
 > = (
   context: TContext,
   event: TEvent,
-  enq: EnqueueObject<TEmitted>
+  enq: EnqueueObject<TEmitted, TEventPayloadMap>
 ) => TContext | void;
 
 export type AsyncStoreAssigner<
   TContext extends StoreContext,
   TEvent extends EventObject,
-  TEmitted extends EventObject
+  TEmitted extends EventObject,
+  TEventPayloadMap extends EventPayloadMap = {}
 > = (
   context: TContext,
   event: TEvent,
-  enq: AsyncEnqueueObject<TEmitted>
+  enq: AsyncEnqueueObject<TEmitted, TEventPayloadMap>
 ) => TContext | void | PromiseLike<TContext | void>;
 
 export type StoreProducerAssigner<
   TContext extends StoreContext,
   TEvent extends EventObject,
-  TEmitted extends EventObject
-> = (context: TContext, event: TEvent, enq: EnqueueObject<TEmitted>) => void;
+  TEmitted extends EventObject,
+  TEventPayloadMap extends EventPayloadMap = {}
+> = (
+  context: TContext,
+  event: TEvent,
+  enq: EnqueueObject<TEmitted, TEventPayloadMap>
+) => void;
 
 export type Snapshot<TOutput> =
   | {
@@ -281,7 +308,8 @@ export type StoreConfig<
           } & ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>[K],
           ExtractEvents<
             ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
-          >
+          >,
+          ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>
         >;
       }
     : {
@@ -290,7 +318,8 @@ export type StoreConfig<
           { type: K } & TEventPayloadMap[K],
           ExtractEvents<
             ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
-          >
+          >,
+          ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>
         >;
       };
 };
@@ -319,7 +348,8 @@ export type AsyncStoreConfig<
           } & ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>[K],
           ExtractEvents<
             ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
-          >
+          >,
+          ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>
         >;
       }
     : {
@@ -328,7 +358,8 @@ export type AsyncStoreConfig<
           { type: K } & TEventPayloadMap[K],
           ExtractEvents<
             ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
-          >
+          >,
+          ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>
         >;
       };
 };
@@ -347,9 +378,14 @@ export type SpecificStoreConfig<
     [E in TEvent as E['type']]?: StoreAssigner<
       ResolveStoreContext<TContext, TContextSchema>,
       E,
-      TEmitted
+      TEmitted,
+      EventPayloadMapFromEvents<TEvent>
     >;
   };
+};
+
+type EventPayloadMapFromEvents<TEvent extends EventObject> = {
+  [E in TEvent as E['type']]: DistributiveOmit<E, 'type'>;
 };
 
 type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
@@ -521,6 +557,54 @@ export type ActorRefLike = {
 export type Selector<TContext, TSelected> = (context: TContext) => TSelected;
 
 export type Selection<TSelected> = Readable<TSelected>;
+
+export type StoreSelectorsConfig<TContext extends StoreContext> = Record<
+  string,
+  Selector<TContext, any>
+>;
+
+export type ResolvedStoreSelectors<
+  TContext extends StoreContext,
+  TSelectors extends StoreSelectorsConfig<TContext>
+> = {
+  [K in keyof TSelectors]: Selection<ReturnType<TSelectors[K]>>;
+};
+
+export type StoreWithSelectors<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject,
+  TSelectors extends StoreSelectorsConfig<TContext>
+> = Omit<Store<TContext, TEventPayloadMap, TEmitted>, 'with'> & {
+  selectors: ResolvedStoreSelectors<TContext, TSelectors>;
+  with<TNewEventPayloadMap extends EventPayloadMap>(
+    extension: StoreExtension<
+      TContext,
+      TEventPayloadMap,
+      TNewEventPayloadMap,
+      TEmitted
+    >
+  ): StoreWithSelectors<
+    TContext,
+    TEventPayloadMap & TNewEventPayloadMap,
+    TEmitted,
+    TSelectors
+  >;
+};
+
+export interface StoreLogicCreator<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject,
+  TInput,
+  TSelectors extends StoreSelectorsConfig<TContext>
+> {
+  createStore: [TInput] extends [void]
+    ? () => StoreWithSelectors<TContext, TEventPayloadMap, TEmitted, TSelectors>
+    : (
+        input: TInput
+      ) => StoreWithSelectors<TContext, TEventPayloadMap, TEmitted, TSelectors>;
+}
 
 export interface Readable<T> extends Subscribable<T> {
   get: () => T;

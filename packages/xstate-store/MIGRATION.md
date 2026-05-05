@@ -182,6 +182,48 @@ const store = createStore({
 store.trigger.reset(); // no-op
 ```
 
+### `enq.trigger`
+
+Transitions can now enqueue store events with `enq.trigger`. This is useful for
+composing event handlers without calling another transition function directly.
+
+```ts
+const store = createStore({
+  schemas: {
+    events: {
+      addBear: z.object({}),
+      addFish: z.object({
+        amount: z.number()
+      }),
+      addBearAndFish: z.object({})
+    }
+  },
+  context: {
+    bears: 0,
+    fishes: 0
+  },
+  on: {
+    addBear: (context) => ({
+      ...context,
+      bears: context.bears + 1
+    }),
+    addFish: (context, event) => ({
+      ...context,
+      fishes: context.fishes + event.amount
+    }),
+    addBearAndFish: (context, _event, enq) => {
+      enq.trigger.addBear();
+      enq.trigger.addFish({ amount: 1 });
+
+      return context;
+    }
+  }
+});
+```
+
+`enq.trigger` is typed from the same event map as `store.trigger`. With
+`schemas.events`, unknown events and invalid payloads are type errors.
+
 ### Async persistence support
 
 The `@xstate/store/persist` extension now persists active `snapshot.async`

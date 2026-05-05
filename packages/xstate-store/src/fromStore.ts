@@ -32,6 +32,7 @@ type FromStoreEmittedEvents<
 
 type InferredFromStoreTransitions<
   TContext extends StoreContext,
+  TTransitions extends Record<string, (...args: any[]) => any>,
   TEmittedPayloadMap extends EventPayloadMap,
   TContextSchema extends StandardSchemaV1 | undefined,
   TEmittedSchemaMap extends StandardSchemaMap | undefined
@@ -41,7 +42,8 @@ type InferredFromStoreTransitions<
     context: NoInfer<ResolveStoreContext<TContext, TContextSchema>>,
     event: any,
     enq: EnqueueObject<
-      FromStoreEmittedEvents<TEmittedPayloadMap, TEmittedSchemaMap>
+      FromStoreEmittedEvents<TEmittedPayloadMap, TEmittedSchemaMap>,
+      InferredEventPayloadMap<TTransitions>
     >
   ) => ResolveStoreContext<TContext, TContextSchema> | void
 >;
@@ -82,6 +84,7 @@ type FromStoreValueConfig<
   on: TTransitions &
     InferredFromStoreTransitions<
       TContext,
+      TTransitions,
       TEmittedPayloadMap,
       TContextSchema,
       TEmittedSchemaMap
@@ -101,6 +104,7 @@ type FromStoreInputConfig<
   on: TTransitions &
     InferredFromStoreTransitions<
       TContext,
+      TTransitions,
       TEmittedPayloadMap,
       TContextSchema,
       TEmittedSchemaMap

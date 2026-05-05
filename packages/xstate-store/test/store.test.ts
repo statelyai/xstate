@@ -1,7 +1,9 @@
 import {
   createAsyncStore,
   createStore,
-  createStoreConfig
+  createStoreLogic,
+  createStoreConfig,
+  select
 } from '../src/index.ts';
 import { createStoreTransition } from '../src/store.ts';
 import { reset } from '../src/reset.ts';
@@ -396,6 +398,45 @@ it('effects can be enqueued', async () => {
   await new Promise((resolve) => setTimeout(resolve, 10));
 
   expect(store.getSnapshot().context.count).toEqual(0);
+});
+
+it('events can be enqueued from transitions', () => {
+  const store = createStore({
+    context: {
+      bears: 0,
+      fishes: 0
+    },
+    schemas: {
+      events: {
+        addBear: schema<{}>(),
+        addFish: schema<{ amount: number }>(),
+        addBearAndFish: schema<{}>()
+      }
+    },
+    on: {
+      addBear: (ctx) => ({
+        ...ctx,
+        bears: ctx.bears + 1
+      }),
+      addFish: (ctx, event) => ({
+        ...ctx,
+        fishes: ctx.fishes + event.amount
+      }),
+      addBearAndFish: (ctx, _, enq) => {
+        enq.trigger.addBear();
+        enq.trigger.addFish({ amount: 1 });
+
+        return ctx;
+      }
+    }
+  });
+
+  store.trigger.addBearAndFish();
+
+  expect(store.getSnapshot().context).toEqual({
+    bears: 1,
+    fishes: 1
+  });
 });
 
 it('effect-only transitions should execute effects', () => {
@@ -1169,6 +1210,64 @@ describe('store.transition', () => {
     expect(effects).toHaveLength(1);
     expect(typeof effects[0]).toBe('function');
   });
+
+  it('resolves enqueued trigger events and collects effects in pure transitions', () => {
+    const spy = vi.fn();
+    const store = createStore({
+      context: { count: 0 },
+      schemas: {
+        events: {
+          inc: schema<{}>(),
+          incTwice: schema<{}>()
+        }
+      },
+      on: {
+        inc: (ctx, _, enq) => {
+          enq.effect(() => spy('inc'));
+
+          return {
+            count: ctx.count + 1
+          };
+        },
+        incTwice: (ctx, _, enq) => {
+          enq.effect(() => spy('before'));
+          enq.trigger.inc();
+          enq.trigger.inc();
+          enq.effect(() => spy('after'));
+
+          return ctx;
+        }
+      }
+    });
+
+    const [nextState, effects] = store.transition(store.getSnapshot(), {
+      type: 'incTwice'
+    });
+
+    expect(nextState.context).toEqual({ count: 2 });
+    expect(effects).toHaveLength(4);
+    expect(effects.every((effect) => typeof effect === 'function')).toBe(true);
+    for (const effect of effects) {
+      if (typeof effect === 'function') {
+        effect();
+      }
+    }
+    expect(spy).toHaveBeenCalledTimes(4);
+    expect(spy).toHaveBeenNthCalledWith(1, 'before');
+    expect(spy).toHaveBeenNthCalledWith(2, 'after');
+    expect(spy).toHaveBeenNthCalledWith(3, 'inc');
+    expect(spy).toHaveBeenNthCalledWith(4, 'inc');
+    spy.mockClear();
+
+    store.trigger.incTwice();
+
+    expect(store.getSnapshot().context).toEqual({ count: 2 });
+    expect(spy).toHaveBeenCalledTimes(4);
+    expect(spy).toHaveBeenNthCalledWith(1, 'before');
+    expect(spy).toHaveBeenNthCalledWith(2, 'after');
+    expect(spy).toHaveBeenNthCalledWith(3, 'inc');
+    expect(spy).toHaveBeenNthCalledWith(4, 'inc');
+  });
 });
 
 it('can be created with a logic object', () => {
@@ -1208,6 +1307,88 @@ it('can be created with a logic object', () => {
 
   // @ts-expect-error
   store.getSnapshot().context.count satisfies string;
+});
+
+it('can select from a store', () => {
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (context) => ({
+        count: context.count + 1
+      })
+    }
+  });
+
+  const countSpy = vi.fn();
+  const evenSpy = vi.fn();
+  const count = select(store, (context) => context.count);
+  const isEven = select(store, (context) => context.count % 2 === 0);
+
+  count.subscribe(countSpy);
+  isEven.subscribe(evenSpy);
+
+  expect(count.get()).toBe(0);
+  expect(isEven.get()).toBe(true);
+
+  store.trigger.inc();
+
+  expect(count.get()).toBe(1);
+  expect(isEven.get()).toBe(false);
+  expect(countSpy).toHaveBeenCalledWith(1);
+  expect(evenSpy).toHaveBeenCalledWith(false);
+});
+
+it('can create reusable store logic with selectors', () => {
+  const counterLogic = createStoreLogic({
+    context: (input: { initialCount: number }) => ({
+      count: input.initialCount
+    }),
+    selectors: {
+      count: (context: { count: number }) => context.count,
+      doubled: (context: { count: number }) => context.count * 2
+    },
+    on: {
+      inc: (context) => {
+        return {
+          count: context.count + 1
+        };
+      }
+    }
+  });
+
+  const store = counterLogic.createStore({ initialCount: 2 });
+
+  expect(store.selectors.count.get()).toBe(2);
+  expect(store.selectors.doubled.get()).toBe(4);
+
+  store.trigger.inc();
+
+  expect(store.selectors.count.get()).toBe(3);
+  expect(store.selectors.doubled.get()).toBe(6);
+});
+
+it('preserves selectors through store extensions', () => {
+  const counterLogic = createStoreLogic({
+    context: { count: 0 },
+    selectors: {
+      doubled: (context: { count: number }) => context.count * 2
+    },
+    on: {
+      inc: (context) => ({
+        count: context.count + 1
+      })
+    }
+  });
+
+  const store = counterLogic.createStore().with(reset());
+
+  expect(store.selectors.doubled.get()).toBe(0);
+
+  store.trigger.inc();
+  expect(store.selectors.doubled.get()).toBe(2);
+
+  store.trigger.reset();
+  expect(store.selectors.doubled.get()).toBe(0);
 });
 
 it('should not trigger update if the snapshot is the same', () => {

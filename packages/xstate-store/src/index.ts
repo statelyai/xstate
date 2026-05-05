@@ -1,6 +1,12 @@
 export { shallowEqual } from './shallowEqual';
 export { fromStore } from './fromStore';
-export { createAsyncStore, createStore, createStoreConfig } from './store';
+export {
+  createAsyncStore,
+  createStore,
+  createStoreConfig,
+  createStoreLogic,
+  select
+} from './store';
 export { createAtom, createAsyncAtom } from './atom';
 export type { StandardSchemaV1 } from './schema';
 export type {
@@ -14,6 +20,7 @@ export type {
   ResolveStoreEventPayloadMap,
   ResolveStoreEmittedPayloadMap,
   StoreEffect,
+  TriggerObject,
   StoreAssigner,
   AsyncEnqueueObject,
   AsyncStoreAssigner,
@@ -37,6 +44,10 @@ export type {
   ActorRefLike,
   Selector,
   Selection,
+  StoreSelectorsConfig,
+  ResolvedStoreSelectors,
+  StoreWithSelectors,
+  StoreLogicCreator,
   Readable,
   BaseAtom,
   Atom,
