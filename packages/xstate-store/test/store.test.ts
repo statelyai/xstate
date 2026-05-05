@@ -2,8 +2,7 @@ import {
   createAsyncStore,
   createStore,
   createStoreLogic,
-  createStoreConfig,
-  select
+  createStoreConfig
 } from '../src/index.ts';
 import { createStoreTransition } from '../src/store.ts';
 import { reset } from '../src/reset.ts';
@@ -1321,8 +1320,8 @@ it('can select from a store', () => {
 
   const countSpy = vi.fn();
   const evenSpy = vi.fn();
-  const count = select(store, (context) => context.count);
-  const isEven = select(store, (context) => context.count % 2 === 0);
+  const count = store.select((context) => context.count);
+  const isEven = store.select((context) => context.count % 2 === 0);
 
   count.subscribe(countSpy);
   isEven.subscribe(evenSpy);

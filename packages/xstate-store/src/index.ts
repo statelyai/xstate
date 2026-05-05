@@ -4,8 +4,7 @@ export {
   createAsyncStore,
   createStore,
   createStoreConfig,
-  createStoreLogic,
-  select
+  createStoreLogic
 } from './store';
 export { createAtom, createAsyncAtom } from './atom';
 export type { StandardSchemaV1 } from './schema';

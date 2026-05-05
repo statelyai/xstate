@@ -224,13 +224,12 @@ const store = createStore({
 `enq.trigger` is typed from the same event map as `store.trigger`. With
 `schemas.events`, unknown events and invalid payloads are type errors.
 
-### Selectors and reusable store logic
+### Store selectors and reusable store logic
 
-Stores can now create reactive selections with either `select(store, selector)`
-or `store.select(selector)`.
+Stores can now create reactive selections with `store.select(selector)`.
 
 ```ts
-import { createStore, select } from '@xstate/store';
+import { createStore } from '@xstate/store';
 
 const store = createStore({
   context: { count: 0 },
@@ -239,7 +238,7 @@ const store = createStore({
   }
 });
 
-const count = select(store, (context) => context.count);
+const count = store.select((context) => context.count);
 const isEven = store.select((context) => context.count % 2 === 0);
 
 count.subscribe((value) => {

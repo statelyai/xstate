@@ -3,8 +3,7 @@ import {
   createAsyncStore,
   createStore,
   createStoreLogic,
-  fromStore,
-  select
+  fromStore
 } from '../src/index.ts';
 import { schema } from './schema.ts';
 
@@ -272,8 +271,8 @@ describe('logic selectors', () => {
         inc: (context) => ({ count: context.count + 1 })
       }
     });
-    const count = select(store, (context) => context.count);
-    const label = select(store, (context) => `Count: ${context.count}`);
+    const count = store.select((context) => context.count);
+    const label = store.select((context) => `Count: ${context.count}`);
 
     count.get() satisfies number;
     label.get() satisfies string;

@@ -367,8 +367,7 @@ function attachSelectors<
   const selectors = {} as ResolvedStoreSelectors<TContext, TSelectors>;
 
   for (const key of Object.keys(selectorsConfig) as (keyof TSelectors)[]) {
-    selectors[key] = select(
-      store,
+    selectors[key] = store.select(
       selectorsConfig[key]
     ) as ResolvedStoreSelectors<TContext, TSelectors>[keyof TSelectors];
   }
@@ -546,7 +545,9 @@ function createStoreCore<
       selector: Selector<TContext, TSelected>,
       equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
     ): Selection<TSelected> {
-      return select(store, selector, equalityFn);
+      return createAtom(() => selector(store.get().context), {
+        compare: equalityFn
+      });
     },
     with(extension) {
       const extendedLogic = extension(logic as any);
@@ -877,16 +878,6 @@ export function createStore(definitionOrLogic: any): any {
     transition
   } satisfies AnyStoreLogic;
   return createStoreCore(logic);
-}
-
-export function select<TContext extends StoreContext, TSelected>(
-  store: Store<TContext, any, any>,
-  selector: Selector<TContext, TSelected>,
-  equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
-): Selection<TSelected> {
-  return createAtom(() => selector(store.get().context), {
-    compare: equalityFn
-  });
 }
 
 export function createAsyncStore<
