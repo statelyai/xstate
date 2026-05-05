@@ -818,6 +818,102 @@ it('replays async transitions against the latest snapshot context', async () => 
   });
 });
 
+it('marks async executions as errored when a step rejects', async () => {
+  const error = new Error('step failed');
+  let reportError!: () => void;
+  const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout').mockImplementation(((
+    handler: () => void
+  ) => {
+    reportError = handler;
+    return undefined as unknown as ReturnType<typeof setTimeout>;
+  }) as typeof setTimeout);
+  const effectSpy = vi.fn();
+  const store = createAsyncStore({
+    context: {
+      result: 0
+    },
+    on: {
+      load: async (ctx, _event, enq) => {
+        const result = await enq.step('fetchResult', () =>
+          Promise.reject(error)
+        );
+
+        enq.effect(effectSpy);
+
+        return {
+          result: ctx.result + result
+        };
+      }
+    }
+  });
+
+  store.trigger.load();
+  await Promise.resolve();
+  await Promise.resolve();
+
+  const execution = Object.values(store.getSnapshot().async!)[0];
+
+  expect(store.getSnapshot().context.result).toBe(0);
+  expect(execution.steps.async).toEqual({
+    status: 'error',
+    error
+  });
+  expect(effectSpy).not.toHaveBeenCalled();
+  expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+  expect(reportError).toThrow(error);
+
+  setTimeoutSpy.mockRestore();
+});
+
+it('marks async executions as errored when the handler rejects after a completed step', async () => {
+  const error = new Error('handler failed');
+  let reportError!: () => void;
+  const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout').mockImplementation(((
+    handler: () => void
+  ) => {
+    reportError = handler;
+    return undefined as unknown as ReturnType<typeof setTimeout>;
+  }) as typeof setTimeout);
+  const effectSpy = vi.fn();
+  const store = createAsyncStore({
+    context: {
+      result: 0
+    },
+    on: {
+      load: async (_ctx, _event, enq) => {
+        await enq.step('fetchResult', () => Promise.resolve(42));
+        enq.effect(effectSpy);
+
+        throw error;
+      }
+    }
+  });
+
+  store.trigger.load();
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+
+  const execution = Object.values(store.getSnapshot().async!)[0];
+
+  expect(store.getSnapshot().context.result).toBe(0);
+  expect(execution.steps).toMatchObject({
+    async: {
+      status: 'error',
+      error
+    },
+    fetchResult: {
+      status: 'done',
+      output: 42
+    }
+  });
+  expect(effectSpy).not.toHaveBeenCalled();
+  expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+  expect(reportError).toThrow(error);
+
+  setTimeoutSpy.mockRestore();
+});
+
 it('can resume an in-progress async transition from a persisted snapshot', async () => {
   const config = {
     context: {
