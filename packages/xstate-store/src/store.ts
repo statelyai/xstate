@@ -1242,8 +1242,8 @@ export function createStoreTransition<
     event: StoreEvent
   ): [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]] => {
     let currentSnapshot = snapshot;
-    let effects: StoreEffect<TEmitted>[] = [];
-    let pendingEvents: StoreEvent[] = [event];
+    const effects: StoreEffect<TEmitted>[] = [];
+    const pendingEvents: StoreEvent[] = [event];
 
     while (pendingEvents.length > 0) {
       const currentEvent = pendingEvents.shift()!;
