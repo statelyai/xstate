@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.17.4
+
+### Patch Changes
+
+- [#5518](https://github.com/statelyai/xstate/pull/5518) [`3a881f5`](https://github.com/statelyai/xstate/commit/3a881f5204cc874c242ec04ce3471110b9d8c506) Thanks [@thecrypticace](https://github.com/thecrypticace)! - Fix synchronous subscribe callbacks still not re-running if a subscription triggers another one through multiple levels of computed atoms.
+
 ## 3.17.3
 
 ### Patch Changes
