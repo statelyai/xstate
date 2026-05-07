@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 3.17.5
+
+### Patch Changes
+
+- [#5521](https://github.com/statelyai/xstate/pull/5521) [`c4bb9e3`](https://github.com/statelyai/xstate/commit/c4bb9e3878b7595479554a4ed5ab93b81295d472) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix broken exports caused by missing build step in the publish workflow.
+
 ## 3.17.4
 
 ### Patch Changes
