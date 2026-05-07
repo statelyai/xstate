@@ -47,6 +47,9 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: ./.github/actions/ci-setup
 
+      - name: Build
+        run: pnpm build
+
       - name: Publish to npm
         # https://github.com/changesets/action
         uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1.7.0
