@@ -1,5 +1,28 @@
 # xstate
 
+## 5.31.1
+
+### Patch Changes
+
+- [#5525](https://github.com/statelyai/xstate/pull/5525) [`f79ea13`](https://github.com/statelyai/xstate/commit/f79ea13febe44956d309811a64b9b79f4f3d9295) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed route transition guards so named guards registered with `setup({ guards })` are resolved for `route.guard`.
+
+  ```ts
+  const machine = setup({
+    guards: {
+      isReady: ({ context }) => context.ready
+    }
+  }).createMachine({
+    states: {
+      review: {
+        id: 'review',
+        route: {
+          guard: 'isReady'
+        }
+      }
+    }
+  });
+  ```
+
 ## 5.31.0
 
 ### Minor Changes
