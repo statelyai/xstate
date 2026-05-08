@@ -1,4 +1,4 @@
-import { createActor, setup } from '../src';
+import { assign, createActor, setup } from '../src';
 
 describe('route', () => {
   it('should transition directly to a route if route is an empty transition config', () => {
@@ -71,6 +71,57 @@ describe('route', () => {
     });
 
     expect(actor.getSnapshot().value).toEqual('c');
+  });
+
+  it('should resolve setup-registered string guards on route transitions', () => {
+    const machine = setup({
+      types: {
+        context: {} as { ready: boolean }
+      },
+      guards: {
+        isReady: ({ context }) => context.ready
+      }
+    }).createMachine({
+      id: 'flow',
+      initial: 'amount',
+      context: {
+        ready: false
+      },
+      states: {
+        amount: {
+          id: 'amount',
+          route: {},
+          on: {
+            READY: {
+              actions: assign({ ready: true })
+            }
+          }
+        },
+        review: {
+          id: 'review',
+          route: {
+            guard: 'isReady'
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    actor.send({
+      type: 'xstate.route',
+      to: '#review'
+    });
+
+    expect(actor.getSnapshot().value).toEqual('amount');
+
+    actor.send({ type: 'READY' });
+    actor.send({
+      type: 'xstate.route',
+      to: '#review'
+    });
+
+    expect(actor.getSnapshot().value).toEqual('review');
   });
 
   it('should work with parallel states', () => {
