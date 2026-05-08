@@ -14,7 +14,7 @@ import {
   XSTATE_STOP,
   WILDCARD
 } from './constants.ts';
-import { evaluateGuard } from './guards.ts';
+import { and, evaluateGuard } from './guards.ts';
 import { matchesEventDescriptor } from './utils.ts';
 import {
   ActionArgs,
@@ -395,24 +395,12 @@ export function formatRouteTransitions(rootStateNode: AnyStateNode): void {
       if (sn.config.route && sn.config.id) {
         const routeId = sn.config.id;
         const userGuard = sn.config.route.guard;
-        const routeGuard = (
-          args: { context: any; event: any },
-          params: any
-        ) => {
-          if (args.event.to !== `#${routeId}`) {
-            return false;
-          }
-          if (!userGuard) {
-            return true;
-          }
-          if (typeof userGuard === 'function') {
-            return userGuard(args, params);
-          }
-          return true;
-        };
+        const routeMatches = ({ event }: { event: any }) =>
+          event.to === `#${routeId}`;
+
         const transition: AnyTransitionConfig = {
           ...sn.config.route,
-          guard: routeGuard,
+          guard: userGuard ? and([routeMatches, userGuard]) : routeMatches,
           target: `#${routeId}`
         };
 
