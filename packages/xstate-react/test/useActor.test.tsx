@@ -9,7 +9,7 @@ import {
   Snapshot,
   StateFrom,
   createActor,
-  next_createMachine
+  createMachine
 } from 'xstate';
 import { fromCallback, fromObservable, createAsyncLogic } from 'xstate';
 import { useActor, useSelector } from '../src/index.ts';
@@ -24,7 +24,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   const context = {
     data: undefined as undefined | string
   };
-  const fetchMachine = next_createMachine({
+  const fetchMachine = createMachine({
     id: 'fetch',
     // types: {} as {
     //   context: typeof context;
@@ -43,7 +43,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       }) as any
     },
     actors: {
-      fetchData: next_createMachine({})
+      fetchData: createMachine({})
     },
     initial: 'idle',
     context,
@@ -86,7 +86,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   const actorRef = createActor(
     fetchMachine.provide({
       actors: {
-        fetchData: next_createMachine({
+        fetchData: createMachine({
           initial: 'done',
           states: {
             done: {
@@ -192,7 +192,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should accept input and provide it to the context factory', () => {
-    const testMachine = next_createMachine({
+    const testMachine = createMachine({
       types: {} as {
         context: { foo: string; test: boolean };
         input: { test: boolean };
@@ -224,7 +224,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should not spawn actors until service is started', async () => {
-    const spawnMachine = next_createMachine({
+    const spawnMachine = createMachine({
       types: {} as { context: { ref?: ActorRef<any, any> } },
       id: 'spawn',
       initial: 'start',
@@ -283,7 +283,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('actions should not use stale data in a builtin transition action', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
 
-    const toggleMachine = next_createMachine({
+    const toggleMachine = createMachine({
       // types: {} as {
       //   context: { latest: number };
       //   events: { type: 'SET_LATEST' };
@@ -347,7 +347,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('actions should not use stale data in a builtin entry action', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
 
-    const toggleMachine = next_createMachine({
+    const toggleMachine = createMachine({
       types: {} as { context: { latest: number }; events: { type: 'NEXT' } },
       actions: {
         getLatest: () => {}
@@ -416,7 +416,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('actions should not use stale data in a custom entry action', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
 
-    const toggleMachine = next_createMachine({
+    const toggleMachine = createMachine({
       // types: {} as {
       //   events: { type: 'TOGGLE' };
       // },
@@ -489,7 +489,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should successfully spawn actors from the lazily declared context', () => {
     let childSpawned = false;
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       context: ({ spawn }) => ({
         ref: spawn(
           fromCallback(() => {
@@ -512,7 +512,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should be able to use an action provided outside of React', () => {
     let actionCalled = false;
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       on: {
         EV: (_, enq) => {
           enq(() => (actionCalled = true));
@@ -536,7 +536,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should be able to use a guard provided outside of React', () => {
     let guardCalled = false;
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       guards: {
         isAwesome: () => true
@@ -584,7 +584,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should be able to use a service provided outside of React', () => {
     let serviceCalled = false;
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       actors: {
         foo: createAsyncLogic({
           run: () => {
@@ -633,7 +633,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       //     }
       //   }
       // }).
-      next_createMachine({
+      createMachine({
         delays: {
           myDelay: () => {
             return 300;
@@ -680,7 +680,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should not use stale data in a guard', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       guards: {
         isAwesome: () => false
       },
@@ -731,7 +731,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('custom data should be available right away for the invoked actor', () => {
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       // types: {
       //   context: {} as { value: number }
       // },
@@ -754,7 +754,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   actors: {
       //     src: 'child';
@@ -793,7 +793,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   // https://github.com/statelyai/xstate/issues/1334
   it('delayed transitions should work when initializing from a rehydrated state', () => {
     vi.useFakeTimers();
-    const testMachine = next_createMachine({
+    const testMachine = createMachine({
       // types: {} as {
       //   events: {
       //     type: 'START';
@@ -855,7 +855,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should not miss initial synchronous updates', () => {
-    const m = next_createMachine({
+    const m = createMachine({
       // types: {} as { context: { count: number } },
       schemas: {
         context: z.object({
@@ -913,7 +913,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     const spy = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       invoke: {
         src: fromObservable(() => subject),
         // onSnapshot: {
@@ -941,7 +941,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should execute a delayed transition of the initial state', async () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'one',
       states: {
         one: {
@@ -974,7 +974,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should throw an error to an error boundary when the actor reaches an error state', async () => {
     const errorMessage = 'test_useActor_error';
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'loading',
       states: {
         loading: {

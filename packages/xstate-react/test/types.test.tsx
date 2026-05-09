@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { ActorRefFrom, next_createMachine } from 'xstate';
+import { ActorRefFrom, createMachine } from 'xstate';
 import {
   useActor,
   useActorRef,
@@ -17,7 +17,7 @@ describe('useMachine', () => {
     type: 'YES';
   }
 
-  const yesNoMachine = next_createMachine({
+  const yesNoMachine = createMachine({
     // types: {} as { context: YesNoContext; events: YesNoEvent },
     schemas: {
       context: z.object({
@@ -59,7 +59,7 @@ describe('useMachine', () => {
 
   // Example from: https://github.com/statelyai/xstate/discussions/1534
   it('spawned actors should be typed correctly', () => {
-    const child = next_createMachine({
+    const child = createMachine({
       // types: {} as {
       //   context: { bar: number };
       //   events: { type: 'FOO'; data: number };
@@ -83,7 +83,7 @@ describe('useMachine', () => {
       }
     });
 
-    const m = next_createMachine({
+    const m = createMachine({
       initial: 'ready',
       schemas: {
         context: z.object({
@@ -145,7 +145,7 @@ describe('useMachine', () => {
 
 describe('useActor', () => {
   it('should require input to be specified when defined', () => {
-    const withInputMachine = next_createMachine({
+    const withInputMachine = createMachine({
       // types: {} as { input: { value: number } },
       schemas: {
         input: z.object({
@@ -167,7 +167,7 @@ describe('useActor', () => {
   });
 
   it('should not require input when not defined', () => {
-    const noInputMachine = next_createMachine({
+    const noInputMachine = createMachine({
       // types: {} as {},
       initial: 'idle',
       states: {
@@ -185,7 +185,7 @@ describe('useActor', () => {
 
 describe('useActorRef', () => {
   it('should require input to be specified when defined', () => {
-    const withInputMachine = next_createMachine({
+    const withInputMachine = createMachine({
       // types: {} as { input: { value: number } },
       schemas: {
         input: z.object({
@@ -207,7 +207,7 @@ describe('useActorRef', () => {
   });
 
   it('should not require input when not defined', () => {
-    const noInputMachine = next_createMachine({
+    const noInputMachine = createMachine({
       // types: {} as {},
       initial: 'idle',
       states: {
@@ -226,7 +226,7 @@ describe('useActorRef', () => {
 
 it('useMachine types work for machines with a specified id and state with an after property #5008', () => {
   // https://github.com/statelyai/xstate/issues/5008
-  const cheatCodeMachine = next_createMachine({
+  const cheatCodeMachine = createMachine({
     id: 'cheatCodeMachine',
     initial: 'disabled',
     states: {

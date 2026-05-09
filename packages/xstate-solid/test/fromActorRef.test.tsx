@@ -16,8 +16,7 @@ import {
   ActorRefFrom,
   createActor,
   createMachine,
-  fromTransition,
-  next_createMachine
+  fromTransition
 } from 'xstate';
 import { fromActorRef, useActor } from '../src/index.ts';
 import { z } from 'zod';
@@ -72,7 +71,7 @@ describe('fromActorRef', () => {
 
   it('invoked actor should be able to receive (deferred) events that it replays when active', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
       states: {
@@ -85,7 +84,7 @@ describe('fromActorRef', () => {
         }
       }
     });
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'active',
       invoke: {
         id: 'child',
@@ -177,7 +176,7 @@ describe('fromActorRef', () => {
   });
 
   it('should only trigger effects once for nested context values', () => {
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       // types: {} as {
       //   context: {
       //     item: { count: number; total: number };
@@ -556,7 +555,7 @@ describe('fromActorRef', () => {
 
   it('spawned actor should be able to receive (deferred) events that it replays when active', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
       states: {
@@ -570,7 +569,7 @@ describe('fromActorRef', () => {
         }
       }
     });
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   context: {
       //     actorRef?: ActorRefFrom<typeof childMachine>;

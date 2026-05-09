@@ -290,7 +290,7 @@ describe('internalEvents', () => {
 });
 
 describe('context', () => {
-  it('defined context in next_createMachine() should be an object', () => {
+  it('defined context in createMachine() should be an object', () => {
     createMachine({
       // @ts-expect-error
       context: 'string'

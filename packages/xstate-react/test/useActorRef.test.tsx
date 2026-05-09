@@ -8,7 +8,7 @@ import {
   ActorRefFrom,
   createAsyncLogic,
   fromTransition,
-  next_createMachine
+  createMachine
 } from 'xstate';
 import { useActorRef, useMachine, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
@@ -21,7 +21,7 @@ afterEach(() => {
 describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('observer should be called with next state', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'inactive',
       states: {
         inactive: {
@@ -64,7 +64,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('actions created by a layout effect should access the latest closure values', () => {
     const actual: number[] = [];
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       actions: {
         recordProp: () => {}
@@ -108,7 +108,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should rerender OK when only the provided machine implementations have changed', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'foo',
       schemas: {
         context: z.object({
@@ -173,7 +173,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   // v6: In strict mode, the stop/restart cycle doesn't restart spawned children
   // because StateMachine.start() no longer auto-starts children
   it('should change state when started', async () => {
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       initial: 'waiting',
       states: {
         waiting: {
@@ -185,7 +185,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = next_createMachine({
+    const parentMachine = createMachine({
       schemas: {
         context: z.object({
           childRef: z.custom<ActorRefFrom<typeof childMachine>>()
@@ -232,7 +232,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should change state when started (useMachine)', async () => {
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       initial: 'waiting',
       states: {
         waiting: {
@@ -244,7 +244,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = next_createMachine({
+    const parentMachine = createMachine({
       // types: {} as {
       //   context: {
       //     childRef: ActorRefFrom<typeof childMachine>;
@@ -350,12 +350,12 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should be able to rerender with a new machine', () => {
-    const machine1 = next_createMachine({
+    const machine1 = createMachine({
       initial: 'a',
       states: { a: {} }
     });
 
-    const machine2 = next_createMachine({
+    const machine2 = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -404,7 +404,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should be able to rehydrate an incoming new machine using the persisted state of the previous one', () => {
-    const machine1 = next_createMachine({
+    const machine1 = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -414,7 +414,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const machine2 = next_createMachine({
+    const machine2 = createMachine({
       initial: 'b',
       states: {
         b: {
@@ -466,11 +466,11 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('all renders should be consistent - a value derived in render should be derived from the latest source', () => {
     let detectedInconsistency = false;
 
-    const machine1 = next_createMachine({
+    const machine1 = createMachine({
       tags: ['m1']
     });
 
-    const machine2 = next_createMachine({
+    const machine2 = createMachine({
       tags: ['m2']
     });
 
@@ -505,11 +505,11 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('all commits should be consistent - a value derived in render should be derived from the latest source', () => {
     let detectedInconsistency = false;
 
-    const machine1 = next_createMachine({
+    const machine1 = createMachine({
       tags: ['m1']
     });
 
-    const machine2 = next_createMachine({
+    const machine2 = createMachine({
       tags: ['m2']
     });
 
@@ -547,7 +547,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     const spy1 = vi.fn();
     const spy2 = vi.fn();
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       actions: {
         stuff: spy1
       },

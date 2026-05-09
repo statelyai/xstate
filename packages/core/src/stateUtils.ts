@@ -552,24 +552,25 @@ export function formatRouteTransitions(rootStateNode: AnyStateNode): void {
       if (sn.config.route && sn.config.id) {
         const routeId = sn.config.id;
         const userGuard = sn.config.route.guard;
-        const routeGuard = (
-          args: { context: any; event: any },
-          params: any
-        ) => {
-          if (args.event.to !== `#${routeId}`) {
-            return false;
-          }
-          if (!userGuard) {
-            return true;
-          }
-          if (typeof userGuard === 'function') {
-            return userGuard(args, params);
-          }
-          return true;
-        };
+        const routeMatches = ({ event }: { event: any }) =>
+          event.to === `#${routeId}`;
+
         const transition: AnyTransitionConfig = {
           ...sn.config.route,
-          guard: routeGuard,
+          guard: userGuard
+            ? (args: {
+                event: any;
+                guards: Record<string, (...a: any[]) => any>;
+              }) => {
+                if (!routeMatches(args)) return false;
+                if (typeof userGuard === 'function') return userGuard(args);
+                if (typeof userGuard === 'string') {
+                  const guardImpl = args.guards?.[userGuard];
+                  return guardImpl ? guardImpl(args) : true;
+                }
+                return true;
+              }
+            : routeMatches,
           target: `#${routeId}`
         };
 

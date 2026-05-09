@@ -148,7 +148,18 @@ export function createAtom<T>(
         if (!observed.current) {
           observed.current = true;
         } else {
-          obs.next?.(atom._snapshot);
+          const prevSub = activeSub;
+          activeSub = undefined;
+          try {
+            obs.next?.(atom._snapshot);
+          } finally {
+            activeSub = prevSub;
+          }
+
+          // If the observer synchronously updates any of our deps we'll be
+          // marked as dirty preventing this effect from re-running. Request
+          // the value again to reconcile any dirty deps.
+          atom.get();
         }
       });
 

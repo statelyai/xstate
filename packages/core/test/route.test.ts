@@ -73,6 +73,53 @@ describe('route', () => {
     expect(actor.getSnapshot().value).toEqual('c');
   });
 
+  it('should resolve guards provided in machine config on route transitions', () => {
+    const machine = createMachine({
+      id: 'flow',
+      initial: 'amount',
+      context: {
+        ready: false as boolean
+      },
+      guards: {
+        isReady: ({ context }: { context: { ready: boolean } }) => context.ready
+      },
+      states: {
+        amount: {
+          id: 'amount',
+          route: {},
+          on: {
+            READY: () => ({
+              context: { ready: true }
+            })
+          }
+        },
+        review: {
+          id: 'review',
+          route: {
+            guard: 'isReady'
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    actor.send({
+      type: 'xstate.route',
+      to: '#review'
+    });
+
+    expect(actor.getSnapshot().value).toEqual('amount');
+
+    actor.send({ type: 'READY' });
+    actor.send({
+      type: 'xstate.route',
+      to: '#review'
+    });
+
+    expect(actor.getSnapshot().value).toEqual('review');
+  });
+
   it('should work with parallel states', () => {
     const todoMachine = createMachine({
       id: 'todos',

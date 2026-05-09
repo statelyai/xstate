@@ -3216,7 +3216,7 @@ describe('invoke', () => {
 
   it.each([
     // ['src with string reference', { src: 'someSrc' }],
-    // ['machine', next_createMachine({ id: 'someId' })],
+    // ['machine', createMachine({ id: 'someId' })],
     [
       'src containing a machine directly',
       { src: createMachine({ id: 'someId' }) }

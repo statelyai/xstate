@@ -9,7 +9,7 @@ import {
   createActor,
   StateFrom,
   TransitionSnapshot,
-  next_createMachine
+  createMachine
 } from 'xstate';
 import {
   shallowEqual,
@@ -28,7 +28,7 @@ afterEach(() => {
 
 describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   it('only rerenders for selected values', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as { context: { count: number; other: number } },
       schemas: {
         context: z.object({
@@ -105,7 +105,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should work with a custom comparison function', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as {
       //   context: { name: string };
       //   events: { type: 'CHANGE'; value: string };
@@ -188,7 +188,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should work with the shallowEqual comparison function', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as { context: { user: { name: string } } },
       schemas: {
         context: z.object({
@@ -283,14 +283,14 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should work with selecting values from initially invoked actors', () => {
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
       states: {
         active: {}
       }
     });
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'active',
       invoke: {
         id: 'child',
@@ -326,7 +326,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   // v6: In strict mode, the stop/restart cycle doesn't restart spawned
   // children, so the child actor won't process events
   it('should work with selecting values from initially spawned actors', () => {
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -350,7 +350,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = next_createMachine({
+    const parentMachine = createMachine({
       // types: {
       //   context: {} as {
       //     childActor: ActorRefFrom<typeof childMachine>;
@@ -399,7 +399,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const createCustomActor = (latestValue: string) =>
       createActor(fromTransition((s) => s, latestValue));
 
-    const parentMachine = next_createMachine({
+    const parentMachine = createMachine({
       // types: {
       //   context: {} as {
       //     childActor: ReturnType<typeof createCustomActor>;
@@ -431,7 +431,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should rerender with a new value when the selector changes', () => {
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       // types: {} as { context: { count: number } },
       schemas: {
         context: z.object({
@@ -451,7 +451,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = next_createMachine({
+    const parentMachine = createMachine({
       // types: {
       //   context: {} as {
       //     childActor: ActorRefFrom<typeof childMachine>;
@@ -489,7 +489,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   // v6: In strict mode, the stop/restart cycle doesn't restart spawned
   // children, so the child actor won't process events
   it('should use a fresh selector for subscription updates after selector change', () => {
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -508,7 +508,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = next_createMachine({
+    const parentMachine = createMachine({
       // types: {
       //   context: {} as {
       //     childActor: ActorRefFrom<typeof childMachine>;
@@ -562,7 +562,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const createCustomLogic = (latestValue: string) =>
       fromTransition((s) => s, latestValue);
 
-    const parentMachine = next_createMachine({
+    const parentMachine = createMachine({
       // types: {
       //   context: {} as {
       //     childActor: ActorRefFrom<typeof createCustomLogic>;
@@ -651,7 +651,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   it('should only rerender once when the selected value changes', () => {
     const selector = (state: any) => state.context.foo;
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       // types: {} as { context: { foo: number }; events: { type: 'INC' } },
       schemas: {
         context: z.object({
@@ -702,8 +702,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should compute a stable snapshot internally when selecting from uninitialized service', () => {
-    const child = next_createMachine({});
-    const machine = next_createMachine({
+    const child = createMachine({});
+    const machine = createMachine({
       invoke: {
         id: 'child',
         src: child
@@ -732,7 +732,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   // v6: In strict mode, the stop/restart cycle doesn't restart spawned
   // children, so the child actor won't process events
   it('should work with initially deferred actors spawned in lazy context', () => {
-    const childMachine = next_createMachine({
+    const childMachine = createMachine({
       initial: 'one',
       states: {
         one: {
@@ -742,7 +742,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       schemas: {
         context: z.object({
           ref: z.custom<ActorRefFrom<typeof childMachine>>()
@@ -793,7 +793,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const spy = vi.fn();
     console.error = spy;
 
-    const machine = next_createMachine({});
+    const machine = createMachine({});
     const App = () => {
       useSelector(useActorRef(machine), (s) => s);
 
@@ -856,7 +856,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   it('should throw an error to an error boundary when the actor reaches an error state', async () => {
     const errorMessage = 'test_useSelector_error';
 
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'loading',
       states: {
         loading: {

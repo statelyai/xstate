@@ -1,5 +1,29 @@
 # @xstate/store
 
+## 3.17.5
+
+### Patch Changes
+
+- [#5521](https://github.com/statelyai/xstate/pull/5521) [`c4bb9e3`](https://github.com/statelyai/xstate/commit/c4bb9e3878b7595479554a4ed5ab93b81295d472) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix broken exports caused by missing build step in the publish workflow.
+
+## 3.17.4
+
+### Patch Changes
+
+- [#5518](https://github.com/statelyai/xstate/pull/5518) [`3a881f5`](https://github.com/statelyai/xstate/commit/3a881f5204cc874c242ec04ce3471110b9d8c506) Thanks [@thecrypticace](https://github.com/thecrypticace)! - Fix synchronous subscribe callbacks still not re-running if a subscription triggers another one through multiple levels of computed atoms.
+
+## 3.17.3
+
+### Patch Changes
+
+- [#5513](https://github.com/statelyai/xstate/pull/5513) [`d15455b`](https://github.com/statelyai/xstate/commit/d15455b13c42a48ef139e1381cd3ee57e40defba) Thanks [@thecrypticace](https://github.com/thecrypticace)! - Fix computed `atom.subscribe()` callbacks not re-running after one of it's dependencies is synchronously updated inside the callback. Previously, calling `someDependency.set()` inside a subscription callback would prevent that subscription from being notified of future changes. This also affected store selector subscriptions which triggered an update to the store.
+
+## 3.17.2
+
+### Patch Changes
+
+- [#5510](https://github.com/statelyai/xstate/pull/5510) [`d51fa6d`](https://github.com/statelyai/xstate/commit/d51fa6d640d3aac9e3424417b70f2d6f81466f78) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix `atom.subscribe()` callbacks tracking dependencies from `.get()` calls inside the callback (fixes #5509). Previously, calling `otherAtom.get()` inside a subscription callback would cause the callback to re-run whenever `otherAtom` changed, even if the subscribed atom's value didn't change.
+
 ## 3.17.1
 
 ### Patch Changes

@@ -227,7 +227,7 @@ describe.skip('rehydration', () => {
       }
       // {
       //   actors: {
-      //     foo: next_createMachine({})
+      //     foo: createMachine({})
       //   }
       // }
     );

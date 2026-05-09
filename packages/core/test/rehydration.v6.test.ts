@@ -231,7 +231,7 @@ describe.skip('rehydration', () => {
       }
       // {
       //   actors: {
-      //     foo: next_createMachine({})
+      //     foo: createMachine({})
       //   }
       // }
     );
@@ -260,7 +260,7 @@ describe.skip('rehydration', () => {
       }
       // {
       //   actors: {
-      //     foo: next_createMachine({ type: 'final' })
+      //     foo: createMachine({ type: 'final' })
       //   }
       // }
     );
@@ -297,7 +297,7 @@ describe.skip('rehydration', () => {
       }
       // {
       //   actors: {
-      //     foo: next_createMachine({ type: 'final' })
+      //     foo: createMachine({ type: 'final' })
       //   }
       // }
     );

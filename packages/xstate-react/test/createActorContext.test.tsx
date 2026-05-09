@@ -1,5 +1,5 @@
 import {
-  next_createMachine,
+  createMachine,
   createAsyncLogic,
   Snapshot,
   InspectionEvent
@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 describe('createActorContext', () => {
   it('should work with useSelector', () => {
-    const someMachine = next_createMachine({
+    const someMachine = createMachine({
       initial: 'a',
       states: { a: {} }
     });
@@ -37,7 +37,7 @@ describe('createActorContext', () => {
   });
 
   it('the actor should be able to receive events', () => {
-    const someMachine = next_createMachine({
+    const someMachine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -86,7 +86,7 @@ describe('createActorContext', () => {
   });
 
   it('should work with useSelector and a custom comparator', async () => {
-    const someMachine = next_createMachine({
+    const someMachine = createMachine({
       schemas: {
         context: z.object({
           obj: z.object({
@@ -177,7 +177,7 @@ describe('createActorContext', () => {
   });
 
   it('should work with useActorRef', () => {
-    const someMachine = next_createMachine({
+    const someMachine = createMachine({
       initial: 'a',
       states: { a: {} }
     });
@@ -206,7 +206,7 @@ describe('createActorContext', () => {
 
   it('should work with a provided machine', () => {
     const createSomeMachine = (context: { count: number }) =>
-      next_createMachine({
+      createMachine({
         schemas: {
           context: z.object({
             count: z.number()
@@ -240,7 +240,7 @@ describe('createActorContext', () => {
   });
 
   it('useActorRef should throw when the actor was not provided', () => {
-    const SomeContext = createActorContext(next_createMachine({}));
+    const SomeContext = createActorContext(createMachine({}));
 
     const App = () => {
       SomeContext.useActorRef();
@@ -253,7 +253,7 @@ describe('createActorContext', () => {
   });
 
   it('useSelector should throw when the actor was not provided', () => {
-    const SomeContext = createActorContext(next_createMachine({}));
+    const SomeContext = createActorContext(createMachine({}));
 
     const App = () => {
       SomeContext.useSelector((a) => a);
@@ -266,7 +266,7 @@ describe('createActorContext', () => {
   });
 
   it('should be able to pass interpreter options to the provider', () => {
-    const someMachine = next_createMachine({
+    const someMachine = createMachine({
       initial: 'a',
       actions: {
         testAction: () => {}
@@ -335,7 +335,7 @@ describe('createActorContext', () => {
   });
 
   it("should preserve machine's identity when swapping options using in-render `.provide`", () => {
-    const someMachine = next_createMachine({
+    const someMachine = createMachine({
       schemas: {
         context: z.object({
           count: z.number()
@@ -398,7 +398,7 @@ describe('createActorContext', () => {
   });
 
   it('options can be passed to the provider', () => {
-    const machine = next_createMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -461,7 +461,7 @@ describe('createActorContext', () => {
 
   it('input can be passed to the provider', () => {
     const SomeContext = createActorContext(
-      next_createMachine({
+      createMachine({
         // types: {} as {
         //   context: { doubled: number };
         // },
@@ -499,7 +499,7 @@ describe('createActorContext', () => {
   it('should merge createActorContext options with options passed to the provider', () => {
     const events: InspectionEvent[] = [];
     const SomeContext = createActorContext(
-      next_createMachine({
+      createMachine({
         // types: {
         //   context: {} as { count: number },
         //   input: {} as number
