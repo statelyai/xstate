@@ -2096,7 +2096,7 @@ export function resolveAndExecuteActionsWithContext(
             ? 'action' in action && typeof action.action === 'function'
               ? (action.action.name ?? '(anonymous)')
               : (action as AnyEventObject).type
-            : (action as Function).name || '(anonymous)',
+            : action.name || '(anonymous)',
         params: actionParams,
         args:
           typeof action === 'object' && 'action' in action ? action.args : [],
@@ -2452,7 +2452,8 @@ export function evaluateCandidate(
       actions: stateNode.machine.implementations.actions,
       actors: stateNode.machine.implementations.actors,
       guards: stateNode.machine.implementations.guards,
-      delays: stateNode.machine.implementations.delays
+      delays: stateNode.machine.implementations.delays,
+      _snapshot: snapshot
     };
     const guardConfig = candidate.guard as any;
     const guardParams =

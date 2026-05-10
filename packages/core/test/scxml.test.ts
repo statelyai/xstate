@@ -31,24 +31,20 @@ const testGroups: Record<string, string[]> = {
   ],
   assign: [
     // 'assign_invalid', // this has a syntax error on purpose, so it's not included
-    // 'assign_obj_literal' // deep initial states are not supported
+    // 'assign_obj_literal' // passes with runW3TestToCompletion but not SimulatedClock harness
   ],
   'assign-current-small-step': ['test0', 'test1', 'test2', 'test3', 'test4'],
   basic: ['basic0', 'basic1', 'basic2'],
   'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition'],
   data: [
     // 'data_invalid',
-    // 'data_obj_literal' // deep initial states are not supported
+    // 'data_obj_literal' // requires deep initial state (`initial="s1"` references descendant)
   ],
   'default-initial-state': ['initial1', 'initial2'],
   delayedSend: ['send1', 'send2', 'send3'],
   documentOrder: ['documentOrder0'],
-  error: [
-    // 'error' // not implemented
-  ],
-  forEach: [
-    // 'test1', // not implemented
-  ],
+  // error: ['error'], // auto-completes; fails with SimulatedClock harness
+  forEach: ['test1'],
   hierarchy: ['hier0', 'hier1', 'hier2'],
   'hierarchy+documentOrder': ['test0', 'test1'],
   history: [
@@ -64,7 +60,7 @@ const testGroups: Record<string, string[]> = {
   'if-else': ['test0'],
   in: ['TestInPredicate'],
   'internal-transitions': ['test0', 'test1'],
-  // misc: ['deep-initial'], // deep initial states are not supported
+  // misc: ['deep-initial'], // deep initial states not supported; throws uncaught exception
   'more-parallel': [
     'test0',
     'test1',
@@ -120,13 +116,12 @@ const testGroups: Record<string, string[]> = {
     'test30',
     'test31'
   ],
-  // script: ['test0', 'test1', 'test2'], // <script/> conversion not implemented
-  // 'script-src': ['test0', 'test1', 'test2', 'test3'], // <script/> conversion not implemented
+  script: ['test0', 'test1', 'test2'],
+  // 'script-src': ['test0', 'test1', 'test2', 'test3'], // <script src="..."/> conversion not implemented
   'scxml-prefix-event-name-matching': [
-    // 'star0' // this relies on the source order of transitions where * is first and it's supposed to get matched over an explicit descriptor
-    // prefix event matching not implemented yet
-    // 'test0',
-    // 'test1'
+    // 'star0', // auto-completes; fails with SimulatedClock harness
+    'test0',
+    'test1'
   ],
   // 'send-data': ['send1'], // <content> conversion not implemented
   // 'send-idlocation': ['test0'],
@@ -137,14 +132,14 @@ const testGroups: Record<string, string[]> = {
     'test147.txml',
     'test148.txml',
     'test149.txml',
-    // 'test150.txml', // <foreach> not implemented yet
-    // 'test151.txml', // <foreach> not implemented yet
-    // 'test152.txml', // <foreach> not implemented yet
-    // 'test153.txml', // <foreach> not implemented yet
-    // 'test155.txml', // <foreach> not implemented yet
-    // 'test156.txml', // <foreach> not implemented yet
+    'test150.txml',
+    'test151.txml',
+    'test152.txml',
+    'test153.txml',
+    'test155.txml',
+    'test156.txml',
     'test158.txml',
-    // 'test159.txml', // different error handling
+    'test159.txml',
     'test172.txml',
     'test173.txml',
     'test174.txml',
@@ -160,105 +155,105 @@ const testGroups: Record<string, string[]> = {
     'test191.txml',
     'test192.txml',
     'test193.txml',
-    // 'test194.txml', // it's using an invalid event target (another actor), we should be erroring on this somehow when we revamp the error story
-    // 'test198.txml', // origintype not implemented yet
+    'test194.txml',
+    'test198.txml',
     // 'test199.txml', // send type not checked
     'test200.txml',
-    // 'test201.txml', // optional
+    // 'test201.txml', // requires basic HTTP I/O processor
     'test205.txml',
-    // 'test207.txml', // delayexpr
+    'test207.txml',
     'test208.txml',
-    // 'test210.txml', // sendidexpr not supported yet
+    'test210.txml',
     // 'test215.txml', // <invoke typeexpr="...">
     // 'test216.txml', // <invoke srcexpr="...">
     'test220.txml',
-    // 'test223.txml', // idlocation not implemented yet
-    // 'test224.txml', // <invoke idlocation="...">
-    // 'test225.txml', // unique invokeids generated at invoke time
-    // 'test226.txml', // <invoke src="...">
-    // 'test228.txml', // this test relies on `invokeid` being available on the event
-    // 'test229.txml', // autoForward not supported in v5
-    // 'test230.txml', // autoForward not supported in v5
+    // 'test223.txml', // <invoke idlocation="..."> not implemented
+    // 'test224.txml', // <invoke idlocation="..."> not implemented
+    // 'test225.txml', // requires unique invokeids generated per invoke
+    // 'test226.txml', // <invoke src="..."> with external file
+    // 'test228.txml', // requires _event.invokeid propagation on done.invoke
+    // 'test229.txml', // <invoke autoforward="true"> not implemented
+    // 'test230.txml', // <invoke autoforward="true"> not implemented
     'test232.txml',
-    // 'test233.txml', // <finalize> not implemented yet
-    // 'test234.txml', // <finalize> not implemented yet
+    // 'test233.txml', // <finalize> not implemented
+    // 'test234.txml', // <finalize> not implemented
     'test235.txml',
-    // 'test236.txml', // reaching a final state should execute all onexit handlers
+    'test236.txml',
     'test237.txml',
-    // 'test239.txml', // <invoke src="...">
-    // 'test240.txml', // conversion of namelist not implemented yet
-    // 'test241.txml', // conversion of namelist not implemented yet
-    // 'test242.txml', // <invoke src="...">
-    // 'test243.txml', // conversion of <param> in <scxml> not implemented yet
-    // 'test244.txml', // conversion of namelist not implemented yet
-    // 'test245.txml', // conversion of namelist not implemented yet
+    // 'test239.txml', // <invoke src="..."> with external file
+    // 'test240.txml', // <invoke namelist="..."> not implemented
+    'test241.txml',
+    // 'test242.txml', // <invoke src="..."> with external file
+    // 'test243.txml', // <param> in <scxml> not implemented
+    // 'test244.txml', // <invoke namelist="..."> not implemented
+    'test245.txml',
     'test247.txml',
-    // 'test250.txml', // this is a manual test - we could test it by snapshotting logged valued
-    // 'test252.txml', // this expects the parent to not receive the event sent from the canceled child's exit action
-    // 'test253.txml', // _event.origintype not implemented yet
-    // 'test276.txml', // <invoke src="...">
+    // 'test250.txml', // manual test; invoke child leaks uncaught exception
+    // 'test252.txml', // cancelled child; invoke child leaks uncaught exception
+    // 'test253.txml', // requires invoke + child→parent origintype propagation
+    // 'test276.txml', // <invoke src="..."> with external file
     // 'test277.txml', // illegal expression in datamodel creates unbound variable
     // 'test278.txml', // non-root datamodel with early binding not implemented yet
     // 'test279.txml', // non-root datamodel with early binding not implemented yet
     // 'test280.txml', // non-root datamodel with late binding not implemented yet
-    // 'test286.txml', // this intentionally throws when executing assign, we should be erroring on this somehow when we revamp the error story
+    'test286.txml',
     'test287.txml',
-    // 'test294.txml', // conversion of <donedata> not implemented yet
+    'test294.txml',
     // 'test298.txml', // error.execution when evaluating donedata
-    // 'test302.txml', // conversion of <script> not implemented yet
-    // 'test303-1.txml', // conversion of <script> not implemented yet
-    // 'test303-2.txml', // conversion of <script> not implemented yet
-    // 'test303.txml', // conversion of <script> not implemented yet
-    // 'test304.txml', // conversion of <script> not implemented yet
-    // 'test307.txml', // non-root datamodel with late binding not implemented yet
-    // 'test309.txml', // error in cond expression being treated as false
-    // 'test310.txml', // conversion of In() predicate not implemented yet
-    // 'test311.txml', // error.execution when evaluating assign
-    // 'test312.txml', // error.execution when evaluating assign
-    // 'test313.txml', // error.execution when evaluating assign
-    // 'test314.txml', // error.execution when evaluating assign
+    // 'test302.txml', // <script> with src attribute not supported
+    // 'test303-1.txml', // <script> src timing
+    // 'test303-2.txml', // <script> src timing
+    // 'test303.txml', // <script> src timing
+    // 'test304.txml', // <script> at top level
+    'test307.txml',
+    'test309.txml',
+    'test310.txml',
+    'test311.txml',
+    'test312.txml',
+    'test313.txml',
+    'test314.txml',
     'test318.txml',
-    // 'test319.txml', // SCXML has no init event, so _event stays unbound in onentry of initial state
-    // 'test321.txml', // _sessionid not yet available for expressions
-    // 'test322.txml', // _sessionid not yet available for expressions
-    // 'test323.txml', // _name not yet available for expressions
-    // 'test324.txml', // _name not yet available for expressions
-    // 'test325.txml', // _ioprocessors not yet available for expressions
-    // 'test326.txml', // _ioprocessors not yet available for expressions
-    // 'test329.txml', // system variables can't be modified, we don't keep them in datamodel, so it might be hard to run this test
-    // 'test330.txml', // SCXML _event properties not implemented yet
-    // 'test331.txml', // _event.type not implemented yet correctly
-    // 'test332.txml', // idlocation not implemented yet
+    'test319.txml',
+    'test321.txml',
+    // 'test322.txml', // _sessionid immutability not enforced
+    'test323.txml',
+    // 'test324.txml', // _name immutability not enforced
+    // 'test325.txml', // _ioprocessors location comparison
+    // 'test326.txml', // _ioprocessors immutability
+    // 'test329.txml', // system variables can't be modified
+    'test330.txml',
+    // 'test331.txml', // requires error.execution platform events
+    // 'test332.txml', // idlocation not implemented
     'test333.txml',
     'test335.txml',
     'test336.txml',
     'test337.txml',
-    // 'test338.txml', // <invoke idlocation="..."> + _event.invokeid available on <send> events received from the invoked child
+    'test338.txml',
     'test339.txml',
     'test342.txml',
     // 'test343.txml', // error.execution when evaluating donedata
-    // 'test344.txml', // error in cond expression being treated as false and raises error.execution
+    'test344.txml',
     // 'test346.txml', // system variables can't be modified, we don't keep them in datamodel, so it might be hard to run this test
     'test347.txml',
     'test348.txml',
     'test349.txml',
-    // 'test350.txml', // _sessionid not yet available for expressions
-    // 'test351.txml', // _event.sendid not implemented yet
-    // 'test352.txml', // _event.origintype not implemented yet
-    // 'test354.txml', // conversion of namelist not implemented yet
+    'test350.txml',
+    'test351.txml',
+    'test352.txml',
+    // 'test354.txml', // namelist in send not fully supported
     'test355.txml',
     // 'test364.txml', // deep initial states are not supported
     'test372.txml',
     'test375.txml',
-    // 'test376.txml', // executable blocks not implemented
+    'test376.txml',
     'test377.txml',
-    // 'test378.txml', // executable blocks not implemented
+    'test378.txml',
     'test387.txml',
     // 'test388.txml', // deep initial states are not supported
     'test396.txml',
     'test399.txml',
-    // 'test401.txml', // this assign to "non-existent" location in the datamodel, this is not exactly allowed in SCXML, but we don't disallow it - since u can assign to just any property on the `context` itself
-    // 'test402.txml', // TODO: investigate more, it expects error.execution when evaluating assign, check if assigning to a deep location is even allowed, check if assigning to an initialized datamodel is allowed, improve how datamodel is exposed to constructed functions
+    // 'test401.txml', // assign to undeclared datamodel location should raise error.execution; we permit any context property
+    'test402.txml',
     'test403a.txml',
     'test403b.txml',
     'test403c.txml',
@@ -266,31 +261,31 @@ const testGroups: Record<string, string[]> = {
     'test405.txml',
     'test406.txml',
     'test407.txml',
-    // 'test409.txml', // conversion of In() predicate not implemented yet
-    // 'test411.txml', // conversion of In() predicate not implemented yet + microstep not implemented correctly
+    'test409.txml',
+    // 'test411.txml', // In() predicate + microstep ordering during entry
     // 'test412.txml', // initial transitions with executable content not implemented yet
-    // 'test413.txml', // conversion of In() predicate not implemented yet
+    // 'test413.txml', // In() predicate with complex parallel initial states
     'test416.txml',
     'test417.txml',
     'test419.txml',
     'test421.txml',
-    // 'test422.txml', conversion of type-less <invoke> not implemented yet
+    // 'test422.txml', // type-less <invoke> not implemented yet
     'test423.txml',
-    // 'test436.txml', // conversion of In() predicate not implemented yet + null datamodel not implemented yet
-    // 'test444.txml', // datamodel being mutated in cond's expression 😱
+    'test436.txml',
+    'test444.txml',
     'test445.txml',
     // 'test446.txml', // conversion of <data src="..."> not implemented yet
     // 'test448.txml', // nested datamodels not implemented yet
     'test449.txml',
-    // 'test451.txml', // conversion of In() predicate not implemented yet
-    // 'test452.txml', // conversion of <script> not implemented yet
+    'test451.txml',
+    // 'test452.txml', // <script> with complex timing
     'test453.txml',
-    // 'test456.txml', // conversion of <script> not implemented yet
-    // 'test457.txml', // <foreach> not implemented yet
-    // 'test459.txml', // <foreach> not implemented yet
-    // 'test460.txml', // <foreach> not implemented yet
+    'test456.txml',
+    // 'test457.txml', // <foreach> with deep copy semantics
+    'test459.txml',
+    'test460.txml',
     // 'test487.txml', // this has a syntax error on purpose, so it's not included
-    // 'test488.txml', // error.execution when evaluating param
+    // 'test488.txml', // donedata <param expr> error must precede done.state event; XState evaluates output during done dispatch
     'test495.txml',
     // 'test496.txml', // error.communication not implemented yet
     // 'test500.txml', // _ioprocessors not yet available for expressions
@@ -306,11 +301,11 @@ const testGroups: Record<string, string[]> = {
     // 'test520.txml', // Basic HTTP Event I/O processor not implemented
     // 'test521.txml', // error.communication not implemented yet
     // 'test522.txml', // Basic HTTP Event I/O processor not implemented
-    // 'test525.txml', // <foreach> not implemented yet
-    // 'test527.txml', // conversion of <donedata> not implemented yet
-    // 'test528.txml', // conversion of <donedata> not implemented yet + error.execution when evaluating donedata
-    // 'test529.txml', // conversion of <donedata> not implemented yet
-    // 'test530.txml', // https://github.com/davidkpiano/xstate/pull/1811#discussion_r551897693
+    'test525.txml',
+    'test527.txml',
+    // 'test528.txml', // <donedata> + error.execution
+    'test529.txml',
+    // 'test530.txml', // <content expr="..."> dynamic invoke content not implemented
     // 'test531.txml', // Basic HTTP Event I/O processor not implemented
     // 'test532.txml', // Basic HTTP Event I/O processor not implemented
     // 'test533.txml', // we allow `reenter: false` to not leave the source state even if that source state is not compound
@@ -318,21 +313,21 @@ const testGroups: Record<string, string[]> = {
     // 'test550.txml', // non-root datamodel with early binding not implemented yet
     // 'test551.txml', // non-root datamodel with early binding not implemented yet
     // 'test552.txml', // conversion of <data src="..."> not implemented yet
-    // 'test553.txml', // namelist not implemented yet + errored send not dispatching an event
-    // 'test554.txml', // namelist not implemented yet + errored invoke cancelled
+    // 'test553.txml', // <send namelist="..."> not implemented
+    // 'test554.txml', // <send namelist="..."> not implemented
     // 'test557.txml', // conversion of <data src="..."> not implemented yet
     // 'test558.txml', // conversion of <data src="..."> not implemented yet
     'test560.txml',
     // 'test561.txml', // processor creates an ECMAScript DOM object _event.data when receiving XML in an event
     // 'test562.txml', // test that processor creates space normalized string in _event.data when receiving anything other than KVPs or XML in an event
     // 'test567.txml', // Basic HTTP Event I/O processor not implemented
-    // 'test569.txml', // _ioprocessors not yet available for expressions
-    'test570.txml'
-    // 'test576.txml' // multiple initial states are not supported
+    'test569.txml',
+    'test570.txml',
+    // 'test576.txml', // multiple initial states not supported
     // 'test577.txml', // Basic HTTP Event I/O processor not implemented
-    // 'test578.txml', // conversion of <content> in <send> not implemented yet
-    // 'test579.txml' // executable content in history states not implemented yet
-    // 'test580.txml' // conversion of In() predicate not implemented yet
+    // 'test578.txml', // <content> in <send> not implemented yet
+    // 'test579.txml', // executable content in <history>'s <transition> not implemented
+    'test580.txml'
   ]
 };
 
@@ -400,7 +395,7 @@ async function runTestToCompletion(
   scxmlDefinition: string,
   test: SCIONTest
 ): Promise<void> {
-  const machineJSON = toMachineJSON(scxmlDefinition);
+  toMachineJSON(scxmlDefinition);
 
   const machine = toMachine(scxmlDefinition);
 
@@ -410,6 +405,8 @@ async function runTestToCompletion(
   }
 
   let done = false;
+  let completedAsPass = false;
+  const transitions: string[] = [];
   const actor = createActor(machine, {
     clock: new SimulatedClock()
   });
@@ -422,6 +419,11 @@ async function runTestToCompletion(
   });
   actor.subscribe({
     complete: () => {
+      done = true;
+      if (nextState.value === 'pass' || nextState.value === 'final') {
+        completedAsPass = true;
+        return;
+      }
       if (nextState.value === 'fail') {
         throw new Error(
           `${name}: Reached "fail" state from state ${JSON.stringify(
@@ -429,18 +431,32 @@ async function runTestToCompletion(
           )}\nTransitions:\n${transitions.join('\n')}`
         );
       }
-      done = true;
     }
   });
   actor.start();
 
-  const transitions: string[] = [];
+  // If machine already completed during start (via always transitions or
+  // synchronous internal raises), the test passes if it reached 'pass' or 'final'.
+  if (done) {
+    if (!completedAsPass) {
+      throw new Error(
+        `${name}: Machine completed in state ${JSON.stringify(
+          nextState.value
+        )} (expected pass/final)`
+      );
+    }
+    return;
+  }
+
   test.events.forEach(({ event, nextConfiguration, after }) => {
     if (done) {
       return;
     }
     if (after) {
       (actor.clock as SimulatedClock).increment(after);
+    }
+    if (done) {
+      return;
     }
     actor.send({ type: event.name });
     transitions.push(

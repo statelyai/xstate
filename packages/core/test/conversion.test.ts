@@ -228,7 +228,10 @@ describe('SCXML to XState conversion', () => {
       const json = toMachineJSON(scxml);
 
       expect(json.states!.a.entry).toBeDefined();
-      expect(json.states!.a.entry![0].type).toBe('@xstate.log');
+      expect(json.states!.a.entry![0].type).toBe('scxml.block');
+      expect((json.states!.a.entry![0] as any).actions[0].type).toBe(
+        '@xstate.log'
+      );
     });
 
     it('should convert cancel actions', () => {
@@ -265,7 +268,10 @@ describe('SCXML to XState conversion', () => {
       const json = toMachineJSON(scxml);
 
       expect(json.states!.a.entry).toHaveLength(1);
-      expect(json.states!.a.entry![0].type).toBe('@xstate.log');
+      expect(json.states!.a.entry![0].type).toBe('scxml.block');
+      expect((json.states!.a.entry![0] as any).actions[0].type).toBe(
+        '@xstate.log'
+      );
     });
 
     it('should convert onexit actions', () => {
@@ -282,7 +288,10 @@ describe('SCXML to XState conversion', () => {
       const json = toMachineJSON(scxml);
 
       expect(json.states!.a.exit).toHaveLength(1);
-      expect(json.states!.a.exit![0].type).toBe('@xstate.log');
+      expect(json.states!.a.exit![0].type).toBe('scxml.block');
+      expect((json.states!.a.exit![0] as any).actions[0].type).toBe(
+        '@xstate.log'
+      );
     });
   });
 

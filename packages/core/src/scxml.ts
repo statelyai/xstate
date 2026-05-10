@@ -8,6 +8,9 @@ import {
   LogJSON,
   MachineJSON,
   RaiseJSON,
+  ScxmlCancelJSON,
+  ScxmlDonedataJSON,
+  ScxmlForeachJSON,
   ScxmlRaiseJSON,
   StateNodeJSON,
   TransitionJSON,
@@ -110,7 +113,12 @@ function mapAction(element: XMLElement): ActionJSON {
         };
         return action;
       }
-      // sendidexpr not fully supported
+      if ('sendidexpr' in element.attributes!) {
+        return {
+          type: 'scxml.cancel',
+          sendidexpr: element.attributes.sendidexpr as string
+        } as ScxmlCancelJSON;
+      }
       return {
         type: '@xstate.cancel',
         id: ''
@@ -194,6 +202,20 @@ function mapAction(element: XMLElement): ActionJSON {
     }
     case 'if': {
       return parseIfElement(element);
+    }
+    case 'foreach': {
+      const array = element.attributes!.array as string;
+      const item = element.attributes!.item as string;
+      const index = element.attributes?.index as string | undefined;
+      const actions = element.elements ? mapActions(element.elements) : [];
+      const foreach: ScxmlForeachJSON = {
+        type: 'scxml.foreach',
+        array,
+        item,
+        index,
+        actions
+      };
+      return foreach;
     }
     case 'script': {
       // Get the script text content
@@ -303,6 +325,39 @@ function toStateNodeJSON(
     };
   }
 
+  // Parse <donedata> for final states
+  let donedataConfig: ScxmlDonedataJSON | undefined;
+  if (nodeJson.name === 'final') {
+    const donedataElement = nodeJson.elements.find(
+      (el) => el.name === 'donedata'
+    );
+    if (donedataElement?.elements) {
+      const params: Array<{ name: string; expr: string }> = [];
+      let contentExpr: string | undefined;
+      let contentText: string | undefined;
+      for (const child of donedataElement.elements) {
+        if (child.name === 'param') {
+          params.push({
+            name: child.attributes!.name as string,
+            expr: child.attributes!.expr as string
+          });
+        } else if (child.name === 'content') {
+          if (child.attributes?.expr) {
+            contentExpr = child.attributes.expr as string;
+          } else if (child.elements) {
+            const textEl = child.elements.find(
+              (el) => el.type === 'text' || el.type === 'cdata'
+            );
+            contentText = textEl
+              ? String(textEl.text ?? textEl.cdata ?? '').trim()
+              : '';
+          }
+        }
+      }
+      donedataConfig = { params, contentExpr, contentText };
+    }
+  }
+
   const stateElements = nodeJson.elements.filter(
     (element) =>
       element.name === 'state' ||
@@ -410,17 +465,22 @@ function toStateNodeJSON(
     });
   });
 
-  // Build entry/exit actions
+  // Build entry/exit actions. Per SCXML, each <onentry>/<onexit> block is a
+  // separate executable-content block — errors in one block must not stop
+  // execution of subsequent blocks. Wrap each block in scxml.block so the
+  // runtime executes them with isolated error state.
   const entry = onEntryElements.length
-    ? onEntryElements.flatMap((onEntryElement) =>
-        mapActions(onEntryElement.elements || [])
-      )
+    ? onEntryElements.map((onEntryElement) => ({
+        type: 'scxml.block' as const,
+        actions: mapActions(onEntryElement.elements || [])
+      }))
     : undefined;
 
   const exit = onExitElements.length
-    ? onExitElements.flatMap((onExitElement) =>
-        mapActions(onExitElement.elements || [])
-      )
+    ? onExitElements.map((onExitElement) => ({
+        type: 'scxml.block' as const,
+        actions: mapActions(onExitElement.elements || [])
+      }))
     : undefined;
 
   // Build invokes
@@ -473,6 +533,7 @@ function toStateNodeJSON(
       : undefined),
     ...(parallel ? { type: 'parallel' } : undefined),
     ...(nodeJson.name === 'final' ? { type: 'final' } : undefined),
+    ...(donedataConfig ? { _scxmlDonedata: donedataConfig } : undefined),
     ...(Object.keys(states).length ? { states } : undefined),
     ...(Object.keys(on).length ? { on } : undefined),
     ...(always.length ? { always } : undefined),
@@ -503,8 +564,24 @@ function scxmlToMachineJSON(scxmlJson: XMLElement): MachineJSON {
               );
             }
 
-            if (expr === '_sessionid' || expr === undefined) {
-              acc[id!] = undefined;
+            if (expr === undefined) {
+              // Check for text content inside the <data> element
+              const textEl = element.elements?.find(
+                (el) => el.type === 'text' || el.type === 'cdata'
+              );
+              const textContent = textEl
+                ? String(textEl.text ?? textEl.cdata ?? '').trim()
+                : '';
+              if (textContent) {
+                acc[id!] = eval(`(${textContent})`);
+              } else {
+                acc[id!] = undefined;
+              }
+            } else if (expr === '_sessionid') {
+              acc[id!] = 'session_scxml';
+            } else if (expr === '_name') {
+              acc[id!] =
+                (machineElement.attributes?.name as string) || '(machine)';
             } else {
               acc[id!] = eval(`(${expr})`);
             }
