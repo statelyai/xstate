@@ -101,7 +101,8 @@
   },
   "pnpm": {
     "overrides": {
-      "@types/node": "25.2.1"
+      "@types/node": "25.2.1",
+      "vue": "3.5.17"
     },
     "patchedDependencies": {
       "@vue/test-utils@2.4.6": "patches/@vue__test-utils@2.4.6.patch"
