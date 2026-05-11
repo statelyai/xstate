@@ -263,6 +263,34 @@ describe('trigger', () => {
   });
 });
 
+describe('can', () => {
+  it('uses event payload types', () => {
+    const store = createStore({
+      context: { count: 0 },
+      schemas: {
+        events: {
+          increment: schema<{ by: number }>(),
+          reset: schema<{}>()
+        }
+      },
+      on: {
+        increment: (ctx, ev) => ({ count: ctx.count + ev.by }),
+        reset: () => ({ count: 0 })
+      }
+    });
+
+    store.can.increment({ by: 1 }) satisfies boolean;
+    store.can.reset() satisfies boolean;
+
+    // @ts-expect-error
+    store.can.increment();
+    store.can.increment({
+      // @ts-expect-error
+      by: 'one'
+    });
+  });
+});
+
 describe('logic selectors', () => {
   it('infers selected values from a store', () => {
     const store = createStore({

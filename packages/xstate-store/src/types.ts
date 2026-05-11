@@ -73,10 +73,28 @@ type TriggerFunction<TEvent extends EventObject> = (
     : [DistributiveOmit<TEvent, 'type'>]
 ) => void;
 
+type CanFunction<TEvent extends EventObject> = (
+  ...args: { type: TEvent['type'] } extends TEvent
+    ? AllKeys<TEvent> extends 'type'
+      ? []
+      : [DistributiveOmit<TEvent, 'type'>?]
+    : [DistributiveOmit<TEvent, 'type'>]
+) => boolean;
+
+type EventFromPayload<TKey extends string, TPayload> = {
+  type: TKey;
+} & (TPayload extends null | undefined ? {} : TPayload);
+
 export type TriggerObject<TEventPayloadMap extends EventPayloadMap> = {
-  [E in ExtractEvents<TEventPayloadMap> as E['type']]: string extends E['type']
+  [K in keyof TEventPayloadMap & string]: string extends K
     ? (...args: any[]) => void
-    : TriggerFunction<E>;
+    : TriggerFunction<EventFromPayload<K, TEventPayloadMap[K]>>;
+};
+
+export type CanObject<TEventPayloadMap extends EventPayloadMap> = {
+  [K in keyof TEventPayloadMap & string]: string extends K
+    ? (...args: any[]) => boolean
+    : CanFunction<EventFromPayload<K, TEventPayloadMap[K]>>;
 };
 
 export type EnqueueObject<
@@ -222,13 +240,8 @@ export interface Store<
    * store.trigger.increment({ by: 1 });
    * ```
    */
-  trigger: {
-    [K in keyof TEventPayloadMap]: IsEmptyObject<
-      DistributiveOmit<TEventPayloadMap[K], 'type'>
-    > extends true
-      ? () => void
-      : (eventPayload: DistributiveOmit<TEventPayloadMap[K], 'type'>) => void;
-  };
+  trigger: TriggerObject<TEventPayloadMap>;
+  can: CanObject<TEventPayloadMap>;
   select<TSelected>(
     selector: Selector<TContext, TSelected>,
     equalityFn?: (a: TSelected, b: TSelected) => boolean
@@ -387,8 +400,6 @@ export type SpecificStoreConfig<
 type EventPayloadMapFromEvents<TEvent extends EventObject> = {
   [E in TEvent as E['type']]: DistributiveOmit<E, 'type'>;
 };
-
-type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
 
 type Compute<A> = A extends any ? { [K in keyof A]: A[K] } : never;
 

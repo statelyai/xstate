@@ -61,6 +61,35 @@ donutStore.trigger.changeFlavor({ flavor: 'strawberry' });
 // => { donuts: 1, favoriteFlavor: 'strawberry' }
 ```
 
+## Checking events
+
+<!-- store.can API from packages/xstate-store/src/types.ts -->
+
+Use `store.can` to check whether an event is allowed without updating the store:
+
+```ts
+const store = createStore({
+  context: { count: 0 },
+  on: {
+    increment: (context, event: { by: number }) => {
+      if (context.count + event.by > 10) {
+        return;
+      }
+
+      return {
+        count: context.count + event.by
+      };
+    }
+  }
+});
+
+store.can.increment({ by: 4 });
+// => true
+```
+
+Returning `undefined` marks the event as not allowed. Returning the same context
+object is still allowed, and transitions that enqueue effects are allowed.
+
 ## Usage with React
 
 Import `useSelector` from `@xstate/store-react`. Select the data you want via `useSelector(…)` and send events using `store.send(eventObject)`:

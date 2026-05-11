@@ -477,6 +477,54 @@ it('emits-only transitions should emit events', () => {
   expect(spy).toHaveBeenCalledTimes(1);
 });
 
+it('checks whether events can transition', () => {
+  const effectSpy = vi.fn();
+  const emittedSpy = vi.fn();
+  const store = createStore({
+    context: { count: 9 },
+    schemas: {
+      events: {
+        increment: schema<{ by: number }>(),
+        noop: schema<{}>(),
+        effectOnly: schema<{}>(),
+        emitOnly: schema<{}>(),
+        unavailable: schema<{}>()
+      },
+      emitted: {
+        emitted: schema<{}>()
+      }
+    },
+    on: {
+      increment: (ctx, ev) => {
+        if (ctx.count + ev.by > 10) {
+          return;
+        }
+
+        return { count: ctx.count + ev.by };
+      },
+      noop: (ctx) => ctx,
+      effectOnly: (_, __, enq) => {
+        enq.effect(effectSpy);
+      },
+      emitOnly: (_, __, enq) => {
+        enq.emit.emitted();
+      }
+    }
+  });
+
+  store.on('emitted', emittedSpy);
+
+  expect(store.can.increment({ by: 1 })).toBe(true);
+  expect(store.can.increment({ by: 2 })).toBe(false);
+  expect(store.can.noop()).toBe(true);
+  expect(store.can.effectOnly()).toBe(true);
+  expect(store.can.emitOnly()).toBe(true);
+  expect(store.can.unavailable()).toBe(false);
+  expect(store.getSnapshot().context).toEqual({ count: 9 });
+  expect(effectSpy).not.toHaveBeenCalled();
+  expect(emittedSpy).not.toHaveBeenCalled();
+});
+
 it('wildcard listener receives all emitted events', () => {
   const spy = vi.fn();
   const store = createStore({

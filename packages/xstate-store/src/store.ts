@@ -355,6 +355,27 @@ function createConcreteTrigger<
   return trigger;
 }
 
+function createConcreteCan<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject
+>(
+  eventTypes: readonly string[],
+  can: (event: ExtractEvents<TEventPayloadMap>) => boolean
+): Store<TContext, TEventPayloadMap, TEmitted>['can'] {
+  const canObject = {} as Store<TContext, TEventPayloadMap, TEmitted>['can'];
+
+  for (const eventType of eventTypes) {
+    canObject[eventType as keyof typeof canObject] = ((payload?: unknown) => {
+      return can(
+        toEvent(eventType, payload) as ExtractEvents<TEventPayloadMap>
+      );
+    }) as (typeof canObject)[keyof typeof canObject];
+  }
+
+  return canObject;
+}
+
 function attachSelectors<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
@@ -483,6 +504,31 @@ function createStoreCore<
           }
         );
 
+  const can =
+    eventTypes && eventTypes.length > 0
+      ? createConcreteCan<TContext, TEventPayloadMap, TEmitted>(
+          eventTypes,
+          (event) => canTransition(event)
+        )
+      : new Proxy({} as Store<TContext, TEventPayloadMap, TEmitted>['can'], {
+          get: (_, eventType: string) => {
+            return (payload: any) => {
+              return canTransition(
+                toEvent(eventType, payload) as ExtractEvents<TEventPayloadMap>
+              );
+            };
+          }
+        });
+
+  function canTransition(event: StoreEvent) {
+    const snapshot = currentSnapshot;
+    const result = transition(snapshot, event);
+    const allowed = (
+      result as [StoreSnapshot<TContext>, StoreEffect<TEmitted>[], boolean?]
+    )[2];
+    return allowed ?? (result[0] !== snapshot || result[1].length > 0);
+  }
+
   const store: Store<TContext, TEventPayloadMap, TEmitted> = {
     on(emittedEventType, handler) {
       if (!listeners) {
@@ -541,6 +587,7 @@ function createStoreCore<
       };
     },
     trigger,
+    can,
     select<TSelected>(
       selector: Selector<TContext, TSelected>,
       equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
@@ -615,13 +662,17 @@ function createStoreTransitionWithSteps<
         | undefined);
 
     if (!execution) {
-      return [ensuredSnapshot, []];
+      return [ensuredSnapshot, [], false] as any;
     }
 
     const assigner = transitions?.[execution.event.type as StoreEvent['type']];
 
     if (!assigner) {
-      return [removeAsyncExecution(ensuredSnapshot, executionId), []];
+      return [
+        removeAsyncExecution(ensuredSnapshot, executionId),
+        [],
+        false
+      ] as any;
     }
 
     const effects: StoreEffect<TEmitted>[] = [];
@@ -670,8 +721,9 @@ function createStoreTransitionWithSteps<
           requestedStep.k,
           { status: 'active' }
         ),
-        [requestedStep as never]
-      ];
+        [requestedStep as never],
+        true
+      ] as any;
     }
 
     if (isPromiseLike(nextContext)) {
@@ -694,8 +746,9 @@ function createStoreTransitionWithSteps<
             e: effects,
             g: () => requestedStep
           } as never
-        ]
-      ];
+        ],
+        true
+      ] as any;
     }
 
     return [
@@ -705,8 +758,9 @@ function createStoreTransitionWithSteps<
             ...ensuredSnapshot,
             context: nextContext ?? ensuredSnapshot.context
           },
-      effects
-    ];
+      effects,
+      nextContext !== undefined || effects.length > 0
+    ] as any;
   };
 
   return (
@@ -1244,12 +1298,15 @@ export function createStoreTransition<
     let currentSnapshot = snapshot;
     const effects: StoreEffect<TEmitted>[] = [];
     const pendingEvents: StoreEvent[] = [event];
+    let allowed = false;
 
     while (pendingEvents.length > 0) {
       const currentEvent = pendingEvents.shift()!;
       const currentContext = currentSnapshot.context;
       const assigner = transitions?.[currentEvent.type as StoreEvent['type']];
       let producerAssignerResult: unknown;
+      let assignerResult: TContext | void = undefined;
+      const effectsLength = effects.length;
 
       if (!assigner) {
         continue;
@@ -1258,7 +1315,10 @@ export function createStoreTransition<
       const enqueue = createEnqueueObject<TEmitted>(
         effects,
         undefined,
-        (triggeredEvent) => pendingEvents.push(triggeredEvent as StoreEvent)
+        (triggeredEvent) => {
+          allowed = true;
+          pendingEvents.push(triggeredEvent as StoreEvent);
+        }
       );
 
       const nextContext = producer
@@ -1274,8 +1334,13 @@ export function createStoreTransition<
                 >
               )(draftContext, currentEvent, enqueue))
           )
-        : (assigner(currentContext, currentEvent as any, enqueue) ??
-          currentContext);
+        : (assignerResult = assigner(
+              currentContext,
+              currentEvent as any,
+              enqueue
+            )) === undefined
+          ? currentContext
+          : assignerResult;
 
       if (isPromiseLike(producer ? producerAssignerResult : nextContext)) {
         ignorePromiseRejection(
@@ -1286,12 +1351,16 @@ export function createStoreTransition<
         throw new Error(UNSUPPORTED_ASYNC_TRANSITION_ERROR);
       }
 
+      allowed ||= producer
+        ? nextContext !== currentContext || effects.length > effectsLength
+        : assignerResult !== undefined || effects.length > effectsLength;
+
       if (nextContext !== currentContext) {
         currentSnapshot = { ...currentSnapshot, context: nextContext };
       }
     }
 
-    return [currentSnapshot, effects];
+    return [currentSnapshot, effects, allowed] as any;
   };
 
   return storeTransition;
