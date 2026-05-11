@@ -5,9 +5,10 @@ import {
   type Store,
   type StoreConfig,
   type ResolveStoreContext,
-  type ResolveStoreEventPayloadMap,
   type ResolveStoreEmittedPayloadMap,
+  type InferSchemaPayloadMap,
   type ExtractEvents,
+  type StandardSchemaMap,
   type Readable,
   type AnyAtom,
   type BaseAtom,
@@ -40,18 +41,45 @@ function useSelectorWithCompare<TSnapshot, T>(
 
 type AnyStoreConfig = StoreConfig<any, any, any, any, any, any>;
 
+type DistributiveOmit<T, K extends PropertyKey> = T extends any
+  ? Omit<T, K>
+  : never;
+
+type EventPayloadFromEvent<TEvent> = TEvent extends { type: string }
+  ? DistributiveOmit<TEvent, 'type'>
+  : TEvent;
+
+type EventPayloadMapFromTransitions<TTransitions> = {
+  [K in keyof TTransitions & string]: TTransitions[K] extends (
+    context: any,
+    event: infer TEvent,
+    ...args: any[]
+  ) => unknown
+    ? EventPayloadFromEvent<TEvent>
+    : {};
+};
+
+type StoreEventPayloadMapFromDefinition<TDefinition extends AnyStoreConfig> =
+  TDefinition extends { schemas: { events: infer TEventSchemaMap } }
+    ? TEventSchemaMap extends StandardSchemaMap
+      ? InferSchemaPayloadMap<TEventSchemaMap>
+      : {}
+    : TDefinition extends { on: infer TTransitions }
+      ? EventPayloadMapFromTransitions<TTransitions>
+      : {};
+
 type StoreFromDefinition<TDefinition extends AnyStoreConfig> =
   TDefinition extends StoreConfig<
     infer TContext,
-    infer TEventPayloadMap,
+    any,
     infer TEmittedPayloadMap,
     infer TContextSchema,
-    infer TEventSchemaMap,
+    any,
     infer TEmittedSchemaMap
   >
     ? Store<
         ResolveStoreContext<TContext, TContextSchema>,
-        ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>,
+        StoreEventPayloadMapFromDefinition<TDefinition>,
         ExtractEvents<
           ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
         >
