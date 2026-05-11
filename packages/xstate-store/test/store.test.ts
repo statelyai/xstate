@@ -7,6 +7,7 @@ import {
 import { createStoreTransition } from '../src/store.ts';
 import { reset } from '../src/reset.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
+import { produce } from 'immer';
 import { schema } from './schema.ts';
 import {
   AnyStoreConfig,
@@ -523,6 +524,35 @@ it('checks whether events can transition', () => {
   expect(store.getSnapshot().context).toEqual({ count: 9 });
   expect(effectSpy).not.toHaveBeenCalled();
   expect(emittedSpy).not.toHaveBeenCalled();
+});
+
+it('checks whether Immer transitions can transition without changing context', () => {
+  const store = createStore({
+    context: { count: 10 },
+    on: {
+      increment: (ctx, ev: { by: number }) => {
+        if (ctx.count + ev.by > 10) {
+          return;
+        }
+
+        return produce(ctx, (draft) => {
+          draft.count += ev.by;
+        });
+      }
+    }
+  });
+
+  const snapshot = store.getSnapshot();
+
+  expect(store.can.increment({ by: 0 })).toBe(true);
+  expect(store.getSnapshot()).toBe(snapshot);
+  expect(store.can.increment({ by: 1 })).toBe(false);
+
+  store.trigger.increment({ by: 0 });
+  expect(store.getSnapshot().context).toEqual({ count: 10 });
+
+  store.trigger.increment({ by: 1 });
+  expect(store.getSnapshot().context).toEqual({ count: 10 });
 });
 
 it('wildcard listener receives all emitted events', () => {
