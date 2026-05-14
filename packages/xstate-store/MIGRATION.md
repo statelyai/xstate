@@ -4,84 +4,6 @@ This guide covers changes in `packages/xstate-store` only.
 
 ## Added
 
-### `createAsyncStore`
-
-`createAsyncStore(...)` creates stores with async transition handlers. Awaited
-transition work must go through `await enq.step(stepId, exec)` so the store can
-suspend and resume through `snapshot.async`.
-
-```ts
-import { createAsyncStore } from '@xstate/store';
-import { z } from 'zod';
-
-const store = createAsyncStore({
-  context: {
-    result: undefined as number | undefined
-  },
-  schemas: {
-    emitted: {
-      loaded: z.object({
-        result: z.number()
-      })
-    }
-  },
-  on: {
-    load: async (_context, _event, enq) => {
-      enq.effect(() => {
-        console.log('before');
-      });
-
-      const result = await enq.step('fetchResult', async () => 42);
-
-      enq.effect(() => {
-        console.log('after');
-      });
-      enq.emit.loaded({ result });
-
-      return { result };
-    }
-  }
-});
-
-store.trigger.load();
-```
-
-While async work is in progress, `store.getSnapshot().async` contains execution
-state keyed by an internal execution id:
-
-```ts
-{
-  "<execution-id>": {
-    event: { type: "load" },
-    steps: {
-      async: { status: "active" },
-      fetchResult: { status: "active" }
-    }
-  }
-}
-```
-
-Resolved steps are replayed by step id. When the async transition completes,
-the execution entry is removed from `snapshot.async`.
-
-```ts
-const store = createAsyncStore({
-  context: { result: 0 },
-  on: {
-    load: async (context, _event, enq) => {
-      const first = await enq.step('first', () => fetchFirst());
-      const second = await enq.step('second', () => fetchSecond());
-
-      return { result: context.result + first + second };
-    }
-  }
-});
-```
-
-Async handlers are not supported by `createStore(...)` or
-`createStoreTransition(...)`. Move async transitions to `createAsyncStore(...)`
-and make each awaited operation an `enq.step(...)`.
-
 ### Standard Schema typing
 
 Store configs now accept `schemas` for type inference from any
@@ -148,8 +70,7 @@ const logic = fromStore({
 });
 ```
 
-The root package now exports `StandardSchemaV1`, async store types, and helper
-types such as `AsyncStoreConfig`, `AsyncStoreAssigner`, `AsyncEnqueueObject`,
+The root package now exports `StandardSchemaV1` and helper types such as
 `StoreSchemas`, `InferSchemaOutput`, `InferSchemaPayloadMap`,
 `ResolveStoreContext`, `ResolveStoreEventPayloadMap`, and
 `ResolveStoreEmittedPayloadMap`.
@@ -274,19 +195,6 @@ store.selectors.count.get(); // 2
 store.selectors.doubled.get(); // 4
 ```
 
-### Async persistence support
-
-The `@xstate/store/persist` extension now persists active `snapshot.async`
-state. A `createAsyncStore(...)` created from a persisted snapshot resumes
-in-progress async work automatically.
-
-```ts
-const restoredStore = createAsyncStore({
-  ...config,
-  snapshot: persistedSnapshot
-});
-```
-
 ## Changed
 
 ### Emitted event declarations moved to `schemas.emitted`
@@ -383,11 +291,8 @@ Rename the conflicting application event before applying the extension.
 ### Persistence writes snapshots, not just context
 
 `persist(...)` still stores context by default, but it now derives the persisted
-value from the full store snapshot so active async executions can be included
-when present. The stored shape is still context-based, with an additional
-top-level `async` property only while async executions are active. If you use
-`pick`, it still receives the context value and controls the persisted context
-portion.
+value from the full store snapshot. If you use `pick`, it still receives the
+context value and controls the persisted context portion.
 
 `clearStorage(store)` and `flushStorage(store)` may now return a `Promise` when
 the configured storage adapter is async.

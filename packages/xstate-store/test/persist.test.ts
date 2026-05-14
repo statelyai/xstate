@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createAsyncStore, createStore } from '../src/index.ts';
+import { createStore } from '../src/index.ts';
 import {
   persist,
   createJSONStorage,
@@ -99,63 +99,6 @@ describe('persist', () => {
 
     store.trigger.inc();
     expect(isHydrated(store)).toBe(true);
-  });
-
-  it('should persist and resume active async store steps on creation', async () => {
-    const storage = createMockStorage();
-    const createPersistedStore = () =>
-      createAsyncStore({
-        context: {
-          result: 0
-        },
-        on: {
-          load: async (ctx, event: { value: number }, enq) => {
-            const result = await enq.step('fetchResult', async () => {
-              return event.value;
-            });
-
-            return {
-              result: ctx.result + result
-            };
-          }
-        }
-      }).with(persist({ name: 'test', storage }));
-    const store = createPersistedStore();
-
-    store.trigger.load({ value: 42 });
-
-    const persistedSnapshot = JSON.parse(storage.getItem('test') as string);
-    const executionId = Object.keys(persistedSnapshot.async)[0];
-
-    expect(persistedSnapshot).toMatchObject({
-      context: { result: 0 },
-      async: {
-        [executionId]: {
-          event: { type: 'load', value: 42 },
-          steps: {
-            async: { status: 'active' },
-            fetchResult: { status: 'active' }
-          }
-        }
-      },
-      version: 0
-    });
-
-    const restoredStore = createPersistedStore();
-
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(restoredStore.getSnapshot().context).toEqual({ result: 42 });
-    expect(restoredStore.getSnapshot().async).toEqual({});
-
-    const finalPersistedSnapshot = JSON.parse(
-      storage.getItem('test') as string
-    );
-
-    expect(finalPersistedSnapshot).toEqual({
-      context: { result: 42 },
-      version: 0
-    });
   });
 });
 

@@ -108,13 +108,6 @@ export type EnqueueObject<
   effect: (fn: () => void) => void;
 };
 
-export type AsyncEnqueueObject<
-  TEmittedEvent extends EventObject,
-  TEventPayloadMap extends EventPayloadMap = {}
-> = EnqueueObject<TEmittedEvent, TEventPayloadMap> & {
-  step: <T>(stepId: string, exec: () => T | PromiseLike<T>) => Promise<T>;
-};
-
 export type StoreEffect<TEmitted extends EventObject> = (() => void) | TEmitted;
 
 export type StoreAssigner<
@@ -127,17 +120,6 @@ export type StoreAssigner<
   event: TEvent,
   enq: EnqueueObject<TEmitted, TEventPayloadMap>
 ) => TContext | void;
-
-export type AsyncStoreAssigner<
-  TContext extends StoreContext,
-  TEvent extends EventObject,
-  TEmitted extends EventObject,
-  TEventPayloadMap extends EventPayloadMap = {}
-> = (
-  context: TContext,
-  event: TEvent,
-  enq: AsyncEnqueueObject<TEmitted, TEventPayloadMap>
-) => TContext | void | PromiseLike<TContext | void>;
 
 export type StoreProducerAssigner<
   TContext extends StoreContext,
@@ -174,18 +156,6 @@ export type Snapshot<TOutput> =
 
 export type StoreSnapshot<TContext> = Snapshot<undefined> & {
   context: TContext;
-  async?: Record<
-    string,
-    {
-      event: EventObject;
-      steps: Record<
-        string,
-        | { status: 'active' }
-        | { status: 'done'; output?: unknown }
-        | { status: 'error'; error: unknown }
-      >;
-    }
-  >;
 };
 
 /**
@@ -327,46 +297,6 @@ export type StoreConfig<
       }
     : {
         [K in keyof TEventPayloadMap & string]: StoreAssigner<
-          ResolveStoreContext<TContext, TContextSchema>,
-          { type: K } & TEventPayloadMap[K],
-          ExtractEvents<
-            ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
-          >,
-          ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>
-        >;
-      };
-};
-
-export type AsyncStoreConfig<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
-  TEmittedPayloadMap extends EventPayloadMap = {},
-  TContextSchema extends StandardSchemaV1 | undefined = undefined,
-  TEventSchemaMap extends StandardSchemaMap | undefined = undefined,
-  TEmittedSchemaMap extends StandardSchemaMap | undefined = undefined
-> = {
-  context: ResolveStoreContext<TContext, TContextSchema>;
-  snapshot?: StoreSnapshot<ResolveStoreContext<TContext, TContextSchema>>;
-  schemas?: StoreSchemas<TContextSchema, TEventSchemaMap, TEmittedSchemaMap>;
-  on: TEventSchemaMap extends StandardSchemaMap
-    ? {
-        [K in keyof ResolveStoreEventPayloadMap<
-          TEventPayloadMap,
-          TEventSchemaMap
-        > &
-          string]?: AsyncStoreAssigner<
-          ResolveStoreContext<TContext, TContextSchema>,
-          {
-            type: K;
-          } & ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>[K],
-          ExtractEvents<
-            ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
-          >,
-          ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>
-        >;
-      }
-    : {
-        [K in keyof TEventPayloadMap & string]: AsyncStoreAssigner<
           ResolveStoreContext<TContext, TContextSchema>,
           { type: K } & TEventPayloadMap[K],
           ExtractEvents<

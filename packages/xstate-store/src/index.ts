@@ -1,11 +1,6 @@
 export { shallowEqual } from './shallowEqual';
 export { fromStore } from './fromStore';
-export {
-  createAsyncStore,
-  createStore,
-  createStoreConfig,
-  createStoreLogic
-} from './store';
+export { createStore, createStoreConfig, createStoreLogic } from './store';
 export { createAtom, createAsyncAtom } from './atom';
 export type { StandardSchemaV1 } from './schema';
 export type {
@@ -22,12 +17,9 @@ export type {
   TriggerObject,
   CanObject,
   StoreAssigner,
-  AsyncEnqueueObject,
-  AsyncStoreAssigner,
   StoreSnapshot,
   Store,
   StoreConfig,
-  AsyncStoreConfig,
   StoreContext,
   AnyStore,
   SnapshotFromStore,
