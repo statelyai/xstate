@@ -1,6 +1,7 @@
 {
   "name": "@xstate/store",
   "version": "3.17.3",
+  "type": "module",
   "description": "Simple stores",
   "keywords": [
     "store",
@@ -9,45 +10,11 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store#readme",
   "license": "MIT",
-  "main": "dist/xstate-store.cjs.js",
-  "module": "dist/xstate-store.esm.js",
   "exports": {
-    "./undo": {
-      "types": {
-        "import": "./undo/dist/xstate-store-undo.cjs.mjs",
-        "default": "./undo/dist/xstate-store-undo.cjs.js"
-      },
-      "module": "./undo/dist/xstate-store-undo.esm.js",
-      "import": "./undo/dist/xstate-store-undo.cjs.mjs",
-      "default": "./undo/dist/xstate-store-undo.cjs.js"
-    },
-    ".": {
-      "types": {
-        "import": "./dist/xstate-store.cjs.mjs",
-        "default": "./dist/xstate-store.cjs.js"
-      },
-      "module": "./dist/xstate-store.esm.js",
-      "import": "./dist/xstate-store.cjs.mjs",
-      "default": "./dist/xstate-store.cjs.js"
-    },
-    "./reset": {
-      "types": {
-        "import": "./reset/dist/xstate-store-reset.cjs.mjs",
-        "default": "./reset/dist/xstate-store-reset.cjs.js"
-      },
-      "module": "./reset/dist/xstate-store-reset.esm.js",
-      "import": "./reset/dist/xstate-store-reset.cjs.mjs",
-      "default": "./reset/dist/xstate-store-reset.cjs.js"
-    },
-    "./persist": {
-      "types": {
-        "import": "./persist/dist/xstate-store-persist.cjs.mjs",
-        "default": "./persist/dist/xstate-store-persist.cjs.js"
-      },
-      "module": "./persist/dist/xstate-store-persist.esm.js",
-      "import": "./persist/dist/xstate-store-persist.cjs.mjs",
-      "default": "./persist/dist/xstate-store-persist.cjs.js"
-    },
+    "./undo": "./dist/xstate-store-undo.js",
+    ".": "./dist/xstate-store.js",
+    "./reset": "./dist/xstate-store-reset.js",
+    "./persist": "./dist/xstate-store-persist.js",
     "./package.json": "./package.json"
   },
   "sideEffects": false,

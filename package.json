@@ -19,7 +19,9 @@
       "importConditionDefaultExport": "default"
     },
     "___experimentalFlags_WILL_CHANGE_IN_PATCH": {
-      "importsConditions": true
+      "importsConditions": true,
+      "typeModule": true,
+      "distInRoot": true
     }
   },
   "scripts": {
