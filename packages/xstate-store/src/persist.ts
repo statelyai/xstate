@@ -458,7 +458,7 @@ function persistSnapshotFromLogic<
         if (internals.flushTimeoutId === null) {
           const persistEffect = () => {
             internals.flushTimeoutId = setTimeout(() => {
-              internals.flush();
+              void internals.flush();
             }, throttleMs);
           };
           return [snapshotWithMeta, [...effects, persistEffect]];
@@ -469,7 +469,7 @@ function persistSnapshotFromLogic<
 
       // Immediate write as effect
       const persistEffect = () => {
-        writeSnapshotToStorage(internals as any, nextSnapshot.context);
+        void writeSnapshotToStorage(internals as any, nextSnapshot.context);
       };
 
       return [snapshotWithMeta, [...effects, persistEffect]];
@@ -673,7 +673,7 @@ function persistEventFromLogic<
         if (internals.flushTimeoutId === null) {
           const persistEffect = () => {
             internals.flushTimeoutId = setTimeout(() => {
-              internals.flush();
+              void internals.flush();
             }, throttleMs);
           };
           return [snapshotWithEvents, [...effects, persistEffect]];
@@ -684,7 +684,7 @@ function persistEventFromLogic<
 
       // Immediate write as effect
       const persistEffect = () => {
-        writeEventsToStorage(internals, nextEvents, nextCheckpoint);
+        void writeEventsToStorage(internals, nextEvents, nextCheckpoint);
       };
 
       return [snapshotWithEvents, [...effects, persistEffect]];
