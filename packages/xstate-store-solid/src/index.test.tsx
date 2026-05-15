@@ -1,6 +1,6 @@
 /* @jsxImportSource solid-js */
 import { fireEvent, render, screen } from '@solidjs/testing-library';
-import { createStore, createAtom, useSelector } from './index';
+import { createStore, createAtom, useSelector } from './index.ts';
 
 describe('@xstate/store-solid', () => {
   describe('useSelector', () => {

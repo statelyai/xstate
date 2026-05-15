@@ -1,4 +1,4 @@
-import { createStore, createAtom, useSelector } from './index';
+import { createStore, createAtom, useSelector } from './index.ts';
 
 describe('@xstate/store-svelte', () => {
   describe('useSelector', () => {

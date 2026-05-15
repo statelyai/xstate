@@ -1,6 +1,6 @@
 import { fireEvent, render } from '@testing-library/vue';
 import TestCounter from './TestCounter.vue';
-import { createStore, createAtom, useSelector } from './index';
+import { createStore, createAtom, useSelector } from './index.ts';
 
 describe('@xstate/store-vue', () => {
   describe('useSelector', () => {

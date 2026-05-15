@@ -1,5 +1,5 @@
 import type { StandardSchemaV1 } from '@xstate/store';
-import { createStoreHook, useStore } from './index';
+import { createStoreHook, useStore } from './index.ts';
 
 function schema<TOutput>(): StandardSchemaV1<TOutput> {
   return {

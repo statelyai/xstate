@@ -1,6 +1,6 @@
 /** @jsxImportSource preact */
 import { fireEvent, render, screen, waitFor } from '@testing-library/preact';
-import { createStore, createAtom, useSelector } from './index';
+import { createStore, createAtom, useSelector } from './index.ts';
 
 describe('@xstate/store-preact', () => {
   describe('useSelector', () => {

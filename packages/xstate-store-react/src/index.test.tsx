@@ -6,7 +6,7 @@ import {
   useStore,
   useAtom,
   createStoreHook
-} from './index';
+} from './index.ts';
 
 describe('@xstate/store-react', () => {
   describe('useSelector', () => {
