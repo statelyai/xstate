@@ -158,9 +158,7 @@ export function createAtom<T>(
           // If the observer synchronously updates any of our deps we'll be
           // marked as dirty preventing this effect from re-running. Request
           // the value again to reconcile any dirty deps.
-          if (atom.flags & ReactiveFlags.Dirty) {
-            atom.get();
-          }
+          atom.get();
         }
       });
 

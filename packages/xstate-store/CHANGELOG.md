@@ -1,5 +1,17 @@
 # @xstate/store
 
+## 3.17.5
+
+### Patch Changes
+
+- [#5521](https://github.com/statelyai/xstate/pull/5521) [`c4bb9e3`](https://github.com/statelyai/xstate/commit/c4bb9e3878b7595479554a4ed5ab93b81295d472) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix broken exports caused by missing build step in the publish workflow.
+
+## 3.17.4
+
+### Patch Changes
+
+- [#5518](https://github.com/statelyai/xstate/pull/5518) [`3a881f5`](https://github.com/statelyai/xstate/commit/3a881f5204cc874c242ec04ce3471110b9d8c506) Thanks [@thecrypticace](https://github.com/thecrypticace)! - Fix synchronous subscribe callbacks still not re-running if a subscription triggers another one through multiple levels of computed atoms.
+
 ## 3.17.3
 
 ### Patch Changes
