@@ -1,6 +1,7 @@
 {
   "name": "@xstate/store-react",
   "version": "1.0.1",
+  "type": "module",
   "description": "XState Store for React",
   "keywords": [
     "store",
@@ -11,18 +12,8 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store-react#readme",
   "license": "MIT",
-  "main": "dist/xstate-store-react.cjs.js",
-  "module": "dist/xstate-store-react.esm.js",
   "exports": {
-    ".": {
-      "types": {
-        "import": "./dist/xstate-store-react.cjs.mjs",
-        "default": "./dist/xstate-store-react.cjs.js"
-      },
-      "module": "./dist/xstate-store-react.esm.js",
-      "import": "./dist/xstate-store-react.cjs.mjs",
-      "default": "./dist/xstate-store-react.cjs.js"
-    },
+    ".": "./dist/xstate-store-react.js",
     "./package.json": "./package.json"
   },
   "types": "dist/xstate-store-react.cjs.d.ts",

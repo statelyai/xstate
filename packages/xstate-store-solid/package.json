@@ -1,6 +1,7 @@
 {
   "name": "@xstate/store-solid",
   "version": "1.0.1",
+  "type": "module",
   "description": "XState Store for Solid.js",
   "keywords": [
     "store",
@@ -11,18 +12,8 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store-solid#readme",
   "license": "MIT",
-  "main": "dist/xstate-store-solid.cjs.js",
-  "module": "dist/xstate-store-solid.esm.js",
   "exports": {
-    ".": {
-      "types": {
-        "import": "./dist/xstate-store-solid.cjs.mjs",
-        "default": "./dist/xstate-store-solid.cjs.js"
-      },
-      "module": "./dist/xstate-store-solid.esm.js",
-      "import": "./dist/xstate-store-solid.cjs.mjs",
-      "default": "./dist/xstate-store-solid.cjs.js"
-    },
+    ".": "./dist/xstate-store-solid.js",
     "./package.json": "./package.json"
   },
   "types": "dist/xstate-store-solid.cjs.d.ts",

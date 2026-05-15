@@ -1,6 +1,7 @@
 {
   "name": "@xstate/store-preact",
   "version": "1.0.1",
+  "type": "module",
   "description": "XState Store for Preact",
   "keywords": [
     "store",
@@ -10,18 +11,8 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store-preact#readme",
   "license": "MIT",
-  "main": "dist/xstate-store-preact.cjs.js",
-  "module": "dist/xstate-store-preact.esm.js",
   "exports": {
-    ".": {
-      "types": {
-        "import": "./dist/xstate-store-preact.cjs.mjs",
-        "default": "./dist/xstate-store-preact.cjs.js"
-      },
-      "module": "./dist/xstate-store-preact.esm.js",
-      "import": "./dist/xstate-store-preact.cjs.mjs",
-      "default": "./dist/xstate-store-preact.cjs.js"
-    },
+    ".": "./dist/xstate-store-preact.js",
     "./package.json": "./package.json"
   },
   "types": "dist/xstate-store-preact.cjs.d.ts",

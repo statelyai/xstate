@@ -1,6 +1,7 @@
 {
   "name": "@xstate/store-svelte",
   "version": "1.1.0",
+  "type": "module",
   "description": "XState Store for Svelte",
   "keywords": [
     "store",
@@ -10,18 +11,8 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store-svelte#readme",
   "license": "MIT",
-  "main": "dist/xstate-store-svelte.cjs.js",
-  "module": "dist/xstate-store-svelte.esm.js",
   "exports": {
-    ".": {
-      "types": {
-        "import": "./dist/xstate-store-svelte.cjs.mjs",
-        "default": "./dist/xstate-store-svelte.cjs.js"
-      },
-      "module": "./dist/xstate-store-svelte.esm.js",
-      "import": "./dist/xstate-store-svelte.cjs.mjs",
-      "default": "./dist/xstate-store-svelte.cjs.js"
-    },
+    ".": "./dist/xstate-store-svelte.js",
     "./package.json": "./package.json"
   },
   "types": "dist/xstate-store-svelte.cjs.d.ts",
