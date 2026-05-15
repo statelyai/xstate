@@ -2,7 +2,7 @@ import {
   createReactiveSystem,
   type ReactiveNode,
   ReactiveFlags
-} from './alien';
+} from './alien.ts';
 import {
   Atom,
   AtomOptions,
@@ -10,7 +10,7 @@ import {
   ReducerAtom,
   ReadonlyAtom,
   Subscription
-} from './types';
+} from './types.ts';
 
 interface InternalAtom<T> extends ReactiveNode {
   _snapshot: T;

@@ -1,5 +1,8 @@
 import type { ActorLogic } from 'xstate';
-import { createStoreTransition, TransitionsFromEventPayloadMap } from './store';
+import {
+  createStoreTransition,
+  TransitionsFromEventPayloadMap
+} from './store.ts';
 import {
   EnqueueObject,
   EventPayloadMap,
@@ -13,8 +16,8 @@ import {
   ResolveStoreEmittedPayloadMap,
   StoreSchemas,
   StandardSchemaMap
-} from './types';
-import type { StandardSchemaV1 } from './schema';
+} from './types.ts';
+import type { StandardSchemaV1 } from './schema.ts';
 
 type StoreLogic<
   TContext extends StoreContext,

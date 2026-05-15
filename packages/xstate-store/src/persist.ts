@@ -6,8 +6,8 @@ import {
   StoreExtension,
   StoreLogic,
   StoreSnapshot
-} from './types';
-import { assertNoInternalEventTypeCollisions } from './store';
+} from './types.ts';
+import { assertNoInternalEventTypeCollisions } from './store.ts';
 
 /**
  * Storage interface compatible with `localStorage`, `sessionStorage`, and async

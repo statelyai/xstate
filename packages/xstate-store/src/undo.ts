@@ -7,8 +7,8 @@ import {
   StoreExtension,
   StoreLogic,
   StoreSnapshot
-} from './types';
-import { appendInternalEventTypes } from './store';
+} from './types.ts';
+import { appendInternalEventTypes } from './store.ts';
 
 interface UndoRedoEventOptions<
   TContext extends StoreContext,

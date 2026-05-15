@@ -1,8 +1,8 @@
-export { shallowEqual } from './shallowEqual';
-export { fromStore } from './fromStore';
-export { createStore, createStoreConfig, createStoreLogic } from './store';
-export { createAtom, createAsyncAtom, createReducerAtom } from './atom';
-export type { StandardSchemaV1 } from './schema';
+export { shallowEqual } from './shallowEqual.ts';
+export { fromStore } from './fromStore.ts';
+export { createStore, createStoreConfig, createStoreLogic } from './store.ts';
+export { createAtom, createAsyncAtom, createReducerAtom } from './atom.ts';
+export type { StandardSchemaV1 } from './schema.ts';
 export type {
   EventPayloadMap,
   ExtractEvents,
@@ -51,4 +51,4 @@ export type {
   EmitsFromStoreConfig,
   ContextFromStoreConfig,
   StoreExtension
-} from './types';
+} from './types.ts';

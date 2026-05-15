@@ -1,4 +1,4 @@
-import { createAtom } from './atom';
+import { createAtom } from './atom.ts';
 import {
   EnqueueObject,
   EventObject,
@@ -28,8 +28,8 @@ import {
   ResolveStoreEventPayloadMap,
   ResolveStoreEmittedPayloadMap,
   StandardSchemaMap
-} from './types';
-import type { StandardSchemaV1 } from './schema';
+} from './types.ts';
+import type { StandardSchemaV1 } from './schema.ts';
 
 const symbolObservable: typeof Symbol.observable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) ||
