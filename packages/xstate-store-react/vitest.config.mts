@@ -1,5 +1,4 @@
 import { defineProject } from 'vitest/config';
-import path from 'path';
 
 export default defineProject({
   test: {
@@ -8,9 +7,6 @@ export default defineProject({
     environment: 'happy-dom'
   },
   resolve: {
-    conditions: ['development', 'browser'],
-    alias: {
-      '@xstate/store': path.resolve(__dirname, '../xstate-store/src/index.ts')
-    }
+    conditions: ['development', 'browser']
   }
 });
