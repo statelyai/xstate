@@ -560,6 +560,10 @@ export interface Atom<T> extends BaseAtom<T> {
   set(value: T): void;
 }
 
+export interface ReducerAtom<TState, TEvent> extends BaseAtom<TState> {
+  send: (event: TEvent) => void;
+}
+
 export interface AtomOptions<T> {
   compare?: (prev: T, next: T) => boolean;
 }

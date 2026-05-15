@@ -343,6 +343,25 @@ producer inside transition handlers.
   });
 ```
 
+When using Immer, return `undefined` from the transition before calling
+`produce(...)` when the event should be unavailable:
+
+```ts
+inc: (context) => {
+  if (context.count >= 10) {
+    return;
+  }
+
+  return produce(context, (draft) => {
+    draft.count++;
+  });
+};
+```
+
+Immer treats `undefined` returned from a producer as if the producer did not
+return anything. If you need `produce(...)` itself to return `undefined`, return
+Immer's `nothing` token from the producer.
+
 ### `createStore(context, transitions)`
 
 The deprecated two-argument `createStore(context, transitions)` API was removed.

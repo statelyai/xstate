@@ -162,6 +162,42 @@ const donutStore = createStore({
 });
 ```
 
+If a transition should be unavailable, return `undefined` from the transition
+before calling `produce(...)`:
+
+```ts
+on: {
+  eatDonut: (context) => {
+    if (context.donuts === 0) {
+      return;
+    }
+
+    return produce(context, (draft) => {
+      draft.donuts--;
+    });
+  };
+}
+```
+
+Immer treats a producer that returns `undefined` the same as a producer that
+does not explicitly return anything. If you need `produce(...)` itself to return
+`undefined`, return Immer's `nothing` token from the producer:
+
+```ts
+import { nothing, produce } from 'immer';
+
+on: {
+  eatDonut: (context) =>
+    produce(context, (draft) => {
+      if (draft.donuts === 0) {
+        return nothing;
+      }
+
+      draft.donuts--;
+    });
+}
+```
+
 ## TypeScript
 
 XState Store is written in TypeScript and provides full type safety, _without_ you having to specify generic type parameters. The `context` type is inferred from the initial context object, and the event types are inferred from the event object payloads you provide in the transition functions.

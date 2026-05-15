@@ -1,7 +1,7 @@
 export { shallowEqual } from './shallowEqual';
 export { fromStore } from './fromStore';
 export { createStore, createStoreConfig, createStoreLogic } from './store';
-export { createAtom, createAsyncAtom } from './atom';
+export { createAtom, createAsyncAtom, createReducerAtom } from './atom';
 export type { StandardSchemaV1 } from './schema';
 export type {
   EventPayloadMap,
@@ -43,6 +43,7 @@ export type {
   Readable,
   BaseAtom,
   Atom,
+  ReducerAtom,
   AtomOptions,
   AnyAtom,
   ReadonlyAtom,

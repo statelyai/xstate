@@ -7,6 +7,7 @@ import {
   Atom,
   AtomOptions,
   Observer,
+  ReducerAtom,
   ReadonlyAtom,
   Subscription
 } from './types';
@@ -239,6 +240,30 @@ export function createAtom<T>(
   }
 
   return atom as unknown as Atom<T> | ReadonlyAtom<T>;
+}
+
+export function createReducerAtom<TState, TEvent>(
+  initialValue: TState,
+  reducer: (state: TState, event: TEvent) => TState,
+  options?: AtomOptions<TState>
+): ReducerAtom<TState, TEvent> {
+  const atom = createAtom(initialValue, options);
+
+  return {
+    get: atom.get.bind(atom),
+    subscribe: atom.subscribe.bind(atom),
+    send(event) {
+      const prevSub = activeSub;
+      activeSub = undefined;
+      let nextState: TState;
+      try {
+        nextState = reducer(atom.get(), event);
+      } finally {
+        activeSub = prevSub;
+      }
+      atom.set(nextState);
+    }
+  };
 }
 
 interface Effect extends ReactiveNode {

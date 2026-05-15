@@ -44,8 +44,8 @@ importers:
         specifier: ^0.21.4
         version: 0.21.4
       '@preconstruct/cli':
-        specifier: ^2.8.1
-        version: 2.8.12
+        specifier: ^2.8.13
+        version: 2.8.13
       '@types/node':
         specifier: 25.2.1
         version: 25.2.1
@@ -2091,8 +2091,8 @@ packages:
       '@babel/core': 7.x
       vite: 2.x || 3.x || 4.x || 5.x || 6.x || 7.x
 
-  '@preconstruct/cli@2.8.12':
-    resolution: {integrity: sha512-SMsMICUWROmu/vb4cmrk7EJUiWhgNjB3U3tM654K9bu9yECXqrPN473vliO7KPV3CSLhmtl3S4nfcMirEJmyZg==, tarball: https://registry.npmjs.org/@preconstruct/cli/-/cli-2.8.12.tgz}
+  '@preconstruct/cli@2.8.13':
+    resolution: {integrity: sha512-+1I98YKqXy3nNQQBTvwzgjFujcDndX4Q7G0QHBCCRCxGRA5LIyUvK9XN92pyWPbbmUPPg2amlTGxWThGgn1DRQ==, tarball: https://registry.npmjs.org/@preconstruct/cli/-/cli-2.8.13.tgz}
     hasBin: true
 
   '@preconstruct/hook@0.4.0':
@@ -5849,11 +5849,6 @@ packages:
     resolution: {integrity: sha512-wK0Ri4fOGjv/XPy8SBHZChl8CM7uMc5VML7SqiQ0zG7+J5Vr+RMQDoHa2CNT6KHUnTGIXH34UDMkPzAUyapBZg==, tarball: https://registry.npmjs.org/term-size/-/term-size-2.2.1.tgz}
     engines: {node: '>=8'}
 
-  terser@5.43.1:
-    resolution: {integrity: sha512-+6erLbBm0+LROX2sPXlUYx/ux5PyE9K/a92Wrt6oA+WDAoFTdpHE5tCYCI5PNzq2y8df4rA+QgHLJuR4jNymsg==, tarball: https://registry.npmjs.org/terser/-/terser-5.43.1.tgz}
-    engines: {node: '>=10'}
-    hasBin: true
-
   terser@5.46.0:
     resolution: {integrity: sha512-jTwoImyr/QbOWFFso3YoU3ik0jBBDJ6JTOQiy/J2YxVJdZCc+5u7skhNwiOR3FQIygFqVUPHl7qbbxtjW2K3Qg==, tarball: https://registry.npmjs.org/terser/-/terser-5.46.0.tgz}
     engines: {node: '>=10'}
@@ -6060,11 +6055,12 @@ packages:
 
   uuid@3.4.0:
     resolution: {integrity: sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A==, tarball: https://registry.npmjs.org/uuid/-/uuid-3.4.0.tgz}
-    deprecated: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   uuid@9.0.1:
     resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==, tarball: https://registry.npmjs.org/uuid/-/uuid-9.0.1.tgz}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   v8-compile-cache-lib@3.0.1:
@@ -6801,6 +6797,15 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@babel/helper-module-transforms@7.27.3(@babel/core@7.29.0)':
+    dependencies:
+      '@babel/core': 7.29.0
+      '@babel/helper-module-imports': 7.27.1
+      '@babel/helper-validator-identifier': 7.27.1
+      '@babel/traverse': 7.28.0
+    transitivePeerDependencies:
+      - supports-color
+
   '@babel/helper-module-transforms@7.28.6(@babel/core@7.29.0)':
     dependencies:
       '@babel/core': 7.29.0
@@ -7126,6 +7131,14 @@ snapshots:
     dependencies:
       '@babel/core': 7.28.0
       '@babel/helper-module-transforms': 7.27.3(@babel/core@7.28.0)
+      '@babel/helper-plugin-utils': 7.27.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@babel/plugin-transform-modules-commonjs@7.27.1(@babel/core@7.29.0)':
+    dependencies:
+      '@babel/core': 7.29.0
+      '@babel/helper-module-transforms': 7.27.3(@babel/core@7.29.0)
       '@babel/helper-plugin-utils': 7.27.1
     transitivePeerDependencies:
       - supports-color
@@ -8321,11 +8334,11 @@ snapshots:
       - preact
       - supports-color
 
-  '@preconstruct/cli@2.8.12':
+  '@preconstruct/cli@2.8.13':
     dependencies:
-      '@babel/code-frame': 7.27.1
-      '@babel/core': 7.28.0
-      '@babel/helper-module-imports': 7.27.1
+      '@babel/code-frame': 7.29.0
+      '@babel/core': 7.29.0
+      '@babel/helper-module-imports': 7.28.6
       '@babel/runtime': 7.27.6
       '@preconstruct/hook': 0.4.0
       '@rollup/plugin-alias': 3.1.9(rollup@2.79.2)
@@ -8345,7 +8358,7 @@ snapshots:
       fs-extra: 9.1.0
       is-reference: 1.2.1
       jest-worker: 26.6.2
-      magic-string: 0.30.17
+      magic-string: 0.30.21
       ms: 2.1.3
       normalize-path: 3.0.0
       npm-packlist: 2.2.2
@@ -8355,8 +8368,8 @@ snapshots:
       quick-lru: 5.1.1
       resolve-from: 5.0.0
       rollup: 2.79.2
-      semver: 7.7.2
-      terser: 5.43.1
+      semver: 7.7.4
+      terser: 5.46.0
       v8-compile-cache: 2.4.0
       zod: 3.25.76
     transitivePeerDependencies:
@@ -8364,8 +8377,8 @@ snapshots:
 
   '@preconstruct/hook@0.4.0':
     dependencies:
-      '@babel/core': 7.28.0
-      '@babel/plugin-transform-modules-commonjs': 7.27.1(@babel/core@7.28.0)
+      '@babel/core': 7.29.0
+      '@babel/plugin-transform-modules-commonjs': 7.27.1(@babel/core@7.29.0)
       pirates: 4.0.7
       source-map-support: 0.5.21
     transitivePeerDependencies:
@@ -8404,7 +8417,7 @@ snapshots:
       glob: 7.2.3
       is-reference: 1.2.1
       magic-string: 0.25.9
-      resolve: 1.22.10
+      resolve: 1.22.11
       rollup: 2.79.2
 
   '@rollup/plugin-json@4.1.0(rollup@2.79.2)':
@@ -8419,7 +8432,7 @@ snapshots:
       builtin-modules: 3.3.0
       deepmerge: 4.3.1
       is-module: 1.0.0
-      resolve: 1.22.10
+      resolve: 1.22.11
       rollup: 2.79.2
 
   '@rollup/plugin-replace@2.4.2(rollup@2.79.2)':
@@ -9792,7 +9805,7 @@ snapshots:
       '@one-ini/wasm': 0.1.1
       commander: 10.0.1
       minimatch: 9.0.1
-      semver: 7.7.2
+      semver: 7.7.4
 
   electron-to-chromium@1.5.181: {}
 
@@ -10905,7 +10918,7 @@ snapshots:
       is-plain-object: 2.0.4
       object.map: 1.0.1
       rechoir: 0.7.1
-      resolve: 1.22.10
+      resolve: 1.22.11
 
   lilconfig@2.1.0:
     optional: true
@@ -11832,11 +11845,11 @@ snapshots:
 
   rechoir@0.6.2:
     dependencies:
-      resolve: 1.22.10
+      resolve: 1.22.11
 
   rechoir@0.7.1:
     dependencies:
-      resolve: 1.22.10
+      resolve: 1.22.11
 
   reduce-component@1.0.1: {}
 
@@ -12518,20 +12531,12 @@ snapshots:
 
   term-size@2.2.1: {}
 
-  terser@5.43.1:
-    dependencies:
-      '@jridgewell/source-map': 0.3.11
-      acorn: 8.15.0
-      commander: 2.20.3
-      source-map-support: 0.5.21
-
   terser@5.46.0:
     dependencies:
       '@jridgewell/source-map': 0.3.11
       acorn: 8.16.0
       commander: 2.20.3
       source-map-support: 0.5.21
-    optional: true
 
   thenify-all@1.6.0:
     dependencies:

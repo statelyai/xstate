@@ -1,4 +1,9 @@
-import { createStore, createAtom, createAsyncAtom } from '../src/index.ts';
+import {
+  createStore,
+  createAtom,
+  createAsyncAtom,
+  createReducerAtom
+} from '../src/index.ts';
 
 it('creates an atom', () => {
   const atom = createAtom(42);
@@ -510,6 +515,77 @@ it('computed atoms can use their previous value in the getter', () => {
 
   count.set(3);
   expect(accumulated.get()).toBe(6); // 3 + 3 = 6
+});
+
+describe('reducer atoms', () => {
+  it('updates from current state and sent event', () => {
+    const counter = createReducerAtom(0, (state, event: number) =>
+      Math.min(10, state + event)
+    );
+
+    counter.send(13);
+
+    expect(counter.get()).toBe(10);
+  });
+
+  it('can receive arbitrary event values', () => {
+    const value = createReducerAtom(
+      '',
+      (state, event: string | number) => state + event
+    );
+
+    value.send('x');
+    value.send(1);
+
+    expect(value.get()).toBe('x1');
+  });
+
+  it('notifies subscribers when the reducer changes state', () => {
+    const counter = createReducerAtom(
+      0,
+      (state, event: number) => state + event
+    );
+    const listener = vi.fn();
+
+    counter.subscribe(listener);
+    counter.send(1);
+    counter.send(0);
+    counter.send(2);
+
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(listener).toHaveBeenNthCalledWith(1, 1);
+    expect(listener).toHaveBeenNthCalledWith(2, 3);
+  });
+
+  it('can be used by derived atoms', () => {
+    const counter = createReducerAtom(
+      0,
+      (state, event: number) => state + event
+    );
+    const doubled = createAtom(() => counter.get() * 2);
+
+    expect(doubled.get()).toBe(0);
+
+    counter.send(2);
+
+    expect(doubled.get()).toBe(4);
+  });
+
+  it('does not track atom reads inside the reducer', () => {
+    const multiplier = createAtom(2);
+    const counter = createReducerAtom(
+      1,
+      (state, event: number) => state + event * multiplier.get()
+    );
+    const listener = vi.fn();
+
+    counter.subscribe(listener);
+    counter.send(3);
+    multiplier.set(10);
+
+    expect(counter.get()).toBe(7);
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('async atoms', () => {

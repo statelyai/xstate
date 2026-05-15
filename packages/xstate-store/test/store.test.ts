@@ -488,6 +488,7 @@ it('checks whether events can transition', () => {
         noop: schema<{}>(),
         effectOnly: schema<{}>(),
         emitOnly: schema<{}>(),
+        triggerOnly: schema<{}>(),
         unavailable: schema<{}>()
       },
       emitted: {
@@ -508,6 +509,9 @@ it('checks whether events can transition', () => {
       },
       emitOnly: (_, __, enq) => {
         enq.emit.emitted();
+      },
+      triggerOnly: (_, __, enq) => {
+        enq.trigger.increment({ by: 1 });
       }
     }
   });
@@ -519,6 +523,7 @@ it('checks whether events can transition', () => {
   expect(store.can.noop()).toBe(true);
   expect(store.can.effectOnly()).toBe(true);
   expect(store.can.emitOnly()).toBe(true);
+  expect(store.can.triggerOnly()).toBe(true);
   expect(store.can.unavailable()).toBe(false);
   expect(store.getSnapshot().context).toEqual({ count: 9 });
   expect(effectSpy).not.toHaveBeenCalled();
