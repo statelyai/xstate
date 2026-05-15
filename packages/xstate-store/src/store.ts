@@ -701,7 +701,7 @@ export function createStoreLogic(
       const store = createStore({
         ...config,
         context
-      } as any);
+      });
 
       return config.selectors
         ? attachSelectors(store, config.selectors)
