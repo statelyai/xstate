@@ -40,7 +40,7 @@
     "react": "^19.0.0",
     "solid-js": "^1.9.7",
     "vite-plugin-solid": "^2.11.6",
-    "vue": "^3.4.35",
+    "vue": "3.5.27",
     "xstate": "workspace:^"
   },
   "preconstruct": {

@@ -191,10 +191,10 @@ importers:
         version: 0.4.0(ws@8.18.3)(xstate@packages+core)
       '@testing-library/vue':
         specifier: ^8.1.0
-        version: 8.1.0(@vue/compiler-sfc@3.5.29)(vue@3.5.17(typescript@6.0.2))
+        version: 8.1.0(@vue/compiler-sfc@3.5.29)(vue@3.5.27(typescript@6.0.2))
       '@vitejs/plugin-vue':
         specifier: ^5.1.2
-        version: 5.2.4(vite@7.0.3(@types/node@25.2.1)(jiti@2.4.2)(sass@1.97.3)(stylus@0.54.8)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.17(typescript@6.0.2))
+        version: 5.2.4(vite@7.0.3(@types/node@25.2.1)(jiti@2.4.2)(sass@1.97.3)(stylus@0.54.8)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@6.0.2))
       '@xstate/vue':
         specifier: workspace:^
         version: link:../xstate-vue
@@ -211,8 +211,8 @@ importers:
         specifier: ^2.11.6
         version: 2.11.7(solid-js@1.9.7)(vite@7.0.3(@types/node@25.2.1)(jiti@2.4.2)(sass@1.97.3)(stylus@0.54.8)(terser@5.46.0)(yaml@2.8.2))
       vue:
-        specifier: ^3.4.35
-        version: 3.5.17(typescript@6.0.2)
+        specifier: 3.5.27
+        version: 3.5.27(typescript@6.0.2)
       xstate:
         specifier: workspace:^
         version: link:../core
@@ -334,17 +334,17 @@ importers:
         version: link:../xstate-store
       vue-demi:
         specifier: ^0.14.10
-        version: 0.14.10(vue@3.5.17(typescript@6.0.2))
+        version: 0.14.10(vue@3.5.27(typescript@6.0.2))
     devDependencies:
       '@testing-library/vue':
         specifier: ^8.1.0
-        version: 8.1.0(@vue/compiler-sfc@3.5.29)(vue@3.5.17(typescript@6.0.2))
+        version: 8.1.0(@vue/compiler-sfc@3.5.29)(vue@3.5.27(typescript@6.0.2))
       '@vitejs/plugin-vue':
         specifier: ^5.1.2
-        version: 5.2.4(vite@7.0.3(@types/node@25.2.1)(jiti@2.4.2)(sass@1.97.3)(stylus@0.54.8)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.17(typescript@6.0.2))
+        version: 5.2.4(vite@7.0.3(@types/node@25.2.1)(jiti@2.4.2)(sass@1.97.3)(stylus@0.54.8)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@6.0.2))
       vue:
-        specifier: ^3.4.35
-        version: 3.5.17(typescript@6.0.2)
+        specifier: 3.5.27
+        version: 3.5.27(typescript@6.0.2)
 
   packages/xstate-svelte:
     devDependencies:
@@ -379,7 +379,7 @@ importers:
         specifier: ^5.1.2
         version: 5.2.4(vite@7.0.3(@types/node@25.2.1)(jiti@2.4.2)(sass@1.97.3)(stylus@0.54.8)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@6.0.2))
       vue:
-        specifier: ^3.4.35
+        specifier: 3.5.27
         version: 3.5.27(typescript@6.0.2)
       xstate:
         specifier: workspace:^
@@ -12899,19 +12899,9 @@ snapshots:
 
   vue-component-type-helpers@2.2.12: {}
 
-  vue-demi@0.14.10(vue@3.5.17(typescript@6.0.2)):
+  vue-demi@0.14.10(vue@3.5.27(typescript@6.0.2)):
     dependencies:
-      vue: 3.5.17(typescript@6.0.2)
-
-  vue@3.5.17(typescript@6.0.2):
-    dependencies:
-      '@vue/compiler-dom': 3.5.17
-      '@vue/compiler-sfc': 3.5.17
-      '@vue/runtime-dom': 3.5.17
-      '@vue/server-renderer': 3.5.17(vue@3.5.17(typescript@6.0.2))
-      '@vue/shared': 3.5.17
-    optionalDependencies:
-      typescript: 6.0.2
+      vue: 3.5.27(typescript@6.0.2)
 
   vue@3.5.27(typescript@6.0.2):
     dependencies:
