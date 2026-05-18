@@ -23,7 +23,6 @@
     }
   },
   "scripts": {
-    "preinstall": "node ./scripts/ensure-pnpm.js",
     "postinstall": "manypkg check && preconstruct dev",
     "build": "preconstruct build",
     "update:examples": "pnpm update:examples:deps && pnpm update:examples:links",
@@ -53,11 +52,11 @@
   },
   "homepage": "https://github.com/statelyai/xstate#readme",
   "dependencies": {
-    "@babel/core": "^7.23.3",
+    "@babel/core": "^7.29.0",
     "@babel/plugin-proposal-class-properties": "^7.18.6",
-    "@babel/preset-env": "^7.23.3",
-    "@babel/preset-react": "^7.23.3",
-    "@babel/preset-typescript": "^7.23.3",
+    "@babel/preset-env": "^7.29.5",
+    "@babel/preset-react": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
     "@changesets/changelog-github": "^0.5.1",
     "@changesets/cli": "^2.29.5",
     "@eslint/js": "^9.26.0",
@@ -91,9 +90,6 @@
     ]
   },
   "pnpm": {
-    "overrides": {
-      "@types/node": "25.2.1"
-    },
     "patchedDependencies": {
       "@vue/test-utils@2.4.6": "patches/@vue__test-utils@2.4.6.patch"
     }

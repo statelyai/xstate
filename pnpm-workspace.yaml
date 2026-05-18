@@ -2,6 +2,16 @@ packages:
   - 'packages/*'
   - 'scripts/*'
 
+allowBuilds:
+  '@parcel/watcher': false
+  esbuild: false
+  husky: false
+  lmdb: false
+  msgpackr-extract: false
+  oxc-resolver: false
+  svelte-preprocess: false
+  vue-demi: false
+
 blockExoticSubdeps: true
 dedupePeers: true
 dedupePeerDependents: true
