@@ -17,7 +17,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  ci:
+    name: CI
     timeout-minutes: 20
 
     runs-on: ubuntu-latest
