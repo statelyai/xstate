@@ -1,5 +1,12 @@
 name: 'CI setup'
-description: ''
+description: 'CI setup'
+
+inputs:
+  skip-cache:
+    description: 'Whether to skip the cache'
+    required: false
+    default: 'false'
+
 runs:
   using: 'composite'
   steps:
@@ -10,9 +17,10 @@ runs:
       uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
       with:
         node-version: 24.x
-        cache: 'pnpm'
         registry-url: 'https://registry.npmjs.org'
+        package-manager-cache: ${{ inputs.skip-cache != 'true' }}
+        cache: ${{ inputs.skip-cache != 'true' && 'pnpm' || '' }}
 
     - name: Install Dependencies
-      run: pnpm install
+      run: pnpm install --frozen-lockfile
       shell: bash

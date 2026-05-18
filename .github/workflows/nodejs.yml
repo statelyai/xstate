@@ -10,15 +10,22 @@ on:
       - '**'
 
 permissions:
-  contents: read #  to fetch code (actions/checkout)
+  contents: read # to fetch code (actions/checkout)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.sha }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  ci:
+    name: CI
     timeout-minutes: 20
 
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/ci-setup
       - uses: ./.github/actions/ci-checks
