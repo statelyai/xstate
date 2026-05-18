@@ -1,3 +1,10 @@
 packages:
   - 'packages/*'
   - 'scripts/*'
+
+blockExoticSubdeps: true
+dedupePeers: true
+dedupePeerDependents: true
+minimumReleaseAge: 10080
+shellEmulator: true
+trustPolicy: no-downgrade
