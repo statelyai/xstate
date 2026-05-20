@@ -83,6 +83,9 @@ export function fromStore<
           typeof initialContext === 'function'
             ? initialContext(input)
             : initialContext,
+        async: {
+          pending: {}
+        },
         output: undefined,
         error: undefined
       } satisfies StoreSnapshot<TContext>;
