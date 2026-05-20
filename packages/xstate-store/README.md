@@ -236,7 +236,7 @@ donutStore.send({
 });
 ```
 
-If you want to provide event or emitted-event types explicitly, you can use `schemas` with any library that implements the [Standard Schema](https://standardschema.dev/) interface:
+If you want to provide event or emitted-event types explicitly, you can use `schemas` with any library that implements the [Standard Schema](https://standardschema.dev/) interface. Schemas define the store's runtime-readable contract: the shape of its context, accepted events, and emitted events. Store uses schemas for type inference and metadata by default; it does not validate schema-declared values unless you opt in with `validateSchemas()`.
 
 ```ts
 import { createStore } from '@xstate/store';
@@ -273,6 +273,81 @@ const store = createStore({
     }
   }
 });
+```
+
+Event and emitted-event schemas describe payload objects. Use an empty object
+schema for events without payload:
+
+```ts
+schemas: {
+  events: {
+    reset: z.object({})
+  },
+  emitted: {
+    reset: z.object({})
+  }
+}
+```
+
+### Validating schemas
+
+Use the `validateSchemas()` extension when the store should validate its schema
+contract at runtime:
+
+```ts
+import { createStore } from '@xstate/store';
+import { validateSchemas } from '@xstate/store/validate';
+import { z } from 'zod';
+
+const store = createStore({
+  schemas: {
+    context: z.object({
+      count: z.number()
+    }),
+    events: {
+      increment: z.object({
+        by: z.number()
+      })
+    },
+    emitted: {
+      increased: z.object({
+        by: z.number()
+      })
+    }
+  },
+  context: { count: 0 },
+  on: {
+    increment: (context, event, enqueue) => {
+      enqueue.emit.increased({ by: event.by });
+      return { count: context.count + event.by };
+    }
+  }
+}).with(validateSchemas());
+```
+
+`validateSchemas()` validates store macrosteps. It validates the event sent to
+the store, the final context after the transition completes, and emitted events
+before any effects execute. Events queued internally with `enqueue.trigger` are
+processed as part of the same macrostep; their payloads are not separately
+validated in this version.
+
+Invalid `send(...)`, `trigger.*(...)`, or `transition(...)` calls throw a
+`StoreValidationError`. `store.can.*(...)` always returns a boolean; validation
+errors make it return `false`.
+
+By default, unknown events and emitted events throw when the corresponding
+schema map exists. Extension-added event types are treated as known, even when
+they do not have payload schemas. You can opt out:
+
+```ts
+const store = createStore({
+  // ...
+}).with(
+  validateSchemas({
+    unknownEvents: 'ignore',
+    unknownEmitted: 'ignore'
+  })
+);
 ```
 
 Use `store.getSnapshot()` when you want an explicit snapshot read from the store itself. Use `store.get()` when consuming the store as a `Readable` value in tracked or reactive code.

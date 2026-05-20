@@ -85,6 +85,7 @@ function undoRedoFromLogic<
   if (options?.strategy === 'snapshot') {
     // Snapshot strategy
     const enhancedLogic: AnyStoreLogic = {
+      ...logic,
       eventTypes: appendInternalEventTypes(
         logic.eventTypes,
         ['undo', 'redo'],
@@ -223,6 +224,7 @@ function undoRedoFromLogic<
   // Event strategy (default)
   type UndoEventItem = { event: TEvent; transactionId?: string };
   const enhancedLogic: AnyStoreLogic = {
+    ...logic,
     eventTypes: appendInternalEventTypes(
       logic.eventTypes,
       ['undo', 'redo'],

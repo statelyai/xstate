@@ -6,9 +6,12 @@ This guide covers changes in `packages/xstate-store` only.
 
 ### Standard Schema typing
 
-Store configs now accept `schemas` for type inference from any
-[Standard Schema](https://standardschema.dev/) compatible library. This can type
-context, accepted events, and emitted events.
+Store configs now accept `schemas` for type inference and runtime-readable
+metadata from any [Standard Schema](https://standardschema.dev/) compatible
+library. This can type context, accepted events, and emitted events.
+
+Store does not validate schemas by default. Use `validateSchemas()` from
+`@xstate/store/validate` to opt into runtime validation.
 
 ```ts
 import { createStore } from '@xstate/store';
@@ -44,6 +47,32 @@ const store = createStore({
   }
 });
 ```
+
+Event and emitted-event schemas define payload objects. Use an empty object
+schema, such as `z.object({})`, for events without payload.
+
+```ts
+import { validateSchemas } from '@xstate/store/validate';
+
+const store = createStore({
+  schemas: {
+    events: {
+      increment: z.object({ by: z.number() })
+    }
+  },
+  context: { count: 0 },
+  on: {
+    increment: (context, event) => ({ count: context.count + event.by })
+  }
+}).with(validateSchemas());
+```
+
+`validateSchemas()` validates the event sent to the store, the final context
+after the transition completes, and emitted events before effects execute. It
+throws `StoreValidationError` for invalid `send(...)`, `trigger.*(...)`, and
+`transition(...)` calls. `store.can.*(...)` remains boolean-only and returns
+`false` for validation errors. Extension-added event types are treated as known,
+even when they do not have payload schemas.
 
 `fromStore(...)` also accepts `schemas` and can infer context, event, and
 emitted-event types from schema definitions.

@@ -6,7 +6,10 @@ export type ExtractEvents<T extends EventPayloadMap> = Values<{
   [K in keyof T & string]: T[K] & { type: K };
 }>;
 
-export type StandardSchemaMap = Record<string, StandardSchemaV1>;
+export type StandardSchemaMap = Record<
+  string,
+  StandardSchemaV1<unknown, object>
+>;
 
 export type InferSchemaOutput<
   TSchema extends StandardSchemaV1,
@@ -18,11 +21,14 @@ export type InferSchemaOutput<
 >;
 
 export type InferSchemaPayloadMap<TSchemaMap extends StandardSchemaMap> = {
-  [K in keyof TSchemaMap & string]: InferSchemaOutput<
-    TSchemaMap[K],
-    EventPayloadMap[string]
+  [K in keyof TSchemaMap & string]: NormalizeSchemaPayload<
+    InferSchemaOutput<TSchemaMap[K], EventPayloadMap[string]>
   >;
 };
+
+type NormalizeSchemaPayload<TPayload> = string extends keyof TPayload
+  ? {}
+  : TPayload;
 
 export type StoreSchemas<
   TContextSchema extends StandardSchemaV1 | undefined = undefined,
@@ -55,29 +61,21 @@ export type ResolveStoreEmittedPayloadMap<
   ? InferSchemaPayloadMap<TEmittedSchemaMap>
   : TEmittedPayloadMap;
 
-type AllKeys<T> = T extends any ? keyof T : never;
-
 type EmitterFunction<TEmittedEvent extends EventObject> = (
   ...args: { type: TEmittedEvent['type'] } extends TEmittedEvent
-    ? AllKeys<TEmittedEvent> extends 'type'
-      ? []
-      : [DistributiveOmit<TEmittedEvent, 'type'>?]
+    ? [DistributiveOmit<TEmittedEvent, 'type'>?]
     : [DistributiveOmit<TEmittedEvent, 'type'>]
 ) => void;
 
 type TriggerFunction<TEvent extends EventObject> = (
   ...args: { type: TEvent['type'] } extends TEvent
-    ? AllKeys<TEvent> extends 'type'
-      ? []
-      : [DistributiveOmit<TEvent, 'type'>?]
+    ? [DistributiveOmit<TEvent, 'type'>?]
     : [DistributiveOmit<TEvent, 'type'>]
 ) => void;
 
 type CanFunction<TEvent extends EventObject> = (
   ...args: { type: TEvent['type'] } extends TEvent
-    ? AllKeys<TEvent> extends 'type'
-      ? []
-      : [DistributiveOmit<TEvent, 'type'>?]
+    ? [DistributiveOmit<TEvent, 'type'>?]
     : [DistributiveOmit<TEvent, 'type'>]
 ) => boolean;
 
@@ -266,7 +264,14 @@ export type StoreTransition<
 > = (
   state: StoreSnapshot<TContext>,
   event: TEvent
-) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
+) => StoreTransitionResult<StoreSnapshot<TContext>, TEmitted>;
+
+export type StoreTransitionResult<
+  TSnapshot extends StoreSnapshot<any>,
+  TEmitted extends EventObject
+> = [TSnapshot, StoreEffect<TEmitted>[]] & {
+  _allowed?: boolean;
+};
 
 export type StoreConfig<
   TContext extends StoreContext,
@@ -594,11 +599,12 @@ export type StoreLogic<
   TEmitted extends EventObject
 > = {
   eventTypes?: readonly string[];
+  schemas?: StoreSchemas<any, any, any>;
   getInitialSnapshot: () => TSnapshot;
   transition: (
     snapshot: TSnapshot,
     event: TEvent
-  ) => [TSnapshot, StoreEffect<TEmitted>[]];
+  ) => StoreTransitionResult<TSnapshot, TEmitted>;
 };
 export type AnyStoreLogic = StoreLogic<any, any, any>;
 

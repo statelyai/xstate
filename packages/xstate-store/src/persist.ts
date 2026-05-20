@@ -330,6 +330,7 @@ function persistSnapshotFromLogic<
   const throttleMs = options.throttle ?? 0;
 
   const enhancedLogic: AnyStoreLogic = {
+    ...logic,
     eventTypes: logic.eventTypes,
     getInitialSnapshot: () => {
       const baseSnapshot = logic.getInitialSnapshot();
@@ -510,6 +511,7 @@ function persistEventFromLogic<
   }
 
   const enhancedLogic: AnyStoreLogic = {
+    ...logic,
     eventTypes: logic.eventTypes,
     getInitialSnapshot: () => {
       const baseSnapshot = logic.getInitialSnapshot();

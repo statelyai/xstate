@@ -1,6 +1,6 @@
 import { createActor } from 'xstate';
 import { fromStore } from '../src/index.ts';
-import { schema } from './schema.ts';
+import { z } from 'zod';
 
 describe('fromStore', () => {
   it('creates an actor from store logic with input', () => {
@@ -34,7 +34,7 @@ describe('fromStore', () => {
       context: (count: number) => ({ count }),
       schemas: {
         emitted: {
-          increased: schema<{ upBy: number }>()
+          increased: z.object({ upBy: z.number() })
         }
       },
       on: {

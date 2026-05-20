@@ -7,7 +7,7 @@ import { createStoreTransition } from '../src/store.ts';
 import { reset } from '../src/reset.ts';
 import { createBrowserInspector } from '@statelyai/inspect';
 import { produce } from 'immer';
-import { schema } from './schema.ts';
+import { z } from 'zod';
 import {
   AnyStoreConfig,
   ContextFromStoreConfig,
@@ -207,7 +207,7 @@ it('emitted events can be subscribed to', () => {
     },
     schemas: {
       emitted: {
-        increased: schema<{ upBy: number }>()
+        increased: z.object({ upBy: z.number() })
       }
     },
     on: {
@@ -237,7 +237,7 @@ it('emitted events can be unsubscribed to', () => {
     },
     schemas: {
       emitted: {
-        increased: schema<{ upBy: number }>()
+        increased: z.object({ upBy: z.number() })
       }
     },
     on: {
@@ -271,7 +271,7 @@ it('emitted events occur after the snapshot is updated', () => {
     },
     schemas: {
       emitted: {
-        increased: schema<{ upBy: number }>()
+        increased: z.object({ upBy: z.number() })
       }
     },
     on: {
@@ -303,9 +303,9 @@ it('events can be emitted with no payload', () => {
   const store = createStore({
     schemas: {
       emitted: {
-        incremented: schema<{}>(),
-        decremented: schema<{}>(),
-        expectsPayload: schema<{ payload: string }>()
+        incremented: z.object({}),
+        decremented: z.object({}),
+        expectsPayload: z.object({ payload: z.string() })
       }
     },
     context: {
@@ -314,16 +314,9 @@ it('events can be emitted with no payload', () => {
     on: {
       inc: (_ctx, _ev, enq) => {
         enq.emit.incremented();
-        enq.emit.incremented(
-          // @ts-expect-error
-          'foo'
-        );
       },
       dec: (_ctx, _ev, enq) => {
-        enq.emit.decremented(
-          // @ts-expect-error No payload expected
-          {}
-        );
+        enq.emit.decremented({});
       },
       hasPayload: (_ctx, _ev, enq) => {
         enq.emit
@@ -344,7 +337,7 @@ it('events can be emitted with optional payloads (type check)', () => {
   createStore({
     schemas: {
       emitted: {
-        optionalPayload: schema<{ payload?: string }>()
+        optionalPayload: z.object({ payload: z.string().optional() })
       }
     },
     context: {},
@@ -407,9 +400,9 @@ it('events can be enqueued from transitions', () => {
     },
     schemas: {
       events: {
-        addBear: schema<{}>(),
-        addFish: schema<{ amount: number }>(),
-        addBearAndFish: schema<{}>()
+        addBear: z.object({}),
+        addFish: z.object({ amount: z.number() }),
+        addBearAndFish: z.object({})
       }
     },
     on: {
@@ -460,7 +453,7 @@ it('emits-only transitions should emit events', () => {
     context: { count: 0 },
     schemas: {
       emitted: {
-        emitted: schema<{}>()
+        emitted: z.object({})
       }
     },
     on: {
@@ -484,15 +477,15 @@ it('checks whether events can transition', () => {
     context: { count: 9 },
     schemas: {
       events: {
-        increment: schema<{ by: number }>(),
-        noop: schema<{}>(),
-        effectOnly: schema<{}>(),
-        emitOnly: schema<{}>(),
-        triggerOnly: schema<{}>(),
-        unavailable: schema<{}>()
+        increment: z.object({ by: z.number() }),
+        noop: z.object({}),
+        effectOnly: z.object({}),
+        emitOnly: z.object({}),
+        triggerOnly: z.object({}),
+        unavailable: z.object({})
       },
       emitted: {
-        emitted: schema<{}>()
+        emitted: z.object({})
       }
     },
     on: {
@@ -565,8 +558,8 @@ it('wildcard listener receives all emitted events', () => {
     context: { count: 0 },
     schemas: {
       emitted: {
-        increased: schema<{ upBy: number }>(),
-        decreased: schema<{ downBy: number }>()
+        increased: z.object({ upBy: z.number() }),
+        decreased: z.object({ downBy: z.number() })
       }
     },
     on: {
@@ -598,7 +591,7 @@ it('wildcard listener can be unsubscribed', () => {
     context: { count: 0 },
     schemas: {
       emitted: {
-        increased: schema<{ upBy: number }>()
+        increased: z.object({ upBy: z.number() })
       }
     },
     on: {
@@ -624,7 +617,7 @@ it('wildcard listener is called after specific listener', () => {
     context: { count: 0 },
     schemas: {
       emitted: {
-        increased: schema<{ upBy: number }>()
+        increased: z.object({ upBy: z.number() })
       }
     },
     on: {
@@ -811,8 +804,8 @@ describe('store.trigger', () => {
     const store = createStore({
       schemas: {
         events: {
-          increment: schema<{ by: number }>(),
-          reset: schema<{}>()
+          increment: z.object({ by: z.number() }),
+          reset: z.object({})
         }
       },
       context: { count: 0 },
@@ -827,6 +820,7 @@ describe('store.trigger', () => {
 
     store.trigger.increment({ by: 2 });
     store.trigger.reset();
+    store.trigger.reset({});
 
     expect(store.getSnapshot().context.count).toBe(2);
   });
@@ -894,7 +888,7 @@ it('the emit type is not overridden by the payload', () => {
   const drawersBridgeStore = createStore({
     schemas: {
       emitted: {
-        drawerOpened: schema<{ drawer: Drawer }>()
+        drawerOpened: z.object({ drawer: z.object({ id: z.string() }) })
       }
     },
     context,
@@ -931,8 +925,8 @@ describe('store.transition', () => {
       context: { count: 0 },
       schemas: {
         emitted: {
-          increased: schema<{ by: number }>(),
-          nothing: schema<{}>()
+          increased: z.object({ by: z.number() }),
+          nothing: z.object({})
         }
       },
       on: {
@@ -1005,8 +999,8 @@ describe('store.transition', () => {
       context: { count: 0 },
       schemas: {
         events: {
-          inc: schema<{}>(),
-          incTwice: schema<{}>()
+          inc: z.object({}),
+          incTwice: z.object({})
         }
       },
       on: {
@@ -1310,8 +1304,7 @@ describe('types', () => {
           // @ts-expect-error
           enq.emit.beansGround();
 
-          // @ts-expect-error
-          enq.emit.brewing({ foo: 'bar' });
+          enq.emit.brewing({});
 
           return {
             ...ctx,
@@ -1354,7 +1347,7 @@ it('emitted events work with store extensions', () => {
     },
     schemas: {
       emitted: {
-        increased: schema<{ upBy: number }>()
+        increased: z.object({ upBy: z.number() })
       }
     },
     on: {

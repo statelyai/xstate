@@ -27,9 +27,11 @@ import {
   ResolveStoreContext,
   ResolveStoreEventPayloadMap,
   ResolveStoreEmittedPayloadMap,
-  StandardSchemaMap
+  StandardSchemaMap,
+  StoreTransitionResult
 } from './types.ts';
 import type { StandardSchemaV1 } from './schema.ts';
+import { isStoreValidationError } from './validationError.ts';
 
 const symbolObservable: typeof Symbol.observable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) ||
@@ -53,6 +55,26 @@ function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
 
 function ignorePromiseRejection(value: PromiseLike<unknown>) {
   Promise.resolve(value).catch(() => {});
+}
+
+function createTransitionResult<
+  TSnapshot extends StoreSnapshot<any>,
+  TEmitted extends EventObject
+>(
+  snapshot: TSnapshot,
+  effects: StoreEffect<TEmitted>[],
+  allowed?: boolean
+): StoreTransitionResult<TSnapshot, TEmitted> {
+  const result = [snapshot, effects] as StoreTransitionResult<
+    TSnapshot,
+    TEmitted
+  >;
+
+  if (allowed !== undefined) {
+    result._allowed = allowed;
+  }
+
+  return result;
 }
 
 function toEvent(eventType: string, payload: any) {
@@ -305,11 +327,16 @@ function createStoreCore<
 
   function canTransition(event: StoreEvent) {
     const snapshot = currentSnapshot;
-    const result = transition(snapshot, event);
-    const allowed = (
-      result as [StoreSnapshot<TContext>, StoreEffect<TEmitted>[], boolean?]
-    )[2];
-    return allowed ?? (result[0] !== snapshot || result[1].length > 0);
+    try {
+      const result = transition(snapshot, event);
+      const allowed = result._allowed;
+      return allowed ?? (result[0] !== snapshot || result[1].length > 0);
+    } catch (error) {
+      if (isStoreValidationError(error)) {
+        return false;
+      }
+      throw error;
+    }
   }
 
   const store: Store<TContext, TEventPayloadMap, TEmitted> = {
@@ -499,6 +526,7 @@ export function createStore(definitionOrLogic: any): any {
     : Object.keys(definitionOrLogic.on);
   const logic: AnyStoreLogic = {
     eventTypes,
+    schemas: definitionOrLogic.schemas,
     getInitialSnapshot: () => ({
       status: 'active' as const,
       context: definitionOrLogic.context,
@@ -748,7 +776,7 @@ export function createStoreTransition<
   const storeTransition: StoreTransition<TContext, StoreEvent, TEmitted> = (
     snapshot: StoreSnapshot<TContext>,
     event: StoreEvent
-  ): [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]] => {
+  ): StoreTransitionResult<StoreSnapshot<TContext>, TEmitted> => {
     let currentSnapshot = snapshot;
     const effects: StoreEffect<TEmitted>[] = [];
     const pendingEvents: StoreEvent[] = [event];
@@ -813,7 +841,7 @@ export function createStoreTransition<
       }
     }
 
-    return [currentSnapshot, effects, allowed] as any;
+    return createTransitionResult(currentSnapshot, effects, allowed);
   };
 
   return storeTransition;

@@ -1,6 +1,6 @@
 import { createActor } from 'xstate';
 import { createStore, createStoreLogic, fromStore } from '../src/index.ts';
-import { schema } from './schema.ts';
+import { z } from 'zod';
 
 describe('emitted', () => {
   it('can emit a known event', () => {
@@ -8,7 +8,7 @@ describe('emitted', () => {
       context: {},
       schemas: {
         emitted: {
-          increased: schema<{ upBy: number }>()
+          increased: z.object({ upBy: z.number() })
         }
       },
       on: {
@@ -25,8 +25,8 @@ describe('emitted', () => {
       context: {},
       schemas: {
         emitted: {
-          increased: schema<{ upBy: number }>(),
-          decreased: schema<{ downBy: number }>()
+          increased: z.object({ upBy: z.number() }),
+          decreased: z.object({ downBy: z.number() })
         }
       },
       on: {
@@ -45,8 +45,8 @@ describe('emitted', () => {
       context: {},
       schemas: {
         emitted: {
-          increased: schema<{ upBy: number }>(),
-          decreased: schema<{ downBy: number }>()
+          increased: z.object({ upBy: z.number() }),
+          decreased: z.object({ downBy: z.number() })
         }
       },
       on: {
@@ -83,7 +83,7 @@ describe('emitted', () => {
     const store = createStore({
       schemas: {
         emitted: {
-          increased: schema<{ upBy: number }>()
+          increased: z.object({ upBy: z.number() })
         }
       },
       context: {},
@@ -103,8 +103,8 @@ describe('emitted', () => {
     const store = createStore({
       schemas: {
         emitted: {
-          increased: schema<{ upBy: number }>(),
-          decreased: schema<{ downBy: number }>()
+          increased: z.object({ upBy: z.number() }),
+          decreased: z.object({ downBy: z.number() })
         }
       },
       context: {},
@@ -126,10 +126,10 @@ describe('emitted', () => {
       context: {},
       schemas: {
         emitted: {
-          log: schema<
-            | { level: 'warn'; message: string }
-            | { level: 'error'; error: string }
-          >()
+          log: z.discriminatedUnion('level', [
+            z.object({ level: z.literal('warn'), message: z.string() }),
+            z.object({ level: z.literal('error'), error: z.string() })
+          ])
         }
       },
       on: {
@@ -178,10 +178,10 @@ describe('trigger', () => {
     const store = createStore({
       schemas: {
         events: {
-          log: schema<
-            | { level: 'warn'; message: string }
-            | { level: 'error'; error: string }
-          >()
+          log: z.discriminatedUnion('level', [
+            z.object({ level: z.literal('warn'), message: z.string() }),
+            z.object({ level: z.literal('error'), error: z.string() })
+          ])
         }
       },
       context: {},
@@ -202,7 +202,7 @@ describe('trigger', () => {
     const store = createStore({
       schemas: {
         emitted: {
-          logged: schema<{ message: string }>()
+          logged: z.object({ message: z.string() })
         }
       },
       context: {},
@@ -229,16 +229,18 @@ describe('trigger', () => {
     createStore({
       schemas: {
         events: {
-          log: schema<
-            | { level: 'warn'; message: string }
-            | { level: 'error'; error: string }
-          >(),
-          flush: schema<{}>()
+          log: z.discriminatedUnion('level', [
+            z.object({ level: z.literal('warn'), message: z.string() }),
+            z.object({ level: z.literal('error'), error: z.string() })
+          ]),
+          flush: z.object({})
         }
       },
       context: {},
       on: {
         flush: (ctx, _event, enq) => {
+          enq.trigger.flush();
+          enq.trigger.flush({});
           enq.trigger.log({ level: 'warn', message: 'hmm' });
           enq.trigger.log({ level: 'error', error: 'uh oh' });
 
@@ -264,8 +266,8 @@ describe('can', () => {
       context: { count: 0 },
       schemas: {
         events: {
-          increment: schema<{ by: number }>(),
-          reset: schema<{}>()
+          increment: z.object({ by: z.number() }),
+          reset: z.object({})
         }
       },
       on: {
@@ -276,6 +278,7 @@ describe('can', () => {
 
     store.can.increment({ by: 1 }) satisfies boolean;
     store.can.reset() satisfies boolean;
+    store.can.reset({}) satisfies boolean;
 
     // @ts-expect-error
     store.can.increment();
@@ -339,10 +342,36 @@ describe('logic selectors', () => {
 });
 
 describe('schemas', () => {
+  const stringSchema = z.string();
+
+  it('requires event and emitted schemas to define object payloads', () => {
+    // @ts-expect-error event schemas must describe object payloads
+    createStore({
+      schemas: {
+        events: {
+          bad: stringSchema
+        }
+      },
+      context: {},
+      on: {}
+    });
+
+    // @ts-expect-error emitted schemas must describe object payloads
+    createStore({
+      schemas: {
+        emitted: {
+          bad: stringSchema
+        }
+      },
+      context: {},
+      on: {}
+    });
+  });
+
   it('uses schema-declared context for snapshot typing', () => {
     const store = createStore({
       schemas: {
-        context: schema<{ count: number; label: string }>()
+        context: z.object({ count: z.number(), label: z.string() })
       },
       context: {
         count: 0,
@@ -360,7 +389,7 @@ describe('schemas', () => {
   it('merges schema-declared context with inferred event types', () => {
     const store = createStore({
       schemas: {
-        context: schema<{ count: number; label: string }>()
+        context: z.object({ count: z.number(), label: z.string() })
       },
       context: {
         count: 0,
@@ -390,7 +419,7 @@ describe('fromStore schemas', () => {
       context: (count: number) => ({ count }),
       schemas: {
         emitted: {
-          increased: schema<{ upBy: number }>()
+          increased: z.object({ upBy: z.number() })
         }
       },
       on: {
@@ -434,8 +463,8 @@ describe('fromStore schemas', () => {
       },
       schemas: {
         events: {
-          inc: schema<{ by: number }>(),
-          reset: schema<{}>()
+          inc: z.object({ by: z.number() }),
+          reset: z.object({})
         }
       },
       on: {
@@ -462,7 +491,7 @@ describe('fromStore schemas', () => {
   it('uses schema-declared context for snapshot typing', () => {
     const logic = fromStore({
       schemas: {
-        context: schema<{ count: number; label: string }>()
+        context: z.object({ count: z.number(), label: z.string() })
       },
       context: {
         count: 0,

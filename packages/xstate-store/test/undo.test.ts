@@ -1,6 +1,6 @@
 import { createStore } from '../src/index.ts';
 import { undoRedo } from '../src/undo.ts';
-import { schema } from './schema.ts';
+import { z } from 'zod';
 
 it('should undo a single event', () => {
   const store = createStore({
@@ -161,7 +161,7 @@ it('should preserve emitted events during undo/redo', () => {
     context: { count: 0 },
     schemas: {
       emitted: {
-        changed: schema<{ value: number }>()
+        changed: z.object({ value: z.number() })
       }
     },
     on: {
@@ -325,8 +325,8 @@ it('should not replay emitted events for skipped events during undo/redo', () =>
     context: { count: 0 },
     schemas: {
       emitted: {
-        changed: schema<{ value: number }>(),
-        logged: schema<{ message: string }>()
+        changed: z.object({ value: z.number() }),
+        logged: z.object({ message: z.string() })
       }
     },
     on: {
@@ -440,7 +440,7 @@ it('emit event types should be correct', () => {
     context: { count: 0 },
     schemas: {
       emitted: {
-        changed: schema<{ value: number }>()
+        changed: z.object({ value: z.number() })
       }
     },
     on: {

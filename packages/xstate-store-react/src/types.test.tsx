@@ -1,27 +1,17 @@
-import type { StandardSchemaV1 } from '@xstate/store';
 import { createStoreHook, useStore } from './index.ts';
-
-function schema<TOutput>(): StandardSchemaV1<TOutput> {
-  return {
-    '~standard': {
-      version: 1,
-      vendor: 'xstate-store-react-test',
-      validate: (value) => ({ value: value as TOutput })
-    }
-  };
-}
+import { z } from 'zod';
 
 describe('@xstate/store-react types', () => {
   it('infers schemas in useStore', () => {
     const Component = () => {
       const store = useStore({
         schemas: {
-          context: schema<{ count: number; label: string }>(),
+          context: z.object({ count: z.number(), label: z.string() }),
           events: {
-            rename: schema<{ label: string }>()
+            rename: z.object({ label: z.string() })
           },
           emitted: {
-            renamed: schema<{ label: string }>()
+            renamed: z.object({ label: z.string() })
           }
         },
         context: {
@@ -70,7 +60,7 @@ describe('@xstate/store-react types', () => {
       const store = useStore({
         schemas: {
           emitted: {
-            logged: schema<{ message: string }>()
+            logged: z.object({ message: z.string() })
           }
         },
         context: {},
@@ -100,12 +90,12 @@ describe('@xstate/store-react types', () => {
   it('infers schemas in createStoreHook', () => {
     const useCounterStore = createStoreHook({
       schemas: {
-        context: schema<{ count: number; label: string }>(),
+        context: z.object({ count: z.number(), label: z.string() }),
         events: {
-          rename: schema<{ label: string }>()
+          rename: z.object({ label: z.string() })
         },
         emitted: {
-          renamed: schema<{ label: string }>()
+          renamed: z.object({ label: z.string() })
         }
       },
       context: {
