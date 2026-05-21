@@ -4,8 +4,11 @@ import { useCallback, useRef, useSyncExternalStore } from 'react';
 import {
   type Store,
   type StoreConfig,
+  type AnyStoreLogicCreator,
   type ResolveStoreContext,
   type ResolveStoreEmittedPayloadMap,
+  type StoreFromStoreLogicCreator,
+  type InputFromStoreLogicCreator,
   type InferSchemaPayloadMap,
   type ExtractEvents,
   type StandardSchemaMap,
@@ -93,6 +96,22 @@ function createStoreFromDefinition(definition: AnyStoreConfig) {
   return createStore(definition);
 }
 
+type StoreDefinition = AnyStoreConfig | AnyStoreLogicCreator;
+
+type StoreFromStoreDefinition<TDefinition extends StoreDefinition> =
+  TDefinition extends AnyStoreLogicCreator
+    ? StoreFromStoreLogicCreator<TDefinition>
+    : TDefinition extends AnyStoreConfig
+      ? StoreFromDefinition<TDefinition>
+      : never;
+
+type UseStoreArgs<TDefinition extends StoreDefinition> =
+  TDefinition extends AnyStoreLogicCreator
+    ? undefined extends InputFromStoreLogicCreator<TDefinition>
+      ? [logic: TDefinition, input?: InputFromStoreLogicCreator<TDefinition>]
+      : [logic: TDefinition, input: InputFromStoreLogicCreator<TDefinition>]
+    : [definition: TDefinition];
+
 /**
  * A React hook that subscribes to the `store` and selects a value from the
  * store's snapshot via a selector function, with an optional compare function.
@@ -179,23 +198,20 @@ export function useSelector<TSnapshot, T>(
   );
 }
 
-export const useStore: {
-  <TDefinition extends AnyStoreConfig>(
-    definition: TDefinition
-  ): StoreFromDefinition<TDefinition>;
-} = function useStoreImpl<TDefinition extends AnyStoreConfig>(
-  definition: TDefinition
-) {
-  const storeRef = useRef<StoreFromDefinition<TDefinition> | undefined>(
-    undefined
-  );
+export function useStore<TDefinition extends StoreDefinition>(
+  ...[definition, input]: UseStoreArgs<TDefinition>
+): StoreFromStoreDefinition<TDefinition> {
+  const storeRef = useRef<any>(undefined);
 
   if (!storeRef.current) {
-    storeRef.current = createStoreFromDefinition(definition);
+    storeRef.current =
+      'createStore' in definition
+        ? definition.createStore(input)
+        : createStoreFromDefinition(definition);
   }
 
   return storeRef.current;
-};
+}
 
 /**
  * A React hook that subscribes to the `atom` and returns the current value of

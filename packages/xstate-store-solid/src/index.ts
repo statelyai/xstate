@@ -2,11 +2,42 @@
 export * from '@xstate/store';
 
 import { createEffect, createSignal, onCleanup } from 'solid-js';
-import type { Readable } from '@xstate/store';
+import {
+  createStore,
+  type AnyStoreLogicCreator,
+  type InputFromStoreLogicCreator,
+  type Readable,
+  type Store,
+  type StoreConfig,
+  type StoreFromStoreLogicCreator
+} from '@xstate/store';
 
 function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;
 }
+
+type AnyStoreConfig = StoreConfig<any, any, any, any, any, any>;
+
+type StoreFromDefinition<TDefinition extends AnyStoreConfig> =
+  TDefinition extends StoreConfig<infer TContext, infer TEventPayloadMap, any>
+    ? Store<TContext, TEventPayloadMap, any>
+    : never;
+
+type StoreDefinition = AnyStoreConfig | AnyStoreLogicCreator;
+
+type StoreFromStoreDefinition<TDefinition extends StoreDefinition> =
+  TDefinition extends AnyStoreLogicCreator
+    ? StoreFromStoreLogicCreator<TDefinition>
+    : TDefinition extends AnyStoreConfig
+      ? StoreFromDefinition<TDefinition>
+      : never;
+
+type UseStoreArgs<TDefinition extends StoreDefinition> =
+  TDefinition extends AnyStoreLogicCreator
+    ? undefined extends InputFromStoreLogicCreator<TDefinition>
+      ? [logic: TDefinition, input?: InputFromStoreLogicCreator<TDefinition>]
+      : [logic: TDefinition, input: InputFromStoreLogicCreator<TDefinition>]
+    : [definition: TDefinition];
 
 function useSelectorWithCompare<TSnapshot, T>(
   selector: (snapshot: TSnapshot) => T,
@@ -77,4 +108,14 @@ export function useSelector<TSnapshot, T>(
   });
 
   return selectedValue;
+}
+
+export function useStore<TDefinition extends StoreDefinition>(
+  ...[definition, input]: UseStoreArgs<TDefinition>
+): StoreFromStoreDefinition<TDefinition> {
+  return (
+    'createStore' in definition
+      ? definition.createStore(input)
+      : createStore(definition)
+  ) as StoreFromStoreDefinition<TDefinition>;
 }

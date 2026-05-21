@@ -2,11 +2,42 @@ export * from '@xstate/store';
 
 import { readonly, ref, toRaw, watch } from 'vue-demi';
 import type { Ref } from 'vue-demi';
-import { type Readable } from '@xstate/store';
+import {
+  createStore,
+  type AnyStoreLogicCreator,
+  type InputFromStoreLogicCreator,
+  type Readable,
+  type Store,
+  type StoreConfig,
+  type StoreFromStoreLogicCreator
+} from '@xstate/store';
 
 function defaultCompare<T>(a: T, b: T) {
   return a === b;
 }
+
+type AnyStoreConfig = StoreConfig<any, any, any, any, any, any>;
+
+type StoreFromDefinition<TDefinition extends AnyStoreConfig> =
+  TDefinition extends StoreConfig<infer TContext, infer TEventPayloadMap, any>
+    ? Store<TContext, TEventPayloadMap, any>
+    : never;
+
+type StoreDefinition = AnyStoreConfig | AnyStoreLogicCreator;
+
+type StoreFromStoreDefinition<TDefinition extends StoreDefinition> =
+  TDefinition extends AnyStoreLogicCreator
+    ? StoreFromStoreLogicCreator<TDefinition>
+    : TDefinition extends AnyStoreConfig
+      ? StoreFromDefinition<TDefinition>
+      : never;
+
+type UseStoreArgs<TDefinition extends StoreDefinition> =
+  TDefinition extends AnyStoreLogicCreator
+    ? undefined extends InputFromStoreLogicCreator<TDefinition>
+      ? [logic: TDefinition, input?: InputFromStoreLogicCreator<TDefinition>]
+      : [logic: TDefinition, input: InputFromStoreLogicCreator<TDefinition>]
+    : [definition: TDefinition];
 
 /**
  * A Vue composable that subscribes to a store and selects a value from the
@@ -62,4 +93,14 @@ export function useSelector<TStore extends Readable<any>, TSelected>(
   );
 
   return readonly(slice) as Readonly<Ref<TSelected>>;
+}
+
+export function useStore<TDefinition extends StoreDefinition>(
+  ...[definition, input]: UseStoreArgs<TDefinition>
+): StoreFromStoreDefinition<TDefinition> {
+  return (
+    'createStore' in definition
+      ? definition.createStore(input)
+      : createStore(definition)
+  ) as StoreFromStoreDefinition<TDefinition>;
 }

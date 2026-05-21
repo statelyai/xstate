@@ -1,6 +1,13 @@
 import { fireEvent, render } from '@testing-library/vue';
+import { defineComponent } from 'vue';
 import TestCounter from './TestCounter.vue';
-import { createStore, createAtom, useSelector } from './index.ts';
+import {
+  createStore,
+  createStoreLogic,
+  createAtom,
+  useSelector,
+  useStore
+} from './index.ts';
 
 describe('@xstate/store-vue', () => {
   describe('useSelector', () => {
@@ -51,6 +58,38 @@ describe('@xstate/store-vue', () => {
       store.send({ type: 'different' }); // Different content
       await new Promise((r) => setTimeout(r, 0));
       expect(updateCount).toBe(2);
+    });
+  });
+
+  describe('useStore', () => {
+    it('should create a store from store logic and input', async () => {
+      const counterLogic = createStoreLogic({
+        context: (input: { initialCount: number }) => ({
+          count: input.initialCount
+        }),
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      });
+      const Counter = defineComponent({
+        setup() {
+          const store = useStore(counterLogic, { initialCount: 10 });
+          const count = useSelector(store, (s) => s.context.count);
+          return { count, store };
+        },
+        template: `
+          <div>
+            <button data-testid="increment" @click="store.trigger.inc()">Increment</button>
+            <span data-testid="count">{{ count }}</span>
+          </div>
+        `
+      });
+
+      const { getByTestId } = render(Counter);
+
+      expect(getByTestId('count').textContent).toBe('10');
+      await fireEvent.click(getByTestId('increment'));
+      expect(getByTestId('count').textContent).toBe('11');
     });
   });
 

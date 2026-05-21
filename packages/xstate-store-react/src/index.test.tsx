@@ -1,6 +1,7 @@
 import { fireEvent, screen, render, act } from '@testing-library/react';
 import {
   createStore,
+  createStoreLogic,
   createAtom,
   useSelector,
   useStore,
@@ -122,6 +123,38 @@ describe('@xstate/store-react', () => {
       expect(countDiv.textContent).toBe('0');
       fireEvent.click(countDiv);
       expect(countDiv.textContent).toBe('1');
+      expect(storeRefs.every((ref) => ref === storeRefs[0])).toBe(true);
+    });
+
+    it('should create a stable store from store logic and input', () => {
+      const counterLogic = createStoreLogic({
+        context: (input: { initialCount: number }) => ({
+          count: input.initialCount
+        }),
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      });
+      let storeRefs: object[] = [];
+
+      const Counter = () => {
+        const store = useStore(counterLogic, { initialCount: 10 });
+        storeRefs.push(store);
+        const count = useSelector(store, (s) => s.context.count);
+
+        return (
+          <div data-testid="count" onClick={() => store.trigger.inc()}>
+            {count}
+          </div>
+        );
+      };
+
+      render(<Counter />);
+      const countDiv = screen.getByTestId('count');
+
+      expect(countDiv.textContent).toBe('10');
+      fireEvent.click(countDiv);
+      expect(countDiv.textContent).toBe('11');
       expect(storeRefs.every((ref) => ref === storeRefs[0])).toBe(true);
     });
   });

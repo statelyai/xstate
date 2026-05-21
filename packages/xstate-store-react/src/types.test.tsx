@@ -1,7 +1,51 @@
-import { createStoreHook, useStore } from './index.ts';
+import { createStoreHook, createStoreLogic, useStore } from './index.ts';
 import { z } from 'zod';
 
 describe('@xstate/store-react types', () => {
+  it('uses store logic input in useStore', () => {
+    const counterLogic = createStoreLogic({
+      context: (input: { initialCount: number }) => ({
+        count: input.initialCount
+      }),
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    });
+    const optionalInputLogic = createStoreLogic({
+      context: (_input?: { initialCount?: number }) => ({ count: 0 }),
+      on: {}
+    });
+    const noInputLogic = createStoreLogic({
+      context: { count: 0 },
+      on: {}
+    });
+
+    const Component = () => {
+      // @ts-expect-error required input
+      useStore(counterLogic);
+
+      // @ts-expect-error required input
+      useStore(counterLogic, undefined);
+
+      const store = useStore(counterLogic, { initialCount: 1 });
+      store.getSnapshot().context.count satisfies number;
+
+      // @ts-expect-error wrong input
+      useStore(counterLogic, { initialCount: 'one' });
+
+      useStore(optionalInputLogic);
+      useStore(optionalInputLogic, { initialCount: 1 });
+      useStore(noInputLogic);
+
+      // @ts-expect-error no input
+      useStore(noInputLogic, {});
+
+      return null;
+    };
+
+    Component;
+  });
+
   it('infers schemas in useStore', () => {
     const Component = () => {
       const store = useStore({

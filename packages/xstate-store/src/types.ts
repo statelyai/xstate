@@ -545,12 +545,32 @@ export interface StoreLogicCreator<
   TInput,
   TSelectors extends StoreSelectorsConfig<TContext>
 > {
-  createStore: [TInput] extends [void]
-    ? () => StoreWithSelectors<TContext, TEventPayloadMap, TEmitted, TSelectors>
+  createStore: undefined extends TInput
+    ? (
+        input?: TInput
+      ) => StoreWithSelectors<TContext, TEventPayloadMap, TEmitted, TSelectors>
     : (
         input: TInput
       ) => StoreWithSelectors<TContext, TEventPayloadMap, TEmitted, TSelectors>;
 }
+
+export type AnyStoreLogicCreator = StoreLogicCreator<any, any, any, any, any>;
+
+export type StoreFromStoreLogicCreator<TLogic extends AnyStoreLogicCreator> =
+  TLogic extends StoreLogicCreator<
+    infer TContext,
+    infer TEventPayloadMap,
+    infer TEmitted,
+    any,
+    infer TSelectors
+  >
+    ? StoreWithSelectors<TContext, TEventPayloadMap, TEmitted, TSelectors>
+    : never;
+
+export type InputFromStoreLogicCreator<TLogic extends AnyStoreLogicCreator> =
+  TLogic extends StoreLogicCreator<any, any, any, infer TInput, any>
+    ? TInput
+    : never;
 
 export interface Readable<T> extends Subscribable<T> {
   get: () => T;

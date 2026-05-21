@@ -7,7 +7,15 @@ import {
   useRef,
   useState
 } from 'preact/hooks';
-import { type Readable } from '@xstate/store';
+import {
+  createStore,
+  type AnyStoreLogicCreator,
+  type InputFromStoreLogicCreator,
+  type Readable,
+  type Store,
+  type StoreConfig,
+  type StoreFromStoreLogicCreator
+} from '@xstate/store';
 
 type InternalStore = {
   _value: any;
@@ -78,6 +86,29 @@ function defaultCompare<T>(a: T | undefined, b: T) {
 function identity<T>(snapshot: T): T {
   return snapshot;
 }
+
+type AnyStoreConfig = StoreConfig<any, any, any, any, any, any>;
+
+type StoreFromDefinition<TDefinition extends AnyStoreConfig> =
+  TDefinition extends StoreConfig<infer TContext, infer TEventPayloadMap, any>
+    ? Store<TContext, TEventPayloadMap, any>
+    : never;
+
+type StoreDefinition = AnyStoreConfig | AnyStoreLogicCreator;
+
+type StoreFromStoreDefinition<TDefinition extends StoreDefinition> =
+  TDefinition extends AnyStoreLogicCreator
+    ? StoreFromStoreLogicCreator<TDefinition>
+    : TDefinition extends AnyStoreConfig
+      ? StoreFromDefinition<TDefinition>
+      : never;
+
+type UseStoreArgs<TDefinition extends StoreDefinition> =
+  TDefinition extends AnyStoreLogicCreator
+    ? undefined extends InputFromStoreLogicCreator<TDefinition>
+      ? [logic: TDefinition, input?: InputFromStoreLogicCreator<TDefinition>]
+      : [logic: TDefinition, input: InputFromStoreLogicCreator<TDefinition>]
+    : [definition: TDefinition];
 
 function useSelectorWithCompare<TStore extends Readable<any>, T>(
   selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
@@ -165,4 +196,19 @@ export function useSelector<TStore extends Readable<any>, T>(
     ),
     () => selectorWithCompare(store.get())
   );
+}
+
+export function useStore<TDefinition extends StoreDefinition>(
+  ...[definition, input]: UseStoreArgs<TDefinition>
+): StoreFromStoreDefinition<TDefinition> {
+  const storeRef = useRef<any>(undefined);
+
+  if (!storeRef.current) {
+    storeRef.current =
+      'createStore' in definition
+        ? definition.createStore(input)
+        : createStore(definition);
+  }
+
+  return storeRef.current;
 }

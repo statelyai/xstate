@@ -333,6 +333,9 @@ describe('logic selectors', () => {
       counterLogic.createStore();
 
       // @ts-expect-error
+      counterLogic.createStore(undefined);
+
+      // @ts-expect-error
       counterLogic.createStore({ initialCount: 'one' });
 
       // @ts-expect-error
