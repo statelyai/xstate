@@ -36,7 +36,8 @@
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
     "@testing-library/svelte": "^5.2.6",
-    "svelte": "^5.0.0"
+    "svelte": "^5.0.0",
+    "zod": "^4.4.3"
   },
   "preconstruct": {
     "entrypoints": [

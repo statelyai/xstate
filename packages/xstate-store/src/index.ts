@@ -50,8 +50,10 @@ export type {
   AtomOptions,
   AnyAtom,
   ReadonlyAtom,
+  AnyStoreConfig,
   EventFromStoreConfig,
   EmitsFromStoreConfig,
   ContextFromStoreConfig,
+  StoreFromStoreConfig,
   StoreExtension
 } from './types.ts';

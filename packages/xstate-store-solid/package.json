@@ -37,7 +37,8 @@
   "devDependencies": {
     "@solidjs/testing-library": "^0.8.10",
     "solid-js": "^1.9.7",
-    "vite-plugin-solid": "^2.11.6"
+    "vite-plugin-solid": "^2.11.6",
+    "zod": "^4.4.3"
   },
   "preconstruct": {
     "entrypoints": [

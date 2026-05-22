@@ -2,16 +2,11 @@ export * from '@xstate/store';
 
 import { useCallback, useRef, useSyncExternalStore } from 'react';
 import {
-  type Store,
-  type StoreConfig,
+  type AnyStoreConfig,
   type AnyStoreLogicCreator,
-  type ResolveStoreContext,
-  type ResolveStoreEmittedPayloadMap,
   type StoreFromStoreLogicCreator,
+  type StoreFromStoreConfig,
   type InputFromStoreLogicCreator,
-  type InferSchemaPayloadMap,
-  type ExtractEvents,
-  type StandardSchemaMap,
   type Readable,
   type AnyAtom,
   type BaseAtom,
@@ -42,56 +37,9 @@ function useSelectorWithCompare<TSnapshot, T>(
   };
 }
 
-type AnyStoreConfig = StoreConfig<any, any, any, any, any, any>;
-
-type DistributiveOmit<T, K extends PropertyKey> = T extends any
-  ? Omit<T, K>
-  : never;
-
-type EventPayloadFromEvent<TEvent> = TEvent extends { type: string }
-  ? DistributiveOmit<TEvent, 'type'>
-  : TEvent;
-
-type EventPayloadMapFromTransitions<TTransitions> = {
-  [K in keyof TTransitions & string]: TTransitions[K] extends (
-    context: any,
-    event: infer TEvent,
-    ...args: any[]
-  ) => unknown
-    ? EventPayloadFromEvent<TEvent>
-    : {};
-};
-
-type StoreEventPayloadMapFromDefinition<TDefinition extends AnyStoreConfig> =
-  TDefinition extends { schemas: { events: infer TEventSchemaMap } }
-    ? TEventSchemaMap extends StandardSchemaMap
-      ? InferSchemaPayloadMap<TEventSchemaMap>
-      : {}
-    : TDefinition extends { on: infer TTransitions }
-      ? EventPayloadMapFromTransitions<TTransitions>
-      : {};
-
-type StoreFromDefinition<TDefinition extends AnyStoreConfig> =
-  TDefinition extends StoreConfig<
-    infer TContext,
-    any,
-    infer TEmittedPayloadMap,
-    infer TContextSchema,
-    any,
-    infer TEmittedSchemaMap
-  >
-    ? Store<
-        ResolveStoreContext<TContext, TContextSchema>,
-        StoreEventPayloadMapFromDefinition<TDefinition>,
-        ExtractEvents<
-          ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
-        >
-      >
-    : never;
-
 function createStoreFromDefinition<TDefinition extends AnyStoreConfig>(
   definition: TDefinition
-): StoreFromDefinition<TDefinition>;
+): StoreFromStoreConfig<TDefinition>;
 function createStoreFromDefinition(definition: AnyStoreConfig) {
   return createStore(definition);
 }
@@ -102,7 +50,7 @@ type StoreFromStoreDefinition<TDefinition extends StoreDefinition> =
   TDefinition extends AnyStoreLogicCreator
     ? StoreFromStoreLogicCreator<TDefinition>
     : TDefinition extends AnyStoreConfig
-      ? StoreFromDefinition<TDefinition>
+      ? StoreFromStoreConfig<TDefinition>
       : never;
 
 type UseStoreArgs<TDefinition extends StoreDefinition> =
@@ -291,7 +239,7 @@ export function useAtom(
 export function createStoreHook<TDefinition extends AnyStoreConfig>(
   definition: TDefinition
 ) {
-  type TStore = StoreFromDefinition<TDefinition>;
+  type TStore = StoreFromStoreConfig<TDefinition>;
   type TSnapshot = StoreSnapshot<ContextFromStoreConfig<TDefinition>>;
 
   const store = createStoreFromDefinition(definition);

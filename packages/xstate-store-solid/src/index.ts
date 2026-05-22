@@ -4,11 +4,11 @@ export * from '@xstate/store';
 import { createEffect, createSignal, onCleanup } from 'solid-js';
 import {
   createStore,
+  type AnyStoreConfig,
   type AnyStoreLogicCreator,
   type InputFromStoreLogicCreator,
   type Readable,
-  type Store,
-  type StoreConfig,
+  type StoreFromStoreConfig,
   type StoreFromStoreLogicCreator
 } from '@xstate/store';
 
@@ -16,20 +16,13 @@ function defaultCompare<T>(a: T | undefined, b: T) {
   return a === b;
 }
 
-type AnyStoreConfig = StoreConfig<any, any, any, any, any, any>;
-
-type StoreFromDefinition<TDefinition extends AnyStoreConfig> =
-  TDefinition extends StoreConfig<infer TContext, infer TEventPayloadMap, any>
-    ? Store<TContext, TEventPayloadMap, any>
-    : never;
-
 type StoreDefinition = AnyStoreConfig | AnyStoreLogicCreator;
 
 type StoreFromStoreDefinition<TDefinition extends StoreDefinition> =
   TDefinition extends AnyStoreLogicCreator
     ? StoreFromStoreLogicCreator<TDefinition>
     : TDefinition extends AnyStoreConfig
-      ? StoreFromDefinition<TDefinition>
+      ? StoreFromStoreConfig<TDefinition>
       : never;
 
 type UseStoreArgs<TDefinition extends StoreDefinition> =

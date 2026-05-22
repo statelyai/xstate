@@ -275,6 +275,9 @@ importers:
       preact:
         specifier: ^10.24.0
         version: 10.28.1
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
   packages/xstate-store-react:
     dependencies:
@@ -316,6 +319,9 @@ importers:
       vite-plugin-solid:
         specifier: ^2.11.6
         version: 2.11.7(solid-js@1.9.7)(vite@7.0.3(@types/node@25.2.1)(jiti@2.4.2)(sass@1.97.3)(stylus@0.54.8)(terser@5.46.0)(yaml@2.8.2))
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
   packages/xstate-store-svelte:
     dependencies:
@@ -332,6 +338,9 @@ importers:
       svelte:
         specifier: ^5.0.0
         version: 5.46.1
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
   packages/xstate-store-vue:
     dependencies:
@@ -351,6 +360,9 @@ importers:
       vue:
         specifier: 3.5.27
         version: 3.5.27(typescript@6.0.2)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
   packages/xstate-svelte:
     devDependencies:

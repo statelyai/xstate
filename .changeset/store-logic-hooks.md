@@ -28,3 +28,5 @@ If a store logic requires input, the input argument is also required:
 ```ts
 useStore(counterLogic, { initialCount: 0 });
 ```
+
+Framework hooks also preserve schema-derived context, event, and emitted event types when creating stores from config objects.

@@ -61,6 +61,29 @@ export type ResolveStoreEmittedPayloadMap<
   ? InferSchemaPayloadMap<TEmittedSchemaMap>
   : TEmittedPayloadMap;
 
+type EventPayloadFromEvent<TEvent> = TEvent extends { type: string }
+  ? DistributiveOmit<TEvent, 'type'>
+  : TEvent;
+
+type EventPayloadMapFromTransitions<TTransitions> = {
+  [K in keyof TTransitions & string]: TTransitions[K] extends (
+    context: any,
+    event: infer TEvent,
+    ...args: any[]
+  ) => unknown
+    ? EventPayloadFromEvent<TEvent>
+    : {};
+};
+
+type StoreEventPayloadMapFromConfig<TConfig extends AnyStoreConfig> =
+  TConfig extends { schemas: { events: infer TEventSchemaMap } }
+    ? TEventSchemaMap extends StandardSchemaMap
+      ? InferSchemaPayloadMap<TEventSchemaMap>
+      : {}
+    : TConfig extends { on: infer TTransitions }
+      ? EventPayloadMapFromTransitions<TTransitions>
+      : {};
+
 type EmitterFunction<TEmittedEvent extends EventObject> = (
   ...args: { type: TEmittedEvent['type'] } extends TEmittedEvent
     ? [DistributiveOmit<TEmittedEvent, 'type'>?]
@@ -696,4 +719,22 @@ export type ContextFromStoreConfig<TStore extends AnyStoreConfig> =
     any
   >
     ? ResolveStoreContext<TContext, TContextSchema>
+    : never;
+
+export type StoreFromStoreConfig<TConfig extends AnyStoreConfig> =
+  TConfig extends StoreConfig<
+    infer TContext,
+    any,
+    infer TEmittedPayloadMap,
+    infer TContextSchema,
+    any,
+    infer TEmittedSchemaMap
+  >
+    ? Store<
+        ResolveStoreContext<TContext, TContextSchema>,
+        StoreEventPayloadMapFromConfig<TConfig>,
+        ExtractEvents<
+          ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
+        >
+      >
     : never;

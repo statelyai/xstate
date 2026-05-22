@@ -9,11 +9,11 @@ import {
 } from 'preact/hooks';
 import {
   createStore,
+  type AnyStoreConfig,
   type AnyStoreLogicCreator,
   type InputFromStoreLogicCreator,
   type Readable,
-  type Store,
-  type StoreConfig,
+  type StoreFromStoreConfig,
   type StoreFromStoreLogicCreator
 } from '@xstate/store';
 
@@ -87,20 +87,13 @@ function identity<T>(snapshot: T): T {
   return snapshot;
 }
 
-type AnyStoreConfig = StoreConfig<any, any, any, any, any, any>;
-
-type StoreFromDefinition<TDefinition extends AnyStoreConfig> =
-  TDefinition extends StoreConfig<infer TContext, infer TEventPayloadMap, any>
-    ? Store<TContext, TEventPayloadMap, any>
-    : never;
-
 type StoreDefinition = AnyStoreConfig | AnyStoreLogicCreator;
 
 type StoreFromStoreDefinition<TDefinition extends StoreDefinition> =
   TDefinition extends AnyStoreLogicCreator
     ? StoreFromStoreLogicCreator<TDefinition>
     : TDefinition extends AnyStoreConfig
-      ? StoreFromDefinition<TDefinition>
+      ? StoreFromStoreConfig<TDefinition>
       : never;
 
 type UseStoreArgs<TDefinition extends StoreDefinition> =
