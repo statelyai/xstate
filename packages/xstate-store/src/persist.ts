@@ -951,3 +951,92 @@ export async function rehydrateStore(store: {
   const data = await internals.storage.getItem(internals.options.name);
   store.send({ type: PERSIST_REHYDRATE_EVENT_TYPE, state: data });
 }
+
+export interface BroadcastStorageOptions {
+  channel?: string;
+}
+
+type BroadcastStorage = StateStorage & {
+  readonly channel: BroadcastChannel;
+};
+
+function assertBroadcastChannelAvailable(): void {
+  if (typeof BroadcastChannel === 'undefined') {
+    throw new Error(
+      'createBroadcastStorage: BroadcastChannel is not available in this environment'
+    );
+  }
+}
+
+export function createBroadcastStorage(
+  baseStorage: StateStorage,
+  options?: BroadcastStorageOptions
+): BroadcastStorage {
+  assertBroadcastChannelAvailable();
+
+  const channel = new BroadcastChannel(options?.channel ?? 'xstate-store');
+
+  return {
+    channel,
+    getItem: (name) => baseStorage.getItem(name),
+    setItem: (name, value) => {
+      const result = baseStorage.setItem(name, value);
+      const broadcast = () => {
+        channel.postMessage({ type: 'xstate-store-update', name });
+      };
+
+      if (result instanceof Promise) {
+        return result.then(broadcast);
+      }
+
+      broadcast();
+      return result;
+    },
+    removeItem: (name) => baseStorage.removeItem(name)
+  };
+}
+
+export function subscribeToBroadcastStorage(store: {
+  getSnapshot: () => any;
+  send: (event: any) => void;
+}): () => void {
+  const internals = store.getSnapshot()?.[PERSIST_INTERNALS] as
+    | PersistInternals<any>
+    | undefined;
+
+  if (!internals) {
+    throw new Error(
+      'subscribeToBroadcastStorage: store does not have a persist extension'
+    );
+  }
+
+  const channel = (internals.storage as Partial<BroadcastStorage>).channel;
+
+  if (
+    typeof BroadcastChannel === 'undefined' ||
+    !(channel instanceof BroadcastChannel)
+  ) {
+    throw new Error(
+      'subscribeToBroadcastStorage: store storage must be wrapped with createBroadcastStorage()'
+    );
+  }
+
+  const storeName = internals.options.name;
+  const handler = (event: MessageEvent) => {
+    const data = event.data;
+
+    if (
+      data &&
+      data.type === 'xstate-store-update' &&
+      data.name === storeName
+    ) {
+      void rehydrateStore(store);
+    }
+  };
+
+  channel.addEventListener('message', handler);
+
+  return () => {
+    channel.removeEventListener('message', handler);
+  };
+}
