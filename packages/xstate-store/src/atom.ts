@@ -66,34 +66,51 @@ type AsyncAtomState<Data, Error = unknown> =
   | { status: 'done'; data: Data }
   | { status: 'error'; error: Error };
 
+export interface AsyncAtomOptions {
+  signal: AbortSignal;
+}
+
+function updateAsyncAtom<T>(
+  atom: InternalAtom<AsyncAtomState<T>>,
+  nextValue: AsyncAtomState<T>
+): void {
+  if (atom._update(nextValue)) {
+    const subs = atom.subs;
+    if (subs !== undefined) {
+      propagate(subs);
+      shallowPropagate(subs);
+      flush();
+    }
+  }
+}
+
 export function createAsyncAtom<T>(
-  getValue: () => Promise<T>,
+  getValue: (options: AsyncAtomOptions) => Promise<T>,
   options?: AtomOptions<AsyncAtomState<T>>
 ): ReadonlyAtom<AsyncAtomState<T>> {
   const ref: { current?: InternalAtom<AsyncAtomState<T>> } = {};
+  let currentController: AbortController | undefined;
+  let currentRunId = 0;
+
   const atom = createAtom<AsyncAtomState<T>>(() => {
-    getValue().then(
+    currentController?.abort();
+
+    const controller = new AbortController();
+    const runId = ++currentRunId;
+    currentController = controller;
+
+    getValue({ signal: controller.signal }).then(
       (data) => {
-        const internalAtom = ref.current!;
-        if (internalAtom._update({ status: 'done', data })) {
-          const subs = internalAtom.subs;
-          if (subs !== undefined) {
-            propagate(subs);
-            shallowPropagate(subs);
-            flush();
-          }
+        if (runId !== currentRunId || controller.signal.aborted) {
+          return;
         }
+        updateAsyncAtom(ref.current!, { status: 'done', data });
       },
       (error) => {
-        const internalAtom = ref.current!;
-        if (internalAtom._update({ status: 'error', error })) {
-          const subs = internalAtom.subs;
-          if (subs !== undefined) {
-            propagate(subs);
-            shallowPropagate(subs);
-            flush();
-          }
+        if (runId !== currentRunId || controller.signal.aborted) {
+          return;
         }
+        updateAsyncAtom(ref.current!, { status: 'error', error });
       }
     );
 

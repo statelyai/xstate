@@ -2,6 +2,7 @@ export { shallowEqual } from './shallowEqual.ts';
 export { fromStore } from './fromStore.ts';
 export { createStore, createStoreConfig, createStoreLogic } from './store.ts';
 export { createAtom, createAsyncAtom, createReducerAtom } from './atom.ts';
+export type { AsyncAtomOptions } from './atom.ts';
 export type { StandardSchemaV1 } from './schema.ts';
 export type {
   EventPayloadMap,

@@ -703,6 +703,75 @@ describe('async atoms', () => {
     expect('set' in atom).toBe(false);
   });
 
+  it('should pass an abort signal to async atoms', () => {
+    const atom = createAsyncAtom(async ({ signal }) => {
+      expect(signal).toBeInstanceOf(AbortSignal);
+      return 'hello';
+    });
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+  });
+
+  it('should abort and ignore stale async atom results', async () => {
+    const count = createAtom(1);
+    const signals: AbortSignal[] = [];
+    const resolvers: Array<(value: number) => void> = [];
+    const atom = createAsyncAtom(({ signal }) => {
+      const currentCount = count.get();
+      signals.push(signal);
+
+      return new Promise<number>((resolve) => {
+        resolvers.push(resolve);
+      }).then(() => currentCount);
+    });
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    count.set(2);
+    expect(atom.get()).toEqual({ status: 'pending' });
+    expect(signals[0].aborted).toBe(true);
+
+    resolvers[0](1);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    resolvers[1](2);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(atom.get()).toEqual({ status: 'done', data: 2 });
+  });
+
+  it('should ignore stale async atom errors', async () => {
+    const count = createAtom(1);
+    const rejectors: Array<(error: unknown) => void> = [];
+    const resolvers: Array<(value: number) => void> = [];
+    const atom = createAsyncAtom(({ signal }) => {
+      const currentCount = count.get();
+
+      return new Promise<number>((resolve, reject) => {
+        resolvers.push(resolve);
+        rejectors.push(reject);
+      }).then(() => {
+        if (signal.aborted) {
+          throw new Error('aborted');
+        }
+        return currentCount;
+      });
+    });
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    count.set(2);
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    rejectors[0](new Error('stale'));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    resolvers[1](2);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(atom.get()).toEqual({ status: 'done', data: 2 });
+  });
+
   it('should notify subscribers when async operation completes successfully', async () => {
     const log = vi.fn();
     const atom = createAsyncAtom(async () => {
