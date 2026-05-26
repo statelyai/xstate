@@ -616,6 +616,20 @@ export interface AtomOptions<T> {
   compare?: (prev: T, next: T) => boolean;
 }
 
+export interface AtomConfig<TValue, TInput> {
+  createAtom: undefined extends TInput
+    ? (input?: TInput) => Atom<TValue>
+    : (input: TInput) => Atom<TValue>;
+}
+
+export type AnyAtomConfig = AtomConfig<any, any>;
+
+export type ValueFromAtomConfig<TConfig extends AnyAtomConfig> =
+  TConfig extends AtomConfig<infer TValue, any> ? TValue : never;
+
+export type InputFromAtomConfig<TConfig extends AnyAtomConfig> =
+  TConfig extends AtomConfig<any, infer TInput> ? TInput : never;
+
 export type AnyAtom = BaseAtom<any>;
 
 /**

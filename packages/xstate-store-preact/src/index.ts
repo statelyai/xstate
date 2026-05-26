@@ -8,13 +8,19 @@ import {
   useState
 } from 'preact/hooks';
 import {
+  createAtom,
   createStore,
+  type AnyAtom,
+  type AnyAtomConfig,
   type AnyStoreConfig,
   type AnyStoreLogicCreator,
+  type BaseAtom,
+  type InputFromAtomConfig,
   type InputFromStoreLogicCreator,
   type Readable,
   type StoreFromStoreConfig,
-  type StoreFromStoreLogicCreator
+  type StoreFromStoreLogicCreator,
+  type ValueFromAtomConfig
 } from '@xstate/store';
 
 type InternalStore = {
@@ -102,6 +108,25 @@ type UseStoreArgs<TDefinition extends StoreDefinition> =
       ? [logic: TDefinition, input?: InputFromStoreLogicCreator<TDefinition>]
       : [logic: TDefinition, input: InputFromStoreLogicCreator<TDefinition>]
     : [definition: TDefinition];
+
+type AtomDefinition = BaseAtom<any> | AnyAtomConfig;
+
+type AtomStateFromDefinition<TDefinition extends AtomDefinition> =
+  TDefinition extends AnyAtomConfig
+    ? readonly [
+        value: ValueFromAtomConfig<TDefinition>,
+        atom: ReturnType<TDefinition['createAtom']>
+      ]
+    : TDefinition extends BaseAtom<infer TValue>
+      ? readonly [value: TValue, atom: TDefinition]
+      : never;
+
+type UseAtomStateArgs<TDefinition extends AtomDefinition> =
+  TDefinition extends AnyAtomConfig
+    ? undefined extends InputFromAtomConfig<TDefinition>
+      ? [config: TDefinition, input?: InputFromAtomConfig<TDefinition>]
+      : [config: TDefinition, input: InputFromAtomConfig<TDefinition>]
+    : [atom: TDefinition];
 
 function useSelectorWithCompare<TStore extends Readable<any>, T>(
   selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
@@ -204,4 +229,36 @@ export function useStore<TDefinition extends StoreDefinition>(
   }
 
   return storeRef.current;
+}
+
+export function useAtom<T>(atom: BaseAtom<T>): T;
+export function useAtom<T, S>(
+  atom: BaseAtom<T>,
+  selector: (value: T) => S,
+  compare?: (a: S | undefined, b: S) => boolean
+): S;
+export function useAtom(
+  atom: AnyAtom,
+  selector = identity,
+  compare = defaultCompare
+) {
+  return useSelector(atom, selector, compare);
+}
+
+export function useAtomState<TDefinition extends AtomDefinition>(
+  ...[definition, input]: UseAtomStateArgs<TDefinition>
+): AtomStateFromDefinition<TDefinition> {
+  const atomRef = useRef<any>(undefined);
+
+  if (!atomRef.current) {
+    atomRef.current =
+      'createAtom' in definition ? createAtom(definition, input) : definition;
+  }
+
+  const value = useAtom(atomRef.current);
+
+  return [
+    value,
+    atomRef.current
+  ] as unknown as AtomStateFromDefinition<TDefinition>;
 }

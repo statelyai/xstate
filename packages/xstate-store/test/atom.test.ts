@@ -1,6 +1,7 @@
 import {
   createStore,
   createAtom,
+  createAtomConfig,
   createAsyncAtom,
   createReducerAtom
 } from '../src/index.ts';
@@ -9,6 +10,26 @@ it('creates an atom', () => {
   const atom = createAtom(42);
 
   expect(atom.get()).toBe(42);
+});
+
+it('creates an atom from atom config', () => {
+  const config = createAtomConfig(42);
+  const atom = createAtom(config);
+  const otherAtom = createAtom(config);
+
+  atom.set(100);
+
+  expect(atom.get()).toBe(100);
+  expect(otherAtom.get()).toBe(42);
+});
+
+it('creates an atom from atom config and input', () => {
+  const config = createAtomConfig((input: { initialCount: number }) => {
+    return input.initialCount;
+  });
+  const atom = createAtom(config, { initialCount: 10 });
+
+  expect(atom.get()).toBe(10);
 });
 
 it('sets the value of the atom using a function', () => {

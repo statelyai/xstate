@@ -3,9 +3,11 @@ import {
   createStore,
   createStoreLogic,
   createAtom,
+  createAtomConfig,
   useSelector,
   useStore,
   useAtom,
+  useAtomState,
   createStoreHook
 } from './index.ts';
 
@@ -197,6 +199,72 @@ describe('@xstate/store-react', () => {
         fireEvent.click(screen.getByTestId('increment'));
       });
       expect(screen.getByTestId('count').textContent).toBe('1');
+    });
+  });
+
+  describe('useAtomState', () => {
+    it('should return the value and existing atom', () => {
+      const atom = createAtom(0);
+      const atomRefs: object[] = [];
+
+      const TestComponent = () => {
+        const [count, countAtom] = useAtomState(atom);
+        atomRefs.push(countAtom);
+        return (
+          <div>
+            <div data-testid="count">{count}</div>
+            <button
+              data-testid="increment"
+              onClick={() => countAtom.set((c) => c + 1)}
+            >
+              +
+            </button>
+          </div>
+        );
+      };
+
+      render(<TestComponent />);
+      expect(screen.getByTestId('count').textContent).toBe('0');
+
+      act(() => {
+        fireEvent.click(screen.getByTestId('increment'));
+      });
+
+      expect(screen.getByTestId('count').textContent).toBe('1');
+      expect(atomRefs.every((ref) => ref === atom)).toBe(true);
+    });
+
+    it('should create a stable atom from atom config and input', () => {
+      const config = createAtomConfig((input: { initialCount: number }) => {
+        return input.initialCount;
+      });
+      const atomRefs: object[] = [];
+
+      const TestComponent = () => {
+        const [count, countAtom] = useAtomState(config, { initialCount: 10 });
+        atomRefs.push(countAtom);
+        return (
+          <div>
+            <div data-testid="count">{count}</div>
+            <button
+              data-testid="increment"
+              onClick={() => countAtom.set((c) => c + 1)}
+            >
+              +
+            </button>
+          </div>
+        );
+      };
+
+      render(<TestComponent />);
+      expect(screen.getByTestId('count').textContent).toBe('10');
+
+      act(() => {
+        fireEvent.click(screen.getByTestId('increment'));
+      });
+
+      expect(screen.getByTestId('count').textContent).toBe('11');
+      expect(atomRefs.every((ref) => ref === atomRefs[0])).toBe(true);
     });
   });
 

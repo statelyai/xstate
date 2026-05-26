@@ -3,13 +3,19 @@ export * from '@xstate/store';
 import { readonly, ref, toRaw, watch } from 'vue-demi';
 import type { Ref } from 'vue-demi';
 import {
+  createAtom,
   createStore,
+  type AnyAtom,
+  type AnyAtomConfig,
   type AnyStoreConfig,
   type AnyStoreLogicCreator,
+  type BaseAtom,
+  type InputFromAtomConfig,
   type InputFromStoreLogicCreator,
   type Readable,
   type StoreFromStoreConfig,
-  type StoreFromStoreLogicCreator
+  type StoreFromStoreLogicCreator,
+  type ValueFromAtomConfig
 } from '@xstate/store';
 
 function defaultCompare<T>(a: T, b: T) {
@@ -31,6 +37,25 @@ type UseStoreArgs<TDefinition extends StoreDefinition> =
       ? [logic: TDefinition, input?: InputFromStoreLogicCreator<TDefinition>]
       : [logic: TDefinition, input: InputFromStoreLogicCreator<TDefinition>]
     : [definition: TDefinition];
+
+type AtomDefinition = BaseAtom<any> | AnyAtomConfig;
+
+type AtomStateFromDefinition<TDefinition extends AtomDefinition> =
+  TDefinition extends AnyAtomConfig
+    ? readonly [
+        value: Readonly<Ref<ValueFromAtomConfig<TDefinition>>>,
+        atom: ReturnType<TDefinition['createAtom']>
+      ]
+    : TDefinition extends BaseAtom<infer TValue>
+      ? readonly [value: Readonly<Ref<TValue>>, atom: TDefinition]
+      : never;
+
+type UseAtomStateArgs<TDefinition extends AtomDefinition> =
+  TDefinition extends AnyAtomConfig
+    ? undefined extends InputFromAtomConfig<TDefinition>
+      ? [config: TDefinition, input?: InputFromAtomConfig<TDefinition>]
+      : [config: TDefinition, input: InputFromAtomConfig<TDefinition>]
+    : [atom: TDefinition];
 
 /**
  * A Vue composable that subscribes to a store and selects a value from the
@@ -96,4 +121,28 @@ export function useStore<TDefinition extends StoreDefinition>(
       ? definition.createStore(input)
       : createStore(definition)
   ) as StoreFromStoreDefinition<TDefinition>;
+}
+
+export function useAtom<T>(atom: BaseAtom<T>): Readonly<Ref<T>>;
+export function useAtom<T, S>(
+  atom: BaseAtom<T>,
+  selector: (value: T) => S,
+  compare?: (a: S, b: S) => boolean
+): Readonly<Ref<S>>;
+export function useAtom(
+  atom: AnyAtom,
+  selector = (value: any) => value,
+  compare = defaultCompare
+): Readonly<Ref<any>> {
+  return useSelector(atom, selector, compare);
+}
+
+export function useAtomState<TDefinition extends AtomDefinition>(
+  ...[definition, input]: UseAtomStateArgs<TDefinition>
+): AtomStateFromDefinition<TDefinition> {
+  const atom =
+    'createAtom' in definition ? createAtom(definition, input) : definition;
+  const value = useAtom(atom);
+
+  return [value, atom] as unknown as AtomStateFromDefinition<TDefinition>;
 }

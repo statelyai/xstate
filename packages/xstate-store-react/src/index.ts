@@ -9,9 +9,13 @@ import {
   type InputFromStoreLogicCreator,
   type Readable,
   type AnyAtom,
+  type AnyAtomConfig,
   type BaseAtom,
+  type InputFromAtomConfig,
+  type ValueFromAtomConfig,
   type StoreSnapshot,
   type ContextFromStoreConfig,
+  createAtom,
   createStore
 } from '@xstate/store';
 
@@ -59,6 +63,25 @@ type UseStoreArgs<TDefinition extends StoreDefinition> =
       ? [logic: TDefinition, input?: InputFromStoreLogicCreator<TDefinition>]
       : [logic: TDefinition, input: InputFromStoreLogicCreator<TDefinition>]
     : [definition: TDefinition];
+
+type AtomDefinition = BaseAtom<any> | AnyAtomConfig;
+
+type AtomStateFromDefinition<TDefinition extends AtomDefinition> =
+  TDefinition extends AnyAtomConfig
+    ? readonly [
+        value: ValueFromAtomConfig<TDefinition>,
+        atom: ReturnType<TDefinition['createAtom']>
+      ]
+    : TDefinition extends BaseAtom<infer TValue>
+      ? readonly [value: TValue, atom: TDefinition]
+      : never;
+
+type UseAtomStateArgs<TDefinition extends AtomDefinition> =
+  TDefinition extends AnyAtomConfig
+    ? undefined extends InputFromAtomConfig<TDefinition>
+      ? [config: TDefinition, input?: InputFromAtomConfig<TDefinition>]
+      : [config: TDefinition, input: InputFromAtomConfig<TDefinition>]
+    : [atom: TDefinition];
 
 /**
  * A React hook that subscribes to the `store` and selects a value from the
@@ -202,6 +225,24 @@ export function useAtom(
   const state = useSelector(atom, selector, compare);
 
   return state;
+}
+
+export function useAtomState<TDefinition extends AtomDefinition>(
+  ...[definition, input]: UseAtomStateArgs<TDefinition>
+): AtomStateFromDefinition<TDefinition> {
+  const atomRef = useRef<any>(undefined);
+
+  if (!atomRef.current) {
+    atomRef.current =
+      'createAtom' in definition ? createAtom(definition, input) : definition;
+  }
+
+  const value = useAtom(atomRef.current);
+
+  return [
+    value,
+    atomRef.current
+  ] as unknown as AtomStateFromDefinition<TDefinition>;
 }
 
 /**

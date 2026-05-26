@@ -5,6 +5,7 @@ import {
 } from './alien.ts';
 import {
   Atom,
+  AtomConfig,
   AtomOptions,
   Observer,
   ReducerAtom,
@@ -114,13 +115,21 @@ export function createAsyncAtom<T>(
       }
     );
 
-    return { status: 'pending' };
+    return { status: 'pending' } satisfies AsyncAtomState<T>;
   }, options);
   ref.current = atom as unknown as InternalAtom<AsyncAtomState<T>>;
 
   return atom;
 }
 
+export function createAtom<T>(
+  config: AtomConfig<T, undefined>,
+  input?: undefined
+): Atom<T>;
+export function createAtom<T, TInput>(
+  config: AtomConfig<T, TInput>,
+  input: TInput
+): Atom<T>;
 export function createAtom<T>(
   getValue: (prev?: T) => T,
   options?: AtomOptions<T>
@@ -130,9 +139,17 @@ export function createAtom<T>(
   options?: AtomOptions<T>
 ): Atom<T>;
 export function createAtom<T>(
-  valueOrFn: T | ((prev?: T) => T),
-  options?: AtomOptions<T>
+  valueOrFn: T | ((prev?: T) => T) | AtomConfig<T, any>,
+  optionsOrInput?: AtomOptions<T> | any
 ): Atom<T> | ReadonlyAtom<T> {
+  if (
+    typeof valueOrFn === 'object' &&
+    valueOrFn !== null &&
+    'createAtom' in valueOrFn
+  ) {
+    return valueOrFn.createAtom(optionsOrInput);
+  }
+
   const isComputed = typeof valueOrFn === 'function';
   const getter = valueOrFn as (prev?: T) => T;
 
@@ -187,7 +204,7 @@ export function createAtom<T>(
     },
     _update(getValue?: T | ((snapshot: T) => T)): boolean {
       const prevSub = activeSub;
-      const compare = options?.compare ?? Object.is;
+      const compare = optionsOrInput?.compare ?? Object.is;
       activeSub = atom;
       ++cycle;
       atom.depsTail = undefined;
@@ -255,6 +272,30 @@ export function createAtom<T>(
   }
 
   return atom as unknown as Atom<T> | ReadonlyAtom<T>;
+}
+
+export function createAtomConfig<T, TInput>(
+  getInitialValue: (input: TInput) => T,
+  options?: AtomOptions<T>
+): AtomConfig<T, TInput>;
+export function createAtomConfig<T>(
+  initialValue: T,
+  options?: AtomOptions<T>
+): AtomConfig<T, undefined>;
+export function createAtomConfig<T, TInput>(
+  initialValueOrFn: T | ((input: TInput) => T),
+  options?: AtomOptions<T>
+): AtomConfig<T, TInput | undefined> {
+  return {
+    createAtom(input?: TInput) {
+      const initialValue =
+        typeof initialValueOrFn === 'function'
+          ? (initialValueOrFn as (input: TInput) => T)(input as TInput)
+          : initialValueOrFn;
+
+      return createAtom(initialValue, options);
+    }
+  };
 }
 
 export function createReducerAtom<TState, TEvent>(

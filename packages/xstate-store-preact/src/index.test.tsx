@@ -4,8 +4,10 @@ import {
   createStore,
   createStoreLogic,
   createAtom,
+  createAtomConfig,
   useSelector,
-  useStore
+  useStore,
+  useAtomState
 } from './index.ts';
 
 describe('@xstate/store-preact', () => {
@@ -121,6 +123,62 @@ describe('@xstate/store-preact', () => {
       fireEvent.click(countDiv);
       expect(countDiv.textContent).toBe('11');
       expect(storeRefs.every((ref) => ref === storeRefs[0])).toBe(true);
+    });
+  });
+
+  describe('useAtomState', () => {
+    it('should return the value and existing atom', () => {
+      const atom = createAtom(0);
+      const atomRefs: object[] = [];
+
+      const Counter = () => {
+        const [count, countAtom] = useAtomState(atom);
+        atomRefs.push(countAtom);
+        return (
+          <div
+            data-testid="count"
+            onClick={() => countAtom.set((count) => count + 1)}
+          >
+            {count}
+          </div>
+        );
+      };
+
+      render(<Counter />);
+
+      const countDiv = screen.getByTestId('count');
+      expect(countDiv.textContent).toBe('0');
+      fireEvent.click(countDiv);
+      expect(countDiv.textContent).toBe('1');
+      expect(atomRefs.every((ref) => ref === atom)).toBe(true);
+    });
+
+    it('should create a stable atom from atom config and input', () => {
+      const config = createAtomConfig((input: { initialCount: number }) => {
+        return input.initialCount;
+      });
+      const atomRefs: object[] = [];
+
+      const Counter = () => {
+        const [count, countAtom] = useAtomState(config, { initialCount: 10 });
+        atomRefs.push(countAtom);
+        return (
+          <div
+            data-testid="count"
+            onClick={() => countAtom.set((count) => count + 1)}
+          >
+            {count}
+          </div>
+        );
+      };
+
+      render(<Counter />);
+
+      const countDiv = screen.getByTestId('count');
+      expect(countDiv.textContent).toBe('10');
+      fireEvent.click(countDiv);
+      expect(countDiv.textContent).toBe('11');
+      expect(atomRefs.every((ref) => ref === atomRefs[0])).toBe(true);
     });
   });
 

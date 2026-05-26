@@ -1,7 +1,61 @@
-import { useStore } from './index.ts';
+import {
+  createAtom,
+  createAtomConfig,
+  useAtomState,
+  useStore
+} from './index.ts';
 import { z } from 'zod';
 
 describe('@xstate/store-vue types', () => {
+  it('uses atom config input in useAtomState', () => {
+    const countAtom = createAtom(0);
+    const countConfig = createAtomConfig(
+      (input: { initialCount: number }) => input.initialCount
+    );
+    const optionalInputConfig = createAtomConfig(
+      (_input?: { initialCount?: number }) => 0
+    );
+    const noInputConfig = createAtomConfig(0);
+
+    const Component = () => {
+      const [liveValue, liveAtom] = useAtomState(countAtom);
+      liveValue.value satisfies number;
+      liveAtom.set(1);
+
+      // @ts-expect-error required input
+      useAtomState(countConfig);
+
+      useAtomState(
+        countConfig,
+        // @ts-expect-error required input
+        undefined
+      );
+
+      const [count, atom] = useAtomState(countConfig, { initialCount: 1 });
+      count.value satisfies number;
+      atom.set((prev) => prev + 1);
+
+      useAtomState(countConfig, {
+        // @ts-expect-error wrong input
+        initialCount: 'one'
+      });
+
+      useAtomState(optionalInputConfig);
+      useAtomState(optionalInputConfig, { initialCount: 1 });
+      useAtomState(noInputConfig);
+
+      useAtomState(
+        noInputConfig,
+        // @ts-expect-error no input
+        {}
+      );
+
+      return null;
+    };
+
+    Component;
+  });
+
   it('infers schemas in useStore', () => {
     const Component = () => {
       const store = useStore({

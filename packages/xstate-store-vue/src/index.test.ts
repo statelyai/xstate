@@ -5,8 +5,10 @@ import {
   createStore,
   createStoreLogic,
   createAtom,
+  createAtomConfig,
   useSelector,
-  useStore
+  useStore,
+  useAtomState
 } from './index.ts';
 
 describe('@xstate/store-vue', () => {
@@ -80,6 +82,59 @@ describe('@xstate/store-vue', () => {
         template: `
           <div>
             <button data-testid="increment" @click="store.trigger.inc()">Increment</button>
+            <span data-testid="count">{{ count }}</span>
+          </div>
+        `
+      });
+
+      const { getByTestId } = render(Counter);
+
+      expect(getByTestId('count').textContent).toBe('10');
+      await fireEvent.click(getByTestId('increment'));
+      expect(getByTestId('count').textContent).toBe('11');
+    });
+  });
+
+  describe('useAtomState', () => {
+    it('should return the value and existing atom', async () => {
+      const atom = createAtom(0);
+      const atomRefs: object[] = [];
+      const Counter = defineComponent({
+        setup() {
+          const [count, countAtom] = useAtomState(atom);
+          atomRefs.push(countAtom);
+          return { count, countAtom };
+        },
+        template: `
+          <div>
+            <button data-testid="increment" @click="countAtom.set((count) => count + 1)">Increment</button>
+            <span data-testid="count">{{ count }}</span>
+          </div>
+        `
+      });
+
+      const { getByTestId } = render(Counter);
+
+      expect(getByTestId('count').textContent).toBe('0');
+      await fireEvent.click(getByTestId('increment'));
+      expect(getByTestId('count').textContent).toBe('1');
+      expect(atomRefs.every((ref) => ref === atom)).toBe(true);
+    });
+
+    it('should create an atom from atom config and input', async () => {
+      const config = createAtomConfig((input: { initialCount: number }) => {
+        return input.initialCount;
+      });
+      const Counter = defineComponent({
+        setup() {
+          const [count, countAtom] = useAtomState(config, {
+            initialCount: 10
+          });
+          return { count, countAtom };
+        },
+        template: `
+          <div>
+            <button data-testid="increment" @click="countAtom.set((count) => count + 1)">Increment</button>
             <span data-testid="count">{{ count }}</span>
           </div>
         `

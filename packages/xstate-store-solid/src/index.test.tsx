@@ -4,8 +4,10 @@ import {
   createStore,
   createStoreLogic,
   createAtom,
+  createAtomConfig,
   useSelector,
-  useStore
+  useStore,
+  useAtomState
 } from './index.ts';
 
 describe('@xstate/store-solid', () => {
@@ -133,6 +135,61 @@ describe('@xstate/store-solid', () => {
         const count = useSelector(store, (s) => s.context.count);
         return (
           <div data-testid="count" onClick={() => store.trigger.inc()}>
+            {count()}
+          </div>
+        );
+      };
+
+      render(() => <Counter />);
+
+      const countDiv = await screen.findByTestId('count');
+      expect(countDiv.textContent).toBe('10');
+      fireEvent.click(countDiv);
+      expect(countDiv.textContent).toBe('11');
+    });
+  });
+
+  describe('useAtomState', () => {
+    it('should return the value and existing atom', async () => {
+      const atom = createAtom(0);
+      const atomRefs: object[] = [];
+
+      const Counter = () => {
+        const [count, countAtom] = useAtomState(atom);
+        atomRefs.push(countAtom);
+        return (
+          <div
+            data-testid="count"
+            onClick={() => countAtom.set((count) => count + 1)}
+          >
+            {count()}
+          </div>
+        );
+      };
+
+      render(() => <Counter />);
+
+      const countDiv = await screen.findByTestId('count');
+      expect(countDiv.textContent).toBe('0');
+      fireEvent.click(countDiv);
+      expect(countDiv.textContent).toBe('1');
+      expect(atomRefs.every((ref) => ref === atom)).toBe(true);
+    });
+
+    it('should create an atom from atom config and input', async () => {
+      const config = createAtomConfig((input: { initialCount: number }) => {
+        return input.initialCount;
+      });
+
+      const Counter = () => {
+        const [count, countAtom] = useAtomState(config, {
+          initialCount: 10
+        });
+        return (
+          <div
+            data-testid="count"
+            onClick={() => countAtom.set((count) => count + 1)}
+          >
             {count()}
           </div>
         );
