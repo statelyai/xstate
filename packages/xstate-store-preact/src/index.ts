@@ -8,10 +8,10 @@ import {
   useState
 } from 'preact/hooks';
 import {
-  createAtom,
   createStore,
   type AnyAtom,
   type AnyAtomConfig,
+  type AtomConfig,
   type AnyStoreConfig,
   type AnyStoreLogicCreator,
   type BaseAtom,
@@ -128,6 +128,10 @@ type UseAtomStateArgs<TDefinition extends AtomDefinition> =
       : [config: TDefinition, input: InputFromAtomConfig<TDefinition>]
     : [atom: TDefinition];
 
+type AtomConfigInput<TInput> = undefined extends TInput
+  ? [input?: TInput]
+  : [input: TInput];
+
 function isAtom(value: unknown): value is AnyAtom {
   return (
     typeof value === 'object' &&
@@ -243,17 +247,31 @@ export function useStore<TDefinition extends StoreDefinition>(
 
 /** Subscribes to an atom and returns its current value. */
 export function useAtom<T>(atom: BaseAtom<T>): T;
+export function useAtom<TValue, TInput>(
+  config: AtomConfig<TValue, TInput>,
+  ...input: AtomConfigInput<TInput>
+): TValue;
 export function useAtom<T, S>(
   atom: BaseAtom<T>,
   selector: (value: T) => S,
   compare?: (a: S | undefined, b: S) => boolean
 ): S;
 export function useAtom(
-  atom: AnyAtom,
-  selector = identity,
+  definition: AnyAtom | AtomConfig<any, any>,
+  selectorOrInput?: any,
   compare = defaultCompare
 ) {
-  return useSelector(atom, selector, compare);
+  const atomRef = useRef<any>(undefined);
+
+  if (isAtom(definition)) {
+    return useSelector(definition, selectorOrInput ?? identity, compare);
+  }
+
+  if (!atomRef.current) {
+    atomRef.current = definition.createAtom(selectorOrInput);
+  }
+
+  return useSelector(atomRef.current, identity, compare);
 }
 
 /**

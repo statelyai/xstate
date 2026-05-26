@@ -7,6 +7,7 @@ import {
   createAtomConfig,
   useSelector,
   useStore,
+  useAtom,
   useAtomState
 } from './index.ts';
 
@@ -179,6 +180,22 @@ describe('@xstate/store-preact', () => {
       fireEvent.click(countDiv);
       expect(countDiv.textContent).toBe('11');
       expect(atomRefs.every((ref) => ref === atomRefs[0])).toBe(true);
+    });
+  });
+
+  describe('useAtom', () => {
+    it('should create an atom value from atom config and input', () => {
+      const config = createAtomConfig((input: { initialCount: number }) => {
+        return input.initialCount;
+      });
+
+      const Counter = () => {
+        const count = useAtom(config, { initialCount: 10 });
+        return <div data-testid="count">{count}</div>;
+      };
+
+      render(<Counter />);
+      expect(screen.getByTestId('count').textContent).toBe('10');
     });
   });
 

@@ -8,6 +8,7 @@ import {
   createAtomConfig,
   useSelector,
   useStore,
+  useAtom,
   useAtomState
 } from './index.ts';
 
@@ -145,6 +146,24 @@ describe('@xstate/store-vue', () => {
       expect(getByTestId('count').textContent).toBe('10');
       await fireEvent.click(getByTestId('increment'));
       expect(getByTestId('count').textContent).toBe('11');
+    });
+  });
+
+  describe('useAtom', () => {
+    it('should create an atom value from atom config and input', () => {
+      const config = createAtomConfig((input: { initialCount: number }) => {
+        return input.initialCount;
+      });
+      const Counter = defineComponent({
+        setup() {
+          const count = useAtom(config, { initialCount: 10 });
+          return { count };
+        },
+        template: `<span data-testid="count">{{ count }}</span>`
+      });
+
+      const { getByTestId } = render(Counter);
+      expect(getByTestId('count').textContent).toBe('10');
     });
   });
 

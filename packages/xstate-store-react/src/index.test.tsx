@@ -200,6 +200,21 @@ describe('@xstate/store-react', () => {
       });
       expect(screen.getByTestId('count').textContent).toBe('1');
     });
+
+    it('should create a stable atom value from atom config and input', () => {
+      const config = createAtomConfig((input: { initialCount: number }) => {
+        return input.initialCount;
+      });
+
+      const TestComponent = () => {
+        const count = useAtom(config, { initialCount: 10 });
+
+        return <div data-testid="count">{count}</div>;
+      };
+
+      render(<TestComponent />);
+      expect(screen.getByTestId('count').textContent).toBe('10');
+    });
   });
 
   describe('useAtomState', () => {

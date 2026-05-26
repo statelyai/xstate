@@ -3,10 +3,10 @@ export * from '@xstate/store';
 
 import { createEffect, createSignal, onCleanup, type Accessor } from 'solid-js';
 import {
-  createAtom,
   createStore,
   type AnyAtom,
   type AnyAtomConfig,
+  type AtomConfig,
   type AnyStoreConfig,
   type AnyStoreLogicCreator,
   type BaseAtom,
@@ -56,6 +56,10 @@ type UseAtomStateArgs<TDefinition extends AtomDefinition> =
       ? [config: TDefinition, input?: InputFromAtomConfig<TDefinition>]
       : [config: TDefinition, input: InputFromAtomConfig<TDefinition>]
     : [atom: TDefinition];
+
+type AtomConfigInput<TInput> = undefined extends TInput
+  ? [input?: TInput]
+  : [input: TInput];
 
 function isAtom(value: unknown): value is AnyAtom {
   return (
@@ -150,17 +154,27 @@ export function useStore<TDefinition extends StoreDefinition>(
 
 /** Subscribes to an atom and returns its current value as an accessor. */
 export function useAtom<T>(atom: BaseAtom<T>): Accessor<T>;
+export function useAtom<TValue, TInput>(
+  config: AtomConfig<TValue, TInput>,
+  ...input: AtomConfigInput<TInput>
+): Accessor<TValue>;
 export function useAtom<T, S>(
   atom: BaseAtom<T>,
   selector: (value: T) => S,
   compare?: (a: S | undefined, b: S) => boolean
 ): Accessor<S>;
 export function useAtom(
-  atom: AnyAtom,
-  selector = (value: any) => value,
+  definition: AnyAtom | AtomConfig<any, any>,
+  selectorOrInput?: any,
   compare = defaultCompare
 ): Accessor<any> {
-  return useSelector(atom, selector, compare);
+  return isAtom(definition)
+    ? useSelector(
+        definition,
+        selectorOrInput ?? ((value: any) => value),
+        compare
+      )
+    : useSelector(definition.createAtom(selectorOrInput), (value) => value);
 }
 
 /**

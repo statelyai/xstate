@@ -1,6 +1,7 @@
 import {
   createAtom,
   createAtomConfig,
+  useAtom,
   useAtomState,
   useStore
 } from './index.ts';
@@ -22,8 +23,12 @@ describe('@xstate/store-solid types', () => {
       liveValue() satisfies number;
       liveAtom.set(1);
 
-      // @ts-expect-error required input
-      useAtomState(countConfig);
+      const atomValue = useAtom(countConfig, { initialCount: 1 });
+      atomValue() satisfies number;
+
+      useAtom(optionalInputConfig);
+      useAtom(optionalInputConfig, { initialCount: 1 });
+      useAtom(noInputConfig);
 
       useAtomState(
         countConfig,
