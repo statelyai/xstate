@@ -17,7 +17,7 @@ type ValidationReason =
   | 'unknownEmitted'
   | 'asyncValidationUnsupported';
 
-export interface StoreValidationErrorOptions {
+interface StoreValidationErrorOptions {
   reason: ValidationReason;
   eventType?: string;
   context?: unknown;
@@ -44,7 +44,7 @@ export class StoreValidationError extends Error {
   }
 }
 
-export interface ValidateSchemasOptions {
+interface ValidateSchemasOptions {
   context?: boolean;
   events?: boolean;
   emitted?: boolean;

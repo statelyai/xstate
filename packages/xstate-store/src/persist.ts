@@ -952,7 +952,7 @@ export async function rehydrateStore(store: {
   store.send({ type: PERSIST_REHYDRATE_EVENT_TYPE, state: data });
 }
 
-export interface BroadcastStorageOptions {
+interface BroadcastStorageOptions {
   channel?: string;
 }
 
