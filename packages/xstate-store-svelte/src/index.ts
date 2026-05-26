@@ -80,6 +80,7 @@ export function useSelector<TStore extends XStateReadable<any>, TSelected>(
   };
 }
 
+/** Creates a store instance for Svelte usage. */
 export function useStore<TDefinition extends StoreDefinition>(
   ...[definition, input]: UseStoreArgs<TDefinition>
 ): StoreFromStoreDefinition<TDefinition> {

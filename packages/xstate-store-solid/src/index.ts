@@ -57,6 +57,15 @@ type UseAtomStateArgs<TDefinition extends AtomDefinition> =
       : [config: TDefinition, input: InputFromAtomConfig<TDefinition>]
     : [atom: TDefinition];
 
+function isAtom(value: unknown): value is AnyAtom {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as any).get === 'function' &&
+    typeof (value as any).subscribe === 'function'
+  );
+}
+
 function useSelectorWithCompare<TSnapshot, T>(
   selector: (snapshot: TSnapshot) => T,
   compare: (a: T | undefined, b: T) => boolean
@@ -128,6 +137,7 @@ export function useSelector<TSnapshot, T>(
   return selectedValue;
 }
 
+/** Creates a store instance for the current Solid owner. */
 export function useStore<TDefinition extends StoreDefinition>(
   ...[definition, input]: UseStoreArgs<TDefinition>
 ): StoreFromStoreDefinition<TDefinition> {
@@ -138,6 +148,7 @@ export function useStore<TDefinition extends StoreDefinition>(
   ) as StoreFromStoreDefinition<TDefinition>;
 }
 
+/** Subscribes to an atom and returns its current value as an accessor. */
 export function useAtom<T>(atom: BaseAtom<T>): Accessor<T>;
 export function useAtom<T, S>(
   atom: BaseAtom<T>,
@@ -152,11 +163,16 @@ export function useAtom(
   return useSelector(atom, selector, compare);
 }
 
+/**
+ * Creates or subscribes to an atom for the lifetime of a Solid owner.
+ *
+ * Pass an existing atom to receive `[accessor, atom]`, or pass an atom config
+ * created with `createAtomConfig(...)` to create a local atom.
+ */
 export function useAtomState<TDefinition extends AtomDefinition>(
   ...[definition, input]: UseAtomStateArgs<TDefinition>
 ): AtomStateFromDefinition<TDefinition> {
-  const atom =
-    'createAtom' in definition ? createAtom(definition, input) : definition;
+  const atom = isAtom(definition) ? definition : definition.createAtom(input);
   const value = useAtom(atom);
 
   return [value, atom] as unknown as AtomStateFromDefinition<TDefinition>;

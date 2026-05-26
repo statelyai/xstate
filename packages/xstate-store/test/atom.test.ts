@@ -14,8 +14,8 @@ it('creates an atom', () => {
 
 it('creates an atom from atom config', () => {
   const config = createAtomConfig(42);
-  const atom = createAtom(config);
-  const otherAtom = createAtom(config);
+  const atom = config.createAtom();
+  const otherAtom = config.createAtom();
 
   atom.set(100);
 
@@ -27,7 +27,7 @@ it('creates an atom from atom config and input', () => {
   const config = createAtomConfig((input: { initialCount: number }) => {
     return input.initialCount;
   });
-  const atom = createAtom(config, { initialCount: 10 });
+  const atom = config.createAtom({ initialCount: 10 });
 
   expect(atom.get()).toBe(10);
 });

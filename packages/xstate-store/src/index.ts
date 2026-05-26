@@ -7,7 +7,7 @@ export {
   createAsyncAtom,
   createReducerAtom
 } from './atom.ts';
-export type { AsyncAtomOptions } from './atom.ts';
+export type { AsyncAtomOptions, AsyncAtomState } from './atom.ts';
 export type { StandardSchemaV1 } from './schema.ts';
 export type {
   EventPayloadMap,

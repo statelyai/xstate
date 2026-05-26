@@ -128,6 +128,15 @@ type UseAtomStateArgs<TDefinition extends AtomDefinition> =
       : [config: TDefinition, input: InputFromAtomConfig<TDefinition>]
     : [atom: TDefinition];
 
+function isAtom(value: unknown): value is AnyAtom {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as any).get === 'function' &&
+    typeof (value as any).subscribe === 'function'
+  );
+}
+
 function useSelectorWithCompare<TStore extends Readable<any>, T>(
   selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
   compare: (a: T | undefined, b: T) => boolean
@@ -216,6 +225,7 @@ export function useSelector<TStore extends Readable<any>, T>(
   );
 }
 
+/** Creates a stable store instance for the lifetime of a Preact component. */
 export function useStore<TDefinition extends StoreDefinition>(
   ...[definition, input]: UseStoreArgs<TDefinition>
 ): StoreFromStoreDefinition<TDefinition> {
@@ -231,6 +241,7 @@ export function useStore<TDefinition extends StoreDefinition>(
   return storeRef.current;
 }
 
+/** Subscribes to an atom and returns its current value. */
 export function useAtom<T>(atom: BaseAtom<T>): T;
 export function useAtom<T, S>(
   atom: BaseAtom<T>,
@@ -245,14 +256,21 @@ export function useAtom(
   return useSelector(atom, selector, compare);
 }
 
+/**
+ * Creates or subscribes to an atom for the lifetime of a Preact component.
+ *
+ * Pass an existing atom to receive `[value, atom]`, or pass an atom config
+ * created with `createAtomConfig(...)` to create a stable local atom.
+ */
 export function useAtomState<TDefinition extends AtomDefinition>(
   ...[definition, input]: UseAtomStateArgs<TDefinition>
 ): AtomStateFromDefinition<TDefinition> {
   const atomRef = useRef<any>(undefined);
 
   if (!atomRef.current) {
-    atomRef.current =
-      'createAtom' in definition ? createAtom(definition, input) : definition;
+    atomRef.current = isAtom(definition)
+      ? definition
+      : definition.createAtom(input);
   }
 
   const value = useAtom(atomRef.current);

@@ -25,6 +25,7 @@ interface StoreValidationErrorOptions {
   issues?: unknown;
 }
 
+/** Error thrown by `validateSchemas()` when schema validation fails. */
 export class StoreValidationError extends Error {
   public readonly [storeValidationErrorSymbol] = true;
   public readonly reason: ValidationReason;
@@ -196,6 +197,12 @@ function validateEmitted(
   });
 }
 
+/**
+ * Validates schema-declared events, emitted events, and context at runtime.
+ *
+ * Validation is opt-in; stores with schemas only use those schemas for typing
+ * and metadata unless this extension is applied.
+ */
 export function validateSchemas<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,

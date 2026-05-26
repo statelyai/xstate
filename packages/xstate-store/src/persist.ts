@@ -952,11 +952,15 @@ export async function rehydrateStore(store: {
   store.send({ type: PERSIST_REHYDRATE_EVENT_TYPE, state: data });
 }
 
+/** Options for `createBroadcastStorage(...)`. */
 interface BroadcastStorageOptions {
+  /** BroadcastChannel name. Defaults to `"xstate-store"`. */
   channel?: string;
 }
 
+/** Storage adapter returned by `createBroadcastStorage(...)`. */
 type BroadcastStorage = StateStorage & {
+  /** Channel used to announce writes to other same-origin contexts. */
   readonly channel: BroadcastChannel;
 };
 
@@ -968,6 +972,12 @@ function assertBroadcastChannelAvailable(): void {
   }
 }
 
+/**
+ * Wraps a storage adapter so writes are announced across same-origin tabs.
+ *
+ * Pair with `subscribeToBroadcastStorage(...)` on persisted stores that should
+ * rehydrate when another tab writes to the same storage key.
+ */
 export function createBroadcastStorage(
   baseStorage: StateStorage,
   options?: BroadcastStorageOptions
@@ -996,6 +1006,11 @@ export function createBroadcastStorage(
   };
 }
 
+/**
+ * Subscribes a persisted store to broadcast storage updates.
+ *
+ * Returns an unsubscribe function that closes the broadcast listener.
+ */
 export function subscribeToBroadcastStorage(store: {
   getSnapshot: () => any;
   send: (event: any) => void;

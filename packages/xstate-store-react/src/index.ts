@@ -83,6 +83,15 @@ type UseAtomStateArgs<TDefinition extends AtomDefinition> =
       : [config: TDefinition, input: InputFromAtomConfig<TDefinition>]
     : [atom: TDefinition];
 
+function isAtom(value: unknown): value is AnyAtom {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as any).get === 'function' &&
+    typeof (value as any).subscribe === 'function'
+  );
+}
+
 /**
  * A React hook that subscribes to the `store` and selects a value from the
  * store's snapshot via a selector function, with an optional compare function.
@@ -169,6 +178,7 @@ export function useSelector<TSnapshot, T>(
   );
 }
 
+/** Creates a stable store instance for the lifetime of a React component. */
 export function useStore<TDefinition extends StoreDefinition>(
   ...[definition, input]: UseStoreArgs<TDefinition>
 ): StoreFromStoreDefinition<TDefinition> {
@@ -227,14 +237,21 @@ export function useAtom(
   return state;
 }
 
+/**
+ * Creates or subscribes to an atom for the lifetime of a React component.
+ *
+ * Pass an existing atom to receive `[value, atom]`, or pass an atom config
+ * created with `createAtomConfig(...)` to create a stable local atom.
+ */
 export function useAtomState<TDefinition extends AtomDefinition>(
   ...[definition, input]: UseAtomStateArgs<TDefinition>
 ): AtomStateFromDefinition<TDefinition> {
   const atomRef = useRef<any>(undefined);
 
   if (!atomRef.current) {
-    atomRef.current =
-      'createAtom' in definition ? createAtom(definition, input) : definition;
+    atomRef.current = isAtom(definition)
+      ? definition
+      : definition.createAtom(input);
   }
 
   const value = useAtom(atomRef.current);

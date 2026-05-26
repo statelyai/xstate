@@ -8,7 +8,7 @@
 
 Add reusable atom configs and framework atom-state helpers.
 
-`createAtomConfig(...)` creates an inert atom definition that can be instantiated with `createAtom(...)` or React/Preact/Vue/Solid's `useAtomState(...)`. These helpers return the current framework-native value and live atom instance, and also work with existing atom instances.
+`createAtomConfig(...)` creates an inert atom definition that can be instantiated with its `createAtom(...)` method or React/Preact/Vue/Solid's `useAtomState(...)`. These helpers return the current framework-native value and live atom instance, and also work with existing atom instances.
 
 ```ts
 const countConfig = createAtomConfig((input: { initialCount: number }) => {

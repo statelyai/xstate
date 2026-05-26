@@ -62,12 +62,15 @@ function flush(): void {
   queuedEffectsLength = 0;
 }
 
-type AsyncAtomState<Data, Error = unknown> =
+/** The current state of an async atom. */
+export type AsyncAtomState<Data, Error = unknown> =
   | { status: 'pending' }
   | { status: 'done'; data: Data }
   | { status: 'error'; error: Error };
 
+/** Options passed to an async atom getter. */
 export interface AsyncAtomOptions {
+  /** Signal aborted when the async atom recomputes before this run settles. */
   signal: AbortSignal;
 }
 
@@ -85,6 +88,12 @@ function updateAsyncAtom<T>(
   }
 }
 
+/**
+ * Creates a read-only atom whose value is loaded from an async getter.
+ *
+ * The getter receives an `AbortSignal`; when the async atom recomputes, the
+ * previous signal is aborted and stale resolutions are ignored.
+ */
 export function createAsyncAtom<T>(
   getValue: (options: AsyncAtomOptions) => Promise<T>,
   options?: AtomOptions<AsyncAtomState<T>>
@@ -122,14 +131,11 @@ export function createAsyncAtom<T>(
   return atom;
 }
 
-export function createAtom<T>(
-  config: AtomConfig<T, undefined>,
-  input?: undefined
-): Atom<T>;
-export function createAtom<T, TInput>(
-  config: AtomConfig<T, TInput>,
-  input: TInput
-): Atom<T>;
+/**
+ * Creates an atom.
+ *
+ * Pass a value for a writable atom or a getter for a computed read-only atom.
+ */
 export function createAtom<T>(
   getValue: (prev?: T) => T,
   options?: AtomOptions<T>
@@ -139,17 +145,9 @@ export function createAtom<T>(
   options?: AtomOptions<T>
 ): Atom<T>;
 export function createAtom<T>(
-  valueOrFn: T | ((prev?: T) => T) | AtomConfig<T, any>,
-  optionsOrInput?: AtomOptions<T> | any
+  valueOrFn: T | ((prev?: T) => T),
+  optionsOrInput?: AtomOptions<T>
 ): Atom<T> | ReadonlyAtom<T> {
-  if (
-    typeof valueOrFn === 'object' &&
-    valueOrFn !== null &&
-    'createAtom' in valueOrFn
-  ) {
-    return valueOrFn.createAtom(optionsOrInput);
-  }
-
   const isComputed = typeof valueOrFn === 'function';
   const getter = valueOrFn as (prev?: T) => T;
 
@@ -274,6 +272,12 @@ export function createAtom<T>(
   return atom as unknown as Atom<T> | ReadonlyAtom<T>;
 }
 
+/**
+ * Creates an inert atom config that can be instantiated later.
+ *
+ * Useful for framework hooks that need to create a stable local atom from
+ * component input.
+ */
 export function createAtomConfig<T, TInput>(
   getInitialValue: (input: TInput) => T,
   options?: AtomOptions<T>
@@ -298,6 +302,7 @@ export function createAtomConfig<T, TInput>(
   };
 }
 
+/** Creates an atom whose updates are handled by a reducer function. */
 export function createReducerAtom<TState, TEvent>(
   initialValue: TState,
   reducer: (state: TState, event: TEvent) => TState,

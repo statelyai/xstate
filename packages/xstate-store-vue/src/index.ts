@@ -57,6 +57,15 @@ type UseAtomStateArgs<TDefinition extends AtomDefinition> =
       : [config: TDefinition, input: InputFromAtomConfig<TDefinition>]
     : [atom: TDefinition];
 
+function isAtom(value: unknown): value is AnyAtom {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as any).get === 'function' &&
+    typeof (value as any).subscribe === 'function'
+  );
+}
+
 /**
  * A Vue composable that subscribes to a store and selects a value from the
  * store's snapshot via a selector function.
@@ -113,6 +122,7 @@ export function useSelector<TStore extends Readable<any>, TSelected>(
   return readonly(slice) as Readonly<Ref<TSelected>>;
 }
 
+/** Creates a store instance for the current Vue setup scope. */
 export function useStore<TDefinition extends StoreDefinition>(
   ...[definition, input]: UseStoreArgs<TDefinition>
 ): StoreFromStoreDefinition<TDefinition> {
@@ -123,6 +133,7 @@ export function useStore<TDefinition extends StoreDefinition>(
   ) as StoreFromStoreDefinition<TDefinition>;
 }
 
+/** Subscribes to an atom and returns its current value as a readonly ref. */
 export function useAtom<T>(atom: BaseAtom<T>): Readonly<Ref<T>>;
 export function useAtom<T, S>(
   atom: BaseAtom<T>,
@@ -137,11 +148,16 @@ export function useAtom(
   return useSelector(atom, selector, compare);
 }
 
+/**
+ * Creates or subscribes to an atom for the lifetime of a Vue setup scope.
+ *
+ * Pass an existing atom to receive `[valueRef, atom]`, or pass an atom config
+ * created with `createAtomConfig(...)` to create a local atom.
+ */
 export function useAtomState<TDefinition extends AtomDefinition>(
   ...[definition, input]: UseAtomStateArgs<TDefinition>
 ): AtomStateFromDefinition<TDefinition> {
-  const atom =
-    'createAtom' in definition ? createAtom(definition, input) : definition;
+  const atom = isAtom(definition) ? definition : definition.createAtom(input);
   const value = useAtom(atom);
 
   return [value, atom] as unknown as AtomStateFromDefinition<TDefinition>;
