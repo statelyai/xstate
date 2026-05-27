@@ -1,5 +1,11 @@
 # xstate
 
+## 5.32.0
+
+### Minor Changes
+
+- [#5512](https://github.com/statelyai/xstate/pull/5512) [`063416d`](https://github.com/statelyai/xstate/commit/063416db859581b91fd661ae1a89b75a37fffa69) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Export `InspectedTransitionEvent` from `xstate`.
+
 ## 5.31.1
 
 ### Patch Changes
