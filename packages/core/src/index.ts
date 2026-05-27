@@ -19,6 +19,7 @@ export type {
   InspectedEventEvent,
   InspectedMicrostepEvent,
   InspectedSnapshotEvent,
+  InspectedTransitionEvent,
   InspectionEvent
 } from './inspection.ts';
 export { setup, type SetupReturn } from './setup.ts';

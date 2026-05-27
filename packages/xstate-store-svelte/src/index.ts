@@ -1,11 +1,35 @@
 export * from '@xstate/store';
 
 import { type Readable as XStateReadable } from '@xstate/store';
+import {
+  createStore,
+  type AnyStoreConfig,
+  type AnyStoreLogicCreator,
+  type InputFromStoreLogicCreator,
+  type StoreFromStoreConfig,
+  type StoreFromStoreLogicCreator
+} from '@xstate/store';
 import type { Readable } from 'svelte/store';
 
 function defaultCompare<T>(a: T, b: T) {
   return a === b;
 }
+
+type StoreDefinition = AnyStoreConfig | AnyStoreLogicCreator;
+
+type StoreFromStoreDefinition<TDefinition extends StoreDefinition> =
+  TDefinition extends AnyStoreLogicCreator
+    ? StoreFromStoreLogicCreator<TDefinition>
+    : TDefinition extends AnyStoreConfig
+      ? StoreFromStoreConfig<TDefinition>
+      : never;
+
+type UseStoreArgs<TDefinition extends StoreDefinition> =
+  TDefinition extends AnyStoreLogicCreator
+    ? undefined extends InputFromStoreLogicCreator<TDefinition>
+      ? [logic: TDefinition, input?: InputFromStoreLogicCreator<TDefinition>]
+      : [logic: TDefinition, input: InputFromStoreLogicCreator<TDefinition>]
+    : [definition: TDefinition];
 
 /**
  * Creates a Svelte readable store that subscribes to an XState store and
@@ -54,4 +78,15 @@ export function useSelector<TStore extends XStateReadable<any>, TSelected>(
       return unsubscribe;
     }
   };
+}
+
+/** Creates a store instance for Svelte usage. */
+export function useStore<TDefinition extends StoreDefinition>(
+  ...[definition, input]: UseStoreArgs<TDefinition>
+): StoreFromStoreDefinition<TDefinition> {
+  return (
+    'createStore' in definition
+      ? definition.createStore(input)
+      : createStore(definition)
+  ) as StoreFromStoreDefinition<TDefinition>;
 }

@@ -1,6 +1,15 @@
 /** @jsxImportSource preact */
 import { fireEvent, render, screen, waitFor } from '@testing-library/preact';
-import { createStore, createAtom, useSelector } from './index';
+import {
+  createStore,
+  createStoreLogic,
+  createAtom,
+  createAtomConfig,
+  useSelector,
+  useStore,
+  useAtom,
+  useAtomState
+} from './index.ts';
 
 describe('@xstate/store-preact', () => {
   describe('useSelector', () => {
@@ -82,6 +91,111 @@ describe('@xstate/store-preact', () => {
         expect(itemsDiv.textContent).toBe('3,4');
       });
       expect(renderCount).toBe(2);
+    });
+  });
+
+  describe('useStore', () => {
+    it('should create a stable store from store logic and input', () => {
+      const counterLogic = createStoreLogic({
+        context: (input: { initialCount: number }) => ({
+          count: input.initialCount
+        }),
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      });
+      let storeRefs: object[] = [];
+
+      const Counter = () => {
+        const store = useStore(counterLogic, { initialCount: 10 });
+        storeRefs.push(store);
+        const count = useSelector(store, (s) => s.context.count);
+        return (
+          <div data-testid="count" onClick={() => store.trigger.inc()}>
+            {count}
+          </div>
+        );
+      };
+
+      render(<Counter />);
+
+      const countDiv = screen.getByTestId('count');
+      expect(countDiv.textContent).toBe('10');
+      fireEvent.click(countDiv);
+      expect(countDiv.textContent).toBe('11');
+      expect(storeRefs.every((ref) => ref === storeRefs[0])).toBe(true);
+    });
+  });
+
+  describe('useAtomState', () => {
+    it('should return the value and existing atom', () => {
+      const atom = createAtom(0);
+      const atomRefs: object[] = [];
+
+      const Counter = () => {
+        const [count, countAtom] = useAtomState(atom);
+        atomRefs.push(countAtom);
+        return (
+          <div
+            data-testid="count"
+            onClick={() => countAtom.set((count) => count + 1)}
+          >
+            {count}
+          </div>
+        );
+      };
+
+      render(<Counter />);
+
+      const countDiv = screen.getByTestId('count');
+      expect(countDiv.textContent).toBe('0');
+      fireEvent.click(countDiv);
+      expect(countDiv.textContent).toBe('1');
+      expect(atomRefs.every((ref) => ref === atom)).toBe(true);
+    });
+
+    it('should create a stable atom from atom config and input', () => {
+      const config = createAtomConfig((input: { initialCount: number }) => {
+        return input.initialCount;
+      });
+      const atomRefs: object[] = [];
+
+      const Counter = () => {
+        const [count, countAtom] = useAtomState(config, { initialCount: 10 });
+        atomRefs.push(countAtom);
+        return (
+          <div
+            data-testid="count"
+            onClick={() => countAtom.set((count) => count + 1)}
+          >
+            {count}
+          </div>
+        );
+      };
+
+      render(<Counter />);
+
+      const countDiv = screen.getByTestId('count');
+      expect(countDiv.textContent).toBe('10');
+      fireEvent.click(countDiv);
+      expect(countDiv.textContent).toBe('11');
+      expect(atomRefs.every((ref) => ref === atomRefs[0])).toBe(true);
+    });
+  });
+
+  describe('useAtom', () => {
+    it('should create an atom value from atom config and input', () => {
+      const config = createAtomConfig((input: { initialCount: number }) => {
+        return input.initialCount;
+      });
+
+      const Counter = () => {
+        const count = useAtom(config, { initialCount: 10 });
+        return <div data-testid="count">{count}</div>;
+      };
+
+      render(<Counter />);
+      expect(screen.getByTestId('count').textContent).toBe('10');
     });
   });
 

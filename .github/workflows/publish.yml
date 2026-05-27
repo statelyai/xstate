@@ -6,10 +6,7 @@ on:
       - main
       - next
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
-  queue: max
+concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 permissions: {} # each job should define its own permission explicitly
 
@@ -26,13 +23,7 @@ jobs:
       pull-requests: write # to create pull request (changesets/action)
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
       - uses: ./.github/actions/ci-setup
-        with:
-          skip-cache: true # avoid cache poisoning attacks
-
       - uses: ./.github/actions/ci-checks
 
       - name: Create or update release pull request
@@ -54,12 +45,7 @@ jobs:
       id-token: write # to use OpenID Connect token for trusted publishing (changesets/action)
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
       - uses: ./.github/actions/ci-setup
-        with:
-          skip-cache: true # avoid cache poisoning attacks
 
       - name: Build
         run: pnpm build

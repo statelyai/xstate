@@ -1,4 +1,10 @@
-import { createStore, createAtom, useSelector } from './index';
+import {
+  createStore,
+  createStoreLogic,
+  createAtom,
+  useSelector,
+  useStore
+} from './index.ts';
 
 describe('@xstate/store-svelte', () => {
   describe('useSelector', () => {
@@ -100,6 +106,24 @@ describe('@xstate/store-svelte', () => {
       // After unsubscribe, value should not update
       store.send({ type: 'inc' });
       expect(value).toBe(1);
+    });
+  });
+
+  describe('useStore', () => {
+    it('should create a store from store logic and input', () => {
+      const counterLogic = createStoreLogic({
+        context: (input: { initialCount: number }) => ({
+          count: input.initialCount
+        }),
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      });
+      const store = useStore(counterLogic, { initialCount: 10 });
+
+      expect(store.getSnapshot().context.count).toBe(10);
+      store.trigger.inc();
+      expect(store.getSnapshot().context.count).toBe(11);
     });
   });
 

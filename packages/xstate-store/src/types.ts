@@ -1,23 +1,131 @@
+import type { StandardSchemaV1 } from './schema.ts';
+
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
 export type ExtractEvents<T extends EventPayloadMap> = Values<{
   [K in keyof T & string]: T[K] & { type: K };
 }>;
 
-type AllKeys<T> = T extends any ? keyof T : never;
+export type StandardSchemaMap = Record<
+  string,
+  StandardSchemaV1<unknown, object>
+>;
+
+export type InferSchemaOutput<
+  TSchema extends StandardSchemaV1,
+  TFallback
+> = Compute<
+  StandardSchemaV1.InferOutput<TSchema> extends TFallback
+    ? StandardSchemaV1.InferOutput<TSchema>
+    : never
+>;
+
+export type InferSchemaPayloadMap<TSchemaMap extends StandardSchemaMap> = {
+  [K in keyof TSchemaMap & string]: NormalizeSchemaPayload<
+    InferSchemaOutput<TSchemaMap[K], EventPayloadMap[string]>
+  >;
+};
+
+type NormalizeSchemaPayload<TPayload> = string extends keyof TPayload
+  ? {}
+  : TPayload;
+
+export type StoreSchemas<
+  TContextSchema extends StandardSchemaV1 | undefined = undefined,
+  TEventSchemaMap extends StandardSchemaMap | undefined = undefined,
+  TEmittedSchemaMap extends StandardSchemaMap | undefined = undefined
+> = {
+  context?: TContextSchema;
+  events?: TEventSchemaMap;
+  emitted?: TEmittedSchemaMap;
+};
+
+export type ResolveStoreContext<
+  TContext extends StoreContext,
+  TContextSchema extends StandardSchemaV1 | undefined
+> = TContextSchema extends StandardSchemaV1
+  ? InferSchemaOutput<TContextSchema, StoreContext>
+  : TContext;
+
+export type ResolveStoreEventPayloadMap<
+  TEventPayloadMap extends EventPayloadMap,
+  TEventSchemaMap extends StandardSchemaMap | undefined
+> = TEventSchemaMap extends StandardSchemaMap
+  ? InferSchemaPayloadMap<TEventSchemaMap>
+  : TEventPayloadMap;
+
+export type ResolveStoreEmittedPayloadMap<
+  TEmittedPayloadMap extends EventPayloadMap,
+  TEmittedSchemaMap extends StandardSchemaMap | undefined
+> = TEmittedSchemaMap extends StandardSchemaMap
+  ? InferSchemaPayloadMap<TEmittedSchemaMap>
+  : TEmittedPayloadMap;
+
+type EventPayloadFromEvent<TEvent> = TEvent extends { type: string }
+  ? DistributiveOmit<TEvent, 'type'>
+  : TEvent;
+
+type EventPayloadMapFromTransitions<TTransitions> = {
+  [K in keyof TTransitions & string]: TTransitions[K] extends (
+    context: any,
+    event: infer TEvent,
+    ...args: any[]
+  ) => unknown
+    ? EventPayloadFromEvent<TEvent>
+    : {};
+};
+
+type StoreEventPayloadMapFromConfig<TConfig extends AnyStoreConfig> =
+  TConfig extends { schemas: { events: infer TEventSchemaMap } }
+    ? TEventSchemaMap extends StandardSchemaMap
+      ? InferSchemaPayloadMap<TEventSchemaMap>
+      : {}
+    : TConfig extends { on: infer TTransitions }
+      ? EventPayloadMapFromTransitions<TTransitions>
+      : {};
 
 type EmitterFunction<TEmittedEvent extends EventObject> = (
   ...args: { type: TEmittedEvent['type'] } extends TEmittedEvent
-    ? AllKeys<TEmittedEvent> extends 'type'
-      ? []
-      : [DistributiveOmit<TEmittedEvent, 'type'>?]
+    ? [DistributiveOmit<TEmittedEvent, 'type'>?]
     : [DistributiveOmit<TEmittedEvent, 'type'>]
 ) => void;
 
-export type EnqueueObject<TEmittedEvent extends EventObject> = {
+type TriggerFunction<TEvent extends EventObject> = (
+  ...args: { type: TEvent['type'] } extends TEvent
+    ? [DistributiveOmit<TEvent, 'type'>?]
+    : [DistributiveOmit<TEvent, 'type'>]
+) => void;
+
+type CanFunction<TEvent extends EventObject> = (
+  ...args: { type: TEvent['type'] } extends TEvent
+    ? [DistributiveOmit<TEvent, 'type'>?]
+    : [DistributiveOmit<TEvent, 'type'>]
+) => boolean;
+
+type EventFromPayload<TKey extends string, TPayload> = {
+  type: TKey;
+} & (TPayload extends null | undefined ? {} : TPayload);
+
+export type TriggerObject<TEventPayloadMap extends EventPayloadMap> = {
+  [K in keyof TEventPayloadMap & string]: string extends K
+    ? (...args: any[]) => void
+    : TriggerFunction<EventFromPayload<K, TEventPayloadMap[K]>>;
+};
+
+export type CanObject<TEventPayloadMap extends EventPayloadMap> = {
+  [K in keyof TEventPayloadMap & string]: string extends K
+    ? (...args: any[]) => boolean
+    : CanFunction<EventFromPayload<K, TEventPayloadMap[K]>>;
+};
+
+export type EnqueueObject<
+  TEmittedEvent extends EventObject,
+  TEventPayloadMap extends EventPayloadMap = {}
+> = {
   emit: {
     [E in TEmittedEvent as E['type']]: EmitterFunction<E>;
   };
+  trigger: TriggerObject<TEventPayloadMap>;
   effect: (fn: () => void) => void;
 };
 
@@ -26,18 +134,24 @@ export type StoreEffect<TEmitted extends EventObject> = (() => void) | TEmitted;
 export type StoreAssigner<
   TContext extends StoreContext,
   TEvent extends EventObject,
-  TEmitted extends EventObject
+  TEmitted extends EventObject,
+  TEventPayloadMap extends EventPayloadMap = {}
 > = (
   context: TContext,
   event: TEvent,
-  enq: EnqueueObject<TEmitted>
+  enq: EnqueueObject<TEmitted, TEventPayloadMap>
 ) => TContext | void;
 
 export type StoreProducerAssigner<
   TContext extends StoreContext,
   TEvent extends EventObject,
-  TEmitted extends EventObject
-> = (context: TContext, event: TEvent, enq: EnqueueObject<TEmitted>) => void;
+  TEmitted extends EventObject,
+  TEventPayloadMap extends EventPayloadMap = {}
+> = (
+  context: TContext,
+  event: TEvent,
+  enq: EnqueueObject<TEmitted, TEventPayloadMap>
+) => void;
 
 export type Snapshot<TOutput> =
   | {
@@ -76,22 +190,20 @@ export interface Store<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject
->
-  extends
-    Subscribable<StoreSnapshot<TContext>>,
+> extends Subscribable<StoreSnapshot<TContext>>,
     InteropObservable<StoreSnapshot<TContext>>,
-    BaseAtom<StoreSnapshot<TContext>> {
+    Readable<StoreSnapshot<TContext>> {
   send: (event: ExtractEvents<TEventPayloadMap>) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
-  /** @alias getSnapshot */
+  /** Read the current snapshot as a `Readable` value. */
   get: () => StoreSnapshot<TContext>;
   getInitialSnapshot: () => StoreSnapshot<TContext>;
   /**
    * Subscribes to [inspection events](https://stately.ai/docs/inspection) from
    * the store.
    *
-   * Inspectors that call `store.inspect(…)` will immediately receive an
-   * "@xstate.actor" inspection event.
+   * Inspectors that call `store.inspect(…)` will immediately receive the
+   * current snapshot as an "@xstate.transition" inspection event.
    */
   inspect: (
     observer:
@@ -108,8 +220,8 @@ export interface Store<
     ) => void
   ) => Subscription;
   /**
-   * A proxy object that allows you to send events to the store without manually
-   * constructing event objects.
+   * A trigger object that allows you to send events to the store without
+   * manually constructing event objects.
    *
    * @example
    *
@@ -119,13 +231,8 @@ export interface Store<
    * store.trigger.increment({ by: 1 });
    * ```
    */
-  trigger: {
-    [K in keyof TEventPayloadMap]: IsEmptyObject<
-      DistributiveOmit<TEventPayloadMap[K], 'type'>
-    > extends true
-      ? () => void
-      : (eventPayload: DistributiveOmit<TEventPayloadMap[K], 'type'>) => void;
-  };
+  trigger: TriggerObject<TEventPayloadMap>;
+  can: CanObject<TEventPayloadMap>;
   select<TSelected>(
     selector: Selector<TContext, TSelected>,
     equalityFn?: (a: TSelected, b: TSelected) => boolean
@@ -180,41 +287,77 @@ export type StoreTransition<
 > = (
   state: StoreSnapshot<TContext>,
   event: TEvent
-) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
+) => StoreTransitionResult<StoreSnapshot<TContext>, TEmitted>;
+
+export type StoreTransitionResult<
+  TSnapshot extends StoreSnapshot<any>,
+  TEmitted extends EventObject
+> = [TSnapshot, StoreEffect<TEmitted>[]] & {
+  _allowed?: boolean;
+};
 
 export type StoreConfig<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends EventPayloadMap
+  TEmittedPayloadMap extends EventPayloadMap = {},
+  TContextSchema extends StandardSchemaV1 | undefined = undefined,
+  TEventSchemaMap extends StandardSchemaMap | undefined = undefined,
+  TEmittedSchemaMap extends StandardSchemaMap | undefined = undefined
 > = {
-  context: TContext;
-  emits?: {
-    [K in keyof TEmitted]: (payload: TEmitted[K]) => void;
-  };
-  on: {
-    [K in keyof TEventPayloadMap & string]: StoreAssigner<
-      TContext,
-      { type: K } & TEventPayloadMap[K],
-      ExtractEvents<TEmitted>
-    >;
-  };
+  context: ResolveStoreContext<TContext, TContextSchema>;
+  schemas?: StoreSchemas<TContextSchema, TEventSchemaMap, TEmittedSchemaMap>;
+  on: TEventSchemaMap extends StandardSchemaMap
+    ? {
+        [K in keyof ResolveStoreEventPayloadMap<
+          TEventPayloadMap,
+          TEventSchemaMap
+        > &
+          string]?: StoreAssigner<
+          ResolveStoreContext<TContext, TContextSchema>,
+          {
+            type: K;
+          } & ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>[K],
+          ExtractEvents<
+            ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
+          >,
+          ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>
+        >;
+      }
+    : {
+        [K in keyof TEventPayloadMap & string]: StoreAssigner<
+          ResolveStoreContext<TContext, TContextSchema>,
+          { type: K } & TEventPayloadMap[K],
+          ExtractEvents<
+            ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
+          >,
+          ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>
+        >;
+      };
 };
 
 export type SpecificStoreConfig<
   TContext extends StoreContext,
   TEvent extends EventObject,
-  TEmitted extends EventObject
+  TEmitted extends EventObject,
+  TContextSchema extends StandardSchemaV1 | undefined = undefined,
+  TEventSchemaMap extends StandardSchemaMap | undefined = undefined,
+  TEmittedSchemaMap extends StandardSchemaMap | undefined = undefined
 > = {
-  context: TContext;
-  emits?: {
-    [E in TEmitted as E['type']]: (payload: E) => void;
-  };
+  context: ResolveStoreContext<TContext, TContextSchema>;
+  schemas?: StoreSchemas<TContextSchema, TEventSchemaMap, TEmittedSchemaMap>;
   on: {
-    [E in TEvent as E['type']]: StoreAssigner<TContext, E, TEmitted>;
+    [E in TEvent as E['type']]?: StoreAssigner<
+      ResolveStoreContext<TContext, TContextSchema>,
+      E,
+      TEmitted,
+      EventPayloadMapFromEvents<TEvent>
+    >;
   };
 };
 
-type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
+type EventPayloadMapFromEvents<TEvent extends EventObject> = {
+  [E in TEvent as E['type']]: DistributiveOmit<E, 'type'>;
+};
 
 type Compute<A> = A extends any ? { [K in keyof A]: A[K] } : never;
 
@@ -341,41 +484,21 @@ export type EventObject = {
 };
 type Values<T> = T[keyof T];
 
-export type StoreInspectionEvent =
-  | StoreInspectedSnapshotEvent
-  | StoreInspectedEventEvent
-  | StoreInspectedActorEvent;
-
 interface StoreBaseInspectionEventProperties {
   rootId: string; // the session ID of the root
   /**
    * The relevant actorRef for the inspection event.
    *
-   * - For snapshot events, this is the `actorRef` of the snapshot.
-   * - For event events, this is the target `actorRef` (recipient of event).
-   * - For actor events, this is the `actorRef` of the registered actor.
+   * For store transition events, this is the `actorRef` of the store.
    */
   actorRef: ActorRefLike;
 }
 
-export interface StoreInspectedSnapshotEvent extends StoreBaseInspectionEventProperties {
-  type: '@xstate.snapshot';
+export interface StoreInspectionEvent
+  extends StoreBaseInspectionEventProperties {
+  type: '@xstate.transition';
   event: AnyEventObject; // { type: string, ... }
   snapshot: Snapshot<unknown>;
-}
-
-export interface StoreInspectedActionEvent extends StoreBaseInspectionEventProperties {
-  type: '@xstate.action';
-  action: {
-    type: string;
-    params: Record<string, unknown>;
-  };
-}
-
-export interface StoreInspectedEventEvent extends StoreBaseInspectionEventProperties {
-  type: '@xstate.event';
-  sourceRef: AnyStore | undefined;
-  event: AnyEventObject; // { type: string, ... }
 }
 
 interface AnyEventObject {
@@ -383,9 +506,10 @@ interface AnyEventObject {
   [key: string]: any;
 }
 
-export interface StoreInspectedActorEvent extends StoreBaseInspectionEventProperties {
-  type: '@xstate.actor';
-}
+export type StoreInspectedSnapshotEvent = StoreInspectionEvent;
+export type StoreInspectedActionEvent = StoreInspectionEvent;
+export type StoreInspectedEventEvent = StoreInspectionEvent;
+export type StoreInspectedActorEvent = StoreInspectionEvent;
 
 // export type ActorRefLike = Pick<
 //   AnyActorRef,
@@ -403,18 +527,79 @@ export type Selector<TContext, TSelected> = (context: TContext) => TSelected;
 
 export type Selection<TSelected> = Readable<TSelected>;
 
+export type StoreSelectorsConfig<TContext extends StoreContext> = Record<
+  string,
+  Selector<TContext, any>
+>;
+
+export type ResolvedStoreSelectors<
+  TContext extends StoreContext,
+  TSelectors extends StoreSelectorsConfig<TContext>
+> = {
+  [K in keyof TSelectors]: Selection<ReturnType<TSelectors[K]>>;
+};
+
+export type StoreWithSelectors<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject,
+  TSelectors extends StoreSelectorsConfig<TContext>
+> = Omit<Store<TContext, TEventPayloadMap, TEmitted>, 'with'> & {
+  selectors: ResolvedStoreSelectors<TContext, TSelectors>;
+  with<TNewEventPayloadMap extends EventPayloadMap>(
+    extension: StoreExtension<
+      TContext,
+      TEventPayloadMap,
+      TNewEventPayloadMap,
+      TEmitted
+    >
+  ): StoreWithSelectors<
+    TContext,
+    TEventPayloadMap & TNewEventPayloadMap,
+    TEmitted,
+    TSelectors
+  >;
+};
+
+export interface StoreLogicCreator<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject,
+  TInput,
+  TSelectors extends StoreSelectorsConfig<TContext>
+> {
+  createStore: undefined extends TInput
+    ? (
+        input?: TInput
+      ) => StoreWithSelectors<TContext, TEventPayloadMap, TEmitted, TSelectors>
+    : (
+        input: TInput
+      ) => StoreWithSelectors<TContext, TEventPayloadMap, TEmitted, TSelectors>;
+}
+
+export type AnyStoreLogicCreator = StoreLogicCreator<any, any, any, any, any>;
+
+export type StoreFromStoreLogicCreator<TLogic extends AnyStoreLogicCreator> =
+  TLogic extends StoreLogicCreator<
+    infer TContext,
+    infer TEventPayloadMap,
+    infer TEmitted,
+    any,
+    infer TSelectors
+  >
+    ? StoreWithSelectors<TContext, TEventPayloadMap, TEmitted, TSelectors>
+    : never;
+
+export type InputFromStoreLogicCreator<TLogic extends AnyStoreLogicCreator> =
+  TLogic extends StoreLogicCreator<any, any, any, infer TInput, any>
+    ? TInput
+    : never;
+
 export interface Readable<T> extends Subscribable<T> {
   get: () => T;
 }
 
 export interface BaseAtom<T> extends Subscribable<T>, Readable<T> {}
-
-export interface InternalBaseAtom<T> extends Subscribable<T>, Readable<T> {
-  /** @internal */
-  _snapshot: T;
-  /** @internal */
-  _update(getValue?: T | ((snapshot: T) => T)): boolean;
-}
 
 export interface Atom<T> extends BaseAtom<T> {
   /** Sets the value of the atom using a function. */
@@ -423,9 +608,27 @@ export interface Atom<T> extends BaseAtom<T> {
   set(value: T): void;
 }
 
+export interface ReducerAtom<TState, TEvent> extends BaseAtom<TState> {
+  send: (event: TEvent) => void;
+}
+
 export interface AtomOptions<T> {
   compare?: (prev: T, next: T) => boolean;
 }
+
+export interface AtomConfig<TValue, TInput> {
+  createAtom: undefined extends TInput
+    ? (input?: TInput) => Atom<TValue>
+    : (input: TInput) => Atom<TValue>;
+}
+
+export type AnyAtomConfig = AtomConfig<any, any>;
+
+export type ValueFromAtomConfig<TConfig extends AnyAtomConfig> =
+  TConfig extends AtomConfig<infer TValue, any> ? TValue : never;
+
+export type InputFromAtomConfig<TConfig extends AnyAtomConfig> =
+  TConfig extends AtomConfig<any, infer TInput> ? TInput : never;
 
 export type AnyAtom = BaseAtom<any>;
 
@@ -452,11 +655,13 @@ export type StoreLogic<
   TEvent extends EventObject,
   TEmitted extends EventObject
 > = {
+  eventTypes?: readonly string[];
+  schemas?: StoreSchemas<any, any, any>;
   getInitialSnapshot: () => TSnapshot;
   transition: (
     snapshot: TSnapshot,
     event: TEvent
-  ) => [TSnapshot, StoreEffect<TEmitted>[]];
+  ) => StoreTransitionResult<TSnapshot, TEmitted>;
 };
 export type AnyStoreLogic = StoreLogic<any, any, any>;
 
@@ -489,16 +694,61 @@ export type StoreExtension<
   TEmitted
 >;
 
-export type AnyStoreConfig = StoreConfig<any, any, any>;
+export type AnyStoreConfig = StoreConfig<any, any, any, any, any, any>;
 export type EventFromStoreConfig<TStore extends AnyStoreConfig> =
-  TStore extends StoreConfig<any, infer TEventPayloadMap, any>
-    ? ExtractEvents<TEventPayloadMap>
+  TStore extends StoreConfig<
+    any,
+    infer TEventPayloadMap,
+    any,
+    any,
+    infer TEventSchemaMap,
+    any
+  >
+    ? ExtractEvents<
+        ResolveStoreEventPayloadMap<TEventPayloadMap, TEventSchemaMap>
+      >
     : never;
 
 export type EmitsFromStoreConfig<TStore extends AnyStoreConfig> =
-  TStore extends StoreConfig<any, any, infer TEmitted>
-    ? ExtractEvents<TEmitted>
+  TStore extends StoreConfig<
+    any,
+    any,
+    infer TEmittedPayloadMap,
+    any,
+    any,
+    infer TEmittedSchemaMap
+  >
+    ? ExtractEvents<
+        ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
+      >
     : never;
 
 export type ContextFromStoreConfig<TStore extends AnyStoreConfig> =
-  TStore extends StoreConfig<infer TContext, any, any> ? TContext : never;
+  TStore extends StoreConfig<
+    infer TContext,
+    any,
+    any,
+    infer TContextSchema,
+    any,
+    any
+  >
+    ? ResolveStoreContext<TContext, TContextSchema>
+    : never;
+
+export type StoreFromStoreConfig<TConfig extends AnyStoreConfig> =
+  TConfig extends StoreConfig<
+    infer TContext,
+    any,
+    infer TEmittedPayloadMap,
+    infer TContextSchema,
+    any,
+    infer TEmittedSchemaMap
+  >
+    ? Store<
+        ResolveStoreContext<TContext, TContextSchema>,
+        StoreEventPayloadMapFromConfig<TConfig>,
+        ExtractEvents<
+          ResolveStoreEmittedPayloadMap<TEmittedPayloadMap, TEmittedSchemaMap>
+        >
+      >
+    : never;

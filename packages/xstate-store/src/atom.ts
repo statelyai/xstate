@@ -2,16 +2,16 @@ import {
   createReactiveSystem,
   type ReactiveNode,
   ReactiveFlags
-} from './alien';
-import { toObserver } from './toObserver';
+} from './alien.ts';
 import {
   Atom,
+  AtomConfig,
   AtomOptions,
   Observer,
-  Readable,
+  ReducerAtom,
   ReadonlyAtom,
   Subscription
-} from './types';
+} from './types.ts';
 
 interface InternalAtom<T> extends ReactiveNode {
   _snapshot: T;
@@ -62,51 +62,82 @@ function flush(): void {
   queuedEffectsLength = 0;
 }
 
-type AsyncAtomState<Data, Error = unknown> =
+/** The current state of an async atom. */
+export type AsyncAtomState<Data, Error = unknown> =
   | { status: 'pending' }
   | { status: 'done'; data: Data }
   | { status: 'error'; error: Error };
 
+/** Options passed to an async atom getter. */
+export interface AsyncAtomOptions {
+  /** Signal aborted when the async atom recomputes before this run settles. */
+  signal: AbortSignal;
+}
+
+function updateAsyncAtom<T>(
+  atom: InternalAtom<AsyncAtomState<T>>,
+  nextValue: AsyncAtomState<T>
+): void {
+  if (atom._update(nextValue)) {
+    const subs = atom.subs;
+    if (subs !== undefined) {
+      propagate(subs);
+      shallowPropagate(subs);
+      flush();
+    }
+  }
+}
+
+/**
+ * Creates a read-only atom whose value is loaded from an async getter.
+ *
+ * The getter receives an `AbortSignal`; when the async atom recomputes, the
+ * previous signal is aborted and stale resolutions are ignored.
+ */
 export function createAsyncAtom<T>(
-  getValue: () => Promise<T>,
+  getValue: (options: AsyncAtomOptions) => Promise<T>,
   options?: AtomOptions<AsyncAtomState<T>>
 ): ReadonlyAtom<AsyncAtomState<T>> {
   const ref: { current?: InternalAtom<AsyncAtomState<T>> } = {};
+  let currentController: AbortController | undefined;
+  let currentRunId = 0;
+
   const atom = createAtom<AsyncAtomState<T>>(() => {
-    getValue().then(
+    currentController?.abort();
+
+    const controller = new AbortController();
+    const runId = ++currentRunId;
+    currentController = controller;
+
+    getValue({ signal: controller.signal }).then(
       (data) => {
-        const internalAtom = ref.current!;
-        if (internalAtom._update({ status: 'done', data })) {
-          const subs = internalAtom.subs;
-          if (subs !== undefined) {
-            propagate(subs);
-            shallowPropagate(subs);
-            flush();
-          }
+        if (runId !== currentRunId || controller.signal.aborted) {
+          return;
         }
+        updateAsyncAtom(ref.current!, { status: 'done', data });
       },
       (error) => {
-        const internalAtom = ref.current!;
-        if (internalAtom._update({ status: 'error', error })) {
-          const subs = internalAtom.subs;
-          if (subs !== undefined) {
-            propagate(subs);
-            shallowPropagate(subs);
-            flush();
-          }
+        if (runId !== currentRunId || controller.signal.aborted) {
+          return;
         }
+        updateAsyncAtom(ref.current!, { status: 'error', error });
       }
     );
 
-    return { status: 'pending' };
+    return { status: 'pending' } satisfies AsyncAtomState<T>;
   }, options);
   ref.current = atom as unknown as InternalAtom<AsyncAtomState<T>>;
 
   return atom;
 }
 
+/**
+ * Creates an atom.
+ *
+ * Pass a value for a writable atom or a getter for a computed read-only atom.
+ */
 export function createAtom<T>(
-  getValue: (read: <U>(atom: Readable<U>) => U, prev?: NoInfer<T>) => T,
+  getValue: (prev?: T) => T,
   options?: AtomOptions<T>
 ): ReadonlyAtom<T>;
 export function createAtom<T>(
@@ -114,14 +145,11 @@ export function createAtom<T>(
   options?: AtomOptions<T>
 ): Atom<T>;
 export function createAtom<T>(
-  valueOrFn: T | ((read: <U>(atom: Readable<U>) => U, prev?: T) => T),
-  options?: AtomOptions<T>
+  valueOrFn: T | ((prev?: T) => T),
+  optionsOrInput?: AtomOptions<T>
 ): Atom<T> | ReadonlyAtom<T> {
   const isComputed = typeof valueOrFn === 'function';
-  const getter = valueOrFn as (
-    read: <U>(atom: Readable<U>) => U,
-    prev?: T
-  ) => T;
+  const getter = valueOrFn as (prev?: T) => T;
 
   // Create plain object atom
   const atom: InternalAtom<T> = {
@@ -141,7 +169,10 @@ export function createAtom<T>(
     },
 
     subscribe(observerOrFn: Observer<T> | ((value: T) => void)) {
-      const obs = toObserver(observerOrFn);
+      const observer =
+        typeof observerOrFn === 'function'
+          ? { next: observerOrFn }
+          : observerOrFn;
       const observed = { current: false };
       const e = effect(() => {
         atom.get();
@@ -151,7 +182,7 @@ export function createAtom<T>(
           const prevSub = activeSub;
           activeSub = undefined;
           try {
-            obs.next?.(atom._snapshot);
+            observer.next?.(atom._snapshot);
           } finally {
             activeSub = prevSub;
           }
@@ -171,7 +202,7 @@ export function createAtom<T>(
     },
     _update(getValue?: T | ((snapshot: T) => T)): boolean {
       const prevSub = activeSub;
-      const compare = options?.compare ?? Object.is;
+      const compare = optionsOrInput?.compare ?? Object.is;
       activeSub = atom;
       ++cycle;
       atom.depsTail = undefined;
@@ -180,12 +211,11 @@ export function createAtom<T>(
       }
       try {
         const oldValue = atom._snapshot;
-        const read = (a: Readable<any>) => a.get();
         const newValue =
           typeof getValue === 'function'
             ? (getValue as (snapshot: T) => T)(oldValue)
             : getValue === undefined && isComputed
-              ? getter(read, oldValue)
+              ? getter(oldValue)
               : getValue!;
         if (oldValue === undefined || !compare(oldValue, newValue)) {
           atom._snapshot = newValue;
@@ -240,6 +270,61 @@ export function createAtom<T>(
   }
 
   return atom as unknown as Atom<T> | ReadonlyAtom<T>;
+}
+
+/**
+ * Creates an inert atom config that can be instantiated later.
+ *
+ * Useful for framework hooks that need to create a stable local atom from
+ * component input.
+ */
+export function createAtomConfig<T, TInput>(
+  getInitialValue: (input: TInput) => T,
+  options?: AtomOptions<T>
+): AtomConfig<T, TInput>;
+export function createAtomConfig<T>(
+  initialValue: T,
+  options?: AtomOptions<T>
+): AtomConfig<T, undefined>;
+export function createAtomConfig<T, TInput>(
+  initialValueOrFn: T | ((input: TInput) => T),
+  options?: AtomOptions<T>
+): AtomConfig<T, TInput | undefined> {
+  return {
+    createAtom(input?: TInput) {
+      const initialValue =
+        typeof initialValueOrFn === 'function'
+          ? (initialValueOrFn as (input: TInput) => T)(input as TInput)
+          : initialValueOrFn;
+
+      return createAtom(initialValue, options);
+    }
+  };
+}
+
+/** Creates an atom whose updates are handled by a reducer function. */
+export function createReducerAtom<TState, TEvent>(
+  initialValue: TState,
+  reducer: (state: TState, event: TEvent) => TState,
+  options?: AtomOptions<TState>
+): ReducerAtom<TState, TEvent> {
+  const atom = createAtom(initialValue, options);
+
+  return {
+    get: atom.get.bind(atom),
+    subscribe: atom.subscribe.bind(atom),
+    send(event) {
+      const prevSub = activeSub;
+      activeSub = undefined;
+      let nextState: TState;
+      try {
+        nextState = reducer(atom.get(), event);
+      } finally {
+        activeSub = prevSub;
+      }
+      atom.set(nextState);
+    }
+  };
 }
 
 interface Effect extends ReactiveNode {

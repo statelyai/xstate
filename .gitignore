@@ -38,3 +38,5 @@ api/
 
 # pnpm
 .pnpm-lock.yaml
+
+.claude

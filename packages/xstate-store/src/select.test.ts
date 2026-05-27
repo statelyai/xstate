@@ -1,4 +1,4 @@
-import { createStore } from './index';
+import { createStore } from './index.ts';
 
 interface TestContext {
   user: {

@@ -9,6 +9,7 @@ export type InspectionEvent =
   | InspectedSnapshotEvent
   | InspectedEventEvent
   | InspectedActorEvent
+  | InspectedTransitionEvent
   | InspectedMicrostepEvent
   | InspectedActionEvent;
 
@@ -26,6 +27,13 @@ interface BaseInspectionEventProperties {
 
 export interface InspectedSnapshotEvent extends BaseInspectionEventProperties {
   type: '@xstate.snapshot';
+  event: AnyEventObject; // { type: string, ... }
+  snapshot: Snapshot<unknown>;
+}
+
+export interface InspectedTransitionEvent
+  extends BaseInspectionEventProperties {
+  type: '@xstate.transition';
   event: AnyEventObject; // { type: string, ... }
   snapshot: Snapshot<unknown>;
 }

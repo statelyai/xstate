@@ -1,9 +1,35 @@
-import { createStore, createAtom, createAsyncAtom } from '../src/index.ts';
+import {
+  createStore,
+  createAtom,
+  createAtomConfig,
+  createAsyncAtom,
+  createReducerAtom
+} from '../src/index.ts';
 
 it('creates an atom', () => {
   const atom = createAtom(42);
 
   expect(atom.get()).toBe(42);
+});
+
+it('creates an atom from atom config', () => {
+  const config = createAtomConfig(42);
+  const atom = config.createAtom();
+  const otherAtom = config.createAtom();
+
+  atom.set(100);
+
+  expect(atom.get()).toBe(100);
+  expect(otherAtom.get()).toBe(42);
+});
+
+it('creates an atom from atom config and input', () => {
+  const config = createAtomConfig((input: { initialCount: number }) => {
+    return input.initialCount;
+  });
+  const atom = config.createAtom({ initialCount: 10 });
+
+  expect(atom.get()).toBe(10);
 });
 
 it('sets the value of the atom using a function', () => {
@@ -59,22 +85,6 @@ it('can unsubscribe from atom changes', () => {
 });
 
 it('can create a combined atom', () => {
-  const nameAtom = createAtom('a');
-  const numAtom = createAtom(3);
-  const combinedAtom = createAtom((read) =>
-    read(nameAtom).repeat(read(numAtom))
-  );
-
-  expect(combinedAtom.get()).toBe('aaa');
-
-  nameAtom.set('b');
-
-  expect(combinedAtom.get()).toBe('bbb');
-
-  numAtom.set(5);
-});
-
-it('can create a combined atom (get API)', () => {
   const nameAtom = createAtom('a');
   const numAtom = createAtom(3);
   const combinedAtom = createAtom(() => nameAtom.get().repeat(numAtom.get()));
@@ -136,33 +146,6 @@ it('works with a mix of atoms and stores', () => {
     }
   });
 
-  const combinedAtom = createAtom(
-    (read) => read(store).context.name + ` ${read(countAtom)}`
-  );
-
-  expect(combinedAtom.get()).toBe('David 0');
-
-  store.send({ type: 'nameUpdated', name: 'John' });
-
-  expect(combinedAtom.get()).toBe('John 0');
-
-  countAtom.set(1);
-
-  expect(combinedAtom.get()).toBe('John 1');
-});
-
-it('works with a mix of atoms and stores (get API)', () => {
-  const countAtom = createAtom(0);
-  const store = createStore({
-    context: { name: 'David' },
-    on: {
-      nameUpdated: (context, event: { name: string }) => ({
-        ...context,
-        name: event.name
-      })
-    }
-  });
-
   const log = vi.fn();
 
   const combinedAtom = createAtom(
@@ -186,40 +169,6 @@ it('works with a mix of atoms and stores (get API)', () => {
 });
 
 it('works with stores', () => {
-  const nameStore = createStore({
-    context: { name: 'David' },
-    on: {
-      nameUpdated: (context, event: { name: string }) => ({
-        ...context,
-        name: event.name
-      })
-    }
-  });
-
-  const countStore = createStore({
-    context: { count: 0 },
-    on: {
-      increment: (context) => ({ ...context, count: context.count + 1 })
-    }
-  });
-
-  const combinedAtom = createAtom(
-    (read) =>
-      read(nameStore).context.name + ` ${read(countStore).context.count}`
-  );
-
-  expect(combinedAtom.get()).toBe('David 0');
-
-  nameStore.trigger.nameUpdated({ name: 'John' });
-
-  expect(combinedAtom.get()).toBe('John 0');
-
-  countStore.trigger.increment();
-
-  expect(combinedAtom.get()).toBe('John 1');
-});
-
-it('works with stores (get API)', () => {
   const nameStore = createStore({
     context: { name: 'David' },
     on: {
@@ -262,7 +211,7 @@ it('works with selectors', () => {
 
   const count = store.select((ctx) => ctx.count);
 
-  const combinedAtom = createAtom((read) => 2 * read(count));
+  const combinedAtom = createAtom(() => 2 * count.get());
 
   expect(combinedAtom.get()).toBe(0);
 
@@ -313,19 +262,6 @@ it('works with selectors (get API)', () => {
 it('combined atoms should be read-only', () => {
   const atom1 = createAtom(0);
   const atom2 = createAtom(1);
-  const combinedAtom = createAtom((read) => read(atom1) + read(atom2));
-
-  expect(combinedAtom.get()).toBe(1);
-
-  // @ts-expect-error
-  combinedAtom.set?.(2);
-
-  expect(combinedAtom.get()).toBe(1);
-});
-
-it('combined atoms should be read-only (get API)', () => {
-  const atom1 = createAtom(0);
-  const atom2 = createAtom(1);
   const combinedAtom = createAtom(() => atom1.get() + atom2.get());
 
   expect(combinedAtom.get()).toBe(1);
@@ -336,26 +272,19 @@ it('combined atoms should be read-only (get API)', () => {
   expect(combinedAtom.get()).toBe(1);
 });
 
-it('conditionally read atoms are properly read in combined atoms', () => {
-  const atom1 = createAtom(true);
-  const atom2 = createAtom(false);
-  const activatorAtom = createAtom<'inactive' | 'active'>('inactive');
-  const combinedAtom = createAtom((read) =>
-    read(activatorAtom) === 'active' ? read(atom1) : read(atom2)
+it('combined atom getters accept only prev as an argument', () => {
+  const atom = createAtom(1);
+
+  createAtom<number>(
+    // @ts-expect-error — two-arg (read, prev) signature is no longer supported
+    (_read, _prev) => atom.get()
   );
 
-  expect(combinedAtom.get()).toBe(false);
-
-  activatorAtom.set('active');
-
-  expect(combinedAtom.get()).toBe(true);
-
-  activatorAtom.set('inactive');
-
-  expect(combinedAtom.get()).toBe(false);
+  // prev is valid
+  createAtom<number>((prev) => atom.get() + (prev ?? 0));
 });
 
-it('conditionally read atoms are properly read in combined atoms (get API)', () => {
+it('conditionally read atoms are properly read in combined atoms', () => {
   const atom1 = createAtom(true);
   const atom2 = createAtom(false);
   const activatorAtom = createAtom<'inactive' | 'active'>('inactive');
@@ -375,51 +304,6 @@ it('conditionally read atoms are properly read in combined atoms (get API)', () 
 });
 
 it('conditionally read atoms are properly unsubscribed when no longer needed', () => {
-  const atom1 = createAtom(true);
-  const activatorAtom = createAtom<'inactive' | 'active'>('active');
-  const combinedAtom = createAtom((read) =>
-    read(activatorAtom) === 'active' ? read(atom1) : {}
-  );
-
-  const vals: any[] = [];
-
-  combinedAtom.subscribe((val) => vals.push(val));
-
-  atom1.set(false);
-
-  expect(vals).toEqual([false]);
-
-  atom1.set(true);
-
-  expect(vals).toEqual([false, true]);
-
-  activatorAtom.set('inactive');
-
-  // From here, atom1 should no longer be subscribed to
-  // Without the unsubscribe logic, this would be [false, true, {}, {}, ...]
-
-  expect(vals).toEqual([false, true, {}]);
-
-  atom1.set(false);
-
-  expect(vals).toEqual([false, true, {}]);
-
-  atom1.set(true);
-
-  expect(vals).toEqual([false, true, {}]);
-
-  // Subscribing again should cause atom1 to be subscribed again
-
-  activatorAtom.set('active');
-
-  expect(vals).toEqual([false, true, {}, true]);
-
-  atom1.set(false);
-
-  expect(vals).toEqual([false, true, {}, true, false]);
-});
-
-it('conditionally read atoms are properly unsubscribed when no longer needed (get API)', () => {
   const atom1 = createAtom(true);
   const activatorAtom = createAtom<'inactive' | 'active'>('active');
   const combinedAtom = createAtom(() =>
@@ -652,9 +536,7 @@ it('Atom-specific properties should not be exposed', () => {
 
 it('computed atoms can use their previous value in the getter', () => {
   const count = createAtom(1);
-  const accumulated = createAtom<number>(
-    (_, prev) => count.get() + (prev ?? 0)
-  );
+  const accumulated = createAtom<number>((prev) => count.get() + (prev ?? 0));
 
   expect(accumulated.get()).toBe(1); // 0 + 1 = 1
 
@@ -663,6 +545,77 @@ it('computed atoms can use their previous value in the getter', () => {
 
   count.set(3);
   expect(accumulated.get()).toBe(6); // 3 + 3 = 6
+});
+
+describe('reducer atoms', () => {
+  it('updates from current state and sent event', () => {
+    const counter = createReducerAtom(0, (state, event: number) =>
+      Math.min(10, state + event)
+    );
+
+    counter.send(13);
+
+    expect(counter.get()).toBe(10);
+  });
+
+  it('can receive arbitrary event values', () => {
+    const value = createReducerAtom(
+      '',
+      (state, event: string | number) => state + event
+    );
+
+    value.send('x');
+    value.send(1);
+
+    expect(value.get()).toBe('x1');
+  });
+
+  it('notifies subscribers when the reducer changes state', () => {
+    const counter = createReducerAtom(
+      0,
+      (state, event: number) => state + event
+    );
+    const listener = vi.fn();
+
+    counter.subscribe(listener);
+    counter.send(1);
+    counter.send(0);
+    counter.send(2);
+
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(listener).toHaveBeenNthCalledWith(1, 1);
+    expect(listener).toHaveBeenNthCalledWith(2, 3);
+  });
+
+  it('can be used by derived atoms', () => {
+    const counter = createReducerAtom(
+      0,
+      (state, event: number) => state + event
+    );
+    const doubled = createAtom(() => counter.get() * 2);
+
+    expect(doubled.get()).toBe(0);
+
+    counter.send(2);
+
+    expect(doubled.get()).toBe(4);
+  });
+
+  it('does not track atom reads inside the reducer', () => {
+    const multiplier = createAtom(2);
+    const counter = createReducerAtom(
+      1,
+      (state, event: number) => state + event * multiplier.get()
+    );
+    const listener = vi.fn();
+
+    counter.subscribe(listener);
+    counter.send(3);
+    multiplier.set(10);
+
+    expect(counter.get()).toBe(7);
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('async atoms', () => {
@@ -769,6 +722,75 @@ describe('async atoms', () => {
     const atom = createAsyncAtom(async () => 'hello');
 
     expect('set' in atom).toBe(false);
+  });
+
+  it('should pass an abort signal to async atoms', () => {
+    const atom = createAsyncAtom(async ({ signal }) => {
+      expect(signal).toBeInstanceOf(AbortSignal);
+      return 'hello';
+    });
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+  });
+
+  it('should abort and ignore stale async atom results', async () => {
+    const count = createAtom(1);
+    const signals: AbortSignal[] = [];
+    const resolvers: Array<(value: number) => void> = [];
+    const atom = createAsyncAtom(({ signal }) => {
+      const currentCount = count.get();
+      signals.push(signal);
+
+      return new Promise<number>((resolve) => {
+        resolvers.push(resolve);
+      }).then(() => currentCount);
+    });
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    count.set(2);
+    expect(atom.get()).toEqual({ status: 'pending' });
+    expect(signals[0].aborted).toBe(true);
+
+    resolvers[0](1);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    resolvers[1](2);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(atom.get()).toEqual({ status: 'done', data: 2 });
+  });
+
+  it('should ignore stale async atom errors', async () => {
+    const count = createAtom(1);
+    const rejectors: Array<(error: unknown) => void> = [];
+    const resolvers: Array<(value: number) => void> = [];
+    const atom = createAsyncAtom(({ signal }) => {
+      const currentCount = count.get();
+
+      return new Promise<number>((resolve, reject) => {
+        resolvers.push(resolve);
+        rejectors.push(reject);
+      }).then(() => {
+        if (signal.aborted) {
+          throw new Error('aborted');
+        }
+        return currentCount;
+      });
+    });
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    count.set(2);
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    rejectors[0](new Error('stale'));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    resolvers[1](2);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(atom.get()).toEqual({ status: 'done', data: 2 });
   });
 
   it('should notify subscribers when async operation completes successfully', async () => {

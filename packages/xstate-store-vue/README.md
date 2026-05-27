@@ -60,7 +60,7 @@ const snapshot = useSelector(store);
 
 **Arguments:**
 
-- `store` - Store created with `createStore()`
+- `store` - Store or other readable value created with `createStore()`
 - `selector?` - Function to select a value from snapshot
 - `compare?` - Equality function (default: `===`)
 
@@ -70,6 +70,6 @@ const snapshot = useSelector(store);
 
 ## Re-exports
 
-All exports from `@xstate/store` are re-exported, including `createStore`, `createStoreWithProducer`, `createAtom`, and more.
+All exports from `@xstate/store` are re-exported, including `createStore`, `createAtom`, and more.
 
 See the [XState Store docs](https://stately.ai/docs/xstate-store) for the full API, and the [Vue-specific docs](https://stately.ai/docs/xstate-store#vue) for more Vue examples.

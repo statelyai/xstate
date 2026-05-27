@@ -2,16 +2,20 @@ export * from '@xstate/store';
 
 import { useCallback, useRef, useSyncExternalStore } from 'react';
 import {
-  type AnyStore,
-  type StoreContext,
-  type EventPayloadMap,
-  type StoreConfig,
-  type Store,
-  type ExtractEvents,
+  type AnyStoreConfig,
+  type AnyStoreLogicCreator,
+  type StoreFromStoreLogicCreator,
+  type StoreFromStoreConfig,
+  type InputFromStoreLogicCreator,
   type Readable,
   type AnyAtom,
+  type AnyAtomConfig,
+  type AtomConfig,
   type BaseAtom,
+  type InputFromAtomConfig,
+  type ValueFromAtomConfig,
   type StoreSnapshot,
+  type ContextFromStoreConfig,
   createStore
 } from '@xstate/store';
 
@@ -23,18 +27,73 @@ function identity<T>(snapshot: T): T {
   return snapshot;
 }
 
-function useSelectorWithCompare<TStore extends Readable<any>, T>(
-  selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
+function useSelectorWithCompare<TSnapshot, T>(
+  selector: (snapshot: TSnapshot) => T,
   compare: (a: T | undefined, b: T) => boolean
-): (snapshot: TStore extends Readable<infer TValue> ? TValue : never) => T {
+): (snapshot: TSnapshot) => T {
   const previous = useRef<T | undefined>(undefined);
 
   return (snapshot) => {
     const next = selector(snapshot);
-    return previous.current && compare(previous.current, next)
+    return previous.current !== undefined && compare(previous.current, next)
       ? previous.current
       : (previous.current = next);
   };
+}
+
+function createStoreFromDefinition<TDefinition extends AnyStoreConfig>(
+  definition: TDefinition
+): StoreFromStoreConfig<TDefinition>;
+function createStoreFromDefinition(definition: AnyStoreConfig) {
+  return createStore(definition);
+}
+
+type StoreDefinition = AnyStoreConfig | AnyStoreLogicCreator;
+
+type StoreFromStoreDefinition<TDefinition extends StoreDefinition> =
+  TDefinition extends AnyStoreLogicCreator
+    ? StoreFromStoreLogicCreator<TDefinition>
+    : TDefinition extends AnyStoreConfig
+      ? StoreFromStoreConfig<TDefinition>
+      : never;
+
+type UseStoreArgs<TDefinition extends StoreDefinition> =
+  TDefinition extends AnyStoreLogicCreator
+    ? undefined extends InputFromStoreLogicCreator<TDefinition>
+      ? [logic: TDefinition, input?: InputFromStoreLogicCreator<TDefinition>]
+      : [logic: TDefinition, input: InputFromStoreLogicCreator<TDefinition>]
+    : [definition: TDefinition];
+
+type AtomDefinition = BaseAtom<any> | AnyAtomConfig;
+
+type AtomStateFromDefinition<TDefinition extends AtomDefinition> =
+  TDefinition extends AnyAtomConfig
+    ? readonly [
+        value: ValueFromAtomConfig<TDefinition>,
+        atom: ReturnType<TDefinition['createAtom']>
+      ]
+    : TDefinition extends BaseAtom<infer TValue>
+      ? readonly [value: TValue, atom: TDefinition]
+      : never;
+
+type UseAtomStateArgs<TDefinition extends AtomDefinition> =
+  TDefinition extends AnyAtomConfig
+    ? undefined extends InputFromAtomConfig<TDefinition>
+      ? [config: TDefinition, input?: InputFromAtomConfig<TDefinition>]
+      : [config: TDefinition, input: InputFromAtomConfig<TDefinition>]
+    : [atom: TDefinition];
+
+type AtomConfigInput<TInput> = undefined extends TInput
+  ? [input?: TInput]
+  : [input: TInput];
+
+function isAtom(value: unknown): value is AnyAtom {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as any).get === 'function' &&
+    typeof (value as any).subscribe === 'function'
+  );
 }
 
 /**
@@ -58,9 +117,9 @@ function useSelectorWithCompare<TStore extends Readable<any>, T>(
  *   previous value
  * @returns The selected value
  */
-export function useSelector<TStore extends Readable<any>, T>(
-  store: TStore,
-  selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
+export function useSelector<TSnapshot, T>(
+  store: Readable<TSnapshot>,
+  selector: (snapshot: TSnapshot) => T,
   compare?: (a: T | undefined, b: T) => boolean
 ): T;
 /**
@@ -85,61 +144,59 @@ export function useSelector<TStore extends Readable<any>, T>(
  *   previous value
  * @returns The selected value
  */
-export function useSelector<TStore extends Readable<any>>(
-  store: TStore,
+export function useSelector<TSnapshot>(
+  store: Readable<TSnapshot>,
   selector?: undefined,
-  compare?: (
-    a: TStore extends Readable<infer T> ? T : never | undefined,
-    b: TStore extends Readable<infer T> ? T : never | undefined
-  ) => boolean
-): TStore extends Readable<infer T> ? T : never;
-export function useSelector<TStore extends Readable<any>, T>(
-  store: TStore,
-  selector: (
-    snapshot: TStore extends Readable<infer T> ? T : never
-  ) => T = identity,
+  compare?: (a: TSnapshot | undefined, b: TSnapshot | undefined) => boolean
+): TSnapshot;
+export function useSelector<TSnapshot, T>(
+  store: Readable<TSnapshot>,
+  selector?: (snapshot: TSnapshot) => T,
   compare: (a: T | undefined, b: T) => boolean = defaultCompare
-): T {
+): T | TSnapshot {
+  const subscribe = useCallback(
+    (handleStoreChange: () => void) =>
+      store.subscribe(handleStoreChange).unsubscribe,
+    [store]
+  );
+
+  if (!selector) {
+    const selectorWithCompare = useSelectorWithCompare(
+      identity,
+      defaultCompare
+    );
+
+    return useSyncExternalStore(
+      subscribe,
+      () => selectorWithCompare(store.get()),
+      () => selectorWithCompare(store.get())
+    );
+  }
+
   const selectorWithCompare = useSelectorWithCompare(selector, compare);
 
   return useSyncExternalStore(
-    useCallback(
-      (handleStoreChange) => store.subscribe(handleStoreChange).unsubscribe,
-      [store]
-    ),
+    subscribe,
     () => selectorWithCompare(store.get()),
     () => selectorWithCompare(store.get())
   );
 }
 
-export const useStore: {
-  <
-    TContext extends StoreContext,
-    TEventPayloadMap extends EventPayloadMap,
-    TEmitted extends EventPayloadMap
-  >(
-    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
-  ): Store<TContext, TEventPayloadMap, ExtractEvents<TEmitted>>;
-  <
-    TContext extends StoreContext,
-    TEventPayloadMap extends EventPayloadMap,
-    TEmitted extends EventPayloadMap
-  >(
-    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
-  ): Store<TContext, TEventPayloadMap, ExtractEvents<TEmitted>>;
-} = function useStoreImpl<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends EventPayloadMap
->(definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>) {
-  const storeRef = useRef<AnyStore | undefined>(undefined);
+/** Creates a stable store instance for the lifetime of a React component. */
+export function useStore<TDefinition extends StoreDefinition>(
+  ...[definition, input]: UseStoreArgs<TDefinition>
+): StoreFromStoreDefinition<TDefinition> {
+  const storeRef = useRef<any>(undefined);
 
   if (!storeRef.current) {
-    storeRef.current = createStore(definition);
+    storeRef.current =
+      'createStore' in definition
+        ? definition.createStore(input)
+        : createStoreFromDefinition(definition);
   }
 
   return storeRef.current;
-};
+}
 
 /**
  * A React hook that subscribes to the `atom` and returns the current value of
@@ -169,19 +226,58 @@ export const useStore: {
  *   previous value
  */
 export function useAtom<T>(atom: BaseAtom<T>): T;
+export function useAtom<TValue, TInput>(
+  config: AtomConfig<TValue, TInput>,
+  ...input: AtomConfigInput<TInput>
+): TValue;
 export function useAtom<T, S>(
   atom: BaseAtom<T>,
   selector: (snapshot: T) => S,
   compare?: (a: S, b: S) => boolean
 ): S;
 export function useAtom(
-  atom: AnyAtom,
-  selector = identity,
+  definition: AnyAtom | AtomConfig<any, any>,
+  selectorOrInput?: any,
   compare = defaultCompare
 ) {
-  const state = useSelector(atom, selector, compare);
+  const atomRef = useRef<any>(undefined);
+
+  if (isAtom(definition)) {
+    return useSelector(definition, selectorOrInput ?? identity, compare);
+  }
+
+  if (!atomRef.current) {
+    atomRef.current = definition.createAtom(selectorOrInput);
+  }
+
+  const state = useSelector(atomRef.current, identity, compare);
 
   return state;
+}
+
+/**
+ * Creates or subscribes to an atom for the lifetime of a React component.
+ *
+ * Pass an existing atom to receive `[value, atom]`, or pass an atom config
+ * created with `createAtomConfig(...)` to create a stable local atom.
+ */
+export function useAtomState<TDefinition extends AtomDefinition>(
+  ...[definition, input]: UseAtomStateArgs<TDefinition>
+): AtomStateFromDefinition<TDefinition> {
+  const atomRef = useRef<any>(undefined);
+
+  if (!atomRef.current) {
+    atomRef.current = isAtom(definition)
+      ? definition
+      : definition.createAtom(input);
+  }
+
+  const value = useAtom(atomRef.current);
+
+  return [
+    value,
+    atomRef.current
+  ] as unknown as AtomStateFromDefinition<TDefinition>;
 }
 
 /**
@@ -216,15 +312,13 @@ export function useAtom(
  * @param definition The store configuration object
  * @returns A custom hook that returns [selectedValue, store]
  */
-export function createStoreHook<
-  TContext extends StoreContext,
-  TEventPayloadMap extends EventPayloadMap,
-  TEmitted extends EventPayloadMap
->(definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>) {
-  type TStore = Store<TContext, TEventPayloadMap, ExtractEvents<TEmitted>>;
-  type TSnapshot = StoreSnapshot<TContext>;
+export function createStoreHook<TDefinition extends AnyStoreConfig>(
+  definition: TDefinition
+) {
+  type TStore = StoreFromStoreConfig<TDefinition>;
+  type TSnapshot = StoreSnapshot<ContextFromStoreConfig<TDefinition>>;
 
-  const store = createStore(definition);
+  const store = createStoreFromDefinition(definition);
 
   function useStoreHook(): [TSnapshot, TStore];
   function useStoreHook<T>(
@@ -235,15 +329,13 @@ export function createStoreHook<
     selector?: (snapshot: TSnapshot) => T,
     compare: (a: T | undefined, b: T) => boolean = defaultCompare
   ) {
-    // If no selector provided, return full snapshot
     if (!selector) {
-      const snapshot = useSelector(store, identity, defaultCompare);
-      return [snapshot, store] as const;
+      const snapshot = useSelector(store);
+      return [snapshot, store];
     }
 
-    // Use selector with comparison
-    const selectedValue = useSelector(store, selector ?? identity, compare);
-    return [selectedValue, store] as const;
+    const selectedValue = useSelector(store, selector, compare);
+    return [selectedValue, store];
   }
 
   return useStoreHook;
