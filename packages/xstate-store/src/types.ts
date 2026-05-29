@@ -193,6 +193,8 @@ export interface Store<
 > extends Subscribable<StoreSnapshot<TContext>>,
     InteropObservable<StoreSnapshot<TContext>>,
     Readable<StoreSnapshot<TContext>> {
+  /** Standard Schema definitions for this store, if provided. */
+  readonly schemas?: StoreSchemas<any, any, any>;
   send: (event: ExtractEvents<TEventPayloadMap>) => void;
   getSnapshot: () => StoreSnapshot<TContext>;
   /** Read the current snapshot as a `Readable` value. */
