@@ -155,6 +155,43 @@ it('does not expose atom internals at runtime', () => {
   expect('_snapshot' in store).toBe(false);
 });
 
+it('exposes schemas at runtime', () => {
+  const schemas = {
+    context: z.object({ count: z.number() }),
+    events: {
+      inc: z.object({ by: z.number() })
+    },
+    emitted: {
+      increased: z.object({ by: z.number() })
+    }
+  };
+  const store = createStore({
+    schemas,
+    context: { count: 0 },
+    on: {
+      inc: (context, event, enq) => {
+        enq.emit.increased({ by: event.by });
+        return { count: context.count + event.by };
+      }
+    }
+  });
+
+  expect(store.schemas).toBe(schemas);
+});
+
+it('exposes schemas after extension', () => {
+  const schemas = {
+    context: z.object({ count: z.number() })
+  };
+  const store = createStore({
+    schemas,
+    context: { count: 0 },
+    on: {}
+  }).with(reset());
+
+  expect(store.schemas).toBe(schemas);
+});
+
 it('can be inspected', () => {
   const store = createStore({
     context: {

@@ -246,6 +246,7 @@ function createStoreCore<
   let currentSnapshot: TSnapshot = initialSnapshot;
   const atom = createAtom<StoreSnapshot<TContext>>(currentSnapshot);
   const eventTypes = logic.eventTypes;
+  const schemas = logic.schemas;
 
   const emit = (ev: TEmitted) => {
     listeners?.get(ev.type)?.forEach((listener) => listener(ev));
@@ -360,6 +361,7 @@ function createStoreCore<
     transition(state, event) {
       return transition(state as TSnapshot, event);
     },
+    schemas,
     sessionId: uniqueId(),
     send,
     getSnapshot() {

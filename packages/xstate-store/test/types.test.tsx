@@ -1,5 +1,10 @@
 import { createActor } from 'xstate';
-import { createStore, createStoreLogic, fromStore } from '../src/index.ts';
+import {
+  createStore,
+  createStoreLogic,
+  fromStore,
+  type StoreSchemas
+} from '../src/index.ts';
 import { z } from 'zod';
 
 describe('emitted', () => {
@@ -372,10 +377,11 @@ describe('schemas', () => {
   });
 
   it('uses schema-declared context for snapshot typing', () => {
+    const schemas = {
+      context: z.object({ count: z.number(), label: z.string() })
+    };
     const store = createStore({
-      schemas: {
-        context: z.object({ count: z.number(), label: z.string() })
-      },
+      schemas,
       context: {
         count: 0,
         label: 'ready'
@@ -384,6 +390,7 @@ describe('schemas', () => {
     });
 
     store.getSnapshot().context.label satisfies string;
+    store.schemas satisfies StoreSchemas | undefined;
 
     // @ts-expect-error
     store.getSnapshot().context.label satisfies number;
