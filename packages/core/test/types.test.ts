@@ -469,8 +469,8 @@ describe('states', () => {
         events: { type: 'TOGGLE_ITALIC' } | { type: 'TOGGLE_BOLD' };
       },
       type: 'parallel',
+      // @ts-expect-error
       states: {
-        // @ts-expect-error
         underline: underlineState
       }
     });
