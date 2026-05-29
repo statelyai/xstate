@@ -1,5 +1,28 @@
 # @xstate/store
 
+## 4.1.0
+
+### Minor Changes
+
+- [#5530](https://github.com/statelyai/xstate/pull/5530) [`0502c04`](https://github.com/statelyai/xstate/commit/0502c041d0e7fd7826323f867e053e8f5422f59b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Expose `store.schemas` so integrations can read the store's context, event, and emitted event schemas at runtime.
+
+  ```ts
+  const store = createStore({
+    schemas: {
+      context: z.object({ count: z.number() }),
+      events: {
+        inc: z.object({ by: z.number() })
+      }
+    },
+    context: { count: 0 },
+    on: {
+      inc: (context, event) => ({ count: context.count + event.by })
+    }
+  });
+
+  store.schemas?.events?.inc;
+  ```
+
 ## 4.0.0
 
 ### Major Changes
