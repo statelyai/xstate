@@ -366,7 +366,10 @@ export function setup<
     TInput,
     TOutput,
     TEmitted,
-    TMeta
+    TMeta,
+    ToParameterizedObject<TActions>,
+    ToParameterizedObject<TGuards>,
+    TDelay
   >;
   actors?: {
     // union here enforces that all configured children have to be provided in actors
