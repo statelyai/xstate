@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { createAtom, type Atom } from './atom.ts';
 import { Mailbox } from './Mailbox.ts';
 import { XSTATE_STOP } from './constants.ts';
 import {
@@ -84,6 +85,7 @@ export class Actor<TLogic extends AnyActorLogic>
 {
   /** The current internal state of the actor. */
   private _snapshot!: SnapshotFrom<TLogic>;
+  private _snapshotAtom!: Atom<SnapshotFrom<TLogic>>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as
    * delayed events and transitions.
@@ -101,6 +103,10 @@ export class Actor<TLogic extends AnyActorLogic>
   );
 
   private observers: Set<Observer<SnapshotFrom<TLogic>>> = new Set();
+  private observerSubscriptions: Map<
+    Observer<SnapshotFrom<TLogic>>,
+    Subscription
+  > = new Map();
   private eventListeners: Map<
     string,
     Set<(emittedEvent: EmittedFrom<TLogic>) => void>
@@ -305,6 +311,10 @@ export class Actor<TLogic extends AnyActorLogic>
     if (systemId && (this._snapshot as any).status !== 'active') {
       this.system._unregister(this);
     }
+
+    this._snapshotAtom = createAtom<SnapshotFrom<TLogic>>(this._snapshot, {
+      compare: () => false
+    }) as Atom<SnapshotFrom<TLogic>>;
   }
 
   // array of functions to defer
@@ -322,13 +332,7 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 
   private _next(snapshot: SnapshotFrom<TLogic>) {
-    for (const observer of this.observers) {
-      try {
-        observer.next?.(snapshot);
-      } catch (err) {
-        reportUnhandledError(err);
-      }
-    }
+    this._snapshotAtom.set(snapshot);
   }
 
   private update(snapshot: SnapshotFrom<TLogic>, event: EventObject): void {
@@ -473,8 +477,18 @@ export class Actor<TLogic extends AnyActorLogic>
       completeListener
     );
 
+    let atomSubscription: Subscription | undefined;
+
     if (this._processingStatus !== ProcessingStatus.Stopped) {
       this.observers.add(observer);
+      atomSubscription = this._snapshotAtom.subscribe((snapshot) => {
+        try {
+          observer.next?.(snapshot);
+        } catch (err) {
+          reportUnhandledError(err);
+        }
+      });
+      this.observerSubscriptions.set(observer, atomSubscription);
     } else {
       switch ((this._snapshot as any).status) {
         case 'done':
@@ -502,6 +516,8 @@ export class Actor<TLogic extends AnyActorLogic>
 
     return {
       unsubscribe: () => {
+        atomSubscription?.unsubscribe();
+        this.observerSubscriptions.delete(observer);
         this.observers.delete(observer);
       }
     };
@@ -533,20 +549,10 @@ export class Actor<TLogic extends AnyActorLogic>
     equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
   ): Readable<TSelected> {
     return {
-      subscribe: (observerOrFn) => {
-        const observer = toObserver(observerOrFn);
-        const snapshot = this.getSnapshot();
-        let previousSelected = selector(snapshot);
-
-        return this.subscribe((snapshot) => {
-          const nextSelected = selector(snapshot);
-          if (!equalityFn(previousSelected, nextSelected)) {
-            previousSelected = nextSelected;
-            observer.next?.(nextSelected);
-          }
-        });
-      },
-      get: () => selector(this.getSnapshot())
+      subscribe: createAtom(() => selector(this.get()), {
+        compare: equalityFn
+      }).subscribe,
+      get: () => selector(this.get())
     };
   }
 
@@ -688,6 +694,10 @@ export class Actor<TLogic extends AnyActorLogic>
         reportUnhandledError(err);
       }
     }
+    for (const subscription of this.observerSubscriptions.values()) {
+      subscription.unsubscribe();
+    }
+    this.observerSubscriptions.clear();
     this.observers.clear();
     this.eventListeners.clear();
   }
@@ -711,6 +721,10 @@ export class Actor<TLogic extends AnyActorLogic>
           reportUnhandledError(err2);
         }
       }
+      for (const subscription of this.observerSubscriptions.values()) {
+        subscription.unsubscribe();
+      }
+      this.observerSubscriptions.clear();
       this.observers.clear();
       this.eventListeners.clear();
       if (reportError) {
@@ -828,11 +842,17 @@ export class Actor<TLogic extends AnyActorLogic>
    * @see {@link Actor.getPersistedSnapshot} to persist the internal state of an actor (which is more than just a snapshot).
    */
   public getSnapshot(): SnapshotFrom<TLogic> {
+    return this.get();
+  }
+
+  /** Read the actor's current snapshot as an atom value. */
+  public get(): SnapshotFrom<TLogic> {
     if (isDevelopment && !this._snapshot) {
       throw new Error(
         `Snapshot can't be read while the actor initializes itself`
       );
     }
+    this._snapshotAtom.get();
     return this._snapshot;
   }
 }
