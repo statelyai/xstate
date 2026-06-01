@@ -1,53 +1,6 @@
 import { createStore } from '../src/index.ts';
 import { undoRedo } from '../src/undo.ts';
-
-describe('undoRedo (deprecated pattern)', () => {
-  it('should work with deprecated createStore(undoRedo(config)) pattern', () => {
-    const store = createStore(
-      undoRedo({
-        context: { count: 0 },
-        on: {
-          inc: (ctx) => ({ count: ctx.count + 1 }),
-          dec: (ctx) => ({ count: ctx.count - 1 })
-        }
-      })
-    );
-
-    store.trigger.inc();
-    expect(store.getSnapshot().context.count).toBe(1);
-
-    store.trigger.undo();
-    expect(store.getSnapshot().context.count).toBe(0);
-
-    store.trigger.redo();
-    expect(store.getSnapshot().context.count).toBe(1);
-  });
-
-  it('should work with deprecated pattern and options', () => {
-    const store = createStore(
-      undoRedo(
-        {
-          context: { count: 0 },
-          on: {
-            inc: (ctx) => ({ count: ctx.count + 1 })
-          }
-        },
-        { strategy: 'snapshot', historyLimit: 2 }
-      )
-    );
-
-    store.trigger.inc(); // 1
-    store.trigger.inc(); // 2
-    store.trigger.inc(); // 3
-
-    store.trigger.undo(); // 2
-    expect(store.getSnapshot().context.count).toBe(2);
-    store.trigger.undo(); // 1
-    expect(store.getSnapshot().context.count).toBe(1);
-    store.trigger.undo(); // stays at 1 due to limit
-    expect(store.getSnapshot().context.count).toBe(1);
-  });
-});
+import { z } from 'zod';
 
 it('should undo a single event', () => {
   const store = createStore({
@@ -206,8 +159,10 @@ it('should preserve emitted events during undo/redo', () => {
 
   const store = createStore({
     context: { count: 0 },
-    emits: {
-      changed: (_: { value: number }) => {}
+    schemas: {
+      emitted: {
+        changed: z.object({ value: z.number() })
+      }
     },
     on: {
       inc: (ctx, _: Events, enq) => {
@@ -248,8 +203,10 @@ it('should preserve context and event types', () => {
   // @ts-expect-error
   store.getSnapshot().context.foo;
 
-  // @ts-expect-error
-  store.trigger.dec();
+  if (false) {
+    // @ts-expect-error
+    store.trigger.dec();
+  }
 });
 
 it('should skip non-undoable events during undo', () => {
@@ -366,9 +323,11 @@ it('should handle mixed undoable and non-undoable events', () => {
 it('should not replay emitted events for skipped events during undo/redo', () => {
   const store = createStore({
     context: { count: 0 },
-    emits: {
-      changed: (_: { value: number }) => {},
-      logged: (_: { message: string }) => {}
+    schemas: {
+      emitted: {
+        changed: z.object({ value: z.number() }),
+        logged: z.object({ message: z.string() })
+      }
     },
     on: {
       inc: (ctx, _event, enq) => {
@@ -479,8 +438,10 @@ it('should use the snapshot in the skipEvent function', () => {
 it('emit event types should be correct', () => {
   const store = createStore({
     context: { count: 0 },
-    emits: {
-      changed: (_: { value: number }) => {}
+    schemas: {
+      emitted: {
+        changed: z.object({ value: z.number() })
+      }
     },
     on: {
       // TODO: figure out why we need _: {} and not just _
@@ -505,6 +466,19 @@ it('emit event types should be correct', () => {
     // @ts-expect-error
     'whatever',
     () => {}
+  );
+});
+
+it('should detect undo/redo event collisions in development', () => {
+  expect(() =>
+    createStore({
+      context: { count: 0 },
+      on: {
+        undo: (ctx) => ctx
+      }
+    }).with(undoRedo())
+  ).toThrow(
+    'The "undoRedo" store extension uses reserved event type(s): "undo".'
   );
 });
 

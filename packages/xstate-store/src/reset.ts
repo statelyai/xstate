@@ -6,7 +6,8 @@ import {
   StoreExtension,
   StoreLogic,
   StoreSnapshot
-} from './types';
+} from './types.ts';
+import { appendInternalEventTypes } from './store.ts';
 
 interface ResetOptions<TContext extends StoreContext> {
   /**
@@ -27,6 +28,8 @@ function resetFromLogic<
   options?: ResetOptions<TContext>
 ): StoreLogic<StoreSnapshot<TContext>, TEvent | { type: 'reset' }, TEmitted> {
   const enhancedLogic: AnyStoreLogic = {
+    ...logic,
+    eventTypes: appendInternalEventTypes(logic.eventTypes, ['reset'], 'reset'),
     getInitialSnapshot: () => logic.getInitialSnapshot(),
     transition: (snapshot, event) => {
       if (event.type === 'reset') {

@@ -146,6 +146,19 @@ describe('reset extension', () => {
     expect(store.getSnapshot().context.count).toBe(1);
   });
 
+  it('should detect reset event collisions in development', () => {
+    expect(() =>
+      createStore({
+        context: { count: 0 },
+        on: {
+          reset: (ctx) => ctx
+        }
+      }).with(reset())
+    ).toThrow(
+      'The "reset" store extension uses reserved event type(s): "reset".'
+    );
+  });
+
   it('should return initial snapshot from getInitialSnapshot', () => {
     const store = createStore({
       context: { count: 0 },

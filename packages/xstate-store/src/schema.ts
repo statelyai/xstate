@@ -1,10 +1,10 @@
+/* eslint-disable */
 /** The Standard Schema interface. */
 export interface StandardSchemaV1<Input = unknown, Output = Input> {
   /** The Standard Schema properties. */
   readonly '~standard': StandardSchemaV1.Props<Input, Output>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export declare namespace StandardSchemaV1 {
   /** The Standard Schema properties interface. */
   export interface Props<Input = unknown, Output = Input> {
@@ -14,7 +14,8 @@ export declare namespace StandardSchemaV1 {
     readonly vendor: string;
     /** Validates unknown input values. */
     readonly validate: (
-      value: unknown
+      value: unknown,
+      options?: StandardSchemaV1.Options | undefined
     ) => Result<Output> | Promise<Result<Output>>;
     /** Inferred types associated with the schema. */
     readonly types?: Types<Input, Output> | undefined;
@@ -27,8 +28,13 @@ export declare namespace StandardSchemaV1 {
   export interface SuccessResult<Output> {
     /** The typed output value. */
     readonly value: Output;
-    /** The non-existent issues. */
+    /** A falsy value for `issues` indicates success. */
     readonly issues?: undefined;
+  }
+
+  export interface Options {
+    /** Explicit support for additional vendor-specific parameters, if needed. */
+    readonly libraryOptions?: Record<string, unknown> | undefined;
   }
 
   /** The result interface if validation fails. */

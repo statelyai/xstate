@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@xstate/store": "workspace:*",
+    "@xstate/store-react": "workspace:*",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },

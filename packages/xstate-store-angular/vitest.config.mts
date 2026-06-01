@@ -1,5 +1,4 @@
 import { defineConfig } from 'vitest/config';
-import path from 'path';
 
 export default defineConfig({
   test: {
@@ -8,10 +7,5 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts']
-  },
-  resolve: {
-    alias: {
-      '@xstate/store': path.resolve(__dirname, '../xstate-store/src/index.ts')
-    }
   }
 });

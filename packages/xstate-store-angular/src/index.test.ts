@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Component, effect } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { createStore, createAtom, injectStore } from './index';
+import { createStore, createAtom, injectStore } from './index.ts';
 
 describe('@xstate/store-angular', () => {
   describe('injectStore', () => {

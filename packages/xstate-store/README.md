@@ -61,43 +61,42 @@ donutStore.trigger.changeFlavor({ flavor: 'strawberry' });
 // => { donuts: 1, favoriteFlavor: 'strawberry' }
 ```
 
-<details>
-<summary>Note: Deprecated <code>createStore(context, transitions)</code> API
+## Checking events
 
-</summary>
+<!-- store.can API from packages/xstate-store/src/types.ts -->
 
-The previous version of `createStore` took two arguments: an initial context and an object of event handlers. This API is still supported but deprecated. Here's an example of the old usage:
+Use `store.can` to check whether an event is allowed without updating the store:
 
 ```ts
-import { createStore } from '@xstate/store';
+const store = createStore({
+  context: { count: 0 },
+  on: {
+    increment: (context, event: { by: number }) => {
+      if (context.count + event.by > 10) {
+        return;
+      }
 
-const donutStore = createStore(
-  {
-    donuts: 0,
-    favoriteFlavor: 'chocolate'
-  },
-  {
-    addDonut: (context) => ({ ...context, donuts: context.donuts + 1 }),
-    changeFlavor: (context, event: { flavor: string }) => ({
-      ...context,
-      favoriteFlavor: event.flavor
-    }),
-    eatAllDonuts: (context) => ({ ...context, donuts: 0 })
+      return {
+        count: context.count + event.by
+      };
+    }
   }
-);
+});
+
+store.can.increment({ by: 4 });
+// => true
 ```
 
-We recommend using the new API for better type inference and more explicit configuration.
-
-</details>
+Returning `undefined` marks the event as not allowed. Returning the same context
+object is still allowed, and transitions that enqueue effects are allowed.
 
 ## Usage with React
 
-Import `useSelector` from `@xstate/store/react`. Select the data you want via `useSelector(…)` and send events using `store.send(eventObject)`:
+Import `useSelector` from `@xstate/store-react`. Select the data you want via `useSelector(…)` and send events using `store.send(eventObject)`:
 
 ```tsx
 import { donutStore } from './donutStore.ts';
-import { useSelector } from '@xstate/store/react';
+import { useSelector } from '@xstate/store-react';
 
 function DonutCounter() {
   const donutCount = useSelector(donutStore, (state) => state.context.donuts);
@@ -114,11 +113,11 @@ function DonutCounter() {
 
 ## Usage with SolidJS
 
-Import `useSelector` from `@xstate/store/solid`. Select the data you want via `useSelector(…)` and send events using `store.send(eventObject)`:
+Import `useSelector` from `@xstate/store-solid`. Select the data you want via `useSelector(…)` and send events using `store.send(eventObject)`:
 
 ```tsx
 import { donutStore } from './donutStore.ts';
-import { useSelector } from '@xstate/store/solid';
+import { useSelector } from '@xstate/store-solid';
 
 function DonutCounter() {
   const donutCount = useSelector(donutStore, (state) => state.context.donuts);
@@ -135,31 +134,68 @@ function DonutCounter() {
 
 ## Usage with Immer
 
-XState Store makes it really easy to integrate with immutable update libraries like [Immer](https://github.com/immerjs/immer) or [Mutative](https://github.com/unadlib/mutative). Pass the `produce` function into `createStoreWithProducer(producer, …)`, and update `context` in transition functions using the convenient pseudo-mutative API:
+XState Store works well with immutable update libraries like [Immer](https://github.com/immerjs/immer) or [Mutative](https://github.com/unadlib/mutative). Use `produce(...)` inside your transition functions:
 
 ```ts
-import { createStoreWithProducer } from '@xstate/store';
+import { createStore } from '@xstate/store';
 import { produce } from 'immer'; // or { create } from 'mutative'
 
-const donutStore = createStoreWithProducer(produce, {
+const donutStore = createStore({
   context: {
     donuts: 0,
     favoriteFlavor: 'chocolate'
   },
   on: {
-    addDonut: (context) => {
-      context.donuts++; // "Mutation" (thanks to the producer)
-    },
-    changeFlavor: (context, event: { flavor: string }) => {
-      context.favoriteFlavor = event.flavor;
-    },
-    eatAllDonuts: (context) => {
-      context.donuts = 0;
-    }
+    addDonut: (context) =>
+      produce(context, (draft) => {
+        draft.donuts++;
+      }),
+    changeFlavor: (context, event: { flavor: string }) =>
+      produce(context, (draft) => {
+        draft.favoriteFlavor = event.flavor;
+      }),
+    eatAllDonuts: (context) =>
+      produce(context, (draft) => {
+        draft.donuts = 0;
+      })
   }
 });
+```
 
-// Everything else is the same!
+If a transition should be unavailable, return `undefined` from the transition
+before calling `produce(...)`:
+
+```ts
+on: {
+  eatDonut: (context) => {
+    if (context.donuts === 0) {
+      return;
+    }
+
+    return produce(context, (draft) => {
+      draft.donuts--;
+    });
+  };
+}
+```
+
+Immer treats a producer that returns `undefined` the same as a producer that
+does not explicitly return anything. If you need `produce(...)` itself to return
+`undefined`, return Immer's `nothing` token from the producer:
+
+```ts
+import { nothing, produce } from 'immer';
+
+on: {
+  eatDonut: (context) =>
+    produce(context, (draft) => {
+      if (draft.donuts === 0) {
+        return nothing;
+      }
+
+      draft.donuts--;
+    });
+}
 ```
 
 ## TypeScript
@@ -192,12 +228,129 @@ const donutStore = createStore({
 });
 
 donutStore.getSnapshot().context.favoriteFlavor; // string
+donutStore.get().context.favoriteFlavor; // same snapshot, readable/tracked read
 
 donutStore.send({
   type: 'changeFlavor', // Strongly-typed from transition key
   flavor: 'strawberry' // Strongly-typed from { flavor: string }
 });
 ```
+
+If you want to provide event or emitted-event types explicitly, you can use `schemas` with any library that implements the [Standard Schema](https://standardschema.dev/) interface. Schemas define the store's runtime-readable contract: the shape of its context, accepted events, and emitted events. Store uses schemas for type inference and metadata by default; it does not validate schema-declared values unless you opt in with `validateSchemas()`.
+
+```ts
+import { createStore } from '@xstate/store';
+import { z } from 'zod';
+
+const store = createStore({
+  schemas: {
+    context: z.object({
+      donuts: z.number(),
+      favoriteFlavor: z.string()
+    }),
+    events: {
+      changeFlavor: z.object({
+        flavor: z.string()
+      })
+    },
+    emitted: {
+      flavorChanged: z.object({
+        flavor: z.string()
+      })
+    }
+  },
+  context: {
+    donuts: 0,
+    favoriteFlavor: 'chocolate'
+  },
+  on: {
+    changeFlavor: (context, event, enqueue) => {
+      enqueue.emit.flavorChanged({ flavor: event.flavor });
+      return {
+        ...context,
+        favoriteFlavor: event.flavor
+      };
+    }
+  }
+});
+```
+
+Event and emitted-event schemas describe payload objects. Use an empty object
+schema for events without payload:
+
+```ts
+schemas: {
+  events: {
+    reset: z.object({})
+  },
+  emitted: {
+    reset: z.object({})
+  }
+}
+```
+
+### Validating schemas
+
+Use the `validateSchemas()` extension when the store should validate its schema
+contract at runtime:
+
+```ts
+import { createStore } from '@xstate/store';
+import { validateSchemas } from '@xstate/store/validate';
+import { z } from 'zod';
+
+const store = createStore({
+  schemas: {
+    context: z.object({
+      count: z.number()
+    }),
+    events: {
+      increment: z.object({
+        by: z.number()
+      })
+    },
+    emitted: {
+      increased: z.object({
+        by: z.number()
+      })
+    }
+  },
+  context: { count: 0 },
+  on: {
+    increment: (context, event, enqueue) => {
+      enqueue.emit.increased({ by: event.by });
+      return { count: context.count + event.by };
+    }
+  }
+}).with(validateSchemas());
+```
+
+`validateSchemas()` validates store macrosteps. It validates the event sent to
+the store, the final context after the transition completes, and emitted events
+before any effects execute. Events queued internally with `enqueue.trigger` are
+processed as part of the same macrostep; their payloads are not separately
+validated in this version.
+
+Invalid `send(...)`, `trigger.*(...)`, or `transition(...)` calls throw a
+`StoreValidationError`. `store.can.*(...)` always returns a boolean; validation
+errors make it return `false`.
+
+By default, unknown events and emitted events throw when the corresponding
+schema map exists. Extension-added event types are treated as known, even when
+they do not have payload schemas. You can opt out:
+
+```ts
+const store = createStore({
+  // ...
+}).with(
+  validateSchemas({
+    unknownEvents: 'ignore',
+    unknownEmitted: 'ignore'
+  })
+);
+```
+
+Use `store.getSnapshot()` when you want an explicit snapshot read from the store itself. Use `store.get()` when consuming the store as a `Readable` value in tracked or reactive code.
 
 If you want to make the `context` type more specific, you can strongly type the `context` outside of `createStore(…)` and pass it in:
 
@@ -250,18 +403,21 @@ const store = createStore({
 
 ## Emitting Events
 
-You can emit events from transitions by defining them in the `emits` property and using `enqueue.emit`:
+You can emit events from transitions by declaring them in `schemas.emitted` and using `enqueue.emit`:
 
 ```ts
 import { createStore } from '@xstate/store';
+import { z } from 'zod';
 
 const store = createStore({
-  context: { count: 0 },
-  emits: {
-    increased: (payload: { by: number }) => {
-      // Optional side effects can go here
+  schemas: {
+    emitted: {
+      increased: z.object({
+        by: z.number()
+      })
     }
   },
+  context: { count: 0 },
   on: {
     inc: (context, event: { by: number }, enqueue) => {
       enqueue.emit.increased({ by: event.by });

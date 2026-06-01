@@ -2,12 +2,8 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "workspaces": {
     ".": {
-      "entry": [
-        "scripts/*.js"
-      ],
-      "project": [
-        "scripts/*.js"
-      ]
+      "entry": ["scripts/*.js"],
+      "project": ["scripts/*.js"]
     },
     "packages/core": {
       "entry": [
@@ -20,11 +16,7 @@
       ]
     },
     "packages/xstate-store": {
-      "entry": [
-        "src/index.ts",
-        "src/react.ts",
-        "src/solid.ts"
-      ]
+      "entry": ["src/index.ts"]
     },
     "packages/xstate-svelte": {
       "typescript": "test/tsconfig.json"
@@ -40,30 +32,19 @@
     "packages/xstate-store/src/alien.ts",
     "scripts/**"
   ],
-  "ignoreBinaries": [
-    "svelte-check",
-    "docs:build"
-  ],
   "ignoreDependencies": [
     "synckit",
     // package.json#exports aren't added as entry points, because `dist/` is .gitignored
     "react",
-    "solid-js",
     "xstate",
     "@types/ws",
-    "vitest",
     // peer dependencies that may be needed but not directly imported
     "@angular/compiler-cli",
     "@sveltejs/vite-plugin-svelte",
     "@testing-library/svelte"
   ],
   "vitest": {
-    "config": [
-      "vitest.config.mts",
-      "vitest.config.**.mts"
-    ],
-    "entry": [
-      "**/*.{test,spec}.{js,ts,tsx,jsx,mts,mjs}"
-    ]
+    "config": ["vitest.config.mts", "vitest.config.**.mts"],
+    "entry": ["**/*.{test,spec}.{js,ts,tsx,jsx,mts,mjs}"]
   }
 }

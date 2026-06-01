@@ -7,7 +7,7 @@
 
 <script lang="ts">
 import { Ref, defineComponent } from 'vue';
-import { createStore, useSelector } from './index';
+import { createStore, useSelector } from './index.ts';
 
 export default defineComponent({
   setup() {

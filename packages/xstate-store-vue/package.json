@@ -1,6 +1,7 @@
 {
   "name": "@xstate/store-vue",
-  "version": "1.1.0",
+  "version": "2.0.0",
+  "type": "module",
   "description": "XState Store for Vue",
   "keywords": [
     "store",
@@ -10,18 +11,8 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store-vue#readme",
   "license": "MIT",
-  "main": "dist/xstate-store-vue.cjs.js",
-  "module": "dist/xstate-store-vue.esm.js",
   "exports": {
-    ".": {
-      "types": {
-        "import": "./dist/xstate-store-vue.cjs.mjs",
-        "default": "./dist/xstate-store-vue.cjs.js"
-      },
-      "module": "./dist/xstate-store-vue.esm.js",
-      "import": "./dist/xstate-store-vue.cjs.mjs",
-      "default": "./dist/xstate-store-vue.cjs.js"
-    },
+    ".": "./dist/xstate-store-vue.js",
     "./package.json": "./package.json"
   },
   "types": "dist/xstate-store-vue.cjs.d.ts",
@@ -46,7 +37,8 @@
   "devDependencies": {
     "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^5.1.2",
-    "vue": "^3.4.35"
+    "vue": "3.5.27",
+    "zod": "^4.4.3"
   },
   "preconstruct": {
     "entrypoints": [

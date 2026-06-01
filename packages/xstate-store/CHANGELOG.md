@@ -1,5 +1,203 @@
 # @xstate/store
 
+## 4.1.0
+
+### Minor Changes
+
+- [#5530](https://github.com/statelyai/xstate/pull/5530) [`0502c04`](https://github.com/statelyai/xstate/commit/0502c041d0e7fd7826323f867e053e8f5422f59b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Expose `store.schemas` so integrations can read the store's context, event, and emitted event schemas at runtime.
+
+  ```ts
+  const store = createStore({
+    schemas: {
+      context: z.object({ count: z.number() }),
+      events: {
+        inc: z.object({ by: z.number() })
+      }
+    },
+    context: { count: 0 },
+    on: {
+      inc: (context, event) => ({ count: context.count + event.by })
+    }
+  });
+
+  store.schemas?.events?.inc;
+  ```
+
+## 4.0.0
+
+### Major Changes
+
+- [#5512](https://github.com/statelyai/xstate/pull/5512) [`063416d`](https://github.com/statelyai/xstate/commit/063416db859581b91fd661ae1a89b75a37fffa69) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Remove `createStoreWithProducer`. Use `(ctx, ev) => produce(ctx, draft => …)` in `createStore` event handlers instead.
+
+- [#5512](https://github.com/statelyai/xstate/pull/5512) [`063416d`](https://github.com/statelyai/xstate/commit/063416db859581b91fd661ae1a89b75a37fffa69) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `enq.trigger` for enqueueing store events from transitions.
+
+  ```ts
+  const store = createStore({
+    schemas: {
+      events: {
+        inc: z.object({}),
+        incTwice: z.object({})
+      }
+    },
+    context: { count: 0 },
+    on: {
+      inc: (context) => ({ count: context.count + 1 }),
+      incTwice: (context, _event, enq) => {
+        enq.trigger.inc();
+        enq.trigger.inc();
+
+        return context;
+      }
+    }
+  });
+  ```
+
+- [#5512](https://github.com/statelyai/xstate/pull/5512) [`063416d`](https://github.com/statelyai/xstate/commit/063416db859581b91fd661ae1a89b75a37fffa69) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Modernize Store v4 package entrypoints.
+
+  Use framework-specific packages such as `@xstate/store-react` and `@xstate/store-solid` instead of `@xstate/store/react` or `@xstate/store/solid`. The Store packages now publish ESM package entrypoints.
+
+- [#5512](https://github.com/statelyai/xstate/pull/5512) [`063416d`](https://github.com/statelyai/xstate/commit/063416db859581b91fd661ae1a89b75a37fffa69) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `createStoreLogic(...)` for reusable store definitions, and support creating stores from logic in framework hooks.
+
+  ```ts
+  const counterLogic = createStoreLogic({
+    context: (input: { initialCount: number }) => ({
+      count: input.initialCount
+    }),
+    on: {
+      inc: (context) => ({ count: context.count + 1 })
+    }
+  });
+
+  const store = useStore(counterLogic, { initialCount: 0 });
+  ```
+
+  If a store logic requires input, the input argument is also required:
+
+  ```ts
+  useStore(counterLogic, { initialCount: 0 });
+  ```
+
+  Framework hooks also preserve schema-derived context, event, and emitted event types when creating stores from config objects.
+
+- [#5512](https://github.com/statelyai/xstate/pull/5512) [`063416d`](https://github.com/statelyai/xstate/commit/063416db859581b91fd661ae1a89b75a37fffa69) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Update `persist(...)` helpers to support async storage results.
+
+  `clearStorage(...)` and `flushStorage(...)` may return a promise when the configured storage is async.
+
+- [#5512](https://github.com/statelyai/xstate/pull/5512) [`063416d`](https://github.com/statelyai/xstate/commit/063416db859581b91fd661ae1a89b75a37fffa69) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Remove deprecated Store APIs.
+
+  The deprecated config-wrapping form of `undoRedo(...)` was removed. Use the extension form instead:
+
+  ```ts
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (context) => ({ count: context.count + 1 })
+    }
+  }).with(undoRedo());
+  ```
+
+  Computed atoms now receive only the previous value. Read other atoms directly with `.get()`:
+
+  ```diff
+  -const doubled = createAtom((read) => read(countAtom) * 2);
+  +const doubled = createAtom(() => countAtom.get() * 2);
+  -const accumulated = createAtom((read, prev) => read(countAtom) + (prev ?? 0));
+  +const accumulated = createAtom((prev) => countAtom.get() + (prev ?? 0));
+  ```
+
+- [#5512](https://github.com/statelyai/xstate/pull/5512) [`063416d`](https://github.com/statelyai/xstate/commit/063416db859581b91fd661ae1a89b75a37fffa69) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add Standard Schema support to store configs and `fromStore(...)`.
+
+  Schemas can type context, accepted events, and emitted events without enabling runtime validation by default. To validate schema-declared values at runtime, use the new `validateSchemas()` extension from `@xstate/store/validate`.
+
+  ```ts
+  import { createStore } from '@xstate/store';
+  import { validateSchemas } from '@xstate/store/validate';
+  import { z } from 'zod';
+
+  const store = createStore({
+    schemas: {
+      context: z.object({ count: z.number() }),
+      events: {
+        increment: z.object({ by: z.number() })
+      }
+    },
+    context: { count: 0 },
+    on: {
+      increment: (context, event) => ({
+        count: context.count + event.by
+      })
+    }
+  }).with(validateSchemas());
+  ```
+
+### Minor Changes
+
+- [#5512](https://github.com/statelyai/xstate/pull/5512) [`063416d`](https://github.com/statelyai/xstate/commit/063416db859581b91fd661ae1a89b75a37fffa69) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Pass an `AbortSignal` to `createAsyncAtom(...)` getters and ignore stale async results after recomputation.
+
+  ```ts
+  const user = createAsyncAtom(async ({ signal }) => {
+    const response = await fetch('/user', { signal });
+    return response.json();
+  });
+  ```
+
+- [#5512](https://github.com/statelyai/xstate/pull/5512) [`063416d`](https://github.com/statelyai/xstate/commit/063416db859581b91fd661ae1a89b75a37fffa69) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add reusable atom configs and framework atom-state helpers.
+
+  `createAtomConfig(...)` creates an inert atom definition that can be instantiated with its `createAtom(...)` method or React/Preact/Vue/Solid's `useAtomState(...)`. These helpers return the current framework-native value and live atom instance, and also work with existing atom instances.
+
+  ```ts
+  const countConfig = createAtomConfig((input: { initialCount: number }) => {
+    return input.initialCount;
+  });
+
+  function Counter() {
+    const [count, countAtom] = useAtomState(countConfig, { initialCount: 0 });
+
+    return (
+      <button onClick={() => countAtom.set((count) => count + 1)}>
+        {count}
+      </button>
+    );
+  }
+  ```
+
+- [#5512](https://github.com/statelyai/xstate/pull/5512) [`063416d`](https://github.com/statelyai/xstate/commit/063416db859581b91fd661ae1a89b75a37fffa69) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add broadcast-aware storage helpers for persisted stores.
+
+  Use `createBroadcastStorage(...)` with `persist(...)` and `subscribeToBroadcastStorage(...)` to rehydrate a persisted store when another tab or window writes to the same storage key.
+
+- [#5512](https://github.com/statelyai/xstate/pull/5512) [`063416d`](https://github.com/statelyai/xstate/commit/063416db859581b91fd661ae1a89b75a37fffa69) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `store.can` for checking whether an event is allowed without updating the store.
+
+  ```ts
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      increment: (context, event: { by: number }) => {
+        if (context.count + event.by > 10) {
+          return;
+        }
+
+        return { count: context.count + event.by };
+      }
+    }
+  });
+
+  store.can.increment({ by: 4 }); // true
+  store.can.increment({ by: 11 }); // false
+  ```
+
+- [#5512](https://github.com/statelyai/xstate/pull/5512) [`063416d`](https://github.com/statelyai/xstate/commit/063416db859581b91fd661ae1a89b75a37fffa69) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `createReducerAtom(...)` for reducer-driven atoms.
+
+  ```ts
+  const count = createReducerAtom(0, (state, event: { type: 'inc' }) => {
+    if (event.type === 'inc') {
+      return state + 1;
+    }
+    return state;
+  });
+
+  count.send({ type: 'inc' });
+  ```
+
 ## 3.17.5
 
 ### Patch Changes

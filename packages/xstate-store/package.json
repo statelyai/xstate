@@ -1,6 +1,7 @@
 {
   "name": "@xstate/store",
-  "version": "3.17.5",
+  "version": "4.1.0",
+  "type": "module",
   "description": "Simple stores",
   "keywords": [
     "store",
@@ -9,73 +10,21 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store#readme",
   "license": "MIT",
-  "main": "dist/xstate-store.cjs.js",
-  "module": "dist/xstate-store.esm.js",
   "exports": {
-    "./undo": {
-      "types": {
-        "import": "./undo/dist/xstate-store-undo.cjs.mjs",
-        "default": "./undo/dist/xstate-store-undo.cjs.js"
-      },
-      "module": "./undo/dist/xstate-store-undo.esm.js",
-      "import": "./undo/dist/xstate-store-undo.cjs.mjs",
-      "default": "./undo/dist/xstate-store-undo.cjs.js"
-    },
-    ".": {
-      "types": {
-        "import": "./dist/xstate-store.cjs.mjs",
-        "default": "./dist/xstate-store.cjs.js"
-      },
-      "module": "./dist/xstate-store.esm.js",
-      "import": "./dist/xstate-store.cjs.mjs",
-      "default": "./dist/xstate-store.cjs.js"
-    },
-    "./react": {
-      "types": {
-        "import": "./react/dist/xstate-store-react.cjs.mjs",
-        "default": "./react/dist/xstate-store-react.cjs.js"
-      },
-      "module": "./react/dist/xstate-store-react.esm.js",
-      "import": "./react/dist/xstate-store-react.cjs.mjs",
-      "default": "./react/dist/xstate-store-react.cjs.js"
-    },
-    "./reset": {
-      "types": {
-        "import": "./reset/dist/xstate-store-reset.cjs.mjs",
-        "default": "./reset/dist/xstate-store-reset.cjs.js"
-      },
-      "module": "./reset/dist/xstate-store-reset.esm.js",
-      "import": "./reset/dist/xstate-store-reset.cjs.mjs",
-      "default": "./reset/dist/xstate-store-reset.cjs.js"
-    },
-    "./solid": {
-      "types": {
-        "import": "./solid/dist/xstate-store-solid.cjs.mjs",
-        "default": "./solid/dist/xstate-store-solid.cjs.js"
-      },
-      "module": "./solid/dist/xstate-store-solid.esm.js",
-      "import": "./solid/dist/xstate-store-solid.cjs.mjs",
-      "default": "./solid/dist/xstate-store-solid.cjs.js"
-    },
-    "./persist": {
-      "types": {
-        "import": "./persist/dist/xstate-store-persist.cjs.mjs",
-        "default": "./persist/dist/xstate-store-persist.cjs.js"
-      },
-      "module": "./persist/dist/xstate-store-persist.esm.js",
-      "import": "./persist/dist/xstate-store-persist.cjs.mjs",
-      "default": "./persist/dist/xstate-store-persist.cjs.js"
-    },
+    "./undo": "./dist/xstate-store-undo.js",
+    ".": "./dist/xstate-store.js",
+    "./reset": "./dist/xstate-store-reset.js",
+    "./persist": "./dist/xstate-store-persist.js",
+    "./validate": "./dist/xstate-store-validate.js",
     "./package.json": "./package.json"
   },
   "sideEffects": false,
   "files": [
     "dist",
-    "react",
-    "solid",
     "undo",
     "persist",
-    "reset"
+    "reset",
+    "validate"
   ],
   "repository": {
     "type": "git",
@@ -85,44 +34,26 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "devDependencies": {
-    "@solidjs/testing-library": "^0.8.10",
     "@statelyai/inspect": "^0.4.0",
-    "@testing-library/react": "^16.2.0",
-    "@types/react": "^19.0.10",
-    "@types/react-dom": "^19.0.4",
+    "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^5.1.2",
-    "@vue/test-utils": "^2.4.6",
-    "@xstate/react": "workspace:^",
     "@xstate/vue": "workspace:^",
     "immer": "^10.0.2",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
     "solid-js": "^1.9.7",
     "vite-plugin-solid": "^2.11.6",
-    "vue": "^3.4.35",
-    "xstate": "workspace:^"
-  },
-  "peerDependencies": {
-    "react": "^18.2.0 || ^19.0.0",
-    "solid-js": "^1.7.6"
-  },
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    },
-    "solid-js": {
-      "optional": true
-    }
+    "vue": "3.5.27",
+    "xstate": "workspace:^",
+    "zod": "^4.4.3"
   },
   "preconstruct": {
     "umdName": "XStateStore",
     "entrypoints": [
       "./index.ts",
-      "./react.ts",
-      "./solid.ts",
       "./undo.ts",
       "./persist.ts",
-      "./reset.ts"
+      "./reset.ts",
+      "./validate.ts"
     ]
   }
 }
