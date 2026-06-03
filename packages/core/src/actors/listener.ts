@@ -62,12 +62,6 @@ export function createListenerLogic<
       const { self, system } = actorScope;
       const { actor, eventType, mapper } = state.input;
 
-      console.log('[LISTENER] start called', {
-        eventType,
-        actorId: actor?.id,
-        selfParent: self._parent?.id
-      });
-
       const listenerState: ListenerInstanceState = {
         subscription: undefined
       };
@@ -76,7 +70,6 @@ export function createListenerLogic<
 
       // Don't subscribe if target actor doesn't exist or is stopped
       if (!actor || actor.getSnapshot().status === 'stopped') {
-        console.log('[LISTENER] Actor is null or stopped, not subscribing');
         return;
       }
 
@@ -86,39 +79,25 @@ export function createListenerLogic<
       const isPartialWildcard = eventType !== '*' && eventType.endsWith('.*');
       const subscriptionType = isPartialWildcard ? '*' : eventType;
 
-      console.log('[LISTENER] Subscribing to', subscriptionType);
-
       // Subscribe to emitted events using actor.on()
       listenerState.subscription = actor.on(
         subscriptionType,
         (emittedEvent) => {
-          console.log('[LISTENER] Event received:', emittedEvent);
           // Check if this listener is still active
           if (self.getSnapshot().status === 'stopped') {
-            console.log('[LISTENER] Listener is stopped, ignoring');
             return;
           }
 
           // For partial wildcards, filter using our matching algorithm
           if (isPartialWildcard) {
             if (!matchesEventDescriptor(emittedEvent.type, eventType)) {
-              console.log('[LISTENER] Event does not match wildcard, ignoring');
               return;
             }
           }
 
           const mappedEvent = mapper(emittedEvent as TEmitted);
-          console.log(
-            '[LISTENER] Mapped event:',
-            mappedEvent,
-            'Parent:',
-            self._parent?.id
-          );
           if (self._parent) {
             system._relay(self, self._parent, mappedEvent);
-            console.log('[LISTENER] Relayed to parent');
-          } else {
-            console.log('[LISTENER] No parent to relay to!');
           }
         }
       );

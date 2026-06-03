@@ -64,7 +64,6 @@ describe('enq.listen()', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    console.log('receivedEvents:', receivedEvents);
     expect(receivedEvents).toHaveLength(1);
     expect(receivedEvents[0].type).toBe('CHILD_EMITTED');
     expect(receivedEvents[0].payload).toBe(42);
