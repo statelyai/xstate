@@ -1,4 +1,8 @@
 import isDevelopment from '#is-development';
+import {
+  executingCustomAction,
+  setExecutingCustomAction
+} from '../createActor.ts';
 import { Guard, evaluateGuard } from '../guards.ts';
 import {
   Action,
@@ -167,18 +171,32 @@ function resolveEnqueueActions(
     actions.push(emit(...args));
   };
 
-  collect(
-    {
-      context: args.context,
-      event: args.event,
-      enqueue,
-      check: (guard) =>
-        evaluateGuard(guard, snapshot.context, args.event, snapshot),
-      self: actorScope.self,
-      system: actorScope.system
-    },
-    actionParams
-  );
+  // `enqueue.assign(…)`, `enqueue.sendTo(…)` and friends call the action
+  // creators (`assign()`, `sendTo()`, …) under the hood. Those creators warn
+  // when they are invoked while a custom action is executing. Collecting
+  // actions here is a part of resolving the `enqueueActions` action and not a
+  // part of executing a custom action, so we have to clear the flag to avoid
+  // spurious warnings - this can be observed when an executing custom action
+  // synchronously sends an event to another actor that resolves
+  // `enqueueActions` while processing that event.
+  const wasExecutingCustomAction = executingCustomAction;
+  setExecutingCustomAction(false);
+  try {
+    collect(
+      {
+        context: args.context,
+        event: args.event,
+        enqueue,
+        check: (guard) =>
+          evaluateGuard(guard, snapshot.context, args.event, snapshot),
+        self: actorScope.self,
+        system: actorScope.system
+      },
+      actionParams
+    );
+  } finally {
+    setExecutingCustomAction(wasExecutingCustomAction);
+  }
 
   return [snapshot, undefined, actions];
 }
