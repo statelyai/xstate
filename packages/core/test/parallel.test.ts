@@ -1343,4 +1343,50 @@ describe('parallel states', () => {
 
     expect(flushTracked()).toEqual([]);
   });
+
+  // https://github.com/statelyai/xstate/issues/5460
+  it('should not allow transitions from a final state inside a parallel region', () => {
+    const machine = createMachine({
+      id: 'test',
+      type: 'parallel',
+      states: {
+        first: {
+          initial: 'a',
+          states: {
+            a: {
+              on: { NEXT: 'done' }
+            },
+            done: {
+              type: 'final',
+              // @ts-expect-error intentionally invalid: testing runtime guard
+              on: { BACK: 'a' }
+            }
+          }
+        },
+        second: {
+          initial: 'x',
+          states: {
+            x: {
+              on: { MOVE: 'y' }
+            },
+            y: {}
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    // Move first region to its final state
+    actor.send({ type: 'NEXT' });
+    expect(actor.getSnapshot().value).toEqual({ first: 'done', second: 'x' });
+
+    // Sending BACK (which is defined on the final state) must not transition away
+    actor.send({ type: 'BACK' });
+    expect(actor.getSnapshot().value).toEqual({ first: 'done', second: 'x' });
+
+    // Other region can still transition normally
+    actor.send({ type: 'MOVE' });
+    expect(actor.getSnapshot().value).toEqual({ first: 'done', second: 'y' });
+  });
 });
