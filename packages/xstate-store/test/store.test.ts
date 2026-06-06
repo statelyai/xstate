@@ -706,6 +706,77 @@ it('async effects can be enqueued', async () => {
   expect(store.getSnapshot().context.count).toEqual(0);
 });
 
+it('effects receive an enqueue object to trigger events (no closure needed)', async () => {
+  const logic = createStoreLogic({
+    context: () => ({ count: 0, status: 'idle' }),
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.effect(async ({ trigger }) => {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+          trigger.done();
+        });
+        return { ...ctx, status: 'loading' };
+      },
+      done: (ctx) => ({ count: ctx.count + 1, status: 'done' })
+    }
+  });
+
+  const store = logic.createStore();
+
+  store.trigger.inc();
+  expect(store.getSnapshot().context).toEqual({ count: 0, status: 'loading' });
+
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  expect(store.getSnapshot().context).toEqual({ count: 1, status: 'done' });
+});
+
+it('effects can read fresh state after awaiting via enq.getSnapshot()', async () => {
+  const seen: number[] = [];
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      start: (ctx, _, enq) => {
+        enq.effect(async ({ getSnapshot, trigger }) => {
+          // `ctx` is stale by now; getSnapshot() reflects the bump below
+          await new Promise((resolve) => setTimeout(resolve, 5));
+          seen.push(getSnapshot().context.count);
+          trigger.done();
+        });
+        return { ...ctx, count: ctx.count + 1 };
+      },
+      bump: (ctx) => ({ count: ctx.count + 10 }),
+      done: (ctx) => ctx
+    }
+  });
+
+  store.trigger.start(); // count -> 1
+  store.trigger.bump(); // count -> 11 (after effect was enqueued, before it runs)
+
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  expect(seen).toEqual([11]);
+});
+
+it('effects can use enq.send to dispatch events', async () => {
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.effect(({ send }) => {
+          send({ type: 'dec' });
+        });
+        return { ...ctx, count: ctx.count + 1 };
+      },
+      dec: (ctx) => ({ ...ctx, count: ctx.count - 1 })
+    }
+  });
+
+  store.trigger.inc();
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(store.getSnapshot().context.count).toEqual(0);
+});
+
 it('rejects async handlers in createStoreTransition(...)', () => {
   const store = createStore({
     context: { count: 0 },
