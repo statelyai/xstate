@@ -262,6 +262,52 @@ describe('transition function', () => {
     );
   });
 
+  it('enq.raise with a string event throws in a transition function', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: (_, enq) => {
+              enq.raise(
+                // @ts-expect-error only event objects are allowed
+                'a string'
+              );
+            }
+          }
+        }
+      }
+    });
+
+    const [state] = initialTransition(machine);
+
+    expect(() => transition(machine, state, { type: 'NEXT' })).toThrowError(
+      'Only event objects may be used with raise; use raise({ type: "a string" }) instead'
+    );
+  });
+
+  it('enq.sendTo with an undefined actor is a no-op in a transition function', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: ({ children }, enq) => {
+              enq.sendTo(children.missing, { type: 'someEvent' });
+            }
+          }
+        }
+      }
+    });
+
+    const [state] = initialTransition(machine);
+    const [, actions] = transition(machine, state, { type: 'NEXT' });
+
+    expect(actions.some((a) => (a as any).type === '@xstate.sendTo')).toBe(
+      false
+    );
+  });
+
   it('emit actions should be returned', async () => {
     const machine = createMachine({
       // types: {

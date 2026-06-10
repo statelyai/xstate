@@ -1885,6 +1885,11 @@ export function getTransitionResult(
           });
         },
         raise: (event, options) => {
+          if (typeof event === 'string') {
+            throw new Error(
+              `Only event objects may be used with raise; use raise({ type: "${event}" }) instead`
+            );
+          }
           if (options?.delay !== undefined) {
             const delay = options.delay;
             // actions.push(raise(event, options));
@@ -1927,20 +1932,12 @@ export function getTransitionResult(
           return actorRef;
         },
         sendTo: (actorRef, event, options) => {
-          // if (options?.delay !== undefined) {
-          //   actions.push(sendTo(actorRef, event, options));
-          // } else {
-          //   actions.push({
-          //     action: () => {
-          //       actorScope.system._relay(actorScope.self, actorRef, event);
-          //     },
-          //     args: []
-          //   });
-          // }
-          actions.push({
-            action: builtInActions['@xstate.sendTo'],
-            args: [actorScope, actorRef, event, options]
-          });
+          if (actorRef) {
+            actions.push({
+              action: builtInActions['@xstate.sendTo'],
+              args: [actorScope, actorRef, event, options]
+            });
+          }
         },
         stop: (actorRef) => {
           if (actorRef) {
