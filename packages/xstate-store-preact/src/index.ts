@@ -86,7 +86,7 @@ function didSnapshotChange(inst: {
   }
 }
 
-function defaultCompare<T>(a: T | undefined, b: T) {
+function defaultCompare<T>(a: T, b: T) {
   return a === b;
 }
 
@@ -135,7 +135,7 @@ type AtomConfigInput<TInput> = undefined extends TInput
 
 function useSelectorWithCompare<TStore extends Readable<any>, T>(
   selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
-  compare: (a: T | undefined, b: T) => boolean
+  compare: (a: T, b: T) => boolean
 ): (snapshot: TStore extends Readable<infer TValue> ? TValue : never) => T {
   const previous = useRef<T | undefined>(undefined);
 
@@ -171,7 +171,7 @@ function useSelectorWithCompare<TStore extends Readable<any>, T>(
 export function useSelector<TStore extends Readable<any>, T>(
   store: TStore,
   selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
-  compare?: (a: T | undefined, b: T) => boolean
+  compare?: (a: T, b: T) => boolean
 ): T;
 /**
  * A Preact hook that subscribes to the `store` and selects a value from the
@@ -208,7 +208,7 @@ export function useSelector<TStore extends Readable<any>, T>(
   selector: (
     snapshot: TStore extends Readable<infer T> ? T : never
   ) => T = identity,
-  compare: (a: T | undefined, b: T) => boolean = defaultCompare
+  compare: (a: T, b: T) => boolean = defaultCompare
 ): T {
   const selectorWithCompare = useSelectorWithCompare(selector, compare);
 

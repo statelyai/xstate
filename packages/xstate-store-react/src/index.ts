@@ -20,7 +20,7 @@ import {
   isAtom
 } from '@xstate/store';
 
-function defaultCompare<T>(a: T | undefined, b: T) {
+function defaultCompare<T>(a: T, b: T) {
   return a === b;
 }
 
@@ -30,7 +30,7 @@ function identity<T>(snapshot: T): T {
 
 function useSelectorWithCompare<TSnapshot, T>(
   selector: (snapshot: TSnapshot) => T,
-  compare: (a: T | undefined, b: T) => boolean
+  compare: (a: T, b: T) => boolean
 ): (snapshot: TSnapshot) => T {
   const previous = useRef<T | undefined>(undefined);
 
@@ -112,7 +112,7 @@ type AtomConfigInput<TInput> = undefined extends TInput
 export function useSelector<TSnapshot, T>(
   store: Readable<TSnapshot>,
   selector: (snapshot: TSnapshot) => T,
-  compare?: (a: T | undefined, b: T) => boolean
+  compare?: (a: T, b: T) => boolean
 ): T;
 /**
  * A React hook that subscribes to the `store` and selects a value from the
@@ -144,7 +144,7 @@ export function useSelector<TSnapshot>(
 export function useSelector<TSnapshot, T>(
   store: Readable<TSnapshot>,
   selector?: (snapshot: TSnapshot) => T,
-  compare: (a: T | undefined, b: T) => boolean = defaultCompare
+  compare: (a: T, b: T) => boolean = defaultCompare
 ): T | TSnapshot {
   const subscribe = useCallback(
     (handleStoreChange: () => void) =>
@@ -315,11 +315,11 @@ export function createStoreHook<TDefinition extends AnyStoreConfig>(
   function useStoreHook(): [TSnapshot, TStore];
   function useStoreHook<T>(
     selector: (snapshot: TSnapshot) => T,
-    compare?: (a: T | undefined, b: T) => boolean
+    compare?: (a: T, b: T) => boolean
   ): [T, TStore];
   function useStoreHook<T>(
     selector?: (snapshot: TSnapshot) => T,
-    compare: (a: T | undefined, b: T) => boolean = defaultCompare
+    compare: (a: T, b: T) => boolean = defaultCompare
   ) {
     if (!selector) {
       const snapshot = useSelector(store);
