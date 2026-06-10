@@ -119,7 +119,7 @@ describe('MachineImplementationsFrom', () => {
         }
       },
       actions: {
-        foo: (_num: number) => 'hello'
+        foo: () => {}
       }
     });
 
@@ -129,7 +129,7 @@ describe('MachineImplementationsFrom', () => {
 
     acceptMachineImplementations({
       actions: {
-        foo: (num: number) => 'hello'
+        foo: () => {}
       },
       actors: {},
       guards: {},
@@ -138,6 +138,15 @@ describe('MachineImplementationsFrom', () => {
 
     // @ts-expect-error
     acceptMachineImplementations(100);
+  });
+
+  it('should reject an action that returns an arbitrary (non-void/assignment) value', () => {
+    createMachine({
+      actions: {
+        // @ts-expect-error an action must return void or { context?, children? }
+        foo: () => 'hello'
+      }
+    });
   });
 });
 

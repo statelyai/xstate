@@ -971,7 +971,10 @@ export interface Next_SetupTypes<
 export type WithDefault<T, Default> = IsNever<T> extends true ? Default : T;
 
 export interface Implementations {
-  actions: Record<string, (...args: any[]) => void>;
+  actions: Record<
+    string,
+    (...args: any[]) => void | { context?: any; children?: any }
+  >;
   guards: Record<string, (...args: any[]) => boolean>;
   delays: Record<string, number | ((...args: any[]) => number)>;
   actors: Record<string, AnyActorLogic>;
