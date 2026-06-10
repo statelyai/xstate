@@ -1,3 +1,13 @@
+/**
+ * @internal
+ *
+ * SCXML conversion utilities. This module is NOT part of the public API: it is
+ * not re-exported from `index.ts` and there is no `xstate/scxml` entry point.
+ * It exists solely to support the SCXML/SCION conformance and conversion test
+ * suites (`test/scxml.test.ts`, `test/conversion.test.ts`). Do not import it
+ * from public-facing code, and do not rely on it externally — it may change or
+ * be removed without a breaking-change notice.
+ */
 import { Element as XMLElement, xml2js } from 'xml-js';
 import { NULL_EVENT } from './constants.ts';
 import {

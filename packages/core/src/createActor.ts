@@ -306,6 +306,9 @@ export class Actor<TLogic extends AnyActorLogic>
         output: undefined,
         error: err
       } as any;
+      // discard any functions deferred during the failed initial snapshot
+      // computation so they can't run against an inconsistent actor
+      this._deferred.length = 0;
     }
 
     if (systemId && (this._snapshot as any).status !== 'active') {

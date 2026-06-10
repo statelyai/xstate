@@ -3,6 +3,7 @@ import {
   type ReactiveNode,
   ReactiveFlags
 } from './alien.ts';
+import { reportUnhandledError } from './reportUnhandledError.ts';
 
 export type Observer<T> = {
   next?: (value: T) => void;
@@ -120,6 +121,23 @@ export interface AsyncAtomOptions {
   signal: AbortSignal;
 }
 
+function compareAsyncAtomState<T>(
+  a: AsyncAtomState<T>,
+  b: AsyncAtomState<T>
+): boolean {
+  if (a.status !== b.status) {
+    return false;
+  }
+  if (a.status === 'done' && b.status === 'done') {
+    return Object.is(a.data, b.data);
+  }
+  if (a.status === 'error' && b.status === 'error') {
+    return Object.is(a.error, b.error);
+  }
+  // both 'pending'
+  return true;
+}
+
 function updateAsyncAtom<T>(
   atom: InternalAtom<AsyncAtomState<T>>,
   nextValue: AsyncAtomState<T>
@@ -148,30 +166,33 @@ export function createAsyncAtom<T>(
   let currentController: AbortController | undefined;
   let currentRunId = 0;
 
-  const atom = createAtom<AsyncAtomState<T>>(() => {
-    currentController?.abort();
+  const atom = createAtom<AsyncAtomState<T>>(
+    () => {
+      currentController?.abort();
 
-    const controller = new AbortController();
-    const runId = ++currentRunId;
-    currentController = controller;
+      const controller = new AbortController();
+      const runId = ++currentRunId;
+      currentController = controller;
 
-    getValue({ signal: controller.signal }).then(
-      (data) => {
-        if (runId !== currentRunId || controller.signal.aborted) {
-          return;
+      getValue({ signal: controller.signal }).then(
+        (data) => {
+          if (runId !== currentRunId || controller.signal.aborted) {
+            return;
+          }
+          updateAsyncAtom(ref.current!, { status: 'done', data });
+        },
+        (error) => {
+          if (runId !== currentRunId || controller.signal.aborted) {
+            return;
+          }
+          updateAsyncAtom(ref.current!, { status: 'error', error });
         }
-        updateAsyncAtom(ref.current!, { status: 'done', data });
-      },
-      (error) => {
-        if (runId !== currentRunId || controller.signal.aborted) {
-          return;
-        }
-        updateAsyncAtom(ref.current!, { status: 'error', error });
-      }
-    );
+      );
 
-    return { status: 'pending' } satisfies AsyncAtomState<T>;
-  }, options);
+      return { status: 'pending' } satisfies AsyncAtomState<T>;
+    },
+    { compare: compareAsyncAtomState, ...options }
+  );
   ref.current = atom as unknown as InternalAtom<AsyncAtomState<T>>;
 
   return atom;
@@ -229,6 +250,8 @@ export function createAtom<T>(
           activeSub = undefined;
           try {
             observer.next?.(atom._snapshot);
+          } catch (err) {
+            reportUnhandledError(err);
           } finally {
             activeSub = prevSub;
           }

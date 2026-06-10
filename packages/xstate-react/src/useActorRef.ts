@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
   Actor,
@@ -25,9 +25,6 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
     IsNotNever<RequiredActorOptionsKeys<TLogic>>
   >
 ): [Actor<TLogic>, (actorRef: Actor<TLogic>) => void] {
-  const optionsRef = useRef(options);
-  optionsRef.current = options;
-
   let [actorRef, setActorRef] = useState(() => {
     return createActor(logic, options);
   });

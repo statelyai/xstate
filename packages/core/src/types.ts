@@ -916,7 +916,7 @@ export type InvokeConfig<
           | SingleOrArray<
               TransitionConfigOrTarget<
                 TContext,
-                DoneActorEvent<any>, // TODO: consider replacing with `unknown`
+                DoneActorEvent<unknown>,
                 TEvent,
                 TEmitted,
                 TMeta,

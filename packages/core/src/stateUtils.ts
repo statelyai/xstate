@@ -159,10 +159,14 @@ export function getAllStateNodes(
   }
 
   // add all ancestors
+  // Stop walking up as soon as we hit a node already in the set: its own
+  // ancestor chain is guaranteed to be added when it is visited by this loop
+  // (Set iteration visits elements added during iteration), so shared ancestor
+  // chains are never re-walked once per descendant.
   for (const s of nodeSet) {
     let m = s.parent;
 
-    while (m) {
+    while (m && !nodeSet.has(m)) {
       nodeSet.add(m);
       m = m.parent;
     }
@@ -1573,13 +1577,13 @@ function microstep(
 
       const completedNodes = new Set<AnyStateNode>();
       const children = { ...currentSnapshot.children };
-      let invoked = false;
       for (const stateNodeToEnter of [...statesToEnter].sort(
         (a, b) => a.order - b.order
       )) {
         mutStateNodeSet.add(stateNodeToEnter);
         const actions: AnyAction[] = [];
 
+        let invoked = false;
         for (const invokeDef of stateNodeToEnter.invoke) {
           invoked = true;
 

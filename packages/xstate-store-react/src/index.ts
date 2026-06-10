@@ -16,7 +16,8 @@ import {
   type ValueFromAtomConfig,
   type StoreSnapshot,
   type ContextFromStoreConfig,
-  createStore
+  createStore,
+  isAtom
 } from '@xstate/store';
 
 function defaultCompare<T>(a: T | undefined, b: T) {
@@ -86,15 +87,6 @@ type UseAtomStateArgs<TDefinition extends AtomDefinition> =
 type AtomConfigInput<TInput> = undefined extends TInput
   ? [input?: TInput]
   : [input: TInput];
-
-function isAtom(value: unknown): value is AnyAtom {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as any).get === 'function' &&
-    typeof (value as any).subscribe === 'function'
-  );
-}
 
 /**
  * A React hook that subscribes to the `store` and selects a value from the
