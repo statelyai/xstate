@@ -2,6 +2,7 @@ import { createActor } from '../createActor.ts';
 import type { ActorRef, AnyEventObject, Snapshot } from '../types.ts';
 import { fromTransition } from './transition.ts';
 export {
+  createCallbackLogic,
   fromCallback,
   type CallbackActorLogic,
   type CallbackActorRef,
@@ -9,6 +10,7 @@ export {
   type CallbackLogicFunction
 } from './callback.ts';
 export {
+  createObservableLogic,
   fromEventObservable,
   fromObservable,
   type ObservableActorLogic,
@@ -16,10 +18,28 @@ export {
   type ObservableSnapshot
 } from './observable.ts';
 export {
-  fromPromise,
-  type PromiseActorLogic,
-  type PromiseActorRef,
-  type PromiseSnapshot
+  createLogic,
+  type LogicActorLogic,
+  type LogicActorRef,
+  type LogicArgs,
+  type LogicConfig,
+  type LogicEffect,
+  type LogicEffectState,
+  type LogicEnqueue,
+  type LogicFunction,
+  type LogicPatch,
+  type LogicSnapshot
+} from './logic.ts';
+export {
+  createAsyncLogic,
+  type AsyncActorLogic,
+  type AsyncActorRef,
+  type AsyncSnapshot,
+  type LogicArgs as AsyncLogicArgs,
+  type LogicConfig as AsyncLogicConfig,
+  type LogicEnqueue as AsyncLogicEnqueue,
+  type LogicFunction as AsyncLogicFunction,
+  TimeoutError
 } from './promise.ts';
 export {
   fromTransition,
@@ -27,8 +47,25 @@ export {
   type TransitionActorRef,
   type TransitionSnapshot
 } from './transition.ts';
+export {
+  createListenerLogic,
+  listenerLogic,
+  type ListenerActorLogic,
+  type ListenerActorRef,
+  type ListenerSnapshot,
+  type ListenerInput
+} from './listener.ts';
+export {
+  createSubscriptionLogic,
+  subscriptionLogic,
+  type SubscriptionActorLogic,
+  type SubscriptionActorRef,
+  type SubscriptionSnapshot,
+  type SubscriptionInput,
+  type SubscriptionMappers
+} from './subscription.ts';
 
-const emptyLogic = fromTransition((_) => undefined, undefined);
+const emptyLogic = /* #__PURE__ */ fromTransition((_) => undefined, undefined);
 
 export function createEmptyActor(): ActorRef<
   Snapshot<undefined>,

@@ -15,9 +15,6 @@
         "src/graph/index.ts"
       ]
     },
-    "packages/xstate-inspect": {
-      "entry": ["src/index.ts", "src/server.ts"]
-    },
     "packages/xstate-store": {
       "entry": ["src/index.ts"]
     },

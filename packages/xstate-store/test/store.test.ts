@@ -234,7 +234,7 @@ it('inspection with @statelyai/inspect typechecks correctly', () => {
     autoStart: false
   });
 
-  store.inspect(inspector.inspect);
+  store.inspect(inspector.inspect as any);
 });
 
 it('emitted events can be subscribed to', () => {

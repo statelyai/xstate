@@ -1,8 +1,8 @@
+import z from 'zod';
 import {
   EventObject,
   Snapshot,
   StateNode,
-  assign,
   createMachine,
   fromTransition,
   isMachineSnapshot
@@ -17,6 +17,7 @@ import {
   joinPaths,
   toDirectedGraph
 } from '../index.ts';
+import { createStateConfig } from '../../createMachine.ts';
 
 function getPathsSnapshot(
   paths: Array<StatePath<Snapshot<unknown>, EventObject>>
@@ -46,14 +47,19 @@ function getPathSnapshot(path: StatePath<Snapshot<unknown>, any>): {
 }
 
 describe('@xstate/graph', () => {
-  const pedestrianStates = {
+  const pedestrianStates = createStateConfig({
     initial: 'walk',
     states: {
       walk: {
         on: {
-          PED_COUNTDOWN: {
-            target: 'wait',
-            actions: ['startCountdown']
+          // PED_COUNTDOWN: {
+          //   target: 'wait',
+          //   actions: ['startCountdown']
+          // }
+          PED_COUNTDOWN: (_, enq) => {
+            enq(function startCountdown() {});
+
+            return { target: 'wait' };
           }
         }
       },
@@ -65,21 +71,32 @@ describe('@xstate/graph', () => {
       stop: {},
       flashing: {}
     }
-  };
+  });
 
   const lightMachine = createMachine({
     id: 'light',
     initial: 'green',
+    schemas: {
+      events: {
+        TIMER: z.object({}),
+        POWER_OUTAGE: z.object({}),
+        PUSH_BUTTON: z.object({}),
+        PED_COUNTDOWN: z.object({})
+      }
+    },
     states: {
       green: {
         on: {
           TIMER: 'yellow',
           POWER_OUTAGE: 'red.flashing',
-          PUSH_BUTTON: [
-            {
-              actions: ['doNothing'] // pushing the walk button never does anything
-            }
-          ]
+          // PUSH_BUTTON: [
+          //   {
+          //     actions: ['doNothing'] // pushing the walk button never does anything
+          //   }
+          // ]
+          PUSH_BUTTON: (_, enq) => {
+            enq(function doNothing() {});
+          }
         }
       },
       yellow: {
@@ -94,17 +111,23 @@ describe('@xstate/graph', () => {
           POWER_OUTAGE: 'red.flashing'
         },
         ...pedestrianStates
-      }
+      } as any
     }
   });
 
-  interface CondMachineCtx {
-    id?: string;
-  }
-  type CondMachineEvents = { type: 'EVENT'; id: string } | { type: 'STATE' };
-
   const condMachine = createMachine({
-    types: {} as { context: CondMachineCtx; events: CondMachineEvents },
+    // types: {} as { context: CondMachineCtx; events: CondMachineEvents },
+    schemas: {
+      context: z.object({
+        id: z.string().optional()
+      }),
+      events: {
+        EVENT: z.object({
+          id: z.string()
+        }),
+        STATE: z.object({})
+      }
+    },
     initial: 'pending',
     context: {
       id: undefined
@@ -112,20 +135,18 @@ describe('@xstate/graph', () => {
     states: {
       pending: {
         on: {
-          EVENT: [
-            {
-              target: 'foo',
-              guard: ({ event }) => event.id === 'foo'
-            },
-            { target: 'bar' }
-          ],
-          STATE: [
-            {
-              target: 'foo',
-              guard: ({ context }) => context.id === 'foo'
-            },
-            { target: 'bar' }
-          ]
+          EVENT: ({ event }) => {
+            if (event.id === 'foo') {
+              return { target: 'foo' };
+            }
+            return { target: 'bar' };
+          },
+          STATE: ({ context }) => {
+            if (context.id === 'foo') {
+              return { target: 'foo' };
+            }
+            return { target: 'bar' };
+          }
         }
       },
       foo: {},
@@ -227,7 +248,18 @@ describe('@xstate/graph', () => {
 
     it.skip('should represent conditional paths based on context', () => {
       const machine = createMachine({
-        types: {} as { context: CondMachineCtx; events: CondMachineEvents },
+        // types: {} as { context: CondMachineCtx; events: CondMachineEvents },
+        schemas: {
+          context: z.object({
+            id: z.string().optional()
+          }),
+          events: {
+            EVENT: z.object({
+              id: z.string()
+            }),
+            STATE: z.object({})
+          }
+        },
         initial: 'pending',
         context: {
           id: 'foo'
@@ -235,20 +267,32 @@ describe('@xstate/graph', () => {
         states: {
           pending: {
             on: {
-              EVENT: [
-                {
-                  target: 'foo',
-                  guard: ({ event }) => event.id === 'foo'
-                },
-                { target: 'bar' }
-              ],
-              STATE: [
-                {
-                  target: 'foo',
-                  guard: ({ context }) => context.id === 'foo'
-                },
-                { target: 'bar' }
-              ]
+              // EVENT: [
+              //   {
+              //     target: 'foo',
+              //     guard: ({ event }) => event.id === 'foo'
+              //   },
+              //   { target: 'bar' }
+              // ],
+              EVENT: ({ event }) => {
+                if (event.id === 'foo') {
+                  return { target: 'foo' };
+                }
+                return { target: 'bar' };
+              },
+              // STATE: [
+              //   {
+              //     target: 'foo',
+              //     guard: ({ context }) => context.id === 'foo'
+              //   },
+              //   { target: 'bar' }
+              // ]
+              STATE: ({ context }) => {
+                if (context.id === 'foo') {
+                  return { target: 'foo' };
+                }
+                return { target: 'bar' };
+              }
             }
           },
           foo: {},
@@ -402,15 +446,17 @@ describe('@xstate/graph', () => {
     });
 
     it('should return value-based paths', () => {
-      interface Ctx {
-        count: number;
-      }
-      interface Events {
-        type: 'INC';
-        value: number;
-      }
       const countMachine = createMachine({
-        types: {} as { context: Ctx; events: Events },
+        // types: {} as { context: Ctx; events: Events },
+        schemas: {
+          context: z.object({
+            count: z.number()
+          }),
+          events: {
+            INC: z.object({ value: z.number() }),
+            FINISH: z.object({})
+          }
+        },
         id: 'count',
         initial: 'start',
         context: {
@@ -418,16 +464,23 @@ describe('@xstate/graph', () => {
         },
         states: {
           start: {
-            always: {
-              target: 'finish',
-              guard: ({ context }) => context.count === 3
+            // always: {
+            //   target: 'finish',
+            //   guard: ({ context }) => context.count === 3
+            // },
+            always: ({ context }) => {
+              if (context.count === 3) {
+                return {
+                  target: 'finish'
+                };
+              }
             },
             on: {
-              INC: {
-                actions: assign({
-                  count: ({ context }) => context.count + 1
-                })
-              }
+              INC: ({ context }) => ({
+                context: {
+                  count: context.count + 1
+                }
+              })
             }
           },
           finish: {}
@@ -453,22 +506,23 @@ describe('@xstate/graph', () => {
       const machine = createMachine({
         id: 'guarded-default-events',
         initial: 'start',
-        context: { allowed: false },
+        context: { allowed: false as boolean },
         states: {
           start: {
-            on: { NEXT: 'idle' }
+            on: { NEXT: { target: 'idle' } }
           },
           idle: {
             on: {
-              PROCEED: {
-                target: 'done',
-                guard: ({ context }) => context.allowed
+              PROCEED: ({ context }) => {
+                if (context.allowed) {
+                  return { target: 'done' };
+                }
               },
-              ALLOW: {
-                actions: assign({
+              ALLOW: () => ({
+                context: {
                   allowed: true
-                })
-              }
+                }
+              })
             }
           },
           done: {
@@ -487,7 +541,7 @@ describe('@xstate/graph', () => {
         .toMatchInlineSnapshot(`
         [
           [
-            "xstate.init",
+            "@xstate.init",
             "NEXT",
             "ALLOW",
             "PROCEED",
@@ -515,7 +569,10 @@ describe('@xstate/graph', () => {
       expect(() =>
         getPathsFromEvents(lightMachine, [
           { type: 'TIMER' },
-          { type: 'INVALID_EVENT' }
+          {
+            // @ts-expect-error
+            type: 'INVALID_EVENT'
+          }
         ])
       ).toThrow();
     });
@@ -604,17 +661,21 @@ it('shortest paths for transition functions', () => {
 describe('filtering', () => {
   it('should not traverse past filtered states', () => {
     const machine = createMachine({
-      types: {} as { context: { count: number } },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       initial: 'counting',
       context: { count: 0 },
       states: {
         counting: {
           on: {
-            INC: {
-              actions: assign({
-                count: ({ context }) => context.count + 1
-              })
-            }
+            INC: ({ context }) => ({
+              context: {
+                count: context.count + 1
+              }
+            })
           }
         }
       }
@@ -748,12 +809,12 @@ describe('joinPaths()', () => {
 
     expect(pathToBAndC.steps.map((step) => step.event.type))
       .toMatchInlineSnapshot(`
-      [
-        "xstate.init",
-        "NEXT",
-        "TO_C",
-      ]
-    `);
+        [
+          "@xstate.init",
+          "NEXT",
+          "TO_C",
+        ]
+      `);
 
     expect(pathToBAndC.state.matches('c')).toBeTruthy();
   });

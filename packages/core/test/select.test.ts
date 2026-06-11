@@ -1,19 +1,27 @@
-import { assign, SnapshotFrom } from '../src';
+import z from 'zod';
+import { SnapshotFrom } from '../src';
 import { createMachine } from '../src/index.ts';
 import { createActor } from '../src/index.ts';
 
 describe('select', () => {
   it('should get current value', () => {
     const machine = createMachine({
-      types: {} as { context: { data: number } },
+      // types: {} as { context: { data: number } },
+      schemas: {
+        context: z.object({
+          data: z.number()
+        })
+      },
       context: { data: 42 },
       initial: 'G',
       states: {
         G: {
           on: {
-            INC: {
-              actions: assign({ data: ({ context }) => context.data + 1 })
-            }
+            INC: ({ context }) => ({
+              context: {
+                data: context.data + 1
+              }
+            })
           }
         }
       }
@@ -31,15 +39,25 @@ describe('select', () => {
 
   it('should subscribe to changes', () => {
     const machine = createMachine({
-      types: {} as { context: { data: number } },
+      // types: {} as { context: { data: number } },
+      schemas: {
+        context: z.object({
+          data: z.number()
+        })
+      },
       context: { data: 42 },
       initial: 'G',
       states: {
         G: {
           on: {
-            INC: {
-              actions: assign({ data: ({ context }) => context.data + 1 })
-            }
+            // INC: {
+            //   actions: assign({ data: ({ context }) => context.data + 1 })
+            // }
+            INC: ({ context }) => ({
+              context: {
+                data: context.data + 1
+              }
+            })
           }
         }
       }
@@ -58,15 +76,27 @@ describe('select', () => {
 
   it('should not notify if selected value has not changed', () => {
     const machine = createMachine({
-      types: {} as { context: { data: number; other: string } },
+      // types: {} as { context: { data: number; other: string } },
+      schemas: {
+        context: z.object({
+          data: z.number(),
+          other: z.string()
+        })
+      },
       context: { data: 42, other: 'foo' },
       initial: 'G',
       states: {
         G: {
           on: {
-            INC: {
-              actions: assign({ data: ({ context }) => context.data + 1 })
-            }
+            // INC: {
+            //   actions: assign({ data: ({ context }) => context.data + 1 })
+            // }
+            INC: ({ context }) => ({
+              context: {
+                ...context,
+                data: context.data + 1
+              }
+            })
           }
         }
       }
@@ -84,29 +114,34 @@ describe('select', () => {
 
   it('should support custom equality function', () => {
     const machine = createMachine({
-      types: {} as {
-        context: { age: number; name: string };
-        events:
-          | {
-              type: 'UPDATE_NAME';
-              name: string;
-            }
-          | {
-              type: 'UPDATE_AGE';
-              age: number;
-            };
+      // types: {} as {
+      schemas: {
+        context: z.object({
+          age: z.number(),
+          name: z.string()
+        }),
+        events: {
+          UPDATE_NAME: z.object({ name: z.string() }),
+          UPDATE_AGE: z.object({ age: z.number() })
+        }
       },
       context: { age: 42, name: 'John' },
       initial: 'G',
       states: {
         G: {
           on: {
-            UPDATE_NAME: {
-              actions: assign({ name: ({ event }) => event.name })
-            },
-            UPDATE_AGE: {
-              actions: assign({ age: ({ event }) => event.age })
-            }
+            UPDATE_NAME: ({ context, event }) => ({
+              context: {
+                ...context,
+                name: event.name
+              }
+            }),
+            UPDATE_AGE: ({ context, event }) => ({
+              context: {
+                ...context,
+                age: event.age
+              }
+            })
           }
         }
       }
@@ -133,15 +168,22 @@ describe('select', () => {
 
   it('should unsubscribe correctly', () => {
     const machine = createMachine({
-      types: {} as { context: { data: number } },
+      // types: {} as { context: { data: number } },
+      schemas: {
+        context: z.object({
+          data: z.number()
+        })
+      },
       context: { data: 42 },
       initial: 'G',
       states: {
         G: {
           on: {
-            INC: {
-              actions: assign({ data: ({ context }) => context.data + 1 })
-            }
+            INC: ({ context }) => ({
+              context: {
+                data: context.data + 1
+              }
+            })
           }
         }
       }
@@ -168,38 +210,58 @@ describe('select', () => {
     }
 
     const machine = createMachine({
-      types: {} as {
-        context: {
-          user: { age: number; name: string };
-          position: {
-            x: number;
-            y: number;
-          };
-        };
-        events:
-          | {
-              type: 'UPDATE_USER';
-              user: { age: number; name: string };
-            }
-          | {
-              type: 'UPDATE_POSITION';
-              position: {
-                x: number;
-                y: number;
-              };
-            };
+      // types: {} as {
+      //   context: {
+      //     user: { age: number; name: string };
+      //     position: {
+      //       x: number;
+      //       y: number;
+      //     };
+      //   };
+      //   events:
+      //     | {
+      //         type: 'UPDATE_USER';
+      //         user: { age: number; name: string };
+      //       }
+      //     | {
+      //         type: 'UPDATE_POSITION';
+      //         position: {
+      //           x: number;
+      //           y: number;
+      //         };
+      //       };
+      // },
+      schemas: {
+        context: z.object({
+          position: z.object({ x: z.number(), y: z.number() }),
+          user: z.object({ name: z.string(), age: z.number() })
+        }),
+        events: {
+          UPDATE_USER: z.object({
+            user: z.object({ name: z.string(), age: z.number() })
+          }),
+          UPDATE_POSITION: z.object({
+            position: z.object({ x: z.number(), y: z.number() })
+          })
+        }
       },
       context: { position: { x: 0, y: 0 }, user: { name: 'John', age: 30 } },
       initial: 'G',
       states: {
         G: {
           on: {
-            UPDATE_USER: {
-              actions: assign({ user: ({ event }) => event.user })
-            },
-            UPDATE_POSITION: {
-              actions: assign({ position: ({ event }) => event.position })
-            }
+            UPDATE_USER: ({ context, event }) => ({
+              context: {
+                ...context,
+                user: event.user
+              }
+            }),
+            UPDATE_POSITION: ({ context, event }) => ({
+              context: {
+                ...context,
+                position: event.position
+              }
+            })
           }
         }
       }

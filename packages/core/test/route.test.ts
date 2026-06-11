@@ -1,8 +1,8 @@
-import { assign, createActor, setup } from '../src';
+import { createActor, createMachine, setup } from '../src';
 
 describe('route', () => {
   it('should transition directly to a route if route is an empty transition config', () => {
-    const machine = setup({}).createMachine({
+    const machine = createMachine({
       id: 'test',
       initial: 'a',
       states: {
@@ -34,7 +34,7 @@ describe('route', () => {
   });
 
   it('should transition directly to a route if guard passes', () => {
-    const machine = setup({}).createMachine({
+    const machine = createMachine({
       id: 'test',
       initial: 'a',
       states: {
@@ -73,28 +73,24 @@ describe('route', () => {
     expect(actor.getSnapshot().value).toEqual('c');
   });
 
-  it('should resolve setup-registered string guards on route transitions', () => {
-    const machine = setup({
-      types: {
-        context: {} as { ready: boolean }
-      },
-      guards: {
-        isReady: ({ context }) => context.ready
-      }
-    }).createMachine({
+  it('should resolve guards provided in machine config on route transitions', () => {
+    const machine = createMachine({
       id: 'flow',
       initial: 'amount',
       context: {
-        ready: false
+        ready: false as boolean
+      },
+      guards: {
+        isReady: ({ context }: { context: { ready: boolean } }) => context.ready
       },
       states: {
         amount: {
           id: 'amount',
           route: {},
           on: {
-            READY: {
-              actions: assign({ ready: true })
-            }
+            READY: () => ({
+              context: { ready: true }
+            })
           }
         },
         review: {
@@ -125,7 +121,7 @@ describe('route', () => {
   });
 
   it('should work with parallel states', () => {
-    const todoMachine = setup({}).createMachine({
+    const todoMachine = createMachine({
       id: 'todos',
       type: 'parallel',
       states: {
@@ -262,7 +258,7 @@ describe('route', () => {
   });
 
   it('machine.root.on should include route events', () => {
-    const machine = setup({}).createMachine({
+    const machine = createMachine({
       id: 'test',
       initial: 'a',
       states: {
@@ -284,7 +280,7 @@ describe('route', () => {
   });
 
   it('nested state on should include route events for child routes', () => {
-    const machine = setup({}).createMachine({
+    const machine = createMachine({
       id: 'app',
       initial: 'home',
       states: {
@@ -323,7 +319,7 @@ describe('route', () => {
   });
 
   it('parallel state on should include route events', () => {
-    const machine = setup({}).createMachine({
+    const machine = createMachine({
       id: 'todos',
       type: 'parallel',
       states: {
@@ -359,7 +355,7 @@ describe('route', () => {
   });
 
   it('should route to deeply nested state from anywhere', () => {
-    const machine = setup({}).createMachine({
+    const machine = createMachine({
       id: 'app',
       initial: 'home',
       states: {
@@ -391,7 +387,7 @@ describe('route', () => {
 
   it('should re-enter when routing to the current state', () => {
     let entries = 0;
-    const machine = setup({}).createMachine({
+    const machine = createMachine({
       id: 'test',
       initial: 'a',
       states: {
@@ -418,7 +414,7 @@ describe('route', () => {
   it('should route to self with guard', () => {
     let allowed = false;
     let entries = 0;
-    const machine = setup({}).createMachine({
+    const machine = createMachine({
       id: 'test',
       initial: 'a',
       states: {
@@ -447,12 +443,7 @@ describe('route', () => {
   });
 
   it('should not route using dot-separated nested id like #id.nested', () => {
-    const machine = setup({
-      types: {
-        // needed to avoid AnyEventObject widening
-        events: {} as never
-      }
-    }).createMachine({
+    const machine = createMachine({
       id: 'app',
       initial: 'home',
       states: {

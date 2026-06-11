@@ -1,9 +1,13 @@
-import { createActor, createMachine, assign, setup } from '../src/index.ts';
+import z from 'zod';
+import { createActor, createMachine } from '../src/index.ts';
 
 const pedestrianStates = {
   initial: 'walk',
   states: {
     walk: {
+      contextSchema: z.object({
+        color: z.literal('walk')
+      }),
       on: {
         PED_COUNTDOWN: 'wait'
       }
@@ -15,12 +19,15 @@ const pedestrianStates = {
     },
     stop: {}
   }
-};
+} as const;
 
 const lightMachine = createMachine({
   initial: 'green',
   states: {
     green: {
+      contextSchema: z.object({
+        color: z.literal('green')
+      }),
       on: {
         TIMER: 'yellow',
         POWER_OUTAGE: 'red',
@@ -95,84 +102,6 @@ describe('machine', () => {
   });
 
   describe('machine.provide', () => {
-    it('should override an action', () => {
-      const originalEntry = vi.fn();
-      const overridenEntry = vi.fn();
-
-      const machine = createMachine(
-        {
-          entry: 'entryAction'
-        },
-        {
-          actions: {
-            entryAction: originalEntry
-          }
-        }
-      );
-      const differentMachine = machine.provide({
-        actions: {
-          entryAction: overridenEntry
-        }
-      });
-
-      createActor(differentMachine).start();
-
-      expect(originalEntry).toHaveBeenCalledTimes(0);
-      expect(overridenEntry).toHaveBeenCalledTimes(1);
-    });
-
-    it('should override a guard', () => {
-      const originalGuard = vi.fn().mockImplementation(() => true);
-      const overridenGuard = vi.fn().mockImplementation(() => true);
-
-      const machine = createMachine(
-        {
-          on: {
-            EVENT: {
-              guard: 'someCondition',
-              actions: () => {}
-            }
-          }
-        },
-        {
-          guards: {
-            someCondition: originalGuard
-          }
-        }
-      );
-
-      const differentMachine = machine.provide({
-        guards: { someCondition: overridenGuard }
-      });
-
-      const actorRef = createActor(differentMachine).start();
-      actorRef.send({ type: 'EVENT' });
-
-      expect(originalGuard).toHaveBeenCalledTimes(0);
-      expect(overridenGuard).toHaveBeenCalledTimes(1);
-    });
-
-    it('should not override context if not defined', () => {
-      const machine = createMachine({
-        context: {
-          foo: 'bar'
-        }
-      });
-      const differentMachine = machine.provide({});
-      const actorRef = createActor(differentMachine).start();
-      expect(actorRef.getSnapshot().context).toEqual({ foo: 'bar' });
-    });
-
-    it.skip('should override context (second argument)', () => {
-      // const differentMachine = configMachine.withConfig(
-      //   {},
-      //   { foo: 'different' }
-      // );
-      // expect(differentMachine.initialState.context).toEqual({
-      //   foo: 'different'
-      // });
-    });
-
     // https://github.com/davidkpiano/xstate/issues/674
     it('should throw if initial state is missing in a compound state', () => {
       expect(() => {
@@ -196,7 +125,13 @@ describe('machine', () => {
 
     it('should lazily create context for all interpreter instances created from the same machine template created by `provide`', () => {
       const machine = createMachine({
-        types: {} as { context: { foo: { prop: string } } },
+        schemas: {
+          context: z.object({
+            foo: z.object({
+              prop: z.string()
+            })
+          })
+        },
         context: () => ({
           foo: { prop: 'baz' }
         })
@@ -240,7 +175,7 @@ describe('machine', () => {
     });
   });
 
-  describe('machine.resolveStateValue()', () => {
+  describe('machine.resolveState()', () => {
     const resolveMachine = createMachine({
       id: 'resolve',
       initial: 'foo',
@@ -313,7 +248,7 @@ describe('machine', () => {
         initial: 'a',
         states: {
           a: {
-            always: [{ target: 'b' }]
+            always: { target: 'b' }
           },
           b: {}
         }
@@ -374,12 +309,17 @@ describe('machine', () => {
   describe('combinatorial machines', () => {
     it('should support combinatorial machines (single-state)', () => {
       const testMachine = createMachine({
-        types: {} as { context: { value: number } },
+        // types: {} as { context: { value: number } },
+        schemas: {
+          context: z.object({ value: z.number() })
+        },
         context: { value: 42 },
         on: {
-          INC: {
-            actions: assign({ value: ({ context }) => context.value + 1 })
-          }
+          INC: ({ context }) => ({
+            context: {
+              value: context.value + 1
+            }
+          })
         }
       });
 
@@ -394,15 +334,18 @@ describe('machine', () => {
   });
 
   it('should pass through schemas', () => {
-    const machine = setup({
+    const machine = createMachine({
       schemas: {
-        context: { count: { type: 'number' } }
-      }
-    }).createMachine({});
-
-    expect(machine.schemas).toEqual({
-      context: { count: { type: 'number' } }
+        context: z.object({ count: z.number() })
+      },
+      context: () => ({ count: 42 })
     });
+
+    expect(machine.schemas).toEqual(
+      expect.objectContaining({
+        context: expect.anything()
+      })
+    );
   });
 });
 
@@ -417,5 +360,44 @@ describe('StateNode', () => {
       'POWER_OUTAGE',
       'FORBIDDEN_EVENT'
     ]);
+  });
+});
+
+describe('typestates', () => {
+  it('testing', () => {
+    const machine = createMachine({
+      schemas: {
+        context: z.object({
+          user: z.string().nullable()
+        })
+      },
+      context: {
+        user: null
+      },
+      initial: 'active',
+      states: {
+        active: {
+          contextSchema: z.object({
+            user: z.string()
+          }),
+          on: {
+            ACTIVATE: (x) => ({
+              target: 'inactive',
+              context: {
+                ...x.context,
+                user: 'test'
+              }
+            })
+          }
+        },
+        inactive: {
+          contextSchema: z.object({
+            user: z.null()
+          })
+        }
+      }
+    });
+
+    machine.states;
   });
 });

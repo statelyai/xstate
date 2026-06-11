@@ -1,4 +1,4 @@
-import { createMachine, getNextSnapshot } from '../src/index.ts';
+import { createMachine, transition } from '../src/index.ts';
 
 describe('invalid or resolved states', () => {
   it('should resolve a String state', () => {
@@ -22,9 +22,9 @@ describe('invalid or resolved states', () => {
       }
     });
     expect(
-      getNextSnapshot(machine, machine.resolveState({ value: 'A' }), {
+      transition(machine, machine.resolveState({ value: 'A' }), {
         type: 'E'
-      }).value
+      })[0].value
     ).toEqual({
       A: 'A1',
       B: 'B1'
@@ -52,11 +52,9 @@ describe('invalid or resolved states', () => {
       }
     });
     expect(
-      getNextSnapshot(
-        machine,
-        machine.resolveState({ value: { A: {}, B: {} } }),
-        { type: 'E' }
-      ).value
+      transition(machine, machine.resolveState({ value: { A: {}, B: {} } }), {
+        type: 'E'
+      })[0].value
     ).toEqual({
       A: 'A1',
       B: 'B1'
@@ -83,11 +81,9 @@ describe('invalid or resolved states', () => {
         }
       }
     });
-    getNextSnapshot(
-      machine,
-      machine.resolveState({ value: { A: 'A1', B: 'B1' } }),
-      { type: 'E' }
-    );
+    transition(machine, machine.resolveState({ value: { A: 'A1', B: 'B1' } }), {
+      type: 'E'
+    });
   });
 
   it('should reject transitioning from bad state configs', () => {
@@ -111,7 +107,7 @@ describe('invalid or resolved states', () => {
       }
     });
     expect(() =>
-      getNextSnapshot(
+      transition(
         machine,
         machine.resolveState({ value: { A: 'A3', B: 'B3' } }),
         { type: 'E' }
@@ -140,11 +136,9 @@ describe('invalid or resolved states', () => {
       }
     });
     expect(
-      getNextSnapshot(
-        machine,
-        machine.resolveState({ value: { A: 'A1', B: {} } }),
-        { type: 'E' }
-      ).value
+      transition(machine, machine.resolveState({ value: { A: 'A1', B: {} } }), {
+        type: 'E'
+      })[0].value
     ).toEqual({
       A: 'A1',
       B: 'B1'
@@ -167,6 +161,6 @@ describe('invalid transition', () => {
           RIGHT_CLICK: 'right'
         }
       });
-    }).toThrowError(/invalid target/i);
+    }).toThrow(/invalid target/i);
   });
 });

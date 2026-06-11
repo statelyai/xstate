@@ -1,10 +1,8 @@
 import isDevelopment from '#is-development';
 import { $$ACTOR_TYPE } from './createActor.ts';
-import type { StateNode } from './StateNode.ts';
-import type { StateMachine } from './StateMachine.ts';
-import { getStateValue } from './stateUtils.ts';
+import { getStateValue, getTransitionResult, hasEffect } from './stateUtils.ts';
 import type {
-  ProvidedActor,
+  AnyActorScope,
   AnyMachineSnapshot,
   AnyStateMachine,
   EventObject,
@@ -14,15 +12,17 @@ import type {
   StateValue,
   AnyActorRef,
   Snapshot,
-  ParameterizedObject,
   IsNever,
   MetaObject,
   StateSchema,
   StateId,
+  StateIdInputs,
   SnapshotStatus,
-  PersistedHistoryValue
+  PersistedHistoryValue,
+  AnyStateNode
 } from './types.ts';
 import { matchesState } from './utils.ts';
+import { createEmptyActor } from './actors/index.ts';
 
 type ToTestStateValue<TStateValue extends StateValue> =
   TStateValue extends string
@@ -46,6 +46,33 @@ export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
   );
 }
 
+let emptyCanActor: AnyActorRef | undefined;
+let emptyCanActorScope: AnyActorScope | undefined;
+
+function getEmptyCanActor() {
+  return (emptyCanActor ??= createEmptyActor());
+}
+
+function getEmptyCanActorScope(): AnyActorScope {
+  if (emptyCanActorScope) {
+    return emptyCanActorScope;
+  }
+
+  const actor = getEmptyCanActor();
+  emptyCanActorScope = {
+    self: actor,
+    logger: () => {},
+    id: '',
+    sessionId: '',
+    defer: () => {},
+    system: actor.system,
+    stopChild: () => {},
+    emit: () => {},
+    actionExecutor: () => {}
+  };
+  return emptyCanActorScope;
+}
+
 interface MachineSnapshotBase<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -57,22 +84,7 @@ interface MachineSnapshotBase<
   TStateSchema extends StateSchema = StateSchema
 > {
   /** The state machine that produced this state snapshot. */
-  machine: StateMachine<
-    TContext,
-    TEvent,
-    TChildren,
-    ProvidedActor,
-    ParameterizedObject,
-    ParameterizedObject,
-    string,
-    TStateValue,
-    TTag,
-    unknown,
-    TOutput,
-    EventObject, // TEmitted
-    any, // TMeta
-    TStateSchema
-  >;
+  machine: AnyStateMachine;
   /** The tags of the active state nodes that represent the current state value. */
   tags: Set<string>;
   /**
@@ -102,11 +114,13 @@ interface MachineSnapshotBase<
   error: unknown;
   context: TContext;
 
-  historyValue: Readonly<HistoryValue<TContext, TEvent>>;
+  historyValue: Readonly<HistoryValue>;
   /** The enabled state nodes representative of the state value. */
-  _nodes: Array<StateNode<TContext, TEvent>>;
+  _nodes: Array<AnyStateNode>;
   /** An object mapping actor names to spawned/invoked actors. */
   children: TChildren;
+  /** @internal */
+  _stateInputs: Record<string, Record<string, unknown>>;
 
   /**
    * Whether the current state value is a subset of the given partial state
@@ -137,6 +151,12 @@ interface MachineSnapshotBase<
     StateId<TStateSchema> & string,
     TMeta | undefined // States might not have meta defined
   >;
+
+  /**
+   * Returns the inputs for the current active state nodes, keyed by state node
+   * id.
+   */
+  getInputs: () => StateIdInputs<TStateSchema>;
 
   toJSON: () => unknown;
 }
@@ -312,21 +332,45 @@ const machineSnapshotCan = function can(
     );
   }
 
-  const transitionData = this.machine.getTransitionData(this, event);
-
-  return (
-    !!transitionData?.length &&
-    // Check that at least one transition is not forbidden
-    transitionData.some((t) => t.target !== undefined || t.actions.length)
+  const emptyActor = getEmptyCanActor();
+  const emptyActorScope = getEmptyCanActorScope();
+  const transitionData = this.machine.getTransitionData(
+    this,
+    event,
+    emptyActor
   );
+
+  if (!transitionData?.length) {
+    return false;
+  }
+
+  // Check that at least one transition is not forbidden
+  for (const transition of transitionData) {
+    if (transition.target !== undefined) {
+      return true;
+    }
+
+    const res = getTransitionResult(transition, this, event, emptyActorScope);
+    if (
+      res.targets?.length ||
+      res.context ||
+      hasEffect(transition, this.context, event, this, emptyActor)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 };
 
 const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
     _nodes: nodes,
+    _stateInputs,
     tags,
     machine,
     getMeta,
+    getInputs,
     toJSON,
     can,
     hasTag,
@@ -337,16 +381,28 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
 };
 
 const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
-  return this._nodes.reduce(
-    (acc, stateNode) => {
-      if (stateNode.meta !== undefined) {
-        acc[stateNode.id] = stateNode.meta;
-      }
-      return acc;
-    },
-    {} as Record<string, any>
-  );
+  const meta: Record<string, any> = {};
+  for (const stateNode of this._nodes) {
+    if (stateNode.meta !== undefined) {
+      meta[stateNode.id] = stateNode.meta;
+    }
+  }
+  return meta;
 };
+
+const machineSnapshotGetInputs = function getInputs(this: AnyMachineSnapshot) {
+  return this._stateInputs as any;
+};
+
+function collectTags(stateNodes: Array<AnyStateNode>): Set<string> {
+  const tags = new Set<string>();
+  for (const stateNode of stateNodes) {
+    for (const tag of stateNode.tags) {
+      tags.add(tag);
+    }
+  }
+  return tags;
+}
 
 export function createMachineSnapshot<
   TContext extends MachineContext,
@@ -376,14 +432,17 @@ export function createMachineSnapshot<
     machine,
     context: config.context,
     _nodes: config._nodes,
-    value: getStateValue(machine.root, config._nodes) as never,
-    tags: new Set(config._nodes.flatMap((sn) => sn.tags)),
+    value: (config.value ??
+      getStateValue(machine.root, config._nodes)) as never,
+    tags: collectTags(config._nodes),
     children: config.children as any,
     historyValue: config.historyValue || {},
+    _stateInputs: config._stateInputs || {},
     matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
     can: machineSnapshotCan,
     getMeta: machineSnapshotGetMeta,
+    getInputs: machineSnapshotGetInputs,
     toJSON: machineSnapshotToJSON
   };
 }
@@ -392,19 +451,45 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
   snapshot: TState,
   config: Partial<StateConfig<any, any>> = {}
 ): TState {
+  const configWithSnapshot = {
+    ...snapshot,
+    ...config
+  } as StateConfig<any, any>;
+
+  if ((config._nodes ?? snapshot._nodes) === snapshot._nodes) {
+    return {
+      status: configWithSnapshot.status as never,
+      output: configWithSnapshot.output,
+      error: configWithSnapshot.error,
+      machine: snapshot.machine,
+      context: configWithSnapshot.context,
+      _nodes: snapshot._nodes,
+      value: snapshot.value,
+      tags: snapshot.tags,
+      children: configWithSnapshot.children as any,
+      historyValue: configWithSnapshot.historyValue || {},
+      _stateInputs: configWithSnapshot._stateInputs || {},
+      matches: machineSnapshotMatches as never,
+      hasTag: machineSnapshotHasTag,
+      can: machineSnapshotCan,
+      getMeta: machineSnapshotGetMeta,
+      getInputs: machineSnapshotGetInputs,
+      toJSON: machineSnapshotToJSON
+    } as unknown as TState;
+  }
+
   return createMachineSnapshot(
-    { ...snapshot, ...config } as StateConfig<any, any>,
+    {
+      ...configWithSnapshot,
+      value: undefined
+    },
     snapshot.machine
   ) as TState;
 }
 
-function serializeHistoryValue<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(historyValue: HistoryValue<TContext, TEvent>): PersistedHistoryValue {
-  if (typeof historyValue !== 'object' || historyValue === null) {
-    return {};
-  }
+function serializeHistoryValue(
+  historyValue: HistoryValue
+): PersistedHistoryValue {
   const result: PersistedHistoryValue = {};
 
   for (const key in historyValue) {
@@ -440,6 +525,7 @@ export function getPersistedSnapshot<
 ): Snapshot<unknown> {
   const {
     _nodes: nodes,
+    _stateInputs,
     tags,
     machine,
     children,
@@ -448,6 +534,7 @@ export function getPersistedSnapshot<
     hasTag,
     matches,
     getMeta,
+    getInputs,
     toJSON,
     ...jsonValues
   } = snapshot;
@@ -475,9 +562,7 @@ export function getPersistedSnapshot<
     ...jsonValues,
     context: persistContext(context) as any,
     children: childrenJson,
-    historyValue: serializeHistoryValue<TContext, TEvent>(
-      jsonValues.historyValue
-    )
+    historyValue: serializeHistoryValue(jsonValues.historyValue)
   };
 
   return persisted;

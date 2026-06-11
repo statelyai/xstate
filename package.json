@@ -5,7 +5,8 @@
   "workspaces": {
     "packages": [
       "packages/*",
-      "scripts/*"
+      "scripts/*",
+      "examples/*"
     ]
   },
   "preconstruct": {
@@ -24,10 +25,16 @@
       "distInRoot": true
     }
   },
+  "manypkg": {
+    "ignoredRules": [
+      "EXTERNAL_MISMATCH"
+    ]
+  },
   "scripts": {
     "preinstall": "node ./scripts/ensure-pnpm.js",
     "postinstall": "manypkg check && preconstruct dev",
     "build": "preconstruct build",
+    "watch": "preconstruct watch",
     "update:examples": "pnpm update:examples:deps && pnpm update:examples:links",
     "update:examples:deps": "node ./scripts/update-example-deps.js",
     "update:examples:links": "node ./scripts/update-example-links.js",
@@ -38,8 +45,12 @@
     "test:watch": "vitest",
     "test:core": "vitest run --project xstate",
     "test:core:watch": "vitest --project xstate",
+    "test:core:coverage": "vitest run --project xstate --coverage --coverage.provider=istanbul --coverage.include=packages/core/src/**/*.ts --coverage.exclude=**/*.test.ts",
     "test:store": "vitest run --project @xstate/store*",
     "test:store:watch": "vitest --project @xstate/store*",
+    "bench:size": "node scripts/bundle-size.mjs",
+    "bench:size:update": "node scripts/bundle-size.mjs --update",
+    "bench:type-errors": "node scripts/type-error-quality.mjs",
     "changeset": "changeset",
     "release": "pnpm -r publish --access=public && changeset tag",
     "version": "changeset version"
@@ -66,6 +77,7 @@
     "@manypkg/cli": "^0.21.4",
     "@preconstruct/cli": "^2.8.13",
     "@types/node": "^25.2.1",
+    "@vitest/coverage-istanbul": "^3",
     "babel-preset-solid": "^1.8.4",
     "eslint": "^10.1.0",
     "eslint-plugin-jsdoc": "^50.6.14",
@@ -94,7 +106,8 @@
   },
   "pnpm": {
     "overrides": {
-      "@types/node": "25.2.1"
+      "@types/node": "25.2.1",
+      "vue": "3.5.17"
     },
     "patchedDependencies": {
       "@vue/test-utils@2.4.6": "patches/@vue__test-utils@2.4.6.patch"

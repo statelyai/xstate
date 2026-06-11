@@ -1,4 +1,3 @@
-import { XSTATE_STOP } from '../constants.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
@@ -9,6 +8,7 @@ import {
   NonReducibleUnknown,
   Snapshot
 } from '../types';
+import { createLogic as createBaseLogic } from './logic.ts';
 
 interface CallbackInstanceState<TEvent extends EventObject> {
   receivers: Set<(e: TEvent) => void> | undefined;
@@ -22,6 +22,12 @@ const instanceStates = /* #__PURE__ */ new WeakMap<
 
 export type CallbackSnapshot<TInput> = Snapshot<undefined> & {
   input: TInput;
+  effects?: Record<
+    string,
+    | { status: 'active' }
+    | { status: 'done'; output?: unknown }
+    | { status: 'error'; error: unknown }
+  >;
 };
 
 export type CallbackActorLogic<
@@ -180,6 +186,59 @@ export type CallbackLogicFunction<
  * @see {@link CallbackLogicFunction} for more information about the callback function and its object argument
  * @see {@link https://stately.ai/docs/input | Input docs} for more information about how input is passed
  */
+export function createCallbackLogic<
+  TEvent extends EventObject,
+  TInput = NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
+  callback: CallbackLogicFunction<TEvent, AnyEventObject, TInput, TEmitted>
+): CallbackActorLogic<TEvent, TInput, TEmitted> {
+  return createBaseLogic<undefined, undefined, TEvent, TInput, TEmitted>({
+    context: undefined,
+    run: (args, enq) => {
+      const { event, input, self, system } = args;
+      const emit = (args as any).emit as (emitted: TEmitted) => void;
+      const callbackState = instanceStates.get(self as any);
+      callbackState?.receivers?.forEach((receiver) => receiver(event));
+
+      enq.effect('callback', () => {
+        const callbackState: CallbackInstanceState<TEvent> = {
+          receivers: undefined,
+          dispose: undefined
+        };
+
+        instanceStates.set(self as any, callbackState);
+
+        callbackState.dispose = callback({
+          input,
+          system,
+          self: self as any,
+          sendBack: (event) => {
+            if (self.getSnapshot().status === 'stopped') {
+              return;
+            }
+            const parent = (self as any)._parent;
+            if (parent) {
+              system._relay(self as any, parent, event);
+            }
+          },
+          receive: (listener) => {
+            callbackState.receivers ??= new Set();
+            callbackState.receivers.add(listener);
+          },
+          emit: emit as (emitted: TEmitted) => void
+        });
+
+        return () => {
+          instanceStates.delete(self as any);
+          callbackState.receivers?.clear();
+          callbackState.dispose?.();
+        };
+      });
+    }
+  }) as unknown as CallbackActorLogic<TEvent, TInput, TEmitted>;
+}
+
 export function fromCallback<
   TEvent extends EventObject,
   TInput = NonReducibleUnknown,
@@ -187,70 +246,5 @@ export function fromCallback<
 >(
   callback: CallbackLogicFunction<TEvent, AnyEventObject, TInput, TEmitted>
 ): CallbackActorLogic<TEvent, TInput, TEmitted> {
-  const logic: CallbackActorLogic<TEvent, TInput, TEmitted> = {
-    config: callback,
-    start: (state, actorScope) => {
-      const { self, system, emit } = actorScope;
-
-      const callbackState: CallbackInstanceState<TEvent> = {
-        receivers: undefined,
-        dispose: undefined
-      };
-
-      instanceStates.set(self, callbackState);
-
-      callbackState.dispose = callback({
-        input: state.input,
-        system,
-        self,
-        sendBack: (event) => {
-          if (self.getSnapshot().status === 'stopped') {
-            return;
-          }
-          if (self._parent) {
-            system._relay(self, self._parent, event);
-          }
-        },
-        receive: (listener) => {
-          callbackState.receivers ??= new Set();
-          callbackState.receivers.add(listener);
-        },
-        emit
-      });
-    },
-    transition: (state, event, actorScope) => {
-      const callbackState: CallbackInstanceState<TEvent> = instanceStates.get(
-        actorScope.self
-      )!;
-
-      if (event.type === XSTATE_STOP) {
-        state = {
-          ...state,
-          status: 'stopped',
-          error: undefined
-        };
-
-        instanceStates.delete(actorScope.self);
-        callbackState.receivers?.clear();
-        callbackState.dispose?.();
-        return state;
-      }
-
-      callbackState.receivers?.forEach((receiver) => receiver(event));
-
-      return state;
-    },
-    getInitialSnapshot: (_, input) => {
-      return {
-        status: 'active',
-        output: undefined,
-        error: undefined,
-        input
-      };
-    },
-    getPersistedSnapshot: (snapshot) => snapshot,
-    restoreSnapshot: (snapshot: any) => snapshot
-  };
-
-  return logic;
+  return createCallbackLogic(callback);
 }

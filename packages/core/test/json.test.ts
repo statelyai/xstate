@@ -1,4 +1,5 @@
-import { createMachine, assign } from '../src/index';
+import { createMachineFromConfig } from '../src/createMachineFromConfig';
+
 import * as machineSchema from '../src/machine.schema.json';
 
 import Ajv from 'ajv';
@@ -8,12 +9,7 @@ const validate = ajv.compile(machineSchema);
 
 describe('json', () => {
   it('should serialize the machine', () => {
-    interface Context {
-      [key: string]: any;
-    }
-
-    const machine = createMachine({
-      types: {} as { context: Context },
+    const machine = createMachineFromConfig({
       initial: 'foo',
       version: '1.0.0',
       context: {
@@ -25,38 +21,23 @@ describe('json', () => {
         testActions: {
           invoke: [{ id: 'invokeId', src: 'invokeSrc' }],
           entry: [
-            'stringActionType',
+            { type: 'stringActionType' },
             {
               type: 'objectActionType'
             },
             {
               type: 'objectActionTypeWithExec',
-              exec: () => {
-                return true;
-              },
-              other: 'any'
-            },
-            function actionFunction() {
-              return true;
-            },
-            // TODO: investigate why this had to be casted to any to satisfy TS
-            assign({
-              number: 10,
-              string: 'test',
-              evalNumber: () => 42
-            }) as any,
-            assign((ctx) => ({
-              ...ctx
-            }))
+              params: { other: 'any' }
+            }
           ],
           on: {
             TO_FOO: {
               target: ['foo', 'bar'],
-              guard: ({ context }) => !!context.string
+              guard: { type: 'isString', params: { string: 'hello' } }
             }
           },
           after: {
-            1000: 'bar'
+            1000: { target: 'bar' }
           }
         },
         foo: {},
@@ -92,7 +73,7 @@ describe('json', () => {
       output: { result: 42 }
     });
 
-    const json = JSON.parse(JSON.stringify(machine.definition));
+    const json = JSON.parse(JSON.stringify((machine as any).definition));
 
     try {
       validate(json);
@@ -116,18 +97,18 @@ describe('json', () => {
   });
 
   it('should not double-serialize invoke transitions', () => {
-    const machine = createMachine({
+    const machine = createMachineFromConfig({
       initial: 'active',
       states: {
         active: {
           id: 'active',
           invoke: {
             src: 'someSrc',
-            onDone: 'foo',
-            onError: 'bar'
+            onDone: { target: 'foo' },
+            onError: { target: 'bar' }
           },
           on: {
-            EVENT: 'foo'
+            EVENT: { target: 'foo' }
           }
         },
         foo: {},
@@ -139,54 +120,36 @@ describe('json', () => {
 
     const machineObject = JSON.parse(machineJSON);
 
-    const revivedMachine = createMachine(machineObject);
+    const revivedMachine = createMachineFromConfig(machineObject);
+
+    // Invoke transitions stay on the invoke definition — not duplicated
+    // into the `on` map.
+    expect(machineObject.states.active.on).toEqual({
+      EVENT: { target: 'foo' }
+    });
+    expect(machineObject.states.active.invoke).toEqual({
+      src: 'someSrc',
+      onDone: { target: 'foo' },
+      onError: { target: 'bar' }
+    });
+
+    // A second round-trip is byte-stable.
+    expect(JSON.stringify(revivedMachine)).toBe(machineJSON);
 
     expect([...revivedMachine.states.active.transitions.values()].flat())
       .toMatchInlineSnapshot(`
-      [
-        {
-          "actions": [],
-          "eventType": "EVENT",
-          "guard": undefined,
-          "reenter": false,
-          "source": "#active",
-          "target": [
-            "#(machine).foo",
-          ],
-          "toJSON": [Function],
-        },
-        {
-          "actions": [],
-          "eventType": "xstate.done.actor.0.active",
-          "guard": undefined,
-          "reenter": false,
-          "source": "#active",
-          "target": [
-            "#(machine).foo",
-          ],
-          "toJSON": [Function],
-        },
-        {
-          "actions": [],
-          "eventType": "xstate.error.actor.0.active",
-          "guard": undefined,
-          "reenter": false,
-          "source": "#active",
-          "target": [
-            "#(machine).bar",
-          ],
-          "toJSON": [Function],
-        },
-      ]
-    `);
-
-    // 1. onDone
-    // 2. onError
-    // 3. EVENT
-    expect(
-      [
-        ...revivedMachine.getStateNodeById('active').transitions.values()
-      ].flatMap((t) => t).length
-    ).toBe(3);
+        [
+          {
+            "description": undefined,
+            "eventType": "EVENT",
+            "reenter": false,
+            "source": "#active",
+            "target": [
+              "#(machine).foo",
+            ],
+            "toJSON": [Function],
+          },
+        ]
+      `);
   });
 });

@@ -39,4 +39,7 @@ api/
 # pnpm
 .pnpm-lock.yaml
 
+# Scratch
+xstate_discussions.json
+ideas.md
 .claude

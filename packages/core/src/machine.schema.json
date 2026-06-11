@@ -1,338 +1,222 @@
 {
-  "type": "object",
   "$schema": "http://json-schema.org/draft-07/schema",
+  "title": "XState v6 machine definition (MachineJSON)",
+  "description": "The JSON-serializable subset of an XState machine definition, as accepted by createMachineFromConfig and produced by machine.definition / JSON.stringify(machine). Runtime implementations (inline functions, actor logic, schemas) appear as { \"$unserializable\": ... } markers; a definition is fully portable iff it contains no markers.",
+  "$ref": "#/$defs/machine",
   "$defs": {
+    "unserializable": {
+      "type": "object",
+      "description": "Marker for a value that exists at runtime but cannot be represented as data (inline function, actor logic, runtime schema). Reviving a definition containing markers requires re-providing these implementations.",
+      "properties": {
+        "$unserializable": {
+          "type": "string",
+          "enum": ["function", "actor", "schema", "value"]
+        },
+        "id": { "type": "string" }
+      },
+      "required": ["$unserializable"],
+      "additionalProperties": false
+    },
     "actionObject": {
       "type": "object",
+      "description": "A serialized action: a built-in (@xstate.raise, @xstate.cancel, @xstate.log, @xstate.emit, @xstate.assign), an SCXML executable-content op (scxml.*), or a custom { type, params } action resolved from the machine's named actions.",
       "properties": {
-        "type": {
-          "type": "string",
-          "description": "The action type"
-        }
+        "type": { "type": "string" }
       },
-      "additionalProperties": true,
-      "required": ["type"]
+      "required": ["type"],
+      "additionalProperties": true
     },
-    "baseStateNode": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "key": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string",
-          "enum": ["atomic", "compound", "parallel", "final", "history"]
-        },
-        "order": {
-          "$ref": "#/$defs/order"
-        },
-        "description": {
-          "type": "string",
-          "description": "The description of the state node, in Markdown"
-        }
-      },
-      "required": ["id", "key", "type"]
-    },
-    "compoundStateNode": {
-      "allOf": [
-        { "$ref": "#/$defs/baseStateNode" },
-        {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "pattern": "compound"
-            },
-            "entry": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/actionObject"
-              }
-            },
-            "exit": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/actionObject"
-              }
-            },
-            "initial": {
-              "$ref": "#/$defs/initialTransitionObject"
-            },
-            "invoke": {
-              "$ref": "#/$defs/invokeArray"
-            },
-            "on": {
-              "$ref": "#/$defs/transitionsObject"
-            },
-            "states": {
-              "$ref": "#/$defs/statesObject"
-            }
-          },
-          "required": ["states"]
-        }
+    "action": {
+      "oneOf": [
+        { "$ref": "#/$defs/actionObject" },
+        { "$ref": "#/$defs/unserializable" }
       ]
     },
-    "parallelStateNode": {
-      "allOf": [
-        { "$ref": "#/$defs/baseStateNode" },
-        {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "pattern": "parallel"
-            },
-            "entry": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/actionObject"
-              }
-            },
-            "exit": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/actionObject"
-              }
-            },
-            "invoke": {
-              "$ref": "#/$defs/invokeArray"
-            },
-            "on": {
-              "$ref": "#/$defs/transitionsObject"
-            },
-            "states": {
-              "$ref": "#/$defs/statesObject"
-            }
-          },
-          "required": ["states"]
-        }
-      ]
+    "actionList": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/action" }
     },
-    "atomicStateNode": {
-      "allOf": [
-        { "$ref": "#/$defs/baseStateNode" },
-        {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "pattern": "atomic"
-            },
-            "entry": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/actionObject"
-              }
-            },
-            "exit": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/actionObject"
-              }
-            },
-            "invoke": {
-              "$ref": "#/$defs/invokeArray"
-            },
-            "on": {
-              "$ref": "#/$defs/transitionsObject"
-            }
-          },
-          "required": ["on"]
-        }
-      ]
-    },
-    "historyStateNode": {
-      "allOf": [
-        { "$ref": "#/$defs/baseStateNode" },
-        {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "pattern": "history"
-            },
-            "history": {
-              "type": "string",
-              "enum": ["shallow", "deep"]
-            }
-          },
-          "required": ["history"]
-        }
-      ]
-    },
-    "finalStateNode": {
-      "allOf": [
-        { "$ref": "#/$defs/baseStateNode" },
-        {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "pattern": "final"
-            },
-            "data": {
-              "type": "object"
-            }
-          }
-        }
-      ]
-    },
-    "statesObject": {
-      "type": "object",
-      "patternProperties": {
-        "^.*$": {
-          "oneOf": [
-            { "$ref": "#/$defs/atomicStateNode" },
-            { "$ref": "#/$defs/compoundStateNode" },
-            { "$ref": "#/$defs/parallelStateNode" },
-            { "$ref": "#/$defs/historyStateNode" },
-            { "$ref": "#/$defs/finalStateNode" }
-          ]
-        }
-      }
-    },
-    "initialTransitionObject": {
+    "guardObject": {
       "type": "object",
       "properties": {
-        "actions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/actionObject"
-          }
-        },
-        "source": {
-          "type": "string"
-        },
-        "target": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1
-        }
+        "type": { "type": "string" },
+        "params": { "type": "object" }
       },
-      "required": ["actions", "source", "target"]
-    },
-    "transitionsObject": {
-      "type": "object",
-      "patternProperties": {
-        "^.*$": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/transitionObject"
-          }
-        }
-      }
+      "required": ["type"],
+      "additionalProperties": true
     },
     "transitionObject": {
       "type": "object",
       "properties": {
-        "actions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/actionObject"
-          }
-        },
-        "cond": {
-          "type": "object"
-        },
-        "eventType": {
-          "type": "string"
-        },
-        "source": {
-          "type": "string"
-        },
         "target": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "actions": { "$ref": "#/$defs/actionList" },
+        "guard": {
+          "oneOf": [
+            { "$ref": "#/$defs/guardObject" },
+            { "$ref": "#/$defs/unserializable" }
+          ]
+        },
+        "to": { "$ref": "#/$defs/unserializable" },
+        "input": {},
+        "description": { "type": "string" },
+        "reenter": { "type": "boolean" },
+        "meta": { "type": "object" }
       },
-      "required": ["actions", "eventType", "source", "target"]
+      "additionalProperties": false
+    },
+    "transition": {
+      "oneOf": [
+        { "type": "string" },
+        { "$ref": "#/$defs/transitionObject" },
+        { "$ref": "#/$defs/unserializable" }
+      ]
+    },
+    "transitionOrArray": {
+      "oneOf": [
+        { "$ref": "#/$defs/transition" },
+        { "type": "array", "items": { "$ref": "#/$defs/transition" } }
+      ]
+    },
+    "transitionMap": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/transitionOrArray" }
     },
     "invokeObject": {
       "type": "object",
       "properties": {
-        "type": {
-          "type": "string"
-        },
-        "id": {
-          "type": "string"
-        },
+        "id": { "type": "string" },
+        "systemId": { "type": "string" },
         "src": {
-          "type": "string"
-        }
+          "oneOf": [{ "type": "string" }, { "$ref": "#/$defs/unserializable" }]
+        },
+        "input": {},
+        "onDone": { "$ref": "#/$defs/transitionOrArray" },
+        "onError": { "$ref": "#/$defs/transitionOrArray" },
+        "onSnapshot": { "$ref": "#/$defs/transitionOrArray" },
+        "onTimeout": { "$ref": "#/$defs/transitionOrArray" },
+        "timeout": { "$ref": "#/$defs/duration" }
       },
-      "required": ["type", "id", "src"],
+      "required": ["src"],
       "additionalProperties": false
     },
-    "invokeArray": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/invokeObject"
-      }
+    "invoke": {
+      "oneOf": [
+        { "$ref": "#/$defs/invokeObject" },
+        { "type": "array", "items": { "$ref": "#/$defs/invokeObject" } }
+      ]
     },
-    "functionObject": {
-      "type": "object",
-      "properties": {
-        "$function": {
-          "type": "string"
-        }
-      }
-    },
-    "order": {
-      "type": "integer"
-    }
-  },
-  "properties": {
-    "id": {
-      "title": "ID",
-      "type": "string"
+    "duration": {
+      "oneOf": [
+        { "type": "number" },
+        {
+          "type": "string",
+          "description": "'250ms', '5s'/'1.5s', or an ISO 8601 duration ('PT1M30S')"
+        },
+        { "$ref": "#/$defs/unserializable" }
+      ]
     },
     "initial": {
-      "$ref": "#/$defs/initialTransitionObject"
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "properties": {
+            "target": { "type": "string" },
+            "input": {}
+          },
+          "required": ["target"],
+          "additionalProperties": false
+        }
+      ]
     },
-    "key": {
-      "type": "string"
+    "implementationMap": {
+      "type": "object",
+      "description": "Named implementations. Keys are the contract a revived machine must fulfill (e.g. via provide()); values are usually unserializable markers.",
+      "additionalProperties": true
     },
-    "type": {
-      "type": "string",
-      "enum": ["compound", "parallel"]
+    "stateNode": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "key": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "atomic",
+            "compound",
+            "parallel",
+            "final",
+            "history",
+            "choice"
+          ]
+        },
+        "initial": { "$ref": "#/$defs/initial" },
+        "states": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/stateNode" }
+        },
+        "on": { "$ref": "#/$defs/transitionMap" },
+        "after": { "$ref": "#/$defs/transitionMap" },
+        "always": { "$ref": "#/$defs/transitionOrArray" },
+        "choice": {
+          "oneOf": [
+            { "$ref": "#/$defs/transition" },
+            { "$ref": "#/$defs/unserializable" }
+          ]
+        },
+        "invoke": { "$ref": "#/$defs/invoke" },
+        "entry": {
+          "oneOf": [
+            { "$ref": "#/$defs/actionList" },
+            { "$ref": "#/$defs/action" }
+          ]
+        },
+        "exit": {
+          "oneOf": [
+            { "$ref": "#/$defs/actionList" },
+            { "$ref": "#/$defs/action" }
+          ]
+        },
+        "timeout": { "$ref": "#/$defs/duration" },
+        "onTimeout": { "$ref": "#/$defs/transitionOrArray" },
+        "meta": { "type": "object" },
+        "description": { "type": "string" },
+        "history": { "type": "string", "enum": ["shallow", "deep"] },
+        "target": { "type": "string" },
+        "output": {},
+        "input": {},
+        "tags": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "context": {
+          "oneOf": [{ "type": "object" }, { "$ref": "#/$defs/unserializable" }]
+        },
+        "_scxmlDonedata": { "type": "object" },
+        "version": { "type": "string" },
+        "internalEvents": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "triggers": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "schemas": { "type": "object" },
+        "actions": { "$ref": "#/$defs/implementationMap" },
+        "guards": { "$ref": "#/$defs/implementationMap" },
+        "actors": { "$ref": "#/$defs/implementationMap" },
+        "delays": { "$ref": "#/$defs/implementationMap" }
+      },
+      "additionalProperties": false
     },
-    "context": {
-      "type": "object"
-    },
-    "states": {
-      "$ref": "#/$defs/statesObject"
-    },
-    "on": {
-      "$ref": "#/$defs/transitionsObject"
-    },
-    "transitions": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/transitionObject"
-      }
-    },
-    "entry": {
-      "type": "array"
-    },
-    "exit": {
-      "type": "array"
-    },
-    "order": {
-      "$ref": "#/$defs/order"
-    },
-    "invoke": {
-      "$ref": "#/$defs/invokeArray"
-    },
-    "version": {
-      "type": "string"
-    }
-  },
-  "required": ["id", "key", "type", "states"]
+    "machine": { "$ref": "#/$defs/stateNode" }
+  }
 }

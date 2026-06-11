@@ -191,7 +191,7 @@ export function fromTransition<
         self: TransitionActorRef<TContext, TEvent>;
       }) => TContext) // TODO: type
 ): TransitionActorLogic<TContext, TEvent, TInput, TEmitted> {
-  return {
+  const logic: TransitionActorLogic<TContext, TEvent, TInput, TEmitted> = {
     config: transition,
     transition: (snapshot, event, actorScope) => {
       return {
@@ -213,4 +213,5 @@ export function fromTransition<
     getPersistedSnapshot: (snapshot) => snapshot,
     restoreSnapshot: (snapshot: any) => snapshot
   };
+  return logic;
 }

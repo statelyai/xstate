@@ -68,6 +68,9 @@ export function getSimplePaths<TLogic extends AnyActorLogic>(
 
       toStatePlan.paths.push(path2);
     } else {
+      if (!adjacency[fromStateSerial]) {
+        return;
+      }
       for (const serializedEvent of Object.keys(
         adjacency[fromStateSerial].transitions
       ) as SerializedEvent[]) {

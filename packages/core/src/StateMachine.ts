@@ -1,7 +1,8 @@
 import isDevelopment from '#is-development';
-import { assign } from './actions.ts';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import { createInitEvent } from './eventUtils.ts';
+import { machineConfigToJSON } from './serialize.ts';
+import { createSpawner } from './spawn.ts';
 import {
   createMachineSnapshot,
   getPersistedSnapshot,
@@ -17,7 +18,7 @@ import {
   isInFinalState,
   isStateId,
   macrostep,
-  resolveActionsAndContext,
+  resolveAndExecuteActionsWithContext,
   resolveStateValue,
   transitionNode
 } from './stateUtils.ts';
@@ -29,29 +30,31 @@ import type {
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
-  DoNotInfer,
+  AnyTransitionDefinition,
   Equals,
   EventDescriptor,
   EventObject,
   HistoryValue,
-  InternalMachineImplementations,
-  MachineConfig,
   MachineContext,
-  MachineImplementationsSimplified,
-  MachineOptions,
   MetaObject,
-  ParameterizedObject,
-  ProvidedActor,
   Snapshot,
   SnapshotFrom,
-  StateMachineDefinition,
   StateValue,
-  TransitionDefinition,
-  ResolvedStateMachineTypes,
   StateSchema,
-  SnapshotStatus
+  SnapshotStatus,
+  AnyStateNode
 } from './types.ts';
-import { resolveReferencedActor, toStatePath } from './utils.ts';
+import {
+  Implementations,
+  Next_MachineConfig,
+  Trigger,
+  MachineOptions
+} from './types.v6.ts';
+import {
+  matchesEventDescriptor,
+  resolveReferencedActor,
+  toStatePath
+} from './utils.ts';
 
 const STATE_IDENTIFIER = '#';
 
@@ -59,17 +62,17 @@ export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
   TStateValue extends StateValue,
   TTag extends string,
   TInput,
   TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
-  TStateSchema extends StateSchema
+  TConfig extends StateSchema,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > implements
     ActorLogic<
       MachineSnapshot<
@@ -80,7 +83,7 @@ export class StateMachine<
         TTag,
         TOutput,
         TMeta,
-        TStateSchema
+        TConfig
       >,
       TEvent,
       TInput,
@@ -93,16 +96,13 @@ export class StateMachine<
 
   public schemas: unknown;
 
-  public implementations: MachineImplementationsSimplified<TContext, TEvent>;
+  public implementations: Implementations;
 
   /** Runtime options for machine execution. */
   public options: MachineOptions;
 
   /** @internal */
-  public __xstatenode = true as const;
-
-  /** @internal */
-  public idMap: Map<string, StateNode<TContext, TEvent>> = new Map();
+  public idMap: Map<string, AnyStateNode> = new Map();
 
   public root: StateNode<TContext, TEvent>;
 
@@ -110,35 +110,46 @@ export class StateMachine<
 
   public states: StateNode<TContext, TEvent>['states'];
   public events: Array<EventDescriptor<TEvent>>;
+  public internalEventDescriptors: ReadonlyArray<string>;
+  /**
+   * Triggers describing how this machine is activated by external
+   * infrastructure (webhooks, cron, events, etc.). Metadata only — does not
+   * affect runtime execution.
+   */
+  public triggers: ReadonlyArray<Trigger>;
 
   constructor(
     /** The raw config used to create the machine. */
-    public config: MachineConfig<
-      TContext,
-      TEvent,
+    public config: Next_MachineConfig<
       any,
       any,
       any,
       any,
       any,
       any,
-      TOutput,
-      any, // TEmitted
-      any // TMeta
+      any,
+      any,
+      any,
+      any // TEmitted
     > & {
       schemas?: unknown;
+      internalEvents?: readonly string[];
+      triggers?: readonly Trigger[];
     },
-    implementations?: MachineImplementationsSimplified<TContext, TEvent>
+    implementations?: Implementations
   ) {
     this.id = config.id || '(machine)';
     this.implementations = {
-      actors: implementations?.actors ?? {},
-      actions: implementations?.actions ?? {},
-      delays: implementations?.delays ?? {},
-      guards: implementations?.guards ?? {}
+      actors: config.actors ?? {},
+      actions: config.actions ?? {},
+      delays: (config.delays ?? {}) as Implementations['delays'],
+      guards: config.guards ?? {},
+      ...implementations
     };
     this.version = this.config.version;
     this.schemas = this.config.schemas;
+    this.internalEventDescriptors = this.config.internalEvents ?? [];
+    this.triggers = this.config.triggers ?? [];
     this.options = {
       maxIterations: Infinity,
       ...this.config.options
@@ -150,13 +161,14 @@ export class StateMachine<
     this.restoreSnapshot = this.restoreSnapshot.bind(this);
     this.start = this.start.bind(this);
 
-    this.root = new StateNode(config, {
+    this.root = new StateNode(config as any, {
       _key: this.id,
       _machine: this as any
     });
 
     this.root._initialize();
     formatRouteTransitions(this.root);
+    this.root._refreshEventMetadata();
 
     this.states = this.root.states; // TODO: remove!
     this.events = this.root.events;
@@ -181,56 +193,64 @@ export class StateMachine<
    *   recursively merge with the existing options.
    * @returns A new `StateMachine` instance with the provided implementations.
    */
-  public provide(
-    implementations: InternalMachineImplementations<
-      ResolvedStateMachineTypes<
-        TContext,
-        DoNotInfer<TEvent>,
-        TActor,
-        TAction,
-        TGuard,
-        TDelay,
-        TTag,
-        TEmitted
-      >
-    >
-  ): StateMachine<
+  public provide(implementations: {
+    actions?: Partial<TActionMap>;
+    actors?: Partial<TActorMap>;
+    guards?: Partial<TGuardMap>;
+  }): StateMachine<
     TContext,
     TEvent,
     TChildren,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
     TStateValue,
     TTag,
     TInput,
     TOutput,
     TEmitted,
     TMeta,
-    TStateSchema
+    TConfig,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
   > {
     const { actions, guards, actors, delays } = this.implementations;
 
-    return new StateMachine(this.config, {
-      actions: { ...actions, ...implementations.actions },
-      guards: { ...guards, ...implementations.guards },
-      actors: { ...actors, ...implementations.actors },
-      delays: { ...delays, ...implementations.delays }
-    });
+    const provided = new StateMachine(this.config, {
+      actions: {
+        ...actions,
+        ...implementations.actions
+      } as Implementations['actions'],
+      guards: {
+        ...guards,
+        ...implementations.guards
+      } as Implementations['guards'],
+      actors: {
+        ...actors,
+        ...implementations.actors
+      } as Implementations['actors'],
+      delays: {
+        ...delays,
+        ...(implementations as any).delays
+      } as Implementations['delays']
+    }) as unknown as this;
+    // Providing implementations does not change the serializable definition.
+    provided._json = this._json;
+    return provided;
   }
 
   public resolveState(
     config: {
       value: StateValue;
       context?: TContext;
-      historyValue?: HistoryValue<TContext, TEvent>;
+      historyValue?: HistoryValue;
       status?: SnapshotStatus;
       output?: TOutput;
       error?: unknown;
-    } & (Equals<TContext, MachineContext> extends false
-      ? { context: unknown }
-      : {})
+    } & ([TContext] extends [never]
+      ? {}
+      : Equals<TContext, MachineContext> extends false
+        ? { context: unknown }
+        : {})
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -239,16 +259,18 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    TStateSchema
+    TConfig
   > {
     const resolvedStateValue = resolveStateValue(this.root, config.value);
     const nodeSet = getAllStateNodes(
       getStateNodes(this.root, resolvedStateValue)
     );
+    const nodes = [...nodeSet];
 
     return createMachineSnapshot(
       {
-        _nodes: [...nodeSet],
+        _nodes: nodes,
+        value: resolvedStateValue,
         context: config.context || ({} as TContext),
         children: {},
         status: isInFinalState(nodeSet, this.root)
@@ -267,7 +289,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TStateSchema
+      TConfig
     >;
   }
 
@@ -287,7 +309,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TStateSchema
+      TConfig
     >,
     event: TEvent,
     actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
@@ -299,10 +321,9 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    TStateSchema
+    TConfig
   > {
-    return macrostep(snapshot, event, actorScope, [])
-      .snapshot as typeof snapshot;
+    return macrostep(snapshot, event, actorScope, []).snapshot;
   }
 
   /**
@@ -321,7 +342,7 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TStateSchema
+      TConfig
     >,
     event: TEvent,
     actorScope: AnyActorScope
@@ -334,12 +355,17 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TStateSchema
+      TConfig
     >
   > {
-    return macrostep(snapshot, event, actorScope, []).microsteps.map(
-      ([s]) => s
-    );
+    const { microsteps } = macrostep(snapshot, event, actorScope, []);
+    const snapshots = new Array(microsteps.length);
+
+    for (let i = 0; i < microsteps.length; i++) {
+      snapshots[i] = microsteps[i][0];
+    }
+
+    return snapshots;
   }
 
   public getTransitionData(
@@ -351,11 +377,24 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TStateSchema
+      TConfig
     >,
-    event: TEvent
-  ): Array<TransitionDefinition<TContext, TEvent>> {
-    return transitionNode(this.root, snapshot.value, snapshot, event) || [];
+    event: TEvent,
+    self: AnyActorRef
+  ): Array<AnyTransitionDefinition> {
+    return (
+      transitionNode(this.root, snapshot.value, snapshot, event, self) || []
+    );
+  }
+
+  public isInternalEventType(eventType: string): boolean {
+    for (const descriptor of this.internalEventDescriptors) {
+      if (matchesEventDescriptor(eventType, descriptor)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -366,8 +405,7 @@ export class StateMachine<
    */
   _getPreInitialState(
     actorScope: AnyActorScope,
-    initEvent: any,
-    internalQueue: AnyEventObject[]
+    initEvent: any
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -376,7 +414,7 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    TStateSchema
+    TConfig
   > {
     const { context } = this.config;
 
@@ -392,16 +430,30 @@ export class StateMachine<
     );
 
     if (typeof context === 'function') {
-      const assignment = ({ spawn, event, self }: any) =>
-        context({ spawn, input: event.input, self });
-      return resolveActionsAndContext(
+      const children = {};
+      const spawn = createSpawner(actorScope, preInitial, initEvent, children);
+      const resolvedContext = context({
+        spawn,
+        input: initEvent.input,
+        self: actorScope.self,
+        actors: this.implementations.actors
+      });
+      const nextState = resolveAndExecuteActionsWithContext(
         preInitial,
         initEvent,
         actorScope,
-        [assign(assignment)],
-        internalQueue,
-        undefined
-      ) as SnapshotFrom<this>;
+        []
+      ) as any;
+      if (resolvedContext) {
+        nextState.context = resolvedContext;
+      }
+      if (Object.keys(children).length > 0) {
+        nextState.children = {
+          ...nextState.children,
+          ...children
+        };
+      }
+      return nextState as SnapshotFrom<this>;
     }
 
     return preInitial as SnapshotFrom<this>;
@@ -421,7 +473,7 @@ export class StateMachine<
         TTag,
         TOutput,
         TMeta,
-        TStateSchema
+        TConfig
       >,
       TEvent,
       AnyActorSystem,
@@ -436,15 +488,11 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    TStateSchema
+    TConfig
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
-    const preInitialState = this._getPreInitialState(
-      actorScope,
-      initEvent,
-      internalQueue
-    );
+    const preInitialState = this._getPreInitialState(actorScope, initEvent);
     const [nextState] = initialMicrostep(
       this.root,
       preInitialState,
@@ -464,7 +512,7 @@ export class StateMachine<
   }
 
   public start(
-    snapshot: MachineSnapshot<
+    snapshot?: MachineSnapshot<
       TContext,
       TEvent,
       TChildren,
@@ -472,16 +520,25 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TStateSchema
+      TConfig
     >
   ): void {
-    Object.values(snapshot.children as Record<string, AnyActorRef>).forEach(
-      (child: any) => {
-        if (child.getSnapshot().status === 'active') {
-          child.start();
-        }
+    // Start rehydrated children that were active when persisted. Freshly
+    // invoked/spawned children are NOT started here — they start via deferred
+    // `@xstate.start` actions so sync start errors route to `onError`.
+    if (!snapshot?.children) {
+      return;
+    }
+    for (const child of Object.values(
+      snapshot.children as Record<string, AnyActorRef>
+    )) {
+      if (
+        (child as any)._rehydrated &&
+        (child as any).getSnapshot?.().status === 'active'
+      ) {
+        (child as any).start();
       }
-    );
+    }
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
@@ -497,15 +554,10 @@ export class StateMachine<
         `Child state node '#${resolvedStateId}' does not exist on machine '${this.id}'`
       );
     }
-    return getStateNodeByPath(stateNode, relativePath);
-  }
-
-  public get definition(): StateMachineDefinition<TContext, TEvent> {
-    return this.root.definition;
-  }
-
-  public toJSON() {
-    return this.definition;
+    return getStateNodeByPath(stateNode, relativePath) as StateNode<
+      TContext,
+      TEvent
+    >;
   }
 
   public getPersistedSnapshot(
@@ -517,11 +569,35 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TStateSchema
+      TConfig
     >,
     options?: unknown
   ) {
     return getPersistedSnapshot(snapshot, options);
+  }
+
+  /**
+   * The original JSON definition this machine was created from (set by
+   * `createMachineFromConfig`), if any.
+   *
+   * @internal
+   */
+  public _json?: Record<string, unknown>;
+
+  /**
+   * The JSON-serializable definition of this machine.
+   *
+   * Inline functions, actor logic, and runtime schemas cannot be represented as
+   * data; they appear as `{ "$unserializable": ... }` markers. A machine
+   * created via `createMachineFromConfig` returns its original JSON config
+   * (lossless round-trip).
+   */
+  public get definition(): Record<string, unknown> {
+    return this._json ?? machineConfigToJSON(this.config as any);
+  }
+
+  public toJSON(): Record<string, unknown> {
+    return this.definition;
   }
 
   public restoreSnapshot(
@@ -535,7 +611,7 @@ export class StateMachine<
         TTag,
         TOutput,
         TMeta,
-        TStateSchema
+        TConfig
       >,
       TEvent,
       AnyActorSystem,
@@ -549,8 +625,9 @@ export class StateMachine<
     TTag,
     TOutput,
     TMeta,
-    TStateSchema
+    TConfig
   > {
+    const snapshotData = snapshot as any;
     const children: Record<string, AnyActorRef> = {};
     const snapshotChildren: Record<
       string,
@@ -560,9 +637,9 @@ export class StateMachine<
         syncSnapshot?: boolean;
         systemId?: string;
       }
-    > = (snapshot as any).children;
+    > = snapshotData.children;
 
-    Object.keys(snapshotChildren).forEach((actorId) => {
+    for (const actorId of Object.keys(snapshotChildren)) {
       const actorData = snapshotChildren[actorId];
       const childState = actorData.snapshot;
       const src = actorData.src;
@@ -571,7 +648,7 @@ export class StateMachine<
         typeof src === 'string' ? resolveReferencedActor(this, src) : src;
 
       if (!logic) {
-        return;
+        continue;
       }
 
       const actorRef = createActor(logic, {
@@ -582,42 +659,40 @@ export class StateMachine<
         src,
         systemId: actorData.systemId
       });
+      // Mark so `start()` knows to start this child (freshly invoked/spawned
+      // children are started via deferred `@xstate.start` actions instead).
+      (actorRef as any)._rehydrated = true;
 
       children[actorId] = actorRef;
-    });
-
-    function resolveHistoryReferencedState(
-      root: StateNode<TContext, TEvent>,
-      referenced: { id: string } | StateNode<TContext, TEvent>
-    ) {
-      if (referenced instanceof StateNode) {
-        return referenced;
-      }
-      try {
-        return root.machine.getStateNodeById(referenced.id);
-      } catch {
-        if (isDevelopment) {
-          console.warn(`Could not resolve StateNode for id: ${referenced.id}`);
-        }
-      }
     }
 
-    function reviveHistoryValue(
-      root: StateNode<TContext, TEvent>,
+    const reviveHistoryValue = (
       historyValue: Record<
         string,
         ({ id: string } | StateNode<TContext, TEvent>)[]
       >
-    ): HistoryValue<TContext, TEvent> {
+    ): HistoryValue => {
       if (!historyValue || typeof historyValue !== 'object') {
         return {};
       }
-      const revived: HistoryValue<TContext, TEvent> = {};
-      for (const key in historyValue) {
+      const revived: HistoryValue = {};
+      for (const key of Object.keys(historyValue)) {
         const arr = historyValue[key];
 
         for (const item of arr) {
-          const resolved = resolveHistoryReferencedState(root, item);
+          let resolved: StateNode<TContext, TEvent> | undefined;
+
+          if (item instanceof StateNode) {
+            resolved = item;
+          } else {
+            try {
+              resolved = this.root.machine.getStateNodeById(item.id);
+            } catch {
+              if (isDevelopment) {
+                console.warn(`Could not resolve StateNode for id: ${item.id}`);
+              }
+            }
+          }
 
           if (!resolved) {
             continue;
@@ -628,20 +703,19 @@ export class StateMachine<
         }
       }
       return revived;
-    }
+    };
 
-    const revivedHistoryValue = reviveHistoryValue(
-      this.root,
-      (snapshot as any).historyValue
+    const revivedHistoryValue = reviveHistoryValue(snapshotData.historyValue);
+    const nodes = Array.from(
+      getAllStateNodes(getStateNodes(this.root, snapshotData.value))
     );
 
     const restoredSnapshot = createMachineSnapshot(
       {
         ...(snapshot as any),
         children,
-        _nodes: Array.from(
-          getAllStateNodes(getStateNodes(this.root, (snapshot as any).value))
-        ),
+        _nodes: nodes,
+        value: snapshotData.value,
         historyValue: revivedHistoryValue
       },
       this
@@ -653,20 +727,17 @@ export class StateMachine<
       TTag,
       TOutput,
       TMeta,
-      TStateSchema
+      TConfig
     >;
 
-    const seen = new Set();
+    const seen = new WeakSet<Record<string, unknown>>();
 
-    function reviveContext(
-      contextPart: Record<string, unknown>,
-      children: Record<string, AnyActorRef>
-    ) {
+    function reviveContext(contextPart: Record<string, unknown>) {
       if (seen.has(contextPart)) {
         return;
       }
       seen.add(contextPart);
-      for (const key in contextPart) {
+      for (const key of Object.keys(contextPart)) {
         const value: unknown = contextPart[key];
 
         if (value && typeof value === 'object') {
@@ -674,12 +745,12 @@ export class StateMachine<
             contextPart[key] = children[(value as any).id];
             continue;
           }
-          reviveContext(value as typeof contextPart, children);
+          reviveContext(value as typeof contextPart);
         }
       }
     }
 
-    reviveContext(restoredSnapshot.context, children);
+    reviveContext(restoredSnapshot.context);
 
     return restoredSnapshot;
   }

@@ -1,10 +1,20 @@
+import { MachineSnapshot } from './State.ts';
 import { isAtomicStateNode } from './stateUtils.ts';
-import {
-  AnyMachineSnapshot,
-  AnyStateNode,
-  StateSchema,
-  StateSchemaFrom
-} from './types.ts';
+import { AnyMachineSnapshot, AnyStateNode, StateSchema } from './types.ts';
+
+type StateSchemaFromSnapshot<TSnapshot extends AnyMachineSnapshot> =
+  TSnapshot extends MachineSnapshot<
+    infer _TContext,
+    infer _TEvent,
+    infer _TChildren,
+    infer _TStateValue,
+    infer _TTag,
+    infer _TOutput,
+    infer _TMeta,
+    infer TStateSchema extends StateSchema
+  >
+    ? TStateSchema
+    : StateSchema;
 
 /**
  * A mapper object that defines how to transform a snapshot based on its state.
@@ -34,12 +44,12 @@ type StateSchemaMapper<
  */
 export function mapState<T extends AnyMachineSnapshot, TResult>(
   snapshot: T,
-  mapper: StateSchemaMapper<T, StateSchemaFrom<T['machine']>, TResult>
+  mapper: StateSchemaMapper<T, StateSchemaFromSnapshot<T>, TResult>
 ): { stateNode: AnyStateNode; result: TResult }[] {
   const results: { stateNode: AnyStateNode; result: TResult }[] = [];
 
   const findMapper = (
-    currentMapper: StateSchemaMapper<T, StateSchemaFrom<T['machine']>, TResult>,
+    currentMapper: StateSchemaMapper<T, StateSchemaFromSnapshot<T>, TResult>,
     nodePath: string[]
   ): StateSchemaMapper<T, any, TResult> | undefined => {
     let mapper: StateSchemaMapper<T, any, TResult> | undefined = currentMapper;
