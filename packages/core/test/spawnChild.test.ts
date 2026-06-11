@@ -9,7 +9,7 @@ import {
 import { z } from 'zod';
 
 // TODO: deprecate syncSnapshot
-describe.skip('spawnChild action', () => {
+describe('spawnChild action', () => {
   it('can spawn', () => {
     const actor = createActor(
       createMachine({

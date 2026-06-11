@@ -858,3 +858,37 @@ describe('guards - other', () => {
     expect(actor.getSnapshot().value).toBe('c');
   });
 });
+
+describe('guards - unknown references', () => {
+  it('should throw on a guard reference that is not implemented', () => {
+    const machine = createMachine({
+      context: { ready: false },
+      guards: {
+        isReady: ({ context }) => context.ready === true
+      },
+      initial: 'routing',
+      states: {
+        routing: {
+          always: [
+            // typo: 'isRedy' instead of 'isReady' — guard objects remain
+            // reachable via revived (createMachineFromConfig) machines
+            { guard: { type: 'isRedy' }, target: 'go' },
+            { target: 'wait' }
+          ] as any
+        },
+        go: {},
+        wait: {}
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.subscribe({ error: () => {} });
+    actor.start();
+
+    const snapshot = actor.getSnapshot();
+    expect(snapshot.status).toBe('error');
+    expect((snapshot as any).error.message).toMatch(
+      /Guard 'isRedy' is not implemented.*Available guards: 'isReady'/
+    );
+  });
+});

@@ -1,6 +1,7 @@
 import isDevelopment from '#is-development';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import { createInitEvent } from './eventUtils.ts';
+import { machineConfigToJSON } from './serialize.ts';
 import { createSpawner } from './spawn.ts';
 import {
   createMachineSnapshot,
@@ -214,7 +215,7 @@ export class StateMachine<
   > {
     const { actions, guards, actors, delays } = this.implementations;
 
-    return new StateMachine(this.config, {
+    const provided = new StateMachine(this.config, {
       actions: {
         ...actions,
         ...implementations.actions
@@ -231,7 +232,10 @@ export class StateMachine<
         ...delays,
         ...(implementations as any).delays
       } as Implementations['delays']
-    });
+    }) as unknown as this;
+    // Providing implementations does not change the serializable definition.
+    provided._json = this._json;
+    return provided;
   }
 
   public resolveState(
@@ -507,7 +511,35 @@ export class StateMachine<
     return macroState as SnapshotFrom<this>;
   }
 
-  public start(): void {}
+  public start(
+    snapshot?: MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput,
+      TMeta,
+      TConfig
+    >
+  ): void {
+    // Start rehydrated children that were active when persisted. Freshly
+    // invoked/spawned children are NOT started here — they start via deferred
+    // `@xstate.start` actions so sync start errors route to `onError`.
+    if (!snapshot?.children) {
+      return;
+    }
+    for (const child of Object.values(
+      snapshot.children as Record<string, AnyActorRef>
+    )) {
+      if (
+        (child as any)._rehydrated &&
+        (child as any).getSnapshot?.().status === 'active'
+      ) {
+        (child as any).start();
+      }
+    }
+  }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
     const fullPath = toStatePath(stateId);
@@ -542,6 +574,30 @@ export class StateMachine<
     options?: unknown
   ) {
     return getPersistedSnapshot(snapshot, options);
+  }
+
+  /**
+   * The original JSON definition this machine was created from (set by
+   * `createMachineFromConfig`), if any.
+   *
+   * @internal
+   */
+  public _json?: Record<string, unknown>;
+
+  /**
+   * The JSON-serializable definition of this machine.
+   *
+   * Inline functions, actor logic, and runtime schemas cannot be represented as
+   * data; they appear as `{ "$unserializable": ... }` markers. A machine
+   * created via `createMachineFromConfig` returns its original JSON config
+   * (lossless round-trip).
+   */
+  public get definition(): Record<string, unknown> {
+    return this._json ?? machineConfigToJSON(this.config as any);
+  }
+
+  public toJSON(): Record<string, unknown> {
+    return this.definition;
   }
 
   public restoreSnapshot(
@@ -603,6 +659,9 @@ export class StateMachine<
         src,
         systemId: actorData.systemId
       });
+      // Mark so `start()` knows to start this child (freshly invoked/spawned
+      // children are started via deferred `@xstate.start` actions instead).
+      (actorRef as any)._rehydrated = true;
 
       children[actorId] = actorRef;
     }

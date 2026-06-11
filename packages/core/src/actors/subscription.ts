@@ -1,23 +1,12 @@
-import { XSTATE_STOP } from '../constants.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
   ActorRefFromLogic,
   AnyActorRef,
   EventObject,
-  Snapshot,
-  Subscription
+  Snapshot
 } from '../types';
-
-// Instance state for subscription actors
-interface SubscriptionInstanceState {
-  subscription: Subscription | undefined;
-}
-
-const subscriptionInstanceStates = /* #__PURE__ */ new WeakMap<
-  AnyActorRef,
-  SubscriptionInstanceState
->();
+import { createAttachedLogic, relayMappedToParent } from './attached.ts';
 
 export type SubscriptionSnapshot = Snapshot<undefined> & {
   input: SubscriptionInput<any, any, any, any>;
@@ -75,109 +64,30 @@ export function createSubscriptionLogic<
   TOutput = unknown,
   TMappedEvent extends EventObject = EventObject
 >(): SubscriptionActorLogic<TSnapshot, TOutput, TMappedEvent> {
-  const logic: SubscriptionActorLogic<TSnapshot, TOutput, TMappedEvent> = {
-    start: (state, actorScope) => {
-      const { self, system } = actorScope;
-      const { actor, mappers } = state.input;
-
-      const subscriptionState: SubscriptionInstanceState = {
-        subscription: undefined
-      };
-
-      subscriptionInstanceStates.set(self, subscriptionState);
-
-      // Don't subscribe if target actor doesn't exist or is stopped
-      if (!actor || actor.getSnapshot().status === 'stopped') {
-        return;
-      }
-
-      // Subscribe to the actor's lifecycle
-      subscriptionState.subscription = actor.subscribe({
-        next: (snapshot: TSnapshot) => {
-          // Check if this subscription is still active
-          if (self.getSnapshot().status === 'stopped') {
-            return;
-          }
-
-          // Handle done status
-          if (snapshot.status === 'done' && mappers.done) {
-            const mappedEvent = mappers.done(snapshot.output as TOutput);
-            if (self._parent) {
-              system._relay(self, self._parent, mappedEvent);
-            }
-            return;
-          }
-
-          // Handle error status
-          if (snapshot.status === 'error' && mappers.error) {
-            const mappedEvent = mappers.error(snapshot.error);
-            if (self._parent) {
-              system._relay(self, self._parent, mappedEvent);
-            }
-            return;
-          }
-
-          // Handle snapshot changes (only for active status)
-          if (snapshot.status === 'active' && mappers.snapshot) {
-            const mappedEvent = mappers.snapshot(snapshot);
-            if (self._parent) {
-              system._relay(self, self._parent, mappedEvent);
-            }
-          }
-        },
-        error: (err: unknown) => {
-          // Check if this subscription is still active
-          if (self.getSnapshot().status === 'stopped') {
-            return;
-          }
-
-          if (mappers.error) {
-            const mappedEvent = mappers.error(err);
-            if (self._parent) {
-              system._relay(self, self._parent, mappedEvent);
-            }
-          }
-        },
-        complete: () => {
-          // Actor completed without output (stopped)
-          // No action needed
+  return createAttachedLogic(({ actor, mappers }, { self, system }) => {
+    const { done, error, snapshot: onSnapshot } = mappers;
+    return actor.subscribe({
+      next: (snapshot: TSnapshot) => {
+        if (snapshot.status === 'done' && done) {
+          relayMappedToParent(self, system, () =>
+            done(snapshot.output as TOutput)
+          );
+        } else if (snapshot.status === 'error' && error) {
+          relayMappedToParent(self, system, () => error(snapshot.error));
+        } else if (snapshot.status === 'active' && onSnapshot) {
+          relayMappedToParent(self, system, () => onSnapshot(snapshot));
         }
-      });
-    },
-    transition: (state, event, actorScope) => {
-      if (event.type === XSTATE_STOP) {
-        const subscriptionState = subscriptionInstanceStates.get(
-          actorScope.self
-        );
-
-        if (subscriptionState?.subscription) {
-          subscriptionState.subscription.unsubscribe();
+      },
+      error: (err: unknown) => {
+        if (error) {
+          relayMappedToParent(self, system, () => error(err));
         }
-
-        subscriptionInstanceStates.delete(actorScope.self);
-
-        return {
-          ...state,
-          status: 'stopped',
-          error: undefined
-        };
+      },
+      complete: () => {
+        // Actor completed without output (stopped); no action needed
       }
-
-      return state;
-    },
-    getInitialSnapshot: (_, input) => {
-      return {
-        status: 'active',
-        output: undefined,
-        error: undefined,
-        input
-      };
-    },
-    getPersistedSnapshot: (snapshot) => snapshot,
-    restoreSnapshot: (snapshot: any) => snapshot
-  };
-
-  return logic;
+    });
+  });
 }
 
 // Singleton logic instance

@@ -1,4 +1,3 @@
-import { XSTATE_STOP } from '../constants.ts';
 import { AnyActorSystem } from '../system.ts';
 import { matchesEventDescriptor } from '../utils.ts';
 import {
@@ -6,19 +5,9 @@ import {
   ActorRefFromLogic,
   AnyActorRef,
   EventObject,
-  Snapshot,
-  Subscription
+  Snapshot
 } from '../types';
-
-// Instance state for listener actors
-interface ListenerInstanceState {
-  subscription: Subscription | undefined;
-}
-
-const listenerInstanceStates = /* #__PURE__ */ new WeakMap<
-  AnyActorRef,
-  ListenerInstanceState
->();
+import { createAttachedLogic, relayMappedToParent } from './attached.ts';
 
 export type ListenerSnapshot = Snapshot<undefined> & {
   input: ListenerInput<any, any>;
@@ -57,83 +46,29 @@ export function createListenerLogic<
   TEmitted extends EventObject = EventObject,
   TMappedEvent extends EventObject = EventObject
 >(): ListenerActorLogic<TEmitted, TMappedEvent> {
-  const logic: ListenerActorLogic<TEmitted, TMappedEvent> = {
-    start: (state, actorScope) => {
-      const { self, system } = actorScope;
-      const { actor, eventType, mapper } = state.input;
-
-      const listenerState: ListenerInstanceState = {
-        subscription: undefined
-      };
-
-      listenerInstanceStates.set(self, listenerState);
-
-      // Don't subscribe if target actor doesn't exist or is stopped
-      if (!actor || actor.getSnapshot().status === 'stopped') {
-        return;
-      }
-
+  return createAttachedLogic(
+    (
+      { actor, eventType, mapper }: ListenerInput<TEmitted, TMappedEvent>,
+      { self, system }
+    ) => {
       // Determine the subscription type:
       // - For exact matches or '*', subscribe directly
       // - For partial wildcards ('data.*'), subscribe to '*' and filter
       const isPartialWildcard = eventType !== '*' && eventType.endsWith('.*');
-      const subscriptionType = isPartialWildcard ? '*' : eventType;
 
-      // Subscribe to emitted events using actor.on()
-      listenerState.subscription = actor.on(
-        subscriptionType,
-        (emittedEvent) => {
-          // Check if this listener is still active
-          if (self.getSnapshot().status === 'stopped') {
-            return;
-          }
-
-          // For partial wildcards, filter using our matching algorithm
-          if (isPartialWildcard) {
-            if (!matchesEventDescriptor(emittedEvent.type, eventType)) {
-              return;
-            }
-          }
-
-          const mappedEvent = mapper(emittedEvent as TEmitted);
-          if (self._parent) {
-            system._relay(self, self._parent, mappedEvent);
-          }
+      return actor.on(isPartialWildcard ? '*' : eventType, (emittedEvent) => {
+        if (
+          isPartialWildcard &&
+          !matchesEventDescriptor(emittedEvent.type, eventType)
+        ) {
+          return;
         }
-      );
-    },
-    transition: (state, event, actorScope) => {
-      if (event.type === XSTATE_STOP) {
-        const listenerState = listenerInstanceStates.get(actorScope.self);
-
-        if (listenerState?.subscription) {
-          listenerState.subscription.unsubscribe();
-        }
-
-        listenerInstanceStates.delete(actorScope.self);
-
-        return {
-          ...state,
-          status: 'stopped',
-          error: undefined
-        };
-      }
-
-      return state;
-    },
-    getInitialSnapshot: (_, input) => {
-      return {
-        status: 'active',
-        output: undefined,
-        error: undefined,
-        input
-      };
-    },
-    getPersistedSnapshot: (snapshot) => snapshot,
-    restoreSnapshot: (snapshot: any) => snapshot
-  };
-
-  return logic;
+        relayMappedToParent(self, system, () =>
+          mapper(emittedEvent as TEmitted)
+        );
+      });
+    }
+  );
 }
 
 // Singleton logic instance

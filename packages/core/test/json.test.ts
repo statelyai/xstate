@@ -7,7 +7,7 @@ import Ajv from 'ajv';
 const ajv = new Ajv();
 const validate = ajv.compile(machineSchema);
 
-describe.skip('json', () => {
+describe('json', () => {
   it('should serialize the machine', () => {
     const machine = createMachineFromConfig({
       initial: 'foo',
@@ -122,52 +122,34 @@ describe.skip('json', () => {
 
     const revivedMachine = createMachineFromConfig(machineObject);
 
+    // Invoke transitions stay on the invoke definition — not duplicated
+    // into the `on` map.
+    expect(machineObject.states.active.on).toEqual({
+      EVENT: { target: 'foo' }
+    });
+    expect(machineObject.states.active.invoke).toEqual({
+      src: 'someSrc',
+      onDone: { target: 'foo' },
+      onError: { target: 'bar' }
+    });
+
+    // A second round-trip is byte-stable.
+    expect(JSON.stringify(revivedMachine)).toBe(machineJSON);
+
     expect([...revivedMachine.states.active.transitions.values()].flat())
       .toMatchInlineSnapshot(`
-      [
-        {
-          "actions": [],
-          "eventType": "EVENT",
-          "guard": undefined,
-          "reenter": false,
-          "source": "#active",
-          "target": [
-            "#(machine).foo",
-          ],
-          "toJSON": [Function],
-        },
-        {
-          "actions": [],
-          "eventType": "xstate.done.actor.0.active",
-          "guard": undefined,
-          "reenter": false,
-          "source": "#active",
-          "target": [
-            "#(machine).foo",
-          ],
-          "toJSON": [Function],
-        },
-        {
-          "actions": [],
-          "eventType": "xstate.error.actor.0.active",
-          "guard": undefined,
-          "reenter": false,
-          "source": "#active",
-          "target": [
-            "#(machine).bar",
-          ],
-          "toJSON": [Function],
-        },
-      ]
-    `);
-
-    // 1. onDone
-    // 2. onError
-    // 3. EVENT
-    expect(
-      [
-        ...revivedMachine.getStateNodeById('active').transitions.values()
-      ].flatMap((t) => t).length
-    ).toBe(3);
+        [
+          {
+            "description": undefined,
+            "eventType": "EVENT",
+            "reenter": false,
+            "source": "#active",
+            "target": [
+              "#(machine).foo",
+            ],
+            "toJSON": [Function],
+          },
+        ]
+      `);
   });
 });

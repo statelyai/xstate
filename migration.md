@@ -255,16 +255,19 @@ on: {
 
 `checkStateIn(snapshot, stateValue)` accepts an `AnyMachineSnapshot` plus either a state-id string (e.g. `'#blocked'`), a state-path string (e.g. `'parent.child'`), or a nested state-value object.
 
-Object-form guards still work when you have named `guards` on `setup` or `createMachine`:
+Named `guards` on `setup` or `createMachine` are available as typed functions
+in transition (and `choice`) function args:
 
 ```ts
-// v6 — still supported
-choices: [
-  { guard: { type: 'isVip' }, target: 'vipFlow' },
-  { target: 'defaultFlow' }
-],
+// v6
+choice: ({ context, guards }) => {
+  if (guards.isVip(context)) {
+    return { target: 'vipFlow' };
+  }
+  return { target: 'defaultFlow' };
+},
 guards: {
-  isVip: ({ context }) => context.isVip
+  isVip: ({ isVip }) => isVip
 }
 ```
 
@@ -328,9 +331,15 @@ schemas: {
 
 `events` and `emitted` are now **maps keyed by event type**, not unions. Each value is the schema for the event payload (excluding `type`).
 
+> **Note:** `schemas` drive **TypeScript inference only**. Runtime validation
+> of context/events/input against the schemas is **not** performed in this
+> release — do not rely on `schemas` to reject malformed events at runtime
+> (use `internalEvents` for inbound-event restriction, or validate at your
+> boundary).
+
 ### Machine input
 
-In v5, machine input was typed via `types: {} as { input: ... }`. In v6 it moves to `schemas.input` and gains runtime validation:
+In v5, machine input was typed via `types: {} as { input: ... }`. In v6 it moves to `schemas.input`:
 
 ```ts
 // v5
@@ -409,7 +418,7 @@ const provided = machine.provide({
 });
 ```
 
-Note: `provide()` only accepts `actions`, `guards`, and `actors`; delay overrides are not part of `provide` in v6.
+Note: `provide()` is **typed** to accept `actions`, `guards`, and `actors`. (Passing `delays` happens to be merged by the current runtime, but it is not part of the typed API — don't rely on it.)
 
 The 3,199-line `test/setup.types.test.ts` from v5 was deleted; current setup type behaviour lives in `test/stateInput.test.ts`.
 
@@ -660,7 +669,11 @@ invoke: {
 }
 ```
 
-String IDs still work when the actor is registered on `createMachine({ actors: { ... } })` directly or supplied via `machine.provide({ actors: { ... } })`. The `.createActor` method on machines was removed — use `createActor(machine)` directly.
+String IDs still work when the actor is registered on `createMachine({ actors: { ... } })` directly or supplied via `machine.provide({ actors: { ... } })`. Prefer string IDs for any child you intend to **persist** — children spawned/invoked from inline logic objects cannot be rehydrated from a registry and `getPersistedSnapshot()` throws for them in development.
+
+`invoke.src` may also be a **function** resolving to logic or to a registered name: `src: ({ actors, context, event, self }) => actors.fetchUser`.
+
+An `invoke` may declare its own `timeout` / `onTimeout` (independent of state-level `timeout`): when the timeout elapses before the invoked actor completes, the `onTimeout` transition is taken and the invocation is cancelled.
 
 ### Sending to the parent
 
@@ -744,46 +757,22 @@ actor.send({ type: 'tick' }); // throws: Internal event "tick" cannot be sent to
 
 ## 13. Choice states
 
-A new state `type: 'choice'` provides declarative branch routing — equivalent to a transient `always` block but more explicit, and supports a function form.
-
-### Array form
+A new state `type: 'choice'` provides branch routing — equivalent to a transient `always` block but more explicit. A choice state declares a single `choice` function that resolves to a target:
 
 ```ts
 // v6
 states: {
   routing: {
     type: 'choice',
-    choices: [
-      { guard: ({ context }) => context.isVip,      target: 'vipFlow' },
-      { guard: { type: 'isOverBudget' },            target: 'review'  },
-      { target: 'standardFlow' }      // default — must be present, no guard
-    ]
-  },
-  vipFlow: {},
-  review: {},
-  standardFlow: {}
-}
-```
-
-Two restrictions enforced at machine creation time:
-
-- A choice state's array form **must include a default choice** (an entry with no `guard`); otherwise creation throws.
-- Choice guards must be inline functions or `{ type: '...' }` guard objects — **string guards** like `guard: 'isReady'` are rejected.
-
-### Function form
-
-`choices` may instead be a function returning a **single choice object** (not an array):
-
-```ts
-states: {
-  routing: {
-    type: 'choice',
-    choices: ({ context }) => {
+    choice: ({ context }) => {
       if (context.isVip)      return { target: 'vipFlow' };
       if (context.overBudget) return { target: 'review' };
       return { target: 'standardFlow' };
     }
-  }
+  },
+  vipFlow: {},
+  review: {},
+  standardFlow: {}
 }
 ```
 
@@ -879,13 +868,16 @@ Array form still works.
 
 These exports have been **removed** from `xstate`:
 
-- Action creators (entire `actions.ts` module): `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `enqueueActions`, `spawnChild`, `stopChild`
+- Action creators (entire `actions.ts` module): `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `enqueueActions`, `spawnChild`, `stopChild`, `stop`, plus their `*Action`/`*Params` types
 - Guard combinators and helpers: `and`, `or`, `not`, `stateIn`
 - Guard types: `GuardPredicate`, `GuardArgs`
-- Service helpers: `interpret`, `Interpreter`
+- Service helpers: `interpret`, `Interpreter`, and the `InterpreterFrom` type
 - `SetupReturn` (no longer re-exported)
 - Promise actor logic surface: `fromPromise`, `PromiseActorLogic`, `PromiseActorRef`, `PromiseSnapshot`
 - Inspection-event subtypes — `InspectedActionEvent`, `InspectedActorEvent`, `InspectedEventEvent`, `InspectedMicrostepEvent`, `InspectedSnapshotEvent` are gone. The remaining `InspectionEvent` type was reshaped: it is no longer a discriminated union, and its `type` is now only `'@xstate.transition' | '@xstate.microstep'`.
+- The `devTools` actor option and the `xstate/dev`, `xstate/actions`, and `xstate/guards` subpath exports
+- v5 definition/config types: `AnyState`, `StateMachineDefinition`, `StateNodeDefinition`, `StatesConfig`, `MachineOptions`, `ExecutableActionsFrom`, and related internals. The config types `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, and `TransitionConfigOrTarget` are re-exported with their **v6 shapes** — same names, different structure.
+- `transition()` / `initialTransition()` now return `ExecutableActionObject[]` for effects; hand-written actor logic `transition` may return a `[snapshot, effects]` tuple.
 
 `SpecialTargets` (the `Parent`/`Internal` enum) is still exported from `'xstate'` via `types.ts` and continues to work.
 
@@ -896,6 +888,10 @@ These exports have been **added**:
 - `checkStateIn`
 - `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
 - `TimeoutError`
+- Serialization surface (see §22): `createMachineFromConfig`, `machineConfigToJSON`, and the `MachineJSON`/`StateNodeJSON`/`TransitionJSON`/`ActionJSON`/`GuardJSON`/`InvokeJSON`/`UnserializableMarker` types; machines have a `definition` getter and `toJSON()`
+- Config types (v6 shapes): `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, `TransitionConfigOrTarget`, `Implementations`, `InferEvents`, `Trigger`, `WidenLiterals`
+- Atoms: `createAtom`, `createAtomConfig`, `createAsyncAtom`, `createReducerAtom` (+ types) — the reactive primitive that backs actor snapshots; also usable standalone
+- `actor.get()` — alias of `actor.getSnapshot()`; `actor.select(selector)` — derived, subscribable views
 
 ---
 
@@ -1004,21 +1000,61 @@ See `test/rehydration.v6.test.ts` for the full surface — including child actor
 
 ---
 
-## 22. SCXML and config conversion
+## 22. Machine-as-data: serialization, JSON configs, SCXML
 
-The SCXML conversion path was rewritten. Two functions exist in source:
+v6 treats the machine definition as **data** with an explicit boundary around
+runtime implementations:
+
+### Machine → JSON
+
+`machine.definition` (also `machine.toJSON()`, so `JSON.stringify(machine)`
+just works) returns the JSON-serializable definition. Values that cannot be
+represented as data — inline functions, actor logic objects, runtime schemas —
+appear as `{ "$unserializable": "function" | "actor" | "schema" | "value" }`
+markers instead of being silently dropped. A definition is fully portable iff
+it contains no markers; named `actions`/`guards`/`actors` keys are preserved
+(as the contract a revived machine must fulfill via `provide()`).
+
+```ts
+const json = JSON.stringify(machine); // never throws
+```
+
+The format is described by `packages/core/src/machine.schema.json` (a JSON
+Schema) and verified by `test/serialization.conformance.v6.test.ts`.
+
+### JSON → machine
+
+`createMachineFromConfig(config)` — **exported from `'xstate'`** — builds a
+machine from a plain JSON config using serialized action objects
+(`{ type: '@xstate.raise', event: ... }`, `{ type: '@xstate.assign', ... }`,
+`{ type: '@xstate.emit', ... }`, custom `{ type, params }` actions) and
+`{ type, params }` guard references. Machines built this way round-trip
+losslessly: `createMachineFromConfig(JSON.parse(JSON.stringify(machine)))`.
+
+```ts
+import { createMachineFromConfig, type MachineJSON } from 'xstate';
+
+const def: MachineJSON = {
+  initial: 'idle',
+  states: {
+    idle: { on: { START: { target: 'running' } } },
+    running: { entry: [{ type: '@xstate.raise', event: { type: 'go' } }] }
+  }
+};
+const machine = createMachineFromConfig(def);
+```
+
+Note: serialized-action vocabulary does not yet cover every v6 feature —
+state `input`, `enq.listen`/`subscribeTo`, and `choice` functions have
+no JSON representation.
+
+### SCXML
 
 - `toMachineJSON(scxml)` — parse SCXML XML to a plain JSON machine config
 - `toMachine(scxml)` — parse SCXML XML directly to a `StateMachine`
-- `createMachineFromConfig(config)` — build a machine from a **plain JSON config** that uses serialized action objects (e.g. `{ type: '@xstate.raise', event: ... }`, `{ type: '@xstate.emit', event: ... }`)
 
-These live in `packages/core/src/scxml.ts` and `packages/core/src/createMachineFromConfig.ts` and are **not** part of the published `'xstate'` package's public exports yet (the v6 `package.json` only exposes `.`, `./graph`, and `./actors` subpaths). They are useful for SCXML round-trip, persistence, or storing machines as data — but treat them as repo-internal until public exports or subpath exports are added.
-
-```ts
-// repo-internal usage today
-import { createMachineFromConfig } from './createMachineFromConfig';
-import { toMachine, toMachineJSON } from './scxml';
-```
+These live in `packages/core/src/scxml.ts` and remain **repo-internal** (they
+pull in an XML parser).
 
 ---
 
@@ -1034,7 +1070,7 @@ import { toMachine, toMachineJSON } from './scxml';
 - [ ] Replace `types: {} as { ... }` with `schemas: { ... }` (Zod / Standard Schema)
 - [ ] If you used `events` as a **union**, restructure to a **map keyed by type**
 - [ ] Move `actions`/`guards`/`actors`/`delays` off of `setup({ ... })` and onto `createMachine({ ... })` (or `machine.provide({ ... })`)
-- [ ] Audit `invoke.src` references — `src` may be a logic object directly; the `.createActor` method on machines was removed
+- [ ] Audit `invoke.src` references — `src` may be a logic object, a registered name, or a resolver function
 - [ ] Drop dependencies on `@xstate/immer` and `@xstate/inspect`; update inspection to `actor.subscribe`, the `inspect` option, or `@statelyai/inspect`
 - [ ] Remove imports of `SetupReturn`, `GuardArgs`, `GuardPredicate`, `Inspected*Event`, `PromiseActorLogic`, and `fromPromise` (use `createAsyncLogic`)
 - [ ] Drain/migrate any v5 persisted snapshots — the v6 snapshot shape is not binary-compatible

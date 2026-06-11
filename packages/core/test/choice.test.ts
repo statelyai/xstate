@@ -3,7 +3,7 @@ import { createActor, createMachine, createAsyncLogic } from '../src';
 import { createInertActorScope } from '../src/getNextSnapshot';
 
 describe('choice states', () => {
-  it('routes through the first matching declarative choice', () => {
+  it('routes through the first matching condition', () => {
     const machine = createMachine({
       context: {
         isVip: true,
@@ -13,17 +13,15 @@ describe('choice states', () => {
       states: {
         routing: {
           type: 'choice',
-          choices: [
-            {
-              guard: ({ context }) => context.isVip,
-              target: 'vipFlow'
-            },
-            {
-              guard: ({ context }) => context.overBudget,
-              target: 'review'
-            },
-            { target: 'standardFlow' }
-          ]
+          choice: ({ context }) => {
+            if (context.isVip) {
+              return { target: 'vipFlow' };
+            }
+            if (context.overBudget) {
+              return { target: 'review' };
+            }
+            return { target: 'standardFlow' };
+          }
         },
         vipFlow: {},
         review: {},
@@ -36,7 +34,7 @@ describe('choice states', () => {
     expect(actor.getSnapshot().value).toBe('vipFlow');
   });
 
-  it('routes through the default declarative choice when guards do not match', () => {
+  it('routes through the fallback when no condition matches', () => {
     const machine = createMachine({
       context: {
         isVip: false,
@@ -46,25 +44,23 @@ describe('choice states', () => {
       states: {
         routing: {
           type: 'choice',
-          choices: [
-            {
-              guard: { type: 'isVip' },
-              target: 'vipFlow'
-            },
-            {
-              guard: { type: 'isOverBudget' },
-              target: 'review'
-            },
-            { target: 'standardFlow' }
-          ]
+          choice: ({ context, guards }) => {
+            if (guards.isVip(context)) {
+              return { target: 'vipFlow' };
+            }
+            if (guards.isOverBudget(context)) {
+              return { target: 'review' };
+            }
+            return { target: 'standardFlow' };
+          }
         },
         vipFlow: {},
         review: {},
         standardFlow: {}
       },
       guards: {
-        isVip: ({ context }) => context.isVip,
-        isOverBudget: ({ context }) => context.overBudget
+        isVip: ({ isVip }: { isVip: boolean }) => isVip,
+        isOverBudget: ({ overBudget }: { overBudget: boolean }) => overBudget
       }
     });
 
@@ -73,7 +69,7 @@ describe('choice states', () => {
     expect(actor.getSnapshot().value).toBe('standardFlow');
   });
 
-  it('routes through a function choice', () => {
+  it('routes when entered via a transition', () => {
     const machine = createMachine({
       schemas: {
         context: z.object({
@@ -97,7 +93,7 @@ describe('choice states', () => {
         },
         routing: {
           type: 'choice',
-          choices: ({ context }) => {
+          choice: ({ context }) => {
             if (context.isVip) {
               return { target: 'vipFlow' };
             }
@@ -120,47 +116,45 @@ describe('choice states', () => {
     expect(actor.getSnapshot().value).toBe('review');
   });
 
-  it('throws when a declarative choice state has no default choice', () => {
+  it('throws when a choice state does not declare a `choice` function', () => {
     expect(() =>
       createMachine({
         initial: 'routing',
         states: {
           routing: {
-            type: 'choice',
-            choices: [{ guard: () => false, target: 'a' }]
-          },
-          a: {}
-        }
-      })
-    ).toThrow(
-      'Choice state "(machine).routing" must declare a default choice without a guard.'
-    );
-  });
-
-  it('throws when a declarative choice uses a string guard', () => {
-    expect(() =>
-      createMachine({
-        initial: 'routing',
-        states: {
-          routing: {
-            type: 'choice',
-            choices: [{ guard: 'isReady', target: 'a' }, { target: 'a' }]
+            type: 'choice'
           },
           a: {}
         }
       } as any)
     ).toThrow(
-      'Choice state "(machine).routing" cannot declare a string guard. Use a guard object or inline guard function.'
+      'Choice state "(machine).routing" must declare a `choice` function.'
     );
   });
 
-  it('throws when a function choice does not resolve to a target', () => {
+  it('throws when a non-choice state declares `choice`', () => {
+    expect(() =>
+      createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            choice: () => ({ target: 'b' })
+          },
+          b: {}
+        }
+      } as any)
+    ).toThrow(
+      'State "(machine).a" has `choice`, but `choice` can only be used with `type: \'choice\'`.'
+    );
+  });
+
+  it('throws when a choice does not resolve to a target', () => {
     const machine = createMachine({
       initial: 'routing',
       states: {
         routing: {
           type: 'choice',
-          choices: (() => undefined) as any
+          choice: (() => undefined) as any
         },
         done: {}
       }
@@ -187,7 +181,7 @@ describe('choice states', () => {
         states: {
           routing: {
             type: 'choice',
-            choices: [{ target: 'done' }],
+            choice: () => ({ target: 'done' }),
             ...(config as any)
           },
           done: {}

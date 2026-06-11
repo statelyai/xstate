@@ -175,7 +175,7 @@ export interface StateNodeJSON {
   on?: Record<string, TransitionJSON | TransitionJSON[]>;
   after?: Record<string, TransitionJSON | TransitionJSON[]>;
   always?: TransitionJSON | TransitionJSON[];
-  choices?: TransitionJSON[];
+  choice?: TransitionJSON;
   invoke?: InvokeJSON | InvokeJSON[];
   entry?: ActionJSON[];
   exit?: ActionJSON[];
@@ -458,7 +458,7 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
           )
         : undefined,
       always: node.always ? getTransitionConfig(node.always) : undefined,
-      choices: node.choices ? getTransitionConfig(node.choices) : undefined,
+      choice: node.choice ? getTransitionConfig(node.choice) : undefined,
       // after: node.after,
       entry: entryFn as any,
       exit: node.exit ? (iterActions(node.exit) as any) : undefined,
@@ -995,41 +995,57 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
   }) as unknown as AnyStateMachine;
 
   // Register SCXML guard implementations
-  return machine.provide({
-    guards: {
-      'scxml.cond': ({ context, event, self }: any, params: any) => {
-        const expr = params?.expr as string;
-        if (!expr) return true;
-        try {
-          return !!evaluateExpr(context, expr, event, self);
-        } catch (err) {
-          // Per SCXML spec, a cond that fails to evaluate is treated as false
-          // AND raises error.execution. We can't enqueue from a guard, so
-          // queue it for the next entry to drain.
-          const message =
-            err instanceof Error ? err.message : String(err ?? 'unknown error');
-          pendingPlatformErrors.push({
-            tagname: 'cond',
-            message,
-            line: NaN,
-            column: NaN,
-            reason: message
-          });
-          return false;
-        }
-      },
-      'xstate.stateIn': (args: any, params: any) => {
-        const stateId = params?.stateId as string;
-        if (!stateId) return false;
-        const normalizedId = stateId.replace(/^#/, '');
-        const snapshot = args._snapshot;
-        if (snapshot?._nodes) {
-          return snapshot._nodes.some((node: any) => node.id === normalizedId);
-        }
+  const providedGuards: Record<string, (args: any, params: any) => boolean> = {
+    'scxml.cond': ({ context, event, self }: any, params: any) => {
+      const expr = params?.expr as string;
+      if (!expr) return true;
+      try {
+        return !!evaluateExpr(context, expr, event, self);
+      } catch (err) {
+        // Per SCXML spec, a cond that fails to evaluate is treated as false
+        // AND raises error.execution. We can't enqueue from a guard, so
+        // queue it for the next entry to drain.
+        const message =
+          err instanceof Error ? err.message : String(err ?? 'unknown error');
+        pendingPlatformErrors.push({
+          tagname: 'cond',
+          message,
+          line: NaN,
+          column: NaN,
+          reason: message
+        });
         return false;
       }
+    },
+    'xstate.stateIn': (args: any, params: any) => {
+      const stateId = params?.stateId as string;
+      if (!stateId) return false;
+      const normalizedId = stateId.replace(/^#/, '');
+      const snapshot = args._snapshot;
+      if (snapshot?._nodes) {
+        return snapshot._nodes.some((node: any) => node.id === normalizedId);
+      }
+      return false;
+    },
+    'xstate.not': (args: any, params: any) => {
+      const inner = params?.guard;
+      const innerImpl = inner && providedGuards[inner.type];
+      if (!innerImpl) {
+        throw new Error(
+          `Guard '${inner?.type}' referenced by 'xstate.not' is not implemented.`
+        );
+      }
+      return !innerImpl(args, inner.params);
     }
+  };
+  const provided = machine.provide({
+    guards: providedGuards
   }) as AnyStateMachine;
+
+  // Keep the original JSON so `machine.definition` / `JSON.stringify(machine)`
+  // round-trip losslessly.
+  (provided as any)._json = json;
+  return provided;
 }
 
 function isBuiltInActionJSON(action: ActionJSON): action is BuiltInActionJSON {

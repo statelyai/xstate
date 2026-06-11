@@ -48,6 +48,9 @@
     "test:core:coverage": "vitest run --project xstate --coverage --coverage.provider=istanbul --coverage.include=packages/core/src/**/*.ts --coverage.exclude=**/*.test.ts",
     "test:store": "vitest run --project @xstate/store*",
     "test:store:watch": "vitest --project @xstate/store*",
+    "bench:size": "node scripts/bundle-size.mjs",
+    "bench:size:update": "node scripts/bundle-size.mjs --update",
+    "bench:type-errors": "node scripts/type-error-quality.mjs",
     "changeset": "changeset",
     "release": "pnpm -r publish --access=public && changeset tag",
     "version": "changeset version"

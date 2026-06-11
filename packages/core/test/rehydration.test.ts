@@ -8,7 +8,7 @@ import {
 import { setTimeout as sleep } from 'node:timers/promises';
 import { z } from 'zod';
 
-describe.skip('rehydration', () => {
+describe('rehydration', () => {
   describe('using persisted state', () => {
     it('should be able to use `hasTag` immediately', () => {
       const machine = createMachine({
@@ -215,22 +215,17 @@ describe.skip('rehydration', () => {
   });
 
   it('a rehydrated active child should be registered in the system', () => {
-    const foo = createMachine({});
-    const machine = createMachine(
-      {
-        context: ({ spawn }) => {
-          spawn(foo, {
-            systemId: 'mySystemId'
-          });
-          return {};
-        }
+    const machine = createMachine({
+      actors: {
+        foo: createMachine({})
+      },
+      context: ({ spawn }) => {
+        spawn('foo', {
+          systemId: 'mySystemId'
+        });
+        return {};
       }
-      // {
-      //   actors: {
-      //     foo: createMachine({})
-      //   }
-      // }
-    );
+    });
 
     const actor = createActor(machine).start();
     const persistedState = actor.getPersistedSnapshot();
@@ -244,10 +239,12 @@ describe.skip('rehydration', () => {
   });
 
   it('a rehydrated done child should not be registered in the system', () => {
-    const foo = createMachine({ type: 'final' });
     const machine = createMachine({
+      actors: {
+        foo: createMachine({ type: 'final' })
+      },
       context: ({ spawn }) => {
-        spawn(foo, {
+        spawn('foo', {
           systemId: 'mySystemId'
         });
         return {};
@@ -267,19 +264,18 @@ describe.skip('rehydration', () => {
 
   it('a rehydrated done child should not re-notify the parent about its completion', () => {
     const spy = vi.fn();
-    const foo = createMachine({ type: 'final' });
 
     const machine = createMachine({
+      actors: {
+        foo: createMachine({ type: 'final' })
+      },
       context: ({ spawn }) => {
-        spawn(foo, {
+        spawn('foo', {
           systemId: 'mySystemId'
         });
         return {};
       },
       on: {
-        // '*': {
-        //   actions: spy
-        // }
         '*': (_, enq) => enq(spy)
       }
     });
@@ -298,10 +294,12 @@ describe.skip('rehydration', () => {
   });
 
   it('should be possible to persist a rehydrated actor that got its children rehydrated', () => {
-    const foo = createAsyncLogic({ run: () => Promise.resolve(42) });
     const machine = createMachine({
+      actors: {
+        foo: createAsyncLogic({ run: () => Promise.resolve(42) })
+      },
       invoke: {
-        src: foo
+        src: 'foo'
       }
     });
 
@@ -407,12 +405,12 @@ describe.skip('rehydration', () => {
     const spy = vi.fn();
 
     const machine = createMachine({
+      actors: {
+        service: subjectLogic
+      },
       invoke: [
         {
-          src: subjectLogic,
-          // onSnapshot: {
-          //   actions: [({ event }) => spy(event.snapshot.context)]
-          // }
+          src: 'service',
           onSnapshot: ({ event }, enq) => {
             enq(spy, event.snapshot.context);
           }

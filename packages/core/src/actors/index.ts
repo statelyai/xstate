@@ -65,7 +65,7 @@ export {
   type SubscriptionMappers
 } from './subscription.ts';
 
-const emptyLogic = fromTransition((_) => undefined, undefined);
+const emptyLogic = /* #__PURE__ */ fromTransition((_) => undefined, undefined);
 
 export function createEmptyActor(): ActorRef<
   Snapshot<undefined>,

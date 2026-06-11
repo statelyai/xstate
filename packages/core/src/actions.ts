@@ -1,3 +1,4 @@
+import isDevelopment from '#is-development';
 import { AnyActorRef, AnyActorScope, EventObject } from './types';
 
 export const builtInActions = {
@@ -25,8 +26,10 @@ export const builtInActions = {
   ) => {
     if (typeof event === 'string') {
       throw new Error(
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        `Only event objects may be used with sendTo; use sendTo({ type: "${event}" }) instead`
+        isDevelopment
+          ? // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+            `Only event objects may be used with sendTo; use sendTo({ type: "${event}" }) instead`
+          : `Only event objects may be used with sendTo`
       );
     }
     if (options?.delay !== undefined) {

@@ -1,3 +1,4 @@
+import isDevelopment from '#is-development';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
 import { createInvokeTimeoutEvent } from './eventUtils.ts';
 import { memo } from './memo.ts';
@@ -186,9 +187,11 @@ export class StateNode<
 
     if (this.type === 'compound' && !this.config.initial) {
       throw new Error(
-        `No initial state specified for compound state node "#${
-          this.id
-        }". Try adding { initial: "${firstStateKey}" } to the state config.`
+        isDevelopment
+          ? `No initial state specified for compound state node "#${
+              this.id
+            }". Try adding { initial: "${firstStateKey}" } to the state config.`
+          : `No initial state specified for compound state node "#${this.id}".`
       );
     }
 
@@ -217,7 +220,11 @@ export class StateNode<
       const { src, systemId } = invokeConfig;
       const invokeId = createInvokeId(this.id, i);
       const resolvedId = invokeConfig.id ?? invokeId;
-      const sourceName = `xstate.invoke.${invokeId}`;
+      // Referenced (string) actors keep their logical name so persisted
+      // snapshots reference `src: 'fetchUser'` rather than a positional id;
+      // only inline logic gets the synthetic source name.
+      const sourceName =
+        typeof src === 'string' ? src : `xstate.invoke.${invokeId}`;
 
       return {
         ...invokeConfig,
@@ -316,16 +323,18 @@ function validateStateNodeConfig(stateNode: AnyStateNode) {
   const config = stateNode.config as any;
 
   if (stateNode.type !== 'choice') {
-    if (config.choices !== undefined) {
+    if (config.choice !== undefined) {
       throw new Error(
-        `State "${stateNode.id}" has \`choices\`, but \`choices\` can only be used with \`type: 'choice'\`.`
+        `State "${stateNode.id}" has \`choice\`, but \`choice\` can only be used with \`type: 'choice'\`.`
       );
     }
     return;
   }
 
-  if (config.choices === undefined) {
-    throw new Error(`Choice state "${stateNode.id}" must declare \`choices\`.`);
+  if (typeof config.choice !== 'function') {
+    throw new Error(
+      `Choice state "${stateNode.id}" must declare a \`choice\` function.`
+    );
   }
 
   for (const key of CHOICE_CONFIG_KEYS) {
@@ -340,71 +349,28 @@ function validateStateNodeConfig(stateNode: AnyStateNode) {
 function formatChoiceTransitions(
   stateNode: AnyStateNode
 ): AnyTransitionDefinition[] {
-  const choices = (stateNode.config as any).choices;
-  const validatePureChoiceResult = (result: AnyTransitionConfig) => {
-    for (const key of ['actions', 'to', 'context'] as const) {
-      if ((result as any)[key] !== undefined) {
-        throw new Error(
-          `Choice state "${stateNode.id}" cannot declare \`${key}\` on a choice.`
-        );
-      }
-    }
-  };
+  const choice = (stateNode.config as any).choice;
   const validateChoiceResult = (result: any): AnyTransitionConfig => {
     if (!result || result.target === undefined) {
       throw new Error(
         `Choice state "${stateNode.id}" must resolve to a target.`
       );
     }
-    validatePureChoiceResult(result);
+    for (const key of ['actions', 'to', 'context'] as const) {
+      if (result[key] !== undefined) {
+        throw new Error(
+          `Choice state "${stateNode.id}" cannot declare \`${key}\` on a choice.`
+        );
+      }
+    }
     return result;
   };
-  const validateChoiceTarget = (choice: AnyTransitionConfig, index: number) => {
-    if (choice.target === undefined) {
-      throw new Error(
-        `Choice state "${stateNode.id}" has a choice at index ${index} without a target.`
-      );
-    }
-    if (typeof choice.guard === 'string') {
-      throw new Error(
-        `Choice state "${stateNode.id}" cannot declare a string guard. Use a guard object or inline guard function.`
-      );
-    }
-    validatePureChoiceResult(choice);
-  };
 
-  if (typeof choices === 'function') {
-    return [
-      formatTransition(stateNode, NULL_EVENT, {
-        to: (args: any) => validateChoiceResult(choices(args))
-      } as AnyTransitionConfig)
-    ];
-  }
-
-  if (!Array.isArray(choices) || choices.length === 0) {
-    throw new Error(
-      `Choice state "${stateNode.id}" must declare at least one choice.`
-    );
-  }
-
-  let hasDefault = false;
-  const transitions = new Array<AnyTransitionDefinition>(choices.length);
-  for (let index = 0; index < choices.length; index++) {
-    const choice = choices[index];
-    validateChoiceTarget(choice, index);
-    if (choice.guard === undefined) {
-      hasDefault = true;
-    }
-    transitions[index] = formatTransition(stateNode, NULL_EVENT, choice);
-  }
-
-  if (!hasDefault) {
-    throw new Error(
-      `Choice state "${stateNode.id}" must declare a default choice without a guard.`
-    );
-  }
-
-  return transitions;
+  return [
+    formatTransition(stateNode, NULL_EVENT, {
+      to: (args: any) => validateChoiceResult(choice(args))
+    } as AnyTransitionConfig)
+  ];
 }
 
 function mapTransitionConfigs<T>(

@@ -1118,7 +1118,9 @@ describe('useActor', () => {
 
     const machine = createMachine({
       actions: {
-        foo: () => (actionCalled = true)
+        foo: () => {
+          actionCalled = true;
+        }
       },
       on: {
         EV: ({ actions }, enq) => {

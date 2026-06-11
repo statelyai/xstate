@@ -449,13 +449,6 @@ export function formatTransition(
   const reenter = transitionConfig.reenter ?? false;
   const target = resolveTarget(stateNode, normalizedTarget);
 
-  // TODO: should this be part of a lint rule instead?
-  if (isDevelopment && (transitionConfig as any).cond) {
-    throw new Error(
-      `State "${stateNode.id}" has declared \`cond\` for one of its transitions. This property has been renamed to \`guard\`. Please update your code.`
-    );
-  }
-
   const transition = {
     ...transitionConfig,
     target,
@@ -630,7 +623,9 @@ function resolveTarget(
       }
     } else {
       throw new Error(
-        `Invalid target: "${target}" is not a valid target from the root node. Did you mean ".${target}"?`
+        isDevelopment
+          ? `Invalid target: "${target}" is not a valid target from the root node. Did you mean ".${target}"?`
+          : `Invalid target: "${target}"`
       );
     }
   });
@@ -1104,6 +1099,38 @@ export function initialMicrostep(
   );
 }
 
+/**
+ * Special action that records a spawned child on the snapshot's `children`
+ * record at execution time, so spawned actors are observable via
+ * `snapshot.children` and survive persistence (same as invoked actors).
+ */
+function registerSpawnedChild(actorRef: AnyActorRef, id: string) {
+  return Object.assign(
+    function registerChild(args: { children: Record<string, AnyActorRef> }) {
+      return { children: { ...args.children, [id]: actorRef } };
+    },
+    { _special: true }
+  );
+}
+
+/** Special action that removes a stopped child from `children`. */
+function unregisterChild(actorRef: AnyActorRef) {
+  return Object.assign(
+    function removeChild(args: {
+      children: Record<string, AnyActorRef | undefined>;
+    }) {
+      const children = { ...args.children };
+      for (const key of Object.keys(children)) {
+        if (children[key] === actorRef) {
+          delete children[key];
+        }
+      }
+      return { children };
+    },
+    { _special: true }
+  );
+}
+
 /** https://www.w3.org/TR/scxml/#microstepProcedure */
 function microstep(
   transitions: Array<AnyTransitionDefinition>,
@@ -1176,7 +1203,9 @@ function microstep(
             raise: (raisedEvent, options) => {
               if (typeof raisedEvent === 'string') {
                 throw new Error(
-                  `Only event objects may be used with raise; use raise({ type: "${raisedEvent}" }) instead`
+                  isDevelopment
+                    ? `Only event objects may be used with raise; use raise({ type: "${raisedEvent}" }) instead`
+                    : `Only event objects may be used with raise`
                 );
               }
               if (options?.delay !== undefined) {
@@ -1197,6 +1226,9 @@ function microstep(
                 action: builtInActions['@xstate.start'],
                 args: [actorRef]
               });
+              actions.push(
+                registerSpawnedChild(actorRef, options?.id ?? actorRef.id)
+              );
               return actorRef;
             },
             sendTo: (actorRef, event, options) => {
@@ -1213,6 +1245,7 @@ function microstep(
                   action: builtInActions['@xstate.stopChild'],
                   args: [actorScope, actorRef]
                 });
+                actions.push(unregisterChild(actorRef));
               }
             },
             listen: (actor, eventType, mapper) => {
@@ -1887,7 +1920,9 @@ export function getTransitionResult(
         raise: (event, options) => {
           if (typeof event === 'string') {
             throw new Error(
-              `Only event objects may be used with raise; use raise({ type: "${event}" }) instead`
+              isDevelopment
+                ? `Only event objects may be used with raise; use raise({ type: "${event}" }) instead`
+                : `Only event objects may be used with raise`
             );
           }
           if (options?.delay !== undefined) {
@@ -1929,6 +1964,9 @@ export function getTransitionResult(
             action: builtInActions['@xstate.start'],
             args: [actorRef]
           });
+          actions.push(
+            registerSpawnedChild(actorRef, options?.id ?? actorRef.id) as any
+          );
           return actorRef;
         },
         sendTo: (actorRef, event, options) => {
@@ -1945,6 +1983,7 @@ export function getTransitionResult(
               action: builtInActions['@xstate.stopChild'],
               args: [actorScope, actorRef]
             });
+            actions.push(unregisterChild(actorRef) as any);
           }
         }
       },
@@ -2267,7 +2306,9 @@ export function macrostep(
     iterationCount++;
     if (iterationCount > maxIterations) {
       throw new Error(
-        `Infinite loop detected: the machine has processed more than ${maxIterations} microsteps without reaching a stable state. This usually happens when there's a cycle of transitions (e.g., eventless transitions or raised events causing state A -> B -> C -> A).`
+        isDevelopment
+          ? `Infinite loop detected: the machine has processed more than ${maxIterations} microsteps without reaching a stable state. This usually happens when there's a cycle of transitions (e.g., eventless transitions or raised events causing state A -> B -> C -> A).`
+          : `Infinite loop detected (>${maxIterations} microsteps)`
       );
     }
 
@@ -2468,7 +2509,20 @@ export function evaluateCandidate(
     } else if (typeof guardConfig?.type === 'string') {
       const guardImpl =
         stateNode.machine.implementations.guards[guardConfig.type];
-      guardPassed = guardImpl ? guardImpl(guardArgs, guardParams) : true;
+      if (!guardImpl) {
+        // A typo'd guard name must fail loudly — silently passing would
+        // take the guarded transition and corrupt machine behavior.
+        throw new Error(
+          isDevelopment
+            ? `Guard '${guardConfig.type}' is not implemented in machine '${stateNode.machine.id}'. Available guards: ${
+                Object.keys(stateNode.machine.implementations.guards)
+                  .map((key) => `'${key}'`)
+                  .join(', ') || '(none)'
+              }.`
+            : `Guard '${guardConfig.type}' is not implemented in machine '${stateNode.machine.id}'.`
+        );
+      }
+      guardPassed = guardImpl(guardArgs, guardParams);
     }
 
     if (!guardPassed) {

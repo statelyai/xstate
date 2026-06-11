@@ -2344,9 +2344,9 @@ describe('invoke', () => {
       //   };
       // },
       actors: { child },
-      // @ts-expect-error
+      // @ts-expect-error - static input is checked against the logic's input type
       invoke: {
-        src: (({ actors }: any) => actors.child) as any,
+        src: ({ actors }) => actors.child,
         input: 'hello'
       }
     });
@@ -2365,9 +2365,8 @@ describe('invoke', () => {
       //   };
       // },
       actors: { child },
-      // @ts-expect-error
       invoke: {
-        src: (({ actors }: any) => actors.child) as any,
+        src: ({ actors }) => actors.child,
         input: 42
       }
     });
@@ -2386,9 +2385,8 @@ describe('invoke', () => {
       //   };
       // },
       actors: { child },
-      // @ts-expect-error
       invoke: {
-        src: (({ actors }: any) => actors.child) as any,
+        src: ({ actors }) => actors.child,
         input: 42
       }
     });
@@ -2407,9 +2405,9 @@ describe('invoke', () => {
       //   };
       // },
       actors: { child },
-      // @ts-expect-error
+      // @ts-expect-error - static input is checked against the logic's input type
       invoke: {
-        src: (({ actors }: any) => actors.child) as any,
+        src: ({ actors }) => actors.child,
         input: Math.random() > 0.5 ? 'string' : 42
       }
     });
@@ -2468,6 +2466,7 @@ describe('invoke', () => {
       //   };
       // },
       actors: { child },
+      // @ts-expect-error - input mapper is checked against the logic's input type
       invoke: {
         src: ({ actors }) => actors.child,
         input: () => (Math.random() > 0.5 ? 42 : 'hello')
@@ -3562,7 +3561,7 @@ describe('actions', () => {
 });
 
 describe('choice state types', () => {
-  it('should accept declarative and function choices', () => {
+  it('should accept a choice function', () => {
     createMachine({
       context: {
         isVip: false
@@ -3571,32 +3570,7 @@ describe('choice state types', () => {
       states: {
         routing: {
           type: 'choice',
-          choices: [
-            {
-              guard: ({ context }) => context.isVip,
-              target: 'vip'
-            },
-            {
-              guard: { type: 'isOverBudget' },
-              target: 'vip'
-            },
-            { target: 'standard' }
-          ]
-        },
-        vip: {},
-        standard: {}
-      }
-    });
-
-    createMachine({
-      context: {
-        isVip: false
-      },
-      initial: 'routing',
-      states: {
-        routing: {
-          type: 'choice',
-          choices: ({ context }) => ({
+          choice: ({ context }) => ({
             target: context.isVip ? 'vip' : 'standard'
           })
         },
@@ -3606,11 +3580,21 @@ describe('choice state types', () => {
     });
   });
 
+  it('should reject an array of choices', () => {
+    const invalidArray: AnyNextStateNodeConfig = {
+      type: 'choice',
+      // @ts-expect-error - `choice` must be a function
+      choice: [{ target: 'done' }]
+    };
+
+    noop(invalidArray);
+  });
+
   it('should reject normal state capabilities on choice states', () => {
     // @ts-expect-error
     const invalidOn: AnyNextStateNodeConfig = {
       type: 'choice',
-      choices: [{ target: 'done' }],
+      choice: () => ({ target: 'done' }),
       on: {
         NEXT: 'done'
       }
@@ -3619,7 +3603,7 @@ describe('choice state types', () => {
     // @ts-expect-error
     const invalidInvoke: AnyNextStateNodeConfig = {
       type: 'choice',
-      choices: [{ target: 'done' }],
+      choice: () => ({ target: 'done' }),
       invoke: {
         src: createAsyncLogic({ run: async () => undefined })
       }
@@ -3627,22 +3611,6 @@ describe('choice state types', () => {
 
     noop(invalidOn);
     noop(invalidInvoke);
-  });
-
-  it('should reject string guards on choice states', () => {
-    const invalidStringGuard: AnyNextStateNodeConfig = {
-      type: 'choice',
-      choices: [
-        {
-          // @ts-expect-error
-          guard: 'isVip',
-          target: 'vip'
-        },
-        { target: 'standard' }
-      ]
-    };
-
-    noop(invalidStringGuard);
   });
 });
 

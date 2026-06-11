@@ -7,7 +7,7 @@ import {
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
 
-describe.skip('rehydration', () => {
+describe('rehydration', () => {
   describe('using persisted state', () => {
     it('should be able to use `hasTag` immediately', () => {
       const machine = createMachine({
@@ -219,22 +219,17 @@ describe.skip('rehydration', () => {
   });
 
   it('a rehydrated active child should be registered in the system', () => {
-    const foo = createMachine({});
-    const machine = createMachine(
-      {
-        context: ({ spawn }) => {
-          spawn(foo, {
-            systemId: 'mySystemId'
-          });
-          return {};
-        }
+    const machine = createMachine({
+      actors: {
+        foo: createMachine({})
+      },
+      context: ({ spawn }) => {
+        spawn('foo', {
+          systemId: 'mySystemId'
+        });
+        return {};
       }
-      // {
-      //   actors: {
-      //     foo: createMachine({})
-      //   }
-      // }
-    );
+    });
 
     const actor = createActor(machine).start();
     const persistedState = actor.getPersistedSnapshot();
@@ -248,22 +243,17 @@ describe.skip('rehydration', () => {
   });
 
   it('a rehydrated done child should not be registered in the system', () => {
-    const foo = createMachine({ type: 'final' });
-    const machine = createMachine(
-      {
-        context: ({ spawn }) => {
-          spawn(foo, {
-            systemId: 'mySystemId'
-          });
-          return {};
-        }
+    const machine = createMachine({
+      actors: {
+        foo: createMachine({ type: 'final' })
+      },
+      context: ({ spawn }) => {
+        spawn('foo', {
+          systemId: 'mySystemId'
+        });
+        return {};
       }
-      // {
-      //   actors: {
-      //     foo: createMachine({ type: 'final' })
-      //   }
-      // }
-    );
+    });
 
     const actor = createActor(machine).start();
     const persistedState = actor.getPersistedSnapshot();
@@ -279,28 +269,22 @@ describe.skip('rehydration', () => {
   it('a rehydrated done child should not re-notify the parent about its completion', () => {
     const spy = vi.fn();
 
-    const foo = createMachine({ type: 'final' });
-
-    const machine = createMachine(
-      {
-        context: ({ spawn }) => {
-          spawn(foo, {
-            systemId: 'mySystemId'
-          });
-          return {};
-        },
-        on: {
-          '*': (_, enq) => {
-            enq(spy);
-          }
+    const machine = createMachine({
+      actors: {
+        foo: createMachine({ type: 'final' })
+      },
+      context: ({ spawn }) => {
+        spawn('foo', {
+          systemId: 'mySystemId'
+        });
+        return {};
+      },
+      on: {
+        '*': (_, enq) => {
+          enq(spy);
         }
       }
-      // {
-      //   actors: {
-      //     foo: createMachine({ type: 'final' })
-      //   }
-      // }
-    );
+    });
 
     const actor = createActor(machine).start();
     const persistedState = actor.getPersistedSnapshot();
@@ -316,19 +300,14 @@ describe.skip('rehydration', () => {
   });
 
   it('should be possible to persist a rehydrated actor that got its children rehydrated', () => {
-    const foo = createAsyncLogic({ run: () => Promise.resolve(42) });
-    const machine = createMachine(
-      {
-        invoke: {
-          src: foo
-        }
+    const machine = createMachine({
+      actors: {
+        foo: createAsyncLogic({ run: () => Promise.resolve(42) })
+      },
+      invoke: {
+        src: 'foo'
       }
-      // {
-      //   actors: {
-      //     foo: createAsyncLogic(() => Promise.resolve(42))
-      //   }
-      // }
-    );
+    });
 
     const actor = createActor(machine).start();
 
@@ -447,28 +426,17 @@ describe.skip('rehydration', () => {
 
     const spy = vi.fn();
 
-    const machine = createMachine(
-      {
-        // types: {} as {
-        //   actors: {
-        //     src: 'service';
-        //     logic: typeof subjectLogic;
-        //   };
-        // },
-
-        invoke: {
-          src: subjectLogic,
-          onSnapshot: ({ event }, enq) => {
-            enq(() => spy(event.snapshot.context));
-          }
+    const machine = createMachine({
+      actors: {
+        service: subjectLogic
+      },
+      invoke: {
+        src: 'service',
+        onSnapshot: ({ event }, enq) => {
+          enq(() => spy(event.snapshot.context));
         }
       }
-      // {
-      //   actors: {
-      //     service: subjectLogic
-      //   }
-      // }
-    );
+    });
 
     createActor(machine, {
       snapshot: createActor(machine).getPersistedSnapshot()

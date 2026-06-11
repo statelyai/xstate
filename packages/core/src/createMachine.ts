@@ -20,6 +20,7 @@ import {
   InferEvents,
   Next_MachineConfig,
   Next_StateNodeConfig,
+  WidenLiterals,
   WithDefault
 } from './types.v6.ts';
 
@@ -179,7 +180,7 @@ export function createMachine<
       TOutputSchema,
       TMetaSchema,
       TTagSchema,
-      TContext,
+      WidenLiterals<TContext>,
       InferEvents<TEventSchemaMap>,
       TDelays,
       TTag,
@@ -190,9 +191,20 @@ export function createMachine<
       false
     > & {
       schemas?: { context?: never };
+      // TContext inference site: the `const` state-schema inference above
+      // suppresses literal widening, so context is widened explicitly via
+      // WidenLiterals before being consumed by handlers and the snapshot.
+      context?:
+        | TContext
+        | ((_: {
+            spawn: any;
+            actors: TActorMap;
+            input: InferOutput<TInputSchema, unknown>;
+            self: any;
+          }) => TContext);
     }
 ): StateMachine<
-  TContext,
+  WidenLiterals<TContext>,
   | InferEvents<TEventSchemaMap>
   | ([RoutableStateId<TSS>] extends [never]
       ? never

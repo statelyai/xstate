@@ -3,7 +3,9 @@ import {
   type ReactiveNode,
   ReactiveFlags
 } from './alien.ts';
+import { installActorReadHook } from './interop.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
+import type { AnyActorRef } from './types.ts';
 
 export type Observer<T> = {
   next?: (value: T) => void;
@@ -69,23 +71,42 @@ interface InternalAtom<T> extends ReactiveNode {
 
 const queuedEffects: (Effect | undefined)[] = [];
 let cycle = 0;
-const { link, unlink, propagate, checkDirty, shallowPropagate } =
-  createReactiveSystem({
-    update(atom: InternalAtom<any>): boolean {
-      return atom._update();
-    },
-    notify(effect: Effect): void {
-      queuedEffects[queuedEffectsLength++] = effect;
-      effect.flags &= ~ReactiveFlags.Watching;
-    },
-    unwatched(atom: InternalAtom<any>): void {
-      if (atom.depsTail !== undefined) {
-        atom.depsTail = undefined;
-        atom.flags = ReactiveFlags.Mutable | ReactiveFlags.Dirty;
-        purgeDeps(atom);
+
+type ReactiveSystem = ReturnType<typeof createReactiveSystem>;
+// Initialized lazily on first atom creation (instead of at module evaluation)
+// so the reactive system stays tree-shakeable for apps that never use atoms —
+// flat dist chunks lose `#__PURE__` annotations, so a top-level call here
+// would be retained by consumer bundlers even when atoms are unused.
+let link: ReactiveSystem['link'];
+let unlink: ReactiveSystem['unlink'];
+let propagate: ReactiveSystem['propagate'];
+let checkDirty: ReactiveSystem['checkDirty'];
+let shallowPropagate: ReactiveSystem['shallowPropagate'];
+let reactiveSystemInstalled = false;
+
+function ensureReactiveSystem() {
+  if (reactiveSystemInstalled) {
+    return;
+  }
+  reactiveSystemInstalled = true;
+  ({ link, unlink, propagate, checkDirty, shallowPropagate } =
+    createReactiveSystem({
+      update(atom: InternalAtom<any>): boolean {
+        return atom._update();
+      },
+      notify(effect: Effect): void {
+        queuedEffects[queuedEffectsLength++] = effect;
+        effect.flags &= ~ReactiveFlags.Watching;
+      },
+      unwatched(atom: InternalAtom<any>): void {
+        if (atom.depsTail !== undefined) {
+          atom.depsTail = undefined;
+          atom.flags = ReactiveFlags.Mutable | ReactiveFlags.Dirty;
+          purgeDeps(atom);
+        }
       }
-    }
-  });
+    }));
+}
 
 let notifyIndex = 0;
 let queuedEffectsLength = 0;
@@ -199,6 +220,40 @@ export function createAsyncAtom<T>(
 }
 
 /**
+ * Mirror atoms that bump a version whenever a tracked actor emits a snapshot,
+ * letting computed atoms depend on `actor.get()` reads.
+ *
+ * The hook is installed lazily on first atom creation (not at module
+ * evaluation) so that it remains tree-shakeable for apps that never use atoms —
+ * any tracked read necessarily happens inside an atom computation, so first-use
+ * installation is always early enough.
+ */
+let actorInteropInstalled = false;
+
+function ensureActorInterop() {
+  if (actorInteropInstalled) {
+    return;
+  }
+  actorInteropInstalled = true;
+  const actorVersions = new WeakMap<AnyActorRef, Atom<number>>();
+  installActorReadHook((actorRef) => {
+    if (activeSub === undefined) {
+      return;
+    }
+    let version = actorVersions.get(actorRef);
+    if (version === undefined) {
+      version = createAtom(0) as Atom<number>;
+      actorVersions.set(actorRef, version);
+      actorRef.subscribe({
+        next: () => version!.set((v) => v + 1),
+        error: () => {}
+      });
+    }
+    version.get();
+  });
+}
+
+/**
  * Creates an atom.
  *
  * Pass a value for a writable atom or a getter for a computed read-only atom.
@@ -215,6 +270,8 @@ export function createAtom<T>(
   valueOrFn: T | ((prev?: T) => T),
   optionsOrInput?: AtomOptions<T>
 ): Atom<T> | ReadonlyAtom<T> {
+  ensureReactiveSystem();
+  ensureActorInterop();
   const isComputed = typeof valueOrFn === 'function';
   const getter = valueOrFn as (prev?: T) => T;
 

@@ -26,6 +26,16 @@ export {
   type RequiredActorOptionsKeys as RequiredActorOptionsKeys
 } from './createActor.ts';
 export { createMachine, createStateConfig } from './createMachine.ts';
+export { createMachineFromConfig } from './createMachineFromConfig.ts';
+export type {
+  ActionJSON,
+  GuardJSON,
+  InvokeJSON,
+  MachineJSON,
+  StateNodeJSON,
+  TransitionJSON
+} from './createMachineFromConfig.ts';
+export { machineConfigToJSON, type UnserializableMarker } from './serialize.ts';
 export { mapState } from './mapState.ts';
 export { setup } from './setup.ts';
 export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
@@ -39,6 +49,16 @@ export { getStateNodes } from './stateUtils.ts';
 export type { ActorSystem } from './system.ts';
 export { toPromise } from './toPromise.ts';
 export * from './types.ts';
+export type {
+  Next_MachineConfig as MachineConfig,
+  Next_StateNodeConfig as StateNodeConfig,
+  Next_InvokeConfig as InvokeConfig,
+  Next_TransitionConfigOrTarget as TransitionConfigOrTarget,
+  Implementations,
+  InferEvents,
+  Trigger,
+  WidenLiterals
+} from './types.v6.ts';
 export {
   getAllOwnEventDescriptors as __unsafe_getAllOwnEventDescriptors,
   matchesState,

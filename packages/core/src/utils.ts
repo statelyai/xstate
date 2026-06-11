@@ -280,7 +280,7 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
   const [, indexStr, nodeId] = match;
   const node = machine.getStateNodeById(nodeId);
   const invokeConfig = node.config.invoke!;
-  return (
+  const configSrc = (
     Array.isArray(invokeConfig)
       ? invokeConfig[indexStr as any]
       : (invokeConfig as InvokeConfig<
@@ -294,6 +294,10 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
           any // TMeta
         >)
   ).src;
+  // A referenced actor may itself be registered by name.
+  return typeof configSrc === 'string'
+    ? machine.implementations.actors[configSrc]
+    : configSrc;
 }
 
 export function getAllOwnEventDescriptors(snapshot: AnyMachineSnapshot) {

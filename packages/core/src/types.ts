@@ -2080,7 +2080,7 @@ export type StateSchema = {
   onDone?: unknown;
   after?: unknown;
   always?: unknown;
-  choices?: unknown;
+  choice?: unknown;
   meta?: unknown;
   output?: unknown;
   tags?: unknown;
