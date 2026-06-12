@@ -1398,12 +1398,9 @@ describe('setup()', () => {
     counterActor satisfies ActorRefFrom<typeof child1> | undefined;
 
     const someActor = createActor(machine).getSnapshot().children.someChild;
-    // @ts-expect-error
     someActor satisfies ActorRefFrom<typeof child2> | undefined;
-    someActor satisfies
-      | ActorRefFrom<typeof child1>
-      | ActorRefFrom<typeof child2>
-      | undefined;
+    // @ts-expect-error - someChild can only be child2 (child1 has a literal id)
+    someActor satisfies ActorRefFrom<typeof child1> | undefined;
   });
 
   it('should type the snapshot state value of a stateless machine as an empty object', () => {

@@ -2546,6 +2546,15 @@ type ToConcreteChildren<TActor extends ProvidedActor> = {
   >;
 };
 
+// Actors that don't have literal string IDs — these are the only ones
+// that should appear in the index signature fallback, since actors with
+// literal IDs are already covered by ToConcreteChildren.
+type NonConcreteActors<TActor extends ProvidedActor> = TActor extends any
+  ? ExtractLiteralString<TActor['id']> extends never
+    ? TActor
+    : never
+  : never;
+
 export type ToChildren<TActor extends ProvidedActor> =
   // only proceed further if all configured `src`s are literal strings
   string extends TActor['src']
@@ -2557,16 +2566,16 @@ export type ToChildren<TActor extends ProvidedActor> =
         ToConcreteChildren<TActor> &
           {
             include: {
-              [id: string]: TActor extends any
-                ? ActorRefFromLogic<TActor['logic']> | undefined
-                : never;
+              [id: string]: NonConcreteActors<TActor> extends never
+                ? AnyActorRef | undefined
+                : NonConcreteActors<TActor> extends any
+                  ?
+                      | ActorRefFromLogic<NonConcreteActors<TActor>['logic']>
+                      | undefined
+                  : never;
             };
             exclude: unknown;
-          }[undefined extends TActor['id'] // if not all actors have literal string IDs then we need to create an index signature containing all possible actor types
-            ? 'include'
-            : string extends TActor['id']
-              ? 'include'
-              : 'exclude']
+          }[NonConcreteActors<TActor> extends never ? 'exclude' : 'include']
       >;
 
 export type StateSchema = {

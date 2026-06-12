@@ -2634,12 +2634,77 @@ describe('state.children without setup', () => {
     counterActor satisfies ActorRefFrom<typeof child1> | undefined;
 
     const someActor = createActor(machine).getSnapshot().children.someChild;
-    // @ts-expect-error
     someActor satisfies ActorRefFrom<typeof child2> | undefined;
-    someActor satisfies
-      | ActorRefFrom<typeof child1>
-      | ActorRefFrom<typeof child2>
-      | undefined;
+    // @ts-expect-error - someChild can only be child2 (child1 has a literal id)
+    someActor satisfies ActorRefFrom<typeof child1> | undefined;
+  });
+});
+
+describe('state.children with setup and multiple invoke', () => {
+  it('should type children by their specific actor when using setup with an invoke array', () => {
+    const authLogic = setup({
+      types: {
+        context: {} as { token: string | null },
+        events: {} as { type: 'auth.logout' }
+      },
+      actors: {
+        authState: fromPromise(async () => ({ token: 'tok' }))
+      }
+    }).createMachine({
+      id: 'auth',
+      context: { token: null },
+      initial: 'idle',
+      invoke: {
+        src: 'authState',
+        onDone: {
+          actions: assign({ token: ({ event }) => event.output.token })
+        }
+      },
+      states: { idle: {} }
+    });
+
+    const telemetryLogic = setup({
+      types: {
+        context: {} as { store: string | null },
+        events: {} as { type: 'telemetry.start' }
+      },
+      actors: {
+        checkConsent: fromPromise(async () => ({ status: 'granted' }))
+      }
+    }).createMachine({
+      id: 'telemetry',
+      context: { store: null },
+      initial: 'idle',
+      states: { idle: {} }
+    });
+
+    const rootMachine = setup({
+      types: {
+        context: {} as { value: number }
+      },
+      actors: {
+        auth: authLogic,
+        telemetry: telemetryLogic
+      }
+    }).createMachine({
+      context: { value: 0 },
+      invoke: [
+        { id: 'auth', systemId: 'auth', src: 'auth' },
+        { id: 'telemetry', systemId: 'telemetry', src: 'telemetry' }
+      ]
+    });
+
+    const snapshot = createActor(rootMachine).getSnapshot();
+
+    const authChild = snapshot.children.auth;
+    authChild!.getSnapshot().context.token satisfies string | null;
+    // @ts-expect-error - token is string | null, not number
+    authChild!.getSnapshot().context.token satisfies number;
+
+    const telemetryChild = snapshot.children.telemetry;
+    telemetryChild!.getSnapshot().context.store satisfies string | null;
+    // @ts-expect-error - store is string | null, not number
+    telemetryChild!.getSnapshot().context.store satisfies number;
   });
 });
 
