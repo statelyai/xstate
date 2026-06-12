@@ -1,5 +1,11 @@
 # xstate
 
+## 5.32.1
+
+### Patch Changes
+
+- [#5516](https://github.com/statelyai/xstate/pull/5516) [`41c0a5a`](https://github.com/statelyai/xstate/commit/41c0a5a2878713bde019c61099f9486fae2c70f8) Thanks [@joshuaellis](https://github.com/joshuaellis)! - fix(core): resolve children snapshot union pollution for typed invoke
+
 ## 5.32.0
 
 ### Minor Changes
