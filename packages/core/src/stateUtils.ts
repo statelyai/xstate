@@ -548,12 +548,48 @@ export function formatRouteTransitions(rootStateNode: AnyStateNode): void {
     Object.values(states).forEach((sn) => {
       if (sn.config.route && sn.config.id) {
         const routeId = sn.config.id;
-        const userGuard = sn.config.route.guard;
+        const routeConfig = sn.config.route;
         const routeMatches = ({ event }: { event: any }) =>
           event.to === `#${routeId}`;
 
+        if (typeof routeConfig === 'function') {
+          // Transition-style route: the function is the guard and resolver.
+          // Returning undefined/false blocks the route; returning true or a
+          // config object allows it.
+          routeTransitions.push(
+            formatTransition(rootStateNode, 'xstate.route', {
+              guard: routeMatches,
+              to: (args: any) => {
+                const result = routeConfig(args);
+                if (!result) {
+                  return undefined;
+                }
+                return {
+                  ...(result === true ? {} : result),
+                  target: `#${routeId}`
+                };
+              }
+            } as AnyTransitionConfig)
+          );
+          if (sn.states) {
+            collectRoutes(sn.states);
+          }
+          return;
+        }
+
+        if ('$unserializable' in routeConfig) {
+          throw new Error(
+            `State "${sn.id}" has a route that is not serializable. Re-provide the route function when reviving this machine.`
+          );
+        }
+
+        // Object-form route. A `guard` (string or function) on the object is
+        // only produced by the JSON layer (createMachineFromConfig) —
+        // authoring uses the function form above.
+        const userGuard = (routeConfig as any).guard;
+
         const transition: AnyTransitionConfig = {
-          ...sn.config.route,
+          ...routeConfig,
           guard: userGuard
             ? (args: {
                 event: any;
@@ -563,7 +599,20 @@ export function formatRouteTransitions(rootStateNode: AnyStateNode): void {
                 if (typeof userGuard === 'function') return userGuard(args);
                 if (typeof userGuard === 'string') {
                   const guardImpl = args.guards?.[userGuard];
-                  return guardImpl ? guardImpl(args) : true;
+                  if (!guardImpl) {
+                    // A typo'd guard name must fail loudly — silently passing
+                    // would allow the route and corrupt machine behavior.
+                    throw new Error(
+                      isDevelopment
+                        ? `Guard '${userGuard}' is not implemented in machine '${rootStateNode.machine.id}'. Available guards: ${
+                            Object.keys(args.guards ?? {})
+                              .map((key) => `'${key}'`)
+                              .join(', ') || '(none)'
+                          }.`
+                        : `Guard '${userGuard}' is not implemented in machine '${rootStateNode.machine.id}'.`
+                    );
+                  }
+                  return guardImpl(args);
                 }
                 return true;
               }

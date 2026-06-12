@@ -14,10 +14,35 @@
  * `actions`/`guards`/`actors` maps on `createMachineFromConfig` revival).
  */
 
+import type { AnyStateMachine } from './types.ts';
+
 export interface UnserializableMarker {
   $unserializable: 'function' | 'actor' | 'schema' | 'value';
   /** Best-effort identifier (function name, actor logic id) for diagnostics. */
   id?: string;
+}
+
+/**
+ * Returns the JSON-serializable definition of a machine.
+ *
+ * Inline functions, actor logic, and runtime schemas cannot be represented as
+ * data; they appear as `{ "$unserializable": ... }` markers. A machine created
+ * via `createMachineFromConfig` returns its original JSON config (lossless
+ * round-trip):
+ *
+ * ```ts
+ * import { serializeMachine, createMachineFromConfig } from 'xstate';
+ *
+ * const json = serializeMachine(machine);
+ * const revived = createMachineFromConfig(
+ *   JSON.parse(JSON.stringify(json))
+ * );
+ * ```
+ */
+export function serializeMachine(
+  machine: AnyStateMachine
+): Record<string, unknown> {
+  return (machine as any)._json ?? machineConfigToJSON(machine.config as any);
 }
 
 /**
@@ -38,6 +63,7 @@ const STATE_NODE_KEYS = [
   'after',
   'always',
   'choice',
+  'route',
   'onTimeout',
   'timeout',
   'entry',

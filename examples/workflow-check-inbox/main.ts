@@ -1,6 +1,6 @@
 import {
   assign,
-  fromCallback,
+  createCallbackLogic,
   createAsyncLogic,
   createActor,
   setup
@@ -25,7 +25,7 @@ export const workflow = setup({
     }
   },
   actors: {
-    schedule: fromCallback<
+    schedule: createCallbackLogic<
       any,
       {
         interval: number;

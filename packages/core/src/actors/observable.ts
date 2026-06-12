@@ -43,14 +43,15 @@ export type ObservableActorLogic<
 >;
 
 /**
- * Represents an actor created by `fromObservable` or `fromEventObservable`.
+ * Represents an actor created by `createObservableLogic` or
+ * `createEventObservableLogic`.
  *
  * The type of `self` within the actor's logic.
  *
  * @example
  *
  * ```ts
- * import { fromObservable, createActor } from 'xstate';
+ * import { createObservableLogic, createActor } from 'xstate';
  * import { interval } from 'rxjs';
  *
  * // The type of the value observed by the actor's logic.
@@ -60,19 +61,21 @@ export type ObservableActorLogic<
  *
  * // Actor logic that observes a number incremented every `input.period`
  * // milliseconds (default: 1_000).
- * const logic = fromObservable<Context, Input>(({ input, self }) => {
- *   self;
- *   // ^? ObservableActorRef<Event, Input>
+ * const logic = createObservableLogic<Context, Input>(
+ *   ({ input, self }) => {
+ *     self;
+ *     // ^? ObservableActorRef<Event, Input>
  *
- *   return interval(input.period ?? 1_000);
- * });
+ *     return interval(input.period ?? 1_000);
+ *   }
+ * );
  *
  * const actor = createActor(logic, { input: { period: 2_000 } });
  * //    ^? ObservableActorRef<Event, Input>
  * ```
  *
- * @see {@link fromObservable}
- * @see {@link fromEventObservable}
+ * @see {@link createObservableLogic}
+ * @see {@link createEventObservableLogic}
  */
 export type ObservableActorRef<TContext> = ActorRefFromLogic<
   ObservableActorLogic<TContext, any>
@@ -91,10 +94,10 @@ export type ObservableActorRef<TContext> = ActorRefFromLogic<
  * @example
  *
  * ```ts
- * import { fromObservable, createActor } from 'xstate';
+ * import { createObservableLogic, createActor } from 'xstate';
  * import { interval } from 'rxjs';
  *
- * const logic = fromObservable((obj) => interval(1000));
+ * const logic = createObservableLogic((obj) => interval(1000));
  *
  * const actor = createActor(logic);
  *
@@ -204,25 +207,6 @@ export function createObservableLogic<
   }) as unknown as ObservableActorLogic<TContext, TInput, TEmitted>;
 }
 
-export function fromObservable<
-  TContext,
-  TInput extends NonReducibleUnknown,
-  TEmitted extends EventObject = EventObject
->(
-  observableCreator: ({
-    input,
-    system,
-    self
-  }: {
-    input: TInput;
-    system: AnyActorSystem;
-    self: ObservableActorRef<TContext>;
-    emit: (emitted: TEmitted) => void;
-  }) => Subscribable<TContext>
-): ObservableActorLogic<TContext, TInput, TEmitted> {
-  return createObservableLogic(observableCreator);
-}
-
 /**
  * Creates event observable logic that listens to an observable that delivers
  * event objects.
@@ -240,7 +224,7 @@ export function fromObservable<
  *
  * ```ts
  * import {
- *   fromEventObservable,
+ *   createEventObservableLogic,
  *   Subscribable,
  *   EventObject,
  *   createMachine,
@@ -248,7 +232,7 @@ export function fromObservable<
  * } from 'xstate';
  * import { fromEvent } from 'rxjs';
  *
- * const mouseClickLogic = fromEventObservable(
+ * const mouseClickLogic = createEventObservableLogic(
  *   () => fromEvent(document.body, 'click') as Subscribable<EventObject>
  * );
  *
@@ -274,7 +258,7 @@ export function fromObservable<
  *   It should return a {@link Subscribable}, which is compatible with an RxJS
  *   Observable, although RxJS is not required to create them.
  */
-export function fromEventObservable<
+export function createEventObservableLogic<
   TEvent extends EventObject,
   TInput extends NonReducibleUnknown,
   TEmitted extends EventObject = EventObject

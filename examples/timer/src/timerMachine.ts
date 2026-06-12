@@ -1,8 +1,8 @@
-import { assign, fromCallback, setup } from 'xstate';
+import { assign, createCallbackLogic, setup } from 'xstate';
 
 export const timerMachine = setup({
   actors: {
-    ticks: fromCallback(({ sendBack }) => {
+    ticks: createCallbackLogic(({ sendBack }) => {
       const interval = setInterval(() => {
         sendBack({ type: 'TICK' });
       }, 1000);

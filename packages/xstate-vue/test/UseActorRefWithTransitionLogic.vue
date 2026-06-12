@@ -6,7 +6,7 @@
 
 <script lang="ts">
 import { useSelector, useActorRef } from '../src/index.ts';
-import { fromTransition } from 'xstate/actors';
+import { createTransitionLogic } from 'xstate/actors';
 import { defineComponent } from 'vue';
 
 const reducer = (state: number, event: { type: 'INC' }): number => {
@@ -16,7 +16,7 @@ const reducer = (state: number, event: { type: 'INC' }): number => {
   return state;
 };
 
-const logic = fromTransition(reducer, 0);
+const logic = createTransitionLogic(reducer, 0);
 
 export default defineComponent({
   setup() {

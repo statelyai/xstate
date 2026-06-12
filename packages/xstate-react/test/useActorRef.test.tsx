@@ -7,7 +7,7 @@ import * as React from 'react';
 import {
   ActorRefFrom,
   createAsyncLogic,
-  fromTransition,
+  createTransitionLogic,
   createMachine
 } from 'xstate';
 import { useActorRef, useMachine, useSelector } from '../src/index.ts';
@@ -298,7 +298,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should work with a transition actor', () => {
-    const someLogic = fromTransition((state, event) => {
+    const someLogic = createTransitionLogic((state, event) => {
       if (event.type == 'inc') {
         return state + 1;
       }

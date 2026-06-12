@@ -1,5 +1,5 @@
 import { createMachine, createActor } from '../src/index';
-import { fromCallback } from '../src/actors/callback';
+import { createCallbackLogic } from '../src/actors/callback';
 import { z } from 'zod';
 
 const exampleMachine = createMachine({
@@ -370,7 +370,7 @@ describe('State', () => {
                 return {
                   context: {
                     ref: enq.spawn(
-                      fromCallback(() => {
+                      createCallbackLogic(() => {
                         spawned = true;
                       })
                     )

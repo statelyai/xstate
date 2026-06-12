@@ -59,7 +59,12 @@ export interface LogicArgs<TOutput, TInput> {
 export interface LogicEnqueue<TEmitted extends EventObject> {
   /** Emits an event that can be observed with `actor.on(...)`. */
   emit: (emitted: TEmitted) => void;
-  /** Executes async work as a durable effect keyed by `key`. */
+  /**
+   * Executes async work as a durable effect keyed by `key`.
+   *
+   * @experimental The durability semantics (step journaling, replay, and
+   *   resumption across persistence) are not finalized and may change.
+   */
   step: <TStepOutput>(
     key: string,
     exec: () => TStepOutput | PromiseLike<TStepOutput>

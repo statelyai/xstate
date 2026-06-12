@@ -1,16 +1,16 @@
 import {
   createActor,
   createMachine,
-  fromCallback,
+  createCallbackLogic,
   createAsyncLogic,
-  fromTransition
+  createTransitionLogic
 } from '../src';
 import type { AnyActorRef } from '../src';
 
 describe('enq.listen()', () => {
   it('listens to emitted events from a spawned actor', async () => {
     // Use a transition actor that emits when it receives an event
-    const childLogic = fromTransition<
+    const childLogic = createTransitionLogic<
       { triggered: boolean },
       { type: 'TRIGGER' },
       any, // TSystem
@@ -70,14 +70,16 @@ describe('enq.listen()', () => {
   });
 
   it('supports wildcard event matching', async () => {
-    const childLogic = fromCallback<any, any, { type: string; value: number }>(
-      ({ emit }) => {
-        setTimeout(() => {
-          emit({ type: 'data.update', value: 1 });
-          emit({ type: 'data.delete', value: 2 });
-        }, 10);
-      }
-    );
+    const childLogic = createCallbackLogic<
+      any,
+      any,
+      { type: string; value: number }
+    >(({ emit }) => {
+      setTimeout(() => {
+        emit({ type: 'data.update', value: 1 });
+        emit({ type: 'data.delete', value: 2 });
+      }, 10);
+    });
 
     const receivedEvents: any[] = [];
 
@@ -112,15 +114,17 @@ describe('enq.listen()', () => {
   });
 
   it('stops listening when listener is stopped', async () => {
-    const childLogic = fromCallback<any, any, { type: 'tick'; count: number }>(
-      ({ emit }) => {
-        let count = 0;
-        const interval = setInterval(() => {
-          emit({ type: 'tick', count: ++count });
-        }, 10);
-        return () => clearInterval(interval);
-      }
-    );
+    const childLogic = createCallbackLogic<
+      any,
+      any,
+      { type: 'tick'; count: number }
+    >(({ emit }) => {
+      let count = 0;
+      const interval = setInterval(() => {
+        emit({ type: 'tick', count: ++count });
+      }, 10);
+      return () => clearInterval(interval);
+    });
 
     const receivedEvents: any[] = [];
     let listenerRef: AnyActorRef | undefined;
@@ -272,7 +276,7 @@ describe('enq.subscribeTo()', () => {
   });
 
   it('subscribes to snapshot changes using shorthand', async () => {
-    const childLogic = fromTransition(
+    const childLogic = createTransitionLogic(
       (state) => {
         return {
           ...state,

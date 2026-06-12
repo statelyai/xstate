@@ -23,6 +23,10 @@ This guide is organized by area. Skim the **Quick reference** below, then jump t
 | `stateIn('foo')`                                        | `checkStateIn(self.getSnapshot(), 'foo')`                                                                                           |
 | `interpret(machine)`, `Interpreter`                     | `createActor(machine)` (already in v5; legacy alias gone)                                                                           |
 | `fromPromise(async ({ input }) => ...)`                 | `createAsyncLogic({ run: async ({ input }, enq) => ... })`                                                                          |
+| `fromCallback(cb)`                                      | `createCallbackLogic(cb)` (same signature, renamed)                                                                                 |
+| `fromObservable(fn)`                                    | `createObservableLogic(fn)` (same signature, renamed)                                                                               |
+| `fromEventObservable(fn)`                               | `createEventObservableLogic(fn)` (same signature, renamed)                                                                          |
+| `fromTransition(reducer, initial)`                      | `createTransitionLogic(reducer, initial)` (same signature, renamed)                                                                 |
 | `types: {} as { context: ..., events: ...}`             | `schemas: { context, events, ... }` (Zod / Standard Schema)                                                                         |
 | `actor.send({ type: 'INC' })`                           | `actor.send(...)` keeps working; new typed `actor.trigger.INC()`                                                                    |
 | `@xstate/immer`                                         | removed — return updated `context` directly                                                                                         |
@@ -888,7 +892,7 @@ These exports have been **added**:
 - `checkStateIn`
 - `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
 - `TimeoutError`
-- Serialization surface (see §22): `createMachineFromConfig`, `machineConfigToJSON`, and the `MachineJSON`/`StateNodeJSON`/`TransitionJSON`/`ActionJSON`/`GuardJSON`/`InvokeJSON`/`UnserializableMarker` types; machines have a `definition` getter and `toJSON()`
+- Serialization surface (see §22): `createMachineFromConfig`, `machineConfigToJSON`, and the `MachineJSON`/`StateNodeJSON`/`TransitionJSON`/`ActionJSON`/`GuardJSON`/`InvokeJSON`/`UnserializableMarker` types; machines serialize via `serializeMachine(machine)`
 - Config types (v6 shapes): `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, `TransitionConfigOrTarget`, `Implementations`, `InferEvents`, `Trigger`, `WidenLiterals`
 - Atoms: `createAtom`, `createAtomConfig`, `createAsyncAtom`, `createReducerAtom` (+ types) — the reactive primitive that backs actor snapshots; also usable standalone
 - `actor.get()` — alias of `actor.getSnapshot()`; `actor.select(selector)` — derived, subscribable views
@@ -1007,8 +1011,8 @@ runtime implementations:
 
 ### Machine → JSON
 
-`machine.definition` (also `machine.toJSON()`, so `JSON.stringify(machine)`
-just works) returns the JSON-serializable definition. Values that cannot be
+`serializeMachine(machine)` — a dedicated, tree-shakeable function — returns
+the JSON-serializable definition. Values that cannot be
 represented as data — inline functions, actor logic objects, runtime schemas —
 appear as `{ "$unserializable": "function" | "actor" | "schema" | "value" }`
 markers instead of being silently dropped. A definition is fully portable iff
@@ -1016,7 +1020,7 @@ it contains no markers; named `actions`/`guards`/`actors` keys are preserved
 (as the contract a revived machine must fulfill via `provide()`).
 
 ```ts
-const json = JSON.stringify(machine); // never throws
+const json = JSON.stringify(serializeMachine(machine)); // never throws
 ```
 
 The format is described by `packages/core/src/machine.schema.json` (a JSON
@@ -1029,7 +1033,7 @@ machine from a plain JSON config using serialized action objects
 (`{ type: '@xstate.raise', event: ... }`, `{ type: '@xstate.assign', ... }`,
 `{ type: '@xstate.emit', ... }`, custom `{ type, params }` actions) and
 `{ type, params }` guard references. Machines built this way round-trip
-losslessly: `createMachineFromConfig(JSON.parse(JSON.stringify(machine)))`.
+losslessly: `createMachineFromConfig(JSON.parse(JSON.stringify(serializeMachine(machine))))`.
 
 ```ts
 import { createMachineFromConfig, type MachineJSON } from 'xstate';

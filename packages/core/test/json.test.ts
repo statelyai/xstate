@@ -1,4 +1,5 @@
 import { createMachineFromConfig } from '../src/createMachineFromConfig';
+import { serializeMachine } from '../src/index.ts';
 
 import * as machineSchema from '../src/machine.schema.json';
 
@@ -73,7 +74,7 @@ describe('json', () => {
       output: { result: 42 }
     });
 
-    const json = JSON.parse(JSON.stringify((machine as any).definition));
+    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
 
     try {
       validate(json);
@@ -116,7 +117,7 @@ describe('json', () => {
       }
     });
 
-    const machineJSON = JSON.stringify(machine);
+    const machineJSON = JSON.stringify(serializeMachine(machine));
 
     const machineObject = JSON.parse(machineJSON);
 
@@ -134,7 +135,7 @@ describe('json', () => {
     });
 
     // A second round-trip is byte-stable.
-    expect(JSON.stringify(revivedMachine)).toBe(machineJSON);
+    expect(JSON.stringify(serializeMachine(revivedMachine))).toBe(machineJSON);
 
     expect([...revivedMachine.states.active.transitions.values()].flat())
       .toMatchInlineSnapshot(`
@@ -151,5 +152,20 @@ describe('json', () => {
           },
         ]
       `);
+  });
+});
+
+describe('reserved implementation names', () => {
+  it("rejects implementation names using the reserved '@xstate.' prefix", () => {
+    expect(() =>
+      createMachineFromConfig({
+        initial: 'a',
+        states: { a: {} }
+      } as any).provide({
+        actions: { '@xstate.raise': () => {} } as any
+      })
+    ).toThrow(
+      "Invalid actions name '@xstate.raise': the '@xstate.' prefix is reserved"
+    );
   });
 });

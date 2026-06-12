@@ -33,7 +33,7 @@ describe('route', () => {
     expect(actor.getSnapshot().value).toEqual('b');
   });
 
-  it('should transition directly to a route if guard passes', () => {
+  it('should transition directly to a route if the route function allows it', () => {
     const machine = createMachine({
       id: 'test',
       initial: 'a',
@@ -41,15 +41,11 @@ describe('route', () => {
         a: {},
         b: {
           id: 'b',
-          route: {
-            guard: () => false
-          }
+          route: () => false
         },
         c: {
           id: 'c',
-          route: {
-            guard: () => true
-          }
+          route: () => true
         }
       }
     });
@@ -95,9 +91,7 @@ describe('route', () => {
         },
         review: {
           id: 'review',
-          route: {
-            guard: 'isReady'
-          }
+          route: (args) => args.guards.isReady(args)
         }
       }
     });
@@ -118,6 +112,86 @@ describe('route', () => {
     });
 
     expect(actor.getSnapshot().value).toEqual('review');
+  });
+
+  it('route function can return a config object (with context update)', () => {
+    const machine = createMachine({
+      id: 'app',
+      context: { visits: 0, loggedIn: false },
+      initial: 'home',
+      states: {
+        home: {
+          id: 'home',
+          route: {},
+          on: {
+            LOGIN: ({ context }) => ({
+              context: { ...context, loggedIn: true }
+            })
+          }
+        },
+        profile: {
+          id: 'profile',
+          route: ({ context }) => {
+            if (!context.loggedIn) {
+              return; // blocked — like an unhandled transition
+            }
+            return {
+              context: { ...context, visits: context.visits + 1 }
+            };
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'xstate.route', to: '#profile' });
+    expect(actor.getSnapshot().value).toEqual('home');
+    expect(actor.getSnapshot().context.visits).toBe(0);
+
+    actor.send({ type: 'LOGIN' });
+    actor.send({ type: 'xstate.route', to: '#profile' });
+    expect(actor.getSnapshot().value).toEqual('profile');
+    expect(actor.getSnapshot().context.visits).toBe(1);
+  });
+
+  it('should throw on a JSON-layer route guard reference that is not implemented', () => {
+    const machine = createMachine({
+      id: 'flow',
+      initial: 'amount',
+      guards: {
+        isReady: () => true
+      },
+      states: {
+        amount: {
+          id: 'amount',
+          route: {}
+        },
+        review: {
+          id: 'review',
+          // string guards on route objects are only produced by the JSON
+          // layer (createMachineFromConfig) — typo: 'isRedy'
+          route: {
+            guard: 'isRedy'
+          } as any
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.subscribe({ error: () => {} });
+    actor.start();
+
+    actor.send({
+      type: 'xstate.route',
+      to: '#review'
+    });
+
+    const snapshot = actor.getSnapshot();
+    expect(snapshot.status).toBe('error');
+    expect((snapshot as any).error.message).toMatch(
+      /Guard 'isRedy' is not implemented in machine 'flow'.*Available guards: 'isReady'/
+    );
   });
 
   it('should work with parallel states', () => {
@@ -269,9 +343,7 @@ describe('route', () => {
         },
         c: {
           id: 'c',
-          route: {
-            guard: () => true
-          }
+          route: () => true
         }
       }
     });
@@ -420,9 +492,7 @@ describe('route', () => {
       states: {
         a: {
           id: 'a',
-          route: {
-            guard: () => allowed
-          },
+          route: () => allowed,
           entry: () => {
             entries++;
           }

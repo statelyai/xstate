@@ -3,7 +3,7 @@ import {
   createMachine,
   createActor,
   createAsyncLogic,
-  fromObservable
+  createObservableLogic
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
 
@@ -422,7 +422,7 @@ describe('rehydration', () => {
 
   it('should continue syncing snapshots', () => {
     const subject = new BehaviorSubject(0);
-    const subjectLogic = fromObservable(() => subject);
+    const subjectLogic = createObservableLogic(() => subject);
 
     const spy = vi.fn();
 

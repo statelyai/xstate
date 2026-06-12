@@ -14,13 +14,13 @@ import { executeLogicEffects } from './actors/logic.ts';
 
 // those are needed to make JSDoc `@link` work properly
 import type {
-  fromObservable,
-  fromEventObservable
+  createObservableLogic,
+  createEventObservableLogic
 } from './actors/observable.ts';
-import type { fromCallback } from './actors/callback.ts';
+import type { createCallbackLogic } from './actors/callback.ts';
 import type { createLogic } from './actors/logic.ts';
 import type { createAsyncLogic } from './actors/promise.ts';
-import type { fromTransition } from './actors/transition.ts';
+import type { createTransitionLogic } from './actors/transition.ts';
 import type { createMachine } from './createMachine.ts';
 
 export let executingCustomAction: boolean = false;
@@ -44,7 +44,9 @@ import {
   EventObject,
   InteropSubscribable,
   Observer,
-  Subscription
+  PendingEffect,
+  Subscription,
+  TimersRestoreStrategy
 } from './types.ts';
 import { toObserver } from './utils.ts';
 
@@ -174,7 +176,8 @@ export class Actor<TLogic extends AnyActorLogic>
       ? parent.system
       : createSystem(this, {
           clock,
-          logger
+          logger,
+          timers: resolvedOptions.timers
         });
 
     if (inspect && !parent) {
@@ -285,7 +288,18 @@ export class Actor<TLogic extends AnyActorLogic>
 
     // prepare to collect initial microsteps during getInitialSnapshot
     this._collectedMicrosteps = [] as any;
-    const persistedState = options?.snapshot ?? options?.state;
+    let persistedState = options?.snapshot ?? options?.state;
+    if (
+      persistedState &&
+      typeof persistedState === 'object' &&
+      '_pendingEffects' in persistedState
+    ) {
+      // Pending effects are restored by this actor on `start()`; the logic
+      // only sees the rest of the persisted snapshot.
+      const { _pendingEffects, ...rest } = persistedState as any;
+      this._pendingEffects = _pendingEffects;
+      persistedState = rest;
+    }
     try {
       this._snapshot = persistedState
         ? this.logic.restoreSnapshot
@@ -313,6 +327,9 @@ export class Actor<TLogic extends AnyActorLogic>
 
   // array of functions to defer
   private _deferred: Array<() => void> = [];
+
+  // pending effects (timers) from a persisted snapshot, rescheduled on `start()`
+  private _pendingEffects?: PendingEffect[];
 
   private _setErrorSnapshot(
     err: unknown,
@@ -635,6 +652,25 @@ export class Actor<TLogic extends AnyActorLogic>
     // we need to rethink if this needs to be refactored
     this.update(this._snapshot, initEvent as unknown as EventFromLogic<TLogic>);
 
+    if (this._pendingEffects) {
+      const strategy =
+        this.options.timers ?? this.system._timerStrategy ?? 'resume';
+      for (const effect of this._pendingEffects) {
+        // Re-execute the pending effect with its remaining delay. Only
+        // self-targeted raises exist today; other effect types are ignored.
+        if (effect.type === '@xstate.raise') {
+          this.system.scheduler.schedule(
+            this,
+            this,
+            effect.event,
+            resolveRestoredTimerDelay(strategy, effect),
+            effect.id
+          );
+        }
+      }
+      this._pendingEffects = undefined;
+    }
+
     this.mailbox.start();
 
     return this;
@@ -823,7 +859,38 @@ export class Actor<TLogic extends AnyActorLogic>
    */
   public getPersistedSnapshot(): Snapshot<unknown>;
   public getPersistedSnapshot(options?: unknown): Snapshot<unknown> {
-    return this.logic.getPersistedSnapshot(this._snapshot, options);
+    const persisted = this.logic.getPersistedSnapshot(this._snapshot, options);
+
+    // Capture this actor's pending self-targeted effects (delayed
+    // events/transitions) as serialized action descriptors plus their
+    // runtime progress, so they can be restored on `start()`.
+    const scheduledEvents = this.system._snapshot._scheduledEvents;
+    let pendingEffects: PendingEffect[] | undefined;
+    const now = Date.now();
+    for (const key in scheduledEvents) {
+      const scheduled = scheduledEvents[key as keyof typeof scheduledEvents];
+      if (scheduled.source === this && scheduled.target === this) {
+        (pendingEffects ??= []).push({
+          type: '@xstate.raise',
+          event: scheduled.event,
+          id: scheduled.id,
+          delay: scheduled.delay,
+          startedAt: scheduled.startedAt,
+          elapsed: Math.max(0, now - scheduled.startedAt)
+        });
+      }
+    }
+
+    // If this actor was restored but not yet started, its pending effects
+    // are not in the scheduler yet — carry them through as-is.
+    pendingEffects ??= this._pendingEffects;
+
+    return pendingEffects
+      ? ({
+          ...(persisted as any),
+          _pendingEffects: pendingEffects
+        } as Snapshot<unknown>)
+      : persisted;
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {
@@ -840,7 +907,7 @@ export class Actor<TLogic extends AnyActorLogic>
    * may emit a snapshot when a state transition occurs.
    *
    * Note that some actors, such as callback actors generated with
-   * `fromCallback`, will not emit snapshots.
+   * `createCallbackLogic`, will not emit snapshots.
    * @see {@link Actor.subscribe} to subscribe to an actor’s snapshot values.
    * @see {@link Actor.getPersistedSnapshot} to persist the internal state of an actor (which is more than just a snapshot).
    */
@@ -857,6 +924,24 @@ export class Actor<TLogic extends AnyActorLogic>
     }
     onActorRead?.(this);
     return this._snapshot;
+  }
+}
+
+function resolveRestoredTimerDelay(
+  strategy: TimersRestoreStrategy,
+  effect: PendingEffect
+): number {
+  if (typeof strategy === 'function') {
+    return strategy(effect);
+  }
+  switch (strategy) {
+    case 'restart':
+      return effect.delay;
+    case 'absolute':
+      return Math.max(0, effect.startedAt + effect.delay - Date.now());
+    case 'resume':
+    default:
+      return Math.max(0, effect.delay - effect.elapsed);
   }
 }
 
@@ -897,9 +982,9 @@ export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
  *
  * @param logic - The actor logic to create an actor from. For a state machine
  *   actor logic creator, see {@link createMachine}. Other actor logic creators
- *   include {@link fromCallback}, {@link fromEventObservable},
- *   {@link fromObservable}, {@link createLogic}, {@link createAsyncLogic}, and
- *   {@link fromTransition}.
+ *   include {@link createCallbackLogic}, {@link createEventObservableLogic},
+ *   {@link createObservableLogic}, {@link createLogic}, {@link createAsyncLogic},
+ *   and {@link createTransitionLogic}.
  * @param options - Actor options
  */
 export function createActor<TLogic extends AnyActorLogic>(

@@ -4,7 +4,7 @@ import {
   ActorRef,
   ActorRefFrom,
   AnyMachineSnapshot,
-  fromTransition,
+  createTransitionLogic,
   createAsyncLogic,
   createActor,
   StateFrom,
@@ -397,7 +397,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should immediately render snapshot of initially spawned custom actor', () => {
     const createCustomActor = (latestValue: string) =>
-      createActor(fromTransition((s) => s, latestValue));
+      createActor(createTransitionLogic((s) => s, latestValue));
 
     const parentMachine = createMachine({
       // types: {
@@ -560,7 +560,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it("should render snapshot value when actor doesn't emit anything", () => {
     const createCustomLogic = (latestValue: string) =>
-      fromTransition((s) => s, latestValue);
+      createTransitionLogic((s) => s, latestValue);
 
     const parentMachine = createMachine({
       // types: {
@@ -596,7 +596,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should render snapshot state when actor changes', () => {
     const createCustomActor = (latestValue: string) =>
-      createActor(fromTransition((s) => s, latestValue));
+      createActor(createTransitionLogic((s) => s, latestValue));
 
     const actor1 = createCustomActor('foo');
     const actor2 = createCustomActor('bar');
@@ -620,7 +620,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it("should keep rendering a new selected value after selector change when the actor doesn't emit", async () => {
-    const actor = createActor(fromTransition((s) => s, undefined));
+    const actor = createActor(createTransitionLogic((s) => s, undefined));
     actor.subscribe = () => ({ unsubscribe: () => {} });
 
     const App = ({ selector }: { selector: any }) => {
@@ -829,7 +829,9 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
           <button
             data-testid="button"
             onClick={() =>
-              setActor(createActor(fromTransition((s) => s, { count: 42 })))
+              setActor(
+                createActor(createTransitionLogic((s) => s, { count: 42 }))
+              )
             }
           >
             Set actor

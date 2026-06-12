@@ -169,6 +169,22 @@
             { "$ref": "#/$defs/unserializable" }
           ]
         },
+        "route": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "description": { "type": "string" },
+                "reenter": { "type": "boolean" },
+                "meta": { "type": "object" },
+                "guard": { "type": "string" },
+                "input": { "type": "object" }
+              },
+              "additionalProperties": false
+            },
+            { "$ref": "#/$defs/unserializable" }
+          ]
+        },
         "invoke": { "$ref": "#/$defs/invoke" },
         "entry": {
           "oneOf": [

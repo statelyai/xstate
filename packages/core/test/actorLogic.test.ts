@@ -14,11 +14,9 @@ import {
   createCallbackLogic,
   createLogic,
   createObservableLogic,
-  fromCallback,
-  fromEventObservable,
-  fromObservable,
+  createEventObservableLogic,
   createAsyncLogic,
-  fromTransition
+  createTransitionLogic
 } from '../src/actors/index.ts';
 import { createInertActorScope } from '../src/getNextSnapshot.ts';
 import { waitFor } from '../src/waitFor.ts';
@@ -718,9 +716,9 @@ describe('promise logic (createAsyncLogic)', () => {
     expect(fn2).toHaveBeenCalled();
   });
 });
-describe('transition function logic (fromTransition)', () => {
+describe('transition function logic (createTransitionLogic)', () => {
   it('should interpret a transition function', () => {
-    const transitionLogic = fromTransition(
+    const transitionLogic = createTransitionLogic(
       (state, event) => {
         if (event.type === 'toggle') {
           return {
@@ -739,7 +737,7 @@ describe('transition function logic (fromTransition)', () => {
     expect(actor.getSnapshot().context.enabled).toBe('off');
   });
   it('should persist a transition function', () => {
-    const logic = fromTransition(
+    const logic = createTransitionLogic(
       (state, event) => {
         if (event.type === 'activate') {
           return { enabled: 'on' as const };
@@ -770,41 +768,49 @@ describe('transition function logic (fromTransition)', () => {
   });
   it('should have access to the system', () => {
     expect.assertions(1);
-    const transitionLogic = fromTransition((_state, _event, { system }) => {
-      expect(system).toBeDefined();
-      return 42;
-    }, 0);
+    const transitionLogic = createTransitionLogic(
+      (_state, _event, { system }) => {
+        expect(system).toBeDefined();
+        return 42;
+      },
+      0
+    );
     const actor = createActor(transitionLogic);
     actor.start();
     actor.send({ type: 'a' });
   });
   it('should have reference to self', () => {
     expect.assertions(1);
-    const transitionLogic = fromTransition((_state, _event, { self }) => {
-      expect(self.send).toBeDefined();
-      return 42;
-    }, 0);
+    const transitionLogic = createTransitionLogic(
+      (_state, _event, { self }) => {
+        expect(self.send).toBeDefined();
+        return 42;
+      },
+      0
+    );
     const actor = createActor(transitionLogic);
     actor.start();
     actor.send({ type: 'a' });
   });
 });
-describe('observable logic (fromObservable)', () => {
+describe('observable logic (createObservableLogic)', () => {
   it('should interpret an observable', async () => {
-    const observableLogic = fromObservable(() => interval(10).pipe(take(4)));
+    const observableLogic = createObservableLogic(() =>
+      interval(10).pipe(take(4))
+    );
     const actor = createActor(observableLogic).start();
     const snapshot = await waitFor(actor, (s) => s.status === 'done');
     expect(snapshot.context).toEqual(3);
   });
   it('should resolve', () => {
-    const actor = createActor(fromObservable(() => of(42)));
+    const actor = createActor(createObservableLogic(() => of(42)));
     const spy = vi.fn();
     actor.subscribe((snapshot) => spy(snapshot.context));
     actor.start();
     expect(spy).toHaveBeenCalledWith(42);
   });
   it('should resolve (observer .next)', () => {
-    const actor = createActor(fromObservable(() => of(42)));
+    const actor = createActor(createObservableLogic(() => of(42)));
     const spy = vi.fn();
     actor.subscribe({
       next: (snapshot) => spy(snapshot.context)
@@ -814,7 +820,7 @@ describe('observable logic (fromObservable)', () => {
   });
   it('should reject (observer .error)', () => {
     const actor = createActor(
-      fromObservable(() => throwError(() => 'Observable error.'))
+      createObservableLogic(() => throwError(() => 'Observable error.'))
     );
     const spy = vi.fn();
     actor.subscribe({
@@ -830,7 +836,7 @@ describe('observable logic (fromObservable)', () => {
     `);
   });
   it('should complete (observer .complete)', () => {
-    const actor = createActor(fromObservable(() => EMPTY));
+    const actor = createActor(createObservableLogic(() => EMPTY));
     const spy = vi.fn();
     actor.subscribe({
       complete: spy
@@ -840,7 +846,7 @@ describe('observable logic (fromObservable)', () => {
   });
   it('should not execute when reading initial state', () => {
     let called = false;
-    const logic = fromObservable(() => {
+    const logic = createObservableLogic(() => {
       called = true;
       return EMPTY;
     });
@@ -850,7 +856,7 @@ describe('observable logic (fromObservable)', () => {
   });
   it('should have access to the system', () => {
     expect.assertions(1);
-    const observableLogic = fromObservable(({ system }) => {
+    const observableLogic = createObservableLogic(({ system }) => {
       expect(system).toBeDefined();
       return of(42);
     });
@@ -858,17 +864,17 @@ describe('observable logic (fromObservable)', () => {
   });
   it('should have reference to self', () => {
     expect.assertions(1);
-    const observableLogic = fromObservable(({ self }) => {
+    const observableLogic = createObservableLogic(({ self }) => {
       expect(self.send).toBeDefined();
       return of(42);
     });
     createActor(observableLogic).start();
   });
 });
-describe('eventObservable logic (fromEventObservable)', () => {
+describe('eventObservable logic (createEventObservableLogic)', () => {
   it('should have access to the system', () => {
     expect.assertions(1);
-    const observableLogic = fromEventObservable(({ system }) => {
+    const observableLogic = createEventObservableLogic(({ system }) => {
       expect(system).toBeDefined();
       return of({ type: 'a' });
     });
@@ -876,17 +882,17 @@ describe('eventObservable logic (fromEventObservable)', () => {
   });
   it('should have reference to self', () => {
     expect.assertions(1);
-    const observableLogic = fromEventObservable(({ self }) => {
+    const observableLogic = createEventObservableLogic(({ self }) => {
       expect(self.send).toBeDefined();
       return of({ type: 'a' });
     });
     createActor(observableLogic).start();
   });
 });
-describe('callback logic (fromCallback)', () => {
+describe('callback logic (createCallbackLogic)', () => {
   it('should interpret a callback', () => {
     expect.assertions(1);
-    const callbackLogic = fromCallback(({ receive }) => {
+    const callbackLogic = createCallbackLogic(({ receive }) => {
       receive((event) => {
         expect(event).toEqual({ type: 'a' });
       });
@@ -896,14 +902,14 @@ describe('callback logic (fromCallback)', () => {
   });
   it('should have access to the system', () => {
     expect.assertions(1);
-    const callbackLogic = fromCallback(({ system }) => {
+    const callbackLogic = createCallbackLogic(({ system }) => {
       expect(system).toBeDefined();
     });
     createActor(callbackLogic).start();
   });
   it('should have reference to self', () => {
     expect.assertions(1);
-    const callbackLogic = fromCallback(({ self }) => {
+    const callbackLogic = createCallbackLogic(({ self }) => {
       expect(self.send).toBeDefined();
     });
     createActor(callbackLogic).start();
@@ -920,7 +926,7 @@ describe('callback logic (fromCallback)', () => {
         }
       },
       invoke: {
-        src: fromCallback(({ self, sendBack, receive }) => {
+        src: createCallbackLogic(({ self, sendBack, receive }) => {
           receive((event) => {
             switch (event.type) {
               case 'PONG': {
@@ -952,7 +958,7 @@ describe('callback logic (fromCallback)', () => {
   // TODO: event sourcing
   it.skip('should persist the input of a callback', () => {
     const spy = vi.fn();
-    const cb = fromCallback(({ input }) => {
+    const cb = createCallbackLogic(({ input }) => {
       spy(input);
     });
     const machine = createMachine({
@@ -1008,7 +1014,7 @@ describe('machine logic', () => {
         start: {
           invoke: {
             id: 'reducer',
-            src: fromTransition((s) => s, undefined)
+            src: createTransitionLogic((s) => s, undefined)
           }
         }
       }
@@ -1236,7 +1242,7 @@ describe('machine logic', () => {
     expect(rehydratedActor.getSnapshot().children.child).toBe(undefined);
   });
   it.skip('should persist a spawned actor with referenced src', () => {
-    const reducer = fromTransition((s) => s, { count: 42 });
+    const reducer = createTransitionLogic((s) => s, { count: 42 });
     const machine = createMachine({
       // types: {
       //   context: {} as {
@@ -1372,7 +1378,7 @@ describe('composable actor logic', () => {
         }
       };
     }
-    const transitionLogic = fromTransition(
+    const transitionLogic = createTransitionLogic(
       (
         _,
         ev: {
@@ -1402,7 +1408,9 @@ describe('composable actor logic', () => {
         }
       };
     }
-    const observableLogic = fromObservable(() => interval(10).pipe(take(4)));
+    const observableLogic = createObservableLogic(() =>
+      interval(10).pipe(take(4))
+    );
     const actor = createActor(withLogs(observableLogic)).start();
     actor.subscribe({
       complete: () => {

@@ -7,7 +7,7 @@
  *
  * Contract:
  *
- * 1. `machine.definition` / `JSON.stringify(machine)` never throws.
+ * 1. `serializeMachine(machine)` never throws and is JSON-safe.
  * 2. Serializable structure (states, transitions, targets, serialized actions,
  *    guard refs, string actor srcs, delays, meta, context values) survives a
  *    JSON round-trip through `createMachineFromConfig`.
@@ -15,7 +15,7 @@
  *    $unserializable }` markers — visible, not dropped.
  * 4. A machine created from JSON round-trips losslessly (byte-stable).
  */
-import { createActor, createMachine } from '../src/index.ts';
+import { createActor, createMachine, serializeMachine } from '../src/index.ts';
 import { createMachineFromConfig } from '../src/createMachineFromConfig';
 import { z } from 'zod';
 
@@ -63,14 +63,16 @@ describe('serializability conformance', () => {
     };
 
     const machine = createMachineFromConfig(definition as any);
-    const json = JSON.parse(JSON.stringify(machine));
+    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
 
     expect(json).toEqual(definition);
     expect(findMarkers(json)).toEqual([]);
 
     // Revive and serialize again: byte-stable.
     const revived = createMachineFromConfig(json);
-    expect(JSON.stringify(revived)).toBe(JSON.stringify(machine));
+    expect(JSON.stringify(serializeMachine(revived))).toBe(
+      JSON.stringify(serializeMachine(machine))
+    );
   });
 
   it('JSON.stringify never throws on an inline-authored machine', () => {
@@ -96,7 +98,7 @@ describe('serializability conformance', () => {
       }
     });
 
-    expect(() => JSON.stringify(machine)).not.toThrow();
+    expect(() => JSON.stringify(serializeMachine(machine))).not.toThrow();
   });
 
   it('inline implementations surface as explicit $unserializable markers', () => {
@@ -120,7 +122,7 @@ describe('serializability conformance', () => {
       }
     });
 
-    const json = JSON.parse(JSON.stringify(machine));
+    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
     const markers = findMarkers(json);
 
     // The inline transition, entry action, and named implementations are
@@ -153,7 +155,7 @@ describe('serializability conformance', () => {
       }
     });
 
-    const json = JSON.parse(JSON.stringify(machine));
+    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
 
     expect(json.initial).toBe('idle');
     expect(json.internalEvents).toEqual(['tick']);
@@ -166,13 +168,15 @@ describe('serializability conformance', () => {
   it('revived machines run: structure + provided implementations', () => {
     const definition = JSON.parse(
       JSON.stringify(
-        createMachineFromConfig({
-          initial: 'inactive',
-          states: {
-            inactive: { on: { toggle: { target: 'active' } } },
-            active: { on: { toggle: { target: 'inactive' } } }
-          }
-        } as any)
+        serializeMachine(
+          createMachineFromConfig({
+            initial: 'inactive',
+            states: {
+              inactive: { on: { toggle: { target: 'active' } } },
+              active: { on: { toggle: { target: 'inactive' } } }
+            }
+          } as any)
+        )
       )
     );
 

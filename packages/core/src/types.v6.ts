@@ -175,9 +175,19 @@ export type Next_MachineConfig<
   actions?: TActionMap;
   guards?: TGuardMap;
   actors?: TActorMap;
-  /** The initial context (extended state) */
   /** The machine's own version. */
   version?: string;
+  /**
+   * Migrates a persisted snapshot created by a different version of this
+   * machine to the current `version`. Called during restore when the persisted
+   * snapshot's `version` does not match the machine's `version` (`fromVersion`
+   * is the persisted version, possibly `undefined`). Restoring a
+   * version-mismatched snapshot without a `migrate` function throws.
+   */
+  migrate?: (
+    persistedSnapshot: any,
+    fromVersion: string | undefined
+  ) => unknown;
   // TODO: make it conditionally required
   output?:
     | Mapper<
@@ -532,6 +542,54 @@ type Next_ChoiceArgs<
   >
 >[0];
 
+/**
+ * Route config: either a static config object, or a transition-style function
+ * that acts as the route's guard and resolver — returning `undefined`/`false`
+ * blocks the route; returning `true` or a config object allows it (optionally
+ * updating `context` and providing `input`/`reenter`/`meta`).
+ *
+ * Guard objects/strings on routes are only produced by the JSON layer
+ * (`createMachineFromConfig`) — authoring uses the function form.
+ */
+export type Next_RouteConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
+> =
+  | {
+      description?: string;
+      reenter?: boolean;
+      meta?: TMeta;
+      input?:
+        | Record<string, unknown>
+        | ((args: { context: any; event: any }) => Record<string, unknown>);
+    }
+  | ((
+      args: Next_ChoiceArgs<
+        TContext,
+        TEvent,
+        TEvent,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap
+      >
+    ) =>
+      | boolean
+      | void
+      | {
+          context?: TContext;
+          reenter?: boolean;
+          meta?: TMeta;
+          input?:
+            | Record<string, unknown>
+            | ((args: { context: any; event: any }) => Record<string, unknown>);
+        });
+
 export type Next_ChoiceConfigFunction<
   TContext extends MachineContext,
   TCurrentEvent extends EventObject,
@@ -625,15 +683,15 @@ export interface Next_ChoiceStateNodeConfig<
   description?: string;
   meta?: TMeta;
   route?:
-    | {
-        description?: string;
-        reenter?: boolean;
-        meta?: TMeta;
-        guard?: unknown;
-        input?:
-          | Record<string, unknown>
-          | ((args: { context: any; event: any }) => Record<string, unknown>);
-      }
+    | Next_RouteConfig<
+        TContext,
+        TEvent,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap
+      >
     | undefined;
   initial?: never;
   history?: never;
@@ -751,15 +809,15 @@ export interface Next_RegularStateNodeConfig<
    * Requires this state node to have an explicit `id`.
    */
   route?:
-    | {
-        description?: string;
-        reenter?: boolean;
-        meta?: TMeta;
-        guard?: unknown;
-        input?:
-          | Record<string, unknown>
-          | ((args: { context: any; event: any }) => Record<string, unknown>);
-      }
+    | Next_RouteConfig<
+        TContext,
+        TEvent,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap
+      >
     | undefined;
   entry?: StateAction<
     TContext,

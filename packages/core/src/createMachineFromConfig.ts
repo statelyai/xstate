@@ -176,6 +176,18 @@ export interface StateNodeJSON {
   after?: Record<string, TransitionJSON | TransitionJSON[]>;
   always?: TransitionJSON | TransitionJSON[];
   choice?: TransitionJSON;
+  /**
+   * JSON route config. Unlike the authoring API (a function), the JSON layer
+   * allows an object form whose `guard` may be a named guard reference (string)
+   * resolved against the machine's `guards` implementations.
+   */
+  route?: {
+    description?: string;
+    reenter?: boolean;
+    meta?: MetaObject;
+    guard?: string;
+    input?: Record<string, unknown>;
+  };
   invoke?: InvokeJSON | InvokeJSON[];
   entry?: ActionJSON[];
   exit?: ActionJSON[];
@@ -459,6 +471,7 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
         : undefined,
       always: node.always ? getTransitionConfig(node.always) : undefined,
       choice: node.choice ? getTransitionConfig(node.choice) : undefined,
+      route: node.route,
       // after: node.after,
       entry: entryFn as any,
       exit: node.exit ? (iterActions(node.exit) as any) : undefined,
@@ -1042,7 +1055,7 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
     guards: providedGuards
   }) as AnyStateMachine;
 
-  // Keep the original JSON so `machine.definition` / `JSON.stringify(machine)`
+  // Keep the original JSON so `serializeMachine(machine)`
   // round-trip losslessly.
   (provided as any)._json = json;
   return provided;

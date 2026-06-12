@@ -16,9 +16,9 @@ import {
   Actor,
   createActor,
   createMachine,
-  fromCallback,
+  createCallbackLogic,
   createAsyncLogic,
-  fromTransition
+  createTransitionLogic
 } from 'xstate';
 import { useActor } from '../src/index.ts';
 
@@ -1095,7 +1095,7 @@ describe('useActor', () => {
     const machine = createMachine({
       context: ({ spawn }) => ({
         ref: spawn(
-          fromCallback(() => {
+          createCallbackLogic(() => {
             childSpawned = true;
             return () => {};
           })
@@ -1649,7 +1649,7 @@ describe('useActor', () => {
     const machine = createMachine({
       initial: 'active',
       invoke: {
-        src: fromCallback(() => {
+        src: createCallbackLogic(() => {
           activatedCount++;
           return () => {
             // noop
@@ -1890,7 +1890,7 @@ describe('useActor', () => {
     });
   });
 
-  it('should be able to work with `fromTransition`', () => {
+  it('should be able to work with `createTransitionLogic`', () => {
     const reducer = (state: number, event: { type: 'INC' }): number => {
       if (event.type === 'INC') {
         return state + 1;
@@ -1900,7 +1900,7 @@ describe('useActor', () => {
     };
 
     const Test = () => {
-      const [count, send] = useActor(fromTransition(reducer, 0));
+      const [count, send] = useActor(createTransitionLogic(reducer, 0));
 
       return (
         <button data-testid="count" onclick={() => send({ type: 'INC' })}>

@@ -1,4 +1,4 @@
-import { fromCallback, or, setup, assign } from 'xstate';
+import { createCallbackLogic, or, setup, assign } from 'xstate';
 
 export type Dir = 'Up' | 'Left' | 'Down' | 'Right';
 export type Point = { x: number; y: number };
@@ -167,7 +167,7 @@ export const snakeMachine = setup({
     }))
   },
   actors: {
-    ticks: fromCallback(({ sendBack }) => {
+    ticks: createCallbackLogic(({ sendBack }) => {
       const i = setInterval(() => {
         sendBack({ type: 'TICK' });
       }, 80);

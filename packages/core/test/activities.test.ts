@@ -1,5 +1,5 @@
 import z from 'zod';
-import { fromCallback } from '../src/actors/index.ts';
+import { createCallbackLogic } from '../src/actors/index.ts';
 import { createActor, createMachine } from '../src/index.ts';
 // TODO: remove this file but before doing that ensure that things tested here are covered by other tests
 describe('invocations (activities)', () => {
@@ -7,7 +7,7 @@ describe('invocations (activities)', () => {
     let active = false;
     const machine = createMachine({
       invoke: {
-        src: fromCallback(() => {
+        src: createCallbackLogic(() => {
           active = true;
         })
       }
@@ -22,7 +22,7 @@ describe('invocations (activities)', () => {
       states: {
         a: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               active = true;
             })
           }
@@ -42,7 +42,7 @@ describe('invocations (activities)', () => {
           states: {
             a1: {
               invoke: {
-                src: fromCallback(() => {
+                src: createCallbackLogic(() => {
                   active = true;
                 })
               }
@@ -66,7 +66,7 @@ describe('invocations (activities)', () => {
         },
         b: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               active = true;
             })
           }
@@ -97,7 +97,7 @@ describe('invocations (activities)', () => {
             },
             b2: {
               invoke: {
-                src: fromCallback(() => {
+                src: createCallbackLogic(() => {
                   active = true;
                 })
               }
@@ -132,7 +132,7 @@ describe('invocations (activities)', () => {
             },
             b2: {
               invoke: {
-                src: fromCallback(() => {
+                src: createCallbackLogic(() => {
                   active = true;
                   return () => (active = false);
                 })
@@ -166,7 +166,7 @@ describe('invocations (activities)', () => {
         b: {
           initial: 'b1',
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               active1 = true;
               return () => (active1 = false);
             })
@@ -174,7 +174,7 @@ describe('invocations (activities)', () => {
           states: {
             b1: {
               invoke: {
-                src: fromCallback(() => {
+                src: createCallbackLogic(() => {
                   active2 = true;
                   return () => (active2 = false);
                 })
@@ -206,7 +206,7 @@ describe('invocations (activities)', () => {
         },
         B: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               active = true;
               return () => (active = false);
             })
@@ -236,7 +236,7 @@ describe('invocations (activities)', () => {
         },
         B: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               active = true;
               return () => {
                 active = false;
@@ -261,7 +261,7 @@ describe('invocations (activities)', () => {
       states: {
         A: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               active = true;
               return () => {
                 active = false;
@@ -289,7 +289,7 @@ describe('invocations (activities)', () => {
   it('should start a new actor when leaving an invoking state and entering a new one that invokes the same actor type', () => {
     let counter = 0;
     const actual: string[] = [];
-    const fooActor = fromCallback(() => {
+    const fooActor = createCallbackLogic(() => {
       let localId = counter;
       counter++;
       actual.push(`start ${localId}`);
@@ -325,7 +325,7 @@ describe('invocations (activities)', () => {
   it('should start a new actor when reentering the invoking state during a reentering self transition', () => {
     let counter = 0;
     const actual: string[] = [];
-    const fooActor = fromCallback(() => {
+    const fooActor = createCallbackLogic(() => {
       let localId = counter;
       counter++;
       actual.push(`start ${localId}`);
@@ -371,7 +371,7 @@ describe('invocations (activities)', () => {
       states: {
         a: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               active = true;
               return () => (active = false);
             })

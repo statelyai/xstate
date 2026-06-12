@@ -1,10 +1,10 @@
 import { of } from 'rxjs';
 import { createActor, createMachine } from '../src';
 import {
-  fromCallback,
-  fromObservable,
+  createCallbackLogic,
+  createObservableLogic,
   createAsyncLogic,
-  fromTransition
+  createTransitionLogic
 } from '../src/actors';
 import z from 'zod';
 
@@ -230,7 +230,7 @@ describe('input', () => {
   });
 
   it('should create a transition function actor with input', () => {
-    const transitionLogic = fromTransition(
+    const transitionLogic = createTransitionLogic(
       (state) => state,
       ({ input }) => input
     );
@@ -244,7 +244,7 @@ describe('input', () => {
 
   it('should create an observable actor with input', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const observableLogic = fromObservable<
+    const observableLogic = createObservableLogic<
       { count: number },
       { count: number }
     >(({ input }) => of(input));
@@ -267,7 +267,7 @@ describe('input', () => {
 
   it('should create a callback actor with input', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const callbackLogic = fromCallback(({ input }) => {
+    const callbackLogic = createCallbackLogic(({ input }) => {
       expect(input).toEqual({ count: 42 });
       resolve();
     });

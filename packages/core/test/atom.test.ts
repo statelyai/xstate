@@ -1,4 +1,8 @@
-import { createActor, createAtom, fromTransition } from '../src/index.ts';
+import {
+  createActor,
+  createAtom,
+  createTransitionLogic
+} from '../src/index.ts';
 
 it('creates an atom', () => {
   const atom = createAtom(42);
@@ -12,7 +16,7 @@ it('creates an atom', () => {
 
 it('creates computed atoms from actor snapshots', () => {
   const actor = createActor(
-    fromTransition(
+    createTransitionLogic(
       (context: { count: number }, event: { type: 'inc' }) => {
         return {
           count: context.count + 1
@@ -34,7 +38,7 @@ it('creates computed atoms from actor snapshots', () => {
 
 it('selects actor snapshots through computed atoms', () => {
   const actor = createActor(
-    fromTransition(
+    createTransitionLogic(
       (context: { count: number }, event: { type: 'inc' | 'noop' }) => {
         if (event.type === 'noop') {
           return context;

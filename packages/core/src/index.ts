@@ -35,7 +35,11 @@ export type {
   StateNodeJSON,
   TransitionJSON
 } from './createMachineFromConfig.ts';
-export { machineConfigToJSON, type UnserializableMarker } from './serialize.ts';
+export {
+  machineConfigToJSON,
+  serializeMachine,
+  type UnserializableMarker
+} from './serialize.ts';
 export { mapState } from './mapState.ts';
 export { setup } from './setup.ts';
 export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';

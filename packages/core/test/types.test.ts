@@ -1,7 +1,7 @@
 import { from } from 'rxjs';
 import {
   createEmptyActor,
-  fromCallback,
+  createCallbackLogic,
   createAsyncLogic
 } from '../src/actors';
 import {
@@ -4398,11 +4398,11 @@ describe('tags', () => {
   });
 });
 
-describe('fromCallback', () => {
+describe('createCallbackLogic', () => {
   it('should reject a start callback that returns an explicit promise', () => {
     createMachine({
       invoke: {
-        src: fromCallback(
+        src: createCallbackLogic(
           // @ts-ignore
           () => {
             return new Promise(() => {});
@@ -4417,7 +4417,7 @@ describe('fromCallback', () => {
     // the problem is that people could accidentally~ use an async function for convenience purposes
     // then we'd listen for the promise to resolve and cleanup that actor, closing the communication channel between parent and the child
     //
-    // fromCallback(async ({ sendBack }) => {
+    // createCallbackLogic(async ({ sendBack }) => {
     //   const api = await getSomeWebApi(); // async function was used to conveniently use `await` here
     //
     //   // this didn't work as expected because this promise was completing almost asap
@@ -4428,7 +4428,7 @@ describe('fromCallback', () => {
     // })
     createMachine({
       invoke: {
-        src: fromCallback(
+        src: createCallbackLogic(
           // @ts-ignore
           async () => {}
         )
@@ -4439,7 +4439,7 @@ describe('fromCallback', () => {
   it('should reject a start callback that returns a non-function and non-undefined value', () => {
     createMachine({
       invoke: {
-        src: fromCallback(
+        src: createCallbackLogic(
           // @ts-ignore
           () => {
             return 42;
@@ -4452,7 +4452,7 @@ describe('fromCallback', () => {
   it('should allow returning an implicit undefined from the start callback', () => {
     createMachine({
       invoke: {
-        src: fromCallback(() => {})
+        src: createCallbackLogic(() => {})
       }
     });
   });
@@ -4460,7 +4460,7 @@ describe('fromCallback', () => {
   it('should allow returning an explicit undefined from the start callback', () => {
     createMachine({
       invoke: {
-        src: fromCallback(() => {
+        src: createCallbackLogic(() => {
           return undefined;
         })
       }
@@ -4470,7 +4470,7 @@ describe('fromCallback', () => {
   it('should allow returning a cleanup function the start callback', () => {
     createMachine({
       invoke: {
-        src: fromCallback(() => {
+        src: createCallbackLogic(() => {
           return undefined;
         })
       }

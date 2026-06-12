@@ -1,11 +1,11 @@
 import { interval, of } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 import {
-  fromCallback,
-  fromEventObservable,
-  fromObservable,
+  createCallbackLogic,
+  createEventObservableLogic,
+  createObservableLogic,
   createAsyncLogic,
-  fromTransition
+  createTransitionLogic
 } from '../src/actors/index.ts';
 import {
   ActorLogic,
@@ -628,7 +628,7 @@ describe('invoke', () => {
 
       const machine = createMachine({
         invoke: {
-          src: fromCallback(() => {
+          src: createCallbackLogic(() => {
             invokeCount++;
 
             return () => {
@@ -675,7 +675,7 @@ describe('invoke', () => {
       const machine = createMachine({
         id: 'machine',
         invoke: {
-          src: fromCallback(() => {
+          src: createCallbackLogic(() => {
             return () => {
               actorStopped = true;
             };
@@ -717,7 +717,7 @@ describe('invoke', () => {
         states: {
           idle: {
             invoke: {
-              src: fromCallback(({ sendBack }) => {
+              src: createCallbackLogic(({ sendBack }) => {
                 invokeCount++;
 
                 if (invokeCount > 1) {
@@ -736,7 +736,7 @@ describe('invoke', () => {
           },
           active: {
             invoke: {
-              src: fromCallback(({ sendBack }) => {
+              src: createCallbackLogic(({ sendBack }) => {
                 sendBack({ type: 'STOPPED' });
               })
             },
@@ -1494,7 +1494,7 @@ describe('invoke', () => {
         data: number;
       }
 
-      const someCallback = fromCallback(
+      const someCallback = createCallbackLogic(
         ({
           sendBack,
           input
@@ -1589,7 +1589,7 @@ describe('invoke', () => {
     });
 
     it('should transition correctly if callback function sends an event', () => {
-      const someCallback = fromCallback(({ sendBack }) => {
+      const someCallback = createCallbackLogic(({ sendBack }) => {
         sendBack({ type: 'CALLBACK' });
       });
       const callbackMachine = createMachine({
@@ -1631,7 +1631,7 @@ describe('invoke', () => {
     });
 
     it('should transition correctly if callback function invoked from start and sends an event', () => {
-      const someCallback = fromCallback(({ sendBack }) => {
+      const someCallback = createCallbackLogic(({ sendBack }) => {
         sendBack({ type: 'CALLBACK' });
       });
       const callbackMachine = createMachine({
@@ -1671,7 +1671,7 @@ describe('invoke', () => {
 
     // tslint:disable-next-line:max-line-length
     it('should transition correctly if transient transition happens before current state invokes callback function and sends an event', () => {
-      const someCallback = fromCallback(({ sendBack }) => {
+      const someCallback = createCallbackLogic(({ sendBack }) => {
         sendBack({ type: 'CALLBACK' });
       });
       const callbackMachine = createMachine(
@@ -1707,7 +1707,7 @@ describe('invoke', () => {
         }
         // {
         //   actors: {
-        //     someCallback: fromCallback(({ sendBack }) => {
+        //     someCallback: createCallbackLogic(({ sendBack }) => {
         //       sendBack({ type: 'CALLBACK' });
         //     })
         //   }
@@ -1745,7 +1745,7 @@ describe('invoke', () => {
           counting: {
             invoke: {
               id: 'intervalService',
-              src: fromCallback(({ sendBack }) => {
+              src: createCallbackLogic(({ sendBack }) => {
                 const ivl = setInterval(() => {
                   sendBack({ type: 'INC' });
                 }, 10);
@@ -1786,7 +1786,7 @@ describe('invoke', () => {
           counting: {
             invoke: {
               id: 'intervalService',
-              src: fromCallback(() => spy)
+              src: createCallbackLogic(() => spy)
             },
             on: {
               NEXT: 'idle'
@@ -1811,7 +1811,7 @@ describe('invoke', () => {
           active: {
             invoke: {
               id: 'child',
-              src: fromCallback(({ sendBack, receive }) => {
+              src: createCallbackLogic(({ sendBack, receive }) => {
                 receive((e) => {
                   if (e.type === 'PING') {
                     sendBack({ type: 'PONG' });
@@ -1845,7 +1845,7 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: fromCallback(() => {
+              src: createCallbackLogic(() => {
                 throw new Error('test');
               }),
               onError: ({ event }) => {
@@ -1876,7 +1876,7 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: fromCallback(() => {
+              src: createCallbackLogic(() => {
                 throw new Error('test');
               }),
               onError: 'failed'
@@ -1910,7 +1910,7 @@ describe('invoke', () => {
                 states: {
                   waiting: {
                     invoke: {
-                      src: fromCallback(() => {
+                      src: createCallbackLogic(() => {
                         throw new Error('test');
                       }),
                       onError: {
@@ -1926,7 +1926,7 @@ describe('invoke', () => {
                 states: {
                   waiting: {
                     invoke: {
-                      src: fromCallback(() => {
+                      src: createCallbackLogic(() => {
                         // empty
                         return () => {};
                       }),
@@ -1962,7 +1962,7 @@ describe('invoke', () => {
           },
           waiting: {
             invoke: {
-              src: fromCallback(() => {})
+              src: createCallbackLogic(() => {})
             }
           }
         }
@@ -1982,7 +1982,7 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: fromCallback(() => {
+              src: createCallbackLogic(() => {
                 throw new Error('test');
               })
             }
@@ -2024,7 +2024,7 @@ describe('invoke', () => {
         states: {
           start: {
             invoke: {
-              src: fromCallback(({ input }) => {
+              src: createCallbackLogic(({ input }) => {
                 expect(input).toEqual({ foo: 'bar' });
                 resolve();
               }),
@@ -2097,7 +2097,7 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: fromObservable(() => interval(10)),
+              src: createObservableLogic(() => interval(10)),
               onSnapshot: ({ event }) => ({
                 context: {
                   count: event.snapshot.context
@@ -2143,7 +2143,7 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: fromObservable(() => interval(10).pipe(take(5))),
+              src: createObservableLogic(() => interval(10).pipe(take(5))),
               onSnapshot: ({ event }) => ({
                 context: {
                   count: event.snapshot.context
@@ -2187,7 +2187,7 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: fromObservable(() =>
+              src: createObservableLogic(() =>
                 interval(10).pipe(
                   map((value) => {
                     if (value === 5) {
@@ -2232,7 +2232,7 @@ describe('invoke', () => {
 
     it('should work with input', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const childLogic = fromObservable(({ input }: { input: number }) =>
+      const childLogic = createObservableLogic(({ input }: { input: number }) =>
         of(input)
       );
 
@@ -2283,7 +2283,7 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: fromEventObservable(() =>
+              src: createEventObservableLogic(() =>
                 interval(10).pipe(map((value) => ({ type: 'COUNT', value })))
               )
             },
@@ -2337,7 +2337,7 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: fromEventObservable(() =>
+              src: createEventObservableLogic(() =>
                 interval(10).pipe(
                   take(5),
                   map((value) => ({ type: 'COUNT', value }))
@@ -2392,7 +2392,7 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: fromEventObservable(() =>
+              src: createEventObservableLogic(() =>
                 interval(10).pipe(
                   map((value) => {
                     if (value === 5) {
@@ -2440,7 +2440,7 @@ describe('invoke', () => {
 
     it('should work with input', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const childLogic = fromEventObservable(({ input }) =>
+      const childLogic = createEventObservableLogic(({ input }) =>
         of({
           type: 'obs.event',
           value: input
@@ -2594,7 +2594,7 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: fromTransition(countReducer, 0)
+          src: createTransitionLogic(countReducer, 0)
         },
         on: {
           INC: ({ children, event }) => {
@@ -2639,7 +2639,7 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: fromTransition(countReducer, 0)
+          src: createTransitionLogic(countReducer, 0)
         },
         on: {
           INC: ({ children, event }) => {
@@ -2662,7 +2662,7 @@ describe('invoke', () => {
 
     it('should emit onSnapshot', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const doublerLogic = fromTransition(
+      const doublerLogic = createTransitionLogic(
         (_, event: { type: 'update'; value: number }) => event.value * 2,
         0
       );
@@ -2810,11 +2810,15 @@ describe('invoke', () => {
               invoke: [
                 {
                   id: 'child',
-                  src: fromCallback(({ sendBack }) => sendBack({ type: 'ONE' }))
+                  src: createCallbackLogic(({ sendBack }) =>
+                    sendBack({ type: 'ONE' })
+                  )
                 },
                 {
                   id: 'child2',
-                  src: fromCallback(({ sendBack }) => sendBack({ type: 'TWO' }))
+                  src: createCallbackLogic(({ sendBack }) =>
+                    sendBack({ type: 'TWO' })
+                  )
                 }
               ]
             }
@@ -2887,7 +2891,7 @@ describe('invoke', () => {
                 a: {
                   invoke: {
                     id: 'child',
-                    src: fromCallback(({ sendBack }) =>
+                    src: createCallbackLogic(({ sendBack }) =>
                       sendBack({ type: 'ONE' })
                     )
                   }
@@ -2895,7 +2899,7 @@ describe('invoke', () => {
                 b: {
                   invoke: {
                     id: 'child2',
-                    src: fromCallback(({ sendBack }) =>
+                    src: createCallbackLogic(({ sendBack }) =>
                       sendBack({ type: 'TWO' })
                     )
                   }
@@ -2941,7 +2945,7 @@ describe('invoke', () => {
             active: {
               invoke: {
                 id: 'doNotInvoke',
-                src: fromCallback(() => {
+                src: createCallbackLogic(() => {
                   actorStarted = true;
                 })
               },
@@ -2973,7 +2977,7 @@ describe('invoke', () => {
             withNonLeafInvoke: {
               invoke: {
                 id: 'doNotInvoke',
-                src: fromCallback(() => {
+                src: createCallbackLogic(() => {
                   actorStarted = true;
                 })
               },
@@ -3019,7 +3023,7 @@ describe('invoke', () => {
                   active: {
                     invoke: {
                       id: 'active',
-                      src: fromCallback(() => {
+                      src: createCallbackLogic(() => {
                         /* ... */
                       })
                     },
@@ -3079,7 +3083,7 @@ describe('invoke', () => {
         states: {
           active: {
             invoke: {
-              src: fromCallback(() => {
+              src: createCallbackLogic(() => {
                 actorStartedCount++;
               })
             },
@@ -3224,7 +3228,7 @@ describe('invoke', () => {
     [
       'src containing a callback actor directly',
       {
-        src: fromCallback(() => {
+        src: createCallbackLogic(() => {
           /* ... */
         })
       }
@@ -3244,7 +3248,7 @@ describe('invoke', () => {
         }
         // {
         //   actors: {
-        //     someSrc: fromCallback(() => {
+        //     someSrc: createCallbackLogic(() => {
         //       /* ... */
         //     })
         //   }
@@ -3389,7 +3393,7 @@ describe('invoke', () => {
       states: {
         a: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               invokeCount++;
             })
           },
@@ -3414,7 +3418,7 @@ describe('invoke', () => {
     const machine = createMachine({
       initial: 'a',
       invoke: {
-        src: fromCallback(() => {
+        src: createCallbackLogic(() => {
           return () => {
             disposed = true;
           };
@@ -3441,7 +3445,7 @@ describe('invoke', () => {
     let disposed = false;
     const childMachine = createMachine({
       invoke: {
-        src: fromCallback(() => {
+        src: createCallbackLogic(() => {
           return () => {
             disposed = true;
           };
@@ -3518,7 +3522,7 @@ describe('invoke', () => {
         },
         active: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               const localId = ++invokeCounter;
               actual.push(`start ${localId}`);
               return () => {
@@ -3661,7 +3665,7 @@ describe('invoke input', () => {
     const { promise, resolve } = Promise.withResolvers<void>();
     const machine = createMachine({
       invoke: {
-        src: fromCallback(({ input }) => {
+        src: createCallbackLogic(({ input }) => {
           expect(input.responder.send).toBeDefined();
           resolve();
         }),

@@ -1,15 +1,15 @@
 import { of } from 'rxjs';
 import { z } from 'zod';
-import { fromCallback } from '../src/actors/callback.ts';
+import { createCallbackLogic } from '../src/actors/callback.ts';
 import {
   ActorRef,
   Snapshot,
   createActor,
   createMachine,
-  fromEventObservable,
-  fromObservable,
+  createEventObservableLogic,
+  createObservableLogic,
   createAsyncLogic,
-  fromTransition
+  createTransitionLogic
 } from '../src/index.ts';
 import { ActorSystem } from '../src/system.ts';
 
@@ -29,7 +29,7 @@ describe('system', () => {
         a: {
           invoke: [
             {
-              src: fromCallback(({ receive }) => {
+              src: createCallbackLogic(({ receive }) => {
                 receive((event) => {
                   expect(event.type).toBe('HELLO');
                   resolve();
@@ -83,7 +83,7 @@ describe('system', () => {
       id: 'parent',
       context: ({ spawn }) => ({
         ref: spawn(
-          fromCallback(({ receive }) => {
+          createCallbackLogic(({ receive }) => {
             receive((event) => {
               expect(event.type).toBe('HELLO');
               resolve();
@@ -395,7 +395,7 @@ describe('system', () => {
         },
 
         {
-          src: fromTransition((_state, _event, { system }) => {
+          src: createTransitionLogic((_state, _event, { system }) => {
             expect(system.get('test7')).toBeDefined();
             return 0;
           }, 0),
@@ -422,7 +422,7 @@ describe('system', () => {
         },
 
         {
-          src: fromObservable(({ system }) => {
+          src: createObservableLogic(({ system }) => {
             expect(system.get('test8')).toBeDefined();
             return of(0);
           })
@@ -445,7 +445,7 @@ describe('system', () => {
         },
 
         {
-          src: fromEventObservable(({ system }) => {
+          src: createEventObservableLogic(({ system }) => {
             expect(system.get('test9')).toBeDefined();
             return of({ type: 'a' });
           })
@@ -467,7 +467,7 @@ describe('system', () => {
           systemId: 'test10'
         },
         {
-          src: fromCallback(({ system }) => {
+          src: createCallbackLogic(({ system }) => {
             expect(system.get('test10')).toBeDefined();
           })
         }
@@ -490,7 +490,7 @@ describe('system', () => {
         listening: {
           invoke: {
             systemId: 'listener',
-            src: fromCallback(({ receive }) => {
+            src: createCallbackLogic(({ receive }) => {
               const localId = counter++;
 
               receive((event) => {

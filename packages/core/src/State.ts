@@ -558,14 +558,18 @@ export function getPersistedSnapshot<
     };
   }
 
-  const persisted = {
+  const persisted: Record<string, unknown> = {
     ...jsonValues,
     context: persistContext(context) as any,
     children: childrenJson,
     historyValue: serializeHistoryValue(jsonValues.historyValue)
   };
 
-  return persisted;
+  if (machine.version !== undefined) {
+    persisted.version = machine.version;
+  }
+
+  return persisted as Snapshot<unknown>;
 }
 
 function persistContext(contextPart: Record<string, unknown>) {

@@ -4,7 +4,7 @@ import {
   Snapshot,
   StateNode,
   createMachine,
-  fromTransition,
+  createTransitionLogic,
   isMachineSnapshot
 } from '../../index.ts';
 import { createMockActorScope } from '../actorScope.ts';
@@ -617,7 +617,7 @@ describe('@xstate/graph', () => {
 });
 
 it('simple paths for transition functions', () => {
-  const transition = fromTransition((s, e) => {
+  const transition = createTransitionLogic((s, e) => {
     if (e.type === 'a') {
       return 1;
     }
@@ -638,7 +638,7 @@ it('simple paths for transition functions', () => {
 });
 
 it('shortest paths for transition functions', () => {
-  const transition = fromTransition((s, e) => {
+  const transition = createTransitionLogic((s, e) => {
     if (e.type === 'a') {
       return 1;
     }

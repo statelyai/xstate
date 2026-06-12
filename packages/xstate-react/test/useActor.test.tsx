@@ -11,7 +11,11 @@ import {
   createActor,
   createMachine
 } from 'xstate';
-import { fromCallback, fromObservable, createAsyncLogic } from 'xstate';
+import {
+  createCallbackLogic,
+  createObservableLogic,
+  createAsyncLogic
+} from 'xstate';
 import { useActor, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
 import z from 'zod';
@@ -492,7 +496,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     const machine = createMachine({
       context: ({ spawn }) => ({
         ref: spawn(
-          fromCallback(() => {
+          createCallbackLogic(() => {
             childSpawned = true;
           })
         )
@@ -915,7 +919,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     const machine = createMachine({
       invoke: {
-        src: fromObservable(() => subject),
+        src: createObservableLogic(() => subject),
         // onSnapshot: {
         //   actions: [({ event }) => spy((event.snapshot as any).context)]
         // }

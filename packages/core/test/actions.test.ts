@@ -2,7 +2,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import {
   CallbackActorLogic,
   CallbackActorRef,
-  fromCallback
+  createCallbackLogic
 } from '../src/actors/callback.ts';
 import {
   ActorRefFromLogic,
@@ -2983,7 +2983,7 @@ describe('sendTo', () => {
       initial: 'a',
       context: ({ spawn }) => ({
         foo: spawn(
-          fromCallback(({ receive }) => {
+          createCallbackLogic(({ receive }) => {
             receive((event) => {
               expect(event).toEqual({ type: 'EVENT' });
             });
@@ -3012,7 +3012,7 @@ describe('sendTo', () => {
     const machine = createMachine({
       invoke: {
         id: 'child',
-        src: fromCallback(() => {})
+        src: createCallbackLogic(() => {})
       },
       // entry: sendTo('child', 'a string')
       entry: ({ children }, enq) => {

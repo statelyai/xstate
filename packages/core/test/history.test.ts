@@ -1,4 +1,4 @@
-import { createActor, createMachine, fromCallback } from '../src/index';
+import { createActor, createMachine, createCallbackLogic } from '../src/index';
 import { trackEntries } from './utils';
 import { StateNode } from '../src/StateNode';
 
@@ -532,7 +532,7 @@ describe('history states', () => {
             }
           },
           invoke: {
-            src: fromCallback(spy)
+            src: createCallbackLogic(spy)
           }
         },
         refresh: {

@@ -1,17 +1,20 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { EMPTY, interval, of } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import {
-  fromEventObservable,
-  fromObservable
+  CallbackActorRef,
+  createCallbackLogic
+} from '../src/actors/callback.ts';
+import {
+  createEventObservableLogic,
+  createObservableLogic
 } from '../src/actors/observable.ts';
 import {
   AsyncActorLogic,
   AsyncActorRef,
   createAsyncLogic
 } from '../src/actors/promise.ts';
-import { fromTransition } from '../src/actors/transition.ts';
+import { createTransitionLogic } from '../src/actors/transition.ts';
 import {
   ActorLogic,
   ActorRef,
@@ -402,7 +405,7 @@ describe('spawning callbacks', () => {
           entry: (_, enq) => ({
             context: {
               callbackRef: enq.spawn(
-                fromCallback<{
+                createCallbackLogic<{
                   type: 'START';
                 }>(({ sendBack, receive }) => {
                   receive((event) => {
@@ -453,7 +456,7 @@ describe('spawning callbacks', () => {
       states: {
         a: {
           invoke: {
-            src: fromCallback(({ sendBack }) => {
+            src: createCallbackLogic(({ sendBack }) => {
               sendToParent = () =>
                 sendBack({
                   type: 'FROM_CALLBACK'
@@ -484,7 +487,7 @@ describe('spawning callbacks', () => {
 describe('spawning observables', () => {
   it('should spawn an observable', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const observableLogic = fromObservable(() => interval(10));
+    const observableLogic = createObservableLogic(() => interval(10));
     const observableMachine = createMachine({
       id: 'observable',
       initial: 'idle',
@@ -552,14 +555,14 @@ describe('spawning observables', () => {
         observableRef: undefined! as AnyActorRef
       },
       actors: {
-        interval: fromObservable(() => interval(10))
+        interval: createObservableLogic(() => interval(10))
       },
       states: {
         idle: {
           entry: (_: unknown, enq: any) => ({
             context: {
               observableRef: enq.spawn(
-                fromObservable(() => interval(10)),
+                createObservableLogic(() => interval(10)),
                 { id: 'int', syncSnapshot: true }
               )
             }
@@ -598,7 +601,7 @@ describe('spawning observables', () => {
   });
   it(`should read the latest snapshot of the event's origin while handling that event`, () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const observableLogic = fromObservable(() => interval(10));
+    const observableLogic = createObservableLogic(() => interval(10));
     const observableMachine = createMachine({
       id: 'observable',
       schemas: {
@@ -656,7 +659,7 @@ describe('spawning observables', () => {
     return promise;
   });
   it('should notify direct child listeners with final snapshot before it gets stopped', async () => {
-    const intervalActor = fromObservable(() => interval(10));
+    const intervalActor = createObservableLogic(() => interval(10));
     const parentMachine = createMachine({
       // types: {} as {
       //   actors: {
@@ -713,7 +716,7 @@ describe('spawning observables', () => {
     expect(spy).toHaveBeenCalledWith(3);
   });
   it('should not notify direct child listeners after it gets stopped', async () => {
-    const intervalActor = fromObservable(() => interval(10));
+    const intervalActor = createObservableLogic(() => interval(10));
     const parentMachine = createMachine({
       // types: {} as {
       //   actors: {
@@ -776,7 +779,7 @@ describe('spawning observables', () => {
 describe('spawning event observables', () => {
   it('should spawn an event observable', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const eventObservableLogic = fromEventObservable(() =>
+    const eventObservableLogic = createEventObservableLogic(() =>
       interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
     );
     const observableMachine = createMachine({
@@ -847,7 +850,7 @@ describe('spawning event observables', () => {
         }
       },
       actors: {
-        interval: fromEventObservable(() =>
+        interval: createEventObservableLogic(() =>
           interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
         )
       },
@@ -860,7 +863,7 @@ describe('spawning event observables', () => {
           entry: (_, enq) => ({
             context: {
               observableRef: enq.spawn(
-                fromEventObservable(() =>
+                createEventObservableLogic(() =>
                   interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
                 ),
                 { id: 'int' }
@@ -1153,8 +1156,8 @@ describe('actors', () => {
         })
       },
       context: ({ spawn }) => ({
-        ref1: spawn(fromCallback(() => cleanup1)),
-        ref2: spawn(fromCallback(() => cleanup2))
+        ref1: spawn(createCallbackLogic(() => cleanup1)),
+        ref2: spawn(createCallbackLogic(() => cleanup2))
       })
     });
     const actorRef = createActor(parent).start();
@@ -1178,8 +1181,8 @@ describe('actors', () => {
         ref2: spawn(actors.child2)
       }),
       actors: {
-        child1: fromCallback(() => cleanup1),
-        child2: fromCallback(() => cleanup2)
+        child1: createCallbackLogic(() => cleanup1),
+        child2: createCallbackLogic(() => cleanup2)
       }
     });
     const actorRef = createActor(parent).start();
@@ -1191,7 +1194,7 @@ describe('actors', () => {
   describe('with actor logic', () => {
     it('should work with a transition function logic', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
-      const countLogic = fromTransition((count: number, event: any) => {
+      const countLogic = createTransitionLogic((count: number, event: any) => {
         if (event.type === 'INC') {
           return count + 1;
         } else if (event.type === 'DEC') {
@@ -1455,7 +1458,7 @@ describe('actors', () => {
       },
       context: ({ spawn }) => ({
         ref: spawn(
-          fromCallback(({ sendBack }) => {
+          createCallbackLogic(({ sendBack }) => {
             sendBack({ type: 'TEST' });
           })
         )
@@ -1592,7 +1595,7 @@ describe('actors', () => {
         return { unsubscribe: () => {} };
       }
     });
-    const emptyObservableLogic = fromObservable(createEmptyObservable);
+    const emptyObservableLogic = createObservableLogic(createEmptyObservable);
     const parentMachine = createMachine({
       // types: {} as {
       //   context: { child: ActorRefFrom<typeof emptyObservableLogic> | null };
@@ -1624,7 +1627,7 @@ describe('actors', () => {
     }).not.toThrow();
   });
   it('should receive done event from an immediately completed observable when self-initializing', () => {
-    const emptyObservable = fromObservable(() => EMPTY);
+    const emptyObservable = createObservableLogic(() => EMPTY);
     const parentMachine = createMachine({
       schemas: {
         context: z.object({
@@ -1661,7 +1664,7 @@ describe('actors', () => {
     const machine = createMachine({
       invoke: {
         id: 'observable',
-        src: fromObservable(() => {
+        src: createObservableLogic(() => {
           subscriptionCount++;
           return of(42);
         })
@@ -1680,7 +1683,7 @@ describe('actors', () => {
     const machine = createMachine({
       invoke: {
         id: 'observable',
-        src: fromEventObservable(() => {
+        src: createEventObservableLogic(() => {
           subscriptionCount++;
           return of({ type: 'TEST' });
         })
@@ -1712,7 +1715,7 @@ describe('actors', () => {
       context: ({ spawn }) => {
         return {
           actorRef: spawn(
-            fromCallback(() => {
+            createCallbackLogic(() => {
               const localId = ++invokeCounter;
               actual.push(`start ${localId}`);
               return () => {
@@ -1735,7 +1738,7 @@ describe('actors', () => {
             //         actorRef: ({ spawn }) => {
             //           const localId = ++invokeCounter;
             //           return spawn(
-            //             fromCallback(() => {
+            //             createCallbackLogic(() => {
             //               actual.push(`start ${localId}`);
             //               return () => {
             //                 actual.push(`stop ${localId}`);
@@ -1754,7 +1757,7 @@ describe('actors', () => {
                 context: {
                   ...context,
                   actorRef: enq.spawn(
-                    fromCallback(() => {
+                    createCallbackLogic(() => {
                       const localId = ++invokeCounter;
                       actual.push(`start ${localId}`);
                       return () => {
@@ -1795,7 +1798,7 @@ describe('actors', () => {
       context: ({ spawn }) => {
         return {
           actorRef: spawn(
-            fromCallback(() => {
+            createCallbackLogic(() => {
               const localId = ++invokeCounter;
               actual.push(`start ${localId}`);
               return () => {
@@ -1816,7 +1819,7 @@ describe('actors', () => {
             //       actorRef: ({ spawn }) => {
             //         const localId = ++invokeCounter;
             //         return spawn(
-            //           fromCallback(() => {
+            //           createCallbackLogic(() => {
             //             actual.push(`start ${localId}`);
             //             return () => {
             //               actual.push(`stop ${localId}`);
@@ -1834,7 +1837,7 @@ describe('actors', () => {
                 context: {
                   ...context,
                   actorRef: enq.spawn(
-                    fromCallback(() => {
+                    createCallbackLogic(() => {
                       const localId = ++invokeCounter;
                       actual.push(`start ${localId}`);
                       return () => {
@@ -1875,7 +1878,7 @@ describe('actors', () => {
       context: ({ spawn }) => {
         return {
           actorRef: spawn(
-            fromCallback(() => {
+            createCallbackLogic(() => {
               const localId = ++invokeCounter;
               actual.push(`start ${localId}`);
               return () => {
@@ -1895,7 +1898,7 @@ describe('actors', () => {
                 context: {
                   ...context,
                   actorRef: enq.spawn(
-                    fromCallback(() => {
+                    createCallbackLogic(() => {
                       const localId = ++invokeCounter;
                       actual.push(`start ${localId}`);
                       return () => {
@@ -1936,7 +1939,7 @@ describe('actors', () => {
       context: ({ spawn }) => {
         return {
           actorRef: spawn(
-            fromCallback(() => {
+            createCallbackLogic(() => {
               const localId = ++invokeCounter;
               actual.push(`start ${localId}`);
               return () => {
@@ -1956,7 +1959,7 @@ describe('actors', () => {
                 context: {
                   ...context,
                   actorRef: enq.spawn(
-                    fromCallback(() => {
+                    createCallbackLogic(() => {
                       const localId = ++invokeCounter;
                       actual.push(`start ${localId}`);
                       return () => {

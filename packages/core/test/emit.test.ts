@@ -4,10 +4,10 @@ import {
   createActor,
   createMachine,
   createAsyncLogic,
-  fromCallback,
-  fromEventObservable,
-  fromObservable,
-  fromTransition
+  createCallbackLogic,
+  createEventObservableLogic,
+  createObservableLogic,
+  createTransitionLogic
 } from '../src';
 
 // mocked reportUnhandledError due to unknown issue with vitest and global error
@@ -333,7 +333,7 @@ describe('event emitter', () => {
   it('events can be emitted from transition logic', () => {
     const spy = vi.fn();
 
-    const logic = fromTransition<
+    const logic = createTransitionLogic<
       any,
       any,
       any,
@@ -377,22 +377,24 @@ describe('event emitter', () => {
   it('events can be emitted from observable logic', () => {
     const spy = vi.fn();
 
-    const logic = fromObservable<any, any, { type: 'emitted'; msg: string }>(
-      ({ emit }) => {
-        emit({
-          type: 'emitted',
-          msg: 'hello'
-        });
+    const logic = createObservableLogic<
+      any,
+      any,
+      { type: 'emitted'; msg: string }
+    >(({ emit }) => {
+      emit({
+        type: 'emitted',
+        msg: 'hello'
+      });
 
-        return {
-          subscribe: () => {
-            return {
-              unsubscribe: () => {}
-            };
-          }
-        };
-      }
-    );
+      return {
+        subscribe: () => {
+          return {
+            unsubscribe: () => {}
+          };
+        }
+      };
+    });
 
     const actor = createActor(logic);
 
@@ -420,7 +422,7 @@ describe('event emitter', () => {
   it('events can be emitted from event observable logic', () => {
     const spy = vi.fn();
 
-    const logic = fromEventObservable<
+    const logic = createEventObservableLogic<
       any,
       any,
       { type: 'emitted'; msg: string }
@@ -465,14 +467,16 @@ describe('event emitter', () => {
   it('events can be emitted from callback logic', () => {
     const spy = vi.fn();
 
-    const logic = fromCallback<any, any, { type: 'emitted'; msg: string }>(
-      ({ emit }) => {
-        emit({
-          type: 'emitted',
-          msg: 'hello'
-        });
-      }
-    );
+    const logic = createCallbackLogic<
+      any,
+      any,
+      { type: 'emitted'; msg: string }
+    >(({ emit }) => {
+      emit({
+        type: 'emitted',
+        msg: 'hello'
+      });
+    });
 
     const actor = createActor(logic);
 
@@ -501,14 +505,16 @@ describe('event emitter', () => {
   it.skip('events can be emitted from callback logic (restored root)', () => {
     const spy = vi.fn();
 
-    const logic = fromCallback<any, any, { type: 'emitted'; msg: string }>(
-      ({ emit }) => {
-        emit({
-          type: 'emitted',
-          msg: 'hello'
-        });
-      }
-    );
+    const logic = createCallbackLogic<
+      any,
+      any,
+      { type: 'emitted'; msg: string }
+    >(({ emit }) => {
+      emit({
+        type: 'emitted',
+        msg: 'hello'
+      });
+    });
 
     const machine = createMachine({
       actors: { logic },

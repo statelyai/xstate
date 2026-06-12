@@ -2,9 +2,9 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import {
   createActor,
   createMachine,
-  fromCallback,
+  createCallbackLogic,
   createAsyncLogic,
-  fromTransition,
+  createTransitionLogic,
   AnyEventObject
 } from '../src';
 import z from 'zod';
@@ -191,7 +191,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('unhandled_sync_error_in_actor_start');
             }),
             onDone: 'success'
@@ -357,7 +357,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             }),
             onError: 'failed'
@@ -389,7 +389,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             }),
             onError: 'failed'
@@ -425,7 +425,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             }),
             onError: 'failed'
@@ -465,7 +465,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             })
           }
@@ -505,7 +505,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             }),
             onError: 'failed'
@@ -534,7 +534,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error(
                 'unhandled_sync_error_in_actor_start_with_root_error_listener'
               );
@@ -572,7 +572,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error(
                 'unhandled_sync_error_in_actor_start_with_root_error_listener'
               );
@@ -615,7 +615,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             }),
             onError: 'failed'
@@ -647,7 +647,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('unhandled_sync_error_in_actor_start');
             })
           }
@@ -676,7 +676,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             })
           }
@@ -708,7 +708,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error(
                 'error_thrown_when_not_every_observer_comes_with_an_error_listener'
               );
@@ -742,7 +742,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error(
                 'error_thrown_when_not_every_observer_comes_with_an_error_listener'
               );
@@ -870,7 +870,7 @@ describe('error handling', () => {
   });
 
   it('should error the parent on errored initial state of a child', async () => {
-    const immediateFailure = fromTransition((_) => undefined, undefined);
+    const immediateFailure = createTransitionLogic((_) => undefined, undefined);
     immediateFailure.getInitialSnapshot = () => ({
       status: 'error',
       output: undefined,

@@ -1,13 +1,13 @@
 import {
   createMachine,
-  fromTransition,
+  createTransitionLogic,
   transition,
   initialTransition
 } from '../src';
 
 describe('transition', () => {
   it('should calculate the next snapshot for transition logic', () => {
-    const logic = fromTransition(
+    const logic = createTransitionLogic(
       (state, event) => {
         if (event.type === 'next') {
           return { count: state.count + 1 };

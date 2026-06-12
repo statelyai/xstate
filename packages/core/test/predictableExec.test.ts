@@ -1,5 +1,5 @@
 import { createMachine, createActor, waitFor } from '../src/index.ts';
-import { fromCallback } from '../src/actors/index.ts';
+import { createCallbackLogic } from '../src/actors/index.ts';
 import { createAsyncLogic } from '../src/actors/index.ts';
 import { z } from 'zod';
 
@@ -147,7 +147,7 @@ describe('predictableExec', () => {
         },
         c: {
           invoke: {
-            src: fromCallback(({ input }) => {
+            src: createCallbackLogic(({ input }) => {
               eventArg = input.event;
             }),
             input: ({ event }: any) => ({ event })
@@ -174,7 +174,7 @@ describe('predictableExec', () => {
         b: {
           invoke: {
             id: 'myChild',
-            src: fromCallback(() => {})
+            src: createCallbackLogic(() => {})
           }
         }
       }
@@ -198,7 +198,7 @@ describe('predictableExec', () => {
         b: {
           invoke: {
             id: 'myChild',
-            src: fromCallback(() => {})
+            src: createCallbackLogic(() => {})
           },
           on: {
             NEXT: 'c'
@@ -576,7 +576,7 @@ describe('predictableExec', () => {
         active: {
           invoke: {
             id: 'my-service',
-            src: fromCallback(({ receive }) => {
+            src: createCallbackLogic(({ receive }) => {
               receive((event) => {
                 if (event.type === 'MY_EVENT') {
                   // Event received successfully

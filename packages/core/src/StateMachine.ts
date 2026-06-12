@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import { createInitEvent } from './eventUtils.ts';
-import { machineConfigToJSON } from './serialize.ts';
+
 import { createSpawner } from './spawn.ts';
 import {
   createMachineSnapshot,
@@ -146,6 +146,19 @@ export class StateMachine<
       guards: config.guards ?? {},
       ...implementations
     };
+    if (isDevelopment) {
+      // The `@xstate.` prefix is reserved for built-in serialized action and
+      // guard descriptors — user implementation names must not collide.
+      for (const kind of ['actions', 'guards', 'actors', 'delays'] as const) {
+        for (const key of Object.keys(this.implementations[kind])) {
+          if (key.startsWith('@xstate.')) {
+            throw new Error(
+              `Invalid ${kind} name '${key}': the '@xstate.' prefix is reserved for built-in descriptors.`
+            );
+          }
+        }
+      }
+    }
     this.version = this.config.version;
     this.schemas = this.config.schemas;
     this.internalEventDescriptors = this.config.internalEvents ?? [];
@@ -578,27 +591,12 @@ export class StateMachine<
 
   /**
    * The original JSON definition this machine was created from (set by
-   * `createMachineFromConfig`), if any.
+   * `createMachineFromConfig`), if any. Used by `serializeMachine` for lossless
+   * round-trips.
    *
    * @internal
    */
   public _json?: Record<string, unknown>;
-
-  /**
-   * The JSON-serializable definition of this machine.
-   *
-   * Inline functions, actor logic, and runtime schemas cannot be represented as
-   * data; they appear as `{ "$unserializable": ... }` markers. A machine
-   * created via `createMachineFromConfig` returns its original JSON config
-   * (lossless round-trip).
-   */
-  public get definition(): Record<string, unknown> {
-    return this._json ?? machineConfigToJSON(this.config as any);
-  }
-
-  public toJSON(): Record<string, unknown> {
-    return this.definition;
-  }
 
   public restoreSnapshot(
     snapshot: Snapshot<unknown>,
@@ -627,6 +625,19 @@ export class StateMachine<
     TMeta,
     TConfig
   > {
+    const persistedVersion: string | undefined = (snapshot as any).version;
+    if (persistedVersion !== this.version) {
+      const migrate = (this.config as any).migrate;
+      if (typeof migrate !== 'function') {
+        throw new Error(
+          isDevelopment
+            ? `Persisted snapshot version '${persistedVersion}' does not match machine version '${this.version}' for machine '${this.id}'. Provide a \`migrate(persistedSnapshot, fromVersion)\` function in the machine config to migrate old snapshots.`
+            : `Persisted snapshot version '${persistedVersion}' does not match machine version '${this.version}'.`
+        );
+      }
+      snapshot = migrate(snapshot, persistedVersion);
+    }
+
     const snapshotData = snapshot as any;
     const children: Record<string, AnyActorRef> = {};
     const snapshotChildren: Record<
@@ -710,9 +721,11 @@ export class StateMachine<
       getAllStateNodes(getStateNodes(this.root, snapshotData.value))
     );
 
+    const { version: _persistedSnapshotVersion, ...persistedRest } =
+      snapshot as any;
     const restoredSnapshot = createMachineSnapshot(
       {
-        ...(snapshot as any),
+        ...persistedRest,
         children,
         _nodes: nodes,
         value: snapshotData.value,

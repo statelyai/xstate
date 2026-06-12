@@ -6,7 +6,8 @@ import {
   Observer,
   HomomorphicOmit,
   EventObject,
-  Subscription
+  Subscription,
+  TimersRestoreStrategy
 } from './types.ts';
 import { toObserver } from './utils.ts';
 
@@ -89,6 +90,12 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   start: () => void;
   _clock: Clock;
   _logger: (...args: any[]) => void;
+  /**
+   * How rehydrated actors in this system restore persisted timers.
+   *
+   * @internal
+   */
+  _timerStrategy?: TimersRestoreStrategy;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
@@ -99,6 +106,7 @@ export function createSystem<T extends ActorSystemInfo>(
     clock: Clock;
     logger: (...args: any[]) => void;
     snapshot?: unknown;
+    timers?: TimersRestoreStrategy;
   }
 ): ActorSystem<T> {
   let idCounter = 0;
@@ -255,7 +263,8 @@ export function createSystem<T extends ActorSystemInfo>(
       }
     },
     _clock: clock,
-    _logger: logger
+    _logger: logger,
+    _timerStrategy: options.timers
   };
 
   return system;

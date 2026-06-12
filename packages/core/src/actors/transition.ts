@@ -26,7 +26,7 @@ export type TransitionActorLogic<
 >;
 
 /**
- * Represents an actor created by `fromTransition`.
+ * Represents an actor created by `createTransitionLogic`.
  *
  * The type of `self` within the actor's logic.
  *
@@ -34,7 +34,7 @@ export type TransitionActorLogic<
  *
  * ```ts
  * import {
- *   fromTransition,
+ *   createTransitionLogic,
  *   createActor,
  *   type AnyActorSystem
  * } from 'xstate';
@@ -53,7 +53,12 @@ export type TransitionActorLogic<
  *
  * // Actor logic that increments `count` by `step` when it receives an event of
  * // type `increment`.
- * const logic = fromTransition<Context, Event, AnyActorSystem, Input>(
+ * const logic = createTransitionLogic<
+ *   Context,
+ *   Event,
+ *   AnyActorSystem,
+ *   Input
+ * >(
  *   (state, event, actorScope) => {
  *     actorScope.self;
  *     //         ^? TransitionActorRef<Context, Event>
@@ -81,7 +86,7 @@ export type TransitionActorLogic<
  * //    ^? TransitionActorRef<Context, Event>
  * ```
  *
- * @see {@link fromTransition}
+ * @see {@link createTransitionLogic}
  */
 export type TransitionActorRef<
   TContext,
@@ -112,7 +117,7 @@ export type TransitionActorRef<
  * @example
  *
  * ```ts
- * const transitionLogic = fromTransition(
+ * const transitionLogic = createTransitionLogic(
  *   (state, event) => {
  *     if (event.type === 'increment') {
  *       return {
@@ -164,7 +169,7 @@ export type TransitionActorRef<
  * @returns Actor logic
  * @see {@link https://stately.ai/docs/input | Input docs} for more information about how input is passed
  */
-export function fromTransition<
+export function createTransitionLogic<
   TContext,
   TEvent extends EventObject,
   TSystem extends AnyActorSystem,

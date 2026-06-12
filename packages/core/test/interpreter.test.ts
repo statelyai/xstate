@@ -6,9 +6,9 @@ import {
   ActorRefFrom
 } from '../src/index.ts';
 import { interval, from } from 'rxjs';
-import { fromObservable } from '../src/actors/observable';
+import { createObservableLogic } from '../src/actors/observable';
 import { AsyncActorLogic, createAsyncLogic } from '../src/actors/promise';
-import { fromCallback } from '../src/actors/callback';
+import { createCallbackLogic } from '../src/actors/callback';
 import { assertEvent } from '../src/assert.ts';
 import z from 'zod';
 
@@ -524,7 +524,7 @@ describe('interpreter', () => {
           states: {
             on: {
               invoke: {
-                src: fromCallback(spy)
+                src: createCallbackLogic(spy)
               },
               on: {
                 TURN_OFF: 'off'
@@ -535,7 +535,7 @@ describe('interpreter', () => {
         }
         // {
         //   actors: {
-        //     myActivity: fromCallback(spy)
+        //     myActivity: createCallbackLogic(spy)
         //   }
         // }
       );
@@ -556,7 +556,7 @@ describe('interpreter', () => {
           states: {
             on: {
               invoke: {
-                src: fromCallback(() => spy)
+                src: createCallbackLogic(() => spy)
               },
               on: {
                 TURN_OFF: 'off'
@@ -567,7 +567,7 @@ describe('interpreter', () => {
         }
         // {
         //   actors: {
-        //     myActivity: fromCallback(() => spy)
+        //     myActivity: createCallbackLogic(() => spy)
         //   }
         // }
       );
@@ -592,7 +592,7 @@ describe('interpreter', () => {
           states: {
             on: {
               invoke: {
-                src: fromCallback(() => spy)
+                src: createCallbackLogic(() => spy)
               },
               on: {
                 TURN_OFF: 'off'
@@ -603,7 +603,7 @@ describe('interpreter', () => {
         }
         // {
         //   actors: {
-        //     myActivity: fromCallback(() => spy)
+        //     myActivity: createCallbackLogic(() => spy)
         //   }
         // }
       );
@@ -630,7 +630,7 @@ describe('interpreter', () => {
             },
             active: {
               invoke: {
-                src: fromCallback(() => {
+                src: createCallbackLogic(() => {
                   activityActive = true;
                   return () => {
                     activityActive = false;
@@ -648,7 +648,7 @@ describe('interpreter', () => {
         }
         // {
         //   actors: {
-        //     blink: fromCallback(() => {
+        //     blink: createCallbackLogic(() => {
         //       activityActive = true;
         //       return () => {
         //         activityActive = false;
@@ -1655,7 +1655,7 @@ describe('interpreter', () => {
 
   describe('actors', () => {
     it("doesn't crash cryptically on undefined return from the actor creator", () => {
-      const child = fromCallback(() => {
+      const child = createCallbackLogic(() => {
         // nothing
       });
       const machine = createMachine(
@@ -1808,7 +1808,7 @@ describe('interpreter', () => {
     it('state.children should reference invoked child actors (observable)', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
       const interval$ = interval(10);
-      const intervalLogic = fromObservable(() => interval$);
+      const intervalLogic = createObservableLogic(() => interval$);
 
       const parentMachine = createMachine(
         {
@@ -1936,7 +1936,9 @@ describe('interpreter', () => {
                   })
               })
             ),
-            observableChild: enq.spawn(fromObservable(() => interval(1000)))
+            observableChild: enq.spawn(
+              createObservableLogic(() => interval(1000))
+            )
           }
         }),
         states: {

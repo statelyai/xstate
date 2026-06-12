@@ -3,7 +3,7 @@ import {
   createMachine,
   EventFrom,
   createAsyncLogic,
-  fromTransition,
+  createTransitionLogic,
   toPromise,
   transition,
   createActor,
@@ -387,7 +387,7 @@ describe('transition function', () => {
   });
 
   it('should calculate the next snapshot for transition logic', () => {
-    const logic = fromTransition(
+    const logic = createTransitionLogic(
       (state, event) => {
         if (event.type === 'next') {
           return { count: state.count + 1 };

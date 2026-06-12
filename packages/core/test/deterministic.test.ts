@@ -3,7 +3,7 @@ import {
   transition,
   createMachine,
   initialTransition,
-  fromCallback
+  createCallbackLogic
 } from '../src/index.ts';
 
 describe('deterministic machine', () => {
@@ -251,7 +251,7 @@ describe('deterministic machine', () => {
   });
 
   describe('state key names', () => {
-    const activity = fromCallback(() => () => {});
+    const activity = createCallbackLogic(() => () => {});
     const machine = createMachine(
       {
         initial: 'test',
@@ -268,7 +268,7 @@ describe('deterministic machine', () => {
       }
       // {
       //   actors: {
-      //     activity: fromCallback(() => () => {})
+      //     activity: createCallbackLogic(() => () => {})
       //   }
       // }
     );

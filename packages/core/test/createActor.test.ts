@@ -1,8 +1,8 @@
 import {
-  fromCallback,
-  fromObservable,
+  createCallbackLogic,
+  createObservableLogic,
   createAsyncLogic,
-  fromTransition
+  createTransitionLogic
 } from '../src/actors/index.ts';
 import {
   createMachine,
@@ -37,16 +37,16 @@ describe('createActor()', () => {
       expect(actor.id).toBe('my-promise');
     });
   });
-  describe('fromCallback', () => {
+  describe('createCallbackLogic', () => {
     it('should create an unstarted actor from callback logic', () => {
-      const callbackLogic = fromCallback(() => {});
+      const callbackLogic = createCallbackLogic(() => {});
       const actor = createActor(callbackLogic);
       expect(actor).toBeDefined();
       expect(actor.getSnapshot().status).toBe('active');
     });
     it('should accept input when creating actor', () => {
       let capturedInput: string | undefined;
-      const callbackLogic = fromCallback<any, string>(({ input }) => {
+      const callbackLogic = createCallbackLogic<any, string>(({ input }) => {
         capturedInput = input;
       });
       const actor = createActor(callbackLogic, { input: 'hello' });
@@ -54,9 +54,9 @@ describe('createActor()', () => {
       expect(capturedInput).toBe('hello');
     });
   });
-  describe('fromObservable', () => {
+  describe('createObservableLogic', () => {
     it('should create an unstarted actor from observable logic', () => {
-      const observableLogic = fromObservable(() => ({
+      const observableLogic = createObservableLogic(() => ({
         subscribe: () => ({ unsubscribe: () => {} })
       }));
       const actor = createActor(observableLogic);
@@ -64,16 +64,18 @@ describe('createActor()', () => {
       expect(actor.getSnapshot().status).toBe('active');
     });
   });
-  describe('fromTransition', () => {
+  describe('createTransitionLogic', () => {
     it('should create an unstarted actor from transition logic', () => {
-      const transitionLogic = fromTransition((state) => state, { count: 0 });
+      const transitionLogic = createTransitionLogic((state) => state, {
+        count: 0
+      });
       const actor = createActor(transitionLogic);
       expect(actor).toBeDefined();
       expect(actor.getSnapshot().status).toBe('active');
       expect(actor.getSnapshot().context.count).toBe(0);
     });
     it('should accept input when creating actor', () => {
-      const transitionLogic = fromTransition<
+      const transitionLogic = createTransitionLogic<
         {
           count: number;
         },

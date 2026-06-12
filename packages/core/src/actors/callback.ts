@@ -43,14 +43,14 @@ export type CallbackActorLogic<
 >;
 
 /**
- * Represents an actor created by `fromCallback`.
+ * Represents an actor created by `createCallbackLogic`.
  *
  * The type of `self` within the actor's logic.
  *
  * @example
  *
  * ```ts
- * import { fromCallback, createActor } from 'xstate';
+ * import { createCallbackLogic, createActor } from 'xstate';
  *
  * // The events the actor receives.
  * type Event = { type: 'someEvent' };
@@ -58,23 +58,25 @@ export type CallbackActorLogic<
  * type Input = { name: string };
  *
  * // Actor logic that logs whenever it receives an event of type `someEvent`.
- * const logic = fromCallback<Event, Input>(({ self, input, receive }) => {
- *   self;
- *   // ^? CallbackActorRef<Event, Input>
+ * const logic = createCallbackLogic<Event, Input>(
+ *   ({ self, input, receive }) => {
+ *     self;
+ *     // ^? CallbackActorRef<Event, Input>
  *
- *   receive((event) => {
- *     if (event.type === 'someEvent') {
- *       console.log(`${input.name}: received "someEvent" event`);
- *       // logs 'myActor: received "someEvent" event'
- *     }
- *   });
- * });
+ *     receive((event) => {
+ *       if (event.type === 'someEvent') {
+ *         console.log(`${input.name}: received "someEvent" event`);
+ *         // logs 'myActor: received "someEvent" event'
+ *       }
+ *     });
+ *   }
+ * );
  *
  * const actor = createActor(logic, { input: { name: 'myActor' } });
  * //    ^? CallbackActorRef<Event, Input>
  * ```
  *
- * @see {@link fromCallback}
+ * @see {@link createCallbackLogic}
  */
 export type CallbackActorRef<
   TEvent extends EventObject,
@@ -143,7 +145,7 @@ export type CallbackLogicFunction<
  * @example
  *
  * ```typescript
- * const callbackLogic = fromCallback(({ sendBack, receive }) => {
+ * const callbackLogic = createCallbackLogic(({ sendBack, receive }) => {
  *   let lockStatus = 'unlocked';
  *
  *   const handler = (event) => {
@@ -237,14 +239,4 @@ export function createCallbackLogic<
       });
     }
   }) as unknown as CallbackActorLogic<TEvent, TInput, TEmitted>;
-}
-
-export function fromCallback<
-  TEvent extends EventObject,
-  TInput = NonReducibleUnknown,
-  TEmitted extends EventObject = EventObject
->(
-  callback: CallbackLogicFunction<TEvent, AnyEventObject, TInput, TEmitted>
-): CallbackActorLogic<TEvent, TInput, TEmitted> {
-  return createCallbackLogic(callback);
 }

@@ -3,7 +3,7 @@ import {
   ActorRefFrom,
   createActor,
   createMachine,
-  fromObservable,
+  createObservableLogic,
   createAsyncLogic
 } from '../src';
 import { z } from 'zod';
@@ -53,7 +53,7 @@ describe('spawnChild action', () => {
 
   it('should accept `syncSnapshot` option', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
-    const observableLogic = fromObservable(() => interval(10));
+    const observableLogic = createObservableLogic(() => interval(10));
     const observableMachine = createMachine({
       schemas: {
         context: z.object({
