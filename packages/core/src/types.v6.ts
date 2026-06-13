@@ -258,9 +258,6 @@ export type DelayMap<TContext> = Record<
   number | ((context: TContext) => number)
 >;
 
-type ActorSrcKey<TActorMap extends Implementations['actors']> =
-  string extends keyof TActorMap ? string : keyof TActorMap & string;
-
 type InvokeSrcArgs<
   TContext extends MachineContext,
   TEvent extends EventObject,

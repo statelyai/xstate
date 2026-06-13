@@ -378,7 +378,7 @@ export class Actor<TLogic extends AnyActorLogic>
       case 'active':
         this._next(snapshot);
         break;
-      case 'done':
+      case 'done': {
         // next observers are meant to be notified about done snapshots
         // this can be seen as something that is different from how observable work
         // but with observables `complete` callback is called without any arguments
@@ -398,6 +398,7 @@ export class Actor<TLogic extends AnyActorLogic>
         }
 
         break;
+      }
       case 'error':
         this._error((this._snapshot as any).error);
         break;

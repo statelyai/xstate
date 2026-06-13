@@ -245,7 +245,7 @@ export function createMachine(config: any): any {
     any,
     any,
     any
-  >(config as any) as any;
+  >(config) as any;
 }
 
 export function createStateConfig<

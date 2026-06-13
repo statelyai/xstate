@@ -203,12 +203,12 @@ export class StateNode<
     this.exit = this.config.exit as AnyAction | undefined;
 
     if (this.entry) {
-      // @ts-ignore
+      // @ts-expect-error _special is an internal marker not on the Action type
       this.entry._special = true;
     }
 
     if (this.exit) {
-      // @ts-ignore
+      // @ts-expect-error _special is an internal marker not on the Action type
       this.exit._special = true;
     }
 

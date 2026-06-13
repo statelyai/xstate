@@ -79,7 +79,7 @@ interface MachineSnapshotBase<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TStateValue extends StateValue,
   TTag extends string,
-  TOutput,
+  _TOutput,
   TMeta,
   TStateSchema extends StateSchema = StateSchema
 > {

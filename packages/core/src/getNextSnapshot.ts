@@ -89,7 +89,7 @@ export function getNextSnapshot<T extends AnyActorLogic>(
     snapshot,
     event,
     inertActorScope
-  ) as any;
+  );
   return Array.isArray(transitionResult)
     ? transitionResult[0]
     : transitionResult;

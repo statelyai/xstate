@@ -1,6 +1,6 @@
 import { AnyStateMachine, AnyStateNode } from '../index.ts';
 
-const validateState = (state: AnyStateNode) => {
+const validateState = (_state: AnyStateNode) => {
   // TODO
 };
 

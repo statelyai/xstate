@@ -363,7 +363,7 @@ export function createLogic<
       },
       effect: ((keyOrExec, maybeExec) => {
         if (typeof keyOrExec === 'string') {
-          enqueueEffect(keyOrExec, maybeExec!);
+          enqueueEffect(keyOrExec, maybeExec);
           return;
         }
         effects.push({ type: 'effect', exec: keyOrExec });

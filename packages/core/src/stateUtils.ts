@@ -1686,7 +1686,7 @@ function microstep(
 
           if (!logic) {
             throw new Error(
-              `Actor logic '${src}' not implemented in machine '${currentSnapshot.machine.id}'`
+              `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented in machine '${currentSnapshot.machine.id}'`
             );
           }
 

@@ -255,7 +255,7 @@ export function createAsyncLogic<
           resolve(effect.output as TStepOutput);
         } else if (effect?.status === 'error') {
           subscription.unsubscribe();
-          reject(effect.error);
+          reject(effect.error as Error);
         }
       });
     });

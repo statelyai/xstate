@@ -511,7 +511,11 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
         // Per SCXML, donedata expression errors raise error.execution and
         // result in undefined event.data. Queue for the next entry to drain.
         const message =
-          err instanceof Error ? err.message : String(err ?? 'unknown error');
+          err instanceof Error
+            ? err.message
+            : typeof err === 'string'
+              ? err
+              : 'unknown error';
         pendingPlatformErrors.push({
           tagname: 'donedata',
           message,
@@ -553,7 +557,11 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
     err: unknown
   ) {
     const message =
-      err instanceof Error ? err.message : String(err ?? 'unknown error');
+      err instanceof Error
+        ? err.message
+        : typeof err === 'string'
+          ? err
+          : 'unknown error';
     state.enq.raise({
       type: 'error.execution',
       _scxmlEventType: 'platform',
@@ -1019,7 +1027,11 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
         // AND raises error.execution. We can't enqueue from a guard, so
         // queue it for the next entry to drain.
         const message =
-          err instanceof Error ? err.message : String(err ?? 'unknown error');
+          err instanceof Error
+            ? err.message
+            : typeof err === 'string'
+              ? err
+              : 'unknown error';
         pendingPlatformErrors.push({
           tagname: 'cond',
           message,

@@ -36,12 +36,12 @@ export function transition<T extends AnyActorLogic>(
     executableActions.push(action);
   };
 
-  const transitionResult = logic.transition(snapshot, event, actorScope) as any;
+  const transitionResult = logic.transition(snapshot, event, actorScope);
   const [nextSnapshot, effects] = Array.isArray(transitionResult)
     ? transitionResult
     : [transitionResult, []];
 
-  return [nextSnapshot, executableActions.concat(effects as any)];
+  return [nextSnapshot, executableActions.concat(effects)];
 }
 
 /**

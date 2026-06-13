@@ -93,7 +93,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
         2 /* ProcessingStatus.Stopped */ &&
       (actorRef.getSnapshot() as any)?.status === 'stopped'
     ) {
-      const newActor = createActor(machine, actorRef.options) as Actor<TLogic>;
+      const newActor = createActor(machine, actorRef.options);
       newActor.start();
       setActorRef(newActor);
       // No cleanup — the re-render will run this effect again with the

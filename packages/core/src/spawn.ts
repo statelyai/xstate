@@ -41,7 +41,7 @@ export function createSpawner(
 
       if (!logic) {
         throw new Error(
-          `Actor logic '${src}' not implemented in machine '${machine.id}'`
+          `Actor logic '${src as string}' not implemented in machine '${machine.id}'`
         );
       }
 

@@ -103,6 +103,7 @@ export const swPeopleStore = createStore<
       const requestUrl = resolvePeopleUrl(event.query);
       console.log(`[search] requestUrl:`, requestUrl);
 
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       enqueue.effect(async () => {
         try {
           if (event.fail) {
@@ -153,6 +154,7 @@ export const swPeopleStore = createStore<
       const requestUrl = resolvePeopleByIdUrl(event.id);
       console.log(`[getById] requestUrl:`, requestUrl);
 
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       enqueue.effect(async () => {
         try {
           if (event.fail) {

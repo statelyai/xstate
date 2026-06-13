@@ -94,7 +94,7 @@ type MyTypeStates = {
   };
 };
 
-type Test = TargetAndContextFrom<MyTypeStates>;
+type _Test = TargetAndContextFrom<MyTypeStates>;
 
 accept<MyTypeStates>({
   target: 'foo',

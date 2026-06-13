@@ -242,7 +242,7 @@ function ensureActorInterop() {
     }
     let version = actorVersions.get(actorRef);
     if (version === undefined) {
-      version = createAtom(0) as Atom<number>;
+      version = createAtom(0);
       actorVersions.set(actorRef, version);
       actorRef.subscribe({
         next: () => version!.set((v) => v + 1),

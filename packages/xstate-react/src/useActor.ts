@@ -73,7 +73,7 @@ export function useActor<TLogic extends AnyActorLogic>(
         2 /* ProcessingStatus.Stopped */ &&
       (actorRef.getSnapshot() as any)?.status === 'stopped'
     ) {
-      const newActor = createActor(logic, options) as Actor<TLogic>;
+      const newActor = createActor(logic, options);
       newActor.start();
       setActorRef(newActor);
       return;

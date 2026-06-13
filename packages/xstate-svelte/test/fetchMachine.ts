@@ -7,7 +7,7 @@ const context = {
 export const fetchMachine = createMachine({
   id: 'fetch',
   actors: {
-    fetchData: createAsyncLogic({ run: async () => '' })
+    fetchData: createAsyncLogic({ run: () => Promise.resolve('') })
   },
   initial: 'idle',
   context: context as any,
