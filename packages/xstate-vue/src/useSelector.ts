@@ -1,4 +1,11 @@
-import { Ref, isRef, shallowRef, watch } from 'vue';
+import {
+  Ref,
+  getCurrentScope,
+  isRef,
+  onScopeDispose,
+  shallowRef,
+  watch
+} from 'vue';
 import { AnyActorRef } from 'xstate';
 
 function defaultCompare<T>(a: T, b: T) {
@@ -30,26 +37,29 @@ export function useSelector<
     }
   };
 
+  const sub = actorRefRef.value?.subscribe({
+    next: (emitted) => {
+      updateSelectedIfChanged(selector(emitted));
+    },
+    error: noop,
+    complete: noop
+  });
+
   watch(
     actorRefRef,
-    (newActor, _, onCleanup) => {
-      selected.value = selector(newActor?.getSnapshot());
-      if (!newActor) {
-        return;
+    (nextActor) => {
+      if (nextActor) {
+        selected.value = selector(nextActor.getSnapshot());
       }
-      const sub = newActor.subscribe({
-        next: (emitted) => {
-          updateSelectedIfChanged(selector(emitted));
-        },
-        error: noop,
-        complete: noop
-      });
-      onCleanup(() => sub.unsubscribe());
     },
-    {
-      immediate: true
-    }
+    { immediate: true }
   );
+
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      sub?.unsubscribe();
+    });
+  }
 
   return selected;
 }
