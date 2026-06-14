@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { transformSource } from '../src/transforms';
+import { transformSource } from '../src/transforms.js';
 
 describe('xstate migrate — Tier A transforms', () => {
   it('renames interpret → createActor (import + references)', () => {

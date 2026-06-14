@@ -31,7 +31,6 @@ import {
   AnyTransitionConfig,
   AnyActorScope,
   EnqueueObject,
-  Action,
   AnyActorRef,
   DoneStateEvent
 } from './types.ts';
@@ -46,12 +45,10 @@ import {
 } from './utils.ts';
 import { createActor } from './createActor.ts';
 import { builtInActions } from './actions.ts';
-import { listenerLogic, type ListenerInput } from './actors/listener.ts';
 import {
-  subscriptionLogic,
-  type SubscriptionInput,
-  type SubscriptionMappers
-} from './actors/subscription.ts';
+  createTransitionEnqueue,
+  resolveAndExecuteActionsWithContext
+} from './transitionActions.ts';
 import { parseDurationToMilliseconds } from './delay.ts';
 
 type AnyStateNodeIterable = Iterable<AnyStateNode>;
@@ -1148,38 +1145,6 @@ export function initialMicrostep(
   );
 }
 
-/**
- * Special action that records a spawned child on the snapshot's `children`
- * record at execution time, so spawned actors are observable via
- * `snapshot.children` and survive persistence (same as invoked actors).
- */
-function registerSpawnedChild(actorRef: AnyActorRef, id: string) {
-  return Object.assign(
-    function registerChild(args: { children: Record<string, AnyActorRef> }) {
-      return { children: { ...args.children, [id]: actorRef } };
-    },
-    { _special: true }
-  );
-}
-
-/** Special action that removes a stopped child from `children`. */
-function unregisterChild(actorRef: AnyActorRef) {
-  return Object.assign(
-    function removeChild(args: {
-      children: Record<string, AnyActorRef | undefined>;
-    }) {
-      const children = { ...args.children };
-      for (const key of Object.keys(children)) {
-        if (children[key] === actorRef) {
-          delete children[key];
-        }
-      }
-      return { children };
-    },
-    { _special: true }
-  );
-}
-
 /** https://www.w3.org/TR/scxml/#microstepProcedure */
 function microstep(
   transitions: Array<AnyTransitionDefinition>,
@@ -1232,113 +1197,11 @@ function microstep(
         const internalEvents: EventObject[] = [];
         let updatedContext: MachineContext | undefined;
 
-        const enqueue = createEnqueueObject(
-          {
-            cancel: (id: string) => {
-              actions.push({
-                action: builtInActions['@xstate.cancel'],
-                args: [actorScope, id]
-              });
-            },
-            emit: (emittedEvent) => {
-              actions.push(emittedEvent);
-            },
-            log: (...args) => {
-              actions.push({
-                action: actorScope.logger,
-                args
-              });
-            },
-            raise: (raisedEvent, options) => {
-              if (typeof raisedEvent === 'string') {
-                throw new Error(
-                  isDevelopment
-                    ? `Only event objects may be used with raise; use raise({ type: "${raisedEvent}" }) instead`
-                    : `Only event objects may be used with raise`
-                );
-              }
-              if (options?.delay !== undefined) {
-                actions.push({
-                  action: builtInActions['@xstate.raise'],
-                  args: [actorScope, raisedEvent, options]
-                });
-              } else {
-                internalEvents.push(raisedEvent);
-              }
-            },
-            spawn: (logic, options) => {
-              const actorRef = createActor(logic, {
-                ...options,
-                parent: actorScope.self
-              });
-              actions.push({
-                action: builtInActions['@xstate.start'],
-                args: [actorRef]
-              });
-              actions.push(
-                registerSpawnedChild(actorRef, options?.id ?? actorRef.id)
-              );
-              return actorRef;
-            },
-            sendTo: (actorRef, event, options) => {
-              if (actorRef) {
-                actions.push({
-                  action: builtInActions['@xstate.sendTo'],
-                  args: [actorScope, actorRef, event, options]
-                });
-              }
-            },
-            stop: (actorRef) => {
-              if (actorRef) {
-                actions.push({
-                  action: builtInActions['@xstate.stopChild'],
-                  args: [actorScope, actorRef]
-                });
-                actions.push(unregisterChild(actorRef));
-              }
-            },
-            listen: (actor, eventType, mapper) => {
-              const input: ListenerInput<any, any> = {
-                actor,
-                eventType,
-                mapper
-              };
-              const actorRef = createActor(listenerLogic, {
-                input,
-                parent: actorScope.self
-              });
-              actions.push({
-                action: builtInActions['@xstate.start'],
-                args: [actorRef]
-              });
-              return actorRef;
-            },
-            subscribeTo: (actor: any, mappers: any) => {
-              // Handle shorthand: subscribeTo(actor, snapshotMapper)
-              const normalizedMappers: SubscriptionMappers<any, any, any> =
-                typeof mappers === 'function' ? { snapshot: mappers } : mappers;
-
-              const input: SubscriptionInput<any, any, any, any> = {
-                actor,
-                mappers: normalizedMappers
-              };
-              const actorRef = createActor(subscriptionLogic, {
-                input,
-                parent: actorScope.self
-              });
-              actions.push({
-                action: builtInActions['@xstate.start'],
-                args: [actorRef]
-              });
-              return actorRef;
-            }
-          },
-          (action, ...args) => {
-            actions.push({
-              action,
-              args
-            });
-          }
+        const enqueue = createTransitionEnqueue(
+          actorScope,
+          actions,
+          internalEvents,
+          true
         );
 
         const res = transitionFn(
@@ -1958,90 +1821,10 @@ export function getTransitionResult(
   if (transition.to) {
     const actions: AnyAction[] = [];
     const internalEvents: EventObject[] = [];
-    const enqueue = createEnqueueObject(
-      {
-        cancel: (id) => {
-          actions.push({
-            action: builtInActions['@xstate.cancel'],
-            args: [actorScope, id]
-          });
-        },
-        raise: (event, options) => {
-          if (typeof event === 'string') {
-            throw new Error(
-              isDevelopment
-                ? `Only event objects may be used with raise; use raise({ type: "${event}" }) instead`
-                : `Only event objects may be used with raise`
-            );
-          }
-          if (options?.delay !== undefined) {
-            const delay = options.delay;
-            // actions.push(raise(event, options));
-            actions.push({
-              action: () => {
-                actorScope.system.scheduler.schedule(
-                  actorScope.self,
-                  actorScope.self,
-                  event,
-                  delay,
-                  options?.id
-                );
-              },
-              args: []
-            });
-          } else {
-            internalEvents.push(event);
-          }
-        },
-        emit: (emittedEvent) => {
-          actions.push(emittedEvent);
-        },
-        log: (...args) => {
-          // actions.push(log(...args));
-          actions.push({
-            action: actorScope.logger,
-            args
-          });
-        },
-        spawn: (src, options) => {
-          const actorRef = createActor(src, {
-            ...options,
-            parent: actorScope.self
-          });
-
-          actions.push({
-            action: builtInActions['@xstate.start'],
-            args: [actorRef]
-          });
-          actions.push(
-            registerSpawnedChild(actorRef, options?.id ?? actorRef.id) as any
-          );
-          return actorRef;
-        },
-        sendTo: (actorRef, event, options) => {
-          if (actorRef) {
-            actions.push({
-              action: builtInActions['@xstate.sendTo'],
-              args: [actorScope, actorRef, event, options]
-            });
-          }
-        },
-        stop: (actorRef) => {
-          if (actorRef) {
-            actions.push({
-              action: builtInActions['@xstate.stopChild'],
-              args: [actorScope, actorRef]
-            });
-            actions.push(unregisterChild(actorRef) as any);
-          }
-        }
-      },
-      (fn, ...args) => {
-        actions.push({
-          action: fn,
-          args
-        });
-      }
+    const enqueue = createTransitionEnqueue(
+      actorScope,
+      actions,
+      internalEvents
     );
 
     const res = transition.to(
@@ -2095,112 +1878,6 @@ export function getTransitionResult(
   };
 }
 
-export function resolveAndExecuteActionsWithContext(
-  currentSnapshot: AnyMachineSnapshot,
-  event: AnyEventObject,
-  actorScope: AnyActorScope,
-  actions: AnyAction[]
-): AnyMachineSnapshot {
-  let intermediateSnapshot = currentSnapshot;
-
-  for (const action of actions) {
-    const isInline = typeof action === 'function';
-
-    const resolvedAction = isInline
-      ? action
-      : typeof action === 'object' &&
-          'action' in action &&
-          typeof action.action === 'function'
-        ? action.action.bind(null, ...action.args)
-        : // the existing type of `.actions` assumes non-nullable `TExpressionAction`
-          // it's fine to cast this here to get a common type and lack of errors in the rest of the code
-          // our logic below makes sure that we call those 2 "variants" correctly
-
-          false;
-
-    // if no action, emit it!
-    if (!resolvedAction && typeof action === 'object' && action !== null) {
-      actorScope.defer(() => {
-        actorScope.emit(action);
-      });
-    }
-
-    const actionArgs = {
-      context: intermediateSnapshot.context,
-      event,
-      self: actorScope.self,
-      system: actorScope.system,
-      children: intermediateSnapshot.children,
-      parent: actorScope.self._parent,
-      actions: currentSnapshot.machine.implementations.actions,
-      actors: currentSnapshot.machine.implementations.actors
-    };
-
-    let actionParams = undefined;
-
-    // Emitted events
-    if (typeof action === 'object' && action !== null) {
-      const { type: _, ...emittedEventParams } = action as any;
-      actionParams = emittedEventParams;
-    }
-
-    if (resolvedAction && '_special' in resolvedAction) {
-      actorScope.actionExecutor({
-        type:
-          typeof action === 'object'
-            ? 'action' in action && typeof action.action === 'function'
-              ? (action.action.name ?? '(anonymous)')
-              : ((action as any).type ?? '(anonymous)')
-            : action.name || '(anonymous)',
-        params: actionParams,
-        args: [],
-        exec: undefined
-      });
-
-      const specialAction = resolvedAction as unknown as Action<
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any
-      >;
-
-      const res = specialAction(actionArgs as any, emptyEnqueueObject);
-
-      // Only override keys the action actually returned. Special actions like
-      // `registerSpawnedChild`/`unregisterChild` return `{ children }` only —
-      // spreading `context: undefined` here would wipe the context.
-      if (res && ('context' in res || 'children' in res)) {
-        intermediateSnapshot = cloneMachineSnapshot(intermediateSnapshot, {
-          ...('context' in res ? { context: res.context } : {}),
-          ...('children' in res ? { children: res.children } : {})
-        });
-      }
-      continue;
-    }
-
-    if (!resolvedAction || !('resolve' in resolvedAction)) {
-      actorScope.actionExecutor({
-        type:
-          typeof action === 'object'
-            ? 'action' in action && typeof action.action === 'function'
-              ? (action.action.name ?? '(anonymous)')
-              : (action as AnyEventObject).type
-            : action.name || '(anonymous)',
-        params: actionParams,
-        args:
-          typeof action === 'object' && 'action' in action ? action.args : [],
-        exec: resolvedAction
-      });
-      continue;
-    }
-  }
-
-  return intermediateSnapshot;
-}
-
 export function macrostep(
   snapshot: AnyMachineSnapshot,
   event: EventObject,
@@ -2226,71 +1903,14 @@ export function macrostep(
     microsteps.push(step);
   }
 
-  const stopChildren = (snapshot: AnyMachineSnapshot) => {
-    let children: AnyActorRef[];
-    if (
-      !snapshot.children ||
-      (children = Object.values(snapshot.children).filter(
-        Boolean
-      ) as AnyActorRef[]).length === 0
-    ) {
-      return snapshot;
-    }
-    for (const child of children) {
-      actorScope.stopChild(child);
-    }
-    return cloneMachineSnapshot(snapshot, {
-      children: {}
-    });
-  };
-
-  const selectEventlessTransitions = (
-    snapshot: AnyMachineSnapshot,
-    event: AnyEventObject
-  ) => {
-    const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
-    const atomicStates = snapshot._nodes.filter(isAtomicStateNode);
-
-    for (const atomicStateNode of atomicStates) {
-      loop: for (
-        let stateNode: AnyStateNode | undefined = atomicStateNode;
-        stateNode;
-        stateNode = stateNode.parent
-      ) {
-        if (!stateNode.always) {
-          continue;
-        }
-        for (const transition of stateNode.always) {
-          if (
-            evaluateCandidate(
-              transition,
-              event,
-              snapshot,
-              stateNode,
-              actorScope.self
-            )
-          ) {
-            enabledTransitionSet.add(transition);
-            break loop;
-          }
-        }
-      }
-    }
-
-    return removeConflictingTransitions(
-      Array.from(enabledTransitionSet),
-      new Set(snapshot._nodes),
-      snapshot,
-      event,
-      actorScope
-    );
-  };
-
   // Handle stop event
   if (event.type === XSTATE_STOP) {
-    nextSnapshot = cloneMachineSnapshot(stopChildren(nextSnapshot), {
-      status: 'stopped'
-    });
+    nextSnapshot = cloneMachineSnapshot(
+      stopChildren(nextSnapshot, actorScope),
+      {
+        status: 'stopped'
+      }
+    );
     addMicrostep([nextSnapshot, []], []);
     return {
       snapshot: nextSnapshot,
@@ -2359,7 +1979,7 @@ export function macrostep(
 
     let enabledTransitions: AnyTransitionDefinition[] =
       shouldSelectEventlessTransitions
-        ? selectEventlessTransitions(nextSnapshot, nextEvent)
+        ? selectEventlessTransitions(nextSnapshot, nextEvent, actorScope)
         : [];
 
     // eventless transitions should always be selected after selecting *regular* transitions
@@ -2392,7 +2012,7 @@ export function macrostep(
   }
 
   if (nextSnapshot.status !== 'active' && nextSnapshot.children) {
-    stopChildren(nextSnapshot);
+    stopChildren(nextSnapshot, actorScope);
   }
 
   return {
@@ -2444,8 +2064,6 @@ function createEnqueueObject(
 
   return enqueueFn as any;
 }
-
-export const emptyEnqueueObject = createEnqueueObject({}, () => {});
 
 export function hasEffect(
   transition: AnyTransitionDefinition,
@@ -2520,6 +2138,70 @@ function transitionToHasEffect(
   }
 
   return res !== undefined;
+}
+
+function stopChildren(
+  snapshot: AnyMachineSnapshot,
+  actorScope: AnyActorScope
+): AnyMachineSnapshot {
+  let children: AnyActorRef[];
+  if (
+    !snapshot.children ||
+    (children = Object.values(snapshot.children).filter(
+      Boolean
+    ) as AnyActorRef[]).length === 0
+  ) {
+    return snapshot;
+  }
+  for (const child of children) {
+    actorScope.stopChild(child);
+  }
+  return cloneMachineSnapshot(snapshot, {
+    children: {}
+  });
+}
+
+function selectEventlessTransitions(
+  snapshot: AnyMachineSnapshot,
+  event: AnyEventObject,
+  actorScope: AnyActorScope
+) {
+  const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
+  const atomicStates = snapshot._nodes.filter(isAtomicStateNode);
+
+  for (const atomicStateNode of atomicStates) {
+    loop: for (
+      let stateNode: AnyStateNode | undefined = atomicStateNode;
+      stateNode;
+      stateNode = stateNode.parent
+    ) {
+      if (!stateNode.always) {
+        continue;
+      }
+      for (const transition of stateNode.always) {
+        if (
+          evaluateCandidate(
+            transition,
+            event,
+            snapshot,
+            stateNode,
+            actorScope.self
+          )
+        ) {
+          enabledTransitionSet.add(transition);
+          break loop;
+        }
+      }
+    }
+  }
+
+  return removeConflictingTransitions(
+    Array.from(enabledTransitionSet),
+    new Set(snapshot._nodes),
+    snapshot,
+    event,
+    actorScope
+  );
 }
 
 export function evaluateCandidate(

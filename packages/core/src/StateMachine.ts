@@ -18,10 +18,10 @@ import {
   isInFinalState,
   isStateId,
   macrostep,
-  resolveAndExecuteActionsWithContext,
   resolveStateValue,
   transitionNode
 } from './stateUtils.ts';
+import { resolveAndExecuteActionsWithContext } from './transitionActions.ts';
 import { AnyActorSystem } from './system.ts';
 import type {
   ActorLogic,
