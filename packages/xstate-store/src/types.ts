@@ -125,11 +125,11 @@ export type CanObject<TEventPayloadMap extends EventPayloadMap> = {
  * useful with `createStoreLogic(...)` where there is no store reference to
  * close over.
  *
- * Use `trigger` for fully-typed dispatch (e.g. `enq.trigger.gotFoo({ ... })`);
- * `send` is a loosely-typed escape hatch for dynamically-constructed events.
- * `getSnapshot()` returns the current snapshot at the time the effect runs,
- * which is the correct way to read fresh context after an `await` (the
- * `context` argument to the transition is stale by then).
+ * Use `trigger` for event-specific dispatch; `send` accepts the same event
+ * objects as `store.send(...)`. `getSnapshot()` returns the current snapshot at
+ * the time the effect runs, which is the correct way to read fresh context
+ * after an `await` (the `context` argument to the transition is stale by
+ * then).
  */
 export type StoreEffectEnqueue<
   TContext extends StoreContext = StoreContext,

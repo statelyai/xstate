@@ -757,6 +757,30 @@ it('effects can read fresh state after awaiting via enq.getSnapshot()', async ()
   expect(seen).toEqual([11]);
 });
 
+it('sync effects read the current transition snapshot via enq.getSnapshot()', () => {
+  const seen: number[] = [];
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      start: (ctx, _, enq) => {
+        enq.effect(({ trigger }) => {
+          trigger.bump();
+        });
+        enq.effect(({ getSnapshot }) => {
+          seen.push(getSnapshot().context.count);
+        });
+        return { count: ctx.count + 1 };
+      },
+      bump: (ctx) => ({ count: ctx.count + 10 })
+    }
+  });
+
+  store.trigger.start();
+
+  expect(seen).toEqual([1]);
+  expect(store.getSnapshot().context.count).toEqual(11);
+});
+
 it('effects can use enq.send to dispatch events', async () => {
   const store = createStore({
     context: { count: 0 },

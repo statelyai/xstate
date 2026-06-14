@@ -283,10 +283,11 @@ function createStoreCore<
     atom.set(nextSnapshot);
     notifyInspection(event, nextSnapshot);
 
+    let committed = false;
     const effectEnqueue = {
       trigger,
       send,
-      getSnapshot: () => currentSnapshot
+      getSnapshot: () => (committed ? currentSnapshot : nextSnapshot)
     } as StoreEffectEnqueue<any, any>;
 
     for (const effect of effects) {
@@ -296,6 +297,8 @@ function createStoreCore<
         emit(effect);
       }
     }
+
+    committed = true;
   }
 
   const trigger =
