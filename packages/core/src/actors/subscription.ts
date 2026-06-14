@@ -7,6 +7,7 @@ import {
   Snapshot
 } from '../types';
 import { createAttachedLogic, relayMappedToParent } from './attached.ts';
+import { isAtom } from '../atom.ts';
 
 export type SubscriptionSnapshot = Snapshot<undefined> & {
   input: SubscriptionInput<any, any, any, any>;
@@ -66,6 +67,18 @@ export function createSubscriptionLogic<
 >(): SubscriptionActorLogic<TSnapshot, TOutput, TMappedEvent> {
   return createAttachedLogic(({ actor, mappers }, { self, system }) => {
     const { done, error, snapshot: onSnapshot } = mappers;
+
+    // Atoms emit a raw value (no `status`) and have no done/error lifecycle —
+    // pass the value straight to the `snapshot` mapper.
+    if (isAtom(actor)) {
+      if (!onSnapshot) {
+        return;
+      }
+      return actor.subscribe((value) =>
+        relayMappedToParent(self, system, () => onSnapshot(value as TSnapshot))
+      );
+    }
+
     return actor.subscribe({
       next: (snapshot: TSnapshot) => {
         if (snapshot.status === 'done' && done) {

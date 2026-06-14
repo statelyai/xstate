@@ -3,7 +3,8 @@ export {
   createAtom,
   createAtomConfig,
   createAsyncAtom,
-  createReducerAtom
+  createReducerAtom,
+  isAtom
 } from './atom.ts';
 export type {
   AnyAtom,
@@ -49,7 +50,13 @@ export {
 } from './schema.types.ts';
 export { setup } from './setup.ts';
 export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
-export type { InspectionEvent } from './inspection.ts';
+export type {
+  InspectionEvent,
+  ActorInspectionEvent,
+  TransitionInspectionEvent,
+  ActionRecord,
+  SentRecord
+} from './inspection.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
 export { type Spawner } from './spawn.ts';
 export { isMachineSnapshot, type MachineSnapshot } from './State.ts';

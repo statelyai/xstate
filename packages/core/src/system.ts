@@ -117,6 +117,29 @@ export function createSystem<T extends ActorSystemInfo>(
   const timerMap: { [id: ScheduledEventId]: number } = {};
   const { clock, logger } = options;
 
+  // Records a send on the *sender's* transition for the `sent[]` inspection
+  // facet. Captures the send when it is initiated (including delayed sends that
+  // may never deliver), keyed to the source actor's in-flight transition.
+  const recordSent = (
+    source: AnyActorRef | undefined,
+    target: AnyActorRef,
+    event: AnyEventObject,
+    delay?: number,
+    id?: string
+  ) => {
+    if (!inspectionObservers.size || !source) {
+      return;
+    }
+    const collected = ((source as any)._collectedSent ??= []);
+    collected.push({
+      targetRef: target,
+      targetId: target.id,
+      event,
+      delay,
+      id
+    });
+  };
+
   const scheduler: Scheduler = {
     schedule: (
       source,
@@ -125,6 +148,7 @@ export function createSystem<T extends ActorSystemInfo>(
       delay,
       id = Math.random().toString(36).slice(2)
     ) => {
+      recordSent(source, target, event, delay, id);
       const scheduledEvent: ScheduledEvent = {
         source,
         target,
@@ -140,7 +164,9 @@ export function createSystem<T extends ActorSystemInfo>(
         delete timerMap[scheduledEventId];
         delete system._snapshot._scheduledEvents[scheduledEventId];
 
-        system._relay(source, target, event);
+        // The send was already recorded at schedule time on the sender's
+        // transition, so deliver without re-recording.
+        deliver(source, target, event);
       }, delay);
 
       timerMap[scheduledEventId] = timeout;
@@ -168,6 +194,29 @@ export function createSystem<T extends ActorSystemInfo>(
       }
     }
   };
+  // Delivers an event to the target actor. Used by both `_relay` (which also
+  // records the send) and the scheduler's timer (which already recorded it).
+  const deliver = (
+    source: AnyActorRef | undefined,
+    target: AnyActorRef,
+    event: AnyEventObject
+  ) => {
+    const targetMachine = (target as any).logic;
+    const isInternalEvent =
+      typeof targetMachine?.isInternalEventType === 'function' &&
+      targetMachine.isInternalEventType(event.type);
+
+    if (isInternalEvent && source !== target) {
+      throw new Error(
+        `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
+      );
+    }
+
+    // remember the last source for unified transition inspect event
+    (target as any)._lastSourceRef = source;
+    target._send(event);
+  };
+
   const sendInspectionEvent = (event: InspectionEvent) => {
     if (!inspectionObservers.size) {
       return;
@@ -232,20 +281,8 @@ export function createSystem<T extends ActorSystemInfo>(
     },
     _sendInspectionEvent: sendInspectionEvent as any,
     _relay: (source, target, event) => {
-      const targetMachine = (target as any).logic;
-      const isInternalEvent =
-        typeof targetMachine?.isInternalEventType === 'function' &&
-        targetMachine.isInternalEventType(event.type);
-
-      if (isInternalEvent && source !== target) {
-        throw new Error(
-          `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
-        );
-      }
-
-      // remember the last source for unified transition inspect event
-      (target as any)._lastSourceRef = source;
-      target._send(event);
+      recordSent(source, target, event);
+      deliver(source, target, event);
     },
     scheduler,
     getSnapshot: () => {

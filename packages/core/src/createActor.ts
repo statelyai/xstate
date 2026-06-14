@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import type { ActionRecord, SentRecord } from './inspection.ts';
 import { onActorRead } from './interop.ts';
 import { Mailbox } from './Mailbox.ts';
 import { XSTATE_STOP } from './constants.ts';
@@ -136,6 +137,10 @@ export class Actor<TLogic extends AnyActorLogic>
   public _lastSourceRef?: AnyActorRef;
   /** @internal */
   public _collectedMicrosteps: AnyTransitionDefinition[] = [] as any;
+  /** @internal Actions executed during the in-flight transition. */
+  public _collectedActions: ActionRecord[] = [];
+  /** @internal Events relayed to other actors during the in-flight transition. */
+  public _collectedSent: SentRecord[] = [];
   public systemId: string | undefined;
 
   /** The globally unique process ID for this invocation. */
@@ -240,6 +245,12 @@ export class Actor<TLogic extends AnyActorLogic>
       },
       actionExecutor: (action) => {
         const exec = () => {
+          // Record every executed action for the '@xstate.transition' inspection
+          // event's `actions[]` facet (replaces the v5 '@xstate.action' event).
+          this._collectedActions.push({
+            type: action.type,
+            params: action.params
+          });
           if (!action.exec) {
             return;
           }
@@ -323,6 +334,18 @@ export class Actor<TLogic extends AnyActorLogic>
     if (systemId && (this._snapshot as any).status !== 'active') {
       this.system._unregister(this);
     }
+
+    // Announce actor topology: emitted once for every actor (root and every
+    // spawned/invoked child) so the actor graph can be drawn before any
+    // transitions occur. This is the only place actor identity is announced.
+    this.system._sendInspectionEvent({
+      type: '@xstate.actor',
+      actorRef: this as any,
+      parentRef: this._parent,
+      id: this.id,
+      src: this.src,
+      snapshot: this._snapshot
+    });
   }
 
   // array of functions to defer
@@ -411,10 +434,14 @@ export class Actor<TLogic extends AnyActorLogic>
       targetRef: this as any,
       snapshot,
       microsteps: this._collectedMicrosteps as any,
+      actions: this._collectedActions,
+      sent: this._collectedSent,
       eventType: event.type
     });
-    // reset after emission
+    // reset facets after emission
     this._collectedMicrosteps = [] as any;
+    this._collectedActions = [];
+    this._collectedSent = [];
   }
 
   /**

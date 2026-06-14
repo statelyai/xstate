@@ -30,7 +30,19 @@ export interface Subscribable<T> {
   ): Subscription;
 }
 
-export interface BaseAtom<T> extends Subscribable<T>, Readable<T> {}
+/**
+ * Nominal brand (phantom, compile-time only) marking a value as an XState atom.
+ * Real atoms get the runtime brand ({@link $$atom}) in `createAtom`; this type
+ * brand keeps atom-only APIs (e.g. `enq.subscribeTo`) from structurally
+ * accepting plain readables like `actor.select(...)` that would be dispatched
+ * down the non-atom path at runtime.
+ */
+declare const $$atomBrand: unique symbol;
+
+export interface BaseAtom<T> extends Subscribable<T>, Readable<T> {
+  /** @internal */
+  readonly [$$atomBrand]: true;
+}
 
 export interface Atom<T> extends BaseAtom<T> {
   set: (valueOrFn: T | ((prev: T) => T)) => void;
@@ -61,6 +73,20 @@ export type InputFromAtomConfig<TConfig extends AnyAtomConfig> =
 export type AnyAtom = BaseAtom<any>;
 
 export interface ReadonlyAtom<T> extends BaseAtom<T> {}
+
+/** Brand marking an object as an atom, so it can be detected structurally. */
+const $$atom = /* #__PURE__ */ Symbol.for('xstate.atom');
+
+/**
+ * Returns `true` if the value is an atom (writable, computed, async, or
+ * reducer). Lets actor-consuming APIs (e.g. `enq.subscribeTo`) accept atoms
+ * directly.
+ */
+export function isAtom(value: unknown): value is AnyAtom {
+  return (
+    !!value && typeof value === 'object' && ($$atom as any) in (value as any)
+  );
+}
 
 interface InternalAtom<T> extends ReactiveNode {
   _snapshot: T;
@@ -395,6 +421,8 @@ export function createAtom<T>(
     };
   }
 
+  (atom as any)[$$atom] = true;
+
   return atom as unknown as Atom<T> | ReadonlyAtom<T>;
 }
 
@@ -437,9 +465,10 @@ export function createReducerAtom<TState, TEvent>(
   const atom = createAtom(initialValue, options);
 
   return {
+    [$$atom]: true,
     get: atom.get.bind(atom),
     subscribe: atom.subscribe.bind(atom),
-    send(event) {
+    send(event: TEvent) {
       const prevSub = activeSub;
       activeSub = undefined;
       let nextState: TState;
@@ -450,7 +479,7 @@ export function createReducerAtom<TState, TEvent>(
       }
       atom.set(nextState);
     }
-  };
+  } as unknown as ReducerAtom<TState, TEvent>;
 }
 
 interface Effect extends ReactiveNode {

@@ -1313,7 +1313,7 @@ function microstep(
               });
               return actorRef;
             },
-            subscribeTo: (actor, mappers) => {
+            subscribeTo: (actor: any, mappers: any) => {
               // Handle shorthand: subscribeTo(actor, snapshotMapper)
               const normalizedMappers: SubscriptionMappers<any, any, any> =
                 typeof mappers === 'function' ? { snapshot: mappers } : mappers;
@@ -2169,10 +2169,13 @@ export function resolveAndExecuteActionsWithContext(
 
       const res = specialAction(actionArgs as any, emptyEnqueueObject);
 
-      if (res?.context || res?.children) {
+      // Only override keys the action actually returned. Special actions like
+      // `registerSpawnedChild`/`unregisterChild` return `{ children }` only —
+      // spreading `context: undefined` here would wipe the context.
+      if (res && ('context' in res || 'children' in res)) {
         intermediateSnapshot = cloneMachineSnapshot(intermediateSnapshot, {
-          context: res.context,
-          children: res.children
+          ...('context' in res ? { context: res.context } : {}),
+          ...('children' in res ? { children: res.children } : {})
         });
       }
       continue;
@@ -2212,21 +2215,14 @@ export function macrostep(
 
   function addMicrostep(
     step: Microstep,
-    event: AnyEventObject,
     transitions: AnyTransitionDefinition[]
   ) {
-    // collect microsteps for unified '@xstate.transition'
+    // collect microsteps; surfaced on the enclosing '@xstate.transition' event
+    // via its `microsteps[]` facet (there is no standalone microstep event)
     const collectedMicrosteps =
       ((actorScope.self as any)._collectedMicrosteps as any[]) || [];
     collectedMicrosteps.push(...transitions);
     (actorScope.self as any)._collectedMicrosteps = collectedMicrosteps;
-    actorScope.system._sendInspectionEvent({
-      type: '@xstate.microstep',
-      actorRef: actorScope.self,
-      event,
-      snapshot: step[0],
-      _transitions: transitions
-    });
     microsteps.push(step);
   }
 
@@ -2295,7 +2291,7 @@ export function macrostep(
     nextSnapshot = cloneMachineSnapshot(stopChildren(nextSnapshot), {
       status: 'stopped'
     });
-    addMicrostep([nextSnapshot, []], event, []);
+    addMicrostep([nextSnapshot, []], []);
     return {
       snapshot: nextSnapshot,
       microsteps
@@ -2324,7 +2320,7 @@ export function macrostep(
         status: 'error',
         error: currentEvent.error
       });
-      addMicrostep([nextSnapshot, []], currentEvent, []);
+      addMicrostep([nextSnapshot, []], []);
       return {
         snapshot: nextSnapshot,
         microsteps
@@ -2339,7 +2335,7 @@ export function macrostep(
       internalQueue
     );
     nextSnapshot = step[0];
-    addMicrostep(step, currentEvent, transitions);
+    addMicrostep(step, transitions);
   }
 
   let shouldSelectEventlessTransitions = true;
@@ -2392,7 +2388,7 @@ export function macrostep(
     );
     nextSnapshot = step[0];
     shouldSelectEventlessTransitions = nextSnapshot !== previousState;
-    addMicrostep(step, nextEvent, enabledTransitions);
+    addMicrostep(step, enabledTransitions);
   }
 
   if (nextSnapshot.status !== 'active' && nextSnapshot.children) {

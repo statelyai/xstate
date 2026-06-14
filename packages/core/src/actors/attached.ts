@@ -21,17 +21,46 @@ export function createAttachedLogic(
 ): any {
   return {
     start: (state: any, { self, system }: any) => {
-      // Don't attach if the target actor doesn't exist or is stopped
+      // Don't attach if the target doesn't exist, or (for actors) is stopped.
+      // Atoms have no `getSnapshot` / lifecycle, so they always attach.
+      const target = state.input.actor;
       if (
-        !state.input.actor ||
-        state.input.actor.getSnapshot().status === 'stopped'
+        !target ||
+        (typeof target.getSnapshot === 'function' &&
+          target.getSnapshot().status === 'stopped')
       ) {
         return;
       }
       const subscription = attach(state.input, { self, system });
-      if (subscription) {
-        subscriptions.set(self, subscription);
+      if (!subscription) {
+        return;
       }
+
+      // Attached actors are not registered as children (their `input` holds
+      // non-serializable function mappers), so a parent stop does not cascade
+      // to them. Subscribe to the parent and tear down when it stops/errors,
+      // so the subscription never relays to a stopped parent or leaks the
+      // source subscription.
+      let parentSubscription: Subscription | undefined;
+      let torndown = false;
+      const teardown = () => {
+        if (torndown) {
+          return;
+        }
+        torndown = true;
+        subscription.unsubscribe();
+        parentSubscription?.unsubscribe();
+      };
+
+      const parent: AnyActorRef | undefined = self._parent;
+      if (parent) {
+        parentSubscription = parent.subscribe({
+          complete: teardown,
+          error: teardown
+        });
+      }
+
+      subscriptions.set(self, { unsubscribe: teardown });
     },
     transition: (state: any, event: EventObject, { self }: any) => {
       if (event.type === XSTATE_STOP) {

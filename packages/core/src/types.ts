@@ -2,6 +2,7 @@ import type { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
 import { AsyncActorLogic } from './actors/promise.ts';
+import type { BaseAtom } from './atom.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
 import { InspectionEvent } from './inspection.ts';
 import { Spawner } from './spawn.ts';
@@ -1436,13 +1437,14 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *
    * @remarks
    * If a callback function is provided, it can accept an inspection event
-   * argument. The types of inspection events that can be observed include:
+   * argument. The inspection protocol has two event types:
    *
-   * - `@xstate.actor` - An actor ref has been created in the system
-   * - `@xstate.event` - An event was sent from a source actor ref to a target
-   *   actor ref in the system
-   * - `@xstate.snapshot` - An actor ref emitted a snapshot due to a received
-   *   event
+   * - `@xstate.actor` - An actor ref was created in the system (announces actor
+   *   topology: identity + parent).
+   * - `@xstate.transition` - An actor transitioned. Carries every facet of the
+   *   transition with flat, always-present fields: `event`, `snapshot`,
+   *   `sourceRef`, `microsteps`, executed `actions`, and `sent`/scheduled
+   *   events.
    *
    * @example
    *
@@ -1460,19 +1462,18 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *     }
    *
    *     if (inspectionEvent.type === '@xstate.actor') {
-   *       console.log(inspectionEvent.actorRef);
+   *       console.log(inspectionEvent.actorRef, inspectionEvent.parentRef);
    *     }
    *
-   *     if (inspectionEvent.type === '@xstate.event') {
+   *     if (inspectionEvent.type === '@xstate.transition') {
    *       console.log(inspectionEvent.sourceRef);
    *       console.log(inspectionEvent.actorRef);
    *       console.log(inspectionEvent.event);
-   *     }
-   *
-   *     if (inspectionEvent.type === '@xstate.snapshot') {
-   *       console.log(inspectionEvent.actorRef);
-   *       console.log(inspectionEvent.event);
    *       console.log(inspectionEvent.snapshot);
+   *       // flat, always-present facets — no narrowing required
+   *       console.log(inspectionEvent.actions);
+   *       console.log(inspectionEvent.sent);
+   *       console.log(inspectionEvent.microsteps);
    *     }
    *   }
    * });
@@ -1492,19 +1493,20 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *       }
    *
    *       if (inspectionEvent.type === '@xstate.actor') {
-   *         console.log(inspectionEvent.actorRef);
+   *         console.log(
+   *           inspectionEvent.actorRef,
+   *           inspectionEvent.parentRef
+   *         );
    *       }
    *
-   *       if (inspectionEvent.type === '@xstate.event') {
+   *       if (inspectionEvent.type === '@xstate.transition') {
    *         console.log(inspectionEvent.sourceRef);
    *         console.log(inspectionEvent.actorRef);
    *         console.log(inspectionEvent.event);
-   *       }
-   *
-   *       if (inspectionEvent.type === '@xstate.snapshot') {
-   *         console.log(inspectionEvent.actorRef);
-   *         console.log(inspectionEvent.event);
    *         console.log(inspectionEvent.snapshot);
+   *         console.log(inspectionEvent.actions);
+   *         console.log(inspectionEvent.sent);
+   *         console.log(inspectionEvent.microsteps);
    *       }
    *     }
    *   }
@@ -2379,16 +2381,25 @@ export type EnqueueObject<
    * @param mappers - Object with done/error/snapshot mappers, or a single
    *   snapshot mapper function
    */
-  subscribeTo: <
-    TSnapshot extends Snapshot<unknown>,
-    TOutput,
-    TMappedEvent extends TEvent
-  >(
-    actor: AnyActorRef,
-    mappers:
-      | SubscribeToMappers<TSnapshot, TOutput, TMappedEvent>
-      | ((snapshot: TSnapshot) => TMappedEvent)
-  ) => AnyActorRef;
+  subscribeTo: {
+    <TSnapshot extends Snapshot<unknown>, TOutput, TMappedEvent extends TEvent>(
+      actor: AnyActorRef,
+      mappers:
+        | SubscribeToMappers<TSnapshot, TOutput, TMappedEvent>
+        | ((snapshot: TSnapshot) => TMappedEvent)
+    ): AnyActorRef;
+    // Atom form: the mapper receives the atom's value directly. Atoms have no
+    // done/error lifecycle, so only the `snapshot` mapper applies. The param is
+    // the branded atom type (not a structural `{ get, subscribe }`) so plain
+    // readables like `actor.select(...)` — which the runtime would dispatch
+    // down the non-atom path — fail at compile time.
+    <TValue, TMappedEvent extends TEvent>(
+      atom: BaseAtom<TValue>,
+      mappers:
+        | { snapshot?: (value: TValue) => TMappedEvent }
+        | ((value: TValue) => TMappedEvent)
+    ): AnyActorRef;
+  };
 };
 
 export type Action<
