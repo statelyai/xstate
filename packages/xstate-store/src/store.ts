@@ -15,6 +15,7 @@ import {
   StoreContext,
   StoreConfig,
   StoreEffect,
+  StoreEffectEnqueue,
   StoreInspectionEvent,
   StoreProducerAssigner,
   StoreSnapshot,
@@ -89,7 +90,7 @@ function toEvent(eventType: string, payload: any) {
 function createEnqueueObject<TEmitted extends EventObject>(
   effects: StoreEffect<TEmitted>[],
   trigger?: (event: EventObject) => void
-): EnqueueObject<TEmitted, any> {
+): EnqueueObject<any, TEmitted, any> {
   return {
     emit: new Proxy({} as any, {
       get: (_, eventType: string) => {
@@ -106,7 +107,7 @@ function createEnqueueObject<TEmitted extends EventObject>(
       }
     }),
     effect: (fn) => {
-      effects.push(fn);
+      effects.push(fn as StoreEffect<TEmitted>);
     }
   };
 }
@@ -282,13 +283,22 @@ function createStoreCore<
     atom.set(nextSnapshot);
     notifyInspection(event, nextSnapshot);
 
+    let committed = false;
+    const effectEnqueue = {
+      trigger,
+      send,
+      getSnapshot: () => (committed ? currentSnapshot : nextSnapshot)
+    } as StoreEffectEnqueue<any, any>;
+
     for (const effect of effects) {
       if (typeof effect === 'function') {
-        effect();
+        effect(effectEnqueue);
       } else {
         emit(effect);
       }
     }
+
+    committed = true;
   }
 
   const trigger =
