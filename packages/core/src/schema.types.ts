@@ -4,6 +4,59 @@ export interface StandardSchemaV1<Input = unknown, Output = Input> {
   readonly '~standard': StandardSchemaV1.Props<Input, Output>;
 }
 
+/** A type-only Standard Schema produced by {@link types}. */
+export interface TypeSchema<T> extends StandardSchemaV1<T, T> {
+  readonly '~standard': StandardSchemaV1.Props<T, T> & {
+    readonly vendor: 'xstate.types';
+  };
+}
+
+/**
+ * Declares schema types for inference only — no runtime validation.
+ *
+ * Use in a machine's `schemas` when you want TypeScript types without pulling
+ * in a schema library like Zod. The returned value is a valid Standard Schema
+ * whose validation is the identity function, so it carries types but never
+ * rejects input.
+ *
+ * @example
+ *
+ * ```ts
+ * import { createMachine, types } from 'xstate';
+ *
+ * const machine = createMachine({
+ *   schemas: {
+ *     context: types<{ count: number }>(),
+ *     events: {
+ *       inc: types<{ by: number }>(),
+ *       reset: types<{}>()
+ *     }
+ *   },
+ *   context: { count: 0 }
+ *   // ...
+ * });
+ * ```
+ */
+export function types<T>(): TypeSchema<T> {
+  return {
+    '~standard': {
+      version: 1,
+      vendor: 'xstate.types',
+      validate: (value) => ({ value: value as T })
+    }
+  };
+}
+
+/** Returns true if the value is a type-only schema created by {@link types}. */
+export function isTypeSchema(value: unknown): value is TypeSchema<unknown> {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    '~standard' in value &&
+    (value as StandardSchemaV1)['~standard'].vendor === 'xstate.types'
+  );
+}
+
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export declare namespace StandardSchemaV1 {
   /** The Standard Schema properties interface. */

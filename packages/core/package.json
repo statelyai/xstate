@@ -68,7 +68,8 @@
     "invoke",
     "guards",
     "dev",
-    "graph"
+    "graph",
+    "bin"
   ],
   "keywords": [
     "statechart",
@@ -106,5 +107,8 @@
       "./actors/index.ts",
       "./graph/index.ts"
     ]
+  },
+  "bin": {
+    "xstate": "./bin/xstate.cjs"
   }
 }

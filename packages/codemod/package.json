@@ -1,0 +1,27 @@
+{
+  "name": "@xstate/codemod",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Codemods for migrating XState across major versions",
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "license": "MIT",
+  "bin": {
+    "xstate-codemod": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "dependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  }
+}

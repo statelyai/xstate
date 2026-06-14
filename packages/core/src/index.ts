@@ -41,6 +41,12 @@ export {
   type UnserializableMarker
 } from './serialize.ts';
 export { mapState } from './mapState.ts';
+export {
+  types,
+  isTypeSchema,
+  type StandardSchemaV1,
+  type TypeSchema
+} from './schema.types.ts';
 export { setup } from './setup.ts';
 export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
 export type { InspectionEvent } from './inspection.ts';

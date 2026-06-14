@@ -1386,6 +1386,16 @@ importers:
         specifier: ^0.31.4
         version: 0.31.4(@types/node@25.2.1)(sass@1.97.3)(stylus@0.54.8)(terser@5.46.0)
 
+  packages/codemod:
+    dependencies:
+      typescript:
+        specifier: '>=5.0.0'
+        version: 6.0.2
+    devDependencies:
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@25.2.1)(happy-dom@17.6.3)(jiti@2.4.2)(jsdom@26.1.0)(sass@1.97.3)(stylus@0.54.8)(terser@5.46.0)(yaml@2.8.2)
+
   packages/core:
     devDependencies:
       '@scion-scxml/test-framework':

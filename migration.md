@@ -27,7 +27,7 @@ This guide is organized by area. Skim the **Quick reference** below, then jump t
 | `fromObservable(fn)`                                    | `createObservableLogic(fn)` (same signature, renamed)                                                                               |
 | `fromEventObservable(fn)`                               | `createEventObservableLogic(fn)` (same signature, renamed)                                                                          |
 | `fromTransition(reducer, initial)`                      | `createTransitionLogic(reducer, initial)` (same signature, renamed)                                                                 |
-| `types: {} as { context: ..., events: ...}`             | `schemas: { context, events, ... }` (Zod / Standard Schema)                                                                         |
+| `types: {} as { context: ..., events: ...}`             | `schemas: { context, events, ... }` (Zod / Standard Schema, or `types<T>()` for type-only)                                          |
 | `actor.send({ type: 'INC' })`                           | `actor.send(...)` keeps working; new typed `actor.trigger.INC()`                                                                    |
 | `@xstate/immer`                                         | removed — return updated `context` directly                                                                                         |
 | `@xstate/inspect`                                       | removed — use `inspect` option on `createActor`, `actor.subscribe`, or [`@statelyai/inspect`](https://github.com/statelyai/inspect) |
@@ -280,6 +280,21 @@ guards: {
 ## 3. `createMachine` — schemas replace `types`
 
 The `types: {} as { context: ..., events: ... }` shim is replaced by **Standard Schema**-compatible runtime schemas. Zod is the canonical choice.
+
+If you want types without a runtime schema library (the closest equivalent to v5's type-only `types`), use `types<T>()`:
+
+```ts
+import { createMachine, types } from 'xstate';
+
+createMachine({
+  schemas: {
+    context: types<{ count: number }>(),
+    events: { inc: types<{ by: number }>() }
+  },
+  context: { count: 0 }
+  // ...
+});
+```
 
 ```ts
 // v5
