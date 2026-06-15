@@ -118,7 +118,30 @@ export type CanObject<TEventPayloadMap extends EventPayloadMap> = {
     : CanFunction<EventFromPayload<K, TEventPayloadMap[K]>>;
 };
 
+/**
+ * The object passed to an effect function enqueued via `enq.effect(...)`. It
+ * allows effects to send events back into the store (e.g. after an async
+ * operation resolves) and read the latest store state, which is especially
+ * useful with `createStoreLogic(...)` where there is no store reference to
+ * close over.
+ *
+ * Use `trigger` for event-specific dispatch; `send` accepts the same event
+ * objects as `store.send(...)`. `getSnapshot()` returns the current snapshot at
+ * the time the effect runs, which is the correct way to read fresh context
+ * after an `await` (the `context` argument to the transition is stale by
+ * then).
+ */
+export type StoreEffectEnqueue<
+  TContext extends StoreContext = StoreContext,
+  TEventPayloadMap extends EventPayloadMap = {}
+> = {
+  trigger: TriggerObject<TEventPayloadMap>;
+  send: (event: EventObject) => void;
+  getSnapshot: () => StoreSnapshot<TContext>;
+};
+
 export type EnqueueObject<
+  TContext extends StoreContext,
   TEmittedEvent extends EventObject,
   TEventPayloadMap extends EventPayloadMap = {}
 > = {
@@ -126,10 +149,14 @@ export type EnqueueObject<
     [E in TEmittedEvent as E['type']]: EmitterFunction<E>;
   };
   trigger: TriggerObject<TEventPayloadMap>;
-  effect: (fn: () => void) => void;
+  effect: (
+    fn: (enq: StoreEffectEnqueue<TContext, TEventPayloadMap>) => void
+  ) => void;
 };
 
-export type StoreEffect<TEmitted extends EventObject> = (() => void) | TEmitted;
+export type StoreEffect<TEmitted extends EventObject> =
+  | ((enq?: StoreEffectEnqueue<any, any>) => void)
+  | TEmitted;
 
 export type StoreAssigner<
   TContext extends StoreContext,
@@ -139,7 +166,7 @@ export type StoreAssigner<
 > = (
   context: TContext,
   event: TEvent,
-  enq: EnqueueObject<TEmitted, TEventPayloadMap>
+  enq: EnqueueObject<TContext, TEmitted, TEventPayloadMap>
 ) => TContext | void;
 
 export type StoreProducerAssigner<
@@ -150,7 +177,7 @@ export type StoreProducerAssigner<
 > = (
   context: TContext,
   event: TEvent,
-  enq: EnqueueObject<TEmitted, TEventPayloadMap>
+  enq: EnqueueObject<TContext, TEmitted, TEventPayloadMap>
 ) => void;
 
 export type Snapshot<TOutput> =

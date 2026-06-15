@@ -45,6 +45,7 @@ type InferredFromStoreTransitions<
     context: NoInfer<ResolveStoreContext<TContext, TContextSchema>>,
     event: any,
     enq: EnqueueObject<
+      ResolveStoreContext<TContext, TContextSchema>,
       FromStoreEmittedEvents<TEmittedPayloadMap, TEmittedSchemaMap>,
       InferredEventPayloadMap<TTransitions>
     >
@@ -263,13 +264,33 @@ export function fromStore(config: {
     transition: (snapshot, event, actorScope) => {
       const [nextSnapshot, effects] = transition(snapshot, event);
 
+      // The actor only commits `nextSnapshot` after this function returns, so
+      // synchronous effects must read it directly; effects that run later
+      // (after an `await`) read the latest committed snapshot from the actor.
+      // This matches `createStore`, where `currentSnapshot` is updated before
+      // effects run.
+      let committed = false;
+      const effectEnqueue = {
+        send: (event: EventObject) => actorScope.self.send(event),
+        trigger: new Proxy({} as any, {
+          get: (_, eventType: string) => {
+            return (payload: any) =>
+              actorScope.self.send({ type: eventType, ...payload });
+          }
+        }),
+        getSnapshot: () =>
+          committed ? actorScope.self.getSnapshot() : nextSnapshot
+      };
+
       for (const effect of effects) {
         if (typeof effect === 'function') {
-          effect();
+          effect(effectEnqueue);
         } else {
           actorScope.emit(effect);
         }
       }
+
+      committed = true;
 
       return nextSnapshot;
     },
