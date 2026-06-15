@@ -1193,7 +1193,6 @@ export interface DoneStateEvent<TOutput = unknown> extends EventObject {
 }
 
 export enum SpecialTargets {
-  Parent = '#_parent',
   Internal = '#_internal'
 }
 

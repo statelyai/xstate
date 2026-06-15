@@ -1,7 +1,7 @@
 import ts from 'typescript';
 
 /** Result of running codemod transforms over a single source file. */
-export interface TransformResult {
+interface TransformResult {
   /** The transformed source text (unchanged if `changed` is false). */
   code: string;
   /** Whether any transform modified the source. */

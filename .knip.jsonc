@@ -28,6 +28,7 @@
     // file acts as a type test
     "packages/xstate-svelte/test/interpreterAsReadable.svelte",
     "docs/**",
+    "examples/**",
     // copy-pasted implementation from alien-signals
     "packages/xstate-store/src/alien.ts",
     "scripts/**"

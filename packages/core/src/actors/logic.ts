@@ -90,7 +90,7 @@ export interface LogicConfig<
   run: LogicFunction<TContext, TOutput, TEvent, TInput, TEmitted>;
 }
 
-export interface LogicTransition<
+interface LogicTransition<
   TContext,
   TOutput,
   TEvent extends EventObject,

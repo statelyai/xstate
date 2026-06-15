@@ -37,17 +37,17 @@ export interface LogJSON {
   args: any[];
 }
 
-export interface EmitJSON {
+interface EmitJSON {
   type: '@xstate.emit';
   event: AnyEventObject;
 }
 
-export interface AssignJSON {
+interface AssignJSON {
   type: '@xstate.assign';
   context: MachineContext;
 }
 
-export interface ScxmlAssignJSON {
+interface ScxmlAssignJSON {
   type: 'scxml.assign';
   /** SCXML location attribute - the context property to assign to */
   location: string;
@@ -73,7 +73,7 @@ export interface ScxmlRaiseJSON {
   targetexpr?: string;
 }
 
-export interface ScxmlScriptJSON {
+interface ScxmlScriptJSON {
   type: 'scxml.script';
   /** The script code to execute */
   code: string;
@@ -103,12 +103,12 @@ export interface ScxmlDonedataJSON {
  * but do not propagate to the surrounding action list. Used to model SCXML's
  * separate <onentry>/<onexit> blocks: each is its own block per spec.
  */
-export interface ScxmlBlockJSON {
+interface ScxmlBlockJSON {
   type: 'scxml.block';
   actions: ActionJSON[];
 }
 
-export interface ScxmlIfJSON {
+interface ScxmlIfJSON {
   type: 'scxml.if';
   branches: Array<{
     cond?: string;
@@ -116,14 +116,14 @@ export interface ScxmlIfJSON {
   }>;
 }
 
-export type BuiltInActionJSON =
+type BuiltInActionJSON =
   | RaiseJSON
   | CancelJSON
   | LogJSON
   | EmitJSON
   | AssignJSON;
 
-export interface CustomActionJSON {
+interface CustomActionJSON {
   type: string;
   params?: Record<string, unknown>;
 }

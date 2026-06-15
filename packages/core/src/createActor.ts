@@ -24,7 +24,7 @@ import type { createAsyncLogic } from './actors/promise.ts';
 import type { createTransitionLogic } from './actors/transition.ts';
 import type { createMachine } from './createMachine.ts';
 
-export let executingCustomAction: boolean = false;
+let executingCustomAction: boolean = false;
 
 import type {
   ActorScope,

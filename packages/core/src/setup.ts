@@ -28,13 +28,13 @@ type SetupStateSchemas = {
 };
 
 /** State schema with optional schemas.input and nested states */
-export interface SetupStateSchema {
+interface SetupStateSchema {
   schemas?: SetupStateSchemas;
   states?: Record<string, SetupStateSchema>;
 }
 
 /** Configuration for setup() */
-export interface SetupConfig<
+interface SetupConfig<
   TStates extends Record<string, SetupStateSchema> = Record<
     string,
     SetupStateSchema
@@ -93,38 +93,12 @@ type SetupMeta<TTypes, TMetaSchema extends StandardSchemaV1> = TTypes extends {
   : InferOutput<TMetaSchema, MetaObject>;
 
 /** Extracts input type from a state schema */
-export type StateInput<TStateSchema extends SetupStateSchema> =
+type StateInput<TStateSchema extends SetupStateSchema> =
   TStateSchema['schemas'] extends { input: infer TInputSchema }
     ? TInputSchema extends StandardSchemaV1
       ? StandardSchemaV1.InferOutput<TInputSchema>
       : undefined
     : undefined;
-
-/**
- * Flattens nested state schemas into a flat map of state keys to input types.
- * This includes both top-level states and nested states.
- */
-export type FlattenStateInputMap<
-  TStates extends Record<string, SetupStateSchema>
-> = {
-  [K in keyof TStates & string]: StateInput<TStates[K]>;
-} & UnionToIntersection<
-  {
-    [K in keyof TStates & string]: TStates[K]['states'] extends Record<
-      string,
-      SetupStateSchema
-    >
-      ? FlattenStateInputMap<TStates[K]['states']>
-      : {};
-  }[keyof TStates & string]
->;
-
-/** Helper type to convert union to intersection */
-type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
-  k: infer I
-) => void
-  ? I
-  : never;
 
 type WithNestedStates<TConfig, TNestedStates> = TConfig extends {
   type: 'choice';
@@ -136,9 +110,7 @@ type WithNestedStates<TConfig, TNestedStates> = TConfig extends {
  * Converts SetupStateSchema to StateSchema with input types included. This
  * allows getInputs() to be strongly typed.
  */
-export type SetupStateSchemaToStateSchema<
-  TSetupSchema extends SetupStateSchema
-> = {
+type SetupStateSchemaToStateSchema<TSetupSchema extends SetupStateSchema> = {
   input: StateInput<TSetupSchema>;
   states: TSetupSchema['states'] extends Record<string, SetupStateSchema>
     ? {
@@ -149,7 +121,7 @@ export type SetupStateSchemaToStateSchema<
 };
 
 /** Converts the root setup states config to a StateSchema. */
-export type SetupStatesToStateSchema<
+type SetupStatesToStateSchema<
   TStates extends Record<string, SetupStateSchema>
 > = {
   states: {
@@ -198,7 +170,7 @@ type MergeStateSchema<
 };
 
 /** Machine config with typed state input */
-export type SetupMachineConfig<
+type SetupMachineConfig<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContextSchema extends StandardSchemaV1,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
@@ -347,7 +319,7 @@ type StateNodeConfigWithNestedInput<
 >;
 
 /** Initial transition with typed input based on target state */
-export type InitialTransitionWithInput<
+type InitialTransitionWithInput<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -364,7 +336,7 @@ export type InitialTransitionWithInput<
 }[keyof TStateSchemas & string];
 
 /** Return type of setup() */
-export interface SetupReturn<
+interface SetupReturn<
   TStates extends Record<string, SetupStateSchema> = Record<
     string,
     SetupStateSchema

@@ -10,7 +10,7 @@ export interface ReactiveNode {
   flags: ReactiveFlags;
 }
 
-export interface Link {
+interface Link {
   version: number;
   dep: ReactiveNode;
   sub: ReactiveNode;
@@ -364,55 +364,55 @@ const { link, unlink, propagate, checkDirty, shallowPropagate } =
     }
   });
 
-export function getActiveSub(): ReactiveNode | undefined {
+function getActiveSub(): ReactiveNode | undefined {
   return activeSub;
 }
 
-export function setActiveSub(sub?: ReactiveNode) {
+function setActiveSub(sub?: ReactiveNode) {
   const prevSub = activeSub;
   activeSub = sub;
   return prevSub;
 }
 
-export function getBatchDepth(): number {
+function getBatchDepth(): number {
   return batchDepth;
 }
 
-export function startBatch() {
+function startBatch() {
   ++batchDepth;
 }
 
-export function endBatch() {
+function endBatch() {
   if (!--batchDepth) {
     flush();
   }
 }
 
-export function isSignal(fn: () => void): boolean {
+function isSignal(fn: () => void): boolean {
   return fn.name === 'bound ' + signalOper.name;
 }
 
-export function isComputed(fn: () => void): boolean {
+function isComputed(fn: () => void): boolean {
   return fn.name === 'bound ' + computedOper.name;
 }
 
-export function isEffect(fn: () => void): boolean {
+function isEffect(fn: () => void): boolean {
   return fn.name === 'bound ' + effectOper.name;
 }
 
-export function isEffectScope(fn: () => void): boolean {
+function isEffectScope(fn: () => void): boolean {
   return fn.name === 'bound ' + effectScopeOper.name;
 }
 
-export function signal<T>(): {
+function signal<T>(): {
   (): T | undefined;
   (value: T | undefined): void;
 };
-export function signal<T>(initialValue: T): {
+function signal<T>(initialValue: T): {
   (): T;
   (value: T): void;
 };
-export function signal<T>(initialValue?: T): {
+function signal<T>(initialValue?: T): {
   (): T | undefined;
   (value: T | undefined): void;
 } {
@@ -425,7 +425,7 @@ export function signal<T>(initialValue?: T): {
   }) as () => T | undefined;
 }
 
-export function computed<T>(getter: (previousValue?: T) => T): () => T {
+function computed<T>(getter: (previousValue?: T) => T): () => T {
   return computedOper.bind({
     value: undefined,
     subs: undefined,
@@ -437,7 +437,7 @@ export function computed<T>(getter: (previousValue?: T) => T): () => T {
   }) as () => T;
 }
 
-export function effect(fn: () => void): () => void {
+function effect(fn: () => void): () => void {
   const e: EffectNode = {
     fn,
     subs: undefined,
@@ -459,7 +459,7 @@ export function effect(fn: () => void): () => void {
   return effectOper.bind(e);
 }
 
-export function effectScope(fn: () => void): () => void {
+function effectScope(fn: () => void): () => void {
   const e: ReactiveNode = {
     deps: undefined,
     depsTail: undefined,
@@ -479,7 +479,7 @@ export function effectScope(fn: () => void): () => void {
   return effectScopeOper.bind(e);
 }
 
-export function trigger(fn: () => void) {
+function trigger(fn: () => void) {
   const sub: ReactiveNode = {
     deps: undefined,
     depsTail: undefined,

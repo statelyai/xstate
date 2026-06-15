@@ -2,21 +2,12 @@ import { StandardSchemaV1 } from './schema.types';
 import { MachineContext } from './types';
 
 // Typestates
-export interface TypeStateSchema {
+interface TypeStateSchema {
   context?: StandardSchemaV1;
   states?: Record<string, TypeStateSchema>;
 }
 
 export type TypeStateSchemas = Record<string, TypeStateSchema>;
-
-export interface TypeState {
-  context?: MachineContext;
-  states?: Record<string, TypeState>;
-}
-
-export type TypeStates = {
-  [K in string]: TypeState;
-};
 
 export type TypeStateFromSchema<T extends TypeStateSchema> = (T extends {
   context: infer Ctx;
@@ -50,7 +41,7 @@ type ValueFromPath<P extends readonly string[]> = P extends readonly [
 export type TargetAndContextFromTypeStates<T> = _TargetsFromStates<T, [], {}>;
 
 /** Collect leaf+intermediate targets as { value, context } pairs */
-export type TargetAndContextFrom<T> = T extends { states: infer S }
+type TargetAndContextFrom<T> = T extends { states: infer S }
   ? _TargetsFromStates<S, [], {}>
   : never;
 
@@ -78,7 +69,7 @@ type _ChildrenResult<Node, P extends readonly string[], CtxAcc> = Node extends {
   : never;
 
 /** Helper for your accept() example */
-export type AcceptArg<T> = TargetAndContextFrom<T>;
+type AcceptArg<T> = TargetAndContextFrom<T>;
 declare function accept<T>(arg: AcceptArg<T>): void;
 
 // ---------- Example ----------
@@ -93,8 +84,6 @@ type MyTypeStates = {
     };
   };
 };
-
-type _Test = TargetAndContextFrom<MyTypeStates>;
 
 accept<MyTypeStates>({
   target: 'foo',

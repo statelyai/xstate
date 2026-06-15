@@ -7,21 +7,21 @@ import { installActorReadHook } from './interop.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import type { AnyActorRef } from './types.ts';
 
-export type Observer<T> = {
+type Observer<T> = {
   next?: (value: T) => void;
   error?: (err: unknown) => void;
   complete?: () => void;
 };
 
-export interface Subscription {
+interface Subscription {
   unsubscribe(): void;
 }
 
-export interface Readable<T> extends Subscribable<T> {
+interface Readable<T> extends Subscribable<T> {
   get: () => T;
 }
 
-export interface Subscribable<T> {
+interface Subscribable<T> {
   subscribe(observer: Observer<T>): Subscription;
   subscribe(
     next: (value: T) => void,

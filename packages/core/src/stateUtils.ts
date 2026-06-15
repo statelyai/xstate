@@ -11,8 +11,7 @@ import {
   XSTATE_INIT,
   STATE_DELIMITER,
   STATE_IDENTIFIER,
-  XSTATE_STOP,
-  NULL_EVENT
+  XSTATE_STOP
 } from './constants.ts';
 import { matchesEventDescriptor } from './utils.ts';
 import {
@@ -460,79 +459,6 @@ export function formatTransition(
   };
 
   return transition;
-}
-
-export function formatTransitions<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  stateNode: AnyStateNode
-): Map<string, TransitionDefinition<TContext, TEvent>[]> {
-  const transitions = new Map<
-    string,
-    TransitionDefinition<TContext, AnyEventObject>[]
-  >();
-  const formatTransitionConfigs = (
-    descriptor: string,
-    transitionsConfig: unknown
-  ) =>
-    toTransitionConfigArray(transitionsConfig as any).map((t) =>
-      formatTransition(stateNode, descriptor, t)
-    );
-  if (stateNode.config.on) {
-    for (const descriptor of Object.keys(stateNode.config.on)) {
-      if (descriptor === NULL_EVENT) {
-        throw new Error(
-          'Null events ("") cannot be specified as a transition key. Use `always: { ... }` instead.'
-        );
-      }
-      transitions.set(
-        descriptor,
-        formatTransitionConfigs(descriptor, stateNode.config.on[descriptor])
-      );
-    }
-  }
-  if (stateNode.config.onDone) {
-    const descriptor = `xstate.done.state.${stateNode.id}`;
-    transitions.set(
-      descriptor,
-      formatTransitionConfigs(descriptor, stateNode.config.onDone)
-    );
-  }
-  for (const invokeDef of stateNode.invoke) {
-    if (invokeDef.onDone) {
-      const descriptor = `xstate.done.actor.${invokeDef.id}`;
-      transitions.set(
-        descriptor,
-        formatTransitionConfigs(descriptor, invokeDef.onDone)
-      );
-    }
-    if (invokeDef.onError) {
-      const descriptor = `xstate.error.actor.${invokeDef.id}`;
-      transitions.set(
-        descriptor,
-        formatTransitionConfigs(descriptor, invokeDef.onError)
-      );
-    }
-    if (invokeDef.onSnapshot) {
-      const descriptor = `xstate.snapshot.${invokeDef.id}`;
-      transitions.set(
-        descriptor,
-        formatTransitionConfigs(descriptor, invokeDef.onSnapshot)
-      );
-    }
-  }
-  for (const delayedTransition of stateNode.after) {
-    let existing = transitions.get(delayedTransition.eventType);
-    if (!existing) {
-      existing = [];
-      transitions.set(delayedTransition.eventType, existing);
-    }
-    existing.push(
-      delayedTransition as TransitionDefinition<TContext, AnyEventObject>
-    );
-  }
-  return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
 }
 
 /**

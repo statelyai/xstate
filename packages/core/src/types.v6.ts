@@ -253,11 +253,6 @@ export type WidenLiterals<T> = T extends string
               ? { -readonly [K in keyof T]: WidenLiterals<T[K]> }
               : T;
 
-export type DelayMap<TContext> = Record<
-  string,
-  number | ((context: TContext) => number)
->;
-
 type InvokeSrcArgs<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -450,12 +445,12 @@ interface Next_InvokeConfigBase<
 }
 
 /** Lookup state input type from an input map, with fallback to undefined */
-export type LookupInput<
+type LookupInput<
   TInputMap extends Record<string, unknown>,
   K extends string
 > = K extends keyof TInputMap ? TInputMap[K] : undefined;
 
-export type StateAction<
+type StateAction<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmittedEvent extends EventObject,
@@ -505,7 +500,7 @@ export type StateAction<
   >
 >;
 
-export type Next_ChoiceTarget<TMeta extends MetaObject> = {
+type Next_ChoiceTarget<TMeta extends MetaObject> = {
   target: string | string[];
   description?: string;
   reenter?: boolean;
@@ -548,7 +543,7 @@ type Next_ChoiceArgs<
  * Guard objects/strings on routes are only produced by the JSON layer
  * (`createMachineFromConfig`) — authoring uses the function form.
  */
-export type Next_RouteConfig<
+type Next_RouteConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TMeta extends MetaObject,
@@ -587,7 +582,7 @@ export type Next_RouteConfig<
             | ((args: { context: any; event: any }) => Record<string, unknown>);
         });
 
-export type Next_ChoiceConfigFunction<
+type Next_ChoiceConfigFunction<
   TContext extends MachineContext,
   TCurrentEvent extends EventObject,
   TEvent extends EventObject,
@@ -651,7 +646,7 @@ export type Next_StateNodeConfig<
       TDelayMap
     >;
 
-export interface Next_ChoiceStateNodeConfig<
+interface Next_ChoiceStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TTag extends string,
@@ -706,7 +701,7 @@ export interface Next_ChoiceStateNodeConfig<
   target?: never;
 }
 
-export interface Next_RegularStateNodeConfig<
+interface Next_RegularStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TDelays extends string,
@@ -961,27 +956,6 @@ export interface Next_RegularStateNodeConfig<
   target?: string | undefined; // `| undefined` makes `HistoryStateNodeConfig` compatible with this interface (it extends it) under `exactOptionalPropertyTypes`
 }
 
-export type Next_InitialTransitionConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TEmitted extends EventObject,
-  TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
-  TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays'],
-  TMeta extends MetaObject
-> = TransitionConfigFunction<
-  TContext,
-  TEvent,
-  TEvent,
-  TEmitted,
-  TActionMap,
-  TActorMap,
-  TGuardMap,
-  TDelayMap,
-  TMeta
->;
-
 export type Next_TransitionConfigOrTarget<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -1034,27 +1008,6 @@ export type Next_TransitionConfigOrTarget<
       TDelayMap,
       TMeta
     >;
-
-export interface Next_MachineTypes<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TDelay extends string,
-  TTag extends string,
-  TInput,
-  TOutput,
-  TEmitted extends EventObject,
-  TMeta extends MetaObject
-> {
-  context?: TContext;
-  events?: TEvent;
-  children?: any; // TODO
-  tags?: TTag;
-  input?: TInput;
-  output?: TOutput;
-  emitted?: TEmitted;
-  delays?: TDelay;
-  meta?: TMeta;
-}
 
 export interface Next_SetupTypes<
   TContext extends MachineContext,

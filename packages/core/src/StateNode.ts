@@ -387,7 +387,7 @@ function mapTransitionConfigs<T>(
   return transitions;
 }
 
-export function formatTransitions<
+function formatTransitions<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
@@ -554,7 +554,7 @@ export function formatTransitions<
   return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
 }
 
-export function formatInitialTransition(
+function formatInitialTransition(
   stateNode: AnyStateNode,
   _target: string | { target: string; input?: any } | undefined
 ): InitialTransitionDefinition {
