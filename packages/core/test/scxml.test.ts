@@ -44,7 +44,7 @@ const testGroups: Record<string, string[]> = {
   delayedSend: ['send1', 'send2', 'send3'],
   documentOrder: ['documentOrder0'],
   // error: ['error'], // auto-completes; fails with SimulatedClock harness
-  forEach: ['test1'],
+  foreach: ['test1'],
   hierarchy: ['hier0', 'hier1', 'hier2'],
   'hierarchy+documentOrder': ['test0', 'test1'],
   history: [

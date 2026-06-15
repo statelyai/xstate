@@ -202,7 +202,7 @@ describe('die hard example', () => {
     });
   });
 
-  describe.only('testing a model (getPathFromEvents)', () => {
+  describe('testing a model (getPathFromEvents)', () => {
     const dieHardModel = createDieHardModel();
 
     const path = dieHardModel.model.getPathsFromEvents(
@@ -241,7 +241,7 @@ describe('die hard example', () => {
     });
   });
 
-  describe.only('.testPath(path)', () => {
+  describe('.testPath(path)', () => {
     const dieHardModel = createDieHardModel();
     const paths = dieHardModel.model.getSimplePaths({
       toState: (state) => {
@@ -309,9 +309,9 @@ describe('error path trace', () => {
           "test error
           Path:
           	State: {"value":"first"}
-          	Event: {"type":"xstate.init"}
+          	Event: {"type":"@xstate.init"}
 
-          	State: {"value":"second"} via {"type":"xstate.init"}
+          	State: {"value":"second"} via {"type":"@xstate.init"}
           	Event: {"type":"NEXT_1"}
 
           	State: {"value":"third"} via {"type":"NEXT_1"}
