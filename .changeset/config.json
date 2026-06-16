@@ -1,11 +1,16 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@1.6.3/schema.json",
-  "changelog": ["@changesets/changelog-github", { "repo": "statelyai/xstate" }],
+  "changelog": [
+    "@changesets/changelog-github",
+    {
+      "repo": "statelyai/xstate"
+    }
+  ],
   "commit": false,
   "linked": [],
   "access": "public",
   "baseBranch": "main",
-  "ignore": [],
+  "ignore": ["@xstate/example-*", "store-*", "local-store-*"],
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
     "onlyUpdatePeerDependentsWhenOutOfRange": true,
     "useCalculatedVersionForSnapshots": true
