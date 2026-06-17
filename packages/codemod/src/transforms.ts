@@ -65,6 +65,8 @@ export function transformSource(
   //    and the set of removed `from*` value identifiers (for flagging).
   const valueRenames = new Map<string, string>();
   const typeRenames = new Map<string, string>();
+  const xstateImports = new Map<string, string>();
+  const xstateNamespaces = new Set<string>();
 
   for (const stmt of sourceFile.statements) {
     if (
@@ -75,12 +77,18 @@ export function transformSource(
       continue;
     }
     const named = stmt.importClause?.namedBindings;
-    if (!named || !ts.isNamedImports(named)) {
+    if (!named) {
       continue;
     }
+    if (ts.isNamespaceImport(named)) {
+      xstateNamespaces.add(named.name.text);
+      continue;
+    }
+    if (!ts.isNamedImports(named)) continue;
     for (const el of named.elements) {
       // `el.propertyName` is the original name in `import { orig as alias }`.
       const imported = (el.propertyName ?? el.name).text;
+      xstateImports.set(el.name.text, imported);
       const v = XSTATE_RENAMES.find((r) => r.from === imported);
       if (v && !el.propertyName) {
         valueRenames.set(imported, v.to);
@@ -96,6 +104,13 @@ export function transformSource(
       }
     }
   }
+
+  collectManualMigrationNotes(
+    sourceFile,
+    xstateImports,
+    xstateNamespaces,
+    notes
+  );
 
   if (valueRenames.size === 0 && typeRenames.size === 0) {
     return { code: sourceText, changed: false, notes };
@@ -135,6 +150,113 @@ export function transformSource(
   result.dispose();
 
   return { code: printed, changed: true, notes };
+}
+
+function collectManualMigrationNotes(
+  sourceFile: ts.SourceFile,
+  xstateImports: Map<string, string>,
+  xstateNamespaces: Set<string>,
+  notes: string[]
+): void {
+  const seen = new Set<string>();
+  const add = (note: string) => {
+    if (!seen.has(note)) {
+      seen.add(note);
+      notes.push(note);
+    }
+  };
+  const getXStateCallName = (expression: ts.Expression): string | undefined => {
+    if (ts.isIdentifier(expression)) {
+      return xstateImports.get(expression.text);
+    }
+    if (
+      ts.isPropertyAccessExpression(expression) &&
+      ts.isIdentifier(expression.expression) &&
+      xstateNamespaces.has(expression.expression.text)
+    ) {
+      return expression.name.text;
+    }
+    return undefined;
+  };
+  const hasProperty = (object: ts.ObjectLiteralExpression, name: string) =>
+    object.properties.some(
+      (property) =>
+        ts.isPropertyAssignment(property) &&
+        ts.isIdentifier(property.name) &&
+        property.name.text === name
+    );
+  const isObjectInXStateCreateCall = (node: ts.Node): boolean => {
+    let current: ts.Node | undefined = node;
+    while (current) {
+      if (
+        ts.isCallExpression(current) &&
+        getXStateCallName(current.expression) === 'createMachine'
+      ) {
+        return true;
+      }
+      current = current.parent;
+    }
+    return false;
+  };
+
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node)) {
+      const callName = getXStateCallName(node.expression);
+      if (callName === 'fromPromise') {
+        add(
+          'possible manual migration site: `fromPromise(...)` requires `createAsyncLogic({ run })`'
+        );
+      }
+      if (
+        callName === 'assign' &&
+        node.arguments[0] &&
+        ts.isObjectLiteralExpression(node.arguments[0])
+      ) {
+        add(
+          'possible manual migration site: `assign({ ... })` object form requires review'
+        );
+      }
+    }
+
+    if (
+      ts.isReturnStatement(node) &&
+      node.expression &&
+      ts.isCallExpression(node.expression) &&
+      getXStateCallName(node.expression.expression) === 'assign'
+    ) {
+      add(
+        'possible manual migration site: `return assign(...)` from an action function is ignored; enqueue actions or return context directly'
+      );
+    }
+
+    if (
+      ts.isPropertyAssignment(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === 'types' &&
+      isObjectInXStateCreateCall(node)
+    ) {
+      add(
+        'possible manual migration site: `types: {}` schema declarations require schemas migration'
+      );
+    }
+
+    if (
+      ts.isPropertyAssignment(node) &&
+      ts.isIdentifier(node.name) &&
+      (node.name.text === 'actions' || node.name.text === 'guard') &&
+      ts.isObjectLiteralExpression(node.initializer) &&
+      isObjectInXStateCreateCall(node) &&
+      hasProperty(node.initializer, 'type')
+    ) {
+      add(
+        `possible manual migration site: object-form \`${node.name.text}\` config requires review`
+      );
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
 }
 
 /**

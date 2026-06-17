@@ -210,6 +210,7 @@ export class StateMachine<
     actions?: Partial<TActionMap>;
     actors?: Partial<TActorMap>;
     guards?: Partial<TGuardMap>;
+    delays?: Partial<TDelayMap>;
   }): StateMachine<
     TContext,
     TEvent,
@@ -243,7 +244,7 @@ export class StateMachine<
       } as Implementations['actors'],
       delays: {
         ...delays,
-        ...(implementations as any).delays
+        ...implementations.delays
       } as Implementations['delays']
     }) as unknown as this;
     // Providing implementations does not change the serializable definition.

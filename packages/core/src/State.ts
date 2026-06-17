@@ -12,30 +12,17 @@ import type {
   StateValue,
   AnyActorRef,
   Snapshot,
-  IsNever,
   MetaObject,
   StateSchema,
   StateId,
   StateIdInputs,
+  StateContextFromStateValue,
   SnapshotStatus,
   PersistedHistoryValue,
   AnyStateNode
 } from './types.ts';
 import { matchesState } from './utils.ts';
 import { createEmptyActor } from './actors/index.ts';
-
-type ToTestStateValue<TStateValue extends StateValue> =
-  TStateValue extends string
-    ? TStateValue
-    : IsNever<keyof TStateValue> extends true
-      ? never
-      :
-          | keyof TStateValue
-          | {
-              [K in keyof TStateValue]?: ToTestStateValue<
-                NonNullable<TStateValue[K]>
-              >;
-            };
 
 export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
   return (
@@ -80,7 +67,7 @@ interface MachineSnapshotBase<
   TStateValue extends StateValue,
   TTag extends string,
   _TOutput,
-  TMeta,
+  TMeta extends MetaObject,
   TStateSchema extends StateSchema = StateSchema
 > {
   /** The state machine that produced this state snapshot. */
@@ -128,7 +115,18 @@ interface MachineSnapshotBase<
    *
    * @param partialStateValue
    */
-  matches: (partialStateValue: ToTestStateValue<TStateValue>) => boolean;
+  matches<const TTestStateValue extends StateValue>(
+    partialStateValue: TTestStateValue
+  ): this is MachineSnapshot<
+    StateContextFromStateValue<TStateSchema, TContext, TTestStateValue>,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    _TOutput,
+    TMeta,
+    TStateSchema
+  >;
 
   /**
    * Whether the current state nodes has a state node with the specified `tag`.

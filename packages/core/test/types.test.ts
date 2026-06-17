@@ -13,6 +13,7 @@ import {
   createActor,
   createStateConfig,
   createMachine,
+  setup,
   toPromise
 } from '../src/index';
 import { createInertActorScope } from '../src/getNextSnapshot';
@@ -4058,6 +4059,29 @@ describe('guards', () => {
 });
 
 describe('delays', () => {
+  it('should accept delays in provide', () => {
+    createMachine({
+      delays: {
+        short: 100
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          after: {
+            short: 'done'
+          }
+        },
+        done: {}
+      }
+    }).provide({
+      delays: {
+        short: 1,
+        // @ts-expect-error
+        unknown: 100
+      }
+    });
+  });
+
   it('should accept a plain number as key of an after transitions object when delays are declared', () => {
     createMachine({
       // types: {} as {
@@ -4089,6 +4113,7 @@ describe('delays', () => {
   });
 
   it(`should reject delay as key of an after transitions object if it's outside of the defined ones`, () => {
+    // @ts-expect-error
     createMachine({
       // types: {} as {
       //   delays: 'one second' | 'one minute';
@@ -4098,8 +4123,69 @@ describe('delays', () => {
         'one minute': 60000
       },
       after: {
-        'unknown delay': {} // TODO: should be rejected
+        'unknown delay': '.done'
+      },
+      initial: 'done',
+      states: {
+        done: {}
       }
+    });
+  });
+
+  it('should reject timeout delay strings outside of the defined ones', () => {
+    createMachine({
+      delays: {
+        short: 100
+      },
+      // @ts-expect-error
+      timeout: 'unknown delay',
+      onTimeout: {}
+    });
+  });
+
+  it('should reject nested after delay strings outside of the defined ones', () => {
+    // @ts-expect-error
+    createMachine({
+      delays: {
+        short: 100
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          after: {
+            unknown: 'done'
+          }
+        },
+        done: {}
+      }
+    });
+  });
+
+  it('should reject setup-created machine delay strings outside of the defined ones', () => {
+    // @ts-expect-error
+    setup({}).createMachine({
+      delays: {
+        short: 100
+      },
+      after: {
+        short: '.done',
+        unknown: '.done'
+      },
+      initial: 'done',
+      states: {
+        done: {}
+      }
+    });
+  });
+
+  it('should reject setup-created machine timeout delay strings outside of the defined ones', () => {
+    // @ts-expect-error
+    setup({}).createMachine({
+      delays: {
+        short: 100
+      },
+      timeout: 'unknown delay',
+      onTimeout: {}
     });
   });
 

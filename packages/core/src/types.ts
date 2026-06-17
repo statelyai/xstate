@@ -2219,6 +2219,48 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
 ) => void
   ? I
   : never;
+
+type ContextFromStateSchema<
+  TSchema extends StateSchema,
+  TFallbackContext extends MachineContext
+> = TSchema['contextSchema'] extends StandardSchemaV1
+  ? StandardSchemaV1.InferOutput<TSchema['contextSchema']> & MachineContext
+  : TFallbackContext;
+
+type ContextFromChildStateValue<
+  TChildSchema extends StateSchema,
+  TFallbackContext extends MachineContext,
+  TChildValue
+> = ContextFromStateSchema<TChildSchema, TFallbackContext> &
+  StateContextFromStateValue<
+    TChildSchema,
+    ContextFromStateSchema<TChildSchema, TFallbackContext>,
+    TChildValue
+  >;
+
+export type StateContextFromStateValue<
+  TSchema extends StateSchema,
+  TFallbackContext extends MachineContext,
+  TStateValue
+> = (TSchema['states'] extends Record<string, StateSchema>
+  ? TStateValue extends keyof TSchema['states'] & string
+    ? ContextFromStateSchema<TSchema['states'][TStateValue], TFallbackContext>
+    : TStateValue extends Record<string, unknown>
+      ? UnionToIntersection<
+          Values<{
+            [K in keyof TStateValue &
+              keyof TSchema['states'] &
+              string]: ContextFromChildStateValue<
+              TSchema['states'][K],
+              TFallbackContext,
+              NonNullable<TStateValue[K]>
+            >;
+          }>
+        >
+      : TFallbackContext
+  : TFallbackContext) &
+  MachineContext;
+
 export type RoutableStateId<TSchema extends StateSchema> =
   | (TSchema extends { route: any; id: string } ? `#${TSchema['id']}` : never)
   | (TSchema['states'] extends Record<string, any>

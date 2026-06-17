@@ -4,6 +4,8 @@ import {
   AnyActorRef,
   EventObject,
   AnyEventObject,
+  EventDescriptor,
+  ExtractEvent,
   MachineContext,
   ProvidedActor,
   RoutableStateId,
@@ -14,16 +16,19 @@ import {
   Cast
 } from './types.ts';
 import {
+  DelayMapFromNames,
   Implementations,
   InferOutput,
   InferEvents,
   Next_MachineConfig,
   Next_StateNodeConfig,
   Next_SetupTypes,
+  ValidateDelayReferences,
   WithDefault
 } from './types.v6.ts';
 
 type SetupStateSchemas = {
+  context?: StandardSchemaV1;
   input?: StandardSchemaV1;
 };
 
@@ -50,7 +55,18 @@ type SetupContext<
   TContextSchema extends StandardSchemaV1
 > = TTypes extends { context: infer TContext }
   ? TContext & MachineContext
-  : InferOutput<TContextSchema, MachineContext>;
+  : unknown extends StandardSchemaV1.InferOutput<TContextSchema>
+    ? MachineContext
+    : StandardSchemaV1.InferOutput<TContextSchema> & MachineContext;
+
+type SetupContextRequired<
+  TTypes,
+  TContextSchema extends StandardSchemaV1
+> = TTypes extends { context: unknown }
+  ? true
+  : unknown extends StandardSchemaV1.InferOutput<TContextSchema>
+    ? false
+    : true;
 
 type SetupEvents<
   TTypes,
@@ -100,6 +116,15 @@ type StateInput<TStateSchema extends SetupStateSchema> =
       : undefined
     : undefined;
 
+type StateContext<
+  TStateSchema extends SetupStateSchema,
+  TFallbackContext extends MachineContext
+> = TStateSchema['schemas'] extends { context: infer TContextSchema }
+  ? TContextSchema extends StandardSchemaV1
+    ? StandardSchemaV1.InferOutput<TContextSchema> & MachineContext
+    : TFallbackContext
+  : TFallbackContext;
+
 type WithNestedStates<TConfig, TNestedStates> = TConfig extends {
   type: 'choice';
 }
@@ -112,6 +137,13 @@ type WithNestedStates<TConfig, TNestedStates> = TConfig extends {
  */
 type SetupStateSchemaToStateSchema<TSetupSchema extends SetupStateSchema> = {
   input: StateInput<TSetupSchema>;
+  contextSchema: TSetupSchema['schemas'] extends {
+    context: infer TContextSchema;
+  }
+    ? TContextSchema extends StandardSchemaV1
+      ? TContextSchema
+      : undefined
+    : undefined;
   states: TSetupSchema['states'] extends Record<string, SetupStateSchema>
     ? {
         [K in keyof TSetupSchema['states'] &
@@ -143,6 +175,19 @@ type StateSchemaInput<
     ? TInput
     : undefined;
 
+type StateSchemaContextSchema<
+  TConfig extends StateSchema,
+  TSetup extends StateSchema
+> = TSetup extends { contextSchema: infer TContextSchema }
+  ? TContextSchema extends StandardSchemaV1
+    ? TContextSchema
+    : undefined
+  : TConfig extends { contextSchema: infer TContextSchema }
+    ? TContextSchema extends StandardSchemaV1
+      ? TContextSchema
+      : undefined
+    : undefined;
+
 type StateSchemaChild<
   TSetup extends StateSchema,
   K extends string
@@ -155,7 +200,8 @@ type StateSchemaChild<
 type MergeStateSchema<
   TConfig extends StateSchema,
   TSetup extends StateSchema
-> = Omit<TConfig, 'input' | 'states'> & {
+> = Omit<TConfig, 'contextSchema' | 'input' | 'states'> & {
+  contextSchema: StateSchemaContextSchema<TConfig, TSetup>;
   input: StateSchemaInput<TConfig, TSetup>;
   states: TConfig extends { states: infer TStates }
     ? TStates extends Record<string, StateSchema>
@@ -186,7 +232,8 @@ type SetupMachineConfig<
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays']
+  TDelayMap extends Implementations['delays'],
+  TContextRequired extends boolean
 > = Omit<
   Next_MachineConfig<
     TContextSchema,
@@ -203,7 +250,8 @@ type SetupMachineConfig<
     TActionMap,
     TActorMap,
     TGuardMap,
-    TDelayMap
+    TDelayMap,
+    TContextRequired
   >,
   'states' | 'initial'
 > & {
@@ -213,6 +261,7 @@ type SetupMachineConfig<
     | { target: string; input?: Record<string, unknown> }
     | undefined;
   states?: StatesWithInput<
+    TStateSchemas,
     TStateSchemas,
     TContext,
     TEvent,
@@ -231,6 +280,7 @@ type SetupMachineConfig<
 
 /** States config type that provides typed input for known states */
 type StatesWithInput<
+  TRootStateSchemas extends Record<string, SetupStateSchema>,
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -244,6 +294,7 @@ type StatesWithInput<
   TDelayMap extends Implementations['delays']
 > = {
   [K in keyof TStateSchemas & string]?: StateNodeConfigWithNestedInput<
+    TRootStateSchemas,
     TStateSchemas[K],
     TContext,
     TEvent,
@@ -260,6 +311,7 @@ type StatesWithInput<
 
 /** State node config that recursively applies typed input for nested states */
 type StateNodeConfigWithNestedInput<
+  TRootStateSchemas extends Record<string, SetupStateSchema>,
   TStateSchema extends SetupStateSchema,
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -272,22 +324,42 @@ type StateNodeConfigWithNestedInput<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays']
 > = WithNestedStates<
-  Next_StateNodeConfig<
-    TContext,
-    TEvent,
-    TDelays,
-    TTag,
-    any,
-    TEmitted,
-    TMeta,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap,
-    StateInput<TStateSchema>
-  >,
+  Omit<
+    Next_StateNodeConfig<
+      StateContext<TStateSchema, TContext>,
+      TEvent,
+      TDelays,
+      TTag,
+      any,
+      TEmitted,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      StateInput<TStateSchema>
+    >,
+    'on' | 'always'
+  > & {
+    on?: StateTransitions<
+      TRootStateSchemas,
+      StateContext<TStateSchema, TContext>,
+      TEvent,
+      TEmitted,
+      TMeta
+    >;
+    always?: StateTransitionConfigOrTarget<
+      TRootStateSchemas,
+      StateContext<TStateSchema, TContext>,
+      TEvent,
+      TEvent,
+      TEmitted,
+      TMeta
+    >;
+  },
   TStateSchema['states'] extends Record<string, SetupStateSchema>
     ? StatesWithInput<
+        TRootStateSchemas,
         TStateSchema['states'],
         TContext,
         TEvent,
@@ -317,6 +389,103 @@ type StateNodeConfigWithNestedInput<
         >;
       }
 >;
+
+type StateTransitions<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject
+> = {
+  [K in EventDescriptor<TEvent>]?: StateTransitionConfigOrTarget<
+    TStateSchemas,
+    TContext,
+    ExtractEvent<TEvent, K>,
+    TEvent,
+    TEmitted,
+    TMeta
+  >;
+};
+
+type StateTransitionConfigOrTarget<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject
+> =
+  | string
+  | undefined
+  | {
+      target?: string | string[];
+      description?: string;
+      reenter?: boolean;
+      meta?: TMeta;
+      input?:
+        | Record<string, unknown>
+        | ((args: {
+            context: TContext;
+            event: TExpressionEvent;
+          }) => Record<string, unknown>);
+    }
+  | StateTransitionFunction<
+      TStateSchemas,
+      TContext,
+      TExpressionEvent,
+      TEvent,
+      TEmitted,
+      TMeta
+    >;
+
+type StateTransitionFunction<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  _TEvent extends EventObject,
+  _TEmitted extends EventObject,
+  TMeta extends MetaObject
+> = (
+  args: {
+    context: TContext;
+    event: TExpressionEvent;
+    self: AnyActorRef;
+    parent: AnyActorRef | undefined;
+    value: StateValue;
+    children: Record<string, AnyActorRef>;
+    actions: Implementations['actions'];
+    actors: Implementations['actors'];
+    guards: Implementations['guards'];
+    delays: Implementations['delays'];
+  },
+  enq: any
+) => StateTransitionResult<TStateSchemas, TContext, TMeta> | void;
+
+type StateTransitionResult<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext,
+  TMeta extends MetaObject
+> =
+  | {
+      target?: never;
+      context?: TContext;
+      reenter?: boolean;
+      meta?: TMeta;
+    }
+  | {
+      [K in keyof TStateSchemas & string]: {
+        target: K;
+        context: StateContext<TStateSchemas[K], TContext>;
+        reenter?: boolean;
+        meta?: TMeta;
+        input?:
+          | StateInput<TStateSchemas[K]>
+          | ((args: {
+              context: TContext;
+              event: EventObject;
+            }) => StateInput<TStateSchemas[K]>);
+      };
+    }[keyof TStateSchemas & string];
 
 /** Initial transition with typed input based on target state */
 type InitialTransitionWithInput<
@@ -377,10 +546,22 @@ interface SetupReturn<
       TActionMap,
       TActorMap,
       TGuardMap,
-      TDelayMap
+      TDelayMap,
+      SetupContextRequired<TTypes, TContextSchema>
     >
   >(
-    config: TConfig
+    config: TConfig &
+      ValidateDelayReferences<TConfig> & {
+        schemas?: {
+          events?: TEventSchemaMap;
+          context?: TContextSchema;
+          emitted?: TEmittedSchemaMap;
+          input?: TInputSchema;
+          output?: TOutputSchema;
+          meta?: TMetaSchema;
+          tags?: TTagSchema;
+        };
+      }
   ): StateMachine<
     SetupContext<TTypes, TContextSchema>,
     | SetupEvents<TTypes, TEventSchemaMap>
@@ -406,7 +587,7 @@ interface SetupReturn<
     TActionMap,
     TActorMap,
     TGuardMap,
-    TDelayMap
+    DelayMapFromNames<TDelays, TDelayMap>
   >;
 
   /** State input schemas from setup config */

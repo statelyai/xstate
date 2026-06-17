@@ -1,5 +1,6 @@
 import {
   Action,
+  AnyActorLogic,
   AnyActorRef,
   AnyEventObject,
   AnyStateMachine,
@@ -150,11 +151,14 @@ export interface GuardJSON {
 
 export interface InvokeJSON {
   id?: string;
-  src: string;
-  input?: Record<string, unknown>;
+  systemId?: string;
+  src: string | UnserializableMarker;
+  input?: unknown;
   onDone?: TransitionJSON | TransitionJSON[];
   onError?: TransitionJSON | TransitionJSON[];
   onSnapshot?: TransitionJSON | TransitionJSON[];
+  timeout?: number | string;
+  onTimeout?: TransitionJSON | TransitionJSON[];
 }
 
 export interface TransitionJSON {
@@ -164,6 +168,7 @@ export interface TransitionJSON {
   description?: string;
   reenter?: boolean;
   meta?: MetaObject;
+  input?: unknown;
 }
 
 export interface StateNodeJSON {
@@ -193,6 +198,10 @@ export interface StateNodeJSON {
   exit?: ActionJSON[];
   meta?: MetaObject;
   description?: string;
+  tags?: string[];
+  input?: unknown;
+  timeout?: number | string;
+  onTimeout?: TransitionJSON | TransitionJSON[];
   history?: 'shallow' | 'deep';
   target?: string;
   output?: unknown;
@@ -201,6 +210,120 @@ export interface StateNodeJSON {
 }
 export interface MachineJSON extends StateNodeJSON {
   version?: string;
+  actions?: Record<string, unknown>;
+  guards?: Record<string, unknown>;
+  actors?: Record<string, unknown>;
+  delays?: Record<string, unknown>;
+  schemas?: Record<string, unknown>;
+}
+
+interface UnserializableMarker {
+  $unserializable: 'function' | 'actor' | 'schema' | 'value';
+  id?: string;
+}
+
+interface MachineImplementations {
+  actions?: Record<string, (...args: any[]) => unknown>;
+  guards?: Record<string, (...args: any[]) => boolean>;
+  actors?: Record<string, AnyActorLogic>;
+  delays?: Record<string, number | ((...args: any[]) => number)>;
+}
+
+type ProvidedImplementations = Required<MachineImplementations>;
+
+function isUnserializableMarker(value: unknown): value is UnserializableMarker {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    '$unserializable' in value &&
+    typeof (value as any).$unserializable === 'string'
+  );
+}
+
+function assertNoUnresolvedMarkers(value: unknown, path = '$'): void {
+  if (isUnserializableMarker(value)) {
+    if (value.$unserializable === 'actor' && path.endsWith('.src')) {
+      return;
+    }
+    throw new Error(`Unresolved ${value.$unserializable} at ${path}`);
+  }
+  if (!value || typeof value !== 'object') {
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item, index) =>
+      assertNoUnresolvedMarkers(item, `${path}[${index}]`)
+    );
+    return;
+  }
+  for (const key of Object.keys(value)) {
+    const child = (value as Record<string, unknown>)[key];
+    const isImplementationMarker =
+      path === '$' &&
+      (key === 'actions' ||
+        key === 'guards' ||
+        key === 'actors' ||
+        key === 'delays' ||
+        key === 'schemas');
+    if (isImplementationMarker) {
+      continue;
+    }
+    assertNoUnresolvedMarkers(child, `${path}.${key}`);
+  }
+}
+
+function assertRootImplementationMarkers(
+  json: MachineJSON,
+  implementations: MachineImplementations
+): void {
+  for (const kind of ['actions', 'guards', 'actors', 'delays'] as const) {
+    const map = json[kind];
+    if (!map) {
+      continue;
+    }
+    for (const key of Object.keys(map)) {
+      const value = map[key];
+      if (!isUnserializableMarker(value)) {
+        continue;
+      }
+      if (
+        !(implementations[kind] as Record<string, unknown> | undefined)?.[key]
+      ) {
+        throw new Error(`Missing ${kind}.${key}`);
+      }
+    }
+  }
+}
+
+function extractSerializableDelays(
+  delays: Record<string, unknown> | undefined
+): Record<string, number> {
+  const result: Record<string, number> = {};
+  if (!delays) {
+    return result;
+  }
+  for (const key of Object.keys(delays)) {
+    const value = delays[key];
+    if (typeof value === 'number') {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+function mergeImplementations(
+  json: MachineJSON,
+  implementations: MachineImplementations
+): ProvidedImplementations {
+  return {
+    actions: implementations.actions ?? {},
+    guards: implementations.guards ?? {},
+    actors: implementations.actors ?? {},
+    delays: {
+      ...extractSerializableDelays(json.delays),
+      ...(implementations.delays ?? {})
+    }
+  };
 }
 
 let _scxmlSessionId = 'session_' + Math.random().toString(36).slice(2);
@@ -315,7 +438,14 @@ return updates;
   return fn(context, updates);
 }
 
-export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
+export function createMachineFromConfig(
+  json: MachineJSON,
+  implementations: MachineImplementations = {}
+): AnyStateMachine {
+  assertRootImplementationMarkers(json, implementations);
+  assertNoUnresolvedMarkers(json);
+  const resolvedImplementations = mergeImplementations(json, implementations);
+
   // Pending transition actions: set by .to functions, consumed by entry functions.
   // This bridges SCXML's exit→transition→entry action ordering with XState's
   // .to function receiving pre-exit context.
@@ -423,6 +553,10 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
       type: node.type,
       history: node.history,
       target: node.target,
+      description: node.description,
+      tags: node.tags,
+      input: node.input,
+      timeout: node.timeout,
       states: node.states
         ? Object.entries(node.states).reduce(
             (acc, [key, value]) => {
@@ -472,14 +606,25 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
       always: node.always ? getTransitionConfig(node.always) : undefined,
       choice: node.choice ? getTransitionConfig(node.choice) : undefined,
       route: node.route,
-      // after: node.after,
+      after: node.after
+        ? Object.entries(node.after).reduce(
+            (acc, [key, value]) => {
+              acc[key] = getTransitionConfig(value);
+              return acc;
+            },
+            {} as Record<string, any>
+          )
+        : undefined,
+      onTimeout: node.onTimeout
+        ? getTransitionConfig(node.onTimeout)
+        : undefined,
       entry: entryFn as any,
       exit: node.exit ? (iterActions(node.exit) as any) : undefined,
       invoke: node.invoke ? iterInvokeConfigs(node.invoke) : undefined,
       meta: node.meta,
       output: node._scxmlDonedata
         ? makeDonedataOutput(node._scxmlDonedata)
-        : undefined
+        : node.output
     };
 
     return nodeConfig;
@@ -535,13 +680,34 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
       // Create child machine from nested SCXML JSON
       let src: any;
       if (extInv._nestedMachineJSON) {
-        src = createMachineFromConfig(extInv._nestedMachineJSON);
+        src = createMachineFromConfig(
+          extInv._nestedMachineJSON,
+          resolvedImplementations
+        );
+      } else if (isUnserializableMarker(inv.src)) {
+        src = inv.src.id
+          ? resolvedImplementations.actors[inv.src.id]
+          : undefined;
+        if (!src) {
+          throw new Error(`Missing actors.${inv.src.id ?? ''}`);
+        }
       } else {
         src = inv.src;
       }
       return {
         src,
-        id: inv.id
+        id: inv.id,
+        systemId: inv.systemId,
+        input: inv.input,
+        onDone: inv.onDone ? getTransitionConfig(inv.onDone) : undefined,
+        onError: inv.onError ? getTransitionConfig(inv.onError) : undefined,
+        onSnapshot: inv.onSnapshot
+          ? getTransitionConfig(inv.onSnapshot)
+          : undefined,
+        timeout: inv.timeout,
+        onTimeout: inv.onTimeout
+          ? getTransitionConfig(inv.onTimeout)
+          : undefined
       };
     });
   }
@@ -935,23 +1101,28 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
     // with pre-exit context) and NOT re-evaluated in computeEntrySet.
     return transitions.map((t) => {
       const target = Array.isArray(t.target) ? t.target[0] : t.target;
+      const targetConfig = t.target;
 
       // No guard and no actions: simple static config
       if (!t.guard && !t.actions?.length) {
         return {
-          target,
+          target: targetConfig,
           description: t.description,
-          reenter: t.reenter
+          reenter: t.reenter,
+          meta: t.meta,
+          input: t.input
         };
       }
 
       // Guard but no actions: static config with guard
       if (t.guard && !t.actions?.length) {
         return {
-          target,
+          target: targetConfig,
           guard: t.guard,
           description: t.description,
-          reenter: t.reenter
+          reenter: t.reenter,
+          meta: t.meta,
+          input: t.input
         };
       }
 
@@ -961,6 +1132,10 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
       if (!target) {
         return {
           guard: t.guard,
+          description: t.description,
+          reenter: t.reenter,
+          meta: t.meta,
+          input: t.input,
           to: (x: any, enq: any) => {
             if (t.actions?.length) {
               // Track for parallel re-execution (dedup by reference)
@@ -986,6 +1161,10 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
       // Map by target state ID so parallel transitions each get their own actions.
       return {
         guard: t.guard,
+        description: t.description,
+        reenter: t.reenter,
+        meta: t.meta,
+        input: t.input,
         to: (_x: any, _enq: any) => {
           if (t.actions?.length) {
             const targetId = target.replace(/^#/, '');
@@ -996,7 +1175,7 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
             }
           }
           return {
-            target,
+            target: targetConfig,
             reenter: t.reenter
           };
         }
@@ -1012,7 +1191,8 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
 
   const machine = createMachine({
     ...rootNodeConfig,
-    ...contextConfig
+    ...contextConfig,
+    version: json.version
   }) as unknown as AnyStateMachine;
 
   // Register SCXML guard implementations
@@ -1064,7 +1244,13 @@ export function createMachineFromConfig(json: MachineJSON): AnyStateMachine {
     }
   };
   const provided = machine.provide({
-    guards: providedGuards
+    actions: resolvedImplementations.actions,
+    actors: resolvedImplementations.actors,
+    guards: {
+      ...providedGuards,
+      ...resolvedImplementations.guards
+    },
+    delays: resolvedImplementations.delays
   }) as AnyStateMachine;
 
   // Keep the original JSON so `serializeMachine(machine)`

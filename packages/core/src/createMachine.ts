@@ -16,10 +16,12 @@ import {
 } from './types.ts';
 import {
   Implementations,
+  DelayMapFromNames,
   InferOutput,
   InferEvents,
   Next_MachineConfig,
   Next_StateNodeConfig,
+  ValidateDelayReferences,
   WidenLiterals,
   WithDefault
 } from './types.v6.ts';
@@ -100,6 +102,7 @@ export function createMachine<
   const TSS extends StateSchema
 >(
   config: TSS &
+    ValidateDelayReferences<TSS> &
     Next_MachineConfig<
       TContextSchema,
       TEventSchemaMap,
@@ -139,7 +142,7 @@ export function createMachine<
   TActionMap,
   TActorMap,
   TGuardMap,
-  TDelayMap
+  DelayMapFromNames<TDelays, TDelayMap>
 > & {
   states: TSS;
 };
@@ -172,6 +175,7 @@ export function createMachine<
   const TSS extends StateSchema = StateSchema
 >(
   config: TSS &
+    ValidateDelayReferences<TSS> &
     Next_MachineConfig<
       StandardSchemaV1,
       TEventSchemaMap,
@@ -223,7 +227,7 @@ export function createMachine<
   TActionMap,
   TActorMap,
   TGuardMap,
-  TDelayMap
+  DelayMapFromNames<TDelays, TDelayMap>
 > & {
   states: TSS;
 };

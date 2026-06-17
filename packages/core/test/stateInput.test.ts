@@ -1,7 +1,31 @@
 import z from 'zod';
 import { setup, createActor } from '../src/index.ts';
+import type {
+  StateContextFromStateValue,
+  StateSchemaFrom
+} from '../src/types.ts';
 
 describe('setup', () => {
+  it('setup without schemas should infer context from machine config', () => {
+    setup({}).createMachine({
+      context: {
+        count: 0
+      },
+      on: {
+        INC: ({ context }) => {
+          context.count satisfies number;
+          return {
+            context: {
+              count: context.count + 1
+            }
+          };
+        }
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
   it('should create a setup object with states', () => {
     const s = setup({
       states: {
@@ -615,5 +639,141 @@ describe('setup', () => {
     expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
       count: 1
     });
+  });
+
+  it('state context schemas should narrow context in state actions', () => {
+    const s = setup({
+      states: {
+        idle: {
+          schemas: {
+            context: z.object({ user: z.null() })
+          }
+        },
+        success: {
+          schemas: {
+            context: z.object({ user: z.string() })
+          }
+        }
+      }
+    });
+
+    s.createMachine({
+      schemas: {
+        context: z.object({ user: z.string().nullable() }),
+        events: {
+          LOAD: z.object({})
+        }
+      },
+      initial: 'idle',
+      context: { user: null },
+      states: {
+        idle: {
+          entry: ({ context }) => {
+            context.user satisfies null;
+            // @ts-expect-error
+            context.user satisfies string;
+          },
+          on: {
+            LOAD: () => ({
+              target: 'success',
+              context: { user: 'Ada' }
+            })
+          }
+        },
+        success: {
+          entry: ({ context }) => {
+            context.user satisfies string;
+            // @ts-expect-error - success context should not be nullable
+            context.user satisfies null;
+          }
+        }
+      }
+    });
+
+    const machine = s.createMachine({
+      schemas: {
+        context: z.object({ user: z.string().nullable() }),
+        events: {
+          LOAD: z.object({})
+        }
+      },
+      initial: 'idle',
+      context: { user: null },
+      states: {
+        idle: {
+          on: {
+            LOAD: () => ({
+              target: 'success',
+              context: { user: 'Ada' }
+            })
+          }
+        },
+        success: {}
+      }
+    });
+
+    type SuccessContext = StateContextFromStateValue<
+      StateSchemaFrom<typeof machine>,
+      { user: string | null },
+      'success'
+    >;
+    (({}) as SuccessContext).user satisfies string;
+    // @ts-expect-error - success context should not be nullable
+    (({}) as SuccessContext).user satisfies null;
+
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'LOAD' });
+
+    const snapshot = actor.getSnapshot();
+
+    if (snapshot.matches('success')) {
+      snapshot.context.user satisfies string;
+      // @ts-expect-error - matched success context should not be nullable
+      snapshot.context.user satisfies null;
+    }
+    expect(true).toBe(true);
+  });
+
+  it('state context schemas should reject target context mismatch', () => {
+    const s = setup({
+      states: {
+        idle: {
+          schemas: {
+            context: z.object({ user: z.null() })
+          }
+        },
+        success: {
+          schemas: {
+            context: z.object({ user: z.string() })
+          }
+        }
+      }
+    });
+
+    s.createMachine({
+      schemas: {
+        context: z.object({ user: z.string().nullable() }),
+        events: {
+          LOAD: z.object({})
+        }
+      },
+      initial: 'idle',
+      context: { user: null },
+      states: {
+        idle: {
+          on: {
+            // @ts-expect-error - success context requires a string user
+            LOAD: () => ({
+              target: 'success',
+              context: { user: null }
+            })
+          }
+        },
+        success: {}
+      }
+    });
+
+    expect(true).toBe(true);
   });
 });

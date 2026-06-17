@@ -858,7 +858,7 @@ interface Next_RegularStateNodeConfig<
    * in an interpreter.
    */
   after?: {
-    [K in DoNotInfer<TDelays> | number]?:
+    [K in NoInfer<TDelays> | number]?:
       | string
       | { target: string }
       | TransitionConfigFunction<
@@ -885,7 +885,7 @@ interface Next_RegularStateNodeConfig<
    */
   timeout?:
     | number
-    | DoNotInfer<TDelays>
+    | NoInfer<TDelays>
     | ((args: {
         context: TContext;
         event: TEvent;
@@ -1038,3 +1038,45 @@ export interface Implementations {
   delays: Record<string, number | ((...args: any[]) => number)>;
   actors: Record<string, AnyActorLogic>;
 }
+
+export type DelayMapFromNames<
+  TDelays extends string,
+  _TDelayMap extends Implementations['delays']
+> = string extends TDelays
+  ? Implementations['delays']
+  : { [K in TDelays]: Implementations['delays'][string] };
+
+type DelayNamesFromConfig<TConfig> = TConfig extends {
+  delays: infer TDelays;
+}
+  ? Extract<keyof TDelays, string>
+  : string;
+
+type InvalidDelayReferences<TConfig, TDelays extends string> =
+  | (TConfig extends { after: infer TAfter }
+      ? Exclude<Extract<keyof TAfter, string>, TDelays>
+      : never)
+  | (TConfig extends { timeout: infer TTimeout }
+      ? TTimeout extends string
+        ? TTimeout extends TDelays
+          ? never
+          : TTimeout
+        : never
+      : never)
+  | (TConfig extends { states: infer TStates }
+      ? TStates extends Record<string, unknown>
+        ? {
+            [K in keyof TStates]: InvalidDelayReferences<TStates[K], TDelays>;
+          }[keyof TStates]
+        : never
+      : never);
+
+export type ValidateDelayReferences<TConfig> =
+  string extends DelayNamesFromConfig<TConfig>
+    ? unknown
+    : InvalidDelayReferences<
+          TConfig,
+          DelayNamesFromConfig<TConfig>
+        > extends never
+      ? unknown
+      : never;

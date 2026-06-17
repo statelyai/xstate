@@ -50,7 +50,7 @@ describe('xstate migrate — Tier A transforms', () => {
   });
 
   it('does NOT rename `fromPromise` (Tier B shape change, not a rename)', () => {
-    const { code } = transformSource(
+    const { code, notes } = transformSource(
       'a.ts',
       [
         `import { fromPromise } from 'xstate';`,
@@ -59,6 +59,63 @@ describe('xstate migrate — Tier A transforms', () => {
     );
     expect(code).toContain('fromPromise');
     expect(code).not.toContain('createAsyncLogic');
+    expect(notes.join('\n')).toContain(
+      'possible manual migration site: `fromPromise(...)`'
+    );
+  });
+
+  it('flags aliased and namespace manual migration calls', () => {
+    const { notes } = transformSource(
+      'a.ts',
+      [
+        `import { fromPromise as fp, assign as a } from 'xstate';`,
+        `import * as XState from 'xstate';`,
+        `fp(fn);`,
+        `XState.fromPromise(fn);`,
+        `return a({ count: 1 });`
+      ].join('\n')
+    );
+    const text = notes.join('\n');
+    expect(text).toContain('`fromPromise(...)`');
+    expect(text).toContain('`return assign(...)`');
+  });
+
+  it('does not flag unrelated object literals as manual migration sites', () => {
+    const { notes } = transformSource(
+      'a.ts',
+      [
+        `import { createMachine } from 'xstate';`,
+        `const something = { types: {}, actions: { track: () => {} } };`,
+        `createMachine({ actions: { track: () => {} } });`
+      ].join('\n')
+    );
+    expect(notes).toEqual([]);
+  });
+
+  it('flags manual migration sites without applying a rename', () => {
+    const { changed, notes } = transformSource(
+      'a.ts',
+      [
+        `import { assign, createMachine } from 'xstate';`,
+        `createMachine({`,
+        `  types: {} as { events: { type: 'GO' } },`,
+        `  on: {`,
+        `    GO: {`,
+        `      actions: { type: 'track' },`,
+        `      guard: { type: 'ready' }`,
+        `    }`,
+        `  },`,
+        `  entry: () => { return assign({ count: 1 }); }`,
+        `});`
+      ].join('\n')
+    );
+    const text = notes.join('\n');
+    expect(changed).toBe(false);
+    expect(text).toContain('`return assign(...)`');
+    expect(text).toContain('`assign({ ... })` object form');
+    expect(text).toContain('schemas migration');
+    expect(text).toContain('object-form `actions` config');
+    expect(text).toContain('object-form `guard` config');
   });
 
   it('leaves same-named locals from non-xstate sources alone', () => {
