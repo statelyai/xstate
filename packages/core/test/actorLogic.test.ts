@@ -15,8 +15,7 @@ import {
   createLogic,
   createObservableLogic,
   createEventObservableLogic,
-  createAsyncLogic,
-  createTransitionLogic
+  createAsyncLogic
 } from '../src/actors/index.ts';
 import { createInertActorScope } from '../src/getNextSnapshot.ts';
 import { waitFor } from '../src/waitFor.ts';
@@ -716,38 +715,41 @@ describe('promise logic (createAsyncLogic)', () => {
     expect(fn2).toHaveBeenCalled();
   });
 });
-describe('transition function logic (createTransitionLogic)', () => {
-  it('should interpret a transition function', () => {
-    const transitionLogic = createTransitionLogic(
-      (state, event) => {
+describe('logic as reducer', () => {
+  it('should interpret a reducer-like logic', () => {
+    const transitionLogic = createLogic({
+      context: { enabled: 'on' as 'off' | 'on' },
+      run: ({ context, event }) => {
         if (event.type === 'toggle') {
           return {
-            ...state,
-            enabled: state.enabled === 'on' ? ('off' as const) : ('on' as const)
+            context: {
+              ...context,
+              enabled:
+                context.enabled === 'on' ? ('off' as const) : ('on' as const)
+            }
           };
         }
-        return state;
-      },
-      { enabled: 'on' as 'off' | 'on' }
-    );
+        return;
+      }
+    });
     const actor = createActor(transitionLogic);
     actor.start();
     expect(actor.getSnapshot().context.enabled).toBe('on');
     actor.send({ type: 'toggle' });
     expect(actor.getSnapshot().context.enabled).toBe('off');
   });
-  it('should persist a transition function', () => {
-    const logic = createTransitionLogic(
-      (state, event) => {
-        if (event.type === 'activate') {
-          return { enabled: 'on' as const };
-        }
-        return state;
-      },
-      {
+  it('should persist reducer-like logic', () => {
+    const logic = createLogic({
+      context: {
         enabled: 'off' as 'off' | 'on'
+      },
+      run: ({ event }) => {
+        if (event.type === 'activate') {
+          return { context: { enabled: 'on' as const } };
+        }
+        return;
       }
-    );
+    });
     const actor = createActor(logic);
     actor.start();
     actor.send({ type: 'activate' });
@@ -768,26 +770,32 @@ describe('transition function logic (createTransitionLogic)', () => {
   });
   it('should have access to the system', () => {
     expect.assertions(1);
-    const transitionLogic = createTransitionLogic(
-      (_state, _event, { system }) => {
+    const transitionLogic = createLogic({
+      context: 0,
+      run: ({ event, system }) => {
+        if (event.type === '@xstate.init') {
+          return;
+        }
         expect(system).toBeDefined();
-        return 42;
-      },
-      0
-    );
+        return { context: 42 };
+      }
+    });
     const actor = createActor(transitionLogic);
     actor.start();
     actor.send({ type: 'a' });
   });
   it('should have reference to self', () => {
     expect.assertions(1);
-    const transitionLogic = createTransitionLogic(
-      (_state, _event, { self }) => {
+    const transitionLogic = createLogic({
+      context: 0,
+      run: ({ event, self }) => {
+        if (event.type === '@xstate.init') {
+          return;
+        }
         expect(self.send).toBeDefined();
-        return 42;
-      },
-      0
-    );
+        return { context: 42 };
+      }
+    });
     const actor = createActor(transitionLogic);
     actor.start();
     actor.send({ type: 'a' });
@@ -1014,7 +1022,10 @@ describe('machine logic', () => {
         start: {
           invoke: {
             id: 'reducer',
-            src: createTransitionLogic((s) => s, undefined)
+            src: createLogic({
+              context: undefined,
+              run: () => undefined
+            })
           }
         }
       }
@@ -1242,7 +1253,10 @@ describe('machine logic', () => {
     expect(rehydratedActor.getSnapshot().children.child).toBe(undefined);
   });
   it.skip('should persist a spawned actor with referenced src', () => {
-    const reducer = createTransitionLogic((s) => s, { count: 42 });
+    const reducer = createLogic({
+      context: { count: 42 },
+      run: () => undefined
+    });
     const machine = createMachine({
       // types: {
       //   context: {} as {
@@ -1378,16 +1392,12 @@ describe('composable actor logic', () => {
         }
       };
     }
-    const transitionLogic = createTransitionLogic(
-      (
-        _,
-        ev: {
-          type: string;
-          value: number;
-        }
-      ) => ev.value,
-      0
-    );
+    const transitionLogic = createLogic({
+      context: 0,
+      run: ({ event }: { event: { type: string; value: number } }) => ({
+        context: event.value
+      })
+    });
     const actor = createActor(withLogs(transitionLogic)).start();
     actor.send({ type: 'a', value: 42 });
     expect(logs).toEqual([42]);

@@ -13,6 +13,6 @@ npx xstate migrate ./src --dry-run # preview
 `xstate migrate` delegates to `@xstate/codemod` (fetched on demand by `npx`, so `xstate` itself keeps zero runtime dependencies). The first release automates the **Tier A renames** — 100% behavior-preserving identifier swaps — and flags anything that needs manual review:
 
 - `interpret` → `createActor`, `Interpreter` → `Actor`
-- `fromCallback`/`fromObservable`/`fromEventObservable`/`fromTransition` → `create*Logic`
+- `fromCallback`/`fromObservable`/`fromEventObservable` → `create*Logic`
 
-Only identifiers actually imported from `xstate` (and `@xstate/react|vue|svelte|solid`) are renamed, so same-named local symbols are left untouched. `fromPromise` is intentionally **not** auto-renamed — it became config-based `createAsyncLogic({ run })`, a shape change that's reported for manual migration. The inline-function transforms (`assign`/guard/`actions` → functions) and `schemas` migration are not yet automated.
+Only identifiers actually imported from `xstate` (and `@xstate/react|vue|svelte|solid`) are renamed, so same-named local symbols are left untouched. `fromPromise` and `fromTransition` are intentionally **not** auto-renamed — they became config-based APIs that are reported for manual migration. The inline-function transforms (`assign`/guard/`actions` → functions) and `schemas` migration are not yet automated.

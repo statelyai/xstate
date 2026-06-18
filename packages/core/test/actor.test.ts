@@ -14,7 +14,6 @@ import {
   AsyncActorRef,
   createAsyncLogic
 } from '../src/actors/promise.ts';
-import { createTransitionLogic } from '../src/actors/transition.ts';
 import {
   ActorLogic,
   ActorRef,
@@ -28,6 +27,7 @@ import {
   SnapshotEvent,
   Subscribable,
   createActor,
+  createLogic,
   waitFor,
   createMachine
 } from '../src/index.ts';
@@ -1192,16 +1192,19 @@ describe('actors', () => {
     expect(cleanup2).toBeCalledTimes(1);
   });
   describe('with actor logic', () => {
-    it('should work with a transition function logic', () => {
+    it('should work with custom logic', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
-      const countLogic = createTransitionLogic((count: number, event: any) => {
-        if (event.type === 'INC') {
-          return count + 1;
-        } else if (event.type === 'DEC') {
-          return count - 1;
+      const countLogic = createLogic({
+        context: 0,
+        run: ({ context, event }) => {
+          if (event.type === 'INC') {
+            return { context: context + 1 };
+          } else if (event.type === 'DEC') {
+            return { context: context - 1 };
+          }
+          return;
         }
-        return count;
-      }, 0);
+      });
       const countMachine = createMachine({
         // types: {} as {
         //   context: { count: ActorRefFrom<typeof countLogic> | undefined };

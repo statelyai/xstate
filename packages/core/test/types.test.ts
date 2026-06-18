@@ -2,18 +2,24 @@ import { from } from 'rxjs';
 import {
   createEmptyActor,
   createCallbackLogic,
-  createAsyncLogic
+  createAsyncLogic,
+  createEventObservableLogic,
+  createObservableLogic
 } from '../src/actors';
 import {
   ActorRefFrom,
   ActorRefFromLogic,
   AnyActorLogic,
+  InputFrom,
+  OutputFrom,
   StateMachine,
   UnknownActorRef,
   createActor,
   createStateConfig,
+  createLogic,
   createMachine,
   setup,
+  types,
   toPromise
 } from '../src/index';
 import { createInertActorScope } from '../src/getNextSnapshot';
@@ -2163,6 +2169,187 @@ describe('invoke', () => {
         src: 'child'
       }
     });
+  });
+
+  it('should infer async logic input and output from source schemas', () => {
+    createAsyncLogic({
+      schemas: {
+        input: types<{ userId: string }>(),
+        output: types<{ name: string }>()
+      },
+      run: async ({ input }) => {
+        const userId: string = input.userId;
+
+        // @ts-expect-error
+        input.age;
+
+        return { name: userId };
+      }
+    });
+
+    createAsyncLogic({
+      // @ts-expect-error
+      schemas: {
+        input: types<{ userId: string }>(),
+        output: types<{ name: string }>()
+      },
+      run: async () => {
+        return { age: 42 };
+      }
+    });
+  });
+
+  it('should strongly type registered invoke input from async logic schemas', () => {
+    const loadUser = createAsyncLogic({
+      schemas: {
+        input: types<{ userId: string }>(),
+        output: types<{ name: string }>()
+      },
+      run: async ({ input }) => {
+        return { name: input.userId };
+      }
+    });
+
+    const output: OutputFrom<typeof loadUser> = { name: 'David' };
+    // @ts-expect-error
+    const wrongOutput: OutputFrom<typeof loadUser> = { age: 42 };
+
+    noop(output);
+    noop(wrongOutput);
+
+    createMachine({
+      actors: { loadUser },
+      invoke: {
+        src: 'loadUser',
+        input: { userId: '42' },
+        onDone: ({ event }) => {
+          noop(event.output);
+        }
+      }
+    });
+
+    createMachine({
+      actors: { loadUser },
+      // @ts-expect-error
+      invoke: {
+        src: 'loadUser',
+        input: { userId: 42 }
+      }
+    });
+  });
+
+  it('should infer callback logic input from source schemas', () => {
+    const logic = createCallbackLogic({
+      schemas: {
+        input: types<{ userId: string }>()
+      },
+      run: ({ input }) => {
+        const userId: string = input.userId;
+
+        // @ts-expect-error
+        input.age;
+
+        noop(userId);
+      }
+    });
+
+    const input: InputFrom<typeof logic> = { userId: '42' };
+    // @ts-expect-error
+    const wrongInput: InputFrom<typeof logic> = { userId: 42 };
+
+    noop(input);
+    noop(wrongInput);
+  });
+
+  it('should infer observable logic input from source schemas', () => {
+    const logic = createObservableLogic({
+      schemas: {
+        input: types<{ period: number }>()
+      },
+      run: ({ input }) => {
+        const period: number = input.period;
+
+        // @ts-expect-error
+        input.userId;
+
+        return from([period]);
+      }
+    });
+
+    const input: InputFrom<typeof logic> = { period: 100 };
+    // @ts-expect-error
+    const wrongInput: InputFrom<typeof logic> = { period: '100' };
+
+    noop(input);
+    noop(wrongInput);
+  });
+
+  it('should infer event observable logic input from source schemas', () => {
+    const logic = createEventObservableLogic({
+      schemas: {
+        input: types<{ eventType: 'ready' }>()
+      },
+      run: ({ input }) => {
+        const eventType: 'ready' = input.eventType;
+
+        // @ts-expect-error
+        input.period;
+
+        return from([{ type: eventType }]);
+      }
+    });
+
+    const input: InputFrom<typeof logic> = { eventType: 'ready' };
+    // @ts-expect-error
+    const wrongInput: InputFrom<typeof logic> = { eventType: 'idle' };
+
+    noop(input);
+    noop(wrongInput);
+  });
+
+  it('should infer custom logic input and output from source schemas', () => {
+    const logic = createLogic({
+      schemas: {
+        input: types<{ step: number }>(),
+        output: types<{ total: number }>()
+      },
+      context: ({ input }) => {
+        const step: number = input.step;
+
+        // @ts-expect-error
+        input.userId;
+
+        return { count: step };
+      },
+      run: ({
+        context,
+        event
+      }: {
+        context: { count: number };
+        event: { type: 'inc' } | { type: 'done' };
+      }) => {
+        if (event.type === 'inc') {
+          return { context: { count: context.count + 1 } };
+        }
+
+        return {
+          status: 'done',
+          output: { total: context.count }
+        };
+      }
+    });
+
+    const input: InputFrom<typeof logic> = { step: 1 };
+    // @ts-expect-error
+    const wrongInput: InputFrom<typeof logic> = { step: '1' };
+    const output: OutputFrom<typeof logic> = { total: 1 };
+    // @ts-expect-error
+    const wrongOutput: OutputFrom<typeof logic> = { count: 1 };
+
+    noop(input);
+    noop(wrongInput);
+    noop(output);
+    noop(wrongOutput);
   });
 
   it('should reject an unknown string actor logic reference', () => {

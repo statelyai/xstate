@@ -1,4 +1,5 @@
 import { XSTATE_STOP } from '../constants';
+import { StandardSchemaV1 } from '../schema.types.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
@@ -81,6 +82,62 @@ export type ObservableActorRef<TContext> = ActorRefFromLogic<
   ObservableActorLogic<TContext, any>
 >;
 
+export type ObservableLogicFunction<
+  TContext,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+> = ({
+  input,
+  system,
+  self,
+  emit
+}: {
+  input: TInput;
+  system: AnyActorSystem;
+  self: ObservableActorRef<TContext>;
+  emit: (emitted: TEmitted) => void;
+}) => Subscribable<TContext>;
+
+export interface ObservableLogicConfig<
+  TContext,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject,
+  TInputSchema extends StandardSchemaV1 = StandardSchemaV1
+> {
+  schemas?: {
+    input?: TInputSchema;
+  };
+  run: ObservableLogicFunction<TContext, TInput, TEmitted>;
+}
+
+export type EventObservableLogicFunction<
+  TEvent extends EventObject,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+> = ({
+  input,
+  system,
+  self,
+  emit
+}: {
+  input: TInput;
+  system: AnyActorSystem;
+  self: ObservableActorRef<TEvent>;
+  emit: (emitted: TEmitted) => void;
+}) => Subscribable<TEvent>;
+
+export interface EventObservableLogicConfig<
+  TEvent extends EventObject,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject,
+  TInputSchema extends StandardSchemaV1 = StandardSchemaV1
+> {
+  schemas?: {
+    input?: TInputSchema;
+  };
+  run: EventObservableLogicFunction<TEvent, TInput, TEmitted>;
+}
+
 /**
  * Observable actor logic is described by an observable stream of values. Actors
  * created from observable logic (“observable actors”) can:
@@ -127,20 +184,58 @@ export type ObservableActorRef<TContext> = ActorRefFromLogic<
  */
 export function createObservableLogic<
   TContext,
+  const TInputSchema extends StandardSchemaV1,
+  TEmitted extends EventObject = EventObject
+>(
+  config: ObservableLogicConfig<
+    TContext,
+    StandardSchemaV1.InferOutput<TInputSchema>,
+    TEmitted,
+    TInputSchema
+  > & {
+    schemas: {
+      input: TInputSchema;
+    };
+  }
+): ObservableActorLogic<
+  TContext,
+  StandardSchemaV1.InferOutput<TInputSchema>,
+  TEmitted
+>;
+export function createObservableLogic<
+  TContext,
   TInput extends NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
 >(
-  observableCreator: ({
-    input,
-    system,
-    self
-  }: {
-    input: TInput;
-    system: AnyActorSystem;
-    self: ObservableActorRef<TContext>;
-    emit: (emitted: TEmitted) => void;
-  }) => Subscribable<TContext>
+  config: ObservableLogicConfig<TContext, TInput, TEmitted> & {
+    schemas?: undefined;
+  }
+): ObservableActorLogic<TContext, TInput, TEmitted>;
+export function createObservableLogic<
+  TContext,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
+  observableCreator: ObservableLogicFunction<TContext, TInput, TEmitted>
+): ObservableActorLogic<TContext, TInput, TEmitted>;
+export function createObservableLogic<
+  TContext,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
+  observableCreatorOrConfig:
+    | ObservableLogicFunction<TContext, TInput, TEmitted>
+    | ObservableLogicConfig<TContext, TInput, TEmitted>
 ): ObservableActorLogic<TContext, TInput, TEmitted> {
+  const observableCreator =
+    typeof observableCreatorOrConfig === 'function'
+      ? observableCreatorOrConfig
+      : observableCreatorOrConfig.run;
+  const schemas =
+    typeof observableCreatorOrConfig === 'function'
+      ? undefined
+      : observableCreatorOrConfig.schemas;
+
   return createBaseLogic<
     TContext | undefined,
     undefined,
@@ -148,6 +243,7 @@ export function createObservableLogic<
     TInput,
     TEmitted
   >({
+    schemas,
     context: undefined,
     run: (args, enq) => {
       const { event, input, self, system } = args;
@@ -260,21 +356,54 @@ export function createObservableLogic<
  */
 export function createEventObservableLogic<
   TEvent extends EventObject,
+  const TInputSchema extends StandardSchemaV1,
+  TEmitted extends EventObject = EventObject
+>(
+  config: EventObservableLogicConfig<
+    TEvent,
+    StandardSchemaV1.InferOutput<TInputSchema>,
+    TEmitted,
+    TInputSchema
+  > & {
+    schemas: {
+      input: TInputSchema;
+    };
+  }
+): ObservableActorLogic<
+  TEvent,
+  StandardSchemaV1.InferOutput<TInputSchema>,
+  TEmitted
+>;
+export function createEventObservableLogic<
+  TEvent extends EventObject,
   TInput extends NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
 >(
-  lazyObservable: ({
-    input,
-    system,
-    self,
-    emit
-  }: {
-    input: TInput;
-    system: AnyActorSystem;
-    self: ObservableActorRef<TEvent>;
-    emit: (emitted: TEmitted) => void;
-  }) => Subscribable<TEvent>
+  config: EventObservableLogicConfig<TEvent, TInput, TEmitted> & {
+    schemas?: undefined;
+  }
+): ObservableActorLogic<TEvent, TInput, TEmitted>;
+export function createEventObservableLogic<
+  TEvent extends EventObject,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
+  lazyObservable: EventObservableLogicFunction<TEvent, TInput, TEmitted>
+): ObservableActorLogic<TEvent, TInput, TEmitted>;
+export function createEventObservableLogic<
+  TEvent extends EventObject,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
+  lazyObservableOrConfig:
+    | EventObservableLogicFunction<TEvent, TInput, TEmitted>
+    | EventObservableLogicConfig<TEvent, TInput, TEmitted>
 ): ObservableActorLogic<TEvent, TInput, TEmitted> {
+  const lazyObservable =
+    typeof lazyObservableOrConfig === 'function'
+      ? lazyObservableOrConfig
+      : lazyObservableOrConfig.run;
+
   // TODO: event types
   const logic: ObservableActorLogic<TEvent, TInput, TEmitted> = {
     config: lazyObservable,

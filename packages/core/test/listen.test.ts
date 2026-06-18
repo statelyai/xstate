@@ -1,31 +1,31 @@
 import {
   createActor,
+  createLogic,
   createMachine,
   createCallbackLogic,
-  createAsyncLogic,
-  createTransitionLogic
+  createAsyncLogic
 } from '../src';
 import type { AnyActorRef } from '../src';
 
 describe('enq.listen()', () => {
   it('listens to emitted events from a spawned actor', async () => {
-    // Use a transition actor that emits when it receives an event
-    const childLogic = createTransitionLogic<
+    // Use custom logic that emits when it receives an event
+    const childLogic = createLogic<
       { triggered: boolean },
+      undefined,
       { type: 'TRIGGER' },
-      any, // TSystem
       any, // TInput
       { type: 'childEvent'; value: number }
-    >(
-      (state, event, { emit }) => {
+    >({
+      context: { triggered: false },
+      run: ({ context, event }, enq) => {
         if (event.type === 'TRIGGER') {
-          emit({ type: 'childEvent', value: 42 });
-          return { ...state, triggered: true };
+          enq.emit({ type: 'childEvent', value: 42 });
+          return { context: { ...context, triggered: true } };
         }
-        return state;
-      },
-      { triggered: false }
-    );
+        return;
+      }
+    });
 
     const receivedEvents: any[] = [];
 
@@ -276,17 +276,22 @@ describe('enq.subscribeTo()', () => {
   });
 
   it('subscribes to snapshot changes using shorthand', async () => {
-    const childLogic = createTransitionLogic(
-      (state) => {
-        return {
-          ...state,
-          count: state.count + 1
-        };
-      },
-      {
+    const childLogic = createLogic({
+      context: {
         count: 0
+      },
+      run: ({ context, event }) => {
+        if (event.type === '@xstate.init') {
+          return;
+        }
+        return {
+          context: {
+            ...context,
+            count: context.count + 1
+          }
+        };
       }
-    );
+    });
 
     const snapshotChanges: any[] = [];
 

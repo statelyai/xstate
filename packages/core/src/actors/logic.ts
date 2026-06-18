@@ -80,11 +80,13 @@ export interface LogicConfig<
   TEvent extends EventObject,
   TInput,
   TEmitted extends EventObject,
-  TInputSchema extends StandardSchemaV1 = StandardSchemaV1
+  TInputSchema extends StandardSchemaV1 = StandardSchemaV1,
+  TOutputSchema extends StandardSchemaV1 = StandardSchemaV1
 > {
   id?: string;
   schemas?: {
     input?: TInputSchema;
+    output?: TOutputSchema;
   };
   context: TContext | ((args: { input: TInput }) => TContext);
   run: LogicFunction<TContext, TOutput, TEvent, TInput, TEmitted>;
@@ -239,6 +241,34 @@ function resolveContext<TContext, TInput>(
 
 export function createLogic<
   TContext,
+  const TInputSchema extends StandardSchemaV1,
+  const TOutputSchema extends StandardSchemaV1,
+  TEvent extends EventObject = EventObject,
+  TEmitted extends EventObject = EventObject
+>(
+  config: LogicConfig<
+    TContext,
+    StandardSchemaV1.InferOutput<TOutputSchema>,
+    TEvent,
+    StandardSchemaV1.InferOutput<TInputSchema>,
+    TEmitted,
+    TInputSchema,
+    TOutputSchema
+  > & {
+    schemas: {
+      input: TInputSchema;
+      output: TOutputSchema;
+    };
+  }
+): LogicActorLogic<
+  TContext,
+  StandardSchemaV1.InferOutput<TOutputSchema>,
+  TEvent,
+  StandardSchemaV1.InferOutput<TInputSchema>,
+  TEmitted
+>;
+export function createLogic<
+  TContext,
   TOutput,
   const TInputSchema extends StandardSchemaV1,
   TEvent extends EventObject = EventObject,
@@ -254,6 +284,7 @@ export function createLogic<
   > & {
     schemas: {
       input: TInputSchema;
+      output?: undefined;
     };
   }
 ): LogicActorLogic<
@@ -261,6 +292,34 @@ export function createLogic<
   TOutput,
   TEvent,
   StandardSchemaV1.InferOutput<TInputSchema>,
+  TEmitted
+>;
+export function createLogic<
+  TContext,
+  const TOutputSchema extends StandardSchemaV1,
+  TEvent extends EventObject = EventObject,
+  TInput = NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
+  config: LogicConfig<
+    TContext,
+    StandardSchemaV1.InferOutput<TOutputSchema>,
+    TEvent,
+    TInput,
+    TEmitted,
+    StandardSchemaV1,
+    TOutputSchema
+  > & {
+    schemas: {
+      input?: undefined;
+      output: TOutputSchema;
+    };
+  }
+): LogicActorLogic<
+  TContext,
+  StandardSchemaV1.InferOutput<TOutputSchema>,
+  TEvent,
+  TInput,
   TEmitted
 >;
 export function createLogic<

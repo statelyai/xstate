@@ -84,7 +84,8 @@ export interface LogicConfig<
   TOutput,
   TInput = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject,
-  TInputSchema extends StandardSchemaV1 = StandardSchemaV1
+  TInputSchema extends StandardSchemaV1 = StandardSchemaV1,
+  TOutputSchema extends StandardSchemaV1 = StandardSchemaV1
 > {
   /**
    * Stable identifier for this async logic. This identifies the logic, not a
@@ -94,6 +95,7 @@ export interface LogicConfig<
   /** Schemas for inferring async logic types. */
   schemas?: {
     input?: TInputSchema;
+    output?: TOutputSchema;
   };
   /** Maximum time this async logic may run before it is aborted and errors. */
   timeout?: number | string;
@@ -207,6 +209,28 @@ export class TimeoutError extends Error {
  * @see {@link https://stately.ai/docs/input | Input docs} for more information about how input is passed
  */
 export function createAsyncLogic<
+  const TInputSchema extends StandardSchemaV1,
+  const TOutputSchema extends StandardSchemaV1,
+  TEmitted extends EventObject = EventObject
+>(
+  asyncLogic: LogicConfig<
+    StandardSchemaV1.InferOutput<TOutputSchema>,
+    StandardSchemaV1.InferOutput<TInputSchema>,
+    TEmitted,
+    TInputSchema,
+    TOutputSchema
+  > & {
+    schemas: {
+      input: TInputSchema;
+      output: TOutputSchema;
+    };
+  }
+): AsyncActorLogic<
+  StandardSchemaV1.InferOutput<TOutputSchema>,
+  StandardSchemaV1.InferOutput<TInputSchema>,
+  TEmitted
+> & { id?: string };
+export function createAsyncLogic<
   TOutput,
   const TInputSchema extends StandardSchemaV1,
   TEmitted extends EventObject = EventObject
@@ -219,6 +243,7 @@ export function createAsyncLogic<
   > & {
     schemas: {
       input: TInputSchema;
+      output?: never;
     };
   }
 ): AsyncActorLogic<
@@ -227,11 +252,35 @@ export function createAsyncLogic<
   TEmitted
 > & { id?: string };
 export function createAsyncLogic<
+  const TOutputSchema extends StandardSchemaV1,
+  TInput = NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
+  asyncLogic: LogicConfig<
+    StandardSchemaV1.InferOutput<TOutputSchema>,
+    TInput,
+    TEmitted,
+    StandardSchemaV1,
+    TOutputSchema
+  > & {
+    schemas: {
+      input?: never;
+      output: TOutputSchema;
+    };
+  }
+): AsyncActorLogic<
+  StandardSchemaV1.InferOutput<TOutputSchema>,
+  TInput,
+  TEmitted
+> & { id?: string };
+export function createAsyncLogic<
   TOutput,
   TInput = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
 >(
-  asyncLogic: LogicConfig<TOutput, TInput, TEmitted>
+  asyncLogic: Omit<LogicConfig<TOutput, TInput, TEmitted>, 'schemas'> & {
+    schemas?: undefined;
+  }
 ): AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string };
 export function createAsyncLogic<
   TOutput,

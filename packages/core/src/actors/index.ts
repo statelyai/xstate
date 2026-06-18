@@ -1,18 +1,23 @@
 import { createActor } from '../createActor.ts';
 import type { ActorRef, AnyEventObject, Snapshot } from '../types.ts';
-import { createTransitionLogic } from './transition.ts';
+import { createLogic } from './logic.ts';
 export {
   createCallbackLogic,
   type CallbackActorLogic,
   type CallbackActorRef,
+  type CallbackLogicConfig,
   type CallbackSnapshot,
   type CallbackLogicFunction
 } from './callback.ts';
 export {
   createObservableLogic,
   createEventObservableLogic,
+  type EventObservableLogicConfig,
+  type EventObservableLogicFunction,
   type ObservableActorLogic,
   type ObservableActorRef,
+  type ObservableLogicConfig,
+  type ObservableLogicFunction,
   type ObservableSnapshot
 } from './observable.ts';
 export {
@@ -40,12 +45,6 @@ export {
   TimeoutError
 } from './promise.ts';
 export {
-  createTransitionLogic,
-  type TransitionActorLogic,
-  type TransitionActorRef,
-  type TransitionSnapshot
-} from './transition.ts';
-export {
   createListenerLogic,
   listenerLogic,
   type ListenerActorLogic,
@@ -63,10 +62,10 @@ export {
   type SubscriptionMappers
 } from './subscription.ts';
 
-const emptyLogic = /* #__PURE__ */ createTransitionLogic(
-  (_) => undefined,
-  undefined
-);
+const emptyLogic = /* #__PURE__ */ createLogic<undefined, undefined>({
+  context: undefined,
+  run: () => undefined
+});
 
 export function createEmptyActor(): ActorRef<
   Snapshot<undefined>,

@@ -3,8 +3,8 @@ import {
   EventObject,
   Snapshot,
   StateNode,
+  createLogic,
   createMachine,
-  createTransitionLogic,
   isMachineSnapshot
 } from '../../index.ts';
 import { createMockActorScope } from '../actorScope.ts';
@@ -617,18 +617,21 @@ describe('@xstate/graph', () => {
 });
 
 it('simple paths for transition functions', () => {
-  const transition = createTransitionLogic((s, e) => {
-    if (e.type === 'a') {
-      return 1;
+  const transition = createLogic({
+    context: 0,
+    run: ({ context, event }) => {
+      if (event.type === 'a') {
+        return { context: 1 };
+      }
+      if (event.type === 'b' && context === 1) {
+        return { context: 2 };
+      }
+      if (event.type === 'reset') {
+        return { context: 0 };
+      }
+      return;
     }
-    if (e.type === 'b' && s === 1) {
-      return 2;
-    }
-    if (e.type === 'reset') {
-      return 0;
-    }
-    return s;
-  }, 0);
+  });
   const a = getShortestPaths(transition, {
     events: [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
     serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)
@@ -638,18 +641,21 @@ it('simple paths for transition functions', () => {
 });
 
 it('shortest paths for transition functions', () => {
-  const transition = createTransitionLogic((s, e) => {
-    if (e.type === 'a') {
-      return 1;
+  const transition = createLogic({
+    context: 0,
+    run: ({ context, event }) => {
+      if (event.type === 'a') {
+        return { context: 1 };
+      }
+      if (event.type === 'b' && context === 1) {
+        return { context: 2 };
+      }
+      if (event.type === 'reset') {
+        return { context: 0 };
+      }
+      return;
     }
-    if (e.type === 'b' && s === 1) {
-      return 2;
-    }
-    if (e.type === 'reset') {
-      return 0;
-    }
-    return s;
-  }, 0);
+  });
   const a = getSimplePaths(transition, {
     events: [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
     serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)

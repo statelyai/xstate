@@ -4,11 +4,11 @@ import {
   ActorRef,
   ActorRefFrom,
   AnyMachineSnapshot,
-  createTransitionLogic,
+  createLogic,
   createAsyncLogic,
   createActor,
   StateFrom,
-  TransitionSnapshot,
+  LogicSnapshot,
   createMachine
 } from 'xstate';
 import {
@@ -397,7 +397,12 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should immediately render snapshot of initially spawned custom actor', () => {
     const createCustomActor = (latestValue: string) =>
-      createActor(createTransitionLogic((s) => s, latestValue));
+      createActor(
+        createLogic({
+          context: latestValue,
+          run: () => undefined
+        })
+      );
 
     const parentMachine = createMachine({
       // types: {
@@ -560,7 +565,10 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it("should render snapshot value when actor doesn't emit anything", () => {
     const createCustomLogic = (latestValue: string) =>
-      createTransitionLogic((s) => s, latestValue);
+      createLogic({
+        context: latestValue,
+        run: () => undefined
+      });
 
     const parentMachine = createMachine({
       // types: {
@@ -596,7 +604,12 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should render snapshot state when actor changes', () => {
     const createCustomActor = (latestValue: string) =>
-      createActor(createTransitionLogic((s) => s, latestValue));
+      createActor(
+        createLogic({
+          context: latestValue,
+          run: () => undefined
+        })
+      );
 
     const actor1 = createCustomActor('foo');
     const actor2 = createCustomActor('bar');
@@ -620,7 +633,12 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it("should keep rendering a new selected value after selector change when the actor doesn't emit", async () => {
-    const actor = createActor(createTransitionLogic((s) => s, undefined));
+    const actor = createActor(
+      createLogic({
+        context: undefined,
+        run: () => undefined
+      })
+    );
     actor.subscribe = () => ({ unsubscribe: () => {} });
 
     const App = ({ selector }: { selector: any }) => {
@@ -807,7 +825,9 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should work with an optional actor', () => {
     const Child = (props: {
-      actor: ActorRef<TransitionSnapshot<{ count: number }>, any> | undefined;
+      actor:
+        | ActorRef<LogicSnapshot<{ count: number }, undefined, unknown>, any>
+        | undefined;
     }) => {
       const state = useSelector(props.actor, (s) => s);
 
@@ -822,7 +842,9 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
     const App = () => {
       const [actor, setActor] =
-        React.useState<ActorRef<TransitionSnapshot<{ count: number }>, any>>();
+        React.useState<
+          ActorRef<LogicSnapshot<{ count: number }, undefined, unknown>, any>
+        >();
 
       return (
         <>
@@ -830,7 +852,12 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
             data-testid="button"
             onClick={() =>
               setActor(
-                createActor(createTransitionLogic((s) => s, { count: 42 }))
+                createActor(
+                  createLogic<{ count: number }, undefined>({
+                    context: { count: 42 },
+                    run: () => undefined
+                  })
+                )
               )
             }
           >

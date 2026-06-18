@@ -15,14 +15,19 @@ import {
   ActorRef,
   ActorRefFrom,
   createActor,
-  createMachine,
-  createTransitionLogic
+  createLogic,
+  createMachine
 } from 'xstate';
 import { fromActorRef, useActor } from '../src/index.ts';
 import { z } from 'zod';
 
 const createSimpleActor = <T extends unknown>(value: T) =>
-  createActor(createTransitionLogic((s) => s, value));
+  createActor(
+    createLogic({
+      context: value,
+      run: () => undefined
+    })
+  );
 
 describe('fromActorRef', () => {
   it('initial invoked actor should be immediately available', () => {
@@ -626,7 +631,12 @@ describe('fromActorRef', () => {
   });
 
   it('should provide value from `actor.getSnapshot()` immediately', () => {
-    const simpleActor = createActor(createTransitionLogic((s) => s, 42));
+    const simpleActor = createActor(
+      createLogic({
+        context: 42,
+        run: () => undefined
+      })
+    );
 
     const Test = () => {
       const snapshot = fromActorRef(simpleActor);

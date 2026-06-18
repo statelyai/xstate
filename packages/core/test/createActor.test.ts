@@ -1,12 +1,12 @@
 import {
   createCallbackLogic,
   createObservableLogic,
-  createAsyncLogic,
-  createTransitionLogic
+  createAsyncLogic
 } from '../src/actors/index.ts';
 import {
   createMachine,
   createActor,
+  createLogic,
   type DoneActorEvent
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -64,31 +64,28 @@ describe('createActor()', () => {
       expect(actor.getSnapshot().status).toBe('active');
     });
   });
-  describe('createTransitionLogic', () => {
-    it('should create an unstarted actor from transition logic', () => {
-      const transitionLogic = createTransitionLogic((state) => state, {
-        count: 0
+  describe('createLogic', () => {
+    it('should create an unstarted actor from custom logic', () => {
+      const logic = createLogic({
+        context: { count: 0 },
+        run: () => undefined
       });
-      const actor = createActor(transitionLogic);
+      const actor = createActor(logic);
       expect(actor).toBeDefined();
       expect(actor.getSnapshot().status).toBe('active');
       expect(actor.getSnapshot().context.count).toBe(0);
     });
     it('should accept input when creating actor', () => {
-      const transitionLogic = createTransitionLogic<
-        {
-          count: number;
-        },
+      const logic = createLogic<
+        { count: number },
+        undefined,
         any,
-        any,
-        {
-          initialCount: number;
-        }
-      >(
-        (state) => state,
-        ({ input }) => ({ count: input.initialCount })
-      );
-      const actor = createActor(transitionLogic, {
+        { initialCount: number }
+      >({
+        context: ({ input }) => ({ count: input.initialCount }),
+        run: () => undefined
+      });
+      const actor = createActor(logic, {
         input: { initialCount: 10 }
       });
       expect(actor.getSnapshot().context.count).toBe(10);

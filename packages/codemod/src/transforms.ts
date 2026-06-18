@@ -26,8 +26,7 @@ const XSTATE_RENAMES: Rename[] = [
   { from: 'interpret', to: 'createActor' },
   { from: 'fromCallback', to: 'createCallbackLogic' },
   { from: 'fromObservable', to: 'createObservableLogic' },
-  { from: 'fromEventObservable', to: 'createEventObservableLogic' },
-  { from: 'fromTransition', to: 'createTransitionLogic' }
+  { from: 'fromEventObservable', to: 'createEventObservableLogic' }
 ];
 
 const XSTATE_TYPE_RENAMES: Rename[] = [{ from: 'Interpreter', to: 'Actor' }];
@@ -205,6 +204,11 @@ function collectManualMigrationNotes(
       if (callName === 'fromPromise') {
         add(
           'possible manual migration site: `fromPromise(...)` requires `createAsyncLogic({ run })`'
+        );
+      }
+      if (callName === 'fromTransition') {
+        add(
+          'possible manual migration site: `fromTransition(...)` requires `createLogic({ context, run })`'
         );
       }
       if (
