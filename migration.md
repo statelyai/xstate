@@ -26,7 +26,7 @@ This guide is organized by area. Skim the **Quick reference** below, then jump t
 | `fromCallback(cb)`                                      | `createCallbackLogic(cb)` (same signature, renamed)                                                                                 |
 | `fromObservable(fn)`                                    | `createObservableLogic(fn)` (same signature, renamed)                                                                               |
 | `fromEventObservable(fn)`                               | `createEventObservableLogic(fn)` (same signature, renamed)                                                                          |
-| `fromTransition(reducer, initial)`                      | `createTransitionLogic(reducer, initial)` (same signature, renamed)                                                                 |
+| `fromTransition(reducer, initial)`                      | `createLogic({ context: initial, run: ({ context, event }) => ({ context: reducer(context, event) }) })`                            |
 | `types: {} as { context: ..., events: ...}`             | `schemas: { context, events, ... }` (Zod / Standard Schema, or `types<T>()` for type-only)                                          |
 | `actor.send({ type: 'INC' })`                           | `actor.send(...)` keeps working; new typed `actor.trigger.INC()`                                                                    |
 | `@xstate/immer`                                         | removed — return updated `context` directly                                                                                         |
@@ -555,7 +555,7 @@ import { TimeoutError } from 'xstate';
 
 ### Other logic helpers
 
-<!-- actor logic creator and `from*` helpers exported from packages/core/src/actors/index.ts -->
+<!-- actor logic creators exported from packages/core/src/actors/index.ts -->
 
 ```ts
 import {
@@ -564,11 +564,7 @@ import {
   createCallbackLogic, // typed callback factory
   createObservableLogic,
   createListenerLogic, // listen to streams; map to events
-  createSubscriptionLogic, // store subscription helpers
-  fromCallback,
-  fromObservable,
-  fromEventObservable,
-  fromTransition
+  createSubscriptionLogic // store subscription helpers
 } from 'xstate';
 ```
 
@@ -899,6 +895,7 @@ These exports have been **removed** from `xstate`:
 - Service helpers: `interpret`, `Interpreter`, and the `InterpreterFrom` type
 - `SetupReturn` (no longer re-exported)
 - Promise actor logic surface: `fromPromise`, `PromiseActorLogic`, `PromiseActorRef`, `PromiseSnapshot`
+- Transition actor logic surface: `fromTransition`, `TransitionActorLogic`, `TransitionActorRef`, `TransitionSnapshot`
 - Inspection-event subtypes — `InspectedActionEvent`, `InspectedActorEvent`, `InspectedEventEvent`, `InspectedMicrostepEvent`, `InspectedSnapshotEvent` are gone. The remaining `InspectionEvent` type was reshaped: it is no longer a discriminated union, and its `type` is now only `'@xstate.transition' | '@xstate.microstep'`.
 - The `devTools` actor option and the `xstate/dev`, `xstate/actions`, and `xstate/guards` subpath exports
 - v5 definition/config types: `AnyState`, `StateMachineDefinition`, `StateNodeDefinition`, `StatesConfig`, `MachineOptions`, `ExecutableActionsFrom`, and related internals. The config types `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, and `TransitionConfigOrTarget` are re-exported with their **v6 shapes** — same names, different structure.

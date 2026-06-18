@@ -4,14 +4,14 @@ import {
   createCallbackLogic,
   createEventObservableLogic,
   createObservableLogic,
-  createAsyncLogic,
-  createTransitionLogic
+  createAsyncLogic
 } from '../src/actors/index.ts';
 import {
   ActorLogic,
   ActorScope,
   EventObject,
   StateValue,
+  createLogic,
   createMachine,
   createActor,
   Snapshot,
@@ -2594,7 +2594,12 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: createTransitionLogic(countReducer, 0)
+          src: createLogic({
+            context: 0,
+            run: ({ context, event }) => ({
+              context: countReducer(context, event as any)
+            })
+          })
         },
         on: {
           INC: ({ children, event }) => {
@@ -2639,7 +2644,12 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: createTransitionLogic(countReducer, 0)
+          src: createLogic<number, undefined, CountEvents>({
+            context: 0,
+            run: ({ context, event, self }) => ({
+              context: countReducer(context, event, { self } as any)
+            })
+          })
         },
         on: {
           INC: ({ children, event }) => {
@@ -2662,10 +2672,12 @@ describe('invoke', () => {
 
     it('should emit onSnapshot', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const doublerLogic = createTransitionLogic(
-        (_, event: { type: 'update'; value: number }) => event.value * 2,
-        0
-      );
+      const doublerLogic = createLogic({
+        context: 0,
+        run: ({ event }: { event: { type: 'update'; value: number } }) => ({
+          context: event.value * 2
+        })
+      });
       const machine = createMachine({
         invoke: {
           id: 'doubler',

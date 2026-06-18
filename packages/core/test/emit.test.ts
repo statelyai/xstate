@@ -2,12 +2,12 @@ import { z } from 'zod';
 import {
   AnyEventObject,
   createActor,
+  createLogic,
   createMachine,
   createAsyncLogic,
   createCallbackLogic,
   createEventObservableLogic,
-  createObservableLogic,
-  createTransitionLogic
+  createObservableLogic
 } from '../src';
 
 // mocked reportUnhandledError due to unknown issue with vitest and global error
@@ -330,24 +330,26 @@ describe('event emitter', () => {
     );
   });
 
-  it('events can be emitted from transition logic', () => {
+  it('events can be emitted from custom logic', () => {
     const spy = vi.fn();
 
-    const logic = createTransitionLogic<
-      any,
-      any,
-      any,
-      any,
+    const logic = createLogic<
+      {},
+      undefined,
+      AnyEventObject,
+      undefined,
       { type: 'emitted'; msg: string }
-    >((s, e, { emit }) => {
-      if (e.type === 'emit') {
-        emit({
-          type: 'emitted',
-          msg: 'hello'
-        });
+    >({
+      context: {},
+      run: ({ event }, enq) => {
+        if (event.type === 'emit') {
+          enq.emit({
+            type: 'emitted',
+            msg: 'hello'
+          });
+        }
       }
-      return s;
-    }, {});
+    });
 
     const actor = createActor(logic);
 

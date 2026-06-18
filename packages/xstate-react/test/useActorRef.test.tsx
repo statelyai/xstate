@@ -7,7 +7,7 @@ import * as React from 'react';
 import {
   ActorRefFrom,
   createAsyncLogic,
-  createTransitionLogic,
+  createLogic,
   createMachine
 } from 'xstate';
 import { useActorRef, useMachine, useSelector } from '../src/index.ts';
@@ -297,13 +297,16 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     expect(childState.textContent).toBe('received');
   });
 
-  it('should work with a transition actor', () => {
-    const someLogic = createTransitionLogic((state, event) => {
-      if (event.type == 'inc') {
-        return state + 1;
+  it('should work with custom logic', () => {
+    const someLogic = createLogic({
+      context: 0,
+      run: ({ context, event }) => {
+        if (event.type === 'inc') {
+          return { context: context + 1 };
+        }
+        return;
       }
-      return state;
-    }, 0);
+    });
 
     const App = () => {
       const actorRef = useActorRef(someLogic);

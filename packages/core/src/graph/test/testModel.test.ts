@@ -1,16 +1,19 @@
-import { createTransitionLogic } from '../../index.ts';
+import { createLogic } from '../../index.ts';
 import { TestModel } from '../index.ts';
 import { testUtils } from './testUtils.ts';
 
 describe('custom test models', () => {
   it('tests any logic', async () => {
-    const transition = createTransitionLogic((value, event) => {
-      if (event.type === 'even') {
-        return value / 2;
-      } else {
-        return value * 3 + 1;
+    const transition = createLogic({
+      context: 15,
+      run: ({ context, event }) => {
+        if (event.type === 'even') {
+          return { context: context / 2 };
+        } else {
+          return { context: context * 3 + 1 };
+        }
       }
-    }, 15);
+    });
 
     const model = new TestModel(transition, {
       events: (state) => {
@@ -31,13 +34,16 @@ describe('custom test models', () => {
   it('tests states for any logic', async () => {
     const testedStateKeys: string[] = [];
 
-    const transition = createTransitionLogic((value, event) => {
-      if (event.type === 'even') {
-        return value / 2;
-      } else {
-        return value * 3 + 1;
+    const transition = createLogic({
+      context: 15,
+      run: ({ context, event }) => {
+        if (event.type === 'even') {
+          return { context: context / 2 };
+        } else {
+          return { context: context * 3 + 1 };
+        }
       }
-    }, 15);
+    });
 
     const model = new TestModel(transition, {
       events: (state) => {

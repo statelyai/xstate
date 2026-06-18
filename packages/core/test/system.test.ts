@@ -5,11 +5,11 @@ import {
   ActorRef,
   Snapshot,
   createActor,
+  createLogic,
   createMachine,
   createEventObservableLogic,
   createObservableLogic,
-  createAsyncLogic,
-  createTransitionLogic
+  createAsyncLogic
 } from '../src/index.ts';
 import { ActorSystem } from '../src/system.ts';
 
@@ -385,7 +385,7 @@ describe('system', () => {
     expect(actor.system.get('test6')).toBeDefined();
   });
 
-  it('should be accessible in transition logic', () => {
+  it('should be accessible in custom logic', () => {
     expect.assertions(2);
     const machine = createMachine({
       invoke: [
@@ -395,10 +395,16 @@ describe('system', () => {
         },
 
         {
-          src: createTransitionLogic((_state, _event, { system }) => {
-            expect(system.get('test7')).toBeDefined();
-            return 0;
-          }, 0),
+          src: createLogic({
+            context: 0,
+            run: ({ event, system }) => {
+              if (event.type === '@xstate.init') {
+                return;
+              }
+              expect(system.get('test7')).toBeDefined();
+              return { context: 0 };
+            }
+          }),
           systemId: 'reducer'
         }
       ]

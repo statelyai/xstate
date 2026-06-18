@@ -18,7 +18,7 @@ import {
   createMachine,
   createCallbackLogic,
   createAsyncLogic,
-  createTransitionLogic
+  createLogic
 } from 'xstate';
 import { useActor } from '../src/index.ts';
 
@@ -1890,7 +1890,7 @@ describe('useActor', () => {
     });
   });
 
-  it('should be able to work with `createTransitionLogic`', () => {
+  it('should be able to work with custom logic', () => {
     const reducer = (state: number, event: { type: 'INC' }): number => {
       if (event.type === 'INC') {
         return state + 1;
@@ -1900,7 +1900,14 @@ describe('useActor', () => {
     };
 
     const Test = () => {
-      const [count, send] = useActor(createTransitionLogic(reducer, 0));
+      const [count, send] = useActor(
+        createLogic({
+          context: 0,
+          run: ({ context, event }) => ({
+            context: reducer(context, event as { type: 'INC' })
+          })
+        })
+      );
 
       return (
         <button data-testid="count" onclick={() => send({ type: 'INC' })}>

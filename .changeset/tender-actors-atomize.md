@@ -5,10 +5,17 @@
 Add atom APIs to XState and make actors readable by atoms.
 
 ```ts
-import { createActor, createAtom, fromTransition } from 'xstate';
+import { createActor, createAtom, createLogic } from 'xstate';
 
 const actor = createActor(
-  fromTransition((count: number, event: { type: 'inc' }) => count + 1, 0)
+  createLogic({
+    context: 0,
+    run: ({ context, event }) => {
+      if (event.type === 'inc') {
+        return { context: context + 1 };
+      }
+    }
+  })
 ).start();
 
 const count = createAtom(() => actor.get().context);

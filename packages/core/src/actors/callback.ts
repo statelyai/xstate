@@ -8,6 +8,7 @@ import {
   NonReducibleUnknown,
   Snapshot
 } from '../types';
+import { StandardSchemaV1 } from '../schema.types.ts';
 import { createLogic as createBaseLogic } from './logic.ts';
 
 interface CallbackInstanceState<TEvent extends EventObject> {
@@ -122,6 +123,19 @@ export type CallbackLogicFunction<
   emit: (emitted: TEmitted) => void;
 }) => (() => void) | void;
 
+export interface CallbackLogicConfig<
+  TEvent extends EventObject = AnyEventObject,
+  TSentEvent extends EventObject = AnyEventObject,
+  TInput = NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject,
+  TInputSchema extends StandardSchemaV1 = StandardSchemaV1
+> {
+  schemas?: {
+    input?: TInputSchema;
+  };
+  run: CallbackLogicFunction<TEvent, TSentEvent, TInput, TEmitted>;
+}
+
 /**
  * An actor logic creator which returns callback logic as defined by a callback
  * function.
@@ -190,12 +204,61 @@ export type CallbackLogicFunction<
  */
 export function createCallbackLogic<
   TEvent extends EventObject,
+  const TInputSchema extends StandardSchemaV1,
+  TEmitted extends EventObject = EventObject
+>(
+  config: CallbackLogicConfig<
+    TEvent,
+    AnyEventObject,
+    StandardSchemaV1.InferOutput<TInputSchema>,
+    TEmitted,
+    TInputSchema
+  > & {
+    schemas: {
+      input: TInputSchema;
+    };
+  }
+): CallbackActorLogic<
+  TEvent,
+  StandardSchemaV1.InferOutput<TInputSchema>,
+  TEmitted
+>;
+export function createCallbackLogic<
+  TEvent extends EventObject,
+  TInput = NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
+  config: CallbackLogicConfig<TEvent, AnyEventObject, TInput, TEmitted> & {
+    schemas?: undefined;
+  }
+): CallbackActorLogic<TEvent, TInput, TEmitted>;
+export function createCallbackLogic<
+  TEvent extends EventObject,
   TInput = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
 >(
   callback: CallbackLogicFunction<TEvent, AnyEventObject, TInput, TEmitted>
+): CallbackActorLogic<TEvent, TInput, TEmitted>;
+export function createCallbackLogic<
+  TEvent extends EventObject,
+  TInput = NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
+  callbackOrConfig:
+    | CallbackLogicFunction<TEvent, AnyEventObject, TInput, TEmitted>
+    | CallbackLogicConfig<TEvent, AnyEventObject, TInput, TEmitted>
 ): CallbackActorLogic<TEvent, TInput, TEmitted> {
+  const callback =
+    typeof callbackOrConfig === 'function'
+      ? callbackOrConfig
+      : callbackOrConfig.run;
+  const schemas =
+    typeof callbackOrConfig === 'function'
+      ? undefined
+      : callbackOrConfig.schemas;
+
   return createBaseLogic<undefined, undefined, TEvent, TInput, TEmitted>({
+    schemas,
     context: undefined,
     run: (args, enq) => {
       const { event, input, self, system } = args;

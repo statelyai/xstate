@@ -15,6 +15,12 @@ import {
 import { resolveTraversalOptions } from './graph.ts';
 import { createMockActorScope } from './actorScope.ts';
 
+function resolveTransitionSnapshot<TSnapshot>(
+  result: TSnapshot | [TSnapshot, unknown[]]
+): TSnapshot {
+  return Array.isArray(result) ? result[0] : result;
+}
+
 export function getAdjacencyMap<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -92,7 +98,9 @@ export function getAdjacencyMap<
         continue;
       }
 
-      const nextSnapshot = transition(state, nextEvent, actorScope);
+      const nextSnapshot = resolveTransitionSnapshot(
+        transition(state, nextEvent, actorScope)
+      );
 
       adj[serializedState].transitions[
         serializeEvent(nextEvent) as SerializedEvent

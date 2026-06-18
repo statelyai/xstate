@@ -1,9 +1,9 @@
 import {
   createActor,
   createAtom,
+  createLogic,
   createMachine,
   createReducerAtom,
-  createTransitionLogic,
   isAtom
 } from '../src/index.ts';
 
@@ -19,14 +19,17 @@ it('creates an atom', () => {
 
 it('creates computed atoms from actor snapshots', () => {
   const actor = createActor(
-    createTransitionLogic(
-      (context: { count: number }, event: { type: 'inc' }) => {
-        return {
-          count: context.count + 1
-        };
-      },
-      { count: 0 }
-    )
+    createLogic({
+      context: { count: 0 },
+      run: ({ context, event }) => {
+        if (event.type === 'inc') {
+          return {
+            context: { count: context.count + 1 }
+          };
+        }
+        return;
+      }
+    })
   ).start();
   const count = createAtom(() => actor.get().context.count);
   const listener = vi.fn();
@@ -41,17 +44,20 @@ it('creates computed atoms from actor snapshots', () => {
 
 it('selects actor snapshots through computed atoms', () => {
   const actor = createActor(
-    createTransitionLogic(
-      (context: { count: number }, event: { type: 'inc' | 'noop' }) => {
+    createLogic({
+      context: { count: 0 },
+      run: ({ context, event }) => {
         if (event.type === 'noop') {
-          return context;
+          return;
         }
-        return {
-          count: context.count + 1
-        };
-      },
-      { count: 0 }
-    )
+        if (event.type === 'inc') {
+          return {
+            context: { count: context.count + 1 }
+          };
+        }
+        return;
+      }
+    })
   ).start();
   const count = actor.select((snapshot) => snapshot.context.count);
   const listener = vi.fn();

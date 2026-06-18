@@ -1,10 +1,10 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
   createActor,
+  createLogic,
   createMachine,
   createCallbackLogic,
   createAsyncLogic,
-  createTransitionLogic,
   AnyEventObject
 } from '../src';
 import z from 'zod';
@@ -870,12 +870,16 @@ describe('error handling', () => {
   });
 
   it('should error the parent on errored initial state of a child', async () => {
-    const immediateFailure = createTransitionLogic((_) => undefined, undefined);
+    const immediateFailure = createLogic({
+      context: undefined,
+      run: () => undefined
+    });
     immediateFailure.getInitialSnapshot = () => ({
       status: 'error',
       output: undefined,
       error: 'immediate error!',
-      context: undefined
+      context: undefined,
+      input: undefined
     });
 
     const machine = createMachine({

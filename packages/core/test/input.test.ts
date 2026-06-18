@@ -1,10 +1,9 @@
 import { of } from 'rxjs';
-import { createActor, createMachine } from '../src';
+import { createActor, createLogic, createMachine } from '../src';
 import {
   createCallbackLogic,
   createObservableLogic,
-  createAsyncLogic,
-  createTransitionLogic
+  createAsyncLogic
 } from '../src/actors';
 import z from 'zod';
 
@@ -230,10 +229,10 @@ describe('input', () => {
   });
 
   it('should create a transition function actor with input', () => {
-    const transitionLogic = createTransitionLogic(
-      (state) => state,
-      ({ input }) => input
-    );
+    const transitionLogic = createLogic({
+      context: ({ input }: { input: { count: number } }) => input,
+      run: () => undefined
+    });
 
     const transitionActor = createActor(transitionLogic, {
       input: { count: 42 }

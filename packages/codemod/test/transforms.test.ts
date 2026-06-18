@@ -18,7 +18,7 @@ describe('xstate migrate — Tier A transforms', () => {
   });
 
   it('renames the from* actor logic creators', () => {
-    const { code } = transformSource(
+    const { code, notes } = transformSource(
       'a.ts',
       [
         `import { fromCallback, fromObservable, fromEventObservable, fromTransition } from 'xstate';`,
@@ -31,9 +31,10 @@ describe('xstate migrate — Tier A transforms', () => {
     expect(code).toContain('createCallbackLogic(');
     expect(code).toContain('createObservableLogic(');
     expect(code).toContain('createEventObservableLogic(');
-    expect(code).toContain('createTransitionLogic(');
-    expect(code).not.toMatch(
-      /\bfromCallback\b|\bfromObservable\b|\bfromTransition\b/
+    expect(code).toContain('fromTransition(');
+    expect(code).not.toMatch(/\bfromCallback\b|\bfromObservable\b/);
+    expect(notes.join('\n')).toContain(
+      '`fromTransition(...)` requires `createLogic({ context, run })`'
     );
   });
 
@@ -136,7 +137,7 @@ describe('xstate migrate — Tier A transforms', () => {
         `const l = fromTransition((s) => s, 0);`
       ].join('\n')
     );
-    expect(code).toContain('createTransitionLogic');
+    expect(code).toContain('fromTransition');
   });
 
   it('is a no-op when nothing matches', () => {
