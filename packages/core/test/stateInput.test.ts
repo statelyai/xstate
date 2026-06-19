@@ -223,6 +223,259 @@ describe('setup', () => {
     });
   });
 
+  it('should type setup-defined state keys in machines', () => {
+    const s = setup({
+      schemas: {
+        events: {
+          LOAD: types<{}>()
+        }
+      },
+      states: {
+        idle: {},
+        loading: {}
+      }
+    });
+
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            LOAD: {
+              target: 'loading'
+            }
+          }
+        },
+        loading: {}
+      }
+    });
+
+    const idle = s.createStateConfig({
+      on: {
+        LOAD: {
+          target: 'loading'
+        }
+      }
+    });
+
+    const external = s.createStateConfig({
+      on: {
+        LOAD: {
+          target: '#external'
+        }
+      }
+    });
+
+    s.createStateConfig({
+      on: {
+        LOAD: {
+          target: '.child'
+        }
+      }
+    });
+
+    s.createStateConfig({
+      on: {
+        LOAD: {
+          // @ts-expect-error - target should be a setup-defined sibling, relative target, or state ID
+          target: 'missing'
+        }
+      }
+    });
+
+    s.createMachine({
+      // @ts-expect-error - initial should be a setup-defined state key
+      initial: 'missing',
+      states: {
+        idle: {},
+        loading: {}
+      }
+    });
+
+    s.createMachine({
+      initial: {
+        // @ts-expect-error - initial target should be a setup-defined state key
+        target: 'missing'
+      },
+      states: {
+        idle: {},
+        loading: {}
+      }
+    });
+
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {},
+        loading: {},
+        // @ts-expect-error - states should be setup-defined state keys
+        missing: {}
+      }
+    });
+
+    expect(() => {
+      s.createMachine({
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {
+              LOAD: {
+                // @ts-expect-error - target should be a setup-defined sibling, relative target, or state ID
+                target: 'missing'
+              }
+            }
+          },
+          loading: {}
+        }
+      });
+    }).toThrow();
+
+    expect(true).toBe(true);
+    expect(idle).toEqual({
+      on: {
+        LOAD: {
+          target: 'loading'
+        }
+      }
+    });
+    expect(external).toEqual({
+      on: {
+        LOAD: {
+          target: '#external'
+        }
+      }
+    });
+  });
+
+  it('should not treat nested setup states as top-level keys', () => {
+    const s = setup({
+      schemas: {
+        events: {
+          LOAD: types<{}>()
+        }
+      },
+      states: {
+        foo: {
+          states: {
+            bar: {},
+            baz: {}
+          }
+        },
+        rootSibling: {}
+      }
+    });
+
+    s.createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          // @ts-expect-error - nested initial should be a setup-defined child key
+          initial: 'asdf',
+          states: {
+            bar: {},
+            baz: {}
+          }
+        },
+        rootSibling: {}
+      }
+    });
+
+    s.createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          initial: 'bar',
+          states: {
+            bar: {},
+            baz: {}
+          },
+          on: {
+            LOAD: {
+              target: 'rootSibling'
+            }
+          }
+        },
+        rootSibling: {}
+      }
+    });
+
+    s.createMachine({
+      // @ts-expect-error - nested state key should not be a top-level initial
+      initial: 'bar',
+      states: {
+        foo: {
+          initial: 'bar',
+          states: {
+            bar: {},
+            baz: {}
+          }
+        },
+        rootSibling: {}
+      }
+    });
+
+    s.createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          initial: 'bar',
+          states: {
+            bar: {},
+            baz: {},
+            // @ts-expect-error - nested state should be setup-defined child key
+            qux: {}
+          }
+        },
+        // @ts-expect-error - nested state key should not be a top-level state
+        bar: {},
+        rootSibling: {}
+      }
+    });
+
+    s.createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          initial: 'baz',
+          states: {
+            bar: {},
+            baz: {
+              on: {
+                LOAD: {
+                  target: 'bar'
+                }
+              }
+            }
+          }
+        },
+        rootSibling: {}
+      }
+    });
+
+    expect(() => {
+      s.createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            initial: 'baz',
+            states: {
+              bar: {},
+              baz: {
+                on: {
+                  LOAD: {
+                    // @ts-expect-error - target should be a local sibling key, relative target, or state ID
+                    target: 'rootSibling'
+                  }
+                }
+              }
+            }
+          },
+          rootSibling: {}
+        }
+      });
+    }).toThrow();
+  });
+
   it('should create a machine from setup', () => {
     const s = setup({
       states: {
