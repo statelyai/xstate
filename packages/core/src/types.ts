@@ -1745,6 +1745,21 @@ export type ActorRefFromLogic<T extends AnyActorLogic> = ActorRef<
 
 export type AnyActorRef = ActorRef<any, any, any, any>;
 
+type SendableEventFromActorRef<
+  TActorRef,
+  TFallback extends EventObject = AnyEventObject
+> = [NonNullable<TActorRef>] extends [never]
+  ? TFallback
+  : NonNullable<TActorRef> extends infer TNonNullableActorRef
+    ? TNonNullableActorRef extends { send: (event: infer TEvent) => void }
+      ? [TEvent] extends [never]
+        ? TFallback
+        : TEvent extends EventObject
+          ? TEvent
+          : TFallback
+      : never
+    : never;
+
 export type ActorRefLike = Pick<
   AnyActorRef,
   'sessionId' | 'send' | 'getSnapshot'
@@ -2399,13 +2414,13 @@ export type EnqueueObject<
       syncSnapshot?: boolean;
       systemId?: string;
     }
-  ) => AnyActorRef;
+  ) => ActorRefFromLogic<T>;
   emit: (emittedEvent: TEmittedEvent) => void;
   <T extends (...args: any[]) => any>(fn: T, ...args: Parameters<T>): void;
   log: (...args: any[]) => void;
-  sendTo: <T extends EventObject>(
-    actorRef: { send: (event: T) => void } | undefined,
-    event: T,
+  sendTo: <TActorRef extends { send: (...args: any[]) => void } | undefined>(
+    actorRef: TActorRef,
+    event: SendableEventFromActorRef<NoInfer<TActorRef>>,
     options?: { id?: string; delay?: number }
   ) => void;
   stop: (actorRef?: AnyActorRef) => void;

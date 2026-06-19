@@ -2066,9 +2066,14 @@ describe('spawner in assign', () => {
       //   }
       // })
       entry: (_, enq) => {
+        const otherChildRef = enq.spawn(otherChild);
+        // @ts-expect-error
+        const childRef: ActorRefFrom<typeof child> = otherChildRef;
+        childRef;
+
         return {
           context: {
-            myChild: enq.spawn(otherChild)
+            myChild: undefined
           }
         };
       }
@@ -4451,6 +4456,57 @@ describe('delays', () => {
       // entry: sendTo(otherActor, { type: 'FOO' }, { delay: 100 })
       entry: (_, enq) => {
         enq.sendTo(otherActor, { type: 'FOO' }, { delay: 100 });
+      }
+    });
+  });
+
+  it('should type enq.sendTo events against context actor refs', () => {
+    const child = createMachine({
+      schemas: {
+        events: {
+          PING: z.object({
+            type: z.literal('PING'),
+            value: z.number()
+          })
+        }
+      }
+    });
+
+    createMachine({
+      schemas: {
+        context: z.object({
+          child: z.custom<ActorRefFrom<typeof child>>()
+        })
+      },
+      context: ({ spawn }) => ({
+        child: spawn(child)
+      }),
+      entry: ({ context }, enq) => {
+        enq.sendTo(context.child, { type: 'PING', value: 42 });
+        // @ts-expect-error
+        enq.sendTo(context.child, { type: 'PONG' });
+      }
+    });
+  });
+
+  it('should return typed actor refs from enq.spawn', () => {
+    const child = createMachine({
+      schemas: {
+        events: {
+          PING: z.object({
+            type: z.literal('PING')
+          })
+        }
+      }
+    });
+
+    createMachine({
+      entry: (_, enq) => {
+        const childRef = enq.spawn(child);
+
+        childRef.send({ type: 'PING' });
+        // @ts-expect-error
+        childRef.send({ type: 'PONG' });
       }
     });
   });
