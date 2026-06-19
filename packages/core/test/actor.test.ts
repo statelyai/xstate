@@ -18,6 +18,7 @@ import {
   ActorLogic,
   ActorRef,
   ActorRefFrom,
+  AnyActor,
   AnyActorRef,
   DoneActorEvent,
   ErrorActorEvent,
@@ -1706,12 +1707,12 @@ describe('actors', () => {
     const machine = createMachine({
       // types: {} as {
       //   context: {
-      //     actorRef: CallbackActorRef<EventObject>;
+      //     actorRef: AnyActor;
       //   };
       // },
       schemas: {
         context: z.object({
-          actorRef: z.custom<CallbackActorRef<EventObject>>()
+          actorRef: z.custom<AnyActor>()
         })
       },
       initial: 'active',
@@ -1789,12 +1790,12 @@ describe('actors', () => {
     const machine = createMachine({
       // types: {} as {
       //   context: {
-      //     actorRef: CallbackActorRef<EventObject>;
+      //     actorRef: AnyActor;
       //   };
       // },
       schemas: {
         context: z.object({
-          actorRef: z.custom<CallbackActorRef<EventObject>>()
+          actorRef: z.custom<AnyActor>()
         })
       },
       initial: 'active',
@@ -1869,12 +1870,12 @@ describe('actors', () => {
     const machine = createMachine({
       // types: {} as {
       //   context: {
-      //     actorRef: CallbackActorRef<EventObject>;
+      //     actorRef: AnyActor;
       //   };
       // },
       schemas: {
         context: z.object({
-          actorRef: z.custom<CallbackActorRef<EventObject>>()
+          actorRef: z.custom<AnyActor>()
         })
       },
       initial: 'active',
@@ -1930,12 +1931,12 @@ describe('actors', () => {
     const machine = createMachine({
       // types: {} as {
       //   context: {
-      //     actorRef: CallbackActorRef<EventObject>;
+      //     actorRef: AnyActor;
       //   };
       // },
       schemas: {
         context: z.object({
-          actorRef: z.custom<CallbackActorRef<EventObject>>()
+          actorRef: z.custom<AnyActor>()
         })
       },
       initial: 'active',

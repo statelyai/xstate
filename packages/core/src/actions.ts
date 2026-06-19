@@ -1,9 +1,9 @@
 import isDevelopment from '#is-development';
-import { AnyActorRef, AnyActorScope, EventObject } from './types';
+import { AnyActor, AnyActorScope, EventObject } from './types';
 
 export const builtInActions = {
-  ['@xstate.start']: (actorRef: AnyActorRef) => {
-    actorRef.start();
+  ['@xstate.start']: (actor: AnyActor) => {
+    actor.start();
   },
   ['@xstate.raise']: (
     actorScope: AnyActorScope,
@@ -20,7 +20,7 @@ export const builtInActions = {
   },
   ['@xstate.sendTo']: (
     actorScope: AnyActorScope,
-    actorRef: AnyActorRef,
+    actor: AnyActor,
     event: EventObject,
     options: { id?: string; delay?: number }
   ) => {
@@ -35,21 +35,21 @@ export const builtInActions = {
     if (options?.delay !== undefined) {
       actorScope.system.scheduler.schedule(
         actorScope.self,
-        actorRef,
+        actor,
         event,
         options?.delay ?? 0,
         options?.id
       );
     } else {
       actorScope.defer(() => {
-        actorScope.system._relay(actorScope.self, actorRef, event);
+        actorScope.system._relay(actorScope.self, actor, event);
       });
     }
   },
   ['@xstate.cancel']: (actorScope: AnyActorScope, sendId: string) => {
     actorScope.system.scheduler.cancel(actorScope.self, sendId);
   },
-  ['@xstate.stopChild']: (actorScope: AnyActorScope, actorRef: AnyActorRef) => {
-    actorScope.stopChild(actorRef);
+  ['@xstate.stopChild']: (actorScope: AnyActorScope, actor: AnyActor) => {
+    actorScope.stopChild(actor);
   }
 };

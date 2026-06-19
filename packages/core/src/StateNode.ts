@@ -21,7 +21,7 @@ import type {
   AnyStateNodeConfig,
   NonReducibleUnknown,
   EventDescriptor,
-  AnyActorRef,
+  AnyActor,
   AnyStateNode,
   AnyEventObject,
   AnyAction,
@@ -292,7 +292,7 @@ export class StateNode<
   public next(
     snapshot: AnyMachineSnapshot,
     event: AnyEventObject,
-    self: AnyActorRef
+    self: AnyActor
   ): Array<AnyTransitionDefinition> | undefined {
     const eventType = event.type;
     const candidates: Array<AnyTransitionDefinition> = memo(

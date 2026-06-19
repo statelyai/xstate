@@ -112,7 +112,7 @@ export interface UnifiedArg<
 > {
   context: TContext;
   event: TExpressionEvent;
-  self: ActorRef<
+  self: ActorSelf<
     MachineSnapshot<
       TContext,
       TEvent,
@@ -136,7 +136,7 @@ export interface ActionArgs<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject
 > extends UnifiedArg<TContext, TExpressionEvent, TEvent> {
-  children: Record<string, AnyActorRef>;
+  children: Record<string, AnyActor>;
 }
 
 export type InputFrom<T> =
@@ -538,7 +538,7 @@ export type TransitionConfigFunction<
   }: {
     context: _TCtx;
     event: TCurrentEvent;
-    self: ActorRef<
+    self: ActorSelf<
       MachineSnapshot<
         _TCtx & MachineContext,
         TEvent,
@@ -553,7 +553,7 @@ export type TransitionConfigFunction<
     >;
     parent: UnknownActorRef | undefined;
     value: StateValue;
-    children: Record<string, AnyActorRef>;
+    children: Record<string, AnyActor>;
     actions: TActionMap;
     actors: TActorMap;
     guards: TGuardMap;
@@ -1071,7 +1071,7 @@ export type ContextFactory<
   spawn: Spawner;
   actors: TActorMap;
   input: TInput;
-  self: ActorRef<
+  self: ActorSelf<
     MachineSnapshot<
       [TContext] extends [never] ? any : TContext,
       TEvent,
@@ -1205,7 +1205,7 @@ export type Mapper<
 > = (args: {
   context: _TCtx;
   event: TExpressionEvent;
-  self: ActorRef<
+  self: ActorSelf<
     MachineSnapshot<
       _TCtx & MachineContext,
       TEvent,
@@ -1396,7 +1396,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * native `console.log(...)` method.
    */
   logger?: (...args: any[]) => void;
-  parent?: AnyActorRef;
+  parent?: AnyActor;
   /** @internal */
   syncSnapshot?: boolean;
   /** The custom `id` for referencing this service. */
@@ -1517,7 +1517,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
     | ((inspectionEvent: InspectionEvent) => void);
 }
 
-export type AnyActor = Actor<any>;
+export type AnyActor = ActorInstance<any, any, any, any>;
 
 /** @deprecated Use `AnyActor` instead. */
 export type AnyInterpreter = AnyActor;
@@ -1585,6 +1585,16 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
   send: (event: TEvent) => void;
 }
 
+/**
+ * A consumer-facing actor handle.
+ *
+ * `ActorRef` describes the contract a consumer needs: which events can be sent
+ * to the actor, which snapshot it publishes for observation, and which emitted
+ * events can be listened to. It intentionally does not expose lifecycle control
+ * or runtime internals. A concrete `Actor` satisfies this interface, so APIs
+ * should accept `ActorRef` whenever they only need to send events, read
+ * snapshots, or listen to emitted events.
+ */
 export interface ActorRef<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -1592,6 +1602,29 @@ export interface ActorRef<
   TSendEvent extends EventObject = TEvent
 > extends Subscribable<TSnapshot>,
     InteropObservable<TSnapshot> {
+  send: (event: TSendEvent) => void;
+  getSnapshot: () => TSnapshot;
+  on: <TType extends TEmitted['type'] | '*'>(
+    type: TType,
+    handler: (
+      emitted: TEmitted & (TType extends '*' ? unknown : { type: TType })
+    ) => void
+  ) => Subscription;
+}
+
+/**
+ * Runtime-only actor capabilities.
+ *
+ * These members are needed by the interpreter, scheduler, inspection, and child
+ * management code. Public consumer APIs should prefer `ActorRef` unless they
+ * genuinely need lifecycle control such as starting, stopping, or accessing
+ * system-owned runtime state.
+ */
+export interface ActorRuntime<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject,
+  TEmitted extends EventObject = EventObject
+> {
   /** The unique identifier for this actor relative to its parent. */
   id: string;
   /**
@@ -1603,38 +1636,51 @@ export interface ActorRef<
   sessionId: string | undefined;
   /** @internal */
   _send: (event: TEvent) => void;
-  send: (event: TSendEvent) => void;
   start: () => this;
-  getSnapshot: () => TSnapshot;
   getPersistedSnapshot: () => Snapshot<unknown>;
   stop: () => void;
   toJSON?: () => any;
-  // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
-  _parent?: AnyActorRef;
-  system: AnyActorSystem;
+  _parent?: any;
+  system: any;
   /** @internal */
   _processingStatus: ProcessingStatus;
   src: string | AnyActorLogic;
-  // TODO: remove from ActorRef interface
-  // (should only be available on Actor)
-  on: <TType extends TEmitted['type'] | '*'>(
-    type: TType,
-    handler: (
-      emitted: TEmitted & (TType extends '*' ? unknown : { type: TType })
-    ) => void
-  ) => Subscription;
-  trigger: {
-    [K in TSendEvent['type']]: IsEmptyObject<
-      Omit<Extract<TSendEvent, { type: K }>, 'type'>
-    > extends true
-      ? () => void
-      : (payload: Omit<Extract<TSendEvent, { type: K }>, 'type'>) => void;
-  };
+  trigger: any;
   select<TSelected>(
     selector: (snapshot: TSnapshot) => TSelected,
     equalityFn?: (a: TSelected, b: TSelected) => boolean
   ): Readable<TSelected>;
 }
+
+/**
+ * A concrete actor instance type.
+ *
+ * `ActorInstance` combines the consumer `ActorRef` contract with runtime
+ * lifecycle capabilities. Values returned by `createActor(...)` and
+ * `spawn(...)` naturally satisfy narrower `ActorRef` contracts.
+ */
+export interface ActorInstance<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject,
+  TEmitted extends EventObject = EventObject,
+  TSendEvent extends EventObject = TEvent
+> extends ActorRuntime<TSnapshot, TEvent, TEmitted>,
+    ActorRef<TSnapshot, TEvent, TEmitted, TSendEvent> {}
+
+/**
+ * The actor's own full self handle.
+ *
+ * Internals and action/guard implementations receive this shape because `self`
+ * can participate in runtime-owned behavior while still being usable wherever
+ * an `ActorRef` is expected.
+ */
+export type ActorSelf<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject,
+  TEmitted extends EventObject = EventObject,
+  TSendEvent extends EventObject = TEvent
+> = ActorRuntime<TSnapshot, TEvent, TEmitted> &
+  ActorRef<TSnapshot, TEvent, TEmitted, TSendEvent>;
 
 // TODO: in v6, this should only accept AnyActorLogic, like ActorRefFromLogic
 export type ActorRefFrom<T> =
@@ -1745,6 +1791,14 @@ export type ActorRefFromLogic<T extends AnyActorLogic> = ActorRef<
 
 export type AnyActorRef = ActorRef<any, any, any, any>;
 
+/** The concrete actor instance type produced from actor logic. */
+export type ActorFromLogic<T extends AnyActorLogic> = ActorInstance<
+  SnapshotFrom<T>,
+  EventFromLogic<T>,
+  EmittedFrom<T>,
+  SendableEventFromLogic<T>
+>;
+
 type SendableEventFromActorRef<
   TActorRef,
   TFallback extends EventObject = AnyEventObject
@@ -1760,10 +1814,7 @@ type SendableEventFromActorRef<
       : never
     : never;
 
-export type ActorRefLike = Pick<
-  AnyActorRef,
-  'sessionId' | 'send' | 'getSnapshot'
->;
+export type ActorRefLike = Pick<AnyActor, 'sessionId' | 'send' | 'getSnapshot'>;
 
 export type UnknownActorRef = ActorRef<Snapshot<unknown>, EventObject>;
 
@@ -1804,14 +1855,14 @@ export interface ActorScope<
   TEmitted extends EventObject = EventObject,
   TSendEvent extends EventObject = TEvent
 > {
-  self: ActorRef<TSnapshot, TEvent, TEmitted, TSendEvent>;
+  self: ActorSelf<TSnapshot, TEvent, TEmitted, TSendEvent>;
   id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
   defer: (fn: () => void) => void;
   emit: (event: TEmitted) => void;
   system: TSystem;
-  stopChild: (child: AnyActorRef) => void;
+  stopChild: (child: AnyActor) => void;
   actionExecutor: ActionExecutor;
 }
 
@@ -2094,9 +2145,7 @@ type ExtractLiteralString<T extends string | undefined> = T extends string
   : never;
 
 type ToConcreteChildren<TActor extends ProvidedActor> = {
-  [A in TActor as ExtractLiteralString<A['id']>]?: ActorRefFromLogic<
-    A['logic']
-  >;
+  [A in TActor as ExtractLiteralString<A['id']>]?: ActorFromLogic<A['logic']>;
 };
 
 // Actors that don't have literal string IDs — these are the only ones
@@ -2114,16 +2163,16 @@ export type ToChildren<TActor extends ProvidedActor> =
     ? // TODO: replace `AnyActorRef` with `UnknownActorRef`~
       // or maybe even `TActor["logic"]` since it's possible to configure `{ src: string; logic: SomeConcreteLogic }`
       // TODO: consider adding `| undefined` here
-      Record<string, AnyActorRef>
+      Record<string, AnyActor>
     : Compute<
         ToConcreteChildren<TActor> &
           {
             include: {
               [id: string]: NonConcreteActors<TActor> extends never
-                ? AnyActorRef | undefined
+                ? AnyActor | undefined
                 : NonConcreteActors<TActor> extends any
                   ?
-                      | ActorRefFromLogic<NonConcreteActors<TActor>['logic']>
+                      | ActorFromLogic<NonConcreteActors<TActor>['logic']>
                       | undefined
                   : never;
             };
@@ -2414,7 +2463,7 @@ export type EnqueueObject<
       syncSnapshot?: boolean;
       systemId?: string;
     }
-  ) => ActorRefFromLogic<T>;
+  ) => ActorFromLogic<T>;
   emit: (emittedEvent: TEmittedEvent) => void;
   <T extends (...args: any[]) => any>(fn: T, ...args: Parameters<T>): void;
   log: (...args: any[]) => void;
@@ -2423,7 +2472,7 @@ export type EnqueueObject<
     event: SendableEventFromActorRef<NoInfer<TActorRef>>,
     options?: { id?: string; delay?: number }
   ) => void;
-  stop: (actorRef?: AnyActorRef) => void;
+  stop: (actor?: AnyActor) => void;
   /**
    * Listen to emitted events from an actor. Returns a listener actor that can
    * be stopped via `enq.stop()`.
@@ -2434,10 +2483,10 @@ export type EnqueueObject<
    * @param mapper - Function to transform emitted events into machine events
    */
   listen: <TEmitted extends EventObject, TMappedEvent extends TEvent>(
-    actor: AnyActorRef,
+    actor: AnyActor,
     eventType: string,
     mapper: (event: TEmitted) => TMappedEvent
-  ) => AnyActorRef;
+  ) => AnyActor;
   /**
    * Subscribe to lifecycle events (done/error/snapshot) from an actor. Returns
    * a subscription actor that can be stopped via `enq.stop()`.
@@ -2448,11 +2497,11 @@ export type EnqueueObject<
    */
   subscribeTo: {
     <TSnapshot extends Snapshot<unknown>, TOutput, TMappedEvent extends TEvent>(
-      actor: AnyActorRef,
+      actor: AnyActor,
       mappers:
         | SubscribeToMappers<TSnapshot, TOutput, TMappedEvent>
         | ((snapshot: TSnapshot) => TMappedEvent)
-    ): AnyActorRef;
+    ): AnyActor;
     // Atom form: the mapper receives the atom's value directly. Atoms have no
     // done/error lifecycle, so only the `snapshot` mapper applies. The param is
     // the branded atom type (not a structural `{ get, subscribe }`) so plain
@@ -2463,7 +2512,7 @@ export type EnqueueObject<
       mappers:
         | { snapshot?: (value: TValue) => TMappedEvent }
         | ((value: TValue) => TMappedEvent)
-    ): AnyActorRef;
+    ): AnyActor;
   };
 };
 
@@ -2482,7 +2531,7 @@ export type Action<
     context: _TCtx;
     event: TEvent;
     parent: AnyActorRef | undefined;
-    self: ActorRef<
+    self: ActorSelf<
       MachineSnapshot<
         _TCtx & MachineContext,
         TEvent,
@@ -2495,7 +2544,7 @@ export type Action<
       >,
       TEvent
     >;
-    children: Record<string, AnyActorRef | undefined>;
+    children: Record<string, AnyActor | undefined>;
     actions: TActionMap;
     actors: TActorMap;
     guards: TGuardMap;
@@ -2506,7 +2555,7 @@ export type Action<
   enqueue: EnqueueObject<TEvent, TEmittedEvent>
 ) => {
   context?: _TCtx;
-  children?: Record<string, AnyActorRef | undefined>;
+  children?: Record<string, AnyActor | undefined>;
 } | void;
 
 export type AnyAction =

@@ -5,6 +5,7 @@ import {
   createCallbackLogic
 } from '../src/actors/callback.ts';
 import {
+  ActorFromLogic,
   ActorRefFromLogic,
   EventObject,
   createActor,
@@ -1597,12 +1598,12 @@ describe('entry/exit actions', () => {
       const parent = createMachine({
         // types: {} as {
         //   context: {
-        //     child: ActorRefFromLogic<typeof child>;
+        //     child: ActorFromLogic<typeof child>;
         //   };
         // },
         schemas: {
           context: z.object({
-            child: z.custom<ActorRefFromLogic<typeof child>>()
+            child: z.custom<ActorFromLogic<typeof child>>()
           })
         },
         id: 'parent',

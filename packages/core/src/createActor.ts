@@ -27,8 +27,8 @@ let executingCustomAction: boolean = false;
 
 import type {
   ActorScope,
+  AnyActor,
   AnyActorLogic,
-  AnyActorRef,
   EmittedFrom,
   EventFromLogic,
   SendableEventFromLogic,
@@ -40,6 +40,7 @@ import type {
 } from './types.ts';
 import {
   ActorOptions,
+  ActorInstance,
   ActorRef,
   EventObject,
   InteropSubscribable,
@@ -75,10 +76,15 @@ const defaultOptions = {
  * An Actor is a running process that can receive events, send events and change
  * its behavior based on the events it receives, which can cause effects outside
  * of the actor. When you run a state machine, it becomes an actor.
+ *
+ * An `Actor` is the concrete runtime instance with lifecycle methods and
+ * system-owned internals. It also satisfies the narrower `ActorRef` contract,
+ * so consumer APIs should accept `ActorRef` when they only need to send events
+ * or read snapshots.
  */
 export class Actor<TLogic extends AnyActorLogic>
   implements
-    ActorRef<
+    ActorInstance<
       SnapshotFrom<TLogic>,
       EventFromLogic<TLogic>,
       EmittedFrom<TLogic>,
@@ -114,7 +120,7 @@ export class Actor<TLogic extends AnyActorLogic>
   public _processingStatus: ProcessingStatus = ProcessingStatus.NotStarted;
 
   // Actor Ref
-  public _parent?: AnyActorRef;
+  public _parent?: AnyActor;
   /** @internal */
   public _syncSnapshot?: boolean;
   public ref: ActorRef<
@@ -133,7 +139,7 @@ export class Actor<TLogic extends AnyActorLogic>
   >;
 
   /** @internal */
-  public _lastSourceRef?: AnyActorRef;
+  public _lastSourceRef?: AnyActor;
   /** @internal */
   public _collectedMicrosteps: AnyTransitionDefinition[] = [] as any;
   /** @internal Actions executed during the in-flight transition. */
@@ -148,12 +154,19 @@ export class Actor<TLogic extends AnyActorLogic>
   /** The system to which this actor belongs. */
   public system: AnyActorSystem;
 
-  public trigger: ActorRef<
-    SnapshotFrom<TLogic>,
-    EventFromLogic<TLogic>,
-    EmittedFrom<TLogic>,
-    SendableEventFromLogic<TLogic>
-  >['trigger'];
+  public trigger: {
+    [K in SendableEventFromLogic<TLogic>['type']]: {} extends Omit<
+      Extract<SendableEventFromLogic<TLogic>, { type: K }>,
+      'type'
+    >
+      ? () => void
+      : (
+          payload: Omit<
+            Extract<SendableEventFromLogic<TLogic>, { type: K }>,
+            'type'
+          >
+        ) => void;
+  };
 
   public src: string | AnyActorLogic;
 
@@ -273,21 +286,13 @@ export class Actor<TLogic extends AnyActorLogic>
     // Ensure that the send method is bound to this Actor instance
     // if destructured
     this.send = this.send.bind(this);
-    this.trigger = new Proxy(
-      {} as ActorRef<
-        SnapshotFrom<TLogic>,
-        EventFromLogic<TLogic>,
-        EmittedFrom<TLogic>,
-        SendableEventFromLogic<TLogic>
-      >['trigger'],
-      {
-        get: (_, eventType: string) => {
-          return (payload?: any) => {
-            this.send({ ...payload, type: eventType });
-          };
-        }
+    this.trigger = new Proxy({} as Actor<TLogic>['trigger'], {
+      get: (_, eventType: string) => {
+        return (payload?: any) => {
+          this.send({ ...payload, type: eventType });
+        };
       }
-    );
+    });
 
     // unified '@xstate.transition' event replaces '@xstate.actor'
 

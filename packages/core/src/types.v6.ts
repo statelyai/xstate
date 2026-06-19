@@ -2,7 +2,7 @@ import { StandardSchemaV1 } from './schema.types.ts';
 import { MachineSnapshot } from './State';
 import {
   Action,
-  ActorRef,
+  ActorSelf,
   AnyActorLogic,
   AnyActorRef,
   Compute,
@@ -271,7 +271,7 @@ type InvokeInputArgs<
 > = {
   context: TContext;
   event: TEvent;
-  self: ActorRef<
+  self: ActorSelf<
     MachineSnapshot<
       TContext,
       TEvent,

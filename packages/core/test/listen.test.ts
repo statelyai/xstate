@@ -5,7 +5,7 @@ import {
   createCallbackLogic,
   createAsyncLogic
 } from '../src';
-import type { AnyActorRef } from '../src';
+import type { AnyActor } from '../src';
 
 describe('enq.listen()', () => {
   it('listens to emitted events from a spawned actor', async () => {
@@ -127,7 +127,7 @@ describe('enq.listen()', () => {
     });
 
     const receivedEvents: any[] = [];
-    let listenerRef: AnyActorRef | undefined;
+    let listenerRef: AnyActor | undefined;
 
     const parentMachine = createMachine({
       initial: 'listening',
@@ -333,7 +333,7 @@ describe('enq.subscribeTo()', () => {
     });
 
     let receivedDone = false;
-    let subscriptionRef: AnyActorRef | undefined;
+    let subscriptionRef: AnyActor | undefined;
 
     const parentMachine = createMachine({
       initial: 'active',

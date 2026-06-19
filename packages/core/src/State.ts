@@ -3,6 +3,7 @@ import { $$ACTOR_TYPE } from './createActor.ts';
 import { getStateValue, getTransitionResult, hasEffect } from './stateUtils.ts';
 import type {
   AnyActorScope,
+  AnyActor,
   AnyMachineSnapshot,
   AnyStateMachine,
   EventObject,
@@ -33,7 +34,7 @@ export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
   );
 }
 
-let emptyCanActor: AnyActorRef | undefined;
+let emptyCanActor: AnyActor | undefined;
 let emptyCanActorScope: AnyActorScope | undefined;
 
 function getEmptyCanActor() {
@@ -581,7 +582,7 @@ function persistContext(contextPart: Record<string, unknown>) {
           : { ...contextPart };
         copy[key] = {
           xstate$$type: $$ACTOR_TYPE,
-          id: (value as any as AnyActorRef).id
+          id: (value as any as AnyActor).id
         };
       } else {
         const result = persistContext(value as typeof contextPart);

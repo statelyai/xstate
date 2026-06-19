@@ -1,5 +1,5 @@
 import { createActor } from '../createActor.ts';
-import type { ActorRef, AnyEventObject, Snapshot } from '../types.ts';
+import type { ActorFromLogic } from '../types.ts';
 import { createLogic } from './logic.ts';
 export {
   createCallbackLogic,
@@ -67,10 +67,6 @@ const emptyLogic = /* #__PURE__ */ createLogic<undefined, undefined>({
   run: () => undefined
 });
 
-export function createEmptyActor(): ActorRef<
-  Snapshot<undefined>,
-  AnyEventObject,
-  AnyEventObject
-> {
+export function createEmptyActor(): ActorFromLogic<typeof emptyLogic> {
   return createActor(emptyLogic);
 }

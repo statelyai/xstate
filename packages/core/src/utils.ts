@@ -4,7 +4,7 @@ import type { StateNode } from './StateNode.ts';
 import { TARGETLESS_KEY, WILDCARD } from './constants.ts';
 import { isStateId } from './stateUtils.ts';
 import type {
-  AnyActorRef,
+  AnyActor,
   AnyEventObject,
   AnyMachineSnapshot,
   AnyStateMachine,
@@ -178,7 +178,7 @@ export function resolveOutput<
     | NonReducibleUnknown,
   context: TContext,
   event: TExpressionEvent,
-  self: AnyActorRef
+  self: AnyActor
 ): unknown {
   if (typeof mapper === 'function') {
     return mapper({ context, event, self });

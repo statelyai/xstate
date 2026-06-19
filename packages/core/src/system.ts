@@ -2,7 +2,7 @@ import { InspectionEvent } from './inspection.ts';
 import {
   AnyEventObject,
   ActorSystemInfo,
-  AnyActorRef,
+  AnyActor,
   Observer,
   HomomorphicOmit,
   EventObject,
@@ -16,8 +16,8 @@ interface ScheduledEvent {
   event: EventObject;
   startedAt: number; // timestamp
   delay: number;
-  source: AnyActorRef;
-  target: AnyActorRef;
+  source: AnyActor;
+  target: AnyActor;
 }
 
 export interface Clock {
@@ -27,40 +27,37 @@ export interface Clock {
 
 interface Scheduler {
   schedule(
-    source: AnyActorRef,
-    target: AnyActorRef,
+    source: AnyActor,
+    target: AnyActor,
     event: EventObject,
     delay: number,
     id: string | undefined
   ): void;
-  cancel(source: AnyActorRef, id: string): void;
-  cancelAll(actorRef: AnyActorRef): void;
+  cancel(source: AnyActor, id: string): void;
+  cancelAll(actor: AnyActor): void;
 }
 
 type ScheduledEventId = string & { __scheduledEventId: never };
 
-function createScheduledEventId(
-  actorRef: AnyActorRef,
-  id: string
-): ScheduledEventId {
-  return `${actorRef.sessionId}.${id}` as ScheduledEventId;
+function createScheduledEventId(actor: AnyActor, id: string): ScheduledEventId {
+  return `${actor.sessionId}.${id}` as ScheduledEventId;
 }
 
 export interface ActorSystem<T extends ActorSystemInfo> {
   /** @internal */
-  children: Map<string, AnyActorRef>;
+  children: Map<string, AnyActor>;
   /** @internal */
-  reverseKeyedActors: WeakMap<AnyActorRef, keyof T['actors']>;
+  reverseKeyedActors: WeakMap<AnyActor, keyof T['actors']>;
   /** @internal */
-  keyedActors: Map<keyof T['actors'], AnyActorRef | undefined>;
+  keyedActors: Map<keyof T['actors'], AnyActor | undefined>;
   /** @internal */
   _bookId: () => string;
   /** @internal */
-  _register: (sessionId: string, actorRef: AnyActorRef) => string;
+  _register: (sessionId: string, actor: AnyActor) => string;
   /** @internal */
-  _unregister: (actorRef: AnyActorRef) => void;
+  _unregister: (actor: AnyActor) => void;
   /** @internal */
-  _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
+  _set: <K extends keyof T['actors']>(key: K, actor: AnyActor) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
   getAll: () => Partial<T['actors']>;
 
@@ -75,8 +72,8 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   ) => void;
   /** @internal */
   _relay: (
-    source: AnyActorRef | undefined,
-    target: AnyActorRef,
+    source: AnyActor | undefined,
+    target: AnyActor,
     event: AnyEventObject
   ) => void;
   scheduler: Scheduler;
@@ -101,7 +98,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
 export type AnyActorSystem = ActorSystem<any>;
 
 export function createSystem<T extends ActorSystemInfo>(
-  rootActor: AnyActorRef,
+  rootActor: AnyActor,
   options: {
     clock: Clock;
     logger: (...args: any[]) => void;
@@ -110,9 +107,9 @@ export function createSystem<T extends ActorSystemInfo>(
   }
 ): ActorSystem<T> {
   let idCounter = 0;
-  const children = new Map<string, AnyActorRef>();
-  const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
-  const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
+  const children = new Map<string, AnyActor>();
+  const keyedActors = new Map<keyof T['actors'], AnyActor | undefined>();
+  const reverseKeyedActors = new WeakMap<AnyActor, keyof T['actors']>();
   const inspectionObservers = new Set<Observer<InspectionEvent>>();
   const timerMap: { [id: ScheduledEventId]: number } = {};
   const { clock, logger } = options;
@@ -121,8 +118,8 @@ export function createSystem<T extends ActorSystemInfo>(
   // facet. Captures the send when it is initiated (including delayed sends that
   // may never deliver), keyed to the source actor's in-flight transition.
   const recordSent = (
-    source: AnyActorRef | undefined,
-    target: AnyActorRef,
+    source: AnyActor | undefined,
+    target: AnyActor,
     event: AnyEventObject,
     delay?: number,
     id?: string
@@ -182,14 +179,14 @@ export function createSystem<T extends ActorSystemInfo>(
         clock.clearTimeout(timeout);
       }
     },
-    cancelAll: (actorRef) => {
+    cancelAll: (actor) => {
       for (const scheduledEventId in system._snapshot._scheduledEvents) {
         const scheduledEvent =
           system._snapshot._scheduledEvents[
             scheduledEventId as ScheduledEventId
           ];
-        if (scheduledEvent.source === actorRef) {
-          scheduler.cancel(actorRef, scheduledEvent.id);
+        if (scheduledEvent.source === actor) {
+          scheduler.cancel(actor, scheduledEvent.id);
         }
       }
     }
@@ -197,8 +194,8 @@ export function createSystem<T extends ActorSystemInfo>(
   // Delivers an event to the target actor. Used by both `_relay` (which also
   // records the send) and the scheduler's timer (which already recorded it).
   const deliver = (
-    source: AnyActorRef | undefined,
-    target: AnyActorRef,
+    source: AnyActor | undefined,
+    target: AnyActor,
     event: AnyEventObject
   ) => {
     const targetMachine = (target as any).logic;
@@ -239,17 +236,17 @@ export function createSystem<T extends ActorSystemInfo>(
         (options?.snapshot && (options.snapshot as any).scheduler) ?? {}
     },
     _bookId: () => `x:${idCounter++}`,
-    _register: (sessionId, actorRef) => {
-      children.set(sessionId, actorRef);
+    _register: (sessionId, actor) => {
+      children.set(sessionId, actor);
       return sessionId;
     },
-    _unregister: (actorRef) => {
-      children.delete(actorRef.sessionId!);
-      const systemId = reverseKeyedActors.get(actorRef);
+    _unregister: (actor) => {
+      children.delete(actor.sessionId!);
+      const systemId = reverseKeyedActors.get(actor);
 
       if (systemId !== undefined) {
         keyedActors.delete(systemId);
-        reverseKeyedActors.delete(actorRef);
+        reverseKeyedActors.delete(actor);
       }
     },
     get: (systemId) => {
@@ -258,16 +255,16 @@ export function createSystem<T extends ActorSystemInfo>(
     getAll: () => {
       return Object.fromEntries(keyedActors.entries()) as Partial<T['actors']>;
     },
-    _set: (systemId, actorRef) => {
+    _set: (systemId, actor) => {
       const existing = keyedActors.get(systemId);
-      if (existing && existing !== actorRef) {
+      if (existing && existing !== actor) {
         throw new Error(
           `Actor with system ID '${systemId as string}' already exists.`
         );
       }
 
-      keyedActors.set(systemId, actorRef);
-      reverseKeyedActors.set(actorRef, systemId);
+      keyedActors.set(systemId, actor);
+      reverseKeyedActors.set(actor, systemId);
     },
     inspect: (observerOrFn) => {
       const observer = toObserver(observerOrFn);

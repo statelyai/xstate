@@ -28,9 +28,9 @@ import {
   TransitionDefinition,
   AnyAction,
   AnyTransitionConfig,
+  AnyActor,
   AnyActorScope,
   EnqueueObject,
-  AnyActorRef,
   DoneStateEvent
 } from './types.ts';
 import {
@@ -759,7 +759,7 @@ export function transitionNode<
     any // TStateSchema
   >,
   event: TEvent,
-  self: AnyActorRef
+  self: AnyActor
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
   if (typeof stateValue === 'string') {
@@ -1488,7 +1488,7 @@ function microstep(
                 })
               : invokeDef.input;
 
-          const actorRef = createActor(logic, {
+          const actor = createActor(logic, {
             ...invokeDef,
             input,
             parent: actorScope.self,
@@ -1497,11 +1497,11 @@ function microstep(
 
           actions.push({
             action: builtInActions['@xstate.start'],
-            args: [actorRef]
+            args: [actor]
           });
 
           if (invokeDef.id) {
-            children[invokeDef.id] = actorRef;
+            children[invokeDef.id] = actor;
           }
         }
 
@@ -1996,7 +1996,7 @@ export function hasEffect(
   context: MachineContext,
   event: EventObject,
   snapshot: AnyMachineSnapshot,
-  self: AnyActorRef
+  self: AnyActor
 ): boolean {
   if (transition.to) {
     return transitionToHasEffect(
@@ -2017,7 +2017,7 @@ function transitionToHasEffect(
   context: MachineContext,
   event: EventObject,
   snapshot: AnyMachineSnapshot,
-  self: AnyActorRef,
+  self: AnyActor,
   implementations: AnyMachineSnapshot['machine']['implementations']
 ) {
   let hasEffect = false;
@@ -2070,12 +2070,11 @@ function stopChildren(
   snapshot: AnyMachineSnapshot,
   actorScope: AnyActorScope
 ): AnyMachineSnapshot {
-  let children: AnyActorRef[];
+  let children: AnyActor[];
   if (
     !snapshot.children ||
-    (children = Object.values(snapshot.children).filter(
-      Boolean
-    ) as AnyActorRef[]).length === 0
+    (children = Object.values(snapshot.children).filter(Boolean) as AnyActor[])
+      .length === 0
   ) {
     return snapshot;
   }
@@ -2135,7 +2134,7 @@ export function evaluateCandidate(
   event: EventObject,
   snapshot: AnyMachineSnapshot,
   stateNode: AnyStateNode,
-  self: AnyActorRef
+  self: AnyActor
 ): boolean {
   if (candidate.guard) {
     const guardArgs = {

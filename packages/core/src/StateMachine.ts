@@ -26,6 +26,7 @@ import { AnyActorSystem } from './system.ts';
 import type {
   ActorLogic,
   ActorScope,
+  AnyActor,
   AnyActorLogic,
   AnyActorRef,
   AnyActorScope,
@@ -47,7 +48,6 @@ import type {
 import {
   Implementations,
   Next_MachineConfig,
-  Trigger,
   MachineOptions
 } from './types.v6.ts';
 import {
@@ -111,13 +111,6 @@ export class StateMachine<
   public states: StateNode<TContext, TEvent>['states'];
   public events: Array<EventDescriptor<TEvent>>;
   public internalEventDescriptors: ReadonlyArray<string>;
-  /**
-   * Triggers describing how this machine is activated by external
-   * infrastructure (webhooks, cron, events, etc.). Metadata only — does not
-   * affect runtime execution.
-   */
-  public triggers: ReadonlyArray<Trigger>;
-
   constructor(
     /** The raw config used to create the machine. */
     public config: Next_MachineConfig<
@@ -134,7 +127,6 @@ export class StateMachine<
     > & {
       schemas?: unknown;
       internalEvents?: readonly string[];
-      triggers?: readonly Trigger[];
     },
     implementations?: Implementations
   ) {
@@ -162,7 +154,6 @@ export class StateMachine<
     this.version = this.config.version;
     this.schemas = this.config.schemas;
     this.internalEventDescriptors = this.config.internalEvents ?? [];
-    this.triggers = this.config.triggers ?? [];
     this.options = {
       maxIterations: Infinity,
       ...this.config.options
@@ -394,7 +385,7 @@ export class StateMachine<
       TConfig
     >,
     event: TEvent,
-    self: AnyActorRef
+    self: AnyActor
   ): Array<AnyTransitionDefinition> {
     return (
       transitionNode(this.root, snapshot.value, snapshot, event, self) || []
@@ -544,7 +535,7 @@ export class StateMachine<
       return;
     }
     for (const child of Object.values(
-      snapshot.children as Record<string, AnyActorRef>
+      snapshot.children as unknown as Record<string, AnyActor>
     )) {
       if (
         (child as any)._rehydrated &&
@@ -640,7 +631,7 @@ export class StateMachine<
     }
 
     const snapshotData = snapshot as any;
-    const children: Record<string, AnyActorRef> = {};
+    const children: Record<string, AnyActor> = {};
     const snapshotChildren: Record<
       string,
       {
@@ -663,7 +654,7 @@ export class StateMachine<
         continue;
       }
 
-      const actorRef = createActor(logic, {
+      const actor = createActor(logic, {
         id: actorId,
         parent: _actorScope.self,
         syncSnapshot: actorData.syncSnapshot,
@@ -673,9 +664,9 @@ export class StateMachine<
       });
       // Mark so `start()` knows to start this child (freshly invoked/spawned
       // children are started via deferred `@xstate.start` actions instead).
-      (actorRef as any)._rehydrated = true;
+      (actor as any)._rehydrated = true;
 
-      children[actorId] = actorRef;
+      children[actorId] = actor;
     }
 
     const reviveHistoryValue = (

@@ -3,7 +3,9 @@ import { StandardSchemaV1 } from '../schema.types.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
+  ActorFromLogic,
   ActorRefFromLogic,
+  AnyActor,
   EventObject,
   NonReducibleUnknown,
   Snapshot,
@@ -65,14 +67,14 @@ export type ObservableActorLogic<
  * const logic = createObservableLogic<Context, Input>(
  *   ({ input, self }) => {
  *     self;
- *     // ^? ObservableActorRef<Event, Input>
+ *     // ^? ObservableActor<Event, Input>
  *
  *     return interval(input.period ?? 1_000);
  *   }
  * );
  *
  * const actor = createActor(logic, { input: { period: 2_000 } });
- * //    ^? ObservableActorRef<Event, Input>
+ * //    ^? ObservableActor<Event, Input>
  * ```
  *
  * @see {@link createObservableLogic}
@@ -81,6 +83,12 @@ export type ObservableActorLogic<
 export type ObservableActorRef<TContext> = ActorRefFromLogic<
   ObservableActorLogic<TContext, any>
 >;
+
+export type ObservableActor<
+  TContext,
+  TInput extends NonReducibleUnknown = any,
+  TEmitted extends EventObject = EventObject
+> = ActorFromLogic<ObservableActorLogic<TContext, TInput, TEmitted>>;
 
 export type ObservableLogicFunction<
   TContext,
@@ -94,7 +102,7 @@ export type ObservableLogicFunction<
 }: {
   input: TInput;
   system: AnyActorSystem;
-  self: ObservableActorRef<TContext>;
+  self: ObservableActor<TContext, TInput, TEmitted>;
   emit: (emitted: TEmitted) => void;
 }) => Subscribable<TContext>;
 
@@ -122,7 +130,7 @@ export type EventObservableLogicFunction<
 }: {
   input: TInput;
   system: AnyActorSystem;
-  self: ObservableActorRef<TEvent>;
+  self: ObservableActor<TEvent, TInput, TEmitted>;
   emit: (emitted: TEmitted) => void;
 }) => Subscribable<TEvent>;
 
@@ -274,6 +282,7 @@ export function createObservableLogic<
       }
 
       enq.effect('observable', () => {
+        const actorSelf = self as unknown as AnyActor;
         const subscription = observableCreator({
           input,
           system,
@@ -281,19 +290,21 @@ export function createObservableLogic<
           emit: emit as (emitted: TEmitted) => void
         }).subscribe({
           next: (value) => {
-            system._relay(self, self, {
+            system._relay(actorSelf, actorSelf, {
               type: XSTATE_OBSERVABLE_NEXT,
               data: value
             });
           },
           error: (err) => {
-            system._relay(self, self, {
+            system._relay(actorSelf, actorSelf, {
               type: XSTATE_OBSERVABLE_ERROR,
               data: err
             });
           },
           complete: () => {
-            system._relay(self, self, { type: XSTATE_OBSERVABLE_COMPLETE });
+            system._relay(actorSelf, actorSelf, {
+              type: XSTATE_OBSERVABLE_COMPLETE
+            });
           }
         });
 

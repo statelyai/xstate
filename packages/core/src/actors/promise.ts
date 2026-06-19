@@ -4,7 +4,9 @@ import { StandardSchemaV1 } from '../schema.types.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
+  ActorFromLogic,
   ActorRefFromLogic,
+  AnyActor,
   EventObject,
   NonReducibleUnknown,
   Snapshot
@@ -45,13 +47,19 @@ export type AsyncActorRef<TOutput> = ActorRefFromLogic<
   AsyncActorLogic<TOutput, unknown>
 >;
 
+export type AsyncActor<
+  TOutput,
+  TInput = unknown,
+  TEmitted extends EventObject = EventObject
+> = ActorFromLogic<AsyncActorLogic<TOutput, TInput, TEmitted>>;
+
 export interface LogicArgs<TOutput, TInput> {
   /** Data that was provided to the async actor. */
   input: TInput;
   /** The actor system to which the async actor belongs. */
   system: AnyActorSystem;
-  /** The async actor ref. */
-  self: AsyncActorRef<TOutput>;
+  /** The async actor. */
+  self: AsyncActor<TOutput, TInput>;
   /** Aborted when the async actor is stopped or times out. */
   signal: AbortSignal;
 }
@@ -129,7 +137,7 @@ export class TimeoutError extends Error {
  * const logic = createAsyncLogic<Output, Input>({
  *   run: async ({ input, self }, enq) => {
  *     self;
- *     // ^? AsyncActorRef<Output>
+ *     // ^? AsyncActor<Output, Input>
  *     enq.emit({ type: 'request.start' });
  *
  *     const data = await fetch(
@@ -141,7 +149,7 @@ export class TimeoutError extends Error {
  * });
  *
  * const actor = createActor(logic, { input: { message: 'hello world' } });
- * //    ^? AsyncActorRef<Output>
+ * //    ^? AsyncActor<Output, Input>
  * ```
  *
  * @see {@link createAsyncLogic}
@@ -351,6 +359,7 @@ export function createAsyncLogic<
       }
 
       enq.effect(() => {
+        const actorSelf = self as unknown as AnyActor;
         const controller = new AbortController();
         const timeout = config.timeout;
         const timeoutMs = parseDelayToMilliseconds(timeout);
@@ -362,7 +371,7 @@ export function createAsyncLogic<
                   return;
                 }
                 controller.abort();
-                system._relay(self, self, {
+                system._relay(actorSelf, actorSelf, {
                   type: XSTATE_ASYNC_REJECT,
                   data: new TimeoutError(timeout!)
                 });
@@ -399,21 +408,21 @@ export function createAsyncLogic<
                   return waitForEffect(self as any, key) as any;
                 }
 
-                system._relay(self, self, {
+                system._relay(actorSelf, actorSelf, {
                   type: XSTATE_LOGIC_EFFECT_START,
                   key
                 });
 
                 try {
                   const output = await exec();
-                  system._relay(self, self, {
+                  system._relay(actorSelf, actorSelf, {
                     type: XSTATE_LOGIC_EFFECT_RESOLVE,
                     key,
                     output
                   });
                   return output;
                 } catch (error) {
-                  system._relay(self, self, {
+                  system._relay(actorSelf, actorSelf, {
                     type: XSTATE_LOGIC_EFFECT_REJECT,
                     key,
                     error
@@ -431,7 +440,7 @@ export function createAsyncLogic<
             if (self.getSnapshot().status !== 'active') {
               return;
             }
-            system._relay(self, self, {
+            system._relay(actorSelf, actorSelf, {
               type: XSTATE_ASYNC_RESOLVE,
               data: response
             });
@@ -441,7 +450,7 @@ export function createAsyncLogic<
             if (self.getSnapshot().status !== 'active') {
               return;
             }
-            system._relay(self, self, {
+            system._relay(actorSelf, actorSelf, {
               type: XSTATE_ASYNC_REJECT,
               data: errorData
             });

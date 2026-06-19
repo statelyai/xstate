@@ -1,13 +1,13 @@
 import { XSTATE_STOP } from '../constants.ts';
 import type { AnyActorSystem } from '../system.ts';
 import type {
-  AnyActorRef,
+  AnyActor,
   EventObject,
   Snapshot,
   Subscription
 } from '../types.ts';
 
-const subscriptions = /* #__PURE__ */ new WeakMap<AnyActorRef, Subscription>();
+const subscriptions = /* #__PURE__ */ new WeakMap<AnyActor, Subscription>();
 
 /**
  * Internal factory for actor logic that attaches to another actor on start
@@ -16,7 +16,7 @@ const subscriptions = /* #__PURE__ */ new WeakMap<AnyActorRef, Subscription>();
 export function createAttachedLogic(
   attach: (
     input: any,
-    scope: { self: AnyActorRef; system: AnyActorSystem }
+    scope: { self: AnyActor; system: AnyActorSystem }
   ) => Subscription | undefined
 ): any {
   return {
@@ -52,7 +52,7 @@ export function createAttachedLogic(
         parentSubscription?.unsubscribe();
       };
 
-      const parent: AnyActorRef | undefined = self._parent;
+      const parent: AnyActor | undefined = self._parent;
       if (parent) {
         parentSubscription = parent.subscribe({
           complete: teardown,
@@ -90,7 +90,7 @@ export function createAttachedLogic(
  * actor has been stopped (the mapper is not called in that case).
  */
 export function relayMappedToParent(
-  self: AnyActorRef,
+  self: AnyActor,
   system: AnyActorSystem,
   getEvent: () => EventObject
 ): void {

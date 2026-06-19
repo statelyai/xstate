@@ -1,6 +1,6 @@
 import { ProcessingStatus, createActor } from './createActor.ts';
 import {
-  ActorRefFromLogic,
+  ActorFromLogic,
   AnyActorLogic,
   AnyActorRef,
   AnyActorScope,
@@ -27,7 +27,7 @@ export type Spawner = <TLogic extends AnyActorLogic>(
     ],
     IsNotNever<RequiredLogicInput<TLogic>>
   >
-) => ActorRefFromLogic<TLogic>;
+) => ActorFromLogic<TLogic>;
 
 export function createSpawner(
   actorScope: AnyActorScope,
@@ -45,7 +45,7 @@ export function createSpawner(
         );
       }
 
-      const actorRef = createActor(logic, {
+      const actor = createActor(logic, {
         id: options?.id,
         parent: actorScope.self,
         syncSnapshot: options?.syncSnapshot,
@@ -61,11 +61,11 @@ export function createSpawner(
         systemId: options?.systemId
       }) as any;
 
-      spawnedChildren[actorRef.id] = actorRef;
+      spawnedChildren[actor.id] = actor;
 
-      return actorRef;
+      return actor;
     } else {
-      const actorRef = createActor(src, {
+      const actor = createActor(src, {
         id: options?.id,
         parent: actorScope.self,
         syncSnapshot: options?.syncSnapshot,
@@ -74,18 +74,18 @@ export function createSpawner(
         systemId: options?.systemId
       });
 
-      return actorRef;
+      return actor;
     }
   }) as Spawner;
   return ((src, options) => {
-    const actorRef = spawn(src, options) as TODO; // TODO: fix types
-    spawnedChildren[actorRef.id] = actorRef;
+    const actor = spawn(src, options) as TODO; // TODO: fix types
+    spawnedChildren[actor.id] = actor;
     actorScope.defer(() => {
-      if (actorRef._processingStatus === ProcessingStatus.Stopped) {
+      if (actor._processingStatus === ProcessingStatus.Stopped) {
         return;
       }
-      actorRef.start();
+      actor.start();
     });
-    return actorRef;
+    return actor;
   }) as Spawner;
 }

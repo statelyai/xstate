@@ -524,6 +524,18 @@ describe('emitted', () => {
 
     // @ts-expect-error
     actor.on('unknown', () => {});
+
+    const actorRef: ActorRefFromLogic<typeof m> = actor;
+
+    actorRef.on('onClick', (ev) => {
+      ev.y satisfies number;
+
+      // @ts-expect-error
+      ev.y satisfies string;
+    });
+
+    // @ts-expect-error
+    actorRef.on('unknown', () => {});
   });
 });
 

@@ -11,7 +11,7 @@ import { cloneMachineSnapshot } from './State.ts';
 import type {
   Action,
   AnyAction,
-  AnyActorRef,
+  AnyActor,
   AnyActorScope,
   AnyEventObject,
   AnyMachineSnapshot,
@@ -23,23 +23,23 @@ function pushBuiltInAction(actions: any[], action: any, ...args: any[]) {
   actions.push({ action, args } as AnyAction);
 }
 
-function registerSpawnedChild(actorRef: AnyActorRef, id: string) {
+function registerSpawnedChild(actor: AnyActor, id: string) {
   return Object.assign(
-    function registerChild(args: { children: Record<string, AnyActorRef> }) {
-      return { children: { ...args.children, [id]: actorRef } };
+    function registerChild(args: { children: Record<string, AnyActor> }) {
+      return { children: { ...args.children, [id]: actor } };
     },
     { _special: true }
   );
 }
 
-function unregisterChild(actorRef: AnyActorRef) {
+function unregisterChild(actor: AnyActor) {
   return Object.assign(
     function removeChild(args: {
-      children: Record<string, AnyActorRef | undefined>;
+      children: Record<string, AnyActor | undefined>;
     }) {
       const children = { ...args.children };
       for (const key of Object.keys(children)) {
-        if (children[key] === actorRef) {
+        if (children[key] === actor) {
           delete children[key];
         }
       }
@@ -51,11 +51,11 @@ function unregisterChild(actorRef: AnyActorRef) {
 
 function pushStartedChild(
   actions: any[],
-  actorRef: AnyActorRef,
+  actor: AnyActor,
   id: string | undefined
 ) {
-  pushBuiltInAction(actions, builtInActions['@xstate.start'], actorRef);
-  actions.push(registerSpawnedChild(actorRef, id ?? actorRef.id));
+  pushBuiltInAction(actions, builtInActions['@xstate.start'], actor);
+  actions.push(registerSpawnedChild(actor, id ?? actor.id));
 }
 
 export function createTransitionEnqueue(
@@ -100,34 +100,34 @@ export function createTransitionEnqueue(
       }
     },
     spawn: (logic, options) => {
-      const actorRef = createActor(logic, {
+      const actor = createActor(logic, {
         ...options,
         parent: actorScope.self
       });
-      pushStartedChild(actions, actorRef, options?.id);
-      return actorRef;
+      pushStartedChild(actions, actor, options?.id);
+      return actor;
     },
-    sendTo: (actorRef, event, options) => {
-      if (actorRef) {
+    sendTo: (actor, event, options) => {
+      if (actor) {
         pushBuiltInAction(
           actions,
           builtInActions['@xstate.sendTo'],
           actorScope,
-          actorRef,
+          actor,
           event,
           options
         );
       }
     },
-    stop: (actorRef) => {
-      if (actorRef) {
+    stop: (actor) => {
+      if (actor) {
         pushBuiltInAction(
           actions,
           builtInActions['@xstate.stopChild'],
           actorScope,
-          actorRef
+          actor
         );
-        actions.push(unregisterChild(actorRef));
+        actions.push(unregisterChild(actor));
       }
     }
   };
@@ -140,12 +140,16 @@ export function createTransitionEnqueue(
           eventType,
           mapper
         };
-        const actorRef = createActor(listenerLogic, {
+        const listenerActor = createActor(listenerLogic, {
           input,
           parent: actorScope.self
         });
-        pushBuiltInAction(actions, builtInActions['@xstate.start'], actorRef);
-        return actorRef;
+        pushBuiltInAction(
+          actions,
+          builtInActions['@xstate.start'],
+          listenerActor
+        );
+        return listenerActor;
       },
       subscribeTo: (actor: any, mappers: any) => {
         const normalizedMappers: SubscriptionMappers<any, any, any> =
@@ -155,12 +159,16 @@ export function createTransitionEnqueue(
           actor,
           mappers: normalizedMappers
         };
-        const actorRef = createActor(subscriptionLogic, {
+        const subscriptionActor = createActor(subscriptionLogic, {
           input,
           parent: actorScope.self
         });
-        pushBuiltInAction(actions, builtInActions['@xstate.start'], actorRef);
-        return actorRef;
+        pushBuiltInAction(
+          actions,
+          builtInActions['@xstate.start'],
+          subscriptionActor
+        );
+        return subscriptionActor;
       }
     });
   }

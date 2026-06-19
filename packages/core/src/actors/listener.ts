@@ -3,7 +3,7 @@ import { matchesEventDescriptor } from '../utils.ts';
 import {
   ActorLogic,
   ActorRefFromLogic,
-  AnyActorRef,
+  AnyActor,
   EventObject,
   Snapshot
 } from '../types';
@@ -17,7 +17,7 @@ export interface ListenerInput<
   TEmitted extends EventObject,
   TMappedEvent extends EventObject
 > {
-  actor: AnyActorRef;
+  actor: AnyActor;
   eventType: string;
   mapper: (event: TEmitted) => TMappedEvent;
 }
