@@ -1,5 +1,5 @@
 import z from 'zod';
-import { setup, createActor } from '../src/index.ts';
+import { setup, createActor, types } from '../src/index.ts';
 import type {
   StateContextFromStateValue,
   StateSchemaFrom
@@ -71,6 +71,156 @@ describe('setup', () => {
     });
 
     expect(s.states.parent.states?.child.schemas?.input).toBeDefined();
+  });
+
+  it('should create typed state configs from setup', () => {
+    const s = setup({
+      schemas: {
+        context: types<{ count: number }>(),
+        events: {
+          INC: types<{ value: number }>(),
+          RESET: types<{}>()
+        },
+        tags: types<'active'>(),
+        meta: types<{ label: string }>()
+      },
+      states: {
+        idle: {},
+        loading: {
+          schemas: {
+            input: z.object({
+              userId: z.string()
+            })
+          }
+        }
+      }
+    });
+
+    const idle = s.createStateConfig({
+      tags: ['active'],
+      meta: { label: 'Idle' },
+      on: {
+        INC: ({ context, event }) => {
+          context.count satisfies number;
+          event.value satisfies number;
+
+          return {
+            context: {
+              count: context.count + event.value
+            }
+          };
+        },
+        RESET: () => ({
+          target: 'loading',
+          context: { count: 0 },
+          input: { userId: 'user-123' }
+        })
+      }
+    });
+
+    s.createMachine({
+      context: { count: 0 },
+      initial: 'idle',
+      states: {
+        idle,
+        loading: {}
+      }
+    });
+
+    expect(idle).toEqual({
+      tags: ['active'],
+      meta: { label: 'Idle' },
+      on: expect.any(Object)
+    });
+  });
+
+  it('should create typed machines from setup schemas', () => {
+    const s = setup({
+      schemas: {
+        context: types<{ count: number }>(),
+        events: {
+          INC: types<{ value: number }>()
+        }
+      }
+    });
+
+    s.createMachine({
+      context: { count: 0 },
+      on: {
+        INC: ({ context, event }) => {
+          context.count satisfies number;
+          event.value satisfies number;
+
+          return {
+            context: {
+              count: context.count + event.value
+            }
+          };
+        }
+      }
+    });
+
+    s.createMachine({
+      context: { count: 0 },
+      on: {
+        // @ts-expect-error - unknown event
+        UNKNOWN: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('should reject invalid setup-created state configs', () => {
+    const s = setup({
+      schemas: {
+        context: types<{ count: number }>(),
+        events: {
+          INC: types<{ value: number }>(),
+          RESET: types<{}>()
+        },
+        tags: types<'active'>(),
+        meta: types<{ label: string }>()
+      },
+      states: {
+        idle: {},
+        loading: {
+          schemas: {
+            input: z.object({
+              userId: z.string()
+            })
+          }
+        }
+      }
+    });
+
+    s.createStateConfig({
+      on: {
+        // @ts-expect-error - unknown event
+        UNKNOWN: {}
+      }
+    });
+
+    s.createStateConfig({
+      // @ts-expect-error - unknown tag
+      tags: ['inactive']
+    });
+
+    s.createStateConfig({
+      // @ts-expect-error - meta.label should be a string
+      meta: { label: 42 }
+    });
+
+    s.createStateConfig({
+      on: {
+        // @ts-expect-error - loading input should include a string userId
+        RESET: () => ({
+          target: 'loading',
+          context: { count: 0 },
+          input: { userId: 42 }
+        })
+      }
+    });
   });
 
   it('should create a machine from setup', () => {

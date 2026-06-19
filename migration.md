@@ -390,14 +390,19 @@ If you omit `schemas.context`, the context type is inferred from the literal `co
 
 ## 4. `setup()` and providing implementations
 
-`setup()` exists in v6 but is **dramatically reduced** in scope. Its sole responsibility is now to declare **state-level input schemas** so the resulting `createMachine` is typed for the `initial: { target, input }` form and for transitions targeting those states.
+`setup()` exists in v6 but is **dramatically reduced** in scope. It declares root machine schemas and **state-level input schemas** so `createMachine` and `createStateConfig` are typed for the `initial: { target, input }` form and for transitions targeting those states.
 
 ```ts
-// v6 — actual setup() shape: only `types` and `states`
+// v6 — setup config shape: only `schemas` and `states`
 import { setup } from 'xstate';
 import { z } from 'zod';
 
 const s = setup({
+  schemas: {
+    events: {
+      LOAD: z.object({})
+    }
+  },
   states: {
     loading: {
       schemas: { input: z.object({ userId: z.string() }) }
@@ -405,9 +410,14 @@ const s = setup({
   }
 });
 
+const loading = s.createStateConfig({});
+
 const machine = s.createMachine({
   initial: { target: 'loading', input: { userId: 'u1' } },
-  states: { loading: {} }
+  states: { loading },
+  on: {
+    LOAD: '.loading'
+  }
 });
 ```
 

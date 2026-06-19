@@ -246,8 +246,8 @@ describe('route', () => {
 
   it('route events are strongly typed', () => {
     const machine = setup({
-      types: {
-        events: {} as never
+      schemas: {
+        events: {}
       }
     }).createMachine({
       id: 'root',
@@ -302,8 +302,8 @@ describe('route', () => {
 
   it('route config without id should not generate route events', () => {
     const machine = setup({
-      types: {
-        events: {} as never
+      schemas: {
+        events: {}
       }
     }).createMachine({
       id: 'test',
