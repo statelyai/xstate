@@ -221,10 +221,6 @@
           "type": "array",
           "items": { "type": "string" }
         },
-        "triggers": {
-          "type": "array",
-          "items": { "type": "object" }
-        },
         "schemas": { "type": "object" },
         "actions": { "$ref": "#/$defs/implementationMap" },
         "guards": { "$ref": "#/$defs/implementationMap" },

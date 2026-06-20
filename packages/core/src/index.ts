@@ -73,7 +73,6 @@ export type {
   Next_TransitionConfigOrTarget as TransitionConfigOrTarget,
   Implementations,
   InferEvents,
-  Trigger,
   WidenLiterals
 } from './types.v6.ts';
 export {

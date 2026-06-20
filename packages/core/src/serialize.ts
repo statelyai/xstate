@@ -196,9 +196,6 @@ export function machineConfigToJSON(
   if (config.internalEvents !== undefined) {
     result.internalEvents = valueToJSON(config.internalEvents);
   }
-  if (config.triggers !== undefined) {
-    result.triggers = valueToJSON(config.triggers);
-  }
   if (config.schemas) {
     const schemas: Record<string, unknown> = {};
     for (const key of Object.keys(config.schemas as object)) {

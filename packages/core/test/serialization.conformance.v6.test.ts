@@ -144,7 +144,6 @@ describe('serializability conformance', () => {
     const machine = createMachine({
       initial: 'idle',
       internalEvents: ['tick'],
-      triggers: [{ type: 'webhook', path: '/hook' }],
       states: {
         idle: {
           timeout: '5s',
@@ -159,7 +158,6 @@ describe('serializability conformance', () => {
 
     expect(json.initial).toBe('idle');
     expect(json.internalEvents).toEqual(['tick']);
-    expect(json.triggers).toEqual([{ type: 'webhook', path: '/hook' }]);
     expect(json.states.idle.timeout).toBe('5s');
     expect(json.states.idle.onTimeout).toBe('expired');
     expect(json.states.idle.on.NEXT).toBe('expired');

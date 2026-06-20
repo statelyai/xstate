@@ -9,8 +9,6 @@ The inspection protocol is now both **simpler (2 event types)** and **lossless**
 
 The concrete event interfaces `ActorInspectionEvent` and `TransitionInspectionEvent` (and the `ActionRecord` / `SentRecord` payload types) are exported alongside the `InspectionEvent` union, which remains a discriminated union on `type`. This is a superset of what `@statelyai/inspect` consumes.
 
-Atoms can also be used directly with `enq.subscribeTo(atom, ...)`; the mapper receives the atom's current value. The new `isAtom(value)` helper is exported for atom detection.
-
 ```ts
 const actor = createActor(machine, {
   inspect: (ev) => {

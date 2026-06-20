@@ -47,3 +47,5 @@ if (snapshot.matches('success')) {
   snapshot.context.user; // string
 }
 ```
+
+State-level `schemas.input` is also supported: input supplied on a transition or `initial` (`{ target, input }`) is typed in that state's entry/exit and transition functions via `({ input })`, read from a snapshot with `snapshot.getInputs()` (keyed by state node id), and typed recursively for nested states.

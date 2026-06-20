@@ -2,7 +2,7 @@
 'xstate': minor
 ---
 
-Add atom APIs to XState and make actors readable by atoms.
+Add atom APIs to XState and make actors readable by atoms. The exported atom surface is `createAtom`, `createAtomConfig`, `createAsyncAtom`, `createReducerAtom`, and the `isAtom(value)` guard.
 
 ```ts
 import { createActor, createAtom, createLogic } from 'xstate';
