@@ -971,24 +971,6 @@ export type Next_TransitionConfigOrTarget<
       TMeta
     >;
 
-interface Next_SetupTypes<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TTag extends string,
-  TInput,
-  TOutput,
-  TEmitted extends EventObject,
-  TMeta extends MetaObject
-> {
-  context?: TContext;
-  events?: TEvent;
-  tags?: TTag;
-  input?: TInput;
-  output?: TOutput;
-  emitted?: TEmitted;
-  meta?: TMeta;
-}
-
 export type WithDefault<T, Default> = IsNever<T> extends true ? Default : T;
 
 export interface Implementations {
