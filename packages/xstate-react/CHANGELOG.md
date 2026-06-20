@@ -1,5 +1,18 @@
 # Changelog
 
+## 7.0.0-alpha.1
+
+### Major Changes
+
+- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - Updated `@xstate/react` for XState v6. The internal Strict-Mode rehydration mechanism (`stopRootWithRehydration`) has been removed: on a Strict-Mode (or Offscreen/Activity) remount, the actor is now recreated and restarted rather than rehydrated, consistent with v6 actors no longer auto-starting children on `start()`.
+
+  In production this changes nothing — there's no throwaway double-mount, so the actor is created once and runs normally. In development, the recreated actor starts from the same logic and `input`, so it lands on the same initial snapshot; the only observable difference is for actors that accumulated child state during Strict Mode's discarded first mount, which was itself a dev-only artifact. In exchange, the package sheds a fragile, hard-to-reason-about mechanism (root-stop-with-child-snapshot-preservation plus observer muting) that existed solely to paper over Strict Mode.
+
+### Patch Changes
+
+- Updated dependencies [[`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`021cc56`](https://github.com/statelyai/xstate/commit/021cc563e75d2e4d130c34e2d274565c2df6ec76), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`d9079cd`](https://github.com/statelyai/xstate/commit/d9079cd8586b4be4154dbfc296219b391f1cd85c), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`96aee67`](https://github.com/statelyai/xstate/commit/96aee679d4bd8041eb25df6bda2d9eef2ab7169f), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`021cc56`](https://github.com/statelyai/xstate/commit/021cc563e75d2e4d130c34e2d274565c2df6ec76), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925)]:
+  - xstate@6.0.0-alpha.1
+
 ## 7.0.0-alpha.0
 
 ### Patch Changes
