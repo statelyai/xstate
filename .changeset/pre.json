@@ -2,7 +2,6 @@
   "mode": "pre",
   "tag": "alpha",
   "initialVersions": {
-    "@xstate/codemod": "0.0.0",
     "xstate": "5.32.0",
     "@xstate/react": "6.1.0",
     "@xstate/solid": "2.0.0",
@@ -92,7 +91,6 @@
     "swift-send-typing",
     "tender-actors-atomize",
     "type-only-schemas",
-    "witty-choice-states",
-    "xstate-migrate-cli"
+    "witty-choice-states"
   ]
 }

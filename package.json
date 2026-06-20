@@ -11,7 +11,7 @@
   },
   "preconstruct": {
     "packages": [
-      "packages/!(xstate-dev|codemod)"
+      "packages/!(xstate-dev)"
     ],
     "globals": {
       "react": "React"

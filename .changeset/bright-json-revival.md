@@ -1,6 +1,5 @@
 ---
 'xstate': minor
-'@xstate/codemod': minor
 ---
 
 Machine JSON revival now preserves more of the serialized machine definition, including delayed transitions, state timeouts, state tags, state output, invoke input, invoke completion transitions, invoke timeouts, and implementation maps passed to `createMachineFromConfig`.
@@ -28,5 +27,3 @@ const machine = createMachineFromConfig(
   }
 );
 ```
-
-The migration codemod now reports manual review notes for known non-rename migrations such as `fromPromise(...)`, `return assign(...)`, object-form actions/guards, and legacy `types: {}` schema declarations.
