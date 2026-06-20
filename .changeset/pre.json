@@ -66,13 +66,33 @@
     "@xstate/example-workflow-send-cloudevent": "0.0.0"
   },
   "changesets": [
+    "bold-actor-triggers",
+    "brave-react-rehydrate",
+    "bright-json-revival",
     "calm-actors-rename",
+    "deferred-child-start",
+    "durable-logic-effects",
+    "eager-timeouts-delays",
+    "eleven-functions-inline",
+    "green-logic-schemas",
+    "keen-create-state-config",
     "light-machines-shrink",
+    "listen-subscribe-actors",
     "lossless-inspection-protocol",
     "proud-timers-migrate",
+    "quiet-internal-events",
+    "remove-interpret",
+    "schemas-typing",
+    "serious-actors-contract",
+    "setup-simplified",
+    "soft-states-narrow",
     "spicy-machines-serialize",
+    "store-adapters-compare",
+    "store-is-atom",
+    "swift-send-typing",
     "tender-actors-atomize",
     "type-only-schemas",
+    "witty-choice-states",
     "xstate-migrate-cli"
   ]
 }

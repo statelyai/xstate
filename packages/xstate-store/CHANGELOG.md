@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 4.3.0-alpha.0
+
+### Minor Changes
+
+- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - Export a new `isAtom(value)` helper that returns `true` when a value is an atom (i.e. has `get` and `subscribe` methods).
+
 ## 4.2.0
 
 ### Minor Changes
