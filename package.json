@@ -52,7 +52,7 @@
     "bench:size:update": "node scripts/bundle-size.mjs --update",
     "bench:type-errors": "node scripts/type-error-quality.mjs",
     "changeset": "changeset",
-    "release": "pnpm -r publish --access=public --no-git-checks && changeset tag",
+    "release": "node ./scripts/release.js",
     "version": "changeset version"
   },
   "repository": {
