@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@xstate/example-todomvc-react",
   "version": "0.0.1",
   "scripts": {

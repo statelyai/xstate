@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@xstate/example-express-workflow",
   "version": "1.0.0",
   "description": "",
