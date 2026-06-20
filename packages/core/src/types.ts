@@ -1623,7 +1623,7 @@ export interface ActorRef<
 export interface ActorRuntime<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TEmitted extends EventObject = EventObject
+  _TEmitted extends EventObject = EventObject
 > {
   /** The unique identifier for this actor relative to its parent. */
   id: string;
