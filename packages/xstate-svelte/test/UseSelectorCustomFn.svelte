@@ -1,15 +1,8 @@
 <script lang="ts">
-  import { setup } from 'xstate';
+  import { createMachine } from 'xstate';
   import { useActorRef, useSelector } from '../src/index.ts';
 
-  type ChangeEvent = { type: 'CHANGE'; value: string };
-
-  const machine = setup({
-    types: {
-      context: {} as { name: string },
-      events: {} as ChangeEvent
-    }
-  }).createMachine({
+  const machine = createMachine({
     initial: 'active',
     context: {
       name: 'david'
@@ -18,14 +11,8 @@
       active: {}
     },
     on: {
-      CHANGE: ({
-        context,
-        event
-      }: {
-        context: { name: string };
-        event: { type: string };
-      }) => ({
-        context: { ...context, name: (event as ChangeEvent).value }
+      CHANGE: ({ context, event }: any) => ({
+        context: { ...context, name: event.value }
       })
     }
   });
@@ -43,10 +30,10 @@
 <button
   data-testid="sendUpper"
   aria-label="Send upper"
-  on:click={() => actorRef.send({ type: 'CHANGE', value: 'DAVID' })}
+  on:click={() => actorRef.send({ type: 'CHANGE', value: 'DAVID' } as any)}
 ></button>
 <button
   data-testid="sendOther"
   aria-label="Send other"
-  on:click={() => actorRef.send({ type: 'CHANGE', value: 'other' })}
+  on:click={() => actorRef.send({ type: 'CHANGE', value: 'other' } as any)}
 ></button>

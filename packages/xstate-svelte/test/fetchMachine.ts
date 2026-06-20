@@ -10,7 +10,7 @@ export const fetchMachine = createMachine({
     fetchData: createAsyncLogic({ run: () => Promise.resolve('') })
   },
   initial: 'idle',
-  context: context as any,
+  context,
   states: {
     idle: {
       on: { FETCH: 'loading' }
