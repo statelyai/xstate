@@ -84,7 +84,7 @@ export type ObservableActorRef<TContext> = ActorRefFromLogic<
   ObservableActorLogic<TContext, any>
 >;
 
-export type ObservableActor<
+type ObservableActor<
   TContext,
   TInput extends NonReducibleUnknown = any,
   TEmitted extends EventObject = EventObject

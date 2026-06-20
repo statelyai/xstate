@@ -971,7 +971,7 @@ export type Next_TransitionConfigOrTarget<
       TMeta
     >;
 
-export interface Next_SetupTypes<
+interface Next_SetupTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TTag extends string,

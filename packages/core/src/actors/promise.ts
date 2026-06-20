@@ -47,7 +47,7 @@ export type AsyncActorRef<TOutput> = ActorRefFromLogic<
   AsyncActorLogic<TOutput, unknown>
 >;
 
-export type AsyncActor<
+type AsyncActor<
   TOutput,
   TInput = unknown,
   TEmitted extends EventObject = EventObject
