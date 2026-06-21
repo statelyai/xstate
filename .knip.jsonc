@@ -10,8 +10,6 @@
         "src/index.ts",
         "src/actions.ts",
         "src/actors/index.ts",
-        "src/guards.ts",
-        "src/dev/index.ts",
         "src/graph/index.ts"
       ]
     },
@@ -38,7 +36,6 @@
     // package.json#exports aren't added as entry points, because `dist/` is .gitignored
     "react",
     "xstate",
-    "@types/ws",
     // peer dependencies that may be needed but not directly imported
     "@angular/compiler-cli",
     "@sveltejs/vite-plugin-svelte",
