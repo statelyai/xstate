@@ -80,6 +80,7 @@
     "lossless-inspection-protocol",
     "proud-timers-migrate",
     "quiet-internal-events",
+    "quiet-zebras-invoke",
     "remove-interpret",
     "schemas-typing",
     "serious-actors-contract",

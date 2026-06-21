@@ -1,5 +1,32 @@
 # xstate
 
+## 6.0.0-alpha.2
+
+### Patch Changes
+
+- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`d6a537e`](https://github.com/statelyai/xstate/commit/d6a537eeb078be3256ac269102e28a8aad2f5403) Thanks [@pull](https://github.com/apps/pull)! - Fixed a bug where an invoked actor's `input` (and a dynamic `src` function) received the context from _before_ the transition that entered the invoking state, rather than the updated context. Now, when a transition updates context and targets a state that invokes an actor, the actor's `input` sees the updated context — consistent with that state's `entry` actions.
+
+  ```ts
+  const machine = createMachine({
+    context: { value: 0 },
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          start: () => ({ target: 'active', context: { value: 100 } })
+        }
+      },
+      active: {
+        invoke: {
+          src: asyncLogic,
+          // now receives { value: 100 } instead of { value: 0 }
+          input: ({ context }) => ({ val: context.value })
+        }
+      }
+    }
+  });
+  ```
+
 ## 6.0.0-alpha.1
 
 ### Major Changes
