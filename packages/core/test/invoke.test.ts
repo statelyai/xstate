@@ -3196,6 +3196,54 @@ describe('invoke', () => {
     await promise;
   });
 
+  it('dynamic invoke `input` should receive the context updated by the same transition', async () => {
+    const { promise, resolve } = Promise.withResolvers<void>();
+    const machine = createMachine({
+      initial: 'idle',
+      schemas: {
+        context: z.object({
+          value: z.number()
+        })
+      },
+      context: {
+        value: 0
+      },
+      states: {
+        idle: {
+          on: {
+            start: () => ({
+              target: 'active',
+              context: { value: 100 }
+            })
+          }
+        },
+        active: {
+          invoke: {
+            src: createAsyncLogic({
+              run: async ({ input }: { input: { val: number } }) => {
+                expect(input.val).toEqual(100);
+                return input.val;
+              }
+            }),
+            input: ({ context }: { context: { value: number } }) => ({
+              val: context.value
+            }),
+            onDone: 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.subscribe({ complete: () => resolve() });
+    actor.start();
+    actor.send({ type: 'start' });
+    await promise;
+  });
+
   it('invoke generated ID should be predictable based on the state node where it is defined', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
     const machine = createMachine({

@@ -1462,7 +1462,7 @@ function microstep(
           if (typeof src === 'function') {
             src = src({
               actors: currentSnapshot.machine.implementations.actors,
-              context: currentSnapshot.context,
+              context: nextState.context,
               event,
               self: actorScope.self
             });
@@ -1483,7 +1483,7 @@ function microstep(
             typeof invokeDef.input === 'function'
               ? invokeDef.input({
                   self: actorScope.self,
-                  context: currentSnapshot.context,
+                  context: nextState.context,
                   event
                 })
               : invokeDef.input;
