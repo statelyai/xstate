@@ -35,6 +35,7 @@ import type {
   Snapshot,
   SnapshotFrom,
   AnyTransitionDefinition,
+  ExecutableActionObject,
   Readable
 } from './types.ts';
 import {
@@ -70,6 +71,36 @@ const defaultOptions = {
   } as Clock,
   logger: console.log.bind(console)
 };
+
+function isExecutableActionObject(
+  effect: unknown
+): effect is ExecutableActionObject {
+  return (
+    typeof effect === 'object' &&
+    effect !== null &&
+    'args' in effect &&
+    'exec' in effect
+  );
+}
+
+function executeExecutableEffects(
+  effects: readonly unknown[] | undefined,
+  actorScope: ActorScope<any, any, any, any>
+): unknown[] {
+  if (!effects?.length) {
+    return [];
+  }
+
+  const logicEffects = [];
+  for (const effect of effects) {
+    if (isExecutableActionObject(effect)) {
+      actorScope.actionExecutor(effect);
+    } else {
+      logicEffects.push(effect);
+    }
+  }
+  return logicEffects;
+}
 
 /**
  * An Actor is a running process that can receive events, send events and change
@@ -117,6 +148,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
   /** @internal */
   public _processingStatus: ProcessingStatus = ProcessingStatus.NotStarted;
+  private _forceDeferredActions = false;
 
   // Actor Ref
   public _parent?: AnyActor;
@@ -145,6 +177,7 @@ export class Actor<TLogic extends AnyActorLogic>
   public _collectedActions: ActionRecord[] = [];
   /** @internal Events relayed to other actors during the in-flight transition. */
   public _collectedSent: SentRecord[] = [];
+  private _initialEffects: unknown[] | undefined;
   public systemId: string | undefined;
 
   /** The globally unique process ID for this invocation. */
@@ -274,7 +307,10 @@ export class Actor<TLogic extends AnyActorLogic>
             executingCustomAction = saveExecutingCustomAction;
           }
         };
-        if (this._processingStatus === ProcessingStatus.Running) {
+        if (
+          this._processingStatus === ProcessingStatus.Running &&
+          !this._forceDeferredActions
+        ) {
           exec();
         } else {
           this._deferred.push(exec);
@@ -300,7 +336,7 @@ export class Actor<TLogic extends AnyActorLogic>
       this.system._set(systemId, this);
     }
 
-    // prepare to collect initial microsteps during getInitialSnapshot
+    // prepare to collect initial microsteps during initialTransition
     this._collectedMicrosteps = [] as any;
     let persistedState = options?.snapshot ?? options?.state;
     if (
@@ -315,11 +351,18 @@ export class Actor<TLogic extends AnyActorLogic>
       persistedState = rest;
     }
     try {
-      this._snapshot = persistedState
-        ? this.logic.restoreSnapshot
+      if (persistedState) {
+        this._snapshot = this.logic.restoreSnapshot
           ? this.logic.restoreSnapshot(persistedState, this._actorScope)
-          : persistedState
-        : this.logic.getInitialSnapshot(this._actorScope, this.options?.input);
+          : persistedState;
+      } else {
+        const [snapshot, effects] = this.logic.initialTransition(
+          this.options?.input,
+          this._actorScope
+        );
+        this._snapshot = snapshot;
+        this._initialEffects = effects;
+      }
     } catch (err) {
       // if we get here then it means that we assign a value to this._snapshot that is not of the correct type
       // we can't get the true `TSnapshot & { status: 'error'; }`, it's impossible
@@ -445,6 +488,30 @@ export class Actor<TLogic extends AnyActorLogic>
     this._collectedMicrosteps = [] as any;
     this._collectedActions = [];
     this._collectedSent = [];
+  }
+
+  private _flushInitialEffects(): boolean {
+    if (!this._initialEffects) {
+      return true;
+    }
+    this._forceDeferredActions = true;
+    try {
+      const logicEffects = executeExecutableEffects(
+        this._initialEffects,
+        this._actorScope
+      );
+      executeLogicEffects(logicEffects, this._actorScope);
+      this._initialEffects = undefined;
+      return true;
+    } catch (err) {
+      this._initialEffects = undefined;
+      this._deferred.length = 0;
+      this._setErrorSnapshot(err);
+      this._error(err);
+      return false;
+    } finally {
+      this._forceDeferredActions = false;
+    }
   }
 
   /**
@@ -653,6 +720,9 @@ export class Actor<TLogic extends AnyActorLogic>
       case 'done':
         // a state machine can be "done" upon initialization (it could reach a final state using initial microsteps)
         // we still need to complete observers, flush deferreds etc
+        if (!this._flushInitialEffects()) {
+          return this;
+        }
         this.update(
           this._snapshot,
           initEvent as unknown as EventFromLogic<TLogic>
@@ -676,6 +746,10 @@ export class Actor<TLogic extends AnyActorLogic>
         this._error(err);
         return this;
       }
+    }
+
+    if (!this._flushInitialEffects()) {
+      return this;
     }
 
     // TODO: this notifies all subscribers but usually this is redundant
@@ -729,12 +803,17 @@ export class Actor<TLogic extends AnyActorLogic>
       return;
     }
 
-    const [snapshot, effects] = Array.isArray(nextState)
-      ? nextState
-      : [nextState, undefined];
+    try {
+      const [snapshot, effects] = nextState;
+      const logicEffects = executeExecutableEffects(effects, this._actorScope);
+      this.update(snapshot, event);
+      executeLogicEffects(logicEffects, this._actorScope);
+    } catch (err) {
+      this._setErrorSnapshot(err);
+      this._error(err);
+      return;
+    }
 
-    this.update(snapshot, event);
-    executeLogicEffects(effects, this._actorScope);
     if (event.type === XSTATE_STOP) {
       this._stopProcedure();
       this._complete();

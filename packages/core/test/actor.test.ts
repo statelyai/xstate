@@ -1392,13 +1392,21 @@ describe('actors', () => {
           if (event.type === 'PING') {
             self._parent?.send({ type: 'PONG' });
           }
-          return state;
+          return [state, []];
         },
         getInitialSnapshot: () => ({
           status: 'active',
           output: undefined,
           error: undefined
         }),
+        initialTransition: () => [
+          {
+            status: 'active',
+            output: undefined,
+            error: undefined
+          },
+          []
+        ],
         getPersistedSnapshot: (s) => s
       };
       const pingMachine = createMachine({

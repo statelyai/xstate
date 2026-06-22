@@ -16,7 +16,8 @@ import type {
   AnyEventObject,
   AnyMachineSnapshot,
   EnqueueObject,
-  EventObject
+  EventObject,
+  ExecutableActionObject
 } from './types.ts';
 
 function pushBuiltInAction(actions: any[], action: any, ...args: any[]) {
@@ -178,13 +179,14 @@ export function createTransitionEnqueue(
   });
 }
 
-export function resolveAndExecuteActionsWithContext(
+export function resolveActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
   actions: AnyAction[]
-): AnyMachineSnapshot {
+): [AnyMachineSnapshot, ExecutableActionObject[]] {
   let intermediateSnapshot = currentSnapshot;
+  const executableActions: ExecutableActionObject[] = [];
 
   for (const action of actions) {
     const isInline = typeof action === 'function';
@@ -196,12 +198,6 @@ export function resolveAndExecuteActionsWithContext(
           typeof action.action === 'function'
         ? action.action.bind(null, ...action.args)
         : false;
-
-    if (!resolvedAction && typeof action === 'object' && action !== null) {
-      actorScope.defer(() => {
-        actorScope.emit(action);
-      });
-    }
 
     const actionArgs = {
       context: intermediateSnapshot.context,
@@ -222,7 +218,7 @@ export function resolveAndExecuteActionsWithContext(
     }
 
     if (resolvedAction && '_special' in resolvedAction) {
-      actorScope.actionExecutor({
+      executableActions.push({
         type:
           typeof action === 'object'
             ? 'action' in action && typeof action.action === 'function'
@@ -256,7 +252,7 @@ export function resolveAndExecuteActionsWithContext(
     }
 
     if (!resolvedAction || !('resolve' in resolvedAction)) {
-      actorScope.actionExecutor({
+      executableActions.push({
         type:
           typeof action === 'object'
             ? 'action' in action && typeof action.action === 'function'
@@ -266,13 +262,17 @@ export function resolveAndExecuteActionsWithContext(
         params: actionParams,
         args:
           typeof action === 'object' && 'action' in action ? action.args : [],
-        exec: resolvedAction
+        exec:
+          resolvedAction ||
+          (typeof action === 'object' && action !== null
+            ? () => actorScope.defer(() => actorScope.emit(action))
+            : undefined)
       });
       continue;
     }
   }
 
-  return intermediateSnapshot;
+  return [intermediateSnapshot, executableActions];
 }
 
 function createEnqueueObject(

@@ -420,47 +420,59 @@ export function createEventObservableLogic<
     config: lazyObservable,
     transition: (state, event) => {
       if (state.status !== 'active') {
-        return state;
+        return [state, []];
       }
 
       switch (event.type) {
         case XSTATE_OBSERVABLE_ERROR:
-          return {
-            ...state,
-            status: 'error',
-            error: (event as any).data,
-            input: undefined,
-            _subscription: undefined
-          };
+          return [
+            {
+              ...state,
+              status: 'error',
+              error: (event as any).data,
+              input: undefined,
+              _subscription: undefined
+            },
+            []
+          ];
         case XSTATE_OBSERVABLE_COMPLETE:
-          return {
-            ...state,
-            status: 'done',
-            input: undefined,
-            _subscription: undefined
-          };
+          return [
+            {
+              ...state,
+              status: 'done',
+              input: undefined,
+              _subscription: undefined
+            },
+            []
+          ];
         case XSTATE_STOP:
           state._subscription!.unsubscribe();
-          return {
-            ...state,
-            status: 'stopped',
-            input: undefined,
-            _subscription: undefined
-          };
+          return [
+            {
+              ...state,
+              status: 'stopped',
+              input: undefined,
+              _subscription: undefined
+            },
+            []
+          ];
         default:
-          return state;
+          return [state, []];
       }
     },
-    getInitialSnapshot: (_, input) => {
-      return {
+    initialTransition: (input, _) => [
+      {
         status: 'active',
         output: undefined,
         error: undefined,
         context: undefined,
         input,
         _subscription: undefined
-      };
-    },
+      },
+      []
+    ],
+    getInitialSnapshot: (actorScope, input) =>
+      logic.initialTransition(input, actorScope)[0],
     start: (state, { self, system, emit }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable

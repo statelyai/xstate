@@ -42,7 +42,7 @@ export function getInitialSnapshot<T extends AnyActorLogic>(
     : [input: InputFrom<T>]
 ): SnapshotFrom<T> {
   const actorScope = createInertActorScope(actorLogic);
-  return actorLogic.getInitialSnapshot(actorScope, input);
+  return actorLogic.initialTransition(input, actorScope)[0];
 }
 
 /**

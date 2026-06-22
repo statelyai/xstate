@@ -29,19 +29,10 @@ export function transition<T extends AnyActorLogic>(
   snapshot: SnapshotFrom<T>,
   event: EventFromLogic<T>
 ): [nextSnapshot: SnapshotFrom<T>, actions: ExecutableActionObject[]] {
-  const executableActions = [] as ExecutableActionObject[];
-
   const actorScope = createInertActorScope(logic);
-  actorScope.actionExecutor = (action) => {
-    executableActions.push(action);
-  };
+  const [nextSnapshot, effects] = logic.transition(snapshot, event, actorScope);
 
-  const transitionResult = logic.transition(snapshot, event, actorScope);
-  const [nextSnapshot, effects] = Array.isArray(transitionResult)
-    ? transitionResult
-    : [transitionResult, []];
-
-  return [nextSnapshot, executableActions.concat(effects)];
+  return [nextSnapshot, effects as ExecutableActionObject[]];
 }
 
 /**
@@ -57,19 +48,14 @@ export function initialTransition<T extends AnyActorLogic>(
     ? [input?: InputFrom<T>]
     : [input: InputFrom<T>]
 ): [SnapshotFrom<T>, ExecutableActionObject[]] {
-  const executableActions = [] as ExecutableActionObject[];
-
   const actorScope = createInertActorScope(logic);
-  actorScope.actionExecutor = (action) => {
-    executableActions.push(action);
-  };
 
-  const nextSnapshot = logic.getInitialSnapshot(
-    actorScope,
-    input
-  ) as SnapshotFrom<T>;
+  const [nextSnapshot, executableActions] = logic.initialTransition(
+    input,
+    actorScope
+  );
 
-  return [nextSnapshot, executableActions];
+  return [nextSnapshot, executableActions as ExecutableActionObject[]];
 }
 
 /**

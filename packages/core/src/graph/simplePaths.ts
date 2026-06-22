@@ -1,4 +1,9 @@
-import { AnyActorLogic, EventFromLogic, InputFrom } from '../index.ts';
+import {
+  AnyActorLogic,
+  EventFromLogic,
+  InputFrom,
+  SnapshotFrom
+} from '../index.ts';
 import {
   SerializedEvent,
   SerializedSnapshot,
@@ -15,12 +20,12 @@ import { createMockActorScope } from './actorScope.ts';
 export function getSimplePaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: TraversalOptions<
-    ReturnType<TLogic['transition']>,
+    SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
     InputFrom<TLogic>
   >
-): Array<StatePath<ReturnType<TLogic['transition']>, EventFromLogic<TLogic>>> {
-  type TState = ReturnType<TLogic['transition']>;
+): Array<StatePath<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>> {
+  type TState = SnapshotFrom<TLogic>;
   type TEvent = EventFromLogic<TLogic>;
 
   const resolvedOptions = resolveTraversalOptions(logic, options);

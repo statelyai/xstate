@@ -21,10 +21,11 @@ import {
   resolveStateValue,
   transitionNode
 } from './stateUtils.ts';
-import { resolveAndExecuteActionsWithContext } from './transitionActions.ts';
+import { resolveActionsWithContext } from './transitionActions.ts';
 import { AnyActorSystem } from './system.ts';
 import type {
   ActorLogic,
+  ActorLogicTransitionResult,
   ActorScope,
   AnyActor,
   AnyActorLogic,
@@ -35,6 +36,7 @@ import type {
   Equals,
   EventDescriptor,
   EventObject,
+  ExecutableActionObject,
   HistoryValue,
   MachineContext,
   MetaObject,
@@ -161,6 +163,7 @@ export class StateMachine<
     };
 
     this.transition = this.transition.bind(this);
+    this.initialTransition = this.initialTransition.bind(this);
     this.getInitialSnapshot = this.getInitialSnapshot.bind(this);
     this.getPersistedSnapshot = this.getPersistedSnapshot.bind(this);
     this.restoreSnapshot = this.restoreSnapshot.bind(this);
@@ -319,17 +322,27 @@ export class StateMachine<
     >,
     event: TEvent,
     actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
-  ): MachineSnapshot<
-    TContext,
-    TEvent,
-    TChildren,
-    TStateValue,
-    TTag,
-    TOutput,
-    TMeta,
-    TConfig
+  ): ActorLogicTransitionResult<
+    MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput,
+      TMeta,
+      TConfig
+    >,
+    ExecutableActionObject
   > {
-    return macrostep(snapshot, event, actorScope, []).snapshot;
+    const { snapshot: nextSnapshot, microsteps } = macrostep(
+      snapshot,
+      event,
+      actorScope,
+      []
+    );
+
+    return [nextSnapshot, microsteps.flatMap(([, actions]) => actions)];
   }
 
   /**
@@ -444,7 +457,7 @@ export class StateMachine<
         self: actorScope.self,
         actors: this.implementations.actors
       });
-      const nextState = resolveAndExecuteActionsWithContext(
+      const [nextState] = resolveActionsWithContext(
         preInitial,
         initEvent,
         actorScope,
@@ -496,10 +509,43 @@ export class StateMachine<
     TMeta,
     TConfig
   > {
+    return this.initialTransition(input, actorScope)[0];
+  }
+
+  public initialTransition(
+    input: TInput | undefined,
+    actorScope: ActorScope<
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        TChildren,
+        TStateValue,
+        TTag,
+        TOutput,
+        TMeta,
+        TConfig
+      >,
+      TEvent,
+      AnyActorSystem,
+      TEmitted
+    >
+  ): ActorLogicTransitionResult<
+    MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput,
+      TMeta,
+      TConfig
+    >,
+    ExecutableActionObject
+  > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
     const preInitialState = this._getPreInitialState(actorScope, initEvent);
-    const [nextState] = initialMicrostep(
+    const [nextState, initialActions] = initialMicrostep(
       this.root,
       preInitialState,
       actorScope,
@@ -507,14 +553,17 @@ export class StateMachine<
       internalQueue
     );
 
-    const { snapshot: macroState } = macrostep(
+    const { snapshot: macroState, microsteps } = macrostep(
       nextState,
       initEvent as AnyEventObject,
       actorScope,
       internalQueue
     );
 
-    return macroState as SnapshotFrom<this>;
+    return [
+      macroState as SnapshotFrom<this>,
+      [...initialActions, ...microsteps.flatMap(([, actions]) => actions)]
+    ];
   }
 
   public start(

@@ -5,7 +5,9 @@ import {
   createMachine,
   createCallbackLogic,
   createAsyncLogic,
-  AnyEventObject
+  AnyEventObject,
+  ActorLogic,
+  Snapshot
 } from '../src';
 import z from 'zod';
 
@@ -869,18 +871,60 @@ describe('error handling', () => {
     expect(spy).toHaveBeenCalledTimes(0);
   });
 
+  it('error thrown by an initial logic effect should error the actor', () => {
+    const errorSpy = vi.fn();
+    const logic: ActorLogic<Snapshot<undefined>, AnyEventObject> = {
+      transition: (snapshot: any) => [snapshot, []],
+      initialTransition: () => [
+        {
+          status: 'active',
+          output: undefined,
+          error: undefined
+        },
+        [
+          {
+            type: 'effect',
+            exec: () => {
+              throw new Error('error_thrown_in_initial_logic_effect');
+            }
+          }
+        ]
+      ],
+      getInitialSnapshot: () => ({
+        status: 'active',
+        output: undefined,
+        error: undefined
+      }),
+      getPersistedSnapshot: (snapshot: any) => snapshot
+    };
+
+    const actorRef = createActor(logic);
+    actorRef.subscribe({ error: errorSpy });
+    actorRef.start();
+
+    const snapshot = actorRef.getSnapshot();
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.error).toMatchInlineSnapshot(
+      `[Error: error_thrown_in_initial_logic_effect]`
+    );
+    expect(errorSpy).toHaveBeenCalledWith(snapshot.error);
+  });
+
   it('should error the parent on errored initial state of a child', async () => {
     const immediateFailure = createLogic({
       context: undefined,
       run: () => undefined
     });
-    immediateFailure.getInitialSnapshot = () => ({
-      status: 'error',
-      output: undefined,
-      error: 'immediate error!',
-      context: undefined,
-      input: undefined
-    });
+    immediateFailure.initialTransition = () => [
+      {
+        status: 'error',
+        output: undefined,
+        error: 'immediate error!',
+        context: undefined,
+        input: undefined
+      },
+      []
+    ];
 
     const machine = createMachine({
       invoke: {

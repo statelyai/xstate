@@ -1158,9 +1158,9 @@ export type AnyHistoryValue = HistoryValue;
 export type StateFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > = T extends AnyStateMachine
-  ? ReturnType<T['transition']>
+  ? SnapshotFrom<T>
   : T extends (...args: any[]) => AnyStateMachine
-    ? ReturnType<ReturnType<T>['transition']>
+    ? SnapshotFrom<ReturnType<T>>
     : never;
 
 export interface DoneActorEvent<TOutput = unknown, TId extends string = string>
@@ -1897,6 +1897,11 @@ export type Snapshot<TOutput> =
       error: undefined;
     };
 
+export type ActorLogicTransitionResult<
+  TSnapshot extends Snapshot<unknown>,
+  TEffect = unknown
+> = [nextSnapshot: TSnapshot, effects: TEffect[]];
+
 /**
  * Represents logic which can be used by an actor.
  *
@@ -1916,18 +1921,29 @@ export interface ActorLogic<
   config?: unknown;
   /**
    * Transition function that processes the current state and an incoming event
-   * to produce a new state.
+   * to produce a new state and effects.
    *
    * @param snapshot - The current state.
    * @param event - The incoming event.
    * @param actorScope - The actor scope.
-   * @returns The new state.
+   * @returns A tuple of the next state and effects.
    */
   transition: (
     snapshot: TSnapshot,
     event: TEvent,
     actorScope: ActorScope<TSnapshot, TEvent, TSystem, TEmitted>
-  ) => TSnapshot;
+  ) => ActorLogicTransitionResult<TSnapshot>;
+  /**
+   * Transition function that produces the initial state and effects.
+   *
+   * @param actorScope - The actor scope.
+   * @param input - The input for the initial state.
+   * @returns A tuple of the initial state and effects.
+   */
+  initialTransition: (
+    input: TInput,
+    actorScope: ActorScope<TSnapshot, TEvent, TSystem, TEmitted>
+  ) => ActorLogicTransitionResult<TSnapshot>;
   /**
    * Called to provide the initial state of the actor.
    *
@@ -1998,13 +2014,13 @@ export type SnapshotFrom<T> =
       : R extends Actor<infer TLogic>
         ? SnapshotFrom<TLogic>
         : R extends ActorLogic<
-              infer _TSnapshot,
+              infer TSnapshot,
               infer _TEvent,
               infer _TInput,
-              infer _TEmitted,
-              infer _TSystem
+              infer _TSystem,
+              infer _TEmitted
             >
-          ? ReturnType<R['transition']>
+          ? TSnapshot
           : R extends ActorScope<
                 infer TSnapshot,
                 infer _TEvent,
@@ -2020,8 +2036,8 @@ export type EventFromLogic<TLogic extends AnyActorLogic> =
     infer _TSnapshot,
     infer TEvent,
     infer _TInput,
-    infer _TEmitted,
-    infer _TSystem
+    infer _TSystem,
+    infer _TEmitted
   >
     ? TEvent
     : never;

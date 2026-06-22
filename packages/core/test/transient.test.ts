@@ -869,8 +869,9 @@ describe('transient states (eventless transitions)', () => {
     expect(spy.mock.calls).toEqual([
       // called in response to the `EV` event
       [0],
-      // called in response to the `RAISED` event
-      [1]
+      // called in response to the `RAISED` event; action args are resolved
+      // during the pure transition before executable effects run
+      [0]
     ]);
   });
 });

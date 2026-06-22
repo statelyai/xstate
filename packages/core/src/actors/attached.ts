@@ -19,6 +19,17 @@ export function createAttachedLogic(
     scope: { self: AnyActor; system: AnyActorSystem }
   ) => Subscription | undefined
 ): any {
+  const initialTransition = (input: unknown, _: unknown) =>
+    [
+      {
+        status: 'active',
+        output: undefined,
+        error: undefined,
+        input
+      },
+      []
+    ] as const;
+
   return {
     start: (state: any, { self, system }: any) => {
       // Don't attach if the target doesn't exist or is stopped.
@@ -61,20 +72,20 @@ export function createAttachedLogic(
       if (event.type === XSTATE_STOP) {
         subscriptions.get(self)?.unsubscribe();
         subscriptions.delete(self);
-        return {
-          ...state,
-          status: 'stopped',
-          error: undefined
-        };
+        return [
+          {
+            ...state,
+            status: 'stopped',
+            error: undefined
+          },
+          []
+        ];
       }
-      return state;
+      return [state, []];
     },
-    getInitialSnapshot: (_: unknown, input: unknown) => ({
-      status: 'active',
-      output: undefined,
-      error: undefined,
-      input
-    }),
+    initialTransition,
+    getInitialSnapshot: (actorScope: unknown, input: unknown) =>
+      initialTransition(input, actorScope)[0],
     getPersistedSnapshot: (snapshot: Snapshot<unknown>) => snapshot,
     restoreSnapshot: (snapshot: Snapshot<unknown>) => snapshot
   };

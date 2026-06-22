@@ -909,7 +909,7 @@ These exports have been **removed** from `xstate`:
 - Inspection-event subtypes — `InspectedActionEvent`, `InspectedActorEvent`, `InspectedEventEvent`, `InspectedMicrostepEvent`, `InspectedSnapshotEvent` are gone. The remaining `InspectionEvent` type was reshaped: it is no longer a discriminated union, and its `type` is now only `'@xstate.transition' | '@xstate.microstep'`.
 - The `devTools` actor option and the `xstate/dev`, `xstate/actions`, and `xstate/guards` subpath exports
 - v5 definition/config types: `AnyState`, `StateMachineDefinition`, `StateNodeDefinition`, `StatesConfig`, `MachineOptions`, `ExecutableActionsFrom`, and related internals. The config types `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, and `TransitionConfigOrTarget` are re-exported with their **v6 shapes** — same names, different structure.
-- `transition()` / `initialTransition()` now return `ExecutableActionObject[]` for effects; hand-written actor logic `transition` may return a `[snapshot, effects]` tuple.
+- `transition()` / `initialTransition()` now return `ExecutableActionObject[]` for effects; hand-written actor logic `transition` and `initialTransition` return `[snapshot, effects]` tuples.
 
 `SpecialTargets` (the `Parent`/`Internal` enum) is still exported from `'xstate'` via `types.ts` and continues to work.
 

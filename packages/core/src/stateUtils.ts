@@ -46,7 +46,7 @@ import { createActor } from './createActor.ts';
 import { builtInActions } from './actions.ts';
 import {
   createTransitionEnqueue,
-  resolveAndExecuteActionsWithContext
+  resolveActionsWithContext
 } from './transitionActions.ts';
 import { parseDurationToMilliseconds } from './delay.ts';
 
@@ -1018,19 +1018,13 @@ function microstep(
   isInitial: boolean,
   internalQueue: Array<AnyEventObject>
 ): Microstep {
-  const actions: ExecutableActionObject[] = [];
+  const executableActions: ExecutableActionObject[] = [];
 
   if (!transitions.length) {
-    return [currentSnapshot, actions];
+    return [currentSnapshot, executableActions];
   }
 
-  const originalExecutor = actorScope.actionExecutor;
-  actorScope.actionExecutor = (action) => {
-    actions.push(action);
-    originalExecutor(action);
-  };
-
-  try {
+  {
     const mutStateNodeSet = new Set(currentSnapshot._nodes as StateNode[]);
     let historyValue = currentSnapshot.historyValue;
     const originalContext = currentSnapshot.context;
@@ -1153,12 +1147,14 @@ function microstep(
             context: nextContext
           });
         }
-        nextState = resolveAndExecuteActionsWithContext(
+        const [resolvedState, resolvedActions] = resolveActionsWithContext(
           nextState,
           event,
           actorScope,
           exitActions
         );
+        nextState = resolvedState;
+        executableActions.push(...resolvedActions);
         for (const def of exitStateNode.invoke) {
           const childActor = nextState.children[def.id];
           if (childActor && !childActor._isExternal) {
@@ -1485,12 +1481,15 @@ function microstep(
           }
         }
 
-        nextState = resolveAndExecuteActionsWithContext(
+        const [resolvedState, resolvedActions] = resolveActionsWithContext(
           nextState,
           event,
           actorScope,
           actions
         );
+        nextState = resolvedState;
+        actions.length = 0;
+        executableActions.push(...resolvedActions);
 
         if (context) {
           nextState.context = context;
@@ -1591,12 +1590,15 @@ function microstep(
     };
 
     // Execute transition content
-    nextState = resolveAndExecuteActionsWithContext(
-      nextState,
-      event,
-      actorScope,
-      transitionActions
-    );
+    const [resolvedTransitionState, transitionExecutableActions] =
+      resolveActionsWithContext(
+        nextState,
+        event,
+        actorScope,
+        transitionActions
+      );
+    nextState = resolvedTransitionState;
+    executableActions.push(...transitionExecutableActions);
     if (context && context !== currentSnapshot.context) {
       nextState = cloneMachineSnapshot(nextState, { context });
     }
@@ -1627,12 +1629,14 @@ function microstep(
           }
         }
       });
-      nextState = resolveAndExecuteActionsWithContext(
+      const [resolvedState, resolvedActions] = resolveActionsWithContext(
         nextState,
         event,
         actorScope,
         allExitActions
       );
+      nextState = resolvedState;
+      executableActions.push(...resolvedActions);
     }
 
     if (
@@ -1645,9 +1649,9 @@ function microstep(
       // If context was changed (e.g. by entry actions during self-transition),
       // clone to ensure reference inequality for eventless transition re-evaluation
       if (nextState.context !== originalContext) {
-        return [cloneMachineSnapshot(nextState), actions];
+        return [cloneMachineSnapshot(nextState), executableActions];
       }
-      return [nextState, actions];
+      return [nextState, executableActions];
     }
 
     return [
@@ -1655,10 +1659,8 @@ function microstep(
         _nodes: nextStateNodes,
         historyValue
       }),
-      actions
+      executableActions
     ];
-  } finally {
-    actorScope.actionExecutor = originalExecutor;
   }
 }
 

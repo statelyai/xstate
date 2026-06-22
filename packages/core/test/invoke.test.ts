@@ -2480,17 +2480,23 @@ describe('invoke', () => {
       > = {
         transition: (state, event) => {
           if (event.type === 'INC') {
-            return {
-              ...state,
-              context: state.context + 1
-            };
+            return [
+              {
+                ...state,
+                context: state.context + 1
+              },
+              []
+            ];
           } else if (event.type === 'DEC') {
-            return {
-              ...state,
-              context: state.context - 1
-            };
+            return [
+              {
+                ...state,
+                context: state.context - 1
+              },
+              []
+            ];
           }
-          return state;
+          return [state, []];
         },
         getInitialSnapshot: () => ({
           status: 'active',
@@ -2498,6 +2504,15 @@ describe('invoke', () => {
           error: undefined,
           context: 0
         }),
+        initialTransition: () => [
+          {
+            status: 'active',
+            output: undefined,
+            error: undefined,
+            context: 0
+          },
+          []
+        ],
         getPersistedSnapshot: (s) => s
       };
 
@@ -2534,13 +2549,21 @@ describe('invoke', () => {
             self._parent?.send({ type: 'PONG' });
           }
 
-          return state;
+          return [state, []];
         },
         getInitialSnapshot: () => ({
           status: 'active',
           output: undefined,
           error: undefined
         }),
+        initialTransition: () => [
+          {
+            status: 'active',
+            output: undefined,
+            error: undefined
+          },
+          []
+        ],
         getPersistedSnapshot: (s) => s
       };
 

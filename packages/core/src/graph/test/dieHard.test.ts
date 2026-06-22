@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createMachine } from '../../index.ts';
+import { createMachine, SnapshotFrom } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 import { getDescription } from '../utils.ts';
 
@@ -121,9 +121,7 @@ describe('die hard example', () => {
       model: createTestModel(dieHardMachine),
       options: {
         states: {
-          pending: (
-            state: ReturnType<(typeof dieHardMachine)['transition']>
-          ) => {
+          pending: (state: SnapshotFrom<typeof dieHardMachine>) => {
             expect(jugs.five).not.toEqual(4);
             expect(jugs.three).toEqual(state.context.three);
             expect(jugs.five).toEqual(state.context.five);

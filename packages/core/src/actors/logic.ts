@@ -473,7 +473,7 @@ export function createLogic<
       Object.assign(snapshot, nextSnapshot);
       executeLogicEffects(effects, actorScope);
     },
-    getInitialSnapshot: (_, input) => {
+    initialTransition: (input, _) => {
       const context = resolveContext(config.context, input);
       const snapshot = {
         status: 'active' as const,
@@ -486,10 +486,15 @@ export function createLogic<
         (snapshot as any).context = context;
       }
 
-      return {
-        ...snapshot
-      } as LogicSnapshot<TContext, TOutput, TInput>;
+      return [
+        {
+          ...snapshot
+        } as LogicSnapshot<TContext, TOutput, TInput>,
+        []
+      ];
     },
+    getInitialSnapshot: (actorScope, input) =>
+      logic.initialTransition(input, actorScope)[0],
     getPersistedSnapshot: (snapshot) => snapshot,
     restoreSnapshot: (snapshot: any) => snapshot
   };
