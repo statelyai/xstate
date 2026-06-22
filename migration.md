@@ -52,10 +52,9 @@ Beyond simplifying the action/guard surface, v6 introduces a number of features 
 | [State timeouts](#14-state-and-async-timeouts)                                    | `timeout` + `onTimeout` per state — independent of `after`; auto-cancelled on exit.                                                                                                                               |
 | [Duration strings](#14-state-and-async-timeouts)                                  | `'250ms'`, `'5s'` / `'1.5s'`, and ISO 8601 (`'PT1M30S'`, `'P1DT12H'`) accepted by state timeouts and async-logic timeouts.                                                                                        |
 | [Triggers](#15-triggers)                                                          | Declarative `triggers: [{ type: 'webhook', ... }]` metadata describing how a machine is activated.                                                                                                                |
-| [Atoms](#23-atoms-and-reactive-values)                                            | `createAtom` / `createAsyncAtom` / `createReducerAtom` — a small reactive-value primitive. Computed atoms can read `actor.get()` and re-derive automatically.                                                     |
-| [`actor.select`](#24-actorselect-and-actorget)                                    | Derive a subscribable, memoized selection from an actor's snapshot — `actor.select(s => s.context.x)`. `actor.get()` returns the snapshot and is trackable by atoms.                                              |
-| [Route states](#25-route-states)                                                  | A state with `route` can be navigated to directly via `actor.send({ type: 'xstate.route', to: '#id' })`, gated by an inline route guard/resolver.                                                                 |
-| [Actor registry](#26-actor-registry)                                              | `actor.system.get(systemId)` / `getAll()` look up actors by `systemId` without passing refs. The root actor can be named via `createActor(machine, { systemId })`.                                                |
+| [`actor.select`](#23-actorselect)                                                 | Derive a subscribable, memoized selection from an actor's snapshot — `actor.select(s => s.context.x)`.                                                                                                            |
+| [Route states](#24-route-states)                                                  | A state with `route` can be navigated to directly via `actor.send({ type: 'xstate.route', to: '#id' })`, gated by an inline route guard/resolver.                                                                 |
+| [Actor registry](#25-actor-registry)                                              | `actor.system.get(systemId)` / `getAll()` look up actors by `systemId` without passing refs. The root actor can be named via `createActor(machine, { systemId })`.                                                |
 | [Snapshot versioning](#21-persistence--rehydration)                               | `version` on the machine is stamped onto persisted snapshots and checked on restore.                                                                                                                              |
 | [Serialization](#22-machine-as-data-serialization-json-configs-scxml)             | `serializeMachine` / `machineConfigToJSON` / `createMachineFromConfig` are now public — round-trip a machine to/from a plain JSON config.                                                                         |
 | [`createMachineFromConfig`](#22-machine-as-data-serialization-json-configs-scxml) | Build a machine from a plain JSON config with serialized actions — useful for SCXML round-trip, persistence, or storing machines as data.                                                                         |
@@ -923,8 +922,7 @@ These exports have been **added**:
 - `TimeoutError`
 - Serialization surface (see §22): `createMachineFromConfig`, `machineConfigToJSON`, and the `MachineJSON`/`StateNodeJSON`/`TransitionJSON`/`ActionJSON`/`GuardJSON`/`InvokeJSON`/`UnserializableMarker` types; machines serialize via `serializeMachine(machine)`
 - Config types (v6 shapes): `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, `TransitionConfigOrTarget`, `Implementations`, `InferEvents`, `Trigger`, `WidenLiterals`
-- Atoms: `createAtom`, `createAtomConfig`, `createAsyncAtom`, `createReducerAtom` (+ types) — the reactive primitive that backs actor snapshots; also usable standalone
-- `actor.get()` — alias of `actor.getSnapshot()`; `actor.select(selector)` — derived, subscribable views
+- `actor.select(selector)` — derived, subscribable views
 
 ---
 
@@ -1118,96 +1116,13 @@ pull in an XML parser).
 
 ---
 
-## 23. Atoms and reactive values
+## 23. `actor.select`
 
-**New in v6.** Atoms are a small standalone reactive-value primitive, exported
-from `'xstate'`. They are independent of machines but interoperate with actors:
-a **computed** atom that reads `actor.get()` re-derives automatically whenever
-that actor's snapshot changes.
+**New in v6.** `actor.select(selector, equalityFn?)` returns a subscribable,
+memoized `Readable<T>` (`{ get, subscribe }`) that only notifies when the
+selected value changes (default comparison `Object.is`).
 
-```ts
-import { createActor, createAtom } from 'xstate';
-
-const actor = createActor(counterLogic).start();
-
-// Computed atom — tracks any actor.get() read inside the getter
-const count = createAtom(() => actor.get().context.count);
-
-count.get();                  // current derived value
-count.subscribe((c) => ...);  // notified when it changes
-
-actor.send({ type: 'inc' });
-count.get();                  // recomputed
-```
-
-| Creator                                     | Shape                                                                                                    |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `createAtom(value)`                         | Writable atom — `.get()`, `.set(next \| prev => next)`, `.subscribe(...)`                                |
-| `createAtom(() => derived)`                 | Read-only **computed** atom — tracks atom/`actor.get()` reads as dependencies                            |
-| `createAsyncAtom(({ signal }) => promise)`  | Read-only atom of `{ status: 'pending' \| 'done' \| 'error', ... }`; recompute aborts the prior `signal` |
-| `createReducerAtom(initial, reducer)`       | Read-only value driven by `.send(event)` through a reducer                                               |
-| `createAtomConfig(initialOrFactory, opts?)` | Factory that builds atoms from input — `{ createAtom(input) }`                                           |
-
-All accept an `AtomOptions` `{ compare }` to control change detection (defaults
-to `Object.is`). The reactive system is installed lazily on first atom use, so
-apps that never touch atoms don't bundle it. `isAtom(value)` is exported for
-detection. See `test/atom.test.ts`.
-
-### Atoms as reactive input
-
-Because atoms are subscribable values, they double as a **machine's reactive
-input**: an atom can be passed directly to `enq.subscribeTo`, and the machine
-reacts to every change as an ordinary, typed, inspectable event. This is the
-idiomatic way to feed external/changing data (a query result, a global store, a
-URL, another framework's state) into a machine — no `useEffect`-and-`send`
-glue in the consumer.
-
-The mapper receives the atom's **value** directly (not a snapshot wrapper):
-
-```ts
-import { createActor, createMachine, createAtom } from 'xstate';
-
-// e.g. bridge any external source (TanStack Query, a store, ...) into an atom
-const userAtom = createAtom(/* current value */);
-
-const machine = createMachine({
-  context: { user: undefined },
-  initial: 'ready',
-  states: {
-    ready: {
-      entry: (_, enq) => {
-        // atom is accepted directly — no fromAtom() wrapper needed
-        enq.subscribeTo(userAtom, (user) => ({ type: 'USER', user }));
-      },
-      on: {
-        USER: ({ event }) => ({ context: { user: event.user } })
-      }
-    }
-  }
-});
-
-const actor = createActor(machine).start();
-// every userAtom.set(...) now drives a USER event into the machine
-```
-
-`enq.subscribeTo(atom, mappers)` also accepts the long form
-`{ snapshot: (value) => event }`. Atoms have no `done`/`error` lifecycle, so
-only the `snapshot` mapper applies. Like the actor form, it returns a stoppable
-ref (`enq.stop(ref)`), and the subscription is also torn down automatically when
-the subscribing actor stops.
-
----
-
-## 24. `actor.select` and `actor.get`
-
-**New in v6.** Two methods on every actor make reading and deriving snapshot
-values ergonomic without a framework binding:
-
-- `actor.get()` returns the current snapshot (identical to `getSnapshot()`) and
-  is **trackable** — calling it inside a computed atom registers a dependency.
-- `actor.select(selector, equalityFn?)` returns a subscribable, memoized
-  `Readable<T>` (`{ get, subscribe }`) that only notifies when the selected
-  value changes (default comparison `Object.is`).
+Use `actor.getSnapshot()` to read the full current snapshot directly.
 
 ```ts
 const count = actor.select((snapshot) => snapshot.context.count);
@@ -1221,7 +1136,7 @@ See `test/select.test.ts`.
 
 ---
 
-## 25. Route states
+## 24. Route states
 
 **New in v6.** A state node with an explicit `id` may declare a `route`,
 marking it as directly navigable. Sending `{ type: 'xstate.route', to: '#id' }`
@@ -1252,7 +1167,7 @@ to. See `test/route.test.ts`.
 
 ---
 
-## 26. Actor registry
+## 25. Actor registry
 
 **New in v6 (public).** Actors can be looked up by `systemId` from the shared
 system, so distant actors can find each other without threading refs through

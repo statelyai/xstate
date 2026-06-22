@@ -1,25 +1,4 @@
 export * from './actors/index.ts';
-export {
-  createAtom,
-  createAtomConfig,
-  createAsyncAtom,
-  createReducerAtom,
-  isAtom
-} from './atom.ts';
-export type {
-  AnyAtom,
-  AnyAtomConfig,
-  AsyncAtomOptions,
-  AsyncAtomState,
-  Atom,
-  AtomConfig,
-  AtomOptions,
-  BaseAtom,
-  InputFromAtomConfig,
-  ReadonlyAtom,
-  ReducerAtom,
-  ValueFromAtomConfig
-} from './atom.ts';
 export { assertEvent } from './assert.ts';
 export {
   Actor,

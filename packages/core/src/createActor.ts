@@ -1,6 +1,5 @@
 import isDevelopment from '#is-development';
 import type { ActionRecord, SentRecord } from './inspection.ts';
-import { onActorRead } from './interop.ts';
 import { Mailbox } from './Mailbox.ts';
 import { XSTATE_STOP } from './constants.ts';
 import {
@@ -612,7 +611,7 @@ export class Actor<TLogic extends AnyActorLogic>
           complete: observer.complete
         });
       },
-      get: () => selector(this.get())
+      get: () => selector(this.getSnapshot())
     };
   }
 
@@ -944,17 +943,11 @@ export class Actor<TLogic extends AnyActorLogic>
    * @see {@link Actor.getPersistedSnapshot} to persist the internal state of an actor (which is more than just a snapshot).
    */
   public getSnapshot(): SnapshotFrom<TLogic> {
-    return this.get();
-  }
-
-  /** Read the actor's current snapshot as an atom value. */
-  public get(): SnapshotFrom<TLogic> {
     if (isDevelopment && !this._snapshot) {
       throw new Error(
         `Snapshot can't be read while the actor initializes itself`
       );
     }
-    onActorRead?.(this);
     return this._snapshot;
   }
 }

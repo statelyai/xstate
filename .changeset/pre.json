@@ -89,7 +89,6 @@
     "store-adapters-compare",
     "store-is-atom",
     "swift-send-typing",
-    "tender-actors-atomize",
     "type-only-schemas",
     "witty-choice-states"
   ]

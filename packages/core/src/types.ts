@@ -2,7 +2,6 @@ import type { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
 import { AsyncActorLogic } from './actors/promise.ts';
-import type { BaseAtom } from './atom.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
 import { InspectionEvent } from './inspection.ts';
 import { Spawner } from './spawn.ts';
@@ -2501,17 +2500,6 @@ export type EnqueueObject<
       mappers:
         | SubscribeToMappers<TSnapshot, TOutput, TMappedEvent>
         | ((snapshot: TSnapshot) => TMappedEvent)
-    ): AnyActor;
-    // Atom form: the mapper receives the atom's value directly. Atoms have no
-    // done/error lifecycle, so only the `snapshot` mapper applies. The param is
-    // the branded atom type (not a structural `{ get, subscribe }`) so plain
-    // readables like `actor.select(...)` — which the runtime would dispatch
-    // down the non-atom path — fail at compile time.
-    <TValue, TMappedEvent extends TEvent>(
-      atom: BaseAtom<TValue>,
-      mappers:
-        | { snapshot?: (value: TValue) => TMappedEvent }
-        | ((value: TValue) => TMappedEvent)
     ): AnyActor;
   };
 };

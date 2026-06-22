@@ -869,12 +869,16 @@ describe('guards - unknown references', () => {
       initial: 'routing',
       states: {
         routing: {
-          always: [
-            // typo: 'isRedy' instead of 'isReady' — guard objects remain
-            // reachable via revived (createMachineFromConfig) machines
-            { guard: { type: 'isRedy' }, target: 'go' },
-            { target: 'wait' }
-          ] as any
+          always: ({ context, guards }) => {
+            if (
+              guards
+                // @ts-expect-error
+                .isRedy(context)
+            ) {
+              return { target: 'go' };
+            }
+            return { target: 'wait' };
+          }
         },
         go: {},
         wait: {}
@@ -888,7 +892,7 @@ describe('guards - unknown references', () => {
     const snapshot = actor.getSnapshot();
     expect(snapshot.status).toBe('error');
     expect((snapshot as any).error.message).toMatch(
-      /Guard 'isRedy' is not implemented.*Available guards: 'isReady'/
+      /guards.isRedy is not a function/
     );
   });
 });

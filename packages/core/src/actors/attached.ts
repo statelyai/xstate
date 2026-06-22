@@ -21,14 +21,9 @@ export function createAttachedLogic(
 ): any {
   return {
     start: (state: any, { self, system }: any) => {
-      // Don't attach if the target doesn't exist, or (for actors) is stopped.
-      // Atoms have no `getSnapshot` / lifecycle, so they always attach.
+      // Don't attach if the target doesn't exist or is stopped.
       const target = state.input.actor;
-      if (
-        !target ||
-        (typeof target.getSnapshot === 'function' &&
-          target.getSnapshot().status === 'stopped')
-      ) {
+      if (!target || target.getSnapshot().status === 'stopped') {
         return;
       }
       const subscription = attach(state.input, { self, system });
