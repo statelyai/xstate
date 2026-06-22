@@ -1,5 +1,13 @@
 # xstate
 
+## 5.32.2
+
+### Patch Changes
+
+- [#5548](https://github.com/statelyai/xstate/pull/5548) [`8a53531`](https://github.com/statelyai/xstate/commit/8a5353105522aaee7a4f7031136372edec327a79) Thanks [@JSap0914](https://github.com/JSap0914)! - fix(core): fall back to wildcard event descriptors when an exact descriptor's guard fails
+
+  When a state has both an exact event descriptor (e.g. `"foo.bar"`) and a matching wildcard descriptor (e.g. `"foo.*"`), transitions from the exact descriptor are now tried first; if all their guards fail, matching wildcard descriptor transitions are tried as fallback. Previously, the presence of an exact match would prevent any wildcard fallback from being considered, leaving the machine in its current state when the exact descriptor's guard failed.
+
 ## 5.32.1
 
 ### Patch Changes
