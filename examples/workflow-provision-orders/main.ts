@@ -1,4 +1,4 @@
-import { createAsyncLogic, createActor, setup } from 'xstate';
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 import { z } from 'zod';
 interface Order {
   id: string;
@@ -6,7 +6,7 @@ interface Order {
   quantity: string;
 }
 // https://github.com/serverlessworkflow/specification/tree/main/examples#provision-orders-example
-export const workflow = setup({
+export const workflow = createMachine({
   types: {
     context: {} as {
       order: Order;
@@ -72,8 +72,7 @@ export const workflow = setup({
         return;
       }
     })
-  }
-}).createMachine({
+  },
   id: 'provisionorders',
   initial: 'ProvisionOrder',
   context: ({ input }) => ({
@@ -88,20 +87,41 @@ export const workflow = setup({
         }),
         onDone: 'ApplyOrder',
         onError: [
-          {
-            guard: ({ event }) =>
-              (event.error as any).message === 'Missing order id',
-            target: 'Exception.MissingId'
+          ({ context, event, guards, actions }, enq) => {
+            if (
+              !(({ event }) =>
+                (event.error as any).message === 'Missing order id')({
+                context,
+                event
+              })
+            ) {
+              return;
+            }
+            return { target: 'Exception.MissingId' };
           },
-          {
-            guard: ({ event }) =>
-              (event.error as any).message === 'Missing order item',
-            target: 'Exception.MissingItem'
+          ({ context, event, guards, actions }, enq) => {
+            if (
+              !(({ event }) =>
+                (event.error as any).message === 'Missing order item')({
+                context,
+                event
+              })
+            ) {
+              return;
+            }
+            return { target: 'Exception.MissingItem' };
           },
-          {
-            guard: ({ event }) =>
-              (event.error as any).message === 'Missing order quantity',
-            target: 'Exception.MissingQuantity'
+          ({ context, event, guards, actions }, enq) => {
+            if (
+              !(({ event }) =>
+                (event.error as any).message === 'Missing order quantity')({
+                context,
+                event
+              })
+            ) {
+              return;
+            }
+            return { target: 'Exception.MissingQuantity' };
           }
         ]
       }

@@ -163,7 +163,7 @@ describe('rehydration', () => {
   it('should not replay actions when starting from a persisted state', () => {
     const entrySpy = vi.fn();
     const machine = createMachine({
-      entry: entrySpy
+      entry: () => entrySpy()
     });
 
     const actor = createActor(machine).start();

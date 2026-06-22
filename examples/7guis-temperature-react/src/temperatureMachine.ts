@@ -1,4 +1,4 @@
-import { createMachine, assign } from 'xstate';
+import { createMachine } from 'xstate';
 
 interface TemperatureContext {
   tempC?: number | string;
@@ -22,19 +22,37 @@ export const temperatureMachine = createMachine({
   },
   context: { tempC: undefined, tempF: undefined },
   on: {
-    CELSIUS: {
-      actions: assign({
-        tempC: ({ event }) => event.value,
-        tempF: ({ event }) =>
-          event.value.length ? +event.value * (9 / 5) + 32 : ''
-      })
+    CELSIUS: ({ context, event, guards, actions }, enq) => {
+      return {
+        context: {
+          ...context,
+          tempC: (({ event }) => event.value)({
+            context: context,
+            event: event
+          }),
+          tempF: (({ event }) =>
+            event.value.length ? +event.value * (9 / 5) + 32 : '')({
+            context: context,
+            event: event
+          })
+        }
+      };
     },
-    FAHRENHEIT: {
-      actions: assign({
-        tempC: ({ event }) =>
-          event.value.length ? (+event.value - 32) * (5 / 9) : '',
-        tempF: ({ event }) => event.value
-      })
+    FAHRENHEIT: ({ context, event, guards, actions }, enq) => {
+      return {
+        context: {
+          ...context,
+          tempC: (({ event }) =>
+            event.value.length ? (+event.value - 32) * (5 / 9) : '')({
+            context: context,
+            event: event
+          }),
+          tempF: (({ event }) => event.value)({
+            context: context,
+            event: event
+          })
+        }
+      };
     }
   }
 });

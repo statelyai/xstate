@@ -575,7 +575,9 @@ describe('useActor', () => {
                 }
               }
             }),
-            SOMETHING: { actions: 'doSomething' } as any
+            SOMETHING: ({ context, event, guards, actions }, enq) => {
+              enq(() => actions['doSomething']({ context, event } as any));
+            }
           }
         }
       }

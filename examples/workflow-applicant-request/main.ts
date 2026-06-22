@@ -1,4 +1,4 @@
-import { createActor, createAsyncLogic, setup } from 'xstate';
+import { createMachine, createActor, createAsyncLogic } from 'xstate';
 interface Applicant {
   fname: string;
   lname: string;
@@ -6,7 +6,7 @@ interface Applicant {
   email: string;
 }
 // https://github.com/serverlessworkflow/specification/tree/main/examples#applicant-request-decision-example
-export const workflow = setup({
+export const workflow = createMachine({
   types: {} as {
     context: {
       applicant: Applicant;
@@ -33,8 +33,7 @@ export const workflow = setup({
   },
   guards: {
     isOver18: ({ context }) => context.applicant.age >= 18
-  }
-}).createMachine({
+  },
   id: 'applicantrequest',
   initial: 'CheckApplication',
   context: ({ input }) => ({
@@ -44,10 +43,11 @@ export const workflow = setup({
     CheckApplication: {
       on: {
         Submit: [
-          {
-            target: 'StartApplication',
-            guard: 'isOver18',
-            reenter: false
+          ({ context, event, guards, actions }, enq) => {
+            if (!guards['isOver18']({ context, event })) {
+              return;
+            }
+            return { target: 'StartApplication', reenter: false };
           },
           {
             target: 'RejectApplication',

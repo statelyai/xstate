@@ -1170,7 +1170,7 @@ describe('interpreter', () => {
           context: z.object({})
         },
         context: contextSpy,
-        entry: entrySpy,
+        entry: () => entrySpy(),
         initial: 'foo',
         states: {
           foo: {}

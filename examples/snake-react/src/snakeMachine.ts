@@ -1,4 +1,4 @@
-import { createCallbackLogic, or, setup, assign } from 'xstate';
+import { createMachine, createCallbackLogic, or } from 'xstate';
 
 export type Dir = 'Up' | 'Left' | 'Down' | 'Right';
 export type Point = { x: number; y: number };
@@ -125,7 +125,7 @@ export function createInitialContext(): SnakeMachineContext {
   };
 }
 
-export const snakeMachine = setup({
+export const snakeMachine = createMachine({
   types: {
     context: {} as SnakeMachineContext,
     events: {} as
@@ -141,30 +141,39 @@ export const snakeMachine = setup({
       isOutsideGrid(context.gridSize, head(context.snake))
   },
   actions: {
-    'move snake': assign({
-      snake: ({ context }) => moveSnake(context.snake, context.dir)
+    'move snake': ({ context }) => ({
+      context: { ...context, snake: moveSnake(context.snake, context.dir) }
     }),
-    'save dir': assign({
-      dir: ({ context, event }) => {
-        return event.type === 'ARROW_KEY'
-          ? event.dir !== oppositeDir[context.dir]
-            ? event.dir
+    'save dir': ({ context, event }) => ({
+      context: {
+        ...context,
+        dir:
+          event.type === 'ARROW_KEY'
+            ? event.dir !== oppositeDir[context.dir]
+              ? event.dir
+              : context.dir
             : context.dir
-          : context.dir;
       }
     }),
-    'increase score': assign({
-      score: ({ context }) => context.score + 1,
-      highScore: ({ context }) => Math.max(context.score + 1, context.highScore)
+    'increase score': ({ context }) => ({
+      context: {
+        ...context,
+        score: context.score + 1,
+        highScore: Math.max(context.score + 1, context.highScore)
+      }
     }),
-    'show new apple': assign({
-      apple: ({ context }) => newApple(context.gridSize, context.snake)
+    'show new apple': ({ context }) => ({
+      context: { ...context, apple: newApple(context.gridSize, context.snake) }
     }),
-    'grow snake': assign({ snake: ({ context }) => growSnake(context.snake) }),
-    reset: assign(({ context }) => ({
-      ...createInitialContext(),
-      highScore: context.highScore
-    }))
+    'grow snake': ({ context }) => ({
+      context: { ...context, snake: growSnake(context.snake) }
+    }),
+    reset: ({ context }) => ({
+      context: {
+        ...createInitialContext(),
+        highScore: context.highScore
+      }
+    })
   },
   actors: {
     ticks: createCallbackLogic(({ sendBack }) => {
@@ -174,8 +183,7 @@ export const snakeMachine = setup({
 
       return () => clearInterval(i);
     })
-  }
-}).createMachine({
+  },
   id: 'SnakeMachine',
 
   context: createInitialContext(),
@@ -183,43 +191,53 @@ export const snakeMachine = setup({
   states: {
     'New Game': {
       on: {
-        ARROW_KEY: {
-          actions: 'save dir',
-          target: 'Moving'
+        ARROW_KEY: ({ context, event, guards, actions }, enq) => {
+          enq((actionArgs) => actions['save dir'](actionArgs as any));
+          return { target: 'Moving' };
         }
       }
     },
     Moving: {
-      entry: 'move snake',
+      entry: (args, enq) => {
+        enq((actionArgs) => args.actions['move snake'](actionArgs as any));
+      },
       invoke: {
         src: 'ticks'
       },
       always: [
-        {
-          guard: 'ate apple',
-          actions: ['grow snake', 'increase score', 'show new apple']
+        ({ context, event, guards, actions }, enq) => {
+          if (!guards['ate apple']({ context, event })) {
+            return;
+          }
+          enq((actionArgs) => actions['grow snake'](actionArgs as any));
+          enq((actionArgs) => actions['increase score'](actionArgs as any));
+          enq((actionArgs) => actions['show new apple'](actionArgs as any));
         },
-        {
-          guard: or(['hit tail', 'hit wall']),
-          target: 'Game Over'
+        ({ context, event, guards, actions }, enq) => {
+          if (!or(['hit tail', 'hit wall'])({ context, event })) {
+            return;
+          }
+          return { target: 'Game Over' };
         }
       ],
       on: {
-        TICK: {
-          actions: 'move snake'
+        TICK: ({ context, event, guards, actions }, enq) => {
+          enq((actionArgs) => actions['move snake'](actionArgs as any));
         },
-        ARROW_KEY: {
-          actions: 'save dir',
-          target: 'Moving'
+        ARROW_KEY: ({ context, event, guards, actions }, enq) => {
+          enq((actionArgs) => actions['save dir'](actionArgs as any));
+          return { target: 'Moving' };
         }
       }
     },
     'Game Over': {
       on: {
-        NEW_GAME: {
-          actions: 'reset',
-          description: 'triggered by pressing the "r" key',
-          target: 'New Game'
+        NEW_GAME: ({ context, event, guards, actions }, enq) => {
+          enq((actionArgs) => actions['reset'](actionArgs as any));
+          return {
+            description: 'triggered by pressing the "r" key',
+            target: 'New Game'
+          };
         }
       }
     }

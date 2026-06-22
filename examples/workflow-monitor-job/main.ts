@@ -1,10 +1,10 @@
-import { assign, createAsyncLogic, createActor, setup } from 'xstate';
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 import { z } from 'zod';
 interface Job {
   name: string;
 }
 // https://github.com/serverlessworkflow/specification/tree/main/examples#monitor-job-example
-export const workflow = setup({
+export const workflow = createMachine({
   types: {
     context: {} as {
       job: Job;
@@ -50,8 +50,7 @@ export const workflow = setup({
         return Promise.resolve();
       }
     })
-  }
-}).createMachine({
+  },
   id: 'jobmonitoring',
   initial: 'SubmitJob',
   context: ({ input }) => ({
@@ -66,11 +65,17 @@ export const workflow = setup({
         input: ({ context }) => ({
           name: context.job.name
         }),
-        onDone: {
-          target: 'WaitForCompletion',
-          actions: assign({
-            jobuid: ({ event }) => event.output.jobuid
-          })
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'WaitForCompletion',
+            context: {
+              ...context,
+              jobuid: (({ event }) => event.output.jobuid)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     },
@@ -85,23 +90,43 @@ export const workflow = setup({
         input: ({ context }) => ({
           name: context.jobuid
         }),
-        onDone: {
-          target: 'DetermineCompletion',
-          actions: assign({
-            jobStatus: ({ event }) => event.output.jobStatus
-          })
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'DetermineCompletion',
+            context: {
+              ...context,
+              jobStatus: (({ event }) => event.output.jobStatus)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     },
     DetermineCompletion: {
       always: [
-        {
-          guard: ({ context }) => context.jobStatus === 'SUCCEEDED',
-          target: 'JobSucceeded'
+        ({ context, event, guards, actions }, enq) => {
+          if (
+            !(({ context }) => context.jobStatus === 'SUCCEEDED')({
+              context,
+              event
+            })
+          ) {
+            return;
+          }
+          return { target: 'JobSucceeded' };
         },
-        {
-          guard: ({ context }) => context.jobStatus === 'FAILED',
-          target: 'JobFailed'
+        ({ context, event, guards, actions }, enq) => {
+          if (
+            !(({ context }) => context.jobStatus === 'FAILED')({
+              context,
+              event
+            })
+          ) {
+            return;
+          }
+          return { target: 'JobFailed' };
         },
         {
           target: 'WaitForCompletion'

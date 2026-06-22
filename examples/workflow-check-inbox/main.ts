@@ -1,9 +1,8 @@
 import {
-  assign,
+  createMachine,
   createCallbackLogic,
   createAsyncLogic,
-  createActor,
-  setup
+  createActor
 } from 'xstate';
 import { z } from 'zod';
 async function delay(ms: number): Promise<void> {
@@ -18,7 +17,7 @@ interface Message {
   priority: 'high' | 'low';
 }
 // https://github.com/serverlessworkflow/specification/tree/main/examples#check-inbox-periodically
-export const workflow = setup({
+export const workflow = createMachine({
   types: {
     context: {} as {
       messages: Message[];
@@ -76,8 +75,7 @@ export const workflow = setup({
         };
       }
     })
-  }
-}).createMachine({
+  },
   id: 'checkInbox',
   initial: 'Idle',
   context: {
@@ -98,11 +96,17 @@ export const workflow = setup({
     CheckInbox: {
       invoke: {
         src: 'checkInboxFunction',
-        onDone: {
-          target: 'SendTextForHighPriority',
-          actions: assign({
-            messages: ({ event }) => event.output
-          })
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'SendTextForHighPriority',
+            context: {
+              ...context,
+              messages: (({ event }) => event.output)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     },

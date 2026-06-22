@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
   "title": "XState v6 machine definition (MachineJSON)",
-  "description": "The JSON-serializable subset of an XState machine definition, as accepted by createMachineFromConfig and produced by machine.definition / JSON.stringify(machine). Runtime implementations (inline functions, actor logic, schemas) appear as { \"$unserializable\": ... } markers; a definition is fully portable iff it contains no markers.",
+  "description": "The JSON-serializable subset of an XState machine definition, as accepted by createMachineFromConfig and produced by machine.definition / JSON.stringify(machine). Functions appear as { \"@type\": \"code\", \"lang\": \"ts\", \"expr\": ... } code expressions. Actor logic, schemas, and other non-code runtime values appear as { \"$unserializable\": ... } markers; a definition is fully portable iff it contains no markers.",
   "$ref": "#/$defs/machine",
   "$defs": {
     "unserializable": {
@@ -17,6 +17,17 @@
       "required": ["$unserializable"],
       "additionalProperties": false
     },
+    "codeExpression": {
+      "type": "object",
+      "description": "Portable source expression for a function-valued machine config field.",
+      "properties": {
+        "@type": { "const": "code" },
+        "lang": { "const": "ts" },
+        "expr": { "type": "string" }
+      },
+      "required": ["@type", "lang", "expr"],
+      "additionalProperties": false
+    },
     "actionObject": {
       "type": "object",
       "description": "A serialized action: a built-in (@xstate.raise, @xstate.cancel, @xstate.log, @xstate.emit, @xstate.assign), an SCXML executable-content op (scxml.*), or a custom { type, params } action resolved from the machine's named actions.",
@@ -29,6 +40,7 @@
     "action": {
       "oneOf": [
         { "$ref": "#/$defs/actionObject" },
+        { "$ref": "#/$defs/codeExpression" },
         { "$ref": "#/$defs/unserializable" }
       ]
     },
@@ -58,6 +70,7 @@
         "guard": {
           "oneOf": [
             { "$ref": "#/$defs/guardObject" },
+            { "$ref": "#/$defs/codeExpression" },
             { "$ref": "#/$defs/unserializable" }
           ]
         },
@@ -73,6 +86,7 @@
       "oneOf": [
         { "type": "string" },
         { "$ref": "#/$defs/transitionObject" },
+        { "$ref": "#/$defs/codeExpression" },
         { "$ref": "#/$defs/unserializable" }
       ]
     },
@@ -117,6 +131,7 @@
           "type": "string",
           "description": "'250ms', '5s'/'1.5s', or an ISO 8601 duration ('PT1M30S')"
         },
+        { "$ref": "#/$defs/codeExpression" },
         { "$ref": "#/$defs/unserializable" }
       ]
     },
@@ -166,6 +181,7 @@
         "choice": {
           "oneOf": [
             { "$ref": "#/$defs/transition" },
+            { "$ref": "#/$defs/codeExpression" },
             { "$ref": "#/$defs/unserializable" }
           ]
         },
@@ -182,6 +198,7 @@
               },
               "additionalProperties": false
             },
+            { "$ref": "#/$defs/codeExpression" },
             { "$ref": "#/$defs/unserializable" }
           ]
         },
@@ -213,7 +230,11 @@
           ]
         },
         "context": {
-          "oneOf": [{ "type": "object" }, { "$ref": "#/$defs/unserializable" }]
+          "oneOf": [
+            { "type": "object" },
+            { "$ref": "#/$defs/codeExpression" },
+            { "$ref": "#/$defs/unserializable" }
+          ]
         },
         "_scxmlDonedata": { "type": "object" },
         "version": { "type": "string" },
@@ -227,7 +248,7 @@
         "actors": { "$ref": "#/$defs/implementationMap" },
         "delays": { "$ref": "#/$defs/implementationMap" }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "machine": { "$ref": "#/$defs/stateNode" }
   }

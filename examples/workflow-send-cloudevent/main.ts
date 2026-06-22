@@ -1,4 +1,4 @@
-import { assign, createAsyncLogic, createActor, setup } from 'xstate';
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 import { z } from 'zod';
 interface Order {
   id: string;
@@ -6,7 +6,7 @@ interface Order {
   quantity: string;
 }
 // https://github.com/serverlessworkflow/specification/tree/main/examples#send-cloudevent-on-workflow-completion-example
-export const workflow = setup({
+export const workflow = createMachine({
   types: {
     context: {} as {
       orders: Order[];
@@ -43,8 +43,7 @@ export const workflow = setup({
         return data;
       }
     })
-  }
-}).createMachine({
+  },
   id: 'sendcloudeventonprovision',
   context: ({ input }) => ({
     orders: input.orders,
@@ -58,11 +57,17 @@ export const workflow = setup({
         input: ({ context }) => ({
           orders: context.orders
         }),
-        onDone: {
-          actions: assign({
-            provisionedOrders: ({ event }) => event.output
-          }),
-          target: 'End'
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'End',
+            context: {
+              ...context,
+              provisionedOrders: (({ event }) => event.output)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     },

@@ -25,15 +25,21 @@ describe('useMachine', () => {
         invoke: {
           id: 'fetchData',
           src: 'fetchData',
-          onDone: {
-            target: 'success',
-            actions: ({ context, event }: any) => ({
-              ...context,
-              data: event.output
-            }),
-            guard: ({ event }: any) => !!event.output.length
+          onDone: ({ context, event, guards, actions }, enq) => {
+            if (
+              !(({ event }: any) => !!event.output.length)({ context, event })
+            ) {
+              return;
+            }
+            return {
+              target: 'success',
+              context: {
+                ...context,
+                data: event.output
+              }
+            };
           }
-        } as any
+        }
       },
       success: {
         type: 'final'

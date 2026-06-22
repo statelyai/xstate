@@ -2,6 +2,7 @@ import { createMachineFromConfig } from '../src/createMachineFromConfig';
 import {
   createActor,
   createAsyncLogic,
+  createMachine,
   createObservableLogic,
   serializeMachine,
   SimulatedClock
@@ -88,6 +89,32 @@ describe('json', () => {
     } catch (err: any) {
       throw new Error(JSON.stringify(JSON.parse(err.message), null, 2));
     }
+
+    expect(validate.errors).toBeNull();
+  });
+
+  it('should validate serialized code expressions', () => {
+    const entry = () => {};
+    const transition = () => ({ target: 'done' });
+    const machine = createMachine({
+      guards: {
+        isReady: () => true
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          entry,
+          on: {
+            GO: transition
+          }
+        },
+        done: {}
+      }
+    });
+
+    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+
+    validate(json);
 
     expect(validate.errors).toBeNull();
   });

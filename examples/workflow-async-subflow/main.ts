@@ -1,4 +1,4 @@
-import { assign, createAsyncLogic, createActor, setup } from 'xstate';
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 import readline from 'readline';
 import { z } from 'zod';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#async-subflow-invocation-example
@@ -9,7 +9,7 @@ const rl = readline.createInterface({
 });
 const prompt = (question: string) =>
   new Promise<string>((resolve) => rl.question(question, resolve));
-const onboardingWorkflow = setup({
+const onboardingWorkflow = createMachine({
   actors: {
     prompt: createAsyncLogic({
       schemas: {
@@ -24,8 +24,7 @@ const onboardingWorkflow = setup({
         };
       }
     })
-  }
-}).createMachine({
+  },
   id: 'onboarding',
   initial: 'Welcome',
   context: {
@@ -38,11 +37,17 @@ const onboardingWorkflow = setup({
         input: {
           question: 'What is your name?'
         },
-        onDone: {
-          target: 'Personalize',
-          actions: assign({
-            name: ({ event }) => event.output.response
-          })
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'Personalize',
+            context: {
+              ...context,
+              name: (({ event }) => event.output.response)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     },
@@ -60,11 +65,10 @@ const onboardingWorkflow = setup({
     }
   }
 });
-export const workflow = setup({
+export const workflow = createMachine({
   actors: {
     onboarding: onboardingWorkflow
-  }
-}).createMachine({
+  },
   id: 'async-function-invocation',
   initial: 'Onboard',
   states: {

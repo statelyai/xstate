@@ -190,17 +190,17 @@ describe('getMicrosteps', () => {
       states: {
         a: {
           on: {
-            GO: {
-              target: 'b',
-              actions: () => {}
+            GO: (_: any, enq: any) => {
+              enq(() => {});
+              return { target: 'b' };
             }
           }
         },
         b: {
           entry: () => {},
-          always: {
-            target: 'c',
-            actions: () => {}
+          always: (_: any, enq: any) => {
+            enq(() => {});
+            return { target: 'c' };
           }
         },
         c: {}
@@ -231,18 +231,16 @@ describe('getMicrosteps', () => {
           on: {
             GO: (_: any, enq: any) => {
               enq.raise({ type: 'NEXT' });
-              return {
-                target: 'b',
-                actions: () => {}
-              };
+              enq(() => {});
+              return { target: 'b' };
             }
           }
         },
         b: {
           on: {
-            NEXT: {
-              target: 'c',
-              actions: () => {}
+            NEXT: (_: any, enq: any) => {
+              enq(() => {});
+              return { target: 'c' };
             }
           }
         },
@@ -285,9 +283,9 @@ describe('getInitialMicrosteps', () => {
       states: {
         a: {
           entry: () => {},
-          always: {
-            target: 'b',
-            actions: () => {}
+          always: (_: any, enq: any) => {
+            enq(() => {});
+            return { target: 'b' };
           }
         },
         b: {

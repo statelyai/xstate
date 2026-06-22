@@ -1,4 +1,4 @@
-import { assign, createAsyncLogic, createActor, setup } from 'xstate';
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 import { z } from 'zod';
 interface Customer {
   id: string;
@@ -9,7 +9,7 @@ interface Customer {
   employer: string;
 }
 // https://github.com/serverlessworkflow/specification/tree/main/examples#perform-customer-credit-check-example
-export const workflow = setup({
+export const workflow = createMachine({
   types: {
     context: {} as {
       customer: Customer;
@@ -77,8 +77,7 @@ export const workflow = setup({
   },
   delays: {
     PT15M: 15 * 60 * 1000
-  }
-}).createMachine({
+  },
   id: 'customercreditcheck',
   initial: 'CheckCredit',
   context: ({ input }) => ({
@@ -92,11 +91,17 @@ export const workflow = setup({
         input: ({ context }) => ({
           customer: context.customer
         }),
-        onDone: {
-          target: 'EvaluateDecision',
-          actions: assign({
-            creditCheck: ({ event }) => event.output
-          })
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'EvaluateDecision',
+            context: {
+              ...context,
+              creditCheck: (({ event }) => event.output)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       },
       // timeout
@@ -106,13 +111,27 @@ export const workflow = setup({
     },
     EvaluateDecision: {
       always: [
-        {
-          guard: ({ context }) => context.creditCheck?.decision === 'Approved',
-          target: 'StartApplication'
+        ({ context, event, guards, actions }, enq) => {
+          if (
+            !(({ context }) => context.creditCheck?.decision === 'Approved')({
+              context,
+              event
+            })
+          ) {
+            return;
+          }
+          return { target: 'StartApplication' };
         },
-        {
-          guard: ({ context }) => context.creditCheck?.decision === 'Denied',
-          target: 'RejectApplication'
+        ({ context, event, guards, actions }, enq) => {
+          if (
+            !(({ context }) => context.creditCheck?.decision === 'Denied')({
+              context,
+              event
+            })
+          ) {
+            return;
+          }
+          return { target: 'RejectApplication' };
         },
         {
           target: 'RejectApplication'

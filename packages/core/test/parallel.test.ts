@@ -15,7 +15,9 @@ const composerMachine = createMachine({
     ReadOnly: {
       id: 'ReadOnly',
       initial: 'StructureEdit',
-      entry: selectNone,
+      entry: (args, enq) => {
+        enq(selectNone);
+      },
       states: {
         StructureEdit: {
           id: 'StructureEditRO',
@@ -38,10 +40,14 @@ const composerMachine = createMachine({
               },
               states: {
                 SelectedNone: {
-                  entry: redraw
+                  entry: (args, enq) => {
+                    enq(redraw);
+                  }
                 },
                 SelectedActivity: {
-                  entry: redraw,
+                  entry: (args, enq) => {
+                    enq(redraw);
+                  },
                   on: {
                     singleClickCanvas: (_, enq) => {
                       enq(selectNone);
@@ -50,7 +56,9 @@ const composerMachine = createMachine({
                   }
                 },
                 SelectedLink: {
-                  entry: redraw,
+                  entry: (args, enq) => {
+                    enq(redraw);
+                  },
                   on: {
                     singleClickCanvas: (_, enq) => {
                       enq(selectNone);
@@ -64,7 +72,9 @@ const composerMachine = createMachine({
               initial: 'Empty',
               states: {
                 Empty: {
-                  entry: emptyClipboard,
+                  entry: (args, enq) => {
+                    enq(emptyClipboard);
+                  },
                   on: {
                     cutInClipboardSuccess: { target: 'FilledByCut' },
                     copyInClipboardSuccess: { target: 'FilledByCopy' }
@@ -109,16 +119,22 @@ const composerMachine = createMachine({
               },
               states: {
                 SelectedNone: {
-                  entry: redraw
+                  entry: (args, enq) => {
+                    enq(redraw);
+                  }
                 },
                 SelectedActivity: {
-                  entry: redraw,
+                  entry: (args, enq) => {
+                    enq(redraw);
+                  },
                   on: {
                     singleClickCanvas: { target: 'SelectedNone' }
                   }
                 },
                 SelectedLink: {
-                  entry: redraw,
+                  entry: (args, enq) => {
+                    enq(redraw);
+                  },
                   on: {
                     singleClickCanvas: (_, enq) => {
                       enq(selectNone);
@@ -158,37 +174,61 @@ const wakMachine = createMachine({
       initial: 'wak1sonA',
       states: {
         wak1sonA: {
-          entry: wak1sonAenter,
-          exit: wak1sonAexit
+          entry: (args, enq) => {
+            enq(wak1sonAenter);
+          },
+          exit: (args, enq) => {
+            enq(wak1sonAexit);
+          }
         },
         wak1sonB: {
-          entry: wak1sonBenter,
-          exit: wak1sonBexit
+          entry: (args, enq) => {
+            enq(wak1sonBenter);
+          },
+          exit: (args, enq) => {
+            enq(wak1sonBexit);
+          }
         }
       },
       on: {
         WAK1: '.wak1sonB'
       },
-      entry: wak1enter,
-      exit: wak1exit
+      entry: (args, enq) => {
+        enq(wak1enter);
+      },
+      exit: (args, enq) => {
+        enq(wak1exit);
+      }
     },
     wak2: {
       initial: 'wak2sonA',
       states: {
         wak2sonA: {
-          entry: wak2sonAenter,
-          exit: wak2sonAexit
+          entry: (args, enq) => {
+            enq(wak2sonAenter);
+          },
+          exit: (args, enq) => {
+            enq(wak2sonAexit);
+          }
         },
         wak2sonB: {
-          entry: wak2sonBenter,
-          exit: wak2sonBexit
+          entry: (args, enq) => {
+            enq(wak2sonBenter);
+          },
+          exit: (args, enq) => {
+            enq(wak2sonBexit);
+          }
         }
       },
       on: {
         WAK2: '.wak2sonB'
       },
-      entry: wak2enter,
-      exit: wak2exit
+      entry: (args, enq) => {
+        enq(wak2enter);
+      },
+      exit: (args, enq) => {
+        enq(wak2exit);
+      }
     }
   }
 });

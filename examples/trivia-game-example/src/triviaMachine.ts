@@ -1,8 +1,8 @@
-import { assertEvent, assign, createAsyncLogic, not, setup } from 'xstate';
+import { createMachine, assertEvent, createAsyncLogic, not } from 'xstate';
 import { RMCharacter } from './common/types';
 import { RickCharacters } from './services/RickApi';
 import { getRandomNumber } from './common/constants';
-const triviaMachine = setup({
+const triviaMachine = createMachine({
   types: {
     events: {} as
       | {
@@ -56,12 +56,15 @@ const triviaMachine = setup({
   },
   actions: {
     goToTriviaPage: () => {},
-    resetTriviaData: assign({
-      currentCharacter: null,
-      randomCharacters: [],
-      points: 0,
-      question: 0,
-      lifes: 3
+    resetTriviaData: ({ context, event, self, parent, children }) => ({
+      context: {
+        ...context,
+        currentCharacter: null,
+        randomCharacters: [],
+        points: 0,
+        question: 0,
+        lifes: 3
+      }
     })
   },
   actors: {
@@ -78,8 +81,7 @@ const triviaMachine = setup({
     loadRandomCharacters: createAsyncLogic({
       run: () => RickCharacters.getRandomCharacters()
     })
-  }
-}).createMachine({
+  },
   id: 'triviaMachine',
   initial: 'homepage',
   context: {
@@ -99,12 +101,18 @@ const triviaMachine = setup({
         loadingData: {
           invoke: {
             src: 'loadHomePageCharacters',
-            onDone: {
-              actions: assign({
-                homePageCharacters: ({ event }) => event.output,
-                hasLoaded: true
-              }),
-              target: 'dataLoaded'
+            onDone: ({ context, event, guards, actions }, enq) => {
+              return {
+                target: 'dataLoaded',
+                context: {
+                  ...context,
+                  homePageCharacters: (({ event }) => event.output)({
+                    context: context,
+                    event: event
+                  }),
+                  hasLoaded: true
+                }
+              };
             }
           }
         },
@@ -126,47 +134,65 @@ const triviaMachine = setup({
         'user.reject': {
           target: 'homepage.dataLoaded'
         },
-        'user.accept': {
-          target: 'startTrivia',
-          actions: assign({
-            hasLoaded: false
-          })
+        'user.accept': ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'startTrivia',
+            context: { ...context, hasLoaded: false }
+          };
         }
       }
     },
     startTrivia: {
       initial: 'loadQuestionData',
       id: 'startTrivia',
-      entry: ['goToTriviaPage', 'resetTriviaData'],
+      entry: (args, enq) => {
+        enq((actionArgs) => args.actions['goToTriviaPage'](actionArgs as any));
+        enq((actionArgs) => args.actions['resetTriviaData'](actionArgs as any));
+      },
       states: {
         loadQuestionData: {
           id: 'loadQuestionData',
           initial: 'loadCharacter',
-          entry: assign({
-            hasLoaded: false
-          }),
+          entry: (args, enq) => {
+            return { context: { ...args.context, hasLoaded: false } };
+          },
           states: {
             loadCharacter: {
               invoke: {
                 src: 'loadSingleCharacter',
-                onDone: {
-                  actions: assign({
-                    currentCharacter: ({ event }) => event.output
-                  }),
-                  target: 'loadRandomCharacters'
+                onDone: ({ context, event, guards, actions }, enq) => {
+                  return {
+                    target: 'loadRandomCharacters',
+                    context: {
+                      ...context,
+                      currentCharacter: (({ event }) => event.output)({
+                        context: context,
+                        event: event
+                      })
+                    }
+                  };
                 }
               }
             },
             loadRandomCharacters: {
               invoke: {
                 src: 'loadRandomCharacters',
-                onDone: {
-                  actions: assign({
-                    randomCharacters: ({ event }) => event.output,
-                    question: ({ context }) => context.question + 1,
-                    hasLoaded: true
-                  }),
-                  target: '#questionReady'
+                onDone: ({ context, event, guards, actions }, enq) => {
+                  return {
+                    target: '#questionReady',
+                    context: {
+                      ...context,
+                      randomCharacters: (({ event }) => event.output)({
+                        context: context,
+                        event: event
+                      }),
+                      question: (({ context }) => context.question + 1)({
+                        context: context,
+                        event: event
+                      }),
+                      hasLoaded: true
+                    }
+                  };
                 }
               }
             }
@@ -176,41 +202,62 @@ const triviaMachine = setup({
           id: 'questionReady',
           initial: 'questionStart',
           on: {
-            'user.toggleClue': {
-              actions: assign(({ context }) => {
-                return {
-                  isClueOpened: !context.isClueOpened
-                };
-              })
+            'user.toggleClue': ({ context, event, guards, actions }, enq) => {
+              return {
+                context: {
+                  ...context,
+                  ...(({ context }) => {
+                    return {
+                      isClueOpened: !context.isClueOpened
+                    };
+                  })({ context: context, event: event })
+                }
+              };
             }
           },
           states: {
             questionStart: {
               on: {
                 'user.selectAnswer': [
-                  {
-                    target: 'correctAnswer',
-                    guard: 'isAnswerCorrect'
+                  ({ context, event, guards, actions }, enq) => {
+                    if (!guards['isAnswerCorrect']({ context, event })) {
+                      return;
+                    }
+                    return { target: 'correctAnswer' };
                   },
-                  {
-                    target: 'incorrectAnswer',
-                    guard: not('isAnswerCorrect')
+                  ({ context, event, guards, actions }, enq) => {
+                    if (!not('isAnswerCorrect')({ context, event })) {
+                      return;
+                    }
+                    return { target: 'incorrectAnswer' };
                   }
                 ]
               }
             },
             correctAnswer: {
-              entry: assign({
-                points: ({ context }) => context.points + 10
-              }),
+              entry: (args, enq) => {
+                return {
+                  context: {
+                    ...args.context,
+                    points: (({ context }) => context.points + 10)({
+                      context: args.context,
+                      event: args.event
+                    })
+                  }
+                };
+              },
               always: [
-                {
-                  guard: 'hasLostGame',
-                  target: 'lostGame'
+                ({ context, event, guards, actions }, enq) => {
+                  if (!guards['hasLostGame']({ context, event })) {
+                    return;
+                  }
+                  return { target: 'lostGame' };
                 },
-                {
-                  guard: 'hasWonGame',
-                  target: 'wonGame'
+                ({ context, event, guards, actions }, enq) => {
+                  if (!guards['hasWonGame']({ context, event })) {
+                    return;
+                  }
+                  return { target: 'wonGame' };
                 }
               ],
               on: {
@@ -220,17 +267,29 @@ const triviaMachine = setup({
               }
             },
             incorrectAnswer: {
-              entry: assign({
-                lifes: ({ context }) => context.lifes - 1
-              }),
+              entry: (args, enq) => {
+                return {
+                  context: {
+                    ...args.context,
+                    lifes: (({ context }) => context.lifes - 1)({
+                      context: args.context,
+                      event: args.event
+                    })
+                  }
+                };
+              },
               always: [
-                {
-                  guard: 'hasLostGame',
-                  target: 'lostGame'
+                ({ context, event, guards, actions }, enq) => {
+                  if (!guards['hasLostGame']({ context, event })) {
+                    return;
+                  }
+                  return { target: 'lostGame' };
                 },
-                {
-                  guard: 'hasWonGame',
-                  target: 'wonGame'
+                ({ context, event, guards, actions }, enq) => {
+                  if (!guards['hasWonGame']({ context, event })) {
+                    return;
+                  }
+                  return { target: 'wonGame' };
                 }
               ],
               on: {

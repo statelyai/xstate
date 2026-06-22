@@ -1,4 +1,4 @@
-import { assign, createAsyncLogic, createActor, setup } from 'xstate';
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 import { z } from 'zod';
 async function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -13,7 +13,7 @@ interface PatientInfo {
   reason: string;
 }
 // https://github.com/serverlessworkflow/specification/tree/main/examples#event-based-service-invocation
-export const workflow = setup({
+export const workflow = createMachine({
   actors: {
     MakeAppointmentAction: createAsyncLogic({
       schemas: {
@@ -34,8 +34,7 @@ export const workflow = setup({
         };
       }
     })
-  }
-}).createMachine({
+  },
   id: 'VetAppointmentWorkflow',
   types: {} as {
     context: {
@@ -62,11 +61,17 @@ export const workflow = setup({
   states: {
     Idle: {
       on: {
-        MakeVetAppointment: {
-          target: 'MakeVetAppointmentState',
-          actions: assign({
-            patientInfo: ({ event }) => event.patientInfo
-          })
+        MakeVetAppointment: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'MakeVetAppointmentState',
+            context: {
+              ...context,
+              patientInfo: (({ event }) => event.patientInfo)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     },
@@ -76,11 +81,17 @@ export const workflow = setup({
         input: ({ context }) => ({
           patientInfo: context.patientInfo
         }),
-        onDone: {
-          target: 'Idle',
-          actions: assign({
-            appointmentInfo: ({ event }) => event.output
-          })
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'Idle',
+            context: {
+              ...context,
+              appointmentInfo: (({ event }) => event.output)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     }

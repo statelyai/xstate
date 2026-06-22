@@ -1135,11 +1135,11 @@ describe('fromActorRef', () => {
             INC: ({ context }) => ({
               context: { count: context.count + 1 }
             }),
-            SOMETHING: {
-              actions: () => {
+            SOMETHING: ({ context, event, guards, actions }, enq) => {
+              enq(() => {
                 /* do nothing */
-              }
-            } as any
+              });
+            }
           }
         }
       }
@@ -1251,7 +1251,9 @@ describe('fromActorRef', () => {
             INC: ({ context }) => ({
               context: { count: context.count + 1 }
             }),
-            SOMETHING: { actions: 'doSomething' } as any
+            SOMETHING: ({ context, event, guards, actions }, enq) => {
+              enq(() => actions['doSomething']({ context, event } as any));
+            }
           }
         }
       }
@@ -1324,7 +1326,9 @@ describe('fromActorRef', () => {
                 }
               }
             }),
-            SOMETHING: { actions: 'doSomething' } as any
+            SOMETHING: ({ context, event, guards, actions }, enq) => {
+              enq(() => actions['doSomething']({ context, event } as any));
+            }
           }
         }
       }
@@ -1400,7 +1404,9 @@ describe('fromActorRef', () => {
                 }
               }
             }),
-            SOMETHING: { actions: 'doSomething' } as any
+            SOMETHING: ({ context, event, guards, actions }, enq) => {
+              enq(() => actions['doSomething']({ context, event } as any));
+            }
           }
         }
       }

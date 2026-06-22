@@ -11,11 +11,18 @@
  * 2. Serializable structure (states, transitions, targets, serialized actions,
  *    guard refs, string actor srcs, delays, meta, context values) survives a
  *    JSON round-trip through `createMachineFromConfig`.
- * 3. Runtime implementations (inline functions, actor logic, schemas) appear as `{
- *    $unserializable }` markers — visible, not dropped.
+ * 3. Runtime functions appear as code expressions. Actor logic and schemas appear
+ *    as `{ $unserializable }` markers — visible, not dropped.
  * 4. A machine created from JSON round-trips losslessly (byte-stable).
  */
-import { createActor, createMachine, serializeMachine } from '../src/index.ts';
+import {
+  createActor,
+  createAsyncLogic,
+  createMachine,
+  serializeMachine,
+  setup,
+  types
+} from '../src/index.ts';
 import { createMachineFromConfig } from '../src/createMachineFromConfig';
 import { z } from 'zod';
 
@@ -101,21 +108,128 @@ describe('serializability conformance', () => {
     expect(() => JSON.stringify(serializeMachine(machine))).not.toThrow();
   });
 
-  it('inline implementations surface as explicit $unserializable markers', () => {
-    const machine = createMachine({
+  it('setup/createMachine implementations serialize named functions to code directives', () => {
+    function track() {}
+    function isReady() {
+      return true;
+    }
+    function shortDelay() {
+      return 10;
+    }
+
+    const machine = setup({
+      schemas: {
+        context: types<{ ok: boolean }>()
+      }
+    }).createMachine({
       context: { ok: true },
       actions: {
-        log: (() => {}) as any
+        track
       },
       guards: {
-        isOk: ({ context }: any) => context.ok
+        isReady
+      },
+      delays: {
+        shortDelay
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          entry: ({ actions }, enq) => {
+            enq(actions.track);
+          },
+          after: {
+            shortDelay: ({ guards }) => {
+              if (guards.isReady()) {
+                return { target: 'done' };
+              }
+            }
+          }
+        },
+        done: {}
+      }
+    });
+
+    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+
+    expect(json.actions.track).toEqual({
+      '@type': 'code',
+      lang: 'ts',
+      expr: track.toString()
+    });
+    expect(json.guards.isReady).toEqual({
+      '@type': 'code',
+      lang: 'ts',
+      expr: isReady.toString()
+    });
+    expect(json.delays.shortDelay).toEqual({
+      '@type': 'code',
+      lang: 'ts',
+      expr: shortDelay.toString()
+    });
+  });
+
+  it('inline guards/actions serialize to code directives', () => {
+    const entry = (_: any) => undefined;
+    const guard = ({ context }: any) => context.ok;
+    const transition = (args: any, enq: any) => {
+      if (guard(args)) {
+        enq(entry);
+        return { target: 'b' };
+      }
+    };
+
+    const machine = createMachine({
+      context: { ok: true },
+      initial: 'a',
+      states: {
+        a: {
+          entry,
+          on: {
+            GO: transition
+          }
+        },
+        b: {}
+      }
+    });
+
+    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+
+    expect(json.states.a.entry).toEqual({
+      '@type': 'code',
+      lang: 'ts',
+      expr: entry.toString()
+    });
+    expect(json.states.a.on.GO).toEqual({
+      '@type': 'code',
+      lang: 'ts',
+      expr: transition.toString()
+    });
+  });
+
+  it('actors and schemas surface as explicit $unserializable markers', () => {
+    const worker = createAsyncLogic({
+      run: async () => undefined
+    });
+    const machine = createMachine({
+      context: { ok: true },
+      schemas: {
+        context: z.object({ ok: z.boolean() }),
+        events: {
+          GO: z.object({})
+        }
+      },
+      actors: {
+        worker
       },
       initial: 'a',
       states: {
         a: {
-          entry: (_: any) => undefined,
+          invoke: {
+            src: worker
+          },
           on: {
-            GO: () => ({ target: 'b' })
+            GO: { target: 'b' }
           }
         },
         b: {}
@@ -125,14 +239,12 @@ describe('serializability conformance', () => {
     const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
     const markers = findMarkers(json);
 
-    // The inline transition, entry action, and named implementations are
-    // marked — visible in the data, not silently dropped.
     expect(markers).toEqual(
       expect.arrayContaining([
-        '$.states.a.entry',
-        '$.states.a.on.GO',
-        '$.actions.log',
-        '$.guards.isOk'
+        '$.states.a.invoke.src',
+        '$.actors.worker',
+        '$.schemas.context',
+        '$.schemas.events.GO'
       ])
     );
     // Structure survives.
@@ -161,6 +273,35 @@ describe('serializability conformance', () => {
     expect(json.states.idle.timeout).toBe('5s');
     expect(json.states.idle.onTimeout).toBe('expired');
     expect(json.states.idle.on.NEXT).toBe('expired');
+  });
+
+  it('JSON-safe unknown data is preserved', () => {
+    const machine = createMachine({
+      initial: 'idle',
+      customData: {
+        label: 'Portable',
+        values: [1, true, null]
+      },
+      states: {
+        idle: {
+          'x-viz': {
+            x: 10,
+            y: 20
+          }
+        }
+      }
+    } as any);
+
+    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+
+    expect(json.customData).toEqual({
+      label: 'Portable',
+      values: [1, true, null]
+    });
+    expect(json.states.idle['x-viz']).toEqual({
+      x: 10,
+      y: 20
+    });
   });
 
   it('revived machines run: structure + provided implementations', () => {

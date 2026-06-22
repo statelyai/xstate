@@ -1,7 +1,7 @@
-import { assign, createAsyncLogic, createActor, setup } from 'xstate';
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 import { z } from 'zod';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#solving-math-problems-example
-export const workflow = setup({
+export const workflow = createMachine({
   types: {
     context: {} as {
       results: string[] | undefined;
@@ -27,8 +27,7 @@ export const workflow = setup({
         );
       }
     })
-  }
-}).createMachine({
+  },
   id: 'math-problem',
   initial: 'Solve',
   context: {
@@ -41,11 +40,17 @@ export const workflow = setup({
         input: ({ event }) => ({
           problems: event.input.expressions
         }),
-        onDone: {
-          target: 'Solved',
-          actions: assign({
-            results: ({ event }) => event.output.map((r) => r.result)
-          })
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'Solved',
+            context: {
+              ...context,
+              results: (({ event }) => event.output.map((r) => r.result))({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     },

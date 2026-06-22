@@ -187,7 +187,9 @@ describe('state-level timeout', () => {
       states: {
         waiting: {
           after: {
-            500: { actions: afterSpy } as any
+            500: ({ context, event, guards, actions }, enq) => {
+              enq(afterSpy);
+            }
           },
           timeout: 1000,
           onTimeout: 'escalated'

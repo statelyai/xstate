@@ -79,8 +79,12 @@ describe('state meta data', () => {
           POWER_OUTAGE: 'red',
           NOTHING: 'green'
         },
-        entry: enter_green,
-        exit: exit_green
+        entry: (args, enq) => {
+          enq(enter_green);
+        },
+        exit: (args, enq) => {
+          enq(exit_green);
+        }
       },
       yellow: {
         meta: { yellowData: 'yellow data' },
@@ -88,8 +92,12 @@ describe('state meta data', () => {
           TIMER: 'red',
           POWER_OUTAGE: 'red'
         },
-        entry: enter_yellow,
-        exit: exit_yellow
+        entry: (args, enq) => {
+          enq(enter_yellow);
+        },
+        exit: (args, enq) => {
+          enq(exit_yellow);
+        }
       },
       red: {
         meta: {
@@ -105,8 +113,12 @@ describe('state meta data', () => {
           POWER_OUTAGE: 'red',
           NOTHING: 'red'
         },
-        entry: enter_red,
-        exit: exit_red,
+        entry: (args, enq) => {
+          enq(enter_red);
+        },
+        exit: (args, enq) => {
+          enq(exit_red);
+        },
         ...pedestrianStates
       }
     }

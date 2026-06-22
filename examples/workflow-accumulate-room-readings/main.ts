@@ -1,4 +1,4 @@
-import { assign, setup, createAsyncLogic, createActor } from 'xstate';
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 import { z } from 'zod';
 async function delay(ms: number, errorProbability: number = 0): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -12,7 +12,7 @@ async function delay(ms: number, errorProbability: number = 0): Promise<void> {
   });
 }
 // https://github.com/serverlessworkflow/specification/blob/main/examples/README.md#accumulate-room-readings
-export const workflow = setup({
+export const workflow = createMachine({
   types: {} as {
     events:
       | {
@@ -48,8 +48,7 @@ export const workflow = setup({
         return;
       }
     })
-  }
-}).createMachine({
+  },
   id: 'roomreadings',
   initial: 'ConsumeReading',
   context: {
@@ -58,27 +57,47 @@ export const workflow = setup({
   },
   states: {
     ConsumeReading: {
-      entry: assign({
-        temperature: null,
-        humidity: null
-      }),
+      entry: (args, enq) => {
+        return {
+          context: { ...args.context, temperature: null, humidity: null }
+        };
+      },
       on: {
-        TemperatureEvent: {
-          actions: assign({
-            temperature: ({ event }) => event.temperature
-          })
+        TemperatureEvent: ({ context, event, guards, actions }, enq) => {
+          return {
+            context: {
+              ...context,
+              temperature: (({ event }) => event.temperature)({
+                context: context,
+                event: event
+              })
+            }
+          };
         },
-        HumidityEvent: {
-          actions: assign({
-            humidity: ({ event }) => event.humidity
-          })
+        HumidityEvent: ({ context, event, guards, actions }, enq) => {
+          return {
+            context: {
+              ...context,
+              humidity: (({ event }) => event.humidity)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       },
       after: {
-        PT1H: {
-          guard: ({ context }) =>
-            context.temperature !== null && context.humidity !== null,
-          target: 'GenerateReport'
+        PT1H: ({ context, event, guards, actions }, enq) => {
+          if (
+            !(({ context }) =>
+              context.temperature !== null && context.humidity !== null)({
+              context,
+              event
+            })
+          ) {
+            return;
+          }
+          return { target: 'GenerateReport' };
         }
       }
     },

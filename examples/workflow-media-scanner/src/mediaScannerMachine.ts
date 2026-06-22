@@ -1,4 +1,4 @@
-import { assign, createAsyncLogic, setup } from 'xstate';
+import { createMachine, createAsyncLogic } from 'xstate';
 import {
   checkFilePermissions,
   evaluateFiles,
@@ -6,7 +6,7 @@ import {
   scanDirectories
 } from './fileHandlers';
 import { z } from 'zod';
-export const mediaScannerMachine = setup({
+export const mediaScannerMachine = createMachine({
   types: {
     input: {} as {
       basePath: string;
@@ -74,8 +74,7 @@ export const mediaScannerMachine = setup({
       run: async ({ input: { dirsToMove, destinationPath } }) =>
         await moveFiles(dirsToMove, destinationPath)
     })
-  }
-}).createMachine({
+  },
   context: ({ input }) => ({
     basePath: input.basePath,
     destinationPath: input.destinationPath,
@@ -117,11 +116,17 @@ export const mediaScannerMachine = setup({
         input: ({ context: { basePath } }) => ({ basePath }),
         src: 'scanLibrary',
         onDone: [
-          {
-            target: 'CheckingFilePermissions',
-            actions: assign({
-              directoriesToCheck: ({ event }) => event.output
-            })
+          ({ context, event, guards, actions }, enq) => {
+            return {
+              target: 'CheckingFilePermissions',
+              context: {
+                ...context,
+                directoriesToCheck: (({ event }) => event.output)({
+                  context: context,
+                  event: event
+                })
+              }
+            };
           }
         ],
         onError: [
@@ -141,24 +146,34 @@ export const mediaScannerMachine = setup({
         }),
         src: 'checkFilePermissions',
         onDone: [
-          {
-            target: 'EvaluatingFiles',
-            actions: assign(({ event }) => {
-              return {
-                dirsToEvaluate: event.output['dirsToEvaluate'],
-                dirsToReport: event.output['dirsToReport']
-              };
-            })
+          ({ context, event, guards, actions }, enq) => {
+            return {
+              target: 'EvaluatingFiles',
+              context: {
+                ...context,
+                ...(({ event }) => {
+                  return {
+                    dirsToEvaluate: event.output['dirsToEvaluate'],
+                    dirsToReport: event.output['dirsToReport']
+                  };
+                })({ context: context, event: event })
+              }
+            };
           }
         ],
         onError: [
-          {
-            target: 'ReportingErrors',
-            actions: assign(({ event }) => {
-              return {
-                dirsToReport: event.error['dirsToReport']
-              };
-            })
+          ({ context, event, guards, actions }, enq) => {
+            return {
+              target: 'ReportingErrors',
+              context: {
+                ...context,
+                ...(({ event }) => {
+                  return {
+                    dirsToReport: event.error['dirsToReport']
+                  };
+                })({ context: context, event: event })
+              }
+            };
           }
         ]
       }
@@ -166,8 +181,8 @@ export const mediaScannerMachine = setup({
     ReportingErrors: {
       description:
         'Send a message with error details to the proper destination.\n\nErrors could be the lack of read/write permissions or path not existing',
-      entry: {
-        type: 'emailErrors'
+      entry: (args, enq) => {
+        enq((actionArgs) => args.actions['emailErrors'](actionArgs as any));
       },
       on: {
         RESTART: {
@@ -186,13 +201,18 @@ export const mediaScannerMachine = setup({
         }),
         src: 'evaluateFiles',
         onDone: [
-          {
-            target: 'MovingFiles',
-            actions: assign(({ event }) => {
-              return {
-                dirsToMove: event.output['dirsToMove']
-              };
-            })
+          ({ context, event, guards, actions }, enq) => {
+            return {
+              target: 'MovingFiles',
+              context: {
+                ...context,
+                ...(({ event }) => {
+                  return {
+                    dirsToMove: event.output['dirsToMove']
+                  };
+                })({ context: context, event: event })
+              }
+            };
           }
         ]
       }

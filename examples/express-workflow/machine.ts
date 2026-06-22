@@ -1,4 +1,4 @@
-import { createMachine, assign } from 'xstate';
+import { createMachine } from 'xstate';
 
 export const machine = createMachine({
   id: 'counter',
@@ -19,11 +19,17 @@ export const machine = createMachine({
     },
     red: {
       on: {
-        TIMER: {
-          target: 'green',
-          actions: assign({
-            cycles: ({ context }) => context.cycles + 1
-          })
+        TIMER: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'green',
+            context: {
+              ...context,
+              cycles: (({ context }) => context.cycles + 1)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     }

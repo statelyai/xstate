@@ -1,4 +1,4 @@
-import { setup, enqueueActions, assign } from 'xstate';
+import { createMachine, enqueueActions } from 'xstate';
 
 function range(num: number): number[] {
   return Array.from(Array(num).keys());
@@ -10,7 +10,7 @@ export interface Tile {
   y: number;
 }
 
-export const tilesMachine = setup({
+export const tilesMachine = createMachine({
   types: {} as {
     context: {
       tiles: number[];
@@ -34,35 +34,37 @@ export const tilesMachine = setup({
       tiles.every((tile, idx) => tile === idx)
   },
   actions: {
-    clearSelectedTile: assign({
-      selected: undefined
+    clearSelectedTile: ({ context }) => ({
+      context: { ...context, selected: undefined }
     }),
-    clearHoveredTile: assign({
-      hovered: undefined
+    clearHoveredTile: ({ context }) => ({
+      context: { ...context, hovered: undefined }
     }),
-    setSelectedTile: assign({
-      selected: ({ event }) => event.tile
+    setSelectedTile: ({ context, event }) => ({
+      context: { ...context, selected: event.tile }
     }),
-    setHoveredTile: assign({
-      hovered: ({ event }) => event.tile
+    setHoveredTile: ({ context, event }) => ({
+      context: { ...context, hovered: event.tile }
     }),
-    swapTiles: assign({
-      tiles: ({ context: { tiles, selected, hovered } }) => {
-        return swap(tiles, hovered!.index, selected!.index);
+    swapTiles: ({ context }) => ({
+      context: {
+        ...context,
+        tiles: swap(
+          context.tiles,
+          context.hovered!.index,
+          context.selected!.index
+        )
       }
     }),
-    shuffleTiles: assign({
-      tiles: ({ context: { tiles } }) => {
-        const newTiles = [...tiles];
-        for (let i = newTiles.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [newTiles[i], newTiles[j]] = [newTiles[j], newTiles[i]];
-        }
-        return newTiles;
+    shuffleTiles: ({ context }) => {
+      const newTiles = [...context.tiles];
+      for (let i = newTiles.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newTiles[i], newTiles[j]] = [newTiles[j], newTiles[i]];
       }
-    })
-  }
-}).createMachine({
+      return { context: { ...context, tiles: newTiles } };
+    }
+  },
   context: {
     tiles: range(16),
     selected: undefined,
@@ -75,7 +77,10 @@ export const tilesMachine = setup({
       id: 'gameOver',
       // make the game replayable
       on: {
-        shuffle: { target: 'playing', actions: ['shuffleTiles'] }
+        shuffle: ({ context, event, guards, actions }, enq) => {
+          enq((actionArgs) => actions['shuffleTiles'](actionArgs as any));
+          return { target: 'playing' };
+        }
       }
     },
     playing: {
@@ -86,46 +91,61 @@ export const tilesMachine = setup({
         selecting: {
           id: 'selecting',
           on: {
-            'tile.select': {
-              target: 'selected',
-              actions: ['setSelectedTile']
+            'tile.select': ({ context, event, guards, actions }, enq) => {
+              enq((actionArgs) =>
+                actions['setSelectedTile'](actionArgs as any)
+              );
+              return { target: 'selected' };
             }
           }
         },
         selected: {
           on: {
-            'move.canceled': {
-              actions: ['clearSelectedTile', 'clearHoveredTile'],
-              target: 'selecting'
+            'move.canceled': ({ context, event, guards, actions }, enq) => {
+              enq((actionArgs) =>
+                actions['clearSelectedTile'](actionArgs as any)
+              );
+              enq((actionArgs) =>
+                actions['clearHoveredTile'](actionArgs as any)
+              );
+              return { target: 'selecting' };
             },
             'tile.hover': [
-              {
-                actions: ['setHoveredTile']
-                // target: '.canSwapTiles'
+              ({ context, event, guards, actions }, enq) => {
+                enq((actionArgs) =>
+                  actions['setHoveredTile'](actionArgs as any)
+                );
               }
             ],
-            'tile.move': {
-              actions: enqueueActions(({ enqueue, check }) => {
-                if (check('isAdjacent')) {
-                  enqueue('swapTiles');
-                  enqueue('clearSelectedTile');
-                  enqueue('clearHoveredTile');
-                }
-              }),
-              target: '#selecting'
+            'tile.move': ({ context, event, guards, actions }, enq) => {
+              enq(
+                enqueueActions(({ enqueue, check }) => {
+                  if (check('isAdjacent')) {
+                    enqueue('swapTiles');
+                    enqueue('clearSelectedTile');
+                    enqueue('clearHoveredTile');
+                  }
+                })
+              );
+              return { target: '#selecting' };
             }
           }
         }
       },
-      always: {
-        guard: 'allTilesInOrder',
-        target: '#gameOver'
+      always: ({ context, event, guards, actions }, enq) => {
+        if (!guards['allTilesInOrder']({ context, event })) {
+          return;
+        }
+        return { target: '#gameOver' };
       },
       initial: 'selecting'
     }
   },
   on: {
-    shuffle: { target: '.playing', actions: ['shuffleTiles'] }
+    shuffle: ({ context, event, guards, actions }, enq) => {
+      enq((actionArgs) => actions['shuffleTiles'](actionArgs as any));
+      return { target: '.playing' };
+    }
   }
 });
 

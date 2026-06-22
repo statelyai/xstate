@@ -1,7 +1,7 @@
-import { assign, createAsyncLogic, createActor, setup } from 'xstate';
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 import { z } from 'zod';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#finalize-college-application-example
-export const workflow = setup({
+export const workflow = createMachine({
   types: {
     context: {} as {
       applicantId: string;
@@ -31,8 +31,7 @@ export const workflow = setup({
         };
       }
     })
-  }
-}).createMachine({
+  },
   id: 'finalizeCollegeApplication',
   context: ({ input }) => ({
     applicantId: input.applicantId,
@@ -44,28 +43,31 @@ export const workflow = setup({
   states: {
     FinalizeApplication: {
       on: {
-        ApplicationSubmitted: {
-          actions: assign({
-            applicationSubmitted: true
-          })
+        ApplicationSubmitted: ({ context, event, guards, actions }, enq) => {
+          return { context: { ...context, applicationSubmitted: true } };
         },
-        SATScoresReceived: {
-          actions: assign({
-            satScoresReceived: true
-          })
+        SATScoresReceived: ({ context, event, guards, actions }, enq) => {
+          return { context: { ...context, satScoresReceived: true } };
         },
-        RecommendationLetterReceived: {
-          actions: assign({
-            recommendationLetterReceived: true
-          })
+        RecommendationLetterReceived: (
+          { context, event, guards, actions },
+          enq
+        ) => {
+          return {
+            context: { ...context, recommendationLetterReceived: true }
+          };
         }
       },
-      always: {
-        guard: ({ context }) =>
-          context.applicationSubmitted &&
-          context.satScoresReceived &&
-          context.recommendationLetterReceived,
-        target: 'FinalizingApplication'
+      always: ({ context, event, guards, actions }, enq) => {
+        if (
+          !(({ context }) =>
+            context.applicationSubmitted &&
+            context.satScoresReceived &&
+            context.recommendationLetterReceived)({ context, event })
+        ) {
+          return;
+        }
+        return { target: 'FinalizingApplication' };
       }
     },
     FinalizingApplication: {

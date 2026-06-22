@@ -3,10 +3,10 @@
  *
  * `machineConfigToJSON` converts a machine config into a JSON-safe structure
  * (the `MachineJSON` shape accepted by `createMachineFromConfig`). The boundary
- * between serializable structure and runtime implementations is explicit: any
- * value that cannot be represented as data (inline functions, actor logic,
- * runtime schemas) is replaced with an `{ "$unserializable": <kind> }` marker
- * rather than silently dropped.
+ * between serializable structure and runtime implementations is explicit:
+ * functions are represented as code expressions, while actor logic, runtime
+ * schemas, and other non-code runtime values are replaced with an `{
+ * "$unserializable": <kind> }` marker rather than silently dropped.
  *
  * A machine definition is fully portable iff its JSON contains no
  * `$unserializable` markers; reviving a definition that has markers requires
@@ -22,13 +22,19 @@ export interface UnserializableMarker {
   id?: string;
 }
 
+export interface CodeExpression {
+  '@type': 'code';
+  lang: 'ts';
+  expr: string;
+}
+
 /**
  * Returns the JSON-serializable definition of a machine.
  *
- * Inline functions, actor logic, and runtime schemas cannot be represented as
- * data; they appear as `{ "$unserializable": ... }` markers. A machine created
- * via `createMachineFromConfig` returns its original JSON config (lossless
- * round-trip):
+ * Inline functions are represented as `{ "@type": "code", lang: "ts", expr }`.
+ * Actor logic and runtime schemas appear as `{ "$unserializable": ... }`
+ * markers. A machine created via `createMachineFromConfig` returns its original
+ * JSON config (lossless round-trip):
  *
  * ```ts
  * import { serializeMachine, createMachineFromConfig } from 'xstate';
@@ -45,36 +51,6 @@ export function serializeMachine(
   return (machine as any)._json ?? machineConfigToJSON(machine.config as any);
 }
 
-/**
- * State-node config keys that are part of the serializable definition. Keys
- * outside this list (unknown/internal properties) are dropped.
- */
-const STATE_NODE_KEYS = [
-  'id',
-  'key',
-  'type',
-  'history',
-  'description',
-  'target',
-  'version',
-  'initial',
-  'context',
-  'on',
-  'after',
-  'always',
-  'choice',
-  'route',
-  'onTimeout',
-  'timeout',
-  'entry',
-  'exit',
-  'meta',
-  'output',
-  'tags',
-  'input',
-  '_scxmlDonedata'
-] as const;
-
 function marker(
   kind: UnserializableMarker['$unserializable'],
   id?: string
@@ -86,15 +62,43 @@ function marker(
   return m;
 }
 
-/** JSON-safe deep copy of a plain value; functions become markers. */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+function codeExpression(fn: Function): CodeExpression {
+  return {
+    '@type': 'code',
+    lang: 'ts',
+    expr: fn.toString()
+  };
+}
+
+function isActorLogic(value: unknown): value is { id?: string } {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    typeof (value as any).transition === 'function' &&
+    typeof (value as any).getInitialSnapshot === 'function'
+  );
+}
+
+function isRuntimeSchema(value: unknown): boolean {
+  return !!value && typeof value === 'object' && '~standard' in value;
+}
+
+/** JSON-safe deep copy of a plain value; functions become code expressions. */
 function valueToJSON(value: unknown): unknown {
   if (typeof value === 'function') {
-    return marker('function', (value as { name?: string }).name || undefined);
+    return codeExpression(value);
   }
   if (value === null || typeof value !== 'object') {
     return typeof value === 'bigint' || typeof value === 'symbol'
       ? marker('value')
       : value;
+  }
+  if (isActorLogic(value)) {
+    return marker('actor', value.id);
+  }
+  if (isRuntimeSchema(value)) {
+    return marker('schema');
   }
   if (Array.isArray(value)) {
     return value.map(valueToJSON);
@@ -147,12 +151,15 @@ function implementationsToJSON(
   const result: Record<string, unknown> = {};
   for (const key of Object.keys(map)) {
     const value = map[key];
-    result[key] =
-      typeof value === 'function'
-        ? marker('function', key)
-        : value && typeof value === 'object'
-          ? marker(kind, key)
-          : value;
+    if (kind === 'schema') {
+      result[key] = marker('schema', key);
+    } else if (typeof value === 'function') {
+      result[key] = codeExpression(value);
+    } else if (kind === 'actor' && value && typeof value === 'object') {
+      result[key] = marker('actor', key);
+    } else {
+      result[key] = valueToJSON(value);
+    }
   }
   return result;
 }
@@ -162,7 +169,10 @@ function stateNodeConfigToJSON(
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
-  for (const key of STATE_NODE_KEYS) {
+  for (const key of Object.keys(config)) {
+    if (key === 'states' || key === 'invoke') {
+      continue;
+    }
     const value = config[key];
     if (value !== undefined) {
       result[key] = valueToJSON(value);

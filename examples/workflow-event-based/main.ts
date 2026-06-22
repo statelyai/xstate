@@ -1,6 +1,6 @@
-import { createAsyncLogic, createActor, setup } from 'xstate';
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#Event-Based-Transitions-Example
-export const workflow = setup({
+export const workflow = createMachine({
   delays: {
     visaDecisionTimeout: 1000
   },
@@ -26,8 +26,7 @@ export const workflow = setup({
         console.log('handleNoVisaDecisionWorkflowId workflow completed');
       }
     })
-  }
-}).createMachine({
+  },
   id: 'eventbasedswitchstate',
   initial: 'CheckVisaStatus',
   states: {

@@ -343,7 +343,9 @@ describe('history states', () => {
           on: { NEXT: '#hist' }
         },
         b: {
-          entry: spy,
+          entry: (args, enq) => {
+            enq(spy);
+          },
           initial: 'b1',
           states: {
             b1: {},
@@ -491,7 +493,9 @@ describe('history states', () => {
           on: { NEXT: '#hist' }
         },
         b: {
-          entry: spy,
+          entry: (args, enq) => {
+            enq(spy);
+          },
           initial: 'b1',
           states: {
             b1: {},

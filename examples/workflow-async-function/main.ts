@@ -1,7 +1,7 @@
-import { createAsyncLogic, createActor, setup } from 'xstate';
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 import { z } from 'zod';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#async-function-invocation-example
-export const workflow = setup({
+export const workflow = createMachine({
   types: {
     input: {} as {
       customer: string;
@@ -24,8 +24,7 @@ export const workflow = setup({
         );
       }
     })
-  }
-}).createMachine({
+  },
   id: 'async-function-invocation',
   initial: 'Send email',
   context: ({ input }) => ({

@@ -22,104 +22,108 @@ async function delay(ms: number, errorProbability: number = 0): Promise<void> {
   });
 }
 // https://github.com/serverlessworkflow/specification/blob/main/examples/README.md#purchase-order-deadline
-export const workflow = createMachine(
-  {
-    id: 'order',
-    types: {} as {
-      events:
-        | {
-            type: 'OrderCreatedEvent';
-          }
-        | {
-            type: 'OrderConfirmedEvent';
-          }
-        | {
-            type: 'ShipmentSentEvent';
-          }
-        | {
-            type: 'OrderFinishedEvent';
-          };
+export const workflow = createMachine({
+  id: 'order',
+  types: {} as {
+    events:
+      | {
+          type: 'OrderCreatedEvent';
+        }
+      | {
+          type: 'OrderConfirmedEvent';
+        }
+      | {
+          type: 'ShipmentSentEvent';
+        }
+      | {
+          type: 'OrderFinishedEvent';
+        };
+  },
+  initial: 'StartNewOrder',
+  after: {
+    PT30D: { target: '.CancelOrder' }
+  },
+  states: {
+    StartNewOrder: {
+      on: {
+        OrderCreatedEvent: ({ context, event, guards, actions }, enq) => {
+          enq((actionArgs) => actions['logNewOrderCreated'](actionArgs as any));
+          return { target: 'WaitForOrderConfirmation' };
+        }
+      }
     },
-    initial: 'StartNewOrder',
-    after: {
-      PT30D: { target: '.CancelOrder' }
+    WaitForOrderConfirmation: {
+      on: {
+        OrderConfirmedEvent: ({ context, event, guards, actions }, enq) => {
+          enq((actionArgs) => actions['logOrderConfirmed'](actionArgs as any));
+          return { target: 'WaitOrderShipped' };
+        }
+      }
     },
-    states: {
-      StartNewOrder: {
-        on: {
-          OrderCreatedEvent: {
-            actions: ['logNewOrderCreated'],
-            target: 'WaitForOrderConfirmation'
-          }
+    WaitOrderShipped: {
+      on: {
+        ShipmentSentEvent: ({ context, event, guards, actions }, enq) => {
+          enq((actionArgs) => actions['logOrderShipped'](actionArgs as any));
+          return { target: 'OrderFinished' };
         }
-      },
-      WaitForOrderConfirmation: {
-        on: {
-          OrderConfirmedEvent: {
-            actions: ['logOrderConfirmed'],
-            target: 'WaitOrderShipped'
-          }
+      }
+    },
+    OrderFinished: {
+      type: 'final',
+      entry: (args, enq) => {
+        enq((actionArgs) =>
+          args.actions['logOrderFinished'](actionArgs as any)
+        );
+      }
+    },
+    CancelOrder: {
+      invoke: {
+        src: 'CancelOrder',
+        onDone: {
+          target: 'OrderCancelled'
         }
-      },
-      WaitOrderShipped: {
-        on: {
-          ShipmentSentEvent: {
-            actions: ['logOrderShipped'],
-            target: 'OrderFinished'
-          }
-        }
-      },
-      OrderFinished: {
-        type: 'final',
-        entry: ['logOrderFinished']
-      },
-      CancelOrder: {
-        invoke: {
-          src: 'CancelOrder',
-          onDone: {
-            target: 'OrderCancelled'
-          }
-        }
-      },
-      OrderCancelled: {
-        type: 'final',
-        entry: ['logOrderCancelled']
+      }
+    },
+    OrderCancelled: {
+      type: 'final',
+      entry: (args, enq) => {
+        enq((actionArgs) =>
+          args.actions['logOrderCancelled'](actionArgs as any)
+        );
       }
     }
   },
-  {
-    delays: {
-      // 15 seconds instead of 30 days
-      PT30D: 15 * 1000
+  delays: {
+    // 15 seconds instead of 30 days
+    PT30D: 15 * 1000
+  },
+  actions: {
+    logNewOrderCreated: () => {
+      console.log('logNewOrderCreated');
     },
-    actions: {
-      logNewOrderCreated: () => {
-        console.log('logNewOrderCreated');
-      },
-      logOrderConfirmed: () => {
-        console.log('logOrderConfirmed');
-      },
-      logOrderShipped: () => {
-        console.log('logOrderShipped');
-      },
-      logOrderFinished: () => {
-        console.log('logOrderFinished');
-      },
-      logOrderCancelled: () => {
-        console.log('logOrderCancelled');
-      }
+    logOrderConfirmed: () => {
+      console.log('logOrderConfirmed');
     },
-    actors: {
-      CancelOrder: createAsyncLogic({
-        run: async () => {
-          console.log('Starting CancelOrder');
-          await delay(1000);
-          console.log('Completed CancelOrder');
-        }
-      })
+    logOrderShipped: () => {
+      console.log('logOrderShipped');
+    },
+    logOrderFinished: () => {
+      console.log('logOrderFinished');
+    },
+    logOrderCancelled: () => {
+      console.log('logOrderCancelled');
     }
+  },
+  actors: {
+    CancelOrder: createAsyncLogic({
+      run: async () => {
+        console.log('Starting CancelOrder');
+        await delay(1000);
+        console.log('Completed CancelOrder');
+      }
+    })
   }
-);
+});
 const actor = createActor(workflow);
 actor.subscribe({
   complete() {
