@@ -784,9 +784,12 @@ export class Actor<TLogic extends AnyActorLogic>
    * Can be restored with {@link ActorOptions.state}
    * @see https://stately.ai/docs/persistence
    */
-  public getPersistedSnapshot(): Snapshot<unknown>;
-  public getPersistedSnapshot(options?: unknown): Snapshot<unknown> {
-    return this.logic.getPersistedSnapshot(this._snapshot, options);
+  public getPersistedSnapshot(): SnapshotFrom<TLogic>;
+  public getPersistedSnapshot(options?: unknown): SnapshotFrom<TLogic> {
+    return this.logic.getPersistedSnapshot(
+      this._snapshot,
+      options
+    ) as SnapshotFrom<TLogic>;
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {
