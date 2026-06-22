@@ -327,105 +327,73 @@ export function getDelayedTransitions(
     }
   }
 
-  const mutateEntryExitWithDelay = (delay: string | number) => {
-    const afterEvent = createAfterEvent(delay, stateNode.id);
-    return scheduleDelayedEvent(stateNode, afterEvent, (x) =>
-      resolveDelay(delay, x.delays, {
+  // Every delayed transition — `after`, state-level `timeout`/`onTimeout`, and
+  // invoke-level `timeout`/`onTimeout` — has the same shape: an event raised on
+  // entry (and cancelled on exit) plus a transition that catches it. They
+  // differ only in the event raised, the transition(s) caught, and whether the
+  // delay resolves against the machine's `delays` map (invoke timeouts do not).
+  //
+  // `xstate.timeout.<id>` is a dedicated event so a state-level `timeout` cannot
+  // collide with an explicit `after` entry on the same state. Invoke timeouts
+  // are scheduled on the enclosing state; completion transitions cancel the
+  // timer separately, so it clears even when the parent state stays active.
+  const sources: Array<{
+    event: AnyEventObject;
+    delay: any;
+    transitions: unknown;
+    fromDelaysMap: boolean;
+  }> = [];
+
+  if (afterConfig) {
+    for (const key of Object.keys(afterConfig)) {
+      const delay = Number.isNaN(+key) ? key : +key;
+      sources.push({
+        event: createAfterEvent(delay, stateNode.id),
+        delay,
+        transitions: afterConfig[key],
+        fromDelaysMap: true
+      });
+    }
+  }
+
+  if (timeoutConfig !== undefined && onTimeoutConfig) {
+    sources.push({
+      event: createTimeoutEvent(stateNode.id),
+      delay: timeoutConfig,
+      transitions: onTimeoutConfig,
+      fromDelaysMap: true
+    });
+  }
+
+  for (const invokeDef of invokeDefs) {
+    sources.push({
+      event: createInvokeTimeoutEvent(invokeDef.id),
+      delay: invokeDef.timeout!,
+      transitions: invokeDef.onTimeout,
+      fromDelaysMap: false
+    });
+  }
+
+  // `delay` here is the raw config value, retained only as metadata on the
+  // transition definition — the live delay is resolved at runtime in the
+  // scheduled entry action, so no eager resolution is needed.
+  const delayedTransitions: Array<
+    AnyTransitionConfig & { event: string; delay: any }
+  > = [];
+
+  for (const { event, delay, transitions, fromDelaysMap } of sources) {
+    const eventType = scheduleDelayedEvent(stateNode, event, (x) =>
+      resolveDelay(delay, fromDelaysMap ? x.delays : {}, {
         context: x.context,
         event: x.event,
         stateNode
       })
     );
-  };
-
-  const delayedTransitions: Array<
-    AnyTransitionConfig & { event: string; delay: any }
-  > = [];
-  const addDelayedTransitions = (
-    transitionsConfig: unknown,
-    event: string,
-    delay: unknown
-  ) => {
-    for (const transition of toTransitionConfigArray(
-      transitionsConfig as any
-    )) {
-      delayedTransitions.push({
-        ...transition,
-        event,
-        delay
-      });
-    }
-  };
-
-  if (afterConfig) {
-    for (const delay of Object.keys(afterConfig)) {
-      const configTransition = afterConfig[delay];
-      const parsedDelay = Number.isNaN(+delay) ? delay : +delay;
-      const eventType = mutateEntryExitWithDelay(parsedDelay);
-      const resolvedDelay = getConfiguredDelayValue(
-        parsedDelay,
-        stateNode.machine.implementations.delays
-      );
-
-      addDelayedTransitions(configTransition, eventType, resolvedDelay);
+    for (const transition of toTransitionConfigArray(transitions as any)) {
+      delayedTransitions.push({ ...transition, event: eventType, delay });
     }
   }
 
-  // Desugar state-level `timeout` + `onTimeout` into a delayed transition.
-  // Uses a dedicated `xstate.timeout.<id>` event so it cannot collide with
-  // explicit `after` entries on the same state.
-  if (timeoutConfig !== undefined && onTimeoutConfig) {
-    const timeoutEvent = createTimeoutEvent(stateNode.id);
-    const timeoutEventType = scheduleDelayedEvent(
-      stateNode,
-      timeoutEvent,
-      (x) =>
-        resolveDelay(timeoutConfig, x.delays, {
-          context: x.context,
-          event: x.event,
-          stateNode
-        }) as number
-    );
-
-    const resolvedDelay =
-      typeof timeoutConfig === 'function'
-        ? timeoutConfig
-        : getConfiguredDelayValue(
-            timeoutConfig,
-            stateNode.machine.implementations.delays
-          );
-
-    addDelayedTransitions(onTimeoutConfig, timeoutEventType, resolvedDelay);
-  }
-
-  // Desugar invoke-level `timeout` + `onTimeout` into a delayed transition on
-  // the enclosing state. Completion transitions cancel this timer separately,
-  // so the timeout is cleared even when the parent state stays active.
-  for (const invokeDef of invokeDefs) {
-    const invokeTimeoutEvent = createInvokeTimeoutEvent(invokeDef.id);
-    const invokeTimeout = invokeDef.timeout!;
-    const invokeTimeoutEventType = scheduleDelayedEvent(
-      stateNode,
-      invokeTimeoutEvent,
-      (x) =>
-        resolveDelay(
-          invokeTimeout,
-          {},
-          {
-            context: x.context,
-            event: x.event,
-            stateNode
-          }
-        ) as number
-    );
-
-    const invokeOnTimeout = invokeDef.onTimeout;
-    addDelayedTransitions(
-      invokeOnTimeout,
-      invokeTimeoutEventType,
-      invokeTimeout as any
-    );
-  }
   return delayedTransitions.map((delayedTransition) => ({
     ...formatTransition(
       stateNode,
