@@ -1,5 +1,37 @@
 # xstate
 
+## 6.0.0-alpha.3
+
+### Minor Changes
+
+- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`0a883ad`](https://github.com/statelyai/xstate/commit/0a883ad8827f21faed58079179d51cd6ec662b55) Thanks [@pull](https://github.com/apps/pull)! - Expose `machine.schemas` as a public runtime-readable schema contract.
+
+  ```ts
+  const machine = createMachine({
+    schemas: {
+      context: z.object({ count: z.number() }),
+      events: {
+        inc: z.object({ by: z.number() })
+      }
+    },
+    context: { count: 0 }
+  });
+
+  machine.schemas?.events?.inc;
+  ```
+
+### Patch Changes
+
+- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`d95287b`](https://github.com/statelyai/xstate/commit/d95287bc9a05cca56ff3c887c321e64721a137ed) Thanks [@pull](https://github.com/apps/pull)! - Serialize function implementations as portable code expressions.
+
+  Functions in guards, actions, delays, and inline machine config now serialize as:
+
+  ```ts
+  { '@type': 'code', lang: 'ts', expr: '() => true' }
+  ```
+
+  Values that cannot be represented as code or JSON still serialize with explicit `$unserializable` markers.
+
 ## 6.0.0-alpha.2
 
 ### Patch Changes
