@@ -465,6 +465,39 @@ export function createMachineFromConfig(
   // event queue so they're processed before any external events.
   const pendingPlatformErrors: Array<Record<string, unknown>> = [];
 
+  function getMissingGuardMessage(type: string, guards: Record<string, any>) {
+    return `Guard '${type}' is not implemented in machine '${json.id ?? '(machine)'}'. Available guards: ${
+      Object.keys(guards)
+        .map((key) => `'${key}'`)
+        .join(', ') || '(none)'
+    }.`;
+  }
+
+  function resolveGuardConfig(guard: GuardJSON | undefined) {
+    if (!guard) {
+      return undefined;
+    }
+    return (args: any) => {
+      const guardImpl = args.guards?.[guard.type];
+      if (!guardImpl) {
+        throw new Error(getMissingGuardMessage(guard.type, args.guards ?? {}));
+      }
+      return guardImpl(args, guard.params);
+    };
+  }
+
+  function resolveRouteConfig(route: StateNodeJSON['route']) {
+    if (!route || typeof route === 'function') {
+      return route;
+    }
+    const { guard, ...routeConfig } = route;
+    if (!guard) {
+      return routeConfig;
+    }
+    const resolvedGuard = resolveGuardConfig({ type: guard });
+    return (args: any) => (resolvedGuard!(args) ? routeConfig : undefined);
+  }
+
   function iterNode(node: StateNodeJSON, nodeKey?: string) {
     const originalEntryActions = node.entry;
     const stateId = node.id || nodeKey;
@@ -605,7 +638,7 @@ export function createMachineFromConfig(
         : undefined,
       always: node.always ? getTransitionConfig(node.always) : undefined,
       choice: node.choice ? getTransitionConfig(node.choice) : undefined,
-      route: node.route,
+      route: resolveRouteConfig(node.route),
       after: node.after
         ? Object.entries(node.after).reduce(
             (acc, [key, value]) => {
@@ -1102,9 +1135,10 @@ export function createMachineFromConfig(
     return transitions.map((t) => {
       const target = Array.isArray(t.target) ? t.target[0] : t.target;
       const targetConfig = t.target;
+      const guard = resolveGuardConfig(t.guard);
 
       // No guard and no actions: simple static config
-      if (!t.guard && !t.actions?.length) {
+      if (!guard && !t.actions?.length) {
         return {
           target: targetConfig,
           description: t.description,
@@ -1115,10 +1149,10 @@ export function createMachineFromConfig(
       }
 
       // Guard but no actions: static config with guard
-      if (t.guard && !t.actions?.length) {
+      if (guard && !t.actions?.length) {
         return {
           target: targetConfig,
-          guard: t.guard,
+          guard,
           description: t.description,
           reenter: t.reenter,
           meta: t.meta,
@@ -1131,7 +1165,7 @@ export function createMachineFromConfig(
       // For parallel (entries exist), first entry re-executes all in document order.
       if (!target) {
         return {
-          guard: t.guard,
+          guard,
           description: t.description,
           reenter: t.reenter,
           meta: t.meta,
@@ -1160,7 +1194,7 @@ export function createMachineFromConfig(
       // already validated it. The .to just stores actions for entry to execute.
       // Map by target state ID so parallel transitions each get their own actions.
       return {
-        guard: t.guard,
+        guard,
         description: t.description,
         reenter: t.reenter,
         meta: t.meta,
@@ -1234,7 +1268,7 @@ export function createMachineFromConfig(
     },
     'xstate.not': (args: any, params: any) => {
       const inner = params?.guard;
-      const innerImpl = inner && providedGuards[inner.type];
+      const innerImpl = inner && args.guards?.[inner.type];
       if (!innerImpl) {
         throw new Error(
           `Guard '${inner?.type}' referenced by 'xstate.not' is not implemented.`

@@ -13,9 +13,9 @@ import {
   InputFrom,
   OutputFrom,
   StateMachine,
+  type StandardSchemaV1,
   UnknownActorRef,
   createActor,
-  createStateConfig,
   createLogic,
   createMachine,
   setup,
@@ -596,6 +596,52 @@ it('should infer context type from config.context when no schemas.context is pro
       }
     }
   });
+});
+
+it('should expose schemas on machine', () => {
+  const schemas = {
+    context: z.object({
+      count: z.number()
+    }),
+    events: {
+      inc: z.object({
+        by: z.number()
+      })
+    },
+    emitted: {
+      changed: z.object({
+        value: z.number()
+      })
+    }
+  };
+  const machine = createMachine({
+    schemas,
+    context: {
+      count: 0
+    }
+  });
+
+  machine.schemas?.context satisfies StandardSchemaV1 | undefined;
+  machine.schemas?.events?.inc satisfies StandardSchemaV1 | undefined;
+  machine.schemas?.emitted?.changed satisfies StandardSchemaV1 | undefined;
+});
+
+it('should expose non-context schemas on machine', () => {
+  const schemas = {
+    events: {
+      inc: z.object({
+        by: z.number()
+      })
+    }
+  };
+  const machine = createMachine({
+    schemas,
+    context: {
+      count: 0
+    }
+  });
+
+  machine.schemas?.events?.inc satisfies StandardSchemaV1 | undefined;
 });
 
 describe('states', () => {

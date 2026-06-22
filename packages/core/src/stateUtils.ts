@@ -506,40 +506,10 @@ export function formatRouteTransitions(rootStateNode: AnyStateNode): void {
           );
         }
 
-        // Object-form route. A `guard` (string or function) on the object is
-        // only produced by the JSON layer (createMachineFromConfig) —
-        // authoring uses the function form above.
-        const userGuard = (routeConfig as any).guard;
-
+        const { guard: _guard, ...routeOptions } = routeConfig as any;
         const transition: AnyTransitionConfig = {
-          ...routeConfig,
-          guard: userGuard
-            ? (args: {
-                event: any;
-                guards: Record<string, (...a: any[]) => any>;
-              }) => {
-                if (!routeMatches(args)) return false;
-                if (typeof userGuard === 'function') return userGuard(args);
-                if (typeof userGuard === 'string') {
-                  const guardImpl = args.guards?.[userGuard];
-                  if (!guardImpl) {
-                    // A typo'd guard name must fail loudly — silently passing
-                    // would allow the route and corrupt machine behavior.
-                    throw new Error(
-                      isDevelopment
-                        ? `Guard '${userGuard}' is not implemented in machine '${rootStateNode.machine.id}'. Available guards: ${
-                            Object.keys(args.guards ?? {})
-                              .map((key) => `'${key}'`)
-                              .join(', ') || '(none)'
-                          }.`
-                        : `Guard '${userGuard}' is not implemented in machine '${rootStateNode.machine.id}'.`
-                    );
-                  }
-                  return guardImpl(args);
-                }
-                return true;
-              }
-            : routeMatches,
+          ...routeOptions,
+          guard: routeMatches,
           target: `#${routeId}`
         };
 
@@ -2149,35 +2119,7 @@ export function evaluateCandidate(
       delays: stateNode.machine.implementations.delays,
       _snapshot: snapshot
     };
-    const guardConfig = candidate.guard as any;
-    const guardParams =
-      typeof guardConfig?.params === 'function'
-        ? guardConfig.params({ context: snapshot.context, event })
-        : guardConfig?.params;
-
-    let guardPassed = true;
-    if (typeof guardConfig === 'function') {
-      guardPassed = guardConfig(guardArgs, guardParams);
-    } else if (typeof guardConfig?.type === 'string') {
-      const guardImpl =
-        stateNode.machine.implementations.guards[guardConfig.type];
-      if (!guardImpl) {
-        // A typo'd guard name must fail loudly — silently passing would
-        // take the guarded transition and corrupt machine behavior.
-        throw new Error(
-          isDevelopment
-            ? `Guard '${guardConfig.type}' is not implemented in machine '${stateNode.machine.id}'. Available guards: ${
-                Object.keys(stateNode.machine.implementations.guards)
-                  .map((key) => `'${key}'`)
-                  .join(', ') || '(none)'
-              }.`
-            : `Guard '${guardConfig.type}' is not implemented in machine '${stateNode.machine.id}'.`
-        );
-      }
-      guardPassed = guardImpl(guardArgs, guardParams);
-    }
-
-    if (!guardPassed) {
+    if (!(candidate.guard as (args: typeof guardArgs) => boolean)(guardArgs)) {
       return false;
     }
   }

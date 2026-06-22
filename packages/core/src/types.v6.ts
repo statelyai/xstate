@@ -87,6 +87,34 @@ export interface MachineOptions {
   maxIterations?: number;
 }
 
+type MachineSchemas<
+  TContextSchema extends StandardSchemaV1,
+  TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
+  TInputSchema extends StandardSchemaV1,
+  TOutputSchema extends StandardSchemaV1,
+  TMetaSchema extends StandardSchemaV1,
+  TTagSchema extends StandardSchemaV1
+> = {
+  events?: TEventSchemaMap;
+  context?: TContextSchema;
+  emitted?: TEmittedSchemaMap;
+  input?: TInputSchema;
+  output?: TOutputSchema;
+  meta?: TMetaSchema;
+  tags?: TTagSchema;
+};
+
+export type AnyMachineSchemas = MachineSchemas<
+  StandardSchemaV1,
+  Record<string, StandardSchemaV1>,
+  Record<string, StandardSchemaV1>,
+  StandardSchemaV1,
+  StandardSchemaV1,
+  StandardSchemaV1,
+  StandardSchemaV1
+>;
+
 export type Next_MachineConfig<
   TContextSchema extends StandardSchemaV1,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
@@ -125,15 +153,15 @@ export type Next_MachineConfig<
   internalEvents?: readonly InternalEventDescriptorFor<
     InferEvents<TEventSchemaMap>
   >[];
-  schemas?: {
-    events?: TEventSchemaMap;
-    context?: TContextSchema;
-    emitted?: TEmittedSchemaMap;
-    input?: TInputSchema;
-    output?: TOutputSchema;
-    meta?: TMetaSchema;
-    tags?: TTagSchema;
-  };
+  schemas?: MachineSchemas<
+    TContextSchema,
+    TEventSchemaMap,
+    TEmittedSchemaMap,
+    TInputSchema,
+    TOutputSchema,
+    TMetaSchema,
+    TTagSchema
+  >;
   actions?: TActionMap;
   guards?: TGuardMap;
   actors?: TActorMap;

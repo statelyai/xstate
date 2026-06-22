@@ -46,6 +46,7 @@ import type {
   AnyStateNode
 } from './types.ts';
 import {
+  AnyMachineSchemas,
   Implementations,
   Next_MachineConfig,
   MachineOptions
@@ -94,7 +95,7 @@ export class StateMachine<
   /** The machine's own version. */
   public version?: string;
 
-  public schemas: unknown;
+  public schemas: AnyMachineSchemas | undefined;
 
   public implementations: Implementations;
 
@@ -125,7 +126,7 @@ export class StateMachine<
       any,
       any // TEmitted
     > & {
-      schemas?: unknown;
+      schemas?: AnyMachineSchemas;
       internalEvents?: readonly string[];
     },
     implementations?: Implementations

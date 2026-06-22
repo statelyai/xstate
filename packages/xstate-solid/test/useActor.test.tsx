@@ -1271,10 +1271,11 @@ describe('useActor', () => {
       states: {
         a: {
           on: {
-            EV: {
-              guard: 'isAwesome',
-              target: 'b'
-            } as any
+            EV: ({ guards }) => {
+              if (guards.isAwesome()) {
+                return { target: 'b' };
+              }
+            }
           }
         },
         b: {}
@@ -1404,10 +1405,11 @@ describe('useActor', () => {
       states: {
         a: {
           on: {
-            EV: {
-              guard: 'isAwesome',
-              target: 'b'
-            } as any
+            EV: ({ guards }) => {
+              if (guards.isAwesome()) {
+                return { target: 'b' };
+              }
+            }
           }
         },
         b: {}

@@ -1,4 +1,5 @@
 import { createActor, createMachine, setup } from '../src';
+import { createMachineFromConfig } from '../src/createMachineFromConfig.ts';
 
 describe('route', () => {
   it('should transition directly to a route if route is an empty transition config', () => {
@@ -156,27 +157,32 @@ describe('route', () => {
   });
 
   it('should throw on a JSON-layer route guard reference that is not implemented', () => {
-    const machine = createMachine({
-      id: 'flow',
-      initial: 'amount',
-      guards: {
-        isReady: () => true
-      },
-      states: {
-        amount: {
-          id: 'amount',
-          route: {}
+    const machine = createMachineFromConfig(
+      {
+        id: 'flow',
+        initial: 'amount',
+        guards: {
+          isReady: { $unserializable: 'function', id: 'isReady' }
         },
-        review: {
-          id: 'review',
-          // string guards on route objects are only produced by the JSON
-          // layer (createMachineFromConfig) — typo: 'isRedy'
-          route: {
-            guard: 'isRedy'
-          } as any
+        states: {
+          amount: {
+            id: 'amount',
+            route: {}
+          },
+          review: {
+            id: 'review',
+            route: {
+              guard: 'isRedy'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          isReady: () => true
         }
       }
-    });
+    );
 
     const actor = createActor(machine);
     actor.subscribe({ error: () => {} });
@@ -190,7 +196,7 @@ describe('route', () => {
     const snapshot = actor.getSnapshot();
     expect(snapshot.status).toBe('error');
     expect((snapshot as any).error.message).toMatch(
-      /Guard 'isRedy' is not implemented in machine 'flow'.*Available guards: 'isReady'/
+      /Guard 'isRedy' is not implemented in machine 'flow'.*Available guards: .*'isReady'/
     );
   });
 
