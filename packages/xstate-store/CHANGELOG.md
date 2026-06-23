@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - Export a new `isAtom(value)` helper that returns `true` when a value is an atom (i.e. has `get` and `subscribe` methods).
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Export a new `isAtom(value)` helper that returns `true` when a value is an atom (i.e. has `get` and `subscribe` methods).
 
 ## 4.2.0
 

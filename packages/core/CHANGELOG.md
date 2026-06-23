@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`0a883ad`](https://github.com/statelyai/xstate/commit/0a883ad8827f21faed58079179d51cd6ec662b55) Thanks [@pull](https://github.com/apps/pull)! - Expose `machine.schemas` as a public runtime-readable schema contract.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`0a883ad`](https://github.com/statelyai/xstate/commit/0a883ad8827f21faed58079179d51cd6ec662b55) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Expose `machine.schemas` as a public runtime-readable schema contract.
 
   ```ts
   const machine = createMachine({
@@ -22,7 +22,7 @@
 
 ### Patch Changes
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`d95287b`](https://github.com/statelyai/xstate/commit/d95287bc9a05cca56ff3c887c321e64721a137ed) Thanks [@pull](https://github.com/apps/pull)! - Serialize function implementations as portable code expressions.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`d95287b`](https://github.com/statelyai/xstate/commit/d95287bc9a05cca56ff3c887c321e64721a137ed) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Serialize function implementations as portable code expressions.
 
   Functions in guards, actions, delays, and inline machine config now serialize as:
 
@@ -36,7 +36,7 @@
 
 ### Patch Changes
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`d6a537e`](https://github.com/statelyai/xstate/commit/d6a537eeb078be3256ac269102e28a8aad2f5403) Thanks [@pull](https://github.com/apps/pull)! - Fixed a bug where an invoked actor's `input` (and a dynamic `src` function) received the context from _before_ the transition that entered the invoking state, rather than the updated context. Now, when a transition updates context and targets a state that invokes an actor, the actor's `input` sees the updated context — consistent with that state's `entry` actions.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`d6a537e`](https://github.com/statelyai/xstate/commit/d6a537eeb078be3256ac269102e28a8aad2f5403) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed a bug where an invoked actor's `input` (and a dynamic `src` function) received the context from _before_ the transition that entered the invoking state, rather than the updated context. Now, when a transition updates context and targets a state that invokes an actor, the actor's `input` sees the updated context — consistent with that state's `entry` actions.
 
   ```ts
   const machine = createMachine({
@@ -63,7 +63,7 @@
 
 ### Major Changes
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - Invoked and spawned actors are no longer started directly by `actor.start()`. They now start as part of the transition that creates them (via an internal deferred start action), the same way other entry effects run.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Invoked and spawned actors are no longer started directly by `actor.start()`. They now start as part of the transition that creates them (via an internal deferred start action), the same way other entry effects run.
 
   The user-visible consequence: a child that fails synchronously while starting now surfaces that failure through the invoking state's `onError` transition instead of throwing out of `actor.start()`:
 
@@ -91,7 +91,7 @@
 
   Restored (rehydrated) children that were active when a snapshot was persisted are still restarted on `actor.start()`, so persistence behavior is unchanged.
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - Actions, guards, and transitions are now plain inline functions, and the v5 action/guard creators are removed.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actions, guards, and transitions are now plain inline functions, and the v5 action/guard creators are removed.
 
   Removed exports: `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stop`, `stopChild`, `enqueueActions`, and the guard creators `and`, `or`, `not`, `stateIn`.
 
@@ -132,7 +132,7 @@
 
   For matching by state **id** (the `'#id'` form, which `matches()` doesn't resolve), the exported `checkStateIn(snapshot, '#id')` helper is also available.
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - Remove the deprecated `interpret` function and `Interpreter` type. Use `createActor(...)` and `Actor` (or `ActorRefFrom<...>`) instead.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Remove the deprecated `interpret` function and `Interpreter` type. Use `createActor(...)` and `Actor` (or `ActorRefFrom<...>`) instead.
 
   ```diff
   - import { interpret, type Interpreter } from 'xstate';
@@ -141,7 +141,7 @@
   + const actor = createActor(machine);
   ```
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - `schemas` is now the way to type a machine, replacing v5's `types: {} as {...}`. Each `schemas` field accepts any [Standard Schema](https://standardschema.dev) (Zod, Valibot, …) for both type inference and (where supported) runtime validation, or `types<T>()` for types only.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `schemas` is now the way to type a machine, replacing v5's `types: {} as {...}`. Each `schemas` field accepts any [Standard Schema](https://standardschema.dev) (Zod, Valibot, …) for both type inference and (where supported) runtime validation, or `types<T>()` for types only.
 
   Notably, `schemas.events` is a **map** of event-type → payload schema, inferred into a discriminated union keyed by `type`:
 
@@ -186,9 +186,9 @@
 
   `actors`, `actions`, `guards`, and `delays` are top-level config keys (now inline functions), not `schemas` keys.
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`96aee67`](https://github.com/statelyai/xstate/commit/96aee679d4bd8041eb25df6bda2d9eef2ab7169f) Thanks [@pull](https://github.com/apps/pull)! - Separate concrete actors from actor refs in public types. `ActorRef` now represents the consumer-facing contract for sending events, reading published snapshots, and listening to emitted events with `actorRef.on(...)`; concrete `Actor` instances provide lifecycle and runtime capabilities and still satisfy actor ref contracts.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`96aee67`](https://github.com/statelyai/xstate/commit/96aee679d4bd8041eb25df6bda2d9eef2ab7169f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Separate concrete actors from actor refs in public types. `ActorRef` now represents the consumer-facing contract for sending events, reading published snapshots, and listening to emitted events with `actorRef.on(...)`; concrete `Actor` instances provide lifecycle and runtime capabilities and still satisfy actor ref contracts.
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - `setup(...)` no longer registers implementations. It now takes only `{ schemas?, states? }` and returns `{ createMachine, createStateConfig, states }`.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `setup(...)` no longer registers implementations. It now takes only `{ schemas?, states? }` and returns `{ createMachine, createStateConfig, states }`.
 
   In v5, `setup({ schemas, actors, actions, guards, delays })` registered named implementations and returned action creators (`assign`, `sendTo`, `raise`, …). In v6, actions/guards/actors/delays are plain inline functions, so `setup` no longer accepts or returns them. Its job is now machine- and state-level typing: it validates state keys, `initial`, and transition `target`s against the declared `states`, and types per-state `input`/`context`.
 
@@ -209,14 +209,14 @@
 
 ### Minor Changes
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - Add `actor.trigger` — a typed event-sender proxy. `actor.trigger.EVENT(payload)` is shorthand for `actor.send({ type: 'EVENT', ...payload })`:
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `actor.trigger` — a typed event-sender proxy. `actor.trigger.EVENT(payload)` is shorthand for `actor.send({ type: 'EVENT', ...payload })`:
 
   ```ts
   actor.trigger.NEXT();
   actor.trigger.INC({ by: 5 });
   ```
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`021cc56`](https://github.com/statelyai/xstate/commit/021cc563e75d2e4d130c34e2d274565c2df6ec76) Thanks [@pull](https://github.com/apps/pull)! - Machine JSON revival now preserves more of the serialized machine definition, including delayed transitions, state timeouts, state tags, state output, invoke input, invoke completion transitions, invoke timeouts, and implementation maps passed to `createMachineFromConfig`.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`021cc56`](https://github.com/statelyai/xstate/commit/021cc563e75d2e4d130c34e2d274565c2df6ec76) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Machine JSON revival now preserves more of the serialized machine definition, including delayed transitions, state timeouts, state tags, state output, invoke input, invoke completion transitions, invoke timeouts, and implementation maps passed to `createMachineFromConfig`.
 
   ```ts
   const machine = createMachineFromConfig(
@@ -244,7 +244,7 @@
 
   The migration codemod now reports manual review notes for known non-rename migrations such as `fromPromise(...)`, `return assign(...)`, object-form actions/guards, and legacy `types: {}` schema declarations.
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - `createLogic` and `createAsyncLogic` gain a durable-effect enqueue API on their `run` function's second argument (`enq`).
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `createLogic` and `createAsyncLogic` gain a durable-effect enqueue API on their `run` function's second argument (`enq`).
   - **`enq.effect(key?, fn)`** registers a side effect that runs once per key (an unnamed effect runs every transition) and is cleaned up when the actor stops.
   - **`enq.step(key, asyncFn)`** (async logic) is an `await`-able step whose result is memoized into the persisted snapshot under `snapshot.effects[key]`. A rehydrated actor replays `run` but skips steps that already completed, so long-running async logic is resumable across persistence.
 
@@ -262,7 +262,7 @@
 
   A pending step can also be resolved externally by sending `{ type: 'xstate.logic.effect.resolve', key, output }`. The `LogicEnqueue`, `LogicEffect`, and `LogicEffectState` types are exported.
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - Add timeouts and duration-string delays.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add timeouts and duration-string delays.
   - **State-level `timeout` / `onTimeout`** — declare a timeout on a state that transitions when the duration elapses (and is cancelled if the state is exited first):
 
     ```ts
@@ -307,7 +307,7 @@
     }
     ```
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`d9079cd`](https://github.com/statelyai/xstate/commit/d9079cd8586b4be4154dbfc296219b391f1cd85c) Thanks [@pull](https://github.com/apps/pull)! - Logic creators now accept Standard Schemas for type inference.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`d9079cd`](https://github.com/statelyai/xstate/commit/d9079cd8586b4be4154dbfc296219b391f1cd85c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Logic creators now accept Standard Schemas for type inference.
 
   `createLogic(...)` and `createAsyncLogic(...)` accept `schemas.input` and
   `schemas.output`:
@@ -343,7 +343,7 @@
   });
   ```
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - Add `createStateConfig(...)` — author a standalone, fully-typed state node config (with `schemas`) that can be composed into a machine, mirroring how `setup(...).createMachine(...)` infers types.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `createStateConfig(...)` — author a standalone, fully-typed state node config (with `schemas`) that can be composed into a machine, mirroring how `setup(...).createMachine(...)` infers types.
 
   ```ts
   import { createStateConfig } from 'xstate';
@@ -357,7 +357,7 @@
 
   This is the building block for authoring machines as plain data: a `createStateConfig` node is a typed, serializable config object you compose into a machine — useful for data-first / JSON-driven state machines (round-tripping with `serializeMachine`/`createMachineFromConfig`) while keeping per-state schema typing.
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - Add `enq.listen` and `enq.subscribeTo` for subscribing to other actors from inside transition/action functions.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `enq.listen` and `enq.subscribeTo` for subscribing to other actors from inside transition/action functions.
   - **`enq.listen(ref, eventType, mapper)`** subscribes to events emitted by another actor (supports wildcards like `'data.*'`) and relays a mapped event back to the current actor.
   - **`enq.subscribeTo(ref, mappers)`** subscribes to another actor's snapshot/`done`/`error` (pass `{ snapshot, done, error }`, or a single function as snapshot shorthand). It also accepts an atom, in which case the mapper receives the atom's current value.
 
@@ -373,7 +373,7 @@
   };
   ```
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - Add `internalEvents`: a list of event types that may be raised from within the machine (e.g. via `enq.raise(...)`) but are rejected when sent to the actor from the outside.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `internalEvents`: a list of event types that may be raised from within the machine (e.g. via `enq.raise(...)`) but are rejected when sent to the actor from the outside.
 
   ```ts
   const machine = createMachine({
@@ -395,7 +395,7 @@
   // actor.send({ type: 'tick' }) from outside is rejected
   ```
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`021cc56`](https://github.com/statelyai/xstate/commit/021cc563e75d2e4d130c34e2d274565c2df6ec76) Thanks [@pull](https://github.com/apps/pull)! - State-level `schemas.context` now narrows context types for state actions, transition functions, and snapshots checked with `snapshot.matches(...)`.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`021cc56`](https://github.com/statelyai/xstate/commit/021cc563e75d2e4d130c34e2d274565c2df6ec76) Thanks [@davidkpiano](https://github.com/davidkpiano)! - State-level `schemas.context` now narrows context types for state actions, transition functions, and snapshots checked with `snapshot.matches(...)`.
 
   ```ts
   const machine = setup({
@@ -443,7 +443,7 @@
 
   State-level `schemas.input` is also supported: input supplied on a transition or `initial` (`{ target, input }`) is typed in that state's entry/exit and transition functions via `({ input })`, read from a snapshot with `snapshot.getInputs()` (keyed by state node id), and typed recursively for nested states.
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - Add `choice` states — a state that immediately routes to a target via a resolver function, returning the first matching transition config.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `choice` states — a state that immediately routes to a target via a resolver function, returning the first matching transition config.
 
   ```ts
   const machine = createMachine({
@@ -469,7 +469,7 @@
 
 ### Major Changes
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`54b0f8b`](https://github.com/statelyai/xstate/commit/54b0f8b22679721d567ca7e2b7074e86a41de6ef) Thanks [@pull](https://github.com/apps/pull)! - Remove the legacy `from*` actor logic creators in favor of the `create*Logic` names. These are same-signature renames (except `fromPromise`, removed earlier in favor of config-based `createAsyncLogic`):
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`54b0f8b`](https://github.com/statelyai/xstate/commit/54b0f8b22679721d567ca7e2b7074e86a41de6ef) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Remove the legacy `from*` actor logic creators in favor of the `create*Logic` names. These are same-signature renames (except `fromPromise`, removed earlier in favor of config-based `createAsyncLogic`):
 
   | Removed               | Use instead                              |
   | --------------------- | ---------------------------------------- |
@@ -489,7 +489,7 @@
   + const counter = createTransitionLogic((count, event) => count + 1, 0);
   ```
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`8b309a1`](https://github.com/statelyai/xstate/commit/8b309a17415b4522a99a374753731471b8784dd5) Thanks [@pull](https://github.com/apps/pull)! - Spawned actors, persistence, and machine-as-data fixes:
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`8b309a1`](https://github.com/statelyai/xstate/commit/8b309a17415b4522a99a374753731471b8784dd5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Spawned actors, persistence, and machine-as-data fixes:
   - `enq.spawn(logic, { id })` now registers the child on `snapshot.children` (and `enq.stop(ref)` removes it), so spawned actors are observable via `children` and survive persistence — matching invoked actors:
 
     ```ts
@@ -518,7 +518,7 @@
 
 ### Minor Changes
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`6031736`](https://github.com/statelyai/xstate/commit/6031736fb13fee88439cdbbc329f7b23f7387a63) Thanks [@pull](https://github.com/apps/pull)! - The inspection protocol is now both **simpler (2 event types)** and **lossless**. Every facet the previous 6-event protocol carried is preserved, but with flat, always-present payloads so you never narrow on an absent field.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`6031736`](https://github.com/statelyai/xstate/commit/6031736fb13fee88439cdbbc329f7b23f7387a63) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The inspection protocol is now both **simpler (2 event types)** and **lossless**. Every facet the previous 6-event protocol carried is preserved, but with flat, always-present payloads so you never narrow on an absent field.
   - `@xstate.actor` — the single topology event, emitted once per actor (root and every spawned/invoked child). Carries `actorRef`, `parentRef`, `id`, `src`, and the initial `snapshot`, so the actor graph is drawable before any transitions occur. Actor _stop_ is derivable from `snapshot.status` on the final transition.
   - `@xstate.transition` — carries every transition facet: `event`, `snapshot`, `sourceRef`, `microsteps`, plus the executed `actions` and the events `sent` to other actors (each with `targetRef`/`targetId`, `event`, and `delay`/`id` for scheduled sends). These arrays are **always present** (empty, not absent), so you can read `event.actions` / `event.sent` / `event.microsteps` directly.
 
@@ -542,7 +542,7 @@
   });
   ```
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`54b0f8b`](https://github.com/statelyai/xstate/commit/54b0f8b22679721d567ca7e2b7074e86a41de6ef) Thanks [@pull](https://github.com/apps/pull)! - Persistence hardening: pending timers, snapshot versioning, and route guard safety.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`54b0f8b`](https://github.com/statelyai/xstate/commit/54b0f8b22679721d567ca7e2b7074e86a41de6ef) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Persistence hardening: pending timers, snapshot versioning, and route guard safety.
   - **Pending timers are persisted and restored.** Delayed transitions/events (`after`, `enq.raise(..., { delay })`) targeting the actor itself are captured on the persisted snapshot as `_pendingEffects` — serialized action descriptors (`{ type: '@xstate.raise', event, id, delay }`) plus runtime progress (`startedAt`, `elapsed`) — including for rehydrated child actors — and re-executed with the remaining delay on `actor.start()`. The restore strategy is configurable via the `timers` actor option:
 
     ```ts
@@ -583,7 +583,7 @@
 
     The object form (without `guard`) remains for static routes; object-form `guard` references (strings) are only produced by the JSON layer (`createMachineFromConfig`) and now fail loudly when unimplemented instead of silently allowing the route. Routes are also included in `serializeMachine(machine)` output.
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`d11c72d`](https://github.com/statelyai/xstate/commit/d11c72df0d83cfa5fc4445995b85e79a601c1c9e) Thanks [@pull](https://github.com/apps/pull)! - Add atom APIs to XState and make actors readable by atoms.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`d11c72d`](https://github.com/statelyai/xstate/commit/d11c72df0d83cfa5fc4445995b85e79a601c1c9e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add atom APIs to XState and make actors readable by atoms.
 
   ```ts
   import { createActor, createAtom, fromTransition } from 'xstate';
@@ -595,7 +595,7 @@
   const count = createAtom(() => actor.get().context);
   ```
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`46692e3`](https://github.com/statelyai/xstate/commit/46692e3c51ed6c830a01361ef74653949d5259d6) Thanks [@pull](https://github.com/apps/pull)! - Add `types<T>()` for type-only schemas — declare machine types without a runtime schema library.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`46692e3`](https://github.com/statelyai/xstate/commit/46692e3c51ed6c830a01361ef74653949d5259d6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `types<T>()` for type-only schemas — declare machine types without a runtime schema library.
 
   `schemas` fields accept any [Standard Schema](https://standardschema.dev) (Zod, Valibot, …) for runtime validation _and_ inference. When you only want types, `types<T>()` provides the inference with no runtime validation (it's a Standard Schema whose validation is the identity function):
 
@@ -628,7 +628,7 @@
 
 ### Patch Changes
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`8b309a1`](https://github.com/statelyai/xstate/commit/8b309a17415b4522a99a374753731471b8784dd5) Thanks [@pull](https://github.com/apps/pull)! - Reduce bundle size: a minimal machine + actor now costs ~14.8 kB min+gzip (was ~16.8 kB), with no API changes.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`8b309a1`](https://github.com/statelyai/xstate/commit/8b309a17415b4522a99a374753731471b8784dd5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Reduce bundle size: a minimal machine + actor now costs ~14.8 kB min+gzip (was ~16.8 kB), with no API changes.
   - Apps that don't use atoms no longer bundle the reactive system — actors notify subscribers directly, and atom↔actor reactivity (`createAtom(() => actor.get())`) is wired up lazily on first atom use.
   - Machine serialization (`machine.toJSON()`) and the internal listener/subscription actor logic are significantly smaller.
   - Long diagnostic error messages are now development-only; production builds throw the same errors with shorter messages.

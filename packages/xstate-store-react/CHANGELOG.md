@@ -4,7 +4,7 @@
 
 ### Patch Changes
 
-- [#44](https://github.com/balrog-typescript/xstate/pull/44) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@pull](https://github.com/apps/pull)! - The `compare` function passed to `useSelector` is now typed as `(a: T, b: T)` instead of `(a: T | undefined, b: T)`, so the previous value is no longer typed as possibly `undefined`.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `compare` function passed to `useSelector` is now typed as `(a: T, b: T)` instead of `(a: T | undefined, b: T)`, so the previous value is no longer typed as possibly `undefined`.
 
 - Updated dependencies [[`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925)]:
   - @xstate/store@4.3.0-alpha.0
