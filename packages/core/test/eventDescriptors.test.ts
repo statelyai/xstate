@@ -106,6 +106,30 @@ describe('event descriptors', () => {
     expect(service.getSnapshot().value).toBe('pass');
   });
 
+  it('should fall back to wildcard descriptor when exact descriptor guard fails', () => {
+    const machine = createMachine({
+      initial: 'A',
+      states: {
+        A: {
+          on: {
+            'foo.bar': () => {
+              if (false) {
+                return { target: 'fail' };
+              }
+            },
+            'foo.*': 'pass'
+          }
+        },
+        fail: {},
+        pass: {}
+      }
+    });
+
+    const service = createActor(machine).start();
+    service.send({ type: 'foo.bar' });
+    expect(service.getSnapshot().value).toBe('pass');
+  });
+
   it('should NOT support non-tokenized wildcards', () => {
     const machine = createMachine({
       initial: 'start',
