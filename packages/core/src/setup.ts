@@ -1050,17 +1050,15 @@ export function setup<
 
   return {
     extend(extension) {
-      return setup(
-        mergeSetupConfigs(config, extension as any) as any
-      ) as unknown as any;
+      return setup(mergeSetupConfigs(config, extension));
     },
     createMachine(machineConfig) {
-      const configSchemas = (machineConfig as any).schemas;
+      const configSchemas = machineConfig.schemas;
       const mergedSchemas = mergeSchemas(configSchemas, schemas);
-      const mergedActions = mergeMaps(actions, (machineConfig as any).actions);
-      const mergedActors = mergeMaps(actors, (machineConfig as any).actors);
-      const mergedGuards = mergeMaps(guards, (machineConfig as any).guards);
-      const mergedDelays = mergeMaps(delays, (machineConfig as any).delays);
+      const mergedActions = mergeMaps(actions, machineConfig.actions);
+      const mergedActors = mergeMaps(actors, machineConfig.actors);
+      const mergedGuards = mergeMaps(guards, machineConfig.guards);
+      const mergedDelays = mergeMaps(delays, machineConfig.delays);
 
       return new StateMachine({
         ...machineConfig,
@@ -1069,7 +1067,7 @@ export function setup<
         ...(mergedActors ? { actors: mergedActors } : undefined),
         ...(mergedGuards ? { guards: mergedGuards } : undefined),
         ...(mergedDelays ? { delays: mergedDelays } : undefined)
-      } as any) as any;
+      } as any);
     },
     createStateConfig(stateConfig) {
       return stateConfig;
