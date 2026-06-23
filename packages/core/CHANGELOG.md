@@ -1,5 +1,71 @@
 # xstate
 
+## 6.0.0-alpha.4
+
+### Major Changes
+
+- c3f7a9d: Actor logic now returns effects from both regular and initial transitions.
+
+  Hand-written actor logic should return `[snapshot, effects]` from `transition(...)` and provide `initialTransition(...)` for creating the initial `[snapshot, effects]` tuple. `getInitialSnapshot(...)` remains available for snapshot-only reads.
+
+  ```ts
+  const logic = {
+    transition: (snapshot, event) => [snapshot, []],
+    initialTransition: (input, _scope) => [
+      {
+        status: 'active',
+        output: undefined,
+        error: undefined,
+        input
+      },
+      []
+    ],
+    getInitialSnapshot: (scope, input) =>
+      logic.initialTransition(input, scope)[0]
+  };
+  ```
+
+  `transition(...)` and `initialTransition(...)` continue to return `[snapshot, actions]` for machine logic.
+
+  `fromStore(...)` effects now run after the actor snapshot is committed, so effect callbacks read the updated snapshot from `enqueue.getSnapshot()`.
+
+- 309b106: Add `schemas.children` for explicitly typing child actor refs by child ID. Declared child refs type `children.someId`, child snapshots, and invoke configs so `invoke: { id: 'someId', src }` must match the declared child actor contract.
+- fa2bbf0: Built-in executable effects returned from `transition(...)` and `initialTransition(...)` are now easier to inspect declaratively.
+
+  Use `isBuiltInExecutableAction(effect)` to narrow an executable effect to XState's built-in effect union, then switch on `effect.type` to access stable, named metadata fields:
+
+  ```ts
+  const [snapshot, effects] = initialTransition(machine);
+
+  for (const effect of effects) {
+    if (!isBuiltInExecutableAction(effect)) {
+      continue;
+    }
+
+    switch (effect.type) {
+      case '@xstate.start':
+        effect.id;
+        effect.logic;
+        effect.src;
+        effect.input;
+        break;
+
+      case '@xstate.sendTo':
+        effect.target;
+        effect.event;
+        effect.delay;
+        break;
+
+      case '@xstate.raise':
+        effect.event;
+        effect.delay;
+        break;
+    }
+  }
+  ```
+
+  The built-in stop effect is now exposed as `@xstate.stop`, matching `@xstate.start`.
+
 ## 6.0.0-alpha.3
 
 ### Minor Changes
