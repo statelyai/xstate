@@ -41,6 +41,7 @@ type AnyNextStateNodeConfig = Next_StateNodeConfig<
   any,
   any,
   any,
+  any,
   any
 >;
 
@@ -3862,6 +3863,107 @@ describe('choice state types', () => {
 
     noop(invalidOn);
     noop(invalidInvoke);
+  });
+});
+
+describe('children schemas', () => {
+  const child = createMachine({
+    schemas: {
+      events: {
+        PING: z.object({ value: z.string() })
+      }
+    },
+    on: {
+      PING: {}
+    }
+  });
+
+  const invalidChild = createMachine({
+    schemas: {
+      events: {
+        PONG: z.object({ count: z.number() })
+      }
+    },
+    on: {
+      PONG: {}
+    }
+  });
+
+  it('should type declared child refs from schemas.children', () => {
+    setup({}).createMachine({
+      schemas: {
+        children: {
+          someId: z.custom<ActorRefFromLogic<typeof child>>()
+        }
+      },
+      invoke: {
+        id: 'someId',
+        src: child
+      },
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            CHECK: ({ children }) => {
+              children.someId?.send({ type: 'PING', value: 'ok' });
+
+              // @ts-expect-error
+              children.someId?.send({ type: 'PING', value: 42 });
+              // @ts-expect-error
+              children.someId?.send({ type: 'PONG', count: 1 });
+              // @ts-expect-error
+              children.other;
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('should reject an incompatible inline invoke src for a declared child id', () => {
+    createMachine({
+      schemas: {
+        children: {
+          someId: z.custom<ActorRefFromLogic<typeof child>>()
+        }
+      },
+      // @ts-expect-error
+      invoke: {
+        id: 'someId',
+        src: invalidChild
+      }
+    });
+
+    setup({}).createMachine({
+      schemas: {
+        children: {
+          someId: z.custom<ActorRefFromLogic<typeof child>>()
+        }
+      },
+      // @ts-expect-error
+      invoke: {
+        id: 'someId',
+        src: invalidChild
+      }
+    });
+  });
+
+  it('should reject an incompatible registered invoke src for a declared child id', () => {
+    setup({}).createMachine({
+      schemas: {
+        children: {
+          someId: z.custom<ActorRefFromLogic<typeof child>>()
+        }
+      },
+      actors: {
+        invalidChild
+      },
+      // @ts-expect-error
+      invoke: {
+        id: 'someId',
+        src: 'invalidChild'
+      }
+    });
   });
 });
 

@@ -576,6 +576,7 @@ export type AnyTransitionConfigFunction = TransitionConfigFunction<
   any,
   any,
   any,
+  any,
   any
 >;
 
@@ -993,6 +994,7 @@ export type AnyInvokeConfig = InvokeConfig<
 >;
 
 export type AnyStateNodeConfig = Next_StateNodeConfig<
+  any,
   any,
   any,
   any,
@@ -1781,8 +1783,31 @@ export type SendableEventFromLogic<TLogic extends AnyActorLogic> =
       : TEvent
     : EventFromLogic<TLogic>;
 
+type OpaqueMachineSnapshot<TSnapshot extends Snapshot<unknown>> =
+  TSnapshot extends MachineSnapshot<
+    infer TContext,
+    infer TEvent,
+    infer TChildren,
+    infer TStateValue,
+    infer TTag,
+    infer TOutput,
+    infer TMeta,
+    infer _TStateSchema
+  >
+    ? MachineSnapshot<
+        TContext,
+        TEvent,
+        TChildren,
+        TStateValue,
+        TTag,
+        TOutput,
+        TMeta,
+        any
+      >
+    : TSnapshot;
+
 export type ActorRefFromLogic<T extends AnyActorLogic> = ActorRef<
-  SnapshotFrom<T>,
+  OpaqueMachineSnapshot<SnapshotFrom<T>>,
   EventFromLogic<T>,
   EmittedFrom<T>,
   SendableEventFromLogic<T>

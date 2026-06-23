@@ -13,10 +13,12 @@ import {
   StateValue,
   ToChildren,
   MetaObject,
-  Cast
+  Cast,
+  Compute
 } from './types.ts';
 import {
   DelayMapFromNames,
+  InferChildren,
   Implementations,
   InferOutput,
   InferEvents,
@@ -39,6 +41,7 @@ type SetupSchemas = {
   output?: StandardSchemaV1;
   meta?: StandardSchemaV1;
   tags?: StandardSchemaV1;
+  children?: Record<string, StandardSchemaV1>;
 };
 
 /** State schema with optional schemas.input and nested states */
@@ -58,7 +61,7 @@ type SetupSchema<
 
 type SetupSchemaMap<
   TSchemas,
-  TKey extends 'events' | 'emitted'
+  TKey extends 'events' | 'emitted' | 'children'
 > = TKey extends keyof TSchemas
   ? TSchemas[TKey] extends Record<string, StandardSchemaV1>
     ? TSchemas[TKey]
@@ -75,7 +78,7 @@ type SetupOrConfigSchema<
 
 type SetupOrConfigSchemaMap<
   TSchemas,
-  TKey extends 'events' | 'emitted',
+  TKey extends 'events' | 'emitted' | 'children',
   TConfigSchemaMap extends Record<string, StandardSchemaV1>
 > = [SetupSchemaMap<TSchemas, TKey>] extends [never]
   ? TConfigSchemaMap
@@ -205,6 +208,20 @@ type SetupMeta<TSchemas, TMetaSchema extends StandardSchemaV1> = [
   ? InferOutput<TMetaSchema, MetaObject>
   : InferOutput<SetupSchema<TSchemas, 'meta'>, MetaObject>;
 
+type SetupChildren<
+  TSchemas,
+  TChildrenSchemaMap extends Record<string, StandardSchemaV1>
+> = [SetupSchemaMap<TSchemas, 'children'>] extends [never]
+  ? InferChildren<TChildrenSchemaMap>
+  : InferChildren<SetupSchemaMap<TSchemas, 'children'>>;
+
+type MergeChildren<
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TActor extends ProvidedActor
+> = [keyof TChildren] extends [never]
+  ? Compute<ToChildren<TActor>>
+  : Compute<TChildren>;
+
 /** Extracts input type from a state schema */
 type StateInput<TStateSchema extends SetupStateSchema> =
   TStateSchema['schemas'] extends { input: infer TInputSchema }
@@ -323,8 +340,10 @@ type SetupMachineConfig<
   TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
+  TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
   TContext extends MachineContext,
   TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TDelays extends string,
   TTag extends string,
   TEmitted extends EventObject,
@@ -343,8 +362,10 @@ type SetupMachineConfig<
     SetupOrConfigSchema<TSchemas, 'output', TOutputSchema>,
     SetupOrConfigSchema<TSchemas, 'meta', TMetaSchema>,
     SetupOrConfigSchema<TSchemas, 'tags', TTagSchema>,
+    SetupOrConfigSchemaMap<TSchemas, 'children', TChildrenSchemaMap>,
     TContext,
     TEvent,
+    TChildren,
     TDelays,
     TTag,
     TActionMap,
@@ -364,6 +385,7 @@ type SetupMachineConfig<
     TStateSchemas,
     TContext,
     TEvent,
+    TChildren,
     TDelays,
     TTag,
     TEmitted,
@@ -381,6 +403,7 @@ type StatesWithInput<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
   TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TDelays extends string,
   TTag extends string,
   TEmitted extends EventObject,
@@ -395,6 +418,7 @@ type StatesWithInput<
     TStateSchemas[K],
     TContext,
     TEvent,
+    TChildren,
     TDelays,
     TTag,
     TEmitted,
@@ -412,6 +436,7 @@ type StateNodeConfigWithNestedInput<
   TStateSchema extends SetupStateSchema,
   TContext extends MachineContext,
   TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TDelays extends string,
   TTag extends string,
   TEmitted extends EventObject,
@@ -430,6 +455,7 @@ type StateNodeConfigWithNestedInput<
       any,
       TEmitted,
       TMeta,
+      TChildren,
       TActionMap,
       TActorMap,
       TGuardMap,
@@ -458,6 +484,7 @@ type StateNodeConfigWithNestedInput<
       StateContext<TStateSchema, TContext>,
       TEvent,
       TEmitted,
+      TChildren,
       TMeta
     >;
     always?: StateTransitionConfigOrTarget<
@@ -466,6 +493,7 @@ type StateNodeConfigWithNestedInput<
       TEvent,
       TEvent,
       TEmitted,
+      TChildren,
       TMeta
     >;
   },
@@ -475,6 +503,7 @@ type StateNodeConfigWithNestedInput<
         TStateSchema['states'],
         TContext,
         TEvent,
+        TChildren,
         TDelays,
         TTag,
         TEmitted,
@@ -493,6 +522,7 @@ type StateNodeConfigWithNestedInput<
           any,
           TEmitted,
           TMeta,
+          TChildren,
           TActionMap,
           TActorMap,
           TGuardMap,
@@ -507,6 +537,7 @@ type StateTransitions<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmitted extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TMeta extends MetaObject
 > = {
   [K in EventDescriptor<TEvent>]?: StateTransitionConfigOrTarget<
@@ -515,6 +546,7 @@ type StateTransitions<
     ExtractEvent<TEvent, K>,
     TEvent,
     TEmitted,
+    TChildren,
     TMeta
   >;
 };
@@ -525,6 +557,7 @@ type StateTransitionConfigOrTarget<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TEmitted extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TMeta extends MetaObject
 > =
   | SetupStateTarget<TStateSchemas>
@@ -549,6 +582,7 @@ type StateTransitionConfigOrTarget<
       TExpressionEvent,
       TEvent,
       TEmitted,
+      TChildren,
       TMeta
     >;
 
@@ -558,6 +592,7 @@ type StateTransitionFunction<
   TExpressionEvent extends EventObject,
   _TEvent extends EventObject,
   _TEmitted extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TMeta extends MetaObject
 > = (
   args: {
@@ -566,7 +601,7 @@ type StateTransitionFunction<
     self: AnyActorRef;
     parent: AnyActorRef | undefined;
     value: StateValue;
-    children: Record<string, AnyActorRef>;
+    children: TChildren;
     actions: Implementations['actions'];
     actors: Implementations['actors'];
     guards: Implementations['guards'];
@@ -635,6 +670,7 @@ interface SetupReturn<
     TOutputSchema extends StandardSchemaV1,
     TMetaSchema extends StandardSchemaV1,
     TTagSchema extends StandardSchemaV1,
+    const TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
     _TEvent extends EventObject,
     TActor extends ProvidedActor,
     TActionMap extends Implementations['actions'],
@@ -654,8 +690,13 @@ interface SetupReturn<
       TOutputSchema,
       TMetaSchema,
       TTagSchema,
+      TChildrenSchemaMap,
       SetupContext<TSchemas, TContextSchema>,
       SetupEvents<TSchemas, TEventSchemaMap>,
+      Cast<
+        MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
+        Record<string, AnyActorRef | undefined>
+      >,
       TDelays,
       TTag,
       SetupEmitted<TSchemas, TEmittedSchemaMap>,
@@ -667,20 +708,21 @@ interface SetupReturn<
       SetupContextRequired<TSchemas, TContextSchema>
     >
   >(
-    config: TConfig &
+    config: {
+      schemas?: {
+        events?: TEventSchemaMap;
+        context?: TContextSchema;
+        emitted?: TEmittedSchemaMap;
+        input?: TInputSchema;
+        output?: TOutputSchema;
+        meta?: TMetaSchema;
+        tags?: TTagSchema;
+        children?: TChildrenSchemaMap;
+      };
+    } & TConfig &
       ValidateSetupStateKeys<TConfig, TStates> &
       ValidateNestedSetupStateKeys<TConfig, TStates> &
-      ValidateDelayReferences<TConfig> & {
-        schemas?: {
-          events?: TEventSchemaMap;
-          context?: TContextSchema;
-          emitted?: TEmittedSchemaMap;
-          input?: TInputSchema;
-          output?: TOutputSchema;
-          meta?: TMetaSchema;
-          tags?: TTagSchema;
-        };
-      }
+      ValidateDelayReferences<TConfig>
   ): StateMachine<
     SetupContext<TSchemas, TContextSchema>,
     | SetupEvents<TSchemas, TEventSchemaMap>
@@ -690,7 +732,10 @@ interface SetupReturn<
             type: 'xstate.route';
             to: RoutableStateId<Cast<TConfig, StateSchema>>;
           }),
-    Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
+    Cast<
+      MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
+      Record<string, AnyActorRef | undefined>
+    >,
     StateValue,
     TTag & string,
     [SetupSchema<TSchemas, 'input'>] extends [never]
@@ -716,6 +761,10 @@ interface SetupReturn<
       SetupStateSchema,
       SetupContext<TSchemas, StandardSchemaV1>,
       SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
+      Cast<
+        SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,
+        Record<string, AnyActorRef | undefined>
+      >,
       string,
       SetupTags<TSchemas, StandardSchemaV1>,
       SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,

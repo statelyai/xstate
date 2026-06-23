@@ -12,11 +12,13 @@ import {
   MetaObject,
   StateSchema,
   DoNotInfer,
-  RoutableStateId
+  RoutableStateId,
+  Compute
 } from './types.ts';
 import {
   Implementations,
   DelayMapFromNames,
+  InferChildren,
   InferOutput,
   InferEvents,
   Next_MachineConfig,
@@ -25,6 +27,13 @@ import {
   WidenLiterals,
   WithDefault
 } from './types.v6.ts';
+
+type MergeChildren<
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TActor extends ProvidedActor
+> = [keyof TChildren] extends [never]
+  ? Compute<ToChildren<TActor>>
+  : Compute<TChildren>;
 
 type TestValue =
   | string
@@ -90,6 +99,7 @@ export function createMachine<
   TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
+  const TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
   _TEvent extends EventObject,
   TActor extends ProvidedActor,
   TActionMap extends Implementations['actions'],
@@ -111,8 +121,13 @@ export function createMachine<
       TOutputSchema,
       TMetaSchema,
       TTagSchema,
+      TChildrenSchemaMap,
       InferOutput<TContextSchema, MachineContext>,
       InferEvents<TEventSchemaMap>,
+      Cast<
+        MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+        Record<string, AnyActorRef | undefined>
+      >,
       TDelays,
       TTag,
       TActionMap,
@@ -120,7 +135,7 @@ export function createMachine<
       TGuardMap,
       TDelayMap
     > & {
-      schemas: { context: TContextSchema };
+      schemas: { context: TContextSchema; children?: TChildrenSchemaMap };
     }
 ): StateMachine<
   InferOutput<TContextSchema, MachineContext>,
@@ -131,7 +146,10 @@ export function createMachine<
           type: 'xstate.route';
           to: RoutableStateId<TSS>;
         }),
-  Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
+  Cast<
+    MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+    Record<string, AnyActorRef | undefined>
+  >,
   StateValue,
   TTag & string,
   TInput,
@@ -162,6 +180,10 @@ export function createMachine<
   TOutputSchema extends StandardSchemaV1 = StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1 = StandardSchemaV1,
   TTagSchema extends StandardSchemaV1 = StandardSchemaV1,
+  const TChildrenSchemaMap extends Record<string, StandardSchemaV1> = Record<
+    string,
+    StandardSchemaV1
+  >,
   _TEvent extends EventObject = EventObject,
   TActor extends ProvidedActor = ProvidedActor,
   TActionMap extends Implementations['actions'] = Implementations['actions'],
@@ -184,8 +206,13 @@ export function createMachine<
       TOutputSchema,
       TMetaSchema,
       TTagSchema,
+      TChildrenSchemaMap,
       WidenLiterals<TContext>,
       InferEvents<TEventSchemaMap>,
+      Cast<
+        MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+        Record<string, AnyActorRef | undefined>
+      >,
       TDelays,
       TTag,
       TActionMap,
@@ -216,7 +243,10 @@ export function createMachine<
           type: 'xstate.route';
           to: RoutableStateId<TSS>;
         }),
-  Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
+  Cast<
+    MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+    Record<string, AnyActorRef | undefined>
+  >,
   StateValue,
   TTag & string,
   TInput,
@@ -281,6 +311,7 @@ export function createStateConfig<
       DoNotInfer<StandardSchemaV1.InferOutput<TOutputSchema>>,
       DoNotInfer<StandardSchemaV1.InferOutput<TEmittedSchema> & EventObject>,
       DoNotInfer<InferOutput<TMetaSchema, MetaObject>>,
+      DoNotInfer<Record<string, AnyActorRef | undefined>>,
       DoNotInfer<TActionMap>,
       DoNotInfer<TActorMap>,
       DoNotInfer<TGuardMap>,

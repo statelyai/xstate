@@ -2,6 +2,9 @@ import { StandardSchemaV1 } from './schema.types.ts';
 import { MachineSnapshot } from './State';
 import {
   Action,
+  ActorLogic,
+  ActorRef,
+  ActorRefFromLogic,
   ActorSelf,
   AnyActorLogic,
   AnyActorRef,
@@ -51,6 +54,28 @@ export type InferEvents<
     : never;
 }>;
 
+export type InferChildren<
+  TChildrenSchemaMap extends Record<string, StandardSchemaV1>
+> = string extends keyof TChildrenSchemaMap
+  ? {}
+  : {
+      [K in keyof TChildrenSchemaMap & string]?: StandardSchemaV1.InferOutput<
+        TChildrenSchemaMap[K]
+      > extends AnyActorRef
+        ? NormalizeActorRef<StandardSchemaV1.InferOutput<TChildrenSchemaMap[K]>>
+        : never;
+    };
+
+type NormalizeActorRef<TActorRef> =
+  TActorRef extends ActorRef<
+    infer TSnapshot,
+    infer TEvent,
+    infer TEmitted,
+    infer TSendEvent
+  >
+    ? ActorRef<TSnapshot, TEvent, TEmitted, TSendEvent>
+    : never;
+
 type DistributiveOmit<T, K extends keyof any> = T extends any
   ? Omit<T, K>
   : never;
@@ -94,7 +119,8 @@ type MachineSchemas<
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
-  TTagSchema extends StandardSchemaV1
+  TTagSchema extends StandardSchemaV1,
+  TChildrenSchemaMap extends Record<string, StandardSchemaV1>
 > = {
   events?: TEventSchemaMap;
   context?: TContextSchema;
@@ -103,6 +129,7 @@ type MachineSchemas<
   output?: TOutputSchema;
   meta?: TMetaSchema;
   tags?: TTagSchema;
+  children?: TChildrenSchemaMap;
 };
 
 export type AnyMachineSchemas = MachineSchemas<
@@ -112,7 +139,8 @@ export type AnyMachineSchemas = MachineSchemas<
   StandardSchemaV1,
   StandardSchemaV1,
   StandardSchemaV1,
-  StandardSchemaV1
+  StandardSchemaV1,
+  Record<string, StandardSchemaV1>
 >;
 
 export type Next_MachineConfig<
@@ -123,8 +151,13 @@ export type Next_MachineConfig<
   TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
+  TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
   TContext extends MachineContext = InferOutput<TContextSchema, MachineContext>,
   TEvent extends EventObject = InferEvents<TEventSchemaMap>,
+  TChildren extends Record<
+    string,
+    AnyActorRef | undefined
+  > = InferChildren<TChildrenSchemaMap>,
   TDelays extends string = string,
   _TTag extends string = string,
   TActionMap extends Implementations['actions'] = Implementations['actions'],
@@ -143,6 +176,7 @@ export type Next_MachineConfig<
     DoNotInfer<StandardSchemaV1.InferOutput<TOutputSchema>>,
     DoNotInfer<InferEvents<TEmittedSchemaMap>>,
     DoNotInfer<InferOutput<TMetaSchema, MetaObject>>,
+    DoNotInfer<TChildren>,
     DoNotInfer<TActionMap>,
     DoNotInfer<TActorMap>,
     DoNotInfer<TGuardMap>,
@@ -160,7 +194,8 @@ export type Next_MachineConfig<
     TInputSchema,
     TOutputSchema,
     TMetaSchema,
-    TTagSchema
+    TTagSchema,
+    TChildrenSchemaMap
   >;
   actions?: TActionMap;
   guards?: TGuardMap;
@@ -257,7 +292,8 @@ type InvokeSrcArgs<
 type InvokeInputArgs<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TEmitted extends EventObject
+  TEmitted extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>
 > = {
   context: TContext;
   event: TEvent;
@@ -265,7 +301,7 @@ type InvokeInputArgs<
     MachineSnapshot<
       TContext,
       TEvent,
-      Record<string, AnyActorRef | undefined>,
+      TChildren,
       StateValue,
       string,
       unknown,
@@ -276,6 +312,111 @@ type InvokeInputArgs<
     TEmitted
   >;
 };
+
+type HasExplicitChildren<
+  TChildren extends Record<string, AnyActorRef | undefined>
+> = string extends keyof TChildren
+  ? false
+  : [keyof TChildren] extends [never]
+    ? false
+    : true;
+
+type ChildIdForLogic<
+  TLogic extends AnyActorLogic,
+  TChildren extends Record<string, AnyActorRef | undefined>
+> =
+  HasExplicitChildren<TChildren> extends true
+    ? Values<{
+        [K in keyof TChildren &
+          string]: ActorRefFromLogic<TLogic> extends NonNullable<TChildren[K]>
+          ? K
+          : never;
+      }>
+    : string;
+
+type LogicForChildRef<TActorRef> =
+  NonNullable<TActorRef> extends ActorRef<
+    infer TSnapshot,
+    infer TEvent,
+    infer TEmitted,
+    any
+  >
+    ? ActorLogic<TSnapshot, TEvent, any, any, TEmitted>
+    : never;
+
+type InlineChildInvokeConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TMeta extends MetaObject
+> = Values<{
+  [K in keyof TChildren & string]: Next_InvokeConfigBase<
+    TContext,
+    TEvent,
+    TEmitted,
+    TChildren,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TMeta
+  > & {
+    id: K;
+    src: LogicForChildRef<TChildren[K]>;
+    input?:
+      | ((
+          args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+        ) => unknown)
+      | NonReducibleUnknown;
+  };
+}>;
+
+type InlineInvokeConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TMeta extends MetaObject
+> =
+  HasExplicitChildren<TChildren> extends true
+    ? InlineChildInvokeConfig<
+        TContext,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TMeta
+      >
+    : Next_InvokeConfigBase<
+        TContext,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TMeta
+      > & {
+        src: AnyActorLogic;
+        input?:
+          | ((
+              args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+            ) => unknown)
+          | NonReducibleUnknown;
+      };
 
 /**
  * Invoke config. A union of:
@@ -291,6 +432,7 @@ export type Next_InvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmitted extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
@@ -300,32 +442,48 @@ export type Next_InvokeConfig<
   ? // No registered actors (permissive map): `src`/`input` cannot be
     // correlated. A mapped type over `string` would also defer resolution and
     // break contextual typing, so this case is its own branch.
-    Next_InvokeConfigBase<
-      TContext,
-      TEvent,
-      TEmitted,
-      TActionMap,
-      TActorMap,
-      TGuardMap,
-      TDelayMap,
-      TMeta
-    > & {
-      src:
-        | string
-        | AnyActorLogic
-        | ((
-            args: InvokeSrcArgs<TContext, TEvent, TActorMap>
-          ) => string | AnyActorLogic);
-      input?:
-        | ((args: InvokeInputArgs<TContext, TEvent, TEmitted>) => unknown)
-        | NonReducibleUnknown;
-    }
+    HasExplicitChildren<TChildren> extends true
+    ? InlineInvokeConfig<
+        TContext,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TMeta
+      >
+    : Next_InvokeConfigBase<
+        TContext,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TMeta
+      > & {
+        src:
+          | string
+          | AnyActorLogic
+          | ((
+              args: InvokeSrcArgs<TContext, TEvent, TActorMap>
+            ) => string | AnyActorLogic);
+        input?:
+          | ((
+              args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+            ) => unknown)
+          | NonReducibleUnknown;
+      }
   :
       | {
           [K in keyof TActorMap & string]: Next_InvokeConfigBase<
             TContext,
             TEvent,
             TEmitted,
+            TChildren,
             TActionMap,
             TActorMap,
             TGuardMap,
@@ -338,33 +496,31 @@ export type Next_InvokeConfig<
               | ((
                   args: InvokeSrcArgs<TContext, TEvent, TActorMap>
                 ) => K | TActorMap[K]);
+            id?: ChildIdForLogic<TActorMap[K], TChildren>;
             input?:
               | ((
-                  args: InvokeInputArgs<TContext, TEvent, TEmitted>
+                  args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
                 ) => InputFrom<TActorMap[K]>)
               | InputFrom<TActorMap[K]>;
           };
         }[keyof TActorMap & string]
-      | (Next_InvokeConfigBase<
+      | InlineInvokeConfig<
           TContext,
           TEvent,
           TEmitted,
+          TChildren,
           TActionMap,
           TActorMap,
           TGuardMap,
           TDelayMap,
           TMeta
-        > & {
-          src: AnyActorLogic;
-          input?:
-            | ((args: InvokeInputArgs<TContext, TEvent, TEmitted>) => unknown)
-            | NonReducibleUnknown;
-        });
+        >;
 
 interface Next_InvokeConfigBase<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmitted extends EventObject,
+  _TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
@@ -603,6 +759,7 @@ export type Next_StateNodeConfig<
   _TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
@@ -618,6 +775,7 @@ export type Next_StateNodeConfig<
       _TOutput,
       TEmitted,
       TMeta,
+      TChildren,
       TActionMap,
       TActorMap,
       TGuardMap,
@@ -699,6 +857,7 @@ interface Next_RegularStateNodeConfig<
   _TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
@@ -748,6 +907,7 @@ interface Next_RegularStateNodeConfig<
       any, // TOutput,
       TEmitted,
       TMeta,
+      TChildren,
       TActionMap,
       TActorMap,
       TGuardMap,
@@ -765,6 +925,7 @@ interface Next_RegularStateNodeConfig<
       TContext,
       TEvent,
       TEmitted,
+      TChildren,
       TActionMap,
       TActorMap,
       TGuardMap,

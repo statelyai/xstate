@@ -126,6 +126,7 @@ export class StateMachine<
       any,
       any,
       any,
+      any,
       any // TEmitted
     > & {
       schemas?: AnyMachineSchemas;

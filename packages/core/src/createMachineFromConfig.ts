@@ -609,6 +609,7 @@ export function createMachineFromConfig(
                 any,
                 any,
                 any,
+                any,
                 any
               >
             >
