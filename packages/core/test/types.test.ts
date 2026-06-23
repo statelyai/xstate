@@ -3812,6 +3812,72 @@ describe('actions', () => {
   });
 });
 
+describe('setup.extend', () => {
+  it('extends action, guard, and delay maps', () => {
+    const s = setup({
+      actions: {
+        base: (params: { value: string }) => {}
+      },
+      guards: {
+        isBase: () => true
+      },
+      delays: {
+        short: 1
+      }
+    }).extend({
+      actions: {
+        extended: (params: { count: number }) => {}
+      },
+      guards: {
+        isExtended: () => true
+      },
+      delays: {
+        long: 2
+      }
+    });
+
+    s.createMachine({
+      initial: 'a',
+      actions: {
+        local: (params: { ok: boolean }) => {}
+      },
+      on: {
+        NEXT: ({ guards }) => {
+          if (guards.isBase() && guards.isExtended()) {
+            return { target: '.b' };
+          }
+        }
+      },
+      states: {
+        a: {
+          entry: ({ actions }, enq) => {
+            enq(actions.base, { value: 'ok' });
+            enq(actions.extended, { count: 1 });
+            actions.local({ ok: true });
+            actions.local({
+              // @ts-expect-error
+              ok: 'no'
+            });
+            actions.base({
+              // @ts-expect-error
+              value: 1
+            });
+            enq(
+              // @ts-expect-error
+              actions.missing
+            );
+          },
+          after: {
+            short: 'b',
+            long: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+  });
+});
+
 describe('choice state types', () => {
   it('should accept a choice function', () => {
     createMachine({
@@ -4531,11 +4597,11 @@ describe('delays', () => {
   });
 
   it('should reject setup-created machine timeout delay strings outside of the defined ones', () => {
-    // @ts-expect-error
     setup({}).createMachine({
       delays: {
         short: 100
       },
+      // @ts-expect-error
       timeout: 'unknown delay',
       onTimeout: {}
     });

@@ -2,6 +2,7 @@ import { StandardSchemaV1 } from './schema.types.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
   AnyActorRef,
+  AnyStateNode,
   EventObject,
   AnyEventObject,
   EventDescriptor,
@@ -24,9 +25,24 @@ import {
   InferEvents,
   Next_MachineConfig,
   Next_StateNodeConfig,
-  ValidateDelayReferences,
   WithDefault
 } from './types.v6.ts';
+
+type SetupConfig<
+  TSchemas extends SetupSchemas,
+  TStates extends Record<string, SetupStateSchema>,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
+> = {
+  schemas?: TSchemas;
+  states?: TStates;
+  actions?: TActionMap;
+  actors?: TActorMap;
+  guards?: TGuardMap;
+  delays?: TDelayMap;
+};
 
 type SetupStateSchemas = {
   context?: StandardSchemaV1;
@@ -222,6 +238,58 @@ type MergeChildren<
   ? Compute<ToChildren<TActor>>
   : Compute<TChildren>;
 
+type MergeImplementationMaps<
+  TBase extends Record<string, unknown>,
+  TExtension extends Record<string, unknown>
+> = Compute<TBase & TExtension>;
+
+type DelayNamesFromConfigOrString<TConfig> = TConfig extends {
+  delays: infer TDelays;
+}
+  ? Extract<keyof TDelays, string>
+  : string;
+
+type DelayNamesFromConfig<TConfig> = TConfig extends { delays: infer TDelays }
+  ? Extract<keyof TDelays, string>
+  : never;
+
+type InvalidDelayReferences<TConfig, TDelays extends string> =
+  | (TConfig extends { after: infer TAfter }
+      ? Exclude<Extract<keyof TAfter, string>, TDelays>
+      : never)
+  | (TConfig extends { timeout: infer TTimeout }
+      ? TTimeout extends string
+        ? TTimeout extends TDelays
+          ? never
+          : TTimeout
+        : never
+      : never)
+  | (TConfig extends { states: infer TStates }
+      ? TStates extends Record<string, unknown>
+        ? {
+            [K in keyof TStates]: InvalidDelayReferences<TStates[K], TDelays>;
+          }[keyof TStates]
+        : never
+      : never);
+
+type ValidateSetupDelayReferences<
+  TConfig,
+  TSetupDelays extends string
+> = string extends (
+  [TSetupDelays] extends [never]
+    ? DelayNamesFromConfigOrString<TConfig>
+    : TSetupDelays | DelayNamesFromConfig<TConfig>
+)
+  ? unknown
+  : InvalidDelayReferences<
+        TConfig,
+        [TSetupDelays] extends [never]
+          ? DelayNamesFromConfigOrString<TConfig>
+          : TSetupDelays | DelayNamesFromConfig<TConfig>
+      > extends never
+    ? unknown
+    : never;
+
 /** Extracts input type from a state schema */
 type StateInput<TStateSchema extends SetupStateSchema> =
   TStateSchema['schemas'] extends { input: infer TInputSchema }
@@ -352,7 +420,11 @@ type SetupMachineConfig<
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TContextRequired extends boolean
+  TContextRequired extends boolean,
+  TRootDelays extends string = TDelays,
+  TRootActionMap extends Implementations['actions'] = TActionMap,
+  TRootActorMap extends Implementations['actors'] = TActorMap,
+  TRootGuardMap extends Implementations['guards'] = TGuardMap
 > = Omit<
   Next_MachineConfig<
     SetupOrConfigSchema<TSchemas, 'context', TContextSchema>,
@@ -374,8 +446,24 @@ type SetupMachineConfig<
     TDelayMap,
     TContextRequired
   >,
-  'states' | 'initial'
+  'states' | 'initial' | 'actions' | 'actors' | 'guards' | 'delays'
 > & {
+  actions?: TRootActionMap;
+  actors?: TRootActorMap;
+  guards?: TRootGuardMap;
+  delays?: {
+    [K in TRootDelays | number]?:
+      | number
+      | (({
+          context,
+          event,
+          stateNode
+        }: {
+          context: TContext;
+          event: TEvent;
+          stateNode: AnyStateNode;
+        }) => number);
+  };
   initial?:
     | SetupStateKey<TStateSchemas>
     | InitialTransitionWithInput<TStateSchemas, TContext, TEvent>
@@ -485,7 +573,11 @@ type StateNodeConfigWithNestedInput<
       TEvent,
       TEmitted,
       TChildren,
-      TMeta
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap
     >;
     always?: StateTransitionConfigOrTarget<
       TSiblingStateSchemas,
@@ -494,7 +586,11 @@ type StateNodeConfigWithNestedInput<
       TEvent,
       TEmitted,
       TChildren,
-      TMeta
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap
     >;
   },
   TStateSchema['states'] extends Record<string, SetupStateSchema>
@@ -538,7 +634,11 @@ type StateTransitions<
   TEvent extends EventObject,
   TEmitted extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > = {
   [K in EventDescriptor<TEvent>]?: StateTransitionConfigOrTarget<
     TStateSchemas,
@@ -547,7 +647,11 @@ type StateTransitions<
     TEvent,
     TEmitted,
     TChildren,
-    TMeta
+    TMeta,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
   >;
 };
 
@@ -558,7 +662,11 @@ type StateTransitionConfigOrTarget<
   TEvent extends EventObject,
   TEmitted extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > =
   | SetupStateTarget<TStateSchemas>
   | undefined
@@ -583,7 +691,11 @@ type StateTransitionConfigOrTarget<
       TEvent,
       TEmitted,
       TChildren,
-      TMeta
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap
     >;
 
 type StateTransitionFunction<
@@ -593,7 +705,11 @@ type StateTransitionFunction<
   _TEvent extends EventObject,
   _TEmitted extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
 > = (
   args: {
     context: TContext;
@@ -602,10 +718,10 @@ type StateTransitionFunction<
     parent: AnyActorRef | undefined;
     value: StateValue;
     children: TChildren;
-    actions: Implementations['actions'];
-    actors: Implementations['actors'];
-    guards: Implementations['guards'];
-    delays: Implementations['delays'];
+    actions: TActionMap;
+    actors: TActorMap;
+    guards: TGuardMap;
+    delays: TDelayMap;
   },
   enq: any
 ) => StateTransitionResult<TStateSchemas, TContext, TMeta> | void;
@@ -659,27 +775,71 @@ interface SetupReturn<
     string,
     SetupStateSchema
   >,
-  TSchemas extends SetupSchemas = {}
+  TSchemas extends SetupSchemas = {},
+  TSetupActionMap extends Implementations['actions'] = {},
+  TSetupActorMap extends Implementations['actors'] = {},
+  TSetupGuardMap extends Implementations['guards'] = {},
+  TSetupDelayMap extends Implementations['delays'] = {},
+  TSetupDelays extends string = Extract<keyof TSetupDelayMap, string>
 > {
+  /** Extends the setup configuration */
+  extend<
+    const TExtendSchemas extends SetupSchemas = {},
+    const TExtendStates extends Record<string, SetupStateSchema> = {},
+    TExtendActionMap extends Implementations['actions'] = {},
+    TExtendActorMap extends Implementations['actors'] = {},
+    TExtendGuardMap extends Implementations['guards'] = {},
+    TExtendDelayMap extends Implementations['delays'] = {}
+  >(
+    config: SetupConfig<
+      TExtendSchemas,
+      TExtendStates,
+      TExtendActionMap,
+      TExtendActorMap,
+      TExtendGuardMap,
+      TExtendDelayMap
+    >
+  ): SetupReturn<
+    MergeImplementationMaps<TStates, TExtendStates>,
+    MergeImplementationMaps<TSchemas, TExtendSchemas>,
+    MergeImplementationMaps<TSetupActionMap, TExtendActionMap>,
+    MergeImplementationMaps<TSetupActorMap, TExtendActorMap>,
+    MergeImplementationMaps<TSetupGuardMap, TExtendGuardMap>,
+    MergeImplementationMaps<TSetupDelayMap, TExtendDelayMap>,
+    TSetupDelays | Extract<keyof TExtendDelayMap, string>
+  >;
+
   /** Creates a state machine with the setup configuration */
   createMachine<
-    TContextSchema extends StandardSchemaV1,
-    const TEventSchemaMap extends Record<string, StandardSchemaV1>,
-    TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
-    TInputSchema extends StandardSchemaV1,
-    TOutputSchema extends StandardSchemaV1,
-    TMetaSchema extends StandardSchemaV1,
-    TTagSchema extends StandardSchemaV1,
-    const TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
-    _TEvent extends EventObject,
-    TActor extends ProvidedActor,
-    TActionMap extends Implementations['actions'],
-    TActorMap extends Implementations['actors'],
-    TGuardMap extends Implementations['guards'],
-    TDelayMap extends Implementations['delays'],
-    TDelays extends string,
-    TTag extends SetupTags<TSchemas, TTagSchema>,
-    TInput,
+    TContextSchema extends StandardSchemaV1 = StandardSchemaV1,
+    const TEventSchemaMap extends Record<string, StandardSchemaV1> = Record<
+      string,
+      StandardSchemaV1
+    >,
+    TEmittedSchemaMap extends Record<string, StandardSchemaV1> = Record<
+      string,
+      StandardSchemaV1
+    >,
+    TInputSchema extends StandardSchemaV1 = StandardSchemaV1,
+    TOutputSchema extends StandardSchemaV1 = StandardSchemaV1,
+    TMetaSchema extends StandardSchemaV1 = StandardSchemaV1,
+    TTagSchema extends StandardSchemaV1 = StandardSchemaV1,
+    const TChildrenSchemaMap extends Record<string, StandardSchemaV1> = Record<
+      string,
+      StandardSchemaV1
+    >,
+    _TEvent extends EventObject = EventObject,
+    TActor extends ProvidedActor = ProvidedActor,
+    TActionMap extends Implementations['actions'] = {},
+    TActorMap extends Implementations['actors'] = {},
+    TGuardMap extends Implementations['guards'] = {},
+    TDelayMap extends Implementations['delays'] = {},
+    TDelays extends string = Extract<keyof TDelayMap, string>,
+    TTag extends SetupTags<TSchemas, TTagSchema> = SetupTags<
+      TSchemas,
+      TTagSchema
+    >,
+    TInput = unknown,
     TConfig extends SetupMachineConfig<
       TStates,
       TSchemas,
@@ -697,15 +857,49 @@ interface SetupReturn<
         MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>
       >,
-      TDelays,
+      TSetupDelays | TDelays,
       TTag,
       SetupEmitted<TSchemas, TEmittedSchemaMap>,
       SetupMeta<TSchemas, TMetaSchema>,
+      MergeImplementationMaps<TSetupActionMap, TActionMap>,
+      MergeImplementationMaps<TSetupActorMap, TActorMap>,
+      MergeImplementationMaps<TSetupGuardMap, TGuardMap>,
+      MergeImplementationMaps<TSetupDelayMap, TDelayMap>,
+      SetupContextRequired<TSchemas, TContextSchema>,
+      TDelays,
       TActionMap,
       TActorMap,
-      TGuardMap,
-      TDelayMap,
-      SetupContextRequired<TSchemas, TContextSchema>
+      TGuardMap
+    > = SetupMachineConfig<
+      TStates,
+      TSchemas,
+      TContextSchema,
+      TEventSchemaMap,
+      TEmittedSchemaMap,
+      TInputSchema,
+      TOutputSchema,
+      TMetaSchema,
+      TTagSchema,
+      TChildrenSchemaMap,
+      SetupContext<TSchemas, TContextSchema>,
+      SetupEvents<TSchemas, TEventSchemaMap>,
+      Cast<
+        MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
+        Record<string, AnyActorRef | undefined>
+      >,
+      TSetupDelays | TDelays,
+      TTag,
+      SetupEmitted<TSchemas, TEmittedSchemaMap>,
+      SetupMeta<TSchemas, TMetaSchema>,
+      MergeImplementationMaps<TSetupActionMap, TActionMap>,
+      MergeImplementationMaps<TSetupActorMap, TActorMap>,
+      MergeImplementationMaps<TSetupGuardMap, TGuardMap>,
+      MergeImplementationMaps<TSetupDelayMap, TDelayMap>,
+      SetupContextRequired<TSchemas, TContextSchema>,
+      TDelays,
+      TActionMap,
+      TActorMap,
+      TGuardMap
     >
   >(
     config: {
@@ -719,10 +913,14 @@ interface SetupReturn<
         tags?: TTagSchema;
         children?: TChildrenSchemaMap;
       };
+      actions?: TActionMap;
+      actors?: TActorMap;
+      guards?: TGuardMap;
+      delays?: TDelayMap;
     } & TConfig &
       ValidateSetupStateKeys<TConfig, TStates> &
       ValidateNestedSetupStateKeys<TConfig, TStates> &
-      ValidateDelayReferences<TConfig>
+      ValidateSetupDelayReferences<TConfig, TSetupDelays>
   ): StateMachine<
     SetupContext<TSchemas, TContextSchema>,
     | SetupEvents<TSchemas, TEventSchemaMap>
@@ -748,10 +946,13 @@ interface SetupReturn<
       Cast<TConfig, StateSchema>,
       SetupStatesToStateSchema<TStates>
     >,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    DelayMapFromNames<TDelays, TDelayMap>
+    MergeImplementationMaps<TSetupActionMap, TActionMap>,
+    MergeImplementationMaps<TSetupActorMap, TActorMap>,
+    MergeImplementationMaps<TSetupGuardMap, TGuardMap>,
+    DelayMapFromNames<
+      TSetupDelays | TDelays,
+      MergeImplementationMaps<TSetupDelayMap, TDelayMap>
+    >
   >;
 
   /** Creates a state node config with the setup configuration */
@@ -769,10 +970,10 @@ interface SetupReturn<
       SetupTags<TSchemas, StandardSchemaV1>,
       SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
       SetupMeta<TSchemas, StandardSchemaV1>,
-      Implementations['actions'],
-      Implementations['actors'],
-      Implementations['guards'],
-      Implementations['delays']
+      TSetupActionMap,
+      TSetupActorMap,
+      TSetupGuardMap,
+      TSetupDelayMap
     >
   >(
     config: TConfig
@@ -823,35 +1024,96 @@ export function setup<
   const TStates extends Record<string, SetupStateSchema> = Record<
     string,
     SetupStateSchema
-  >
+  >,
+  TActionMap extends Implementations['actions'] = {},
+  TActorMap extends Implementations['actors'] = {},
+  TGuardMap extends Implementations['guards'] = {},
+  TDelayMap extends Implementations['delays'] = {}
 >(
-  config: { schemas?: TSchemas; states?: TStates } = {}
-): SetupReturn<TStates, TSchemas> {
-  const { states = {} as TStates, schemas } = config;
+  config: SetupConfig<
+    TSchemas,
+    TStates,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  > = {}
+): SetupReturn<TStates, TSchemas, TActionMap, TActorMap, TGuardMap, TDelayMap> {
+  const {
+    states = {} as TStates,
+    schemas,
+    actions,
+    actors,
+    guards,
+    delays
+  } = config;
 
   return {
+    extend(extension) {
+      return setup(
+        mergeSetupConfigs(config, extension as any) as any
+      ) as unknown as any;
+    },
     createMachine(machineConfig) {
       const configSchemas = (machineConfig as any).schemas;
-      const mergedSchemas =
-        schemas || configSchemas
-          ? {
-              ...configSchemas,
-              ...schemas
-            }
-          : undefined;
+      const mergedSchemas = mergeSchemas(configSchemas, schemas);
+      const mergedActions = mergeMaps(actions, (machineConfig as any).actions);
+      const mergedActors = mergeMaps(actors, (machineConfig as any).actors);
+      const mergedGuards = mergeMaps(guards, (machineConfig as any).guards);
+      const mergedDelays = mergeMaps(delays, (machineConfig as any).delays);
 
-      return new StateMachine(
-        mergedSchemas
-          ? ({
-              ...machineConfig,
-              schemas: mergedSchemas
-            } as any)
-          : (machineConfig as any)
-      ) as any;
+      return new StateMachine({
+        ...machineConfig,
+        ...(mergedSchemas ? { schemas: mergedSchemas } : undefined),
+        ...(mergedActions ? { actions: mergedActions } : undefined),
+        ...(mergedActors ? { actors: mergedActors } : undefined),
+        ...(mergedGuards ? { guards: mergedGuards } : undefined),
+        ...(mergedDelays ? { delays: mergedDelays } : undefined)
+      } as any) as any;
     },
     createStateConfig(stateConfig) {
       return stateConfig;
     },
     states
   };
+}
+
+function mergeMaps<TLeft, TRight>(
+  left: TLeft | undefined,
+  right: TRight | undefined
+): (TLeft & TRight) | undefined {
+  return left || right ? ({ ...left, ...right } as TLeft & TRight) : undefined;
+}
+
+function mergeSchemas(
+  left: SetupSchemas | undefined,
+  right: SetupSchemas | undefined
+): SetupSchemas | undefined {
+  if (!left && !right) {
+    return undefined;
+  }
+
+  return {
+    ...left,
+    ...right,
+    events: mergeMaps(left?.events, right?.events),
+    emitted: mergeMaps(left?.emitted, right?.emitted),
+    children: mergeMaps(left?.children, right?.children)
+  };
+}
+
+function mergeSetupConfigs<
+  TBase extends SetupConfig<any, any, any, any, any, any>,
+  TExtension extends SetupConfig<any, any, any, any, any, any>
+>(base: TBase, extension: TExtension): TBase & TExtension {
+  return {
+    ...base,
+    ...extension,
+    schemas: mergeSchemas(base.schemas, extension.schemas),
+    states: mergeMaps(base.states, extension.states),
+    actions: mergeMaps(base.actions, extension.actions),
+    actors: mergeMaps(base.actors, extension.actors),
+    guards: mergeMaps(base.guards, extension.guards),
+    delays: mergeMaps(base.delays, extension.delays)
+  } as TBase & TExtension;
 }
