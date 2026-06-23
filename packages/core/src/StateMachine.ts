@@ -36,7 +36,7 @@ import type {
   Equals,
   EventDescriptor,
   EventObject,
-  ExecutableActionObject,
+  ExecutableActionObjectFromLogic,
   HistoryValue,
   MachineContext,
   MetaObject,
@@ -334,7 +334,7 @@ export class StateMachine<
       TMeta,
       TConfig
     >,
-    ExecutableActionObject
+    ExecutableActionObjectFromLogic<this>
   > {
     const { snapshot: nextSnapshot, microsteps } = macrostep(
       snapshot,
@@ -343,7 +343,12 @@ export class StateMachine<
       []
     );
 
-    return [nextSnapshot, microsteps.flatMap(([, actions]) => actions)];
+    return [
+      nextSnapshot,
+      microsteps.flatMap(
+        ([, actions]) => actions
+      ) as ExecutableActionObjectFromLogic<this>[]
+    ];
   }
 
   /**
@@ -541,7 +546,7 @@ export class StateMachine<
       TMeta,
       TConfig
     >,
-    ExecutableActionObject
+    ExecutableActionObjectFromLogic<this>
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
@@ -563,7 +568,10 @@ export class StateMachine<
 
     return [
       macroState as SnapshotFrom<this>,
-      [...initialActions, ...microsteps.flatMap(([, actions]) => actions)]
+      [
+        ...initialActions,
+        ...microsteps.flatMap(([, actions]) => actions)
+      ] as ExecutableActionObjectFromLogic<this>[]
     ];
   }
 

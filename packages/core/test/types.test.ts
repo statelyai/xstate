@@ -10,14 +10,20 @@ import {
   ActorRefFrom,
   ActorRefFromLogic,
   AnyActorLogic,
+  BuiltInExecutableActionObject,
+  CustomExecutableActionObject,
+  ExecutableActionObject,
   InputFrom,
   OutputFrom,
   StateMachine,
+  SpecialExecutableAction,
   type StandardSchemaV1,
   UnknownActorRef,
   createActor,
   createLogic,
   createMachine,
+  initialTransition,
+  isBuiltInExecutableAction,
   setup,
   types,
   toPromise
@@ -44,6 +50,99 @@ type AnyNextStateNodeConfig = Next_StateNodeConfig<
   any,
   any
 >;
+
+describe('SpecialExecutableAction', () => {
+  it('narrows built-in executable action fields by type', () => {
+    const consume = (action: SpecialExecutableAction) => {
+      switch (action.type) {
+        case '@xstate.start':
+          noop(action.actor);
+          noop(action.id);
+          noop(action.logic);
+          noop(action.src);
+          noop(action.input);
+          break;
+        case '@xstate.raise':
+          noop(action.event);
+          noop(action.id);
+          noop(action.delay);
+          break;
+        case '@xstate.sendTo':
+          noop(action.target);
+          noop(action.event);
+          noop(action.id);
+          noop(action.delay);
+          break;
+        case '@xstate.cancel':
+          noop(action.id);
+          break;
+        case '@xstate.stop':
+          noop(action.actor);
+          break;
+        default: {
+          const _exhaustive: never = action;
+          noop(_exhaustive);
+        }
+      }
+    };
+
+    noop(consume);
+
+    const action = {} as ExecutableActionObject;
+
+    if (isBuiltInExecutableAction(action)) {
+      const builtInAction: BuiltInExecutableActionObject = action;
+      consume(builtInAction);
+    }
+  });
+
+  it('preserves built-in discriminants from transition results', () => {
+    const childMachine = createMachine({});
+    const machine = createMachine({
+      invoke: {
+        src: childMachine,
+        id: 'child'
+      }
+    });
+
+    const [, actions] = initialTransition(machine);
+    const action = actions[0];
+
+    if (isBuiltInExecutableAction(action) && action.type === '@xstate.start') {
+      noop(action.actor);
+      noop(action.id);
+      noop(action.logic);
+      noop(action.src);
+      noop(action.input);
+      // @ts-expect-error start actions do not expose raise/send event payloads
+      noop(action.event);
+    }
+
+    if (isBuiltInExecutableAction(action) && action.type === '@xstate.raise') {
+      noop(action.event);
+      noop(action.id);
+      noop(action.delay);
+      // @ts-expect-error raise actions do not expose started actor metadata
+      noop(action.actor);
+    }
+  });
+
+  it('preserves custom executable actions in transition results', () => {
+    const machine = createMachine({
+      entry: (_, enq) => enq(function customEffect() {})
+    });
+
+    const [, actions] = initialTransition(machine);
+    const action = actions[0];
+
+    if (!isBuiltInExecutableAction(action)) {
+      const customAction: CustomExecutableActionObject = action;
+      noop(customAction.type);
+      noop(customAction.args);
+      noop(customAction.exec);
+    }
+  });
+});
 
 describe('Raise events', () => {
   it('should accept a valid event type', () => {

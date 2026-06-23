@@ -17,7 +17,8 @@ import type {
   AnyMachineSnapshot,
   EnqueueObject,
   EventObject,
-  ExecutableActionObject
+  ExecutableActionObject,
+  SpecialExecutableAction
 } from './types.ts';
 
 function pushBuiltInAction(actions: any[], action: any, ...args: any[]) {
@@ -124,7 +125,7 @@ export function createTransitionEnqueue(
       if (actor) {
         pushBuiltInAction(
           actions,
-          builtInActions['@xstate.stopChild'],
+          builtInActions['@xstate.stop'],
           actorScope,
           actor
         );
@@ -177,6 +178,67 @@ export function createTransitionEnqueue(
   return createEnqueueObject(props, (action, ...args) => {
     pushBuiltInAction(actions, action, ...args);
   });
+}
+
+function getBuiltInActionFields(
+  action: (...args: any[]) => void,
+  args: unknown[]
+): Partial<SpecialExecutableAction> | undefined {
+  switch (action) {
+    case builtInActions['@xstate.start']: {
+      const [actor] = args as Parameters<
+        (typeof builtInActions)['@xstate.start']
+      >;
+      return {
+        actor,
+        id: actor.id,
+        logic: (actor as any).logic,
+        src: actor.src,
+        input: (actor as any).options?.input
+      };
+    }
+    case builtInActions['@xstate.raise']: {
+      const [, event, options] = args as Parameters<
+        (typeof builtInActions)['@xstate.raise']
+      >;
+      return {
+        event,
+        id: options?.id,
+        delay: options?.delay
+      };
+    }
+    case builtInActions['@xstate.sendTo']: {
+      const [, target, event, options] = args as Parameters<
+        (typeof builtInActions)['@xstate.sendTo']
+      >;
+      return {
+        target,
+        event,
+        id: options?.id,
+        delay: options?.delay
+      };
+    }
+    case builtInActions['@xstate.cancel']: {
+      const [, id] = args as Parameters<
+        (typeof builtInActions)['@xstate.cancel']
+      >;
+      return { id };
+    }
+    case builtInActions['@xstate.stop']: {
+      const [, actor] = args as Parameters<
+        (typeof builtInActions)['@xstate.stop']
+      >;
+      return { actor };
+    }
+    default:
+      return undefined;
+  }
+}
+
+export function isBuiltInExecutableAction(
+  action: ExecutableActionObject
+): action is SpecialExecutableAction {
+  return Object.prototype.hasOwnProperty.call(builtInActions, action.type);
 }
 
 export function resolveActionsWithContext(
@@ -252,6 +314,14 @@ export function resolveActionsWithContext(
     }
 
     if (!resolvedAction || !('resolve' in resolvedAction)) {
+      const builtInFields =
+        typeof action === 'object' &&
+        action !== null &&
+        'action' in action &&
+        typeof action.action === 'function'
+          ? getBuiltInActionFields(action.action, action.args)
+          : undefined;
+
       executableActions.push({
         type:
           typeof action === 'object'
@@ -266,7 +336,8 @@ export function resolveActionsWithContext(
           resolvedAction ||
           (typeof action === 'object' && action !== null
             ? () => actorScope.defer(() => actorScope.emit(action))
-            : undefined)
+            : undefined),
+        ...builtInFields
       });
       continue;
     }

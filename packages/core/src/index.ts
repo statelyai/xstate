@@ -69,6 +69,7 @@ export {
   getInitialMicrosteps,
   getNextTransitions
 } from './transition.ts';
+export { isBuiltInExecutableAction } from './transitionActions.ts';
 export { waitFor } from './waitFor.ts';
 
 declare global {

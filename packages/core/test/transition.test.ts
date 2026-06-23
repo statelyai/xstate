@@ -7,9 +7,13 @@ import {
   toPromise,
   transition,
   createActor,
-  getNextTransitions
+  getNextTransitions,
+  isBuiltInExecutableAction
 } from '../src';
-import type { ExecutableActionObject } from '../src/types';
+import type {
+  ExecutableActionObject,
+  SpecialExecutableAction
+} from '../src/types';
 import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
 import { z } from 'zod';
@@ -306,6 +310,127 @@ describe('transition function', () => {
     expect(actions.some((a) => (a as any).type === '@xstate.sendTo')).toBe(
       false
     );
+  });
+
+  it('built-in action effects expose public metadata fields', () => {
+    const childMachine = createMachine({});
+    const machine = createMachine({
+      initial: 'a',
+      invoke: {
+        src: childMachine,
+        id: 'child',
+        input: () => ({ kind: 'invoke' })
+      },
+      states: {
+        a: {
+          on: {
+            NEXT: ({ children }, enq) => {
+              enq.spawn(childMachine, {
+                id: 'spawned',
+                input: { kind: 'spawn' }
+              });
+              enq.raise({ type: 'later' }, { id: 'raise-id', delay: 10 });
+              enq.sendTo(
+                children.child,
+                { type: 'ping' },
+                { id: 'send-id', delay: 20 }
+              );
+              enq.cancel('raise-id');
+              enq.stop(children.child);
+            }
+          }
+        }
+      }
+    });
+
+    const [state, initialActions] = initialTransition(machine);
+    const invokeStart = initialActions.find(
+      (
+        action
+      ): action is Extract<
+        SpecialExecutableAction,
+        { type: '@xstate.start' }
+      > => isBuiltInExecutableAction(action) && action.type === '@xstate.start'
+    )!;
+
+    expect(invokeStart.type).toBe('@xstate.start');
+    expect(invokeStart.actor).toBe(invokeStart.args[0]);
+    expect(invokeStart.id).toBe('child');
+    expect(invokeStart.logic).toBe(childMachine);
+    expect(invokeStart.src).toBe(invokeStart.actor.src);
+    expect(invokeStart.input).toEqual({ kind: 'invoke' });
+
+    const [, actions] = transition(machine, state, { type: 'NEXT' });
+
+    const spawnedStart = actions.find(
+      (
+        action
+      ): action is Extract<
+        SpecialExecutableAction,
+        { type: '@xstate.start' }
+      > =>
+        isBuiltInExecutableAction(action) &&
+        action.type === '@xstate.start' &&
+        action.id === 'spawned'
+    )!;
+    expect(spawnedStart.type).toBe('@xstate.start');
+    expect(spawnedStart.id).toBe('spawned');
+    expect(spawnedStart.actor).toBe(spawnedStart.args[0]);
+    expect(spawnedStart.logic).toBe(childMachine);
+    expect(spawnedStart.src).toBe(childMachine);
+    expect(spawnedStart.input).toEqual({ kind: 'spawn' });
+
+    expect(
+      actions.find((action) => action.type === '@xstate.raise')
+    ).toMatchObject({
+      type: '@xstate.raise',
+      event: { type: 'later' },
+      id: 'raise-id',
+      delay: 10
+    });
+
+    const sendAction = actions.find(
+      (
+        action
+      ): action is Extract<
+        SpecialExecutableAction,
+        { type: '@xstate.sendTo' }
+      > => isBuiltInExecutableAction(action) && action.type === '@xstate.sendTo'
+    )!;
+    expect(sendAction).toMatchObject({
+      type: '@xstate.sendTo',
+      event: { type: 'ping' },
+      id: 'send-id',
+      delay: 20
+    });
+    expect(sendAction.target).toBe(state.children.child);
+
+    expect(
+      actions.find((action) => action.type === '@xstate.cancel')
+    ).toMatchObject({
+      type: '@xstate.cancel',
+      id: 'raise-id'
+    });
+
+    const stopAction = actions.find(
+      (
+        action
+      ): action is Extract<SpecialExecutableAction, { type: '@xstate.stop' }> =>
+        isBuiltInExecutableAction(action) && action.type === '@xstate.stop'
+    )!;
+    expect(stopAction.type).toBe('@xstate.stop');
+    expect(stopAction.actor).toBe(state.children.child);
+  });
+
+  it('does not classify inherited object keys as built-in actions', () => {
+    expect(
+      isBuiltInExecutableAction({
+        type: 'toString',
+        params: undefined,
+        args: [],
+        exec: undefined
+      })
+    ).toBe(false);
   });
 
   it('emit actions should be returned', async () => {

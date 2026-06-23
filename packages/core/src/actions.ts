@@ -49,7 +49,7 @@ export const builtInActions = {
   ['@xstate.cancel']: (actorScope: AnyActorScope, sendId: string) => {
     actorScope.system.scheduler.cancel(actorScope.self, sendId);
   },
-  ['@xstate.stopChild']: (actorScope: AnyActorScope, actor: AnyActor) => {
+  ['@xstate.stop']: (actorScope: AnyActorScope, actor: AnyActor) => {
     actorScope.stopChild(actor);
   }
 };

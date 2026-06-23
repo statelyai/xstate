@@ -2455,22 +2455,106 @@ export type ToStateValue<T extends StateSchema> = T extends {
             : never)
   : {};
 
-export interface ExecutableActionObject {
-  type: string & {};
+export interface BaseExecutableActionObject {
   params: NonReducibleUnknown;
   args: unknown[];
   exec: (() => void) | undefined;
 }
 
-export type SpecialExecutableAction = Values<{
-  [K in keyof typeof builtInActions]: {
-    type: K;
-    args: Parameters<(typeof builtInActions)[K]>;
-  };
+export interface CustomExecutableActionObject<
+  TType extends string = string & {}
+> extends BaseExecutableActionObject {
+  type: TType;
+}
+
+export interface StartExecutableActionObject
+  extends BaseExecutableActionObject {
+  type: '@xstate.start';
+  actor: AnyActor;
+  id: string;
+  logic: AnyActorLogic;
+  src: string | AnyActorLogic;
+  input: unknown;
+  args: Parameters<(typeof builtInActions)['@xstate.start']>;
+}
+
+export interface RaiseExecutableActionObject
+  extends BaseExecutableActionObject {
+  type: '@xstate.raise';
+  event: EventObject;
+  id: string | undefined;
+  delay: number | undefined;
+  args: Parameters<(typeof builtInActions)['@xstate.raise']>;
+}
+
+export interface SendToExecutableActionObject
+  extends BaseExecutableActionObject {
+  type: '@xstate.sendTo';
+  target: AnyActor;
+  event: EventObject;
+  id: string | undefined;
+  delay: number | undefined;
+  args: Parameters<(typeof builtInActions)['@xstate.sendTo']>;
+}
+
+export interface CancelExecutableActionObject
+  extends BaseExecutableActionObject {
+  type: '@xstate.cancel';
+  id: string;
+  args: Parameters<(typeof builtInActions)['@xstate.cancel']>;
+}
+
+export interface StopExecutableActionObject extends BaseExecutableActionObject {
+  type: '@xstate.stop';
+  actor: AnyActor;
+  args: Parameters<(typeof builtInActions)['@xstate.stop']>;
+}
+
+export type BuiltInExecutableActionObject = Values<{
+  '@xstate.start': StartExecutableActionObject;
+  '@xstate.raise': RaiseExecutableActionObject;
+  '@xstate.sendTo': SendToExecutableActionObject;
+  '@xstate.cancel': CancelExecutableActionObject;
+  '@xstate.stop': StopExecutableActionObject;
 }>;
 
+export type SpecialExecutableAction = BuiltInExecutableActionObject;
+
+type TransitionExecutableActionObject<TType extends string = never> =
+  | BuiltInExecutableActionObject
+  | CustomExecutableActionObject<TType | (string & {})>;
+
+type KnownImplementationKeys<TImplementationMap> =
+  string extends keyof TImplementationMap
+    ? never
+    : Extract<keyof TImplementationMap, string>;
+
+export type ExecutableActionObjectFromLogic<T extends AnyActorLogic> =
+  T extends StateMachine<
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    infer TActionMap,
+    any,
+    any,
+    any
+  >
+    ? TransitionExecutableActionObject<KnownImplementationKeys<TActionMap>>
+    : ExecutableActionObject;
+
+export type ExecutableActionObject<TType extends string = string & {}> =
+  | BuiltInExecutableActionObject
+  | CustomExecutableActionObject<TType>;
+
 export interface ToExecutableAction<T extends ParameterizedObject>
-  extends ExecutableActionObject {
+  extends CustomExecutableActionObject<T['type']> {
   type: T['type'];
   params: T['params'];
   exec: undefined;
