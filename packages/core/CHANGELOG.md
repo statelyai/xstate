@@ -1,5 +1,55 @@
 # xstate
 
+## 6.0.0-alpha.6
+
+### Patch Changes
+
+- ecd97db: State transition functions now type `enq` with the machine's events and emitted events.
+
+  ```ts
+  setup({
+    schemas: {
+      events: {
+        go: types<{}>()
+      }
+    }
+  }).createMachine({
+    states: {
+      active: {
+        on: {
+          go: (_args, enq) => {
+            enq.raise({ type: 'go' });
+          }
+        }
+      }
+    }
+  });
+  ```
+
+- 4b5b14f: Transition functions may now return only a target when the target state's context is compatible with the current context.
+
+  ```ts
+  setup({
+    schemas: {
+      context: types<{ count: number }>(),
+      events: {
+        next: types<{}>()
+      }
+    }
+  }).createMachine({
+    context: { count: 0 },
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          next: () => ({ target: 'done' })
+        }
+      },
+      done: {}
+    }
+  });
+  ```
+
 ## 6.0.0-alpha.5
 
 ### Major Changes

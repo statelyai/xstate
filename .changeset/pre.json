@@ -97,6 +97,8 @@
     "store-is-atom",
     "swift-send-typing",
     "type-only-schemas",
+    "typed-state-enq",
+    "typed-target-only",
     "witty-choice-states"
   ]
 }
