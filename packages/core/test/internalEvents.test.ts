@@ -18,7 +18,7 @@ describe('internalEvents', () => {
             foo: (_, enq) => {
               enq.raise({ type: 'tick' });
             },
-            tick: 'done'
+            tick: { target: 'done' }
           }
         },
         done: {}
@@ -44,8 +44,8 @@ describe('internalEvents', () => {
       states: {
         idle: {
           on: {
-            foo: 'done',
-            tick: 'done'
+            foo: { target: 'done' },
+            tick: { target: 'done' }
           }
         },
         done: {}
@@ -72,7 +72,7 @@ describe('internalEvents', () => {
       states: {
         idle: {
           on: {
-            'change.value': 'done'
+            'change.value': { target: 'done' }
           }
         },
         done: {}

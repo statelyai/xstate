@@ -157,8 +157,8 @@ describe('invalid transition', () => {
           right: {}
         },
         on: {
-          LEFT_CLICK: 'left',
-          RIGHT_CLICK: 'right'
+          LEFT_CLICK: { target: 'left' },
+          RIGHT_CLICK: { target: 'right' }
         }
       });
     }).toThrow(/invalid target/i);

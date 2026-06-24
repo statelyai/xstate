@@ -191,7 +191,7 @@ const wakMachine = createMachine({
         }
       },
       on: {
-        WAK1: '.wak1sonB'
+        WAK1: { target: '.wak1sonB' }
       },
       entry: (args, enq) => {
         enq(wak1enter);
@@ -221,7 +221,7 @@ const wakMachine = createMachine({
         }
       },
       on: {
-        WAK2: '.wak2sonB'
+        WAK2: { target: '.wak2sonB' }
       },
       entry: (args, enq) => {
         enq(wak2enter);
@@ -241,10 +241,10 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: { TOGGLE_BOLD: 'off' }
+          on: { TOGGLE_BOLD: { target: 'off' } }
         },
         off: {
-          on: { TOGGLE_BOLD: 'on' }
+          on: { TOGGLE_BOLD: { target: 'on' } }
         }
       }
     },
@@ -252,10 +252,10 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: { TOGGLE_UNDERLINE: 'off' }
+          on: { TOGGLE_UNDERLINE: { target: 'off' } }
         },
         off: {
-          on: { TOGGLE_UNDERLINE: 'on' }
+          on: { TOGGLE_UNDERLINE: { target: 'on' } }
         }
       }
     },
@@ -263,10 +263,10 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: { TOGGLE_ITALICS: 'off' }
+          on: { TOGGLE_ITALICS: { target: 'off' } }
         },
         off: {
-          on: { TOGGLE_ITALICS: 'on' }
+          on: { TOGGLE_ITALICS: { target: 'on' } }
         }
       }
     },
@@ -274,19 +274,19 @@ const wordMachine = createMachine({
       initial: 'none',
       states: {
         none: {
-          on: { BULLETS: 'bullets', NUMBERS: 'numbers' }
+          on: { BULLETS: { target: 'bullets' }, NUMBERS: { target: 'numbers' } }
         },
         bullets: {
-          on: { NONE: 'none', NUMBERS: 'numbers' }
+          on: { NONE: { target: 'none' }, NUMBERS: { target: 'numbers' } }
         },
         numbers: {
-          on: { BULLETS: 'bullets', NONE: 'none' }
+          on: { BULLETS: { target: 'bullets' }, NONE: { target: 'none' } }
         }
       }
     }
   },
   on: {
-    RESET: '#word' // TODO: this should be 'word' or [{ internal: false }]
+    RESET: { target: '#word' } // TODO: this should be 'word' or [{ internal: false }]
   }
 });
 
@@ -298,7 +298,7 @@ const flatParallelMachine = createMachine({
     baz: {
       initial: 'one',
       states: {
-        one: { on: { E: 'two' } },
+        one: { on: { E: { target: 'two' } } },
         two: {}
       }
     }
@@ -317,8 +317,8 @@ const raisingParallelMachine = createMachine({
             enq.raise({ type: 'TURN_OFF' });
           },
           on: {
-            EVENT_OUTER1_B: 'B',
-            EVENT_OUTER1_C: 'C'
+            EVENT_OUTER1_B: { target: 'B' },
+            EVENT_OUTER1_C: { target: 'C' }
           }
         },
         B: {
@@ -326,8 +326,8 @@ const raisingParallelMachine = createMachine({
             enq.raise({ type: 'TURN_ON' });
           },
           on: {
-            EVENT_OUTER1_A: 'A',
-            EVENT_OUTER1_C: 'C'
+            EVENT_OUTER1_A: { target: 'A' },
+            EVENT_OUTER1_C: { target: 'C' }
           }
         },
         C: {
@@ -335,8 +335,8 @@ const raisingParallelMachine = createMachine({
             enq.raise({ type: 'CLEAR' });
           },
           on: {
-            EVENT_OUTER1_A: 'A',
-            EVENT_OUTER1_B: 'B'
+            EVENT_OUTER1_A: { target: 'A' },
+            EVENT_OUTER1_B: { target: 'B' }
           }
         }
       }
@@ -349,12 +349,12 @@ const raisingParallelMachine = createMachine({
           states: {
             OFF: {
               on: {
-                TURN_ON: 'ON'
+                TURN_ON: { target: 'ON' }
               }
             },
             ON: {
               on: {
-                CLEAR: 'OFF'
+                CLEAR: { target: 'OFF' }
               }
             }
           }
@@ -364,12 +364,12 @@ const raisingParallelMachine = createMachine({
           states: {
             OFF: {
               on: {
-                TURN_ON: 'ON'
+                TURN_ON: { target: 'ON' }
               }
             },
             ON: {
               on: {
-                TURN_OFF: 'OFF'
+                TURN_OFF: { target: 'OFF' }
               }
             }
           }
@@ -387,8 +387,8 @@ const nestedParallelState = createMachine({
       states: {
         STATE_OFF: {
           on: {
-            EVENT_COMPLEX: 'STATE_ON',
-            EVENT_SIMPLE: 'STATE_ON'
+            EVENT_COMPLEX: { target: 'STATE_ON' },
+            EVENT_SIMPLE: { target: 'STATE_ON' }
           }
         },
         STATE_ON: {
@@ -399,12 +399,12 @@ const nestedParallelState = createMachine({
               states: {
                 STATE_IDLE_0: {
                   on: {
-                    EVENT_STATE_NTJ0_WORK: 'STATE_WORKING_0'
+                    EVENT_STATE_NTJ0_WORK: { target: 'STATE_WORKING_0' }
                   }
                 },
                 STATE_WORKING_0: {
                   on: {
-                    EVENT_STATE_NTJ0_IDLE: 'STATE_IDLE_0'
+                    EVENT_STATE_NTJ0_IDLE: { target: 'STATE_IDLE_0' }
                   }
                 }
               }
@@ -414,12 +414,12 @@ const nestedParallelState = createMachine({
               states: {
                 STATE_IDLE_1: {
                   on: {
-                    EVENT_STATE_NTJ1_WORK: 'STATE_WORKING_1'
+                    EVENT_STATE_NTJ1_WORK: { target: 'STATE_WORKING_1' }
                   }
                 },
                 STATE_WORKING_1: {
                   on: {
-                    EVENT_STATE_NTJ1_IDLE: 'STATE_IDLE_1'
+                    EVENT_STATE_NTJ1_IDLE: { target: 'STATE_IDLE_1' }
                   }
                 }
               }
@@ -433,8 +433,8 @@ const nestedParallelState = createMachine({
       states: {
         STATE_OFF: {
           on: {
-            EVENT_COMPLEX: 'STATE_ON_COMPLEX',
-            EVENT_SIMPLE: 'STATE_ON_SIMPLE'
+            EVENT_COMPLEX: { target: 'STATE_ON_COMPLEX' },
+            EVENT_SIMPLE: { target: 'STATE_ON_SIMPLE' }
           }
         },
         STATE_ON_SIMPLE: {},
@@ -578,7 +578,7 @@ describe('parallel states', () => {
             wak1sonB: {}
           },
           on: {
-            WAK1: '.wak1sonB'
+            WAK1: { target: '.wak1sonB' }
           }
         },
         wak2: {
@@ -667,7 +667,7 @@ describe('parallel states', () => {
                 OFF: {},
                 ON: {
                   on: {
-                    CLEAR: 'OFF'
+                    CLEAR: { target: 'OFF' }
                   }
                 }
               }
@@ -746,7 +746,7 @@ describe('parallel states', () => {
             },
             saved: {
               on: {
-                CHANGE: 'unsaved'
+                CHANGE: { target: 'unsaved' }
               }
             }
           }
@@ -804,7 +804,7 @@ describe('parallel states', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -890,7 +890,7 @@ describe('parallel states', () => {
       states: {
         A: {
           on: {
-            'to-B': 'B'
+            'to-B': { target: 'B' }
           }
         },
         B: {
@@ -902,7 +902,7 @@ describe('parallel states', () => {
         }
       },
       on: {
-        'to-A': '.A'
+        'to-A': { target: '.A' }
       }
     });
 
@@ -954,7 +954,7 @@ describe('parallel states', () => {
           },
           bar: {
             on: {
-              UPDATE: '.baz'
+              UPDATE: { target: '.baz' }
             },
             initial: 'idle',
             states: {
@@ -997,13 +997,13 @@ describe('parallel states', () => {
               Closed: {
                 id: 'Closed',
                 on: {
-                  toggle: '#Opened'
+                  toggle: { target: '#Opened' }
                 }
               },
               Opened: {
                 id: 'Opened',
                 on: {
-                  toggle: '#Closed',
+                  toggle: { target: '#Closed' },
                   'go to dashboard': {
                     target: ['#Dashboard', '#Opened']
                   }
@@ -1041,7 +1041,7 @@ describe('parallel states', () => {
             states: {
               foobar: {
                 on: {
-                  GOTO_FOOBAZ: 'foobaz'
+                  GOTO_FOOBAZ: { target: 'foobaz' }
                 }
               },
               foobaz: {
@@ -1090,7 +1090,7 @@ describe('parallel states', () => {
               states: {
                 idle: {
                   on: {
-                    FINISH: 'finished'
+                    FINISH: { target: 'finished' }
                   }
                 },
                 finished: {
@@ -1103,7 +1103,7 @@ describe('parallel states', () => {
               states: {
                 idle: {
                   on: {
-                    FINISH: 'finished'
+                    FINISH: { target: 'finished' }
                   }
                 },
                 finished: {
@@ -1116,7 +1116,7 @@ describe('parallel states', () => {
               states: {
                 idle: {
                   on: {
-                    FINISH: 'finished'
+                    FINISH: { target: 'finished' }
                   }
                 },
                 finished: {
@@ -1125,7 +1125,7 @@ describe('parallel states', () => {
               }
             }
           },
-          onDone: 'success'
+          onDone: { target: 'success' }
         },
         success: {
           type: 'final'
@@ -1187,7 +1187,7 @@ describe('parallel states', () => {
               }
             }
           },
-          onDone: 'finished'
+          onDone: { target: 'finished' }
         },
         finished: {}
       }
@@ -1381,7 +1381,7 @@ describe('parallel onDone output aggregation', () => {
             upload: {
               initial: 'pending',
               states: {
-                pending: { on: { UPLOADED: 'done' } },
+                pending: { on: { UPLOADED: { target: 'done' } } },
                 done: {
                   type: 'final',
                   output: { url: '/file.png' }
@@ -1391,7 +1391,7 @@ describe('parallel onDone output aggregation', () => {
             validate: {
               initial: 'checking',
               states: {
-                checking: { on: { VALID: 'done' } },
+                checking: { on: { VALID: { target: 'done' } } },
                 done: {
                   type: 'final',
                   output: { valid: true }
@@ -1433,7 +1433,7 @@ describe('parallel onDone output aggregation', () => {
             withOutput: {
               initial: 'active',
               states: {
-                active: { on: { DONE_A: 'done' } },
+                active: { on: { DONE_A: { target: 'done' } } },
                 done: {
                   type: 'final',
                   output: { data: 42 }
@@ -1443,7 +1443,7 @@ describe('parallel onDone output aggregation', () => {
             withoutOutput: {
               initial: 'active',
               states: {
-                active: { on: { DONE_B: 'done' } },
+                active: { on: { DONE_B: { target: 'done' } } },
                 done: { type: 'final' }
               }
             }
@@ -1483,7 +1483,7 @@ describe('parallel onDone output aggregation', () => {
             a: {
               initial: 'active',
               states: {
-                active: { on: { DONE: 'done' } },
+                active: { on: { DONE: { target: 'done' } } },
                 done: {
                   type: 'final',
                   output: ({ context }) => ({ doubled: context.count * 2 })
@@ -1493,7 +1493,7 @@ describe('parallel onDone output aggregation', () => {
             b: {
               initial: 'active',
               states: {
-                active: { on: { DONE: 'done' } },
+                active: { on: { DONE: { target: 'done' } } },
                 done: {
                   type: 'final',
                   output: 'static-value'
@@ -1533,7 +1533,7 @@ describe('parallel onDone output aggregation', () => {
             branch1: {
               initial: 'active',
               states: {
-                active: { on: { DONE: 'done' } },
+                active: { on: { DONE: { target: 'done' } } },
                 done: {
                   type: 'final',
                   output: { from: 'branch1' }
@@ -1546,7 +1546,7 @@ describe('parallel onDone output aggregation', () => {
                 inner1: {
                   initial: 'active',
                   states: {
-                    active: { on: { DONE: 'done' } },
+                    active: { on: { DONE: { target: 'done' } } },
                     done: {
                       type: 'final',
                       output: { from: 'inner1' }
@@ -1556,7 +1556,7 @@ describe('parallel onDone output aggregation', () => {
                 inner2: {
                   initial: 'active',
                   states: {
-                    active: { on: { DONE: 'done' } },
+                    active: { on: { DONE: { target: 'done' } } },
                     done: {
                       type: 'final',
                       output: { from: 'inner2' }
@@ -1600,7 +1600,7 @@ describe('parallel onDone output aggregation', () => {
             a: {
               initial: 'active',
               states: {
-                active: { on: { DONE: 'done' } },
+                active: { on: { DONE: { target: 'done' } } },
                 done: {
                   type: 'final',
                   output: { ok: true }
@@ -1610,7 +1610,7 @@ describe('parallel onDone output aggregation', () => {
             b: {
               initial: 'active',
               states: {
-                active: { on: { DONE: 'done' } },
+                active: { on: { DONE: { target: 'done' } } },
                 done: {
                   type: 'final',
                   output: { ok: false }
@@ -1644,7 +1644,7 @@ describe('parallel onDone output aggregation', () => {
         a: {
           initial: 'active',
           states: {
-            active: { on: { DONE: 'final' } },
+            active: { on: { DONE: { target: 'final' } } },
             final: {
               type: 'final',
               output: { from: 'a' }
@@ -1654,7 +1654,7 @@ describe('parallel onDone output aggregation', () => {
         b: {
           initial: 'active',
           states: {
-            active: { on: { DONE: 'final' } },
+            active: { on: { DONE: { target: 'final' } } },
             final: {
               type: 'final',
               output: { from: 'b' }

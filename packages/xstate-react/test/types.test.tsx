@@ -34,7 +34,7 @@ describe('useMachine', () => {
     states: {
       no: {
         on: {
-          YES: 'yes'
+          YES: { target: 'yes' }
         }
       },
       yes: {

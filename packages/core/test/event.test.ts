@@ -37,7 +37,7 @@ describe('events', () => {
       initial: 'idle',
       states: {
         idle: {
-          on: { AUTH: 'authorizing' }
+          on: { AUTH: { target: 'authorizing' } }
         },
         authorizing: {
           invoke: {
@@ -51,7 +51,7 @@ describe('events', () => {
             });
           },
           on: {
-            TOKEN: 'authorized'
+            TOKEN: { target: 'authorized' }
           }
         },
         authorized: {

@@ -17,18 +17,18 @@ const idMachine = createMachine({
         foo: {
           id: 'A_foo',
           on: {
-            NEXT: '#A_bar'
+            NEXT: { target: '#A_bar' }
           }
         },
         bar: {
           id: 'A_bar',
           on: {
-            NEXT: '#B_foo'
+            NEXT: { target: '#B_foo' }
           }
         }
       },
       on: {
-        NEXT_DOT_RESOLVE: '#B.bar'
+        NEXT_DOT_RESOLVE: { target: '#B.bar' }
       }
     },
     B: {
@@ -38,14 +38,14 @@ const idMachine = createMachine({
         foo: {
           id: 'B_foo',
           on: {
-            NEXT: '#B_bar',
-            NEXT_DOT: '#B.dot'
+            NEXT: { target: '#B_bar' },
+            NEXT_DOT: { target: '#B.dot' }
           }
         },
         bar: {
           id: 'B_bar',
           on: {
-            NEXT: '#A_foo'
+            NEXT: { target: '#A_foo' }
           }
         },
         dot: {}
@@ -78,7 +78,7 @@ describe('State node IDs', () => {
     const machine = createMachine({
       initial: 'foo',
       on: {
-        ACTION: '#bar.qux.quux'
+        ACTION: { target: '#bar.qux.quux' }
       },
       states: {
         foo: {
@@ -121,8 +121,8 @@ describe('State node IDs', () => {
       states: {
         start: {
           on: {
-            escaped: 'foo\\.bar',
-            unescaped: 'foo.bar'
+            escaped: { target: 'foo\\.bar' },
+            unescaped: { target: 'foo.bar' }
           }
         },
         'foo.bar': {},
@@ -154,8 +154,8 @@ describe('State node IDs', () => {
       states: {
         start: {
           on: {
-            escaped: '#foo\\.bar',
-            unescaped: '#foo.bar'
+            escaped: { target: '#foo\\.bar' },
+            unescaped: { target: '#foo.bar' }
           }
         },
         stateWithDot: {
@@ -190,7 +190,7 @@ describe('State node IDs', () => {
       states: {
         start: {
           on: {
-            EV: '#some\\\\.thing'
+            EV: { target: '#some\\\\.thing' }
           }
         },
         foo: {

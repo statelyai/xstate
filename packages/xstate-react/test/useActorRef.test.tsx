@@ -26,7 +26,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       states: {
         inactive: {
           on: {
-            ACTIVATE: 'active'
+            ACTIVATE: { target: 'active' }
           }
         },
         active: {}
@@ -178,7 +178,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       states: {
         waiting: {
           on: {
-            EVENT: 'received'
+            EVENT: { target: 'received' }
           }
         },
         received: {}
@@ -237,7 +237,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       states: {
         waiting: {
           on: {
-            EVENT: 'received'
+            EVENT: { target: 'received' }
           }
         },
         received: {}
@@ -362,7 +362,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {}
       }
@@ -411,7 +411,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {}
       }
@@ -421,7 +421,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       initial: 'b',
       states: {
         b: {
-          on: { NEXT: 'c' }
+          on: { NEXT: { target: 'c' } }
         },
         c: {}
       }

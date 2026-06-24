@@ -13,7 +13,7 @@ export const fetchMachine = createMachine({
   context,
   states: {
     idle: {
-      on: { FETCH: 'loading' }
+      on: { FETCH: { target: 'loading' } }
     },
     loading: {
       invoke: {

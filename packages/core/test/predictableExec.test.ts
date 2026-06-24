@@ -11,7 +11,7 @@ describe('predictableExec', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
           entry: (_, enq) => {
@@ -72,7 +72,7 @@ describe('predictableExec', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -103,7 +103,7 @@ describe('predictableExec', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -134,12 +134,12 @@ describe('predictableExec', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
           on: {
-            RAISED: 'c'
+            RAISED: { target: 'c' }
           },
           entry: (_, enq) => {
             enq.raise({ type: 'RAISED' });
@@ -168,7 +168,7 @@ describe('predictableExec', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -192,7 +192,7 @@ describe('predictableExec', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -201,7 +201,7 @@ describe('predictableExec', () => {
             src: createCallbackLogic(() => {})
           },
           on: {
-            NEXT: 'c'
+            NEXT: { target: 'c' }
           }
         },
         c: {}
@@ -230,7 +230,7 @@ describe('predictableExec', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -292,7 +292,7 @@ describe('predictableExec', () => {
         a: {
           // we need to clear the call stack before we send the event to the parent
           after: {
-            1: 'b'
+            1: { target: 'b' }
           }
         },
         b: {
@@ -364,7 +364,7 @@ describe('predictableExec', () => {
             children.ponger?.send({ type: 'PING' });
           },
           on: {
-            PONG: 'done'
+            PONG: { target: 'done' }
           }
         },
         done: {
@@ -392,7 +392,7 @@ describe('predictableExec', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -436,7 +436,7 @@ describe('predictableExec', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -475,7 +475,7 @@ describe('predictableExec', () => {
         a: {
           // we need to clear the call stack before we send the event to the parent
           after: {
-            1: 'b'
+            1: { target: 'b' }
           }
         },
         b: {
@@ -554,7 +554,7 @@ describe('predictableExec', () => {
             }, 1);
           },
           on: {
-            PONG: 'done'
+            PONG: { target: 'done' }
           }
         },
         done: {
@@ -588,7 +588,7 @@ describe('predictableExec', () => {
             enq.sendTo(children['my-service'], { type: 'MY_EVENT' });
           },
           on: {
-            TOGGLE: 'inactive'
+            TOGGLE: { target: 'inactive' }
           }
         },
         inactive: {}

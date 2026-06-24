@@ -7,32 +7,32 @@ describe('Example 6.9', () => {
     states: {
       A: {
         on: {
-          6: 'H'
+          6: { target: 'H' }
         },
         initial: 'B',
         states: {
           B: {
             initial: 'E',
             on: {
-              5: 'C'
+              5: { target: 'C' }
             },
             states: {
               D: {},
               E: {
-                on: { 3: 'D' }
+                on: { 3: { target: 'D' } }
               }
             }
           },
           C: {
             initial: 'G',
             on: {
-              4: 'B.E'
+              4: { target: 'B.E' }
             },
             states: {
               F: {},
               G: {
                 on: {
-                  2: 'F'
+                  2: { target: 'F' }
                 }
               }
             }
@@ -43,8 +43,8 @@ describe('Example 6.9', () => {
       },
       H: {
         on: {
-          1: 'A.hist',
-          7: 'A.deepHist' // 6.10
+          1: { target: 'A.hist' },
+          7: { target: 'A.deepHist' } // 6.10
         }
       }
     }

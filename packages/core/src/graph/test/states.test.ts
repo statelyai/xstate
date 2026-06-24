@@ -11,13 +11,13 @@ describe('states', () => {
         states: {
           a: {
             on: {
-              EVENT: 'b'
+              EVENT: { target: 'b' }
             }
           },
           b: {
             initial: 'b1',
             states: {
-              b1: { on: { NEXT: 'b2' } },
+              b1: { on: { NEXT: { target: 'b2' } } },
               b2: {}
             }
           }
@@ -69,7 +69,7 @@ describe('states', () => {
           a: {
             id: 'state_a',
             on: {
-              EVENT: 'b'
+              EVENT: { target: 'b' }
             }
           },
           b: {
@@ -78,7 +78,7 @@ describe('states', () => {
             states: {
               b1: {
                 id: 'state_b1',
-                on: { NEXT: 'b2' }
+                on: { NEXT: { target: 'b2' } }
               },
               b2: {
                 id: 'state_b2'

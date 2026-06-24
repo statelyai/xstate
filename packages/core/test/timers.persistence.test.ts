@@ -6,8 +6,8 @@ const createLightMachine = () =>
     initial: 'green',
     states: {
       green: {
-        after: { 1000: 'yellow' },
-        on: { STOP: 'red' }
+        after: { 1000: { target: 'yellow' } },
+        on: { STOP: { target: 'red' } }
       },
       yellow: {},
       red: {}
@@ -192,7 +192,7 @@ describe('persisted timers', () => {
     const child = createMachine({
       initial: 'waiting',
       states: {
-        waiting: { after: { 1000: 'done' } },
+        waiting: { after: { 1000: { target: 'done' } } },
         done: { type: 'final' }
       }
     });
@@ -204,7 +204,7 @@ describe('persisted timers', () => {
         working: {
           invoke: {
             src: 'child',
-            onDone: 'finished'
+            onDone: { target: 'finished' }
           }
         },
         finished: {}

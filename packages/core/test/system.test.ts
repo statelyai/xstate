@@ -151,7 +151,7 @@ describe('system', () => {
             systemId: 'test1'
           },
           on: {
-            toggle: 'inactive'
+            toggle: { target: 'inactive' }
           }
         },
         inactive: {}
@@ -212,7 +212,7 @@ describe('system', () => {
       states: {
         inactive: {
           on: {
-            toggle: 'active'
+            toggle: { target: 'active' }
           }
         },
         active: {
@@ -581,7 +581,7 @@ describe('system', () => {
             systemId: 'child2'
           },
           on: {
-            stopChild1: 'sad path'
+            stopChild1: { target: 'sad path' }
           }
         },
         'sad path': {

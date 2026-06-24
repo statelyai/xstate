@@ -26,8 +26,8 @@ describe('first ten minutes (v6)', () => {
     const toggleMachine = createMachine({
       initial: 'inactive',
       states: {
-        inactive: { on: { toggle: 'active' } },
-        active: { on: { toggle: 'inactive' } }
+        inactive: { on: { toggle: { target: 'active' } } },
+        active: { on: { toggle: { target: 'inactive' } } }
       }
     });
 
@@ -52,7 +52,7 @@ describe('first ten minutes (v6)', () => {
       context: { user: null as { id: number; name: string } | null },
       initial: 'idle',
       states: {
-        idle: { on: { load: 'loading' } },
+        idle: { on: { load: { target: 'loading' } } },
         loading: {
           invoke: {
             src: fetchUser,
@@ -61,7 +61,7 @@ describe('first ten minutes (v6)', () => {
               target: 'loaded',
               context: { user: event.output }
             }),
-            onError: 'failed'
+            onError: { target: 'failed' }
           }
         },
         loaded: {},
@@ -99,7 +99,7 @@ describe('first ten minutes (v6)', () => {
         },
         email: {
           on: {
-            back: 'name',
+            back: { target: 'name' },
             next: ({ context, event }) => ({
               target: 'done',
               context: { ...context, email: event.value }
@@ -182,7 +182,7 @@ describe('first ten minutes (v6)', () => {
             ping: ({ children }, enq) => {
               enq.sendTo(children.counter, { type: 'inc' });
             },
-            childDone: 'finished'
+            childDone: { target: 'finished' }
           }
         },
         finished: { type: 'final' }

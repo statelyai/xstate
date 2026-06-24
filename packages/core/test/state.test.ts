@@ -37,15 +37,15 @@ const exampleMachine = createMachine({
         INTERNAL: {
           // actions: ['doSomething']
         },
-        TO_TWO: 'two',
+        TO_TWO: { target: 'two' },
         TO_TWO_MAYBE: () => {
           if (true) {
             return { target: 'two' };
           }
         },
-        TO_THREE: 'three',
+        TO_THREE: { target: 'three' },
         FORBIDDEN_EVENT: undefined,
-        TO_FINAL: 'success'
+        TO_FINAL: { target: 'success' }
       }
     },
     two: {
@@ -56,20 +56,20 @@ const exampleMachine = createMachine({
           states: {
             foo: {
               on: {
-                FOO_EVENT: 'bar',
+                FOO_EVENT: { target: 'bar' },
                 FORBIDDEN_EVENT: undefined
               }
             },
             bar: {
               on: {
-                BAR_EVENT: 'foo'
+                BAR_EVENT: { target: 'foo' }
               }
             }
           }
         }
       },
       on: {
-        DEEP_EVENT: '.'
+        DEEP_EVENT: { target: '.' }
       }
     },
     three: {
@@ -79,7 +79,7 @@ const exampleMachine = createMachine({
           initial: 'p31',
           states: {
             p31: {
-              on: { P31: '.' }
+              on: { P31: { target: '.' } }
             }
           }
         },
@@ -87,13 +87,13 @@ const exampleMachine = createMachine({
           initial: 'p32',
           states: {
             p32: {
-              on: { P32: '.' }
+              on: { P32: { target: '.' } }
             }
           }
         }
       },
       on: {
-        THREE_EVENT: '.'
+        THREE_EVENT: { target: '.' }
       }
     },
     success: {
@@ -101,7 +101,7 @@ const exampleMachine = createMachine({
     }
   },
   on: {
-    MACHINE_EVENT: '.two'
+    MACHINE_EVENT: { target: '.two' }
   }
 });
 
@@ -125,7 +125,7 @@ describe('State', () => {
         states: {
           a: {
             on: {
-              NEXT: 'b'
+              NEXT: { target: 'b' }
             }
           },
           b: {}
@@ -143,7 +143,7 @@ describe('State', () => {
         states: {
           a: {
             on: {
-              NEXT: 'b'
+              NEXT: { target: 'b' }
             }
           },
           b: {}
@@ -210,7 +210,7 @@ describe('State', () => {
         states: {
           a: {
             on: {
-              EV: 'a'
+              EV: { target: 'a' }
             }
           }
         }
@@ -226,7 +226,7 @@ describe('State', () => {
           a: {
             entry: () => {},
             on: {
-              EV: 'a'
+              EV: { target: 'a' }
             }
           }
         }
@@ -293,7 +293,7 @@ describe('State', () => {
         states: {
           a: {
             on: {
-              NEXT: 'b'
+              NEXT: { target: 'b' }
             }
           },
           b: {}
@@ -465,12 +465,12 @@ describe('State', () => {
             states: {
               a1: {
                 on: {
-                  NEXT: 'a2'
+                  NEXT: { target: 'a2' }
                 }
               },
               a2: {
                 on: {
-                  NEXT: '#foo'
+                  NEXT: { target: '#foo' }
                 }
               }
             }

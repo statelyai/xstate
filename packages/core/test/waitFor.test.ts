@@ -10,7 +10,7 @@ describe('waitFor', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {}
       }
@@ -30,10 +30,10 @@ describe('waitFor', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
-          on: { NEXT: 'c' }
+          on: { NEXT: { target: 'c' } }
         },
         c: {}
       }
@@ -53,10 +53,10 @@ describe('waitFor', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
-          on: { NEXT: 'c' }
+          on: { NEXT: { target: 'c' } }
         },
         c: {}
       }
@@ -78,7 +78,7 @@ describe('waitFor', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
           type: 'final'
@@ -133,7 +133,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {}
@@ -158,7 +158,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -181,7 +181,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -206,7 +206,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -237,7 +237,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -270,7 +270,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -298,7 +298,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -324,7 +324,7 @@ describe('waitFor', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {}
       }
@@ -346,7 +346,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -375,7 +375,7 @@ describe('waitFor', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
           type: 'final'

@@ -9,12 +9,12 @@ const pedestrianStates = {
         color: z.literal('walk')
       }),
       on: {
-        PED_COUNTDOWN: 'wait'
+        PED_COUNTDOWN: { target: 'wait' }
       }
     },
     wait: {
       on: {
-        PED_COUNTDOWN: 'stop'
+        PED_COUNTDOWN: { target: 'stop' }
       }
     },
     stop: {}
@@ -29,21 +29,21 @@ const lightMachine = createMachine({
         color: z.literal('green')
       }),
       on: {
-        TIMER: 'yellow',
-        POWER_OUTAGE: 'red',
+        TIMER: { target: 'yellow' },
+        POWER_OUTAGE: { target: 'red' },
         FORBIDDEN_EVENT: undefined
       }
     },
     yellow: {
       on: {
-        TIMER: 'red',
-        POWER_OUTAGE: 'red'
+        TIMER: { target: 'red' },
+        POWER_OUTAGE: { target: 'red' }
       }
     },
     red: {
       on: {
-        TIMER: 'green',
-        POWER_OUTAGE: 'red'
+        TIMER: { target: 'green' },
+        POWER_OUTAGE: { target: 'red' }
       },
       ...pedestrianStates
     }
@@ -196,20 +196,20 @@ describe('machine', () => {
                 }
               },
               on: {
-                TO_TWO: 'two'
+                TO_TWO: { target: 'two' }
               }
             },
             two: {
-              on: { TO_ONE: 'one' }
+              on: { TO_ONE: { target: 'one' } }
             }
           },
           on: {
-            TO_BAR: 'bar'
+            TO_BAR: { target: 'bar' }
           }
         },
         bar: {
           on: {
-            TO_FOO: 'foo'
+            TO_FOO: { target: 'foo' }
           }
         }
       }
@@ -228,7 +228,7 @@ describe('machine', () => {
         initial: 'foo',
         states: {
           foo: {
-            on: { NEXT: 'bar' }
+            on: { NEXT: { target: 'bar' } }
           },
           bar: {
             type: 'final'

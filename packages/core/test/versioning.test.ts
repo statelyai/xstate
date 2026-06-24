@@ -31,7 +31,7 @@ describe('persisted snapshot versioning', () => {
     const machine = createMachine({
       version: '1',
       initial: 'a',
-      states: { a: { on: { NEXT: 'b' } }, b: {} }
+      states: { a: { on: { NEXT: { target: 'b' } } }, b: {} }
     });
 
     const actor = createActor(machine).start();

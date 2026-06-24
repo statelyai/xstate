@@ -20,7 +20,7 @@ describe('internal transitions', () => {
             }
           },
           on: {
-            CLICK: '.b'
+            CLICK: { target: '.b' }
           }
         }
       }
@@ -98,7 +98,7 @@ describe('internal transitions', () => {
               entry: (_, enq) => enq(() => tracked.push('enter: foo.a')),
               exit: (_, enq) => enq(() => tracked.push('exit: foo.a')),
               on: {
-                NEXT: 'b'
+                NEXT: { target: 'b' }
               }
             },
             b: {
@@ -184,7 +184,7 @@ describe('internal transitions', () => {
     const machine = createMachine({
       initial: 'foo',
       on: {
-        CLICKED: '.bar'
+        CLICKED: { target: '.bar' }
       },
       states: {
         foo: {},
@@ -340,7 +340,7 @@ describe('internal transitions', () => {
             }
           },
           on: {
-            REENTER: '.a11.a111'
+            REENTER: { target: '.a11.a111' }
           }
         }
       }
@@ -419,7 +419,7 @@ describe('internal transitions', () => {
             }
           },
           on: {
-            REENTER: '.a11.a111'
+            REENTER: { target: '.a11.a111' }
           }
         }
       }

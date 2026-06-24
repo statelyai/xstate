@@ -142,7 +142,7 @@ describe('transition function', () => {
             enq.raise({ type: 'NEXT' }, { delay: 10 });
           },
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {}
@@ -166,7 +166,7 @@ describe('transition function', () => {
       initial: 'a',
       states: {
         a: {
-          after: { 10: 'b' }
+          after: { 10: { target: 'b' } }
         },
         b: {}
       }
@@ -535,12 +535,12 @@ describe('transition function', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
           on: {
-            NEXT: 'c'
+            NEXT: { target: 'c' }
           }
         },
         c: {}
@@ -609,12 +609,12 @@ describe('transition function', () => {
       states: {
         start: {
           on: {
-            next: 'waiting'
+            next: { target: 'waiting' }
           }
         },
         waiting: {
           after: {
-            10: 'done'
+            10: { target: 'done' }
           }
         },
         done: {
@@ -694,13 +694,13 @@ describe('transition function', () => {
           invoke: {
             src: ({ actors }) => actors.sendWelcomeEmail,
             input: () => ({ message: 'hello world', subject: 'hi' }),
-            onDone: 'logSent'
+            onDone: { target: 'logSent' }
           }
         },
         logSent: {
           invoke: {
             src: createAsyncLogic({ run: async () => {} }),
-            onDone: 'finish'
+            onDone: { target: 'finish' }
           }
         },
         finish: {}
@@ -797,8 +797,8 @@ describe('getNextTransitions', () => {
       states: {
         a: {
           on: {
-            GO_B: 'b',
-            GO_C: 'c'
+            GO_B: { target: 'b' },
+            GO_C: { target: 'c' }
           }
         },
         b: {},
@@ -904,10 +904,10 @@ describe('getNextTransitions', () => {
       states: {
         a: {
           after: {
-            1000: 'b'
+            1000: { target: 'b' }
           },
           on: {
-            GO_C: 'c'
+            GO_C: { target: 'c' }
           }
         },
         b: {},
@@ -937,12 +937,12 @@ describe('getNextTransitions', () => {
         parent: {
           initial: 'child',
           on: {
-            PARENT_EVENT: 'other'
+            PARENT_EVENT: { target: 'other' }
           },
           states: {
             child: {
               on: {
-                CHILD_EVENT: 'sibling'
+                CHILD_EVENT: { target: 'sibling' }
               }
             },
             sibling: {}
@@ -1016,12 +1016,12 @@ describe('getNextTransitions', () => {
         regionA: {
           initial: 'a1',
           on: {
-            REGION_A_EVENT: '.a2'
+            REGION_A_EVENT: { target: '.a2' }
           },
           states: {
             a1: {
               on: {
-                A1_EVENT: 'a2'
+                A1_EVENT: { target: 'a2' }
               }
             },
             a2: {}
@@ -1030,12 +1030,12 @@ describe('getNextTransitions', () => {
         regionB: {
           initial: 'b1',
           on: {
-            REGION_B_EVENT: '.b2'
+            REGION_B_EVENT: { target: '.b2' }
           },
           states: {
             b1: {
               on: {
-                B1_EVENT: 'b2'
+                B1_EVENT: { target: 'b2' }
               }
             },
             b2: {}
@@ -1064,24 +1064,24 @@ describe('getNextTransitions', () => {
     const machine = createMachine({
       initial: 'level1',
       on: {
-        ROOT_EVENT: '.level1'
+        ROOT_EVENT: { target: '.level1' }
       },
       states: {
         level1: {
           initial: 'level2',
           on: {
-            LEVEL1_EVENT: '.level2'
+            LEVEL1_EVENT: { target: '.level2' }
           },
           states: {
             level2: {
               initial: 'level3',
               on: {
-                LEVEL2_EVENT: '.level3'
+                LEVEL2_EVENT: { target: '.level3' }
               },
               states: {
                 level3: {
                   on: {
-                    LEVEL3_EVENT: 'level3'
+                    LEVEL3_EVENT: { target: 'level3' }
                   }
                 }
               }
@@ -1116,18 +1116,18 @@ describe('getNextTransitions', () => {
         regionA: {
           initial: 'nested',
           on: {
-            REGION_A_EVENT: '.nested'
+            REGION_A_EVENT: { target: '.nested' }
           },
           states: {
             nested: {
               initial: 'deep',
               on: {
-                NESTED_A_EVENT: '.deep'
+                NESTED_A_EVENT: { target: '.deep' }
               },
               states: {
                 deep: {
                   on: {
-                    DEEP_A_EVENT: 'deep'
+                    DEEP_A_EVENT: { target: 'deep' }
                   }
                 }
               }
@@ -1137,12 +1137,12 @@ describe('getNextTransitions', () => {
         regionB: {
           initial: 'leaf',
           on: {
-            REGION_B_EVENT: '.leaf'
+            REGION_B_EVENT: { target: '.leaf' }
           },
           states: {
             leaf: {
               on: {
-                LEAF_B_EVENT: 'leaf'
+                LEAF_B_EVENT: { target: 'leaf' }
               }
             }
           }

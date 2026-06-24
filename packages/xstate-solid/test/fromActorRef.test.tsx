@@ -97,7 +97,7 @@ describe('fromActorRef', () => {
       },
       states: {
         active: {
-          on: { FINISH: 'success' }
+          on: { FINISH: { target: 'success' } }
         },
         success: {}
       }
@@ -143,7 +143,7 @@ describe('fromActorRef', () => {
       states: {
         start: {
           on: {
-            done: 'success'
+            done: { target: 'success' }
           }
         },
         success: {
@@ -265,7 +265,7 @@ describe('fromActorRef', () => {
               actorRef: enq.spawn(childMachine)
             }
           }),
-          on: { FINISH: 'success' }
+          on: { FINISH: { target: 'success' } }
         },
         success: {}
       }
@@ -376,17 +376,17 @@ describe('fromActorRef', () => {
       states: {
         green: {
           on: {
-            TRANSITION: 'yellow'
+            TRANSITION: { target: 'yellow' }
           }
         },
         yellow: {
           on: {
-            TRANSITION: 'red'
+            TRANSITION: { target: 'red' }
           }
         },
         red: {
           on: {
-            TRANSITION: 'green'
+            TRANSITION: { target: 'green' }
           }
         }
       }
@@ -442,19 +442,19 @@ describe('fromActorRef', () => {
         green: {
           tags: 'go',
           on: {
-            TRANSITION: 'yellow'
+            TRANSITION: { target: 'yellow' }
           }
         },
         yellow: {
           tags: 'go',
           on: {
-            TRANSITION: 'red'
+            TRANSITION: { target: 'red' }
           }
         },
         red: {
           tags: ['stop', 'other'],
           on: {
-            TRANSITION: 'green'
+            TRANSITION: { target: 'green' }
           }
         }
       } as any
@@ -510,7 +510,7 @@ describe('fromActorRef', () => {
       states: {
         inactive: {
           on: {
-            TOGGLE: 'active'
+            TOGGLE: { target: 'active' }
           }
         },
         active: {
@@ -595,7 +595,7 @@ describe('fromActorRef', () => {
             const actorRef = enq.spawn(childMachine);
             return { context: { ...context, actorRef } };
           },
-          on: { FINISH: 'success' }
+          on: { FINISH: { target: 'success' } }
         },
         success: {}
       }
@@ -1538,7 +1538,7 @@ describe('fromActorRef', () => {
       initial: 'one',
       states: {
         one: {
-          on: { NEXT: 'two' }
+          on: { NEXT: { target: 'two' } }
         },
         two: {}
       }
@@ -1551,7 +1551,7 @@ describe('fromActorRef', () => {
       initial: 'waiting',
       states: {
         waiting: {
-          on: { TEST: 'success' }
+          on: { TEST: { target: 'success' } }
         },
         success: {
           type: 'final'

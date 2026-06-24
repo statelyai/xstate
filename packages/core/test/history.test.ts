@@ -11,7 +11,7 @@ describe('history states', () => {
           initial: 'first',
           states: {
             first: {
-              on: { SWITCH: 'second' }
+              on: { SWITCH: { target: 'second' } }
             },
             second: {},
             hist: {
@@ -20,11 +20,11 @@ describe('history states', () => {
             }
           },
           on: {
-            POWER: 'off'
+            POWER: { target: 'off' }
           }
         },
         off: {
-          on: { POWER: 'on.hist' }
+          on: { POWER: { target: 'on.hist' } }
         }
       }
     });
@@ -46,7 +46,7 @@ describe('history states', () => {
           initial: 'first',
           states: {
             first: {
-              on: { SWITCH: 'second' }
+              on: { SWITCH: { target: 'second' } }
             },
             second: {},
             hist: {
@@ -54,11 +54,11 @@ describe('history states', () => {
             }
           },
           on: {
-            POWER: 'off'
+            POWER: { target: 'off' }
           }
         },
         off: {
-          on: { POWER: 'on.hist' }
+          on: { POWER: { target: 'on.hist' } }
         }
       }
     });
@@ -76,7 +76,7 @@ describe('history states', () => {
       initial: 'off',
       states: {
         off: {
-          on: { POWER: 'on.hist' }
+          on: { POWER: { target: 'on.hist' } }
         },
         on: {
           initial: 'first',
@@ -103,7 +103,7 @@ describe('history states', () => {
       initial: 'off',
       states: {
         off: {
-          on: { POWER: 'on.hist' }
+          on: { POWER: { target: 'on.hist' } }
         },
         on: {
           initial: 'first',
@@ -134,13 +134,13 @@ describe('history states', () => {
           states: {
             absent: {
               on: {
-                DEPLOY: '#deploy'
+                DEPLOY: { target: '#deploy' }
               }
             },
             present: {
               on: {
-                DEPLOY: '#deploy',
-                DESTROY: '#destroy'
+                DEPLOY: { target: '#deploy' },
+                DESTROY: { target: '#destroy' }
               }
             },
             hist: {
@@ -151,8 +151,8 @@ describe('history states', () => {
         deploy: {
           id: 'deploy',
           on: {
-            SUCCESS: 'idle.present',
-            FAILURE: 'idle.hist'
+            SUCCESS: { target: 'idle.present' },
+            FAILURE: { target: 'idle.hist' }
           }
         },
         destroy: {
@@ -190,7 +190,7 @@ describe('history states', () => {
           states: {
             a1: {
               on: {
-                NEXT: 'a2'
+                NEXT: { target: 'a2' }
               }
             },
             a2: {
@@ -240,7 +240,7 @@ describe('history states', () => {
       states: {
         foo: {
           on: {
-            NEXT: 'bar'
+            NEXT: { target: 'bar' }
           }
         },
         bar: {
@@ -272,7 +272,7 @@ describe('history states', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: '#hist' }
+          on: { NEXT: { target: '#hist' } }
         },
         b: {
           // initial: {
@@ -306,7 +306,7 @@ describe('history states', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: '#hist' }
+          on: { NEXT: { target: '#hist' } }
         },
         b: {
           // initial: {
@@ -340,7 +340,7 @@ describe('history states', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: '#hist' }
+          on: { NEXT: { target: '#hist' } }
         },
         b: {
           entry: (args, enq) => {
@@ -372,7 +372,7 @@ describe('history states', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
           // initial: {
@@ -408,7 +408,7 @@ describe('history states', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: '#hist' }
+          on: { NEXT: { target: '#hist' } }
         },
         b: {
           // initial: {
@@ -425,7 +425,7 @@ describe('history states', () => {
             }
           },
           on: {
-            NEXT: 'a'
+            NEXT: { target: 'a' }
           }
         }
       }
@@ -449,7 +449,7 @@ describe('history states', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: '#hist' }
+          on: { NEXT: { target: '#hist' } }
         },
         b: {
           // initial: {
@@ -468,7 +468,7 @@ describe('history states', () => {
             b3: {}
           },
           on: {
-            NEXT: 'a'
+            NEXT: { target: 'a' }
           }
         }
       }
@@ -490,7 +490,7 @@ describe('history states', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: '#hist' }
+          on: { NEXT: { target: '#hist' } }
         },
         b: {
           entry: (args, enq) => {
@@ -507,7 +507,7 @@ describe('history states', () => {
             b3: {}
           },
           on: {
-            NEXT: 'a'
+            NEXT: { target: 'a' }
           }
         }
       }
@@ -558,12 +558,12 @@ describe('history states', () => {
       states: {
         closed: {
           on: {
-            'BUTTON.CLICK': 'open.hist'
+            'BUTTON.CLICK': { target: 'open.hist' }
           }
         },
         open: {
           on: {
-            'BUTTON.CLICK': 'closed'
+            'BUTTON.CLICK': { target: 'closed' }
           },
           initial: 'first',
           states: {
@@ -595,24 +595,24 @@ describe('history states', () => {
         closed: {
           id: 'closed',
           on: {
-            'BUTTON.CLICK': 'open.hist'
+            'BUTTON.CLICK': { target: 'open.hist' }
           }
         },
         open: {
           on: {
-            'BUTTON.CLICK': 'closed'
+            'BUTTON.CLICK': { target: 'closed' }
           },
           initial: 'first',
           states: {
             hist: { type: 'history' },
             first: {
               on: {
-                NEXT: 'second'
+                NEXT: { target: 'second' }
               }
             },
             second: {
               on: {
-                CLOSE: '#closed'
+                CLOSE: { target: '#closed' }
               }
             }
           }
@@ -646,20 +646,20 @@ describe('deep history states', () => {
       states: {
         off: {
           on: {
-            POWER: 'on.history'
+            POWER: { target: 'on.history' }
           }
         },
         on: {
           initial: 'first',
           states: {
             first: {
-              on: { SWITCH: 'second' }
+              on: { SWITCH: { target: 'second' } }
             },
             second: {
               initial: 'A',
               states: {
                 A: {
-                  on: { INNER: 'B' }
+                  on: { INNER: { target: 'B' } }
                 },
                 B: {
                   initial: 'P',
@@ -673,7 +673,7 @@ describe('deep history states', () => {
             history: { history: 'shallow' }
           },
           on: {
-            POWER: 'off'
+            POWER: { target: 'off' }
           }
         }
       }
@@ -698,20 +698,20 @@ describe('deep history states', () => {
       states: {
         off: {
           on: {
-            POWER: 'on.history'
+            POWER: { target: 'on.history' }
           }
         },
         on: {
           initial: 'first',
           states: {
             first: {
-              on: { SWITCH: 'second' }
+              on: { SWITCH: { target: 'second' } }
             },
             second: {
               initial: 'A',
               states: {
                 A: {
-                  on: { INNER: 'B' }
+                  on: { INNER: { target: 'B' } }
                 },
                 B: {
                   initial: 'P',
@@ -725,7 +725,7 @@ describe('deep history states', () => {
             history: { history: 'deep' }
           },
           on: {
-            POWER: 'off'
+            POWER: { target: 'off' }
           }
         }
       }
@@ -752,26 +752,26 @@ describe('deep history states', () => {
       states: {
         off: {
           on: {
-            POWER: 'on.history'
+            POWER: { target: 'on.history' }
           }
         },
         on: {
           initial: 'first',
           states: {
             first: {
-              on: { SWITCH: 'second' }
+              on: { SWITCH: { target: 'second' } }
             },
             second: {
               initial: 'A',
               states: {
                 A: {
-                  on: { INNER: 'B' }
+                  on: { INNER: { target: 'B' } }
                 },
                 B: {
                   initial: 'P',
                   states: {
                     P: {
-                      on: { INNER: 'Q' }
+                      on: { INNER: { target: 'Q' } }
                     },
                     Q: {}
                   }
@@ -781,7 +781,7 @@ describe('deep history states', () => {
             history: { history: 'deep' }
           },
           on: {
-            POWER: 'off'
+            POWER: { target: 'off' }
           }
         }
       }
@@ -811,8 +811,8 @@ describe('parallel history states', () => {
       states: {
         off: {
           on: {
-            SWITCH: 'on',
-            POWER: 'on.hist'
+            SWITCH: { target: 'on' },
+            POWER: { target: 'on.hist' }
           }
         },
         on: {
@@ -822,7 +822,7 @@ describe('parallel history states', () => {
               initial: 'B',
               states: {
                 B: {
-                  on: { INNER_A: 'C' }
+                  on: { INNER_A: { target: 'C' } }
                 },
                 C: {
                   initial: 'D',
@@ -850,7 +850,7 @@ describe('parallel history states', () => {
             }
           },
           on: {
-            POWER: 'off'
+            POWER: { target: 'off' }
           }
         }
       }
@@ -877,8 +877,8 @@ describe('parallel history states', () => {
       states: {
         off: {
           on: {
-            SWITCH: 'on',
-            DEEP_POWER: 'on.deepHistory'
+            SWITCH: { target: 'on' },
+            DEEP_POWER: { target: 'on.deepHistory' }
           }
         },
         on: {
@@ -888,7 +888,7 @@ describe('parallel history states', () => {
               initial: 'B',
               states: {
                 B: {
-                  on: { INNER_A: 'C' }
+                  on: { INNER_A: { target: 'C' } }
                 },
                 C: {
                   initial: 'D',
@@ -919,7 +919,7 @@ describe('parallel history states', () => {
             }
           },
           on: {
-            POWER: 'off'
+            POWER: { target: 'off' }
           }
         }
       }
@@ -948,8 +948,8 @@ describe('parallel history states', () => {
       states: {
         off: {
           on: {
-            SWITCH: 'on',
-            DEEP_POWER: 'on.deepHistory'
+            SWITCH: { target: 'on' },
+            DEEP_POWER: { target: 'on.deepHistory' }
           }
         },
         on: {
@@ -959,13 +959,13 @@ describe('parallel history states', () => {
               initial: 'B',
               states: {
                 B: {
-                  on: { INNER_A: 'C' }
+                  on: { INNER_A: { target: 'C' } }
                 },
                 C: {
                   initial: 'D',
                   states: {
                     D: {
-                      on: { INNER_A: 'E' }
+                      on: { INNER_A: { target: 'E' } }
                     },
                     E: {}
                   }
@@ -980,13 +980,13 @@ describe('parallel history states', () => {
               initial: 'L',
               states: {
                 L: {
-                  on: { INNER_K: 'M' }
+                  on: { INNER_K: { target: 'M' } }
                 },
                 M: {
                   initial: 'N',
                   states: {
                     N: {
-                      on: { INNER_K: 'O' }
+                      on: { INNER_K: { target: 'O' } }
                     },
                     O: {}
                   }
@@ -1008,7 +1008,7 @@ describe('parallel history states', () => {
             }
           },
           on: {
-            POWER: 'off'
+            POWER: { target: 'off' }
           }
         }
       }
@@ -1037,7 +1037,7 @@ describe('parallel history states', () => {
       states: {
         off: {
           on: {
-            SWITCH: 'on',
+            SWITCH: { target: 'on' },
             PARALLEL_HISTORY: {
               target: ['on.A.hist', 'on.K.hist']
             }
@@ -1050,13 +1050,13 @@ describe('parallel history states', () => {
               initial: 'B',
               states: {
                 B: {
-                  on: { INNER_A: 'C' }
+                  on: { INNER_A: { target: 'C' } }
                 },
                 C: {
                   initial: 'D',
                   states: {
                     D: {
-                      on: { INNER_A: 'E' }
+                      on: { INNER_A: { target: 'E' } }
                     },
                     E: {}
                   }
@@ -1071,13 +1071,13 @@ describe('parallel history states', () => {
               initial: 'L',
               states: {
                 L: {
-                  on: { INNER_K: 'M' }
+                  on: { INNER_K: { target: 'M' } }
                 },
                 M: {
                   initial: 'N',
                   states: {
                     N: {
-                      on: { INNER_K: 'O' }
+                      on: { INNER_K: { target: 'O' } }
                     },
                     O: {}
                   }
@@ -1099,7 +1099,7 @@ describe('parallel history states', () => {
             }
           },
           on: {
-            POWER: 'off'
+            POWER: { target: 'off' }
           }
         }
       }
@@ -1129,7 +1129,7 @@ describe('parallel history states', () => {
       states: {
         off: {
           on: {
-            SWITCH: 'on',
+            SWITCH: { target: 'on' },
             PARALLEL_SOME_HISTORY: {
               target: ['on.A.C', 'on.K.hist']
             }
@@ -1142,13 +1142,13 @@ describe('parallel history states', () => {
               initial: 'B',
               states: {
                 B: {
-                  on: { INNER_A: 'C' }
+                  on: { INNER_A: { target: 'C' } }
                 },
                 C: {
                   initial: 'D',
                   states: {
                     D: {
-                      on: { INNER_A: 'E' }
+                      on: { INNER_A: { target: 'E' } }
                     },
                     E: {}
                   }
@@ -1163,13 +1163,13 @@ describe('parallel history states', () => {
               initial: 'L',
               states: {
                 L: {
-                  on: { INNER_K: 'M' }
+                  on: { INNER_K: { target: 'M' } }
                 },
                 M: {
                   initial: 'N',
                   states: {
                     N: {
-                      on: { INNER_K: 'O' }
+                      on: { INNER_K: { target: 'O' } }
                     },
                     O: {}
                   }
@@ -1191,7 +1191,7 @@ describe('parallel history states', () => {
             }
           },
           on: {
-            POWER: 'off'
+            POWER: { target: 'off' }
           }
         }
       }
@@ -1221,7 +1221,7 @@ describe('parallel history states', () => {
       states: {
         off: {
           on: {
-            SWITCH: 'on',
+            SWITCH: { target: 'on' },
             PARALLEL_DEEP_HISTORY: {
               target: ['on.A.deepHistory', 'on.K.deepHistory']
             }
@@ -1234,13 +1234,13 @@ describe('parallel history states', () => {
               initial: 'B',
               states: {
                 B: {
-                  on: { INNER_A: 'C' }
+                  on: { INNER_A: { target: 'C' } }
                 },
                 C: {
                   initial: 'D',
                   states: {
                     D: {
-                      on: { INNER_A: 'E' }
+                      on: { INNER_A: { target: 'E' } }
                     },
                     E: {}
                   }
@@ -1255,13 +1255,13 @@ describe('parallel history states', () => {
               initial: 'L',
               states: {
                 L: {
-                  on: { INNER_K: 'M' }
+                  on: { INNER_K: { target: 'M' } }
                 },
                 M: {
                   initial: 'N',
                   states: {
                     N: {
-                      on: { INNER_K: 'O' }
+                      on: { INNER_K: { target: 'O' } }
                     },
                     O: {}
                   }
@@ -1283,7 +1283,7 @@ describe('parallel history states', () => {
             }
           },
           on: {
-            POWER: 'off'
+            POWER: { target: 'off' }
           }
         }
       }
@@ -1315,7 +1315,7 @@ it('internal transition to a history state should enter default history state co
       states: {
         first: {
           on: {
-            NEXT: 'second.other'
+            NEXT: { target: 'second.other' }
           }
         },
         second: {
@@ -1354,24 +1354,24 @@ describe('multistage history states', () => {
           initial: 'normal',
           states: {
             normal: {
-              on: { SWITCH_TURBO: 'turbo' }
+              on: { SWITCH_TURBO: { target: 'turbo' } }
             },
             turbo: {
-              on: { SWITCH_TURBO: 'normal' }
+              on: { SWITCH_TURBO: { target: 'normal' } }
             },
             H: {
               history: true
             }
           },
           on: {
-            POWER: 'off'
+            POWER: { target: 'off' }
           }
         },
         starting: {
-          on: { STARTED: 'running.H' }
+          on: { STARTED: { target: 'running.H' } }
         },
         off: {
-          on: { POWER: 'starting' }
+          on: { POWER: { target: 'starting' } }
         }
       }
     });
@@ -1397,7 +1397,7 @@ describe('revive history states', () => {
         initial: 'first',
         states: {
           first: {
-            on: { SWITCH: 'second' }
+            on: { SWITCH: { target: 'second' } }
           },
           second: {},
           hist: {
@@ -1405,11 +1405,11 @@ describe('revive history states', () => {
           }
         },
         on: {
-          POWER: 'off'
+          POWER: { target: 'off' }
         }
       },
       off: {
-        on: { POWER: 'on.hist' }
+        on: { POWER: { target: 'on.hist' } }
       }
     }
   });

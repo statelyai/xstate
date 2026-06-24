@@ -42,7 +42,7 @@ describe('createActorContext', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {}
@@ -403,7 +403,7 @@ describe('createActorContext', () => {
       states: {
         a: {
           on: {
-            next: 'b'
+            next: { target: 'b' }
           }
         },
         b: {}

@@ -8,7 +8,7 @@ describe('machine.microstep()', () => {
       states: {
         start: {
           on: {
-            GO: 'a'
+            GO: { target: 'a' }
           }
         },
         a: {
@@ -16,18 +16,18 @@ describe('machine.microstep()', () => {
             enq.raise({ type: 'NEXT' });
           },
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
-          always: 'c'
+          always: { target: 'c' }
         },
         c: {
           entry: (_, enq) => {
             enq.raise({ type: 'NEXT' });
           },
           on: {
-            NEXT: 'd'
+            NEXT: { target: 'd' }
           }
         },
         d: {}
@@ -50,11 +50,11 @@ describe('machine.microstep()', () => {
       states: {
         first: {
           on: {
-            TRIGGER: 'second'
+            TRIGGER: { target: 'second' }
           }
         },
         second: {
-          always: 'third'
+          always: { target: 'third' }
         },
         third: {}
       }
@@ -84,7 +84,7 @@ describe('machine.microstep()', () => {
         },
         second: {
           on: {
-            RAISED: 'third'
+            RAISED: { target: 'third' }
           }
         },
         third: {}
@@ -107,7 +107,7 @@ describe('machine.microstep()', () => {
       states: {
         first: {
           on: {
-            TRIGGER: 'second'
+            TRIGGER: { target: 'second' }
           }
         },
         second: {}
@@ -152,7 +152,7 @@ describe('machine.microstep()', () => {
           }
         },
         fourth: {
-          always: 'fifth'
+          always: { target: 'fifth' }
         },
         fifth: {}
       }

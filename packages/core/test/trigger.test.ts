@@ -8,7 +8,7 @@ describe('actor.trigger', () => {
       states: {
         idle: {
           on: {
-            NEXT: 'active'
+            NEXT: { target: 'active' }
           }
         },
         active: {}

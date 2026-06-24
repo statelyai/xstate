@@ -821,8 +821,8 @@ State nodes accept a `timeout` and an `onTimeout` transition. Unlike `after`, th
 states: {
   waiting: {
     timeout: 5000,                  // or any accepted duration string
-    onTimeout: 'escalated',
-    on: { APPROVE: 'approved' }
+    onTimeout: { target: 'escalated' },
+    on: { APPROVE: { target: 'approved' } }
   },
   approved: {},
   escalated: {}

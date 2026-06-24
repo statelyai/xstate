@@ -12,32 +12,32 @@ describe('deterministic machine', () => {
     states: {
       green: {
         on: {
-          TIMER: 'yellow',
-          POWER_OUTAGE: 'red'
+          TIMER: { target: 'yellow' },
+          POWER_OUTAGE: { target: 'red' }
         }
       },
       yellow: {
         on: {
-          TIMER: 'red',
-          POWER_OUTAGE: 'red'
+          TIMER: { target: 'red' },
+          POWER_OUTAGE: { target: 'red' }
         }
       },
       red: {
         on: {
-          TIMER: 'green',
-          POWER_OUTAGE: 'red'
+          TIMER: { target: 'green' },
+          POWER_OUTAGE: { target: 'red' }
         },
         initial: 'walk',
         states: {
           walk: {
             on: {
-              PED_COUNTDOWN: 'wait',
+              PED_COUNTDOWN: { target: 'wait' },
               TIMER: undefined // forbidden event
             }
           },
           wait: {
             on: {
-              PED_COUNTDOWN: 'stop',
+              PED_COUNTDOWN: { target: 'stop' },
               TIMER: undefined // forbidden event
             }
           },
@@ -52,8 +52,8 @@ describe('deterministic machine', () => {
     states: {
       a: {
         on: {
-          T: 'b.b1',
-          F: 'c'
+          T: { target: 'b.b1' },
+          F: { target: 'c' }
         }
       },
       b: {
@@ -84,7 +84,7 @@ describe('deterministic machine', () => {
         initial: 'a',
         states: {
           a: {
-            on: { NEXT: 'b' }
+            on: { NEXT: { target: 'b' } }
           },
           b: {}
         }
@@ -202,7 +202,7 @@ describe('deterministic machine', () => {
             initial: 'b',
             states: {
               b: {
-                on: { NEXT: 'c' }
+                on: { NEXT: { target: 'c' } }
               },
               c: {}
             }
@@ -260,7 +260,7 @@ describe('deterministic machine', () => {
             invoke: { src: activity },
             entry: () => {},
             on: {
-              NEXT: 'test'
+              NEXT: { target: 'test' }
             },
             exit: () => {}
           }

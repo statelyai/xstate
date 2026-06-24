@@ -618,7 +618,7 @@ describe('setup', () => {
             exitInputs.push(input);
           },
           on: {
-            DONE: 'idle'
+            DONE: { target: 'idle' }
           }
         }
       }

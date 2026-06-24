@@ -270,10 +270,10 @@ describe('error path trace', () => {
       initial: 'first',
       states: {
         first: {
-          on: { NEXT_1: 'second' }
+          on: { NEXT_1: { target: 'second' } }
         },
         second: {
-          on: { NEXT_2: 'third' }
+          on: { NEXT_2: { target: 'third' } }
         },
         third: {}
       }

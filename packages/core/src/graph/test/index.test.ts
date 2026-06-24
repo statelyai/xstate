@@ -23,10 +23,10 @@ describe('events', () => {
       states: {
         question: {
           on: {
-            CLICK_GOOD: 'thanks',
-            CLICK_BAD: 'form',
-            CLOSE: 'closed',
-            ESC: 'closed'
+            CLICK_GOOD: { target: 'thanks' },
+            CLICK_BAD: { target: 'form' },
+            CLOSE: { target: 'closed' },
+            ESC: { target: 'closed' }
           }
         },
         form: {
@@ -46,8 +46,8 @@ describe('events', () => {
               }
               return { target: '.invalid' };
             },
-            CLOSE: 'closed',
-            ESC: 'closed'
+            CLOSE: { target: 'closed' },
+            ESC: { target: 'closed' }
           },
           initial: 'valid',
           states: {
@@ -57,8 +57,8 @@ describe('events', () => {
         },
         thanks: {
           on: {
-            CLOSE: 'closed',
-            ESC: 'closed'
+            CLOSE: { target: 'closed' },
+            ESC: { target: 'closed' }
           }
         },
         closed: {
@@ -82,7 +82,7 @@ describe('events', () => {
       initial: 'idle',
       states: {
         idle: {
-          on: { ACTIVATE: 'active' }
+          on: { ACTIVATE: { target: 'active' } }
         },
         active: {}
       }
@@ -254,7 +254,7 @@ describe('test model options', () => {
         states: {
           inactive: {
             on: {
-              NEXT: 'active'
+              NEXT: { target: 'active' }
             }
           },
           active: {}
@@ -281,7 +281,7 @@ it('tests transitions', async () => {
     initial: 'first',
     states: {
       first: {
-        on: { NEXT: 'second' }
+        on: { NEXT: { target: 'second' } }
       },
       second: {}
     }
@@ -309,7 +309,7 @@ it('Event in event executor should contain payload from case', async () => {
     initial: 'first',
     states: {
       first: {
-        on: { NEXT: 'second' }
+        on: { NEXT: { target: 'second' } }
       },
       second: {}
     }
@@ -354,7 +354,7 @@ describe('state tests', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {}
       }
@@ -384,7 +384,7 @@ describe('state tests', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b', OTHER: 'c' }
+          on: { NEXT: { target: 'b' }, OTHER: { target: 'c' } }
         },
         b: {},
         c: {}
@@ -415,7 +415,7 @@ describe('state tests', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
           initial: 'b1',

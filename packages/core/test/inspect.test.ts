@@ -50,12 +50,12 @@ describe('inspect', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
           on: {
-            NEXT: 'c'
+            NEXT: { target: 'c' }
           }
         },
         c: {}
@@ -98,7 +98,7 @@ describe('inspect', () => {
           states: {
             start: {
               on: {
-                loadChild: 'loading'
+                loadChild: { target: 'loading' }
               }
             },
             loading: {
@@ -220,13 +220,13 @@ describe('inspect', () => {
           entry: (_, enq) => {
             enq.raise({ type: 'to_b' });
           },
-          on: { to_b: 'b' }
+          on: { to_b: { target: 'b' } }
         },
         b: {
           entry: (_, enq) => {
             enq.raise({ type: 'to_c' });
           },
-          on: { to_c: 'c' }
+          on: { to_c: { target: 'c' } }
         },
         c: {}
       }
@@ -254,7 +254,7 @@ describe('inspect', () => {
     const machine = createMachine({
       initial: 'a',
       states: {
-        a: { on: { EV: 'b' } },
+        a: { on: { EV: { target: 'b' } } },
         b: {}
       }
     });
@@ -273,8 +273,8 @@ describe('inspect', () => {
     const machine = createMachine({
       initial: 'a',
       states: {
-        a: { on: { EV: 'b' } },
-        b: { always: 'c' },
+        a: { on: { EV: { target: 'b' } } },
+        b: { always: { target: 'c' } },
         c: {}
       }
     });

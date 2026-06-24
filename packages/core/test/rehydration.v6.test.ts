@@ -84,7 +84,7 @@ describe('rehydration', () => {
         initial: 'inactive',
         states: {
           inactive: {
-            on: { NEXT: 'active' }
+            on: { NEXT: { target: 'active' } }
           },
           active: {
             tags: ['foo']
@@ -111,7 +111,7 @@ describe('rehydration', () => {
         initial: 'inactive',
         states: {
           inactive: {
-            on: { NEXT: 'active' }
+            on: { NEXT: { target: 'active' } }
           },
           active: {
             exit: (_, enq) => {
@@ -190,10 +190,10 @@ describe('rehydration', () => {
         a: {
           invoke: {
             src: createAsyncLogic({ run: () => Promise.resolve(11) }),
-            onDone: 'b'
+            onDone: { target: 'b' }
           },
           on: {
-            NEXT: 'c'
+            NEXT: { target: 'c' }
           }
         },
         b: {},
@@ -326,7 +326,7 @@ describe('rehydration', () => {
       initial: 'foo',
       states: {
         foo: {
-          on: { NEXT: 'bar' }
+          on: { NEXT: { target: 'bar' } }
         },
         bar: {
           type: 'final'

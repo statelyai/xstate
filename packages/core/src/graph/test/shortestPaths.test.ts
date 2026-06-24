@@ -17,17 +17,17 @@ describe('getShortestPaths', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
           on: {
-            NEXT: 'c'
+            NEXT: { target: 'c' }
           }
         },
         c: {
           on: {
-            NEXT: 'd'
+            NEXT: { target: 'd' }
           }
         },
         d: {
@@ -68,18 +68,18 @@ describe('getShortestPaths', () => {
       states: {
         a: {
           on: {
-            TO_Y: 'y',
-            TO_B: 'b'
+            TO_Y: { target: 'y' },
+            TO_B: { target: 'b' }
           }
         },
         b: {
           on: {
-            NEXT_B_TO_X: 'x'
+            NEXT_B_TO_X: { target: 'x' }
           }
         },
         x: {
           on: {
-            NEXT_X_TO_Y: 'y'
+            NEXT_X_TO_Y: { target: 'y' }
           }
         },
         y: {}
@@ -164,7 +164,7 @@ describe('getShortestPaths', () => {
       states: {
         a: {
           after: {
-            1000: 'b'
+            1000: { target: 'b' }
           }
         },
         b: {}

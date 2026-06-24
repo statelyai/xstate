@@ -30,7 +30,7 @@ describe('toPromise', () => {
       states: {
         pending: {
           on: {
-            RESOLVE: 'done'
+            RESOLVE: { target: 'done' }
           }
         },
         done: {

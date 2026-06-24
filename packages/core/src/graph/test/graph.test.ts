@@ -65,7 +65,7 @@ describe('@xstate/graph', () => {
       },
       wait: {
         on: {
-          PED_COUNTDOWN: 'stop'
+          PED_COUNTDOWN: { target: 'stop' }
         }
       },
       stop: {},
@@ -87,8 +87,8 @@ describe('@xstate/graph', () => {
     states: {
       green: {
         on: {
-          TIMER: 'yellow',
-          POWER_OUTAGE: 'red.flashing',
+          TIMER: { target: 'yellow' },
+          POWER_OUTAGE: { target: 'red.flashing' },
           // PUSH_BUTTON: [
           //   {
           //     actions: ['doNothing'] // pushing the walk button never does anything
@@ -101,14 +101,14 @@ describe('@xstate/graph', () => {
       },
       yellow: {
         on: {
-          TIMER: 'red',
-          POWER_OUTAGE: 'red.flashing'
+          TIMER: { target: 'red' },
+          POWER_OUTAGE: { target: 'red.flashing' }
         }
       },
       red: {
         on: {
-          TIMER: 'green',
-          POWER_OUTAGE: 'red.flashing'
+          TIMER: { target: 'green' },
+          POWER_OUTAGE: { target: 'red.flashing' }
         },
         ...pedestrianStates
       } as any
@@ -162,10 +162,10 @@ describe('@xstate/graph', () => {
         initial: 'a1',
         states: {
           a1: {
-            on: { 2: 'a2', 3: 'a3' }
+            on: { 2: { target: 'a2' }, 3: { target: 'a3' } }
           },
           a2: {
-            on: { 3: 'a3', 1: 'a1' }
+            on: { 3: { target: 'a3' }, 1: { target: 'a1' } }
           },
           a3: {}
         }
@@ -174,10 +174,10 @@ describe('@xstate/graph', () => {
         initial: 'b1',
         states: {
           b1: {
-            on: { 2: 'b2', 3: 'b3' }
+            on: { 2: { target: 'b2' }, 3: { target: 'b3' } }
           },
           b2: {
-            on: { 3: 'b3', 1: 'b1' }
+            on: { 3: { target: 'b3' }, 1: { target: 'b1' } }
           },
           b3: {}
         }
@@ -360,8 +360,8 @@ describe('@xstate/graph', () => {
     const equivMachine = createMachine({
       initial: 'a',
       states: {
-        a: { on: { FOO: 'b', BAR: 'b' } },
-        b: { on: { FOO: 'a', BAR: 'a' } }
+        a: { on: { FOO: { target: 'b' }, BAR: { target: 'b' } } },
+        b: { on: { FOO: { target: 'a' }, BAR: { target: 'a' } } }
       }
     });
 
@@ -395,8 +395,8 @@ describe('@xstate/graph', () => {
       const machine = createMachine({
         initial: 'a',
         states: {
-          a: { on: { FOO: 'b', BAR: 'b' } },
-          b: { on: { FOO: 'a', BAR: 'a' } }
+          a: { on: { FOO: { target: 'b' }, BAR: { target: 'b' } } },
+          b: { on: { FOO: { target: 'a' }, BAR: { target: 'a' } } }
         }
       });
 
@@ -594,17 +594,17 @@ describe('@xstate/graph', () => {
         id: 'light',
         initial: 'green',
         states: {
-          green: { on: { TIMER: 'yellow' } },
-          yellow: { on: { TIMER: 'red' } },
+          green: { on: { TIMER: { target: 'yellow' } } },
+          yellow: { on: { TIMER: { target: 'red' } } },
           red: {
             initial: 'walk',
             states: {
-              walk: { on: { COUNTDOWN: 'wait' } },
-              wait: { on: { COUNTDOWN: 'stop' } },
-              stop: { on: { COUNTDOWN: 'finished' } },
+              walk: { on: { COUNTDOWN: { target: 'wait' } } },
+              wait: { on: { COUNTDOWN: { target: 'stop' } } },
+              stop: { on: { COUNTDOWN: { target: 'finished' } } },
               finished: { type: 'final' }
             },
-            onDone: 'green'
+            onDone: { target: 'green' }
           }
         }
       });
@@ -722,13 +722,13 @@ it('should provide previous state for serializeState()', () => {
     initial: 'a',
     states: {
       a: {
-        on: { toB: 'b' }
+        on: { toB: { target: 'b' } }
       },
       b: {
-        on: { toC: 'c' }
+        on: { toC: { target: 'c' } }
       },
       c: {
-        on: { toA: 'a' }
+        on: { toA: { target: 'a' } }
       }
     }
   });
@@ -758,13 +758,13 @@ it.each([getShortestPaths, getSimplePaths])(
       initial: 'a',
       states: {
         a: {
-          on: { toB: 'b' }
+          on: { toB: { target: 'b' } }
         },
         b: {
-          on: { toC: 'c' }
+          on: { toC: { target: 'c' } }
         },
         c: {
-          on: { toA: 'a' }
+          on: { toA: { target: 'a' } }
         }
       }
     });
@@ -792,11 +792,11 @@ describe('joinPaths()', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
           on: {
-            TO_C: 'c'
+            TO_C: { target: 'c' }
           }
         },
         c: {}
@@ -830,11 +830,11 @@ describe('joinPaths()', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
           on: {
-            TO_C: 'c'
+            TO_C: { target: 'c' }
           }
         },
         c: {}

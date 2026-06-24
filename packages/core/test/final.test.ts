@@ -44,7 +44,7 @@ describe('final states', () => {
               initial: 'a',
               states: {
                 a: {
-                  on: { NEXT_1: 'b' }
+                  on: { NEXT_1: { target: 'b' } }
                 },
                 b: {
                   type: 'final'
@@ -55,7 +55,7 @@ describe('final states', () => {
               initial: 'a',
               states: {
                 a: {
-                  on: { NEXT_2: 'b' }
+                  on: { NEXT_2: { target: 'b' } }
                 },
                 b: {
                   type: 'final'
@@ -102,7 +102,7 @@ describe('final states', () => {
           states: {
             bar: {
               initial: 'baz',
-              onDone: 'barFinal',
+              onDone: { target: 'barFinal' },
               states: {
                 baz: {
                   type: 'final',
@@ -143,7 +143,7 @@ describe('final states', () => {
           states: {
             wait: {
               on: {
-                REQUEST_SECRET: 'reveal'
+                REQUEST_SECRET: { target: 'reveal' }
               }
             },
             reveal: {
@@ -196,7 +196,7 @@ describe('final states', () => {
       states: {
         start: {
           on: {
-            FINISH: 'end'
+            FINISH: { target: 'end' }
           }
         },
         end: {
@@ -249,7 +249,7 @@ describe('final states', () => {
           states: {
             a1: {
               on: {
-                NEXT: 'a2'
+                NEXT: { target: 'a2' }
               }
             },
             a2: {
@@ -287,7 +287,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_one_alpha: 'finish'
+                        finish_one_alpha: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -300,7 +300,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_two_alpha: 'finish'
+                        finish_two_alpha: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -318,7 +318,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_three_beta: 'finish'
+                        finish_three_beta: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -331,7 +331,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_four_beta: 'finish'
+                        finish_four_beta: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -342,7 +342,7 @@ describe('final states', () => {
               }
             }
           },
-          onDone: 'done'
+          onDone: { target: 'done' }
         },
         done: {
           type: 'final'
@@ -383,7 +383,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_one_alpha: 'finish'
+                        finish_one_alpha: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -396,7 +396,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_two_alpha: 'finish'
+                        finish_two_alpha: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -411,7 +411,7 @@ describe('final states', () => {
               states: {
                 three: {
                   on: {
-                    finish_beta: 'finish'
+                    finish_beta: { target: 'finish' }
                   }
                 },
                 finish: {
@@ -420,7 +420,7 @@ describe('final states', () => {
               }
             }
           },
-          onDone: 'done'
+          onDone: { target: 'done' }
         },
         done: {
           type: 'final'
@@ -461,7 +461,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_one_alpha: 'finish'
+                        finish_one_alpha: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -474,7 +474,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_two_alpha: 'finish'
+                        finish_two_alpha: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -489,7 +489,7 @@ describe('final states', () => {
               states: {
                 three: {
                   on: {
-                    finish_beta: 'finish'
+                    finish_beta: { target: 'finish' }
                   }
                 },
                 finish: {
@@ -498,7 +498,7 @@ describe('final states', () => {
               }
             }
           },
-          onDone: 'done'
+          onDone: { target: 'done' }
         },
         done: {
           type: 'final'
@@ -530,7 +530,7 @@ describe('final states', () => {
       states: {
         a: {
           type: 'parallel',
-          onDone: 'b',
+          onDone: { target: 'b' },
           states: {
             a1: {
               type: 'parallel',
@@ -562,7 +562,7 @@ describe('final states', () => {
       states: {
         a: {
           type: 'parallel',
-          onDone: 'b',
+          onDone: { target: 'b' },
           states: {
             a1: {
               type: 'parallel',
@@ -844,7 +844,7 @@ describe('final states', () => {
       states: {
         a: {
           on: {
-            EV: 'b'
+            EV: { target: 'b' }
           }
         },
         b: {
@@ -881,7 +881,7 @@ describe('final states', () => {
           states: {
             child_a1: {
               on: {
-                EV2: 'child_a2'
+                EV2: { target: 'child_a2' }
               }
             },
             child_a2: {
@@ -894,7 +894,7 @@ describe('final states', () => {
           states: {
             child_b1: {
               on: {
-                EV1: 'child_b2'
+                EV1: { target: 'child_b2' }
               }
             },
             child_b2: {
@@ -937,7 +937,7 @@ describe('final states', () => {
           states: {
             child_a1: {
               on: {
-                EV2: 'child_a2'
+                EV2: { target: 'child_a2' }
               }
             },
             child_a2: {
@@ -950,7 +950,7 @@ describe('final states', () => {
           states: {
             child_b1: {
               on: {
-                EV1: 'child_b2'
+                EV1: { target: 'child_b2' }
               }
             },
             child_b2: {
@@ -992,7 +992,7 @@ describe('final states', () => {
           states: {
             child_a1: {
               on: {
-                EV: 'child_a2'
+                EV: { target: 'child_a2' }
               }
             },
             child_a2: {
@@ -1005,7 +1005,7 @@ describe('final states', () => {
           states: {
             child_b1: {
               on: {
-                EV: 'child_b2'
+                EV: { target: 'child_b2' }
               }
             },
             child_b2: {
@@ -1130,7 +1130,7 @@ describe('final states', () => {
       states: {
         start: {
           on: {
-            CANCEL: 'canceled'
+            CANCEL: { target: 'canceled' }
           }
         },
         canceled: {
@@ -1147,10 +1147,10 @@ describe('final states', () => {
           invoke: {
             id: 'child',
             src: child,
-            onDone: 'completed'
+            onDone: { target: 'completed' }
           },
           on: {
-            CHILD_CANCELED: 'canceled'
+            CHILD_CANCELED: { target: 'canceled' }
           }
         },
         canceled: {},
@@ -1173,7 +1173,7 @@ describe('final states', () => {
       states: {
         start: {
           on: {
-            CANCEL: 'canceled'
+            CANCEL: { target: 'canceled' }
           }
         },
         canceled: {
@@ -1190,10 +1190,10 @@ describe('final states', () => {
           invoke: {
             id: 'child',
             src: child,
-            onDone: 'completed'
+            onDone: { target: 'completed' }
           },
           on: {
-            CHILD_CANCELED: 'canceled'
+            CHILD_CANCELED: { target: 'canceled' }
           }
         },
         canceled: {},
@@ -1217,7 +1217,7 @@ describe('final states', () => {
       states: {
         start: {
           on: {
-            CANCEL: 'canceled'
+            CANCEL: { target: 'canceled' }
           }
         },
         canceled: {
@@ -1236,10 +1236,10 @@ describe('final states', () => {
           invoke: {
             id: 'child',
             src: child,
-            onDone: 'completed'
+            onDone: { target: 'completed' }
           },
           on: {
-            CHILD_CANCELED: 'canceled'
+            CHILD_CANCELED: { target: 'canceled' }
           }
         },
         canceled: {},
@@ -1266,7 +1266,7 @@ describe('final states', () => {
       states: {
         start: {
           on: {
-            NEXT: 'end'
+            NEXT: { target: 'end' }
           }
         },
         end: {
@@ -1288,7 +1288,7 @@ describe('final states', () => {
       states: {
         start: {
           on: {
-            NEXT: 'end'
+            NEXT: { target: 'end' }
           }
         },
         end: {

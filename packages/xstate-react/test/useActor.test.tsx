@@ -53,7 +53,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     context,
     states: {
       idle: {
-        on: { FETCH: 'loading' }
+        on: { FETCH: { target: 'loading' } }
       },
       loading: {
         invoke: {
@@ -257,7 +257,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
             }
           }),
           on: {
-            'xstate.done.actor.my-promise': 'success'
+            'xstate.done.actor.my-promise': { target: 'success' }
           }
         },
         success: {
@@ -363,7 +363,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -435,7 +435,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       initial: 'inactive',
       states: {
         inactive: {
-          on: { TOGGLE: 'active' }
+          on: { TOGGLE: { target: 'active' } }
         },
         active: {
           entry: ({ actions }, enq) => {
@@ -601,7 +601,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       states: {
         a: {
           on: {
-            EV: 'b'
+            EV: { target: 'b' }
           }
         },
         b: {
@@ -647,12 +647,12 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
         states: {
           a: {
             on: {
-              EV: 'b'
+              EV: { target: 'b' }
             }
           },
           b: {
             after: {
-              myDelay: 'c'
+              myDelay: { target: 'c' }
             }
           },
           c: {}
@@ -813,13 +813,13 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       states: {
         idle: {
           on: {
-            START: 'doingStuff'
+            START: { target: 'doingStuff' }
           }
         },
         doingStuff: {
           id: 'doingStuff',
           after: {
-            100: 'idle'
+            100: { target: 'idle' }
           }
         }
       }
@@ -950,7 +950,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       states: {
         one: {
           after: {
-            10: 'two'
+            10: { target: 'two' }
           }
         },
         two: {}

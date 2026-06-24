@@ -45,12 +45,12 @@ describe('entry/exit actions', () => {
               a1: {
                 entry: (_, enq) => enq(() => tracked.push('enter: a.a1')),
                 on: {
-                  NEXT: 'a2'
+                  NEXT: { target: 'a2' }
                 }
               },
               a2: {}
             },
-            on: { CHANGE: 'b' }
+            on: { CHANGE: { target: 'b' } }
           },
           b: {}
         }
@@ -102,7 +102,7 @@ describe('entry/exit actions', () => {
             entry: (_, enq) => enq(() => tracked.push('enter: green')),
             exit: (_, enq) => enq(() => tracked.push('exit: green')),
             on: {
-              TIMER: 'yellow'
+              TIMER: { target: 'yellow' }
             }
           },
           yellow: {
@@ -125,7 +125,7 @@ describe('entry/exit actions', () => {
             entry: (_, enq) => enq(() => tracked.push('enter: green')),
             exit: (_, enq) => enq(() => tracked.push('exit: green')),
             on: {
-              TIMER: 'yellow'
+              TIMER: { target: 'yellow' }
             }
           },
           yellow: {
@@ -166,7 +166,7 @@ describe('entry/exit actions', () => {
                 entry: (_, enq) => enq(() => tracked.push('enter: green.walk')),
                 exit: (_, enq) => enq(() => tracked.push('exit: green.walk')),
                 on: {
-                  PED_COUNTDOWN: 'wait'
+                  PED_COUNTDOWN: { target: 'wait' }
                 }
               },
               wait: {
@@ -393,7 +393,7 @@ describe('entry/exit actions', () => {
                 exit: (_, enq) => enq(() => tracked.push('exit: a.a1'))
               }
             },
-            on: { CHANGE: 'b' }
+            on: { CHANGE: { target: 'b' } }
           },
           b: {
             entry: (_, enq) => enq(() => tracked.push('enter: b')),
@@ -430,7 +430,7 @@ describe('entry/exit actions', () => {
                 entry: (_, enq) => enq(() => tracked.push('enter: a.a1')),
                 exit: (_, enq) => enq(() => tracked.push('exit: a.a1')),
                 on: {
-                  NEXT: 'a2'
+                  NEXT: { target: 'a2' }
                 }
               },
               a2: {
@@ -461,7 +461,7 @@ describe('entry/exit actions', () => {
                 entry: (_, enq) => enq(() => tracked.push('enter: a.a1')),
                 exit: (_, enq) => enq(() => tracked.push('exit: a.a1')),
                 on: {
-                  NEXT_FN: 'a3'
+                  NEXT_FN: { target: 'a3' }
                 }
               },
               a2: {
@@ -517,7 +517,7 @@ describe('entry/exit actions', () => {
             entry: (_, enq) => enq(() => tracked.push('enter: A')),
             exit: (_, enq) => enq(() => tracked.push('exit: A')),
             on: {
-              'to-B': 'B'
+              'to-B': { target: 'B' }
             }
           },
           B: {
@@ -525,7 +525,7 @@ describe('entry/exit actions', () => {
             entry: (_, enq) => enq(() => tracked.push('enter: B')),
             exit: (_, enq) => enq(() => tracked.push('exit: B')),
             on: {
-              'to-A': 'A'
+              'to-A': { target: 'A' }
             },
             states: {
               C: {
@@ -582,7 +582,7 @@ describe('entry/exit actions', () => {
                   enq(() => tracked.push('enter: loaded.idle')),
                 exit: (_, enq) => enq(() => tracked.push('exit: loaded.idle')),
                 on: {
-                  UPDATE: '#loaded'
+                  UPDATE: { target: '#loaded' }
                 }
               }
             }
@@ -642,7 +642,7 @@ describe('entry/exit actions', () => {
                   entry: (_, enq) => enq(() => tracked.push('enter: ping.foo')),
                   exit: (_, enq) => enq(() => tracked.push('exit: ping.foo')),
                   on: {
-                    TACK: 'bar'
+                    TACK: { target: 'bar' }
                   }
                 },
                 bar: {
@@ -673,7 +673,7 @@ describe('entry/exit actions', () => {
                   entry: (_, enq) => enq(() => tracked.push('enter: ping.foo')),
                   exit: (_, enq) => enq(() => tracked.push('exit: ping.foo')),
                   on: {
-                    ABSOLUTE_TACK: '#root.ping.bar'
+                    ABSOLUTE_TACK: { target: '#root.ping.bar' }
                   }
                 },
                 bar: {
@@ -721,7 +721,7 @@ describe('entry/exit actions', () => {
             entry: (_, enq) => enq(() => tracked.push('enter: green')),
             exit: (_, enq) => enq(() => tracked.push('exit: green')),
             on: {
-              TIMER: 'yellow'
+              TIMER: { target: 'yellow' }
             }
           },
           yellow: {
@@ -744,7 +744,7 @@ describe('entry/exit actions', () => {
             entry: (_, enq) => enq(() => tracked.push('enter: green')),
             exit: (_, enq) => enq(() => tracked.push('exit: green')),
             on: {
-              TIMER: 'yellow'
+              TIMER: { target: 'yellow' }
             }
           },
           yellow: {
@@ -785,7 +785,7 @@ describe('entry/exit actions', () => {
                 entry: (_, enq) => enq(() => tracked.push('enter: green.walk')),
                 exit: (_, enq) => enq(() => tracked.push('exit: green.walk')),
                 on: {
-                  PED_COUNTDOWN: 'wait'
+                  PED_COUNTDOWN: { target: 'wait' }
                 }
               },
               wait: {
@@ -910,7 +910,7 @@ describe('entry/exit actions', () => {
                 entry: (_, enq) => enq(() => tracked.push('enter: A.A1')),
                 exit: (_, enq) => enq(() => tracked.push('exit: A.A1')),
                 on: {
-                  NEXT: '#sibling_descendant'
+                  NEXT: { target: '#sibling_descendant' }
                 }
               },
               A2: {
@@ -955,7 +955,7 @@ describe('entry/exit actions', () => {
                 entry: (_, enq) => enq(() => tracked.push('enter: A.A1')),
                 exit: (_, enq) => enq(() => tracked.push('exit: A.A1')),
                 on: {
-                  NEXT: 'A2'
+                  NEXT: { target: 'A2' }
                 }
               },
               A2: {
@@ -969,7 +969,7 @@ describe('entry/exit actions', () => {
                     exit: (_, enq) =>
                       enq(() => tracked.push('exit: A.A2.A2_child')),
                     on: {
-                      NEXT: '#ancestor'
+                      NEXT: { target: '#ancestor' }
                     }
                   }
                 }
@@ -1047,7 +1047,7 @@ describe('entry/exit actions', () => {
             entry: (_, enq) => enq(() => tracked.push('enter: a')),
             exit: (_, enq) => enq(() => tracked.push('exit: a')),
             on: {
-              EV: 'a'
+              EV: { target: 'a' }
             },
             initial: 'a1',
             states: {
@@ -1135,7 +1135,7 @@ describe('entry/exit actions', () => {
             states: {
               a1: {
                 on: {
-                  EV: 'a1'
+                  EV: { target: 'a1' }
                 }
               }
             }
@@ -1191,14 +1191,14 @@ describe('entry/exit actions', () => {
                 entry: (_, enq) => enq(() => tracked.push('enter: a.a1')),
                 exit: (_, enq) => enq(() => tracked.push('exit: a.a1')),
                 on: {
-                  EV: 'a2'
+                  EV: { target: 'a2' }
                 }
               },
               a2: {
                 entry: (_, enq) => enq(() => tracked.push('enter: a.a2')),
                 exit: (_, enq) => enq(() => tracked.push('exit: a.a2')),
                 on: {
-                  EV: '#parent'
+                  EV: { target: '#parent' }
                 }
               }
             }
@@ -1232,14 +1232,14 @@ describe('entry/exit actions', () => {
                 entry: (_, enq) => enq(() => tracked.push('enter: a.a1')),
                 exit: (_, enq) => enq(() => tracked.push('exit: a.a1')),
                 on: {
-                  EV: '#parent'
+                  EV: { target: '#parent' }
                 }
               },
               a2: {
                 entry: (_, enq) => enq(() => tracked.push('enter: a.a2')),
                 exit: (_, enq) => enq(() => tracked.push('exit: a.a2')),
                 on: {
-                  EV: 'a1'
+                  EV: { target: 'a1' }
                 }
               }
             }
@@ -1268,7 +1268,7 @@ describe('entry/exit actions', () => {
           start: {
             entry: (_, enq) => enq(() => tracked.push('enter: start')),
             exit: (_, enq) => enq(() => tracked.push('exit: start')),
-            on: { ENTER_PARALLEL: 'p1' }
+            on: { ENTER_PARALLEL: { target: 'p1' } }
           },
           p1: {
             type: 'parallel',
@@ -1496,7 +1496,7 @@ describe('entry/exit actions', () => {
           active: {
             invoke: {
               src: childMachine,
-              onDone: 'finished'
+              onDone: { target: 'finished' }
             }
           },
           finished: {
@@ -1541,7 +1541,7 @@ describe('entry/exit actions', () => {
         states: {
           a: {
             on: {
-              NEXT: 'b'
+              NEXT: { target: 'b' }
             }
           },
           b: {
@@ -1638,7 +1638,7 @@ describe('entry/exit actions', () => {
         states: {
           active: {
             on: {
-              FINISH: 'done'
+              FINISH: { target: 'done' }
             }
           },
           done: {
@@ -1713,7 +1713,7 @@ describe('entry/exit actions', () => {
               src: child
             },
             on: {
-              NEXT: 'b'
+              NEXT: { target: 'b' }
             }
           },
           b: {}
@@ -2029,7 +2029,7 @@ describe('actions config', () => {
         }
       },
       on: {
-        E: '.a'
+        E: { target: '.a' }
       }
     }).provide({
       actions: {
@@ -2397,7 +2397,7 @@ describe('forwardTo()', () => {
             EVENT: ({ context, event }, enq) => {
               enq.sendTo(context.child, event);
             },
-            SUCCESS: 'last'
+            SUCCESS: { target: 'last' }
           }
         },
         last: {
@@ -3048,7 +3048,7 @@ describe('sendTo', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
           entry: ({ self }, enq) => {
@@ -3115,7 +3115,7 @@ describe('sendTo', () => {
       states: {
         a: {
           on: {
-            START: 'b'
+            START: { target: 'b' }
           }
         },
         b: {
@@ -3185,7 +3185,7 @@ describe('sendTo', () => {
       states: {
         a: {
           on: {
-            START: 'b'
+            START: { target: 'b' }
           }
         },
         b: {
@@ -3199,7 +3199,7 @@ describe('sendTo', () => {
             id: 'myChild'
           },
           on: {
-            NEXT: 'c'
+            NEXT: { target: 'c' }
           }
         },
         c: {
@@ -3243,12 +3243,12 @@ describe('raise', () => {
             enq.raise({ type: 'EVENT' }, { delay: 1 });
           },
           on: {
-            TO_B: 'b'
+            TO_B: { target: 'b' }
           }
         },
         b: {
           on: {
-            EVENT: 'c'
+            EVENT: { target: 'c' }
           }
         },
         c: {
@@ -3277,7 +3277,7 @@ describe('raise', () => {
             enq.raise({ type: 'EVENT' }, { delay: 0 });
           },
           on: {
-            EVENT: 'b'
+            EVENT: { target: 'b' }
           }
         },
         b: {}
@@ -3300,7 +3300,7 @@ describe('raise', () => {
             enq.raise({ type: 'TO_B' });
           },
           on: {
-            TO_B: 'b'
+            TO_B: { target: 'b' }
           }
         },
         b: {
@@ -3327,7 +3327,7 @@ describe('raise', () => {
             enq.raise({ type: 'TO_B' }, { delay: 100 });
           },
           on: {
-            TO_B: 'b'
+            TO_B: { target: 'b' }
           }
         },
         b: {
@@ -3354,7 +3354,7 @@ describe('raise', () => {
             NEXT: (_, enq) => {
               enq.raise({ type: 'RAISED' });
             },
-            RAISED: 'b'
+            RAISED: { target: 'b' }
           }
         },
         b: {}
@@ -3392,7 +3392,7 @@ describe('raise', () => {
                 type: context.eventType
               });
             },
-            RAISED: 'b'
+            RAISED: { target: 'b' }
           }
         },
         b: {}
@@ -3443,7 +3443,7 @@ describe('cancel', () => {
             NEXT: (_, enq) => {
               enq.raise({ type: 'RAISED' }, { delay: 1, id: 'myId' });
             },
-            RAISED: 'b',
+            RAISED: { target: 'b' },
             // CANCEL: {
             //   actions: cancel('myId')
             // }
@@ -3612,7 +3612,7 @@ describe('cancel', () => {
       states: {
         a: {
           on: {
-            START: 'b'
+            START: { target: 'b' }
           }
         },
         b: {
@@ -3660,7 +3660,7 @@ describe('cancel', () => {
       states: {
         a: {
           on: {
-            START: 'b'
+            START: { target: 'b' }
           }
         },
         b: {
@@ -3934,7 +3934,7 @@ describe('actions', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
           // entry: [assign({ counter: 1 }), raise({ type: 'EVENT' })],

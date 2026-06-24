@@ -11,18 +11,18 @@ const multiPathMachine = createMachine({
   states: {
     a: {
       on: {
-        EVENT: 'b'
+        EVENT: { target: 'b' }
       }
     },
     b: {
       on: {
-        EVENT: 'c'
+        EVENT: { target: 'c' }
       }
     },
     c: {
       on: {
-        EVENT: 'd',
-        EVENT_2: 'e'
+        EVENT: { target: 'd' },
+        EVENT_2: { target: 'e' }
       }
     },
     d: {},
@@ -38,7 +38,7 @@ describe('testModel.testPaths(...)', () => {
         states: {
           a: {
             on: {
-              EVENT: 'b'
+              EVENT: { target: 'b' }
             }
           },
           b: {}
@@ -78,12 +78,12 @@ describe('testModel.testPaths(...)', () => {
         states: {
           a: {
             on: {
-              EVENT: 'b'
+              EVENT: { target: 'b' }
             }
           },
           b: {
             on: {
-              EVENT: 'c'
+              EVENT: { target: 'c' }
             }
           },
           c: {}
@@ -180,14 +180,14 @@ describe('transition coverage', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b',
-            END: 'b'
+            NEXT: { target: 'b' },
+            END: { target: 'b' }
           }
         },
         b: {
           on: {
-            PREV: 'a',
-            RESTART: 'a'
+            PREV: { target: 'a' },
+            RESTART: { target: 'a' }
           }
         }
       }
@@ -255,18 +255,18 @@ describe('transition coverage', () => {
       states: {
         a: {
           on: {
-            GO_TO_B: 'b',
-            GO_TO_C: 'c'
+            GO_TO_B: { target: 'b' },
+            GO_TO_C: { target: 'c' }
           }
         },
         b: {
           on: {
-            GO_TO_A: 'a'
+            GO_TO_A: { target: 'a' }
           }
         },
         c: {
           on: {
-            GO_TO_A: 'a'
+            GO_TO_A: { target: 'a' }
           }
         }
       }
@@ -289,12 +289,12 @@ describe('getShortestPathsTo', () => {
     states: {
       open: {
         on: {
-          CLOSE: 'closed'
+          CLOSE: { target: 'closed' }
         }
       },
       closed: {
         on: {
-          OPEN: 'open'
+          OPEN: { target: 'open' }
         }
       }
     }
@@ -322,12 +322,18 @@ describe('getShortestPathsFrom', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b', OTHER: 'b', TO_C: 'c', TO_D: 'd', TO_E: 'e' }
+          on: {
+            NEXT: { target: 'b' },
+            OTHER: { target: 'b' },
+            TO_C: { target: 'c' },
+            TO_D: { target: 'd' },
+            TO_E: { target: 'e' }
+          }
         },
         b: {
           on: {
-            TO_C: 'c',
-            TO_D: 'd'
+            TO_C: { target: 'c' },
+            TO_D: { target: 'd' }
           }
         },
         c: {},
@@ -361,12 +367,18 @@ describe('getShortestPathsFrom', () => {
         initial: 'a',
         states: {
           a: {
-            on: { NEXT: 'b', OTHER: 'b', TO_C: 'c', TO_D: 'd', TO_E: 'e' }
+            on: {
+              NEXT: { target: 'b' },
+              OTHER: { target: 'b' },
+              TO_C: { target: 'c' },
+              TO_D: { target: 'd' },
+              TO_E: { target: 'e' }
+            }
           },
           b: {
             on: {
-              TO_C: 'c',
-              TO_D: 'd'
+              TO_C: { target: 'c' },
+              TO_D: { target: 'd' }
             }
           },
           c: {},

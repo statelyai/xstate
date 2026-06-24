@@ -16,7 +16,7 @@ const lightMachine = createMachine({
   states: {
     green: {
       after: {
-        1000: 'yellow'
+        1000: { target: 'yellow' }
       }
     },
     yellow: {
@@ -26,7 +26,7 @@ const lightMachine = createMachine({
     },
     red: {
       after: {
-        1000: 'green'
+        1000: { target: 'green' }
       }
     }
   }
@@ -59,7 +59,7 @@ describe('delayed transitions', () => {
         states: {
           pending: {
             after: {
-              'PT0.5S': 'done'
+              'PT0.5S': { target: 'done' }
             }
           },
           done: {}
@@ -86,7 +86,7 @@ describe('delayed transitions', () => {
         states: {
           pending: {
             after: {
-              PT1S: 'done'
+              PT1S: { target: 'done' }
             }
           },
           done: {}
@@ -110,7 +110,7 @@ describe('delayed transitions', () => {
       states: {
         green: {
           after: {
-            1: 'yellow'
+            1: { target: 'yellow' }
           }
         },
         yellow: {}
@@ -153,7 +153,7 @@ describe('delayed transitions', () => {
           states: {
             wait: {
               after: {
-                10: '#end'
+                10: { target: '#end' }
               }
             }
           }
@@ -197,7 +197,7 @@ describe('delayed transitions', () => {
               entry: (_, enq) => {
                 enq(() => actual.push('entered three'));
               },
-              always: '#end'
+              always: { target: '#end' }
             }
           },
           after: {
@@ -278,7 +278,7 @@ describe('delayed transitions', () => {
       initial: 'a',
       states: {
         a: {
-          on: { next: 'withAfter' }
+          on: { next: { target: 'withAfter' } }
         },
 
         withAfter: {
@@ -312,12 +312,12 @@ describe('delayed transitions', () => {
         states: {
           A: {
             on: {
-              NEXT: 'B'
+              NEXT: { target: 'B' }
             }
           },
           B: {
             after: {
-              1: 'C'
+              1: { target: 'C' }
             }
           },
           C: {
@@ -364,7 +364,7 @@ describe('delayed transitions', () => {
         },
         states: {
           inactive: {
-            after: { myDelay: 'active' }
+            after: { myDelay: { target: 'active' } }
           },
           active: {}
         }
@@ -401,12 +401,12 @@ describe('delayed transitions', () => {
         states: {
           inactive: {
             on: {
-              ACTIVATE: 'active'
+              ACTIVATE: { target: 'active' }
             }
           },
           active: {
             after: {
-              someDelay: 'inactive'
+              someDelay: { target: 'inactive' }
             }
           }
         }
@@ -457,10 +457,10 @@ describe('delayed transitions', () => {
         },
         states: {
           waiting: {
-            after: { phaseDuration: 'active' }
+            after: { phaseDuration: { target: 'active' } }
           },
           active: {
-            after: { phaseDuration: 'done' }
+            after: { phaseDuration: { target: 'done' } }
           },
           done: { type: 'final' }
         }
@@ -494,7 +494,7 @@ describe('delayed transitions', () => {
         },
         states: {
           a: {
-            after: { myDelay: 'b' }
+            after: { myDelay: { target: 'b' } }
           },
           b: { type: 'final' }
         }

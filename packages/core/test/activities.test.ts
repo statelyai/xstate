@@ -61,7 +61,7 @@ describe('invocations (activities)', () => {
       states: {
         a: {
           on: {
-            TIMER: 'b'
+            TIMER: { target: 'b' }
           }
         },
         b: {
@@ -84,7 +84,7 @@ describe('invocations (activities)', () => {
       states: {
         a: {
           on: {
-            TIMER: 'b'
+            TIMER: { target: 'b' }
           }
         },
         b: {
@@ -92,7 +92,7 @@ describe('invocations (activities)', () => {
           states: {
             b1: {
               on: {
-                TIMER: 'b2'
+                TIMER: { target: 'b2' }
               }
             },
             b2: {
@@ -119,7 +119,7 @@ describe('invocations (activities)', () => {
       states: {
         a: {
           on: {
-            TIMER: 'b'
+            TIMER: { target: 'b' }
           }
         },
         b: {
@@ -127,7 +127,7 @@ describe('invocations (activities)', () => {
           states: {
             b1: {
               on: {
-                TIMER: 'b2'
+                TIMER: { target: 'b2' }
               }
             },
             b2: {
@@ -138,7 +138,7 @@ describe('invocations (activities)', () => {
                 })
               },
               on: {
-                TIMER: 'b3'
+                TIMER: { target: 'b3' }
               }
             },
             b3: {}
@@ -160,7 +160,7 @@ describe('invocations (activities)', () => {
       states: {
         a: {
           on: {
-            TIMER: 'b'
+            TIMER: { target: 'b' }
           }
         },
         b: {
@@ -182,7 +182,7 @@ describe('invocations (activities)', () => {
             }
           },
           on: {
-            TIMER: 'a'
+            TIMER: { target: 'a' }
           }
         }
       }
@@ -201,7 +201,7 @@ describe('invocations (activities)', () => {
       states: {
         A: {
           on: {
-            E: 'B'
+            E: { target: 'B' }
           }
         },
         B: {
@@ -231,7 +231,7 @@ describe('invocations (activities)', () => {
       states: {
         A: {
           on: {
-            E: 'B'
+            E: { target: 'B' }
           }
         },
         B: {
@@ -273,7 +273,7 @@ describe('invocations (activities)', () => {
           states: {
             A1: {
               on: {
-                E: 'A2'
+                E: { target: 'A2' }
               }
             },
             A2: {}
@@ -308,7 +308,7 @@ describe('invocations (activities)', () => {
             src: ({ actors }) => actors.fooActor
           },
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {

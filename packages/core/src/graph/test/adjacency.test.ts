@@ -8,26 +8,26 @@ describe('adjacency maps', () => {
       states: {
         standing: {
           on: {
-            left: 'walking',
-            right: 'walking',
-            down: 'crouching',
-            up: 'jumping'
+            left: { target: 'walking' },
+            right: { target: 'walking' },
+            down: { target: 'crouching' },
+            up: { target: 'jumping' }
           }
         },
         walking: {
           on: {
-            up: 'jumping',
-            stop: 'standing'
+            up: { target: 'jumping' },
+            stop: { target: 'standing' }
           }
         },
         jumping: {
           on: {
-            land: 'standing'
+            land: { target: 'standing' }
           }
         },
         crouching: {
           on: {
-            release_down: 'standing'
+            release_down: { target: 'standing' }
           }
         }
       }
@@ -74,17 +74,17 @@ describe('adjacency maps', () => {
       states: {
         green: {
           on: {
-            TIMER: 'yellow'
+            TIMER: { target: 'yellow' }
           }
         },
         yellow: {
           on: {
-            TIMER: 'red'
+            TIMER: { target: 'red' }
           }
         },
         red: {
           on: {
-            TIMER: 'green'
+            TIMER: { target: 'green' }
           }
         }
       }

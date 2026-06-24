@@ -12,7 +12,7 @@ describe('clock', () => {
           states: {
             a: {
               after: {
-                10_000: 'b'
+                10_000: { target: 'b' }
               }
             },
             b: {}

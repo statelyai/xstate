@@ -668,7 +668,6 @@ type StateTransitionConfigOrTarget<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays']
 > =
-  | SetupStateTarget<TStateSchemas>
   | undefined
   | {
       target?:

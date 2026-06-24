@@ -34,7 +34,7 @@ const greetingMachine = createMachine({
         hour: 20
       }
     }),
-    RECHECK: '#greeting'
+    RECHECK: { target: '#greeting' }
   }
 });
 
@@ -51,7 +51,7 @@ describe('transient states (eventless transitions)', () => {
       initial: 'G',
       states: {
         G: {
-          on: { UPDATE_BUTTON_CLICKED: 'E' }
+          on: { UPDATE_BUTTON_CLICKED: { target: 'E' } }
         },
         E: {
           always: ({ context }) => {
@@ -86,7 +86,7 @@ describe('transient states (eventless transitions)', () => {
       initial: 'G',
       states: {
         G: {
-          on: { UPDATE_BUTTON_CLICKED: 'E' }
+          on: { UPDATE_BUTTON_CLICKED: { target: 'E' } }
         },
         E: {
           always: ({ context }) => {
@@ -121,7 +121,7 @@ describe('transient states (eventless transitions)', () => {
       initial: 'G',
       states: {
         G: {
-          on: { UPDATE_BUTTON_CLICKED: 'E' }
+          on: { UPDATE_BUTTON_CLICKED: { target: 'E' } }
         },
         E: {
           always: ({ context }) => {
@@ -185,7 +185,7 @@ describe('transient states (eventless transitions)', () => {
           states: {
             A1: {
               on: {
-                E: 'A2'
+                E: { target: 'A2' }
               }
             },
             A2: {
@@ -201,7 +201,7 @@ describe('transient states (eventless transitions)', () => {
           states: {
             B1: {
               on: {
-                E: 'B2'
+                E: { target: 'B2' }
               }
             },
             B2: {
@@ -217,18 +217,18 @@ describe('transient states (eventless transitions)', () => {
           states: {
             C1: {
               on: {
-                INT1: 'C2',
-                INT2: 'C3'
+                INT1: { target: 'C2' },
+                INT2: { target: 'C3' }
               }
             },
             C2: {
               on: {
-                INT2: 'C4'
+                INT2: { target: 'C4' }
               }
             },
             C3: {
               on: {
-                INT1: 'C4'
+                INT1: { target: 'C4' }
               }
             },
             C4: {}
@@ -252,11 +252,11 @@ describe('transient states (eventless transitions)', () => {
           states: {
             A1: {
               on: {
-                E: 'A2' // the external event
+                E: { target: 'A2' } // the external event
               }
             },
             A2: {
-              always: 'A3'
+              always: { target: 'A3' }
             },
             A3: {
               always: ({ value }) => {
@@ -274,7 +274,7 @@ describe('transient states (eventless transitions)', () => {
           states: {
             B1: {
               on: {
-                E: 'B2'
+                E: { target: 'B2' }
               }
             },
             B2: {
@@ -312,7 +312,7 @@ describe('transient states (eventless transitions)', () => {
           states: {
             A1: {
               on: {
-                A: 'A2'
+                A: { target: 'A2' }
               }
             },
             A2: {}
@@ -373,21 +373,21 @@ describe('transient states (eventless transitions)', () => {
       states: {
         a: {
           on: {
-            FOO: 'b'
+            FOO: { target: 'b' }
           }
         },
         b: {
           entry: (_, enq) => {
             enq.raise({ type: 'BAR' });
           },
-          always: 'c',
+          always: { target: 'c' },
           on: {
-            BAR: 'd'
+            BAR: { target: 'd' }
           }
         },
         c: {
           on: {
-            BAR: 'e'
+            BAR: { target: 'e' }
           }
         },
         d: {},
@@ -406,12 +406,12 @@ describe('transient states (eventless transitions)', () => {
       initial: 'a',
       states: {
         a: {
-          on: { FOO: 'b' }
+          on: { FOO: { target: 'b' } }
         },
         b: {
-          always: 'pass',
+          always: { target: 'pass' },
           on: {
-            '*': 'fail'
+            '*': { target: 'fail' }
           }
         },
         fail: {},
@@ -575,11 +575,11 @@ describe('transient states (eventless transitions)', () => {
       states: {
         a: {
           on: {
-            EVENT: 'b'
+            EVENT: { target: 'b' }
           }
         },
         b: {
-          always: 'c'
+          always: { target: 'c' }
         },
         c: {
           always: ({ event }) => {
@@ -612,7 +612,7 @@ describe('transient states (eventless transitions)', () => {
       states: {
         a: {
           on: {
-            EVENT: 'b'
+            EVENT: { target: 'b' }
           }
         },
         b: {
@@ -716,7 +716,7 @@ describe('transient states (eventless transitions)', () => {
       states: {
         idle: {
           on: {
-            event: 'active'
+            event: { target: 'active' }
           }
         },
         active: {
@@ -749,7 +749,7 @@ describe('transient states (eventless transitions)', () => {
       states: {
         idle: {
           on: {
-            event: 'active'
+            event: { target: 'active' }
           }
         },
         active: {
@@ -783,7 +783,7 @@ describe('transient states (eventless transitions)', () => {
       states: {
         idle: {
           on: {
-            event: 'active'
+            event: { target: 'active' }
           }
         },
         active: {

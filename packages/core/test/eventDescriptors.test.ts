@@ -8,8 +8,8 @@ describe('event descriptors', () => {
       states: {
         A: {
           on: {
-            FOO: 'B',
-            '*': 'C'
+            FOO: { target: 'B' },
+            '*': { target: 'C' }
           }
         },
         B: {},
@@ -28,8 +28,8 @@ describe('event descriptors', () => {
       states: {
         A: {
           on: {
-            '*': 'fail',
-            NEXT: 'pass'
+            '*': { target: 'fail' },
+            NEXT: { target: 'pass' }
           }
         },
         fail: {},
@@ -48,8 +48,8 @@ describe('event descriptors', () => {
       states: {
         A: {
           on: {
-            'foo.*': 'fail',
-            'foo.bar': 'pass'
+            'foo.*': { target: 'fail' },
+            'foo.bar': { target: 'pass' }
           }
         },
         fail: {},
@@ -68,8 +68,8 @@ describe('event descriptors', () => {
       states: {
         A: {
           on: {
-            'foo.*': 'fail',
-            'foo.bar.*': 'pass'
+            'foo.*': { target: 'fail' },
+            'foo.bar.*': { target: 'pass' }
           }
         },
         fail: {},
@@ -93,7 +93,7 @@ describe('event descriptors', () => {
                 return { target: 'fail' };
               }
             },
-            'foo.*': 'pass'
+            'foo.*': { target: 'pass' }
           }
         },
         fail: {},
@@ -117,7 +117,7 @@ describe('event descriptors', () => {
                 return { target: 'fail' };
               }
             },
-            'foo.*': 'pass'
+            'foo.*': { target: 'pass' }
           }
         },
         fail: {},
@@ -136,7 +136,7 @@ describe('event descriptors', () => {
       states: {
         start: {
           on: {
-            'event*': 'success'
+            'event*': { target: 'success' }
           }
         },
         success: {
@@ -164,7 +164,7 @@ describe('event descriptors', () => {
       states: {
         start: {
           on: {
-            'event.*': 'success'
+            'event.*': { target: 'success' }
           }
         },
         success: {
@@ -192,7 +192,7 @@ describe('event descriptors', () => {
       states: {
         start: {
           on: {
-            'event.*': 'success'
+            'event.*': { target: 'success' }
           }
         },
         success: {
@@ -226,7 +226,7 @@ describe('event descriptors', () => {
       states: {
         start: {
           on: {
-            'event.*': 'success'
+            'event.*': { target: 'success' }
           }
         },
         success: {
@@ -248,7 +248,7 @@ describe('event descriptors', () => {
       states: {
         start: {
           on: {
-            'event.foo.bar.*': 'success'
+            'event.foo.bar.*': { target: 'success' }
           }
         },
         success: {
@@ -272,8 +272,8 @@ describe('event descriptors', () => {
       states: {
         start: {
           on: {
-            'event.*.bar.*': 'success',
-            '*.event.*': 'success'
+            'event.*.bar.*': { target: 'success' },
+            '*.event.*': { target: 'success' }
           }
         },
         success: {
@@ -335,8 +335,8 @@ describe('event descriptors', () => {
       states: {
         start: {
           on: {
-            'event*.bar.*': 'success',
-            '*event.*': 'success'
+            'event*.bar.*': { target: 'success' },
+            '*event.*': { target: 'success' }
           }
         },
         success: {

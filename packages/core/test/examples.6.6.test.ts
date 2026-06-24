@@ -7,18 +7,18 @@ describe('Example 6.6', () => {
     states: {
       A: {
         on: {
-          3: 'B'
+          3: { target: 'B' }
         },
         initial: 'D',
         states: {
           C: {
             on: {
-              2: '#B'
+              2: { target: '#B' }
             }
           },
           D: {
             on: {
-              1: 'C'
+              1: { target: 'C' }
             }
           }
         }
@@ -26,7 +26,7 @@ describe('Example 6.6', () => {
       B: {
         id: 'B',
         on: {
-          4: 'A.D'
+          4: { target: 'A.D' }
         }
       }
     }

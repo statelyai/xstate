@@ -15,7 +15,7 @@ describe('state meta data', () => {
       walk: {
         meta: { walkData: 'walk data' },
         on: {
-          PED_COUNTDOWN: 'wait'
+          PED_COUNTDOWN: { target: 'wait' }
         },
         entry: enter_walk,
         exit: exit_walk
@@ -23,7 +23,7 @@ describe('state meta data', () => {
       wait: {
         meta: { waitData: 'wait data' },
         on: {
-          PED_COUNTDOWN: 'stop'
+          PED_COUNTDOWN: { target: 'stop' }
         },
         entry: enter_wait,
         exit: exit_wait
@@ -75,9 +75,9 @@ describe('state meta data', () => {
       green: {
         meta: ['green', 'array', 'data'],
         on: {
-          TIMER: 'yellow',
-          POWER_OUTAGE: 'red',
-          NOTHING: 'green'
+          TIMER: { target: 'yellow' },
+          POWER_OUTAGE: { target: 'red' },
+          NOTHING: { target: 'green' }
         },
         entry: (args, enq) => {
           enq(enter_green);
@@ -89,8 +89,8 @@ describe('state meta data', () => {
       yellow: {
         meta: { yellowData: 'yellow data' },
         on: {
-          TIMER: 'red',
-          POWER_OUTAGE: 'red'
+          TIMER: { target: 'red' },
+          POWER_OUTAGE: { target: 'red' }
         },
         entry: (args, enq) => {
           enq(enter_yellow);
@@ -109,9 +109,9 @@ describe('state meta data', () => {
           }
         },
         on: {
-          TIMER: 'green',
-          POWER_OUTAGE: 'red',
-          NOTHING: 'red'
+          TIMER: { target: 'green' },
+          POWER_OUTAGE: { target: 'red' },
+          NOTHING: { target: 'red' }
         },
         entry: (args, enq) => {
           enq(enter_red);

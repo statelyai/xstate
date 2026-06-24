@@ -88,7 +88,7 @@ describe('choice states', () => {
       states: {
         idle: {
           on: {
-            ROUTE: 'routing'
+            ROUTE: { target: 'routing' }
           }
         },
         routing: {
@@ -170,8 +170,8 @@ describe('choice states', () => {
       'invoke',
       { invoke: { src: createAsyncLogic({ run: async () => undefined }) } }
     ],
-    ['after', { after: { 10: 'done' } }],
-    ['on', { on: { NEXT: 'done' } }],
+    ['after', { after: { 10: { target: 'done' } } }],
+    ['on', { on: { NEXT: { target: 'done' } } }],
     ['entry', { entry: () => undefined }],
     ['exit', { exit: () => undefined }]
   ])('throws when a choice state declares `%s`', (key, config) => {

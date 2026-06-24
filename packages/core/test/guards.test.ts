@@ -389,14 +389,14 @@ describe('guard conditions', () => {
           states: {
             A2: {
               on: {
-                A: 'A3'
+                A: { target: 'A3' }
               }
             },
             A3: {
-              always: 'A4'
+              always: { target: 'A4' }
             },
             A4: {
-              always: 'A5'
+              always: { target: 'A5' }
             },
             A5: {}
           }
@@ -700,14 +700,14 @@ describe('[function] guard conditions', () => {
           states: {
             A2: {
               on: {
-                A: 'A3'
+                A: { target: 'A3' }
               }
             },
             A3: {
-              always: 'A4'
+              always: { target: 'A4' }
             },
             A4: {
-              always: 'A5'
+              always: { target: 'A5' }
             },
             A5: {}
           }

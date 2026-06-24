@@ -7,10 +7,10 @@ describe('Example 6.17', () => {
     states: {
       X: {
         on: {
-          1: 'Y',
-          2: 'Y.A.C', // 6.18
+          1: { target: 'Y' },
+          2: { target: 'Y.A.C' }, // 6.18
           // 3: { Y: { A: 'C', B: 'F' } } // 6.19
-          4: 'Y.A.hist'
+          4: { target: 'Y.A.hist' }
         }
       },
       Y: {
@@ -26,7 +26,7 @@ describe('Example 6.17', () => {
           }
         },
         on: {
-          back: 'X'
+          back: { target: 'X' }
         }
       }
     }
@@ -72,10 +72,10 @@ describe('Jump to ID', () => {
       X: {
         id: 'X',
         on: {
-          1: 'Y',
-          2: 'Y.A.C', // 6.18
+          1: { target: 'Y' },
+          2: { target: 'Y.A.C' }, // 6.18
           // 3: { Y: { A: 'C', B: 'F' } } // 6.19
-          4: 'Y.A.hist'
+          4: { target: 'Y.A.hist' }
         }
       },
       Y: {
@@ -86,7 +86,7 @@ describe('Jump to ID', () => {
             states: {
               C: {
                 on: {
-                  finish: '#X'
+                  finish: { target: '#X' }
                 }
               },
               D: {},
@@ -100,7 +100,7 @@ describe('Jump to ID', () => {
           }
         },
         on: {
-          kill: '#X'
+          kill: { target: '#X' }
         }
       }
     }

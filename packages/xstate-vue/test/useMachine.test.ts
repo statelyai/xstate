@@ -19,7 +19,7 @@ describe('useMachine', () => {
     context: context as any,
     states: {
       idle: {
-        on: { FETCH: 'loading' }
+        on: { FETCH: { target: 'loading' } }
       },
       loading: {
         invoke: {

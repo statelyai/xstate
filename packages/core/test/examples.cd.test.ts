@@ -7,39 +7,39 @@ describe('Example: CD Player', () => {
     states: {
       not_loaded: {
         on: {
-          INSERT_CD: 'loaded'
+          INSERT_CD: { target: 'loaded' }
         }
       },
       loaded: {
         initial: 'stopped',
 
         on: {
-          EJECT: 'not_loaded'
+          EJECT: { target: 'not_loaded' }
         },
         states: {
           stopped: {
             on: {
-              PLAY: 'playing'
+              PLAY: { target: 'playing' }
             }
           },
           playing: {
             on: {
-              STOP: 'stopped',
-              EXPIRED_END: 'stopped',
-              EXPIRED_MID: 'playing',
-              PAUSE: 'paused'
+              STOP: { target: 'stopped' },
+              EXPIRED_END: { target: 'stopped' },
+              EXPIRED_MID: { target: 'playing' },
+              PAUSE: { target: 'paused' }
             }
           },
           paused: {
             initial: 'not_blank',
             states: {
-              blank: { on: { TIMER: 'not_blank' } },
-              not_blank: { on: { TIMER: 'blank' } }
+              blank: { on: { TIMER: { target: 'not_blank' } } },
+              not_blank: { on: { TIMER: { target: 'blank' } } }
             },
             on: {
-              PAUSE: 'playing',
-              PLAY: 'playing',
-              STOP: 'stopped'
+              PAUSE: { target: 'playing' },
+              PLAY: { target: 'playing' },
+              STOP: { target: 'stopped' }
             }
           }
         }

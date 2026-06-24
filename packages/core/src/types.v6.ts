@@ -989,20 +989,17 @@ interface Next_RegularStateNodeConfig<
    * This is equivalent to defining a `[done(id)]` transition on this state
    * node's `on` property.
    */
-  onDone?:
-    | string
-    | TransitionConfigFunction<
-        TContext,
-        DoneStateEvent,
-        TEvent,
-        TEmitted,
-        TActionMap,
-        TActorMap,
-        TGuardMap,
-        TDelayMap,
-        TMeta
-      >
-    | undefined;
+  onDone?: Next_TransitionConfigOrTarget<
+    TContext,
+    DoneStateEvent,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TMeta
+  >;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential
    * transition(s). The delayed transitions are taken after the specified delay
@@ -1010,7 +1007,6 @@ interface Next_RegularStateNodeConfig<
    */
   after?: {
     [K in NoInfer<TDelays> | number]?:
-      | string
       | { target: string }
       | TransitionConfigFunction<
           TContext,
@@ -1118,7 +1114,6 @@ export type Next_TransitionConfigOrTarget<
   TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject
 > =
-  | string
   | undefined
   | {
       target?: string | string[];

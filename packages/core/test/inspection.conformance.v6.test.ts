@@ -27,7 +27,7 @@ describe('v6 inspection protocol conformance', () => {
   const childMachine = createMachine({
     initial: 'idle',
     states: {
-      idle: { on: { PING: 'pinged' } },
+      idle: { on: { PING: { target: 'pinged' } } },
       pinged: {}
     }
   });
@@ -51,7 +51,7 @@ describe('v6 inspection protocol conformance', () => {
             enq.sendTo(childRef, { type: 'PING' }, { delay: 50, id: 'ping-1' });
             return { context: { count: 0, childRef } };
           },
-          on: { GO: 'middle' }
+          on: { GO: { target: 'middle' } }
         },
         middle: {
           // multi-microstep: loop via `always` before settling on `done`

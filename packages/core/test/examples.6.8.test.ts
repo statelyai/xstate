@@ -7,28 +7,28 @@ describe('Example 6.8', () => {
     states: {
       A: {
         on: {
-          6: 'F'
+          6: { target: 'F' }
         },
         initial: 'B',
         states: {
           B: {
-            on: { 1: 'C' }
+            on: { 1: { target: 'C' } }
           },
           C: {
-            on: { 2: 'E' }
+            on: { 2: { target: 'E' } }
           },
           D: {
-            on: { 3: 'B' }
+            on: { 3: { target: 'B' } }
           },
           E: {
-            on: { 4: 'B', 5: 'D' }
+            on: { 4: { target: 'B' }, 5: { target: 'D' } }
           },
           hist: { history: true }
         }
       },
       F: {
         on: {
-          5: 'A.hist'
+          5: { target: 'A.hist' }
         }
       }
     }

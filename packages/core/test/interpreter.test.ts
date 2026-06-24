@@ -21,7 +21,7 @@ const lightMachine = createMachine({
         enq.raise({ type: 'TIMER' }, { id: 'TIMER1', delay: 10 });
       },
       on: {
-        TIMER: 'yellow',
+        TIMER: { target: 'yellow' },
         KEEP_GOING: (_, enq) => {
           enq.cancel('TIMER1');
         }
@@ -32,12 +32,12 @@ const lightMachine = createMachine({
         enq.raise({ type: 'TIMER' }, { delay: 10 });
       },
       on: {
-        TIMER: 'red'
+        TIMER: { target: 'red' }
       }
     },
     red: {
       after: {
-        10: 'green'
+        10: { target: 'green' }
       }
     }
   }
@@ -137,7 +137,7 @@ describe('interpreter', () => {
           },
           red: {
             on: {
-              TIMER: 'green'
+              TIMER: { target: 'green' }
             }
           }
         }
@@ -165,7 +165,7 @@ describe('interpreter', () => {
                 called = true;
               });
             },
-            always: 'b'
+            always: { target: 'b' }
           },
           b: {}
         }
@@ -211,7 +211,7 @@ describe('interpreter', () => {
               enq.raise({ type: 'TIMER' }, { delay: 10 });
             },
             on: {
-              TIMER: 'bar'
+              TIMER: { target: 'bar' }
             }
           },
           bar: {}
@@ -268,7 +268,7 @@ describe('interpreter', () => {
         states: {
           idle: {
             on: {
-              ACTIVATE: 'pending'
+              ACTIVATE: { target: 'pending' }
             }
           },
           pending: {
@@ -289,7 +289,7 @@ describe('interpreter', () => {
               );
             },
             on: {
-              FINISH: 'finished'
+              FINISH: { target: 'finished' }
             }
           },
           finished: { type: 'final' }
@@ -360,7 +360,7 @@ describe('interpreter', () => {
         states: {
           idle: {
             on: {
-              ACTIVATE: 'pending'
+              ACTIVATE: { target: 'pending' }
             }
           },
           pending: {
@@ -383,7 +383,7 @@ describe('interpreter', () => {
               );
             },
             on: {
-              FINISH: 'finished'
+              FINISH: { target: 'finished' }
             }
           },
           finished: {
@@ -449,12 +449,12 @@ describe('interpreter', () => {
           states: {
             a: {
               after: {
-                delayA: 'b'
+                delayA: { target: 'b' }
               }
             },
             b: {
               after: {
-                someDelay: 'c'
+                someDelay: { target: 'c' }
               }
             },
             c: {
@@ -463,16 +463,16 @@ describe('interpreter', () => {
                 enq.raise({ type: 'FIRE_DELAY', value: 200 }, { delay: 20 });
               },
               on: {
-                FIRE_DELAY: 'd'
+                FIRE_DELAY: { target: 'd' }
               }
             },
             d: {
               after: {
-                delayD: 'e'
+                delayD: { target: 'e' }
               }
             },
             e: {
-              after: { someDelay: 'f' }
+              after: { someDelay: { target: 'f' } }
             },
             f: {
               type: 'final'
@@ -527,7 +527,7 @@ describe('interpreter', () => {
                 src: createCallbackLogic(spy)
               },
               on: {
-                TURN_OFF: 'off'
+                TURN_OFF: { target: 'off' }
               }
             },
             off: {}
@@ -559,7 +559,7 @@ describe('interpreter', () => {
                 src: createCallbackLogic(() => spy)
               },
               on: {
-                TURN_OFF: 'off'
+                TURN_OFF: { target: 'off' }
               }
             },
             off: {}
@@ -595,7 +595,7 @@ describe('interpreter', () => {
                 src: createCallbackLogic(() => spy)
               },
               on: {
-                TURN_OFF: 'off'
+                TURN_OFF: { target: 'off' }
               }
             },
             off: {}
@@ -626,7 +626,7 @@ describe('interpreter', () => {
           initial: 'inactive',
           states: {
             inactive: {
-              on: { TOGGLE: 'active' }
+              on: { TOGGLE: { target: 'active' } }
             },
             active: {
               invoke: {
@@ -637,11 +637,11 @@ describe('interpreter', () => {
                   };
                 })
               },
-              on: { TOGGLE: 'inactive' },
+              on: { TOGGLE: { target: 'inactive' } },
               initial: 'A',
               states: {
-                A: { on: { SWITCH: 'B' } },
-                B: { on: { SWITCH: 'A' } }
+                A: { on: { SWITCH: { target: 'B' } } },
+                B: { on: { SWITCH: { target: 'A' } } }
               }
             }
           }
@@ -714,8 +714,8 @@ describe('interpreter', () => {
             enq.cancel('foo');
           },
           on: {
-            FOO: 'fail',
-            BAR: 'pass'
+            FOO: { target: 'fail' },
+            BAR: { target: 'pass' }
           }
         },
         fail: {
@@ -751,10 +751,10 @@ describe('interpreter', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT_A: 'b' }
+          on: { NEXT_A: { target: 'b' } }
         },
         b: {
-          on: { NEXT_B: 'c' }
+          on: { NEXT_B: { target: 'c' } }
         },
         c: {
           type: 'final'
@@ -793,7 +793,7 @@ describe('interpreter', () => {
           states: {
             idle: {
               on: {
-                FETCH: 'pending'
+                FETCH: { target: 'pending' }
               }
             },
             pending: {}
@@ -1083,7 +1083,7 @@ describe('interpreter', () => {
                 return { target: 'active' };
               }
             },
-            ACTIVATE: 'active'
+            ACTIVATE: { target: 'active' }
           }
         },
         active: {
@@ -1131,13 +1131,13 @@ describe('interpreter', () => {
           fail: {},
           inactive: {
             on: {
-              INACTIVATE: 'fail',
-              ACTIVATE: 'active'
+              INACTIVATE: { target: 'fail' },
+              ACTIVATE: { target: 'active' }
             }
           },
           active: {
             on: {
-              INACTIVATE: 'success'
+              INACTIVATE: { target: 'success' }
             }
           },
           success: {
@@ -1311,7 +1311,7 @@ describe('interpreter', () => {
         states: {
           waiting: {
             on: {
-              TRIGGER: 'active'
+              TRIGGER: { target: 'active' }
             }
           },
           active: {
@@ -1365,10 +1365,10 @@ describe('interpreter', () => {
         initial: 'inactive',
         states: {
           inactive: {
-            on: { TOGGLE: 'active' }
+            on: { TOGGLE: { target: 'active' } }
           },
           active: {
-            on: { TOGGLE: 'inactive' }
+            on: { TOGGLE: { target: 'inactive' } }
           }
         }
       });
@@ -1404,9 +1404,9 @@ describe('interpreter', () => {
         id: 'transient',
         initial: 'idle',
         states: {
-          idle: { on: { START: 'transient' } },
-          transient: { always: 'next' },
-          next: { on: { FINISH: 'end' } },
+          idle: { on: { START: { target: 'transient' } } },
+          transient: { always: { target: 'next' } },
+          next: { on: { FINISH: { target: 'end' } } },
           end: { type: 'final' }
         }
       });
@@ -1431,7 +1431,7 @@ describe('interpreter', () => {
           id: 'transient',
           initial: 'idle',
           states: {
-            idle: { on: { START: 'transient' } },
+            idle: { on: { START: { target: 'transient' } } },
             transient: {
               // always: [
               //   { target: 'end', guard: 'alwaysFalse' },
@@ -1444,7 +1444,7 @@ describe('interpreter', () => {
                 return { target: 'next' };
               }
             },
-            next: { on: { FINISH: 'end' } },
+            next: { on: { FINISH: { target: 'end' } } },
             end: { type: 'final' }
           }
         }
@@ -1619,7 +1619,7 @@ describe('interpreter', () => {
           states: {
             idle: {
               on: {
-                NEXT: 'done'
+                NEXT: { target: 'done' }
               }
             },
             done: { type: 'final' }
@@ -1707,7 +1707,7 @@ describe('interpreter', () => {
               src: childMachine
             },
             on: {
-              FIRED: 'success'
+              FIRED: { target: 'success' }
             }
           },
           success: {

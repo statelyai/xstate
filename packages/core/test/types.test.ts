@@ -1170,6 +1170,21 @@ describe('events', () => {
     });
   });
 
+  it('should reject string target shorthand in transition configs', () => {
+    createMachine({
+      initial: 'a',
+      // @ts-expect-error
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+  });
+
   it('should provide contextual `event` type in transition actions when the matching event has a union `.type`', () => {
     createMachine({
       schemas: {
@@ -3967,8 +3982,8 @@ describe('setup.extend', () => {
             );
           },
           after: {
-            short: 'b',
-            long: 'b'
+            short: { target: 'b' },
+            long: { target: 'b' }
           }
         },
         b: {}
@@ -4013,7 +4028,7 @@ describe('choice state types', () => {
       type: 'choice',
       choice: () => ({ target: 'done' }),
       on: {
-        NEXT: 'done'
+        NEXT: { target: 'done' }
       }
     };
 
@@ -4585,7 +4600,7 @@ describe('delays', () => {
       states: {
         idle: {
           after: {
-            short: 'done'
+            short: { target: 'done' }
           }
         },
         done: {}
@@ -4640,7 +4655,7 @@ describe('delays', () => {
         'one minute': 60000
       },
       after: {
-        'unknown delay': '.done'
+        'unknown delay': { target: '.done' }
       },
       initial: 'done',
       states: {
@@ -4670,7 +4685,7 @@ describe('delays', () => {
       states: {
         idle: {
           after: {
-            unknown: 'done'
+            unknown: { target: 'done' }
           }
         },
         done: {}
@@ -4685,8 +4700,8 @@ describe('delays', () => {
         short: 100
       },
       after: {
-        short: '.done',
-        unknown: '.done'
+        short: { target: '.done' },
+        unknown: { target: '.done' }
       },
       initial: 'done',
       states: {

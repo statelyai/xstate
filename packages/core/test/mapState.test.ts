@@ -208,7 +208,7 @@ describe('mapState', () => {
       initial: 'active',
       states: {
         active: {
-          on: { DONE: 'finished' }
+          on: { DONE: { target: 'finished' } }
         },
         finished: {
           type: 'final'

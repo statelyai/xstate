@@ -562,7 +562,7 @@ describe('promise logic (createAsyncLogic)', () => {
                 id: 'p1'
               },
               on: {
-                CANCEL_1: 'canceled'
+                CANCEL_1: { target: 'canceled' }
               }
             },
             canceled: {}
@@ -575,7 +575,7 @@ describe('promise logic (createAsyncLogic)', () => {
               invoke: {
                 src: p,
                 id: 'p2',
-                onDone: 'done'
+                onDone: { target: 'done' }
               }
             },
             done: {}
@@ -621,7 +621,7 @@ describe('promise logic (createAsyncLogic)', () => {
                 id: 'p'
               },
               on: {
-                CANCEL_1: 'canceled'
+                CANCEL_1: { target: 'canceled' }
               }
             },
             canceled: {}
@@ -634,7 +634,7 @@ describe('promise logic (createAsyncLogic)', () => {
               invoke: {
                 src: p,
                 id: 'p',
-                onDone: 'done'
+                onDone: { target: 'done' }
               }
             },
             done: {}
@@ -677,20 +677,20 @@ describe('promise logic (createAsyncLogic)', () => {
           invoke: {
             src: p,
             id: 'p',
-            onDone: 'done'
+            onDone: { target: 'done' }
           },
           on: {
-            cancel: 'canceled'
+            cancel: { target: 'canceled' }
           }
         },
         done: {
           on: {
-            restart: 'running'
+            restart: { target: 'running' }
           }
         },
         canceled: {
           on: {
-            restart: 'running'
+            restart: { target: 'running' }
           }
         }
       }
@@ -980,7 +980,7 @@ describe('callback logic (createCallbackLogic)', () => {
       states: {
         a: {
           on: {
-            EV: 'b'
+            EV: { target: 'b' }
           }
         },
         b: {
@@ -1046,7 +1046,7 @@ describe('machine logic', () => {
       states: {
         waiting: {
           on: {
-            done: 'success'
+            done: { target: 'success' }
           }
         },
         success: {}
@@ -1092,12 +1092,12 @@ describe('machine logic', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
           on: {
-            LAST: 'c'
+            LAST: { target: 'c' }
           }
         },
         c: {}
@@ -1108,7 +1108,7 @@ describe('machine logic', () => {
       states: {
         idle: {
           on: {
-            START: 'invoked'
+            START: { target: 'invoked' }
           }
         },
         invoked: {
@@ -1204,7 +1204,7 @@ describe('machine logic', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -1345,13 +1345,13 @@ describe('composable actor logic', () => {
       initial: 'a',
       states: {
         a: {
-          on: { to_b: 'b' }
+          on: { to_b: { target: 'b' } }
         },
         b: {
-          on: { to_c: 'c' }
+          on: { to_c: { target: 'c' } }
         },
         c: {
-          on: { to_a: 'a' }
+          on: { to_a: { target: 'a' } }
         }
       }
     });
@@ -1446,10 +1446,10 @@ describe('composable actor logic', () => {
       initial: 'start',
       states: {
         start: {
-          on: { next: 'working' }
+          on: { next: { target: 'working' } }
         },
         working: {
-          on: { more: 'done' }
+          on: { more: { target: 'done' } }
         },
         done: {}
       }

@@ -43,7 +43,7 @@ describe('useActor', () => {
     context: context as any,
     states: {
       idle: {
-        on: { FETCH: 'loading' }
+        on: { FETCH: { target: 'loading' } }
       },
       loading: {
         invoke: {
@@ -225,7 +225,7 @@ describe('useActor', () => {
             );
           },
           on: {
-            'xstate.done.actor.my-promise': 'success'
+            'xstate.done.actor.my-promise': { target: 'success' }
           }
         },
         success: {
@@ -262,7 +262,7 @@ describe('useActor', () => {
       states: {
         start: {
           on: {
-            done: 'success'
+            done: { target: 'success' }
           }
         },
         success: {
@@ -310,7 +310,7 @@ describe('useActor', () => {
       },
       states: {
         inactive: {
-          on: { TOGGLE: 'active' }
+          on: { TOGGLE: { target: 'active' } }
         },
         active: {
           entry: ({ actions }, enq) => {
@@ -853,17 +853,17 @@ describe('useActor', () => {
       states: {
         green: {
           on: {
-            TRANSITION: 'yellow'
+            TRANSITION: { target: 'yellow' }
           }
         },
         yellow: {
           on: {
-            TRANSITION: 'red'
+            TRANSITION: { target: 'red' }
           }
         },
         red: {
           on: {
-            TRANSITION: 'green'
+            TRANSITION: { target: 'green' }
           }
         }
       }
@@ -918,19 +918,19 @@ describe('useActor', () => {
         green: {
           tags: 'go',
           on: {
-            TRANSITION: 'yellow'
+            TRANSITION: { target: 'yellow' }
           }
         },
         yellow: {
           tags: 'go',
           on: {
-            TRANSITION: 'red'
+            TRANSITION: { target: 'red' }
           }
         },
         red: {
           tags: ['stop', 'other'],
           on: {
-            TRANSITION: 'green'
+            TRANSITION: { target: 'green' }
           }
         }
       } as any
@@ -985,7 +985,7 @@ describe('useActor', () => {
       states: {
         inactive: {
           on: {
-            TOGGLE: 'active'
+            TOGGLE: { target: 'active' }
           }
         },
         active: {
@@ -1194,7 +1194,7 @@ describe('useActor', () => {
       states: {
         a: {
           on: {
-            EV: 'b'
+            EV: { target: 'b' }
           }
         },
         b: {
@@ -1229,12 +1229,12 @@ describe('useActor', () => {
       states: {
         a: {
           on: {
-            EV: 'b'
+            EV: { target: 'b' }
           }
         },
         b: {
           after: {
-            myDelay: 'c'
+            myDelay: { target: 'c' }
           }
         },
         c: {}
@@ -1685,7 +1685,7 @@ describe('useActor', () => {
       initial: 'active',
       states: {
         active: {
-          on: { FINISH: 'success' }
+          on: { FINISH: { target: 'success' } }
         },
         success: {}
       }
@@ -1775,13 +1775,13 @@ describe('useActor', () => {
         states: {
           idle: {
             on: {
-              START: 'doingStuff'
+              START: { target: 'doingStuff' }
             }
           },
           doingStuff: {
             id: 'doingStuff',
             after: {
-              100: 'idle'
+              100: { target: 'idle' }
             }
           }
         }
@@ -1830,19 +1830,21 @@ describe('useActor', () => {
             Idle: { on: { increment: { target: 'RecentlyClicked' } } },
             RecentlyClicked: {
               on: { increment: { target: 'TripleClicked' } },
-              after: { 40: 'Idle' }
+              after: { 40: { target: 'Idle' } }
             },
             TripleClicked: {
               on: { increment: { target: 'TripleClicked', reenter: true } },
-              after: { 40: 'Idle' }
+              after: { 40: { target: 'Idle' } }
             }
           },
-          on: { holdIncrement: 'Held.HeldIncrement' }
+          on: { holdIncrement: { target: 'Held.HeldIncrement' } }
         },
         Held: {
           initial: 'HeldIncrement',
-          states: { HeldIncrement: { after: { 40: 'HeldIncrement' } } },
-          on: { releasePointer: 'NotHeld.Idle' }
+          states: {
+            HeldIncrement: { after: { 40: { target: 'HeldIncrement' } } }
+          },
+          on: { releasePointer: { target: 'NotHeld.Idle' } }
         }
       }
     });

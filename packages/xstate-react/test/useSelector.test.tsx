@@ -754,7 +754,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       initial: 'one',
       states: {
         one: {
-          on: { NEXT: 'two' }
+          on: { NEXT: { target: 'two' } }
         },
         two: {}
       }
@@ -772,7 +772,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       initial: 'waiting',
       states: {
         waiting: {
-          on: { TEST: 'success' }
+          on: { TEST: { target: 'success' } }
         },
         success: {
           type: 'final'

@@ -421,16 +421,16 @@ describe('transition "in" check', () => {
     const machine = createMachine({
       initial: 'green',
       states: {
-        green: { on: { TIMER: 'yellow' } },
-        yellow: { on: { TIMER: 'red' } },
+        green: { on: { TIMER: { target: 'yellow' } } },
+        yellow: { on: { TIMER: { target: 'red' } } },
         red: {
           initial: 'walk',
           states: {
             walk: {
-              on: { TIMER: 'wait' }
+              on: { TIMER: { target: 'wait' } }
             },
             wait: {
-              on: { TIMER: 'stop' }
+              on: { TIMER: { target: 'stop' } }
             },
             stop: {}
           },

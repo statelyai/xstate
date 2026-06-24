@@ -76,7 +76,7 @@ describe('spawning machines', () => {
     states: {
       waitPing: {
         on: {
-          PING: 'sendPong'
+          PING: { target: 'sendPong' }
         }
       },
       sendPong: {
@@ -86,7 +86,7 @@ describe('spawning machines', () => {
           enq.raise({ type: 'SUCCESS' });
         },
         on: {
-          SUCCESS: 'waitPing'
+          SUCCESS: { target: 'waitPing' }
         }
       }
     }
@@ -123,7 +123,7 @@ describe('spawning machines', () => {
           };
         },
         on: {
-          SUCCESS: 'sendPing'
+          SUCCESS: { target: 'sendPing' }
         }
       },
       sendPing: {
@@ -136,12 +136,12 @@ describe('spawning machines', () => {
           enq.raise({ type: 'SUCCESS' });
         },
         on: {
-          SUCCESS: 'waitPong'
+          SUCCESS: { target: 'waitPong' }
         }
       },
       waitPong: {
         on: {
-          PONG: 'complete'
+          PONG: { target: 'complete' }
         }
       },
       complete: {
@@ -156,7 +156,7 @@ describe('spawning machines', () => {
       initial: 'incomplete',
       states: {
         incomplete: {
-          on: { SET_COMPLETE: 'complete' }
+          on: { SET_COMPLETE: { target: 'complete' } }
         },
         complete: {
           // entry: sendParent({ type: 'TODO_COMPLETED' })
@@ -187,7 +187,7 @@ describe('spawning machines', () => {
       states: {
         active: {
           on: {
-            TODO_COMPLETED: 'success'
+            TODO_COMPLETED: { target: 'success' }
           }
         },
         success: {
@@ -247,7 +247,7 @@ describe('spawning machines', () => {
             }
           }),
           on: {
-            DONE: 'success'
+            DONE: { target: 'success' }
           }
         },
         success: {
@@ -431,7 +431,7 @@ describe('spawning callbacks', () => {
                 type: 'START'
               });
             },
-            SEND_BACK: 'success'
+            SEND_BACK: { target: 'success' }
           }
         },
         success: {
@@ -465,7 +465,7 @@ describe('spawning callbacks', () => {
             })
           },
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {}
@@ -908,7 +908,7 @@ describe('communicating with spawned actors', () => {
       initial: 'inactive',
       states: {
         inactive: {
-          on: { ACTIVATE: 'active' }
+          on: { ACTIVATE: { target: 'active' } }
         },
         // active: {
         //   entry: sendTo(({ event }) => event.origin, { type: 'EXISTING.DONE' })
@@ -946,7 +946,7 @@ describe('communicating with spawned actors', () => {
             };
           },
           on: {
-            'EXISTING.DONE': 'success'
+            'EXISTING.DONE': { target: 'success' }
           },
           after: {
             100: ({ context, self }, enq) => {
@@ -1064,7 +1064,7 @@ describe('actors', () => {
         foo: {
           invoke: {
             src: child,
-            onDone: 'end'
+            onDone: { target: 'end' }
           }
         },
         end: { type: 'final' }
@@ -1441,7 +1441,7 @@ describe('actors', () => {
               src: pongLogic
             },
             on: {
-              PONG: 'success'
+              PONG: { target: 'success' }
             }
           },
           success: {
@@ -1478,7 +1478,7 @@ describe('actors', () => {
       initial: 'waiting',
       states: {
         waiting: {
-          on: { TEST: 'success' }
+          on: { TEST: { target: 'success' } }
         },
         success: {
           type: 'final'
@@ -1515,7 +1515,7 @@ describe('actors', () => {
       initial: 'waiting',
       states: {
         waiting: {
-          on: { TEST: 'success' }
+          on: { TEST: { target: 'success' } }
         },
         success: {
           type: 'final'
@@ -1661,7 +1661,7 @@ describe('actors', () => {
       states: {
         init: {
           on: {
-            'xstate.done.actor.myactor': 'done'
+            'xstate.done.actor.myactor': { target: 'done' }
           }
         },
         done: {}

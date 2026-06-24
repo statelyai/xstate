@@ -259,8 +259,8 @@ describe('serializability conformance', () => {
       states: {
         idle: {
           timeout: '5s',
-          onTimeout: 'expired',
-          on: { NEXT: 'expired' }
+          onTimeout: { target: 'expired' },
+          on: { NEXT: { target: 'expired' } }
         },
         expired: { type: 'final' }
       }
@@ -271,8 +271,8 @@ describe('serializability conformance', () => {
     expect(json.initial).toBe('idle');
     expect(json.internalEvents).toEqual(['tick']);
     expect(json.states.idle.timeout).toBe('5s');
-    expect(json.states.idle.onTimeout).toBe('expired');
-    expect(json.states.idle.on.NEXT).toBe('expired');
+    expect(json.states.idle.onTimeout).toEqual({ target: 'expired' });
+    expect(json.states.idle.on.NEXT).toEqual({ target: 'expired' });
   });
 
   it('JSON-safe unknown data is preserved', () => {

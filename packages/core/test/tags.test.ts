@@ -8,13 +8,13 @@ describe('tags', () => {
         green: {
           tags: ['go'],
           on: {
-            TIMER: 'yellow'
+            TIMER: { target: 'yellow' }
           }
         },
         yellow: {
           tags: ['go'],
           on: {
-            TIMER: 'red'
+            TIMER: { target: 'red' }
           }
         },
         red: {
@@ -83,7 +83,7 @@ describe('tags', () => {
             active: {
               tags: ['yes'],
               on: {
-                DEACTIVATE: 'inactive'
+                DEACTIVATE: { target: 'inactive' }
               }
             },
             inactive: {

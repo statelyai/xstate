@@ -52,7 +52,7 @@ describe('error handling', () => {
       },
       states: {
         initial: {
-          on: { activate: 'active' }
+          on: { activate: { target: 'active' } }
         },
         active: {}
       }
@@ -97,7 +97,7 @@ describe('error handling', () => {
       },
       states: {
         initial: {
-          on: { activate: 'active' }
+          on: { activate: { target: 'active' } }
         },
         active: {
           on: {
@@ -151,7 +151,7 @@ describe('error handling', () => {
       },
       states: {
         initial: {
-          on: { activate: 'active' }
+          on: { activate: { target: 'active' } }
         },
         active: {}
       }
@@ -196,7 +196,7 @@ describe('error handling', () => {
             src: createCallbackLogic(() => {
               throw new Error('unhandled_sync_error_in_actor_start');
             }),
-            onDone: 'success'
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -231,7 +231,7 @@ describe('error handling', () => {
                   )
                 )
             }),
-            onDone: 'success'
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -269,7 +269,7 @@ describe('error handling', () => {
                   )
                 )
             }),
-            onDone: 'success'
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -311,7 +311,7 @@ describe('error handling', () => {
                   )
                 )
             }),
-            onDone: 'success'
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -326,7 +326,7 @@ describe('error handling', () => {
         pending: {
           invoke: {
             src: child,
-            onDone: 'success'
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -362,7 +362,7 @@ describe('error handling', () => {
             src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             }),
-            onError: 'failed'
+            onError: { target: 'failed' }
           }
         },
         failed: {
@@ -394,7 +394,7 @@ describe('error handling', () => {
             src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             }),
-            onError: 'failed'
+            onError: { target: 'failed' }
           }
         },
         failed: {
@@ -430,7 +430,7 @@ describe('error handling', () => {
             src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             }),
-            onError: 'failed'
+            onError: { target: 'failed' }
           }
         },
         failed: {
@@ -510,7 +510,7 @@ describe('error handling', () => {
             src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             }),
-            onError: 'failed'
+            onError: { target: 'failed' }
           }
         },
         failed: {
@@ -541,7 +541,7 @@ describe('error handling', () => {
                 'unhandled_sync_error_in_actor_start_with_root_error_listener'
               );
             }),
-            onDone: 'success'
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -579,7 +579,7 @@ describe('error handling', () => {
                 'unhandled_sync_error_in_actor_start_with_root_error_listener'
               );
             }),
-            onDone: 'success'
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -620,7 +620,7 @@ describe('error handling', () => {
             src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             }),
-            onError: 'failed'
+            onError: { target: 'failed' }
           }
         },
         failed: {
@@ -816,7 +816,7 @@ describe('error handling', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {

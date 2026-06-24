@@ -179,7 +179,7 @@ describe('invoke', () => {
       states: {
         idle: {
           on: {
-            GO_TO_WAITING: 'waiting'
+            GO_TO_WAITING: { target: 'waiting' }
           }
         },
         waiting: {
@@ -252,13 +252,13 @@ describe('invoke', () => {
       states: {
         idle: {
           on: {
-            GO_TO_WAITING: 'waiting'
+            GO_TO_WAITING: { target: 'waiting' }
           }
         },
         waiting: {
           invoke: {
             src: childMachine,
-            onDone: 'received'
+            onDone: { target: 'received' }
           }
         },
         received: {
@@ -407,7 +407,7 @@ describe('invoke', () => {
             id: 'someService'
           },
           on: {
-            STOP: 'stop'
+            STOP: { target: 'stop' }
           }
         },
         stop: {
@@ -448,7 +448,7 @@ describe('invoke', () => {
       initial: 'one',
       states: {
         one: {
-          on: { NEXT: 'two' }
+          on: { NEXT: { target: 'two' } }
         },
         two: {
           entry: ({ parent }) => {
@@ -473,7 +473,7 @@ describe('invoke', () => {
               // TODO: foo-child is invoked after entry is executed so it does not exist yet
               children.fooChild?.send({ type: 'NEXT' });
             },
-            on: { NEXT: 'two' }
+            on: { NEXT: { target: 'two' } }
           },
           two: {
             type: 'final'
@@ -505,7 +505,7 @@ describe('invoke', () => {
             entry: ({ children }) => {
               children['foo-child']?.send({ type: 'NEXT' });
             },
-            on: { NEXT: 'two' }
+            on: { NEXT: { target: 'two' } }
           },
           two: {
             type: 'final'
@@ -529,7 +529,7 @@ describe('invoke', () => {
         initial: 'one',
         states: {
           one: {
-            on: { NEXT: 'two' }
+            on: { NEXT: { target: 'two' } }
           },
           two: {
             type: 'final'
@@ -545,14 +545,14 @@ describe('invoke', () => {
             invoke: {
               id: 'foo-child',
               src: doneSubMachine,
-              onDone: 'two'
+              onDone: { target: 'two' }
             },
             entry: ({ children }) => {
               children['foo-child']?.send({ type: 'NEXT' });
             }
           },
           two: {
-            on: { NEXT: 'three' }
+            on: { NEXT: { target: 'three' } }
           },
           three: {
             type: 'final'
@@ -686,7 +686,7 @@ describe('invoke', () => {
         states: {
           running: {
             on: {
-              finished: 'complete'
+              finished: { target: 'complete' }
             }
           },
           complete: {
@@ -731,7 +731,7 @@ describe('invoke', () => {
               })
             },
             on: {
-              STARTED: 'active'
+              STARTED: { target: 'active' }
             }
           },
           active: {
@@ -755,13 +755,13 @@ describe('invoke', () => {
         states: {
           idle: {
             on: {
-              START: 'active'
+              START: { target: 'active' }
             }
           },
           active: {
             invoke: { src: child },
             on: {
-              STOPPED: 'done'
+              STOPPED: { target: 'done' }
             }
           },
           done: {
@@ -855,7 +855,7 @@ describe('invoke', () => {
                   return { target: 'success' };
                 }
               },
-              onError: 'failure'
+              onError: { target: 'failure' }
             }
           },
           success: {
@@ -880,7 +880,7 @@ describe('invoke', () => {
                       resolve();
                     })
                 }),
-                onDone: 'success'
+                onDone: { target: 'success' }
               }
             },
             success: {
@@ -922,7 +922,7 @@ describe('invoke', () => {
                       throw new Error('test');
                     })
                 }),
-                onDone: 'success'
+                onDone: { target: 'success' }
               }
             },
             success: {
@@ -961,7 +961,7 @@ describe('invoke', () => {
                       throw new Error('test');
                     })
                 }),
-                onDone: 'success'
+                onDone: { target: 'success' }
               }
             },
             success: {
@@ -999,14 +999,14 @@ describe('invoke', () => {
                     src: createAsyncLogic({
                       run: () => createPromise((resolve) => resolve())
                     }),
-                    onDone: 'success'
+                    onDone: { target: 'success' }
                   }
                 },
                 success: {
                   type: 'final'
                 }
               },
-              onDone: 'success'
+              onDone: { target: 'success' }
             },
             success: {
               type: 'final'
@@ -1036,14 +1036,14 @@ describe('invoke', () => {
                   pending: {
                     invoke: {
                       src: somePromise,
-                      onDone: 'success'
+                      onDone: { target: 'success' }
                     }
                   },
                   success: {
                     type: 'final'
                   }
                 },
-                onDone: 'success'
+                onDone: { target: 'success' }
               },
               success: {
                 type: 'final'
@@ -1290,7 +1290,7 @@ describe('invoke', () => {
             states: {
               pending: {
                 on: {
-                  BEGIN: 'first'
+                  BEGIN: { target: 'first' }
                 }
               },
               first: {
@@ -1303,7 +1303,7 @@ describe('invoke', () => {
                       event: event
                     }
                   ),
-                  onDone: 'last'
+                  onDone: { target: 'last' }
                 }
               },
               last: {
@@ -1407,7 +1407,7 @@ describe('invoke', () => {
                     }
                   }
                 },
-                onDone: 'done'
+                onDone: { target: 'done' }
               },
               done: {
                 type: 'final'
@@ -1456,7 +1456,7 @@ describe('invoke', () => {
                 onSnapshot: {}
               },
               on: {
-                deactivate: 'inactive'
+                deactivate: { target: 'inactive' }
               }
             },
             inactive: {
@@ -1547,7 +1547,7 @@ describe('invoke', () => {
           states: {
             pending: {
               on: {
-                BEGIN: 'first'
+                BEGIN: { target: 'first' }
               }
             },
             first: {
@@ -1603,16 +1603,16 @@ describe('invoke', () => {
         context: { foo: true },
         states: {
           pending: {
-            on: { BEGIN: 'first' }
+            on: { BEGIN: { target: 'first' } }
           },
           first: {
             invoke: {
               src: someCallback
             },
-            on: { CALLBACK: 'intermediate' }
+            on: { CALLBACK: { target: 'intermediate' } }
           },
           intermediate: {
-            on: { NEXT: 'last' }
+            on: { NEXT: { target: 'last' } }
           },
           last: {
             type: 'final'
@@ -1648,10 +1648,10 @@ describe('invoke', () => {
             invoke: {
               src: someCallback
             },
-            on: { CALLBACK: 'intermediate' }
+            on: { CALLBACK: { target: 'intermediate' } }
           },
           intermediate: {
-            on: { NEXT: 'last' }
+            on: { NEXT: { target: 'last' } }
           },
           last: {
             type: 'final'
@@ -1686,19 +1686,19 @@ describe('invoke', () => {
           context: { foo: true },
           states: {
             pending: {
-              on: { BEGIN: 'first' }
+              on: { BEGIN: { target: 'first' } }
             },
             first: {
-              always: 'second'
+              always: { target: 'second' }
             },
             second: {
               invoke: {
                 src: someCallback
               },
-              on: { CALLBACK: 'third' }
+              on: { CALLBACK: { target: 'third' } }
             },
             third: {
-              on: { NEXT: 'last' }
+              on: { NEXT: { target: 'last' } }
             },
             last: {
               type: 'final'
@@ -1789,7 +1789,7 @@ describe('invoke', () => {
               src: createCallbackLogic(() => spy)
             },
             on: {
-              NEXT: 'idle'
+              NEXT: { target: 'idle' }
             }
           },
           idle: {}
@@ -1823,7 +1823,7 @@ describe('invoke', () => {
               children['child']?.send({ type: 'PING' });
             },
             on: {
-              PONG: 'done'
+              PONG: { target: 'done' }
             }
           },
           done: {
@@ -1879,11 +1879,11 @@ describe('invoke', () => {
               src: createCallbackLogic(() => {
                 throw new Error('test');
               }),
-              onError: 'failed'
+              onError: { target: 'failed' }
             }
           },
           failed: {
-            on: { RETRY: 'safe' }
+            on: { RETRY: { target: 'safe' } }
           }
         }
       });
@@ -1899,7 +1899,7 @@ describe('invoke', () => {
         states: {
           start: {
             on: {
-              FETCH: 'fetch'
+              FETCH: { target: 'fetch' }
             }
           },
           fetch: {
@@ -1957,7 +1957,7 @@ describe('invoke', () => {
         states: {
           idle: {
             on: {
-              GO_TO_WAITING: 'waiting'
+              GO_TO_WAITING: { target: 'waiting' }
             }
           },
           waiting: {
@@ -2044,7 +2044,7 @@ describe('invoke', () => {
         initial: 'start',
         states: {
           start: {
-            on: { STOP: 'end' }
+            on: { STOP: { target: 'end' } }
           },
           end: {
             type: 'final'
@@ -2060,7 +2060,7 @@ describe('invoke', () => {
             invoke: {
               src: anotherChildMachine,
               id: 'invoked.child',
-              onDone: 'completed'
+              onDone: { target: 'completed' }
             },
             on: {
               STOPCHILD: ({ children }) => {
@@ -2579,7 +2579,7 @@ describe('invoke', () => {
               src: pongLogic
             },
             on: {
-              PONG: 'success'
+              PONG: { target: 'success' }
             }
           },
           success: {
@@ -2757,14 +2757,14 @@ describe('invoke', () => {
                 children['pong']?.send({ type: 'PING' });
               },
               on: {
-                PONG: 'innerSuccess'
+                PONG: { target: 'innerSuccess' }
               }
             },
             innerSuccess: {
               type: 'final'
             }
           },
-          onDone: 'success'
+          onDone: { target: 'success' }
         },
         success: { type: 'final' }
       }
@@ -2785,7 +2785,7 @@ describe('invoke', () => {
         states: {
           a: {
             after: {
-              10: 'b'
+              10: { target: 'b' }
             }
           },
           b: {}
@@ -2913,7 +2913,7 @@ describe('invoke', () => {
       after: {
         // allow both invoked services to get a chance to send their events
         // and don't depend on a potential race condition (with an immediate transition)
-        10: '.three'
+        10: { target: '.three' }
       },
 
       states: {
@@ -2984,7 +2984,7 @@ describe('invoke', () => {
                   actorStarted = true;
                 })
               },
-              always: 'inactive'
+              always: { target: 'inactive' }
             },
             inactive: {}
           }
@@ -3019,10 +3019,10 @@ describe('invoke', () => {
               initial: 'first',
               states: {
                 first: {
-                  always: 'second'
+                  always: { target: 'second' }
                 },
                 second: {
-                  always: '#inactive'
+                  always: { target: '#inactive' }
                 }
               }
             },
@@ -3051,7 +3051,7 @@ describe('invoke', () => {
               one: {
                 initial: 'active',
                 on: {
-                  STOP_ONE: '.idle'
+                  STOP_ONE: { target: '.idle' }
                 },
                 states: {
                   idle: {},
@@ -3073,7 +3073,7 @@ describe('invoke', () => {
               two: {
                 initial: 'idle',
                 on: {
-                  NEXT: '.active'
+                  NEXT: { target: '.active' }
                 },
                 states: {
                   idle: {},
@@ -3081,7 +3081,7 @@ describe('invoke', () => {
                     invoke: {
                       id: 'post',
                       src: createAsyncLogic({ run: () => Promise.resolve(42) }),
-                      onDone: '#done'
+                      onDone: { target: '#done' }
                     }
                   }
                 }
@@ -3135,7 +3135,7 @@ describe('invoke', () => {
                 counter: context.counter + 1
               }
             }),
-            always: 'active'
+            always: { target: 'active' }
           }
         }
       });
@@ -3165,7 +3165,7 @@ describe('invoke', () => {
             input: {
               endpoint: 'example.com'
             },
-            onDone: 'success'
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -3204,7 +3204,7 @@ describe('invoke', () => {
             input: ({ context }: { context: { url: string } }) => ({
               endpoint: context.url
             }),
-            onDone: 'success'
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -3251,7 +3251,7 @@ describe('invoke', () => {
             input: ({ context }: { context: { value: number } }) => ({
               val: context.value
             }),
-            onDone: 'success'
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -3412,7 +3412,7 @@ describe('invoke', () => {
                 return Promise.resolve(42);
               }
             }),
-            onDone: 'b'
+            onDone: { target: 'b' }
           }
         },
         b: {
@@ -3481,11 +3481,11 @@ describe('invoke', () => {
             })
           },
           on: {
-            GO_AWAY_AND_REENTER: 'b'
+            GO_AWAY_AND_REENTER: { target: 'b' }
           }
         },
         b: {
-          always: 'a'
+          always: { target: 'a' }
         }
       }
     });
@@ -3510,7 +3510,7 @@ describe('invoke', () => {
       states: {
         a: {
           on: {
-            FINISH: 'b'
+            FINISH: { target: 'b' }
           }
         },
         b: {
@@ -3544,7 +3544,7 @@ describe('invoke', () => {
       states: {
         a: {
           on: {
-            FINISH: 'b'
+            FINISH: { target: 'b' }
           }
         },
         b: {
@@ -3601,7 +3601,7 @@ describe('invoke', () => {
       initial: 'inactive',
       states: {
         inactive: {
-          on: { ACTIVATE: 'active' }
+          on: { ACTIVATE: { target: 'active' } }
         },
         active: {
           invoke: {
@@ -3662,7 +3662,7 @@ describe('invoke', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -3679,7 +3679,7 @@ describe('invoke', () => {
             );
           },
           on: {
-            PONG: 'c'
+            PONG: { target: 'c' }
           }
         },
         c: {
@@ -3724,7 +3724,7 @@ describe('invoke input', () => {
                 newCount: context.count * 2
               };
             },
-            onDone: 'success'
+            onDone: { target: 'success' }
           }
         },
         success: {

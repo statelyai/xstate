@@ -44,7 +44,7 @@ describe('state-level timeout', () => {
       states: {
         waiting: {
           timeout: 1000,
-          onTimeout: 'escalated'
+          onTimeout: { target: 'escalated' }
         },
         escalated: {}
       }
@@ -68,8 +68,8 @@ describe('state-level timeout', () => {
       states: {
         waiting: {
           timeout: 1000,
-          onTimeout: 'escalated',
-          on: { APPROVE: 'approved' }
+          onTimeout: { target: 'escalated' },
+          on: { APPROVE: { target: 'approved' } }
         },
         approved: {},
         escalated: {}
@@ -92,9 +92,9 @@ describe('state-level timeout', () => {
       initial: 'waiting',
       states: {
         waiting: {
-          after: { 500: 'periodic' },
+          after: { 500: { target: 'periodic' } },
           timeout: 1000,
-          onTimeout: 'escalated'
+          onTimeout: { target: 'escalated' }
         },
         periodic: {},
         escalated: {}
@@ -136,7 +136,7 @@ describe('state-level timeout', () => {
       states: {
         waiting: {
           timeout: ({ context }) => context.slaMs,
-          onTimeout: 'escalated'
+          onTimeout: { target: 'escalated' }
         },
         escalated: {}
       }
@@ -162,7 +162,7 @@ describe('state-level timeout', () => {
       states: {
         waiting: {
           timeout: 'approvalSla',
-          onTimeout: 'escalated'
+          onTimeout: { target: 'escalated' }
         },
         escalated: {}
       }
@@ -192,7 +192,7 @@ describe('state-level timeout', () => {
             }
           },
           timeout: 1000,
-          onTimeout: 'escalated'
+          onTimeout: { target: 'escalated' }
         },
         escalated: {}
       }
@@ -235,8 +235,8 @@ describe('invoke-level timeout', () => {
               run: () => new Promise((resolve) => setTimeout(resolve, 10_000))
             }),
             timeout: 1000,
-            onTimeout: 'timedOut',
-            onDone: 'done'
+            onTimeout: { target: 'timedOut' },
+            onDone: { target: 'done' }
           }
         },
         done: {},
@@ -261,8 +261,8 @@ describe('invoke-level timeout', () => {
           invoke: {
             src: createAsyncLogic({ run: () => Promise.resolve('ok') }),
             timeout: 5000,
-            onTimeout: 'timedOut',
-            onDone: 'done'
+            onTimeout: { target: 'timedOut' },
+            onDone: { target: 'done' }
           }
         },
         done: {},
@@ -292,7 +292,7 @@ describe('invoke-level timeout', () => {
           invoke: {
             src: createAsyncLogic({ run: () => Promise.resolve('ok') }),
             timeout: 1000,
-            onTimeout: 'timedOut'
+            onTimeout: { target: 'timedOut' }
           }
         },
         timedOut: {}
@@ -321,7 +321,7 @@ describe('invoke-level timeout', () => {
           invoke: {
             src: createAsyncLogic({ run: () => Promise.resolve('ok') }),
             timeout: 1000,
-            onTimeout: 'timedOut',
+            onTimeout: { target: 'timedOut' },
             onDone: (_args, enq) => {
               enq.emit({ type: 'invokeDone' });
             }
@@ -357,8 +357,8 @@ describe('invoke-level timeout', () => {
               run: () => new Promise((resolve) => setTimeout(resolve, 60_000))
             }),
             timeout: ({ context }) => context.timeoutMs,
-            onTimeout: 'timedOut',
-            onDone: 'done'
+            onTimeout: { target: 'timedOut' },
+            onDone: { target: 'done' }
           }
         },
         done: {},

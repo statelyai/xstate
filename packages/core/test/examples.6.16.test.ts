@@ -21,15 +21,15 @@ describe('Example 6.16', () => {
               }
             }
           },
-          D: { on: { 1: 'C' } }
+          D: { on: { 1: { target: 'C' } } }
         }
       },
       B: {
         initial: 'F',
         states: {
-          E: { id: 'E', on: { 5: 'G' } },
-          F: { on: { 1: 'E' } },
-          G: { on: { 3: 'F' } }
+          E: { id: 'E', on: { 5: { target: 'G' } } },
+          F: { on: { 1: { target: 'E' } } },
+          G: { on: { 3: { target: 'F' } } }
         }
       }
     }
