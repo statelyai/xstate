@@ -171,6 +171,41 @@ describe('setup', () => {
     expect(true).toBe(true);
   });
 
+  it('should type enq in state transition functions', () => {
+    setup({
+      schemas: {
+        context: types<{ count: number }>(),
+        events: {
+          INC: types<{}>()
+        },
+        emitted: {
+          notify: types<{}>()
+        }
+      }
+    }).createMachine({
+      context: { count: 0 },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            INC: (_args, enq) => {
+              enq.raise({ type: 'INC' });
+              enq.emit({ type: 'notify' });
+
+              // @ts-expect-error - unknown event
+              enq.raise({ type: 'UNKNOWN' });
+
+              // @ts-expect-error - unknown emitted event
+              enq.emit({ type: 'unknown' });
+            }
+          }
+        }
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
   it('should reject invalid setup-created state configs', () => {
     const s = setup({
       schemas: {

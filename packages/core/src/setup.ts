@@ -15,7 +15,8 @@ import {
   ToChildren,
   MetaObject,
   Cast,
-  Compute
+  Compute,
+  EnqueueObject
 } from './types.ts';
 import {
   DelayMapFromNames,
@@ -701,8 +702,8 @@ type StateTransitionFunction<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  _TEvent extends EventObject,
-  _TEmitted extends EventObject,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
   TMeta extends MetaObject,
   TActionMap extends Implementations['actions'],
@@ -722,7 +723,7 @@ type StateTransitionFunction<
     guards: TGuardMap;
     delays: TDelayMap;
   },
-  enq: any
+  enq: EnqueueObject<TEvent, TEmitted, TActionMap>
 ) => StateTransitionResult<TStateSchemas, TContext, TMeta> | void;
 
 type StateTransitionResult<
