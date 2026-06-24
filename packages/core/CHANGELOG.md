@@ -1,5 +1,25 @@
 # xstate
 
+## 6.0.0-alpha.5
+
+### Major Changes
+
+- 297f851: String target shorthand is no longer accepted for transition configs. Use the object form with `target` instead:
+
+  ```ts
+  createMachine({
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          start: { target: 'active' }
+        }
+      },
+      active: {}
+    }
+  });
+  ```
+
 ## 6.0.0-alpha.4
 
 ### Major Changes
