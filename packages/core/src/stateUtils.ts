@@ -1001,6 +1001,13 @@ export function initialMicrostep(
   );
 }
 
+function mergeContextPatch(
+  context: MachineContext,
+  patch: MachineContext
+): MachineContext {
+  return { ...context, ...patch };
+}
+
 /** https://www.w3.org/TR/scxml/#microstepProcedure */
 function microstep(
   transitions: Array<AnyTransitionDefinition>,
@@ -1071,8 +1078,8 @@ function microstep(
           enqueue
         );
 
-        if (res?.context) {
-          updatedContext = res.context;
+        if (res?.context !== undefined) {
+          updatedContext = mergeContextPatch(context, res.context);
         }
 
         return [actions, updatedContext, internalEvents];
@@ -1175,8 +1182,8 @@ function microstep(
         transitionActions.push(...toArray(t.actions));
       }
       const res = getCurrentTransitionResult(t);
-      if (res.context) {
-        context = res.context;
+      if (res.context !== undefined) {
+        context = mergeContextPatch(context, res.context);
       }
       if (res.actions) {
         transitionActions.push(...res.actions);
@@ -1434,7 +1441,8 @@ function microstep(
         if (invoked) {
           nextState = cloneMachineSnapshot(nextState, { children });
         }
-        let context: MachineContext | undefined;
+        let context = nextState.context;
+        let contextChangedByEntry = false;
 
         const stateInput = stateInputMap[stateNodeToEnter.id];
 
@@ -1442,7 +1450,7 @@ function microstep(
           const [resultActions, nextContext, nextInternalEvents] =
             getStateActionsAndContext(
               stateNodeToEnter.entry,
-              nextState.context,
+              context,
               children,
               stateInput
             );
@@ -1452,7 +1460,12 @@ function microstep(
           }
           if (nextContext) {
             context = nextContext;
+            contextChangedByEntry = true;
           }
+        }
+
+        if (contextChangedByEntry) {
+          nextState.context = context;
         }
 
         if (statesForDefaultEntry.has(stateNodeToEnter)) {
@@ -1482,10 +1495,6 @@ function microstep(
         nextState = resolvedState;
         actions.length = 0;
         executableActions.push(...resolvedActions);
-
-        if (context) {
-          nextState.context = context;
-        }
 
         if (stateNodeToEnter.type !== 'final') {
           continue;

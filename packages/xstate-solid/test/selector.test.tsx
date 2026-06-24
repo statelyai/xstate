@@ -22,10 +22,10 @@ describe('usage of selectors with reactive service state', () => {
       },
       on: {
         OTHER: ({ context }) => ({
-          context: { ...context, other: context.other + 1 }
+          context: { other: context.other + 1 }
         }),
         INCREMENT: ({ context }) => ({
-          context: { ...context, count: context.count + 1 }
+          context: { count: context.count + 1 }
         })
       }
     });

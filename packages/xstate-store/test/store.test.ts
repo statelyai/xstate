@@ -1025,11 +1025,10 @@ it('the emit type is not overridden by the payload', () => {
     },
     context,
     on: {
-      openDrawer: (context, event: { drawer: Drawer }, enqueue) => {
+      openDrawer: (_, event: { drawer: Drawer }, enqueue) => {
         enqueue.emit.drawerOpened(event);
 
         return {
-          ...context,
           drawer: event.drawer
         };
       }

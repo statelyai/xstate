@@ -21,7 +21,7 @@ describe('enq.listen()', () => {
       run: ({ context, event }, enq) => {
         if (event.type === 'TRIGGER') {
           enq.emit({ type: 'childEvent', value: 42 });
-          return { context: { ...context, triggered: true } };
+          return { context: { triggered: true } };
         }
         return;
       }
@@ -286,7 +286,6 @@ describe('enq.subscribeTo()', () => {
         }
         return {
           context: {
-            ...context,
             count: context.count + 1
           }
         };

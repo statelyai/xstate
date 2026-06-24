@@ -593,7 +593,7 @@ describe('fromActorRef', () => {
         active: {
           entry: ({ context }, enq) => {
             const actorRef = enq.spawn(childMachine);
-            return { context: { ...context, actorRef } };
+            return { context: { actorRef } };
           },
           on: { FINISH: { target: 'success' } }
         },

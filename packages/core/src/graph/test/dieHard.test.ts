@@ -4,11 +4,6 @@ import { createTestModel } from '../index.ts';
 import { getDescription } from '../utils.ts';
 
 describe('die hard example', () => {
-  interface DieHardContext {
-    three: number;
-    five: number;
-  }
-
   class Jugs {
     public version = 0;
     public three = 0;
@@ -83,29 +78,25 @@ describe('die hard example', () => {
               };
             },
 
-            FILL_3: ({ context }) => ({
+            FILL_3: () => ({
               context: {
-                ...context,
                 three: 3
               }
             }),
 
-            FILL_5: ({ context }) => ({
+            FILL_5: () => ({
               context: {
-                ...context,
                 five: 5
               }
             }),
 
-            EMPTY_3: ({ context }) => ({
+            EMPTY_3: () => ({
               context: {
-                ...context,
                 three: 0
               }
             }),
-            EMPTY_5: ({ context }) => ({
+            EMPTY_5: () => ({
               context: {
-                ...context,
                 five: 0
               }
             })

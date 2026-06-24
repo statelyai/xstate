@@ -8,7 +8,7 @@ Removed exports: `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`,
 
 Instead, a transition/action/guard is a function `(args, enq) => ...`:
 
-- Update context by **returning** a full `{ context }` patch (no more `assign`).
+- Update context by **returning** a `{ context }` patch (no more `assign`). Returned context is shallow-merged when it is type-safe to preserve omitted top-level keys; include any keys required by the target state's narrowed context.
 - Perform side effects through the `enq` enqueue object: `enq.raise`, `enq.sendTo`, `enq.emit`, `enq.log`, `enq.cancel`, `enq.spawn`, `enq.stop`, plus `enq(fn, ...args)` for arbitrary effects.
 - Guards are just functions that return a boolean (or `undefined`/`false` to block).
 

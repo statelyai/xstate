@@ -183,7 +183,6 @@ describe('inspect', () => {
             }
             return {
               context: {
-                ...context,
                 count: context.count + 1
               }
             };

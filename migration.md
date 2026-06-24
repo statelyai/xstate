@@ -10,7 +10,7 @@ This guide is organized by area. Skim the **Quick reference** below, then jump t
 
 | v5                                                      | v6                                                                                                                                  |
 | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `assign({ count: 1 })`                                  | inline fn returning `{ context: { count: 1 } }`                                                                                     |
+| `assign({ count: 1 })`                                  | inline fn returning a shallow `{ context: { count: 1 } }` patch                                                                     |
 | `raise({ type: 'NEXT' })`                               | `enq.raise({ type: 'NEXT' })`                                                                                                       |
 | `sendTo(ref, ev)` / `sendParent(ev)` / `forwardTo(ref)` | `enq.sendTo(ref, ev)`                                                                                                               |
 | `emit({ type: 'x' })`                                   | `enq.emit({ type: 'x' })`                                                                                                           |
@@ -29,7 +29,7 @@ This guide is organized by area. Skim the **Quick reference** below, then jump t
 | `fromTransition(reducer, initial)`                      | `createLogic({ context: initial, run: ({ context, event }) => ({ context: reducer(context, event) }) })`                            |
 | `types: {} as { context: ..., events: ...}`             | `schemas: { context, events, ... }` (Zod / Standard Schema, or `types<T>()` for type-only)                                          |
 | `actor.send({ type: 'INC' })`                           | `actor.send(...)` keeps working; new typed `actor.trigger.INC()`                                                                    |
-| `@xstate/immer`                                         | removed — return updated `context` directly                                                                                         |
+| `@xstate/immer`                                         | removed — return updated `context` patches directly                                                                                 |
 | `@xstate/inspect`                                       | removed — use `inspect` option on `createActor`, `actor.subscribe`, or [`@statelyai/inspect`](https://github.com/statelyai/inspect) |
 
 ---
@@ -70,6 +70,8 @@ In v6, every `entry`, `exit`, and transition handler is a **single function** th
 
 - **Transition handlers** (`on`, `always`, `after`, `onTimeout`, `onDone`, `onError`) — may return a target, a new `context`, `reenter`, or `meta`.
 - **Entry / exit actions** — may return a new `context` (or `children`). They **cannot** return a `target`; entry/exit cannot transition.
+
+Returned `context` values are shallow patches. Omitted top-level keys are preserved when the current context is compatible with the next state. If a transition targets a state with narrower `schemas.context`, include the keys needed to satisfy that target state's context.
 
 ### Entry / exit actions
 
@@ -178,18 +180,18 @@ on: {
 
 A **transition handler** may return:
 
-| Field     | Meaning                                                        |
-| --------- | -------------------------------------------------------------- |
-| `target`  | next state (`string` or `string[]`)                            |
-| `context` | replacement context (treat as immutable — return a new object) |
-| `reenter` | force re-entry even if `target` resolves to the current state  |
-| `meta`    | per-transition meta info                                       |
+| Field     | Meaning                                                          |
+| --------- | ---------------------------------------------------------------- |
+| `target`  | next state (`string` or `string[]`)                              |
+| `context` | shallow context patch (treat as immutable — return a new object) |
+| `reenter` | force re-entry even if `target` resolves to the current state    |
+| `meta`    | per-transition meta info                                         |
 
 An **entry / exit action** may return:
 
 | Field      | Meaning                     |
 | ---------- | --------------------------- |
-| `context`  | replacement context         |
+| `context`  | shallow context patch       |
 | `children` | replacement children record |
 
 Returning nothing (`undefined`) means "no changes". For transition handlers specifically, returning nothing also means **the event is treated as unhandled at this state** — useful for inline guarding:
@@ -224,7 +226,7 @@ on: {
   EV: ({ context }, enq) => {
     if (context.x) {
       enq.raise({ type: 'GO' });
-      return { context: { ...context, y: 1 } };
+      return { context: { y: 1 } };
     }
   };
 }
@@ -950,7 +952,7 @@ on: {
 // v6
 on: {
   ADD: ({ context, event }) => ({
-    context: { ...context, todos: [...context.todos, event.todo] }
+    context: { todos: [...context.todos, event.todo] }
   });
 }
 ```
@@ -1196,7 +1198,7 @@ to the corresponding `ActorRef`. See `test/system.test.ts`.
 
 ## Migration checklist
 
-- [ ] Replace every `assign({...})` with an inline function returning `{ context: {...} }`
+- [ ] Replace every `assign({...})` with an inline function returning a shallow `{ context: {...} }` patch
 - [ ] Replace every `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stopChild` with the corresponding `enq.*` call
 - [ ] Replace `enqueueActions(...)` with a regular inline `(args, enq) => { ... }` function
 - [ ] Replace `and`/`or`/`not` guard combinators with plain JS inside the guard or inline transition function
@@ -1269,7 +1271,7 @@ const machine = createMachine({
         }),
         RESET: ({ context }, enq) => {
           enq.raise({ type: 'DONE' });
-          return { context: { ...context, count: 0 } };
+          return { context: { count: 0 } };
         },
         DONE: 'finished'
       }

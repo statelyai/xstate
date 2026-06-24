@@ -18,7 +18,7 @@ describe('type-only schemas (`types`)', () => {
             inc: ({ context, event }) => ({
               context: { count: context.count + event.by }
             }),
-            reset: ({ context }) => ({ context: { ...context, count: 0 } })
+            reset: () => ({ context: { count: 0 } })
           }
         }
       }

@@ -57,7 +57,7 @@ describe('v6 inspection protocol conformance', () => {
           // multi-microstep: loop via `always` before settling on `done`
           always: ({ context }) => {
             if (context.count < 2) {
-              return { context: { ...context, count: context.count + 1 } };
+              return { context: { count: context.count + 1 } };
             }
             return { target: 'done' };
           }

@@ -726,9 +726,8 @@ describe('parallel states', () => {
       states: {
         editing: {
           on: {
-            CHANGE: ({ context, event }) => ({
+            CHANGE: ({ event }) => ({
               context: {
-                ...context,
                 value: event.value
               }
             })

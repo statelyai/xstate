@@ -206,7 +206,7 @@ describe('invoke.src accepting actor logic', () => {
               event: DoneActorEvent<string>;
             }) => ({
               target: 'success',
-              context: { ...context, result: event.output }
+              context: { result: event.output }
             })
           }
         },

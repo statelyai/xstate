@@ -47,13 +47,11 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       on: {
         OTHER: ({ context }) => ({
           context: {
-            ...context,
             other: context.other + 1
           }
         }),
         INCREMENT: ({ context }) => ({
           context: {
-            ...context,
             count: context.count + 1
           }
         })
@@ -130,9 +128,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         // CHANGE: {
         //   actions: assign({ name: ({ event }) => event.value })
         // }
-        CHANGE: ({ context, event }: any) => ({
+        CHANGE: ({ event }: any) => ({
           context: {
-            ...context,
             name: event.value
           }
         })
@@ -205,15 +202,13 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         active: {}
       },
       on: {
-        'change.same': ({ context }) => ({
+        'change.same': () => ({
           context: {
-            ...context,
             user: { name: 'david' }
           }
         }),
-        'change.other': ({ context }) => ({
+        'change.other': () => ({
           context: {
-            ...context,
             user: { name: 'other' }
           }
         })
@@ -343,7 +338,6 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         // }
         UPDATE_COUNT: ({ context }) => ({
           context: {
-            ...context,
             count: context.count + 1
           }
         })
@@ -449,7 +443,6 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       on: {
         INC: ({ context }) => ({
           context: {
-            ...context,
             count: context.count + 1
           }
         })
@@ -506,7 +499,6 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       on: {
         INC: ({ context }) => ({
           context: {
-            ...context,
             count: context.count + 1
           }
         })
@@ -690,7 +682,6 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         // }
         INC: ({ context }) => ({
           context: {
-            ...context,
             foo: context.foo + 1
           }
         })

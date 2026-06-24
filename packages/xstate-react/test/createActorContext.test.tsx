@@ -111,7 +111,6 @@ describe('createActorContext', () => {
         // },
         INC: ({ context }) => ({
           context: {
-            ...context,
             obj: {
               counter: context.obj.counter + 1
             }
@@ -119,7 +118,6 @@ describe('createActorContext', () => {
         }),
         PUSH: ({ context }) => ({
           context: {
-            ...context,
             arr: [...context.arr, Math.random().toString(36).slice(2)]
           }
         })

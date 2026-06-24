@@ -314,7 +314,6 @@ describe('internal transitions', () => {
           initial: 'a11',
           entry: ({ context }) => ({
             context: {
-              ...context,
               sourceStateEntries: context.sourceStateEntries + 1
             }
           }),
@@ -323,7 +322,6 @@ describe('internal transitions', () => {
               initial: 'a111',
               entry: ({ context }) => ({
                 context: {
-                  ...context,
                   directDescendantEntries: context.directDescendantEntries + 1
                 }
               }),
@@ -331,7 +329,6 @@ describe('internal transitions', () => {
                 a111: {
                   entry: ({ context }) => ({
                     context: {
-                      ...context,
                       deepDescendantEntries: context.deepDescendantEntries + 1
                     }
                   })
@@ -390,7 +387,6 @@ describe('internal transitions', () => {
           initial: 'a11',
           exit: ({ context }) => ({
             context: {
-              ...context,
               sourceStateExits: context.sourceStateExits + 1
             }
           }),
@@ -399,7 +395,6 @@ describe('internal transitions', () => {
               initial: 'a111',
               exit: ({ context }) => ({
                 context: {
-                  ...context,
                   directDescendantExits: context.directDescendantExits + 1
                 }
               }),
@@ -409,7 +404,6 @@ describe('internal transitions', () => {
                     console.log('a111 exit');
                     return {
                       context: {
-                        ...context,
                         deepDescendantExits: context.deepDescendantExits + 1
                       }
                     };

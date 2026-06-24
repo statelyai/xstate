@@ -996,7 +996,6 @@ describe('actors', () => {
             enq(() => count++);
             return {
               context: {
-                ...context,
                 refs: context.items.map((item) =>
                   enq.spawn(
                     createAsyncLogic({
@@ -1767,7 +1766,6 @@ describe('actors', () => {
               enq.stop(context.actorRef);
               return {
                 context: {
-                  ...context,
                   actorRef: enq.spawn(
                     createCallbackLogic(() => {
                       const localId = ++invokeCounter;
@@ -1847,7 +1845,6 @@ describe('actors', () => {
               enq.stop(context.actorRef);
               return {
                 context: {
-                  ...context,
                   actorRef: enq.spawn(
                     createCallbackLogic(() => {
                       const localId = ++invokeCounter;
@@ -1908,7 +1905,6 @@ describe('actors', () => {
               enq.stop(context.actorRef);
               return {
                 context: {
-                  ...context,
                   actorRef: enq.spawn(
                     createCallbackLogic(() => {
                       const localId = ++invokeCounter;
@@ -1969,7 +1965,6 @@ describe('actors', () => {
               enq.stop(context.actorRef);
               return {
                 context: {
-                  ...context,
                   actorRef: enq.spawn(
                     createCallbackLogic(() => {
                       const localId = ++invokeCounter;
@@ -1997,14 +1992,6 @@ describe('actors', () => {
   it('should be possible to pass `self` as input to a child machine from within the context factory', () => {
     const spy = vi.fn();
     const child = createMachine({
-      // types: {} as {
-      //   context: {
-      //     parent: AnyActorRef;
-      //   };
-      //   input: {
-      //     parent: AnyActorRef;
-      //   };
-      // },
       schemas: {
         context: z.object({
           parent: z.custom<AnyActorRef>()
@@ -2016,7 +2003,6 @@ describe('actors', () => {
       context: ({ input }) => ({
         parent: input.parent
       }),
-      // entry: sendTo(({ context }) => context.parent, { type: 'GREET' })
       entry: ({ parent }, enq) => {
         enq.sendTo(parent, { type: 'GREET' });
       }

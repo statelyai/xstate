@@ -236,6 +236,73 @@ describe('setup', () => {
     expect(true).toBe(true);
   });
 
+  it('should allow partial context patches in transition function returns', () => {
+    const machine = setup({
+      schemas: {
+        context: types<{ a: number; b: number; c: number }>(),
+        events: {
+          GO: types<{}>()
+        }
+      }
+    }).createMachine({
+      context: { a: 1, b: 2, c: 3 },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            GO: ({ context }) => ({
+              target: 'done',
+              context: {
+                b: context.b + 1
+              }
+            })
+          }
+        },
+        done: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'GO' });
+
+    expect(actor.getSnapshot().context).toEqual({ a: 1, b: 3, c: 3 });
+  });
+
+  it('should allow partial context patches in root transition function returns', () => {
+    const machine = setup({
+      schemas: {
+        context: types<{ a: number; b: number; c: number }>(),
+        events: {
+          GO: types<{}>()
+        }
+      },
+      states: {
+        idle: {},
+        done: {}
+      }
+    }).createMachine({
+      context: { a: 1, b: 2, c: 3 },
+      initial: 'idle',
+      on: {
+        GO: ({ context }) => ({
+          target: '.done',
+          context: {
+            b: context.b + 1
+          }
+        })
+      },
+      states: {
+        idle: {},
+        done: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'GO' });
+
+    expect(actor.getSnapshot().context).toEqual({ a: 1, b: 3, c: 3 });
+  });
+
   it('should reject invalid setup-created state configs', () => {
     const s = setup({
       schemas: {
@@ -1208,12 +1275,12 @@ describe('setup', () => {
       states: {
         idle: {
           schemas: {
-            context: z.object({ user: z.null() })
+            context: z.object({ count: z.number(), user: z.null() })
           }
         },
         success: {
           schemas: {
-            context: z.object({ user: z.string() })
+            context: z.object({ count: z.number(), user: z.string() })
           }
         }
       }
@@ -1221,13 +1288,16 @@ describe('setup', () => {
 
     s.createMachine({
       schemas: {
-        context: z.object({ user: z.string().nullable() }),
+        context: z.object({
+          count: z.number(),
+          user: z.string().nullable()
+        }),
         events: {
           LOAD: z.object({})
         }
       },
       initial: 'idle',
-      context: { user: null },
+      context: { count: 0, user: null },
       states: {
         idle: {
           on: {
@@ -1241,7 +1311,61 @@ describe('setup', () => {
       }
     });
 
-    expect(true).toBe(true);
+    s.createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number(),
+          user: z.string().nullable()
+        }),
+        events: {
+          LOAD: z.object({})
+        }
+      },
+      initial: 'idle',
+      context: { count: 0, user: null },
+      states: {
+        idle: {
+          on: {
+            // @ts-expect-error - success context requires a string user
+            LOAD: () => ({
+              target: 'success',
+              context: { count: 1 }
+            })
+          }
+        },
+        success: {}
+      }
+    });
+
+    const machine = s.createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number(),
+          user: z.string().nullable()
+        }),
+        events: {
+          LOAD: z.object({})
+        }
+      },
+      initial: 'idle',
+      context: { count: 0, user: null },
+      states: {
+        idle: {
+          on: {
+            LOAD: () => ({
+              target: 'success',
+              context: { user: 'Ada' }
+            })
+          }
+        },
+        success: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'LOAD' });
+
+    expect(actor.getSnapshot().context).toEqual({ count: 0, user: 'Ada' });
   });
 
   it('state context schemas should reject target context mismatch', () => {

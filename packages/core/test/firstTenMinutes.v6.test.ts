@@ -91,18 +91,18 @@ describe('first ten minutes (v6)', () => {
       states: {
         name: {
           on: {
-            next: ({ context, event }) => ({
+            next: ({ event }) => ({
               target: 'email',
-              context: { ...context, name: event.value }
+              context: { name: event.value }
             })
           }
         },
         email: {
           on: {
             back: { target: 'name' },
-            next: ({ context, event }) => ({
+            next: ({ event }) => ({
               target: 'done',
-              context: { ...context, email: event.value }
+              context: { email: event.value }
             })
           }
         },
@@ -135,10 +135,10 @@ describe('first ten minutes (v6)', () => {
       },
       context: { query: '' },
       on: {
-        type: ({ context, event }, enq) => {
+        type: ({ event }, enq) => {
           enq.cancel('debounce');
           enq.raise({ type: 'search' }, { delay: 10, id: 'debounce' });
-          return { context: { ...context, query: event.value } };
+          return { context: { query: event.value } };
         },
         search: ({ context }, enq) => {
           enq(() => searches.push(context.query));

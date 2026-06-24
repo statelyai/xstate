@@ -98,7 +98,6 @@ it('should work with conditions', () => {
         on: {
           increment: ({ context }) => ({
             context: {
-              ...context,
               count: context.count + 1
             }
           }),

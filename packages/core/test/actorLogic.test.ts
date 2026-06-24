@@ -723,7 +723,6 @@ describe('logic as reducer', () => {
         if (event.type === 'toggle') {
           return {
             context: {
-              ...context,
               enabled:
                 context.enabled === 'on' ? ('off' as const) : ('on' as const)
             }

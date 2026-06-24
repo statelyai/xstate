@@ -23,50 +23,44 @@ const createCounterMachine = (context: Partial<CounterContext> = {}) =>
         on: {
           INC: ({ context }) => ({
             target: 'counting',
-            context: { ...context, count: context.count + 1 }
+            context: { count: context.count + 1 }
           }),
           DEC: ({ context }) => ({
             target: 'counting',
             context: {
-              ...context,
               count: context.count - 1
             }
           }),
-          WIN_PROP: ({ context }) => ({
+          WIN_PROP: () => ({
             target: 'counting',
             context: {
-              ...context,
               count: 100,
               foo: 'win'
             }
           }),
-          WIN_STATIC: ({ context }) => ({
+          WIN_STATIC: () => ({
             target: 'counting',
             context: {
-              ...context,
               count: 100,
               foo: 'win'
             }
           }),
-          WIN_MIX: ({ context }) => ({
+          WIN_MIX: () => ({
             target: 'counting',
             context: {
-              ...context,
               count: 100,
               foo: 'win'
             }
           }),
-          WIN: ({ context }) => ({
+          WIN: () => ({
             target: 'counting',
             context: {
-              ...context,
               count: 100,
               foo: 'win'
             }
           }),
-          SET_MAYBE: ({ context }) => ({
+          SET_MAYBE: () => ({
             context: {
-              ...context,
               maybe: 'defined'
             }
           })
@@ -252,9 +246,8 @@ describe('assigning to context', () => {
       states: {
         active: {
           on: {
-            INC: ({ context, event }) => ({
+            INC: ({ event }) => ({
               context: {
-                ...context,
                 count: event.value
               }
             })

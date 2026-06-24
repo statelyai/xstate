@@ -443,7 +443,6 @@ describe('rehydration', () => {
       on: {
         INC: ({ context }) => ({
           context: {
-            ...context,
             count: context.count + 1
           }
         })

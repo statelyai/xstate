@@ -176,6 +176,16 @@ type SetupContext<TSchemas, TContextSchema extends StandardSchemaV1> = [
   : StandardSchemaV1.InferOutput<SetupSchema<TSchemas, 'context'>> &
       MachineContext;
 
+type SetupContextShape<
+  TSchemas,
+  TContextSchema extends StandardSchemaV1,
+  TFallbackContext
+> = [SetupSchema<TSchemas, 'context'>] extends [never]
+  ? unknown extends StandardSchemaV1.InferOutput<TContextSchema>
+    ? TFallbackContext
+    : StandardSchemaV1.InferOutput<TContextSchema>
+  : StandardSchemaV1.InferOutput<SetupSchema<TSchemas, 'context'>>;
+
 type SetupContextRequired<TSchemas, TContextSchema extends StandardSchemaV1> = [
   SetupSchema<TSchemas, 'context'>
 ] extends [never]
@@ -305,6 +315,15 @@ type StateContext<
 > = TStateSchema['schemas'] extends { context: infer TContextSchema }
   ? TContextSchema extends StandardSchemaV1
     ? StandardSchemaV1.InferOutput<TContextSchema> & MachineContext
+    : TFallbackContext
+  : TFallbackContext;
+
+type StateContextShape<
+  TStateSchema extends SetupStateSchema,
+  TFallbackContext
+> = TStateSchema['schemas'] extends { context: infer TContextSchema }
+  ? TContextSchema extends StandardSchemaV1
+    ? StandardSchemaV1.InferOutput<TContextSchema>
     : TFallbackContext
   : TFallbackContext;
 
@@ -447,7 +466,14 @@ type SetupMachineConfig<
     TDelayMap,
     TContextRequired
   >,
-  'states' | 'initial' | 'actions' | 'actors' | 'guards' | 'delays'
+  | 'states'
+  | 'initial'
+  | 'on'
+  | 'always'
+  | 'actions'
+  | 'actors'
+  | 'guards'
+  | 'delays'
 > & {
   actions?: TRootActionMap;
   actors?: TRootActorMap;
@@ -469,10 +495,38 @@ type SetupMachineConfig<
     | SetupStateKey<TStateSchemas>
     | InitialTransitionWithInput<TStateSchemas, TContext, TEvent>
     | undefined;
+  on?: StateTransitions<
+    TStateSchemas,
+    TContext,
+    SetupContextShape<TSchemas, TContextSchema, TContext>,
+    TEvent,
+    TEmitted,
+    TChildren,
+    TMeta,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >;
+  always?: StateTransitionConfigOrTarget<
+    TStateSchemas,
+    TContext,
+    SetupContextShape<TSchemas, TContextSchema, TContext>,
+    TEvent,
+    TEvent,
+    TEmitted,
+    TChildren,
+    TMeta,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >;
   states?: StatesWithInput<
     TStateSchemas,
     TStateSchemas,
     TContext,
+    SetupContextShape<TSchemas, TContextSchema, TContext>,
     TEvent,
     TChildren,
     TDelays,
@@ -491,6 +545,7 @@ type StatesWithInput<
   TRootStateSchemas extends Record<string, SetupStateSchema>,
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
+  TContextShape,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
   TDelays extends string,
@@ -506,6 +561,7 @@ type StatesWithInput<
     TRootStateSchemas,
     TStateSchemas[K],
     TContext,
+    TContextShape,
     TEvent,
     TChildren,
     TDelays,
@@ -524,6 +580,7 @@ type StateNodeConfigWithNestedInput<
   TSiblingStateSchemas extends Record<string, SetupStateSchema>,
   TStateSchema extends SetupStateSchema,
   TContext extends MachineContext,
+  TContextShape,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
   TDelays extends string,
@@ -571,6 +628,7 @@ type StateNodeConfigWithNestedInput<
     on?: StateTransitions<
       TSiblingStateSchemas,
       StateContext<TStateSchema, TContext>,
+      StateContextShape<TStateSchema, TContextShape>,
       TEvent,
       TEmitted,
       TChildren,
@@ -583,6 +641,7 @@ type StateNodeConfigWithNestedInput<
     always?: StateTransitionConfigOrTarget<
       TSiblingStateSchemas,
       StateContext<TStateSchema, TContext>,
+      StateContextShape<TStateSchema, TContextShape>,
       TEvent,
       TEvent,
       TEmitted,
@@ -599,6 +658,7 @@ type StateNodeConfigWithNestedInput<
         TStateSchema['states'],
         TStateSchema['states'],
         TContext,
+        StateContextShape<TStateSchema, TContextShape>,
         TEvent,
         TChildren,
         TDelays,
@@ -632,6 +692,7 @@ type StateNodeConfigWithNestedInput<
 type StateTransitions<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
+  TContextShape,
   TEvent extends EventObject,
   TEmitted extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
@@ -644,6 +705,7 @@ type StateTransitions<
   [K in EventDescriptor<TEvent>]?: StateTransitionConfigOrTarget<
     TStateSchemas,
     TContext,
+    TContextShape,
     ExtractEvent<TEvent, K>,
     TEvent,
     TEmitted,
@@ -659,6 +721,7 @@ type StateTransitions<
 type StateTransitionConfigOrTarget<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
+  TContextShape,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TEmitted extends EventObject,
@@ -687,6 +750,7 @@ type StateTransitionConfigOrTarget<
   | StateTransitionFunction<
       TStateSchemas,
       TContext,
+      TContextShape,
       TExpressionEvent,
       TEvent,
       TEmitted,
@@ -701,6 +765,7 @@ type StateTransitionConfigOrTarget<
 type StateTransitionFunction<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
+  TContextShape,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TEmitted extends EventObject,
@@ -724,16 +789,22 @@ type StateTransitionFunction<
     delays: TDelayMap;
   },
   enq: EnqueueObject<TEvent, TEmitted>
-) => StateTransitionResult<TStateSchemas, TContext, TMeta> | void;
+) => StateTransitionResult<
+  TStateSchemas,
+  TContext,
+  TContextShape,
+  TMeta
+> | void;
 
 type StateTransitionResult<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
+  TContextShape,
   TMeta extends MetaObject
 > =
   | {
       target?: never;
-      context?: TContext;
+      context?: ContextPatch<TContextShape, TContextShape, TContext>;
       reenter?: boolean;
       meta?: TMeta;
     }
@@ -748,14 +819,53 @@ type StateTransitionResult<
               context: TContext;
               event: EventObject;
             }) => StateInput<TStateSchemas[K]>);
-      } & ([TContext] extends [StateContext<TStateSchemas[K], TContext>]
+      } & ([TContextShape] extends [
+        StateContextShape<TStateSchemas[K], TContextShape>
+      ]
         ? {
-            context?: StateContext<TStateSchemas[K], TContext>;
+            context?: ContextPatch<
+              TContextShape,
+              StateContextShape<TStateSchemas[K], TContextShape>,
+              StateContext<TStateSchemas[K], TContext>
+            >;
           }
         : {
-            context: StateContext<TStateSchemas[K], TContext>;
+            context: ContextPatch<
+              TContextShape,
+              StateContextShape<TStateSchemas[K], TContextShape>,
+              StateContext<TStateSchemas[K], TContext>
+            >;
           });
-    }[keyof TStateSchemas & string];
+    }[keyof TStateSchemas & string]
+  | {
+      target: Exclude<
+        SetupStateTarget<TStateSchemas>,
+        keyof TStateSchemas & string
+      >;
+      context?: ContextPatch<TContextShape, TContextShape, TContext>;
+      reenter?: boolean;
+      meta?: TMeta;
+    };
+
+type ContextPatch<
+  TCurrentContext,
+  TTargetContext,
+  TResolvedTargetContext extends MachineContext
+> = Compute<
+  Partial<TResolvedTargetContext> &
+    Pick<
+      TResolvedTargetContext,
+      Extract<RequiredContextKeys<TCurrentContext, TTargetContext>, string>
+    >
+>;
+
+type RequiredContextKeys<TCurrentContext, TTargetContext> = {
+  [K in keyof TTargetContext]-?: K extends keyof TCurrentContext
+    ? [TCurrentContext[K]] extends [TTargetContext[K]]
+      ? never
+      : K
+    : K;
+}[keyof TTargetContext];
 
 /** Initial transition with typed input based on target state */
 type InitialTransitionWithInput<
@@ -966,6 +1076,11 @@ interface SetupReturn<
       TStates,
       SetupStateSchema,
       SetupContext<TSchemas, StandardSchemaV1>,
+      SetupContextShape<
+        TSchemas,
+        StandardSchemaV1,
+        SetupContext<TSchemas, StandardSchemaV1>
+      >,
       SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
       Cast<
         SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,

@@ -34,7 +34,6 @@ describe('useMachine', () => {
             return {
               target: 'success',
               context: {
-                ...context,
                 data: event.output
               }
             };

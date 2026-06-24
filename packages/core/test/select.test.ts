@@ -93,7 +93,6 @@ describe('select', () => {
             // }
             INC: ({ context }) => ({
               context: {
-                ...context,
                 data: context.data + 1
               }
             })
@@ -132,13 +131,11 @@ describe('select', () => {
           on: {
             UPDATE_NAME: ({ context, event }) => ({
               context: {
-                ...context,
                 name: event.name
               }
             }),
             UPDATE_AGE: ({ context, event }) => ({
               context: {
-                ...context,
                 age: event.age
               }
             })
@@ -252,13 +249,11 @@ describe('select', () => {
           on: {
             UPDATE_USER: ({ context, event }) => ({
               context: {
-                ...context,
                 user: event.user
               }
             }),
             UPDATE_POSITION: ({ context, event }) => ({
               context: {
-                ...context,
                 position: event.position
               }
             })

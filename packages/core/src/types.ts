@@ -562,7 +562,7 @@ export type TransitionConfigFunction<
 ) => {
   target?: string | string[];
   // target?: keyof TSS['states'];
-  context?: _TCtx;
+  context?: Partial<_TCtx>;
   reenter?: boolean;
   meta?: TMeta;
 } | void;
@@ -2667,7 +2667,7 @@ export type Action<
   },
   enqueue: EnqueueObject<TEvent, TEmittedEvent>
 ) => {
-  context?: _TCtx;
+  context?: Partial<_TCtx>;
   children?: Record<string, AnyActor | undefined>;
 } | void;
 

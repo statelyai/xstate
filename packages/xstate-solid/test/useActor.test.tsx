@@ -53,7 +53,7 @@ describe('useActor', () => {
             if ((event.output as any).length > 0) {
               return {
                 target: 'success',
-                context: { ...context, data: event.output }
+                context: { data: event.output }
               };
             }
           }
@@ -382,7 +382,7 @@ describe('useActor', () => {
                 count++;
               });
               return {
-                context: { ...context, count: context.count + 1 }
+                context: { count: context.count + 1 }
               };
             }
           }
@@ -445,7 +445,6 @@ describe('useActor', () => {
           on: {
             COUNT: ({ context }) => ({
               context: {
-                ...context,
                 item: {
                   ...context.item,
                   counts: [
@@ -457,7 +456,6 @@ describe('useActor', () => {
             }),
             TOTAL: ({ context }) => ({
               context: {
-                ...context,
                 item: {
                   ...context.item,
                   totals: [
@@ -514,7 +512,6 @@ describe('useActor', () => {
           on: {
             REPLACE_ALL: ({ context }) => ({
               context: {
-                ...context,
                 numbersList: [4, 3, 2, 1, 0]
               }
             })
@@ -562,7 +559,6 @@ describe('useActor', () => {
           on: {
             INC: ({ context }) => ({
               context: {
-                ...context,
                 subCount: {
                   ...context.subCount,
                   subCount1: {
@@ -641,7 +637,6 @@ describe('useActor', () => {
           on: {
             COUNT: ({ context }) => ({
               context: {
-                ...context,
                 item: {
                   ...context.item,
                   count: context.item.count + 1
@@ -650,7 +645,6 @@ describe('useActor', () => {
             }),
             TOTAL: ({ context }) => ({
               context: {
-                ...context,
                 item: {
                   ...context.item,
                   total: context.item.total + 1
@@ -1049,7 +1043,6 @@ describe('useActor', () => {
           on: {
             INC: ({ context }) => ({
               context: {
-                ...context,
                 counter: context.counter + 1
               }
             })
@@ -1376,13 +1369,13 @@ describe('useActor', () => {
       } as any,
       entry: ({ context }, enq) => {
         enq.raise({ type: 'INC' });
-        return { context: { ...context, count: 1 } };
+        return { context: { count: 1 } };
       },
       on: {
         INC: ({ context }, enq) => {
           enq.raise({ type: 'UNHANDLED' });
           return {
-            context: { ...context, count: context.count + 1 }
+            context: { count: context.count + 1 }
           };
         }
       },
@@ -1461,7 +1454,6 @@ describe('useActor', () => {
           on: {
             INC: ({ context }) => ({
               context: {
-                ...context,
                 latestValue: {
                   value: context.latestValue.value + 1
                 }
@@ -1578,13 +1570,11 @@ describe('useActor', () => {
           on: {
             TOGGLE: ({ context }) => ({
               context: {
-                ...context,
                 isAwesome: !context.isAwesome
               }
             }),
             TOGGLE_NOT: ({ context }) => ({
               context: {
-                ...context,
                 isNotAwesome: !context.isNotAwesome
               }
             }),

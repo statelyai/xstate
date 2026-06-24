@@ -18,8 +18,16 @@ import type {
   EnqueueObject,
   EventObject,
   ExecutableActionObject,
+  MachineContext,
   SpecialExecutableAction
 } from './types.ts';
+
+function mergeContextPatch(
+  context: MachineContext,
+  patch: MachineContext
+): MachineContext {
+  return { ...context, ...patch };
+}
 
 function pushBuiltInAction(actions: any[], action: any, ...args: any[]) {
   actions.push({ action, args } as AnyAction);
@@ -306,7 +314,14 @@ export function resolveActionsWithContext(
 
       if (res && ('context' in res || 'children' in res)) {
         intermediateSnapshot = cloneMachineSnapshot(intermediateSnapshot, {
-          ...('context' in res ? { context: res.context } : {}),
+          ...(res.context !== undefined
+            ? {
+                context: mergeContextPatch(
+                  intermediateSnapshot.context,
+                  res.context
+                )
+              }
+            : {}),
           ...('children' in res ? { children: res.children } : {})
         });
       }

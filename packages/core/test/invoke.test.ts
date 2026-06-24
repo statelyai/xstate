@@ -77,7 +77,6 @@ describe('invoke', () => {
             on: {
               DEC: ({ context }) => ({
                 context: {
-                  ...context,
                   count: context.count - 1
                 }
               }),
@@ -143,7 +142,6 @@ describe('invoke', () => {
           type: 'final',
           entry: ({ context, event }) => ({
             context: {
-              ...context,
               user: event.user
             }
           })
@@ -1082,7 +1080,6 @@ describe('invoke', () => {
                 }),
                 onDone: ({ context, event }) => ({
                   context: {
-                    ...context,
                     count: (event.output as { count: number }).count
                   },
                   target: 'success'
@@ -1127,7 +1124,6 @@ describe('invoke', () => {
                   src: somePromise,
                   onDone: ({ context, event }) => ({
                     context: {
-                      ...context,
                       count: (event.output as { count: number }).count
                     },
                     target: 'success'
@@ -1182,7 +1178,6 @@ describe('invoke', () => {
                   count = (event.output as { count: number }).count;
                   return {
                     context: {
-                      ...context,
                       count: (event.output as { count: number }).count
                     },
                     target: 'success'
@@ -1371,7 +1366,6 @@ describe('invoke', () => {
                             // TODO: we get DoneInvokeEvent<any> here, this gets fixed with https://github.com/microsoft/TypeScript/pull/48838
                             return {
                               context: {
-                                ...context,
                                 result1: (event.output as { result: number })
                                   .result
                               },
@@ -1393,7 +1387,6 @@ describe('invoke', () => {
                           src: getRandomNumber,
                           onDone: ({ context, event }) => ({
                             context: {
-                              ...context,
                               result2: (event.output as { result: number })
                                 .result
                             },
@@ -2290,7 +2283,6 @@ describe('invoke', () => {
             on: {
               COUNT: ({ context, event }) => ({
                 context: {
-                  ...context,
                   count: event.value
                 }
               })
@@ -2352,7 +2344,6 @@ describe('invoke', () => {
             on: {
               COUNT: ({ context, event }) => ({
                 context: {
-                  ...context,
                   count: event.value
                 }
               })
@@ -2416,7 +2407,6 @@ describe('invoke', () => {
             on: {
               COUNT: ({ context, event }) => ({
                 context: {
-                  ...context,
                   count: event.value
                 }
               })
@@ -2823,14 +2813,12 @@ describe('invoke', () => {
       on: {
         ONE: ({ context }) => ({
           context: {
-            ...context,
             one: 'one'
           }
         }),
 
         TWO: ({ context }) => ({
           context: {
-            ...context,
             two: 'two'
           },
           target: '.three'
@@ -2897,14 +2885,12 @@ describe('invoke', () => {
       on: {
         ONE: ({ context }) => ({
           context: {
-            ...context,
             one: 'one'
           }
         }),
 
         TWO: ({ context }) => ({
           context: {
-            ...context,
             two: 'two'
           }
         })
@@ -3131,7 +3117,6 @@ describe('invoke', () => {
           inactive: {
             entry: ({ context }) => ({
               context: {
-                ...context,
                 counter: context.counter + 1
               }
             }),
