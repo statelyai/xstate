@@ -723,7 +723,7 @@ type StateTransitionFunction<
     guards: TGuardMap;
     delays: TDelayMap;
   },
-  enq: EnqueueObject<TEvent, TEmitted, TActionMap>
+  enq: EnqueueObject<TEvent, TEmitted>
 ) => StateTransitionResult<TStateSchemas, TContext, TMeta> | void;
 
 type StateTransitionResult<
@@ -740,7 +740,6 @@ type StateTransitionResult<
   | {
       [K in keyof TStateSchemas & string]: {
         target: K;
-        context: StateContext<TStateSchemas[K], TContext>;
         reenter?: boolean;
         meta?: TMeta;
         input?:
@@ -749,7 +748,13 @@ type StateTransitionResult<
               context: TContext;
               event: EventObject;
             }) => StateInput<TStateSchemas[K]>);
-      };
+      } & ([TContext] extends [StateContext<TStateSchemas[K], TContext>]
+        ? {
+            context?: StateContext<TStateSchemas[K], TContext>;
+          }
+        : {
+            context: StateContext<TStateSchemas[K], TContext>;
+          });
     }[keyof TStateSchemas & string];
 
 /** Initial transition with typed input based on target state */

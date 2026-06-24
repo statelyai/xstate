@@ -206,6 +206,36 @@ describe('setup', () => {
     expect(true).toBe(true);
   });
 
+  it('should allow target-only state transition function returns for compatible context', () => {
+    setup({
+      schemas: {
+        context: types<{ count: number }>(),
+        events: {
+          NEXT: types<{}>()
+        }
+      },
+      states: {
+        idle: {},
+        loading: {}
+      }
+    }).createMachine({
+      context: { count: 0 },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            NEXT: () => ({
+              target: 'loading'
+            })
+          }
+        },
+        loading: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
   it('should reject invalid setup-created state configs', () => {
     const s = setup({
       schemas: {
@@ -1170,6 +1200,47 @@ describe('setup', () => {
       // @ts-expect-error - matched success context should not be nullable
       snapshot.context.user satisfies null;
     }
+    expect(true).toBe(true);
+  });
+
+  it('state context schemas should require context for incompatible targets', () => {
+    const s = setup({
+      states: {
+        idle: {
+          schemas: {
+            context: z.object({ user: z.null() })
+          }
+        },
+        success: {
+          schemas: {
+            context: z.object({ user: z.string() })
+          }
+        }
+      }
+    });
+
+    s.createMachine({
+      schemas: {
+        context: z.object({ user: z.string().nullable() }),
+        events: {
+          LOAD: z.object({})
+        }
+      },
+      initial: 'idle',
+      context: { user: null },
+      states: {
+        idle: {
+          on: {
+            // @ts-expect-error - success context requires a string user
+            LOAD: () => ({
+              target: 'success'
+            })
+          }
+        },
+        success: {}
+      }
+    });
+
     expect(true).toBe(true);
   });
 
