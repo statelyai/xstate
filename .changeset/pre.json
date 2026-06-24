@@ -80,6 +80,7 @@
     "listen-subscribe-actors",
     "lossless-inspection-protocol",
     "neat-children-schemas",
+    "plain-targets",
     "portable-code-serialization",
     "proud-timers-migrate",
     "public-effect-introspection",
