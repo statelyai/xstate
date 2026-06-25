@@ -48,14 +48,14 @@ type SetupConfig<
   TSchemas extends SetupSchemas,
   TStates extends Record<string, SetupStateSchema>,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays']
 > = {
   schemas?: TSchemas;
   states?: TStates;
   actions?: TActionMap;
-  actors?: TActorMap;
+  actorSources?: TActorMap;
   guards?: TGuardMap;
   delays?: TDelayMap;
 };
@@ -95,7 +95,7 @@ type RegistryKeyMatchesSrc<
   TKey extends string,
   TSrc,
   TSystemRegistry extends SystemRegistry,
-  TActorMap extends Implementations['actors']
+  TActorMap extends Implementations['actorSources']
 > = TKey extends keyof TSystemRegistry & string
   ? TSrc extends keyof TActorMap & string
     ? LogicMatchesRegistryKey<TActorMap[TSrc], TSystemRegistry[TKey]>
@@ -107,7 +107,7 @@ type RegistryKeyMatchesSrc<
 type ValidateSystemInvoke<
   TInvoke,
   TSystemRegistry extends SystemRegistry,
-  TActorMap extends Implementations['actors']
+  TActorMap extends Implementations['actorSources']
 > = TInvoke extends readonly unknown[]
   ? {
       [K in keyof TInvoke]: TInvoke[K] &
@@ -133,7 +133,7 @@ type ValidateSystemInvoke<
 type ValidateRegistryKeys<
   TConfig,
   TSystemRegistry extends SystemRegistry,
-  TActorMap extends Implementations['actors']
+  TActorMap extends Implementations['actorSources']
 > = string extends keyof TSystemRegistry
   ? unknown
   : (TConfig extends { invoke: infer TInvoke }
@@ -543,14 +543,14 @@ type SetupMachineConfig<
   TEmitted extends EventObject,
   TMeta extends MetaObject,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TSystemRegistry extends SystemRegistry,
   TContextRequired extends boolean,
   TRootDelays extends string = TDelays,
   TRootActionMap extends Implementations['actions'] = TActionMap,
-  TRootActorMap extends Implementations['actors'] = TActorMap,
+  TRootActorMap extends Implementations['actorSources'] = TActorMap,
   TRootGuardMap extends Implementations['guards'] = TGuardMap
 > = Omit<
   Next_MachineConfig<
@@ -579,12 +579,12 @@ type SetupMachineConfig<
   | 'on'
   | 'always'
   | 'actions'
-  | 'actors'
+  | 'actorSources'
   | 'guards'
   | 'delays'
 > & {
   actions?: TRootActionMap;
-  actors?: TRootActorMap;
+  actorSources?: TRootActorMap;
   guards?: TRootGuardMap;
   delays?: {
     [K in TRootDelays | number]?:
@@ -664,7 +664,7 @@ type StatesWithInput<
   TEmitted extends EventObject,
   TMeta extends MetaObject,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TSystemRegistry extends SystemRegistry
@@ -701,7 +701,7 @@ type StateNodeConfigWithNestedInput<
   TEmitted extends EventObject,
   TMeta extends MetaObject,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TSystemRegistry extends SystemRegistry
@@ -819,7 +819,7 @@ type StateTransitions<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TMeta extends MetaObject,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TSystemRegistry extends SystemRegistry
@@ -851,7 +851,7 @@ type StateTransitionConfigOrTarget<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TMeta extends MetaObject,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TSystemRegistry extends SystemRegistry
@@ -916,7 +916,7 @@ type StateTransitionFunction<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TMeta extends MetaObject,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TSystemRegistry extends SystemRegistry
@@ -930,7 +930,7 @@ type StateTransitionFunction<
     children: TChildren;
     system: SystemRuntime<TSystemRegistry>;
     actions: TActionMap;
-    actors: TActorMap;
+    actorSources: TActorMap;
     guards: TGuardMap;
     delays: TDelayMap;
   } & OutputArg<TExpressionEvent>,
@@ -1040,7 +1040,7 @@ interface SetupReturn<
   >,
   TSchemas extends SetupSchemas = {},
   TSetupActionMap extends Implementations['actions'] = {},
-  TSetupActorMap extends Implementations['actors'] = {},
+  TSetupActorMap extends Implementations['actorSources'] = {},
   TSetupGuardMap extends Implementations['guards'] = {},
   TSetupDelayMap extends Implementations['delays'] = {},
   TSetupDelays extends string = Extract<keyof TSetupDelayMap, string>,
@@ -1051,7 +1051,7 @@ interface SetupReturn<
     const TExtendSchemas extends SetupSchemas = {},
     const TExtendStates extends Record<string, SetupStateSchema> = {},
     TExtendActionMap extends Implementations['actions'] = {},
-    TExtendActorMap extends Implementations['actors'] = {},
+    TExtendActorMap extends Implementations['actorSources'] = {},
     TExtendGuardMap extends Implementations['guards'] = {},
     TExtendDelayMap extends Implementations['delays'] = {}
   >(
@@ -1096,7 +1096,7 @@ interface SetupReturn<
     _TEvent extends EventObject = EventObject,
     TActor extends ProvidedActor = ProvidedActor,
     TActionMap extends Implementations['actions'] = {},
-    TActorMap extends Implementations['actors'] = {},
+    TActorMap extends Implementations['actorSources'] = {},
     TGuardMap extends Implementations['guards'] = {},
     TDelayMap extends Implementations['delays'] = {},
     TDelays extends string = Extract<keyof TDelayMap, string>,
@@ -1181,7 +1181,7 @@ interface SetupReturn<
         children?: TChildrenSchemaMap;
       };
       actions?: TActionMap;
-      actors?: TActorMap;
+      actorSources?: TActorMap;
       guards?: TGuardMap;
       delays?: TDelayMap;
     } & TConfig &
@@ -1304,7 +1304,7 @@ export function setup<
     SetupStateSchema
   >,
   TActionMap extends Implementations['actions'] = {},
-  TActorMap extends Implementations['actors'] = {},
+  TActorMap extends Implementations['actorSources'] = {},
   TGuardMap extends Implementations['guards'] = {},
   TDelayMap extends Implementations['delays'] = {}
 >(
@@ -1321,7 +1321,7 @@ export function setup<
     states = {} as TStates,
     schemas,
     actions,
-    actors,
+    actorSources,
     guards,
     delays
   } = config;
@@ -1334,7 +1334,10 @@ export function setup<
       const configSchemas = machineConfig.schemas;
       const mergedSchemas = mergeSchemas(configSchemas, schemas);
       const mergedActions = mergeMaps(actions, machineConfig.actions);
-      const mergedActors = mergeMaps(actors, machineConfig.actors);
+      const mergedActorSources = mergeMaps(
+        actorSources,
+        machineConfig.actorSources
+      );
       const mergedGuards = mergeMaps(guards, machineConfig.guards);
       const mergedDelays = mergeMaps(delays, machineConfig.delays);
 
@@ -1342,7 +1345,9 @@ export function setup<
         ...machineConfig,
         ...(mergedSchemas ? { schemas: mergedSchemas } : undefined),
         ...(mergedActions ? { actions: mergedActions } : undefined),
-        ...(mergedActors ? { actors: mergedActors } : undefined),
+        ...(mergedActorSources
+          ? { actorSources: mergedActorSources }
+          : undefined),
         ...(mergedGuards ? { guards: mergedGuards } : undefined),
         ...(mergedDelays ? { delays: mergedDelays } : undefined)
       } as any);
@@ -1377,7 +1382,7 @@ type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
       SetupStateSchema
     >,
     TActionMap extends Implementations['actions'] = {},
-    TActorMap extends Implementations['actors'] = {},
+    TActorMap extends Implementations['actorSources'] = {},
     TGuardMap extends Implementations['guards'] = {},
     TDelayMap extends Implementations['delays'] = {}
   >(
@@ -1501,7 +1506,7 @@ function mergeSetupConfigs<
     schemas: mergeSchemas(base.schemas, extension.schemas),
     states: mergeMaps(base.states, extension.states),
     actions: mergeMaps(base.actions, extension.actions),
-    actors: mergeMaps(base.actors, extension.actors),
+    actorSources: mergeMaps(base.actorSources, extension.actorSources),
     guards: mergeMaps(base.guards, extension.guards),
     delays: mergeMaps(base.delays, extension.delays)
   } as TBase & TExtension;

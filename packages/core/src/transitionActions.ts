@@ -279,7 +279,7 @@ export function resolveActionsWithContext(
       children: intermediateSnapshot.children,
       parent: actorScope.self._parent,
       actions: currentSnapshot.machine.implementations.actions,
-      actors: currentSnapshot.machine.implementations.actors
+      actorSources: currentSnapshot.machine.implementations.actorSources
     };
 
     let actionParams = undefined;

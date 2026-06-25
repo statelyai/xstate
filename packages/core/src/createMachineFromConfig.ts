@@ -213,7 +213,7 @@ export interface MachineJSON extends StateNodeJSON {
   version?: string;
   actions?: Record<string, unknown>;
   guards?: Record<string, unknown>;
-  actors?: Record<string, unknown>;
+  actorSources?: Record<string, unknown>;
   delays?: Record<string, unknown>;
   schemas?: Record<string, unknown>;
 }
@@ -226,7 +226,7 @@ interface UnserializableMarker {
 interface MachineImplementations {
   actions?: Record<string, (...args: any[]) => unknown>;
   guards?: Record<string, (...args: any[]) => boolean>;
-  actors?: Record<string, AnyActorLogic>;
+  actorSources?: Record<string, AnyActorLogic>;
   delays?: Record<string, number | ((...args: any[]) => number)>;
 }
 
@@ -263,7 +263,7 @@ function assertNoUnresolvedMarkers(value: unknown, path = '$'): void {
       path === '$' &&
       (key === 'actions' ||
         key === 'guards' ||
-        key === 'actors' ||
+        key === 'actorSources' ||
         key === 'delays' ||
         key === 'schemas');
     if (isImplementationMarker) {
@@ -277,7 +277,7 @@ function assertRootImplementationMarkers(
   json: MachineJSON,
   implementations: MachineImplementations
 ): void {
-  for (const kind of ['actions', 'guards', 'actors', 'delays'] as const) {
+  for (const kind of ['actions', 'guards', 'actorSources', 'delays'] as const) {
     const map = json[kind];
     if (!map) {
       continue;
@@ -319,7 +319,7 @@ function mergeImplementations(
   return {
     actions: implementations.actions ?? {},
     guards: implementations.guards ?? {},
-    actors: implementations.actors ?? {},
+    actorSources: implementations.actorSources ?? {},
     delays: {
       ...extractSerializableDelays(json.delays),
       ...(implementations.delays ?? {})
@@ -721,10 +721,10 @@ export function createMachineFromConfig(
         );
       } else if (isUnserializableMarker(inv.src)) {
         src = inv.src.id
-          ? resolvedImplementations.actors[inv.src.id]
+          ? resolvedImplementations.actorSources[inv.src.id]
           : undefined;
         if (!src) {
-          throw new Error(`Missing actors.${inv.src.id ?? ''}`);
+          throw new Error(`Missing actorSources.${inv.src.id ?? ''}`);
         }
       } else {
         src = inv.src;
@@ -1281,7 +1281,7 @@ export function createMachineFromConfig(
   };
   const provided = machine.provide({
     actions: resolvedImplementations.actions,
-    actors: resolvedImplementations.actors,
+    actorSources: resolvedImplementations.actorSources,
     guards: {
       ...providedGuards,
       ...resolvedImplementations.guards

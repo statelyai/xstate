@@ -15,7 +15,7 @@ export const workflow = createMachine({
       order: Order;
     }
   },
-  actors: {
+  actorSources: {
     provisionOrderFunction: createAsyncLogic({
       schemas: {
         input: z.custom<{

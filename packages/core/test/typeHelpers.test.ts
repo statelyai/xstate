@@ -131,7 +131,7 @@ describe('MachineImplementationsFrom', () => {
       actions: {
         foo: () => {}
       },
-      actors: {},
+      actorSources: {},
       guards: {},
       delays: {}
     });

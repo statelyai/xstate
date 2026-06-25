@@ -202,7 +202,7 @@ export const workflow = createMachine({
       type: 'final'
     }
   },
-  actors: {
+  actorSources: {
     'Get status for book': createAsyncLogic({
       run: async ({ input }) => {
         console.log('Starting Get status for book', input);

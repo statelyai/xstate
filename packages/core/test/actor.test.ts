@@ -235,15 +235,15 @@ describe('spawning machines', () => {
       context: {
         ref: null! as AnyActorRef
       },
-      actors: {
+      actorSources: {
         childMachine
       },
       initial: 'waiting',
       states: {
         waiting: {
-          entry: ({ actors }, enq) => ({
+          entry: ({ actorSources }, enq) => ({
             context: {
-              ref: enq.spawn(actors.childMachine)
+              ref: enq.spawn(actorSources.childMachine)
             }
           }),
           on: {
@@ -331,7 +331,7 @@ describe('spawning promises', () => {
           promiseRef: z.custom<AsyncActorRef<string>>().optional()
         })
       },
-      actors: {
+      actorSources: {
         somePromise: createAsyncLogic({
           run: () => Promise.resolve('response')
         })
@@ -343,9 +343,11 @@ describe('spawning promises', () => {
       },
       states: {
         idle: {
-          entry: ({ actors }: any, enq: any) => ({
+          entry: ({ actorSources }: any, enq: any) => ({
             context: {
-              promiseRef: enq.spawn(actors.somePromise, { id: 'my-promise' })
+              promiseRef: enq.spawn(actorSources.somePromise, {
+                id: 'my-promise'
+              })
             }
           }),
           on: {
@@ -555,7 +557,7 @@ describe('spawning observables', () => {
       context: {
         observableRef: undefined! as AnyActorRef
       },
-      actors: {
+      actorSources: {
         interval: createObservableLogic(() => interval(10))
       },
       states: {
@@ -663,13 +665,13 @@ describe('spawning observables', () => {
     const intervalActor = createObservableLogic(() => interval(10));
     const parentMachine = createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'interval';
       //     id: 'childActor';
       //     logic: typeof intervalActor;
       //   };
       // },
-      actors: {
+      actorSources: {
         interval: intervalActor
       },
       initial: 'active',
@@ -677,7 +679,7 @@ describe('spawning observables', () => {
         active: {
           invoke: {
             id: 'childActor',
-            src: ({ actors }) => actors.interval,
+            src: ({ actorSources }) => actorSources.interval,
             // onSnapshot: {
             //   target: 'success',
             //   guard: ({ event }) => {
@@ -720,13 +722,13 @@ describe('spawning observables', () => {
     const intervalActor = createObservableLogic(() => interval(10));
     const parentMachine = createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'interval';
       //     id: 'childActor';
       //     logic: typeof intervalActor;
       //   };
       // },
-      actors: {
+      actorSources: {
         interval: intervalActor
       },
       initial: 'active',
@@ -734,7 +736,7 @@ describe('spawning observables', () => {
         active: {
           invoke: {
             id: 'childActor',
-            src: ({ actors }) => actors.interval,
+            src: ({ actorSources }) => actorSources.interval,
             // onSnapshot: {
             //   target: 'success',
             //   guard: ({ event }) => {
@@ -850,7 +852,7 @@ describe('spawning event observables', () => {
           COUNT: z.object({ val: z.number() })
         }
       },
-      actors: {
+      actorSources: {
         interval: createEventObservableLogic(() =>
           interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
         )
@@ -1176,11 +1178,11 @@ describe('actors', () => {
           ref2: z.custom<AnyActorRef>()
         })
       },
-      context: ({ spawn, actors }) => ({
-        ref1: spawn(actors.child1),
-        ref2: spawn(actors.child2)
+      context: ({ spawn, actorSources }) => ({
+        ref1: spawn(actorSources.child1),
+        ref2: spawn(actorSources.child2)
       }),
-      actors: {
+      actorSources: {
         child1: createCallbackLogic(() => cleanup1),
         child2: createCallbackLogic(() => cleanup2)
       }
@@ -2068,10 +2070,10 @@ describe('actors', () => {
           enq(spy, event.output);
         }
       }
-    }).provide({ actors: sharedActors });
+    }).provide({ actorSources: sharedActors });
     createMachine({
       invoke: { src: createAsyncLogic({ run: async () => 100 }) }
-    }).provide({ actors: sharedActors });
+    }).provide({ actorSources: sharedActors });
     createActor(m1).start();
     await sleep(1);
     expect(spy).toHaveBeenCalledTimes(1);

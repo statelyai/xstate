@@ -1,7 +1,7 @@
 import { createMachine, createCallbackLogic } from 'xstate';
 
 export const stopwatchMachine = createMachine({
-  actors: {
+  actorSources: {
     ticks: createCallbackLogic(({ sendBack }) => {
       const interval = setInterval(() => {
         sendBack({ type: 'TICK' });

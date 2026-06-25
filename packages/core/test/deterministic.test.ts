@@ -267,7 +267,7 @@ describe('deterministic machine', () => {
         }
       }
       // {
-      //   actors: {
+      //   actorSources: {
       //     activity: createCallbackLogic(() => () => {})
       //   }
       // }

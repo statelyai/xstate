@@ -33,7 +33,7 @@ describe('spawnChild action', () => {
     const actor = createActor(
       createMachine({
         // types: {
-        //   actors: {} as {
+        //   actorSources: {} as {
         //     src: 'fetchNum';
         //     logic: typeof fetchNum;
         //   }
@@ -42,7 +42,7 @@ describe('spawnChild action', () => {
           enq.spawn(fetchNum, { id: 'child', input: 21 });
         }
       }).provide({
-        actors: { fetchNum }
+        actorSources: { fetchNum }
       })
     );
 

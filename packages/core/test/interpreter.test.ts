@@ -534,7 +534,7 @@ describe('interpreter', () => {
           }
         }
         // {
-        //   actors: {
+        //   actorSources: {
         //     myActivity: createCallbackLogic(spy)
         //   }
         // }
@@ -566,7 +566,7 @@ describe('interpreter', () => {
           }
         }
         // {
-        //   actors: {
+        //   actorSources: {
         //     myActivity: createCallbackLogic(() => spy)
         //   }
         // }
@@ -602,7 +602,7 @@ describe('interpreter', () => {
           }
         }
         // {
-        //   actors: {
+        //   actorSources: {
         //     myActivity: createCallbackLogic(() => spy)
         //   }
         // }
@@ -647,7 +647,7 @@ describe('interpreter', () => {
           }
         }
         // {
-        //   actors: {
+        //   actorSources: {
         //     blink: createCallbackLogic(() => {
         //       activityActive = true;
         //       return () => {
@@ -1670,7 +1670,7 @@ describe('interpreter', () => {
           }
         }
         // {
-        //   actors: {
+        //   actorSources: {
         //     testService: child
         //   }
         // }
@@ -1769,7 +1769,7 @@ describe('interpreter', () => {
           }
         }
         // {
-        //   actors: {
+        //   actorSources: {
         //     num: createAsyncLogic(
         //       () =>
         //         new Promise<number>((res) => {
@@ -1813,7 +1813,7 @@ describe('interpreter', () => {
       const parentMachine = createMachine(
         {
           // types: {} as {
-          //   actors: {
+          //   actorSources: {
           //     src: 'intervalLogic';
           //     logic: typeof intervalLogic;
           //   };
@@ -1843,7 +1843,7 @@ describe('interpreter', () => {
           }
         }
         // {
-        //   actors: {
+        //   actorSources: {
         //     intervalLogic
         //   }
         // }

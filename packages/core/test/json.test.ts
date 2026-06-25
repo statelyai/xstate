@@ -279,7 +279,7 @@ describe('json', () => {
           }
         },
         {
-          actors: { worker }
+          actorSources: { worker }
         }
       )
     ).start();
@@ -309,7 +309,7 @@ describe('json', () => {
             done: {}
           }
         },
-        { actors: { worker } }
+        { actorSources: { worker } }
       )
     ).start();
 
@@ -395,7 +395,7 @@ describe('json', () => {
             }
           }
         },
-        { actors: { worker } }
+        { actorSources: { worker } }
       )
     ).start();
 
@@ -419,7 +419,7 @@ describe('json', () => {
             seen: {}
           }
         },
-        { actors: { worker } }
+        { actorSources: { worker } }
       )
     ).start();
 
@@ -474,7 +474,7 @@ describe('json', () => {
             timedOut: {}
           }
         },
-        { actors: { worker } }
+        { actorSources: { worker } }
       ),
       { clock }
     ).start();

@@ -70,7 +70,7 @@ describe('invoke', () => {
         id: 'parent',
         // types: {} as {
         //   context: { count: number };
-        //   actors: {
+        //   actorSources: {
         //     src: 'child';
         //     id: 'someService';
         //     logic: typeof childMachine;
@@ -111,7 +111,7 @@ describe('invoke', () => {
         }
       }
       // {
-      //   actors: {
+      //   actorSources: {
       //     child: childMachine
       //   }
       // }
@@ -436,7 +436,7 @@ describe('invoke', () => {
 
     const actor = createActor(
       someParentMachine.provide({
-        actors: {
+        actorSources: {
           child: createMachine({
             id: 'child',
             initial: 'init',
@@ -599,7 +599,7 @@ describe('invoke', () => {
       const pingMachine = createMachine({
         id: 'ping',
         type: 'parallel',
-        actors: {
+        actorSources: {
           pongMachine
         },
         states: {
@@ -1069,7 +1069,7 @@ describe('invoke', () => {
             }
           }
           // {
-          //   actors: {
+          //   actorSources: {
           //     somePromise: createAsyncLogic(() =>
           //       createPromise((resolve) => resolve())
           //     )
@@ -1192,7 +1192,7 @@ describe('invoke', () => {
             }
           }
           // {
-          //   actors: {
+          //   actorSources: {
           //     somePromise: createAsyncLogic(() =>
           //       createPromise((resolve) => resolve({ count: 1 }))
           //     )
@@ -1289,7 +1289,7 @@ describe('invoke', () => {
             }
           }
           // {
-          //   actors: {
+          //   actorSources: {
           //     somePromise: createAsyncLogic(() =>
           //       createPromise((resolve) => resolve({ count: 1 }))
           //     )
@@ -1363,7 +1363,7 @@ describe('invoke', () => {
             }
           }
           // {
-          //   actors: {
+          //   actorSources: {
           //     somePromise: promiseActor
           //   }
           // }
@@ -1392,7 +1392,7 @@ describe('invoke', () => {
             //     result1: number | null;
             //     result2: number | null;
             //   };
-            //   actors: {
+            //   actorSources: {
             //     src: 'getRandomNumber';
             //     logic: AsyncActorLogic<{ result: number }>;
             //   };
@@ -1464,7 +1464,7 @@ describe('invoke', () => {
             }
           }
           // {
-          //   actors: {
+          //   actorSources: {
           //     // it's important for this actor to be reused, this test shouldn't use a factory or anything like that
           //     getRandomNumber: createAsyncLogic(() => {
           //       return createPromise((resolve) =>
@@ -1574,7 +1574,7 @@ describe('invoke', () => {
           // types: {} as {
           //   context: { foo: boolean };
           //   events: BeginEvent | CallbackEvent;
-          //   actors: {
+          //   actorSources: {
           //     src: 'someCallback';
           //     logic: typeof someCallback;
           //   };
@@ -1621,7 +1621,7 @@ describe('invoke', () => {
           }
         }
         // {
-        //   actors: {
+        //   actorSources: {
         //     someCallback
         //   }
         // }
@@ -1755,7 +1755,7 @@ describe('invoke', () => {
           }
         }
         // {
-        //   actors: {
+        //   actorSources: {
         //     someCallback: createCallbackLogic(({ sendBack }) => {
         //       sendBack({ type: 'CALLBACK' });
         //     })
@@ -3371,7 +3371,7 @@ describe('invoke', () => {
           }
         }
         // {
-        //   actors: {
+        //   actorSources: {
         //     someSrc: createCallbackLogic(() => {
         //       /* ... */
         //     })

@@ -1252,19 +1252,19 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: {
+      actorSources: {
         child
       },
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child);
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child);
         enq.spawn(
           // @ts-expect-error
-          actors.other
+          actorSources.other
         );
       }
     });
@@ -1275,16 +1275,16 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: {
+      actorSources: {
         child
       },
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child);
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child);
       }
     });
   });
@@ -1294,17 +1294,17 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     id: 'ok1' | 'ok2';
       //     logic: typeof child;
       //   };
       // },
-      actors: {
+      actorSources: {
         child
       },
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, { id: 'ok1' });
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, { id: 'ok1' });
       }
     });
   });
@@ -1314,13 +1314,13 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     id: 'ok1' | 'ok2';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: spawnChild(
       //   // @ts-expect-error
       //   'child',
@@ -1328,8 +1328,8 @@ describe('spawnChild action', () => {
       //     id: 'child'
       //   }
       // )
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, { id: 'child' });
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, { id: 'child' });
       }
     });
   });
@@ -1339,18 +1339,18 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     id: 'ok1' | 'ok2';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry:
       //   // @ts-expect-error
       //   spawnChild('child')
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child);
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child);
       }
     });
   });
@@ -1360,15 +1360,15 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: spawnChild('child')
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child);
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child);
       }
     });
   });
@@ -1378,15 +1378,15 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: spawnChild('child', { id: 'someId' })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, { id: 'someId' });
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, { id: 'someId' });
       }
     });
   });
@@ -1406,14 +1406,14 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child1;
       //   };
       // },
-      actors: { child1 },
+      actorSources: { child1 },
       // entry: spawnChild(child2)
-      entry: ({ actors }, enq) => {
+      entry: ({ actorSources }, enq) => {
         enq.spawn(child2);
       }
     });
@@ -1444,19 +1444,19 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child1;
       //     id: 'myChild';
       //   };
       // },
-      actors: { child1 },
+      actorSources: { child1 },
       // entry: spawnChild(
       //   // @ts-expect-error
       //   child2,
       //   { id: 'myChild' }
       // )
-      entry: ({ actors }, enq) => {
+      entry: ({ actorSources }, enq) => {
         enq.spawn(child2, { id: 'myChild' });
       }
     });
@@ -1469,12 +1469,12 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: spawnChild(
       //   // @ts-expect-error
       //   'child',
@@ -1482,8 +1482,8 @@ describe('spawnChild action', () => {
       //     input: 'hello'
       //   }
       // )
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, {
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, {
           // @ts-expect-error
           input: 'hello'
         });
@@ -1498,17 +1498,17 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: spawnChild('child', {
       //   input: 42
       // })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, {
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, {
           input: 42
         });
       }
@@ -1522,17 +1522,17 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: spawnChild('child', {
       //   input: 42
       // })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, {
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, {
           input: 42
         });
       }
@@ -1546,12 +1546,12 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: spawnChild(
       //   // @ts-expect-error
       //   'child',
@@ -1559,8 +1559,8 @@ describe('spawnChild action', () => {
       //     input: Math.random() > 0.5 ? 'string' : 42
       //   }
       // )
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, {
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, {
           // @ts-expect-error
           input: Math.random() > 0.5 ? 'string' : 42
         });
@@ -1575,12 +1575,12 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: spawnChild(
       //   // @ts-expect-error
       //   'child',
@@ -1588,8 +1588,8 @@ describe('spawnChild action', () => {
       //     input: () => 'hello'
       //   }
       // )
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, {
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, {
           // @ts-expect-error
           input: 'hello'
         });
@@ -1604,17 +1604,17 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: spawnChild('child', {
       //   input: () => 42
       // })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, {
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, {
           input: 42
         });
       }
@@ -1628,12 +1628,12 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: spawnChild(
       //   // @ts-expect-error
       //   'child',
@@ -1641,8 +1641,8 @@ describe('spawnChild action', () => {
       //     input: () => (Math.random() > 0.5 ? 42 : 'hello')
       //   }
       // )
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, {
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, {
           // @ts-expect-error
           input: Math.random() > 0.5 ? 42 : 'hello'
         });
@@ -1657,17 +1657,17 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: spawnChild('child', {
       //   input: () => 'hello'
       // })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, {
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, {
           input: 'hello'
         });
       }
@@ -1685,7 +1685,7 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors:
+      //   actorSources:
       //     | {
       //         src: 'child1';
       //         logic: typeof child1;
@@ -1695,14 +1695,14 @@ describe('spawnChild action', () => {
       //         logic: typeof child2;
       //       };
       // },
-      actors: { child1, child2 },
+      actorSources: { child1, child2 },
       // entry:
       //   // @ts-expect-error
       //   spawnChild('child1', {
       //     input: 'hello'
       //   })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child1, {
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child1, {
           // @ts-expect-error
           input: 'hello'
         });
@@ -1717,19 +1717,19 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: assign(({ spawn }) => {
       //   // @ts-expect-error
       //   spawn('child');
       //   return {};
       // })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child);
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child);
       }
     });
   });
@@ -1741,18 +1741,18 @@ describe('spawnChild action', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: assign(({ spawn }) => {
       //   spawn('child');
       //   return {};
       // })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child);
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child);
       }
     });
   });
@@ -1764,21 +1764,21 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: assign(({ spawn }) => {
       //   // @ts-expect-error
       //   spawn('other');
       //   return {};
       // })
-      entry: ({ actors }, enq) => {
+      entry: ({ actorSources }, enq) => {
         enq.spawn(
           // @ts-expect-error
-          actors.other
+          actorSources.other
         );
         return {};
       }
@@ -1790,18 +1790,18 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: assign(({ spawn }) => {
       //   spawn('child');
       //   return {};
       // })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child);
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child);
         return {};
       }
     });
@@ -1812,13 +1812,13 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     id: 'ok1' | 'ok2';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: assign(({ spawn }) => {
       //   spawn('child', { id: 'ok1' });
       //   return {};
@@ -1835,13 +1835,13 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     id: 'ok1' | 'ok2';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: assign(({ spawn }) => {
       //   // @ts-expect-error
       //   spawn('child', {
@@ -1849,8 +1849,8 @@ describe('spawner in assign', () => {
       //   });
       //   return {};
       // })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, { id: 'child' });
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, { id: 'child' });
         return {};
       }
     });
@@ -1861,13 +1861,13 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     id: 'ok1' | 'ok2';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: assign(({ spawn }) => {
       //   // @ts-expect-error
       //   spawn('child');
@@ -1885,12 +1885,12 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: assign(({ spawn }) => {
       //   spawn('child');
       //   return {};
@@ -1907,12 +1907,12 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: assign(({ spawn }) => {
       //   spawn('child', { id: 'someId' });
       //   return {};
@@ -1949,12 +1949,12 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child1;
       //   };
       // },
-      actors: { child1 },
+      actorSources: { child1 },
       // entry: assign(({ spawn }) => {
       //   spawn(child2);
       //   return {};
@@ -1991,13 +1991,13 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child1;
       //     id: 'myChild';
       //   };
       // },
-      actors: { child1 },
+      actorSources: { child1 },
       // entry: assign(({ spawn }) => {
       //   // @ts-expect-error
       //   spawn(child2, { id: 'myChild' });
@@ -2017,12 +2017,12 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: assign(({ spawn }) => {
       //   // @ts-expect-error
       //   spawn('child', {
@@ -2030,8 +2030,8 @@ describe('spawner in assign', () => {
       //   });
       //   return {};
       // })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, {
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, {
           // @ts-expect-error
           input: 'hello'
         });
@@ -2047,20 +2047,20 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: assign(({ spawn }) => {
       //   spawn('child', {
       //     input: 42
       //   });
       //   return {};
       // })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, {
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, {
           input: 42
         });
         return {};
@@ -2075,20 +2075,20 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: assign(({ spawn }) => {
       //   spawn('child', {
       //     input: 42
       //   });
       //   return {};
       // })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, {
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, {
           input: 42
         });
         return {};
@@ -2103,12 +2103,12 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: assign(({ spawn }) => {
       //   // @ts-expect-error
       //   spawn('child', {
@@ -2116,8 +2116,8 @@ describe('spawner in assign', () => {
       //   });
       //   return {};
       // })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, {
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, {
           // @ts-expect-error
           input: Math.random() > 0.5 ? 'string' : 42
         });
@@ -2133,14 +2133,14 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child, {
+      actorSources: { child },
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child, {
           // @ts-expect-error
           input: () => 42
         });
@@ -2266,19 +2266,19 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: assign(({ spawn }) => {
       //   // @ts-expect-error
       //   spawn('child');
       //   return {};
       // })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child);
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child);
       }
     });
   });
@@ -2290,18 +2290,18 @@ describe('spawner in assign', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // entry: assign(({ spawn }) => {
       //   spawn('child');
       //   return {};
       // })
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.child);
+      entry: ({ actorSources }, enq) => {
+        enq.spawn(actorSources.child);
       }
     });
   });
@@ -2313,16 +2313,16 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       invoke: {
-        src: ({ actors }) =>
+        src: ({ actorSources }) =>
           // @ts-expect-error
-          actors.other
+          actorSources.other
       }
     });
   });
@@ -2332,14 +2332,14 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       invoke: {
-        src: ({ actors }) => actors.child
+        src: ({ actorSources }) => actorSources.child
       }
     });
   });
@@ -2348,7 +2348,7 @@ describe('invoke', () => {
     const child = createAsyncLogic({ run: () => Promise.resolve('foo') });
 
     createMachine({
-      actors: { child },
+      actorSources: { child },
       invoke: {
         src: 'child'
       }
@@ -2402,10 +2402,10 @@ describe('invoke', () => {
     noop(wrongOutput);
 
     setup({
-      actors: { loadUser }
+      actorSources: { loadUser }
     }).createMachine({
       invoke: {
-        src: ({ actors }) => actors.loadUser,
+        src: ({ actorSources }) => actorSources.loadUser,
         input: { userId: '42' },
         onDone: ({ event, output }) => {
           const name: string = output.name;
@@ -2460,7 +2460,7 @@ describe('invoke', () => {
     noop(typedCustomOutputEvent);
 
     setup({
-      actors: { loadUser }
+      actorSources: { loadUser }
     }).createMachine({
       // @ts-expect-error
       invoke: {
@@ -2588,7 +2588,7 @@ describe('invoke', () => {
     const child = createAsyncLogic({ run: () => Promise.resolve('foo') });
 
     createMachine({
-      actors: { child },
+      actorSources: { child },
       // @ts-expect-error
       invoke: {
         src: 'other'
@@ -2609,16 +2609,16 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     id: 'ok1' | 'ok2';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       invoke: {
         id: 'ok1',
-        src: ({ actors }) => actors.child
+        src: ({ actorSources }) => actorSources.child
       }
     });
   });
@@ -2628,16 +2628,16 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     id: 'ok1' | 'ok2';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       invoke: {
         id: 'child',
-        src: ({ actors }) => actors.child
+        src: ({ actorSources }) => actorSources.child
       }
     });
   });
@@ -2647,15 +2647,15 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     id: 'ok1' | 'ok2';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       invoke: {
-        src: ({ actors }) => actors.child
+        src: ({ actorSources }) => actorSources.child
       }
     });
   });
@@ -2665,14 +2665,14 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       invoke: {
-        src: ({ actors }) => actors.child
+        src: ({ actorSources }) => actorSources.child
       }
     });
   });
@@ -2682,15 +2682,15 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       invoke: {
         id: 'someId',
-        src: ({ actors }) => actors.child
+        src: ({ actorSources }) => actorSources.child
       }
     });
   });
@@ -2710,12 +2710,12 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child1;
       //   };
       // },
-      actors: { child1 },
+      actorSources: { child1 },
       invoke: {
         src: child2
       }
@@ -2737,13 +2737,13 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child1;
       //     id: 'myChild';
       //   };
       // },
-      actors: { child1 },
+      actorSources: { child1 },
       invoke: {
         src: child2,
         id: 'myChild'
@@ -2758,15 +2758,15 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // @ts-expect-error - static input is checked against the logic's input type
       invoke: {
-        src: ({ actors }) => actors.child,
+        src: ({ actorSources }) => actorSources.child,
         input: 'hello'
       }
     });
@@ -2779,14 +2779,14 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       invoke: {
-        src: ({ actors }) => actors.child,
+        src: ({ actorSources }) => actorSources.child,
         input: 42
       }
     });
@@ -2799,14 +2799,14 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       invoke: {
-        src: ({ actors }) => actors.child,
+        src: ({ actorSources }) => actorSources.child,
         input: 42
       }
     });
@@ -2819,15 +2819,15 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // @ts-expect-error - static input is checked against the logic's input type
       invoke: {
-        src: ({ actors }) => actors.child,
+        src: ({ actorSources }) => actorSources.child,
         input: Math.random() > 0.5 ? 'string' : 42
       }
     });
@@ -2840,14 +2840,14 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       invoke: {
-        src: (({ actors }: any) => actors.child) as any,
+        src: (({ actorSources }: any) => actorSources.child) as any,
         input: () => 'hello'
       }
     });
@@ -2860,14 +2860,14 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       invoke: {
-        src: ({ actors }) => actors.child,
+        src: ({ actorSources }) => actorSources.child,
         input: () => 42
       }
     });
@@ -2880,15 +2880,15 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       // @ts-expect-error - input mapper is checked against the logic's input type
       invoke: {
-        src: ({ actors }) => actors.child,
+        src: ({ actorSources }) => actorSources.child,
         input: () => (Math.random() > 0.5 ? 42 : 'hello')
       }
     });
@@ -2901,14 +2901,14 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       invoke: {
-        src: ({ actors }) => actors.child,
+        src: ({ actorSources }) => actorSources.child,
         input: () => 'hello'
       }
     });
@@ -2921,14 +2921,14 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       invoke: {
-        src: ({ actors }) => actors.child
+        src: ({ actorSources }) => actorSources.child
       }
     });
   });
@@ -2940,14 +2940,14 @@ describe('invoke', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       invoke: {
-        src: ({ actors }) => actors.child
+        src: ({ actorSources }) => actorSources.child
       }
     });
   });
@@ -2959,14 +2959,14 @@ describe('actor implementations', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // }
-      actors: { child }
+      actorSources: { child }
     }).provide({
-      actors: {
+      actorSources: {
         // @ts-expect-error
         other: child
       }
@@ -2978,14 +2978,14 @@ describe('actor implementations', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // }
-      actors: { child }
+      actorSources: { child }
     }).provide({
-      actors: {
+      actorSources: {
         child
       }
     });
@@ -2996,14 +2996,14 @@ describe('actor implementations', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // }
-      actors: { child }
+      actorSources: { child }
     }).provide({
-      actors: {
+      actorSources: {
         // @ts-expect-error
         child: createAsyncLogic({ run: () => Promise.resolve(42) })
       }
@@ -3015,14 +3015,14 @@ describe('actor implementations', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // }
-      actors: { child }
+      actorSources: { child }
     }).provide({
-      actors: {
+      actorSources: {
         // @ts-expect-error
         child: createAsyncLogic({
           run: () => Promise.resolve(Math.random() > 0.5 ? 'foo' : 42)
@@ -3038,16 +3038,16 @@ describe('actor implementations', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // }
-      actors: {
+      actorSources: {
         child
       }
     }).provide({
-      actors: {
+      actorSources: {
         // TODO: ideally this shouldn't error
         // @ts-expect-error
         child: createAsyncLogic({ run: () => Promise.resolve('foo') })
@@ -3074,16 +3074,16 @@ describe('actor implementations', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // }
-      actors: {
+      actorSources: {
         child
       }
     }).provide({
-      actors: {
+      actorSources: {
         child
       }
     });
@@ -3108,16 +3108,16 @@ describe('actor implementations', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // }
-      actors: {
+      actorSources: {
         child
       }
     }).provide({
-      actors: {
+      actorSources: {
         // @ts-expect-error
         child: createMachine({
           // types: {} as {
@@ -3157,16 +3157,16 @@ describe('actor implementations', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // }
-      actors: {
+      actorSources: {
         child
       }
     }).provide({
-      actors: {
+      actorSources: {
         // TODO: ideally this should be allowed
         child: createMachine({
           // types: {} as {
@@ -3206,16 +3206,16 @@ describe('actor implementations', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // }
-      actors: {
+      actorSources: {
         child
       }
     }).provide({
-      actors: {
+      actorSources: {
         // @ts-expect-error
         child: createMachine({
           // types: {} as {
@@ -3247,16 +3247,16 @@ describe('actor implementations', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // }
-      actors: {
+      actorSources: {
         child
       }
     }).provide({
-      actors: {
+      actorSources: {
         child
       }
     });
@@ -3278,16 +3278,16 @@ describe('actor implementations', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // }
-      actors: {
+      actorSources: {
         child
       }
     }).provide({
-      actors: {
+      actorSources: {
         // @ts-expect-error
         child: createMachine({
           // types: {} as {
@@ -3326,16 +3326,16 @@ describe('actor implementations', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // }
-      actors: {
+      actorSources: {
         child
       }
     }).provide({
-      actors: {
+      actorSources: {
         // the provided actor has to be able to handle all the event types that it might receive from the parent here
         // @ts-expect-error
         child: createMachine({
@@ -3370,16 +3370,16 @@ describe('actor implementations', () => {
 
     createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // }
-      actors: {
+      actorSources: {
         child
       }
     }).provide({
-      actors: {
+      actorSources: {
         // TODO: ideally this should be allowed since the provided actor is capable of handling all the event types that it might receive from the parent here
         // @ts-expect-error
         child: createMachine({
@@ -3424,16 +3424,16 @@ describe('state.children without setup', () => {
 
     const machine = createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     id: 'someChild';
       //     logic: typeof child;
       //   };
       // },
-      actors: { child },
+      actorSources: { child },
       invoke: {
         id: 'someChild',
-        src: ({ actors }) => actors.child
+        src: ({ actorSources }) => actorSources.child
       }
     });
 
@@ -3455,13 +3455,13 @@ describe('state.children without setup', () => {
 
     const machine = createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     id: 'myChild';
       //     logic: typeof child;
       //   };
       // }
-      actors: {
+      actorSources: {
         child
       }
     });
@@ -3481,12 +3481,12 @@ describe('state.children without setup', () => {
 
     const machine = createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof child;
       //   };
       // }
-      actors: {
+      actorSources: {
         child
       }
     });
@@ -3512,7 +3512,7 @@ describe('state.children without setup', () => {
 
     const machine = createMachine({
       // types: {} as {
-      //   actors:
+      //   actorSources:
       //     | {
       //         src: 'child1';
       //         id: 'counter';
@@ -3524,7 +3524,7 @@ describe('state.children without setup', () => {
       //         logic: typeof child2;
       //       };
       // }
-      actors: {
+      actorSources: {
         child1,
         child2
       }
@@ -3560,7 +3560,7 @@ describe('state.children without setup', () => {
 
     const machine = createMachine({
       // types: {} as {
-      //   actors:
+      //   actorSources:
       //     | {
       //         src: 'child1';
       //         id: 'counter';
@@ -3571,7 +3571,7 @@ describe('state.children without setup', () => {
       //         logic: typeof child2;
       //       };
       // }
-      actors: {
+      actorSources: {
         child1,
         child2
       }
@@ -4189,7 +4189,7 @@ describe('children schemas', () => {
           someId: z.custom<ActorRefFromLogic<typeof child>>()
         }
       },
-      actors: {
+      actorSources: {
         invalidChild
       },
       // @ts-expect-error
@@ -5466,7 +5466,7 @@ it('createSystem registry keys typecheck registryKey usage', () => {
 
   app
     .setup({
-      actors: {
+      actorSources: {
         receiver
       }
     })
@@ -5487,7 +5487,7 @@ it('createSystem registry keys typecheck registryKey usage', () => {
 
   app
     .setup({
-      actors: {
+      actorSources: {
         other
       }
     })

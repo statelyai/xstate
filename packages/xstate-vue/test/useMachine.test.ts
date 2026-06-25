@@ -10,7 +10,7 @@ describe('useMachine', () => {
   const fetchMachine = createMachine({
     id: 'fetch',
     types: {} as {
-      actors: {
+      actorSources: {
         src: 'fetchData';
         logic: AsyncActorLogic<string>;
       };
@@ -48,7 +48,7 @@ describe('useMachine', () => {
 
   const actorRef = createActor(
     fetchMachine.provide({
-      actors: {
+      actorSources: {
         fetchData: createMachine({
           initial: 'done',
           states: {

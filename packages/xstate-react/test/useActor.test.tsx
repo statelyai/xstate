@@ -33,7 +33,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     // types: {} as {
     //   context: typeof context;
     //   events: { type: 'FETCH' } | DoneActorEvent;
-    //   actors: {
+    //   actorSources: {
     //     src: 'fetchData';
     //     logic: ActorLogicFrom<Promise<string>>;
     //   };
@@ -46,7 +46,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
         type: z.literal('FETCH')
       }) as any
     },
-    actors: {
+    actorSources: {
       fetchData: createMachine({})
     },
     initial: 'idle',
@@ -59,7 +59,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
         invoke: {
           id: 'fetchData',
           // src: 'fetchData',
-          src: ({ actors }: any) => actors.fetchData,
+          src: ({ actorSources }: any) => actorSources.fetchData,
           // onDone: {
           //   target: 'success',
           //   actions: assign({
@@ -89,7 +89,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   const actorRef = createActor(
     fetchMachine.provide({
-      actors: {
+      actorSources: {
         fetchData: createMachine({
           initial: 'done',
           states: {
@@ -117,7 +117,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   }) => {
     const [current, send] = useActor(
       fetchMachine.provide({
-        actors: {
+        actorSources: {
           fetchData: createAsyncLogic({ run: onFetch }) as any
         }
       }),
@@ -589,7 +589,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     let serviceCalled = false;
 
     const machine = createMachine({
-      actors: {
+      actorSources: {
         foo: createAsyncLogic({
           run: () => {
             serviceCalled = true;
@@ -607,7 +607,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
         b: {
           invoke: {
             // src: 'foo'
-            src: ({ actors }) => actors.foo
+            src: ({ actorSources }) => actorSources.foo
           }
         }
       }
@@ -760,13 +760,13 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     const machine = createMachine({
       // types: {} as {
-      //   actors: {
+      //   actorSources: {
       //     src: 'child';
       //     logic: typeof childMachine;
       //     id: 'test';
       //   };
       // },
-      actors: {
+      actorSources: {
         child: childMachine
       },
       initial: 'active',
@@ -774,7 +774,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
         active: {
           invoke: {
             // src: 'child',
-            src: ({ actors }: any) => actors.child,
+            src: ({ actorSources }: any) => actorSources.child,
             id: 'test',
             input: { value: 42 }
           } as any

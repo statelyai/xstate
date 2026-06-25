@@ -15,7 +15,7 @@ export const workflow = createMachine({
       applicant: Applicant;
     };
   },
-  actors: {
+  actorSources: {
     startApplicationWorkflowId: createAsyncLogic({
       run: async () => {
         console.log('startApplicationWorkflowId workflow started');

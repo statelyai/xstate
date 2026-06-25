@@ -175,7 +175,7 @@ export const snakeMachine = createMachine({
       }
     })
   },
-  actors: {
+  actorSources: {
     ticks: createCallbackLogic(({ sendBack }) => {
       const i = setInterval(() => {
         sendBack({ type: 'TICK' });

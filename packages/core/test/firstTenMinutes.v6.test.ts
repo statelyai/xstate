@@ -155,7 +155,7 @@ describe('first ten minutes (v6)', () => {
     expect(searches).toEqual(['abc']);
   });
 
-  // Task 5 — parent-child actors.
+  // Task 5 — parent-child actorSources.
   // Concepts: + enq.spawn, children, enq.sendTo, parent
   it('parent-child actors', () => {
     const counterMachine = createMachine({

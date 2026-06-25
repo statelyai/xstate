@@ -7,7 +7,7 @@ export const workflow = createMachine({
       results: string[] | undefined;
     }
   },
-  actors: {
+  actorSources: {
     batchMathFunction: createAsyncLogic({
       schemas: {
         input: z.custom<{

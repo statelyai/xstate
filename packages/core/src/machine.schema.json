@@ -246,7 +246,7 @@
         "schemas": { "type": "object" },
         "actions": { "$ref": "#/$defs/implementationMap" },
         "guards": { "$ref": "#/$defs/implementationMap" },
-        "actors": { "$ref": "#/$defs/implementationMap" },
+        "actorSources": { "$ref": "#/$defs/implementationMap" },
         "delays": { "$ref": "#/$defs/implementationMap" }
       },
       "additionalProperties": true

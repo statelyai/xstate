@@ -10,7 +10,7 @@ export const workflow = createMachine({
       };
     }
   },
-  actors: {
+  actorSources: {
     greetingFunction: createAsyncLogic({
       schemas: {
         input: z.custom<{

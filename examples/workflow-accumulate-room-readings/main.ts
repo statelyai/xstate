@@ -33,7 +33,7 @@ export const workflow = createMachine({
   delays: {
     PT1H: 10000
   },
-  actors: {
+  actorSources: {
     produceReport: createAsyncLogic({
       schemas: {
         input: z.custom<{

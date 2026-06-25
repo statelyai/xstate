@@ -89,7 +89,7 @@ describe('serializability conformance', () => {
         events: { INC: z.object({ by: z.number() }) }
       },
       context: { count: 0 },
-      actors: {},
+      actorSources: {},
       actions: {
         track: () => {}
       },
@@ -219,7 +219,7 @@ describe('serializability conformance', () => {
           GO: z.object({})
         }
       },
-      actors: {
+      actorSources: {
         worker
       },
       initial: 'a',
@@ -242,7 +242,7 @@ describe('serializability conformance', () => {
     expect(markers).toEqual(
       expect.arrayContaining([
         '$.states.a.invoke.src',
-        '$.actors.worker',
+        '$.actorSources.worker',
         '$.schemas.context',
         '$.schemas.events.GO'
       ])

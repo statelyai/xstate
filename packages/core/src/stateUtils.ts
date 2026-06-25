@@ -1070,7 +1070,7 @@ function microstep(
             children,
             system: actorScope.system,
             actions: currentSnapshot.machine.implementations.actions,
-            actors: currentSnapshot.machine.implementations.actors,
+            actorSources: currentSnapshot.machine.implementations.actorSources,
             guards: currentSnapshot.machine.implementations.guards,
             delays: currentSnapshot.machine.implementations.delays,
             input
@@ -1394,7 +1394,8 @@ function microstep(
           let src = invokeDef.logic;
           if (typeof src === 'function') {
             src = src({
-              actors: currentSnapshot.machine.implementations.actors,
+              actorSources:
+                currentSnapshot.machine.implementations.actorSources,
               context: nextState.context,
               event,
               self: actorScope.self
@@ -1707,7 +1708,7 @@ export function getTransitionResult(
         parent: actorScope.self._parent,
         self: actorScope.self,
         actions: snapshot.machine.implementations.actions,
-        actors: snapshot.machine.implementations.actors,
+        actorSources: snapshot.machine.implementations.actorSources,
         guards: snapshot.machine.implementations.guards,
         delays: snapshot.machine.implementations.delays
       },
@@ -1994,7 +1995,7 @@ function transitionToHasEffect(
           send: triggerEffect
         } as any,
         actions: implementations.actions,
-        actors: implementations.actors,
+        actorSources: implementations.actorSources,
         guards: implementations.guards,
         delays: implementations.delays
       },
@@ -2100,7 +2101,7 @@ export function evaluateCandidate(
       parent: self._parent,
       children: snapshot.children,
       actions: stateNode.machine.implementations.actions,
-      actors: stateNode.machine.implementations.actors,
+      actorSources: stateNode.machine.implementations.actorSources,
       guards: stateNode.machine.implementations.guards,
       delays: stateNode.machine.implementations.delays,
       _snapshot: snapshot

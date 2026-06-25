@@ -7,7 +7,7 @@ export const workflow = createMachine({
       customer: string;
     }
   },
-  actors: {
+  actorSources: {
     sendEmail: createAsyncLogic({
       schemas: {
         input: z.custom<{

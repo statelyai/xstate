@@ -11,7 +11,8 @@
  * A machine definition is fully portable iff its JSON contains no
  * `$unserializable` markers; reviving a definition that has markers requires
  * re-providing those implementations (e.g. via `machine.provide(...)` or the
- * `actions`/`guards`/`actors` maps on `createMachineFromConfig` revival).
+ * `actions`/`guards`/`actorSources` maps on `createMachineFromConfig`
+ * revival).
  */
 
 import type { AnyStateMachine } from './types.ts';
@@ -222,11 +223,11 @@ export function machineConfigToJSON(
     }
     result.schemas = schemas;
   }
-  for (const key of ['actions', 'guards', 'actors', 'delays'] as const) {
+  for (const key of ['actions', 'guards', 'actorSources', 'delays'] as const) {
     if (config[key]) {
       result[key] = implementationsToJSON(
         config[key] as Record<string, unknown>,
-        key === 'actors' ? 'actor' : 'function'
+        key === 'actorSources' ? 'actor' : 'function'
       );
     }
   }

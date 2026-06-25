@@ -10,7 +10,7 @@ const rl = readline.createInterface({
 const prompt = (question: string) =>
   new Promise<string>((resolve) => rl.question(question, resolve));
 const onboardingWorkflow = createMachine({
-  actors: {
+  actorSources: {
     prompt: createAsyncLogic({
       schemas: {
         input: z.custom<{
@@ -66,7 +66,7 @@ const onboardingWorkflow = createMachine({
   }
 });
 export const workflow = createMachine({
-  actors: {
+  actorSources: {
     onboarding: onboardingWorkflow
   },
   id: 'async-function-invocation',

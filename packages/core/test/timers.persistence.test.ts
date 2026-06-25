@@ -198,7 +198,7 @@ describe('persisted timers', () => {
     });
 
     const parent = createMachine({
-      actors: { child },
+      actorSources: { child },
       initial: 'working',
       states: {
         working: {

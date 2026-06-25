@@ -67,7 +67,7 @@ const triviaMachine = createMachine({
       }
     })
   },
-  actors: {
+  actorSources: {
     loadHomePageCharacters: createAsyncLogic({
       run: () => RickCharacters.getCharacters(Math.floor(Math.random() * 34))
     }),

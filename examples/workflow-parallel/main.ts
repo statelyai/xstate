@@ -1,7 +1,7 @@
 import { createMachine, createAsyncLogic, createActor } from 'xstate';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#parallel-execution-example
 export const workflow = createMachine({
-  actors: {
+  actorSources: {
     shortDelay: createAsyncLogic({
       run: async () => {
         await new Promise<void>((resolve) =>

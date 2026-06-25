@@ -2680,7 +2680,7 @@ describe('enqueueActions', () => {
     const parentMachine =
       // setup({
       //   types: {} as { events: ParentEvent },
-      //   actors: {
+      //   actorSources: {
       //     child: childMachine
       //   }
       // }).
@@ -2711,7 +2711,7 @@ describe('enqueueActions', () => {
     });
     const parentSpy = vi.fn();
     const parentMachine = createMachine({
-      actors: {
+      actorSources: {
         child: childMachine
       },
       on: {
@@ -2723,7 +2723,7 @@ describe('enqueueActions', () => {
         }
       },
       invoke: {
-        src: ({ actors }) => actors.child
+        src: ({ actorSources }) => actorSources.child
       }
     });
     createActor(parentMachine).start();
@@ -3108,7 +3108,7 @@ describe('sendTo', () => {
     });
     const machine = createMachine({
       initial: 'a',
-      actors: {
+      actorSources: {
         child1,
         child2
       },
@@ -3129,13 +3129,13 @@ describe('sendTo', () => {
           //     id: 'myChild'
           //   })
           // ]
-          entry: ({ actors }, enq) => {
-            const child1 = enq.spawn(actors.child1, {
+          entry: ({ actorSources }, enq) => {
+            const child1 = enq.spawn(actorSources.child1, {
               id: 'myChild'
             });
             enq.sendTo(child1, { type: 'PING' }, { delay: 1 });
             enq.stop(child1);
-            enq.spawn(actors.child2, {
+            enq.spawn(actorSources.child2, {
               id: 'myChild'
             });
           }
@@ -3177,7 +3177,7 @@ describe('sendTo', () => {
       }
     });
     const machine = createMachine({
-      actors: {
+      actorSources: {
         child1,
         child2
       },
@@ -3195,7 +3195,7 @@ describe('sendTo', () => {
             enq.sendTo(children.myChild, { type: 'PING' }, { delay: 1 });
           },
           invoke: {
-            src: ({ actors }) => actors.child1,
+            src: ({ actorSources }) => actorSources.child1,
             id: 'myChild'
           },
           on: {
@@ -3204,7 +3204,7 @@ describe('sendTo', () => {
         },
         c: {
           invoke: {
-            src: ({ actors }) => actors.child2,
+            src: ({ actorSources }) => actorSources.child2,
             id: 'myChild'
           }
         }
@@ -3605,7 +3605,7 @@ describe('cancel', () => {
       }
     });
     const machine = createMachine({
-      actors: {
+      actorSources: {
         child
       },
       initial: 'a',
@@ -3629,7 +3629,7 @@ describe('cancel', () => {
             enq.cancel('myEvent');
           },
           invoke: {
-            src: ({ actors }) => actors.child,
+            src: ({ actorSources }) => actorSources.child,
             id: 'myChild'
           }
         }
@@ -3654,7 +3654,7 @@ describe('cancel', () => {
     });
     const machine = createMachine({
       initial: 'a',
-      actors: {
+      actorSources: {
         child
       },
       states: {
@@ -3673,7 +3673,7 @@ describe('cancel', () => {
             enq.cancel('myEvent');
           },
           invoke: {
-            src: ({ actors }) => actors.child,
+            src: ({ actorSources }) => actorSources.child,
             id: 'myChild'
           }
         }

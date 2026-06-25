@@ -114,7 +114,7 @@ export const workflow = createMachine({
       console.log('logOrderCancelled');
     }
   },
-  actors: {
+  actorSources: {
     CancelOrder: createAsyncLogic({
       run: async () => {
         console.log('Starting CancelOrder');

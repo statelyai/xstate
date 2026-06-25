@@ -162,7 +162,8 @@ export type Next_MachineConfig<
   TDelays extends string = string,
   _TTag extends string = string,
   TActionMap extends Implementations['actions'] = Implementations['actions'],
-  TActorMap extends Implementations['actors'] = Implementations['actors'],
+  TActorMap extends
+    Implementations['actorSources'] = Implementations['actorSources'],
   TGuardMap extends Implementations['guards'] = Implementations['guards'],
   TDelayMap extends Implementations['delays'] = Implementations['delays'],
   TContextRequired extends boolean = IsNever<TContext> extends true
@@ -204,7 +205,7 @@ export type Next_MachineConfig<
   >;
   actions?: TActionMap;
   guards?: TGuardMap;
-  actors?: TActorMap;
+  actorSources?: TActorMap;
   /** The machine's own version. */
   version?: string;
   /**
@@ -286,9 +287,9 @@ export type WidenLiterals<T> = T extends string
 type InvokeSrcArgs<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActorMap extends Implementations['actors']
+  TActorMap extends Implementations['actorSources']
 > = {
-  actors: TActorMap;
+  actorSources: TActorMap;
   context: TContext;
   event: TEvent;
   self: AnyActorRef;
@@ -355,7 +356,7 @@ type InlineChildInvokeConfig<
   TEmitted extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject,
@@ -389,7 +390,7 @@ type InlineInvokeConfig<
   TEmitted extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject,
@@ -431,10 +432,10 @@ type InlineInvokeConfig<
 /**
  * Invoke config. A union of:
  *
- * - One branch per registered actor (distributed over the `actors` map), where
- *   `src` — a key, the logic itself, or a resolver function returning either —
- *   is correlated with `input`, so static and mapped inputs typecheck against
- *   that logic's input type.
+ * - One branch per registered actor source (distributed over the `actorSources`
+ *   map), where `src` — a key, the logic itself, or a resolver function
+ *   returning either — is correlated with `input`, so static and mapped inputs
+ *   typecheck against that logic's input type.
  * - A branch for inline (unregistered) actor logic values, whose `input` cannot
  *   be correlated (the config is not generic over inline logic).
  */
@@ -444,13 +445,13 @@ export type Next_InvokeConfig<
   TEmitted extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject,
   TSystemRegistry extends SystemRegistry = SystemRegistry
 > = string extends keyof TActorMap
-  ? // No registered actors (permissive map): `src`/`input` cannot be
+  ? // No registered actor sources (permissive map): `src`/`input` cannot be
     // correlated. A mapped type over `string` would also defer resolution and
     // break contextual typing, so this case is its own branch.
     HasExplicitChildren<TChildren> extends true
@@ -537,7 +538,7 @@ interface Next_InvokeConfigBase<
   TEmitted extends EventObject,
   _TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject,
@@ -614,7 +615,7 @@ type StateAction<
   TEvent extends EventObject,
   TEmittedEvent extends EventObject,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TInput = Record<string, unknown> | undefined
@@ -674,7 +675,7 @@ type Next_ChoiceArgs<
   TCurrentEvent extends EventObject,
   TEvent extends EventObject,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   _TCtx = [TContext] extends [never] ? any : TContext
@@ -707,7 +708,7 @@ type Next_RouteConfig<
   TEvent extends EventObject,
   TMeta extends MetaObject,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays']
 > =
@@ -746,7 +747,7 @@ type Next_ChoiceConfigFunction<
   TCurrentEvent extends EventObject,
   TEvent extends EventObject,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject,
@@ -774,7 +775,7 @@ export type Next_StateNodeConfig<
   TMeta extends MetaObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TInput = Record<string, unknown> | undefined,
@@ -815,7 +816,7 @@ interface Next_ChoiceStateNodeConfig<
   TTag extends string,
   TMeta extends MetaObject,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays']
 > {
@@ -874,7 +875,7 @@ interface Next_RegularStateNodeConfig<
   TMeta extends MetaObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TInput = Record<string, unknown> | undefined,
@@ -1127,7 +1128,7 @@ export type Next_TransitionConfigOrTarget<
   TEvent extends EventObject,
   TEmitted extends EventObject,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject
@@ -1184,7 +1185,7 @@ export interface Implementations {
   >;
   guards: Record<string, (...args: any[]) => boolean>;
   delays: Record<string, number | ((...args: any[]) => number)>;
-  actors: Record<string, AnyActorLogic>;
+  actorSources: Record<string, AnyActorLogic>;
 }
 
 export type DelayMapFromNames<

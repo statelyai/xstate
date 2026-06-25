@@ -33,7 +33,7 @@ export const flightBookerMachine = createMachine({
       return { context: { ...context, returnDate: event.value } };
     }
   },
-  actors: {
+  actorSources: {
     Booker: createAsyncLogic({
       run: () => {
         return sleep(2000);

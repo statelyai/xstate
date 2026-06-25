@@ -37,7 +37,7 @@ export const workflow = createMachine({
       accountId: string | null;
     }
   },
-  actors: {
+  actorSources: {
     checkfunds: createAsyncLogic({
       schemas: {
         input: z.custom<{

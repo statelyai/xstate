@@ -103,7 +103,7 @@ export function createMachine<
   _TEvent extends EventObject,
   TActor extends ProvidedActor,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TDelays extends string,
@@ -187,7 +187,8 @@ export function createMachine<
   _TEvent extends EventObject = EventObject,
   TActor extends ProvidedActor = ProvidedActor,
   TActionMap extends Implementations['actions'] = Implementations['actions'],
-  TActorMap extends Implementations['actors'] = Implementations['actors'],
+  TActorMap extends
+    Implementations['actorSources'] = Implementations['actorSources'],
   TGuardMap extends Implementations['guards'] = Implementations['guards'],
   TDelayMap extends Implementations['delays'] = Implementations['delays'],
   TDelays extends string = string,
@@ -229,7 +230,7 @@ export function createMachine<
         | TContext
         | ((_: {
             spawn: any;
-            actors: TActorMap;
+            actorSources: TActorMap;
             input: InferOutput<TInputSchema, unknown>;
             self: any;
           }) => TContext);
@@ -294,7 +295,7 @@ export function createStateConfig<
   _TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
   _TActor extends ProvidedActor,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TDelays extends string,

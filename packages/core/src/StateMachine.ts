@@ -73,7 +73,7 @@ export class StateMachine<
   TMeta extends MetaObject,
   TConfig extends StateSchema,
   TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actors'],
+  TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays']
 > implements
@@ -136,7 +136,7 @@ export class StateMachine<
   ) {
     this.id = config.id || '(machine)';
     this.implementations = {
-      actors: config.actors ?? {},
+      actorSources: config.actorSources ?? {},
       actions: config.actions ?? {},
       delays: (config.delays ?? {}) as Implementations['delays'],
       guards: config.guards ?? {},
@@ -145,7 +145,12 @@ export class StateMachine<
     if (isDevelopment) {
       // The `@xstate.` prefix is reserved for built-in serialized action and
       // guard descriptors — user implementation names must not collide.
-      for (const kind of ['actions', 'guards', 'actors', 'delays'] as const) {
+      for (const kind of [
+        'actions',
+        'guards',
+        'actorSources',
+        'delays'
+      ] as const) {
         for (const key of Object.keys(this.implementations[kind])) {
           if (key.startsWith('@xstate.')) {
             throw new Error(
@@ -198,13 +203,13 @@ export class StateMachine<
   /**
    * Clones this state machine with the provided implementations.
    *
-   * @param implementations Options (`actions`, `guards`, `actors`, `delays`) to
-   *   recursively merge with the existing options.
+   * @param implementations Options (`actions`, `guards`, `actorSources`,
+   *   `delays`) to recursively merge with the existing options.
    * @returns A new `StateMachine` instance with the provided implementations.
    */
   public provide(implementations: {
     actions?: Partial<TActionMap>;
-    actors?: Partial<TActorMap>;
+    actorSources?: Partial<TActorMap>;
     guards?: Partial<TGuardMap>;
     delays?: Partial<TDelayMap>;
   }): StateMachine<
@@ -223,7 +228,7 @@ export class StateMachine<
     TGuardMap,
     TDelayMap
   > {
-    const { actions, guards, actors, delays } = this.implementations;
+    const { actions, guards, actorSources, delays } = this.implementations;
 
     const provided = new StateMachine(this.config, {
       actions: {
@@ -234,10 +239,10 @@ export class StateMachine<
         ...guards,
         ...implementations.guards
       } as Implementations['guards'],
-      actors: {
-        ...actors,
-        ...implementations.actors
-      } as Implementations['actors'],
+      actorSources: {
+        ...actorSources,
+        ...implementations.actorSources
+      } as Implementations['actorSources'],
       delays: {
         ...delays,
         ...implementations.delays
@@ -461,7 +466,7 @@ export class StateMachine<
         spawn,
         input: initEvent.input,
         self: actorScope.self,
-        actors: this.implementations.actors
+        actorSources: this.implementations.actorSources
       });
       const [nextState] = resolveActionsWithContext(
         preInitial,
