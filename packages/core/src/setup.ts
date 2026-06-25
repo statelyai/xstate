@@ -1,7 +1,14 @@
 import { StandardSchemaV1 } from './schema.types.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
+  createActor as createActorFromLogic,
+  type Actor,
+  type RequiredActorOptionsKeys
+} from './createActor.ts';
+import {
   AnyActorRef,
+  AnyActorLogic,
+  ActorRefFromLogic,
   AnyStateNode,
   EventObject,
   AnyEventObject,
@@ -16,8 +23,15 @@ import {
   MetaObject,
   Cast,
   Compute,
-  EnqueueObject
+  EnqueueObject,
+  SystemRegistry,
+  RegistryKeyForLogic,
+  ActorOptions,
+  Observer,
+  Subscription
 } from './types.ts';
+import { AnyActorSystem } from './system.ts';
+import { InspectionEvent } from './inspection.ts';
 import {
   DelayMapFromNames,
   InferChildren,
@@ -44,6 +58,87 @@ type SetupConfig<
   guards?: TGuardMap;
   delays?: TDelayMap;
 };
+
+type SystemConfig<TSystemRegistry extends SystemRegistry> = {
+  registry?: TSystemRegistry;
+};
+
+type SystemActorMap<TSystemRegistry extends SystemRegistry> = {
+  [K in keyof TSystemRegistry & string]: ActorRefFromLogic<TSystemRegistry[K]>;
+};
+
+type LogicMatchesRegistryKey<TLogic, TSystemLogic> =
+  TLogic extends AnyActorLogic
+    ? TSystemLogic extends AnyActorLogic
+      ? [TLogic] extends [TSystemLogic]
+        ? true
+        : [TSystemLogic] extends [TLogic]
+          ? true
+          : ActorRefFromLogic<TLogic> extends ActorRefFromLogic<TSystemLogic>
+            ? true
+            : false
+      : false
+    : false;
+
+type RegistryKeyMatchesSrc<
+  TKey extends string,
+  TSrc,
+  TSystemRegistry extends SystemRegistry,
+  TActorMap extends Implementations['actors']
+> = TKey extends keyof TSystemRegistry & string
+  ? TSrc extends keyof TActorMap & string
+    ? LogicMatchesRegistryKey<TActorMap[TSrc], TSystemRegistry[TKey]>
+    : TSrc extends AnyActorLogic
+      ? LogicMatchesRegistryKey<TSrc, TSystemRegistry[TKey]>
+      : true
+  : false;
+
+type ValidateSystemInvoke<
+  TInvoke,
+  TSystemRegistry extends SystemRegistry,
+  TActorMap extends Implementations['actors']
+> = TInvoke extends readonly unknown[]
+  ? {
+      [K in keyof TInvoke]: TInvoke[K] &
+        ValidateSystemInvoke<TInvoke[K], TSystemRegistry, TActorMap>;
+    }
+  : TInvoke extends { registryKey: infer TKey }
+    ? TKey extends string
+      ? TInvoke extends { src: infer TSrc }
+        ? RegistryKeyMatchesSrc<
+            TKey,
+            TSrc,
+            TSystemRegistry,
+            TActorMap
+          > extends true
+          ? unknown
+          : { registryKey: never }
+        : TKey extends keyof TSystemRegistry & string
+          ? unknown
+          : { registryKey: never }
+      : { registryKey: never }
+    : unknown;
+
+type ValidateRegistryKeys<
+  TConfig,
+  TSystemRegistry extends SystemRegistry,
+  TActorMap extends Implementations['actors']
+> = string extends keyof TSystemRegistry
+  ? unknown
+  : (TConfig extends { invoke: infer TInvoke }
+      ? {
+          invoke: TInvoke &
+            ValidateSystemInvoke<TInvoke, TSystemRegistry, TActorMap>;
+        }
+      : unknown) &
+      (TConfig extends { states: infer TStates }
+        ? {
+            states: {
+              [K in keyof TStates]: TStates[K] &
+                ValidateRegistryKeys<TStates[K], TSystemRegistry, TActorMap>;
+            };
+          }
+        : unknown);
 
 type SetupStateSchemas = {
   context?: StandardSchemaV1;
@@ -440,6 +535,7 @@ type SetupMachineConfig<
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
+  TSystemRegistry extends SystemRegistry,
   TContextRequired extends boolean,
   TRootDelays extends string = TDelays,
   TRootActionMap extends Implementations['actions'] = TActionMap,
@@ -464,7 +560,8 @@ type SetupMachineConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TContextRequired
+    TContextRequired,
+    TSystemRegistry
   >,
   | 'states'
   | 'initial'
@@ -506,7 +603,8 @@ type SetupMachineConfig<
     TActionMap,
     TActorMap,
     TGuardMap,
-    TDelayMap
+    TDelayMap,
+    TSystemRegistry
   >;
   always?: StateTransitionConfigOrTarget<
     TStateSchemas,
@@ -520,7 +618,8 @@ type SetupMachineConfig<
     TActionMap,
     TActorMap,
     TGuardMap,
-    TDelayMap
+    TDelayMap,
+    TSystemRegistry
   >;
   states?: StatesWithInput<
     TStateSchemas,
@@ -536,7 +635,8 @@ type SetupMachineConfig<
     TActionMap,
     TActorMap,
     TGuardMap,
-    TDelayMap
+    TDelayMap,
+    TSystemRegistry
   >;
 };
 
@@ -555,7 +655,8 @@ type StatesWithInput<
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays']
+  TDelayMap extends Implementations['delays'],
+  TSystemRegistry extends SystemRegistry
 > = {
   [K in keyof TStateSchemas & string]?: StateNodeConfigWithNestedInput<
     TRootStateSchemas,
@@ -571,7 +672,8 @@ type StatesWithInput<
     TActionMap,
     TActorMap,
     TGuardMap,
-    TDelayMap
+    TDelayMap,
+    TSystemRegistry
   >;
 };
 
@@ -590,7 +692,8 @@ type StateNodeConfigWithNestedInput<
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays']
+  TDelayMap extends Implementations['delays'],
+  TSystemRegistry extends SystemRegistry
 > = WithNestedStates<
   Omit<
     Next_StateNodeConfig<
@@ -606,7 +709,9 @@ type StateNodeConfigWithNestedInput<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      StateInput<TStateSchema>
+      StateInput<TStateSchema>,
+      Record<string, unknown>,
+      TSystemRegistry
     >,
     'on' | 'always' | 'initial'
   > & {
@@ -636,7 +741,8 @@ type StateNodeConfigWithNestedInput<
       TActionMap,
       TActorMap,
       TGuardMap,
-      TDelayMap
+      TDelayMap,
+      TSystemRegistry
     >;
     always?: StateTransitionConfigOrTarget<
       TSiblingStateSchemas,
@@ -650,7 +756,8 @@ type StateNodeConfigWithNestedInput<
       TActionMap,
       TActorMap,
       TGuardMap,
-      TDelayMap
+      TDelayMap,
+      TSystemRegistry
     >;
   },
   TStateSchema['states'] extends Record<string, SetupStateSchema>
@@ -668,7 +775,8 @@ type StateNodeConfigWithNestedInput<
         TActionMap,
         TActorMap,
         TGuardMap,
-        TDelayMap
+        TDelayMap,
+        TSystemRegistry
       >
     : {
         [K in string]?: Next_StateNodeConfig<
@@ -684,7 +792,9 @@ type StateNodeConfigWithNestedInput<
           TActorMap,
           TGuardMap,
           TDelayMap,
-          undefined
+          undefined,
+          Record<string, unknown>,
+          TSystemRegistry
         >;
       }
 >;
@@ -700,7 +810,8 @@ type StateTransitions<
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays']
+  TDelayMap extends Implementations['delays'],
+  TSystemRegistry extends SystemRegistry
 > = {
   [K in EventDescriptor<TEvent>]?: StateTransitionConfigOrTarget<
     TStateSchemas,
@@ -714,7 +825,8 @@ type StateTransitions<
     TActionMap,
     TActorMap,
     TGuardMap,
-    TDelayMap
+    TDelayMap,
+    TSystemRegistry
   >;
 };
 
@@ -730,23 +842,17 @@ type StateTransitionConfigOrTarget<
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays']
+  TDelayMap extends Implementations['delays'],
+  TSystemRegistry extends SystemRegistry
 > =
   | undefined
-  | {
-      target?:
-        | SetupStateTarget<TStateSchemas>
-        | SetupStateTarget<TStateSchemas>[];
-      description?: string;
-      reenter?: boolean;
-      meta?: TMeta;
-      input?:
-        | Record<string, unknown>
-        | ((args: {
-            context: TContext;
-            event: TExpressionEvent;
-          }) => Record<string, unknown>);
-    }
+  | StateTransitionObjectConfig<
+      TStateSchemas,
+      TContext,
+      TContextShape,
+      TExpressionEvent,
+      TMeta
+    >
   | StateTransitionFunction<
       TStateSchemas,
       TContext,
@@ -759,8 +865,33 @@ type StateTransitionConfigOrTarget<
       TActionMap,
       TActorMap,
       TGuardMap,
-      TDelayMap
+      TDelayMap,
+      TSystemRegistry
     >;
+
+type StateTransitionObjectConfig<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext,
+  TContextShape,
+  TExpressionEvent extends EventObject,
+  TMeta extends MetaObject
+> =
+  | (StateTransitionResult<TStateSchemas, TContext, TContextShape, TMeta> & {
+      description?: string;
+    })
+  | {
+      target: SetupStateTarget<TStateSchemas>[];
+      context?: ContextPatch<TContextShape, TContextShape, TContext>;
+      description?: string;
+      reenter?: boolean;
+      meta?: TMeta;
+      input?:
+        | Record<string, unknown>
+        | ((args: {
+            context: TContext;
+            event: TExpressionEvent;
+          }) => Record<string, unknown>);
+    };
 
 type StateTransitionFunction<
   TStateSchemas extends Record<string, SetupStateSchema>,
@@ -774,7 +905,8 @@ type StateTransitionFunction<
   TActionMap extends Implementations['actions'],
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays']
+  TDelayMap extends Implementations['delays'],
+  TSystemRegistry extends SystemRegistry
 > = (
   args: {
     context: TContext;
@@ -788,7 +920,7 @@ type StateTransitionFunction<
     guards: TGuardMap;
     delays: TDelayMap;
   },
-  enq: EnqueueObject<TEvent, TEmitted>
+  enq: EnqueueObject<TEvent, TEmitted, TSystemRegistry>
 ) => StateTransitionResult<
   TStateSchemas,
   TContext,
@@ -895,7 +1027,8 @@ interface SetupReturn<
   TSetupActorMap extends Implementations['actors'] = {},
   TSetupGuardMap extends Implementations['guards'] = {},
   TSetupDelayMap extends Implementations['delays'] = {},
-  TSetupDelays extends string = Extract<keyof TSetupDelayMap, string>
+  TSetupDelays extends string = Extract<keyof TSetupDelayMap, string>,
+  TSystemRegistry extends SystemRegistry = SystemRegistry
 > {
   /** Extends the setup configuration */
   extend<
@@ -921,7 +1054,8 @@ interface SetupReturn<
     MergeImplementationMaps<TSetupActorMap, TExtendActorMap>,
     MergeImplementationMaps<TSetupGuardMap, TExtendGuardMap>,
     MergeImplementationMaps<TSetupDelayMap, TExtendDelayMap>,
-    TSetupDelays | Extract<keyof TExtendDelayMap, string>
+    TSetupDelays | Extract<keyof TExtendDelayMap, string>,
+    TSystemRegistry
   >;
 
   /** Creates a state machine with the setup configuration */
@@ -980,6 +1114,7 @@ interface SetupReturn<
       MergeImplementationMaps<TSetupActorMap, TActorMap>,
       MergeImplementationMaps<TSetupGuardMap, TGuardMap>,
       MergeImplementationMaps<TSetupDelayMap, TDelayMap>,
+      TSystemRegistry,
       SetupContextRequired<TSchemas, TContextSchema>,
       TDelays,
       TActionMap,
@@ -1010,6 +1145,7 @@ interface SetupReturn<
       MergeImplementationMaps<TSetupActorMap, TActorMap>,
       MergeImplementationMaps<TSetupGuardMap, TGuardMap>,
       MergeImplementationMaps<TSetupDelayMap, TDelayMap>,
+      TSystemRegistry,
       SetupContextRequired<TSchemas, TContextSchema>,
       TDelays,
       TActionMap,
@@ -1035,7 +1171,12 @@ interface SetupReturn<
     } & TConfig &
       ValidateSetupStateKeys<TConfig, TStates> &
       ValidateNestedSetupStateKeys<TConfig, TStates> &
-      ValidateSetupDelayReferences<TConfig, TSetupDelays>
+      ValidateSetupDelayReferences<TConfig, TSetupDelays> &
+      ValidateRegistryKeys<
+        TConfig,
+        TSystemRegistry,
+        MergeImplementationMaps<TSetupActorMap, TActorMap>
+      >
   ): StateMachine<
     SetupContext<TSchemas, TContextSchema>,
     | SetupEvents<TSchemas, TEventSchemaMap>
@@ -1093,7 +1234,8 @@ interface SetupReturn<
       TSetupActionMap,
       TSetupActorMap,
       TSetupGuardMap,
-      TSetupDelayMap
+      TSetupDelayMap,
+      TSystemRegistry
     >
   >(
     config: TConfig
@@ -1193,6 +1335,121 @@ export function setup<
       return stateConfig;
     },
     states
+  };
+}
+
+type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
+  createActor<TLogic extends AnyActorLogic>(
+    logic: TLogic,
+    options?: Omit<ActorOptions<TLogic>, 'registryKey'> & {
+      registryKey?: RegistryKeyForLogic<TLogic, TSystemRegistry>;
+    } & {
+      [K in RequiredActorOptionsKeys<TLogic>]: unknown;
+    }
+  ): Actor<TLogic>;
+  get<K extends keyof SystemActorMap<TSystemRegistry> & string>(
+    key: K
+  ): SystemActorMap<TSystemRegistry>[K] | undefined;
+  getAll(): Partial<SystemActorMap<TSystemRegistry>>;
+  inspect(
+    observer:
+      | Observer<InspectionEvent>
+      | ((inspectionEvent: InspectionEvent) => void)
+  ): Subscription;
+  setup<
+    const TSchemas extends SetupSchemas = {},
+    const TStates extends Record<string, SetupStateSchema> = Record<
+      string,
+      SetupStateSchema
+    >,
+    TActionMap extends Implementations['actions'] = {},
+    TActorMap extends Implementations['actors'] = {},
+    TGuardMap extends Implementations['guards'] = {},
+    TDelayMap extends Implementations['delays'] = {}
+  >(
+    config?: SetupConfig<
+      TSchemas,
+      TStates,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap
+    >
+  ): SetupReturn<
+    TStates,
+    TSchemas,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    Extract<keyof TDelayMap, string>,
+    TSystemRegistry
+  >;
+};
+
+export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
+  _config: SystemConfig<TSystemRegistry> = {}
+): SystemBuilder<TSystemRegistry> {
+  const runtimeRef: { current?: AnyActorSystem } = {};
+  const pendingObservers: Array<{
+    observer: Parameters<AnyActorSystem['inspect']>[0];
+    subscription?: Subscription;
+    active: boolean;
+  }> = [];
+
+  const flushObservers = () => {
+    const runtime = runtimeRef.current;
+    if (!runtime) {
+      return;
+    }
+
+    for (const entry of pendingObservers) {
+      if (entry.active && !entry.subscription) {
+        entry.subscription = runtime.inspect(entry.observer);
+      }
+    }
+  };
+
+  return {
+    createActor(logic, options) {
+      const actor = createActorFromLogic(logic, {
+        ...options,
+        _systemRef: runtimeRef
+      } as any);
+      flushObservers();
+      return actor as any;
+    },
+    get(key) {
+      return runtimeRef.current?.get(key as any);
+    },
+    getAll() {
+      return (runtimeRef.current?.getAll() ?? {}) as Partial<
+        SystemActorMap<TSystemRegistry>
+      >;
+    },
+    inspect(observer) {
+      const runtime = runtimeRef.current;
+
+      if (runtime) {
+        return runtime.inspect(observer as any);
+      }
+
+      const entry: (typeof pendingObservers)[number] = {
+        observer: observer as Parameters<AnyActorSystem['inspect']>[0],
+        active: true
+      };
+      pendingObservers.push(entry);
+
+      return {
+        unsubscribe() {
+          entry.active = false;
+          entry.subscription?.unsubscribe();
+        }
+      };
+    },
+    setup(config) {
+      return setup(config) as any;
+    }
   };
 }
 

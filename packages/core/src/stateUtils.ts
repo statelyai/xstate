@@ -1673,6 +1673,7 @@ export function getTransitionResult(
   transition: Pick<AnyTransitionDefinition, 'target' | 'to' | 'source'> & {
     reenter?: AnyTransitionDefinition['reenter'];
     input?: AnyTransitionDefinition['input'];
+    context?: AnyTransitionDefinition['context'];
   },
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
@@ -1737,7 +1738,7 @@ export function getTransitionResult(
 
   return {
     targets: transition.target as AnyStateNode[] | undefined,
-    context: undefined,
+    context: transition.context,
     reenter: transition.reenter,
     actions: undefined,
     internalEvents: undefined,

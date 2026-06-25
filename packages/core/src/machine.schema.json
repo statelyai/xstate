@@ -67,6 +67,7 @@
           ]
         },
         "actions": { "$ref": "#/$defs/actionList" },
+        "context": { "type": "object" },
         "guard": {
           "oneOf": [
             { "$ref": "#/$defs/guardObject" },
@@ -104,7 +105,7 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "systemId": { "type": "string" },
+        "registryKey": { "type": "string" },
         "src": {
           "oneOf": [{ "type": "string" }, { "$ref": "#/$defs/unserializable" }]
         },

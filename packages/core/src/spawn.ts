@@ -9,18 +9,22 @@ import {
   ConditionalRequired,
   InputFrom,
   IsNotNever,
+  RegistryKeyForLogic,
+  SystemRegistry,
   TODO,
   type RequiredLogicInput
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
 
-export type Spawner = <TLogic extends AnyActorLogic>(
+export type Spawner<TSystemRegistry extends SystemRegistry = SystemRegistry> = <
+  TLogic extends AnyActorLogic
+>(
   src: TLogic,
   ...[options]: ConditionalRequired<
     [
       options?: {
         id?: string;
-        systemId?: string;
+        registryKey?: RegistryKeyForLogic<TLogic, TSystemRegistry>;
         input?: TLogic extends string ? unknown : InputFrom<TLogic>;
         syncSnapshot?: boolean;
       } & { [K in RequiredLogicInput<TLogic>]: unknown }
@@ -58,7 +62,7 @@ export function createSpawner(
               })
             : options?.input,
         src,
-        systemId: options?.systemId
+        registryKey: options?.registryKey
       }) as any;
 
       spawnedChildren[actor.id] = actor;
@@ -71,7 +75,7 @@ export function createSpawner(
         syncSnapshot: options?.syncSnapshot,
         input: options?.input,
         src,
-        systemId: options?.systemId
+        registryKey: options?.registryKey
       });
 
       return actor;

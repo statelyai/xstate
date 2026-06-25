@@ -22,6 +22,7 @@ import {
   createActor,
   createLogic,
   createMachine,
+  createSystem,
   initialTransition,
   isBuiltInExecutableAction,
   setup,
@@ -5392,4 +5393,72 @@ it('Actor<T> should be assignable to ActorRefFromLogic<T>', () => {
   }
 
   new ActorThing(logic);
+});
+
+it('createSystem registry keys typecheck registryKey usage', () => {
+  const receiver = createCallbackLogic<{ type: 'HELLO' }>(() => {});
+  const other = createCallbackLogic<{ type: 'OTHER' }>(() => {});
+  const app = createSystem({
+    registry: {
+      receiver
+    }
+  });
+
+  app.setup().createMachine({
+    invoke: {
+      src: receiver,
+      registryKey: 'receiver'
+    }
+  });
+
+  app
+    .setup({
+      actors: {
+        receiver
+      }
+    })
+    .createMachine({
+      invoke: {
+        src: 'receiver',
+        registryKey: 'receiver'
+      }
+    });
+
+  app.setup().createMachine({
+    // @ts-expect-error unknown system key
+    invoke: {
+      src: receiver,
+      registryKey: 'missing'
+    }
+  });
+
+  app
+    .setup({
+      actors: {
+        other
+      }
+    })
+    .createMachine({
+      invoke: {
+        src: 'other',
+        // @ts-expect-error system key expects the registered logic
+        registryKey: 'receiver'
+      }
+    });
+
+  app.setup().createMachine({
+    on: {
+      test: (_, enq) => {
+        enq.spawn(receiver, { registryKey: 'receiver' });
+        // @ts-expect-error system key expects the registered logic
+        enq.spawn(other, { registryKey: 'receiver' });
+      }
+    }
+  });
+
+  if (false) {
+    app.createActor(receiver, { registryKey: 'receiver' });
+    // @ts-expect-error registry key expects the registered logic
+    app.createActor(other, { registryKey: 'receiver' });
+  }
 });

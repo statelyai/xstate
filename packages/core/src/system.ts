@@ -97,7 +97,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
 
 export type AnyActorSystem = ActorSystem<any>;
 
-export function createSystem<T extends ActorSystemInfo>(
+export function createRuntimeSystem<T extends ActorSystemInfo>(
   rootActor: AnyActor,
   options: {
     clock: Clock;
@@ -242,29 +242,29 @@ export function createSystem<T extends ActorSystemInfo>(
     },
     _unregister: (actor) => {
       children.delete(actor.sessionId!);
-      const systemId = reverseKeyedActors.get(actor);
+      const registryKey = reverseKeyedActors.get(actor);
 
-      if (systemId !== undefined) {
-        keyedActors.delete(systemId);
+      if (registryKey !== undefined) {
+        keyedActors.delete(registryKey);
         reverseKeyedActors.delete(actor);
       }
     },
-    get: (systemId) => {
-      return keyedActors.get(systemId) as T['actors'][any] | undefined;
+    get: (registryKey) => {
+      return keyedActors.get(registryKey) as T['actors'][any] | undefined;
     },
     getAll: () => {
       return Object.fromEntries(keyedActors.entries()) as Partial<T['actors']>;
     },
-    _set: (systemId, actor) => {
-      const existing = keyedActors.get(systemId);
+    _set: (registryKey, actor) => {
+      const existing = keyedActors.get(registryKey);
       if (existing && existing !== actor) {
         throw new Error(
-          `Actor with system ID '${systemId as string}' already exists.`
+          `Actor with registry key '${registryKey as string}' already exists.`
         );
       }
 
-      keyedActors.set(systemId, actor);
-      reverseKeyedActors.set(actor, systemId);
+      keyedActors.set(registryKey, actor);
+      reverseKeyedActors.set(actor, registryKey);
     },
     inspect: (observerOrFn) => {
       const observer = toObserver(observerOrFn);

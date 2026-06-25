@@ -25,7 +25,8 @@ import {
   TODO,
   TransitionConfigFunction,
   Values,
-  AnyStateNode
+  AnyStateNode,
+  SystemRegistry
 } from './types';
 import { MachineContext, Mapper } from './types';
 import { LowInfer } from './types';
@@ -166,7 +167,8 @@ export type Next_MachineConfig<
   TDelayMap extends Implementations['delays'] = Implementations['delays'],
   TContextRequired extends boolean = IsNever<TContext> extends true
     ? false
-    : true
+    : true,
+  TSystemRegistry extends SystemRegistry = SystemRegistry
 > = (DistributiveOmit<
   Next_StateNodeConfig<
     TContext,
@@ -180,7 +182,10 @@ export type Next_MachineConfig<
     DoNotInfer<TActionMap>,
     DoNotInfer<TActorMap>,
     DoNotInfer<TGuardMap>,
-    DoNotInfer<TDelayMap>
+    DoNotInfer<TDelayMap>,
+    Record<string, unknown> | undefined,
+    Record<string, unknown>,
+    DoNotInfer<TSystemRegistry>
   >,
   'output'
 > & {
@@ -353,7 +358,8 @@ type InlineChildInvokeConfig<
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TSystemRegistry extends SystemRegistry
 > = Values<{
   [K in keyof TChildren & string]: Next_InvokeConfigBase<
     TContext,
@@ -364,7 +370,8 @@ type InlineChildInvokeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TMeta,
+    TSystemRegistry
   > & {
     id: K;
     src: LogicForChildRef<TChildren[K]>;
@@ -385,7 +392,8 @@ type InlineInvokeConfig<
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TSystemRegistry extends SystemRegistry
 > =
   HasExplicitChildren<TChildren> extends true
     ? InlineChildInvokeConfig<
@@ -397,7 +405,8 @@ type InlineInvokeConfig<
         TActorMap,
         TGuardMap,
         TDelayMap,
-        TMeta
+        TMeta,
+        TSystemRegistry
       >
     : Next_InvokeConfigBase<
         TContext,
@@ -408,7 +417,8 @@ type InlineInvokeConfig<
         TActorMap,
         TGuardMap,
         TDelayMap,
-        TMeta
+        TMeta,
+        TSystemRegistry
       > & {
         src: AnyActorLogic;
         input?:
@@ -437,7 +447,8 @@ export type Next_InvokeConfig<
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TSystemRegistry extends SystemRegistry = SystemRegistry
 > = string extends keyof TActorMap
   ? // No registered actors (permissive map): `src`/`input` cannot be
     // correlated. A mapped type over `string` would also defer resolution and
@@ -452,7 +463,8 @@ export type Next_InvokeConfig<
         TActorMap,
         TGuardMap,
         TDelayMap,
-        TMeta
+        TMeta,
+        TSystemRegistry
       >
     : Next_InvokeConfigBase<
         TContext,
@@ -463,7 +475,8 @@ export type Next_InvokeConfig<
         TActorMap,
         TGuardMap,
         TDelayMap,
-        TMeta
+        TMeta,
+        TSystemRegistry
       > & {
         src:
           | string
@@ -488,7 +501,8 @@ export type Next_InvokeConfig<
             TActorMap,
             TGuardMap,
             TDelayMap,
-            TMeta
+            TMeta,
+            TSystemRegistry
           > & {
             src:
               | K
@@ -513,7 +527,8 @@ export type Next_InvokeConfig<
           TActorMap,
           TGuardMap,
           TDelayMap,
-          TMeta
+          TMeta,
+          TSystemRegistry
         >;
 
 interface Next_InvokeConfigBase<
@@ -525,10 +540,11 @@ interface Next_InvokeConfigBase<
   TActorMap extends Implementations['actors'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TSystemRegistry extends SystemRegistry
 > {
   id?: string;
-  systemId?: string;
+  registryKey?: keyof TSystemRegistry & string;
   // `event.output` is `any`: invoke output cannot be inferred from `src`
   // (no registration-based typing in v6), and the documented pattern is
   // `onDone: ({ event }) => ({ context: { data: event.output } })`.
@@ -765,7 +781,8 @@ export type Next_StateNodeConfig<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TInput = Record<string, unknown> | undefined,
-  TInputMap extends Record<string, unknown> = Record<string, unknown>
+  TInputMap extends Record<string, unknown> = Record<string, unknown>,
+  TSystemRegistry extends SystemRegistry = SystemRegistry
 > =
   | Next_RegularStateNodeConfig<
       TContext,
@@ -781,7 +798,8 @@ export type Next_StateNodeConfig<
       TGuardMap,
       TDelayMap,
       TInput,
-      TInputMap
+      TInputMap,
+      TSystemRegistry
     >
   | Next_ChoiceStateNodeConfig<
       TContext,
@@ -863,7 +881,8 @@ interface Next_RegularStateNodeConfig<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TInput = Record<string, unknown> | undefined,
-  TInputMap extends Record<string, unknown> = Record<string, unknown>
+  TInputMap extends Record<string, unknown> = Record<string, unknown>,
+  TSystemRegistry extends SystemRegistry = SystemRegistry
 > {
   contextSchema?: StandardSchemaV1;
   /** The initial state transition. */
@@ -913,7 +932,8 @@ interface Next_RegularStateNodeConfig<
       TGuardMap,
       TDelayMap,
       LookupInput<TInputMap, K>,
-      TInputMap
+      TInputMap,
+      TSystemRegistry
     >;
   };
   /**
@@ -930,7 +950,8 @@ interface Next_RegularStateNodeConfig<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TMeta
+      TMeta,
+      TSystemRegistry
     >
   >;
   /** The mapping of event types to their potential transition(s). */
@@ -1117,6 +1138,7 @@ export type Next_TransitionConfigOrTarget<
   | undefined
   | {
       target?: string | string[];
+      context?: Partial<TContext>;
       description?: string;
       reenter?: boolean;
       meta?: TMeta;
@@ -1136,6 +1158,7 @@ export type Next_TransitionConfigOrTarget<
         TDelayMap,
         TMeta
       >;
+      context?: Partial<TContext>;
       description?: string;
       reenter?: boolean;
       meta?: TMeta;

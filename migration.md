@@ -54,7 +54,7 @@ Beyond simplifying the action/guard surface, v6 introduces a number of features 
 | [Triggers](#15-triggers)                                                          | Declarative `triggers: [{ type: 'webhook', ... }]` metadata describing how a machine is activated.                                                                                                                |
 | [`actor.select`](#23-actorselect)                                                 | Derive a subscribable, memoized selection from an actor's snapshot — `actor.select(s => s.context.x)`.                                                                                                            |
 | [Route states](#24-route-states)                                                  | A state with `route` can be navigated to directly via `actor.send({ type: 'xstate.route', to: '#id' })`, gated by an inline route guard/resolver.                                                                 |
-| [Actor registry](#25-actor-registry)                                              | `actor.system.get(systemId)` / `getAll()` look up actors by `systemId` without passing refs. The root actor can be named via `createActor(machine, { systemId })`.                                                |
+| [Actor registry](#25-actor-registry)                                              | `actor.system.get(registryKey)` / `system.get(registryKey)` look up actors by `registryKey` without passing refs. The root actor can be named via `system.createActor(machine, { registryKey })`.                 |
 | [Snapshot versioning](#21-persistence--rehydration)                               | `version` on the machine is stamped onto persisted snapshots and checked on restore.                                                                                                                              |
 | [Serialization](#22-machine-as-data-serialization-json-configs-scxml)             | `serializeMachine` / `machineConfigToJSON` / `createMachineFromConfig` are now public — round-trip a machine to/from a plain JSON config.                                                                         |
 | [`createMachineFromConfig`](#22-machine-as-data-serialization-json-configs-scxml) | Build a machine from a plain JSON config with serialized actions — useful for SCXML round-trip, persistence, or storing machines as data.                                                                         |
@@ -160,7 +160,7 @@ The second argument is the action queue. It buffers side effects so the transiti
 | `enq.emit(event)`               | Emit an event observable via `actor.on(...)`                                       |
 | `enq.log(...args)`              | Log via the configured logger (replaces v5 `log`)                                  |
 | `enq.sendTo(ref, event, opts?)` | Send an event to another actor (replaces v5 `sendTo` / `sendParent` / `forwardTo`) |
-| `enq.spawn(logic, opts?)`       | Spawn a child actor; returns the `ActorRef` (replaces v5 `spawnChild`)             |
+| `enq.spawn(logic, opts?)`       | Spawn a child actor; `opts.registryKey` registers it in a typed system registry    |
 | `enq.stop(ref?)`                | Stop a spawned child or listener (replaces v5 `stopChild`)                         |
 | `enq.listen(ref, type, mapper)` | Subscribe to a child's emitted events; remap → parent (returns a stoppable ref)    |
 | `enq.subscribeTo(ref, mappers)` | Subscribe to a child's snapshot stream (returns a stoppable ref)                   |
@@ -917,7 +917,7 @@ These exports have been **removed** from `xstate`:
 
 These exports have been **added**:
 
-- `setup` (reshaped — see §4)
+- `setup` (reshaped — see §4) and `createSystem(...).setup(...)` for typed system registries
 - `createStateConfig`
 - `checkStateIn`
 - `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
@@ -1173,26 +1173,33 @@ to. See `test/route.test.ts`.
 
 ## 25. Actor registry
 
-**New in v6 (public).** Actors can be looked up by `systemId` from the shared
-system, so distant actors can find each other without threading refs through
-the tree:
+**New in v6 (public).** Actors can be looked up by `registryKey` from
+the shared system, so distant actors can find each other without threading refs
+through the tree:
 
 ```ts
-const machine = createMachine({
-  invoke: { src: childLogic, systemId: 'receiver' }
+const app = createSystem({
+  registry: {
+    receiver: childLogic
+  }
 });
 
-const actor = createActor(machine, { systemId: 'root' }).start();
+const machine = app.setup().createMachine({
+  invoke: { src: childLogic, registryKey: 'receiver' }
+});
+
+const actor = system.createActor(machine, { registryKey: 'root' }).start();
 
 actor.system.get('receiver'); // the invoked child's ActorRef (or undefined)
 actor.system.get('root'); // the root actor itself
 actor.system.getAll(); // Partial map of all registered actors
 ```
 
-`systemId` is assigned via `invoke.src`'s `systemId`, `spawn`'s `systemId`
-option, or `createActor(machine, { systemId })` for the root. Entries are
-removed when their actor stops. With `schemas`/typed actors, `get(key)` is typed
-to the corresponding `ActorRef`. See `test/system.test.ts`.
+`registryKey` is assigned via `invoke.src`'s `registryKey`, `spawn`'s
+`registryKey` option, or `system.createActor(machine, { registryKey })` for the
+root. Entries are removed when their actor stops. With
+`createSystem({ registry })`, `registryKey` is checked against the registry and
+registered actor logic. See `test/system.test.ts`.
 
 ---
 

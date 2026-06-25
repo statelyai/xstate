@@ -31,34 +31,34 @@ const createCounterMachine = (context: Partial<CounterContext> = {}) =>
               count: context.count - 1
             }
           }),
-          WIN_PROP: () => ({
+          WIN_PROP: {
             target: 'counting',
             context: {
               count: 100,
               foo: 'win'
             }
-          }),
-          WIN_STATIC: () => ({
+          },
+          WIN_STATIC: {
             target: 'counting',
             context: {
               count: 100,
               foo: 'win'
             }
-          }),
-          WIN_MIX: () => ({
+          },
+          WIN_MIX: {
             target: 'counting',
             context: {
               count: 100,
               foo: 'win'
             }
-          }),
-          WIN: () => ({
+          },
+          WIN: {
             target: 'counting',
             context: {
               count: 100,
               foo: 'win'
             }
-          }),
+          },
           SET_MAYBE: () => ({
             context: {
               maybe: 'defined'

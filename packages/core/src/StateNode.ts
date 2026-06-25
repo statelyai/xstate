@@ -217,7 +217,7 @@ export class StateNode<
       this.type === 'final' || !this.parent ? this.config.output : undefined;
     this.tags = toArray(config.tags).slice();
     this.invoke = toArray(this.config.invoke).map((invokeConfig, i) => {
-      const { src, systemId } = invokeConfig;
+      const { src, registryKey } = invokeConfig;
       const invokeId = createInvokeId(this.id, i);
       const resolvedId = invokeConfig.id ?? invokeId;
       // Referenced (string) actors keep their logical name so persisted
@@ -231,7 +231,7 @@ export class StateNode<
         src: sourceName,
         logic: src,
         id: resolvedId,
-        systemId
+        registryKey
       } as AnyInvokeDefinition;
     });
   }

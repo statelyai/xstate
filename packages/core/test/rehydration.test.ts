@@ -221,7 +221,7 @@ describe('rehydration', () => {
       },
       context: ({ spawn }) => {
         spawn('foo', {
-          systemId: 'mySystemId'
+          registryKey: 'mySystemId'
         });
         return {};
       }
@@ -245,7 +245,7 @@ describe('rehydration', () => {
       },
       context: ({ spawn }) => {
         spawn('foo', {
-          systemId: 'mySystemId'
+          registryKey: 'mySystemId'
         });
         return {};
       }
@@ -271,7 +271,7 @@ describe('rehydration', () => {
       },
       context: ({ spawn }) => {
         spawn('foo', {
-          systemId: 'mySystemId'
+          registryKey: 'mySystemId'
         });
         return {};
       },

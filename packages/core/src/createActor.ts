@@ -9,7 +9,7 @@ import {
 } from './eventUtils.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
-import { AnyActorSystem, Clock, createSystem } from './system.ts';
+import { AnyActorSystem, Clock, createRuntimeSystem } from './system.ts';
 import { executeLogicEffects } from './actors/logic.ts';
 
 // those are needed to make JSDoc `@link` work properly
@@ -178,7 +178,7 @@ export class Actor<TLogic extends AnyActorLogic>
   /** @internal Events relayed to other actors during the in-flight transition. */
   public _collectedSent: SentRecord[] = [];
   private _initialEffects: unknown[] | undefined;
-  public systemId: string | undefined;
+  public registryKey: string | undefined;
 
   /** The globally unique process ID for this invocation. */
   public sessionId: string;
@@ -218,16 +218,25 @@ export class Actor<TLogic extends AnyActorLogic>
       ...options
     };
 
-    const { clock, logger, parent, syncSnapshot, id, systemId, inspect } =
+    const { clock, logger, parent, syncSnapshot, id, registryKey, inspect } =
       resolvedOptions;
 
     this.system = parent
       ? parent.system
-      : createSystem(this, {
+      : (resolvedOptions._systemRef?.current ??
+        createRuntimeSystem(this, {
           clock,
           logger,
           timers: resolvedOptions.timers
-        });
+        }));
+
+    if (
+      !parent &&
+      resolvedOptions._systemRef &&
+      !resolvedOptions._systemRef.current
+    ) {
+      resolvedOptions._systemRef.current = this.system;
+    }
 
     if (inspect && !parent) {
       // Always inspect at the system-level
@@ -331,9 +340,11 @@ export class Actor<TLogic extends AnyActorLogic>
 
     // unified '@xstate.transition' event replaces '@xstate.actor'
 
-    if (systemId) {
-      this.systemId = systemId;
-      this.system._set(systemId, this);
+    const resolvedRegistryKey = registryKey;
+
+    if (resolvedRegistryKey) {
+      this.registryKey = resolvedRegistryKey;
+      this.system._set(resolvedRegistryKey, this);
     }
 
     // prepare to collect initial microsteps during initialTransition
@@ -377,7 +388,7 @@ export class Actor<TLogic extends AnyActorLogic>
       this._deferred.length = 0;
     }
 
-    if (systemId && (this._snapshot as any).status !== 'active') {
+    if (resolvedRegistryKey && (this._snapshot as any).status !== 'active') {
       this.system._unregister(this);
     }
 
@@ -704,8 +715,8 @@ export class Actor<TLogic extends AnyActorLogic>
     }
 
     this.system._register(this.sessionId, this);
-    if (this.systemId) {
-      this.system._set(this.systemId, this);
+    if (this.registryKey) {
+      this.system._set(this.registryKey, this);
     }
     this._processingStatus = ProcessingStatus.Running;
 

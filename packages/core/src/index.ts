@@ -28,7 +28,7 @@ export {
   type StandardSchemaV1,
   type TypeSchema
 } from './schema.types.ts';
-export { setup } from './setup.ts';
+export { createSystem, setup } from './setup.ts';
 export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
 export type {
   InspectionEvent,

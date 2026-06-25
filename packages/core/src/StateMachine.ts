@@ -697,7 +697,7 @@ export class StateMachine<
         src: string | AnyActorLogic;
         snapshot: Snapshot<unknown>;
         syncSnapshot?: boolean;
-        systemId?: string;
+        registryKey?: string;
       }
     > = snapshotData.children;
 
@@ -719,7 +719,7 @@ export class StateMachine<
         syncSnapshot: actorData.syncSnapshot,
         snapshot: childState,
         src,
-        systemId: actorData.systemId
+        registryKey: actorData.registryKey
       });
       // Mark so `start()` knows to start this child (freshly invoked/spawned
       // children are started via deferred `@xstate.start` actions instead).

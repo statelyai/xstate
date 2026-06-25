@@ -151,7 +151,7 @@ export interface GuardJSON {
 
 export interface InvokeJSON {
   id?: string;
-  systemId?: string;
+  registryKey?: string;
   src: string | UnserializableMarker;
   input?: unknown;
   onDone?: TransitionJSON | TransitionJSON[];
@@ -163,6 +163,7 @@ export interface InvokeJSON {
 
 export interface TransitionJSON {
   target?: string | string[];
+  context?: MachineContext;
   actions?: ActionJSON[];
   guard?: GuardJSON;
   description?: string;
@@ -731,7 +732,7 @@ export function createMachineFromConfig(
       return {
         src,
         id: inv.id,
-        systemId: inv.systemId,
+        registryKey: inv.registryKey,
         input: inv.input,
         onDone: inv.onDone ? getTransitionConfig(inv.onDone) : undefined,
         onError: inv.onError ? getTransitionConfig(inv.onError) : undefined,

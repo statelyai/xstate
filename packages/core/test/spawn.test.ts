@@ -15,7 +15,7 @@ describe('spawn inside machine', () => {
         })
       },
       context: ({ spawn }) => ({
-        ref: spawn(childMachine, { input: { value: 42 }, systemId: 'test' })
+        ref: spawn(childMachine, { input: { value: 42 }, registryKey: 'test' })
       })
     });
 

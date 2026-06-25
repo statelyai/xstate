@@ -246,6 +246,7 @@ export interface TransitionConfig<
   guard?: unknown;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
+  context?: Partial<TContext>;
   to?: TransitionConfigFunction<
     TContext,
     TExpressionEvent,
@@ -308,7 +309,7 @@ export interface InvokeDefinition<
 > {
   id: string;
 
-  systemId: string | undefined;
+  registryKey: string | undefined;
 
   logic:
     | string
@@ -665,7 +666,7 @@ type DistributeActors<
   ?
       | Compute<
           {
-            systemId?: string;
+            registryKey?: string;
             /** The source of the machine to be invoked, or the machine itself. */
             src:
               | TSrc
@@ -774,7 +775,7 @@ type DistributeActors<
         >
       | {
           id?: never;
-          systemId?: string;
+          registryKey?: string;
           src:
             | string
             | AnyActorLogic
@@ -888,7 +889,7 @@ export type InvokeConfig<
          */
         id?: string;
 
-        systemId?: string;
+        registryKey?: string;
         /** The source of the machine to be invoked, or the machine itself. */
         src:
           | string
@@ -1400,13 +1401,15 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   parent?: AnyActor;
   /** @internal */
   syncSnapshot?: boolean;
+  /** @internal */
+  _systemRef?: { current?: AnyActorSystem };
   /** The custom `id` for referencing this service. */
   id?: string;
   /** @deprecated Use `inspect` instead. */
   devTools?: never;
 
-  /** The system ID to register this actor under. */
-  systemId?: string;
+  /** The registry key to register this actor under. */
+  registryKey?: string;
   /** The input data to pass to the actor. */
   input?: InputFrom<TLogic>;
 
@@ -2171,6 +2174,22 @@ export interface ActorSystemInfo {
   actors: Record<string, AnyActorRef>;
 }
 
+export type SystemRegistry = Record<string, AnyActorLogic>;
+
+export type RegistryKeyForLogic<
+  TLogic extends AnyActorLogic,
+  TSystemRegistry extends SystemRegistry
+> = string extends keyof TSystemRegistry
+  ? string
+  : Values<{
+      [K in keyof TSystemRegistry &
+        string]: ActorRefFromLogic<TLogic> extends ActorRefFromLogic<
+        TSystemRegistry[K]
+      >
+        ? K
+        : never;
+    }>;
+
 export type RequiredActorOptions<TActor extends ProvidedActor> =
   | (undefined extends TActor['id'] ? never : 'id')
   | (undefined extends InputFrom<TActor['logic']> ? never : 'input');
@@ -2575,7 +2594,8 @@ export interface SubscribeToMappers<
 
 export type EnqueueObject<
   TEvent extends EventObject,
-  TEmittedEvent extends EventObject
+  TEmittedEvent extends EventObject,
+  TSystemRegistry extends SystemRegistry = SystemRegistry
 > = {
   cancel: (id: string) => void;
   raise: (ev: TEvent, options?: { id?: string; delay?: number }) => void;
@@ -2585,7 +2605,7 @@ export type EnqueueObject<
       input?: InputFrom<T>;
       id?: string;
       syncSnapshot?: boolean;
-      systemId?: string;
+      registryKey?: RegistryKeyForLogic<T, TSystemRegistry>;
     }
   ) => ActorFromLogic<T>;
   emit: (emittedEvent: TEmittedEvent) => void;

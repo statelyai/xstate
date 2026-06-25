@@ -2817,12 +2817,12 @@ describe('invoke', () => {
           }
         }),
 
-        TWO: ({ context }) => ({
+        TWO: {
           context: {
             two: 'two'
           },
           target: '.three'
-        })
+        }
       },
 
       states: {
@@ -3219,10 +3219,10 @@ describe('invoke', () => {
       states: {
         idle: {
           on: {
-            start: () => ({
+            start: {
               target: 'active',
               context: { value: 100 }
-            })
+            }
           }
         },
         active: {

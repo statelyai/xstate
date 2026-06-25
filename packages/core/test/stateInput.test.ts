@@ -110,11 +110,11 @@ describe('setup', () => {
             }
           };
         },
-        RESET: () => ({
+        RESET: {
           target: 'loading',
           context: { count: 0 },
           input: { userId: 'user-123' }
-        })
+        }
       }
     });
 
@@ -303,6 +303,38 @@ describe('setup', () => {
     expect(actor.getSnapshot().context).toEqual({ a: 1, b: 3, c: 3 });
   });
 
+  it('should allow partial context patches in static transition configs', () => {
+    const machine = setup({
+      schemas: {
+        context: types<{ a: number; b: number; c: number }>(),
+        events: {
+          GO: types<{}>()
+        }
+      }
+    }).createMachine({
+      context: { a: 1, b: 2, c: 3 },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            GO: {
+              target: 'done',
+              context: {
+                b: 4
+              }
+            }
+          }
+        },
+        done: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'GO' });
+
+    expect(actor.getSnapshot().context).toEqual({ a: 1, b: 4, c: 3 });
+  });
+
   it('should reject invalid setup-created state configs', () => {
     const s = setup({
       schemas: {
@@ -408,8 +440,8 @@ describe('setup', () => {
 
     s.createStateConfig({
       on: {
+        // @ts-expect-error - target should be a setup-defined sibling, relative target, or state ID
         LOAD: {
-          // @ts-expect-error - target should be a setup-defined sibling, relative target, or state ID
           target: 'missing'
         }
       }
@@ -451,8 +483,8 @@ describe('setup', () => {
         states: {
           idle: {
             on: {
+              // @ts-expect-error - target should be a setup-defined sibling, relative target, or state ID
               LOAD: {
-                // @ts-expect-error - target should be a setup-defined sibling, relative target, or state ID
                 target: 'missing'
               }
             }
@@ -594,8 +626,8 @@ describe('setup', () => {
               bar: {},
               baz: {
                 on: {
+                  // @ts-expect-error - target should be a local sibling key, relative target, or state ID
                   LOAD: {
-                    // @ts-expect-error - target should be a local sibling key, relative target, or state ID
                     target: 'rootSibling'
                   }
                 }
@@ -1237,10 +1269,10 @@ describe('setup', () => {
       states: {
         idle: {
           on: {
-            LOAD: () => ({
+            LOAD: {
               target: 'success',
               context: { user: 'Ada' }
-            })
+            }
           }
         },
         success: {}
@@ -1337,6 +1369,57 @@ describe('setup', () => {
       }
     });
 
+    s.createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number(),
+          user: z.string().nullable()
+        }),
+        events: {
+          LOAD: z.object({})
+        }
+      },
+      initial: 'idle',
+      context: { count: 0, user: null },
+      states: {
+        idle: {
+          on: {
+            // @ts-expect-error - success context requires a string user
+            LOAD: {
+              target: 'success'
+            }
+          }
+        },
+        success: {}
+      }
+    });
+
+    s.createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number(),
+          user: z.string().nullable()
+        }),
+        events: {
+          LOAD: z.object({})
+        }
+      },
+      initial: 'idle',
+      context: { count: 0, user: null },
+      states: {
+        idle: {
+          on: {
+            // @ts-expect-error - success context requires a string user
+            LOAD: {
+              target: 'success',
+              context: { count: 1 }
+            }
+          }
+        },
+        success: {}
+      }
+    });
+
     const machine = s.createMachine({
       schemas: {
         context: z.object({
@@ -1352,10 +1435,10 @@ describe('setup', () => {
       states: {
         idle: {
           on: {
-            LOAD: () => ({
+            LOAD: {
               target: 'success',
               context: { user: 'Ada' }
-            })
+            }
           }
         },
         success: {}

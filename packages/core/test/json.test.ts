@@ -377,7 +377,7 @@ describe('json', () => {
     expect(actor.getSnapshot().value).toBe('done');
   });
 
-  it('revives invoke systemId from JSON', () => {
+  it('revives invoke registryKey from JSON', () => {
     const worker = createAsyncLogic({
       run: () => new Promise(() => {})
     });
@@ -390,7 +390,7 @@ describe('json', () => {
             loading: {
               invoke: {
                 src: 'worker',
-                systemId: 'workerSystem'
+                registryKey: 'workerSystem'
               }
             }
           }
