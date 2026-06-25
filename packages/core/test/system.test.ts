@@ -98,6 +98,38 @@ describe('system', () => {
     expect(system.getAll()).toEqual(actor.system.getAll());
   });
 
+  it('transition functions can access the actor system', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    const receiver = createCallbackLogic<{ type: 'HELLO' }>(({ receive }) => {
+      receive((event) => {
+        if (event.type === 'HELLO') {
+          resolve();
+        }
+      });
+    });
+
+    const system = createSystem({
+      registry: {
+        receiver
+      }
+    });
+    const machine = system.setup().createMachine({
+      context: ({ spawn }) => {
+        spawn(receiver, { registryKey: 'receiver' });
+        return {};
+      },
+      on: {
+        PING: ({ system }, enq) => {
+          enq.sendTo(system.get('receiver'), { type: 'HELLO' });
+        }
+      }
+    });
+
+    system.createActor(machine).start().send({ type: 'PING' });
+
+    return promise;
+  });
+
   it('should register a spawned actor', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     type MySystem = ActorSystem<{

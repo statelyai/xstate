@@ -584,6 +584,7 @@ type TransitionFunctionArgs<
   parent: UnknownActorRef | undefined;
   value: StateValue;
   children: Record<string, AnyActor>;
+  system: AnyActorSystem;
   actions: TActionMap;
   actors: TActorMap;
   guards: TGuardMap;

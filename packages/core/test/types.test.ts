@@ -5501,9 +5501,12 @@ it('createSystem registry keys typecheck registryKey usage', () => {
 
   app.setup().createMachine({
     on: {
-      test: (_, enq) => {
+      test: ({ system }, enq) => {
+        system.get('receiver')?.send({ type: 'HELLO' });
+        // @ts-expect-error registry key expects a HELLO event
+        system.get('receiver')?.send({ type: 'OTHER' });
         enq.spawn(receiver, { registryKey: 'receiver' });
-        // @ts-expect-error system key expects the registered logic
+        // @ts-expect-error registry key expects the registered logic
         enq.spawn(other, { registryKey: 'receiver' });
       }
     }

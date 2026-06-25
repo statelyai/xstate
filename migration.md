@@ -115,7 +115,7 @@ The first argument is an object. The keys differ slightly between **transition h
 | `guards`   |         ✓          |         ✓         | Named-guard map                                                      |
 | `delays`   |         ✓          |         ✓         | Named-delay map                                                      |
 | `value`    |         ✓          |         —         | Current `StateValue`                                                 |
-| `system`   |         —          |         ✓         | The actor system                                                     |
+| `system`   |         ✓          |         ✓         | The actor system                                                     |
 | `params`   |         —          |         ✓         | Parameterized-action params (when invoked as `{ type, params }`)     |
 
 ### Transitions
@@ -1178,13 +1178,13 @@ the shared system, so distant actors can find each other without threading refs
 through the tree:
 
 ```ts
-const app = createSystem({
+const system = createSystem({
   registry: {
     receiver: childLogic
   }
 });
 
-const machine = app.setup().createMachine({
+const machine = system.setup().createMachine({
   invoke: { src: childLogic, registryKey: 'receiver' }
 });
 
@@ -1199,7 +1199,9 @@ actor.system.getAll(); // Partial map of all registered actors
 `registryKey` option, or `system.createActor(machine, { registryKey })` for the
 root. Entries are removed when their actor stops. With
 `createSystem({ registry })`, `registryKey` is checked against the registry and
-registered actor logic. See `test/system.test.ts`.
+registered actor logic. Transition functions receive the same typed `system`,
+so `system.get('receiver')` is available without casts. See
+`test/system.test.ts`.
 
 ---
 

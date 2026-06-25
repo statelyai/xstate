@@ -68,6 +68,16 @@ type SystemActorMap<TSystemRegistry extends SystemRegistry> = {
   [K in keyof TSystemRegistry & string]: ActorRefFromLogic<TSystemRegistry[K]>;
 };
 
+type SystemRuntime<TSystemRegistry extends SystemRegistry> = Omit<
+  AnyActorSystem,
+  'get' | 'getAll'
+> & {
+  get<K extends keyof SystemActorMap<TSystemRegistry> & string>(
+    key: K
+  ): SystemActorMap<TSystemRegistry>[K] | undefined;
+  getAll(): Partial<SystemActorMap<TSystemRegistry>>;
+};
+
 type LogicMatchesRegistryKey<TLogic, TSystemLogic> =
   TLogic extends AnyActorLogic
     ? TSystemLogic extends AnyActorLogic
@@ -918,6 +928,7 @@ type StateTransitionFunction<
     parent: AnyActorRef | undefined;
     value: StateValue;
     children: TChildren;
+    system: SystemRuntime<TSystemRegistry>;
     actions: TActionMap;
     actors: TActorMap;
     guards: TGuardMap;
@@ -1352,10 +1363,8 @@ type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
       [K in RequiredActorOptionsKeys<TLogic>]: unknown;
     }
   ): Actor<TLogic>;
-  get<K extends keyof SystemActorMap<TSystemRegistry> & string>(
-    key: K
-  ): SystemActorMap<TSystemRegistry>[K] | undefined;
-  getAll(): Partial<SystemActorMap<TSystemRegistry>>;
+  get: SystemRuntime<TSystemRegistry>['get'];
+  getAll: SystemRuntime<TSystemRegistry>['getAll'];
   inspect(
     observer:
       | Observer<InspectionEvent>

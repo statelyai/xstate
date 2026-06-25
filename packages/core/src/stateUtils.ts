@@ -1703,6 +1703,7 @@ export function getTransitionResult(
         output: getEventOutput(event),
         value: snapshot.value,
         children: snapshot.children,
+        system: actorScope.system,
         parent: actorScope.self._parent,
         self: actorScope.self,
         actions: snapshot.machine.implementations.actions,
@@ -1986,6 +1987,7 @@ function transitionToHasEffect(
         event,
         output: getEventOutput(event),
         self,
+        system: self.system,
         value: snapshot.value,
         children: snapshot.children,
         parent: {
