@@ -1,5 +1,56 @@
 # xstate
 
+## 6.0.0-alpha.7
+
+### Major Changes
+
+- 89895f9: Add `createSystem({ registry })` for declaring typed actor registry keys and creating actors in that system.
+
+  Registry keys are assigned with `registryKey` on invokes, spawned actors, and root actors created from the system. Registry keys are checked against the declared registry when using `createSystem`.
+
+  ```ts
+  const system = createSystem({
+    registry: {
+      receiver: receiverLogic
+    }
+  });
+
+  const machine = system.setup().createMachine({
+    invoke: {
+      src: receiverLogic,
+      registryKey: 'receiver'
+    }
+  });
+
+  const actor = system.createActor(machine).start();
+
+  system.get('receiver')?.send({ type: 'HELLO' });
+  ```
+
+### Patch Changes
+
+- 89895f9: Static transition config objects may now include a shallow `context` patch.
+
+  ```ts
+  createMachine({
+    context: { draftAnyway: false, count: 0 },
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          DRAFT_ANYWAY: {
+            target: 'drafting',
+            context: { draftAnyway: true }
+          }
+        }
+      },
+      drafting: {}
+    }
+  });
+  ```
+
+  The patch is shallow-merged with the current context, just like `context` returned from a transition function. Setup-typed machines still require any keys needed by the target state's narrowed context.
+
 ## 6.0.0-alpha.6
 
 ### Patch Changes
