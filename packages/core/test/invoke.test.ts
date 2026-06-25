@@ -25,6 +25,26 @@ import z from 'zod';
 const user = { name: 'David' };
 
 describe('invoke', () => {
+  it('should not provide output directly for arbitrary output events', () => {
+    let receivedOutput: unknown = 'unset';
+    const machine = createMachine({
+      on: {
+        CUSTOM: ({ output }) => {
+          receivedOutput = output;
+        }
+      }
+    });
+
+    createActor(machine)
+      .start()
+      .send({
+        type: 'CUSTOM',
+        output: 'not a done event output'
+      } as AnyEventObject);
+
+    expect(receivedOutput).toBeUndefined();
+  });
+
   it('child can immediately respond to the parent with multiple events', () => {
     const childMachine = createMachine({
       // types: {} as {
@@ -1096,6 +1116,42 @@ describe('invoke', () => {
         actor.subscribe({
           complete: () => {
             expect(actor.getSnapshot().context.count).toEqual(1);
+            resolve();
+          }
+        });
+        actor.start();
+        await promise;
+      });
+
+      it('should provide resolved output directly to onDone', async () => {
+        const { promise, resolve } = Promise.withResolvers<void>();
+        const promiseMachine = createMachine({
+          context: { userName: undefined as string | undefined },
+          initial: 'pending',
+          states: {
+            pending: {
+              invoke: {
+                src: createAsyncLogic({
+                  run: async () => ({ name: 'David' })
+                }),
+                onDone: ({ output }) => ({
+                  context: {
+                    userName: output.name
+                  },
+                  target: 'success'
+                })
+              }
+            },
+            success: {
+              type: 'final'
+            }
+          }
+        });
+
+        const actor = createActor(promiseMachine);
+        actor.subscribe({
+          complete: () => {
+            expect(actor.getSnapshot().context.userName).toBe('David');
             resolve();
           }
         });

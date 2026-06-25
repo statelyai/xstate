@@ -104,11 +104,11 @@ export interface ParameterizedObject {
   params?: NonReducibleUnknown;
 }
 
-export interface UnifiedArg<
+export type UnifiedArg<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject
-> {
+> = {
   context: TContext;
   event: TExpressionEvent;
   self: ActorSelf<
@@ -126,17 +126,28 @@ export interface UnifiedArg<
     AnyEventObject
   >;
   system: AnyActorSystem;
-}
+} & OutputArg<TExpressionEvent>;
 
 export type MachineContext = Record<string, any>;
 
-export interface ActionArgs<
+type DoneEventType =
+  | `xstate.done.actor.${string}`
+  | `xstate.done.state.${string}`;
+
+export type OutputArg<TEvent extends EventObject> = TEvent extends {
+  type: DoneEventType;
+  output: infer TOutput;
+}
+  ? { output: TOutput }
+  : { output: undefined };
+
+export type ActionArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject
-> extends UnifiedArg<TContext, TExpressionEvent, TEvent> {
+> = UnifiedArg<TContext, TExpressionEvent, TEvent> & {
   children: Record<string, AnyActor>;
-}
+};
 
 export type InputFrom<T> =
   T extends StateMachine<
@@ -202,11 +213,12 @@ export type WithDynamicParams<
           | T['params']
           | (({
               context,
-              event
+              event,
+              output
             }: {
               context: TContext;
               event: TExpressionEvent;
-            }) => T['params']);
+            } & OutputArg<TExpressionEvent>) => T['params']);
       },
       undefined extends T['params'] ? false : true
     >
@@ -527,38 +539,15 @@ export type TransitionConfigFunction<
   TMeta extends MetaObject,
   _TCtx = [TContext] extends [never] ? any : TContext
 > = (
-  {
-    context,
-    event,
-    self,
-    parent,
-    value,
-    children,
-    actions
-  }: {
-    context: _TCtx;
-    event: TCurrentEvent;
-    self: ActorSelf<
-      MachineSnapshot<
-        _TCtx & MachineContext,
-        TEvent,
-        TODO,
-        TODO,
-        TODO,
-        TODO,
-        TODO,
-        TODO
-      >,
-      TEvent
-    >;
-    parent: UnknownActorRef | undefined;
-    value: StateValue;
-    children: Record<string, AnyActor>;
-    actions: TActionMap;
-    actors: TActorMap;
-    guards: TGuardMap;
-    delays: TDelayMap;
-  },
+  args: TransitionFunctionArgs<
+    _TCtx,
+    TCurrentEvent,
+    TEvent,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >,
   enq: EnqueueObject<TEvent, TEmitted>
 ) => {
   target?: string | string[];
@@ -567,6 +556,39 @@ export type TransitionConfigFunction<
   reenter?: boolean;
   meta?: TMeta;
 } | void;
+
+type TransitionFunctionArgs<
+  TContext,
+  TCurrentEvent extends EventObject,
+  TEvent extends EventObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actors'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays']
+> = {
+  context: TContext;
+  event: TCurrentEvent;
+  self: ActorSelf<
+    MachineSnapshot<
+      TContext & MachineContext,
+      TEvent,
+      TODO,
+      TODO,
+      TODO,
+      TODO,
+      TODO,
+      TODO
+    >,
+    TEvent
+  >;
+  parent: UnknownActorRef | undefined;
+  value: StateValue;
+  children: Record<string, AnyActor>;
+  actions: TActionMap;
+  actors: TActorMap;
+  guards: TGuardMap;
+  delays: TDelayMap;
+} & OutputArg<TCurrentEvent>;
 
 export type AnyTransitionConfigFunction = TransitionConfigFunction<
   any,
@@ -1204,24 +1226,26 @@ export type Mapper<
   TResult,
   TEvent extends EventObject,
   _TCtx = [TContext] extends [never] ? any : TContext
-> = (args: {
-  context: _TCtx;
-  event: TExpressionEvent;
-  self: ActorSelf<
-    MachineSnapshot<
-      _TCtx & MachineContext,
+> = (
+  args: {
+    context: _TCtx;
+    event: TExpressionEvent;
+    self: ActorSelf<
+      MachineSnapshot<
+        _TCtx & MachineContext,
+        TEvent,
+        Record<string, AnyActorRef>, // TODO: this should be replaced with `TChildren`
+        StateValue,
+        string,
+        unknown,
+        TODO, // TMeta
+        TODO // State schema
+      >,
       TEvent,
-      Record<string, AnyActorRef>, // TODO: this should be replaced with `TChildren`
-      StateValue,
-      string,
-      unknown,
-      TODO, // TMeta
-      TODO // State schema
-    >,
-    TEvent,
-    AnyEventObject
-  >;
-}) => TResult;
+      AnyEventObject
+    >;
+  } & OutputArg<TExpressionEvent>
+) => TResult;
 
 export interface TransitionDefinition<
   TContext extends MachineContext,
@@ -1247,7 +1271,11 @@ export interface TransitionDefinition<
   to?: ((...args: any[]) => any) | undefined;
   input?:
     | Record<string, unknown>
-    | ((args: { context: any; event: any }) => Record<string, unknown>);
+    | ((args: {
+        context: any;
+        event: any;
+        output: any;
+      }) => Record<string, unknown>);
 }
 
 export type AnyTransitionDefinition = TransitionDefinition<any, any>;

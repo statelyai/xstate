@@ -545,9 +545,6 @@ interface Next_InvokeConfigBase<
 > {
   id?: string;
   registryKey?: keyof TSystemRegistry & string;
-  // `event.output` is `any`: invoke output cannot be inferred from `src`
-  // (no registration-based typing in v6), and the documented pattern is
-  // `onDone: ({ event }) => ({ context: { data: event.output } })`.
   onDone?: Next_TransitionConfigOrTarget<
     TContext,
     DoneActorEvent<any>,

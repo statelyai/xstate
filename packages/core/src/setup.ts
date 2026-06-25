@@ -28,7 +28,8 @@ import {
   RegistryKeyForLogic,
   ActorOptions,
   Observer,
-  Subscription
+  Subscription,
+  OutputArg
 } from './types.ts';
 import { AnyActorSystem } from './system.ts';
 import { InspectionEvent } from './inspection.ts';
@@ -887,10 +888,12 @@ type StateTransitionObjectConfig<
       meta?: TMeta;
       input?:
         | Record<string, unknown>
-        | ((args: {
-            context: TContext;
-            event: TExpressionEvent;
-          }) => Record<string, unknown>);
+        | ((
+            args: {
+              context: TContext;
+              event: TExpressionEvent;
+            } & OutputArg<TExpressionEvent>
+          ) => Record<string, unknown>);
     };
 
 type StateTransitionFunction<
@@ -919,7 +922,7 @@ type StateTransitionFunction<
     actors: TActorMap;
     guards: TGuardMap;
     delays: TDelayMap;
-  },
+  } & OutputArg<TExpressionEvent>,
   enq: EnqueueObject<TEvent, TEmitted, TSystemRegistry>
 ) => StateTransitionResult<
   TStateSchemas,
@@ -947,10 +950,12 @@ type StateTransitionResult<
         meta?: TMeta;
         input?:
           | StateInput<TStateSchemas[K]>
-          | ((args: {
-              context: TContext;
-              event: EventObject;
-            }) => StateInput<TStateSchemas[K]>);
+          | ((
+              args: {
+                context: TContext;
+                event: EventObject;
+              } & OutputArg<EventObject>
+            ) => StateInput<TStateSchemas[K]>);
       } & ([TContextShape] extends [
         StateContextShape<TStateSchemas[K], TContextShape>
       ]

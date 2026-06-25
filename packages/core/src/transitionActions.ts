@@ -8,6 +8,7 @@ import {
 } from './actors/subscription.ts';
 import { createActor } from './createActor.ts';
 import { cloneMachineSnapshot } from './State.ts';
+import { getEventOutput } from './utils.ts';
 import type {
   Action,
   AnyAction,
@@ -272,6 +273,7 @@ export function resolveActionsWithContext(
     const actionArgs = {
       context: intermediateSnapshot.context,
       event,
+      output: getEventOutput(event),
       self: actorScope.self,
       system: actorScope.system,
       children: intermediateSnapshot.children,

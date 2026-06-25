@@ -30,6 +30,11 @@ import {
   toPromise
 } from '../src/index';
 import { createInertActorScope } from '../src/getNextSnapshot';
+import type {
+  DoneActorEvent,
+  EventObject,
+  TransitionConfigFunction
+} from '../src/types';
 import type { Next_StateNodeConfig } from '../src/types.v6';
 import z from 'zod';
 
@@ -2396,19 +2401,67 @@ describe('invoke', () => {
     noop(output);
     noop(wrongOutput);
 
-    createMachine({
-      actors: { loadUser },
+    setup({
+      actors: { loadUser }
+    }).createMachine({
       invoke: {
-        src: 'loadUser',
+        src: ({ actors }) => actors.loadUser,
         input: { userId: '42' },
-        onDone: ({ event }) => {
+        onDone: ({ event, output }) => {
+          const name: string = output.name;
+
           noop(event.output);
+          noop(name);
+          noop(output);
         }
       }
     });
 
-    createMachine({
-      actors: { loadUser },
+    const typedOnDone: TransitionConfigFunction<
+      {},
+      DoneActorEvent<{ name: string }>,
+      EventObject,
+      EventObject,
+      any,
+      any,
+      any,
+      any,
+      any
+    > = ({ output }) => {
+      const name: string = output.name;
+      // @ts-expect-error
+      const age: number = output.age;
+
+      noop(name);
+      noop(age);
+    };
+
+    noop(typedOnDone);
+
+    const typedCustomOutputEvent: TransitionConfigFunction<
+      {},
+      { type: 'custom'; output: { name: string } },
+      EventObject,
+      EventObject,
+      any,
+      any,
+      any,
+      any,
+      any
+    > = ({ output }) => {
+      const undefinedOutput: undefined = output;
+      // @ts-expect-error
+      const name: string = output.name;
+
+      noop(undefinedOutput);
+      noop(name);
+    };
+
+    noop(typedCustomOutputEvent);
+
+    setup({
+      actors: { loadUser }
+    }).createMachine({
       // @ts-expect-error
       invoke: {
         src: 'loadUser',

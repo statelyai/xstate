@@ -13,7 +13,7 @@ import {
   STATE_IDENTIFIER,
   XSTATE_STOP
 } from './constants.ts';
-import { matchesEventDescriptor } from './utils.ts';
+import { getEventOutput, matchesEventDescriptor } from './utils.ts';
 import {
   AnyEventObject,
   AnyMachineSnapshot,
@@ -1417,7 +1417,8 @@ function microstep(
               ? invokeDef.input({
                   self: actorScope.self,
                   context: nextState.context,
-                  event
+                  event,
+                  output: getEventOutput(event)
                 })
               : invokeDef.input;
 
@@ -1699,6 +1700,7 @@ export function getTransitionResult(
       {
         context: snapshot.context,
         event,
+        output: getEventOutput(event),
         value: snapshot.value,
         children: snapshot.children,
         parent: actorScope.self._parent,
@@ -1717,7 +1719,11 @@ export function getTransitionResult(
     // Resolve input for .to transitions
     const resolvedInput =
       typeof transition.input === 'function'
-        ? transition.input({ context: snapshot.context, event })
+        ? transition.input({
+            context: snapshot.context,
+            event,
+            output: getEventOutput(event)
+          })
         : transition.input;
 
     return {
@@ -1733,7 +1739,11 @@ export function getTransitionResult(
   // Resolve input for regular transitions
   const resolvedInput =
     typeof transition.input === 'function'
-      ? transition.input({ context: snapshot.context, event })
+      ? transition.input({
+          context: snapshot.context,
+          event,
+          output: getEventOutput(event)
+        })
       : transition.input;
 
   return {
@@ -1974,6 +1984,7 @@ function transitionToHasEffect(
       {
         context,
         event,
+        output: getEventOutput(event),
         self,
         value: snapshot.value,
         children: snapshot.children,
@@ -2082,6 +2093,7 @@ export function evaluateCandidate(
     const guardArgs = {
       context: snapshot.context,
       event,
+      output: getEventOutput(event),
       self,
       parent: self._parent,
       children: snapshot.children,
