@@ -1258,8 +1258,12 @@ it('can create reusable store logic with selectors', () => {
       count: input.initialCount
     }),
     selectors: {
-      count: (context: { count: number }) => context.count,
-      doubled: (context: { count: number }) => context.count * 2
+      count: (context) => context.count,
+      doubled: (context) => {
+        // @ts-expect-error
+        context.missing;
+        return context.count * 2;
+      }
     },
     on: {
       inc: (context) => {
