@@ -20,7 +20,7 @@ export const fetchMachine = createMachine({
         id: 'fetchData',
         src: ({ actorSources }) => actorSources.fetchData,
         onDone: ({ event }) => {
-          if ((event.output as string).length > 0) {
+          if (event.output.length > 0) {
             return {
               target: 'success',
               context: { data: event.output }
