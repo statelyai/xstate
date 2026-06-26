@@ -52,7 +52,7 @@ export type SetupConfig<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays']
 > = {
-  schemas?: TSchemas;
+  schemas?: TSchemas & SetupSchemas;
   states?: TStates;
   actions?: TActionMap;
   actorSources?: TActorMap;
