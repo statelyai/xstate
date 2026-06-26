@@ -1,5 +1,32 @@
 # xstate
 
+## 6.0.0-alpha.9
+
+### Minor Changes
+
+- 54205cc: Export setup helper types for libraries that return or decorate setup-bound objects while preserving native `setup(...).createMachine(...)` typing.
+
+  ```ts
+  import {
+    setup,
+    type AnySetupConfig,
+    type SetupReturnFromConfig
+  } from 'xstate';
+
+  function decorateSetup<const TConfig extends AnySetupConfig>(
+    config: TConfig
+  ): SetupReturnFromConfig<TConfig> & { extra: true } {
+    const s = setup(config) as SetupReturnFromConfig<TConfig>;
+
+    return Object.assign(s, { extra: true as const });
+  }
+  ```
+
+### Patch Changes
+
+- 54205cc: Empty Standard Schema event objects now infer as type-only events, so `{ type: 'SEND' }` is accepted for an empty `SEND` payload schema while non-empty schemas still require their payload fields.
+- 54205cc: Registered invoke `onDone` callbacks now receive the invoked actor's output type, and `machine.provide({ actorSources })` accepts compatible actor implementations with sound input/output variance.
+
 ## 6.0.0-alpha.8
 
 ### Patch Changes
