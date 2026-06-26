@@ -2,28 +2,28 @@ import { StandardSchemaV1 } from './schema.types.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
   AnyActorRef,
-  AnyStateNode,
-  EventObject,
   AnyEventObject,
+  AnyStateNode,
+  Cast,
+  Compute,
+  EnqueueObject,
   EventDescriptor,
+  EventObject,
   ExtractEvent,
   MachineContext,
+  MetaObject,
   ProvidedActor,
   RoutableStateId,
   StateSchema,
   StateValue,
-  ToChildren,
-  MetaObject,
-  Cast,
-  Compute,
-  EnqueueObject
+  ToChildren
 } from './types.ts';
 import {
   DelayMapFromNames,
-  InferChildren,
   Implementations,
-  InferOutput,
+  InferChildren,
   InferEvents,
+  InferOutput,
   Next_MachineConfig,
   Next_StateNodeConfig,
   WithDefault
@@ -37,7 +37,7 @@ type SetupConfig<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays']
 > = {
-  schemas?: TSchemas;
+  schemas?: TSchemas & SetupSchemas;
   states?: TStates;
   actions?: TActionMap;
   actors?: TActorMap;
