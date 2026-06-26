@@ -1,5 +1,5 @@
 import z from 'zod';
-import { setup, createActor, types } from '../src/index.ts';
+import { setup, createActor, createAsyncLogic, types } from '../src/index.ts';
 import type {
   StateContextFromStateValue,
   StateSchemaFrom
@@ -1206,6 +1206,149 @@ describe('setup', () => {
     expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
       count: 1
     });
+  });
+
+  it('invoke transitions should require context for incompatible targets', () => {
+    const s = setup({
+      schemas: {
+        context: types<{}>(),
+        events: {
+          GO: types<{}>()
+        }
+      },
+      states: {
+        idle: {},
+        loading: {},
+        success: {
+          schemas: {
+            context: z.object({ message: z.string() })
+          }
+        }
+      },
+      actorSources: {
+        load: createAsyncLogic({
+          run: async () => undefined
+        })
+      }
+    });
+
+    s.createMachine({
+      context: {},
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            GO: { target: 'loading' }
+          }
+        },
+        loading: {
+          // @ts-expect-error - success context requires a message
+          invoke: {
+            src: 'load',
+            onDone: () => ({ target: 'success' })
+          }
+        },
+        success: {}
+      }
+    });
+
+    s.createMachine({
+      context: {},
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            GO: { target: 'loading' }
+          }
+        },
+        loading: {
+          // @ts-expect-error - success context requires a message
+          invoke: {
+            src: 'load',
+            onError: () => ({ target: 'success' })
+          }
+        },
+        success: {}
+      }
+    });
+
+    s.createMachine({
+      context: {},
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            GO: { target: 'loading' }
+          }
+        },
+        loading: {
+          // @ts-expect-error - success context requires a message
+          invoke: {
+            src: 'load',
+            onSnapshot: () => ({ target: 'success' })
+          }
+        },
+        success: {}
+      }
+    });
+
+    s.createMachine({
+      context: {},
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            GO: { target: 'loading' }
+          }
+        },
+        loading: {
+          // @ts-expect-error - success context requires a message
+          invoke: {
+            src: 'load',
+            timeout: 100,
+            onTimeout: () => ({ target: 'success' })
+          }
+        },
+        success: {}
+      }
+    });
+
+    s.createMachine({
+      context: {},
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            GO: { target: 'loading' }
+          }
+        },
+        loading: {
+          invoke: {
+            src: 'load',
+            timeout: 100,
+            onDone: () => ({
+              target: 'success',
+              context: { message: 'Done' }
+            }),
+            onError: () => ({
+              target: 'success',
+              context: { message: 'Error' }
+            }),
+            onSnapshot: () => ({
+              target: 'success',
+              context: { message: 'Snapshot' }
+            }),
+            onTimeout: () => ({
+              target: 'success',
+              context: { message: 'Timeout' }
+            })
+          }
+        },
+        success: {}
+      }
+    });
+
+    expect(true).toBe(true);
   });
 
   it('state context schemas should narrow context in state actions', () => {
